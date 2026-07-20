@@ -19,7 +19,7 @@
 
   const props = defineProps<BingoPatternPageProps>()
 
-  const isAdmin = computed(() => props.bingoPatterns.roleUser === 'admin')
+  const isAdmin = computed(() => props.bingoPatterns.roleUser?.toLowerCase() === 'admin')
 
   // En modo visualización el modal es solo lectura
   const isViewMode = ref(false)

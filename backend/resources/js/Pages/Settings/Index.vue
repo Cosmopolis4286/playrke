@@ -30,7 +30,7 @@
   // ==========================================================================
   // Lógica de negocio
   // ==========================================================================
-  const isPrivileged = computed(() => ['superadmin', 'admin'].includes(props.roleUser))
+  const isPrivileged = computed(() => ['superadmin', 'admin'].includes(props.roleUser?.toLowerCase()))
 
   const {
     settingData,

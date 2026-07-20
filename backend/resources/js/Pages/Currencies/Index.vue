@@ -37,7 +37,7 @@
   // ==========================================================================
 
   const hasPrivilegedRole = computed(() =>
-    ['company', 'customer', 'admin'].includes(props.roleUser)
+    ['company', 'customer', 'admin'].includes(props.roleUser?.toLowerCase())
   )
 
   const {

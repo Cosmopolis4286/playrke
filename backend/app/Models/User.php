@@ -378,7 +378,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $entities = [];
 
         foreach ($this->roles as $role) {
-            $entities[$role->prefix] = match ($role->prefix) {
+            $entities[$role->prefix] = match (strtolower((string) $role->prefix)) {
                 'commerce' => $this->commerce,
                 'seller' => $this->seller,
                 default => null,

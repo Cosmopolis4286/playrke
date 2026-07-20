@@ -53,7 +53,8 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryInt
         return $this->model
             ->where('user_id', $userId)
             ->whereHas('role', function ($query) use ($prefix) {
-                $query->where('prefix', $prefix);
+                // prefix se persiste siempre en mayúsculas (Role::setPrefixAttribute)
+                $query->where('prefix', strtoupper($prefix));
             })
             ->where(function ($query) {
                 $query->whereNull('expires_at')
