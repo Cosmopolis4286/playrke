@@ -75,12 +75,12 @@ function isUnconvertedPrize(w: WinnerEntry): boolean {
 .details-section {
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--ds-border);
 }
 .details-section:last-child { border-bottom: none; margin-bottom: 0; }
 
 .section-title {
-  color: #495057;
+  color: var(--ds-text-2);
   font-weight: 600;
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -94,7 +94,7 @@ function isUnconvertedPrize(w: WinnerEntry): boolean {
 .winners-list { display: flex; flex-direction: column; gap: 0.4rem; }
 
 .winner-item {
-  background: #f8f9fa;
+  background: var(--ds-surface-2);
   border-radius: 0.375rem;
   border-left: 3px solid #ffc107;
   padding: 0.45rem 0.6rem;
@@ -108,13 +108,13 @@ function isUnconvertedPrize(w: WinnerEntry): boolean {
 }
 
 .winner-info { flex: 1; min-width: 0; }
-.winner-name { display: block; font-size: 0.82rem; font-weight: 600; color: #212529; }
-.winner-id { font-size: 0.68rem; font-weight: 400; color: #adb5bd; margin-left: 4px; }
-.winner-meta { font-size: 0.7rem; color: #6c757d; }
+.winner-name { display: block; font-size: 0.82rem; font-weight: 600; color: var(--ds-text); }
+.winner-id { font-size: 0.68rem; font-weight: 400; color: var(--ds-text-2); margin-left: 4px; }
+.winner-meta { font-size: 0.7rem; color: var(--ds-text-2); }
 
 .winner-prize { text-align: right; flex-shrink: 0; }
 .winner-amount { display: block; font-size: 0.85rem; font-weight: 700; color: #28a745; white-space: nowrap; }
-.winner-amount-usd { display: block; font-size: 0.68rem; color: #6c757d; }
+.winner-amount-usd { display: block; font-size: 0.68rem; color: var(--ds-text-2); }
 .winner-amount-warning {
   display: block; font-size: 0.65rem; font-weight: 600; color: #b45309;
   white-space: nowrap;
@@ -131,13 +131,13 @@ function isUnconvertedPrize(w: WinnerEntry): boolean {
 
 .winner-card-btn {
   flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px;
-  border: 1px solid #dee2e6; background: #fff;
-  color: #6c757d; font-size: 0.8rem; cursor: pointer;
+  border: 1px solid var(--ds-border-2); background: var(--ds-surface);
+  color: var(--ds-text-2); font-size: 0.8rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.14s;
 }
 .winner-card-btn:hover { border-color: #007bff; color: #007bff; background: #e7f1ff; }
 .winner-card-btn--loading { opacity: 0.6; pointer-events: none; }
 
-.winner-serial { font-size: 0.65rem; color: #adb5bd; margin-top: 2px; font-family: monospace; }
+.winner-serial { font-size: 0.65rem; color: var(--ds-text-2); margin-top: 2px; font-family: monospace; }
 </style>
