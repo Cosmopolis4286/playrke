@@ -54,7 +54,7 @@
   .bingo-rules-content {
     font-size: 0.9rem;
     line-height: 1.7;
-    color: #343a40;
+    color: var(--ds-text);
   }
 
   .bingo-rules-content :deep(h1),

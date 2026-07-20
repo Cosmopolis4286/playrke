@@ -182,9 +182,9 @@ export default { name: 'ProfileIndex' }
 </template>
 
 <style scoped>
-.profile-page  { min-height: 100vh; background: #f0f2f7; }
+.profile-page  { min-height: 100vh; background: var(--ds-bg); }
 .profile-body  { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
-.profile-card  { background: #fff; border-radius: 0 0 16px 16px; box-shadow: 0 4px 24px rgba(102,126,234,0.10); overflow: hidden; }
+.profile-card  { background: var(--ds-surface); border-radius: 0 0 16px 16px; box-shadow: 0 4px 24px rgba(102,126,234,0.10); overflow: hidden; }
 .tab-content   { padding: 2rem; min-height: 400px; }
 
 .tab-fade-enter-active, .tab-fade-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }

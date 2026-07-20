@@ -332,9 +332,9 @@ function formatDate(dateString: string | undefined): string {
 
 /* ── Section cards ───────────────────────────────────────────────────────── */
 .section-card {
-  background: #fff;
+  background: var(--ds-surface);
   border-radius: 14px;
-  border: 1px solid #eaecf0;
+  border: 1px solid var(--ds-border);
   padding: 1.1rem 1.25rem;
   margin-bottom: 1rem;
 }
@@ -350,7 +350,7 @@ function formatDate(dateString: string | undefined): string {
   margin: 0;
   font-size: .88rem;
   font-weight: 600;
-  color: #1a1d23;
+  color: var(--ds-text);
   display: flex;
   align-items: center;
   gap: .4rem;
@@ -396,12 +396,12 @@ function formatDate(dateString: string | undefined): string {
   justify-content: space-between;
   font-size: .76rem;
   margin-bottom: .4rem;
-  color: #4b5563;
+  color: var(--ds-text-2);
 }
 
 .xp-bar {
   height: 10px;
-  background: #eaecf0;
+  background: var(--ds-border);
   border-radius: 99px;
   overflow: hidden;
 }

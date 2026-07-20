@@ -58,8 +58,8 @@ const visibleTabs = computed(() =>
 <style scoped>
 .profile-tabs {
     display: flex;
-    background: #fff;
-    border-bottom: 1px solid #eaecf0;
+    background: var(--ds-surface);
+    border-bottom: 1px solid var(--ds-border);
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -72,7 +72,7 @@ const visibleTabs = computed(() =>
     padding: 1rem 1.4rem;
     border: none;
     background: transparent;
-    color: #8892a4;
+    color: var(--ds-text-2);
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
@@ -83,13 +83,13 @@ const visibleTabs = computed(() =>
 
 .tab-btn:hover {
     color: #667eea;
-    background: #f6f7ff;
+    background: var(--ds-surface-2);
 }
 
 .tab-btn--active {
     color: #667eea;
     border-bottom-color: #667eea;
-    background: #f6f7ff;
+    background: var(--ds-surface-2);
 }
 
 .tab-icon { font-size: 0.85rem; }
