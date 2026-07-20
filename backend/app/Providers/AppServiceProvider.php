@@ -122,6 +122,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: suma manual de XP — 10 por minuto por usuario.
+        // El endpoint no verifica el origen del XP más allá de un "reason" libre;
+        // limitar la tasa mitiga scripting hasta que exista un trigger real de juego.
+        RateLimiter::for('profile-add-xp', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

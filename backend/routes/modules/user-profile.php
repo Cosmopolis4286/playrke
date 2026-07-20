@@ -27,7 +27,7 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
 
     // ── Niveles ────────────────────────────────────────────────────────────
     Route::get('/level',           [UserLevelController::class, 'getUserLevel'])   ->name('profile.api.level');
-    Route::post('/level/add-xp',   [UserLevelController::class, 'addXp'])          ->name('profile.api.level.add-xp');
+    Route::post('/level/add-xp',   [UserLevelController::class, 'addXp'])          ->name('profile.api.level.add-xp')->middleware('throttle:profile-add-xp');
 
     // ── Logros ─────────────────────────────────────────────────────────────
     Route::get('/achievements',           [AchievementController::class, 'getUserAchievements'])   ->name('profile.api.achievements');
