@@ -19,17 +19,18 @@ class SidebarMenuService
             'route' => 'dashboard',
             'permission' => null, // Accesible para todos
         ],
-        'directory' => [
-            'title' => 'Directorio',
-            'icon' => 'fas fa-address-book',
-            'permission' => null, // Accesible para todos
-            'route' => 'directory.index',
-        ],
+        // Billetera agrupa Directorio (accesible a todos) junto con el manejo
+        // de dinero del usuario; cada subitem se autofiltra por su propio
+        // permiso, así que el padre no exige ninguno en particular.
         'wallet' => [
             'title' => 'Billetera',
             'icon' => 'fas fa-wallet',
-            'permission' => 'wallet.view',
             'submenu' => [
+                'directory' => [
+                    'title' => 'Directorio',
+                    'route' => 'directory.index',
+                    'permission' => null, // Accesible para todos
+                ],
                 'my_wallet' => [
                     'title' => 'Mi Billetera',
                     'route' => 'wallet.index',

@@ -152,6 +152,7 @@ class RolePermissionSeeder extends Seeder
         if ($customer) {
             $customerPermissions = [
                 'games.bingo', // Acceso a juegos de bingo (guard 'web')
+                'wallet.view', // Ver su propia billetera (juega bingo con saldo propio)
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard
                 'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',
