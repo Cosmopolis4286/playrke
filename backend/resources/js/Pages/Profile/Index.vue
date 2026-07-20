@@ -28,7 +28,7 @@ const props = defineProps<{
 const {
     user, editMode, activeTab,
     showPassword, showAvatar, showKycModal,
-    profileForm, prefsForm,
+    profileForm, prefsForm, savingPrefsKey,
     kycState, sessions, sessionsLoading, errorMsg,
     selectedCountryName, isBirthDateEditable,
     toggleEdit, cancelEdit, saveProfile, savePreferences,
@@ -123,6 +123,7 @@ export default { name: 'ProfileIndex' }
               v-else-if="activeTab === 'preferences'"
               key="preferences"
               :prefs-form="prefsForm"
+              :saving-key="savingPrefsKey"
               @save="savePreferences"
             />
 

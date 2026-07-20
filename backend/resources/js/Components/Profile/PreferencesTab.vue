@@ -43,8 +43,13 @@
           </div>
         </div>
         <div class="prefs-card-footer">
-          <button class="save-btn" @click="$emit('save', { language: prefsForm.language, timezone: prefsForm.timezone })">
-            <i class="fas fa-check me-1"></i>Guardar
+          <button
+            class="save-btn"
+            :disabled="savingKey === 'language'"
+            @click="$emit('save', { language: prefsForm.language, timezone: prefsForm.timezone })"
+          >
+            <i :class="['fas me-1', savingKey === 'language' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
+            {{ savingKey === 'language' ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </div>
@@ -96,8 +101,13 @@
           </div>
         </div>
         <div class="prefs-card-footer">
-          <button class="save-btn" @click="$emit('save', { notifications: prefsForm.notifications })">
-            <i class="fas fa-check me-1"></i>Guardar
+          <button
+            class="save-btn"
+            :disabled="savingKey === 'notifications'"
+            @click="$emit('save', { notifications: prefsForm.notifications })"
+          >
+            <i :class="['fas me-1', savingKey === 'notifications' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
+            {{ savingKey === 'notifications' ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </div>
@@ -149,8 +159,13 @@
           </div>
         </div>
         <div class="prefs-card-footer">
-          <button class="save-btn" @click="$emit('save', { privacy: prefsForm.privacy })">
-            <i class="fas fa-check me-1"></i>Guardar
+          <button
+            class="save-btn"
+            :disabled="savingKey === 'privacy'"
+            @click="$emit('save', { privacy: prefsForm.privacy })"
+          >
+            <i :class="['fas me-1', savingKey === 'privacy' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
+            {{ savingKey === 'privacy' ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </div>
@@ -214,8 +229,13 @@
           </div>
         </div>
         <div class="prefs-card-footer">
-          <button class="save-btn" @click="$emit('save', { game_settings: prefsForm.game_settings })">
-            <i class="fas fa-check me-1"></i>Guardar
+          <button
+            class="save-btn"
+            :disabled="savingKey === 'game_settings'"
+            @click="$emit('save', { game_settings: prefsForm.game_settings })"
+          >
+            <i :class="['fas me-1', savingKey === 'game_settings' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
+            {{ savingKey === 'game_settings' ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </div>
@@ -225,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ prefsForm: any }>()
+defineProps<{ prefsForm: any; savingKey?: string | null }>()
 defineEmits<{ save: [patch: Record<string, any>] }>()
 </script>
 
@@ -316,9 +336,13 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
     transition: filter 0.15s, transform 0.15s;
     box-shadow: 0 2px 6px rgba(102,126,234,0.25);
 }
-.save-btn:hover {
+.save-btn:hover:not(:disabled) {
     filter: brightness(1.08);
     transform: translateY(-1px);
+}
+.save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* ── Select fields ── */
