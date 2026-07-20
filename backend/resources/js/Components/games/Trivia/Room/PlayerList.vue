@@ -166,7 +166,7 @@ const occupancyColor = computed(() => {
             <span
               :class="[
                 'text-sm font-semibold truncate',
-                isMe(player.id) ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-900 dark:text-white',
+                isMe(player.id) ? 'text-indigo-700 dark:text-indigo-300' : 'pl-text',
               ]"
             >{{ player.name ?? 'Jugador' }}</span>
 
@@ -184,7 +184,7 @@ const occupancyColor = computed(() => {
           <!-- Fila secundaria: tiempo + equipo -->
           <div class="flex items-center gap-2 mt-0.5 flex-wrap">
             <!-- Timestamp -->
-            <span v-if="player.joinedAt" class="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
+            <span v-if="player.joinedAt" class="flex items-center gap-1 text-[11px] pl-text-muted">
               <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
@@ -192,7 +192,7 @@ const occupancyColor = computed(() => {
             </span>
 
             <!-- Separador -->
-            <span v-if="player.joinedAt && teamFor(player)" class="text-gray-200 dark:text-gray-700 text-[11px]">·</span>
+            <span v-if="player.joinedAt && teamFor(player)" class="pl-text-faint text-[11px]">·</span>
 
             <!-- Equipo -->
             <span
@@ -201,7 +201,7 @@ const occupancyColor = computed(() => {
               :style="teamFor(player)?.color
                 ? { backgroundColor: teamFor(player)!.color + '22', color: teamFor(player)!.color }
                 : {}"
-              :class="!teamFor(player)?.color ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' : ''"
+              :class="!teamFor(player)?.color ? 'pl-surface-2 pl-text-secondary' : ''"
             >
               <span v-if="teamFor(player)?.icon" class="text-[12px]">{{ teamFor(player)!.icon }}</span>
               {{ teamFor(player)!.name }}
@@ -214,7 +214,7 @@ const occupancyColor = computed(() => {
           <span
             :class="[
               'text-xs font-bold tabular-nums',
-              index === 0 ? 'text-amber-500' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-amber-700' : 'text-gray-300 dark:text-gray-600',
+              index === 0 ? 'text-amber-500' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-amber-700' : 'pl-text-faint',
             ]"
           >#{{ index + 1 }}</span>
         </div>
