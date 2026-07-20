@@ -514,7 +514,7 @@ function formatDate(dateString: string | undefined): string {
   border-radius: 50%;
   background: conic-gradient(
     #f5576c calc(var(--wr) * 1%),
-    #eaecf0 calc(var(--wr) * 1%)
+    var(--ds-border) calc(var(--wr) * 1%)
   );
   display: flex; align-items: center; justify-content: center;
   position: relative;
@@ -525,7 +525,7 @@ function formatDate(dateString: string | undefined): string {
   position: absolute;
   width: 56px; height: 56px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--ds-surface);
 }
 .wr-text {
   position: relative;
@@ -539,16 +539,16 @@ function formatDate(dateString: string | undefined): string {
   align-items: center;
   gap: .4rem;
   font-size: .78rem;
-  color: #4b5563;
+  color: var(--ds-text-2);
 }
-.wr-row strong { margin-left: auto; font-weight: 600; color: #1a1d23; }
+.wr-row strong { margin-left: auto; font-weight: 600; color: var(--ds-text); }
 .wr-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 .wr-won .wr-dot  { background: #f5576c; }
-.wr-lost .wr-dot { background: #eaecf0; border: 1px solid #d1d5db; }
+.wr-lost .wr-dot { background: var(--ds-border); border: 1px solid var(--ds-border-2); }
 
 /* ── Info list ───────────────────────────────────────────────────────────── */
 .info-list {
@@ -564,8 +564,8 @@ function formatDate(dateString: string | undefined): string {
   align-items: baseline;
   font-size: .8rem;
 }
-.info-lbl { color: #6b7280; }
-.info-val  { font-weight: 600; color: #1a1d23; }
+.info-lbl { color: var(--ds-text-2); }
+.info-val  { font-weight: 600; color: var(--ds-text); }
 .info-val.accent { color: #11998e; }
 
 /* ── Aside ───────────────────────────────────────────────────────────────── */
