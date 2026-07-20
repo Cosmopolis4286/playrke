@@ -7,7 +7,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+  <div class="js-panel rounded-2xl shadow-sm border overflow-hidden">
     <!-- Top accent -->
     <div class="h-1 bg-gradient-to-r from-emerald-400 to-teal-500" />
 
@@ -20,8 +20,8 @@ defineProps<{
       </div>
 
       <div>
-        <h3 class="text-base font-bold text-gray-900 dark:text-white">¡Ya estás dentro!</h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <h3 class="text-base font-bold js-text">¡Ya estás dentro!</h3>
+        <p class="text-xs js-text-muted mt-1">
           Esperando que el anfitrión inicie el juego
         </p>
       </div>
@@ -29,7 +29,7 @@ defineProps<{
       <!-- Connection indicator -->
       <div class="flex items-center justify-center gap-2 text-xs">
         <span :class="['w-2 h-2 rounded-full', statusDot]" />
-        <span class="text-gray-500 dark:text-gray-400">{{ statusLabel }}</span>
+        <span class="js-text-muted">{{ statusLabel }}</span>
       </div>
 
       <!-- Player count pill -->
@@ -42,3 +42,9 @@ defineProps<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.js-panel { background: var(--ds-surface); border-color: var(--ds-border); }
+.js-text { color: var(--ds-text); }
+.js-text-muted { color: var(--ds-text-muted); }
+</style>

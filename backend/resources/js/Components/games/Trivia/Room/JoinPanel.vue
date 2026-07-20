@@ -16,7 +16,7 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+  <div class="jp-panel rounded-2xl shadow-sm border overflow-hidden">
     <div class="h-1 bg-gradient-to-r from-indigo-400 to-purple-500" />
     <div class="p-6 space-y-4">
       <div class="text-center">
@@ -25,8 +25,8 @@ defineEmits<{
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
-        <h3 class="text-base font-bold text-gray-900 dark:text-white mt-3">¿Listo para jugar?</h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Entrarás como <span class="font-semibold text-indigo-600 dark:text-indigo-400">{{ authName }}</span></p>
+        <h3 class="text-base font-bold jp-text mt-3">¿Listo para jugar?</h3>
+        <p class="text-xs jp-text-muted mt-1">Entrarás como <span class="font-semibold text-indigo-600 dark:text-indigo-400">{{ authName }}</span></p>
       </div>
 
       <!-- Info de costo si aplica -->
@@ -49,7 +49,7 @@ defineEmits<{
         </div>
         <!-- Balance del usuario -->
         <div v-else-if="userWallet && userWallet.found" class="flex items-center justify-between text-xs">
-          <span class="text-gray-500 dark:text-gray-400">Tu balance:</span>
+          <span class="jp-text-muted">Tu balance:</span>
           <span :class="['font-semibold', hasInsufficientFunds ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400']">
             {{ userWallet.symbol }} {{ userWallet.balance.toFixed(2) }}
           </span>
@@ -89,3 +89,9 @@ defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.jp-panel { background: var(--ds-surface); border-color: var(--ds-border); }
+.jp-text { color: var(--ds-text); }
+.jp-text-muted { color: var(--ds-text-muted); }
+</style>

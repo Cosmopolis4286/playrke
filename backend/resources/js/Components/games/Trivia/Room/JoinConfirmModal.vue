@@ -22,7 +22,7 @@ defineEmits<{
       class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
       @click.self="$emit('close')"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+      <div class="jcm-panel rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
         <!-- Header -->
         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4">
           <h3 class="text-lg font-bold text-white text-center">Confirmar entrada</h3>
@@ -31,8 +31,8 @@ defineEmits<{
         <div class="p-6 space-y-4">
           <!-- Detalles de la sala -->
           <div class="text-center space-y-1">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Sala</p>
-            <p class="font-semibold text-gray-900 dark:text-white">{{ room.title }}</p>
+            <p class="text-sm jcm-text-muted">Sala</p>
+            <p class="font-semibold jcm-text">{{ room.title }}</p>
             <code class="text-xs text-gray-400">{{ room.code }}</code>
           </div>
 
@@ -47,13 +47,13 @@ defineEmits<{
 
             <div v-if="userWallet && userWallet.found" class="border-t border-violet-200 dark:border-violet-700 pt-3 space-y-1">
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500 dark:text-gray-400">Tu balance:</span>
-                <span class="font-semibold text-gray-700 dark:text-gray-300">
+                <span class="jcm-text-muted">Tu balance:</span>
+                <span class="font-semibold jcm-text-secondary">
                   {{ userWallet.symbol }} {{ userWallet.balance.toFixed(2) }}
                 </span>
               </div>
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-500 dark:text-gray-400">Balance después:</span>
+                <span class="jcm-text-muted">Balance después:</span>
                 <span :class="['font-bold', (userWallet.balance - (room.entryFee || 0)) < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400']">
                   {{ userWallet.symbol }} {{ (userWallet.balance - (room.entryFee || 0)).toFixed(2) }}
                 </span>
@@ -77,7 +77,7 @@ defineEmits<{
           <div class="flex gap-3 pt-2">
             <button
               @click="$emit('close')"
-              class="flex-1 py-2.5 px-4 rounded-xl font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              class="jcm-cancel-btn flex-1 py-2.5 px-4 rounded-xl font-medium transition-colors"
             >
               Cancelar
             </button>
@@ -106,4 +106,11 @@ defineEmits<{
 <style scoped>
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.jcm-panel { background: var(--ds-surface); }
+.jcm-text { color: var(--ds-text); }
+.jcm-text-secondary { color: var(--ds-text-2); }
+.jcm-text-muted { color: var(--ds-text-muted); }
+.jcm-cancel-btn { color: var(--ds-text-2); background: var(--ds-surface-2); }
+.jcm-cancel-btn:hover { filter: brightness(0.95); }
 </style>
