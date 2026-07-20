@@ -13,14 +13,14 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+  <div class="ts-panel rounded-2xl shadow-sm border overflow-hidden">
     <div class="h-1" :class="gameMode === 'duel' ? 'bg-gradient-to-r from-red-500 to-blue-500' : 'bg-gradient-to-r from-indigo-400 to-purple-500'" />
     <div class="p-4 space-y-4">
       <div class="text-center">
-        <h3 class="text-base font-bold text-gray-900 dark:text-white">
+        <h3 class="text-base font-bold ts-text">
           {{ gameMode === 'duel' ? '⚔️ Elige tu bando' : '👥 Elige tu equipo' }}
         </h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p class="text-xs ts-text-muted mt-1">
           Selecciona un equipo para unirte
         </p>
       </div>
@@ -33,7 +33,7 @@ defineEmits<{
           class="w-full p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3"
           :class="selectedTeamId === team.id
             ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-            : 'border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-700'
+            : 'ts-team-border hover:border-indigo-300 dark:hover:border-indigo-700'
           "
           :style="team.color ? { borderColor: selectedTeamId === team.id ? team.color : undefined } : {}"
         >
@@ -44,8 +44,8 @@ defineEmits<{
             {{ team.icon || '🏆' }}
           </div>
           <div class="flex-1">
-            <p class="font-medium text-gray-900 dark:text-white">{{ team.name }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
+            <p class="font-medium ts-text">{{ team.name }}</p>
+            <p class="text-xs ts-text-muted">
               {{ team.currentPlayers }}/{{ team.maxPlayers }} jugadores
             </p>
           </div>
@@ -64,3 +64,10 @@ defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.ts-panel { background: var(--ds-surface); border-color: var(--ds-border); }
+.ts-text { color: var(--ds-text); }
+.ts-text-muted { color: var(--ds-text-muted); }
+.ts-team-border { border-color: var(--ds-border); }
+</style>
