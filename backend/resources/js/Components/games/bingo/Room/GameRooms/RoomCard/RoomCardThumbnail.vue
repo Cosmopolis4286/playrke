@@ -1,14 +1,23 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { BINGO_ROOM_IMG, formatCountdown } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 
-defineProps<{
+const props = defineProps<{
   isAvailable: boolean
   isInProgress: boolean
   hasTime: boolean
   isUrgent: boolean
   countdown: RoomCountdown | undefined
+  uuidCode?: string | null
 }>()
+
+// Código corto de sala — solo los últimos 6 caracteres, igual criterio que en BingoRoomInfoModal.vue
+const shortRoomCode = computed(() => {
+  const code = props.uuidCode
+  if (!code) return null
+  return code.length > 6 ? code.slice(-6).toUpperCase() : code.toUpperCase()
+})
 </script>
 
 <template>
@@ -17,6 +26,11 @@ defineProps<{
     <img :src="BINGO_ROOM_IMG" alt="" class="rc__img" />
     <div class="rc__img-veil" />
     <div class="rc__side-accent" />
+
+    <!-- Código corto de sala — discreto, esquina superior izquierda -->
+    <span v-if="shortRoomCode" class="rc__room-code">
+      <i class="fas fa-hashtag" />{{ shortRoomCode }}
+    </span>
 
     <!-- Un solo badge: fusiona estado + countdown cuando hay tiempo activo,
          para no apilar dos pastillas (arriba/abajo) y ganar altura. -->
@@ -98,6 +112,16 @@ defineProps<{
   background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
   opacity: .5;
 }
+
+/* Código corto de sala — discreto, esquina superior izquierda, sin badge */
+.rc__room-code {
+  position: absolute; top: 6px; left: 8px; z-index: 3;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 8px; font-weight: 600; letter-spacing: .4px;
+  color: rgba(255,255,255,.38);
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+.rc__room-code i { font-size: 6.5px; opacity: .7; }
 
 /* badge único — top centrado; fusiona estado + countdown para no apilar dos pastillas */
 .rc__status-badge {

@@ -129,6 +129,7 @@ function handleClick(event: MouseEvent) {
         :has-time="!!hasTime"
         :is-urgent="isUrgent"
         :countdown="countdown"
+        :uuid-code="room.uuid_code"
       />
 
       <!-- ── Body ── -->

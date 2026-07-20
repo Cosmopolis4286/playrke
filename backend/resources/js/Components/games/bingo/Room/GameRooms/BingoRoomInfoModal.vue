@@ -487,13 +487,14 @@ const showUrgencyHint = computed(() =>
   from { opacity: 0; transform: scale(.85); }
   to   { opacity: 1; transform: scale(1); }
 }
-/* Brillo dorado pulsante — refuerza la sensación de "premio especial", mismo tono que el aura */
+/* Brillo dorado pulsante — misma intensidad base que .rc__prize-num de la card,
+   con una variación sutil en vez de un pulso marcado. */
 @keyframes rimPrizeGlow {
-  0%, 100% { filter: drop-shadow(0 2px 12px rgba(255,180,0,.32)); }
-  50%      { filter: drop-shadow(0 2px 20px rgba(255,180,0,.6)); }
+  0%, 100% { filter: drop-shadow(0 2px 10px rgba(255,150,0,.28)); }
+  50%      { filter: drop-shadow(0 2px 13px rgba(255,150,0,.4)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rim-prize__num { animation: none; filter: drop-shadow(0 2px 14px rgba(255,180,0,.35)); }
+  .rim-prize__num { animation: none; filter: drop-shadow(0 2px 10px rgba(255,150,0,.28)); }
 }
 .rim-prize__sym { font-size: 15px; font-weight: 800; color: #ffd060; -webkit-text-fill-color: #ffd060; }
 
