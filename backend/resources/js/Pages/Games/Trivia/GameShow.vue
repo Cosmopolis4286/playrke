@@ -73,7 +73,7 @@ const STATUS_COLOR: Record<string, string> = {
   finished:  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   paused:    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  waiting:   'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+  waiting:   'gs-neutral-badge',
 }
 const DIFFICULTY_COLOR: Record<string, string> = {
   easy:   'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',

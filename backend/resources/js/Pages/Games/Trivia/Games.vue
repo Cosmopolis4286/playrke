@@ -67,7 +67,7 @@ const STATUS_COLOR: Record<string, string> = {
   finished:  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   paused:    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  waiting:   'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+  waiting:   'gp-badge-neutral',
 }
 
 function formatDate(d: string | null): string {
@@ -303,4 +303,5 @@ function progressPct(g: Game): number {
 .gp-page-link { background: var(--ds-surface); color: var(--ds-text-2); border-color: var(--ds-border); }
 .gp-page-link:hover { background: var(--ds-surface-2); }
 .gp-page-link-disabled { color: var(--ds-text-muted); }
+.gp-badge-neutral { background: var(--ds-surface-2); color: var(--ds-text-2); }
 </style>
