@@ -96,14 +96,14 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
       <!-- Header + filtro de período -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🏆 Clasificación Global</h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <h1 class="text-2xl font-bold lb-text">🏆 Clasificación Global</h1>
+          <p class="text-sm lb-text-muted mt-1">
             Top jugadores ordenados por puntuación acumulada
           </p>
         </div>
 
         <!-- Selector de período -->
-        <div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+        <div class="lb-period-bg flex gap-1 rounded-lg p-1">
           <button
             v-for="p in ['all', 'month', 'week']"
             :key="p"
@@ -111,8 +111,8 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
             :class="[
               'px-4 py-1.5 rounded-md text-sm font-medium transition',
               period === p
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'lb-period-active shadow-sm'
+                : 'lb-period-inactive'
             ]"
           >
             {{ periodLabels[p] }}
@@ -122,26 +122,26 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
 
       <!-- KPI globales -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 text-center">
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ fmt(globalStats.total_games) }}</p>
+        <div class="lb-card rounded-xl shadow-sm p-4 text-center">
+          <p class="text-2xl font-bold lb-text">{{ fmt(globalStats.total_games) }}</p>
           <p class="text-xs text-gray-500 mt-0.5">Partidas finalizadas</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 text-center">
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ fmt(globalStats.total_players) }}</p>
+        <div class="lb-card rounded-xl shadow-sm p-4 text-center">
+          <p class="text-2xl font-bold lb-text">{{ fmt(globalStats.total_players) }}</p>
           <p class="text-xs text-gray-500 mt-0.5">Jugadores en ranking</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 text-center col-span-2">
+        <div class="lb-card rounded-xl shadow-sm p-4 text-center col-span-2">
           <p class="text-xs text-gray-500 mb-0.5">Mejor puntuación</p>
           <p class="text-2xl font-bold text-yellow-500">{{ fmt(globalStats.top_score) }} pts</p>
-          <p class="text-xs text-gray-700 dark:text-gray-300 font-medium truncate">{{ globalStats.top_name }}</p>
+          <p class="text-xs lb-text-secondary font-medium truncate">{{ globalStats.top_name }}</p>
         </div>
       </div>
 
       <!-- Sin datos -->
-      <div v-if="players.length === 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm py-16 text-center">
+      <div v-if="players.length === 0" class="lb-card rounded-xl shadow-sm py-16 text-center">
         <p class="text-4xl mb-3">🎮</p>
-        <p class="text-gray-500 dark:text-gray-400">Aún no hay partidas completadas en este período.</p>
-        <p class="text-sm text-gray-400 mt-1">¡Sé el primero en la clasificación!</p>
+        <p class="lb-text-muted">Aún no hay partidas completadas en este período.</p>
+        <p class="text-sm lb-text-faint mt-1">¡Sé el primero en la clasificación!</p>
       </div>
 
       <template v-else>
@@ -154,10 +154,10 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
               {{ initials(podium[1].name) }}
             </div>
             <div class="text-center">
-              <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[80px]">{{ podium[1].name }}</p>
-              <p class="text-sm font-bold text-gray-600 dark:text-gray-300">{{ fmt(podium[1].total_score) }}</p>
+              <p class="text-xs font-semibold lb-text-secondary truncate max-w-[80px]">{{ podium[1].name }}</p>
+              <p class="text-sm font-bold lb-text-muted">{{ fmt(podium[1].total_score) }}</p>
             </div>
-            <div class="w-20 h-16 bg-gray-200 dark:bg-gray-600 rounded-t-lg flex items-center justify-center">
+            <div class="lb-podium-2 w-20 h-16 rounded-t-lg flex items-center justify-center">
               <span class="text-2xl">🥈</span>
             </div>
           </div>
@@ -171,7 +171,7 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
               <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl">👑</span>
             </div>
             <div class="text-center">
-              <p class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[100px]">{{ podium[0].name }}</p>
+              <p class="text-sm font-bold lb-text truncate max-w-[100px]">{{ podium[0].name }}</p>
               <p class="text-base font-bold text-yellow-500">{{ fmt(podium[0].total_score) }}</p>
             </div>
             <div class="w-24 h-24 bg-yellow-400 dark:bg-yellow-500 rounded-t-lg flex items-center justify-center">
@@ -185,8 +185,8 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
               {{ initials(podium[2].name) }}
             </div>
             <div class="text-center">
-              <p class="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[80px]">{{ podium[2].name }}</p>
-              <p class="text-sm font-bold text-gray-600 dark:text-gray-300">{{ fmt(podium[2].total_score) }}</p>
+              <p class="text-xs font-semibold lb-text-secondary truncate max-w-[80px]">{{ podium[2].name }}</p>
+              <p class="text-sm font-bold lb-text-muted">{{ fmt(podium[2].total_score) }}</p>
             </div>
             <div class="w-20 h-10 bg-amber-600 dark:bg-amber-700 rounded-t-lg flex items-center justify-center">
               <span class="text-2xl">🥉</span>
@@ -195,10 +195,10 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
         </div>
 
         <!-- ── Tabla completa ─────────────────────────────────────────────── -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="lb-card rounded-xl shadow-sm overflow-hidden">
           <table class="min-w-full text-sm">
             <thead>
-              <tr class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+              <tr class="lb-thead border-b">
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-12">#</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Jugador</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Puntuación</th>
@@ -210,12 +210,12 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">% Acierto</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            <tbody class="lb-divide">
               <tr
                 v-for="p in players"
                 :key="p.player_id"
                 :class="[
-                  'hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors',
+                  'lb-row-hover transition-colors',
                   p.rank <= 3 && 'bg-amber-50/40 dark:bg-amber-900/10'
                 ]"
               >
@@ -227,7 +227,7 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
                       p.rank === 1 ? 'bg-yellow-400 text-white' :
                       p.rank === 2 ? 'bg-gray-300 text-gray-700' :
                       p.rank === 3 ? 'bg-amber-600 text-white' :
-                      'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      'lb-neutral-badge'
                     ]"
                   >
                     {{ medalIcon(p.rank) ?? p.rank }}
@@ -241,16 +241,16 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
                       {{ initials(p.name) }}
                     </div>
                     <div class="min-w-0">
-                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ p.name }}</p>
-                      <p v-if="p.email" class="text-xs text-gray-400 truncate hidden sm:block">{{ p.email }}</p>
+                      <p class="text-sm font-medium lb-text truncate">{{ p.name }}</p>
+                      <p v-if="p.email" class="text-xs lb-text-faint truncate hidden sm:block">{{ p.email }}</p>
                     </div>
                   </div>
                 </td>
 
                 <!-- Puntuación + barra relativa -->
                 <td class="px-4 py-3 whitespace-nowrap text-right">
-                  <p class="text-sm font-bold text-gray-900 dark:text-white">{{ fmt(p.total_score) }}</p>
-                  <div class="mt-1 w-20 h-1 bg-gray-100 dark:bg-gray-700 rounded-full ml-auto hidden sm:block">
+                  <p class="text-sm font-bold lb-text">{{ fmt(p.total_score) }}</p>
+                  <div class="mt-1 w-20 h-1 lb-track rounded-full ml-auto hidden sm:block">
                     <div
                       class="h-full bg-indigo-500 rounded-full"
                       :style="{ width: Math.round((p.total_score / maxScore) * 100) + '%' }"
@@ -259,14 +259,14 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
                 </td>
 
                 <!-- Partidas -->
-                <td class="px-4 py-3 whitespace-nowrap text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                <td class="px-4 py-3 whitespace-nowrap text-right lb-text-secondary hidden sm:table-cell">
                   {{ p.games_played }}
                 </td>
 
                 <!-- Victorias -->
                 <td class="px-4 py-3 whitespace-nowrap text-right hidden md:table-cell">
-                  <span class="text-gray-800 dark:text-gray-200">{{ p.wins }}</span>
-                  <span class="text-xs text-gray-400 ml-1">({{ p.win_rate }}%)</span>
+                  <span class="lb-text">{{ p.wins }}</span>
+                  <span class="text-xs lb-text-faint ml-1">({{ p.win_rate }}%)</span>
                 </td>
 
                 <!-- Aciertos / fallos -->
@@ -277,12 +277,12 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
                 </td>
 
                 <!-- Mejor racha -->
-                <td class="px-4 py-3 whitespace-nowrap text-right text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+                <td class="px-4 py-3 whitespace-nowrap text-right lb-text-secondary hidden lg:table-cell">
                   🔥 {{ p.best_streak }}
                 </td>
 
                 <!-- Tiempo promedio -->
-                <td class="px-4 py-3 whitespace-nowrap text-right text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+                <td class="px-4 py-3 whitespace-nowrap text-right lb-text-secondary hidden lg:table-cell">
                   {{ msToSec(p.avg_response_ms) }}
                 </td>
 
@@ -304,7 +304,7 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
           </table>
 
           <!-- Footer con leyenda -->
-          <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500">
+          <div class="lb-footer px-6 py-3 border-t flex items-center justify-between text-xs lb-text-muted">
             <span>Mostrando {{ players.length }} jugadores · {{ periodLabels[period] }}</span>
             <span>Ordenado por puntuación total acumulada</span>
           </div>
@@ -314,3 +314,22 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
     </div>
   </div>
 </template>
+
+<style scoped>
+.lb-text { color: var(--ds-text); }
+.lb-text-secondary { color: var(--ds-text-2); }
+.lb-text-muted { color: var(--ds-text-muted); }
+.lb-text-faint { color: var(--ds-text-muted); }
+.lb-card { background: var(--ds-surface); }
+.lb-period-bg { background: var(--ds-surface-2); }
+.lb-period-active { background: var(--ds-surface); color: var(--ds-text); }
+.lb-period-inactive { color: var(--ds-text-muted); }
+.lb-period-inactive:hover { color: var(--ds-text-2); }
+.lb-podium-2 { background: var(--ds-surface-2); }
+.lb-thead { background: var(--ds-surface-2); border-color: var(--ds-border); }
+.lb-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.lb-row-hover:hover { background: var(--ds-surface-2); }
+.lb-neutral-badge { background: var(--ds-surface-2); color: var(--ds-text-muted); }
+.lb-track { background: var(--ds-surface-2); }
+.lb-footer { background: var(--ds-surface-2); border-color: var(--ds-border); }
+</style>

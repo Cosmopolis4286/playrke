@@ -112,7 +112,7 @@ function rankBadgeClass(pos: number | null, isWinner: boolean): string {
   if (isWinner || pos === 1) return 'bg-yellow-400 text-white'
   if (pos === 2) return 'bg-gray-300 text-gray-700'
   if (pos === 3) return 'bg-amber-600 text-white'
-  return 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+  return 'gs-neutral-badge'
 }
 
 function rankIcon(pos: number | null, isWinner: boolean): string {
@@ -130,31 +130,31 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
       <!-- Breadcrumb -->
-      <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+      <div class="flex items-center gap-2 text-sm gs-text-muted">
         <Link :href="getRoute('gamesIndex')" class="hover:text-indigo-600 dark:hover:text-indigo-400">
           Partidas
         </Link>
         <span>/</span>
-        <span class="text-gray-800 dark:text-gray-200 font-mono">{{ game.game_code }}</span>
+        <span class="gs-text-secondary font-mono">{{ game.game_code }}</span>
       </div>
 
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white font-mono">{{ game.game_code }}</h1>
+            <h1 class="text-2xl font-bold gs-text font-mono">{{ game.game_code }}</h1>
             <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', STATUS_COLOR[game.status] ?? STATUS_COLOR.waiting]">
               {{ STATUS_LABEL[game.status] ?? game.status }}
             </span>
           </div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Sala: <span class="font-medium text-gray-700 dark:text-gray-300">{{ game.room_title }}</span>
-            <code class="ml-2 text-xs text-gray-400">({{ game.room_code }})</code>
+          <p class="text-sm gs-text-muted mt-1">
+            Sala: <span class="font-medium gs-text-secondary">{{ game.room_title }}</span>
+            <code class="ml-2 text-xs gs-text-faint">({{ game.room_code }})</code>
           </p>
         </div>
         <Link
           :href="getRoute('gamesIndex')"
-          class="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+          class="gs-back-btn inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border transition"
         >
           ← Volver a partidas
         </Link>
@@ -162,21 +162,21 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
 
       <!-- Metadata cards -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+        <div class="gs-card rounded-xl shadow-sm p-4">
           <p class="text-xs text-gray-500 uppercase mb-1">Jugadores</p>
-          <p class="text-xl font-bold text-gray-900 dark:text-white">{{ game.player_count }} <span class="text-sm font-normal text-gray-400">/ {{ game.max_players }}</span></p>
+          <p class="text-xl font-bold gs-text">{{ game.player_count }} <span class="text-sm font-normal text-gray-400">/ {{ game.max_players }}</span></p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+        <div class="gs-card rounded-xl shadow-sm p-4">
           <p class="text-xs text-gray-500 uppercase mb-1">Preguntas</p>
-          <p class="text-xl font-bold text-gray-900 dark:text-white">{{ game.current_question_index }} <span class="text-sm font-normal text-gray-400">/ {{ game.total_questions }}</span></p>
+          <p class="text-xl font-bold gs-text">{{ game.current_question_index }} <span class="text-sm font-normal text-gray-400">/ {{ game.total_questions }}</span></p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+        <div class="gs-card rounded-xl shadow-sm p-4">
           <p class="text-xs text-gray-500 uppercase mb-1">Inicio</p>
-          <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatDate(game.started_at) }}</p>
+          <p class="text-sm font-medium gs-text">{{ formatDate(game.started_at) }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+        <div class="gs-card rounded-xl shadow-sm p-4">
           <p class="text-xs text-gray-500 uppercase mb-1">Duración</p>
-          <p class="text-xl font-bold text-gray-900 dark:text-white">
+          <p class="text-xl font-bold gs-text">
             {{ game.duration_min !== null ? game.duration_min + ' min' : '—' }}
           </p>
         </div>
@@ -187,22 +187,22 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
         <span class="text-4xl">🏆</span>
         <div>
           <p class="text-xs text-yellow-700 dark:text-yellow-400 uppercase font-semibold mb-0.5">Ganador</p>
-          <p class="text-lg font-bold text-gray-900 dark:text-white">{{ game.winner_name }}</p>
+          <p class="text-lg font-bold gs-text">{{ game.winner_name }}</p>
         </div>
       </div>
 
       <!-- ── Scoreboard ──────────────────────────────────────────────────────── -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white">🏅 Clasificación de jugadores</h2>
+      <div class="gs-card rounded-xl shadow-sm overflow-hidden">
+        <div class="gs-header-border px-5 py-4 border-b">
+          <h2 class="text-base font-semibold gs-text">🏅 Clasificación de jugadores</h2>
         </div>
 
-        <div v-if="scoreboard.length === 0" class="px-6 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+        <div v-if="scoreboard.length === 0" class="px-6 py-10 text-center gs-text-faint text-sm">
           No hay datos de puntuación para esta partida.
         </div>
 
-        <table v-else class="min-w-full text-sm divide-y divide-gray-100 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-700">
+        <table v-else class="min-w-full text-sm gs-divide">
+          <thead class="gs-thead">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-12">#</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Jugador</th>
@@ -214,12 +214,12 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
               <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">% Acierto</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          <tbody class="gs-divide">
             <tr
               v-for="(s, idx) in scoreboard"
               :key="s.player_id"
               :class="[
-                'hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors',
+                'gs-row-hover transition-colors',
                 s.is_winner && 'bg-yellow-50/60 dark:bg-yellow-900/10'
               ]"
             >
@@ -233,15 +233,15 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
               <!-- Jugador -->
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <p class="text-sm font-medium text-gray-900 dark:text-white">{{ s.name }}</p>
+                  <p class="text-sm font-medium gs-text">{{ s.name }}</p>
                   <span v-if="s.is_winner" class="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-1.5 py-0.5 rounded-full">Ganador</span>
                 </div>
               </td>
 
               <!-- Puntuación -->
               <td class="px-4 py-3 whitespace-nowrap text-right">
-                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ fmt(s.final_score) }}</p>
-                <div class="mt-1 w-20 h-1 bg-gray-100 dark:bg-gray-700 rounded-full ml-auto hidden sm:block">
+                <p class="text-sm font-bold gs-text">{{ fmt(s.final_score) }}</p>
+                <div class="mt-1 w-20 h-1 gs-track rounded-full ml-auto hidden sm:block">
                   <div
                     class="h-full bg-indigo-500 rounded-full"
                     :style="{ width: Math.round((s.final_score / maxScore) * 100) + '%' }"
@@ -260,12 +260,12 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
               </td>
 
               <!-- Racha -->
-              <td class="px-4 py-3 whitespace-nowrap text-right text-gray-600 dark:text-gray-400 hidden md:table-cell">
+              <td class="px-4 py-3 whitespace-nowrap text-right gs-text-secondary hidden md:table-cell">
                 🔥 {{ s.max_streak }}
               </td>
 
               <!-- Tiempo promedio -->
-              <td class="px-4 py-3 whitespace-nowrap text-right text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+              <td class="px-4 py-3 whitespace-nowrap text-right gs-text-secondary hidden lg:table-cell">
                 {{ msToSec(s.avg_response_ms) }}
               </td>
 
@@ -286,21 +286,21 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
       </div>
 
       <!-- ── Preguntas jugadas ───────────────────────────────────────────────── -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white">❓ Preguntas de la partida</h2>
+      <div class="gs-card rounded-xl shadow-sm overflow-hidden">
+        <div class="gs-header-border px-5 py-4 border-b">
+          <h2 class="text-base font-semibold gs-text">❓ Preguntas de la partida</h2>
           <p class="text-xs text-gray-500 mt-0.5">{{ questions.length }} preguntas jugadas</p>
         </div>
 
-        <div v-if="questions.length === 0" class="px-6 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+        <div v-if="questions.length === 0" class="px-6 py-10 text-center gs-text-faint text-sm">
           No hay preguntas registradas para esta partida.
         </div>
 
-        <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+        <div v-else class="gs-divide">
           <div
             v-for="q in questions"
             :key="q.question_id"
-            class="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+            class="gs-row-hover px-5 py-4 transition-colors"
           >
             <!-- Cabecera de pregunta -->
             <div class="flex items-start justify-between gap-3 mb-3">
@@ -308,10 +308,10 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
                 <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex-shrink-0">
                   {{ q.order_index + 1 }}
                 </span>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ q.question_text }}</p>
+                <p class="text-sm font-medium gs-text">{{ q.question_text }}</p>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
-                <span v-if="q.category" class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">
+                <span v-if="q.category" class="gs-tag text-xs px-2 py-0.5 rounded-full">
                   {{ q.category }}
                 </span>
                 <span v-if="q.difficulty" :class="['text-xs px-2 py-0.5 rounded-full capitalize', DIFFICULTY_COLOR[q.difficulty] ?? DIFFICULTY_COLOR.medium]">
@@ -330,14 +330,14 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-colors',
                   idx === q.correct_option_index
                     ? 'border-green-400 bg-green-50 dark:bg-green-900/20 dark:border-green-600 text-green-800 dark:text-green-300 font-medium'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                    : 'gs-option-border gs-text-secondary'
                 ]"
               >
                 <span :class="[
                   'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold flex-shrink-0',
                   idx === q.correct_option_index
                     ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    : 'gs-neutral-badge'
                 ]">
                   {{ ['A','B','C','D'][idx] }}
                 </span>
@@ -349,7 +349,7 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
             <!-- Timing info -->
             <div v-if="q.question_duration_ms" class="mt-2 text-xs text-gray-400">
               Duración real: {{ msToSec(q.question_duration_ms) }}
-              <span v-if="q.is_closed" class="ml-2 text-gray-300 dark:text-gray-600">· Cerrada</span>
+              <span v-if="q.is_closed" class="ml-2 gs-text-faint">· Cerrada</span>
             </div>
           </div>
         </div>
@@ -358,3 +358,21 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
     </div>
   </div>
 </template>
+
+<style scoped>
+.gs-text { color: var(--ds-text); }
+.gs-text-secondary { color: var(--ds-text-2); }
+.gs-text-muted { color: var(--ds-text-muted); }
+.gs-text-faint { color: var(--ds-text-muted); }
+.gs-card { background: var(--ds-surface); }
+.gs-header-border { border-color: var(--ds-border); }
+.gs-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.gs-thead { background: var(--ds-surface-2); }
+.gs-row-hover:hover { background: var(--ds-surface-2); }
+.gs-track { background: var(--ds-surface-2); }
+.gs-neutral-badge { background: var(--ds-surface-2); color: var(--ds-text-muted); }
+.gs-tag { background: var(--ds-surface-2); color: var(--ds-text-2); }
+.gs-back-btn { border-color: var(--ds-border); color: var(--ds-text-2); }
+.gs-back-btn:hover { background: var(--ds-surface-2); }
+.gs-option-border { border-color: var(--ds-border); }
+</style>

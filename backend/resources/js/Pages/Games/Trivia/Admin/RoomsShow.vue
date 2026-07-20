@@ -63,17 +63,17 @@ const formatTime = (timestamp) => {
             ← Volver al listado
           </Link>
           <div class="flex items-center gap-3 mt-2">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 class="text-2xl font-bold rs-text">
               {{ room.title }}
             </h1>
-            <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono">
+            <code class="rs-code px-2 py-1 rounded text-sm font-mono">
               {{ room.code }}
             </code>
             <span :class="['px-2 py-1 rounded-full text-xs font-medium', getStatusColor(room.status)]">
               {{ room.status }}
             </span>
           </div>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p class="text-sm rs-text-muted mt-1">
             {{ room.description || 'Sin descripción' }}
           </p>
         </div>
@@ -98,27 +98,27 @@ const formatTime = (timestamp) => {
 
       <!-- Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Jugadores</p>
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">
+        <div class="rs-card p-4 rounded-lg shadow-sm">
+          <p class="text-sm rs-text-muted">Jugadores</p>
+          <p class="text-2xl font-bold rs-text">
             {{ playerCount }} / {{ room.max_players }}
           </p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Preguntas</p>
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">
+        <div class="rs-card p-4 rounded-lg shadow-sm">
+          <p class="text-sm rs-text-muted">Preguntas</p>
+          <p class="text-2xl font-bold rs-text">
             {{ room.question_count }}
           </p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Tiempo/Pregunta</p>
-          <p class="text-2xl font-bold text-gray-900 dark:text-white">
+        <div class="rs-card p-4 rounded-lg shadow-sm">
+          <p class="text-sm rs-text-muted">Tiempo/Pregunta</p>
+          <p class="text-2xl font-bold rs-text">
             {{ room.time_per_question }}s
           </p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Creada</p>
-          <p class="text-lg font-bold text-gray-900 dark:text-white">
+        <div class="rs-card p-4 rounded-lg shadow-sm">
+          <p class="text-sm rs-text-muted">Creada</p>
+          <p class="text-lg font-bold rs-text">
             {{ new Date(room.created_at).toLocaleDateString() }}
           </p>
         </div>
@@ -127,29 +127,29 @@ const formatTime = (timestamp) => {
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Jugadores -->
         <div class="lg:col-span-2">
-          <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 class="text-lg font-medium text-gray-900 dark:text-white">
+          <div class="rs-card shadow-sm rounded-lg overflow-hidden">
+            <div class="rs-header-border px-6 py-4 border-b flex items-center justify-between">
+              <h2 class="text-lg font-medium rs-text">
                 👥 Jugadores Conectados ({{ playerCount }})
               </h2>
-              <span class="text-xs text-gray-500 dark:text-gray-400">Auto-refresh: 5s</span>
+              <span class="text-xs rs-text-muted">Auto-refresh: 5s</span>
             </div>
 
-            <div class="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
+            <div class="rs-divide max-h-96 overflow-y-auto">
               <div
                 v-for="player in players"
                 :key="player.player_id"
-                class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                class="rs-row-hover px-6 py-4 flex items-center justify-between"
               >
                 <div class="flex items-center">
                   <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
                     {{ player.nickname?.charAt(0).toUpperCase() }}
                   </div>
                   <div class="ml-3">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                    <p class="text-sm font-medium rs-text">
                       {{ player.nickname }}
                     </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                    <p class="text-xs rs-text-muted">
                       ID: {{ player.player_id.substring(0, 8) }}...
                     </p>
                   </div>
@@ -165,13 +165,13 @@ const formatTime = (timestamp) => {
                   >
                     {{ player.status }}
                   </span>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p class="text-xs rs-text-muted mt-1">
                     Unido: {{ formatTime(player.joined_at) }}
                   </p>
                 </div>
               </div>
 
-              <div v-if="players.length === 0" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+              <div v-if="players.length === 0" class="px-6 py-12 text-center rs-text-muted">
                 <p class="text-4xl mb-2">👻</p>
                 <p>No hay jugadores conectados</p>
               </div>
@@ -181,31 +181,31 @@ const formatTime = (timestamp) => {
 
         <!-- Info y Settings -->
         <div>
-          <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          <div class="rs-card shadow-sm rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-medium rs-text mb-4">
               ⚙️ Configuración
             </h3>
             <div class="space-y-3 text-sm">
               <div class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">Pública:</span>
+                <span class="rs-text-muted">Pública:</span>
                 <span class="font-medium">{{ room.settings?.public_room ? 'Sí' : 'No' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">Permitir tarde:</span>
+                <span class="rs-text-muted">Permitir tarde:</span>
                 <span class="font-medium">{{ room.settings?.allow_late_join ? 'Sí' : 'No' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">Leaderboard:</span>
+                <span class="rs-text-muted">Leaderboard:</span>
                 <span class="font-medium">{{ room.settings?.show_leaderboard ? 'Sí' : 'No' }}</span>
               </div>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          <div class="rs-card shadow-sm rounded-lg p-6">
+            <h3 class="text-lg font-medium rs-text mb-4">
               📝 Datos Técnicos
             </h3>
-            <div class="space-y-2 text-xs text-gray-500 dark:text-gray-400 font-mono">
+            <div class="space-y-2 text-xs rs-text-muted font-mono">
               <p>Room ID: {{ room.id }}</p>
               <p>Host ID: {{ room.host_id }}</p>
               <p>Status: {{ room.status }}</p>
@@ -217,3 +217,13 @@ const formatTime = (timestamp) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.rs-text { color: var(--ds-text); }
+.rs-text-muted { color: var(--ds-text-muted); }
+.rs-card { background: var(--ds-surface); }
+.rs-code { background: var(--ds-surface-2); }
+.rs-header-border { border-color: var(--ds-border); }
+.rs-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.rs-row-hover:hover { background: var(--ds-surface-2); }
+</style>

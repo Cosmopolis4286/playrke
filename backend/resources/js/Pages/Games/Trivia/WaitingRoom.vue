@@ -108,7 +108,7 @@ const statusLabel = computed(() => ({
 <template>
   <Head :title="`Sala ${room.code} · Trivia`" />
 
-  <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
+  <div class="min-h-screen wr-page-bg">
 
     <ConnectionStatusPill :status-dot="statusDot" :status-label="statusLabel" />
 
@@ -118,12 +118,12 @@ const statusLabel = computed(() => ({
         v-if="isLoading"
         class="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm flex items-center justify-center"
       >
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl px-8 py-6 flex items-center gap-4">
+        <div class="wr-card rounded-2xl shadow-xl px-8 py-6 flex items-center gap-4">
           <svg class="w-6 h-6 text-indigo-600 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
           </svg>
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-200">Uniéndose a la sala...</span>
+          <span class="text-sm font-medium wr-text-secondary">Uniéndose a la sala...</span>
         </div>
       </div>
     </Transition>
@@ -203,7 +203,7 @@ const statusLabel = computed(() => ({
           <Transition name="slide-down">
             <div
               v-if="showAuthJoinLoading"
-              class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+              class="wr-card rounded-2xl shadow-sm border overflow-hidden"
             >
               <div class="h-1 bg-gradient-to-r from-indigo-400 to-purple-500" />
               <div class="p-6 text-center space-y-4">
@@ -214,8 +214,8 @@ const statusLabel = computed(() => ({
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-base font-bold text-gray-900 dark:text-white">Procesando entrada...</h3>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Descontando de tu wallet</p>
+                  <h3 class="text-base font-bold wr-text">Procesando entrada...</h3>
+                  <p class="text-xs wr-text-muted mt-1">Descontando de tu wallet</p>
                 </div>
               </div>
             </div>
@@ -258,4 +258,10 @@ const statusLabel = computed(() => ({
 .slide-down-leave-active { transition: all 0.15s ease-in; }
 .slide-down-enter-from   { opacity: 0; transform: translateY(-8px); }
 .slide-down-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+.wr-page-bg { background: var(--ds-bg); }
+.wr-card { background: var(--ds-surface); border-color: var(--ds-border); }
+.wr-text { color: var(--ds-text); }
+.wr-text-secondary { color: var(--ds-text-2); }
+.wr-text-muted { color: var(--ds-text-muted); }
 </style>

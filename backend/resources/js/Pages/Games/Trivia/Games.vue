@@ -90,8 +90,8 @@ function progressPct(g: Game): number {
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🎮 Partidas de Trivia</h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Historial y estado de todas las partidas</p>
+          <h1 class="text-2xl font-bold gp-text">🎮 Partidas de Trivia</h1>
+          <p class="text-sm gp-text-muted mt-1">Historial y estado de todas las partidas</p>
         </div>
       </div>
 
@@ -105,29 +105,29 @@ function progressPct(g: Game): number {
             { label: 'Canceladas',   value: stats.cancelled, icon: '❌', color: 'red'    },
           ]"
           :key="item.label"
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 flex items-center gap-3"
+          class="gp-card rounded-xl shadow-sm p-4 flex items-center gap-3"
         >
           <span class="text-2xl">{{ item.icon }}</span>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">{{ item.label }}</p>
-            <p class="text-xl font-bold text-gray-900 dark:text-white">{{ item.value.toLocaleString('es-ES') }}</p>
+            <p class="text-xs gp-text-muted uppercase">{{ item.label }}</p>
+            <p class="text-xl font-bold gp-text">{{ item.value.toLocaleString('es-ES') }}</p>
           </div>
         </div>
       </div>
 
       <!-- Filtros -->
-      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-4">
+      <div class="gp-card shadow-sm rounded-xl p-4">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <input
             v-model="search"
             type="text"
             placeholder="Código sala/partida..."
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="gp-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @input="debouncedSearch"
           />
           <select
             v-model="status"
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="gp-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @change="applyFilters"
           >
             <option value="">Todos los estados</option>
@@ -136,22 +136,22 @@ function progressPct(g: Game): number {
           <input
             v-model="dateFrom"
             type="date"
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="gp-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @change="applyFilters"
           />
           <input
             v-model="dateTo"
             type="date"
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="gp-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @change="applyFilters"
           />
         </div>
       </div>
 
       <!-- Tabla -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-          <thead class="bg-gray-50 dark:bg-gray-700">
+      <div class="gp-card rounded-xl shadow-sm overflow-hidden">
+        <table class="min-w-full gp-divide text-sm">
+          <thead class="gp-thead">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Partida</th>
               <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Sala</th>
@@ -164,19 +164,19 @@ function progressPct(g: Game): number {
               <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Ver</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          <tbody class="gp-divide">
 
             <tr
               v-for="g in games.data"
               :key="g.id"
-              class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+              class="gp-row-hover transition-colors"
             >
               <!-- Partida -->
               <td class="px-4 py-3 whitespace-nowrap">
                 <div class="flex items-center gap-2">
                   <span class="text-lg">🎲</span>
                   <div>
-                    <p class="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">{{ g.game_code }}</p>
+                    <p class="font-mono text-xs font-semibold gp-text-secondary">{{ g.game_code }}</p>
                     <p class="text-xs text-gray-400 hidden sm:block">{{ g.time_per_question }}s / pregunta</p>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ function progressPct(g: Game): number {
 
               <!-- Sala -->
               <td class="px-4 py-3">
-                <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[140px]">{{ g.room_title }}</p>
+                <p class="text-sm font-medium gp-text truncate max-w-[140px]">{{ g.room_title }}</p>
                 <code class="text-xs text-gray-400">{{ g.room_code }}</code>
               </td>
 
@@ -197,14 +197,14 @@ function progressPct(g: Game): number {
 
               <!-- Jugadores -->
               <td class="px-4 py-3 whitespace-nowrap hidden sm:table-cell">
-                <span class="text-gray-700 dark:text-gray-300">{{ g.player_count }}</span>
+                <span class="gp-text-secondary">{{ g.player_count }}</span>
                 <span class="text-xs text-gray-400"> / {{ g.max_players }}</span>
               </td>
 
               <!-- Progreso -->
               <td class="px-4 py-3 hidden md:table-cell">
                 <div class="flex items-center gap-2">
-                  <div class="w-20 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full">
+                  <div class="w-20 h-1.5 gp-track rounded-full">
                     <div
                       class="h-full bg-indigo-500 rounded-full transition-all"
                       :style="{ width: progressPct(g) + '%' }"
@@ -217,7 +217,7 @@ function progressPct(g: Game): number {
               <!-- Ganador -->
               <td class="px-4 py-3 hidden lg:table-cell">
                 <template v-if="g.winner_name">
-                  <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-[120px]">
+                  <p class="text-sm font-medium gp-text-secondary truncate max-w-[120px]">
                     🏆 {{ g.winner_name }}
                   </p>
                   <p v-if="g.winner_score" class="text-xs text-yellow-600">{{ g.winner_score.toLocaleString() }} pts</p>
@@ -247,7 +247,7 @@ function progressPct(g: Game): number {
             </tr>
 
             <tr v-if="games.data.length === 0">
-              <td colspan="9" class="px-6 py-14 text-center text-gray-400 dark:text-gray-500">
+              <td colspan="9" class="px-6 py-14 text-center gp-text-faint">
                 <p class="text-4xl mb-2">🎮</p>
                 <p class="text-sm">No se encontraron partidas con los filtros aplicados.</p>
               </td>
@@ -256,7 +256,7 @@ function progressPct(g: Game): number {
         </table>
 
         <!-- Paginación -->
-        <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div class="gp-pagination px-6 py-3 border-t flex items-center justify-between">
           <p class="text-sm text-gray-500">
             {{ games.from ?? 0 }} – {{ games.to ?? 0 }} de {{ games.total }} partidas
           </p>
@@ -269,13 +269,13 @@ function progressPct(g: Game): number {
                   'px-3 py-1 rounded text-sm border transition',
                   link.active
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    : 'gp-page-link'
                 ]"
                 v-html="link.label"
               />
               <span
                 v-else
-                class="px-3 py-1 rounded text-sm text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                class="gp-page-link-disabled px-3 py-1 rounded text-sm cursor-not-allowed"
                 v-html="link.label"
               />
             </template>
@@ -286,3 +286,21 @@ function progressPct(g: Game): number {
     </div>
   </div>
 </template>
+
+<style scoped>
+.gp-text { color: var(--ds-text); }
+.gp-text-secondary { color: var(--ds-text-2); }
+.gp-text-muted { color: var(--ds-text-muted); }
+.gp-text-faint { color: var(--ds-text-muted); }
+.gp-card { background: var(--ds-surface); }
+.gp-input { border: 1px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text-2); }
+.gp-thead { background: var(--ds-surface-2); }
+.gp-divide { border-color: var(--ds-border); }
+.gp-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.gp-row-hover:hover { background: var(--ds-surface-2); }
+.gp-track { background: var(--ds-surface-2); }
+.gp-pagination { background: var(--ds-surface-2); border-color: var(--ds-border); }
+.gp-page-link { background: var(--ds-surface); color: var(--ds-text-2); border-color: var(--ds-border); }
+.gp-page-link:hover { background: var(--ds-surface-2); }
+.gp-page-link-disabled { color: var(--ds-text-muted); }
+</style>
