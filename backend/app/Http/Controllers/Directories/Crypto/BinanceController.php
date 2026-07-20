@@ -75,7 +75,7 @@ class BinanceController extends Controller
                 ]);
             }
 
-            $account = BinanceAccounts::findOrFail(decrypt($id));
+            $account = BinanceAccounts::where('user', Auth::id())->findOrFail(decrypt($id));
 
             $account->update(['account_type' => $accountType, 'data_value' => $dataValue]);
 
@@ -101,7 +101,7 @@ class BinanceController extends Controller
         DB::beginTransaction();
 
         try {
-            BinanceAccounts::destroy(decrypt($request->id));
+            BinanceAccounts::where('user', Auth::id())->findOrFail(decrypt($request->id))->delete();
             DB::commit();
             return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {

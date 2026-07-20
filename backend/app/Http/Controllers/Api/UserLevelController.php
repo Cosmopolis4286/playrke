@@ -27,7 +27,7 @@ class UserLevelController extends Controller
     public function addXp(Request $request): JsonResponse
     {
         $request->validate([
-            'amount' => 'required|integer|min:1',
+            'amount' => 'required|integer|min:1|max:10000',
             'reason' => 'nullable|string|max:255',
         ]);
 

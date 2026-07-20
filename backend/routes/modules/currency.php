@@ -8,7 +8,7 @@ use App\Http\Controllers\CurrencyController;
 route_group(
     'currency',
     'currency.',
-    ['auth'],
+    ['auth', 'role:superadmin,admin'],
     CurrencyController::class,
     [
         'index'        => ['method' => 'get', 'uri' => '', 'defaults' => ['inertiaOnly' => false]],

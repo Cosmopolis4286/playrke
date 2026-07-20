@@ -36,7 +36,7 @@ multi_middleware_routes('sellers', 'manager-seller.', [
 // ====================================
 multi_middleware_routes('seller', 'seller.', [
     [
-        'middleware' => ['auth', 'seller'],
+        'middleware' => ['auth', 'role:seller'],
         'controller' => SellerController::class,
         'routes' => [
             'payment-status' => ['method' => 'post', 'uri' => 'bingo/carton/payment/status'],
