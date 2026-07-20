@@ -78,10 +78,10 @@ const occupancyColor = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+  <div class="pl-panel rounded-2xl shadow-sm border overflow-hidden">
 
     <!-- ── Header ─────────────────────────────────────────────────────────────── -->
-    <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+    <div class="px-5 py-4 pl-border-b">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
@@ -90,8 +90,8 @@ const occupancyColor = computed(() => {
             </svg>
           </div>
           <div>
-            <h2 class="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Jugadores</h2>
-            <p v-if="maxPlayers" class="text-[11px] text-gray-400 dark:text-gray-500 leading-tight">
+            <h2 class="font-semibold pl-text text-sm leading-tight">Jugadores</h2>
+            <p v-if="maxPlayers" class="text-[11px] pl-text-muted leading-tight">
               {{ players.length }} / {{ maxPlayers }}
               <span v-if="spotsLeft !== null && spotsLeft > 0" class="text-emerald-500"> · {{ spotsLeft }} cupos libres</span>
               <span v-else-if="spotsLeft === 0" class="text-red-500"> · Sala llena</span>
@@ -107,7 +107,7 @@ const occupancyColor = computed(() => {
 
       <!-- Barra de ocupación -->
       <div v-if="maxPlayers && players.length > 0" class="mt-3">
-        <div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div class="h-1.5 w-full rounded-full pl-track overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-500"
             :class="occupancyColor"
@@ -119,17 +119,17 @@ const occupancyColor = computed(() => {
 
     <!-- ── Empty state ─────────────────────────────────────────────────────────── -->
     <div v-if="players.length === 0" class="py-14 px-6 text-center">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
-        <svg class="w-8 h-8 text-gray-300 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl pl-surface-2 flex items-center justify-center">
+        <svg class="w-8 h-8 pl-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       </div>
-      <p class="font-medium text-gray-500 dark:text-gray-400 text-sm">Aún no hay jugadores</p>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">¡Sé el primero en unirte!</p>
+      <p class="font-medium pl-text-secondary text-sm">Aún no hay jugadores</p>
+      <p class="text-xs pl-text-muted mt-1">¡Sé el primero en unirte!</p>
     </div>
 
     <!-- ── Lista ───────────────────────────────────────────────────────────────── -->
-    <ul v-else class="divide-y divide-gray-50 dark:divide-gray-700/50">
+    <ul v-else class="pl-divide">
       <li
         v-for="(player, index) in players"
         :key="player.id"
