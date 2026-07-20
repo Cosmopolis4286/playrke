@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 interface PlayerPreview { initial: string }
 
-defineProps<{
+const props = defineProps<{
   variantLabel: string
   variantBalls: number
   cardPriceFormatted: string
@@ -12,7 +14,21 @@ defineProps<{
   extraPlayersCount: number
   totalPlayers: number
   playerCtns: number
+  maxPlayers?: number | null
 }>()
+
+// "X/X" (actual/máximo) cuando la sala define un cupo; si no, solo el total
+const playersLabel = computed(() =>
+  props.maxPlayers ? `${props.totalPlayers}/${props.maxPlayers}` : `${props.totalPlayers}`
+)
+const playersTooltip = computed(() =>
+  props.maxPlayers
+    ? `${props.totalPlayers} de ${props.maxPlayers} jugadores — cupo máximo de la sala`
+    : `${props.totalPlayers} jugador${props.totalPlayers !== 1 ? 'es' : ''} en esta sala`
+)
+const isFull = computed(() =>
+  props.maxPlayers != null && props.totalPlayers >= props.maxPlayers
+)
 </script>
 
 <template>
@@ -37,7 +53,7 @@ defineProps<{
       <!-- Prueba social: iniciales anónimas de jugadores ya en la sala -->
       <div
         v-if="playersPreview.length > 0"
-        v-tooltip="`${totalPlayers} jugador${totalPlayers !== 1 ? 'es' : ''} en esta sala`"
+        v-tooltip="playersTooltip"
         class="rc__avatars"
       >
         <span
@@ -47,15 +63,16 @@ defineProps<{
           :style="{ zIndex: playersPreview.length - i }"
         >{{ p.initial }}</span>
         <span v-if="extraPlayersCount > 0" class="rc__avatar rc__avatar--more">+{{ extraPlayersCount }}</span>
+        <span v-if="maxPlayers" class="rc__avatars-cap" :class="{ 'rc__avatars-cap--full': isFull }">/{{ maxPlayers }}</span>
       </div>
       <span
         v-else
-        v-tooltip="`${totalPlayers} jugador${totalPlayers !== 1 ? 'es' : ''} en esta sala`"
+        v-tooltip="playersTooltip"
         class="rc__stat"
-        :class="{ 'rc__stat--mine': playerCtns > 0 }"
+        :class="{ 'rc__stat--mine': playerCtns > 0, 'rc__stat--full': isFull }"
       >
         <i class="fas fa-users" />
-        <span>{{ totalPlayers }}</span>
+        <span>{{ playersLabel }}</span>
       </span>
       <span
         v-if="playerCtns > 0"
@@ -118,6 +135,14 @@ defineProps<{
   font-size: 7px;
 }
 
+/* Cupo máximo junto a los avatares — "/8" */
+.rc__avatars-cap {
+  margin-left: 3px;
+  font-size: 9px; font-weight: 700;
+  color: #4a6488;
+}
+.rc__avatars-cap--full { color: #ff9430; }
+
 /* Stats: jugadores + cartones míos */
 .rc__stats {
   display: flex; align-items: center; gap: 4px; flex-shrink: 0;
@@ -146,4 +171,12 @@ defineProps<{
   border-color: rgba(110,55,210,.22);
 }
 .rc__stat--ctns i { color: #7840c0; }
+
+/* sala llena — cupo máximo alcanzado */
+.rc__stat--full {
+  color: #ff9430;
+  background: rgba(255,148,48,.08);
+  border-color: rgba(255,148,48,.22);
+}
+.rc__stat--full i { color: #ff9430; }
 </style>

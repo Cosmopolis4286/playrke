@@ -16,6 +16,8 @@ export interface BingoGameRoomConfig {
   readonly time: string
   /** Cantidad mínima de cartones vendidos para iniciar el sorteo (si aplica) */
   readonly min_cards_to_start?: number | null
+  /** Máximo de jugadores permitidos en la sala (si aplica) */
+  readonly max_players?: number | null
   /** Variante de bingo de la sala (BINGO_75, BINGO_90, BINGO_80, BINGO_30) */
   readonly game_variant?: string | null
   /** Si la sala permite que el jugador elija sus propios números */

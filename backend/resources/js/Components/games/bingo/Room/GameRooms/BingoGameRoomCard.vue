@@ -5,6 +5,7 @@ import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/
 import {
   GAME_VARIANT_LABELS,
   isAccumulatedPrize,
+  getTimerLevel,
 } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 import { useSellingFastIndicator } from '@js/composables/games/bingo/room/game-rooms/useSellingFastIndicator'
@@ -29,12 +30,8 @@ const playerCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
 const hasTime      = computed(() => props.countdown && !props.countdown.expired)
 const animDelay    = computed(() => `${(props.index ?? 0) * 70}ms`)
 
-// Urgencia: <60s restantes para el inicio del sorteo — el timer cambia de color y pulsa más rápido
-const isUrgent = computed(() => {
-  if (!hasTime.value || !props.countdown) return false
-  const { days, hours, minutes } = props.countdown.time
-  return days === 0 && hours === 0 && minutes === 0
-})
+// Semáforo del timer: verde (>10min) → amarillo (2-10min) → rojo (<2min)
+const timerLevel = computed(() => getTimerLevel(props.countdown))
 
 const prizeFormatted = computed(() =>
   (props.room.prize_pool * props.exchangeRate).toFixed(2)
@@ -88,6 +85,9 @@ const extraPlayersCount = computed(() =>
   Math.max(0, props.room.total_players - playersPreview.value.length)
 )
 
+// Cupo de la sala: "X/X" (actual/máximo) cuando la sala define un límite de jugadores
+const maxPlayers = computed(() => props.room.config?.max_players ?? null)
+
 const { showSellingFast } = useSellingFastIndicator(computed(() => props.room.total_cards))
 
 /** Coordenadas del último ripple de click, relativas a la card (para posicionar el efecto) */
@@ -127,7 +127,7 @@ function handleClick(event: MouseEvent) {
         :is-available="isAvailable"
         :is-in-progress="isInProgress"
         :has-time="!!hasTime"
-        :is-urgent="isUrgent"
+        :timer-level="timerLevel"
         :countdown="countdown"
         :uuid-code="room.uuid_code"
       />
@@ -179,6 +179,7 @@ function handleClick(event: MouseEvent) {
           :extra-players-count="extraPlayersCount"
           :total-players="room.total_players"
           :player-ctns="playerCtns"
+          :max-players="maxPlayers"
         />
 
       </div>

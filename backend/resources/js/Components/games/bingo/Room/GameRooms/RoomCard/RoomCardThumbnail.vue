@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
+import type { TimerLevel } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 import { BINGO_ROOM_IMG, formatCountdown } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 
 const props = defineProps<{
   isAvailable: boolean
   isInProgress: boolean
   hasTime: boolean
-  isUrgent: boolean
+  timerLevel: TimerLevel
   countdown: RoomCountdown | undefined
   uuidCode?: string | null
 }>()
@@ -33,12 +34,13 @@ const shortRoomCode = computed(() => {
     </span>
 
     <!-- Un solo badge: fusiona estado + countdown cuando hay tiempo activo,
-         para no apilar dos pastillas (arriba/abajo) y ganar altura. -->
+         para no apilar dos pastillas (arriba/abajo) y ganar altura.
+         Semáforo: verde (>10min) → amarillo (2-10min) → rojo (<2min). -->
     <div
       v-if="hasTime"
       v-tooltip="'Tiempo restante para el inicio del sorteo'"
-      class="rc__status-badge rc__status-badge--ok"
-      :class="{ 'rc__status-badge--urgent': isUrgent }"
+      class="rc__status-badge rc__status-badge--timer"
+      :class="`rc__status-badge--${timerLevel}`"
     >
       <i class="far fa-clock" /><b>{{ formatCountdown(countdown) }}</b>
     </div>
@@ -125,7 +127,7 @@ const shortRoomCode = computed(() => {
 
 /* badge único — top centrado; fusiona estado + countdown para no apilar dos pastillas */
 .rc__status-badge {
-  position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 10px; border-radius: 20px;
   font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
@@ -151,16 +153,46 @@ const shortRoomCode = computed(() => {
 }
 .rc__status-badge i.far { font-size: 8.5px; opacity: .7; }
 
-/* variante urgente del badge fusionado: <1 minuto para el sorteo */
-.rc__status-badge--urgent {
-  color: #ffb020;
-  background: rgba(42,24,6,.72);
-  border-color: rgba(255,176,32,.4);
-  animation: urgentPulse 1.6s ease-in-out infinite;
+/* ── Badge del timer — agrandado para mejor legibilidad, con semáforo por tiempo restante ── */
+.rc__status-badge--timer {
+  padding: 5px 14px 5px 12px; border-radius: 22px;
+  gap: 6px;
 }
-.rc__status-badge--urgent b { color: #ffb020; text-shadow: 0 0 8px rgba(255,176,32,.45); }
+.rc__status-badge--timer i.far { font-size: 10px; }
+.rc__status-badge--timer b { font-size: 12px; letter-spacing: .5px; }
+
+/* Verde: sorteo tranquilo, >10 minutos */
+.rc__status-badge--ok.rc__status-badge--timer {
+  animation: timerGlowOk 2.6s ease-in-out infinite;
+}
+@keyframes timerGlowOk {
+  0%, 100% { box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+  50%      { box-shadow: 0 2px 10px rgba(0,0,0,.4), 0 0 12px rgba(42,245,152,.22); }
+}
+
+/* Amarillo: 2-10 minutos restantes */
+.rc__status-badge--warning {
+  color: #ffcf4d;
+  background: rgba(42,32,6,.75);
+  border-color: rgba(255,207,77,.4);
+  animation: timerGlowWarning 1.8s ease-in-out infinite;
+}
+.rc__status-badge--warning b { color: #ffcf4d; text-shadow: 0 0 8px rgba(255,207,77,.4); }
+@keyframes timerGlowWarning {
+  0%, 100% { box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+  50%      { box-shadow: 0 2px 14px rgba(255,207,77,.35); }
+}
+
+/* Rojo: <2 minutos restantes — máxima urgencia */
+.rc__status-badge--urgent {
+  color: #ff5a5a;
+  background: rgba(42,8,8,.75);
+  border-color: rgba(255,90,90,.45);
+  animation: urgentPulse 1.1s ease-in-out infinite;
+}
+.rc__status-badge--urgent b { color: #ff5a5a; text-shadow: 0 0 8px rgba(255,90,90,.5); }
 @keyframes urgentPulse {
   0%, 100% { box-shadow: 0 2px 10px rgba(0,0,0,.4); }
-  50%      { box-shadow: 0 2px 16px rgba(255,176,32,.4); }
+  50%      { box-shadow: 0 2px 18px rgba(255,90,90,.5); }
 }
 </style>

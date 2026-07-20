@@ -38,3 +38,19 @@ export function formatCountdown(cd: RoomCountdown | undefined): string {
 export function isLive(cd: RoomCountdown | undefined): boolean {
   return !cd || cd.expired
 }
+
+export type TimerLevel = 'ok' | 'warning' | 'urgent'
+
+/**
+ * Nivel de urgencia del countdown, tipo semáforo — usado por la card y el modal
+ * de info para colorear el badge del timer según el tiempo restante:
+ * verde (>10min) → amarillo (2-10min) → rojo (<2min).
+ */
+export function getTimerLevel(cd: RoomCountdown | undefined): TimerLevel {
+  if (!cd || cd.expired) return 'ok'
+  const { days, hours, minutes } = cd.time
+  if (days > 0 || hours > 0) return 'ok'
+  if (minutes < 2) return 'urgent'
+  if (minutes < 10) return 'warning'
+  return 'ok'
+}
