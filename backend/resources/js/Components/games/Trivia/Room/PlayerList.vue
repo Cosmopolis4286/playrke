@@ -137,7 +137,7 @@ const occupancyColor = computed(() => {
           'flex items-center gap-3 px-5 py-3.5 transition-colors',
           isMe(player.id)
             ? 'bg-indigo-50/60 dark:bg-indigo-900/10'
-            : 'hover:bg-gray-50/70 dark:hover:bg-gray-700/30',
+            : 'pl-row-hover',
         ]"
       >
         <!-- Avatar -->
@@ -232,3 +232,16 @@ const occupancyColor = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.pl-panel { background: var(--ds-surface); border-color: var(--ds-border); }
+.pl-border-b { border-bottom: 1px solid var(--ds-border); }
+.pl-track { background: var(--ds-surface-2); }
+.pl-surface-2 { background: var(--ds-surface-2); }
+.pl-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.pl-text { color: var(--ds-text); }
+.pl-text-secondary { color: var(--ds-text-2); }
+.pl-text-muted { color: var(--ds-text-muted); }
+.pl-text-faint { color: var(--ds-text-muted); }
+.pl-row-hover:hover { background: var(--ds-surface-2); }
+</style>
