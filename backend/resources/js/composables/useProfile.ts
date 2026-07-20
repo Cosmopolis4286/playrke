@@ -52,6 +52,27 @@ export interface ProfileSession {
     device: string
 }
 
+export interface ProfileAchievement {
+    id: string
+    code: string
+    name: string
+    description: string | null
+    icon: string | null
+    badge_color: string
+    badge_style: string
+    xp_reward: number
+    category: string
+    unlocked_at: string | null
+    is_seen: boolean
+}
+
+// ─── Sync con navbar Blade ──────────────────────────────────────────────────────
+// El navbar vive fuera del árbol de Vue (Blade); se notifica vía evento custom
+// en vez de que este composable conozca su estructura DOM directamente.
+function notifyAvatarChanged(avatarUrl: string | null) {
+    window.dispatchEvent(new CustomEvent('profile:avatar-updated', { detail: { avatarUrl } }))
+}
+
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 export function useProfile(
@@ -71,6 +92,8 @@ export function useProfile(
     const kycState      = ref<KycState | null>(initialKyc)
     const sessions      = ref<ProfileSession[]>([])
     const sessionsLoading = ref(false)
+    const achievements  = ref<ProfileAchievement[]>([])
+    const achievementsLoading = ref(false)
     const errorMsg      = ref<string | null>(null)
     const savingPrefsKey = ref<string | null>(null)
 
@@ -156,10 +179,7 @@ export function useProfile(
                 user.value     = { ...user.value, ...data.data }
                 editMode.value = false
                 showToast('Perfil actualizado correctamente', 'success')
-                // Sync Blade navbar avatar
-                document.querySelectorAll<HTMLImageElement>('.user-img').forEach(img => {
-                    if (user.value.avatar) img.src = user.value.avatar
-                })
+                if (user.value.avatar) notifyAvatarChanged(user.value.avatar)
             }
         } catch (err: any) {
             if (err?.response?.data?.errors) {
@@ -197,9 +217,7 @@ export function useProfile(
         if (newAvatar !== undefined) {
             user.value.avatar = newAvatar
             showToast('Avatar actualizado', 'success')
-            document.querySelectorAll<HTMLImageElement>('.user-img').forEach(img => {
-                img.src = newAvatar
-            })
+            notifyAvatarChanged(newAvatar)
         }
         showAvatar.value = false
     }
@@ -214,6 +232,19 @@ export function useProfile(
         user.value.kyc_level  = newState.kyc_level
         user.value.kyc_status = newState.kyc_status
         showKycModal.value   = false
+    }
+
+    // ── Achievements ───────────────────────────────────────────────────────
+    async function loadAchievements() {
+        achievementsLoading.value = true
+        try {
+            const { data } = await backendClient.get('/profile/achievements/unlocked')
+            if (data.success) achievements.value = data.data
+        } catch {
+            // silencioso
+        } finally {
+            achievementsLoading.value = false
+        }
     }
 
     // ── Sessions ───────────────────────────────────────────────────────────
@@ -282,11 +313,12 @@ export function useProfile(
     return {
         user, editMode, activeTab, showPassword, showAvatar, showKycModal,
         profileForm, prefsForm, kycState, sessions, sessionsLoading, errorMsg,
+        achievements, achievementsLoading,
         saving, savingPrefsKey,
         selectedCountryName, isBirthDateEditable, kycLevelLabel,
         toggleEdit, cancelEdit, saveProfile, savePreferences,
         onAvatarUpdated, onPasswordChanged, onKycUpdated,
-        loadSessions, revokeSession, revokeAllSessions,
+        loadSessions, revokeSession, revokeAllSessions, loadAchievements,
         formatDate, formatCurrency, formatUnixDate,
     }
 }

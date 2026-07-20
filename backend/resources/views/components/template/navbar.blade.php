@@ -590,6 +590,13 @@
     setInterval(tick, 30000);
 })();
 
+// ── Sync de avatar tras editarlo desde /profile (Vue emite este evento) ──
+window.addEventListener('profile:avatar-updated', function (e) {
+    var url = e.detail && e.detail.avatarUrl;
+    if (!url) return;
+    document.querySelectorAll('.user-img').forEach(function (img) { img.src = url; });
+});
+
 function nbGlobalSearch(e, form) {
     var q = form.querySelector('input[name=q]').value.trim();
     if (!q) { e.preventDefault(); return false; }
