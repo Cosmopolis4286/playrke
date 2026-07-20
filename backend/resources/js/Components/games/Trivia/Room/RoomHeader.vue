@@ -165,8 +165,8 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
         </div>
 
         <!-- Free pill -->
-        <div v-if="!room.entryFee" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700">
-          <span class="text-xs text-gray-400 dark:text-gray-500">Entrada gratuita</span>
+        <div v-if="!room.entryFee" class="rh-free-pill flex items-center gap-1.5 px-2.5 py-1 rounded-full border">
+          <span class="text-xs rh-text-muted">Entrada gratuita</span>
         </div>
       </div>
 
@@ -184,3 +184,14 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
     </div>
   </div>
 </template>
+
+<style scoped>
+.rh-panel { background: var(--ds-surface); border-color: var(--ds-border); }
+.rh-text { color: var(--ds-text); }
+.rh-text-muted { color: var(--ds-text-muted); }
+.rh-code-btn { background: var(--ds-surface-2); color: var(--ds-text-2); }
+.rh-stats-divide { border-color: var(--ds-border); }
+.rh-stats-divide > div:not(:last-child) { border-right: 1px solid var(--ds-border); }
+.rh-track { background: var(--ds-surface-2); }
+.rh-free-pill { background: var(--ds-surface-2); border-color: var(--ds-border); }
+</style>
