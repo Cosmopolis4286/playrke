@@ -184,13 +184,15 @@ const isValid = computed(() =>
 
 // ── Submit ─────────────────────────────────────────────────────────────────
 function handleSubmit() {
-    form.post('/profile/api/password', {
+    form.patch('/profile/password', {
         onSuccess: () => {
+            form.reset()
             showToast('Contraseña actualizada', 'success')
             emit('password-changed', true)
             emit('close')
         },
         onError: () => {
+            form.reset('current_password')
             showToast('Error al cambiar la contraseña', 'error')
         },
     })
