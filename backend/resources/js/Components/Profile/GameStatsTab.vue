@@ -66,7 +66,7 @@
             <div class="level-progress-wrap">
               <div class="level-labels">
                 <span>{{ stats.experience_points || 0 }} XP</span>
-                <span class="text-muted">{{ experienceToNextLevel }} XP para nivel {{ (stats.level || 1) + 1 }}</span>
+                <span class="text-muted">{{ xpToNextLevel }} XP para nivel {{ (stats.level || 1) + 1 }}</span>
               </div>
               <div class="xp-bar">
                 <div class="xp-fill" :style="{ width: Math.min(levelProgress, 100) + '%' }">
@@ -109,20 +109,25 @@
             <h6>Logros <span class="badge-count">{{ stats.achievements_count || 0 }}</span></h6>
           </div>
 
-          <div v-if="stats.achievements_count > 0" class="achievements-grid">
+          <div v-if="achievementsLoading" class="achievements-loading">
+            <i class="fas fa-spinner fa-spin"></i> Cargando logros...
+          </div>
+
+          <div v-else-if="achievements.length" class="achievements-grid">
             <div
-              v-for="i in Math.min(stats.achievements_count, 9)"
-              :key="i"
+              v-for="a in achievements.slice(0, 9)"
+              :key="a.id"
               class="achievement-item"
-              :title="`Logro ${i}`"
+              :title="a.description ?? a.name"
             >
               <div class="achievement-icon">
-                <i class="fas fa-star"></i>
+                <img v-if="a.icon" :src="a.icon" :alt="a.name" />
+                <i v-else class="fas fa-star"></i>
               </div>
-              <span>Logro {{ i }}</span>
+              <span>{{ a.name }}</span>
             </div>
-            <div v-if="stats.achievements_count > 9" class="achievement-more">
-              +{{ stats.achievements_count - 9 }} más
+            <div v-if="achievements.length > 9" class="achievement-more">
+              +{{ achievements.length - 9 }} más
             </div>
           </div>
 
@@ -214,6 +219,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { ProfileAchievement } from '@js/composables/useProfile'
 
 interface GameStats {
     games_played?: number
@@ -223,12 +229,20 @@ interface GameStats {
     best_streak?: number
     level?: number
     experience_points?: number
+    xp_to_next_level?: number
+    level_progress?: number
     achievements_count?: number
     join_date?: string
     last_active?: string
 }
 
-const props = defineProps<{ stats: GameStats }>()
+const props = defineProps<{
+    stats: GameStats
+    achievements?: ProfileAchievement[]
+    achievementsLoading?: boolean
+}>()
+
+const achievements = computed(() => props.achievements ?? [])
 
 // ── Computed ────────────────────────────────────────────────────────────────
 
@@ -237,18 +251,11 @@ const winRate = computed(() => {
     return ((props.stats.games_won || 0) / props.stats.games_played) * 100
 })
 
-const levelProgress = computed(() => {
-    const lvl = props.stats.level || 1
-    const xp  = props.stats.experience_points || 0
-    const base = (lvl - 1) * 1000
-    const next = lvl * 1000
-    return ((xp - base) / (next - base)) * 100
-})
-
-const experienceToNextLevel = computed(() => {
-    const lvl = props.stats.level || 1
-    return Math.max(0, lvl * 1000 - (props.stats.experience_points || 0))
-})
+// El backend ya calcula el progreso con la fórmula real de nivel (exponencial,
+// ver UserLevel::calculateXpForNextLevel) — no se recalcula aquí para evitar
+// que el frontend y el backend diverjan en la fórmula.
+const levelProgress = computed(() => props.stats.level_progress ?? 0)
+const xpToNextLevel = computed(() => props.stats.xp_to_next_level ?? 1000)
 
 const activeDays = computed(() => {
     if (!props.stats.join_date) return 0
@@ -451,6 +458,13 @@ function formatDate(dateString: string | undefined): string {
   margin-left: 4px;
 }
 
+.achievements-loading {
+  text-align: center;
+  padding: 1.5rem 0;
+  font-size: .82rem;
+  color: var(--ds-text-2);
+}
+
 .achievements-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
@@ -473,6 +487,15 @@ function formatDate(dateString: string | undefined): string {
   display: flex; align-items: center; justify-content: center;
   font-size: 1.1rem; color: #f59e0b;
   transition: transform .2s, box-shadow .2s;
+  overflow: hidden;
+}
+.achievement-icon img { width: 100%; height: 100%; object-fit: cover; }
+.achievement-item span {
+  max-width: 76px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .achievement-item:hover .achievement-icon {
   transform: translateY(-3px);
