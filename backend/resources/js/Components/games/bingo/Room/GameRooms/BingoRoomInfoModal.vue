@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
-import { formatCountdown, isLive } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import { formatCountdown, isLive, getTimerLevel } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 
 const props = defineProps<{
@@ -75,15 +75,22 @@ const cardsProgressReady = computed(() =>
   minCardsToStart.value != null && totalCards.value >= minCardsToStart.value
 )
 
+// Semáforo del timer: verde (>10min) → amarillo (2-10min) → rojo (<2min), igual criterio que la card
+const timerLevel = computed(() => getTimerLevel(props.countdown))
+
 // Feedback de urgencia: countdown corriendo (<2 min) y aún no se alcanza el mínimo de cartones —
 // riesgo real de que el sorteo no inicie a tiempo, información que ayuda a decidir comprar ya.
-const isCloseToStart = computed(() => {
-  if (!props.countdown || props.countdown.expired) return false
-  const { days, hours, minutes } = props.countdown.time
-  return days === 0 && hours === 0 && minutes < 2
-})
 const showUrgencyHint = computed(() =>
-  isCloseToStart.value && showCardsProgress.value && !cardsProgressReady.value
+  timerLevel.value === 'urgent' && showCardsProgress.value && !cardsProgressReady.value
+)
+
+// Cupo de la sala: "X/X" (actual/máximo) cuando la sala define un límite de jugadores
+const maxPlayers = computed(() => props.room.config?.max_players ?? null)
+const playersLabel = computed(() =>
+  maxPlayers.value ? `${props.room.total_players}/${maxPlayers.value}` : `${props.room.total_players}`
+)
+const isRoomFull = computed(() =>
+  maxPlayers.value != null && props.room.total_players >= maxPlayers.value
 )
 </script>
 
@@ -118,10 +125,13 @@ const showUrgencyHint = computed(() =>
               <i class="fas fa-times" />
             </button>
 
-            <!-- Timer — único elemento centrado sobre la imagen; verde tipo "ACTIVA" mientras
-                 corre (igual lenguaje que el badge de estado de la card), rojo si ya está en vivo -->
+            <!-- Timer — único elemento centrado sobre la imagen; semáforo por tiempo restante
+                 (igual criterio que la card), rojo fijo si el sorteo ya está en vivo -->
             <div id="rim-title" class="rim-timer-row">
-              <span class="rim-timer" :class="{ 'rim-timer--live': isLive(countdown) }">
+              <span
+                class="rim-timer"
+                :class="isLive(countdown) ? 'rim-timer--live' : `rim-timer--${timerLevel}`"
+              >
                 <template v-if="isLive(countdown)">
                   EN VIVO
                 </template>
