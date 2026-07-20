@@ -125,20 +125,20 @@ const submit = () => {
         >
           ← Volver al listado
         </Link>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-2xl font-bold rc-text">
           🎮 Crear Nueva Sala de Trivia
         </h1>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <p class="text-sm rc-text-muted mt-1">
           Configura los parámetros de la sala. El código se generará automáticamente.
         </p>
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="submit" class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
+      <form @submit.prevent="submit" class="rc-card shadow-sm rounded-lg overflow-hidden">
         <div class="p-6 space-y-6">
           <!-- Título -->
           <div>
-            <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="title" class="block text-sm font-medium rc-text-secondary">
               Título de la Sala <span class="text-red-500">*</span>
             </label>
             <input
@@ -147,7 +147,7 @@ const submit = () => {
               type="text"
               required
               maxlength="255"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              class="rc-input mt-1 block w-full rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="Ej: Trivia de Ciencias"
             />
             <p v-if="form.errors.title" class="mt-1 text-sm text-red-600">{{ form.errors.title }}</p>
@@ -155,7 +155,7 @@ const submit = () => {
 
           <!-- Descripción -->
           <div>
-            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="description" class="block text-sm font-medium rc-text-secondary">
               Descripción
             </label>
             <textarea
@@ -163,15 +163,15 @@ const submit = () => {
               v-model="form.description"
               rows="3"
               maxlength="1000"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              class="rc-input mt-1 block w-full rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="Describe el tema o reglas de la sala..."
             />
-            <p class="mt-1 text-xs text-gray-500">Máximo 1000 caracteres</p>
+            <p class="mt-1 text-xs rc-text-muted">Máximo 1000 caracteres</p>
           </div>
 
           <!-- Categoría -->
           <div>
-            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="category" class="block text-sm font-medium rc-text-secondary">
               Categoría
             </label>
             <input
@@ -180,13 +180,13 @@ const submit = () => {
               type="text"
               list="category-list"
               maxlength="50"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              class="rc-input mt-1 block w-full rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               placeholder="Ej: Ciencias, Historia, Deportes..."
             />
             <datalist id="category-list">
               <option v-for="cat in categories" :key="cat" :value="cat" />
             </datalist>
-            <p class="mt-1 text-xs text-gray-500">Opcional. Escribe o elige una categoría existente.</p>
+            <p class="mt-1 text-xs rc-text-muted">Opcional. Escribe o elige una categoría existente.</p>
           </div>
 
           <GameModeSection
@@ -208,11 +208,11 @@ const submit = () => {
           />
 
           <!-- Entrada y Premio -->
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
+          <div class="rc-border-t pt-6">
+            <h3 class="text-lg font-medium rc-text mb-1">
               💳 Entrada y Premio
             </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            <p class="text-xs rc-text-muted mb-4">
               Selecciona las monedas aceptadas y el precio en cada una. Sin selección = sala gratuita.
             </p>
 
@@ -227,7 +227,7 @@ const submit = () => {
 
               <!-- Premio -->
               <div class="pt-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label class="block text-sm font-medium rc-text-secondary mb-1">
                   Premio
                 </label>
                 <div class="flex gap-2">
@@ -236,12 +236,12 @@ const submit = () => {
                     type="number"
                     min="0"
                     step="0.01"
-                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="rc-input block w-28 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     placeholder="0"
                   />
                   <select
                     v-model="form.prize_currency_id"
-                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="rc-input block flex-1 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   >
                     <option value="">— Sin moneda —</option>
                     <option v-for="c in currencies" :key="c.id" :value="c.id">
@@ -252,11 +252,11 @@ const submit = () => {
                 <div class="mt-2 flex gap-4 text-sm">
                   <label class="flex items-center gap-1.5 cursor-pointer">
                     <input v-model="form.prize_type" type="radio" value="accumulated" class="text-indigo-600" />
-                    <span class="text-gray-700 dark:text-gray-300">Acumulado</span>
+                    <span class="rc-text-secondary">Acumulado</span>
                   </label>
                   <label class="flex items-center gap-1.5 cursor-pointer">
                     <input v-model="form.prize_type" type="radio" value="fixed" class="text-indigo-600" />
-                    <span class="text-gray-700 dark:text-gray-300">Fijo</span>
+                    <span class="rc-text-secondary">Fijo</span>
                   </label>
                 </div>
               </div>
@@ -300,10 +300,10 @@ const submit = () => {
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-end gap-3">
+        <div class="rc-footer px-6 py-4 flex items-center justify-end gap-3">
           <Link
             :href="getRoute('roomsIndex')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            class="rc-text-secondary px-4 py-2 text-sm font-medium hover:opacity-80"
           >
             Cancelar
           </Link>
@@ -320,3 +320,13 @@ const submit = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.rc-text { color: var(--ds-text); }
+.rc-text-secondary { color: var(--ds-text-2); }
+.rc-text-muted { color: var(--ds-text-muted); }
+.rc-card { background: var(--ds-surface); }
+.rc-input { border: 1px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text-2); }
+.rc-border-t { border-top: 1px solid var(--ds-border); }
+.rc-footer { background: var(--ds-surface-2); }
+</style>

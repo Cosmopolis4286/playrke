@@ -14,15 +14,15 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+  <div class="gss-border-t pt-6">
+    <h3 class="text-lg font-medium gss-text mb-4">
       ⚙️ Configuración del Juego
     </h3>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
       <!-- Max Players -->
       <div>
-        <label for="max_players" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label for="max_players" class="block text-sm font-medium gss-text-secondary">
           Máx. Jugadores <span class="text-red-500">*</span>
         </label>
         <input
@@ -32,15 +32,15 @@ defineEmits<{
           required
           min="2"
           max="500"
-          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="gss-input mt-1 block w-full rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           @input="$emit('update:maxPlayers', Number(($event.target as HTMLInputElement).value))"
         />
-        <p class="mt-1 text-xs text-gray-500">Mínimo 2, Máximo 500</p>
+        <p class="mt-1 text-xs gss-text-muted">Mínimo 2, Máximo 500</p>
       </div>
 
       <!-- Question Count -->
       <div>
-        <label for="question_count" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label for="question_count" class="block text-sm font-medium gss-text-secondary">
           N° Preguntas <span class="text-red-500">*</span>
         </label>
         <input
@@ -50,15 +50,15 @@ defineEmits<{
           required
           min="1"
           max="100"
-          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="gss-input mt-1 block w-full rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           @input="$emit('update:questionCount', Number(($event.target as HTMLInputElement).value))"
         />
-        <p class="mt-1 text-xs text-gray-500">Mínimo 1, Máximo 100</p>
+        <p class="mt-1 text-xs gss-text-muted">Mínimo 1, Máximo 100</p>
       </div>
 
       <!-- Time per Question -->
       <div>
-        <label for="time_per_question" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label for="time_per_question" class="block text-sm font-medium gss-text-secondary">
           Tiempo/Pregunta (s) <span class="text-red-500">*</span>
         </label>
         <input
@@ -68,10 +68,10 @@ defineEmits<{
           required
           min="5"
           max="300"
-          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="gss-input mt-1 block w-full rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           @input="$emit('update:timePerQuestion', Number(($event.target as HTMLInputElement).value))"
         />
-        <p class="mt-1 text-xs text-gray-500">Segundos por pregunta</p>
+        <p class="mt-1 text-xs gss-text-muted">Segundos por pregunta</p>
       </div>
     </div>
 
@@ -83,3 +83,11 @@ defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.gss-border-t { border-top: 1px solid var(--ds-border); }
+.gss-text { color: var(--ds-text); }
+.gss-text-secondary { color: var(--ds-text-2); }
+.gss-text-muted { color: var(--ds-text-muted); }
+.gss-input { border: 1px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text-2); }
+</style>

@@ -13,8 +13,8 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+  <div class="ass-border-t pt-6">
+    <h3 class="text-lg font-medium ass-text mb-4">
       🛠️ Opciones Avanzadas
     </h3>
 
@@ -26,7 +26,7 @@ defineEmits<{
           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           @change="$emit('update:allowLateJoin', ($event.target as HTMLInputElement).checked)"
         />
-        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+        <span class="ml-2 text-sm ass-text-secondary">
           Permitir unirse tarde (después de iniciar)
         </span>
       </label>
@@ -38,7 +38,7 @@ defineEmits<{
           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           @change="$emit('update:showLeaderboard', ($event.target as HTMLInputElement).checked)"
         />
-        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+        <span class="ml-2 text-sm ass-text-secondary">
           Mostrar clasificación en tiempo real
         </span>
       </label>
@@ -50,10 +50,16 @@ defineEmits<{
           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           @change="$emit('update:publicRoom', ($event.target as HTMLInputElement).checked)"
         />
-        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+        <span class="ml-2 text-sm ass-text-secondary">
           Sala pública (visible en el lobby)
         </span>
       </label>
     </div>
   </div>
 </template>
+
+<style scoped>
+.ass-border-t { border-top: 1px solid var(--ds-border); }
+.ass-text { color: var(--ds-text); }
+.ass-text-secondary { color: var(--ds-text-2); }
+</style>

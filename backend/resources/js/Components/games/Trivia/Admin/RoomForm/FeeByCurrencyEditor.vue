@@ -19,7 +19,7 @@ defineEmits<{
   <div class="space-y-4">
     <!-- Selector de monedas -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label class="block text-sm font-medium fbc-text-secondary mb-2">
         Monedas de entrada
       </label>
       <div class="flex flex-wrap gap-2">
@@ -31,14 +31,14 @@ defineEmits<{
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           :class="feeByCurrency[c.id] !== undefined
             ? 'bg-indigo-600 border-indigo-600 text-white shadow'
-            : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-400'"
+            : 'fbc-chip hover:border-indigo-400'"
         >
           <span>{{ c.symbol }}</span>
           <span class="opacity-80">{{ c.iso_code }}</span>
           <span v-if="feeByCurrency[c.id] !== undefined" class="ml-0.5">✓</span>
         </button>
       </div>
-      <p class="mt-1.5 text-xs text-gray-400">Haz clic para activar/desactivar. Sin selección = sala gratuita.</p>
+      <p class="mt-1.5 text-xs fbc-text-muted">Haz clic para activar/desactivar. Sin selección = sala gratuita.</p>
     </div>
 
     <!-- Precios por moneda -->
@@ -59,7 +59,7 @@ defineEmits<{
             :disabled="disabled"
             :value="feeByCurrency[cid]"
             @input="$emit('update:fee', String(cid), Number(($event.target as HTMLInputElement).value))"
-            class="w-24 rounded-r-lg border border-l-0 border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:opacity-50"
+            class="fbc-price-input w-24 rounded-r-lg border border-l-0 border-indigo-200 dark:border-indigo-700 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:opacity-50"
             placeholder="0.00"
           />
         </div>
@@ -68,3 +68,10 @@ defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.fbc-text-secondary { color: var(--ds-text-2); }
+.fbc-text-muted { color: var(--ds-text-muted); }
+.fbc-chip { background: var(--ds-surface); border-color: var(--ds-border); color: var(--ds-text-2); }
+.fbc-price-input { background: var(--ds-surface); color: var(--ds-text); }
+</style>

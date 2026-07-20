@@ -95,11 +95,11 @@ const submit = () => {
         >
           ← Volver al listado
         </Link>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-2xl font-bold re-text">
           ✏️ Editar Sala
         </h1>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Código: <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">{{ room.code }}</code>
+        <p class="text-sm re-text-muted mt-1">
+          Código: <code class="px-2 py-1 re-code rounded">{{ room.code }}</code>
         </p>
       </div>
 
@@ -133,7 +133,7 @@ const submit = () => {
         <div class="p-6 space-y-6">
           <!-- Título -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium re-text-secondary">
               Título <span class="text-red-500">*</span>
             </label>
             <input
@@ -142,8 +142,8 @@ const submit = () => {
               required
               maxlength="255"
               :aria-invalid="Boolean(titleError || form.errors.title)"
-              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              :class="(titleError || form.errors.title) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
+              class="re-input mt-1 block w-full rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="(titleError || form.errors.title) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
             />
             <p v-if="titleError" class="mt-1 text-sm text-red-600">{{ titleError }}</p>
             <p v-else-if="form.errors.title" class="mt-1 text-sm text-red-600">{{ form.errors.title }}</p>
@@ -151,7 +151,7 @@ const submit = () => {
 
           <!-- Descripción -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium re-text-secondary">
               Descripción
             </label>
             <textarea
@@ -159,20 +159,20 @@ const submit = () => {
               rows="3"
               maxlength="1000"
               :aria-invalid="Boolean(descriptionError || form.errors.description)"
-              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              :class="(descriptionError || form.errors.description) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
+              class="re-input mt-1 block w-full rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="(descriptionError || form.errors.description) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
             />
             <div class="mt-1 flex items-center justify-between">
               <p v-if="descriptionError" class="text-sm text-red-600">{{ descriptionError }}</p>
               <p v-else-if="form.errors.description" class="text-sm text-red-600">{{ form.errors.description }}</p>
               <span v-else></span>
-              <span class="text-xs text-gray-400">{{ (form.description || '').length }}/1000</span>
+              <span class="text-xs re-text-faint">{{ (form.description || '').length }}/1000</span>
             </div>
           </div>
 
           <!-- Categoría -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium re-text-secondary">
               Categoría
             </label>
             <input
@@ -181,8 +181,8 @@ const submit = () => {
               list="category-list-edit"
               maxlength="50"
               :aria-invalid="Boolean(form.errors.category)"
-              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              :class="form.errors.category ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
+              class="re-input mt-1 block w-full rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="form.errors.category ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
               placeholder="Ej: Ciencias, Historia, Deportes..."
             />
             <datalist id="category-list-edit">
@@ -193,7 +193,7 @@ const submit = () => {
 
           <!-- Max Players -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium re-text-secondary">
               Máximo de Jugadores <span class="text-red-500">*</span>
             </label>
             <input
@@ -204,20 +204,20 @@ const submit = () => {
               max="500"
               step="1"
               :aria-invalid="Boolean(maxPlayersError || form.errors.max_players)"
-              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              :class="(maxPlayersError || form.errors.max_players) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
+              class="re-input mt-1 block w-full rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="(maxPlayersError || form.errors.max_players) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
             />
             <p v-if="maxPlayersError" class="mt-1 text-sm text-red-600">{{ maxPlayersError }}</p>
             <p v-else-if="form.errors.max_players" class="mt-1 text-sm text-red-600">{{ form.errors.max_players }}</p>
-            <p v-else class="mt-1 text-xs text-gray-400">Entre 2 y 500 jugadores. Jugadores actuales: {{ room.current_players ?? 0 }}.</p>
+            <p v-else class="mt-1 text-xs re-text-faint">Entre 2 y 500 jugadores. Jugadores actuales: {{ room.current_players ?? 0 }}.</p>
           </div>
 
           <!-- Entrada y Premio -->
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
+          <div class="re-border-t pt-6">
+            <h3 class="text-lg font-medium re-text mb-1">
               💳 Entrada y Premio
             </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            <p class="text-xs re-text-muted mb-4">
               Selecciona las monedas aceptadas y el precio de entrada en cada una. Deja vacío para sala gratuita.
             </p>
 
@@ -234,7 +234,7 @@ const submit = () => {
 
               <!-- Premio -->
               <div class="pt-2">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label class="block text-sm font-medium re-text-secondary mb-1">
                   Premio
                 </label>
                 <div class="flex gap-2">
@@ -245,14 +245,14 @@ const submit = () => {
                     step="0.01"
                     :aria-invalid="Boolean(prizeAmountError || form.errors.prize_amount)"
                     class="block w-28 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    :class="(prizeAmountError || form.errors.prize_amount) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
+                    :class="(prizeAmountError || form.errors.prize_amount) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
                     placeholder="0"
                   />
                   <select
                     v-model="form.prize_currency_id"
                     :aria-invalid="Boolean(prizeCurrencyError || form.errors.prize_currency_id)"
                     class="block flex-1 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    :class="(prizeCurrencyError || form.errors.prize_currency_id) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
+                    :class="(prizeCurrencyError || form.errors.prize_currency_id) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
                   >
                     <option value="">— Sin moneda —</option>
                     <option v-for="c in currencies" :key="c.id" :value="c.id">
@@ -267,14 +267,14 @@ const submit = () => {
                 <div class="mt-2 flex gap-4 text-sm">
                   <label class="flex items-center gap-1.5 cursor-pointer">
                     <input v-model="form.prize_type" type="radio" value="accumulated" class="text-indigo-600" />
-                    <span class="text-gray-700 dark:text-gray-300">Acumulado</span>
+                    <span class="re-text-secondary">Acumulado</span>
                   </label>
                   <label class="flex items-center gap-1.5 cursor-pointer">
                     <input v-model="form.prize_type" type="radio" value="fixed" class="text-indigo-600" />
-                    <span class="text-gray-700 dark:text-gray-300">Fijo</span>
+                    <span class="re-text-secondary">Fijo</span>
                   </label>
                 </div>
-                <p class="mt-1.5 text-xs text-gray-400">
+                <p class="mt-1.5 text-xs re-text-faint">
                   <strong>Acumulado:</strong> el premio crece con las entradas pagadas. <strong>Fijo:</strong> se reparte un monto fijo definido aquí.
                 </p>
               </div>

@@ -145,8 +145,8 @@ function formatDate(d: string) {
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📚 Banco de Preguntas</h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <h1 class="text-2xl font-bold qi-text">📚 Banco de Preguntas</h1>
+          <p class="text-sm qi-text-muted mt-1">
             Gestiona el banco global de preguntas de trivia
           </p>
         </div>
@@ -163,31 +163,31 @@ function formatDate(d: string) {
         <div
           v-for="s in statsCards"
           :key="s.label"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 flex items-center gap-3"
+          class="qi-card rounded-lg shadow-sm p-4 flex items-center gap-3"
         >
           <span class="text-2xl">{{ s.icon }}</span>
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">{{ s.label }}</p>
-            <p class="text-xl font-bold text-gray-900 dark:text-white">{{ s.value }}</p>
+            <p class="text-xs qi-text-muted uppercase">{{ s.label }}</p>
+            <p class="text-xl font-bold qi-text">{{ s.value }}</p>
           </div>
         </div>
       </div>
 
       <!-- Filtros -->
-      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-4">
+      <div class="qi-card shadow-sm rounded-lg p-4 mb-4">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <!-- Búsqueda -->
           <input
             v-model="search"
             type="text"
             placeholder="Buscar pregunta..."
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="qi-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @input="applyFilters"
           />
           <!-- Categoría -->
           <select
             v-model="category"
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="qi-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @change="applyFilters"
           >
             <option value="">Todas las categorías</option>
@@ -196,7 +196,7 @@ function formatDate(d: string) {
           <!-- Dificultad -->
           <select
             v-model="difficulty"
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="qi-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @change="applyFilters"
           >
             <option value="">Todas las dificultades</option>
@@ -207,7 +207,7 @@ function formatDate(d: string) {
           <!-- Activa/Inactiva -->
           <select
             v-model="active"
-            class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            class="qi-input rounded-md text-sm focus:border-indigo-500 focus:ring-indigo-500"
             @change="applyFilters"
           >
             <option value="">Todas</option>
@@ -227,7 +227,7 @@ function formatDate(d: string) {
               </span>
               <button
                 @click="clearSelection"
-                class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 underline"
+                class="text-xs qi-text-muted hover:opacity-80 underline"
               >
                 Limpiar
               </button>
@@ -258,9 +258,9 @@ function formatDate(d: string) {
       </Transition>
 
       <!-- Tabla -->
-      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-700">
+      <div class="qi-card shadow-sm rounded-lg overflow-hidden">
+        <table class="min-w-full qi-divide-y">
+          <thead class="qi-thead">
             <tr>
               <th class="px-3 py-3 text-left">
                 <input
@@ -270,15 +270,15 @@ function formatDate(d: string) {
                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
               </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Pregunta</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Opciones</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Dificultad</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Pts / Seg</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Usos</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
+              <th class="px-4 py-3 text-left text-xs font-medium qi-text-secondary uppercase">Pregunta</th>
+              <th class="px-4 py-3 text-left text-xs font-medium qi-text-secondary uppercase">Opciones</th>
+              <th class="px-4 py-3 text-left text-xs font-medium qi-text-secondary uppercase">Dificultad</th>
+              <th class="px-4 py-3 text-left text-xs font-medium qi-text-secondary uppercase">Pts / Seg</th>
+              <th class="px-4 py-3 text-left text-xs font-medium qi-text-secondary uppercase">Usos</th>
+              <th class="px-4 py-3 text-left text-xs font-medium qi-text-secondary uppercase">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody class="qi-divide-y">
             <tr
               v-for="q in questions.data"
               :key="q.id"
@@ -286,7 +286,7 @@ function formatDate(d: string) {
                 'transition-colors cursor-pointer',
                 selectedRows.has(q.id)
                   ? 'bg-indigo-50 dark:bg-indigo-900/30'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50',
+                  : 'qi-row-hover',
                 !q.is_active && 'opacity-60'
               ]"
               @click="toggleSelectRow(q.id)"
@@ -302,7 +302,7 @@ function formatDate(d: string) {
               </td>
               <!-- Pregunta -->
               <td class="px-4 py-4 max-w-xs">
-                <p class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                <p class="text-sm font-medium qi-text line-clamp-2">
                   {{ q.question_text }}
                 </p>
                 <span v-if="q.category" class="mt-1 inline-block text-xs text-indigo-600 dark:text-indigo-400">
@@ -315,7 +315,7 @@ function formatDate(d: string) {
                   <div
                     v-for="(opt, i) in q.options"
                     :key="i"
-                    class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[180px]"
+                    class="text-xs qi-text-secondary truncate max-w-[180px]"
                   >
                     <span class="font-mono font-semibold mr-1">{{ String.fromCharCode(65 + i) }}.</span>{{ opt }}
                   </div>
@@ -328,11 +328,11 @@ function formatDate(d: string) {
                 </span>
               </td>
               <!-- Pts / Seg -->
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+              <td class="px-4 py-4 whitespace-nowrap text-sm qi-text-secondary">
                 {{ q.points }}pts / {{ q.time_limit_seconds }}s
               </td>
               <!-- Usos -->
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+              <td class="px-4 py-4 whitespace-nowrap text-sm qi-text-muted">
                 {{ q.times_used }}
               </td>
               <!-- Estado -->
@@ -343,7 +343,7 @@ function formatDate(d: string) {
                     'px-2 py-0.5 rounded-full text-xs font-medium transition',
                     q.is_active
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200'
+                      : 'qi-inactive-badge'
                   ]"
                 >
                   {{ q.is_active ? 'Activa' : 'Inactiva' }}
@@ -352,7 +352,7 @@ function formatDate(d: string) {
             </tr>
 
             <tr v-if="questions.data.length === 0">
-              <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+              <td colspan="7" class="px-6 py-12 text-center qi-text-muted">
                 <div class="text-4xl mb-2">📭</div>
                 <p>No se encontraron preguntas</p>
                 <Link
@@ -367,8 +367,8 @@ function formatDate(d: string) {
         </table>
 
         <!-- Paginación -->
-        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between">
-          <p class="text-sm text-gray-700 dark:text-gray-300">
+        <div class="qi-pagination px-6 py-4 flex items-center justify-between">
+          <p class="text-sm qi-text-secondary">
             Mostrando {{ questions.from ?? 0 }} – {{ questions.to ?? 0 }} de {{ questions.total }} preguntas
           </p>
           <div class="flex gap-1">
@@ -380,13 +380,13 @@ function formatDate(d: string) {
                   'px-3 py-1 rounded text-sm',
                   link.active
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                    : 'qi-page-link border'
                 ]"
                 v-html="link.label"
               />
               <span
                 v-else
-                class="px-3 py-1 rounded text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                class="px-3 py-1 rounded text-sm qi-text-muted cursor-not-allowed"
                 v-html="link.label"
               />
             </template>
@@ -413,4 +413,18 @@ function formatDate(d: string) {
   opacity: 0;
   transform: translateY(-4px);
 }
+
+.qi-text { color: var(--ds-text); }
+.qi-text-secondary { color: var(--ds-text-2); }
+.qi-text-muted { color: var(--ds-text-muted); }
+.qi-card { background: var(--ds-surface); }
+.qi-input { border: 1px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text-2); }
+.qi-thead { background: var(--ds-surface-2); }
+.qi-divide-y > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.qi-row-hover:hover { background: var(--ds-surface-2); }
+.qi-inactive-badge { background: var(--ds-surface-2); color: var(--ds-text-2); }
+.qi-inactive-badge:hover { filter: brightness(0.95); }
+.qi-pagination { background: var(--ds-surface-2); border-top: 1px solid var(--ds-border); }
+.qi-page-link { background: var(--ds-surface); color: var(--ds-text-2); border-color: var(--ds-border); }
+.qi-page-link:hover { background: var(--ds-surface-2); }
 </style>
