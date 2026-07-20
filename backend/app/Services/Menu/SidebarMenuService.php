@@ -83,7 +83,7 @@ class SidebarMenuService
                     'title'         => 'Mis Partidas',
                     'route'         => 'bingo.my-games',
                     'permission'    => null,
-                    'exclude_roles' => ['seller', 'commerce', 'subsidiary', 'customer'],
+                    'exclude_roles' => ['superadmin', 'admin', 'seller', 'commerce', 'subsidiary', 'customer'],
                 ],
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
