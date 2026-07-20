@@ -128,7 +128,7 @@ const submit = () => {
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="submit" class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
+      <form @submit.prevent="submit" class="re-card shadow-sm rounded-lg overflow-hidden">
         <fieldset :disabled="!isEditable" class="contents">
         <div class="p-6 space-y-6">
           <!-- Título -->
@@ -244,14 +244,14 @@ const submit = () => {
                     min="0"
                     step="0.01"
                     :aria-invalid="Boolean(prizeAmountError || form.errors.prize_amount)"
-                    class="block w-28 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="re-input block w-28 rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     :class="(prizeAmountError || form.errors.prize_amount) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
                     placeholder="0"
                   />
                   <select
                     v-model="form.prize_currency_id"
                     :aria-invalid="Boolean(prizeCurrencyError || form.errors.prize_currency_id)"
-                    class="block flex-1 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="re-input block flex-1 rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     :class="(prizeCurrencyError || form.errors.prize_currency_id) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 're-input-border focus:border-indigo-500'"
                   >
                     <option value="">— Sin moneda —</option>
@@ -311,30 +311,30 @@ const submit = () => {
           />
 
           <!-- Info de sólo lectura -->
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-4">
+          <div class="re-border-t pt-6">
+            <h3 class="text-sm font-medium re-text-muted uppercase mb-4">
               Información del Sistema (No editable)
             </h3>
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Estado:</span>
-                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ room.status }}</span>
+                <span class="re-text-muted">Estado:</span>
+                <span class="ml-2 font-medium re-text">{{ room.status }}</span>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Preguntas:</span>
-                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ room.question_count }}</span>
+                <span class="re-text-muted">Preguntas:</span>
+                <span class="ml-2 font-medium re-text">{{ room.question_count }}</span>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Tiempo/Pregunta:</span>
-                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ room.time_per_question }}s</span>
+                <span class="re-text-muted">Tiempo/Pregunta:</span>
+                <span class="ml-2 font-medium re-text">{{ room.time_per_question }}s</span>
               </div>
               <div>
-                <span class="text-gray-500 dark:text-gray-400">Creada:</span>
-                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ new Date(room.created_at).toLocaleDateString() }}</span>
+                <span class="re-text-muted">Creada:</span>
+                <span class="ml-2 font-medium re-text">{{ new Date(room.created_at).toLocaleDateString() }}</span>
               </div>
               <div v-if="room.scheduled_at">
-                <span class="text-gray-500 dark:text-gray-400">Inicio Programado:</span>
-                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ new Date(room.scheduled_at).toLocaleString() }}</span>
+                <span class="re-text-muted">Inicio Programado:</span>
+                <span class="ml-2 font-medium re-text">{{ new Date(room.scheduled_at).toLocaleString() }}</span>
               </div>
             </div>
           </div>
@@ -342,10 +342,10 @@ const submit = () => {
         </fieldset>
 
         <!-- Footer -->
-        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-end gap-3">
+        <div class="re-footer px-6 py-4 flex items-center justify-end gap-3">
           <Link
             :href="getRoute('roomsIndex')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            class="re-text-secondary px-4 py-2 text-sm font-medium hover:opacity-80"
           >
             Cancelar
           </Link>
@@ -368,3 +368,16 @@ const submit = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.re-text { color: var(--ds-text); }
+.re-text-secondary { color: var(--ds-text-2); }
+.re-text-muted { color: var(--ds-text-muted); }
+.re-text-faint { color: var(--ds-text-muted); }
+.re-card { background: var(--ds-surface); }
+.re-input { background: var(--ds-surface); color: var(--ds-text-2); }
+.re-input-border { border: 1px solid var(--ds-border); }
+.re-code { background: var(--ds-surface-2); }
+.re-border-t { border-top: 1px solid var(--ds-border); }
+.re-footer { background: var(--ds-surface-2); }
+</style>
