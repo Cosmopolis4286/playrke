@@ -47,28 +47,15 @@ class SidebarMenuService
                 ],
             ],
         ],
-        'exchange_rates' => [
-            'title' => 'Tasa de Cambio',
-            'icon' => 'fas fa-exchange-alt',
-            'permission' => 'exchange.view',
-            'exclude_roles' => ['player', 'seller'],
-            'route' => 'exchange-rate.index',
-        ],
-
         // ── Juegos (operación diaria de juego) ────────────────────────
-        // Un solo menú por juego: Bingo agrupa tanto la vista de catálogo/
-        // administración (admin/superadmin) como la operación de venta
-        // (commerce/subsidiary/seller/customer/player). Cada subitem se
-        // autofiltra por su propio permiso/exclude_roles.
+        // Un solo menú por juego: Bingo agrupa la administración de salas
+        // (admin/superadmin) y la operación de venta (commerce/subsidiary/
+        // seller/customer/player). Cada subitem se autofiltra por su propio
+        // permiso/exclude_roles.
         'games_bingo' => [
             'title' => 'Bingo',
             'icon' => 'fas fa-dice',
             'submenu' => [
-                'games_catalog' => [
-                    'title' => 'Catálogo de Juegos',
-                    'route' => 'games.index',
-                    'permission' => 'games.manage',
-                ],
                 'bingo_rooms' => [
                     'title' => 'Gestionar Salas',
                     'route' => 'bingo-rooms.index',
@@ -152,6 +139,12 @@ class SidebarMenuService
             'title' => 'Negocio',
             'icon' => 'fa-solid fa-briefcase',
             'submenu' => [
+                'exchange_rates' => [
+                    'title' => 'Tasa de Cambio',
+                    'route' => 'exchange-rate.index',
+                    'permission' => 'exchange.view',
+                    'exclude_roles' => ['player', 'seller'],
+                ],
                 'my_sellers' => [
                     'title' => 'Mis Vendedores',
                     'route' => 'manager-seller.index',
@@ -194,6 +187,11 @@ class SidebarMenuService
             'title' => 'Sistema',
             'icon' => 'fas fa-cogs',
             'submenu' => [
+                'games_catalog' => [
+                    'title' => 'Catálogo de Juegos',
+                    'route' => 'games.index',
+                    'permission' => 'games.manage',
+                ],
                 'settings' => [
                     'title' => 'Configuración',
                     'route' => 'settings.index',
