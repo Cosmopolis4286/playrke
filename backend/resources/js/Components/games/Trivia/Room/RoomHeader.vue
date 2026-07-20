@@ -32,14 +32,14 @@ const fillColor = computed(() => {
 const statusMap: Record<string, { label: string; dot: string; text: string }> = {
   waiting: { label: 'En espera',  dot: 'bg-emerald-400 animate-pulse', text: 'text-emerald-600 dark:text-emerald-400' },
   playing: { label: 'En juego',   dot: 'bg-blue-400 animate-pulse',    text: 'text-blue-600 dark:text-blue-400'       },
-  closed:  { label: 'Cerrada',    dot: 'bg-gray-400',                  text: 'text-gray-500 dark:text-gray-400'       },
+  closed:  { label: 'Cerrada',    dot: 'bg-gray-400',                  text: 'rh-text-muted'       },
 }
 
 const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm overflow-hidden">
+  <div class="rh-panel rounded-2xl border shadow-sm overflow-hidden">
 
     <!-- Accent bar -->
     <div class="h-0.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500" />
@@ -59,10 +59,10 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
             </span>
           </div>
 
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white leading-tight truncate">
+          <h1 class="text-xl font-bold rh-text leading-tight truncate">
             {{ room.title }}
           </h1>
-          <p v-if="room.description" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-1">
+          <p v-if="room.description" class="text-xs rh-text-muted mt-0.5 line-clamp-1">
             {{ room.description }}
           </p>
         </div>
@@ -75,7 +75,7 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
             'flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono text-sm font-bold transition-all duration-200',
             copied
               ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-              : 'bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400',
+              : 'rh-code-btn hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400',
           ]"
         >
           {{ room.code }}
