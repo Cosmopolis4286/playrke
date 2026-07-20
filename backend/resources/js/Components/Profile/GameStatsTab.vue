@@ -424,7 +424,7 @@ function formatDate(dateString: string | undefined): string {
 }
 .streak-divider {
   width: 1px; height: 48px;
-  background: #eaecf0;
+  background: var(--ds-border);
 }
 .streak-item {
   display: flex;
@@ -434,8 +434,8 @@ function formatDate(dateString: string | undefined): string {
 }
 .streak-active-icon { font-size: 1.8rem; color: #f7971e; }
 .streak-best-icon   { font-size: 1.8rem; color: #f5a623; }
-.streak-val { font-size: 1.5rem; font-weight: 700; color: #1a1d23; line-height: 1; }
-.streak-lbl { font-size: .76rem; color: #6b7280; margin-top: 2px; }
+.streak-val { font-size: 1.5rem; font-weight: 700; color: var(--ds-text); line-height: 1; }
+.streak-lbl { font-size: .76rem; color: var(--ds-text-2); margin-top: 2px; }
 
 /* ── Achievements ────────────────────────────────────────────────────────── */
 .badge-count {
@@ -462,7 +462,7 @@ function formatDate(dateString: string | undefined): string {
   align-items: center;
   gap: .3rem;
   font-size: .7rem;
-  color: #6b7280;
+  color: var(--ds-text-2);
   cursor: default;
 }
 .achievement-icon {
@@ -490,17 +490,17 @@ function formatDate(dateString: string | undefined): string {
 .empty-state {
   text-align: center;
   padding: 1.5rem 0;
-  color: #9ca3af;
+  color: var(--ds-text-muted);
 }
 .empty-icon {
   width: 56px; height: 56px;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: var(--ds-surface-2);
   display: flex; align-items: center; justify-content: center;
   font-size: 1.4rem;
   margin: 0 auto .75rem;
 }
-.empty-state p { font-size: .88rem; margin: 0 0 .2rem; color: #6b7280; }
+.empty-state p { font-size: .88rem; margin: 0 0 .2rem; color: var(--ds-text-2); }
 .empty-state small { font-size: .76rem; }
 
 /* ── Win rate ring ───────────────────────────────────────────────────────── */
