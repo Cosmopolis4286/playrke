@@ -89,7 +89,7 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
       </div>
 
       <!-- ── Fila 2: stats compactas ───────────────────────────────────────── -->
-      <div class="mt-4 flex items-center gap-0 divide-x divide-gray-100 dark:divide-gray-700/60 rounded-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+      <div class="mt-4 flex items-center gap-0 rh-stats-divide rounded-xl border overflow-hidden">
 
         <!-- Jugadores -->
         <div class="flex-1 flex items-center gap-2.5 px-3.5 py-2.5">
@@ -99,12 +99,12 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-none mb-0.5">Jugadores</p>
-            <p class="text-sm font-bold text-gray-900 dark:text-white leading-none">
-              {{ playerCount }}<span class="font-normal text-gray-400 dark:text-gray-500 text-xs">/{{ maxPlayers }}</span>
+            <p class="text-[10px] rh-text-muted leading-none mb-0.5">Jugadores</p>
+            <p class="text-sm font-bold rh-text leading-none">
+              {{ playerCount }}<span class="font-normal rh-text-muted text-xs">/{{ maxPlayers }}</span>
             </p>
             <!-- mini progress -->
-            <div class="mt-1 h-0.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div class="mt-1 h-0.5 w-full rounded-full rh-track overflow-hidden">
               <div :class="['h-full rounded-full transition-all duration-500', fillColor]" :style="{ width: fillPct + '%' }" />
             </div>
           </div>
@@ -118,8 +118,8 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
             </svg>
           </div>
           <div>
-            <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-none mb-0.5">Preguntas</p>
-            <p class="text-sm font-bold text-gray-900 dark:text-white leading-none">{{ room.questionCount }}</p>
+            <p class="text-[10px] rh-text-muted leading-none mb-0.5">Preguntas</p>
+            <p class="text-sm font-bold rh-text leading-none">{{ room.questionCount }}</p>
           </div>
         </div>
 
@@ -131,8 +131,8 @@ const status = computed(() => statusMap[props.room.status] ?? statusMap.waiting)
             </svg>
           </div>
           <div>
-            <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-none mb-0.5">Por pregunta</p>
-            <p class="text-sm font-bold text-gray-900 dark:text-white leading-none">{{ room.timePerQuestion }}s</p>
+            <p class="text-[10px] rh-text-muted leading-none mb-0.5">Por pregunta</p>
+            <p class="text-sm font-bold rh-text leading-none">{{ room.timePerQuestion }}s</p>
           </div>
         </div>
       </div>
