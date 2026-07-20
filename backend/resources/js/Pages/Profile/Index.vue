@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useProfile, type ProfileUser, type ProfilePreferences, type CountryOption } from '@js/composables/useProfile'
 import { useTos }          from '@js/composables/useTos'
 import { useKyc }          from '@js/composables/useKyc'
@@ -30,10 +30,11 @@ const {
     showPassword, showAvatar, showKycModal,
     profileForm, prefsForm, savingPrefsKey,
     kycState, sessions, sessionsLoading, errorMsg,
+    achievements, achievementsLoading,
     selectedCountryName, isBirthDateEditable,
     toggleEdit, cancelEdit, saveProfile, savePreferences,
     onAvatarUpdated, onPasswordChanged, onKycUpdated,
-    loadSessions, revokeSession, revokeAllSessions,
+    loadSessions, revokeSession, revokeAllSessions, loadAchievements,
     formatDate, formatCurrency, formatUnixDate,
 } = useProfile(props.user, props.preferences, props.countries, props.kyc)
 
@@ -61,9 +62,10 @@ async function handleKycSubmit(form: Parameters<typeof submitDocument>[0]) {
     }
 }
 
-// ── Sesiones: cargar al abrir el tab ──────────────────────────────────────
+// ── Sesiones / logros: cargar al abrir el tab ──────────────────────────────
 watch(activeTab, (tab) => {
     if (tab === 'security' && !sessions.value.length) loadSessions()
+    if (tab === 'stats' && !achievements.value.length) loadAchievements()
 })
 onMounted(() => {
     if (props.tos.needs_acceptance) tosModalOpen.value = true
@@ -71,7 +73,6 @@ onMounted(() => {
 </script>
 
 <script lang="ts">
-import { ref } from 'vue'
 export default { name: 'ProfileIndex' }
 </script>
 
@@ -117,6 +118,8 @@ export default { name: 'ProfileIndex' }
               v-else-if="activeTab === 'stats'"
               key="stats"
               :stats="stats"
+              :achievements="achievements"
+              :achievements-loading="achievementsLoading"
             />
 
             <PreferencesTab
