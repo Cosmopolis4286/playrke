@@ -313,6 +313,7 @@ class ProfileController extends Controller
             'country_iso'     => $user->country?->iso_code_2,
             'bio'             => $user->bio,
             'is_verified'     => ! is_null($user->email_verified_at),
+            'is_two_factor_enabled' => (bool) $user->is_two_factor_enabled,
             'kyc_level'       => (int) ($user->kyc_level ?? 0),
             'kyc_status'      => $user->kyc_status ?? 'NONE',
             'tos_accepted_at' => $user->tos_accepted_at?->toIso8601String(),

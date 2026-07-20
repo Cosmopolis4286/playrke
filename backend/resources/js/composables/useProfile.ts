@@ -19,6 +19,7 @@ export interface ProfileUser {
     country_iso: string | null
     bio: string | null
     is_verified: boolean
+    is_two_factor_enabled: boolean
     kyc_level: 0 | 1 | 2
     kyc_status: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED'
     tos_accepted_at: string | null

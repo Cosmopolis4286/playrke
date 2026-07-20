@@ -81,21 +81,24 @@
 
       <hr class="sec-divider" />
 
-      <!-- 2FA (UI ready, backend pendiente) -->
+      <!-- 2FA: el campo is_two_factor_enabled existe en el modelo pero no hay flujo
+           TOTP implementado en backend todavía — se muestra el estado real (siempre
+           desactivado hoy) sin permitir activarlo desde aquí para no simular una
+           protección que no existe. -->
       <section class="sec-section">
         <div class="sec-section-head">
           <div class="sec-icon-wrap sec-icon-wrap--info"><i class="fas fa-mobile-alt" /></div>
           <div>
             <h4 class="sec-section-title">Autenticación de Dos Factores</h4>
-            <p class="sec-section-desc">Añade una capa adicional de seguridad a tu cuenta.</p>
+            <p class="sec-section-desc">
+              {{ user.is_two_factor_enabled ? 'Tu cuenta tiene 2FA activo.' : 'Próximamente disponible. Añadirá una capa adicional de seguridad a tu cuenta.' }}
+            </p>
           </div>
         </div>
-        <label class="toggle-control">
-          <div :class="['toggle-track', { 'toggle-track--on': twoFa }]" @click="handleTwoFaToggle">
-            <div class="toggle-thumb" />
-          </div>
-          <span class="toggle-text">{{ twoFa ? '2FA activado' : '2FA desactivado' }}</span>
-        </label>
+        <span class="status-badge" :class="user.is_two_factor_enabled ? 'status-badge--success' : 'status-badge--muted'">
+          <i :class="['fas me-1', user.is_two_factor_enabled ? 'fa-shield-alt' : 'fa-clock']" />
+          {{ user.is_two_factor_enabled ? '2FA activado' : 'Próximamente' }}
+        </span>
       </section>
 
       <hr class="sec-divider" />
@@ -188,9 +191,9 @@
           <div class="sec-info-row">
             <dt>2FA</dt>
             <dd>
-              <span :class="['status-badge', twoFa ? 'status-badge--info' : 'status-badge--muted']">
-                <i :class="['fas me-1', twoFa ? 'fa-shield-alt' : 'fa-unlock']" />
-                {{ twoFa ? 'Activo' : 'Inactivo' }}
+              <span :class="['status-badge', user.is_two_factor_enabled ? 'status-badge--info' : 'status-badge--muted']">
+                <i :class="['fas me-1', user.is_two_factor_enabled ? 'fa-shield-alt' : 'fa-unlock']" />
+                {{ user.is_two_factor_enabled ? 'Activo' : 'Inactivo' }}
               </span>
             </dd>
           </div>
@@ -224,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { showToast } from '@js/utils/toastNotify'
 import type { ProfileUser, ProfileSession } from '@js/composables/useProfile'
 
@@ -245,13 +248,6 @@ defineEmits<{
     'revoke-all-sessions': []
 }>()
 
-const twoFa = ref(props.user.kyc_level > 0) // placeholder
-
-function handleTwoFaToggle() {
-    twoFa.value = !twoFa.value
-    showToast(twoFa.value ? '2FA activado' : '2FA desactivado', twoFa.value ? 'success' : 'warning')
-}
-
 const otherSessions = computed(() => props.sessions.filter(s => !s.is_current))
 
 const kycIcon = computed(() => ({
@@ -270,7 +266,7 @@ const kycDescription = computed(() => ({
 
 const recommendations = computed(() => [
     { text: 'Usa una contraseña única y fuerte',        done: true },
-    { text: 'Activa la autenticación de dos factores',  done: twoFa.value },
+    { text: 'Activa la autenticación de dos factores',  done: props.user.is_two_factor_enabled },
     { text: 'Acepta los Términos de Servicio',          done: !!props.user.tos_accepted_at },
     { text: 'Verifica tu identidad (KYC)',              done: props.user.kyc_status === 'VERIFIED' },
     { text: 'Mantén tu email verificado',               done: props.user.is_verified },
