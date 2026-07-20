@@ -38,7 +38,7 @@
         ref="fileInputRef"
         type="file"
         class="sr-only"
-        accept="image/jpeg,image/png,image/jpg,image/gif"
+        accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
         @change="onFileChange"
       />
       <div class="dropzone-inner">
@@ -47,7 +47,7 @@
           <span class="dropzone-link">Haz clic para seleccionar</span>
           &nbsp;o arrastra la imagen aquí
         </p>
-        <p class="dropzone-hint">JPG, PNG, GIF · Máx. 5 MB · Se comprime automáticamente</p>
+        <p class="dropzone-hint">JPG, PNG, GIF, WEBP · Máx. 5 MB · Se comprime automáticamente</p>
       </div>
     </div>
 
@@ -73,29 +73,39 @@
     </div>
 
     <template #footer>
-      <button
-        v-if="currentAvatar"
-        type="button"
-        class="action-btn action-btn--danger me-auto"
-        :disabled="deleting"
-        @click="handleDelete"
-      >
-        <i class="fas fa-trash me-1"></i>
-        {{ deleting ? 'Eliminando...' : 'Eliminar' }}
-      </button>
+      <template v-if="confirmingDelete">
+        <span class="confirm-text me-auto">¿Eliminar tu avatar actual?</span>
+        <button type="button" class="action-btn action-btn--ghost" @click="confirmingDelete = false">
+          No
+        </button>
+        <button type="button" class="action-btn action-btn--danger" :disabled="deleting" @click="handleDelete">
+          <i class="fas fa-trash me-1"></i>
+          {{ deleting ? 'Eliminando...' : 'Sí, eliminar' }}
+        </button>
+      </template>
+      <template v-else>
+        <button
+          v-if="currentAvatar"
+          type="button"
+          class="action-btn action-btn--danger me-auto"
+          @click="confirmingDelete = true"
+        >
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
 
-      <button type="button" class="action-btn action-btn--ghost" @click="$emit('close')">
-        Cancelar
-      </button>
-      <button
-        type="button"
-        class="action-btn action-btn--primary"
-        :disabled="!selectedFile || !!fileError || uploading"
-        @click="handleUpload"
-      >
-        <i class="fas fa-upload me-1"></i>
-        {{ uploading ? 'Subiendo...' : 'Subir avatar' }}
-      </button>
+        <button type="button" class="action-btn action-btn--ghost" @click="$emit('close')">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="action-btn action-btn--primary"
+          :disabled="!selectedFile || !!fileError || uploading"
+          @click="handleUpload"
+        >
+          <i class="fas fa-upload me-1"></i>
+          {{ uploading ? 'Subiendo...' : 'Subir avatar' }}
+        </button>
+      </template>
     </template>
 
   </Modal>
@@ -105,6 +115,7 @@
 import { ref } from 'vue'
 import { showToast } from '@js/utils/toastNotify'
 import Modal from '@js/Components/Common/Modal/Modal.vue'
+import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 
 const props = defineProps<{ currentAvatar?: string | null }>()
 const emit  = defineEmits<{ close: []; 'avatar-updated': [avatar: string | null] }>()
@@ -118,9 +129,10 @@ const fileError     = ref('')
 const isDragging    = ref(false)
 const uploading     = ref(false)
 const deleting      = ref(false)
+const confirmingDelete = ref(false)
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const VALID_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
+const VALID_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp']
 const MAX_SIZE    = 5 * 1024 * 1024  // 5 MB — el backend comprime antes de guardar
 
 function formatSize(bytes: number) {
@@ -129,18 +141,14 @@ function formatSize(bytes: number) {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
-function csrf() {
-    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
-}
-
 function validateAndSet(file: File) {
     fileError.value = ''
     if (!VALID_TYPES.includes(file.type)) {
-        fileError.value = 'Formato no válido. Usa JPG, PNG o GIF.'
+        fileError.value = 'Formato no válido. Usa JPG, PNG, GIF o WEBP.'
         return
     }
     if (file.size > MAX_SIZE) {
-        fileError.value = 'El archivo supera el límite de 2 MB.'
+        fileError.value = 'El archivo supera el límite de 5 MB.'
         return
     }
     selectedFile.value = file
