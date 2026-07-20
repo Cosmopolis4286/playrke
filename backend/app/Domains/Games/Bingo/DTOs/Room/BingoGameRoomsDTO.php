@@ -69,6 +69,12 @@ final class BingoGameRoomsDTO implements ContextDTO
                 $roomData['currency_symbol'] = $this->cardPrices[$room->id]['currency_symbol'];
             }
 
+            // Código semántico del tipo de bote (ACCUMULATIVE/FIXED/MIXED/PRIZE) — prize_pool_type_id
+            // es un snowflake ID sin significado propio, el frontend necesita el code de la relación.
+            if (isset($roomData['config']) && is_array($roomData['config'])) {
+                $roomData['config']['prize_pool_type'] = $room->config?->prizePoolType?->code;
+            }
+
             return $roomData;
         })->values()->all();
 

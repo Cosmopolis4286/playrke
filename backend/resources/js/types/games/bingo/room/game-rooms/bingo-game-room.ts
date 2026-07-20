@@ -6,8 +6,8 @@ export interface BingoGameRoomConfig {
   readonly room_id: string | number
   /** Precio del cartón en USD (moneda base del sistema) */
   readonly card_price_usd: number
-  /** Tipo de premio: 1 = bote acumulado, otro = premio fijo */
-  readonly prize_pool_type: number
+  /** Código semántico del tipo de bote: 'ACCUMULATIVE' | 'FIXED' | 'MIXED' | 'PRIZE' */
+  readonly prize_pool_type: string | null
   /** Timestamp Unix de inicio de la sala */
   readonly unix_date: number
   /** Fecha en formato ISO */

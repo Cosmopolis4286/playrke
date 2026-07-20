@@ -22,9 +22,9 @@ export const GAME_VARIANT_LABELS: Record<string, string> = {
   BINGO_30: 'Bingo 30 bolas (Speed)',
 }
 
-/** prize_pool_type: 1 = bote acumulado (crece con cada cartón vendido), otro = premio fijo */
-export function isAccumulatedPrize(prizePoolType?: number | null): boolean {
-  return prizePoolType === 1
+/** prize_pool_type: código de la relación prize_pool_types (ACCUMULATIVE/FIXED/MIXED/PRIZE) */
+export function isAccumulatedPrize(prizePoolType?: string | null): boolean {
+  return prizePoolType === 'ACCUMULATIVE' || prizePoolType === 'MIXED'
 }
 
 export function formatCountdown(cd: RoomCountdown | undefined): string {

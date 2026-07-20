@@ -165,7 +165,9 @@ function buildRoomSnapshot(): BingoGameRoom {
     config: props.room.unix_date ? {
       room_id:         props.room.id,
       card_price_usd:  props.room.card_price_usd ?? 0,
-      prize_pool_type: 1,
+      // TODO: LobbyRoom no expone el código del tipo de bote — el backend del lobby
+      // debe agregarlo (ver fix aplicado en BingoGameRoomsDTO::toView para game-rooms).
+      prize_pool_type: null,
       unix_date:       props.room.unix_date,
       date:            props.room.date ?? '',
       time:            props.room.time ?? '',
