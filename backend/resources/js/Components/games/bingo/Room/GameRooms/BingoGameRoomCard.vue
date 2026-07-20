@@ -218,20 +218,35 @@ function handleClick(event: MouseEvent) {
   overflow: hidden;
   cursor: pointer;
   background: linear-gradient(165deg, #0c1230 0%, #060a18 65%);
-  border: 1px solid rgba(255,255,255,.07);
   box-shadow: 0 4px 22px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset;
   transition: transform .32s cubic-bezier(.16,1,.3,1),
               box-shadow .32s cubic-bezier(.16,1,.3,1),
               border-color .32s ease;
-  animation: rcIn .5s cubic-bezier(.16,1,.3,1) both;
-  animation-delay: var(--d);
+  animation: rcIn .5s cubic-bezier(.16,1,.3,1) both, rcPulse 3.6s ease-in-out .5s infinite;
+  animation-delay: var(--d), calc(var(--d) + .5s);
 }
 @keyframes rcIn {
   from { opacity: 0; transform: translateY(10px) scale(.98); }
   to   { opacity: 1; transform: none; }
 }
 
-.rc--live { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.08); }
+/* Pulso ambiental ligero — borde + halo que respira con el color de estado de la card
+   (verde activa / rojo en vivo), mismo lenguaje que .rim-card del modal de info. */
+@keyframes rcPulse {
+  0%, 100% {
+    border: 1px solid rgba(255,255,255,.07);
+    box-shadow: 0 4px 22px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset, 0 0 0 0 transparent;
+  }
+  50% {
+    border: 1px solid var(--glow-clr);
+    box-shadow: 0 4px 22px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset, 0 0 20px 1px var(--glow-clr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc { animation: rcIn .5s cubic-bezier(.16,1,.3,1) both; border: 1px solid rgba(255,255,255,.07); }
+}
+
+.rc--live { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.14); }
 
 .rc--active:hover {
   transform: translateY(-5px);
@@ -239,16 +254,20 @@ function handleClick(event: MouseEvent) {
   box-shadow: 0 18px 44px rgba(0,0,0,.55),
               0 0 0 1px rgba(42,245,152,.14),
               0 0 26px rgba(42,245,152,.07);
+  animation-play-state: paused;
 }
 .rc--live:hover {
   transform: translateY(-4px);
   border-color: rgba(255,77,109,.18);
   box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,77,109,.14);
+  animation-play-state: paused;
 }
 .rc--off {
   opacity: .22; cursor: default;
   filter: saturate(.08) brightness(.62);
   pointer-events: none;
+  animation: rcIn .5s cubic-bezier(.16,1,.3,1) both;
+  border: 1px solid rgba(255,255,255,.07);
 }
 
 .rc:focus-visible {
