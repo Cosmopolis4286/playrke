@@ -46,8 +46,7 @@ class ProfileController extends Controller
         $user = User::with(['roles', 'wallets.currency', 'country'])
             ->findOrFail(Auth::id());
 
-        try { $user->load('userLevel'); }    catch (\Throwable) {}
-        try { $user->load('achievements'); } catch (\Throwable) {}
+        $this->loadOptionalRelations($user);
 
         $wallet = $user->wallets->first();
 
@@ -240,8 +239,7 @@ class ProfileController extends Controller
     public function getStats(): JsonResponse
     {
         $user = User::findOrFail(Auth::id());
-        try { $user->load('userLevel'); }    catch (\Throwable) {}
-        try { $user->load('achievements'); } catch (\Throwable) {}
+        $this->loadOptionalRelations($user);
 
         return response()->json(['success' => true, 'data' => $this->buildStats($user)]);
     }
@@ -296,6 +294,21 @@ class ProfileController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers privados
     // ─────────────────────────────────────────────────────────────────────────
+
+    /** Carga nivel/logros sin tumbar la petición si el módulo aún no está disponible en el entorno. */
+    private function loadOptionalRelations(User $user): void
+    {
+        foreach (['userLevel', 'achievements'] as $relation) {
+            try {
+                $user->load($relation);
+            } catch (\Throwable $e) {
+                Log::warning("Profile: no se pudo cargar la relación '{$relation}'.", [
+                    'user_id' => $user->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
+    }
 
     private function serializeUser(User $user, $wallet): array
     {
