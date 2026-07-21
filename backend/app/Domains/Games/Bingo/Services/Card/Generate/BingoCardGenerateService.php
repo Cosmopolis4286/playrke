@@ -483,10 +483,10 @@ final class BingoCardGenerateService
             'seller'        => $seller->id,
             'commerce'      => $commerce,
             'currency'      => $currency,
-            'numOfCtns'     => $dto->numCtns,
+            'cardCount'     => $dto->cardCount,
             'cardPrice'     => $cardPrice,
             'cardPriceUsd'  => $cardPriceUsd,
-            'saleAmountUsd' => round($cardPriceUsd * $dto->numCtns, 3),
+            'saleAmountUsd' => round($cardPriceUsd * $dto->cardCount, 3),
             'country'       => $dto->countryId,
             'playerPhone'   => $dto->playerPhone,
             'playerName'    => $dto->playerName,
@@ -536,7 +536,7 @@ final class BingoCardGenerateService
      * autenticado — no se requiere formulario de datos del jugador.
      *
      * @param \App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto
-     * @return array{type: string, message: string, prize_pool?: float, ctns?: int}
+     * @return array{type: string, message: string, prize_pool?: float, card_count?: int}
      * @throws DomainException
      */
     public function buyFromGameRooms(\App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto): array
@@ -597,10 +597,10 @@ final class BingoCardGenerateService
             'seller'         => $sellerId,
             'commerce'       => $commerceId,
             'currency'       => $currencyId,
-            'numOfCtns'      => $dto->numCtns,
+            'cardCount'      => $dto->cardCount,
             'cardPrice'      => $cardPrice,
             'cardPriceUsd'   => $cardPriceUsd,
-            'saleAmountUsd'  => round($cardPriceUsd * $dto->numCtns, 3),
+            'saleAmountUsd'  => round($cardPriceUsd * $dto->cardCount, 3),
             'country'        => $dto->countryId,
             'playerPhone'    => '',
             'playerName'     => '',
