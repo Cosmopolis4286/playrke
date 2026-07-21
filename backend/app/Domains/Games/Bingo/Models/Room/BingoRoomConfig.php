@@ -57,7 +57,8 @@ class BingoRoomConfig extends Model
         'custom_card_price_pct',
         'custom_card_mode',
         'custom_card_every_x',
-        'allow_move_free_space',
+        'move_free_space_mode',
+        'move_free_space_price_pct',
         'allow_special_card',
         'max_special_cards',
     ];
@@ -96,7 +97,8 @@ class BingoRoomConfig extends Model
         'custom_card_price_pct'   => 'decimal:2',
         'custom_card_mode'        => 'string',
         'custom_card_every_x'     => 'integer',
-        'allow_move_free_space'   => 'boolean',
+        'move_free_space_mode'    => 'string',
+        'move_free_space_price_pct' => 'decimal:2',
         'allow_special_card'      => 'boolean',
         'max_special_cards'       => 'integer',
     ];
