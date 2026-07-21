@@ -224,7 +224,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             const room = data.data
             const config = room.config ?? {}
 
-            roomData.value = { id: room.id }
+            roomData.value = {
+                id: room.id,
+                updated_at: room.updated_at,
+                last_updated_by: room.last_updated_by,
+            }
             soldCurrencyIds.value = (room.sold_currencies ?? []).map((id: string | number) => String(id))
 
             roomFormData.value = {

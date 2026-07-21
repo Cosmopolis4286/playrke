@@ -350,6 +350,7 @@
       ref="gameBingoRoomFormRef"
       v-model="roomFormData"
       :is-edit="!!roomData.id"
+      :room-meta="roomData"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"

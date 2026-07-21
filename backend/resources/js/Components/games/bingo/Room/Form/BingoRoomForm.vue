@@ -24,7 +24,7 @@
   import { router } from '@inertiajs/vue3'
   import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
   // Types
-  import type { BingoRoomFormData, BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
+  import type { BingoRoomFormData, BingoRoom, BingoRoomLastUpdatedBy } from '@/js/types/games/bingo/room/bingo-room'
   import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
   import { SelectOption } from '@/js/types/common/form/form'
 
@@ -49,6 +49,8 @@
     editingRoomHasPlayers?: boolean
     /** IDs de monedas con al menos un cartón vendido en la sala en edición — no se pueden quitar de "Monedas Permitidas". */
     soldCurrencyIds?: string[]
+    /** Metadatos de solo lectura de la sala en edición (fecha de última actualización, último editor). */
+    roomMeta?: { updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null }
     modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
   }>()
 
@@ -583,6 +585,7 @@
           :errors="errors"
           :currency-options="allowedCurrenciesOptions"
           :lock-activate-room="lockedByPlayers"
+          :room-meta="isEdit ? roomMeta : null"
           @update:form="form = $event"
           @goto-step="goTo"
         />

@@ -49,6 +49,22 @@ class Audit extends Model
         return $query->where('auditable_type', $modelClass);
     }
 
+    /**
+     * Filtra por la instancia auditada (auditable_type + auditable_id).
+     *
+     * auditable_id se guarda vía Auditable::serializeValue() como JSON: para
+     * un ID simple (string/int) el valor queda como escalar JSON (ej. "123"),
+     * no como el string plano "123" — comparar con where() normal contra la
+     * columna JSON no matchea (MySQL normaliza el JSON almacenado). Se
+     * compara con JSON_UNQUOTE() para obtener el valor escalar real.
+     */
+    public function scopeOfAuditable(Builder $query, string $modelClass, int|string $id): Builder
+    {
+        return $query
+            ->where('auditable_type', $modelClass)
+            ->whereRaw('JSON_UNQUOTE(auditable_id) = ?', [(string) $id]);
+    }
+
     public function scopeForUser(Builder $query, int|string $userId): Builder
     {
         return $query->where('user_id', $userId);

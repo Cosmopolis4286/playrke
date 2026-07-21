@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources\Games\Bingo\Room;
 
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Models\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +27,8 @@ class BingoRoomResource extends JsonResource
             'is_closed'          => $this->is_closed,
             'total_commissions'  => $this->total_commissions,
             'metrics_by_currency' => $this->metrics_by_currency ?? [],
+            'updated_at'         => $this->updated_at?->toISOString(),
+            'last_updated_by'    => $this->resolveLastUpdatedBy(),
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
 
@@ -123,7 +127,8 @@ class BingoRoomResource extends JsonResource
                 'custom_card_price_pct'   => $config->custom_card_price_pct,
                 'custom_card_mode'        => $config->custom_card_mode,
                 'custom_card_every_x'     => $config->custom_card_every_x,
-                'allow_move_free_space'   => $config->allow_move_free_space,
+                'move_free_space_mode'    => $config->move_free_space_mode,
+                'move_free_space_price_pct' => $config->move_free_space_price_pct,
                 'allow_special_card'      => $config->allow_special_card,
                 'max_special_cards'       => $config->max_special_cards,
             ] : null,
@@ -150,5 +155,32 @@ class BingoRoomResource extends JsonResource
         $isCreator = (string) $this->creator_user_id === (string) $userId;
 
         return $isCreator || $user->hasRole(['admin', 'superadmin']);
+    }
+
+    /**
+     * Último usuario que editó la sala, según la tabla `audits` (evento 'updated').
+     * bingo_rooms no tiene columna updated_by propia — solo creator_user_id (autor
+     * original) — así que el último editor real se deriva de la bitácora genérica
+     * que activa el trait Auditable (ver App\Traits\Auditable) sobre BaseModel.
+     * Null si nunca se editó vía HTTP (solo creación) o si el actor fue el sistema.
+     */
+    private function resolveLastUpdatedBy(): ?array
+    {
+        $audit = Audit::ofAuditable(BingoRoom::class, $this->id)
+            ->ofEvent('updated')
+            ->whereNotNull('user_id')
+            ->with('user:id,username')
+            ->latest('id')
+            ->first();
+
+        if (!$audit || !$audit->user) {
+            return null;
+        }
+
+        return [
+            'user_id'  => (string) $audit->user_id,
+            'username' => $audit->user->username,
+            'at'       => $audit->created_at?->toISOString(),
+        ];
     }
 }
