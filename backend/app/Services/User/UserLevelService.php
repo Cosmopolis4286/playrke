@@ -49,7 +49,7 @@ class UserLevelService
             ];
 
             if ($reason) {
-                $this->logXpTransaction($user, $amount, $reason, $leveledUp);
+                $this->logXpTransaction($user, $userLevel, $amount, $reason, $leveledUp);
             }
 
             DB::commit();
@@ -217,7 +217,7 @@ class UserLevelService
         }
     }
 
-    private function logXpTransaction(User $user, int $amount, string $reason, bool $leveledUp): void
+    private function logXpTransaction(User $user, UserLevel $userLevel, int $amount, string $reason, bool $leveledUp): void
     {
         Log::info('XP transaction: ' . $reason, [
             'user_id'     => $user->id,
@@ -225,8 +225,8 @@ class UserLevelService
             'xp_amount'   => $amount,
             'reason'      => $reason,
             'leveled_up'  => $leveledUp,
-            'new_level'   => $user->userLevel->current_level,
-            'total_xp'    => $user->userLevel->total_xp,
+            'new_level'   => $userLevel->current_level,
+            'total_xp'    => $userLevel->total_xp,
         ]);
     }
 }
