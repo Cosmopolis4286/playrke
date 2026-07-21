@@ -22,7 +22,7 @@ defineProps<{
     class="rc__prize"
   >
     <div class="rc__prize-label">
-      <i class="fas fa-trophy" />
+      <i class="fas fa-trophy rc__prize-trophy" />
       {{ isAccumulated ? 'Bote acumulado' : 'Premio' }}
       <i v-if="isAccumulated" class="fas fa-arrow-trend-up rc__prize-trend" />
     </div>
@@ -77,6 +77,21 @@ defineProps<{
   color: #c8a028; opacity: .8;
 }
 .rc__prize-label i { font-size: 9px; filter: drop-shadow(0 0 3px rgba(200,160,40,.35)); }
+
+/* Trofeo con vida propia — se balancea suavemente, como una moneda girando despacio */
+.rc__prize-trophy {
+  display: inline-block;
+  transform-origin: center bottom;
+  animation: trophyFloat 3s ease-in-out infinite;
+}
+@keyframes trophyFloat {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50%      { transform: translateY(-1.5px) rotate(6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc__prize-trophy { animation: none; }
+}
+
 .rc__prize-trend {
   color: #2af598; font-size: 9px;
   animation: prizeTrendPulse 2.4s ease-in-out infinite;
@@ -96,6 +111,22 @@ defineProps<{
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 2px 10px rgba(255,150,0,.28));
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  position: relative;
+}
+/* Destello que recorre el número del premio cada ~3.2s — refuerza "premio especial" */
+.rc__prize-num::after {
+  content: '';
+  position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: skewX(-20deg);
+  animation: prizeSweep 3.2s ease-in-out infinite;
+}
+@keyframes prizeSweep {
+  0%      { left: -60%; }
+  35%,100% { left: 130%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc__prize-num::after { animation: none; display: none; }
 }
 .rc__prize-sym {
   font-size: 13px; font-weight: 700;

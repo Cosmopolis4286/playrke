@@ -194,8 +194,8 @@ const isRoomFull = computed(() =>
 
             <!-- Stats row -->
             <div class="rim-stats rim-reveal" style="--rd: 170ms">
-              <div class="rim-stat">
-                <span class="rim-stat__val">{{ room.total_players }}</span>
+              <div class="rim-stat" :class="{ 'rim-stat--full': isRoomFull }">
+                <span class="rim-stat__val">{{ playersLabel }}</span>
                 <span class="rim-stat__lbl">Jugadores</span>
               </div>
               <div class="rim-stat" :class="{ 'rim-stat--mine': myCtns > 0 }">
@@ -379,25 +379,49 @@ const isRoomFull = computed(() =>
   width: 100%; padding: 0 44px;
   display: flex; justify-content: center;
 }
-/* Timer corriendo — mismo lenguaje verde que .rc__status-badge--ok de la card */
+/* Timer — agrandado para mejor legibilidad; el color lo define el nivel (ok/warning/urgent/live) */
 .rim-timer {
-  background: rgba(8,28,18,.82); border: 1px solid rgba(42,245,152,.4);
-  backdrop-filter: blur(6px); color: #2af598;
-  border-radius: 30px; padding: 4px 14px;
-  font-family: 'Anton', sans-serif; font-size: 14px; letter-spacing: 1.2px;
-  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(42,245,152,.12);
-  animation: rimTimerGlow 2.6s ease-in-out infinite;
+  backdrop-filter: blur(6px);
+  border-radius: 30px; padding: 6px 18px;
+  font-family: 'Anton', sans-serif; font-size: 17px; letter-spacing: 1.4px;
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
 }
-@keyframes rimTimerGlow {
+.rim-timer i { font-size: 12px; opacity: .8; }
+
+/* Verde: sorteo tranquilo, >10 minutos — mismo lenguaje que .rc__status-badge--ok de la card */
+.rim-timer--ok {
+  background: rgba(8,28,18,.82); border: 1px solid rgba(42,245,152,.4); color: #2af598;
+  animation: rimTimerGlowOk 2.6s ease-in-out infinite;
+}
+@keyframes rimTimerGlowOk {
   0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(42,245,152,.12); }
   50%      { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 22px rgba(42,245,152,.28); }
 }
-.rim-timer i { font-size: 10px; opacity: .8; }
 
-/* Timer en vivo — rojo, mismo lenguaje que .rc__status-badge--live de la card */
+/* Amarillo: 2-10 minutos restantes */
+.rim-timer--warning {
+  background: rgba(42,32,6,.82); border: 1px solid rgba(255,207,77,.42); color: #ffcf4d;
+  animation: rimTimerGlowWarning 1.8s ease-in-out infinite;
+}
+@keyframes rimTimerGlowWarning {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  50%      { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 18px rgba(255,207,77,.35); }
+}
+
+/* Rojo: <2 minutos restantes — máxima urgencia */
+.rim-timer--urgent {
+  background: rgba(42,8,8,.82); border: 1px solid rgba(255,90,90,.48); color: #ff5a5a;
+  animation: rimTimerGlowUrgent 1.1s ease-in-out infinite;
+}
+@keyframes rimTimerGlowUrgent {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  50%      { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 22px rgba(255,90,90,.45); }
+}
+
+/* Timer en vivo — rojo fijo, mismo lenguaje que .rc__status-badge--live de la card */
 .rim-timer--live {
-  background: rgba(28,8,16,.82); border-color: rgba(255,77,109,.45); color: #ff6e8a;
+  background: rgba(28,8,16,.82); border: 1px solid rgba(255,77,109,.45); color: #ff6e8a;
   animation: rimLivePulse 2.4s ease-in-out infinite;
 }
 @keyframes rimLivePulse {
@@ -406,7 +430,7 @@ const isRoomFull = computed(() =>
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rim-timer, .rim-timer--live { animation: none; }
+  .rim-timer, .rim-timer--ok, .rim-timer--warning, .rim-timer--urgent, .rim-timer--live { animation: none; }
 }
 
 /* Metadata: bolas · rondas · fecha — texto discreto con separadores, igual lenguaje
@@ -573,6 +597,13 @@ const isRoomFull = computed(() =>
 }
 .rim-stat--mine .rim-stat__val { color: #7be8b8; }
 .rim-stat--mine .rim-stat__lbl { color: #4a9a78; }
+
+/* Stat "jugadores" cuando la sala alcanzó su cupo máximo */
+.rim-stat--full {
+  background: rgba(255,148,48,.08); border-color: rgba(255,148,48,.26);
+}
+.rim-stat--full .rim-stat__val { color: #ff9430; }
+.rim-stat--full .rim-stat__lbl { color: #b06a28; }
 
 /* Feedback contextual — urgencia (ámbar) o informativo (neutro) según el estado de la sala */
 .rim-hint {

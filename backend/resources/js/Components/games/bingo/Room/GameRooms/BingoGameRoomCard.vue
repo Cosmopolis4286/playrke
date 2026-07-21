@@ -224,15 +224,17 @@ function handleClick(event: MouseEvent) {
               box-shadow .32s cubic-bezier(.16,1,.3,1),
               border-color .32s ease;
   animation: rcIn .5s cubic-bezier(.16,1,.3,1) both, rcPulse 3.6s ease-in-out .5s infinite;
-  animation-delay: var(--d), calc(var(--d) + .5s);
+  animation-delay: var(--d), calc(var(--d) * 1.4 + .5s);
 }
 @keyframes rcIn {
   from { opacity: 0; transform: translateY(10px) scale(.98); }
   to   { opacity: 1; transform: none; }
 }
 
-/* Pulso ambiental ligero — borde + halo que respira con el color de estado de la card
-   (verde activa / rojo en vivo), mismo lenguaje que .rim-card del modal de info. */
+/* Pulso ambiental — borde + halo que respira con el color de estado de la card
+   (verde activa / rojo en vivo), mismo lenguaje que .rim-card del modal de info.
+   Es la animación de "vida" principal de la card en reposo, así que se nota un
+   poco más que un simple parpadeo — sin llegar a distraer. */
 @keyframes rcPulse {
   0%, 100% {
     border: 1px solid rgba(255,255,255,.07);
@@ -240,7 +242,7 @@ function handleClick(event: MouseEvent) {
   }
   50% {
     border: 1px solid var(--glow-clr);
-    box-shadow: 0 4px 22px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset, 0 0 20px 1px var(--glow-clr);
+    box-shadow: 0 4px 22px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset, 0 0 26px 2px var(--glow-clr);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -301,6 +303,9 @@ function handleClick(event: MouseEvent) {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; flex-direction: column; align-items: stretch;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc__inner { animation: none; }
 }
 
 /* Hover cascades hacia hijos (RoomCardThumbnail/RoomCardFooter) — deben vivir
