@@ -150,7 +150,7 @@ class SidebarMenuService
                     'title' => 'Mis Vendedores',
                     'route' => 'manager-seller.index',
                     'permission' => 'sellers.view',
-                    'exclude_roles' => ['subsidiary', 'seller', 'player'], // solo superadmin, admin, commerce y customer operan vendedores
+                    'exclude_roles' => ['superadmin', 'admin', 'subsidiary', 'seller', 'player'], // visible solo para commerce y customer
                 ],
                 'prizes' => [
                     'title' => 'Gestión de Premios',
