@@ -45,13 +45,13 @@ final class BingoCardGenerationService
     /**
      * Genera cartones de bingo usando el flujo simplificado para jugadores.
      *
-     * @param array $arrCtn Array con los datos necesarios para generar cartones
+     * @param array $cardOrder Array con los datos necesarios para generar cartones
      * @return array Resultado de la generación con room_user o error
      * @throws \DomainException Si hay errores en el proceso
      */
-    public function generateCards(array $arrCtn): array
+    public function generateCards(array $cardOrder): array
     {
-        $roomId = $arrCtn['roomId'];
+        $roomId = $cardOrder['roomId'];
 
         // Cargamos la sala con su estado directamente
         try {
@@ -72,19 +72,19 @@ final class BingoCardGenerationService
 
         try {
             // Inicialización de variables
-            $creator = $arrCtn['creator'];
-            $seller = $arrCtn['seller'] ?? null;
-            $currency = $arrCtn['currency'];
-            $cardCount = $arrCtn['cardCount'];
+            $creator = $cardOrder['creator'];
+            $seller = $cardOrder['seller'] ?? null;
+            $currency = $cardOrder['currency'];
+            $cardCount = $cardOrder['cardCount'];
 
             // Formatear Monto de Venta
-            $saleAmount = round($cardCount * $arrCtn['cardPrice'], 2);
-            $exchangeRate = (float) ($arrCtn['exchangeRate'] ?? 1);
-            $saleAmountUsd = isset($arrCtn['saleAmountUsd'])
-                ? round((float) $arrCtn['saleAmountUsd'], 3)
+            $saleAmount = round($cardCount * $cardOrder['cardPrice'], 2);
+            $exchangeRate = (float) ($cardOrder['exchangeRate'] ?? 1);
+            $saleAmountUsd = isset($cardOrder['saleAmountUsd'])
+                ? round((float) $cardOrder['saleAmountUsd'], 3)
                 : $this->toUsdAmount($saleAmount, $exchangeRate);
 
-            $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($arrCtn);
+            $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($cardOrder);
 
             if (!$roomUserResult) {
                 throw new \DomainException('Error al registrar usuario en la sala');
@@ -94,7 +94,7 @@ final class BingoCardGenerationService
             $isNewRoomUser = $roomUserResult['isNew'];
 
             // Anexar atributo al array
-            $arrCtn['roomUser'] = $roomUserId;
+            $cardOrder['roomUser'] = $roomUserId;
 
             // Obtener el game_mode_id real de la config de la sala (Snowflake ID)
             $gameModeId = $room->config?->game_mode_id;
@@ -104,7 +104,7 @@ final class BingoCardGenerationService
             }
 
             // Actualizar acumulado y comisiones de la sala
-            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $arrCtn, $saleAmountUsd, $sellerSaleCommn ?? 0);
+            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $cardOrder, $saleAmountUsd, $sellerSaleCommn ?? 0);
 
             if (!$updateRoomMetrics) {
                 throw new \DomainException('Error al actualizar los valores de la sala');
@@ -124,29 +124,29 @@ final class BingoCardGenerationService
             }
 
             // Usar el usuario autenticado como seller_user_id
-            $arrCtn['seller_user_id'] = $authenticatedUserId;
+            $cardOrder['seller_user_id'] = $authenticatedUserId;
 
             // Inyectar variante de juego desde la config de la sala
-            $arrCtn['gameVariant'] = $room->config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75;
+            $cardOrder['gameVariant'] = $room->config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75;
 
             // Crear lote de cartones
-            $lotID = $this->cardManagement->createCardLot($arrCtn, $saleAmount);
+            $lotID = $this->cardManagement->createCardLot($cardOrder, $saleAmount);
 
             // Generar y almacenar los cartones de bingo (lanza excepción si falla)
-            $this->cardManagement->generateAndStoreCards($arrCtn, $lotID);
+            $this->cardManagement->generateAndStoreCards($cardOrder, $lotID);
 
             // Guardar comprobante de pago si se proporcionó
-            if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
-                $this->storeReceiptImage($arrCtn, $roomUserId, $lotID);
+            if (isset($cardOrder['receiptImage']) && $cardOrder['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
+                $this->storeReceiptImage($cardOrder, $roomUserId, $lotID);
             }
 
             // Crear registro de pago para jugadores externos o internos con comprobante
-            if (isset($arrCtn['externalPlayerId']) && $arrCtn['externalPlayerId']) {
+            if (isset($cardOrder['externalPlayerId']) && $cardOrder['externalPlayerId']) {
                 // Jugador externo
-                $this->createCardPayment($arrCtn, $roomUserId, $lotID);
-            } elseif (isset($arrCtn['receiptNumber']) && $arrCtn['receiptNumber'] && isset($arrCtn['receiptImage'])) {
+                $this->createCardPayment($cardOrder, $roomUserId, $lotID);
+            } elseif (isset($cardOrder['receiptNumber']) && $cardOrder['receiptNumber'] && isset($cardOrder['receiptImage'])) {
                 // Jugador interno con comprobante de pago
-                $this->createCardPayment($arrCtn, $roomUserId, $lotID);
+                $this->createCardPayment($cardOrder, $roomUserId, $lotID);
             }
 
             // El descuento de billetera para jugadores internos NO ocurre aquí: el único
@@ -176,13 +176,13 @@ final class BingoCardGenerationService
     /**
      * Genera cartones dentro de una transacción de base de datos.
      *
-     * @param array $arrCtn Datos para generación
+     * @param array $cardOrder Datos para generación
      * @return array Resultado con room_user
      * @throws \DomainException
      */
-    public function generateInTransaction(array $arrCtn): array
+    public function generateInTransaction(array $cardOrder): array
     {
-        return DB::transaction(fn () => $this->generateCards($arrCtn));
+        return DB::transaction(fn () => $this->generateCards($cardOrder));
     }
 
     private function toUsdAmount(float $amount, float $exchangeRate): float
@@ -197,38 +197,38 @@ final class BingoCardGenerationService
     /**
      * Crear registro de pago para cartones de jugadores externos.
      *
-     * @param array $arrCtn Datos de generación de cartones
+     * @param array $cardOrder Datos de generación de cartones
      * @param int $roomUserId ID del usuario en la sala
      * @param int $lotID ID del lote de cartones
      * @return void
      */
-    private function createCardPayment(array $arrCtn, int $roomUserId, int $lotID): void
+    private function createCardPayment(array $cardOrder, int $roomUserId, int $lotID): void
     {
         try {
             $paymentProof = null;
             
             // Si hay imagen de comprobante, guardarla y obtener la ruta
-            if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
+            if (isset($cardOrder['receiptImage']) && $cardOrder['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
                 $directory = 'receipts/bingo/' . date('Y/m');
-                $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $arrCtn['receiptImage']->getClientOriginalExtension();
-                $paymentProof = $arrCtn['receiptImage']->storeAs($directory, $fileName, 'public');
+                $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $cardOrder['receiptImage']->getClientOriginalExtension();
+                $paymentProof = $cardOrder['receiptImage']->storeAs($directory, $fileName, 'public');
             }
 
             BingoCardPayment::create([
                 'payment_method' => 'seller_cash',
-                'description' => $arrCtn['receiptNumber'] ?? 'Pago por generación de cartones',
-                'room_id' => $arrCtn['roomId'],
-                'creator_user_id' => $arrCtn['creator']['id'] ?? null,
-                'seller_id' => $arrCtn['seller'] ?? null,
-                'user_id' => $arrCtn['seller_user_id'] ?? null,
-                'external_player_id' => $arrCtn['externalPlayerId'] ?? null,
-                'currency_id' => $arrCtn['currency'],
+                'description' => $cardOrder['receiptNumber'] ?? 'Pago por generación de cartones',
+                'room_id' => $cardOrder['roomId'],
+                'creator_user_id' => $cardOrder['creator']['id'] ?? null,
+                'seller_id' => $cardOrder['seller'] ?? null,
+                'user_id' => $cardOrder['seller_user_id'] ?? null,
+                'external_player_id' => $cardOrder['externalPlayerId'] ?? null,
+                'currency_id' => $cardOrder['currency'],
                 'card_lot_id' => $lotID,
-                'payment_amount' => $arrCtn['cardPrice'] * $arrCtn['cardCount'],
+                'payment_amount' => $cardOrder['cardPrice'] * $cardOrder['cardCount'],
                 'payment_proof' => $paymentProof,
                 'payment_status' => 'COMPLETED',
                 'processed_at' => now(),
-                'transaction_reference' => $arrCtn['receiptNumber'] ?? null,
+                'transaction_reference' => $cardOrder['receiptNumber'] ?? null,
             ]);
 
         } catch (\Throwable $e) {
@@ -244,16 +244,16 @@ final class BingoCardGenerationService
     /**
      * Almacena la imagen del comprobante de pago
      *
-     * @param array $arrCtn Datos de generación de cartones
+     * @param array $cardOrder Datos de generación de cartones
      * @param int $roomUserId ID del usuario en la sala
      * @param int $lotID ID del lote de cartones
      * @return void
      */
-    private function storeReceiptImage(array $arrCtn, int $roomUserId, int $lotID): void
+    private function storeReceiptImage(array $cardOrder, int $roomUserId, int $lotID): void
     {
         try {
-            $receiptImage = $arrCtn['receiptImage'];
-            $receiptNumber = $arrCtn['receiptNumber'] ?? null;
+            $receiptImage = $cardOrder['receiptImage'];
+            $receiptNumber = $cardOrder['receiptNumber'] ?? null;
             
             // Crear directorio si no existe
             $directory = 'receipts/bingo/' . date('Y/m');

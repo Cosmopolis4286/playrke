@@ -108,8 +108,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             // Cartón personalizado
             'allowCustomCard'             => ['boolean'],
-            'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,every_x,free'],
-            'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:10'],
+            'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,by_range,every_x,free'],
+            'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
             'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:10'],
             'allowSpecialCard'            => ['boolean'],
             'maxSpecialCards'             => ['nullable', 'integer', 'min:1', 'max:5'],
