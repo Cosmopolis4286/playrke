@@ -107,8 +107,8 @@ bloqueante para que Bingo/Trivia otorguen XP.
 |---|---|---|
 | Fase 1 — Cimientos | ✅ Hecho | |
 | Fase 2 — Contador cross-game | ✅ Hecho | Tabla creada y migrada |
-| Fase 3 — Enganche Bingo | 🔲 Pendiente | Requiere aprobación antes de tocar `BingoDrawService` |
-| Fase 4 — Enganche Trivia | 🔲 Pendiente | Requiere aprobación antes de tocar `GameEngineService` |
+| Fase 3 — Enganche Bingo | ✅ Hecho | `BingoDrawService` |
+| Fase 4 — Enganche Trivia | ✅ Hecho | `GameEngineService` |
 | Fase 5 — Racha de login | 🔲 Pendiente | Funcionalidad nueva, no bloqueante |
 | Fase 6 — Frontend | ✅ Parcial | `buildStats()` ya no hardcodea games_played/games_won/total_winnings; `current_streak`/`best_streak` siguen en 0 (dependen de Fase 5) |
 
@@ -159,3 +159,38 @@ bloqueante para que Bingo/Trivia otorguen XP.
     El único fallo (`user cannot change password with wrong current password`) es
     preexistente a esta sesión (falla en `assertJsonValidationErrors` de un 422,
     no relacionado a XP/logros/preferencias) — no introducido por estos cambios.
+
+- **2026-07-20**: Fase 3 + Fase 4 implementadas (enganche real con Bingo y Trivia).
+  - **Bingo** (`BingoDrawService`):
+    - `claimCardWin()` (tras el `payout()` exitoso, línea ~953): otorga XP de
+      `game_won` (vía `UserLevelService::calculateXpReward('game_won')`) y evalúa
+      logros para el ganador, envuelto en `try/catch` que solo loguea — no puede
+      revertir un premio ya pagado.
+    - Nuevo método privado `reportGamesPlayed()`, llamado al final de
+      `closeRoomIfFinalRound()`: recorre `BingoRoomUser` de la sala (filtrando por
+      `isPlayer()` para excluir vendedores/administradores de sala), y para cada
+      jugador que no ganó (`winner !== 'Y'`) registra `game_played` con su XP
+      correspondiente. Cubre también el camino "sorteo sin ganador".
+    - Constructor recibió `GameCompletionService` y `UserLevelService` nuevos
+      (autowiring, sin bindings manuales que actualizar).
+  - **Trivia** (`GameEngineService::finishGame()`):
+    - Nuevo paso "7.5" (tras actualizar skill ratings, antes de construir el
+      broadcast), método privado `reportGameCompletion($finalRanks, $roomId)`:
+      itera `$finalRanks` (ya contiene `playerId`/`position` de todos los
+      participantes), resuelve el `User`, y otorga `game_won` si `position === 1`
+      (misma regla que ya usa `TriviaScore::is_winner`) o `game_played` en caso
+      contrario. Envuelto en `try/catch` — no afecta los premios ya distribuidos
+      en el paso 6.
+    - Constructor recibió `GameCompletionService` y `UserLevelService` nuevos.
+  - Verificado: el contenedor de Laravel resuelve ambos servicios con las nuevas
+    dependencias sin errores (`app(BingoDrawService::class)` /
+    `app(GameEngineService::class)` en tinker). Ningún test existente instancia
+    estos servicios manualmente con `new` (todos usan el contenedor o mocks), y
+    ningún test ejercita `finishGame()`/`claimCardWin()` directamente hoy — bajo
+    riesgo de romper la suite existente.
+  - Ambos puntos de enganche reutilizan los valores ya tabulados en
+    `UserLevelService::calculateXpReward()` (`game_played: 25`, `game_won: 100`)
+    en vez de introducir números nuevos.
+  - **No se tocó** la lógica de cálculo de premios, `WalletService`,
+    `GamePrizeService`, ni el motor de preguntas de Trivia — solo se agregó una
+    llamada adicional al final de los métodos de cierre ya identificados.

@@ -20,6 +20,10 @@ use App\Events\Games\Trivia\TriviaGameCancelled;
 use App\Events\Games\Trivia\TriviaGameFinished;
 use App\Events\Games\Trivia\TriviaGameStarted;
 use App\Jobs\Games\Trivia\AdvanceTriviaQuestion;
+use App\Models\GameParticipation;
+use App\Models\User;
+use App\Services\Games\GameCompletionService;
+use App\Services\User\UserLevelService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -46,6 +50,8 @@ class GameEngineService implements GameEngineInterface
         private readonly PrizeDistributionService    $prizeService,
         private readonly TeamScoreService            $teamScoreService,
         private readonly SkillRatingService          $skillRatingService,
+        private readonly GameCompletionService       $gameCompletionService,
+        private readonly UserLevelService            $userLevelService,
     ) {}
 
     /**
@@ -512,6 +518,14 @@ class GameEngineService implements GameEngineInterface
             Log::warning('[GameEngine] Error actualizando skill ratings: ' . $e->getMessage());
         }
 
+        // ── 7.5. XP y logros por partida jugada/ganada ──────────────────────
+        // Falla contenida: no debe afectar los premios ya distribuidos en el paso 6.
+        try {
+            $this->reportGameCompletion($finalRanks, $state->roomId);
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] Error al otorgar XP/logros: ' . $e->getMessage());
+        }
+
         // ── 8. Construir leaderboard para broadcast ─────────────────────────
         $broadcastLeaderboard = array_map(fn($rank) => [
             'player_id' => $rank['playerId'],
@@ -567,6 +581,35 @@ class GameEngineService implements GameEngineInterface
         }
 
         return $finalState;
+    }
+
+    /**
+     * Otorga XP y evalúa logros para cada participante de la partida.
+     * position === 1 se considera victoria (ver TriviaScore::is_winner, misma regla).
+     *
+     * @param  array<int, array{playerId: string, position: int}>  $finalRanks
+     */
+    private function reportGameCompletion(array $finalRanks, string $roomId): void
+    {
+        $xpForPlaying = $this->userLevelService->calculateXpReward('game_played');
+        $xpForWinning = $this->userLevelService->calculateXpReward('game_won');
+
+        foreach ($finalRanks as $rank) {
+            $user = User::find((string) $rank['playerId']);
+            if (! $user) {
+                continue;
+            }
+
+            $won = $rank['position'] === 1;
+
+            $this->gameCompletionService->reportParticipation(
+                user:   $user,
+                game:   GameParticipation::GAME_TRIVIA,
+                won:    $won,
+                xp:     $won ? $xpForWinning : $xpForPlaying,
+                roomId: $roomId,
+            );
+        }
     }
 
     /**

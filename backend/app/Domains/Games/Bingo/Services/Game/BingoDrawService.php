@@ -21,7 +21,11 @@ use App\Models\User;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomStatsAggregator;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Models\GameParticipation;
 use App\Services\ExchangeRate\CurrencyExchangeRateService;
+use App\Services\Games\GameCompletionService;
+use App\Services\User\UserLevelService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +48,8 @@ final class BingoDrawService
         private readonly BingoRoomAuditLogger $auditLogger,
         private readonly BingoRoomStatsAggregator $statsAggregator,
         private readonly CurrencyExchangeRateService $currencyExchangeRate,
+        private readonly GameCompletionService $gameCompletionService,
+        private readonly UserLevelService $userLevelService,
         private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver(),
     ) {}
 
@@ -945,6 +951,25 @@ final class BingoDrawService
             }
 
             $this->prizePayoutService->payout($cardPrize);
+
+            // XP y logros del ganador — falla contenida, no debe afectar el payout ya realizado.
+            try {
+                $winnerUser = User::find((string) $broadcastWinner['winnerId']);
+                if ($winnerUser) {
+                    $this->gameCompletionService->reportParticipation(
+                        user:   $winnerUser,
+                        game:   GameParticipation::GAME_BINGO,
+                        won:    true,
+                        xp:     $this->userLevelService->calculateXpReward('game_won'),
+                        roomId: (string) $broadcastWinner['roomId'],
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[BingoDrawService] Error al otorgar XP/logros al ganador', [
+                    'card_prize_id' => $cardPrize->id,
+                    'error'         => $e->getMessage(),
+                ]);
+            }
         } else {
             $winnerData = null;
         }
@@ -1038,6 +1063,50 @@ final class BingoDrawService
             $this->statsAggregator->aggregate($room);
         } catch (\Throwable $e) {
             Log::warning('[BingoDrawService] Error al calcular estadísticas de sala', [
+                'room_id' => $room->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
+        $this->reportGamesPlayed($room);
+    }
+
+    /**
+     * Registra "partida jugada" (XP/logros) para cada jugador de la sala que ya
+     * cerró. Los ganadores ya recibieron su XP de victoria en claimCardWin(); aquí
+     * solo se les evita duplicar la entrada de "partida jugada" via reportParticipation,
+     * que ya la registra junto con el XP de victoria. Vendedores/administradores de
+     * la sala (role SELLER/ADMIN) no cuentan como jugadores para este propósito.
+     */
+    private function reportGamesPlayed(BingoRoom $room): void
+    {
+        try {
+            $players = BingoRoomUser::where('room_id', (string) $room->id)->get()
+                ->filter(fn (BingoRoomUser $ru) => $ru->isPlayer());
+
+            $xpForPlaying = $this->userLevelService->calculateXpReward('game_played');
+
+            foreach ($players as $roomUser) {
+                if ($roomUser->winner === 'Y') {
+                    // Ya se registró en claimCardWin() con won=true.
+                    continue;
+                }
+
+                $user = $roomUser->user;
+                if (! $user) {
+                    continue;
+                }
+
+                $this->gameCompletionService->reportParticipation(
+                    user:   $user,
+                    game:   GameParticipation::GAME_BINGO,
+                    won:    false,
+                    xp:     $xpForPlaying,
+                    roomId: (string) $room->id,
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[BingoDrawService] Error al registrar partidas jugadas de la sala', [
                 'room_id' => $room->id,
                 'error'   => $e->getMessage(),
             ]);
