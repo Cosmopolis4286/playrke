@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Contracts\SettingRepositoryInterface;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\User\LoginStreakService;
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -17,7 +18,8 @@ class AuthenticatedSessionController extends Controller
      * Inyecta el repositorio en el constructor
      */
     public function __construct(
-        protected SettingRepositoryInterface $settings
+        protected SettingRepositoryInterface $settings,
+        protected LoginStreakService $loginStreakService,
     ) {}
 
     /**
@@ -44,13 +46,24 @@ class AuthenticatedSessionController extends Controller
         // Regenerar la sesión para evitar ataques de fijación de sesión
         $request->session()->regenerate();
 
-        $user = \App\Models\User::with('roles:id,prefix')->select('id')->find(Auth::id());
+        $user = \App\Models\User::with('roles:id,prefix')->find(Auth::id());
 
         // Obtener el rol principal del usuario (primer rol asignado)
         $rolePrefix = $user->roles->first()?->prefix;
 
         // Crear las variables de sesión
         $request->session()->put('userRole', $rolePrefix);
+
+        // Registrar login y actualizar racha de días consecutivos (falla contenida:
+        // no debe impedir el login si algo sale mal aquí).
+        try {
+            $this->loginStreakService->registerLogin($user, $request->ip());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Login: fallo al registrar racha de login.', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         // Retornar JSON con datos del usuario para Nuxt
         return response()->json(['success' => true]);
