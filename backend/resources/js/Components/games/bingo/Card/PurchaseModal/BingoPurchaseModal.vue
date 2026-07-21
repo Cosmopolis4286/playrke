@@ -51,11 +51,13 @@
     /** Por cartón: true si el usuario tocó ≥1 casilla manualmente. */
     manualEdits: boolean[]
     /** Modalidad de cartón personalizado de la sala. */
-    customCardMode?: 'paid' | 'every_x' | 'free' | null
-    /** Recargo % para cartones personalizados (0 = sin recargo, solo aplica en modo 'paid'). */
+    customCardMode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
+    /** Recargo % para cartones personalizados (0 = sin recargo; aplica en modo 'paid' y 'by_range'). */
     customPricePct: number
     /** Máximo de cartones personalizables permitidos en esta compra (modo 'every_x'). */
     maxCustomCardsAllowed?: number
+    /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75). */
+    allowMoveFreeSpace?: boolean
     /** True si el jugador personalizó más cartones de los permitidos. */
     exceedsCustomCardLimit?: boolean
     /** Precio base por cartón (sin recargo). */
