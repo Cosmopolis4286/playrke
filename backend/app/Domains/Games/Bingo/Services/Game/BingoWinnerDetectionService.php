@@ -138,6 +138,9 @@ final class BingoWinnerDetectionService
             return null;
         }
 
+        $remainingChips = BingoVariant::totalChips($variant) - count($drawnNumbers);
+        $isLuckyWinner  = $remainingChips <= BingoDrawService::LUCKY_WINNER_REMAINING_THRESHOLD;
+
         foreach ($cards as $card) {
             if (!$this->checkBingo($card, $drawnNumbers, $patternPositions)) {
                 continue;
@@ -145,7 +148,7 @@ final class BingoWinnerDetectionService
 
             // Persistencia + broadcasts bajo lock: si el sorteo automático ya reclamó
             // este cartón en paralelo, claimCardWin devuelve null y seguimos buscando
-            $winnerData = $this->drawService->claimCardWin($room, $round, $pattern, (string) $card->id, $lastDrawId);
+            $winnerData = $this->drawService->claimCardWin($room, $round, $pattern, (string) $card->id, $lastDrawId, $isLuckyWinner);
 
             if ($winnerData === null) {
                 continue;

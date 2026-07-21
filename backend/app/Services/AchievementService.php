@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Achievement;
+use App\Models\GameParticipation;
 use App\Models\User;
 use App\Models\UserAchievement;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -236,12 +238,34 @@ class AchievementService
     }
 
     /**
-     * Verificar requisitos personalizados. Ningún logro activo usa este tipo hoy
-     * (los que lo requerían quedaron desactivados en el seeder hasta implementarse).
+     * Verificar requisitos personalizados por código de logro.
+     *
+     * $context viene de GameCompletionService::reportParticipation() (o de
+     * LoginStreakService, sin datos de partida): siempre trae 'game'/'won'/'at'
+     * cuando se dispara desde una partida; 'lucky_winner_last_call' solo lo
+     * informa BingoDrawService al ganador.
      */
     private function checkCustomRequirement(User $user, Achievement $achievement, array $context): bool
     {
-        return false;
+        return match ($achievement->code) {
+            // Ganó con el número que se acababa de cantar (última llamada del sorteo).
+            'lucky_winner' => ! empty($context['won'])
+                && ($context['game'] ?? null) === GameParticipation::GAME_BINGO
+                && ! empty($context['lucky_winner_last_call']),
+
+            // Jugó (ganó o no) una partida antes de las 6:00 AM (hora del servidor, UTC).
+            'early_bird' => isset($context['game'], $context['at'])
+                && $context['at'] instanceof Carbon
+                && (int) $context['at']->format('H') < 6,
+
+            // Jugó (ganó o no) una partida entre 00:00 y 01:59 (hora del servidor,
+            // UTC) — rango acotado para no solaparse por completo con early_bird.
+            'night_owl' => isset($context['game'], $context['at'])
+                && $context['at'] instanceof Carbon
+                && (int) $context['at']->format('H') < 2,
+
+            default => false,
+        };
     }
 
     /**

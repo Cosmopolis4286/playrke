@@ -189,21 +189,18 @@ class AchievementSeeder extends Seeder
                 'sort_order' => 14,
             ],
 
-            // Logros Especiales (Ocultos) — is_active=false: su condición es tipo
-            // "custom" y checkCustomRequirement() no está implementado todavía
-            // (siempre retorna false). Se dejan en el catálogo pero inactivos
-            // para no mostrarse como desbloqueables sin serlo. Activar una vez
-            // se implemente la lógica correspondiente en AchievementService.
+            // Logros Especiales (Ocultos) — condición 'custom' implementada en
+            // AchievementService::checkCustomRequirement().
             [
                 'code' => 'lucky_winner',
                 'name' => 'Ganador Suerte',
-                'description' => 'Gana una partida con el último número llamado',
+                'description' => 'Gana justo cuando el sorteo estaba por agotarse',
                 'icon' => 'clover.svg',
                 'badge_color' => 'green',
                 'xp_reward' => 300,
                 'requirements' => ['type' => 'custom', 'target' => 1],
                 'category' => 'special',
-                'is_active' => false,
+                'is_active' => true,
                 'is_hidden' => true,
                 'sort_order' => 15,
             ],
@@ -216,7 +213,7 @@ class AchievementSeeder extends Seeder
                 'xp_reward' => 150,
                 'requirements' => ['type' => 'custom', 'target' => 1],
                 'category' => 'special',
-                'is_active' => false,
+                'is_active' => true,
                 'is_hidden' => true,
                 'sort_order' => 16,
             ],
@@ -229,7 +226,7 @@ class AchievementSeeder extends Seeder
                 'xp_reward' => 150,
                 'requirements' => ['type' => 'custom', 'target' => 1],
                 'category' => 'special',
-                'is_active' => false,
+                'is_active' => true,
                 'is_hidden' => true,
                 'sort_order' => 17,
             ],

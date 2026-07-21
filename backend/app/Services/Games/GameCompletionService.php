@@ -37,6 +37,10 @@ final class GameCompletionService
      * @param  bool    $won      Si el jugador ganó esta partida
      * @param  int     $xp       XP a otorgar por esta participación (0 = solo registrar)
      * @param  string|null  $roomId  ID de la sala/room, para trazabilidad
+     * @param  array   $customContext  Datos extra para logros tipo 'custom' que un
+     *                                 juego específico pueda determinar (ej. Bingo
+     *                                 informando que se ganó con el último número
+     *                                 llamado) — ver Achievement::checkCustomRequirement().
      */
     public function reportParticipation(
         User $user,
@@ -44,6 +48,7 @@ final class GameCompletionService
         bool $won,
         int $xp,
         ?string $roomId = null,
+        array $customContext = [],
     ): void {
         DB::transaction(function () use ($user, $game, $won, $xp, $roomId) {
             GameParticipation::create([
@@ -61,10 +66,11 @@ final class GameCompletionService
         });
 
         try {
-            $this->achievementService->checkAndUnlockAchievements($user->fresh(), [
+            $this->achievementService->checkAndUnlockAchievements($user->fresh(), array_merge([
                 'game' => $game,
                 'won'  => $won,
-            ]);
+                'at'   => now(),
+            ], $customContext));
         } catch (\Throwable $e) {
             // El resultado de la partida y el XP ya quedaron guardados; que la
             // evaluación de logros falle no debe revertir eso ni tumbar la

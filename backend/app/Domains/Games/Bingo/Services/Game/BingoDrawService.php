@@ -639,6 +639,9 @@ final class BingoDrawService
         }
     }
 
+    /** Bolas restantes por debajo de las cuales una victoria cuenta como "lucky_winner" (sorteo casi agotado). */
+    public const LUCKY_WINNER_REMAINING_THRESHOLD = 3;
+
     private function detectWinnerAndEnd(
         BingoRoom    $room,
         BingoRound   $round,
@@ -655,6 +658,15 @@ final class BingoDrawService
         $drawnSet = array_flip($drawnNumbers);
 
         $cards = $this->activeCards($room, ['roomUser.user', 'cardLot']);
+
+        // Victoria "de suerte": quedaban pocas bolas por cantar en todo el pool
+        // de la variante cuando se completó el patrón (no simplemente "el número
+        // recién cantado", porque por diseño del sorteo eso siempre es cierto
+        // para cualquier ganador).
+        $variant         = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+        $totalChips      = BingoVariant::totalChips($variant);
+        $remainingChips  = $totalChips - count($drawnNumbers);
+        $isLuckyWinner   = $remainingChips <= self::LUCKY_WINNER_REMAINING_THRESHOLD;
 
         $winners = [];
 
@@ -676,7 +688,7 @@ final class BingoDrawService
 
             if (!$hasBingo) continue;
 
-            $winnerData = $this->claimCardWin($room, $round, $pattern, $card->id, $lastDrawId);
+            $winnerData = $this->claimCardWin($room, $round, $pattern, $card->id, $lastDrawId, $isLuckyWinner);
             if ($winnerData !== null) {
                 $winners[] = $winnerData;
             }
@@ -751,7 +763,8 @@ final class BingoDrawService
         BingoRound   $round,
         BingoPattern $pattern,
         string       $cardId,
-        int          $lastDrawId
+        int          $lastDrawId,
+        bool         $isLuckyWinner = false
     ): ?array {
         $roundId   = (string) $round->id;
         $cardPrize = null;
@@ -957,11 +970,12 @@ final class BingoDrawService
                 $winnerUser = User::find((string) $broadcastWinner['winnerId']);
                 if ($winnerUser) {
                     $this->gameCompletionService->reportParticipation(
-                        user:   $winnerUser,
-                        game:   GameParticipation::GAME_BINGO,
-                        won:    true,
-                        xp:     $this->userLevelService->calculateXpReward('game_won'),
-                        roomId: (string) $broadcastWinner['roomId'],
+                        user:          $winnerUser,
+                        game:          GameParticipation::GAME_BINGO,
+                        won:           true,
+                        xp:            $this->userLevelService->calculateXpReward('game_won'),
+                        roomId:        (string) $broadcastWinner['roomId'],
+                        customContext: ['lucky_winner_last_call' => $isLuckyWinner],
                     );
                 }
             } catch (\Throwable $e) {
