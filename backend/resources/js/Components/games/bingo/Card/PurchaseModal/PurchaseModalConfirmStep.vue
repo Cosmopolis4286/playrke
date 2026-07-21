@@ -18,6 +18,8 @@ const props = defineProps<{
   maxCustomAllowed?: number
   /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75) */
   allowMoveFreeSpace?: boolean
+  /** Recargo % adicional por mover la libre (0 = sin recargo; se suma a customPricePct) */
+  moveFreeSpacePricePct?: number | null
   manualCardCount: number
   /** True si el jugador personalizó más cartones de los permitidos por el modo 'every_x'. */
   exceedsCustomCardLimit?: boolean
@@ -119,6 +121,7 @@ defineExpose({ handlePurchaseClick, onCardCountInput })
             :custom-price-pct="customPricePct"
             :max-custom-allowed="maxCustomAllowed"
             :allow-move-free-space="allowMoveFreeSpace"
+            :move-free-space-price-pct="moveFreeSpacePricePct"
             @update:matrices="emit('update:custom-card-numbers', $event)"
             @update:manual-edits="emit('update:manual-edits', $event)"
             @update:active-index="emit('set-active-card-index', $event)"

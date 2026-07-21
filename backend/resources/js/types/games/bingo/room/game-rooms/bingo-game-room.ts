@@ -28,8 +28,10 @@ export interface BingoGameRoomConfig {
   readonly custom_card_mode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
   /** Cantidad de cartones para que el siguiente cartón personalizado sea gratis (solo si custom_card_mode = 'every_x') */
   readonly custom_card_every_x?: number | null
-  /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda al personalizar su cartón (solo BINGO_75) */
-  readonly allow_move_free_space?: boolean | null
+  /** Modalidad de "mover casilla libre" (recargo independiente, sumado a custom_card_price_pct); null = no permitido (solo BINGO_75) */
+  readonly move_free_space_mode?: 'paid' | 'by_range' | 'free' | null
+  /** % de recargo por mover la libre si move_free_space_mode = 'paid' o 'by_range' */
+  readonly move_free_space_price_pct?: number | null
 }
 
 /**

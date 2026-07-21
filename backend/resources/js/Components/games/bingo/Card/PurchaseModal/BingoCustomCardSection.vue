@@ -9,6 +9,7 @@
  */
 import { ref, computed } from 'vue'
 import BingoCardNumberPicker from './BingoCardNumberPicker.vue'
+import { getBingoVariantDef } from '@/js/modules/games/bingo/utils/bingoVariants'
 
 type CardMatrix = Record<string, (number | null)[]>
 
@@ -27,6 +28,8 @@ const props = defineProps<{
   maxCustomAllowed?: number
   /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75) */
   allowMoveFreeSpace?: boolean
+  /** Recargo % adicional por mover la libre (0 = sin recargo; se suma a customPricePct) */
+  moveFreeSpacePricePct?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -39,6 +42,20 @@ const picker = ref<InstanceType<typeof BingoCardNumberPicker> | null>(null)
 
 /** Cuántos cartones tienen edición manual */
 const manualCount = computed(() => props.manualEdits.filter(Boolean).length)
+
+/** True si la matriz del cartón activo tiene su única libre fuera de la posición fija de la variante. */
+const activeCardMovedFreeSpace = computed(() => {
+  if (!props.allowMoveFreeSpace) return false
+  const matrix = props.matrices[props.activeIndex]
+  if (!matrix) return false
+  const variantDef = getBingoVariantDef(props.variant)
+  for (const col of variantDef.columns) {
+    const idx = (matrix[col.label] ?? []).indexOf(null)
+    if (idx === -1) continue
+    return col.freeRow !== idx
+  }
+  return false
+})
 
 /** En modo 'every_x': índice (dentro del orden de edición) a partir del cual un tab manual excede el límite. */
 function isOverLimit(index: number): boolean {
@@ -133,6 +150,22 @@ defineExpose({
     <div v-if="customCardMode === 'free'" class="bcs-random-notice">
       <i class="fas fa-unlock" />
       Personalización de uso libre, sin costo adicional.
+    </div>
+
+    <!-- Aviso de recargo adicional por mover la casilla libre en el cartón activo -->
+    <div
+      v-if="activeCardMovedFreeSpace && moveFreeSpacePricePct && moveFreeSpacePricePct > 0"
+      class="bcs-surcharge-notice"
+    >
+      <i class="fas fa-star" />
+      Este cartón tiene un recargo adicional del <strong>{{ moveFreeSpacePricePct }}%</strong> por mover la casilla libre.
+    </div>
+    <div
+      v-else-if="allowMoveFreeSpace && manualEdits[activeIndex] && !activeCardMovedFreeSpace"
+      class="bcs-random-notice"
+    >
+      <i class="fas fa-star" />
+      Puedes mover la casilla LIBRE a cualquier celda (recargo adicional si la mueves).
     </div>
 
     <BingoCardNumberPicker

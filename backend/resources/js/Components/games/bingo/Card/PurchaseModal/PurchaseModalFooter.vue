@@ -12,7 +12,7 @@ defineProps<{
   manualCardCount: number
   basePricePerCard: number
   customPricePerCard: number
-  customCardMode?: 'paid' | 'every_x' | 'free' | null
+  customCardMode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
   customPricePct: number
   exceedsCustomCardLimit?: boolean
   cardCount: number
@@ -67,7 +67,7 @@ const emit = defineEmits<{
         </span>
         <span class="pm-fs__pill pm-fs__pill--custom">
           <i class="fas fa-pen" />{{ manualCardCount }}× {{ customPricePerCard.toFixed(2) }}
-          <em v-if="customCardMode === 'paid' && customPricePct > 0">+{{ customPricePct }}%</em>
+          <em v-if="(customCardMode === 'paid' || customCardMode === 'by_range') && customPricePct > 0">+{{ customPricePct }}%</em>
         </span>
       </template>
       <span class="pm-fs__sep">=</span>

@@ -40,8 +40,10 @@ export interface BingoCardPriceResponse {
   readonly custom_card_price_pct?: number | null
   /** Cada cuántos cartones normales se habilita personalizar el siguiente, si custom_card_mode = 'every_x' */
   readonly custom_card_every_x?: number | null
-  /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda al personalizar su cartón (solo BINGO_75) */
-  readonly allow_move_free_space?: boolean
+  /** Modalidad de "mover casilla libre" (recargo independiente, sumado a custom_card_price_pct); null = no permitido (solo BINGO_75) */
+  readonly move_free_space_mode?: 'paid' | 'by_range' | 'free' | null
+  /** % de recargo por mover la libre si move_free_space_mode = 'paid' (manual) o 'by_range' (calculado automáticamente) */
+  readonly move_free_space_price_pct?: number | null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

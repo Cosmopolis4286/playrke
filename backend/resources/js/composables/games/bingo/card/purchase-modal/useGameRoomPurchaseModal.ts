@@ -31,9 +31,14 @@ interface CustomCardState {
     mode: 'paid' | 'by_range' | 'every_x' | 'free' | null
     pricePct: number
     everyX: number | null
+    /** Modalidad de "mover casilla libre" (recargo independiente, sumado a pricePct). */
+    moveFreeSpaceMode: 'paid' | 'by_range' | 'free' | null
+    moveFreeSpacePricePct: number
 }
 
-const EMPTY_CUSTOM_CARD_STATE: CustomCardState = { mode: null, pricePct: 0, everyX: null }
+const EMPTY_CUSTOM_CARD_STATE: CustomCardState = {
+    mode: null, pricePct: 0, everyX: null, moveFreeSpaceMode: null, moveFreeSpacePricePct: 0,
+}
 
 // Caché en módulo: sobrevive navegación dentro de la SPA pero se limpia al recargar
 const _priceCache = new Map<string, { price: number; symbol: string; ts: number; customCard: CustomCardState }>()
@@ -52,6 +57,8 @@ function _extractCustomCardState(data: BingoCardPriceResponse): CustomCardState 
         mode: data.custom_card_mode ?? null,
         pricePct: Number(data.custom_card_price_pct ?? 0),
         everyX: data.custom_card_every_x ?? null,
+        moveFreeSpaceMode: data.move_free_space_mode ?? null,
+        moveFreeSpacePricePct: Number(data.move_free_space_price_pct ?? 0),
     }
 }
 
@@ -180,10 +187,23 @@ export function useGameRoomPurchaseModal() {
     // Si true, el jugador puede mover la casilla LIBRE a cualquier celda de su
     // cartón personalizado (solo tiene sentido en BINGO_75, única variante con libre).
     const allowMoveFreeSpace = computed(
-        () => canCustomize.value
-            && selectedRoom.value?.config?.allow_move_free_space === true
-            && selectedRoom.value?.config?.game_variant === 'BINGO_75',
+        () => canCustomize.value && customCardState.value.moveFreeSpaceMode !== null,
     )
+
+    // % de recargo por mover la libre (0 si no aplica o modo 'free'). Se suma al
+    // recargo de personalización — el cálculo real y definitivo, por cartón
+    // individual (solo paga quien efectivamente movió la libre), lo hace el backend.
+    const moveFreeSpacePricePct = computed(() => customCardState.value.moveFreeSpacePricePct)
+
+    // Precio unitario si, además de personalizar, el jugador mueve la libre:
+    // suma ambos recargos (personalización + mover libre), informativo en la UI.
+    const customPricePerCardWithMovedFreeSpace = computed(() => {
+        if (!allowMoveFreeSpace.value) return customPricePerCard.value
+        const hasCustomSurcharge = customCardState.value.mode === 'paid' || customCardState.value.mode === 'by_range'
+        const totalPct = (hasCustomSurcharge ? customPricePct.value : 0) + moveFreeSpacePricePct.value
+        if (totalPct <= 0) return cardPrice.value
+        return parseFloat((cardPrice.value * (1 + totalPct / 100)).toFixed(4))
+    })
 
     // Total calculado según distribución manual/aleatorio.
     const totalAmountWithCustom = computed(() => {
@@ -506,6 +526,8 @@ export function useGameRoomPurchaseModal() {
         customPricePct,
         maxCustomCardsAllowed,
         allowMoveFreeSpace,
+        moveFreeSpacePricePct,
+        customPricePerCardWithMovedFreeSpace,
         exceedsCustomCardLimit,
         manualCardCount,
         basePricePerCard,

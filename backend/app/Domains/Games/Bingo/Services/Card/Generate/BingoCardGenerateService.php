@@ -743,7 +743,7 @@ final class BingoCardGenerateService
     public function getPlayerCardPrice(string $roomId, int $userId): array
     {
         // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
-        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,allow_move_free_space')
+        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,move_free_space_mode,move_free_space_price_pct')
             ->find($roomId);
 
         if (!$room) {
@@ -791,6 +791,14 @@ final class BingoCardGenerateService
             default => $room->config?->custom_card_price_pct !== null ? (float) $room->config->custom_card_price_pct : null,
         };
 
+        $isBingo75 = $room->config?->game_variant === BingoVariant::BINGO_75;
+        $moveFreeSpaceMode = $isBingo75 ? $room->config?->move_free_space_mode : null;
+        $moveFreeSpacePricePct = match ($moveFreeSpaceMode) {
+            'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd),
+            'paid' => $room->config?->move_free_space_price_pct !== null ? (float) $room->config->move_free_space_price_pct : null,
+            default => null,
+        };
+
         return [
             'card_price' => (float) $cardPrice,
             'card_price_usd' => (float) $cardPriceUsd,
@@ -800,8 +808,8 @@ final class BingoCardGenerateService
             'custom_card_mode' => $customCardMode,
             'custom_card_price_pct' => $customCardPricePct,
             'custom_card_every_x' => $room->config?->custom_card_every_x,
-            'allow_move_free_space' => (bool) ($room->config?->allow_move_free_space ?? false)
-                && $room->config?->game_variant === BingoVariant::BINGO_75,
+            'move_free_space_mode' => $moveFreeSpaceMode,
+            'move_free_space_price_pct' => $moveFreeSpacePricePct,
         ];
     }
 
@@ -913,29 +921,73 @@ final class BingoCardGenerateService
      *   límite de cuántos cartones pueden personalizarse ya se validó antes de
      *   llegar aquí (ver maxCustomCardsAllowed).
      *
-     * En todos los casos con recargo, el % efectivo se acota a
+     * Los `$movedFreeSpaceCount` cartones (subconjunto de los personalizados que
+     * además movieron la casilla libre) pagan, adicionalmente, el recargo de
+     * move_free_space_mode — independiente y sumado al recargo de personalización.
+     *
+     * En todos los casos con recargo, cada % efectivo se acota individualmente a
      * MAX_CUSTOM_CARD_SURCHARGE_PCT como salvaguarda dura, independiente de lo
      * que tenga guardado la configuración de la sala.
      */
-    private function resolveCustomCardsTotal(BingoRoom $room, float $basePrice, int $customCount, ?float $cardPriceUsd = null): float
-    {
+    private function resolveCustomCardsTotal(
+        BingoRoom $room,
+        float $basePrice,
+        int $customCount,
+        int $movedFreeSpaceCount = 0,
+        ?float $cardPriceUsd = null,
+    ): float {
         $mode = $room->config?->custom_card_mode;
 
-        if ($mode === 'free' || $mode === 'every_x') {
-            return round($basePrice * $customCount, 4);
-        }
-
-        if ($mode === 'by_range') {
-            $customPct = $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice);
-        } else {
-            // 'paid' (o null): comportamiento por defecto, recargo % configurado manualmente.
-            $customPct = (float) ($room->config?->custom_card_price_pct ?? 0);
-        }
-
+        $customPct = match (true) {
+            $mode === 'free' || $mode === 'every_x' => 0.0,
+            $mode === 'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice),
+            default => (float) ($room->config?->custom_card_price_pct ?? 0),
+        };
         $customPct = min($customPct, self::MAX_CUSTOM_CARD_SURCHARGE_PCT);
-        $customPrice = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
 
-        return round($customPrice * $customCount, 4);
+        $moveFreeSpaceMode = $room->config?->move_free_space_mode;
+        $moveFreeSpacePct = match ($moveFreeSpaceMode) {
+            'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice),
+            'paid' => (float) ($room->config?->move_free_space_price_pct ?? 0),
+            default => 0.0, // 'free' o null: sin recargo adicional
+        };
+        $moveFreeSpacePct = min($moveFreeSpacePct, self::MAX_CUSTOM_CARD_SURCHARGE_PCT);
+
+        $regularCustomCount = $customCount - $movedFreeSpaceCount;
+
+        $regularCustomPrice = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
+        $movedFreeSpacePrice = round($basePrice * (1 + ($customPct + $moveFreeSpacePct) / 100), 4);
+
+        return round($regularCustomPrice * $regularCustomCount + $movedFreeSpacePrice * $movedFreeSpaceCount, 4);
+    }
+
+    /**
+     * Cuenta cuántas de las `$matrices` (cartones personalizados) tienen su única
+     * casilla libre en una posición distinta a la fija de la variante — es decir,
+     * cuántas efectivamente movieron la libre (mover es opcional, aunque la sala
+     * lo permita, el jugador puede dejarla en su sitio de siempre).
+     *
+     * @param array<int, array<string, array<int, int|null>>> $matrices
+     */
+    private function countMovedFreeSpaceCards(string $variant, array $matrices): int
+    {
+        $columns = BingoVariant::columns($variant);
+        $count = 0;
+
+        foreach ($matrices as $matrix) {
+            foreach ($columns as $col) {
+                $freeRowInMatrix = array_search(null, $matrix[$col['label']] ?? [], true);
+                if ($freeRowInMatrix === false) {
+                    continue;
+                }
+                if ($col['freeRow'] !== $freeRowInMatrix) {
+                    $count++;
+                }
+                break; // ya se encontró el único null del cartón
+            }
+        }
+
+        return $count;
     }
 
     /**
@@ -973,8 +1025,10 @@ final class BingoCardGenerateService
         }
 
         $room = BingoRoom::with('config')->findOrFail($roomId);
+        $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
 
         $customCount = $customMatrices !== null ? count($customMatrices) : 0;
+        $movedFreeSpaceCount = 0;
 
         if ($customCount > 0) {
             if (!$room->config?->allow_custom_card) {
@@ -995,8 +1049,7 @@ final class BingoCardGenerateService
                 }
             }
 
-            $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
-            $allowMoveFreeSpace = (bool) ($room->config?->allow_move_free_space ?? false)
+            $allowMoveFreeSpace = $room->config?->move_free_space_mode !== null
                 && $variant === BingoVariant::BINGO_75;
 
             foreach ($customMatrices as $i => $matrix) {
@@ -1004,6 +1057,14 @@ final class BingoCardGenerateService
                 if ($error !== null) {
                     throw new DomainException("Cartón #" . ($i + 1) . ": {$error}");
                 }
+            }
+
+            // Cuántos de los cartones personalizados efectivamente movieron la libre
+            // (su único null está fuera de la posición fija de la variante). Solo estos
+            // pagan el recargo de move_free_space_mode — mover la libre es opcional
+            // incluso cuando la sala lo permite.
+            if ($allowMoveFreeSpace) {
+                $movedFreeSpaceCount = $this->countMovedFreeSpaceCards($variant, $customMatrices);
             }
         }
 
@@ -1017,7 +1078,7 @@ final class BingoCardGenerateService
         $regularCount = $cardCount - $customCount;
 
         $customTotal = $customCount > 0
-            ? $this->resolveCustomCardsTotal($room, $basePrice, $customCount, $priceInfo['card_price_usd'])
+            ? $this->resolveCustomCardsTotal($room, $basePrice, $customCount, $movedFreeSpaceCount, $priceInfo['card_price_usd'])
             : 0.0;
 
         $totalAmount = round($basePrice * $regularCount + $customTotal, 4);

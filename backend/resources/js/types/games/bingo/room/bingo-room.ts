@@ -166,7 +166,8 @@ export interface BingoRoom {
         custom_card_price_pct?: number | string | null
         custom_card_mode?: CustomCardMode | null
         custom_card_every_x?: number | null
-        allow_move_free_space?: boolean
+        move_free_space_mode?: MoveFreeSpaceMode | null
+        move_free_space_price_pct?: number | string | null
         allow_special_card?: boolean
         max_special_cards?: number | null
     } | null
@@ -241,6 +242,16 @@ export type BingoGameVariant = 'BINGO_75' | 'BINGO_90' | 'BINGO_80' | 'BINGO_30'
  */
 export type CustomCardMode = 'paid' | 'by_range' | 'every_x' | 'free'
 
+/**
+ * Modalidad de "mover casilla libre" (solo aplica si allowCustomCard = true y
+ * gameVariant = BINGO_75). Recargo independiente y sumado al de customCardMode:
+ * - paid: costo adicional (%) manual por mover la libre
+ * - by_range: costo adicional (%) calculado automáticamente (nunca supera 5%)
+ * - free: mover la libre sin costo adicional
+ * No incluye 'every_x' — esa restricción no aplica a mover la libre.
+ */
+export type MoveFreeSpaceMode = 'paid' | 'by_range' | 'free'
+
 export interface BingoRoomFormData {
     date?: string | null
     time?: string | null
@@ -272,7 +283,8 @@ export interface BingoRoomFormData {
     customCardMode?: CustomCardMode | null
     customCardPricePct?: number | null
     customCardEveryX?: number | null
-    allowMoveFreeSpace?: boolean
+    moveFreeSpaceMode?: MoveFreeSpaceMode | null
+    moveFreeSpacePricePct?: number | null
     allowSpecialCard?: boolean
     maxSpecialCards?: number | null
 }

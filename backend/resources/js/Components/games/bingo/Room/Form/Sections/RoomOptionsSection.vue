@@ -32,7 +32,7 @@
                 ...modelValue,
                 allowCustomCard: ($event.target as HTMLInputElement).checked,
                 ...(!($event.target as HTMLInputElement).checked
-                  ? { customCardMode: null, customCardPricePct: null, customCardEveryX: null, allowMoveFreeSpace: false }
+                  ? { customCardMode: null, customCardPricePct: null, customCardEveryX: null, moveFreeSpaceMode: null, moveFreeSpacePricePct: null }
                   : {})
               } as any)
             "
@@ -143,29 +143,72 @@
           </div>
 
           <!-- Mover casilla libre (solo BINGO_75, única variante con casilla libre) -->
-          <div
-            v-if="(modelValue as any).gameVariant === 'BINGO_75'"
-            class="custom-control custom-switch"
-            style="padding-left: 2.25rem; flex-shrink: 0"
-          >
-            <input
-              id="allow_move_free_space"
-              name="allow_move_free_space"
-              type="checkbox"
-              class="custom-control-input"
-              :checked="(modelValue as any).allowMoveFreeSpace ?? false"
+          <div v-if="(modelValue as any).gameVariant === 'BINGO_75'">
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Mover casilla LIBRE
+            </label>
+            <select
+              name="move_free_space_mode"
+              :class="['form-control form-control-sm', { 'is-invalid': (errors as any).moveFreeSpaceMode }]"
+              style="width: 220px"
+              :value="(modelValue as any).moveFreeSpaceMode ?? ''"
               @change="
                 emit('update:modelValue', {
                   ...modelValue,
-                  allowMoveFreeSpace: ($event.target as HTMLInputElement).checked
+                  moveFreeSpaceMode: ($event.target as HTMLSelectElement).value || null,
+                  ...(($event.target as HTMLSelectElement).value !== 'paid' ? { moveFreeSpacePricePct: null } : {})
                 } as any)
               "
-            />
-            <label class="custom-control-label" for="allow_move_free_space" style="font-weight: 500">
-              Permitir mover la casilla LIBRE a cualquier posición
+            >
+              <option value="">No permitir</option>
+              <option value="paid">Permitir con costo adicional</option>
+              <option value="by_range">Precio inteligente (automático)</option>
+              <option value="free">Uso libre</option>
+            </select>
+            <small v-if="(errors as any).moveFreeSpaceMode" class="text-danger d-block" style="font-size: 0.72rem">
+              {{ (errors as any).moveFreeSpaceMode }}
+            </small>
+          </div>
+
+          <!-- Precio mover casilla libre (solo modalidad "con costo adicional") -->
+          <div v-if="(modelValue as any).moveFreeSpaceMode === 'paid'">
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Precio mover casilla libre <span class="text-danger">*</span>
             </label>
-            <small v-if="(errors as any).allowMoveFreeSpace" class="text-danger d-block" style="font-size: 0.72rem">
-              {{ (errors as any).allowMoveFreeSpace }}
+            <div class="input-group input-group-sm" style="width: 130px">
+              <input
+                name="move_free_space_price_pct"
+                type="number"
+                :class="['form-control', { 'is-invalid': (errors as any).moveFreeSpacePricePct }]"
+                placeholder="Ej: 2"
+                :step="0.25"
+                :min="1"
+                :max="5"
+                :value="(modelValue as any).moveFreeSpacePricePct ?? ''"
+                @change="
+                  emit('update:modelValue', {
+                    ...modelValue,
+                    moveFreeSpacePricePct: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
+                  } as any)
+                "
+              />
+              <div class="input-group-append">
+                <span class="input-group-text">%</span>
+              </div>
+            </div>
+            <small v-if="(errors as any).moveFreeSpacePricePct" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).moveFreeSpacePricePct }}
+            </small>
+          </div>
+
+          <!-- Precio inteligente por rango (solo modalidad "by_range") -->
+          <div v-if="(modelValue as any).moveFreeSpaceMode === 'by_range'" style="max-width: 320px">
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Recargo calculado automáticamente
+            </label>
+            <small class="d-block text-muted" style="font-size: 0.72rem; line-height: 1.35">
+              El sistema aplica un recargo entre 1% y 2% sobre el precio del cartón,
+              según su valor (nunca supera el 5%). No requiere configurar un % manual.
             </small>
           </div>
         </template>

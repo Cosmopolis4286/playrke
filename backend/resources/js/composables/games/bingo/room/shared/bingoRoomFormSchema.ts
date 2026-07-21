@@ -24,6 +24,10 @@ const customCardPricePctSchema = percentageSchema
     .min(1, 'El % del precio del cartón personalizado debe estar entre 1 y 5.')
     .max(5, 'El % del precio del cartón personalizado debe estar entre 1 y 5.')
 
+const moveFreeSpacePricePctSchema = percentageSchema
+    .min(1, 'El % de recargo por mover la casilla libre debe estar entre 1 y 5.')
+    .max(5, 'El % de recargo por mover la casilla libre debe estar entre 1 y 5.')
+
 const roundsPctBaseSchema = percentageSchema
     .min(BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min}%.`)
 
@@ -73,7 +77,8 @@ export const bingoRoomFormSchema = z.object({
     customCardMode:  z.enum(['paid', 'by_range', 'every_x', 'free']).nullable().optional(),
     customCardPricePct: z.number().nullable().optional(),
     customCardEveryX:   z.number().nullable().optional(),
-    allowMoveFreeSpace: z.boolean().optional(),
+    moveFreeSpaceMode:  z.enum(['paid', 'by_range', 'free']).nullable().optional(),
+    moveFreeSpacePricePct: z.number().nullable().optional(),
     allowSpecialCard:   z.boolean().optional(),
     maxSpecialCards:    z.number().nullable().optional(),
     // Solo salas automáticas — enum validado en runtime
@@ -280,9 +285,14 @@ export function validateBingoRoomForm(
         }
     }
 
-    /* ── Mover casilla libre (requiere cartón personalizado) ── */
-    if (data.allowMoveFreeSpace && !data.allowCustomCard) {
-        e.allowMoveFreeSpace = 'Requiere activar "Permitir cartón personalizado".'
+    /* ── Mover casilla libre (requiere cartón personalizado; modalidad propia de precio) ── */
+    if (data.moveFreeSpaceMode) {
+        if (!data.allowCustomCard) {
+            e.moveFreeSpaceMode = 'Requiere activar "Permitir cartón personalizado".'
+        } else if (data.moveFreeSpaceMode === 'paid') {
+            const r = moveFreeSpacePricePctSchema.safeParse(Number(data.moveFreeSpacePricePct))
+            if (!r.success) e.moveFreeSpacePricePct = r.error.issues[0].message
+        }
     }
 
     /* ── Cartón especial ── */

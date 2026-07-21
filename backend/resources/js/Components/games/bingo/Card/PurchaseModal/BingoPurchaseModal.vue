@@ -58,6 +58,8 @@
     maxCustomCardsAllowed?: number
     /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75). */
     allowMoveFreeSpace?: boolean
+    /** Recargo % adicional por mover la libre (0 = sin recargo; se suma a customPricePct). */
+    moveFreeSpacePricePct?: number | null
     /** True si el jugador personalizó más cartones de los permitidos. */
     exceedsCustomCardLimit?: boolean
     /** Precio base por cartón (sin recargo). */
@@ -195,6 +197,7 @@
                 :custom-price-pct="customPricePct"
                 :max-custom-allowed="maxCustomCardsAllowed"
                 :allow-move-free-space="allowMoveFreeSpace"
+                :move-free-space-price-pct="moveFreeSpacePricePct"
                 :exceeds-custom-card-limit="exceedsCustomCardLimit"
                 :manual-card-count="manualCardCount"
                 :confirm-incomplete-custom-card="confirmIncompleteCustomCard"
