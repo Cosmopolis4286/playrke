@@ -46,7 +46,7 @@ final class BingoReportController extends Controller
     /**
      * Display the cards sold report page.
      */
-    public function cardsSold(string $currency = null, string $dateFilter = null): Response
+    public function cardsSold(?string $currency = null, ?string $dateFilter = null): Response
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
@@ -110,7 +110,7 @@ final class BingoReportController extends Controller
     /**
      * Display the winners report page.
      */
-    public function winners(string $type = null, string $dateFilter = null, string $currency = null): Response
+    public function winners(?string $type = null, ?string $dateFilter = null, ?string $currency = null): Response
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
@@ -186,7 +186,7 @@ final class BingoReportController extends Controller
     /**
      * Display the sales report page.
      */
-    public function salesReport(string $currency = null, string $dateFilter = null): Response
+    public function salesReport(?string $currency = null, ?string $dateFilter = null): Response
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
@@ -275,7 +275,7 @@ final class BingoReportController extends Controller
         return Inertia::render('Games/Bingo/Report/Sales', [
             'title' => 'Reporte de Ventas',
             'sales' => $salesData,
-            'currencies' => $currencies,
+            'currencies' => $currencies->values(),
             'roomTypes' => $roomTypes,
             'selectedCurrency' => $currency,
             'dateFilter' => $dateFilter
@@ -285,7 +285,7 @@ final class BingoReportController extends Controller
     /**
      * Display the sales report for a specific room.
      */
-    public function salesReportByRoom(BingoRoom $room, string $currency = null): Response
+    public function salesReportByRoom(BingoRoom $room, ?string $currency = null): Response
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
