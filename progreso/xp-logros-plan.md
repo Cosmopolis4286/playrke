@@ -89,17 +89,30 @@ bloqueante para que Bingo/Trivia otorguen XP.
   backend (ver `ProfileController::buildStats()`) — una vez Fase 1-4 estén activas,
   solo hace falta que `buildStats()` deje de hardcodear esos campos en 0 y use los
   accessors reales de `User`. No requiere cambios adicionales en Vue.
-- Notificación de "logro desbloqueado" / "subiste de nivel" en tiempo real: fuera de
-  alcance de este plan (requeriría un canal broadcast nuevo); se deja como mejora
-  futura.
+- Notificación de "logro desbloqueado" / "subiste de nivel" en tiempo real:
+  **implementada en Fase 7**, ver changelog.
+
+### Fase 7 — Mejoras adicionales (post-plan original)
+Pedidas explícitamente tras cerrar las Fases 1-6, más una corrección de un hallazgo
+colateral (rename `num_ctns`→`card_count` desincronizado en un test).
+
+1. Instalar `spatie/laravel-activitylog` (revertir el parche de `Log::info()` usado
+   mientras no estaba disponible) — ver changelog.
+2. Limpiar `routes/api.php` (bloque muerto comentado) y el test
+   `AuthenticationTest.php` obsoleto que probaba rutas `/api/auth/*` inexistentes.
+3. Implementar los 3 logros `custom` ocultos (`lucky_winner`, `early_bird`,
+   `night_owl`), antes desactivados por falta de lógica.
+4. UI admin para otorgar XP manualmente a un usuario (`XpGrantModal.vue` +
+   `AdminUserController::grantXp`).
+5. Notificación en tiempo real de subida de nivel / logro desbloqueado, vía el
+   sistema de `NotificationService`/`NotificationCreated` ya existente + un
+   listener nuevo en el frontend.
 
 ## Fuera de alcance de este plan
 - Cambiar cómo se pagan premios reales (wallet) — no se toca.
 - Logros específicos por juego (hoy el catálogo es genérico/bingo-céntrico) — se
   puede añadir una columna `game` a `achievements` en una fase posterior si se
   decide tener logros exclusivos de Trivia.
-- UI de administración para otorgar XP manualmente — hoy el endpoint existe sin UI;
-  se deja fuera salvo que se pida explícitamente.
 
 ## Progreso
 
@@ -111,6 +124,7 @@ bloqueante para que Bingo/Trivia otorguen XP.
 | Fase 4 — Enganche Trivia | ✅ Hecho | `GameEngineService` |
 | Fase 5 — Racha de login | ✅ Hecho | |
 | Fase 6 — Frontend | ✅ Hecho | `buildStats()` ya expone todos los campos con datos reales |
+| Fase 7 — Mejoras adicionales | ✅ Hecho | activitylog, limpieza rutas, logros custom, UI admin XP, notificación en tiempo real |
 
 ## Changelog
 
@@ -257,3 +271,105 @@ bloqueante para que Bingo/Trivia otorguen XP.
     (mismo hallazgo de "api.php casi completamente comentado" de la auditoría
     original) — es un archivo de test obsoleto que prueba un contrato de API
     que ya no está montado, ajeno por completo a esta sesión.
+
+- **2026-07-21**: Fase 7 implementada (mejoras adicionales pedidas explícitamente
+  tras cerrar el plan original) + corrección de un hallazgo colateral.
+  - **`spatie/laravel-activitylog` instalado** (`^4.0`, compatible Laravel 11 —
+    `^5.0` requiere Illuminate 12+ y falló la resolución de Composer). Migraciones
+    del paquete publicadas y corridas (tabla `activity_log`).
+    `UserLevelService::logXpTransaction()` revertido de `Log::info()` (parche
+    temporal de la Fase 1) a `activity()->log()` real. Probado end-to-end: el
+    registro queda en la tabla `activity_log` con todas las propiedades
+    esperadas. De paso, corregido un bug preexistente en
+    `removeXpFromUser()` que llamaba `logXpTransaction()` con 3 argumentos en
+    vez de 5 (nunca ejercitado hasta ahora).
+  - **`routes/api.php` limpiado**: eliminado el bloque de ~150 líneas
+    comentadas (`AuthController`, `UserController`, `BingoController`,
+    `WalletController`, `AdminController`, etc. — todos referenciando
+    controladores/rutas que no existen activos). Solo quedan las rutas
+    `user-level/*` reales. `tests/Feature/Auth/AuthenticationTest.php`
+    eliminado (7 tests que probaban esas rutas muertas `/api/auth/*`,
+    `/api/user` — cobertura equivalente ya la da `tests/Feature/Api/AuthTest.php`
+    contra las rutas reales).
+  - **Logros `custom` implementados** (`AchievementService::checkCustomRequirement()`,
+    antes un stub que siempre retornaba `false`):
+    - `lucky_winner`: redefinido (ver discusión con el usuario) de "ganar con el
+      último número llamado" — que por diseño del sorteo de Bingo es cierto para
+      *todo* ganador, no un evento especial — a "ganar cuando el pool de números
+      de la variante estaba casi agotado" (`BingoVariant::totalChips() - count($drawnNumbers) <= 3`,
+      constante pública `BingoDrawService::LUCKY_WINNER_REMAINING_THRESHOLD`).
+      Calculado en `detectWinnerAndEnd()` y en la verificación manual
+      (`BingoWinnerDetectionService::checkWinnerForUser()`), pasado a
+      `GameCompletionService::reportParticipation()` vía el nuevo parámetro
+      `customContext`.
+    - `early_bird` / `night_owl`: evaluados contra la hora del servidor (UTC) en
+      el momento de `GameCompletionService::reportParticipation()` (`< 6:00` y
+      `< 2:00` respectivamente — rango acotado para no solaparse del todo).
+      Aplican tanto en victoria como en derrota (coincide con "juega una
+      partida", no "gana una partida", según la descripción real del catálogo).
+    - Reactivados en el seeder (`is_active: true`) + migración de datos
+      `2026_07_20_03_reactivate_custom_achievements` para bases ya sembradas.
+      Colores de badge `gold`/`cyan` (usados por 2 logros de nivel) agregados a
+      `Achievement::getBadgeStyleAttribute()` — antes caían a gris.
+    - Probado end-to-end vía `AchievementService::checkAndUnlockAchievements()`
+      directo: `early_bird` a las 4am ✓, `night_owl` a la 1am ✓, `lucky_winner`
+      con el flag ✓, caso "mediodía normal sin flag" → ningún custom se
+      desbloquea (negativo confirmado).
+  - **UI admin para otorgar XP** (`admin/user/{user}/grant-xp`, `role:admin`,
+    mismo nivel de sensibilidad que `load-wallet-balance`, no escalado a
+    superadmin): `AdminUserService::grantXp()` delega en
+    `UserLevelService::addXpToUser()` (con `reason` auditado). Nuevo modal
+    `XpGrantModal.vue`, calcado de `WalletLoadModal.vue` (mismo patrón visual y
+    de manejo de errores del proyecto) con un textarea de motivo agregado.
+    Botón nuevo en `Pages/Roles/Admin/User/Index.vue`. Rate limit propio
+    (`admin-grant-xp`, 20/min por admin — más alto que el self-service porque un
+    admin puede operar legítimamente sobre varios usuarios seguidos).
+  - **Notificación en tiempo real** de subida de nivel / logro desbloqueado:
+    reutiliza la infraestructura ya existente y probada (`NotificationService`
+    → persiste en `notifications` → `broadcast(NotificationCreated)` → canal
+    privado `App.Models.User.{id}`, evento `notification.created`) en vez de
+    crear un evento de broadcast nuevo — es el patrón que ya usa
+    `WalletService` para "cambio de estado + notificación persistente".
+    - 2 tipos nuevos en `Notification::TYPES` (`LEVEL_UP`, `ACHIEVEMENT_UNLOCKED`)
+      con color/ícono propios.
+    - `NotificationService::createLevelUpNotification()` /
+      `createAchievementUnlockedNotification()`, llamados automáticamente desde
+      `UserLevelService::addXpToUser()` (solo si `leveled_up === true`) y
+      `AchievementService::checkAndUnlockAchievements()` (por cada logro
+      desbloqueado) — cubre los 4 caminos existentes (Bingo, Trivia, login
+      streak, admin) sin duplicar la llamada en cada uno. Envuelto en
+      `try/catch` con log — un fallo notificando nunca revierte el XP/logro ya
+      otorgado.
+    - Frontend: `joinLevelUpNotifications(userId)` (nuevo,
+      `composables/useLevelUpNotifications.ts`), mismo patrón que
+      `joinOnlinePresence()` (guard singleton, une al canal una sola vez por
+      sesión de SPA) — conectado en `inertia.ts::setup()`, junto a
+      `joinOnlinePresence()`. Escucha `.notification.created` en el canal
+      privado del usuario y muestra un `showToast()` solo para los 2 tipos
+      nuevos (ignora wallet/trivia/otros, que ya tienen su propio manejo).
+    - Probado end-to-end vía tinker: partida con 5000 XP forzados → 2
+      notificaciones creadas (`LEVEL_UP` nivel 6, `ACHIEVEMENT_UNLOCKED`
+      "Nivel 5") con título/mensaje correctos.
+  - **Hallazgo colateral del usuario, investigado y corregido**: alerta de que
+    el rename `num_ctns`→`card_count` (aplicado hoy en el backend, commits
+    `acc2d3f9`/`b6c53b64`, ninguno de esta sesión) podría no haber llegado al
+    frontend de compra de cartones. Investigación confirmó que **el flujo real
+    y activo** (`BingoPurchaseModal.vue` → `useGameRoomPurchaseModal.ts` →
+    `POST /bingo/game-rooms/{room}/player-buy`) **ya usa `card_count`
+    correctamente** — no estaba roto. Lo que sí se encontró:
+    - `tests/Feature/Api/BingoTest.php` (3 tests: `player_can_purchase_bingo_cards`,
+      `player_cannot_purchase_cards_with_insufficient_balance`,
+      `purchase_quantity_must_be_between_1_and_40`) seguía enviando `num_ctns` y
+      esperando el mensaje humanizado viejo (`'num ctns'`) — quedó
+      desactualizado en el rename, dando un falso negativo real (confirmado
+      corriendo la suite: 55/58 pasaban, exactamente estos 3 fallaban).
+      Corregido a `card_count`/`'card count'`. Re-corrido tras el fix: los 3
+      pasan.
+    - `composables/games/bingo/room/game-rooms/useGameRoomCardPurchase.ts`
+      seguía con `num_ctns`/`ctns`, apuntando a `POST /bingo/generate-card` —
+      ruta comentada/inexistente en `routes/modules/games/bingo.php`, y
+      confirmado sin ningún importador en todo `resources/js` (código huérfano,
+      nunca se ejecuta desde la UI real). Eliminado a pedido del usuario.
+    - `typecheck` corrido tras la eliminación: 0 errores (antes había 17
+      preexistentes en otros archivos no relacionados, ninguno de los cuales
+      referenciaba el archivo eliminado).
