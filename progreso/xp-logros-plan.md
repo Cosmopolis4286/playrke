@@ -109,8 +109,8 @@ bloqueante para que Bingo/Trivia otorguen XP.
 | Fase 2 — Contador cross-game | ✅ Hecho | Tabla creada y migrada |
 | Fase 3 — Enganche Bingo | ✅ Hecho | `BingoDrawService` |
 | Fase 4 — Enganche Trivia | ✅ Hecho | `GameEngineService` |
-| Fase 5 — Racha de login | 🔲 Pendiente | Funcionalidad nueva, no bloqueante |
-| Fase 6 — Frontend | ✅ Parcial | `buildStats()` ya no hardcodea games_played/games_won/total_winnings; `current_streak`/`best_streak` siguen en 0 (dependen de Fase 5) |
+| Fase 5 — Racha de login | ✅ Hecho | |
+| Fase 6 — Frontend | ✅ Hecho | `buildStats()` ya expone todos los campos con datos reales |
 
 ## Changelog
 
@@ -206,3 +206,42 @@ bloqueante para que Bingo/Trivia otorguen XP.
     la verificación de que el contenedor resuelve ambos servicios sin error de DI.
     Sería recomendable añadir un test de integración para `finishGame()` y
     `claimCardWin()` que cubra el otorgamiento de XP/logros en una sesión futura.
+
+- **2026-07-20**: Fase 5 implementada (racha de login) — desvío del diseño original
+  del plan: en vez de un listener de `Illuminate\Auth\Events\Login` (el proyecto no
+  tiene `EventServiceProvider`, habría que crear esa infraestructura desde cero),
+  se optó por un servicio explícito llamado directamente desde el único controlador
+  de login real, replicando el patrón de `GameCompletionService`.
+  - Migración: columnas nuevas `login_streak_days` y `best_login_streak_days` en
+    `users` (default 0). No existía ninguna columna de racha previamente.
+  - Hallazgo importante durante la investigación: **`last_login_at`/`last_login_ip`
+    nunca se actualizaban en ningún login real** — `UserRepository::updateLastLogin()`
+    existía pero no tenía ningún caller en todo el código. `ProfileController` y
+    los dashboards ya leían ese campo para mostrar "último acceso", pero siempre
+    mostraba `NULL`/fallback. Corregido como parte de este mismo cambio.
+  - `LoginStreakService` (nuevo, `app/Services/User/`): `registerLogin(User, ?ip)`.
+    Reglas: último login hoy (UTC) → no toca la racha; último login ayer →
+    incrementa; cualquier otro caso (o primer login) → resetea a 1. Actualiza
+    `best_login_streak_days` como máximo histórico. Evalúa logros al final con
+    `try/catch` — un fallo no bloquea el login.
+  - Enganchado en `AuthenticatedSessionController::store()` (único punto de login
+    real de la app — Fortify está instalado pero solo gestiona Sanctum/passwords,
+    no procesa el login de la UI), envuelto en `try/catch` propio: un fallo en la
+    racha nunca debe impedir que el usuario entre.
+  - `AchievementService`/`Achievement::calculateProgress()`: caso `login_streak`
+    corregido para leer `login_streak_days` real — antes siempre `false`/`0`.
+  - `ProfileController::buildStats()`: `current_streak`/`best_streak` ya no están
+    hardcodeados en 0.
+  - **Decisión de zona horaria**: el server corre en UTC (`config/app.php` /
+    `.env`), y la racha se calcula con `Carbon::now()` en UTC — un usuario en otra
+    zona horaria podría ver su "día" cambiar en un momento distinto al que percibe
+    localmente. No hay infraestructura de timezone por usuario en el proyecto hoy;
+    aceptado como limitación conocida, no bloqueante.
+  - Probado end-to-end vía tinker, los 4 escenarios: primer login (streak=1),
+    mismo día repetido (sin cambio), día consecutivo (incrementa y actualiza
+    récord), salto de varios días (resetea a 1, conserva el récord). Confirmado
+    también que el logro `streak_7` se desbloquea automáticamente al alcanzar 7
+    días de racha.
+  - Tests `tests/Feature/Api/AuthTest.php` + `tests/Feature/Auth/AuthenticationTest.php`
+    corridos tras el cambio — pendiente de confirmar resultado final en esta
+    sesión (ver estado del comando en curso).

@@ -353,10 +353,8 @@ class ProfileController extends Controller
             'games_played'       => $user->games_played_count,
             'games_won'          => $user->games_won_count,
             'total_winnings'     => $user->total_winnings,
-            // Racha de login: pendiente (ver Fase 5 de progreso/xp-logros-plan.md),
-            // no hay lógica de cálculo implementada todavía.
-            'current_streak'     => 0,
-            'best_streak'        => 0,
+            'current_streak'     => $user->login_streak_days,
+            'best_streak'        => $user->best_login_streak_days,
             'level'              => $level?->current_level    ?? 1,
             'experience_points'  => $level?->current_xp       ?? 0,
             'xp_to_next_level'   => $level?->xp_to_next_level ?? 1000,

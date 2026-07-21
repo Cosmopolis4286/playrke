@@ -137,8 +137,7 @@ class Achievement extends Model
                 $current = $user->total_winnings;
                 break;
             case 'login_streak':
-                // Pendiente: no hay lógica de racha de login implementada todavía.
-                $current = 0;
+                $current = $user->login_streak_days;
                 break;
             case 'level_reached':
                 $current = $user->getCurrentLevel();

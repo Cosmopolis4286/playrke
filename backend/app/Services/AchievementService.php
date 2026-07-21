@@ -213,9 +213,7 @@ class AchievementService
                 return $user->total_winnings >= $target;
 
             case 'login_streak':
-                // Pendiente: no hay lógica de racha de login implementada todavía
-                // (ver Fase 5 del plan en progreso/xp-logros-plan.md).
-                return false;
+                return $user->login_streak_days >= $target;
 
             case 'level_reached':
                 return $user->getCurrentLevel() >= $target;
