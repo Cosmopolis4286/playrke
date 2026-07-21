@@ -743,7 +743,7 @@ final class BingoCardGenerateService
     public function getPlayerCardPrice(string $roomId, int $userId): array
     {
         // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
-        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x')
+        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,allow_move_free_space')
             ->find($roomId);
 
         if (!$room) {
@@ -800,6 +800,8 @@ final class BingoCardGenerateService
             'custom_card_mode' => $customCardMode,
             'custom_card_price_pct' => $customCardPricePct,
             'custom_card_every_x' => $room->config?->custom_card_every_x,
+            'allow_move_free_space' => (bool) ($room->config?->allow_move_free_space ?? false)
+                && $room->config?->game_variant === BingoVariant::BINGO_75,
         ];
     }
 
@@ -994,8 +996,11 @@ final class BingoCardGenerateService
             }
 
             $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+            $allowMoveFreeSpace = (bool) ($room->config?->allow_move_free_space ?? false)
+                && $variant === BingoVariant::BINGO_75;
+
             foreach ($customMatrices as $i => $matrix) {
-                $error = BingoVariant::validateCustomMatrix($variant, $matrix);
+                $error = BingoVariant::validateCustomMatrix($variant, $matrix, $allowMoveFreeSpace);
                 if ($error !== null) {
                     throw new DomainException("Cartón #" . ($i + 1) . ": {$error}");
                 }
