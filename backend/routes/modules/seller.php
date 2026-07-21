@@ -15,7 +15,7 @@ use App\Http\Controllers\Roles\SellerController;
 // ====================================
 multi_middleware_routes('sellers', 'manager-seller.', [
     [
-        'middleware' => ['auth', 'role:admin,commerce,customer,subsidiary'],
+        'middleware' => ['auth', 'role:superadmin,admin,commerce,customer'],
         'controller' => ManagerSellerController::class,
         'routes' => [
             'index' => ['method' => 'get', 'uri' => ''],
