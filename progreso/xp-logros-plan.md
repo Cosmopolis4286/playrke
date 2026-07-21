@@ -242,6 +242,18 @@ bloqueante para que Bingo/Trivia otorguen XP.
     récord), salto de varios días (resetea a 1, conserva el récord). Confirmado
     también que el logro `streak_7` se desbloquea automáticamente al alcanzar 7
     días de racha.
-  - Tests `tests/Feature/Api/AuthTest.php` + `tests/Feature/Auth/AuthenticationTest.php`
-    corridos tras el cambio — pendiente de confirmar resultado final en esta
-    sesión (ver estado del comando en curso).
+  - Tests `tests/Feature/Api/AuthTest.php` corridos tras el cambio (BD de test
+    recreada limpia para descartar contaminación entre corridas): **6/8 pasan**,
+    incluyendo `user can login with email` y `user can login with username` —
+    los dos únicos tests que ejercitan `POST /login` real, la ruta donde se
+    enganchó `LoginStreakService`. Los 2 fallos restantes son preexistentes y no
+    relacionados: `user_can_register` falla por un método inexistente en
+    `RegisteredUserController::getReferredBy` (no tocado en esta sesión) y
+    `login_fails_with_incorrect_credentials` falla por el mismo patrón de bug
+    preexistente de validación 422 ya documentado en sesiones anteriores (no es
+    la ruta de login exitoso). `tests/Feature/Auth/AuthenticationTest.php` se
+    descartó de la comparación: sus 7 tests apuntan a rutas `/api/auth/login`,
+    `/api/user`, `/api/auth/logout` que **no existen** en `routes/api.php`
+    (mismo hallazgo de "api.php casi completamente comentado" de la auditoría
+    original) — es un archivo de test obsoleto que prueba un contrato de API
+    que ya no está montado, ajeno por completo a esta sesión.
