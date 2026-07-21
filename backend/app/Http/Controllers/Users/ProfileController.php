@@ -350,9 +350,11 @@ class ProfileController extends Controller
     {
         $level = $user->relationLoaded('userLevel') ? $user->userLevel : null;
         return [
-            'games_played'       => 0,
-            'games_won'          => 0,
-            'total_winnings'     => 0.0,
+            'games_played'       => $user->games_played_count,
+            'games_won'          => $user->games_won_count,
+            'total_winnings'     => $user->total_winnings,
+            // Racha de login: pendiente (ver Fase 5 de progreso/xp-logros-plan.md),
+            // no hay lógica de cálculo implementada todavía.
             'current_streak'     => 0,
             'best_streak'        => 0,
             'level'              => $level?->current_level    ?? 1,

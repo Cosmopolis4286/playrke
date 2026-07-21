@@ -216,6 +216,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Movimientos de billetera del usuario (depósitos, retiros, premios, etc.)
+     *
+     * @return HasMany<WalletMovement>
+     */
+    public function walletMovements(): HasMany
+    {
+        return $this->hasMany(WalletMovement::class, 'user_id');
+    }
+
+    /**
      * Nivel y experiencia del usuario
      *
      * @return HasOne<UserLevel>
@@ -632,6 +642,41 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getLevelProgress(): float
     {
         return $this->userLevel?->progress_percentage ?? 0.0;
+    }
+
+    /**
+     * Historial de participaciones en partidas (bingo/trivia), fuente de
+     * "partidas jugadas" y "partidas ganadas" para logros y estadísticas.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<GameParticipation>
+     */
+    public function gameParticipations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(GameParticipation::class);
+    }
+
+    /** Total de partidas jugadas (todas las fuentes de juego), desde game_participations. */
+    public function getGamesPlayedCountAttribute(): int
+    {
+        return $this->gameParticipations()->count();
+    }
+
+    /** Total de partidas ganadas, desde game_participations. */
+    public function getGamesWonCountAttribute(): int
+    {
+        return $this->gameParticipations()->where('won', true)->count();
+    }
+
+    /**
+     * Total acumulado en premios ganados (bingo/trivia), calculado desde los
+     * movimientos de billetera reales en vez de una columna duplicada.
+     */
+    public function getTotalWinningsAttribute(): float
+    {
+        return (float) $this->walletMovements()
+            ->whereIn('type', [WalletMovement::TYPE_PRIZE, WalletMovement::TYPE_BONUS_PRIZE])
+            ->where('status', WalletMovement::STATUS_COMPLETED)
+            ->sum('amount');
     }
 
     /**

@@ -189,7 +189,11 @@ class AchievementSeeder extends Seeder
                 'sort_order' => 14,
             ],
 
-            // Logros Especiales (Ocultos)
+            // Logros Especiales (Ocultos) — is_active=false: su condición es tipo
+            // "custom" y checkCustomRequirement() no está implementado todavía
+            // (siempre retorna false). Se dejan en el catálogo pero inactivos
+            // para no mostrarse como desbloqueables sin serlo. Activar una vez
+            // se implemente la lógica correspondiente en AchievementService.
             [
                 'code' => 'lucky_winner',
                 'name' => 'Ganador Suerte',
@@ -199,6 +203,7 @@ class AchievementSeeder extends Seeder
                 'xp_reward' => 300,
                 'requirements' => ['type' => 'custom', 'target' => 1],
                 'category' => 'special',
+                'is_active' => false,
                 'is_hidden' => true,
                 'sort_order' => 15,
             ],
@@ -211,6 +216,7 @@ class AchievementSeeder extends Seeder
                 'xp_reward' => 150,
                 'requirements' => ['type' => 'custom', 'target' => 1],
                 'category' => 'special',
+                'is_active' => false,
                 'is_hidden' => true,
                 'sort_order' => 16,
             ],
@@ -223,6 +229,7 @@ class AchievementSeeder extends Seeder
                 'xp_reward' => 150,
                 'requirements' => ['type' => 'custom', 'target' => 1],
                 'category' => 'special',
+                'is_active' => false,
                 'is_hidden' => true,
                 'sort_order' => 17,
             ],

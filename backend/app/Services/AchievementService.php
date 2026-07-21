@@ -204,47 +204,45 @@ class AchievementService
 
         switch ($type) {
             case 'games_played':
-                return ($user->games_played ?? 0) >= $target;
-            
+                return $user->games_played_count >= $target;
+
             case 'games_won':
-                return ($user->games_won ?? 0) >= $target;
-            
+                return $user->games_won_count >= $target;
+
             case 'total_winnings':
-                return ($user->total_winnings ?? 0) >= $target;
-            
+                return $user->total_winnings >= $target;
+
             case 'login_streak':
-                return ($user->current_streak ?? 0) >= $target;
-            
+                // Pendiente: no hay lógica de racha de login implementada todavía
+                // (ver Fase 5 del plan en progreso/xp-logros-plan.md).
+                return false;
+
             case 'level_reached':
                 return $user->getCurrentLevel() >= $target;
-            
+
             case 'referrals':
                 return $user->referrals()->count() >= $target;
-            
+
             case 'first_game':
-                return ($user->games_played ?? 0) >= 1;
-            
+                return $user->games_played_count >= 1;
+
             case 'first_win':
-                return ($user->games_won ?? 0) >= 1;
-            
+                return $user->games_won_count >= 1;
+
             case 'custom':
                 return $this->checkCustomRequirement($user, $achievement, $context);
-            
+
             default:
                 return false;
         }
     }
 
     /**
-     * Verificar requisitos personalizados
+     * Verificar requisitos personalizados. Ningún logro activo usa este tipo hoy
+     * (los que lo requerían quedaron desactivados en el seeder hasta implementarse).
      */
     private function checkCustomRequirement(User $user, Achievement $achievement, array $context): bool
     {
-        $requirements = $achievement->requirements;
-        
-        // Aquí puedes agregar lógica personalizada para requisitos especiales
-        // Por ejemplo, verificar eventos específicos, combinaciones, etc.
-        
         return false;
     }
 

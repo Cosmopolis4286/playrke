@@ -129,6 +129,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: re-evaluación manual de logros — 5 por minuto por usuario.
+        // Es de respaldo (el flujo normal es automático vía GameCompletionService);
+        // no debería necesitarse a alta frecuencia desde el cliente.
+        RateLimiter::for('profile-achievements-check', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip());
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

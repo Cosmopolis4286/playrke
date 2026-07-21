@@ -5,6 +5,10 @@ use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\Api\AchievementController;
 use Illuminate\Support\Facades\Route;
 
+// NOTA: el desbloqueo automático de logros ocurre normalmente desde
+// GameCompletionService al terminar una partida (ver progreso/xp-logros-plan.md).
+// Esta ruta existe como respaldo/soporte para forzar una re-evaluación manual.
+
 Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
 
     // ── Página principal (Inertia) ─────────────────────────────────────────
@@ -35,6 +39,7 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     Route::post('/achievements/mark-seen',[AchievementController::class, 'markAsSeen'])            ->name('profile.api.achievements.mark-seen');
     Route::post('/achievements/mark-all-seen',[AchievementController::class, 'markAllAsSeen'])     ->name('profile.api.achievements.mark-all-seen');
     Route::get('/achievements/stats',     [AchievementController::class, 'getStats'])              ->name('profile.api.achievements.stats');
+    Route::post('/achievements/check',    [AchievementController::class, 'checkAndUnlock'])        ->name('profile.api.achievements.check')->middleware('throttle:profile-achievements-check');
 });
 
 // ── Referidos ──────────────────────────────────────────────────────────────

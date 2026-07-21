@@ -73,6 +73,8 @@ class Achievement extends Model
             'indigo' => 'bg-indigo-500',
             'orange' => 'bg-orange-500',
             'teal' => 'bg-teal-500',
+            'gold' => 'bg-amber-500',
+            'cyan' => 'bg-cyan-500',
         ];
 
         return $colors[$this->badge_color] ?? 'bg-gray-500';
@@ -126,16 +128,17 @@ class Achievement extends Model
 
         switch ($type) {
             case 'games_played':
-                $current = $user->games_played ?? 0;
+                $current = $user->games_played_count;
                 break;
             case 'games_won':
-                $current = $user->games_won ?? 0;
+                $current = $user->games_won_count;
                 break;
             case 'total_winnings':
-                $current = $user->total_winnings ?? 0;
+                $current = $user->total_winnings;
                 break;
             case 'login_streak':
-                $current = $user->current_streak ?? 0;
+                // Pendiente: no hay lógica de racha de login implementada todavía.
+                $current = 0;
                 break;
             case 'level_reached':
                 $current = $user->getCurrentLevel();
@@ -176,9 +179,10 @@ class Achievement extends Model
             'progress_data' => [],
         ]);
 
-        // Añadir recompensa de XP al usuario
+        // Añadir recompensa de XP al usuario (vía servicio para quedar auditado)
         if ($this->xp_reward > 0) {
-            $user->addXp($this->xp_reward, "Logro desbloqueado: {$this->name}");
+            app(\App\Services\User\UserLevelService::class)
+                ->addXpToUser($user, $this->xp_reward, "Logro desbloqueado: {$this->name}");
         }
 
         return $userAchievement;
