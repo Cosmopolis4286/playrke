@@ -20,8 +20,8 @@ const props = defineProps<{
   cardCount: number
   variant?: string | null
   /** Modalidad de cartón personalizado de la sala */
-  customCardMode?: 'paid' | 'every_x' | 'free' | null
-  /** Recargo % para cartones personalizados (0 = sin recargo, solo aplica en modo 'paid') */
+  customCardMode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
+  /** Recargo % para cartones personalizados (0 = sin recargo; aplica en modo 'paid' y 'by_range') */
   customPricePct?: number | null
   /** Máximo de cartones personalizables permitidos en esta compra (solo relevante en modo 'every_x') */
   maxCustomAllowed?: number
@@ -105,18 +105,18 @@ defineExpose({
       </button>
     </div>
 
-    <!-- Aviso de recargo (modo 'paid') cuando el cartón activo es manual y hay recargo configurado -->
+    <!-- Aviso de recargo (modo 'paid' o 'by_range') cuando el cartón activo es manual y hay recargo configurado -->
     <div
-      v-if="customCardMode === 'paid' && customPricePct && customPricePct > 0 && manualEdits[activeIndex]"
+      v-if="(customCardMode === 'paid' || customCardMode === 'by_range') && customPricePct && customPricePct > 0 && manualEdits[activeIndex]"
       class="bcs-surcharge-notice"
     >
       <i class="fas fa-info-circle" />
       Este cartón tiene un recargo del <strong>{{ customPricePct }}%</strong> por ser personalizado.
     </div>
 
-    <!-- Aviso de autocompletado puro (sin edición manual, modo 'paid') -->
+    <!-- Aviso de autocompletado puro (sin edición manual, modo 'paid' o 'by_range') -->
     <div
-      v-else-if="customCardMode === 'paid' && customPricePct && customPricePct > 0 && !manualEdits[activeIndex]"
+      v-else-if="(customCardMode === 'paid' || customCardMode === 'by_range') && customPricePct && customPricePct > 0 && !manualEdits[activeIndex]"
       class="bcs-random-notice"
     >
       <i class="fas fa-dice" />

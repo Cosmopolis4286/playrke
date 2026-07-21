@@ -64,6 +64,7 @@
             >
               <option value="" disabled>Seleccione una opción</option>
               <option value="paid">Permitir con costo adicional</option>
+              <option value="by_range">Precio inteligente (automático)</option>
               <option value="every_x">Permitir cada X cartones</option>
               <option value="free">Uso libre</option>
             </select>
@@ -82,10 +83,10 @@
                 name="custom_card_price_pct"
                 type="number"
                 :class="['form-control', { 'is-invalid': (errors as any).customCardPricePct }]"
-                placeholder="Ej: 5"
+                placeholder="Ej: 2"
                 :step="0.25"
                 :min="1"
-                :max="10"
+                :max="5"
                 :value="(modelValue as any).customCardPricePct ?? ''"
                 @change="
                   emit('update:modelValue', {
@@ -100,6 +101,17 @@
             </div>
             <small v-if="(errors as any).customCardPricePct" class="text-danger" style="font-size: 0.72rem">
               {{ (errors as any).customCardPricePct }}
+            </small>
+          </div>
+
+          <!-- Precio inteligente por rango (solo modalidad "by_range") -->
+          <div v-if="(modelValue as any).customCardMode === 'by_range'" style="max-width: 320px">
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Recargo calculado automáticamente
+            </label>
+            <small class="d-block text-muted" style="font-size: 0.72rem; line-height: 1.35">
+              El sistema aplica un recargo entre 1% y 2% sobre el precio del cartón,
+              según su valor (nunca supera el 5%). No requiere configurar un % manual.
             </small>
           </div>
 

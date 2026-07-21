@@ -35,8 +35,8 @@ export interface BingoCardPriceResponse {
   readonly exchange_rate: number
   readonly is_custom_price: boolean
   /** Modalidad del cartón personalizado de la sala (solo presente en /player-card-price) */
-  readonly custom_card_mode?: 'paid' | 'every_x' | 'free' | null
-  /** % de recargo si custom_card_mode = 'paid' */
+  readonly custom_card_mode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
+  /** % de recargo si custom_card_mode = 'paid' (manual) o 'by_range' (calculado automáticamente) */
   readonly custom_card_price_pct?: number | null
   /** Cada cuántos cartones normales se habilita personalizar el siguiente, si custom_card_mode = 'every_x' */
   readonly custom_card_every_x?: number | null

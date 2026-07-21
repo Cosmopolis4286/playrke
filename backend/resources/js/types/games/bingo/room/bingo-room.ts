@@ -219,11 +219,13 @@ export type BingoGameVariant = 'BINGO_75' | 'BINGO_90' | 'BINGO_80' | 'BINGO_30'
 
 /**
  * Modalidad del cartón personalizado (solo aplica si allowCustomCard = true):
- * - paid: costo adicional (%) sobre el precio base del cartón
+ * - paid: costo adicional (%) sobre el precio base del cartón, configurado manualmente
+ * - by_range: costo adicional (%) calculado automáticamente según el precio del
+ *   cartón (nunca supera 5%), sin configuración manual
  * - every_x: cartón personalizado gratis cada X cartones comprados
  * - free: uso libre, sin restricción ni costo adicional
  */
-export type CustomCardMode = 'paid' | 'every_x' | 'free'
+export type CustomCardMode = 'paid' | 'by_range' | 'every_x' | 'free'
 
 export interface BingoRoomFormData {
     date?: string | null

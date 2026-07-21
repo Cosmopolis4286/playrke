@@ -21,8 +21,8 @@ const serialsPctSchema = percentageSchema
     .max(BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.max, `Máximo ${BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.max}%.`)
 
 const customCardPricePctSchema = percentageSchema
-    .min(1,  'El % del precio del cartón personalizado debe estar entre 1 y 10.')
-    .max(10, 'El % del precio del cartón personalizado debe estar entre 1 y 10.')
+    .min(1, 'El % del precio del cartón personalizado debe estar entre 1 y 5.')
+    .max(5, 'El % del precio del cartón personalizado debe estar entre 1 y 5.')
 
 const roundsPctBaseSchema = percentageSchema
     .min(BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min}%.`)
@@ -70,7 +70,7 @@ export const bingoRoomFormSchema = z.object({
     cardPriceByCurrency:  z.record(z.string(), z.number().nullable()).optional(),
     activateRoom:    z.boolean().optional(),
     allowCustomCard: z.boolean().optional(),
-    customCardMode:  z.enum(['paid', 'every_x', 'free']).nullable().optional(),
+    customCardMode:  z.enum(['paid', 'by_range', 'every_x', 'free']).nullable().optional(),
     customCardPricePct: z.number().nullable().optional(),
     customCardEveryX:   z.number().nullable().optional(),
     allowSpecialCard:   z.boolean().optional(),

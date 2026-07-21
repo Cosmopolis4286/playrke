@@ -76,7 +76,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      * Precio unitario real del cartón en la moneda local.
      * Usa el precio devuelto por la API; 0 si aún no se consultó.
      */
-    const roomCtnPrice = computed(() => cardPriceData.value?.card_price ?? 0)
+    const roomCardPrice = computed(() => cardPriceData.value?.card_price ?? 0)
 
     /**
      * Símbolo de la moneda del país seleccionado (ej. '$', 'Bs', 'R$').
@@ -91,7 +91,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     const commission = computed(() => cardPriceData.value?.seller_commission ?? 0)
 
     /** Monto total a cobrar al jugador (precio unitario × cantidad). */
-    const totalAmount = computed(() => roomCtnPrice.value * cardCount.value)
+    const totalAmount = computed(() => roomCardPrice.value * cardCount.value)
 
     /** Comisión que retiene el vendedor sobre el monto total. */
     const sellerCommission = computed(() => totalAmount.value * (commission.value / 100))
