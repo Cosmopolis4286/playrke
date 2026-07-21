@@ -33,16 +33,25 @@ final class BingoWinnerDetectionService
      *
      * card_numbers está almacenado como { "B": [n, n, null, n, n], … } donde
      * el índice del array corresponde a la fila (base-0) y null = casilla libre.
+     *
+     * $cell['free'] es la posición ESTÁTICA de la libre según la definición de
+     * variante (BingoPatternPositionResolver), compartida por todos los cartones
+     * de la sala. Cuando la sala permite mover la libre (allow_move_free_space),
+     * cada cartón puede tener su único null en una celda distinta — por eso,
+     * además de $cell['free'], se comprueba si la celda real del cartón es null
+     * (solo relevante para variantes con casilla libre; en BINGO_90 null significa
+     * "celda vacía estructural", no libre, así que $hasFreeCell lo excluye).
      */
-    public function checkBingo(BingoCard $card, array $drawnNumbers, array $patternPositions): bool
+    public function checkBingo(BingoCard $card, array $drawnNumbers, array $patternPositions, string $variant = BingoVariant::BINGO_75): bool
     {
-        $drawnSet = array_flip($drawnNumbers);
-        $matrix   = $card->card_numbers ?? [];
+        $drawnSet    = array_flip($drawnNumbers);
+        $matrix      = $card->card_numbers ?? [];
+        $hasFreeCell = BingoVariant::hasFreeCell($variant);
 
         foreach ($patternPositions as $cell) {
-            if ($cell['free']) continue;
-
             $num = $matrix[$cell['col']][$cell['row']] ?? null;
+
+            if ($cell['free'] || ($hasFreeCell && $num === null)) continue;
 
             if ($num === null || !isset($drawnSet[$num])) {
                 return false;
@@ -142,7 +151,7 @@ final class BingoWinnerDetectionService
         $isLuckyWinner  = $remainingChips <= BingoDrawService::LUCKY_WINNER_REMAINING_THRESHOLD;
 
         foreach ($cards as $card) {
-            if (!$this->checkBingo($card, $drawnNumbers, $patternPositions)) {
+            if (!$this->checkBingo($card, $drawnNumbers, $patternPositions, $variant)) {
                 continue;
             }
 

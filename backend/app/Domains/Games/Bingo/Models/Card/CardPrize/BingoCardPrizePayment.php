@@ -3,18 +3,14 @@
 namespace App\Domains\Games\Bingo\Models\Card\CardPrize;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\BaseModel;
 use App\Models\Currency;
 use App\Models\Users\Player\External\ExternalPlayers;
 use App\Models\User;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class BingoCardPrizePayment extends Model
+class BingoCardPrizePayment extends BaseModel
 {
-    use SnowflakeId, SoftDeletes;
-
     protected $table = 'bingo_card_prize_payments';
 
     public const PAYMENT_METHODS = [

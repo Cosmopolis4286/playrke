@@ -50,4 +50,10 @@ final class BingoRoomAuditLogger
     public const EVENT_CREATED_UNSCHEDULED   = 'created_unscheduled';
     public const EVENT_MANUALLY_ACTIVATED    = 'manually_activated';
     public const EVENT_START_MODE_CHANGED    = 'start_mode_changed';
+
+    // --- Prize payout events ---
+    public const EVENT_PRIZE_CREATED           = 'prize_created';
+    public const EVENT_PRIZE_PAYMENT_COMPLETED = 'prize_payment_completed';
+    public const EVENT_PRIZE_PAYMENT_FAILED    = 'prize_payment_failed';
+    public const EVENT_PRIZE_PAYMENT_SUSPENDED = 'prize_payment_suspended';
 }

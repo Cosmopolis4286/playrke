@@ -7,19 +7,15 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Models\BaseModel;
 use App\Models\Currency;
 use App\Models\User;
 use App\Services\Games\GamePrizeContract;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class BingoCardPrize extends Model implements GamePrizeContract
+class BingoCardPrize extends BaseModel implements GamePrizeContract
 {
-    use SnowflakeId, SoftDeletes;
-
     protected $table = 'bingo_card_prizes';
 
     public const PRIZE_TYPES = [

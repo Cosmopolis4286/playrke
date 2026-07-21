@@ -25,6 +25,15 @@ final class BingoPatternPositionResolver
     private array $subPatternCache = [];
 
     /**
+     * NOTA: 'free' aquí es la posición ESTÁTICA de la libre según la definición
+     * de la variante (BingoVariant::columns()['freeRow']), calculada una sola vez
+     * y compartida por todos los cartones de la sala/ronda. Cuando una sala permite
+     * mover la libre (allow_move_free_space), cada cartón puede tener su único null
+     * en una celda distinta — en ese caso 'free' deja de ser 100% preciso y los
+     * consumidores (BingoWinnerDetectionService::checkBingo, BingoDrawService::
+     * detectWinnerAndEnd/computePlayersProgress) lo complementan comprobando si la
+     * celda real del cartón evaluado es null (solo para variantes con casilla libre).
+     *
      * @return array<int, array{col: string, row: int, free: bool}>
      */
     public function resolve(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75, array $seen = []): array

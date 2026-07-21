@@ -417,9 +417,13 @@ final class BingoVariant
      *
      * @param string $variant
      * @param array<string, array<int, int|null>> $matrix Mismo shape que generateCardMatrix()
+     * @param bool $allowMovedFreeSpace Si true (solo sala BINGO_75 con allow_move_free_space),
+     *   la casilla libre puede estar en cualquier celda del cartón en vez de la posición fija
+     *   (col['freeRow']) — se exige exactamente un único null en todo el cartón. Si false
+     *   (default), comportamiento estándar: la libre debe estar exactamente en col['freeRow'].
      * @return string|null Mensaje de error si es inválida, null si es válida
      */
-    public static function validateCustomMatrix(string $variant, array $matrix): ?string
+    public static function validateCustomMatrix(string $variant, array $matrix, bool $allowMovedFreeSpace = false): ?string
     {
         $columns = self::columns($variant);
         $rows    = self::rows($variant);
@@ -435,6 +439,53 @@ final class BingoVariant
         }
 
         $seenNumbers = [];
+
+        if ($allowMovedFreeSpace) {
+            $totalNulls = 0;
+
+            foreach ($columns as $col) {
+                $values = $matrix[$col['label']] ?? null;
+
+                if (!is_array($values) || count($values) !== $rows) {
+                    return "La columna {$col['label']} debe tener exactamente {$rows} casillas.";
+                }
+
+                $nonNullCount = 0;
+                $nullsInCol   = 0;
+
+                foreach ($values as $value) {
+                    if ($value === null) {
+                        $nullsInCol++;
+                        $totalNulls++;
+                        if ($nullsInCol > 1) {
+                            return "La columna {$col['label']} no puede tener más de una casilla libre.";
+                        }
+                        continue;
+                    }
+
+                    if (!is_int($value) || $value < $col['min'] || $value > $col['max']) {
+                        return "El número {$value} en la columna {$col['label']} está fuera del rango permitido ({$col['min']}-{$col['max']}).";
+                    }
+
+                    if (isset($seenNumbers[$value])) {
+                        return "El número {$value} está repetido en el cartón.";
+                    }
+                    $seenNumbers[$value] = true;
+
+                    $nonNullCount++;
+                }
+
+                if ($nonNullCount !== ($rows - $nullsInCol)) {
+                    return "La columna {$col['label']} tiene un número faltante.";
+                }
+            }
+
+            if ($totalNulls !== 1) {
+                return 'El cartón debe tener exactamente una casilla libre.';
+            }
+
+            return null;
+        }
 
         foreach ($columns as $col) {
             $values = $matrix[$col['label']] ?? null;

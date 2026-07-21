@@ -593,17 +593,19 @@ final class BingoDrawService
             return [];
         }
 
-        $drawnSet   = array_flip($drawnNumbers);
-        $cards      = $this->activeCards($room, ['roomUser.user']);
-        $playerBest = [];
+        $variant     = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+        $hasFreeCell = BingoVariant::hasFreeCell($variant);
+        $drawnSet    = array_flip($drawnNumbers);
+        $cards       = $this->activeCards($room, ['roomUser.user']);
+        $playerBest  = [];
 
         foreach ($cards as $card) {
             $matrix  = $card->card_numbers ?? [];
             $missing = 0;
 
             foreach ($patternPositions as $cell) {
-                if ($cell['free']) continue;
                 $num = $matrix[$cell['col']][$cell['row']] ?? null;
+                if ($cell['free'] || ($hasFreeCell && $num === null)) continue;
                 if ($num === null || !isset($drawnSet[$num])) $missing++;
             }
 
@@ -667,6 +669,7 @@ final class BingoDrawService
         $totalChips      = BingoVariant::totalChips($variant);
         $remainingChips  = $totalChips - count($drawnNumbers);
         $isLuckyWinner   = $remainingChips <= self::LUCKY_WINNER_REMAINING_THRESHOLD;
+        $hasFreeCell     = BingoVariant::hasFreeCell($variant);
 
         $winners = [];
 
@@ -675,10 +678,12 @@ final class BingoDrawService
 
             $hasBingo = true;
             foreach ($patternPositions as $cell) {
-                // Celda libre del cartón: siempre cuenta como completada
-                if ($cell['free']) continue;
-
                 $num = $matrix[$cell['col']][$cell['row']] ?? null;
+
+                // Celda libre del cartón: siempre cuenta como completada. $cell['free']
+                // es la posición estática de la variante; cuando la sala permite mover
+                // la libre, el null real puede estar en otra celda (ver hasFreeCell).
+                if ($cell['free'] || ($hasFreeCell && $num === null)) continue;
 
                 if ($num === null || !isset($drawnSet[$num])) {
                     $hasBingo = false;
@@ -730,6 +735,7 @@ final class BingoDrawService
             'total_drawn'   => count($drawnNumbers),
             'winner_count'  => count($winners),
             'prize'         => $totalPrize,
+            'prize_ids'     => array_column($winners, 'card_prize_id'),
         ]);
         $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo finalizado con ganador', ['total_drawn' => count($drawnNumbers)]);
 
@@ -848,6 +854,7 @@ final class BingoDrawService
                         'pattern'   => $pattern->name,
                         'prize'     => $prize,
                     ],
+                    'wasNewlyCreated' => false,
                 ];
             }
 
@@ -911,6 +918,7 @@ final class BingoDrawService
                     'pattern'       => $pattern->name,
                     'round'         => $round->round,
                 ],
+                'wasNewlyCreated' => true,
                 // Payload para broadcast — capturado aquí mientras los IDs están en scope.
                 'broadcast' => [
                     'roomId'    => (int) $room->id,
@@ -928,6 +936,17 @@ final class BingoDrawService
         if ($txResult !== null && $cardPrize !== null) {
             $winnerData      = $txResult['winnerData'];
             $broadcastWinner = $txResult['broadcast'];
+
+            if ($txResult['wasNewlyCreated']) {
+                $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_PRIZE_CREATED, 'system', 'Premio creado para cartón ganador', [
+                    'card_prize_id'   => (string) $cardPrize->id,
+                    'winning_card_id' => $winnerData['card_id'],
+                    'user_id'         => (string) $winnerData['user_id'],
+                    'round_id'        => (string) $round->id,
+                    'usd_amount'      => $cardPrize->usd_amount,
+                    'pattern'         => $winnerData['pattern'],
+                ]);
+            }
 
             broadcast(new BingoWinnerDeclared(
                 roomId:     $broadcastWinner['roomId'],
