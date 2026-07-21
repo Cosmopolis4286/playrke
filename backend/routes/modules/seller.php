@@ -39,11 +39,13 @@ multi_middleware_routes('seller', 'seller.', [
         'middleware' => ['auth', 'role:seller'],
         'controller' => SellerController::class,
         'routes' => [
-            'price-currency' => ['method' => 'get', 'uri' => 'bingo/price-currency/{room}/{country}'],
-            'player-info' => ['method' => 'get', 'uri' => 'bingo/player/{playerLink}/info'],
+            'price-currency' => ['method' => 'get', 'uri' => 'bingo/price-currency/{room}/{country}', 'action' => 'getCardPriceCurrency'],
+            'player-info' => ['method' => 'get', 'uri' => 'bingo/player/{playerLink}/info', 'action' => 'getPlayerInfo'],
+            // player-cartons y sales-report-player: sin implementación en el controlador
+            // (funcionalidad nunca desarrollada, no un bug de nomenclatura — quedan sin action).
             'player-cartons' => ['method' => 'get', 'uri' => 'bingo/player/cartons/{playerLink}/{room}'],
-            'get-player' => ['method' => 'post', 'uri' => 'bingo/player/search'],
-            'payment-details' => ['method' => 'get', 'uri' => 'payment-details/{currency}'],
+            'get-player' => ['method' => 'post', 'uri' => 'bingo/player/search', 'action' => 'getPlayer'],
+            'payment-details' => ['method' => 'get', 'uri' => 'payment-details/{currency}', 'action' => 'getPaymentCommerceDetails'],
             'sales-report-player' => ['method' => 'get', 'uri' => 'bingo/sales-report/{room}/player/{playerLink}'],
         ]
     ],

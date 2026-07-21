@@ -2,51 +2,53 @@
 
 namespace App\Http\Controllers\Roles;
 
-use App\Console\Commands\HandleExchangeRatesCommand;
-use App\Models\BingoRoom;
-use App\Models\BingoCtns;
-use App\Models\ExternalPlayers;
-use App\Models\Seller;
-use App\Models\DocumentType;
-use App\Traits\Helpers\EncryptTrait;
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use App\Models\BingoCreator;
+use App\Contracts\CurrencyRepositoryInterface;
+use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
-use App\Models\Currency;
-use App\Models\Commerce;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
+use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Country;
-use App\Models\SellerCurrency;
-use App\Services\Games\Bingo\HandleBingoRooms;
+use App\Models\Currency;
+use App\Models\Pivots\Roles\Seller\SellerCurrency;
+use App\Models\Roles\Commerce;
+use App\Models\Roles\Commerce\CommerceExchangeRate;
+use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Seller;
+use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\UserTrait;
-
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Controller;
 
 class SellerController extends Controller
 {
     use EncryptTrait, UserTrait, FiltersTrait;
 
+    public function __construct(
+        private readonly CurrencyRepositoryInterface $currencies,
+        private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRates,
+    ) {}
+
     public function getAvailableCountriesBySeller($roomId)
     {
-        $seller = $this->seller(['id', 'commerce_id']);
-        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+        $seller = $this->seller(['id', 'manager_user_id']);
+        $commerceId = Commerce::where('user_id', $seller->manager_user_id)->value('id');
 
         // Obtenemos las monedas disponibles para el vendedor y el comercio
         $sellerCurrencies = SellerCurrency::getAvailableCurrencies($seller->id);
-        $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($seller->commerce, 'ACTIVE');
+        $commerceCurrencies = $this->commerceExchangeRates->getCurrenciesByCommerce($commerceId, 'ACTIVE');
 
-        // Obtenemos el campo allowed_currencies (json o null) y lo forzamos a array
-        $allowedCurrenciesRoom = BingoCreator::where('creator_user_id', $creatorUser)
-            ->where('room', $roomId)->value('allowed_currencies');
-
-        $allowedCurrenciesRoom = is_array($allowedCurrenciesRoom) ? $allowedCurrenciesRoom : [];
+        // Monedas permitidas en la sala (bingo_rooms_config.allowed_currencies, no en BingoCreator)
+        $allowedCurrenciesRoom = BingoRoomConfig::where('room_id', $roomId)->value('allowed_currencies') ?? [];
+        $allowedCurrenciesRoom = is_array($allowedCurrenciesRoom) ? array_map('strval', $allowedCurrenciesRoom) : [];
 
         $currenciesAvailable = array_values(array_intersect(
             array_map('strval', $sellerCurrencies),
             array_map('strval', $commerceCurrencies),
-            array_map('strval', $allowedCurrenciesRoom)
+            $allowedCurrenciesRoom
         ));
 
         // Eliminamos '1' si existe
@@ -63,11 +65,11 @@ class SellerController extends Controller
         return ['countries' => $countries, 'USDT' => $USDT];
     }
 
-    public function getCtnPrice($roomId)
+    public function getCardPrice($roomId)
     {
-        $room = BingoRoom::with('Config:room,prize_pool_type,card_price')
-            ->select('id', 'encrypted', 'prize_pool')
-            ->where('encrypted', $roomId)->first();
+        $room = BingoRoom::with('config:room_id,prize_pool_type_id,card_price_usd')
+            ->select('id', 'prize_pool')
+            ->find($roomId);
 
         if (!$room) {
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
@@ -76,19 +78,19 @@ class SellerController extends Controller
         $countriesCurrencies = $this->getAvailableCountriesBySeller($room->id);
 
         return response()->json([
-            'prizePoolType' => $room->Config->prize_pool_type,
+            'prizePoolType' => $room->config?->prize_pool_type_id,
             'prizePool' => $room->prize_pool,
             'currency' => 'USDT',
-            'price' => $room->Config->card_price,
+            'price' => $room->config?->card_price_usd,
             'countries' => $countriesCurrencies['countries'],
             'USDT' => $countriesCurrencies['USDT']
         ]);
     }
 
-    public function getCtnPriceCurrency($room, $country)
+    public function getCardPriceCurrency($room, $country)
     {
         // Obtener moneda según el país
-        $currency = Currency::getCurrencyByCountry($country, ['id', 'symbol']);
+        $currency = $this->currencies->getCurrencyByCountry($country, ['id', 'symbol']);
         if (!$currency) {
             return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
@@ -102,17 +104,21 @@ class SellerController extends Controller
         // Obtener tasa de cambio
         $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($commerce, $currency->id);
 
-        $roomId = BingoRoom::getValueByEncrypted($room, 'id');
-        $creator = ['type' => 'commerce_id', 'id' => $commerce];
+        $roomId = $room;
 
         $setPrice = false;
         $value = $exchangeRate;
 
-        //Obtener $bingoCreatorID
-        $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'id');
+        // Obtener el creador de la sala (comercio) para buscar precio personalizado
+        $bingoCreatorID = BingoCreator::where('room_id', $roomId)
+            ->where('user_id', $commerce)
+            ->value('id');
 
         // Intentar obtener el precio configurado
-        $cardPrice = BingoCardPrice::getValueCtnPrice($roomId, $currency->id, $bingoCreatorID);
+        $cardPrice = BingoCardPrice::byRoom($roomId)
+            ->byCurrency($currency->id)
+            ->where('creator_user_id', $bingoCreatorID)
+            ->value('card_price');
 
         if ($cardPrice) {
             $setPrice = true;
@@ -132,26 +138,31 @@ class SellerController extends Controller
     {
         switch ($request->game) {
             case 'BINGO':
-                $room = BingoRoom::getByEncrypted($request->room, ['id', 'room_type']);
+                $room = BingoRoom::select('id')->find($request->room);
 
-                $player = ExternalPlayers::select('room_user', 'name', 'lastname', 'country', 'phone', 'link')
-                    ->where('phone', $request->player_info)->where('game', 1)->where('room', $room->id)->first();
+                if (!$room) {
+                    return response()->json(['response' => false]);
+                }
 
-                if (!$player)  return response()->json(['response' => false]);
+                $player = ExternalPlayer::select('room_user_id', 'first_name', 'last_name', 'country_id', 'phone', 'link')
+                    ->where('phone', $request->player_info)
+                    ->where('game_id', 1)
+                    ->where('room_id', $room->id)
+                    ->first();
+
+                if (!$player) return response()->json(['response' => false]);
 
                 $route = $this->getGameLinkByPlayer($player->link);
-                $ctnsPlayer = BingoCtns::where(['room_user' => $player->room_user, 'room' => $room->id])->count();
+                $cardsPlayer = BingoRoomUser::where('id', $player->room_user_id)->value('cards_purchased') ?? 0;
 
                 return response()->json([
                     'response' => true,
                     'infoPlayer' => $player,
-                    'ctnsLink' => [$ctnsPlayer, $player->link, $route]
+                    'cardsLink' => [$cardsPlayer, $player->link, $route]
                 ]);
 
-                break;
-
             default:
-                break;
+                return response()->json(['response' => false]);
         }
     }
 
@@ -177,9 +188,8 @@ class SellerController extends Controller
 
     public function getPlayerInfo($playerLink) // Obtención de la información jugador
     {
-        $player = ExternalPlayers::where('link', $playerLink)
-            ->select(['type_id', 'identification', 'phone'])->first();
+        $player = ExternalPlayer::where('link', $playerLink)
+            ->select(['identification', 'phone'])->first();
         if ($player) return json_encode($player);
     }
-
 }
