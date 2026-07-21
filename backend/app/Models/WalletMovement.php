@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WalletMovement extends Model
 {
     use \App\Traits\SnowflakeId;
+    use Auditable;
 
     protected $table      = 'wallet_movements';
     protected $primaryKey = 'id';
