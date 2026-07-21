@@ -91,16 +91,16 @@ const scheduledLabel = r => {
 <template>
   <Head title="Salas · Trivia Admin" />
 
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div class="min-h-screen ri-page-bg">
     <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
       <!-- ── Header ───────────────────────────────────────────────────────────── -->
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+          <h1 class="text-2xl font-extrabold ri-text tracking-tight">
             Salas de Trivia
           </h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p class="text-sm ri-text-muted mt-0.5">
             Gestiona y monitorea todas las salas en tiempo real
           </p>
         </div>
@@ -116,11 +116,11 @@ const scheduledLabel = r => {
       <!-- ── Stats ────────────────────────────────────────────────────────────── -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div v-for="s in STAT_CARDS" :key="s.label"
-          class="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+          class="ri-card relative overflow-hidden rounded-2xl border shadow-sm p-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">{{ s.label }}</p>
-              <p class="text-3xl font-black text-gray-900 dark:text-white mt-0.5">{{ s.value }}</p>
+              <p class="text-xs ri-text-muted font-medium uppercase tracking-wide">{{ s.label }}</p>
+              <p class="text-3xl font-black ri-text mt-0.5">{{ s.value }}</p>
             </div>
             <div :class="['w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-xl shadow-sm', s.cls]">
               {{ s.icon }}
@@ -132,7 +132,7 @@ const scheduledLabel = r => {
       </div>
 
       <!-- ── Filtros ───────────────────────────────────────────────────────────── -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+      <div class="ri-card rounded-2xl border shadow-sm p-4">
         <div class="flex flex-col sm:flex-row gap-3">
           <!-- Buscador -->
           <div class="relative flex-1">
@@ -140,7 +140,7 @@ const scheduledLabel = r => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input v-model="search" type="text" placeholder="Buscar sala por título..."
-              class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
+              class="ri-search-input w-full pl-9 pr-4 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition-all"
               @input="doSearch" />
           </div>
           <!-- Filtros de estado -->
@@ -150,7 +150,7 @@ const scheduledLabel = r => {
               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
               :class="status === s
                 ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'">
+                : 'ri-filter-chip'">
               {{ s === '' ? 'Todas' : stCfg(s).label }}
             </button>
           </div>
@@ -166,7 +166,7 @@ const scheduledLabel = r => {
           </span>
           <div class="flex items-center gap-2">
             <button v-if="selCount === 1" @click="goShow"
-              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-indigo-300 transition-all">
+              class="ri-detail-btn px-3 py-1.5 rounded-lg text-xs font-semibold border hover:border-indigo-300 transition-all">
               Ver detalles
             </button>
             <button v-if="selCount === 1 && selectedRooms[0]?.status === 'waiting'" @click="goEdit"
@@ -177,41 +177,41 @@ const scheduledLabel = r => {
               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition-all">
               Cerrar{{ selCount > 1 ? ` (${selCount})` : '' }}
             </button>
-            <button @click="selected = new Set()" class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ml-1">✕</button>
+            <button @click="selected = new Set()" class="text-xs ri-text-faint hover:opacity-70 ml-1">✕</button>
           </div>
         </div>
       </Transition>
 
       <!-- ── Tabla ─────────────────────────────────────────────────────────────── -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div class="ri-card rounded-2xl border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-gray-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800">
+              <tr class="ri-thead border-b">
                 <th class="w-10 px-4 py-3 text-left">
                   <input type="checkbox" :checked="allSelected" @change="toggleAll"
                     class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0" />
                 </th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Código</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jugadores</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Modo</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Configuración</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Entrada / Premio</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inicio</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creada</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Código</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Nombre</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Estado</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Jugadores</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Modo</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Configuración</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Entrada / Premio</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Inicio</th>
+                <th class="px-4 py-3 text-left text-xs font-bold ri-text-muted uppercase tracking-wider">Creada</th>
                 <th class="w-20 px-4 py-3" />
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700/50">
+            <tbody class="ri-tbody-divide">
 
               <!-- Filas -->
               <tr v-for="room in rooms.data" :key="room.id"
                 class="group transition-colors cursor-pointer"
                 :class="selected.has(room.id)
                   ? 'bg-indigo-50/60 dark:bg-indigo-900/10'
-                  : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/30'"
+                  : 'ri-row-hover'"
                 @click="toggle(room.id)">
 
                 <!-- Checkbox -->
@@ -232,7 +232,7 @@ const scheduledLabel = r => {
                       {{ room.title?.charAt(0).toUpperCase() }}
                     </div>
                     <div class="min-w-0">
-                      <p class="font-semibold text-gray-900 dark:text-white truncate max-w-[140px]">{{ room.title }}</p>
+                      <p class="font-semibold ri-text truncate max-w-[140px]">{{ room.title }}</p>
                       <span v-if="room.category" class="text-[11px] text-indigo-500 dark:text-indigo-400">{{ room.category }}</span>
                     </div>
                   </div>
@@ -251,32 +251,32 @@ const scheduledLabel = r => {
                 <td class="px-4 py-3.5">
                   <div class="space-y-1 min-w-[90px]">
                     <div class="flex items-center justify-between text-xs">
-                      <span class="font-bold text-gray-900 dark:text-white tabular-nums">
+                      <span class="font-bold ri-text tabular-nums">
                         {{ room.current_players }}
                       </span>
-                      <span class="text-gray-400 dark:text-gray-500 tabular-nums">/ {{ room.max_players }}</span>
+                      <span class="ri-text-faint tabular-nums">/ {{ room.max_players }}</span>
                     </div>
-                    <div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-1.5 w-full rounded-full ri-track overflow-hidden">
                       <div class="h-full rounded-full transition-all"
                         :class="fillCls(fillPct(room))"
                         :style="{ width: fillPct(room) + '%' }" />
                     </div>
-                    <p class="text-[10px] text-gray-400 tabular-nums">{{ fillPct(room) }}% ocupado</p>
+                    <p class="text-[10px] ri-text-faint tabular-nums">{{ fillPct(room) }}% ocupado</p>
                   </div>
                 </td>
 
                 <!-- Modo -->
                 <td class="px-4 py-3.5">
-                  <span class="text-xs font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                  <span class="text-xs font-medium ri-text-secondary whitespace-nowrap">
                     {{ modeLabel(room.game_mode) }}
                   </span>
                 </td>
 
                 <!-- Configuración -->
                 <td class="px-4 py-3.5">
-                  <div class="space-y-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    <p><span class="font-medium text-gray-700 dark:text-gray-300">{{ room.question_count }}</span> preguntas</p>
-                    <p><span class="font-medium text-gray-700 dark:text-gray-300">{{ room.time_per_question }}s</span> / pregunta</p>
+                  <div class="space-y-0.5 text-xs ri-text-muted">
+                    <p><span class="font-medium ri-text-secondary">{{ room.question_count }}</span> preguntas</p>
+                    <p><span class="font-medium ri-text-secondary">{{ room.time_per_question }}s</span> / pregunta</p>
                   </div>
                 </td>
 
@@ -300,7 +300,7 @@ const scheduledLabel = r => {
                   <template v-if="scheduledLabel(room)">
                     <span class="text-xs font-medium"
                       :class="scheduledLabel(room).isPast
-                        ? 'text-gray-400 dark:text-gray-500'
+                        ? 'ri-text-faint'
                         : scheduledLabel(room).isNearby
                           ? 'text-orange-600 dark:text-orange-400 font-bold'
                           : 'text-blue-600 dark:text-blue-400'">
@@ -309,11 +309,11 @@ const scheduledLabel = r => {
                     <span v-if="scheduledLabel(room).isNearby"
                       class="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                   </template>
-                  <span v-else class="text-xs text-gray-400">Manual</span>
+                  <span v-else class="text-xs ri-text-faint">Manual</span>
                 </td>
 
                 <!-- Creada -->
-                <td class="px-4 py-3.5 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                <td class="px-4 py-3.5 text-xs ri-text-faint whitespace-nowrap">
                   {{ fmtShortDate(room.created_at) }}
                 </td>
 
@@ -351,7 +351,7 @@ const scheduledLabel = r => {
               <tr v-if="rooms.data.length === 0">
                 <td colspan="10" class="px-6 py-16 text-center">
                   <div class="text-4xl mb-3">🎮</div>
-                  <p class="font-semibold text-gray-500 dark:text-gray-400">No se encontraron salas</p>
+                  <p class="font-semibold ri-text-muted">No se encontraron salas</p>
                   <Link :href="getRoute('roomsCreate')"
                     class="mt-3 inline-flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
                     + Crear primera sala
@@ -364,10 +364,10 @@ const scheduledLabel = r => {
         </div>
 
         <!-- Paginación -->
-        <div class="px-5 py-3.5 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4 flex-wrap">
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            Mostrando <span class="font-semibold text-gray-700 dark:text-gray-300">{{ rooms.from }}–{{ rooms.to }}</span>
-            de <span class="font-semibold text-gray-700 dark:text-gray-300">{{ rooms.total }}</span> salas
+        <div class="ri-pagination px-5 py-3.5 border-t flex items-center justify-between gap-4 flex-wrap">
+          <p class="text-xs ri-text-muted">
+            Mostrando <span class="font-semibold ri-text-secondary">{{ rooms.from }}–{{ rooms.to }}</span>
+            de <span class="font-semibold ri-text-secondary">{{ rooms.total }}</span> salas
           </p>
           <div class="flex gap-1">
             <template v-for="link in rooms.links" :key="link.label">
@@ -375,10 +375,10 @@ const scheduledLabel = r => {
                 class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 :class="link.active
                   ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300'"
+                  : 'ri-page-link border hover:border-indigo-300'"
                 v-html="link.label" />
               <span v-else
-                class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                class="ri-page-link-disabled px-3 py-1.5 rounded-lg text-xs font-medium border cursor-not-allowed"
                 v-html="link.label" />
             </template>
           </div>
@@ -393,4 +393,22 @@ const scheduledLabel = r => {
 .slide-enter-active { transition: all 0.2s ease-out; }
 .slide-leave-active { transition: all 0.15s ease-in; }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-6px); }
+
+.ri-page-bg { background: var(--ds-bg); }
+.ri-text { color: var(--ds-text); }
+.ri-text-secondary { color: var(--ds-text-2); }
+.ri-text-muted { color: var(--ds-text-muted); }
+.ri-text-faint { color: var(--ds-text-muted); }
+.ri-card { background: var(--ds-surface); border-color: var(--ds-border); }
+.ri-search-input { border-color: var(--ds-border); background: var(--ds-surface); color: var(--ds-text-2); }
+.ri-filter-chip { background: var(--ds-surface-2); color: var(--ds-text-2); }
+.ri-filter-chip:hover { filter: brightness(0.95); }
+.ri-detail-btn { background: var(--ds-surface); border-color: var(--ds-border); color: var(--ds-text-2); }
+.ri-thead { background: var(--ds-surface-2); border-color: var(--ds-border); }
+.ri-tbody-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
+.ri-row-hover:hover { background: var(--ds-surface-2); }
+.ri-track { background: var(--ds-surface-2); }
+.ri-pagination { background: var(--ds-surface-2); border-color: var(--ds-border); }
+.ri-page-link { background: var(--ds-surface); border-color: var(--ds-border); color: var(--ds-text-2); }
+.ri-page-link-disabled { background: var(--ds-surface); border-color: var(--ds-border); color: var(--ds-text-muted); }
 </style>
