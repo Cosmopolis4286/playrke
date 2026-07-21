@@ -39,7 +39,6 @@ multi_middleware_routes('seller', 'seller.', [
         'middleware' => ['auth', 'role:seller'],
         'controller' => SellerController::class,
         'routes' => [
-            'payment-status' => ['method' => 'post', 'uri' => 'bingo/carton/payment/status'],
             'price-currency' => ['method' => 'get', 'uri' => 'bingo/price-currency/{room}/{country}'],
             'player-info' => ['method' => 'get', 'uri' => 'bingo/player/{playerLink}/info'],
             'player-cartons' => ['method' => 'get', 'uri' => 'bingo/player/cartons/{playerLink}/{room}'],

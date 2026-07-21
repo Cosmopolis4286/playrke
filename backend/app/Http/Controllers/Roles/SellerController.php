@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Roles;
 use App\Console\Commands\HandleExchangeRatesCommand;
 use App\Models\BingoRoom;
 use App\Models\BingoCtns;
-use App\Models\BingoCtnsLot;
 use App\Models\ExternalPlayers;
 use App\Models\Seller;
 use App\Models\DocumentType;
@@ -14,7 +13,6 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
-use App\Models\BingoCtnsPayment;
 use App\Models\Currency;
 use App\Models\Commerce;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
@@ -25,10 +23,6 @@ use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\UserTrait;
 
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Storage;
 
 class SellerController extends Controller
 {
@@ -188,106 +182,4 @@ class SellerController extends Controller
         if ($player) return json_encode($player);
     }
 
-    public function ctnsLotPayment(Request $request)
-    {
-        DB::beginTransaction();
-
-        try {
-            $seller = $this->seller()->id;
-
-            // Buscar el lote
-            $lotCtn = BingoCtnsLot::where('id', $request->lot)->where('seller', $seller)->firstOrFail();
-
-            $notifyAllCtns = $request->notify_all_ctns;
-
-            if (!$lotCtn && !$notifyAllCtns) {
-                return redirect()->back();
-            }
-
-            $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'game/bingo/payments/all-ctns', 'PRIVATE');
-
-            if (!$newFileName) {
-                DB::rollBack();
-                return redirect()->back()->with(['type' => 'warning', 'message' => 'Error al guardar el archivo del pago']);
-            }
-
-            if ($notifyAllCtns) {
-                $notifyCtns = $this->notifyAllPendingLotCtns($seller, $newFileName);
-            } else {
-                $notifyCtns = $this->notifySpecificLotCtn($lotCtn, $newFileName);
-            }
-
-            if (!$notifyCtns) {
-                Storage::delete('private/game/bingo/payments/all-ctns/' . $newFileName);
-                DB::rollBack();
-
-                Session::flash('type', 'warning');
-                Session::flash('message', 'Error al notificar el pago');
-            } else {
-                DB::commit();
-                Session::flash('message', 'Pago notificado con éxito');
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al notificar el pago de la venta de cartones ctnsLotPayment(): ' . $e->getMessage());
-        }
-
-        return redirect()->back();
-    }
-
-    private function notifyAllPendingLotCtns($seller, $paymentProof)
-    {
-        $allPendingCtns = BingoCtns::with('Lot:id,ctns,sale_amount')
-            ->whereHas('Lot', function ($query) use ($seller) {
-                $query->where(['seller' => $seller, 'status' => 0]);
-            })->where('seller', $seller)->get(['room', 'creator_user_id', 'room_user', 'currency', 'lot']);
-
-        try {
-
-            $paymentToInsert = [];
-            $timestamp = now();
-
-            foreach ($allPendingCtns as $ctn) {
-
-                $cardPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
-                $playerLink = ExternalPlayers::getValueByRoomUser('BINGO', $ctn->room_user, 'id');
-
-                $paymentToInsert[] = [
-                    'payment' => 'SC',
-                    'room' => $ctn->room,
-                    'creator_user_id' => $ctn->creator_user,
-                    'seller' => $seller,
-                    'external_player_id' => $playerLink,
-                    'lot' => $ctn->lot,
-                    'currency' => $ctn->currency,
-                    'amount' => $cardPrice,
-                    'payment_proof' => $paymentProof,
-                    'created_at' => $timestamp,
-                    'updated_at' => $timestamp
-                ];
-            }
-
-            BingoCtnsPayment::insert($paymentToInsert);
-
-            BingoCtnsLot::where('seller', $seller)->where('status', 0)->update(['status' => 1]);
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Error al registrar y/o notificar la creacion y venta de todos los lotes de cartones: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    private function notifySpecificLotCtn($lotCtn, $paymentProof)
-    {
-        try {
-            $this->registerCartonPayment('SC', $lotCtn, $paymentProof);
-
-            BingoCtnsLot::where('id', $lotCtn->id)->where('status', 0)->update(['status' => 1]);
-            return true;
-        } catch (\Exception $e) {
-            Log::error("Error al registrar y/o notificar la creacion venta del lote de cartones LOTE [$lotCtn->id] ::: " . $e->getMessage());
-            return false;
-        }
-    }
 }
