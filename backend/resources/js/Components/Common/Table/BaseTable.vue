@@ -425,6 +425,21 @@
   :deep(.room-status-chip--warning)   { background: rgba(180,83,9,.16);  color: #f59e0b; }
   :deep(.room-status-chip--cancelled) { background: rgba(185,28,28,.16); color: #ef4444; }
 
+  /* Wrapper del chip de estado + fecha de última actualización debajo (columna "Estado") */
+  :deep(.room-status-chip-wrap) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  :deep(.room-status-chip__updated-at) {
+    font-size: 0.68rem;
+    color: var(--ds-text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   /* Moneda(s): pills discretas (metadata de contexto, no el dato principal de la columna) */
   :deep(.room-currency-pills) {
     display: flex;

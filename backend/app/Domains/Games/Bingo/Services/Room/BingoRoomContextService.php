@@ -91,7 +91,7 @@ final class BingoRoomContextService
                 'cardPrizes' => fn($q) => $q->select('id', 'room_id', 'status')->where('status', 'ACTIVE'),
                 'cardLots' => fn($q) => $q->select('id', 'room_id', 'card_count', 'has_custom_cards', 'status')->where('status', 'ACTIVE'),
             ],
-            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'metrics_by_currency', 'created_at']
+            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'metrics_by_currency', 'created_at', 'updated_at']
         );
 
         $collection = $source instanceof LengthAwarePaginator
