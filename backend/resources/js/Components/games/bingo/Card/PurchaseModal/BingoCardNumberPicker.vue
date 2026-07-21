@@ -6,6 +6,9 @@ type Matrix = Record<string, (number | null)[]>
 
 const props = defineProps<{
   variant?: string | null
+  /** Si true (solo BINGO_75 con allow_move_free_space), el jugador puede mover
+   * la casilla libre a cualquier celda del cartón en vez de la posición fija. */
+  allowMoveFreeSpace?: boolean
 }>()
 
 const modelValue = defineModel<Matrix>({ required: true })
@@ -18,7 +21,23 @@ const openCell    = ref<{ col: string; row: number } | null>(null)
 const popoverStyle = ref<Record<string, string>>({})
 const pickerEl    = ref<HTMLElement | null>(null)
 
+// Cuando allowMoveFreeSpace está activo, la libre no está en una posición fija
+// de la variante — es el único null real en la matriz. Se busca por columna,
+// en el mismo orden que variantDef.columns, para tener un resultado determinista.
+const freeCellPos = computed<{ col: string; row: number } | null>(() => {
+  if (!props.allowMoveFreeSpace) return null
+  for (const col of variantDef.value.columns) {
+    const arr = modelValue.value[col.label] ?? []
+    const idx = arr.indexOf(null)
+    if (idx !== -1) return { col: col.label, row: idx }
+  }
+  return null
+})
+
 function isFreeCell(col: BingoVariantColumn, row: number): boolean {
+  if (props.allowMoveFreeSpace) {
+    return freeCellPos.value?.col === col.label && freeCellPos.value?.row === row
+  }
   return col.freeRow !== null && col.freeRow === row
 }
 
@@ -62,7 +81,10 @@ function colFilledCount(col: BingoVariantColumn): number {
 // Total de casillas requeridas en una columna (excluye libre y filas-llenas en BINGO_90)
 function colRequiredCount(col: BingoVariantColumn): number {
   if (isBingo90.value) return col.count // count = 3 slots por columna en 90
-  return variantDef.value.numRows - (col.freeRow !== null ? 1 : 0)
+  const hasFreeHere = props.allowMoveFreeSpace
+    ? freeCellPos.value?.col === col.label
+    : col.freeRow !== null
+  return variantDef.value.numRows - (hasFreeHere ? 1 : 0)
 }
 
 const colIsComplete = computed<Record<string, boolean>>(() => {
@@ -98,7 +120,7 @@ const openColAvailableCount = computed<number>(() => {
 })
 
 async function toggleCell(col: BingoVariantColumn, row: number, event: MouseEvent): Promise<void> {
-  if (isFreeCell(col, row)) return
+  if (isFreeCell(col, row) && !props.allowMoveFreeSpace) return
   if (isBingo90.value && valueAt(col.label, row) === null && rowIsFull(row)) return
 
   const same = openCell.value?.col === col.label && openCell.value?.row === row
@@ -149,6 +171,23 @@ function clearCell(): void {
   const arr = [...(modelValue.value[col] ?? [])]
   arr[row] = null
   modelValue.value = { ...modelValue.value, [col]: arr }
+  openCell.value = null
+}
+
+// Mueve la casilla libre a la celda abierta actualmente: la celda origen (libre
+// vieja) queda como celda normal vacía (sin autocompletar), y la celda destino
+// pasa a null. Si la celda destino tenía un número, se pierde (vuelve al pool).
+function moveFreeCellTo(): void {
+  if (!openCell.value) return
+  const { col: destCol, row: destRow } = openCell.value
+
+  const next: Matrix = {}
+  for (const c of variantDef.value.columns) {
+    next[c.label] = [...(modelValue.value[c.label] ?? [])]
+  }
+
+  next[destCol][destRow] = null
+  modelValue.value = next
   openCell.value = null
 }
 
@@ -266,7 +305,7 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
             'ncp-cell--active':   openCell?.col === col.label && openCell?.row === row - 1,
             'ncp-cell--disabled': isBingo90 && valueAt(col.label, row - 1) === null && rowIsFull(row - 1),
           }"
-          :disabled="isFreeCell(col, row - 1)"
+          :disabled="isFreeCell(col, row - 1) && !allowMoveFreeSpace"
           @click="toggleCell(col, row - 1, $event)"
         >
           <span v-if="isFreeCell(col, row - 1)" class="ncp-free">★</span>
@@ -331,6 +370,15 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
             </div>
             <div class="ncp-picker__head-actions">
               <button
+                v-if="allowMoveFreeSpace && !isFreeCell(variantDef.columns.find(c => c.label === openCell!.col)!, openCell.row)"
+                type="button"
+                class="ncp-picker__move-free"
+                title="Mover la casilla libre aquí"
+                @click="moveFreeCellTo"
+              >
+                <i class="fas fa-star" />
+              </button>
+              <button
                 v-if="valueAt(openCell.col, openCell.row) !== null"
                 type="button"
                 class="ncp-picker__erase"
@@ -345,8 +393,14 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
             </div>
           </div>
 
+          <!-- Casilla libre: no se elige número, solo se puede mover a otra celda -->
+          <div v-if="allowMoveFreeSpace && isFreeCell(variantDef.columns.find(c => c.label === openCell!.col)!, openCell.row)" class="ncp-picker__free-msg">
+            <i class="fas fa-star" />
+            Esta es tu casilla libre. Abre otra celda para moverla ahí.
+          </div>
+
           <!-- Grid de números disponibles -->
-          <div class="ncp-picker__grid">
+          <div v-else class="ncp-picker__grid">
             <button
               v-for="n in cellOptions"
               :key="n"
@@ -623,6 +677,33 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
 .ncp-picker__erase:hover { background: rgba(255, 80, 80, 0.14); }
 .ncp-picker__close { color: #556080; }
 .ncp-picker__close:hover { background: rgba(255, 255, 255, 0.08); color: #c0d0f0; }
+
+.ncp-picker__move-free {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #ffd700;
+  transition: background 0.15s, color 0.15s;
+}
+.ncp-picker__move-free:hover { background: rgba(255, 215, 0, 0.14); }
+
+.ncp-picker__free-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #ffd700;
+  text-align: center;
+}
 
 .ncp-picker__grid {
   display: grid;

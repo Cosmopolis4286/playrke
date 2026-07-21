@@ -153,6 +153,7 @@ export interface BingoRoom {
         custom_card_price_pct?: number | string | null
         custom_card_mode?: CustomCardMode | null
         custom_card_every_x?: number | null
+        allow_move_free_space?: boolean
         allow_special_card?: boolean
         max_special_cards?: number | null
     } | null
@@ -258,6 +259,7 @@ export interface BingoRoomFormData {
     customCardMode?: CustomCardMode | null
     customCardPricePct?: number | null
     customCardEveryX?: number | null
+    allowMoveFreeSpace?: boolean
     allowSpecialCard?: boolean
     maxSpecialCards?: number | null
 }

@@ -73,6 +73,7 @@ export const bingoRoomFormSchema = z.object({
     customCardMode:  z.enum(['paid', 'by_range', 'every_x', 'free']).nullable().optional(),
     customCardPricePct: z.number().nullable().optional(),
     customCardEveryX:   z.number().nullable().optional(),
+    allowMoveFreeSpace: z.boolean().optional(),
     allowSpecialCard:   z.boolean().optional(),
     maxSpecialCards:    z.number().nullable().optional(),
     // Solo salas automáticas — enum validado en runtime
@@ -277,6 +278,11 @@ export function validateBingoRoomForm(
                 e.customCardEveryX = 'Debe ser un entero entre 2 y 10.'
             }
         }
+    }
+
+    /* ── Mover casilla libre (requiere cartón personalizado) ── */
+    if (data.allowMoveFreeSpace && !data.allowCustomCard) {
+        e.allowMoveFreeSpace = 'Requiere activar "Permitir cartón personalizado".'
     }
 
     /* ── Cartón especial ── */

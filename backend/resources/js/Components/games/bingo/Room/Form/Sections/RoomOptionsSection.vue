@@ -32,7 +32,7 @@
                 ...modelValue,
                 allowCustomCard: ($event.target as HTMLInputElement).checked,
                 ...(!($event.target as HTMLInputElement).checked
-                  ? { customCardMode: null, customCardPricePct: null, customCardEveryX: null }
+                  ? { customCardMode: null, customCardPricePct: null, customCardEveryX: null, allowMoveFreeSpace: false }
                   : {})
               } as any)
             "
@@ -139,6 +139,33 @@
             />
             <small v-if="(errors as any).customCardEveryX" class="text-danger" style="font-size: 0.72rem">
               {{ (errors as any).customCardEveryX }}
+            </small>
+          </div>
+
+          <!-- Mover casilla libre (solo BINGO_75, única variante con casilla libre) -->
+          <div
+            v-if="(modelValue as any).gameVariant === 'BINGO_75'"
+            class="custom-control custom-switch"
+            style="padding-left: 2.25rem; flex-shrink: 0"
+          >
+            <input
+              id="allow_move_free_space"
+              name="allow_move_free_space"
+              type="checkbox"
+              class="custom-control-input"
+              :checked="(modelValue as any).allowMoveFreeSpace ?? false"
+              @change="
+                emit('update:modelValue', {
+                  ...modelValue,
+                  allowMoveFreeSpace: ($event.target as HTMLInputElement).checked
+                } as any)
+              "
+            />
+            <label class="custom-control-label" for="allow_move_free_space" style="font-weight: 500">
+              Permitir mover la casilla LIBRE a cualquier posición
+            </label>
+            <small v-if="(errors as any).allowMoveFreeSpace" class="text-danger d-block" style="font-size: 0.72rem">
+              {{ (errors as any).allowMoveFreeSpace }}
             </small>
           </div>
         </template>

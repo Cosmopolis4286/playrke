@@ -367,6 +367,7 @@ class BingoRoomCrudService
             'customCardPricePct'    => $dto->customCardPricePct,
             'customCardMode'        => $dto->customCardMode,
             'customCardEveryX'      => $dto->customCardEveryX,
+            'allowMoveFreeSpace'    => $dto->allowMoveFreeSpace,
             'maxSpecialCards'       => $dto->maxSpecialCards,
             'minCardsToStart'       => $dto->minCardsToStart,
             'maxPlayers'            => $dto->maxPlayers,
@@ -489,6 +490,7 @@ class BingoRoomCrudService
             'custom_card_price_pct'   => $dto->customCardPricePct ?? null,
             'custom_card_mode'        => $dto->customCardMode ?? null,
             'custom_card_every_x'     => $dto->customCardEveryX ?? null,
+            'allow_move_free_space'   => $dto->allowMoveFreeSpace ?? false,
             'allow_special_card'      => $dto->allowSpecialCard ?? false,
             'max_special_cards'       => $dto->maxSpecialCards ?? null,
         ];
@@ -1245,6 +1247,7 @@ class BingoRoomCrudService
             'customCardPricePct'    => $config->custom_card_price_pct !== null ? (float) $config->custom_card_price_pct : null,
             'customCardMode'        => $config->custom_card_mode,
             'customCardEveryX'      => $config->custom_card_every_x !== null ? (int) $config->custom_card_every_x : null,
+            'allowMoveFreeSpace'    => (bool) $config->allow_move_free_space,
             'allowSpecialCard'      => (bool) $config->allow_special_card,
             'maxSpecialCards'       => $config->max_special_cards !== null ? (int) $config->max_special_cards : null,
         ]);

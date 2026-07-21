@@ -123,6 +123,7 @@ class BingoRoomResource extends JsonResource
                 'custom_card_price_pct'   => $config->custom_card_price_pct,
                 'custom_card_mode'        => $config->custom_card_mode,
                 'custom_card_every_x'     => $config->custom_card_every_x,
+                'allow_move_free_space'   => $config->allow_move_free_space,
                 'allow_special_card'      => $config->allow_special_card,
                 'max_special_cards'       => $config->max_special_cards,
             ] : null,

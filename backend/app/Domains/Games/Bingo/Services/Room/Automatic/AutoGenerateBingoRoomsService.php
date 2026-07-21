@@ -287,6 +287,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'custom_card_price_pct'   => $template->custom_card_price_pct,
             'custom_card_mode'        => $template->custom_card_mode,
             'custom_card_every_x'     => $template->custom_card_every_x,
+            'allow_move_free_space'   => $template->allow_move_free_space,
             'allow_special_card'      => $template->allow_special_card,
             'max_special_cards'       => $template->max_special_cards,
         ]);
