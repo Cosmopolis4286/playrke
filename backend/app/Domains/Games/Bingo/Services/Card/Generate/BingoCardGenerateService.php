@@ -1032,7 +1032,7 @@ final class BingoCardGenerateService
             // Propagar el desglose bono/real al lote recién creado para poder
             // reembolsar proporcionalmente si la sala se cancela (ver
             // WalletService::recordRefund() y BingoCardLotRefundJob). Solo un
-            // lote se crea por llamada (createCtnsLot() en generateCards()),
+            // lote se crea por llamada (createCardLot() en generateCards()),
             // así que el más reciente para esta sala+usuario dentro de esta
             // misma transacción es inequívocamente el que se acaba de generar.
             if ($purchase['bonus_spent'] > 0) {

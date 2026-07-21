@@ -130,10 +130,10 @@ final class BingoCardGenerationService
             $arrCtn['gameVariant'] = $room->config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75;
 
             // Crear lote de cartones
-            $lotID = $this->cardManagement->createCtnsLot($arrCtn, $saleAmount);
+            $lotID = $this->cardManagement->createCardLot($arrCtn, $saleAmount);
 
             // Generar y almacenar los cartones de bingo (lanza excepción si falla)
-            $this->cardManagement->generateAndStoreCtns($arrCtn, $lotID);
+            $this->cardManagement->generateAndStoreCards($arrCtn, $lotID);
 
             // Guardar comprobante de pago si se proporcionó
             if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {

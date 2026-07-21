@@ -4,6 +4,7 @@ namespace App\Services\Roles\Admin\User;
 
 use App\Exceptions\Domain\Roles\Admin\User\AdminUserException;
 use App\Models\User;
+use App\Services\User\UserLevelService;
 use App\Services\User\UserPasswordService;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ final class AdminUserService
         private readonly AdminUserContextService $context,
         private readonly UserPasswordService     $userPasswordService,
         private readonly WalletService           $walletService,
+        private readonly UserLevelService        $userLevelService,
     ) {}
 
     public function fetchList(): array
@@ -93,6 +95,28 @@ final class AdminUserService
         $wallet->load('currency');
 
         return "Saldo cargado exitosamente: {$wallet->currency->symbol}{$amount}. Nuevo saldo: {$wallet->currency->symbol}{$wallet->balance}";
+    }
+
+    /**
+     * Otorgar XP manualmente al usuario (operación admin).
+     */
+    public function grantXp(User $user, int $amount, ?string $reason = null): array
+    {
+        if ($amount <= 0) {
+            throw AdminUserException::invalidXpAmount();
+        }
+
+        $result = $this->userLevelService->addXpToUser(
+            $user,
+            $amount,
+            $reason ?: 'XP otorgado por administrador',
+        );
+
+        if (! $result['success']) {
+            throw AdminUserException::invalidXpAmount();
+        }
+
+        return $result;
     }
 
     /**

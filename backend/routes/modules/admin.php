@@ -145,6 +145,7 @@ Route::middleware('auth')->group(function () {
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],
         'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance','action' => 'loadWalletBalance'],
         'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance'],
+        'grantXp'       => ['method' => 'put',    'uri' => '{user}/grant-xp', 'action' => 'grantXp', 'middleware' => 'throttle:admin-grant-xp'],
     ];
     role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
 

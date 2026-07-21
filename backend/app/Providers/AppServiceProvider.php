@@ -136,6 +136,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: otorgar XP a un usuario desde el panel admin — 20 por minuto
+        // por admin (más alto que el self-service porque un admin puede operar
+        // legítimamente sobre varios usuarios seguidos).
+        RateLimiter::for('admin-grant-xp', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?? $request->ip());
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

@@ -36,6 +36,11 @@ final class AdminUserException extends DomainException
         return new self('ADMIN_USER_INVALID_WALLET_AMOUNT');
     }
 
+    public static function invalidXpAmount(): self
+    {
+        return new self('ADMIN_USER_INVALID_XP_AMOUNT');
+    }
+
     public static function deleteFailed(): self
     {
         return new self('ADMIN_USER_DELETE_FAILED');

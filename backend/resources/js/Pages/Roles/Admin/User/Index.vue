@@ -17,6 +17,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
   import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
+  import XpGrantModal from '@js/Components/Common/Modal/XpGrantModal.vue'
 
   // ==========================================================================
   // Composables
@@ -119,6 +120,23 @@
     showPermissionsModal.value = false
     permissionsUserId.value = ''
     permissionsUserName.value = ''
+  }
+
+  // Estado del modal de otorgar XP
+  const showXpModal = ref(false)
+  const xpUserId = ref<string | number>('')
+  const xpUserName = ref('')
+
+  function openXpModal(userId: string | number, userName: string) {
+    xpUserId.value = userId
+    xpUserName.value = userName
+    showXpModal.value = true
+  }
+
+  function closeXpModal() {
+    showXpModal.value = false
+    xpUserId.value = ''
+    xpUserName.value = ''
   }
 
   async function refreshUserBalance() {
@@ -275,6 +293,20 @@
           }
         }
       }
+    },
+    {
+      icon: 'fas fa-star',
+      class: 'btn-warning text-white',
+      title: 'Otorgar XP',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          const user = users.value.find(u => u.id === ids[0])
+          if (user) {
+            openXpModal(user.id, user.full_name || user.username)
+          }
+        }
+      }
     }
   ]
 
@@ -315,5 +347,14 @@
     :user-name="permissionsUserName"
     @close="closePermissionsModal"
     @success="closePermissionsModal"
+  />
+
+  <!-- Modal para otorgar XP -->
+  <XpGrantModal
+    :show="showXpModal"
+    :user-name="xpUserName"
+    :user-id="xpUserId"
+    @close="closeXpModal"
+    @success="closeXpModal"
   />
 </template>

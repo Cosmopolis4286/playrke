@@ -92,4 +92,18 @@ final class AdminUserController extends Controller
             fn() => $this->service->getWalletBalance($user)
         );
     }
+
+    /**
+     * Otorgar XP manualmente al usuario.
+     */
+    public function grantXp(User $user): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->grantXp(
+                $user,
+                (int) request('amount'),
+                request('reason'),
+            )
+        );
+    }
 }
