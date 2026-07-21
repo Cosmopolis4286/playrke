@@ -227,7 +227,7 @@
     computed(() => props.editingRoomId ?? null)
   )
 
-  const canAdjustCtnPriceByCurrency = computed(() => {
+  const canAdjustCardPriceByCurrency = computed(() => {
     const allowed = form.value.allowedCurrencies
     return Array.isArray(allowed) && allowed.length >= 1
   })
@@ -334,7 +334,7 @@
   })
 
   // Cerrar panel de precios si las monedas bajan a 1
-  watch(canAdjustCtnPriceByCurrency, can => {
+  watch(canAdjustCardPriceByCurrency, can => {
     if (!can) cardPriceByCurrencyActive.value = false
   })
 
@@ -534,7 +534,7 @@
           :useBaseUsd="useBaseUsd"
           :canUseBaseUsd="canUseBaseUsd"
           :cardPriceByCurrencyActive="cardPriceByCurrencyActive"
-          :canAdjustCtnPriceByCurrency="canAdjustCtnPriceByCurrency"
+          :canAdjustCardPriceByCurrency="canAdjustCardPriceByCurrency"
           :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"
           :currenciesWithActiveRate="currenciesWithActiveRate ?? []"
           :soldCurrencyIds="soldCurrencyIds"

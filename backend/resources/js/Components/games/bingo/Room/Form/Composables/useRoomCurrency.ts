@@ -5,7 +5,7 @@ import type { SelectOption } from '@/js/types/common/form/form'
 /**
  * Actualiza el mapa de precios por moneda de manera inmutable.
  */
-export function updateCtnPriceForCurrency(
+export function updateCardPriceForCurrency(
   cardPriceByCurrency: Record<string, number | null> | undefined,
   currency: string | number,
   value: string | number | null

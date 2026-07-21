@@ -25,6 +25,8 @@ const props = defineProps<{
   customPricePct?: number | null
   /** Máximo de cartones personalizables permitidos en esta compra (solo relevante en modo 'every_x') */
   maxCustomAllowed?: number
+  /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75) */
+  allowMoveFreeSpace?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -137,6 +139,7 @@ defineExpose({
       ref="picker"
       :model-value="matrices[activeIndex] ?? {}"
       :variant="variant"
+      :allow-move-free-space="allowMoveFreeSpace"
       @update:model-value="onPickerUpdate"
     />
 

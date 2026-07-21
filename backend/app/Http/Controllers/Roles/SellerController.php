@@ -57,9 +57,9 @@ class SellerController extends Controller
             $currenciesAvailable = array_values($currenciesAvailable);
         }
 
-        $countriesAvailable = Currency::getCountriesByCurrencyInArray($currenciesAvailable);
+        $countryIds = Currency::whereIn('id', $currenciesAvailable)->pluck('country_id')->filter()->unique();
 
-        $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
+        $countries = Country::whereIn('id', $countryIds)->get(['id', 'name']);
 
         return ['countries' => $countries, 'USDT' => $USDT];
     }

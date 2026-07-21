@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-  import { updateCtnPriceForCurrency, getCurrencyLabel } from '../Composables/useRoomCurrency'
+  import { updateCardPriceForCurrency, getCurrencyLabel } from '../Composables/useRoomCurrency'
   import { showToast } from '@/js/utils/toastNotify'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type { SelectOption } from '@/js/types/common/form/form'
@@ -13,7 +13,7 @@
     useBaseUsd: boolean
     canUseBaseUsd?: boolean
     cardPriceByCurrencyActive: boolean
-    canAdjustCtnPriceByCurrency: boolean
+    canAdjustCardPriceByCurrency: boolean
     hasCardPriceByCurrencyErrors: boolean
     currenciesWithActiveRate?: string[]
     /** IDs de monedas con cartones ya vendidos — no se pueden quitar de "Monedas Permitidas". */
@@ -46,13 +46,13 @@
     emit('update:modelValue', { ...props.modelValue, allowedCurrencies: value as any })
   }
 
-  function toggleCtnPriceByCurrency() {
-    if (!props.canAdjustCtnPriceByCurrency) return
+  function toggleCardPriceByCurrency() {
+    if (!props.canAdjustCardPriceByCurrency) return
     emit('update:cardPriceByCurrencyActive', !props.cardPriceByCurrencyActive)
   }
 
   function onCurrencyPriceChange(currency: string | number, value: string | number | null) {
-    const updated = updateCtnPriceForCurrency(props.modelValue.cardPriceByCurrency, currency, value)
+    const updated = updateCardPriceForCurrency(props.modelValue.cardPriceByCurrency, currency, value)
     emit('update:modelValue', { ...props.modelValue, cardPriceByCurrency: updated })
   }
 
@@ -114,8 +114,8 @@
           class="btn btn-outline-secondary"
           type="button"
           :data-active="cardPriceByCurrencyActive ? 1 : 0"
-          :disabled="!canAdjustCtnPriceByCurrency"
-          @click="toggleCtnPriceByCurrency"
+          :disabled="!canAdjustCardPriceByCurrency"
+          @click="toggleCardPriceByCurrency"
           title="Ajustar precios por moneda"
         >
           <i class="fa-solid fa-sliders"></i>
@@ -251,7 +251,7 @@
           </div>
         </template>
 
-        <template v-if="!useBaseUsd && canAdjustCtnPriceByCurrency">
+        <template v-if="!useBaseUsd && canAdjustCardPriceByCurrency">
           <template v-for="cur in modelValue.allowedCurrencies ?? []" :key="String(cur)">
             <div>
               <div class="input-group input-group-sm" style="width: 130px">
@@ -262,7 +262,7 @@
                   >{{ label(cur) }}</span>
                 </div>
                 <input
-                  :name="`ctn_price_${String(cur)}`"
+                  :name="`card_price_${String(cur)}`"
                   type="number"
                   :class="['form-control', { 'is-invalid': errors.cardPriceByCurrency?.[String(cur)] }]"
                   placeholder="0.00"
