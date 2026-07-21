@@ -49,6 +49,7 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?float        $customCardPricePct    = null,
         public readonly ?string       $customCardMode        = null,
         public readonly ?int          $customCardEveryX      = null,
+        public readonly bool          $allowMoveFreeSpace    = false,
         public readonly bool          $allowSpecialCard      = false,
         public readonly ?int          $maxSpecialCards       = null,
     ) {}
@@ -105,6 +106,7 @@ final class BingoRoomAutomaticCreateDTO
             customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
             customCardMode: $data['customCardMode'] ?? null,
             customCardEveryX: isset($data['customCardEveryX']) ? (int) $data['customCardEveryX'] : null,
+            allowMoveFreeSpace: (bool) ($data['allowMoveFreeSpace'] ?? false),
             allowSpecialCard: (bool) ($data['allowSpecialCard'] ?? false),
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
         );
