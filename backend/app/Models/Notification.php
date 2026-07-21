@@ -62,6 +62,8 @@ class Notification extends Model
         'TRIVIA_REGISTRATION'   => 'Inscripción a Trivia',
         'SYSTEM'                => 'Sistema',
         'PROMOTION'             => 'Promoción',
+        'LEVEL_UP'              => 'Subida de Nivel',
+        'ACHIEVEMENT_UNLOCKED'  => 'Logro Desbloqueado',
     ];
 
     /**
@@ -189,6 +191,8 @@ class Notification extends Model
             'TRIVIA_REGISTRATION' => '#8b5cf6', // violeta
             'SYSTEM' => '#17a2b8', // cyan
             'PROMOTION' => '#6f42c1', // púrpura
+            'LEVEL_UP' => '#667eea', // azul-violeta
+            'ACHIEVEMENT_UNLOCKED' => '#f59e0b', // dorado
             default => '#6c757d', // gris
         };
     }
@@ -206,6 +210,8 @@ class Notification extends Model
             'TRIVIA_REGISTRATION' => '🎯',
             'SYSTEM' => '⚙️',
             'PROMOTION' => '🎁',
+            'LEVEL_UP' => '⬆️',
+            'ACHIEVEMENT_UNLOCKED' => '🏆',
             default => '📢',
         };
     }

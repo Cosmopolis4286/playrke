@@ -4,11 +4,17 @@ namespace App\Services\User;
 
 use App\Models\User;
 use App\Models\UserLevel;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserLevelService
 {
+    public function __construct(
+        private readonly NotificationService $notificationService,
+    ) {}
+
     public function createLevelForUser(User $user): UserLevel
     {
         if ($user->userLevel) {
@@ -52,7 +58,6 @@ class UserLevelService
             }
 
             DB::commit();
-            return $result;
         } catch (\Exception $e) {
             DB::rollBack();
             return [
@@ -61,6 +66,23 @@ class UserLevelService
                 'leveled_up' => false,
             ];
         }
+
+        if ($leveledUp) {
+            try {
+                $this->notificationService->createLevelUpNotification(
+                    $user->id,
+                    $result['new_level'],
+                    $result['total_xp'],
+                );
+            } catch (\Throwable $e) {
+                Log::warning('UserLevelService: fallo al notificar subida de nivel.', [
+                    'user_id' => $user->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $result;
     }
 
     public function removeXpFromUser(User $user, int $amount, ?string $reason = null): array

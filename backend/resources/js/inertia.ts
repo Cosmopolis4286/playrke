@@ -6,6 +6,7 @@ import VueImaskPlugin from './plugins/vue-imask-plugin'
 import FloatingVue from 'floating-vue'
 import Toast, { type PluginOptions, POSITION } from 'vue-toastification'
 import { joinOnlinePresence } from '@/js/composables/realtime/useOnlinePresence'
+import { joinLevelUpNotifications } from '@/js/composables/useLevelUpNotifications'
 import { hideAppLoader } from '@js/utils/loader/loaderApp'
 
 import '@vueform/multiselect/themes/default.css'
@@ -55,8 +56,10 @@ createInertiaApp({
 
         // Presencia global: si hay usuario autenticado, se une una sola vez
         // por sesión de SPA al canal `online-users` (dashboards admin la consumen).
-        if ((props.initialPage?.props as any)?.auth?.user) {
+        const authUser = (props.initialPage?.props as any)?.auth?.user
+        if (authUser) {
             joinOnlinePresence()
+            joinLevelUpNotifications(authUser.id)
         }
 
         const toastOptions: PluginOptions = {

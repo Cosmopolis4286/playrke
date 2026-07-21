@@ -26,7 +26,7 @@
   const {
     countries,
     selectedCountry,
-    numCtns,
+    cardCount,
     player,
     loading,
     loadingCountries,
@@ -74,9 +74,9 @@
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
-      :num-ctns="numCtns"
+      :card-count="cardCount"
       :selected-country="selectedCountry"
-      @update:numCtns="numCtns = $event"
+      @update:cardCount="cardCount = $event"
     />
 
     <!-- ───────────── Resumen ───────────── -->
@@ -138,7 +138,7 @@
         <span v-if="loading" class="spinner-border spinner-border-sm mr-2" role="status" />
         <template v-if="loading">Generando…</template>
         <template v-else>
-          {{ numCtns === 1 ? 'Generar Cartón' : 'Generar Cartones' }}
+          {{ cardCount === 1 ? 'Generar Cartón' : 'Generar Cartones' }}
         </template>
       </button>
     </div>

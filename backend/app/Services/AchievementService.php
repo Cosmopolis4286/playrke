@@ -9,9 +9,14 @@ use App\Models\UserAchievement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AchievementService
 {
+    public function __construct(
+        private readonly NotificationService $notificationService,
+    ) {}
+
     /**
      * Obtener todos los logros con el progreso del usuario
      */
@@ -190,6 +195,23 @@ class AchievementService
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+
+        foreach ($unlockedAchievements as $unlocked) {
+            try {
+                $achievement = $unlocked['achievement'];
+                $this->notificationService->createAchievementUnlockedNotification(
+                    $user->id,
+                    $achievement->code,
+                    $achievement->name,
+                    $achievement->xp_reward,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('AchievementService: fallo al notificar logro desbloqueado.', [
+                    'user_id' => $user->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
         }
 
         return $unlockedAchievements;

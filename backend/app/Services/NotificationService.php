@@ -178,6 +178,49 @@ final class NotificationService
     }
 
     /**
+     * Crear notificación de subida de nivel.
+     */
+    public function createLevelUpNotification(string $userId, int $newLevel, int $totalXp): Notification
+    {
+        return $this->create(
+            userId: $userId,
+            type: 'LEVEL_UP',
+            title: '⬆️ ¡Subiste de Nivel!',
+            message: "Alcanzaste el nivel {$newLevel}.",
+            data: [
+                'new_level' => $newLevel,
+                'total_xp'  => $totalXp,
+                'url'       => '/profile#stats',
+            ]
+        );
+    }
+
+    /**
+     * Crear notificación de logro desbloqueado.
+     */
+    public function createAchievementUnlockedNotification(
+        string $userId,
+        string $achievementCode,
+        string $achievementName,
+        int $xpReward,
+    ): Notification {
+        return $this->create(
+            userId: $userId,
+            type: 'ACHIEVEMENT_UNLOCKED',
+            title: '🏆 ¡Logro Desbloqueado!',
+            message: $xpReward > 0
+                ? "Desbloqueaste \"{$achievementName}\" (+{$xpReward} XP)."
+                : "Desbloqueaste \"{$achievementName}\".",
+            data: [
+                'achievement_code' => $achievementCode,
+                'achievement_name' => $achievementName,
+                'xp_reward'        => $xpReward,
+                'url'              => '/profile#stats',
+            ]
+        );
+    }
+
+    /**
      * Obtener notificaciones del usuario autenticado
      *
      * @param array $filters
