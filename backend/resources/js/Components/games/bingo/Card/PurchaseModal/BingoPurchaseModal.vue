@@ -35,7 +35,7 @@
     cardPrice: number
     currencySymbol: string
     loadingPrice: boolean
-    numCtns: number
+    cardCount: number
     totalAmount: number
     canAdvance: boolean
     purchasing: boolean
@@ -79,7 +79,7 @@
     (e: 'prev'): void
     (e: 'increment'): void
     (e: 'decrement'): void
-    (e: 'set-ctns', value: number): void
+    (e: 'set-card-count', value: number): void
     (e: 'toggle-customize'): void
     (e: 'update:custom-card-numbers', value: Record<string, (number | null)[]>[]): void
     (e: 'update:manual-edits', value: boolean[]): void
@@ -120,8 +120,8 @@
     return (props.selectedRoom.prize_pool * props.exchangeRate).toFixed(2)
   })
 
-  const currentCtns = computed(() => {
-    return props.selectedRoom?.players_room?.[0]?.ctns ?? 0
+  const currentCardCount = computed(() => {
+    return props.selectedRoom?.players_room?.[0]?.card_count ?? 0
   })
 </script>
 
@@ -180,8 +180,8 @@
               <PurchaseModalConfirmStep
                 ref="confirmStep"
                 :step="step"
-                :current-ctns="currentCtns"
-                :num-ctns="numCtns"
+                :current-card-count="currentCardCount"
+                :card-count="cardCount"
                 :can-customize="canCustomize"
                 :customize-card="customizeCard"
                 :config-loading="configLoading"
@@ -197,7 +197,7 @@
                 :confirm-incomplete-custom-card="confirmIncompleteCustomCard"
                 @increment="emit('increment')"
                 @decrement="emit('decrement')"
-                @set-ctns="emit('set-ctns', $event)"
+                @set-card-count="emit('set-card-count', $event)"
                 @toggle-customize="emit('toggle-customize')"
                 @update:custom-card-numbers="emit('update:custom-card-numbers', $event)"
                 @update:manual-edits="emit('update:manual-edits', $event)"
@@ -209,7 +209,7 @@
             <PurchaseModalFooter
               :is-player="isPlayer"
               :step="step"
-              :current-ctns="currentCtns"
+              :current-card-count="currentCardCount"
               :purchasing="purchasing"
               :can-advance="canAdvance"
               :loading-price="loadingPrice"
@@ -220,7 +220,7 @@
               :custom-card-mode="customCardMode"
               :custom-price-pct="customPricePct"
               :exceeds-custom-card-limit="exceedsCustomCardLimit"
-              :num-ctns="numCtns"
+              :card-count="cardCount"
               :total-amount="totalAmount"
               :currency-symbol="currencySymbol"
               @prev="emit('prev')"

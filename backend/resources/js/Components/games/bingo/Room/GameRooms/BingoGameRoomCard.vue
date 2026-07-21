@@ -13,7 +13,7 @@ import RoomCardThumbnail from './RoomCard/RoomCardThumbnail.vue'
 import RoomCardPrizeProgress from './RoomCard/RoomCardPrizeProgress.vue'
 import RoomCardFooter from './RoomCard/RoomCardFooter.vue'
 
-// DEAD-02: eliminadas props muertas (isPurchasing, roomDetail, numCtns, totalAmount, prizePoolLabel, loading)
+// DEAD-02: eliminadas props muertas (isPurchasing, roomDetail, cardCount, totalAmount, prizePoolLabel, loading)
 const props = defineProps<{
   room: BingoGameRoom
   exchangeRate: number
@@ -26,7 +26,7 @@ const emit = defineEmits<{ (e: 'select', roomId: string): void }>()
 
 const isAvailable  = computed(() => props.room.status_code === 'ACTIVE')
 const isInProgress = computed(() => props.room.status_code === 'IN_PROGRESS')
-const playerCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
+const playerCardCount = computed(() => props.room.players_room?.[0]?.card_count ?? 0)
 const hasTime      = computed(() => props.countdown && !props.countdown.expired)
 const animDelay    = computed(() => `${(props.index ?? 0) * 70}ms`)
 
@@ -178,7 +178,7 @@ function handleClick(event: MouseEvent) {
           :players-preview="playersPreview"
           :extra-players-count="extraPlayersCount"
           :total-players="room.total_players"
-          :player-ctns="playerCtns"
+          :player-card-count="playerCardCount"
           :max-players="maxPlayers"
         />
 

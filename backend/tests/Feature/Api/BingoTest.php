@@ -340,7 +340,7 @@ class BingoTest extends TestCase
 
         $response = $this->actingAs($player)
             ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
-                'num_ctns' => 2,
+                'card_count' => 2,
             ]);
 
         // 2 cartones * 10.00 USD (card_price_usd) = 20.00 debitados de la wallet.
@@ -362,7 +362,7 @@ class BingoTest extends TestCase
 
         $response = $this->actingAs($player)
             ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
-                'num_ctns' => 1,
+                'card_count' => 1,
             ]);
 
         // playerBuyFromGameRooms() lanza el \DomainException GLOBAL de PHP (no
@@ -382,27 +382,27 @@ class BingoTest extends TestCase
         $room = $this->makeRoom();
         $this->makeWallet($player, 1000);
 
-        // El controlador valida num_ctns inline (no vía FormRequest) y el Handler
+        // El controlador valida card_count inline (no vía FormRequest) y el Handler
         // global reescribe TODAS las respuestas AJAX/JSON -- incluida ValidationException --
         // a {success:false, message:"..."}, perdiendo la clave estándar 'errors' que usa
         // assertJsonValidationErrors(). Se verifica el mensaje de validación en su lugar.
         $response = $this->actingAs($player)
             ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
-                'num_ctns' => 0,
+                'card_count' => 0,
             ]);
 
         $response->assertStatus(422);
-        // Laravel humaniza el nombre del atributo en el mensaje: "num_ctns" -> "num ctns".
-        $this->assertStringContainsString('num ctns', $response->json('message') ?? '');
+        // Laravel humaniza el nombre del atributo en el mensaje: "card_count" -> "card count".
+        $this->assertStringContainsString('card count', $response->json('message') ?? '');
 
         $response = $this->actingAs($player)
             ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
-                'num_ctns' => 41,
+                'card_count' => 41,
             ]);
 
         $response->assertStatus(422);
-        // Laravel humaniza el nombre del atributo en el mensaje: "num_ctns" -> "num ctns".
-        $this->assertStringContainsString('num ctns', $response->json('message') ?? '');
+        // Laravel humaniza el nombre del atributo en el mensaje: "card_count" -> "card count".
+        $this->assertStringContainsString('card count', $response->json('message') ?? '');
     }
 
     // ─── Cartones propios ───────────────────────────────────────────────────────

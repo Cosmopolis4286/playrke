@@ -44,7 +44,7 @@ interface PlayerCardsUpdatedPayload {
   /** ID Snowflake de la sala donde se compraron cartones */
   room_id: string
   /** Total acumulado de cartones del usuario en esa sala */
-  ctns: number
+  card_count: number
   /** Precio del cartón en la moneda del usuario (null para commerce/seller) */
   card_price: number | null
   /** Símbolo de la moneda del usuario (null para commerce/seller) */
@@ -171,7 +171,7 @@ export function useGameRoomEcho(
       const room = rooms.value[idx]
       rooms.value[idx] = {
         ...room,
-        players_room:    [{ ctns: payload.ctns }],
+        players_room:    [{ card_count: payload.card_count }],
         card_price:      payload.card_price      ?? room.card_price,
         currency_symbol: payload.currency_symbol ?? room.currency_symbol,
       }

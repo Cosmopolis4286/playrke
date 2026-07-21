@@ -19,7 +19,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  success: [roomId: string, result: { prizePool: number; ctns: number }]
+  success: [roomId: string, result: { prizePool: number; cardCount: number }]
 }>()
 </script>
 
@@ -35,7 +35,7 @@ const emit = defineEmits<{
     :card-price="modal.cardPrice.value"
     :currency-symbol="modal.currencySymbol.value"
     :loading-price="modal.loadingPrice.value"
-    :num-ctns="modal.numCtns.value"
+    :card-count="modal.cardCount.value"
     :total-amount="modal.totalAmount.value"
     :can-advance="modal.canAdvance.value"
     :purchasing="modal.purchasing.value"
@@ -61,7 +61,7 @@ const emit = defineEmits<{
     @prev="modal.prevStep()"
     @increment="modal.increment()"
     @decrement="modal.decrement()"
-    @set-ctns="modal.setNumCtns($event)"
+    @set-card-count="modal.setCardCount($event)"
     @toggle-customize="modal.toggleCustomize()"
     @update:custom-card-numbers="modal.customCardNumbers.value = $event"
     @update:manual-edits="modal.manualEditsPerCard.value = $event"

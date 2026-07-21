@@ -17,7 +17,7 @@ const props = defineProps<{
   /** Por cartón: true si el usuario tocó ≥1 casilla manualmente */
   manualEdits: boolean[]
   activeIndex: number
-  numCtns: number
+  cardCount: number
   variant?: string | null
   /** Modalidad de cartón personalizado de la sala */
   customCardMode?: 'paid' | 'every_x' | 'free' | null
@@ -86,9 +86,9 @@ defineExpose({
   <div class="bcs-wrap">
 
     <!-- Tabs de cartones (solo si hay más de uno) -->
-    <div v-if="numCtns > 1" class="bcs-tabs">
+    <div v-if="cardCount > 1" class="bcs-tabs">
       <button
-        v-for="i in numCtns"
+        v-for="i in cardCount"
         :key="i"
         type="button"
         class="bcs-tab"
@@ -126,7 +126,7 @@ defineExpose({
     <!-- Aviso de límite (modo 'every_x') -->
     <div v-if="customCardMode === 'every_x'" class="bcs-surcharge-notice">
       <i class="fas fa-info-circle" />
-      Puedes personalizar hasta <strong>{{ maxCustomAllowed ?? 0 }}</strong> de estos {{ numCtns }} cartón(es).
+      Puedes personalizar hasta <strong>{{ maxCustomAllowed ?? 0 }}</strong> de estos {{ cardCount }} cartón(es).
     </div>
     <div v-if="customCardMode === 'free'" class="bcs-random-notice">
       <i class="fas fa-unlock" />
@@ -141,12 +141,12 @@ defineExpose({
     />
 
     <!-- Resumen de distribución cuando hay múltiples cartones -->
-    <div v-if="numCtns > 1 && manualCount > 0" class="bcs-dist">
+    <div v-if="cardCount > 1 && manualCount > 0" class="bcs-dist">
       <span class="bcs-dist__item bcs-dist__item--manual">
         <i class="fas fa-pen" /> {{ manualCount }} personalizado{{ manualCount > 1 ? 's' : '' }}
       </span>
-      <span v-if="numCtns - manualCount > 0" class="bcs-dist__item bcs-dist__item--random">
-        <i class="fas fa-dice" /> {{ numCtns - manualCount }} al azar
+      <span v-if="cardCount - manualCount > 0" class="bcs-dist__item bcs-dist__item--random">
+        <i class="fas fa-dice" /> {{ cardCount - manualCount }} al azar
       </span>
     </div>
 

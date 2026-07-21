@@ -29,7 +29,7 @@ const cardPrice = computed(() => {
   return ((r.config?.card_price_usd ?? 0) * props.exchangeRate).toFixed(2)
 })
 const prize    = computed(() => ((props.room.prize_pool ?? 0) * props.exchangeRate).toFixed(2))
-const myCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
+const myCardCount   = computed(() => props.room.players_room?.[0]?.card_count ?? 0)
 const priceSym = computed(() => props.room.currency_symbol ?? props.currencySym ?? 'USD')
 
 // UX-01: botón "Ir al Lobby" deshabilitado si la sala no está activa/en progreso
@@ -168,8 +168,8 @@ const isRoomFull = computed(() =>
                 <span class="rim-prize__num">{{ prize }}</span>
                 <span class="rim-prize__sym">{{ currencySym }}</span>
               </div>
-              <span v-if="myCtns > 0" class="rim-participating">
-                <i class="fas fa-check-circle" /> Participas con {{ myCtns }} {{ myCtns === 1 ? 'cartón' : 'cartones' }}
+              <span v-if="myCardCount > 0" class="rim-participating">
+                <i class="fas fa-check-circle" /> Participas con {{ myCardCount }} {{ myCardCount === 1 ? 'cartón' : 'cartones' }}
               </span>
             </div>
 
@@ -198,8 +198,8 @@ const isRoomFull = computed(() =>
                 <span class="rim-stat__val">{{ playersLabel }}</span>
                 <span class="rim-stat__lbl">Jugadores</span>
               </div>
-              <div class="rim-stat" :class="{ 'rim-stat--mine': myCtns > 0 }">
-                <span class="rim-stat__val">{{ myCtns }}</span>
+              <div class="rim-stat" :class="{ 'rim-stat--mine': myCardCount > 0 }">
+                <span class="rim-stat__val">{{ myCardCount }}</span>
                 <span class="rim-stat__lbl">Mis cartones</span>
               </div>
               <div class="rim-stat">

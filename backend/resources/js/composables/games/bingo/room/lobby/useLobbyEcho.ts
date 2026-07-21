@@ -18,7 +18,7 @@ interface RoomUpdatedPayload {
 
 interface PlayerCardsUpdatedPayload {
   room_id: string
-  ctns: number
+  card_count: number
   card_price: number | null
   currency_symbol: string | null
 }
@@ -125,7 +125,7 @@ export function useLobbyEcho(
     currentPrivateChannel = channelName
     echo.private(channelName).listen('.PlayerCardsUpdated', (payload: PlayerCardsUpdatedPayload) => {
       if (payload.room_id !== roomId) return
-      live.userCards = payload.ctns
+      live.userCards = payload.card_count
       setOwnPurchasePending()
       callbacks?.onCardsUpdated?.(payload.card_price, payload.currency_symbol)
     })

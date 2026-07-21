@@ -65,7 +65,7 @@ const emit = defineEmits<{ close: []; retry: [] }>()
               {{ p.name }}
               <span v-if="String(p.user_id) === String(currentUserId)" class="lby-player-row__you">TÚ</span>
             </span>
-            <span class="lby-player-row__ctns">
+            <span class="lby-player-row__card-count">
               <i class="fas fa-ticket-alt" /> {{ p.cards_purchased }}
             </span>
           </div>
@@ -82,7 +82,7 @@ const emit = defineEmits<{ close: []; retry: [] }>()
                   <span class="lby-player-row__rank">{{ 11 + i }}</span>
                 </span>
                 <span class="lby-player-row__name">{{ p.name }}</span>
-                <span class="lby-player-row__ctns">
+                <span class="lby-player-row__card-count">
                   <i class="fas fa-ticket-alt" /> {{ p.cards_purchased }}
                 </span>
               </div>
@@ -183,7 +183,7 @@ const emit = defineEmits<{ close: []; retry: [] }>()
 .lby-player-row--me { background: rgba(42,245,152,.04); }
 .lby-player-row--me:hover { background: rgba(42,245,152,.07); }
 .lby-player-row--me .lby-player-row__name { color: #2af598; }
-.lby-player-row--me .lby-player-row__ctns { color: #2af598; }
+.lby-player-row--me .lby-player-row__card-count { color: #2af598; }
 
 .lby-player-row__name {
   flex: 1; font-size: 11.5px; color: #c8d8f0; font-weight: 600;
@@ -195,11 +195,11 @@ const emit = defineEmits<{ close: []; retry: [] }>()
   background: rgba(42,245,152,.15); border: 1px solid rgba(42,245,152,.3); color: #2af598;
   padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
 }
-.lby-player-row__ctns {
+.lby-player-row__card-count {
   font-size: 10px; font-weight: 700; color: #3a5068; flex-shrink: 0;
   display: flex; align-items: center; gap: 4px;
 }
-.lby-player-row__ctns i { font-size: 8px; }
+.lby-player-row__card-count i { font-size: 8px; }
 
 .lby-modal__rest-fade {
   position: relative;

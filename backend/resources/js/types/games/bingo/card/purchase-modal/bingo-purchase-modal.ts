@@ -60,7 +60,7 @@ export interface BingoCardPurchaseResponse {
   readonly message: string
   readonly type: 'success' | 'error' | 'warning' | 'info'
   readonly prize_pool?: number
-  readonly ctns?: number
+  readonly card_count?: number
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

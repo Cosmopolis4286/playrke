@@ -89,7 +89,7 @@ export function useGameRooms(props: BingoGameRoomsPageProps) {
 
   function onPurchaseSuccess(
     roomId: string,
-    result: { prizePool: number; ctns: number },
+    result: { prizePool: number; cardCount: number },
   ): void {
     const idx = rooms.value.findIndex(r => r.id === roomId)
     if (idx === -1) return
@@ -105,7 +105,7 @@ export function useGameRooms(props: BingoGameRoomsPageProps) {
       prize_pool:   result.prizePool,
       players_room: room.players_room?.map(p =>
         String((p as any).user_id ?? '') === userId
-          ? { ...p, ctns: (p.ctns ?? 0) + result.ctns }
+          ? { ...p, card_count: (p.card_count ?? 0) + result.cardCount }
           : p
       ) ?? [],
     }

@@ -4,8 +4,8 @@ import BingoCustomCardSection from './BingoCustomCardSection.vue'
 
 const props = defineProps<{
   step: string
-  currentCtns: number
-  numCtns: number
+  currentCardCount: number
+  cardCount: number
   canCustomize: boolean
   customizeCard: boolean
   configLoading: boolean
@@ -26,7 +26,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   increment: []
   decrement: []
-  'set-ctns': [value: number]
+  'set-card-count': [value: number]
   'toggle-customize': []
   'update:custom-card-numbers': [value: Record<string, (number | null)[]>[]]
   'update:manual-edits': [value: boolean[]]
@@ -36,9 +36,9 @@ const emit = defineEmits<{
 
 const cardSection = ref<InstanceType<typeof BingoCustomCardSection> | null>(null)
 
-function onCtnsInput(e: Event) {
+function onCardCountInput(e: Event) {
   const val = parseInt((e.target as HTMLInputElement).value, 10)
-  if (!isNaN(val)) emit('set-ctns', val)
+  if (!isNaN(val)) emit('set-card-count', val)
 }
 
 async function handlePurchaseClick(): Promise<void> {
@@ -56,7 +56,7 @@ async function handlePurchaseClick(): Promise<void> {
   emit('purchase')
 }
 
-defineExpose({ handlePurchaseClick, onCtnsInput })
+defineExpose({ handlePurchaseClick, onCardCountInput })
 </script>
 
 <template>
@@ -64,26 +64,26 @@ defineExpose({ handlePurchaseClick, onCtnsInput })
     <div v-if="step === 'confirm'" key="confirm" class="pm-step">
 
       <!-- Badge cartones actuales -->
-      <div v-if="currentCtns > 0" class="pm-ctns-badge">
+      <div v-if="currentCardCount > 0" class="pm-card-count-badge">
         <i class="fas fa-ticket-alt" />
-        <span>Ya tienes <strong>{{ currentCtns }}</strong> cartón{{ currentCtns === 1 ? '' : 'es' }} aquí</span>
+        <span>Ya tienes <strong>{{ currentCardCount }}</strong> cartón{{ currentCardCount === 1 ? '' : 'es' }} aquí</span>
       </div>
 
       <!-- Selector cantidad -->
       <div class="pm-qty-row">
-        <button class="pm-qty-btn" :disabled="numCtns <= 1" @click="emit('decrement')">
+        <button class="pm-qty-btn" :disabled="cardCount <= 1" @click="emit('decrement')">
           <i class="fas fa-minus" />
         </button>
         <input
           type="number"
           class="pm-qty-input"
-          :value="numCtns"
+          :value="cardCount"
           min="1"
           max="40"
           step="1"
-          @input="onCtnsInput"
+          @input="onCardCountInput"
         />
-        <button class="pm-qty-btn" :disabled="numCtns >= 40" @click="emit('increment')">
+        <button class="pm-qty-btn" :disabled="cardCount >= 40" @click="emit('increment')">
           <i class="fas fa-plus" />
         </button>
       </div>
@@ -111,7 +111,7 @@ defineExpose({ handlePurchaseClick, onCtnsInput })
             :matrices="customCardNumbers"
             :manual-edits="manualEdits"
             :active-index="activeCardIndex"
-            :num-ctns="numCtns"
+            :card-count="cardCount"
             :variant="variant"
             :custom-card-mode="customCardMode"
             :custom-price-pct="customPricePct"
@@ -231,9 +231,9 @@ defineExpose({ handlePurchaseClick, onCtnsInput })
 }
 
 /* ═══════════════════════════════════════════════════════
- CTNS BADGE (cartones actuales)
+ CARD COUNT BADGE (cartones actuales)
 ═══════════════════════════════════════════════════════ */
-.pm-ctns-badge {
+.pm-card-count-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -246,12 +246,12 @@ defineExpose({ handlePurchaseClick, onCtnsInput })
   font-size: 11px;
 }
 
-.pm-ctns-badge i {
+.pm-card-count-badge i {
   font-size: 9px;
   opacity: 0.75;
 }
 
-.pm-ctns-badge strong {
+.pm-card-count-badge strong {
   color: #fff;
   font-weight: 700;
 }

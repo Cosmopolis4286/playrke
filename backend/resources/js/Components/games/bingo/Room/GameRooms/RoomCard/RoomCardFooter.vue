@@ -13,7 +13,7 @@ const props = defineProps<{
   playersPreview: PlayerPreview[]
   extraPlayersCount: number
   totalPlayers: number
-  playerCtns: number
+  playerCardCount: number
   maxPlayers?: number | null
 }>()
 
@@ -69,18 +69,18 @@ const isFull = computed(() =>
         v-else
         v-tooltip="playersTooltip"
         class="rc__stat"
-        :class="{ 'rc__stat--mine': playerCtns > 0, 'rc__stat--full': isFull }"
+        :class="{ 'rc__stat--mine': playerCardCount > 0, 'rc__stat--full': isFull }"
       >
         <i class="fas fa-users" />
         <span>{{ playersLabel }}</span>
       </span>
       <span
-        v-if="playerCtns > 0"
-        v-tooltip="`Ya compraste ${playerCtns} cartón${playerCtns !== 1 ? 'es' : ''} en esta sala`"
-        class="rc__stat rc__stat--ctns"
+        v-if="playerCardCount > 0"
+        v-tooltip="`Ya compraste ${playerCardCount} cartón${playerCardCount !== 1 ? 'es' : ''} en esta sala`"
+        class="rc__stat rc__stat--card-count"
       >
         <i class="fas fa-check-circle" />
-        <span>{{ playerCtns }}</span>
+        <span>{{ playerCardCount }}</span>
       </span>
     </div>
   </div>
@@ -165,12 +165,12 @@ const isFull = computed(() =>
 }
 
 /* mis cartones */
-.rc__stat--ctns {
+.rc__stat--card-count {
   color: #a070e0;
   background: rgba(110,55,210,.1);
   border-color: rgba(110,55,210,.22);
 }
-.rc__stat--ctns i { color: #7840c0; }
+.rc__stat--card-count i { color: #7840c0; }
 
 /* sala llena — cupo máximo alcanzado */
 .rc__stat--full {

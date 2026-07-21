@@ -36,7 +36,7 @@
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
 
-  function handleNumCtns(value: string | number) {
+  function handleCardCount(value: string | number) {
     const raw = Number(value)
     const clamped = Math.max(1, Math.min(40, raw || 1))
     emit('update:cardCount', clamped)
@@ -139,7 +139,7 @@
         col="col-md-3"
         :disabled="!props.selectedCountry"
         :modelValue="props.cardCount"
-        @update:modelValue="handleNumCtns"
+        @update:modelValue="handleCardCount"
       />
     </div>
   </div>

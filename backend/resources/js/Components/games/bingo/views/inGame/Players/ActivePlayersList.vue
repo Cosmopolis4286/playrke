@@ -56,7 +56,7 @@ defineEmits<{
         <span v-if="String(p.user_id) === String(userId)" class="pm-you">TÚ</span>
       </div>
     </div>
-    <div class="pm-row__ctns">
+    <div class="pm-row__card-count">
       <i class="fas fa-ticket-alt" /> {{ p.cards_purchased }}
     </div>
   </div>
@@ -98,9 +98,9 @@ defineEmits<{
 }
 .pm-retry-btn:hover { background: rgba(255,77,109,.2); }
 
-.pm-row__ctns {
+.pm-row__card-count {
   font-size: 10px; font-weight: 700; color: #4a6090; flex-shrink: 0;
   display: flex; align-items: center; gap: 4px;
 }
-.pm-row__ctns i { font-size: 8px; opacity: .7; }
+.pm-row__card-count i { font-size: 8px; opacity: .7; }
 </style>

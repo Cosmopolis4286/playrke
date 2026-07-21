@@ -161,7 +161,7 @@ function buildRoomSnapshot(): BingoGameRoom {
     status_code:     live.statusCode,
     currency_symbol: live.currencySymbol,
     card_price:      live.cardPrice,
-    players_room:    [{ ctns: live.userCards }],
+    players_room:    [{ card_count: live.userCards }],
     config: props.room.unix_date ? {
       room_id:         props.room.id,
       card_price_usd:  props.room.card_price_usd ?? 0,
@@ -181,9 +181,9 @@ function openPurchase() {
   modal.open(buildRoomSnapshot())
 }
 
-function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: number }) {
+function onPurchaseSuccess(_roomId: string, result: { prizePool: number; cardCount: number }) {
   live.prizePool  = result.prizePool
-  live.userCards += result.ctns
+  live.userCards += result.cardCount
   flash(prizeFlash)
 }
 </script>

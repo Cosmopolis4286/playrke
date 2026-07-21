@@ -4,7 +4,7 @@ import type { PurchaseModalStep } from '@/js/types/games/bingo/card/purchase-mod
 defineProps<{
   isPlayer: boolean | null
   step: PurchaseModalStep
-  currentCtns: number
+  currentCardCount: number
   purchasing: boolean
   canAdvance: boolean
   loadingPrice: boolean
@@ -15,7 +15,7 @@ defineProps<{
   customCardMode?: 'paid' | 'every_x' | 'free' | null
   customPricePct: number
   exceedsCustomCardLimit?: boolean
-  numCtns: number
+  cardCount: number
   totalAmount: number
   currencySymbol: string
 }>()
@@ -43,7 +43,7 @@ const emit = defineEmits<{
         <i class="fas fa-arrow-left" />
       </button>
       <button
-        v-if="step === 'confirm' && currentCtns > 0"
+        v-if="step === 'confirm' && currentCardCount > 0"
         class="pm-icon-btn pm-icon-btn--lobby"
         title="Ir al lobby"
         @click="emit('lobby')"
@@ -57,13 +57,13 @@ const emit = defineEmits<{
       <!-- Sin personalización o todos al azar -->
       <template v-if="!customizeCard || manualCardCount === 0">
         <span class="pm-fs__pill">
-          <i class="fas fa-ticket-alt" />{{ numCtns }}× {{ basePricePerCard.toFixed(2) }}
+          <i class="fas fa-ticket-alt" />{{ cardCount }}× {{ basePricePerCard.toFixed(2) }}
         </span>
       </template>
       <!-- Mixto -->
       <template v-else>
-        <span v-if="numCtns - manualCardCount > 0" class="pm-fs__pill">
-          <i class="fas fa-dice" />{{ numCtns - manualCardCount }}× {{ basePricePerCard.toFixed(2) }}
+        <span v-if="cardCount - manualCardCount > 0" class="pm-fs__pill">
+          <i class="fas fa-dice" />{{ cardCount - manualCardCount }}× {{ basePricePerCard.toFixed(2) }}
         </span>
         <span class="pm-fs__pill pm-fs__pill--custom">
           <i class="fas fa-pen" />{{ manualCardCount }}× {{ customPricePerCard.toFixed(2) }}

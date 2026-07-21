@@ -111,13 +111,13 @@ export function useGameRoomPurchaseModal() {
     const customCardState = ref<CustomCardState>({ ...EMPTY_CUSTOM_CARD_STATE })
 
     // ── Cantidad ─────────────────────────────────────────────────────────────
-    const numCtns = ref(1)
-    const MIN_CTNS = 1
-    const MAX_CTNS = 40
+    const cardCount = ref(1)
+    const MIN_CARDS = 1
+    const MAX_CARDS = 40
 
     // ── Personalización de cartones ──────────────────────────────────────────
     const customizeCard = ref(false)
-    // Array de matrices, una por cartón (índice 0..numCtns-1).
+    // Array de matrices, una por cartón (índice 0..cardCount-1).
     const customCardNumbers = ref<CardMatrix[]>([])
     // Por cartón: true si el usuario tocó ≥1 casilla manualmente (no solo autocompletar).
     const manualEditsPerCard = ref<boolean[]>([])
@@ -141,13 +141,13 @@ export function useGameRoomPurchaseModal() {
      * es 'every_x': por cada ciclo de (X normales + 1 personalizable) solo el
      * último cartón del ciclo puede personalizarse. Ej. X=3 con 10 cartones →
      * de cada 4 consecutivos, 1 personalizable (posiciones 4, 8) → máximo 2.
-     * En 'paid'/'free' no hay límite (más allá de numCtns).
+     * En 'paid'/'free' no hay límite (más allá de cardCount).
      */
     const maxCustomCardsAllowed = computed(() => {
-        if (customCardState.value.mode !== 'every_x') return numCtns.value
+        if (customCardState.value.mode !== 'every_x') return cardCount.value
         const everyX = customCardState.value.everyX ?? 0
-        if (everyX < 1) return numCtns.value
-        return Math.floor(numCtns.value / (everyX + 1))
+        if (everyX < 1) return cardCount.value
+        return Math.floor(cardCount.value / (everyX + 1))
     })
 
     // Solo las matrices que el usuario editó manualmente — las demás van como null (aleatorio).
@@ -178,9 +178,9 @@ export function useGameRoomPurchaseModal() {
     // Total calculado según distribución manual/aleatorio.
     const totalAmountWithCustom = computed(() => {
         if (!customizeCard.value || manualCardCount.value === 0) {
-            return parseFloat((numCtns.value * basePricePerCard.value).toFixed(2))
+            return parseFloat((cardCount.value * basePricePerCard.value).toFixed(2))
         }
-        const regularCost = (numCtns.value - manualCardCount.value) * basePricePerCard.value
+        const regularCost = (cardCount.value - manualCardCount.value) * basePricePerCard.value
         const customCost  = manualCardCount.value * customPricePerCard.value
         return parseFloat((regularCost + customCost).toFixed(2))
     })
@@ -289,7 +289,7 @@ export function useGameRoomPurchaseModal() {
     async function open(room: BingoGameRoom): Promise<void> {
         selectedRoom.value = room
         selectedCountry.value = null
-        numCtns.value = 1
+        cardCount.value = 1
         customizeCard.value = false
         activeCardIndex.value = 0
         customCardNumbers.value = _buildEmptyMatrices(1, room.config?.game_variant)
@@ -336,9 +336,9 @@ export function useGameRoomPurchaseModal() {
         customizeCard.value = !customizeCard.value
         activeCardIndex.value = 0
         if (selectedRoom.value) {
-            customCardNumbers.value = _buildEmptyMatrices(numCtns.value, selectedRoom.value.config?.game_variant)
+            customCardNumbers.value = _buildEmptyMatrices(cardCount.value, selectedRoom.value.config?.game_variant)
         }
-        manualEditsPerCard.value = Array(numCtns.value).fill(false)
+        manualEditsPerCard.value = Array(cardCount.value).fill(false)
     }
 
     /**
@@ -400,20 +400,20 @@ export function useGameRoomPurchaseModal() {
     }
 
     function increment(): void {
-        if (numCtns.value < MAX_CTNS) { numCtns.value++; _resizeMatrices(numCtns.value) }
+        if (cardCount.value < MAX_CARDS) { cardCount.value++; _resizeMatrices(cardCount.value) }
     }
 
     function decrement(): void {
-        if (numCtns.value > MIN_CTNS) { numCtns.value--; _resizeMatrices(numCtns.value) }
+        if (cardCount.value > MIN_CARDS) { cardCount.value--; _resizeMatrices(cardCount.value) }
     }
 
-    function setNumCtns(value: number): void {
-        numCtns.value = Math.min(MAX_CTNS, Math.max(MIN_CTNS, Math.floor(value) || MIN_CTNS))
-        _resizeMatrices(numCtns.value)
+    function setCardCount(value: number): void {
+        cardCount.value = Math.min(MAX_CARDS, Math.max(MIN_CARDS, Math.floor(value) || MIN_CARDS))
+        _resizeMatrices(cardCount.value)
     }
 
     async function purchase(
-        onSuccess?: (result: { prizePool: number; ctns: number }) => void,
+        onSuccess?: (result: { prizePool: number; cardCount: number }) => void,
     ): Promise<void> {
         if (purchasing.value || !selectedRoom.value) return
 
@@ -424,7 +424,7 @@ export function useGameRoomPurchaseModal() {
 
         if (exceedsCustomCardLimit.value) {
             showToast(
-                `Con ${numCtns.value} cartón(es) solo puedes personalizar ${maxCustomCardsAllowed.value}.`,
+                `Con ${cardCount.value} cartón(es) solo puedes personalizar ${maxCustomCardsAllowed.value}.`,
                 'error',
             )
             return
@@ -448,12 +448,12 @@ export function useGameRoomPurchaseModal() {
 
             const payload = isPlayer.value
                 ? {
-                    num_ctns: numCtns.value,
+                    card_count: cardCount.value,
                     ...(canCustomize.value && customizeCard.value && matricesToSend.length > 0
                         ? { custom_numbers: matricesToSend }
                         : {}),
                 }
-                : { num_ctns: numCtns.value, country_id: selectedCountry.value!.id }
+                : { card_count: cardCount.value, country_id: selectedCountry.value!.id }
 
 
             const { data } = await backendClient.post<BingoCardPurchaseResponse>(endpoint, payload)
@@ -461,7 +461,7 @@ export function useGameRoomPurchaseModal() {
             showToast(data.message, data.type)
 
             if (data.type === 'success') {
-                onSuccess?.({ prizePool: data.prize_pool ?? 0, ctns: data.ctns ?? numCtns.value })
+                onSuccess?.({ prizePool: data.prize_pool ?? 0, cardCount: data.card_count ?? cardCount.value })
                 close()
             }
         } catch (err: any) {
@@ -481,7 +481,7 @@ export function useGameRoomPurchaseModal() {
         cardPrice,
         currencySymbol,
         loadingPrice,
-        numCtns,
+        cardCount,
         purchasing,
         totalAmount,
         canAdvance,
@@ -510,7 +510,7 @@ export function useGameRoomPurchaseModal() {
         prevStep,
         increment,
         decrement,
-        setNumCtns,
+        setCardCount,
         purchase,
     }
 }

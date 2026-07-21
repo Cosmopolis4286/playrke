@@ -35,7 +35,7 @@ export interface BingoGameRoomConfig {
  */
 export interface BingoGameRoomPlayer {
   /** Cantidad de cartones del jugador */
-  readonly ctns: number
+  readonly card_count: number
   /** Si tiene automarcador activo */
   readonly automarker?: boolean
 }
