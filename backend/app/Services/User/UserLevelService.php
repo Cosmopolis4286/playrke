@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\UserLevel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class UserLevelService
 {
@@ -98,7 +97,7 @@ class UserLevelService
             ];
 
             if ($reason) {
-                $this->logXpTransaction($user, -$amount, $reason, false);
+                $this->logXpTransaction($user, $userLevel, -$amount, $reason, false);
             }
 
             DB::commit();
@@ -219,14 +218,16 @@ class UserLevelService
 
     private function logXpTransaction(User $user, UserLevel $userLevel, int $amount, string $reason, bool $leveledUp): void
     {
-        Log::info('XP transaction: ' . $reason, [
-            'user_id'     => $user->id,
-            'caused_by'   => Auth::id(),
-            'xp_amount'   => $amount,
-            'reason'      => $reason,
-            'leveled_up'  => $leveledUp,
-            'new_level'   => $userLevel->current_level,
-            'total_xp'    => $userLevel->total_xp,
-        ]);
+        activity()
+            ->performedOn($user)
+            ->causedBy(Auth::user())
+            ->withProperties([
+                'xp_amount'  => $amount,
+                'reason'     => $reason,
+                'leveled_up' => $leveledUp,
+                'new_level'  => $userLevel->current_level,
+                'total_xp'   => $userLevel->total_xp,
+            ])
+            ->log('XP transaction: ' . $reason);
     }
 }
