@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Directories\Crypto;
 
+use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Models\BinanceAccounts;
+use App\Models\Directories\Crypto\Binance\BinanceAccounts;
 use App\Traits\Users\UserTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +15,13 @@ class BinanceController extends Controller
 {
     use UserTrait;
 
+    public function __construct(
+        private readonly BinanceAccountsRepositoryInterface $binanceAccounts,
+    ) {}
+
     public function index()
     {
-        $accounts = BinanceAccounts::where("user", Auth::id())->get();
+        $accounts = $this->binanceAccounts->getByUserId(Auth::id());
         $accountTypes = BinanceAccounts::getAccountTypes();
 
         return view('all.directory.usdt.index', compact('accounts', 'accountTypes'));
@@ -30,18 +35,18 @@ class BinanceController extends Controller
         DB::beginTransaction();
 
         try {
-            if (BinanceAccounts::existsAccount($accountType, $dataValue)) {
+            if ($this->binanceAccounts->existsAccount($accountType, $dataValue)) {
                 return redirect()->back()->with([
                     'message' => 'Estos datos ya se encuentran registrados',
                     'type' => 'warning',
                 ]);
             }
 
-            BinanceAccounts::create([
+            $this->binanceAccounts->create([
                 'account_type' => $accountType,
                 'data_value' => $dataValue,
-                'user' => Auth::id(),
-                'status' => 1
+                'user_id' => Auth::id(),
+                'status' => 'ACTIVE',
             ]);
 
             DB::commit();
@@ -68,16 +73,24 @@ class BinanceController extends Controller
         DB::beginTransaction();
 
         try {
-            if (BinanceAccounts::existsAccount($accountType, $dataValue, Auth::id())) {
+            if ($this->binanceAccounts->existsAccount($accountType, $dataValue, Auth::id())) {
                 return redirect()->back()->with([
                     'message' => 'Estos datos ya se encuentran registrados',
                     'type' => 'warning',
                 ]);
             }
 
-            $account = BinanceAccounts::where('user', Auth::id())->findOrFail(decrypt($id));
+            $accountId = decrypt($id);
+            $account = $this->binanceAccounts->find($accountId);
 
-            $account->update(['account_type' => $accountType, 'data_value' => $dataValue]);
+            if (!$account || (string) $account->user_id !== (string) Auth::id()) {
+                abort(404);
+            }
+
+            $this->binanceAccounts->update($accountId, [
+                'account_type' => $accountType,
+                'data_value' => $dataValue,
+            ]);
 
             DB::commit();
 
@@ -101,7 +114,14 @@ class BinanceController extends Controller
         DB::beginTransaction();
 
         try {
-            BinanceAccounts::where('user', Auth::id())->findOrFail(decrypt($request->id))->delete();
+            $accountId = decrypt($request->id);
+            $account = $this->binanceAccounts->find($accountId);
+
+            if (!$account || (string) $account->user_id !== (string) Auth::id()) {
+                abort(404);
+            }
+
+            $this->binanceAccounts->delete($accountId);
             DB::commit();
             return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {
@@ -112,6 +132,13 @@ class BinanceController extends Controller
 
     public function getInfo($id)
     {
-        return BinanceAccounts::getById(decrypt($id), ['account_type', 'data_value']);
+        $accountId = decrypt($id);
+        $account = $this->binanceAccounts->find($accountId, ['id', 'user_id', 'account_type', 'data_value']);
+
+        if (!$account || (string) $account->user_id !== (string) Auth::id()) {
+            abort(404);
+        }
+
+        return $account->only(['account_type', 'data_value']);
     }
 }
