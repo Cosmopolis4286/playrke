@@ -194,3 +194,15 @@ bloqueante para que Bingo/Trivia otorguen XP.
   - **No se tocó** la lógica de cálculo de premios, `WalletService`,
     `GamePrizeService`, ni el motor de preguntas de Trivia — solo se agregó una
     llamada adicional al final de los métodos de cierre ya identificados.
+  - Suite completa corrida: `tests/Feature/Api/BingoTest.php` +
+    `tests/Unit/Domains/Bingo/*` + `tests/Unit/Domains/Trivia/*` →
+    **58/58 tests pasan, 0 regresiones** (incluye `GameEngineServiceTest`, que
+    instancia el servicio real vía contenedor con las nuevas dependencias).
+    Nota de cobertura: ningún test existente ejercita `finishGame()` ni
+    `claimCardWin()` directamente (los tests de `GameEngineServiceTest` cubren
+    `startGame`/`sendNextQuestion`/`submitAnswer`, no el cierre de partida) — la
+    validación del código nuevo en sí se hizo manualmente vía tinker
+    (`GameCompletionService::reportParticipation()`, ver entrada de Fase 1/2) más
+    la verificación de que el contenedor resuelve ambos servicios sin error de DI.
+    Sería recomendable añadir un test de integración para `finishGame()` y
+    `claimCardWin()` que cubra el otorgamiento de XP/logros en una sesión futura.
