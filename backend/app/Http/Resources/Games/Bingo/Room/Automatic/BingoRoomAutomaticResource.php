@@ -45,7 +45,8 @@ class BingoRoomAutomaticResource extends JsonResource
                 'custom_card_price_pct'   => $this->custom_card_price_pct,
                 'custom_card_mode'        => $this->custom_card_mode,
                 'custom_card_every_x'     => $this->custom_card_every_x,
-                'allow_move_free_space'   => (bool) $this->allow_move_free_space,
+                'move_free_space_mode'    => $this->move_free_space_mode,
+                'move_free_space_price_pct' => $this->move_free_space_price_pct,
                 'allow_special_card'      => (bool) $this->allow_special_card,
                 'max_special_cards'       => $this->max_special_cards,
                 // Nuevos campos de programación avanzada

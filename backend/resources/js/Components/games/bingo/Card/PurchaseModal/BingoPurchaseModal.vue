@@ -194,6 +194,7 @@
                 :custom-card-mode="customCardMode"
                 :custom-price-pct="customPricePct"
                 :max-custom-allowed="maxCustomCardsAllowed"
+                :allow-move-free-space="allowMoveFreeSpace"
                 :exceeds-custom-card-limit="exceedsCustomCardLimit"
                 :manual-card-count="manualCardCount"
                 :confirm-incomplete-custom-card="confirmIncompleteCustomCard"

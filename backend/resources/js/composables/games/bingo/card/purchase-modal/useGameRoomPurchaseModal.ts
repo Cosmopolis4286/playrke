@@ -28,7 +28,7 @@ function emptyMatrix(variant?: string | null): CardMatrix {
 
 /** Estado de la modalidad de cartón personalizado, resuelto por el backend en /player-card-price. */
 interface CustomCardState {
-    mode: 'paid' | 'every_x' | 'free' | null
+    mode: 'paid' | 'by_range' | 'every_x' | 'free' | null
     pricePct: number
     everyX: number | null
 }
@@ -169,11 +169,21 @@ export function useGameRoomPurchaseModal() {
     // Precio unitario base.
     const basePricePerCard = computed(() => cardPrice.value)
 
-    // Precio unitario de cartón personalizado: recargo solo aplica en modo 'paid'.
+    // Precio unitario de cartón personalizado: recargo aplica en modo 'paid' (manual)
+    // y 'by_range' (calculado automáticamente por el backend en customPricePct).
     const customPricePerCard = computed(() => {
-        if (customCardState.value.mode !== 'paid' || customPricePct.value <= 0) return cardPrice.value
+        const hasSurcharge = customCardState.value.mode === 'paid' || customCardState.value.mode === 'by_range'
+        if (!hasSurcharge || customPricePct.value <= 0) return cardPrice.value
         return parseFloat((cardPrice.value * (1 + customPricePct.value / 100)).toFixed(4))
     })
+
+    // Si true, el jugador puede mover la casilla LIBRE a cualquier celda de su
+    // cartón personalizado (solo tiene sentido en BINGO_75, única variante con libre).
+    const allowMoveFreeSpace = computed(
+        () => canCustomize.value
+            && selectedRoom.value?.config?.allow_move_free_space === true
+            && selectedRoom.value?.config?.game_variant === 'BINGO_75',
+    )
 
     // Total calculado según distribución manual/aleatorio.
     const totalAmountWithCustom = computed(() => {
@@ -495,6 +505,7 @@ export function useGameRoomPurchaseModal() {
         customCardState,
         customPricePct,
         maxCustomCardsAllowed,
+        allowMoveFreeSpace,
         exceedsCustomCardLimit,
         manualCardCount,
         basePricePerCard,

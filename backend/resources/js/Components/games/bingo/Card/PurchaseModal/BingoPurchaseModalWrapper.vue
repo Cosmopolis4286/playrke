@@ -50,6 +50,7 @@ const emit = defineEmits<{
     :custom-card-mode="modal.customCardState.value.mode"
     :custom-price-pct="modal.customPricePct.value"
     :max-custom-cards-allowed="modal.maxCustomCardsAllowed.value"
+    :allow-move-free-space="modal.allowMoveFreeSpace.value"
     :exceeds-custom-card-limit="modal.exceedsCustomCardLimit.value"
     :base-price-per-card="modal.basePricePerCard.value"
     :custom-price-per-card="modal.customPricePerCard.value"

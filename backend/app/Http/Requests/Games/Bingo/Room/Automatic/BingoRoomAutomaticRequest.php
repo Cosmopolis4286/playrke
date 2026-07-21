@@ -111,7 +111,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,by_range,every_x,free'],
             'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
             'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:10'],
-            'allowMoveFreeSpace'          => ['boolean'],
+            'moveFreeSpaceMode'           => ['nullable', 'in:paid,by_range,free'],
+            'moveFreeSpacePricePct'       => ['required_if:moveFreeSpaceMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
             'allowSpecialCard'            => ['boolean'],
             'maxSpecialCards'             => ['nullable', 'integer', 'min:1', 'max:5'],
         ];
@@ -133,11 +134,11 @@ class BingoRoomAutomaticRequest extends BaseRequest
             // automáticas no exponen un campo gameVariant editable en este request
             // (hereda BINGO_75 por defecto en el DTO), así que solo se valida la
             // dependencia con allowCustomCard.
-            if (filter_var($this->input('allowMoveFreeSpace', false), FILTER_VALIDATE_BOOLEAN)
+            if ($this->input('moveFreeSpaceMode') !== null
                 && !filter_var($this->input('allowCustomCard', false), FILTER_VALIDATE_BOOLEAN)
             ) {
                 $validator->errors()->add(
-                    'allowMoveFreeSpace',
+                    'moveFreeSpaceMode',
                     'Mover la casilla libre requiere permitir cartón personalizado.'
                 );
             }
