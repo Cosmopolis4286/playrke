@@ -1,6 +1,6 @@
 <script setup lang="ts" name="BingoRoomReviewStep">
 import { computed } from 'vue'
-import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+import type { BingoRoomFormData, BingoRoomLastUpdatedBy } from '@/js/types/games/bingo/room/bingo-room'
 import type { SelectOption } from '@/js/types/common/form/form'
 import { STEP_LABELS, STEP_ERROR_KEYS, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
 import { getCurrencyLabel } from '../Composables/useRoomCurrency'
@@ -11,6 +11,8 @@ const props = defineProps<{
   currencyOptions?: SelectOption[]
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
   lockActivateRoom?: boolean
+  /** Metadatos de solo lectura de la sala en edición (null en modo creación). */
+  roomMeta?: { updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null } | null
 }>()
 
 const emit = defineEmits<{
@@ -93,6 +95,27 @@ const customCardModeLabel = computed(() => {
 const hasOptionalConfig = computed(() =>
   !!props.form.useSerials || !!props.form.allowCustomCard || !!props.form.allowSpecialCard
 )
+
+/** "dd/mm/aaaa hh:mm" en horario local — mismo formato usado para la fecha del borrador local. */
+function formatDateTime(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const parsed = new Date(iso)
+  if (isNaN(parsed.getTime())) return null
+  return parsed.toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+const updatedAtLabel = computed(() => formatDateTime(props.roomMeta?.updated_at))
+
+const lastEditor = computed(() => props.roomMeta?.last_updated_by ?? null)
+
+/** ID abreviado (primeros 6 + últimos 4 dígitos) — el snowflake completo no cabe ni aporta al admin. */
+const lastEditorIdShort = computed(() => {
+  const id = lastEditor.value?.user_id
+  if (!id) return null
+  return id.length > 12 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id
+})
+
+const lastEditorAtLabel = computed(() => formatDateTime(lastEditor.value?.at))
 </script>
 
 <template>
@@ -262,6 +285,26 @@ const hasOptionalConfig = computed(() =>
           La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
         </small>
       </section>
+
+      <!-- Metadatos (solo edición) -->
+      <section v-if="roomMeta" class="bingo-review-step__section">
+        <h4 class="bingo-review-step__section-title">
+          <i class="fa-solid fa-clock-rotate-left bingo-review-step__section-icon"></i>
+          Metadatos
+        </h4>
+        <dl class="bingo-review-step__dl">
+          <dt>Última actualización</dt>
+          <dd>{{ updatedAtLabel ?? '—' }}</dd>
+          <template v-if="lastEditor">
+            <dt>Editado por</dt>
+            <dd>
+              {{ lastEditor.username ?? 'Usuario' }}
+              <span class="bingo-review-step__id-chip" :title="lastEditor.user_id">#{{ lastEditorIdShort }}</span>
+              <template v-if="lastEditorAtLabel"> — {{ lastEditorAtLabel }}</template>
+            </dd>
+          </template>
+        </dl>
+      </section>
     </div>
   </div>
 </template>
@@ -332,4 +375,12 @@ const hasOptionalConfig = computed(() =>
 .bingo-review-step__dl dt { font-weight: 500; color: var(--bs-secondary, #6c757d); font-size: .8125rem; }
 .bingo-review-step__dl dd { margin: 0; font-size: .8125rem; }
 .bingo-review-step__empty { margin: 0; font-size: .8125rem; color: var(--bs-secondary, #6c757d); font-style: italic; }
+.bingo-review-step__id-chip {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: .7rem;
+  color: var(--bs-secondary, #6c757d);
+  background: color-mix(in srgb, var(--bs-secondary, #6c757d) 12%, transparent);
+  padding: .05rem .4rem;
+  border-radius: .3rem;
+}
 </style>
