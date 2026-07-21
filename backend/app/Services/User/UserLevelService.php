@@ -4,7 +4,9 @@ namespace App\Services\User;
 
 use App\Models\User;
 use App\Models\UserLevel;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserLevelService
 {
@@ -17,7 +19,7 @@ class UserLevelService
         return UserLevel::createForUser($user);
     }
 
-    public function addXpToUser(User $user, int $amount, string $reason = null): array
+    public function addXpToUser(User $user, int $amount, ?string $reason = null): array
     {
         if ($amount <= 0) {
             return [
@@ -62,7 +64,7 @@ class UserLevelService
         }
     }
 
-    public function removeXpFromUser(User $user, int $amount, string $reason = null): array
+    public function removeXpFromUser(User $user, int $amount, ?string $reason = null): array
     {
         if ($amount <= 0) {
             return [
@@ -217,16 +219,14 @@ class UserLevelService
 
     private function logXpTransaction(User $user, int $amount, string $reason, bool $leveledUp): void
     {
-        activity()
-            ->performedOn($user)
-            ->causedBy(auth()->user())
-            ->withProperties([
-                'xp_amount' => $amount,
-                'reason' => $reason,
-                'leveled_up' => $leveledUp,
-                'new_level' => $user->userLevel->current_level,
-                'total_xp' => $user->userLevel->total_xp,
-            ])
-            ->log('XP transaction: ' . $reason);
+        Log::info('XP transaction: ' . $reason, [
+            'user_id'     => $user->id,
+            'caused_by'   => Auth::id(),
+            'xp_amount'   => $amount,
+            'reason'      => $reason,
+            'leveled_up'  => $leveledUp,
+            'new_level'   => $user->userLevel->current_level,
+            'total_xp'    => $user->userLevel->total_xp,
+        ]);
     }
 }
