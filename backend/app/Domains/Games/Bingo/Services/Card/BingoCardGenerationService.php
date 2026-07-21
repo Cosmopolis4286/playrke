@@ -75,10 +75,10 @@ final class BingoCardGenerationService
             $creator = $arrCtn['creator'];
             $seller = $arrCtn['seller'] ?? null;
             $currency = $arrCtn['currency'];
-            $numOfCtns = $arrCtn['numOfCtns'];
+            $cardCount = $arrCtn['cardCount'];
 
             // Formatear Monto de Venta
-            $saleAmount = round($numOfCtns * $arrCtn['cardPrice'], 2);
+            $saleAmount = round($cardCount * $arrCtn['cardPrice'], 2);
             $exchangeRate = (float) ($arrCtn['exchangeRate'] ?? 1);
             $saleAmountUsd = isset($arrCtn['saleAmountUsd'])
                 ? round((float) $arrCtn['saleAmountUsd'], 3)
@@ -224,7 +224,7 @@ final class BingoCardGenerationService
                 'external_player_id' => $arrCtn['externalPlayerId'] ?? null,
                 'currency_id' => $arrCtn['currency'],
                 'card_lot_id' => $lotID,
-                'payment_amount' => $arrCtn['cardPrice'] * $arrCtn['numOfCtns'],
+                'payment_amount' => $arrCtn['cardPrice'] * $arrCtn['cardCount'],
                 'payment_proof' => $paymentProof,
                 'payment_status' => 'COMPLETED',
                 'processed_at' => now(),

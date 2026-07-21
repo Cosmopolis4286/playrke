@@ -59,7 +59,7 @@ final class BingoCardController extends Controller
      * por lo que el hash se decodifica automáticamente antes de llegar aquí.
      *
      * @param BingoRoom                $room    Sala decodificada por route model binding.
-     * @param BingoCardGenerateRequest $request Body con num_ctns, country_id y player.
+     * @param BingoCardGenerateRequest $request Body con card_count, country_id y player.
      * @return JsonResponse
      */
     public function generateCardStore(BingoRoom $room, BingoCardGenerateRequest $request): JsonResponse
@@ -172,7 +172,7 @@ final class BingoCardController extends Controller
             function () use ($room, $request) {
                 $result = $this->generateService->playerBuyFromGameRooms(
                     $room->id,
-                    (int) $request->validated()['num_ctns']
+                    (int) $request->validated()['card_count']
                 );
 
                 return [

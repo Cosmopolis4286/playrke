@@ -19,7 +19,7 @@ class BingoCardManagementService
      * @param float $saleAmount Monto de la venta
      * @return string|null ID del lote creado
      */
-    public function createCtnsLot(array $cartonData, float $saleAmount): ?string
+    public function createCardLot(array $cartonData, float $saleAmount): ?string
     {
         try {
             $isCustom = !empty($cartonData['customCardNumbers']);
@@ -31,7 +31,7 @@ class BingoCardManagementService
                 'seller_type'      => $cartonData['seller_type'] ?? 'USER',
                 'room_user_id'     => $cartonData['roomUser'],
                 'currency_id'      => $cartonData['currency'],
-                'card_count'       => $cartonData['numOfCtns'],
+                'card_count'       => $cartonData['cardCount'],
                 'card_price'       => $cartonData['cardPrice'],
                 'sale_amount'      => $saleAmount,
                 'exchange_rate'    => $cartonData['exchangeRate'] ?? 1,
@@ -55,32 +55,32 @@ class BingoCardManagementService
      * Generar y almacenar cartones de bingo
      *
      * @param array $cartonData Datos del cartón. Si incluye `customCardNumbers`
-     *   (matriz ya validada por BingoVariant::validateCustomMatrix) y numOfCtns
+     *   (matriz ya validada por BingoVariant::validateCustomMatrix) y cardCount
      *   es 1, ese cartón usa los números elegidos por el jugador en vez de
      *   generarlos al azar.
      * @param string $lotId ID del lote
      * @return bool True si se generaron correctamente
      */
-    public function generateAndStoreCtns(array $cartonData, string $lotId): bool
+    public function generateAndStoreCards(array $cartonData, string $lotId): bool
     {
         try {
             $cards = [];
-            $numOfCtns  = $cartonData['numOfCtns'];
+            $cardCount  = $cartonData['cardCount'];
             $roomId     = $cartonData['roomId'];
             $roomUserId = $cartonData['roomUser'];
             $userId     = $cartonData['creator']['id'];
             $variant      = $cartonData['gameVariant'] ?? BingoVariant::BINGO_75;
-            // customCardNumbers es array de matrices (una por cartón, 0..numOfCtns
+            // customCardNumbers es array de matrices (una por cartón, 0..cardCount
             // elementos) o null. Los índices 0..count-1 usan la matriz personalizada;
-            // el resto (si el array es más corto que numOfCtns) se genera al azar.
+            // el resto (si el array es más corto que cardCount) se genera al azar.
             $customMatrices = $cartonData['customCardNumbers'] ?? null;
 
             $cardIds = [];
-            for ($i = 0; $i < $numOfCtns; $i++) {
+            for ($i = 0; $i < $cardCount; $i++) {
                 $cardIds[] = BingoCard::generateSnowflakeId();
             }
 
-            for ($i = 0; $i < $numOfCtns; $i++) {
+            for ($i = 0; $i < $cardCount; $i++) {
                 $hasCustomMatrix = $customMatrices !== null && array_key_exists($i, $customMatrices);
                 $cardNumbers = $hasCustomMatrix ? $customMatrices[$i] : BingoVariant::generateCardMatrix($variant);
                 $hash        = $this->generateCardHash($roomId, $roomUserId, $cardNumbers);

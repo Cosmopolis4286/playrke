@@ -9,7 +9,7 @@ final class BingoCardGenerateDTO
 {
     public function __construct(
         public readonly string $roomId,
-        public readonly int    $numCtns,
+        public readonly int    $cardCount,
         /** Snowflake ID del país, mantenido como string para evitar truncado de bigint. */
         public readonly string $countryId,
         public readonly string $playerPhone,
@@ -25,7 +25,7 @@ final class BingoCardGenerateDTO
 
         return new self(
             roomId:         (string) ($data['room_id'] ?? ''),
-            numCtns:        (int)    ($data['num_ctns'] ?? 1),
+            cardCount:      (int)    ($data['card_count'] ?? 1),
             countryId:      (string) ($data['country_id'] ?? ''),
             playerPhone:    (string) ($player['phone']     ?? ''),
             playerName:     (string) ($player['first_name'] ?? ''),

@@ -32,7 +32,7 @@ class BingoCardGenerateRequest extends BaseRequest
     {
         return [
             'room_id'          => ['required', 'string', 'exists:bingo_rooms,id'],
-            'num_ctns'         => ['required', 'integer', 'min:1', 'max:40'],
+            'card_count'         => ['required', 'integer', 'min:1', 'max:40'],
             'country_id'       => ['required', 'string', 'exists:countries,id'],
             'player.phone'     => ['required', 'string', 'max:20'],
             'player.first_name' => ['required', 'string', 'max:100'],
@@ -47,9 +47,9 @@ class BingoCardGenerateRequest extends BaseRequest
         return [
             'room_id.required'          => 'Debe seleccionar una sala.',
             'room_id.exists'            => 'La sala seleccionada no es válida.',
-            'num_ctns.required'         => 'Debe indicar la cantidad de cartones.',
-            'num_ctns.min'              => 'Debe generar al menos 1 cartón.',
-            'num_ctns.max'              => 'No puede generar más de 40 cartones.',
+            'card_count.required'         => 'Debe indicar la cantidad de cartones.',
+            'card_count.min'              => 'Debe generar al menos 1 cartón.',
+            'card_count.max'              => 'No puede generar más de 40 cartones.',
             'country_id.required'       => 'Debe seleccionar un país.',
             'country_id.exists'         => 'El país seleccionado no es válido.',
             'player.phone.required'     => 'El teléfono del jugador es obligatorio.',

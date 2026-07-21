@@ -272,7 +272,7 @@ final class BingoRoomController extends Controller
      * ya está registrado en el sistema. Solo se requiere país y cantidad.
      *
      * @param BingoRoom                $room    Sala decodificada por route model binding.
-     * @param BingoRoomPlayerBuyRequest $request Body con num_ctns y country_id.
+     * @param BingoRoomPlayerBuyRequest $request Body con card_count y country_id.
      * @return JsonResponse
      */
     public function buyFromGameRooms(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
@@ -293,23 +293,23 @@ final class BingoRoomController extends Controller
      * Flujo simplificado para jugadores que ya tienen billetera configurada.
      * Acepta opcionalmente `custom_numbers` (matrices elegidas manualmente por
      * el jugador) — una compra puede ser mixta: `custom_numbers` puede traer
-     * menos elementos que `num_ctns` (el resto se genera al azar a precio
+     * menos elementos que `card_count` (el resto se genera al azar a precio
      * base). Cada elemento se valida contra la variante de la sala en
      * BingoCardGenerateService::playerBuyFromGameRooms(), que también aplica
      * el límite de cartones personalizables cuando la sala usa
      * custom_card_mode = 'every_x'.
      *
      * @param BingoRoom $room    Sala decodificada por route model binding.
-     * @param Request    $request Body con num_ctns y, opcionalmente, custom_numbers.
+     * @param Request    $request Body con card_count y, opcionalmente, custom_numbers.
      * @return JsonResponse
      */
     public function playerBuyFromGameRooms(BingoRoom $room, Request $request): JsonResponse
     {
-        $numCtns = (int) $request->input('num_ctns', 1);
+        $cardCount = (int) $request->input('card_count', 1);
 
         $request->validate([
-            'num_ctns'         => 'required|integer|min:1|max:40',
-            // Array de matrices personalizadas (0..num_ctns elementos). Cada
+            'card_count'       => 'required|integer|min:1|max:40',
+            // Array de matrices personalizadas (0..card_count elementos). Cada
             // elemento es array<col,int[]>. Los cartones no cubiertos por este
             // array se generan al azar a precio base.
             'custom_numbers'   => 'sometimes|nullable|array|max:40',
@@ -317,16 +317,16 @@ final class BingoRoomController extends Controller
         ]);
 
         $customNumbers = $request->input('custom_numbers');
-        if ($customNumbers !== null && count($customNumbers) > $numCtns) {
+        if ($customNumbers !== null && count($customNumbers) > $cardCount) {
             return response()->json([
-                'message' => 'El número de matrices personalizadas no puede superar num_ctns.',
+                'message' => 'El número de matrices personalizadas no puede superar card_count.',
             ], 422);
         }
 
         return $this->handleServiceJson(
             fn() => $this->generateService->playerBuyFromGameRooms(
                 $room->id,
-                $numCtns,
+                $cardCount,
                 $customNumbers,
             )
         );

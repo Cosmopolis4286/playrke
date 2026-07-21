@@ -12,7 +12,7 @@ final class BingoRoomPlayerBuyDTO
         /** ID real de la sala (decodificado por route model binding) */
         public readonly string $roomId,
         /** Cantidad de cartones a comprar */
-        public readonly int    $numCtns,
+        public readonly int    $cardCount,
         /** Snowflake ID del país seleccionado */
         public readonly string $countryId,
     ) {}
@@ -21,7 +21,7 @@ final class BingoRoomPlayerBuyDTO
     {
         return new self(
             roomId:    $roomId,
-            numCtns:   (int)    ($data['num_ctns']   ?? 1),
+            cardCount: (int)    ($data['card_count']   ?? 1),
             countryId: (string) ($data['country_id'] ?? ''),
         );
     }
