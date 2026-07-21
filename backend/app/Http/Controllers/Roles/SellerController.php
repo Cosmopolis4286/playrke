@@ -13,7 +13,6 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Roles\Commerce;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Seller;
 use App\Traits\Helpers\EncryptTrait;
@@ -95,14 +94,15 @@ class SellerController extends Controller
             return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
 
-        // Obtener comercio asociado al usuario autenticado
-        $commerce = Seller::getValueByUserId(Auth::id(), 'commerce_id');
-        if (!$commerce) {
+        // Obtener comercio asociado al usuario autenticado (vía manager_user_id → commerces.user_id)
+        $managerUserId = Seller::getValueByUserId(Auth::id(), 'manager_user_id');
+        $commerceId = $managerUserId ? Commerce::where('user_id', $managerUserId)->value('id') : null;
+        if (!$commerceId) {
             return response()->json(['error' => 'Comercio no encontrado'], 404);
         }
 
         // Obtener tasa de cambio
-        $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($commerce, $currency->id);
+        $exchangeRate = $this->commerceExchangeRates->getCommerceCurrencyValue($commerceId, $currency->id);
 
         $roomId = $room;
 
@@ -111,7 +111,7 @@ class SellerController extends Controller
 
         // Obtener el creador de la sala (comercio) para buscar precio personalizado
         $bingoCreatorID = BingoCreator::where('room_id', $roomId)
-            ->where('user_id', $commerce)
+            ->where('user_id', $managerUserId)
             ->value('id');
 
         // Intentar obtener el precio configurado
