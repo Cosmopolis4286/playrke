@@ -188,13 +188,13 @@ class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRep
      * Actualiza cantidad de cartones
      *
      * @param mixed $id ID del jugador en sala
-     * @param int $ctns Cantidad de cartones
+     * @param int $cardCount Cantidad de cartones
      * @return bool
      */
-    public function updateCartonCount($id, int $ctns): bool
+    public function updateCartonCount($id, int $cardCount): bool
     {
         return $this->model->where('id', $id)
-            ->update(['cards_purchased' => $ctns]) > 0;
+            ->update(['cards_purchased' => $cardCount]) > 0;
     }
 
     /**

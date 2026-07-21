@@ -621,7 +621,7 @@ final class BingoCardGenerateService
             return [
                 'type'       => 'success',
                 'message'    => 'Cartones generados correctamente.',
-                'ctns'       => $arrCtn['numOfCtns'],
+                'card_count' => $arrCtn['cardCount'],
             ];
         });
 
@@ -640,7 +640,7 @@ final class BingoCardGenerateService
         broadcast(new BingoCardSold(
             roomId: (string) $room->id,
             roomName: (string) $room->uuid_code,
-            quantity: (int) $arrCtn['numOfCtns'],
+            quantity: (int) $arrCtn['cardCount'],
             amountUsd: (float) $arrCtn['saleAmountUsd'],
             creatorUserId: (string) $creatorUserId,
         ));
@@ -692,11 +692,11 @@ final class BingoCardGenerateService
      */
     private function broadcastPlayerCardsUpdated(string $roomId, int|string $userId, float $cardPrice, string $currencySymbol): void
     {
-        $totalCtns = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
+        $totalCards = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
             ->where('user_id', $userId)
             ->value('cards_purchased');
 
-        if ($totalCtns === null) {
+        if ($totalCards === null) {
             return;
         }
 
@@ -708,7 +708,7 @@ final class BingoCardGenerateService
         broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayerRoomCardsUpdated(
             userId:         (string) $userId,
             roomId:         $hashedRoomId,
-            ctns:           (int) $totalCtns,
+            cardCount:      (int) $totalCards,
             cardPrice:      $cardPrice,
             currencySymbol: $currencySymbol,
         ));
@@ -870,20 +870,20 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Máximo de cartones personalizables permitidos en una compra de `$numCtns`
+     * Máximo de cartones personalizables permitidos en una compra de `$cardCount`
      * cartones cuando la sala usa custom_card_mode = 'every_x': por cada ciclo
      * de (X normales + 1 personalizable) solo el último cartón del ciclo puede
      * personalizarse. Ej. X=3 → de cada 4 cartones consecutivos, 1 personalizable
      * (posiciones 4, 8, 12...). La regla es por proceso de compra — no se basa
      * en el histórico acumulado del jugador en la sala.
      */
-    private function maxCustomCardsAllowed(int $everyX, int $numCtns): int
+    private function maxCustomCardsAllowed(int $everyX, int $cardCount): int
     {
         if ($everyX < 1) {
-            return $numCtns;
+            return $cardCount;
         }
 
-        return intdiv($numCtns, $everyX + 1);
+        return intdiv($cardCount, $everyX + 1);
     }
 
     /**
@@ -915,13 +915,13 @@ final class BingoCardGenerateService
      * Compra de cartones para jugadores (flujo simplificado).
      *
      * @param string     $roomId         ID de la sala
-     * @param int        $numCtns        Número de cartones
+     * @param int        $cardCount      Número de cartones
      * @param array|null $customMatrices Array de matrices, una por cartón. Si se envía,
-     *   count($customMatrices) debe ser === $numCtns. Cada elemento es el mismo shape
+     *   count($customMatrices) debe ser === $cardCount. Cada elemento es el mismo shape
      *   que BingoVariant::generateCardMatrix. Se valida cada matriz individualmente.
      * @return array
      */
-    public function playerBuyFromGameRooms(string $roomId, int $numCtns, ?array $customMatrices = null): array
+    public function playerBuyFromGameRooms(string $roomId, int $cardCount, ?array $customMatrices = null): array
     {
         $userId = $this->userContext->resolveUserId();
 
@@ -938,13 +938,13 @@ final class BingoCardGenerateService
                 throw new DomainException('Esta sala no permite cartones personalizados.');
             }
 
-            if ($customCount > $numCtns) {
-                throw new DomainException('El número de matrices personalizadas no puede superar num_ctns.');
+            if ($customCount > $cardCount) {
+                throw new DomainException('El número de matrices personalizadas no puede superar card_count.');
             }
 
             if ($room->config->custom_card_mode === 'every_x') {
                 $everyX = (int) ($room->config->custom_card_every_x ?? 0);
-                $maxAllowed = $this->maxCustomCardsAllowed($everyX, $numCtns);
+                $maxAllowed = $this->maxCustomCardsAllowed($everyX, $cardCount);
                 if ($customCount > $maxAllowed) {
                     throw new DomainException(
                         "Con esta cantidad de cartones solo puedes personalizar {$maxAllowed}."
@@ -968,7 +968,7 @@ final class BingoCardGenerateService
         // Precio de cartones personalizados según la modalidad configurada en la sala
         // (custom_card_mode). Solo aplica a cartones con matrices enviadas (los sin
         // matriz se generan al azar → siempre precio base).
-        $regularCount = $numCtns - $customCount;
+        $regularCount = $cardCount - $customCount;
 
         $customTotal = $customCount > 0
             ? $this->resolveCustomCardsTotal($room, $basePrice, $customCount)
@@ -1003,7 +1003,7 @@ final class BingoCardGenerateService
             'seller'         => null,
             'seller_type'    => 'USER',
             'currency'       => $currencyId,
-            'numOfCtns'      => $numCtns,
+            'cardCount'      => $cardCount,
             'cardPrice'      => $basePrice,   // precio unitario base (el lote usa sale_amount para el total)
             'country'        => null,
             'playerPhone'    => '',
@@ -1022,7 +1022,7 @@ final class BingoCardGenerateService
         // Generar cartones y debitar wallet en una sola transacción atómica.
         // Si recordCardPurchase falla, generateInTransaction se revierte y el jugador
         // no queda con cartones sin pago.
-        $description = "Compra de {$numCtns} cartón(es) — Sala {$room->uuid_code}";
+        $description = "Compra de {$cardCount} cartón(es) — Sala {$room->uuid_code}";
         $newBalance = null;
         DB::transaction(function () use ($arrCtn, $playerWallet, $totalAmount, $description, $roomId, $userId, &$newBalance) {
             $this->cardGenerationService->generateInTransaction($arrCtn);
@@ -1055,14 +1055,14 @@ final class BingoCardGenerateService
         broadcast(new BingoCardSold(
             roomId: (string) $room->id,
             roomName: (string) $room->uuid_code,
-            quantity: $numCtns,
+            quantity: $cardCount,
             amountUsd: (float) $arrCtn['saleAmountUsd'],
         ));
 
         return [
             'message'        => 'Cartones generados exitosamente',
             'type'           => 'success',
-            'ctns'           => $numCtns,
+            'card_count'     => $cardCount,
             'prize_pool'     => $fresh?->prize_pool ?? $room->prize_pool,
             'currency'       => $priceInfo['currency_symbol'],
             'exchange_rate'  => $priceInfo['exchange_rate'],

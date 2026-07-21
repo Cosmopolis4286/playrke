@@ -27,7 +27,7 @@ final class BingoPlayerRoomCardsUpdated implements ShouldBroadcast
         /** ID Snowflake de la sala (coincide con BingoGameRoom.id) */
         public readonly string $roomId,
         /** Total acumulado de cartones del usuario en esta sala */
-        public readonly int $ctns,
+        public readonly int $cardCount,
         /** Precio del cartón en la moneda del usuario (null para commerce/seller) */
         public readonly ?float $cardPrice = null,
         /** Símbolo de la moneda del usuario (null para commerce/seller) */
@@ -48,7 +48,7 @@ final class BingoPlayerRoomCardsUpdated implements ShouldBroadcast
     {
         return [
             'room_id'         => $this->roomId,
-            'ctns'            => $this->ctns,
+            'card_count'      => $this->cardCount,
             'card_price'      => $this->cardPrice,
             'currency_symbol' => $this->currencySymbol,
         ];

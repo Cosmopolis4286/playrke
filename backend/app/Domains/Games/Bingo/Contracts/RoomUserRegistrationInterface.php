@@ -13,7 +13,7 @@ interface RoomUserRegistrationInterface
     /**
      * Registrar un nuevo usuario en la sala o actualizar uno existente
      *
-     * @param array $userData Datos del usuario incluyendo creator, roomId, numOfCtns, etc.
+     * @param array $userData Datos del usuario incluyendo creator, roomId, cardCount, etc.
      * @return array{id: string, isNew: bool}|null Resultado con ID e indicador de nuevo usuario, o null si falla
      */
     public function registerOrUpdateRoomUser(array $userData): ?array;

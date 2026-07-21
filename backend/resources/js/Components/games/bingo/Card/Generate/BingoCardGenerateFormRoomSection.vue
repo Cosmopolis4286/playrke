@@ -11,13 +11,13 @@
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
-    numCtns: number
+    cardCount: number
     /** Snowflake ID del país seleccionado como string (evita truncado JS). */
     selectedCountry: string | null
   }>()
 
   const emit = defineEmits<{
-    (e: 'update:numCtns', value: number): void
+    (e: 'update:cardCount', value: number): void
   }>()
 
   const {
@@ -39,7 +39,7 @@
   function handleNumCtns(value: string | number) {
     const raw = Number(value)
     const clamped = Math.max(1, Math.min(40, raw || 1))
-    emit('update:numCtns', clamped)
+    emit('update:cardCount', clamped)
   }
 
   defineExpose({ selectedRoom })
@@ -131,14 +131,14 @@
       <FormInput
         v-if="selectedRoomId"
         label="Cartones"
-        name="num_ctns"
+        name="card_count"
         type="number"
         min="1"
         max="40"
         required
         col="col-md-3"
         :disabled="!props.selectedCountry"
-        :modelValue="props.numCtns"
+        :modelValue="props.cardCount"
         @update:modelValue="handleNumCtns"
       />
     </div>

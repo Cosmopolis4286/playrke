@@ -117,8 +117,8 @@ class RoomMetricsService implements RoomMetricsInterface
             $success = true;
 
             // Actualizar total de cartones
-            if (isset($saleData['numOfCtns']) && $saleData['numOfCtns'] > 0) {
-                $success &= $this->updateTotalCards($room, $saleData['numOfCtns']);
+            if (isset($saleData['cardCount']) && $saleData['cardCount'] > 0) {
+                $success &= $this->updateTotalCards($room, $saleData['cardCount']);
             }
 
             // Actualizar total de ventas
@@ -285,7 +285,7 @@ class RoomMetricsService implements RoomMetricsInterface
             // Actualizar métricas generales
             $updateData = array_merge($updateData, [
                 'total_sales' => ($room->total_sales ?? 0) + $saleAmount,
-                'total_cards' => ($room->total_cards ?? 0) + $saleData['numOfCtns'],
+                'total_cards' => ($room->total_cards ?? 0) + $saleData['cardCount'],
             ]);
 
             if (isset($saleData['seller'])) {
@@ -307,7 +307,7 @@ class RoomMetricsService implements RoomMetricsInterface
                 ];
 
                 $current['total_sales'] = round($current['total_sales'] + $saleAmountLocal, 3);
-                $current['total_cards'] += $saleData['numOfCtns'];
+                $current['total_cards'] += $saleData['cardCount'];
 
                 if ($prizePoolType != 2) {
                     $current['prize_pool'] = round($current['prize_pool'] + $prizePoolLocal, 3);

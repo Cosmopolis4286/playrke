@@ -113,10 +113,10 @@ interface BingoRoomUserRepositoryInterface extends BaseRepositoryInterface
      * Actualiza cantidad de cartones
      *
      * @param mixed $id ID del jugador en sala
-     * @param int $ctns Cantidad de cartones
+     * @param int $cardCount Cantidad de cartones
      * @return bool
      */
-    public function updateCartonCount($id, int $ctns): bool;
+    public function updateCartonCount($id, int $cardCount): bool;
 
     /**
      * Actualiza automarcador

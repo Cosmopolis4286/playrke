@@ -52,7 +52,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 $isNew = true;
             } else {
                 // Actualizar cartones del usuario existente
-                if (!$this->updateUserCards($roomUser, $userData['numOfCtns'])) {
+                if (!$this->updateUserCards($roomUser, $userData['cardCount'])) {
                     return null;
                 }
             }
@@ -74,7 +74,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
     public function validateUserData(array $userData): bool
     {
         // Validar campos requeridos
-        $requiredFields = ['roomId', 'creator', 'numOfCtns'];
+        $requiredFields = ['roomId', 'creator', 'cardCount'];
         
         foreach ($requiredFields as $field) {
             if (!isset($userData[$field])) {
@@ -89,9 +89,9 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
             return false;
         }
 
-        // Validar que numOfCtns sea un número positivo
-        if (!is_numeric($userData['numOfCtns']) || $userData['numOfCtns'] <= 0) {
-            Log::error('numOfCtns debe ser un número positivo', ['numOfCtns' => $userData['numOfCtns']]);
+        // Validar que cardCount sea un número positivo
+        if (!is_numeric($userData['cardCount']) || $userData['cardCount'] <= 0) {
+            Log::error('cardCount debe ser un número positivo', ['cardCount' => $userData['cardCount']]);
             return false;
         }
 
@@ -125,7 +125,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
             $roomUserData = [
                 'room_id' => $userData['roomId'],
                 'user_id' => $userData['creator']['id'],
-                'cards_purchased' => $userData['numOfCtns'],
+                'cards_purchased' => $userData['cardCount'],
                 'automarker' => 1,
             ];
 

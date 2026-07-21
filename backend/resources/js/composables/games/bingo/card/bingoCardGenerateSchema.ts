@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 export const bingoCardGenerateSchema = z.object({
     selectedCountry: z.string({ error: 'Debe seleccionar un país.' }).min(1, 'Debe seleccionar un país.'),
-    numCtns: z
+    cardCount: z
         .number({ error: 'La cantidad de cartones es requerida.' })
         .int('Debe ser un número entero.')
         .min(1, 'Mínimo 1 cartón.')
@@ -36,7 +36,7 @@ export interface BingoCardGenerateContext {
 export function validateBingoCardGenerate(
     data: Partial<{
         selectedCountry: string | null
-        numCtns: number
+        cardCount: number
         phone: string
         firstName: string
         lastName: string
@@ -49,7 +49,7 @@ export function validateBingoCardGenerate(
 
     const result = bingoCardGenerateSchema.safeParse({
         selectedCountry: data.selectedCountry ?? '',
-        numCtns:         data.numCtns ?? 0,
+        cardCount:         data.cardCount ?? 0,
         phone:           data.phone ?? '',
         firstName:       data.firstName ?? '',
         lastName:        data.lastName ?? '',

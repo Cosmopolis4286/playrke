@@ -53,7 +53,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     const selectedCountry = ref<string | null>(null)
 
     /** Cantidad de cartones a generar (mínimo 1, máximo 40). */
-    const numCtns = ref(1)
+    const cardCount = ref(1)
 
     /** Datos del jugador que adquiere los cartones. */
     const player = reactive<Player>({
@@ -91,7 +91,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     const commission = computed(() => cardPriceData.value?.seller_commission ?? 0)
 
     /** Monto total a cobrar al jugador (precio unitario × cantidad). */
-    const totalAmount = computed(() => roomCtnPrice.value * numCtns.value)
+    const totalAmount = computed(() => roomCtnPrice.value * cardCount.value)
 
     /** Comisión que retiene el vendedor sobre el monto total. */
     const sellerCommission = computed(() => totalAmount.value * (commission.value / 100))
@@ -107,7 +107,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         validateBingoCardGenerate(
             {
                 selectedCountry: selectedCountry.value,
-                numCtns:         numCtns.value,
+                cardCount:         cardCount.value,
                 phone:           player.phone,
                 firstName:       player.firstName,
                 lastName:        player.lastName,
@@ -130,7 +130,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      */
     function resetState() {
         selectedCountry.value = null
-        numCtns.value = 1
+        cardCount.value = 1
         countries.value = []
         cardPriceData.value = null
         player.phone = ''
@@ -145,7 +145,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      * pero mantiene el país seleccionado para facilitar generaciones consecutivas.
      */
     function resetAfterGeneration() {
-        numCtns.value = 1
+        cardCount.value = 1
         player.phone = ''
         player.firstName = ''
         player.lastName = ''
@@ -253,7 +253,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         
         // Crear FormData para enviar el archivo
         const formData = new FormData()
-        formData.append('num_ctns', numCtns.value.toString())
+        formData.append('card_count', cardCount.value.toString())
         formData.append('country_id', selectedCountry.value!)
         formData.append('player[phone]', player.phone.trim())
         formData.append('player[first_name]', player.firstName.trim())
@@ -288,7 +288,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     return {
         countries,
         selectedCountry,
-        numCtns,
+        cardCount,
         player,
         loading,
         loadingCountries,

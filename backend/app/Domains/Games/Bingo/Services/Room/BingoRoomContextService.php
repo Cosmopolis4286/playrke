@@ -432,7 +432,7 @@ final class BingoRoomContextService
                 ],
                 'players_room' => $room->players
                     ->where('user_id', $userId)
-                    ->map(fn($ru) => ['ctns' => $ru->cards_purchased])
+                    ->map(fn($ru) => ['card_count' => $ru->cards_purchased])
                     ->values()
                     ->all(),
             ])->values()->all(),

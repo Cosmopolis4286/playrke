@@ -33,9 +33,9 @@ final class BingoGameRoomsDTO implements ContextDTO
     public function toView(): array
     {
         $roomsWithPrices = $this->rooms->map(function($room) {
-            // Mapear relación players → players_room con campo ctns esperado por el frontend
+            // Mapear relación players → players_room con campo card_count esperado por el frontend
             $playersRoom = $room->relationLoaded('players')
-                ? $room->players->map(fn($p) => ['ctns' => (int) $p->cards_purchased])->values()->all()
+                ? $room->players->map(fn($p) => ['card_count' => (int) $p->cards_purchased])->values()->all()
                 : null;
 
             // Preview de jugadores para prueba social (avatares/iniciales en la card del lobby):
