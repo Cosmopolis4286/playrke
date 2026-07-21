@@ -295,7 +295,15 @@ class BingoRoom extends BaseModel
             default       => ['offline', 'No Disponible'],
         };
 
-        return '<span class="room-status-chip room-status-chip--' . $variant . '">' . e($label) . '</span>';
+        $updatedAtHtml = $this->updated_at
+            ? '<span class="room-status-chip__updated-at" title="Última actualización">'
+                . e($this->updated_at->format('d/m/Y H:i')) . '</span>'
+            : '';
+
+        return '<div class="room-status-chip-wrap">'
+            . '<span class="room-status-chip room-status-chip--' . $variant . '">' . e($label) . '</span>'
+            . $updatedAtHtml
+            . '</div>';
     }
 
     // ========================
