@@ -279,6 +279,15 @@ class BingoRoom extends BaseModel
     }
 
     /**
+     * Timezone IANA (ej. 'America/Caracas') usado por getStatusBadgeAttribute()
+     * para mostrar la fecha de última actualización en hora local del usuario
+     * que ve la tabla — seteado por BingoRoomContextService antes de serializar
+     * cada fila (accessors no reciben parámetros, así que se inyecta como
+     * propiedad pública). Default 'UTC' si nadie lo setea (ej. en tests).
+     */
+    public string $displayTimezone = 'UTC';
+
+    /**
      * Chip HTML del estado (punto de color + texto, ver .room-status-chip en BaseTable.vue).
      */
     public function getStatusBadgeAttribute(): string
@@ -295,10 +304,12 @@ class BingoRoom extends BaseModel
             default       => ['offline', 'No Disponible'],
         };
 
-        $updatedAtHtml = $this->updated_at
-            ? '<span class="room-status-chip__updated-at" title="Última actualización">'
-                . e($this->updated_at->format('d/m/Y H:i')) . '</span>'
-            : '';
+        $updatedAtHtml = '';
+        if ($this->updated_at) {
+            $local = $this->updated_at->copy()->setTimezone($this->displayTimezone);
+            $updatedAtHtml = '<span class="room-status-chip__updated-at" title="Última actualización (' . e($local->format('P')) . ')">'
+                . e($local->format('d/m/Y H:i')) . ' (UTC' . e($local->format('P')) . ')</span>';
+        }
 
         return '<div class="room-status-chip-wrap">'
             . '<span class="room-status-chip room-status-chip--' . $variant . '">' . e($label) . '</span>'
