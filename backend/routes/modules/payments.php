@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\DirectoryController;
-use App\Http\Controllers\PaymentController;
-use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,9 +29,8 @@ route_group('directory', 'directory.', ['auth', 'role:admin,superadmin,commerce,
 // ====================================
 // COMPROBANTES DE PAGO
 // ====================================
-// Route::middleware('auth')
-//     ->get('payment/proof/{fileName}', [PaymentController::class, 'showPaymentProof'])
-//     ->name('payment.proof');
+// (PaymentController::showPaymentProof eliminado — código muerto que usaba
+// App\Models\BingoCtnsPayment, clase inexistente del sistema "ctns" legacy)
 
 // // ====================================
 // // MÉTODOS DE PAGO COLOMBIA

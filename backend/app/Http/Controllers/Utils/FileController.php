@@ -27,14 +27,14 @@ class FileController extends Controller
         return self::$imageManager;
     }
 
-    public function showImagePaymentCtns($filename)
+    public function showImagePaymentCards($filename)
     {
-        return $this->showImage("private/game/bingo/payments/all-ctns/{$filename}");
+        return $this->showImage("private/game/bingo/payments/all-cards/{$filename}");
     }
 
-    public function showImagePaymentPrizeCtns($filename)
+    public function showImagePaymentPrizeCards($filename)
     {
-        return $this->showImage("private/game/bingo/payments/prize-ctns/{$filename}");
+        return $this->showImage("private/game/bingo/payments/prize-cards/{$filename}");
     }
 
     private function showImage($filePath)

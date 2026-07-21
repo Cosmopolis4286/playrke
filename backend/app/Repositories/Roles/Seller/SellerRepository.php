@@ -249,16 +249,12 @@ class SellerRepository extends BaseRepository implements SellerRepositoryInterfa
      */
     public function isSellerInUse(string $sellerId): bool
     {
-        // Verificar si el vendedor tiene ventas registradas
-        $hasRoomUsers = DB::table('bingo_room_users')
-            ->where('seller', $sellerId)
+        // Verificar si el vendedor tiene lotes de cartones vendidos registrados.
+        // bingo_room_users no tiene columna de vendedor (solo room_id/user_id/role),
+        // así que la única fuente real de "vendedor en uso" es bingo_card_lots.
+        return DB::table('bingo_card_lots')
+            ->where('seller_user_id', $sellerId)
             ->exists();
-
-        $hasCartones = DB::table('bingo_ctns')
-            ->where('seller', $sellerId)
-            ->exists();
-
-        return $hasRoomUsers || $hasCartones;
     }
 
     /**

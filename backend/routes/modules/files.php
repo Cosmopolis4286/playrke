@@ -14,8 +14,8 @@ use App\Http\Controllers\Utils\IframeController;
 // IMÁGENES PROTEGIDAS
 // ====================================
 route_group('image', 'image.', ['auth'], FileController::class, [
-    'payment-prizes' => ['method' => 'get', 'uri' => 'payments/prizes/{filename}'],
-    'payments' => ['method' => 'get', 'uri' => 'payments/{filename}'],
+    'payment-prizes' => ['method' => 'get', 'uri' => 'payments/prizes/{filename}', 'action' => 'showImagePaymentPrizeCards'],
+    'payments' => ['method' => 'get', 'uri' => 'payments/{filename}', 'action' => 'showImagePaymentCards'],
 ]);
 
 // ====================================
