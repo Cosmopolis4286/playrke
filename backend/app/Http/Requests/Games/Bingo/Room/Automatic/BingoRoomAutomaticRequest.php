@@ -128,6 +128,20 @@ class BingoRoomAutomaticRequest extends BaseRequest
     {
         $validator->after(function ($validator) {
 
+            // Mover casilla libre: solo tiene sentido junto con cartón personalizado
+            // y solo en BINGO_75 (única variante con casilla libre). Las salas
+            // automáticas no exponen un campo gameVariant editable en este request
+            // (hereda BINGO_75 por defecto en el DTO), así que solo se valida la
+            // dependencia con allowCustomCard.
+            if (filter_var($this->input('allowMoveFreeSpace', false), FILTER_VALIDATE_BOOLEAN)
+                && !filter_var($this->input('allowCustomCard', false), FILTER_VALIDATE_BOOLEAN)
+            ) {
+                $validator->errors()->add(
+                    'allowMoveFreeSpace',
+                    'Mover la casilla libre requiere permitir cartón personalizado.'
+                );
+            }
+
             $allowedCurrencies = $this->input('allowedCurrencies');
             $cardPriceByCurrency = $this->input('cardPriceByCurrency');
 
