@@ -17,13 +17,13 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
   import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
   import XpGrantForm from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
   import type { XpGrantData } from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
   import WalletLoadForm from '@/js/Components/Roles/Admin/User/WalletLoadForm.vue'
   import type { WalletLoadData } from '@/js/Components/Roles/Admin/User/WalletLoadForm.vue'
+  import UserPermissionsForm from '@/js/Components/Roles/Admin/User/UserPermissionsForm.vue'
 
   // ==========================================================================
   // Composables
@@ -32,6 +32,8 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminUser } from '@/js/composables/roles/admin/user/useAdminUser'
+  import { useAdminUserPermissions } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
+  import type { CatalogPermission } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
 
   // ==========================================================================
   // Types
@@ -141,20 +143,47 @@
     return ''
   }
 
-  const showPermissionsModal = ref(false)
+  // Modal de permisos específicos por usuario (Modal.vue + useModalForm,
+  // solo superadmin — protegido también en el backend vía
+  // UserPolicy::managePermissions + middleware role:superadmin).
+  const { fetchPermissions, savePermissions } = useAdminUserPermissions()
+
   const permissionsUserId = ref<string | number>('')
   const permissionsUserName = ref('')
+  const permissionsCatalog = ref<CatalogPermission[]>([])
+  const permissionsViaRoles = ref<string[]>([])
+  const permissionsForm = ref<{ id?: string | number; specific: string[] }>({ specific: [] })
+  const permissionsLoading = ref(false)
 
-  function openPermissionsModal(userId: string | number, userName: string) {
-    permissionsUserId.value = userId
-    permissionsUserName.value = userName
-    showPermissionsModal.value = true
+  async function submitPermissions(): Promise<boolean> {
+    if (!permissionsUserId.value) return false
+    return savePermissions(permissionsUserId.value, permissionsForm.value.specific)
   }
 
-  function closePermissionsModal() {
-    showPermissionsModal.value = false
-    permissionsUserId.value = ''
-    permissionsUserName.value = ''
+  const {
+    showModalForm: showPermissionsModal,
+    formRef: permissionsFormRef,
+    handleSubmit: handlePermissionsSubmit,
+  } = useModalForm(permissionsForm, submitPermissions, { defaultTitle: 'Permisos', createTitle: 'Permisos específicos', editTitle: 'Permisos específicos' })
+
+  async function openPermissionsModal(userId: string | number, userName: string) {
+    permissionsUserId.value = userId
+    permissionsUserName.value = userName
+    permissionsForm.value = { specific: [] }
+    permissionsCatalog.value = []
+    permissionsViaRoles.value = []
+
+    permissionsLoading.value = true
+    const data = await fetchPermissions(userId, userName)
+    permissionsLoading.value = false
+
+    if (data) {
+      permissionsCatalog.value = data.catalog
+      permissionsViaRoles.value = data.viaRoles
+      permissionsForm.value = { id: userId, specific: data.specific }
+    }
+
+    showPermissionsModal.value = true
   }
 
   // Modal de edición de usuario (Modal.vue + useModalForm, patrón estándar del proyecto)
@@ -485,13 +514,29 @@
   </Modal>
 
   <!-- Modal para permisos específicos por usuario (solo superadmin) -->
-  <UserPermissionsModal
-    :show="showPermissionsModal"
-    :user-id="permissionsUserId"
-    :user-name="permissionsUserName"
-    @close="closePermissionsModal"
-    @success="closePermissionsModal"
-  />
+  <Modal
+    v-model="showPermissionsModal"
+    :title="`Permisos de ${permissionsUserName}`"
+    icon="fa-user-shield"
+    size="lg"
+    static
+    show-confirm
+    confirm-text="Guardar cambios"
+    :on-submit="handlePermissionsSubmit"
+    :confirm-disabled="permissionsLoading"
+  >
+    <div v-if="permissionsLoading" class="text-center py-4">
+      <span class="spinner-border spinner-border-sm text-primary mr-2"></span>
+      Cargando permisos...
+    </div>
+    <UserPermissionsForm
+      v-else
+      ref="permissionsFormRef"
+      v-model="permissionsForm.specific"
+      :catalog="permissionsCatalog"
+      :via-roles="permissionsViaRoles"
+    />
+  </Modal>
 
   <!-- Modal para otorgar XP -->
   <Modal

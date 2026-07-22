@@ -2,6 +2,7 @@
 
 namespace App\Services\Roles\Admin\User;
 
+use App\Models\Permission;
 use App\Models\User;
 use App\Services\Roles\Admin\PermissionService;
 
@@ -41,14 +42,24 @@ final class UserPermissionService
      * "pending changes" por separado como en la matriz de roles — aquí basta
      * con diffear contra el estado actual y aplicar altas/bajas).
      *
+     * Excluye is_system=true por el mismo motivo que
+     * PermissionService::assignPermissionsToRole()/revokePermissionsFromRole():
+     * el checkbox deshabilitado en el frontend es solo cosmético, este filtro
+     * es el único punto real que impide otorgar/revocar permisos estructurales
+     * del sistema directamente a un usuario.
+     *
      * @param string[] $permissionNames Nombres de permiso (no IDs — specific_permissions
      *   guarda strings, igual que ya lo hacen los 3 servicios de activación de juegos).
      */
     public function syncSpecificPermissions(User $user, array $permissionNames): void
     {
-        $current  = $user->specific_permissions ?? [];
-        $toRevoke = array_diff($current, $permissionNames);
-        $toGrant  = array_diff($permissionNames, $current);
+        $systemPermissionNames = Permission::where('is_system', true)->pluck('name')->all();
+
+        $current       = $user->specific_permissions ?? [];
+        $requestedSafe = array_diff($permissionNames, $systemPermissionNames);
+
+        $toRevoke = array_diff($current, $requestedSafe, $systemPermissionNames);
+        $toGrant  = array_diff($requestedSafe, $current);
 
         if ($toRevoke !== []) {
             $user->revokeSpecificPermission(array_values($toRevoke));
