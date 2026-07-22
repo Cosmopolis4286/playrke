@@ -161,10 +161,10 @@
     width: 100%;
     padding: 0.3rem 0.5rem;
     border-radius: 0.3rem;
-    background: #f8faff;
-    border: 1px solid #dce8fb;
+    background: rgba(13, 110, 253, 0.08);
+    border: 1px solid rgba(13, 110, 253, 0.22);
     font-size: 0.785rem;
-    color: #1a56b0;
+    color: var(--ds-text);
   }
 
   .kit-row__name {
@@ -191,7 +191,7 @@
   /* precio unitario */
   .kit-row__unit {
     font-size: 0.72rem;
-    color: #6c757d;
+    color: var(--ds-text-2);
     white-space: nowrap;
     flex-shrink: 0;
     min-width: 56px;
@@ -215,8 +215,8 @@
     border-radius: 50%;
     border: none;
     outline: none;
-    background: #dce8fb;
-    color: #1a56b0;
+    background: rgba(13, 110, 253, 0.18);
+    color: var(--ds-text);
     cursor: pointer;
     font-size: 0.55rem;
     padding: 0;

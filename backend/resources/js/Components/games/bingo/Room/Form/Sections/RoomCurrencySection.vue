@@ -152,16 +152,16 @@
 
   <!-- Panel de precios de cartones -->
   <div class="col-12" v-show="cardPriceByCurrencyActive" style="margin-bottom: 1rem">
-    <div style="border: 1px solid #dee2e6; border-radius: 0.3rem; padding: 0.6rem 0.85rem">
+    <div style="border: 1px solid var(--ds-border); border-radius: 0.3rem; padding: 0.6rem 0.85rem">
       <div class="d-flex align-items-center justify-content-between mb-1">
         <div class="d-flex align-items-center" style="gap: 0.4rem">
-          <i class="fa-solid fa-coins" style="font-size: 0.75rem; color: #6c757d"></i>
-          <span style="font-size: 0.8rem; font-weight: 600; color: #343a40">Precio de cartones</span>
-          <span style="font-size: 0.75rem; color: #6c757d">— Base USD + ajuste por moneda</span>
+          <i class="fa-solid fa-coins" style="font-size: 0.75rem; color: var(--ds-text-2)"></i>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--ds-text)">Precio de cartones</span>
+          <span style="font-size: 0.75rem; color: var(--ds-text-2)">— Base USD + ajuste por moneda</span>
         </div>
         <div class="d-flex align-items-center" style="gap: 0.75rem">
           <div class="d-flex align-items-center" style="gap: 0.35rem" :title="canUseBaseUsd === false ? 'No disponible: hay monedas seleccionadas sin tasa de cambio activa' : undefined">
-            <span style="font-size: 0.74rem; color: #6c757d; white-space: nowrap">Usar Base USD</span>
+            <span style="font-size: 0.74rem; color: var(--ds-text-2); white-space: nowrap">Usar Base USD</span>
             <div class="custom-control custom-switch" style="padding-left: 2.1rem; margin-bottom: 0">
               <input
                 type="checkbox"

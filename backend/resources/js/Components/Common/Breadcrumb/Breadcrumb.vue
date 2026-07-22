@@ -52,7 +52,7 @@ defineProps<Props>()
 
 .breadcrumb-item + .breadcrumb-item::before {
   content: ">";
-  color: #6c757d;
+  color: var(--ds-text-2);
   padding: 0 0.5rem;
 }
 
@@ -68,7 +68,7 @@ defineProps<Props>()
 }
 
 .breadcrumb-item.active {
-  color: #6c757d;
+  color: var(--ds-text-2);
   font-weight: 500;
 }
 
