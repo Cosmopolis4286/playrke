@@ -93,6 +93,7 @@ class Seller extends BaseModel
     /**
      * Commerce que actúa como manager de este vendedor.
      * Busca el commerce cuyo user_id = manager_user_id del seller.
+     * Inversa de Commerce::sellers().
      */
     public function managerCommerce(): HasOne
     {

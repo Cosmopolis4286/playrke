@@ -8,7 +8,11 @@ use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Servicio para el cálculo de comisiones en transacciones de bingo
+ * Servicio para el cálculo de comisiones en transacciones de bingo.
+ *
+ * Solo cubre la comisión del vendedor. La comisión de sala/RKE se calcula en
+ * RoomMetricsService::updateRoomMetricsWithCommissions() con tasas configurables
+ * por sala (bingo_rooms_config), no aquí. Ver backend/docs/ROLE_HIERARCHY.md.
  */
 class CommissionCalculationService implements CommissionCalculationInterface
 {
@@ -44,94 +48,6 @@ class CommissionCalculationService implements CommissionCalculationInterface
             ]);
             return 0;
         }
-    }
-
-    /**
-     * Calcular la comisión de la sala
-     *
-     * @param float $saleAmount Monto de la venta
-     * @return float Comisión de la sala
-     */
-    public function calculateRoomCommission(float $saleAmount): float
-    {
-        try {
-            // Porcentaje de comisión de la sala (configurable)
-            $roomCommissionRate = 0.05; // 5% por defecto
-            
-            return round($saleAmount * $roomCommissionRate, 2);
-        } catch (\Throwable $e) {
-            Log::error('Error al calcular comisión de la sala: ' . $e->getMessage(), [
-                'saleAmount' => $saleAmount
-            ]);
-            return 0;
-        }
-    }
-
-    /**
-     * Calcular la comisión RKE
-     *
-     * @param float $saleAmount Monto de la venta
-     * @return float Comisión RKE
-     */
-    public function calculateRkeCommission(float $saleAmount): float
-    {
-        try {
-            // Porcentaje de comisión RKE (configurable)
-            $rkeCommissionRate = 0.10; // 10% por defecto
-            
-            return round($saleAmount * $rkeCommissionRate, 2);
-        } catch (\Throwable $e) {
-            Log::error('Error al calcular comisión RKE: ' . $e->getMessage(), [
-                'saleAmount' => $saleAmount
-            ]);
-            return 0;
-        }
-    }
-
-    /**
-     * Calcular todas las comisiones para una venta
-     *
-     * @param float $saleAmount Monto total de la venta
-     * @param string|null $sellerId ID del vendedor
-     * @param string|null $roomId ID de la sala
-     * @return array Array asociativo con todas las comisiones calculadas
-     */
-    public function calculateAllCommissions(float $saleAmount, ?string $sellerId = null, ?string $roomId = null): array
-    {
-        try {
-            return [
-                'seller_commission' => $this->calculateSellerCommission($saleAmount, $sellerId, $roomId),
-                'room_commission' => $this->calculateRoomCommission($saleAmount),
-                'rke_commission' => $this->calculateRkeCommission($saleAmount),
-                'total_commissions' => 0, // Se calculará después
-            ];
-        } catch (\Throwable $e) {
-            Log::error('Error al calcular todas las comisiones: ' . $e->getMessage(), [
-                'saleAmount' => $saleAmount,
-                'sellerId' => $sellerId,
-                'roomId' => $roomId
-            ]);
-            
-            return [
-                'seller_commission' => 0,
-                'room_commission' => 0,
-                'rke_commission' => 0,
-                'total_commissions' => 0,
-            ];
-        }
-    }
-
-    /**
-     * Obtener las tasas de comisión configuradas
-     *
-     * @return array Array con las tasas actuales
-     */
-    public function getCommissionRates(): array
-    {
-        return [
-            'room_commission_rate' => 0.05,  // 5%
-            'rke_commission_rate' => 0.10,   // 10%
-        ];
     }
 
     /**

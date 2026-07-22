@@ -85,11 +85,14 @@ class Commerce extends BaseModel
     }
 
     /**
-     * Relación con los vendedores
+     * Relación con los vendedores.
+     *
+     * La FK real vive en el lado de Seller (sellers.manager_user_id → commerces.user_id,
+     * ver Seller::managerCommerce()); no existe columna commerce_id en sellers.
      */
     public function sellers(): HasMany
     {
-        return $this->hasMany(Seller::class, 'commerce_id');
+        return $this->hasMany(Seller::class, 'manager_user_id', 'user_id');
     }
 
     /**

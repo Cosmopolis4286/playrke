@@ -16,6 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Representa a los clientes que se conectan al sistema mediante API.
  * Cada cliente tiene credenciales únicas y puede manejar múltiples monedas y juegos.
  *
+ * Rama paralela e independiente de la cadena Commerce → Seller: no tiene commerce_id
+ * ni seller_id, no cuelga de ningún manager. Ver backend/docs/ROLE_HIERARCHY.md.
+ *
  * @property string $id
  * @property string $name Nombre del cliente
  * @property string|null $business_name Razón social del cliente
