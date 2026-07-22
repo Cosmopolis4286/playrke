@@ -299,8 +299,8 @@ class BingoRoom extends BaseModel
 
     /**
      * Chip HTML del estado (punto de color + texto) + ícono de info con popover
-     * nativo (title) mostrando fecha de última actualización y último editor.
-     * Ver .room-status-chip / .room-status-chip__info en BaseTable.vue.
+     * CSS-only (:hover/:focus, sin JS) mostrando fecha de creación, última
+     * actualización y último editor. Ver .room-status-chip__info-* en BaseTable.vue.
      */
     public function getStatusBadgeAttribute(): string
     {
@@ -318,16 +318,31 @@ class BingoRoom extends BaseModel
 
         $infoHtml = '';
         if ($this->updated_at) {
-            $local  = $this->updated_at->copy()->setTimezone($this->displayTimezone);
-            $offset = $local->format('P');
+            $updatedLocal = $this->updated_at->copy()->setTimezone($this->displayTimezone);
+            $createdLocal = $this->created_at?->copy()->setTimezone($this->displayTimezone);
+            $offset       = $updatedLocal->format('P');
 
-            $lines = ['Última actualización: ' . $local->format('d/m/Y H:i') . ' (UTC' . $offset . ')'];
-            $lines[] = $this->lastEditor
-                ? 'Editado por: ' . ($this->lastEditor['username'] ?? 'Usuario')
-                : 'Sin ediciones registradas desde la creación.';
+            $rows = [];
+            $rows[] = ['Última actualización', $updatedLocal->format('d/m/Y H:i') . ' (UTC' . $offset . ')'];
+            $rows[] = [
+                'Editado por',
+                $this->lastEditor ? ($this->lastEditor['username'] ?? 'Usuario') : 'Sin ediciones registradas',
+            ];
+            if ($createdLocal) {
+                $rows[] = ['Creada el', $createdLocal->format('d/m/Y H:i')];
+            }
 
-            $infoHtml = '<span class="room-status-chip__info" title="' . e(implode("\n", $lines)) . '">'
+            $rowsHtml = implode('', array_map(
+                fn($row) => '<div class="room-status-popover__row">'
+                    . '<span class="room-status-popover__label">' . e($row[0]) . '</span>'
+                    . '<span class="room-status-popover__value">' . e($row[1]) . '</span>'
+                    . '</div>',
+                $rows
+            ));
+
+            $infoHtml = '<span class="room-status-chip__info" tabindex="0">'
                 . '<i class="fa-solid fa-circle-info"></i>'
+                . '<div class="room-status-popover">' . $rowsHtml . '</div>'
                 . '</span>';
         }
 

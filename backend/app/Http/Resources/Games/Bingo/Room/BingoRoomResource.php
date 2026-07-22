@@ -27,6 +27,7 @@ class BingoRoomResource extends JsonResource
             'is_closed'          => $this->is_closed,
             'total_commissions'  => $this->total_commissions,
             'metrics_by_currency' => $this->metrics_by_currency ?? [],
+            'created_at'         => $this->created_at?->toISOString(),
             'updated_at'         => $this->updated_at?->toISOString(),
             'last_updated_by'    => $this->resolveLastUpdatedBy(),
 

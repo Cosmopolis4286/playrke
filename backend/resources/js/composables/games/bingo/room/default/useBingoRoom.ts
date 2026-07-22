@@ -226,6 +226,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
             roomData.value = {
                 id: room.id,
+                created_at: room.created_at,
                 updated_at: room.updated_at,
                 last_updated_by: room.last_updated_by,
             }

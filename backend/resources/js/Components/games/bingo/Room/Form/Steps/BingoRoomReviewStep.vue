@@ -12,7 +12,7 @@ const props = defineProps<{
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
   lockActivateRoom?: boolean
   /** Metadatos de solo lectura de la sala en edición (null en modo creación). */
-  roomMeta?: { updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null } | null
+  roomMeta?: { created_at?: string | null; updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null } | null
 }>()
 
 const emit = defineEmits<{
@@ -104,18 +104,10 @@ function formatDateTime(iso: string | null | undefined): string | null {
   return parsed.toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+const createdAtLabel = computed(() => formatDateTime(props.roomMeta?.created_at))
 const updatedAtLabel = computed(() => formatDateTime(props.roomMeta?.updated_at))
-
 const lastEditor = computed(() => props.roomMeta?.last_updated_by ?? null)
-
-/** ID abreviado (primeros 6 + últimos 4 dígitos) — el snowflake completo no cabe ni aporta al admin. */
-const lastEditorIdShort = computed(() => {
-  const id = lastEditor.value?.user_id
-  if (!id) return null
-  return id.length > 12 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id
-})
-
-const lastEditorAtLabel = computed(() => formatDateTime(lastEditor.value?.at))
+const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin ediciones registradas')
 </script>
 
 <template>
@@ -138,6 +130,24 @@ const lastEditorAtLabel = computed(() => formatDateTime(lastEditor.value?.at))
     </div>
 
     <div class="bingo-review-step__sections">
+      <!-- Metadatos (solo edición) -->
+      <section v-if="roomMeta" class="bingo-review-step__section bingo-review-step__section--meta">
+        <h4 class="bingo-review-step__section-title">
+          <i class="fa-solid fa-clock-rotate-left bingo-review-step__section-icon"></i>
+          Metadatos
+        </h4>
+        <dl class="bingo-review-step__dl">
+          <template v-if="createdAtLabel">
+            <dt>Creada el</dt>
+            <dd>{{ createdAtLabel }}</dd>
+          </template>
+          <dt>Última actualización</dt>
+          <dd>{{ updatedAtLabel ?? '—' }}</dd>
+          <dt>Editado por</dt>
+          <dd>{{ lastEditorLabel }}</dd>
+        </dl>
+      </section>
+
       <!-- Datos básicos -->
       <section class="bingo-review-step__section">
         <h4 class="bingo-review-step__section-title">
@@ -285,26 +295,6 @@ const lastEditorAtLabel = computed(() => formatDateTime(lastEditor.value?.at))
           La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
         </small>
       </section>
-
-      <!-- Metadatos (solo edición) -->
-      <section v-if="roomMeta" class="bingo-review-step__section">
-        <h4 class="bingo-review-step__section-title">
-          <i class="fa-solid fa-clock-rotate-left bingo-review-step__section-icon"></i>
-          Metadatos
-        </h4>
-        <dl class="bingo-review-step__dl">
-          <dt>Última actualización</dt>
-          <dd>{{ updatedAtLabel ?? '—' }}</dd>
-          <template v-if="lastEditor">
-            <dt>Editado por</dt>
-            <dd>
-              {{ lastEditor.username ?? 'Usuario' }}
-              <span class="bingo-review-step__id-chip" :title="lastEditor.user_id">#{{ lastEditorIdShort }}</span>
-              <template v-if="lastEditorAtLabel"> — {{ lastEditorAtLabel }}</template>
-            </dd>
-          </template>
-        </dl>
-      </section>
     </div>
   </div>
 </template>
@@ -375,12 +365,7 @@ const lastEditorAtLabel = computed(() => formatDateTime(lastEditor.value?.at))
 .bingo-review-step__dl dt { font-weight: 500; color: var(--bs-secondary, #6c757d); font-size: .8125rem; }
 .bingo-review-step__dl dd { margin: 0; font-size: .8125rem; }
 .bingo-review-step__empty { margin: 0; font-size: .8125rem; color: var(--bs-secondary, #6c757d); font-style: italic; }
-.bingo-review-step__id-chip {
-  font-family: var(--bs-font-monospace, monospace);
-  font-size: .7rem;
-  color: var(--bs-secondary, #6c757d);
-  background: color-mix(in srgb, var(--bs-secondary, #6c757d) 12%, transparent);
-  padding: .05rem .4rem;
-  border-radius: .3rem;
+.bingo-review-step__section--meta {
+  background: color-mix(in srgb, var(--bs-secondary, #6c757d) 5%, transparent);
 }
 </style>

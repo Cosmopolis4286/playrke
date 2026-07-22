@@ -453,16 +453,90 @@
     gap: 0.35rem;
   }
 
-  /* Ícono de info: popover nativo (title) con fecha de última actualización + editor */
+  /* Ícono de info: abre un popover CSS-only (:hover/:focus) con fecha de
+     creación/actualización y último editor — ver .room-status-popover abajo. */
   :deep(.room-status-chip__info) {
+    position: relative;
     display: inline-flex;
     color: var(--ds-text-muted);
     font-size: 0.72rem;
     cursor: help;
+    outline: none;
   }
 
-  :deep(.room-status-chip__info:hover) {
+  :deep(.room-status-chip__info:hover),
+  :deep(.room-status-chip__info:focus-visible) {
     color: var(--ds-text);
+  }
+
+  /* Panel del popover: oculto por defecto, revelado con hover/focus del ícono padre.
+     Se abre hacia ABAJO del ícono (no hacia arriba) para no quedar tapado por la
+     barra de acciones de la tabla cuando la fila está cerca del borde superior.
+     display:none (no solo visibility:hidden) es obligatorio aquí: un elemento
+     position:absolute oculto solo con visibility sigue ocupando espacio en el
+     layout y ese espacio se suma al scrollWidth/scrollHeight de cualquier
+     ancestro con overflow (.table-responsive tiene overflow-x:auto + el
+     max-height:70vh de arriba le agrega overflow-y) — eso generaba scrollbars
+     visibles en la tabla aunque el popover nunca se mostrara. */
+  :deep(.room-status-popover) {
+    display: none;
+    opacity: 0;
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    min-width: 220px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    cursor: default;
+    white-space: normal;
+  }
+
+  :deep(.room-status-chip__info:hover .room-status-popover),
+  :deep(.room-status-chip__info:focus-visible .room-status-popover) {
+    display: block;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Flecha apuntando hacia arriba, hacia el ícono */
+  :deep(.room-status-popover)::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: var(--ds-surface);
+  }
+
+  :deep(.room-status-popover__row) {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.72rem;
+    padding: 0.15rem 0;
+    white-space: nowrap;
+  }
+
+  :deep(.room-status-popover__row + .room-status-popover__row) {
+    border-top: 1px solid var(--ds-border);
+  }
+
+  :deep(.room-status-popover__label) {
+    color: var(--ds-text-muted);
+    font-weight: 500;
+  }
+
+  :deep(.room-status-popover__value) {
+    color: var(--ds-text);
+    font-weight: 600;
+    text-align: right;
   }
 
   /* Moneda(s): pills discretas (metadata de contexto, no el dato principal de la columna) */

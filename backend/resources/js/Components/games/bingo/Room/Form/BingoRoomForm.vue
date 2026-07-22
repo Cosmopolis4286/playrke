@@ -49,8 +49,8 @@
     editingRoomHasPlayers?: boolean
     /** IDs de monedas con al menos un cartón vendido en la sala en edición — no se pueden quitar de "Monedas Permitidas". */
     soldCurrencyIds?: string[]
-    /** Metadatos de solo lectura de la sala en edición (fecha de última actualización, último editor). */
-    roomMeta?: { updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null }
+    /** Metadatos de solo lectura de la sala en edición (fechas de creación/actualización, último editor). */
+    roomMeta?: { created_at?: string | null; updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null }
     modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
   }>()
 
