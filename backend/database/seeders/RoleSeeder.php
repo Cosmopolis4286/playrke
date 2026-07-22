@@ -17,7 +17,7 @@ class RoleSeeder extends Seeder
         // 'type' indica si es rol web o API
         $roles = [
             ['name' => 'SuperAdmin', 'prefix' => 'superadmin', 'description' => 'Super Administrador', 'status' => true, 'type' => 'web'],
-            ['name' => 'Jugador',   'prefix' => 'player',     'description' => 'Jugador', 'status' => true, 'type' => 'web'],
+            ['name' => 'Jugador',   'prefix' => 'player',     'description' => 'Jugador registrado', 'status' => true, 'type' => 'web'],
             ['name' => 'Admin',     'prefix' => 'admin',      'description' => 'Administrador', 'status' => true, 'type' => 'web'],
             ['name' => 'Comercio',  'prefix' => 'commerce',   'description' => 'Comercio', 'status' => true, 'type' => 'web'],
             ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio', 'status' => true, 'type' => 'web'],

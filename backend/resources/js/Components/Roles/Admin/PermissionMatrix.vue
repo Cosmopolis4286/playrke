@@ -316,7 +316,7 @@ function formatRoleName(name: string): string {
   const map: Record<string, string> = {
     superadmin: 'SuperAdmin', admin: 'Admin', commerce: 'Comercio',
     subsidiary: 'Sucursal', seller: 'Freelancer', provider: 'Proveedor',
-    customer: 'Cliente', treasurer: 'Tesorero', player: 'Normal',
+    customer: 'Cliente', treasurer: 'Tesorero', player: 'Jugador',
   }
   return map[name.toLowerCase()] ?? name
 }
