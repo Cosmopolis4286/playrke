@@ -19,36 +19,7 @@ class SidebarMenuService
             'route' => 'dashboard',
             'permission' => null, // Accesible para todos
         ],
-        // Billetera agrupa Directorio (accesible a todos) junto con el manejo
-        // de dinero del usuario; cada subitem se autofiltra por su propio
-        // permiso, así que el padre no exige ninguno en particular.
-        'wallet' => [
-            'title' => 'Billetera',
-            'icon' => 'fas fa-wallet',
-            'submenu' => [
-                'directory' => [
-                    'title' => 'Directorio',
-                    'route' => 'directory.index',
-                    'permission' => null, // Accesible para todos
-                ],
-                'my_wallet' => [
-                    'title' => 'Mi Billetera',
-                    'route' => 'wallet.index',
-                    'permission' => 'wallet.view',
-                ],
-                'movements' => [
-                    'title' => 'Movimientos',
-                    'route' => 'wallet-movements.index',
-                    'permission' => 'wallet.movements.view',
-                ],
-                'movement_types' => [
-                    'title' => 'Tipos de Movimiento',
-                    'route' => 'movement-types.index',
-                    'permission' => 'movement-types.view',
-                ],
-            ],
-        ],
-        // ── Juegos (operación diaria de juego) ────────────────────────
+        // ── Juegos (operación diaria de juego, flujo de venta hacia el player) ──
         // Un solo menú por juego: Bingo agrupa la administración de salas
         // (admin/superadmin) y la operación de venta (commerce/subsidiary/
         // seller/customer/player). Cada subitem se autofiltra por su propio
@@ -163,6 +134,36 @@ class SidebarMenuService
                     'route' => 'admin.win-event.index',
                     'permission' => 'win-events.manage',
                     'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+                ],
+            ],
+        ],
+
+        // Billetera agrupa Directorio (accesible a todos) junto con el manejo
+        // de dinero del usuario; cada subitem se autofiltra por su propio
+        // permiso, así que el padre no exige ninguno en particular.
+        'wallet' => [
+            'title' => 'Billetera',
+            'icon' => 'fas fa-wallet',
+            'submenu' => [
+                'directory' => [
+                    'title' => 'Directorio',
+                    'route' => 'directory.index',
+                    'permission' => null, // Accesible para todos
+                ],
+                'my_wallet' => [
+                    'title' => 'Mi Billetera',
+                    'route' => 'wallet.index',
+                    'permission' => 'wallet.view',
+                ],
+                'movements' => [
+                    'title' => 'Movimientos',
+                    'route' => 'wallet-movements.index',
+                    'permission' => 'wallet.movements.view',
+                ],
+                'movement_types' => [
+                    'title' => 'Tipos de Movimiento',
+                    'route' => 'movement-types.index',
+                    'permission' => 'movement-types.view',
                 ],
             ],
         ],
