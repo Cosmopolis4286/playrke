@@ -23,7 +23,7 @@ class ManagerSellerPolicy extends BaseRolePolicy
      */
     protected function requiredRole(): string|array
     {
-        return ['commerce', 'customer'];
+        return ['commerce', 'subsidiary', 'customer'];
     }
 
     /**

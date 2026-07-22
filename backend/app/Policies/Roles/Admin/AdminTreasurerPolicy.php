@@ -11,13 +11,13 @@ use App\Policies\Roles\BaseRolePolicy;
  *
  * Reglas:
  * - Solo usuarios con rol admin pueden operar
- * - Comercios en estados DELETED o BLOCKED no pueden mutar
+ * - Tesoreros en estados DELETED o BLOCKED no pueden mutar
  * - Compatible con authorizeResource()
  */
 class AdminTreasurerPolicy extends BaseRolePolicy
 {
     /**
-     * Rol requerido para operar sobre comercios.
+     * Rol requerido para operar sobre tesoreros.
      */
     protected function requiredRole(): string
     {
@@ -35,32 +35,32 @@ class AdminTreasurerPolicy extends BaseRolePolicy
     }
 
     /**
-     * Cambiar estado del comercio.
+     * Cambiar estado del tesorero.
      *
      * Acción de dominio (no CRUD estándar).
      *
      * @param User $user
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return bool
      */
-    public function changeStatus(User $user, Treasurer $commerce): bool
+    public function changeStatus(User $user, Treasurer $treasurer): bool
     {
         return $this->hasAccess($user)
-            && $this->canMutate($commerce);
+            && $this->canMutate($treasurer);
     }
 
     /**
-     * Cambiar contraseña asociada al comercio.
+     * Cambiar contraseña asociada al tesorero.
      *
      * Acción de dominio (no CRUD estándar).
      *
      * @param User $user
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return bool
      */
-    public function resetPassword(User $user, Treasurer $commerce): bool
+    public function resetPassword(User $user, Treasurer $treasurer): bool
     {
         return $this->hasAccess($user)
-            && $this->canMutate($commerce);
+            && $this->canMutate($treasurer);
     }
 }

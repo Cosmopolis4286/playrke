@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Services\User\UserPasswordService;
 use Illuminate\Support\Facades\DB;
 
-final class adminservice
+final class AdministratorService
 {
     public function __construct(
         private readonly AdministratorContextService $context,
@@ -82,12 +82,17 @@ final class adminservice
     }
 
     /**
-     * Validar que el usuario sea un administrador.
+     * Validar que el usuario sea un administrador y que el actor no se esté
+     * modificando a sí mismo.
      */
     private function validateAdministrator(User $user): void
     {
         if (!$user->hasRole('admin') && !$user->hasRole('superadmin')) {
             throw AdministratorException::notAdministrator();
+        }
+
+        if ($user->id === auth()->id()) {
+            throw AdministratorException::cannotModifySelf();
         }
     }
 }

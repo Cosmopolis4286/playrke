@@ -28,11 +28,11 @@ final class AdminTreasurerController extends Controller
     public function __construct(
         protected readonly AdminTreasurerService $service
     ) {
-        $this->authorizeResource(Treasurer::class, 'commerce');
+        $this->authorizeResource(Treasurer::class, 'treasurer');
     }
 
     /**
-     * Crear un comercio.
+     * Crear un tesorero.
      *
      * @param AdminTreasurerRequest $request
      * @return JsonResponse
@@ -49,7 +49,7 @@ final class AdminTreasurerController extends Controller
     }
 
     /**
-     * Listado de comercios
+     * Listado de tesoreros
      *
      * @return JsonResponse
      */
@@ -61,87 +61,87 @@ final class AdminTreasurerController extends Controller
     }
 
     /**
-     * Mostrar detalle de un comercio.
+     * Mostrar detalle de un tesorero.
      *
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return JsonResponse
      */
-    public function show(Treasurer $commerce): JsonResponse
+    public function show(Treasurer $treasurer): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
-                'data' => $this->service->show($commerce),
+                'data' => $this->service->show($treasurer),
             ]
         );
     }
 
     /**
-     * Actualizar un comercio.
+     * Actualizar un tesorero.
      *
      * @param AdminTreasurerRequest $request
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return JsonResponse
      */
-    public function update(AdminTreasurerRequest $request, Treasurer $commerce): JsonResponse
+    public function update(AdminTreasurerRequest $request, Treasurer $treasurer): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->update(
-                $commerce,
+                $treasurer,
                 $request->toDTO(AdminTreasurerDTO::class)
             )
         );
     }
 
     /**
-     * Eliminar un comercio (soft delete).
+     * Eliminar un tesorero (soft delete).
      *
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return JsonResponse
      */
-    public function delete(Treasurer $commerce): JsonResponse
+    public function delete(Treasurer $treasurer): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->service->delete($commerce)
+            fn() => $this->service->delete($treasurer)
         );
     }
 
     /**
-     * Eliminar un comercio permanentemente (hard delete).
+     * Eliminar un tesorero permanentemente (hard delete).
      *
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return JsonResponse
      */
-    public function destroy(Treasurer $commerce): JsonResponse
+    public function destroy(Treasurer $treasurer): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->service->destroy($commerce)
+            fn() => $this->service->destroy($treasurer)
         );
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) del comercio.
+     * Alternar estado (ACTIVE / INACTIVE) del tesorero.
      *
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return JsonResponse
      */
-    public function toggleStatus(Treasurer $commerce): JsonResponse
+    public function toggleStatus(Treasurer $treasurer): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->service->toggleStatus($commerce)
+            fn() => $this->service->toggleStatus($treasurer)
         );
     }
 
     /**
-     * Generar una nueva contraseña para un comercio.
+     * Generar una nueva contraseña para un tesorero.
      *
-     * @param Treasurer $commerce
+     * @param Treasurer $treasurer
      * @return JsonResponse
      */
-    public function resetPassword(Treasurer $commerce): JsonResponse
+    public function resetPassword(Treasurer $treasurer): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
-                'password' => $this->service->resetPassword($commerce),
+                'password' => $this->service->resetPassword($treasurer),
             ]
         );
     }

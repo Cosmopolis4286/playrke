@@ -19,10 +19,18 @@ class RoleAuthorizationService
     /**
      * Verifica si el usuario tiene alguno de los roles indicados (por prefijo o nombre).
      *
+     * El superadmin siempre pasa, igual que en hasAnyPermission(), para que un
+     * usuario con únicamente el rol superadmin (sin el rol admin adicional) no
+     * quede bloqueado por policies/middlewares que listan roles explícitos.
+     *
      * @param string|string[] $roles
      */
     public function hasAnyRole(User $user, string|array $roles): bool
     {
+        if ($this->isSuperadmin($user)) {
+            return true;
+        }
+
         return $user->hasRole($roles);
     }
 

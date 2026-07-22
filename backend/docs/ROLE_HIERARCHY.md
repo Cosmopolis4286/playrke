@@ -108,3 +108,74 @@ el flujo real y podía confundir sobre cuál es la fuente de verdad.
   `getCommissionRates()` eliminados (código muerto, tasas hardcodeadas
   divergentes de `RoomMetricsService`, sin consumidores ni presencia en la
   interfaz del contrato).
+- `RoleAuthorizationService::hasAnyRole()` no tenía bypass de superadmin (a
+  diferencia de `hasAnyPermission()`). Un usuario con únicamente el rol
+  `superadmin` (sin el rol `admin` adicional) era rechazado por
+  `AdminCommercePolicy`/`AdminCustomerPolicy`/`AdminTreasurerPolicy`
+  (`requiredRole() = 'admin'` sin incluir `superadmin`) y por cualquier ruta
+  con `role:admin` explícito. Corregido agregando el mismo bypass que ya
+  tenía `hasAnyPermission()`.
+- `ManagerSellerPolicy::requiredRole()` y la ruta `seller.php` (`manager-seller.*`)
+  excluían a `subsidiary` pese a que tiene los mismos permisos `sellers.*`
+  que `commerce` (`RolePermissionSeeder.php`). Un usuario `subsidiary` veía
+  "Mis Vendedores" en el sidebar pero recibía 403 al entrar. Corregido
+  agregando `subsidiary` a ambos.
+- `PrizePolicy::requiredRole()` no incluía `treasurer` pese a que tiene el
+  permiso `prizes.view`. Mismo patrón de sidebar-visible-pero-403. Corregido.
+- `admin.php` registraba las rutas CRUD de `AdminTreasurerController` con
+  `'commerce'` como nombre de parámetro de binding (`admin/treasurer/{commerce}/...`,
+  copy-paste de la línea de `commerce` sin actualizar), mientras el frontend
+  (`adminRoutes.ts`) ya construía las URLs esperando `{treasurer}`. Corregido
+  el parámetro en la ruta, y renombrados `$commerce`→`$treasurer` en
+  `AdminTreasurerController` y `AdminTreasurerPolicy` (mismo residuo de
+  copy-paste en comentarios y firmas de método).
+
+## 8. Módulos de rutas desactivados (no reactivados, solo documentados)
+
+`backend/routes/web.php` tiene comentados (`// require ...`) varios módulos
+que por tanto **nunca se ejecutan** en la aplicación real:
+
+- **`modules/customer.php`** (API Seamless Wallet: `customer.balance`,
+  `customer.user-id`, `customer.increase-balance`) — referencia
+  `App\Http\Controllers\Roles\CustomerController`, que **no existe en el
+  filesystem**. Reactivar este módulo tal cual causaría un error de clase no
+  encontrada; requiere crear el controlador primero.
+- **`modules/treasurer.php`** — su controlador (`TreasurerController`) sí
+  existe y es funcional, pero el grupo de rutas de administración usa
+  `'middleware' => ['auth', 'admin']`, y el alias `'admin'` no está
+  registrado en `bootstrap/app.php` (solo `multiPermission`, `role`,
+  `publicToken`, `validate.token`, `tos`). Reactivar tal cual causaría error
+  500. La gestión real de tesoreros hoy vive en `AdminTreasurerController`
+  (`admin/treasurer/*`, ver §7).
+- **`modules/reports.php`** y **`modules/files.php`** — también desactivados;
+  sin consumidores confirmados en el frontend actual.
+
+Ninguno de estos módulos fue reactivado como parte de esta revisión: son
+piezas de funcionalidad incompleta o superada por otro flujo, y reactivarlas
+requiere trabajo adicional fuera del alcance de ordenar la jerarquía de roles.
+
+## 9. Otros hallazgos documentados (no corregidos, requieren decisión de producto)
+
+- `routes/api/admin.php` es un archivo huérfano nunca cargado desde ningún
+  punto de entrada de rutas, que referencia controladores inexistentes en el
+  namespace raíz (`App\Http\Controllers\AdminController`, `CustomerController`,
+  `TreasurerController`, `OtherTreasurersController`). Código muerto sin
+  efecto hoy; candidato a eliminar si se confirma que no es un work-in-progress.
+- `customer` tiene el permiso `games.trivia.play` en BD
+  (`RolePermissionSeeder.php`), pero las rutas de juego de trivia
+  (`games/trivia.php`) exigen `role:player` explícito sin incluir `customer`
+  — el permiso es inalcanzable para ese rol tal como está.
+- `seller` y `player` tienen acceso a las rutas `directory.*` vía `role:` sin
+  tener el permiso `directory.view`/`directory.search` asignado en
+  `RolePermissionSeeder.php`. Funciona porque el ítem del sidebar está
+  marcado `permission: null` (visible para todos), pero es una asimetría
+  entre el catálogo de permisos y el acceso real.
+- Varios permisos en `PermissionSeeder.php` nunca se asignan a ningún rol
+  operativo (solo alcanzables por el bypass de superadmin): `users.delete`,
+  `commerces.delete`, `customers.delete`, `games.view/create/edit/delete`
+  (solo `games.manage` se usa en la práctica), `audit.export`,
+  `system.settings/maintenance/logs/backup`, entre otros. No se eliminaron
+  ni asignaron por no tener contexto de si son planificados a futuro.
+- `provider` (guard `api`, único permiso `customers.api.access`) no tiene
+  ningún middleware de ruta activo que consuma ese permiso — sin consumidor
+  verificable en el código actual.

@@ -22,7 +22,7 @@ class PrizePolicy extends BaseRolePolicy
      */
     protected function requiredRole(): string|array
     {
-        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary'];
+        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary', 'treasurer'];
     }
 
     /**
