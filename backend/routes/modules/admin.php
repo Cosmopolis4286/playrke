@@ -7,6 +7,7 @@ use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
+use App\Http\Controllers\Roles\Admin\ExternalPlayerAdminController;
 use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
 use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
@@ -151,6 +152,19 @@ Route::middleware('auth')->group(function () {
         'grantXp'       => ['method' => 'put',    'uri' => '{user}/grant-xp', 'action' => 'grantXp', 'middleware' => 'throttle:admin-grant-xp'],
     ];
     role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
+
+    /**
+     * =========================================================
+     * JUGADORES EXTERNOS (Admin y SuperAdmin)
+     * =========================================================
+     * Compradores de cartones de Bingo sin cuenta en la plataforma, ver
+     * App\Traits\Users\PlayerLinkTrait.
+     */
+    role_protected_routes(['role:admin,superadmin'], 'admin/external-players', ExternalPlayerAdminController::class, [
+        'index'       => ['method' => 'get', 'uri' => '',              'action' => 'index'],
+        'fetchList'   => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'toggleBlock' => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock'],
+    ], 'externalPlayer');
 
     /**
      * =========================================================

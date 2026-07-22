@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             TestUserSeeder::class,
             DemoRoleDataSeeder::class,
+            ExternalPlayerSeeder::class,
         ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Traits\Users;
 
+use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Models\Game;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Player\External\UserPurchaseCode;
@@ -10,18 +11,21 @@ use Illuminate\Support\Str;
 trait PlayerLinkTrait
 {
     /**
-     * Crear un enlace único para un jugador externo
-     * 
+     * Crear un enlace único para un jugador externo.
+     *
+     * Delega en ExternalPlayerRepository::generateUniqueLink() — antes
+     * duplicaba aquí la misma lógica con una longitud distinta (28 vs 20
+     * caracteres del repositorio, que además nunca estaba bindeado), dos
+     * generadores inconsistentes para el mismo campo `link`.
+     *
      * @param string $gameId The game ID
-     * @param string $roomId The room ID
+     * @param string $roomId The room ID (sin uso — la unicidad del link es
+     *   global por diseño de la columna `external_players.link`, no por juego)
      * @return string El enlace creado
      */
     public function createExternalPlayers(string $gameId, string $roomId = '')
     {
-        do {
-            $code = Str::random(28);
-        } while (ExternalPlayer::where('game_id', $gameId)->where('link', $code)->exists());
-        return $code;
+        return app(ExternalPlayerRepositoryInterface::class)->generateUniqueLink();
     }
 
     /**

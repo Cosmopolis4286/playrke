@@ -185,6 +185,11 @@ class SidebarMenuService
                     'route' => 'admin.users',
                     'permission' => 'users.manage',
                 ],
+                'external_players' => [
+                    'title' => 'Jugadores Externos',
+                    'route' => 'admin.external-players.index',
+                    'permission' => 'users.manage',
+                ],
             ],
         ],
         'system' => [
