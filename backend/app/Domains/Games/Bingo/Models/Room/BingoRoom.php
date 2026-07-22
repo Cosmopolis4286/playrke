@@ -288,7 +288,19 @@ class BingoRoom extends BaseModel
     public string $displayTimezone = 'UTC';
 
     /**
-     * Chip HTML del estado (punto de color + texto, ver .room-status-chip en BaseTable.vue).
+     * Último editor real de la sala (tabla audits, evento 'updated'), resuelto
+     * y seteado por BingoRoomContextService::resolveLastEditorsForRooms() en
+     * una sola query agrupada para todas las filas de la página — evita N+1.
+     * Null si la sala nunca se editó vía HTTP autenticado (solo creación).
+     *
+     * @var array{username: string|null, at: \Illuminate\Support\Carbon}|null
+     */
+    public ?array $lastEditor = null;
+
+    /**
+     * Chip HTML del estado (punto de color + texto) + ícono de info con popover
+     * nativo (title) mostrando fecha de última actualización y último editor.
+     * Ver .room-status-chip / .room-status-chip__info en BaseTable.vue.
      */
     public function getStatusBadgeAttribute(): string
     {
@@ -304,16 +316,24 @@ class BingoRoom extends BaseModel
             default       => ['offline', 'No Disponible'],
         };
 
-        $updatedAtHtml = '';
+        $infoHtml = '';
         if ($this->updated_at) {
-            $local = $this->updated_at->copy()->setTimezone($this->displayTimezone);
-            $updatedAtHtml = '<span class="room-status-chip__updated-at" title="Última actualización (' . e($local->format('P')) . ')">'
-                . e($local->format('d/m/Y H:i')) . ' (UTC' . e($local->format('P')) . ')</span>';
+            $local  = $this->updated_at->copy()->setTimezone($this->displayTimezone);
+            $offset = $local->format('P');
+
+            $lines = ['Última actualización: ' . $local->format('d/m/Y H:i') . ' (UTC' . $offset . ')'];
+            $lines[] = $this->lastEditor
+                ? 'Editado por: ' . ($this->lastEditor['username'] ?? 'Usuario')
+                : 'Sin ediciones registradas desde la creación.';
+
+            $infoHtml = '<span class="room-status-chip__info" title="' . e(implode("\n", $lines)) . '">'
+                . '<i class="fa-solid fa-circle-info"></i>'
+                . '</span>';
         }
 
         return '<div class="room-status-chip-wrap">'
             . '<span class="room-status-chip room-status-chip--' . $variant . '">' . e($label) . '</span>'
-            . $updatedAtHtml
+            . $infoHtml
             . '</div>';
     }
 

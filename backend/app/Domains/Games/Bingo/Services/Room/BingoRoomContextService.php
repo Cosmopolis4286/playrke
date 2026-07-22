@@ -350,6 +350,47 @@ final class BingoRoomContextService
     }
 
     /**
+     * Resuelve, en una sola query, el último editor real (tabla audits, evento
+     * 'updated' con user_id no nulo) de cada sala en $roomIds — usado para el
+     * popover de la columna "Estado" sin incurrir en N+1 por fila.
+     *
+     * @param array<int, string|int> $roomIds
+     * @return array<string, array{username: string|null, at: \Illuminate\Support\Carbon}>
+     */
+    private function resolveLastEditorsForRooms(array $roomIds): array
+    {
+        if (empty($roomIds)) {
+            return [];
+        }
+
+        $roomIdStrings = array_map(fn($id) => (string) $id, $roomIds);
+
+        $audits = \App\Models\Audit::query()
+            ->where('auditable_type', \App\Domains\Games\Bingo\Models\Room\BingoRoom::class)
+            ->where('event', 'updated')
+            ->whereNotNull('user_id')
+            ->whereRaw('JSON_UNQUOTE(auditable_id) IN (' . implode(',', array_fill(0, count($roomIdStrings), '?')) . ')', $roomIdStrings)
+            ->with('user:id,username')
+            ->orderByDesc('id')
+            ->get(['id', 'auditable_id', 'user_id', 'created_at']);
+
+        $result = [];
+        foreach ($audits as $audit) {
+            $roomId = (string) $audit->auditable_id;
+            // Ya viene ordenado desc por id — el primero visto por roomId es el más reciente.
+            if (isset($result[$roomId])) {
+                continue;
+            }
+            $result[$roomId] = [
+                'username' => $audit->user?->username,
+                'at'       => $audit->created_at,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * Obtener las salas de bingo.
      *
      * @param int $userId ID del usuario
