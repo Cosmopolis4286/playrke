@@ -219,7 +219,7 @@ defineExpose({ clear })
 
 .bcs-count {
   font-size: 0.72rem;
-  color: #6c757d;
+  color: var(--ds-text-2);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -233,17 +233,17 @@ defineExpose({ clear })
   font-size: 0.7rem;
   font-weight: 500;
   line-height: 1.5;
-  border: 1px solid #adb5bd;
+  border: 1px solid var(--ds-border-2);
   border-radius: 4px;
-  background: #fff;
-  color: #495057;
+  background: var(--ds-surface);
+  color: var(--ds-text-2);
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 .bcs-clear-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  border-color: #6c757d;
-  color: #212529;
+  background: var(--ds-surface-2);
+  border-color: var(--ds-text-muted);
+  color: var(--ds-text);
 }
 .bcs-clear-btn:disabled {
   opacity: 0.38;
