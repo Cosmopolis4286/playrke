@@ -20,6 +20,9 @@ export function usePermissions(initialData?: {
     const pendingChanges = reactive<Record<string, Record<string, boolean>>>({})
 
     const hasChanges = computed(() => Object.keys(pendingChanges).length > 0)
+    const pendingChangeCount = computed(() =>
+        Object.values(pendingChanges).reduce((total, permMap) => total + Object.keys(permMap).length, 0)
+    )
 
     // ── Helpers de pendingChanges ──────────────────────────────────────────
 
@@ -110,6 +113,7 @@ export function usePermissions(initialData?: {
         loading,
         pendingChanges,
         hasChanges,
+        pendingChangeCount,
         hasPermission,
         togglePermission,
         reload,

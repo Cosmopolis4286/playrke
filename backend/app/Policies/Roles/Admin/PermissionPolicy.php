@@ -45,9 +45,9 @@ class PermissionPolicy extends BaseRolePolicy
     /**
      * Asignar/revocar permisos a un rol opera sobre un lote de IDs, no sobre
      * una instancia única de Permission — no hay un Model natural que pasarle
-     * a update()/delete(). Aquí solo se exige el rol base (superadmin); la
-     * protección de permisos is_system individuales dentro del lote queda
-     * fuera de este gate a propósito (ver discusión en PermissionController).
+     * a update()/delete(). Aquí solo se exige el rol base (superadmin); el
+     * filtrado de permisos is_system dentro del lote se hace en
+     * PermissionService::assignPermissionsToRole()/revokePermissionsFromRole().
      */
     public function manageAssignments(User $user): bool
     {

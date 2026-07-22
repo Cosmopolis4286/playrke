@@ -20,11 +20,12 @@
       <div class="container-fluid">
         <div class="row">
           <div class="col-12">
-            <PermissionTable
+            <PermissionMatrix
               :permissions="permissions"
               :roles="roles"
               :loading="loading"
               :has-changes="hasChanges"
+              :pending-change-count="pendingChangeCount"
               :has-permission="hasPermission"
               @toggle-permission="togglePermission"
               @reload="reload"
@@ -39,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import PermissionTable from '@/js/Components/Roles/Admin/PermissionTable.vue'
+import PermissionMatrix from '@/js/Components/Roles/Admin/PermissionMatrix.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import Swal from 'sweetalert2'
@@ -58,6 +59,7 @@ const {
   roles,
   loading,
   hasChanges,
+  pendingChangeCount,
   hasPermission,
   togglePermission,
   reload,

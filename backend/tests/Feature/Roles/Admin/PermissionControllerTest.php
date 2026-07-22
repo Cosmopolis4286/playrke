@@ -145,6 +145,26 @@ class PermissionControllerTest extends TestCase
         $this->assertFalse($player->fresh()->hasPermissionTo('reports.view'));
     }
 
+    public function test_system_permission_cannot_be_assigned_or_revoked_in_batch_even_by_superadmin(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $player     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+        $sysPerm    = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
+
+        $assign = $this->actingAs($superadmin)->postJson("/permissions/roles/{$player->id}/assign", [
+            'permission_ids' => [$sysPerm->id],
+        ]);
+        $assign->assertOk();
+        $this->assertFalse($player->fresh()->hasPermissionTo('roles.view'));
+
+        $player->givePermissionTo($sysPerm);
+        $revoke = $this->actingAs($superadmin)->postJson("/permissions/roles/{$player->id}/revoke", [
+            'permission_ids' => [$sysPerm->id],
+        ]);
+        $revoke->assertOk();
+        $this->assertTrue($player->fresh()->hasPermissionTo('roles.view'));
+    }
+
     public function test_assign_permissions_to_nonexistent_role_returns_404(): void
     {
         $superadmin = $this->makeSuperadmin();

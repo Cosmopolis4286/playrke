@@ -64,12 +64,18 @@ final class PermissionService
      * ninguna coincidencia. Pasar la Collection de instancias evita esa ambigüedad
      * y además deja que Spatie invalide la cache de permisos automáticamente
      * (Role usa RefreshesPermissionCache), sin necesidad de limpiarla a mano.
+     *
+     * Excluye is_system=true: el checkbox deshabilitado en el frontend es
+     * solo cosmético, así que este filtro es el único punto real que impide
+     * reasignar permisos estructurales del sistema vía el endpoint de lote.
      */
     public function assignPermissionsToRole(string $roleId, array $permissionIds): void
     {
         $role = Role::findOrFail($roleId);
 
-        $permissions = Permission::whereIn('id', $permissionIds)->get();
+        $permissions = Permission::whereIn('id', $permissionIds)
+            ->where('is_system', false)
+            ->get();
 
         if ($permissions->isNotEmpty()) {
             $role->givePermissionTo($permissions);
@@ -78,12 +84,16 @@ final class PermissionService
 
     /**
      * Revocar permisos de un rol.
+     *
+     * Excluye is_system=true por el mismo motivo que assignPermissionsToRole().
      */
     public function revokePermissionsFromRole(string $roleId, array $permissionIds): void
     {
         $role = Role::findOrFail($roleId);
 
-        $permissions = Permission::whereIn('id', $permissionIds)->get();
+        $permissions = Permission::whereIn('id', $permissionIds)
+            ->where('is_system', false)
+            ->get();
 
         foreach ($permissions as $permission) {
             $role->revokePermissionTo($permission);
