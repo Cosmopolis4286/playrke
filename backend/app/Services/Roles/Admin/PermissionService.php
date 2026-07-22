@@ -86,10 +86,20 @@ final class PermissionService
      * Revocar permisos de un rol.
      *
      * Excluye is_system=true por el mismo motivo que assignPermissionsToRole().
+     *
+     * superadmin nunca pierde permisos por esta vía: es el rol raíz de
+     * autorización (ver RoleAuthorizationService::isSuperadmin) y debe
+     * conservar el 100% de los permisos del guard 'web' en todo momento —
+     * el checkbox deshabilitado en el frontend es solo cosmético, este
+     * guard es el que realmente lo impide.
      */
     public function revokePermissionsFromRole(string $roleId, array $permissionIds): void
     {
         $role = Role::findOrFail($roleId);
+
+        if ($role->name === 'superadmin') {
+            return;
+        }
 
         $permissions = Permission::whereIn('id', $permissionIds)
             ->where('is_system', false)
@@ -102,6 +112,11 @@ final class PermissionService
 
     /**
      * Crear un nuevo permiso.
+     *
+     * Se asigna automáticamente a superadmin si comparte su guard: superadmin
+     * debe tener el 100% de los permisos disponibles en todo momento (no solo
+     * en el seed inicial), así que un permiso nuevo no puede quedar fuera de
+     * su rol raíz esperando una asignación manual desde la matriz.
      */
     public function createPermission(array $data): PermissionDTO
     {
@@ -110,6 +125,14 @@ final class PermissionService
             'guard_name' => $data['guard_name'] ?? 'web',
             'description' => $data['description'] ?? null,
         ]);
+
+        $superadmin = Role::where('name', 'superadmin')
+            ->where('guard_name', $permission->guard_name)
+            ->first();
+
+        if ($superadmin) {
+            $superadmin->givePermissionTo($permission);
+        }
 
         return new PermissionDTO(
             id: $permission->id,

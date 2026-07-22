@@ -165,6 +165,35 @@ class PermissionControllerTest extends TestCase
         $this->assertTrue($player->fresh()->hasPermissionTo('roles.view'));
     }
 
+    // ── SuperAdmin: 100% de permisos por defecto, no mutable ────────────────
+
+    public function test_new_permission_is_auto_assigned_to_superadmin(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+
+        $this->actingAs($superadmin)->postJson('/permissions', [
+            'name'       => 'reports.view',
+            'guard_name' => 'web',
+        ])->assertOk();
+
+        $this->assertTrue($superadmin->fresh()->hasPermissionTo('reports.view'));
+    }
+
+    public function test_superadmin_permissions_cannot_be_revoked(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
+        $perm = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $superadminRole->givePermissionTo($perm);
+
+        $response = $this->actingAs($superadmin)->postJson("/permissions/roles/{$superadminRole->id}/revoke", [
+            'permission_ids' => [$perm->id],
+        ]);
+
+        $response->assertOk();
+        $this->assertTrue($superadminRole->fresh()->hasPermissionTo('reports.view'));
+    }
+
     public function test_assign_permissions_to_nonexistent_role_returns_404(): void
     {
         $superadmin = $this->makeSuperadmin();

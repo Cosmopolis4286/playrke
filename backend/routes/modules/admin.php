@@ -10,6 +10,8 @@ use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
 use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
+use App\Http\Controllers\Roles\ModuleController;
+use App\Http\Controllers\Roles\RoleController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 use App\Http\Controllers\Audit\AuditController;
 use App\Http\Controllers\Roles\Admin\AdminWinEventController;
@@ -197,6 +199,27 @@ Route::middleware('auth')->group(function () {
         'delete'               => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
         'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
     ], 'permission');
+
+    /**
+     * =========================================================
+     * MÓDULOS DEL SISTEMA (Solo SuperAdmin)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin'], 'modules', ModuleController::class, [
+        'fetchList'    => ['method' => 'get', 'uri' => 'fetch-list',     'action' => 'fetchList'],
+        'toggleStatus' => ['method' => 'put', 'uri' => '{module}/status', 'action' => 'toggleStatus'],
+    ], 'module');
+
+    /**
+     * =========================================================
+     * ROLES (Solo SuperAdmin)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin'], 'roles-admin', RoleController::class, [
+        'fetchList'    => ['method' => 'get',   'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'update'       => ['method' => 'patch', 'uri' => '{role}',        'action' => 'update'],
+        'toggleStatus' => ['method' => 'put',   'uri' => '{role}/status', 'action' => 'toggleStatus'],
+    ], 'role');
 
     // Generación de llave de conexión para Customer
     Route::middleware('role:admin')

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -51,7 +52,7 @@ class Role extends Model implements RoleContract
      * @var array<string, string>
      */
     protected $casts = [
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
 

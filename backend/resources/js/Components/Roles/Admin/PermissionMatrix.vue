@@ -32,23 +32,6 @@
       </div>
     </div>
 
-    <!-- Chips de rol: leyenda + filtro rápido -->
-    <div class="role-legend">
-      <span class="role-legend-label">Roles:</span>
-      <button
-        v-for="role in displayRoles"
-        :key="role.id"
-        class="role-chip"
-        :class="[getRoleBadgeClass(role.name), { 'is-muted': roleFilter && roleFilter !== role.id }]"
-        @click="toggleRoleFilter(role.id)"
-      >
-        {{ formatRoleName(role.name) }}
-      </button>
-      <button v-if="roleFilter" class="role-chip-clear" @click="roleFilter = null">
-        <i class="fas fa-times mr-1"></i>Quitar filtro
-      </button>
-    </div>
-
     <!-- Estado vacío -->
     <div v-if="!permissionCategories.length" class="matrix-empty">
       <i class="fas fa-key"></i>
@@ -57,68 +40,85 @@
       </p>
     </div>
 
-    <!-- Grupos por módulo -->
-    <div v-else class="matrix-groups">
-      <div v-for="category in permissionCategories" :key="category.name" class="module-card">
-        <button class="module-header" @click="toggleCollapse(category.name)">
-          <i class="fas fa-chevron-right collapse-caret" :class="{ 'is-open': !isCollapsed(category.name) }"></i>
-          <i class="fas fa-folder module-icon"></i>
-          <span class="module-title">
-            {{ category.moduleName }}
-            <template v-if="category.subModule">
-              <i class="fas fa-angle-right module-sep"></i>
-              <span class="module-sub">{{ category.subModule }}</span>
-            </template>
-          </span>
-          <span class="module-count">{{ category.permissions.length }}</span>
-        </button>
-
-        <Transition name="collapse">
-          <div v-if="!isCollapsed(category.name)" class="module-body">
-            <div v-for="permission in category.permissions" :key="permission.id" class="permission-item">
-              <div class="permission-info">
-                <i class="fas fa-key permission-key-icon"></i>
-                <div class="permission-text">
-                  <span class="permission-name">
-                    {{ formatPermissionName(permission.name) }}
-                    <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
-                  </span>
-                  <code class="permission-slug">{{ permission.name }}</code>
-                </div>
-              </div>
-
-              <div class="permission-roles">
-                <label
-                  v-for="role in displayRoles"
-                  :key="role.id"
-                  v-show="!roleFilter || roleFilter === role.id"
-                  class="role-toggle"
-                  :class="{ 'is-checked': hasPermission(role.id, permission.id), 'is-disabled': permission.is_system || saving }"
-                  :title="`${formatRoleName(role.name)} — ${permission.name}`"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="hasPermission(role.id, permission.id)"
-                    :disabled="permission.is_system || saving"
-                    @change="$emit('toggle-permission', role.id, permission.id)"
-                  />
-                  <span class="role-toggle-dot"></span>
-                  <span class="role-toggle-label">{{ formatRoleName(role.name) }}</span>
-                </label>
-              </div>
-
-              <button
-                v-if="!permission.is_system"
-                class="permission-delete"
-                title="Eliminar permiso"
-                @click="handleDelete(permission.id, permission.name)"
-              >
-                <i class="fas fa-trash"></i>
-              </button>
-              <span v-else class="permission-delete-spacer"></span>
-            </div>
+    <!-- Grid de permisos (columnas por rol) -->
+    <div v-else class="matrix-card">
+      <div class="matrix-scroll">
+        <div class="matrix-grid" :style="gridTemplateStyle">
+          <!-- Header -->
+          <div class="grid-head grid-head--permission">Permiso</div>
+          <div class="grid-head grid-head--module">Módulo</div>
+          <div v-for="role in displayRoles" :key="role.id" class="grid-head grid-head--role">
+            <span class="badge role-badge" :class="getRoleBadgeClass(role.name)">
+              {{ formatRoleName(role.name) }}
+            </span>
           </div>
-        </Transition>
+          <div class="grid-head grid-head--actions"></div>
+
+          <!-- Grupos -->
+          <template v-for="category in permissionCategories" :key="category.name">
+            <button
+              class="grid-category"
+              :style="{ gridColumn: `1 / -1` }"
+              @click="toggleCollapse(category.name)"
+            >
+              <i class="fas fa-chevron-right collapse-caret" :class="{ 'is-open': !isCollapsed(category.name) }"></i>
+              <span class="category-dot"></span>
+              <span class="category-title">
+                {{ category.moduleName }}
+                <template v-if="category.subModule">
+                  <i class="fas fa-angle-right category-sep"></i>
+                  <span class="category-sub">{{ category.subModule }}</span>
+                </template>
+              </span>
+              <span class="category-count">({{ category.permissions.length }})</span>
+            </button>
+
+            <template v-if="!isCollapsed(category.name)">
+              <template v-for="permission in category.permissions" :key="permission.id">
+                <div class="grid-cell cell-permission">
+                  <i class="fas fa-key permission-key-icon"></i>
+                  <div class="permission-text">
+                    <span class="permission-name">
+                      {{ formatPermissionName(permission.name) }}
+                      <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
+                    </span>
+                    <code class="permission-slug">{{ permission.name }}</code>
+                  </div>
+                </div>
+
+                <div class="grid-cell cell-module">
+                  <span class="badge badge-light module-badge">{{ category.subModule || category.moduleName }}</span>
+                </div>
+
+                <div v-for="role in displayRoles" :key="role.id" class="grid-cell cell-role">
+                  <div class="custom-checkbox-wrapper">
+                    <input
+                      type="checkbox"
+                      class="custom-checkbox"
+                      :checked="isRoleSuperadmin(role.name) || hasPermission(role.id, permission.id)"
+                      :disabled="permission.is_system || saving || isRoleSuperadmin(role.name)"
+                      :title="isRoleSuperadmin(role.name)
+                        ? 'SuperAdmin tiene todos los permisos por defecto y no es editable'
+                        : `${formatRoleName(role.name)} — ${permission.name}`"
+                      @change="$emit('toggle-permission', role.id, permission.id)"
+                    />
+                  </div>
+                </div>
+
+                <div class="grid-cell cell-actions">
+                  <button
+                    v-if="!permission.is_system"
+                    class="permission-delete"
+                    title="Eliminar permiso"
+                    @click="handleDelete(permission.id, permission.name)"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </template>
+            </template>
+          </template>
+        </div>
       </div>
     </div>
 
@@ -201,20 +201,37 @@ const saving = ref(false)
 const showCreateModal = ref(false)
 const newPerm = ref({ name: '', guard_name: 'web', description: '' })
 const search = ref('')
-const roleFilter = ref<string | null>(null)
 const collapsedGroups = reactive<Record<string, boolean>>({})
 
-// Todos los roles activos recibidos del backend, orden alfabético — antes se
-// filtraba contra un array roleOrder hardcodeado (['superadmin','admin',...])
-// que ocultaba en silencio cualquier rol no listado ahí (ej. 'customer' nunca
-// aparecía en la matriz aunque existiera y tuviera permisos asignados).
+// Orden jerárquico real del sistema (ver RoleSeeder.php): administración de
+// plataforma → negocio → operativo → consumidor final → externo. Roles que
+// no aparezcan aquí (futuros, o creados fuera del seeder) no se ocultan —
+// se ordenan alfabéticamente al final — a diferencia del bug original donde
+// un array hardcodeado los excluía en silencio de la matriz por completo.
+const ROLE_HIERARCHY = [
+  'superadmin', 'admin',
+  'commerce', 'subsidiary', 'seller', 'treasurer',
+  'customer', 'player',
+  'provider',
+]
+
 const displayRoles = computed(() =>
-  [...props.roles].sort((a, b) => a.name.localeCompare(b.name))
+  [...props.roles].sort((a, b) => {
+    const ia = ROLE_HIERARCHY.indexOf(a.name.toLowerCase())
+    const ib = ROLE_HIERARCHY.indexOf(b.name.toLowerCase())
+    if (ia === -1 && ib === -1) return a.name.localeCompare(b.name)
+    if (ia === -1) return 1
+    if (ib === -1) return -1
+    return ia - ib
+  })
 )
 
-function toggleRoleFilter(roleId: string) {
-  roleFilter.value = roleFilter.value === roleId ? null : roleId
-}
+// Grid CSS en vez de <table>: columnas fijas para permiso/módulo/acciones y
+// una columna igual por cada rol, calculadas dinámicamente según cuántos
+// roles trae el backend (antes era un <table> con <th> por rol).
+const gridTemplateStyle = computed(() => ({
+  gridTemplateColumns: `minmax(220px, 2fr) minmax(110px, 0.7fr) repeat(${displayRoles.value.length}, minmax(90px, 0.8fr)) 48px`,
+}))
 
 function toggleCollapse(categoryName: string) {
   collapsedGroups[categoryName] = !collapsedGroups[categoryName]
@@ -302,6 +319,14 @@ function formatRoleName(name: string): string {
     customer: 'Cliente', treasurer: 'Tesorero', player: 'Normal',
   }
   return map[name.toLowerCase()] ?? name
+}
+
+// superadmin siempre tiene el 100% de los permisos y no es mutable desde
+// la matriz — el backend ya lo garantiza (PermissionService::createPermission
+// auto-asigna permisos nuevos a superadmin y revokePermissionsFromRole()
+// ignora ese rol), esto solo evita que la UI insinúe que se puede editar.
+function isRoleSuperadmin(name: string): boolean {
+  return name.toLowerCase() === 'superadmin'
 }
 
 function getRoleBadgeClass(name: string): string {
@@ -402,44 +427,6 @@ async function handleCreate(): Promise<boolean> {
   flex-wrap: wrap;
 }
 
-/* ── Leyenda de roles / filtro rápido ── */
-.role-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.9rem;
-  border-bottom: 1px solid var(--ds-border);
-}
-.role-legend-label {
-  font-size: 0.8rem;
-  color: var(--ds-text-muted);
-  font-weight: 600;
-  margin-right: 0.25rem;
-}
-.role-chip {
-  border: none;
-  border-radius: 999px;
-  padding: 0.3rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.role-chip:hover { transform: translateY(-1px); }
-.role-chip.is-muted { opacity: 0.35; }
-.role-chip-clear {
-  border: 1.5px dashed var(--ds-border-2);
-  background: transparent;
-  color: var(--ds-text-muted);
-  border-radius: 999px;
-  padding: 0.3rem 0.75rem;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-.role-chip-clear:hover { color: var(--ds-text); border-color: var(--ds-text-muted); }
-
 /* ── Estado vacío ── */
 .matrix-empty {
   display: flex;
@@ -453,131 +440,114 @@ async function handleCreate(): Promise<boolean> {
 }
 .matrix-empty i { font-size: 2.2rem; opacity: 0.5; }
 
-/* ── Grupos por módulo (cards) ── */
-.matrix-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  max-height: calc(100vh - 320px);
-  overflow-y: auto;
-  padding-right: 2px;
-}
-.matrix-groups::-webkit-scrollbar { width: 6px; }
-.matrix-groups::-webkit-scrollbar-track { background: transparent; }
-.matrix-groups::-webkit-scrollbar-thumb { background: var(--ds-border-2); border-radius: 6px; }
-
-.module-card {
+/* ── Card contenedora + scroll ── */
+.matrix-card {
   border: 1px solid var(--ds-border);
   border-radius: 12px;
   background: var(--ds-surface);
   overflow: hidden;
 }
 
-.module-header {
+.matrix-scroll {
+  max-height: calc(100vh - 300px);
+  overflow: auto;
+}
+.matrix-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.matrix-scroll::-webkit-scrollbar-track { background: transparent; }
+.matrix-scroll::-webkit-scrollbar-thumb { background: var(--ds-border-2); border-radius: 6px; }
+
+/* ── Grid: reemplaza <table> — misma jerarquía visual (header + filas +
+   separadores de grupo) sin depender de layout de tabla HTML. ── */
+.matrix-grid {
+  display: grid;
+  min-width: 640px;
+  font-size: 0.9rem;
+}
+
+.grid-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ds-surface-2);
+  border-bottom: 2px solid var(--ds-border);
+  font-weight: 600;
+  color: var(--ds-text-2);
+  white-space: nowrap;
+  padding: 0.6rem 0.75rem;
+}
+.grid-head--role { text-align: center; }
+
+.role-badge { font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+
+/* Fila de categoría: ocupa todas las columnas (gridColumn: 1 / -1 inline) */
+.grid-category {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: var(--ds-surface-2);
   border: none;
+  border-top: 1px solid var(--ds-border);
+  border-bottom: 1px solid var(--ds-border);
   cursor: pointer;
   text-align: left;
 }
 .collapse-caret {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--ds-text-muted);
   transition: transform 0.18s;
+  flex-shrink: 0;
 }
 .collapse-caret.is-open { transform: rotate(90deg); }
-.module-icon { color: #667eea; font-size: 0.85rem; }
-.module-title {
+.category-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+.category-title {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--ds-text);
-  flex: 1;
 }
-.module-sep { font-size: 0.7rem; color: var(--ds-text-muted); margin: 0 0.35rem; }
-.module-sub { color: #667eea; }
-.module-count {
-  font-size: 0.75rem;
-  font-weight: 600;
+.category-sep { font-size: 0.65rem; color: var(--ds-text-muted); margin: 0 0.3rem; }
+.category-sub { color: #667eea; text-transform: none; }
+.category-count {
+  font-size: 0.78rem;
+  font-weight: 500;
   color: var(--ds-text-muted);
-  background: var(--ds-surface);
-  border: 1px solid var(--ds-border);
-  border-radius: 999px;
-  padding: 0.1rem 0.55rem;
+  text-transform: none;
 }
 
-.module-body {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Filas de permiso ── */
-.permission-item {
+/* Celdas de fila */
+.grid-cell {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.65rem 1rem;
-  border-top: 1px solid var(--ds-border);
-  flex-wrap: wrap;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--ds-border);
+  min-width: 0;
 }
-.permission-item:hover { background: var(--ds-surface-2); }
 
-.permission-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  flex: 1 1 220px;
-  min-width: 200px;
-}
-.permission-key-icon { color: var(--ds-text-muted); font-size: 0.7rem; margin-top: 0.3rem; }
-.permission-text { display: flex; flex-direction: column; gap: 0.1rem; }
+.cell-permission { gap: 0.5rem; padding-left: 1.75rem; }
+.permission-key-icon { color: var(--ds-text-muted); font-size: 0.65rem; flex-shrink: 0; }
+.permission-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 .permission-name { font-size: 0.87rem; font-weight: 500; color: var(--ds-text); }
 .permission-slug { font-size: 0.72rem; color: var(--ds-text-muted); background: transparent; }
 
-.permission-roles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  flex: 2 1 320px;
-}
+.cell-module { color: var(--ds-text-muted); }
+.module-badge { font-weight: 500; }
 
-.role-toggle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.6rem 0.28rem 0.4rem;
-  border-radius: 999px;
-  border: 1.5px solid var(--ds-border);
-  background: var(--ds-surface);
-  cursor: pointer;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--ds-text-muted);
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  user-select: none;
-}
-.role-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
-.role-toggle-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ds-border-2);
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-.role-toggle.is-checked {
-  border-color: #34d399;
-  color: var(--ds-text);
-  background: rgba(52, 211, 153, 0.08);
-}
-.role-toggle.is-checked .role-toggle-dot { background: #34d399; }
-.role-toggle.is-disabled { cursor: not-allowed; opacity: 0.55; }
-.role-toggle:not(.is-disabled):hover { border-color: #34d399; }
+.cell-role { justify-content: center; }
 
+.custom-checkbox-wrapper { display: flex; justify-content: center; align-items: center; }
+.custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #34d399; }
+.custom-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.cell-actions { justify-content: center; }
 .permission-delete {
   border: none;
   background: transparent;
@@ -585,13 +555,15 @@ async function handleCreate(): Promise<boolean> {
   cursor: pointer;
   padding: 0.35rem;
   border-radius: 6px;
-  flex-shrink: 0;
-  margin-left: auto;
 }
 .permission-delete:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-.permission-delete-spacer { width: 26px; flex-shrink: 0; margin-left: auto; }
 
-/* ── Badges de rol (leyenda) ── */
+/* Filas de permiso (hover en todas sus celdas vía nth-selector no es viable
+   con grid puro sin envolver en contenedor extra; el hover por celda basta
+   para dar feedback visual sin reintroducir <table>). */
+.grid-cell:hover { background: var(--ds-surface-2); }
+
+/* ── Badges de rol ── */
 .badge-purple    { background-color: rgba(124,58,237,.18); color: #a78bfa; }
 .badge-blue      { background-color: rgba(37,99,235,.18);  color: #60a5fa; }
 .badge-green     { background-color: rgba(5,150,105,.18);  color: #34d399; }
@@ -602,20 +574,10 @@ async function handleCreate(): Promise<boolean> {
 .badge-info      { background-color: rgba(5,81,96,.25);    color: #22d3ee; }
 .badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
 
-/* ── Collapse transition ── */
-.collapse-enter-active, .collapse-leave-active {
-  transition: max-height 0.2s ease, opacity 0.2s ease;
-  overflow: hidden;
-}
-.collapse-enter-from, .collapse-leave-to { max-height: 0; opacity: 0; }
-.collapse-enter-to, .collapse-leave-from { max-height: 2000px; opacity: 1; }
-
 @media (max-width: 768px) {
   .matrix-toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-search { max-width: none; }
   .toolbar-actions { justify-content: stretch; }
   .toolbar-actions .btn { flex: 1; }
-  .permission-item { flex-direction: column; align-items: stretch; }
-  .permission-delete, .permission-delete-spacer { margin-left: 0; align-self: flex-end; }
 }
 </style>

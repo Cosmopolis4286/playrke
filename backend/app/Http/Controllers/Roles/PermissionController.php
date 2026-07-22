@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Services\Roles\Admin\PermissionService;
 use App\Services\Roles\Admin\PermissionContextService;
+use App\Services\Roles\Admin\ModuleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,11 +24,18 @@ final class PermissionController extends Controller
 {
     public function __construct(
         protected readonly PermissionService $service,
-        protected readonly PermissionContextService $contextService
+        protected readonly PermissionContextService $contextService,
+        protected readonly ModuleService $moduleService,
     ) {}
 
     /**
      * Mostrar vista de permisos.
+     *
+     * También carga los Módulos del sistema: viven en la misma pantalla
+     * (/permissions) porque ambos son configuración global de acceso
+     * gestionada solo por superadmin, aunque son conceptos distintos
+     * (Permission = autorización por rol, Module = disponibilidad del
+     * sidebar para todos).
      */
     public function index(): Response
     {
@@ -41,6 +49,7 @@ final class PermissionController extends Controller
                 'pagination' => $context->pagination,
             ],
             'roles' => $context->roles,
+            'modules' => $this->moduleService->getAll(),
         ]);
     }
 

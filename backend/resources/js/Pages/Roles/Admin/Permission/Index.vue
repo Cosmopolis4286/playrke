@@ -9,8 +9,11 @@
               Configura qué acciones puede realizar cada rol. Los permisos con candado son del sistema y no pueden modificarse.
             </p>
           </div>
-          <div class="col-sm-6">
+          <div class="col-sm-6 d-flex flex-column align-items-sm-end">
             <Breadcrumb :items="breadcrumbItems" />
+            <button class="btn btn-outline-primary btn-sm mt-2" @click="showRoleManager = true">
+              <i class="fas fa-user-shield mr-2"></i>Gestionar roles
+            </button>
           </div>
         </div>
       </div>
@@ -18,6 +21,14 @@
 
     <section class="content">
       <div class="container-fluid">
+        <div class="row">
+          <div class="col-12">
+            <ModulesPanel
+              :modules="modules"
+              @toggle="handleToggleModule"
+            />
+          </div>
+        </div>
         <div class="row">
           <div class="col-12">
             <PermissionMatrix
@@ -37,16 +48,24 @@
         </div>
       </div>
     </section>
+
+    <RoleManagerModal v-model="showRoleManager" />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import PermissionMatrix from '@/js/Components/Roles/Admin/PermissionMatrix.vue'
+import ModulesPanel from '@/js/Components/Roles/Admin/ModulesPanel.vue'
+import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
+import { useModules } from '@/js/composables/roles/admin/module/useModules'
 import Swal from 'sweetalert2'
 import type { PermissionPageProps } from '@/js/types/roles/admin/permission-page'
 
 const props = defineProps<PermissionPageProps>()
+
+const showRoleManager = ref(false)
 
 const breadcrumbItems = [
   { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
@@ -67,6 +86,16 @@ const {
   createPermission,
   deletePermission,
 } = usePermissions({ permissions: props.permissions, roles: props.roles })
+
+const { modules, toggleModuleStatus } = useModules(props.modules)
+
+async function handleToggleModule(moduleId: string) {
+  try {
+    await toggleModuleStatus(moduleId)
+  } catch {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el módulo' })
+  }
+}
 
 async function handleSave() {
   try {

@@ -2,6 +2,7 @@
 
 namespace App\Services\Menu;
 
+use App\Models\Module;
 use App\Models\WalletMovement;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
@@ -334,7 +335,16 @@ class SidebarMenuService
                 }
                 return $item;
             })
-            ->filter(function ($item) use ($userRoles, $userPermissions) {
+            ->filter(function ($item, $key) use ($userRoles, $userPermissions) {
+                // Módulo apagado en /permissions → oculto para TODOS,
+                // incluido superadmin (a diferencia de exclude_roles/permission,
+                // que sí puede saltarse el superadmin). Se evalúa primero y sin
+                // excepción porque es un interruptor de disponibilidad del
+                // sistema, no de autorización por rol.
+                if (! $this->isModuleActive($key)) {
+                    return false;
+                }
+
                 // exclude_roles en item padre
                 if (!empty($item['exclude_roles'])) {
                     if (array_intersect($userRoles, $item['exclude_roles'])) {
@@ -371,6 +381,30 @@ class SidebarMenuService
 
                 return true;
             });
+    }
+
+    /**
+     * Set de keys de módulos activos, cacheado en memoria por instancia
+     * (una por request vía el container) — evita una query por cada ítem
+     * raíz del menú al recorrer $menuStructure.
+     *
+     * @var array<string, bool>|null
+     */
+    private ?array $activeModuleKeys = null;
+
+    /**
+     * Un módulo sin fila en `modules` (nunca sembrado) se considera activo
+     * por defecto — la tabla es una lista de excepciones a apagar, no una
+     * whitelist; así un módulo nuevo en $menuStructure no requiere migración
+     * de datos para seguir siendo visible.
+     */
+    private function isModuleActive(string $key): bool
+    {
+        if ($this->activeModuleKeys === null) {
+            $this->activeModuleKeys = Module::pluck('is_active', 'key')->all();
+        }
+
+        return $this->activeModuleKeys[$key] ?? true;
     }
 
     /**

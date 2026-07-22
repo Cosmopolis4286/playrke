@@ -1,4 +1,5 @@
 import type { Permission, RoleWithPermissions } from './permission'
+import type { SystemModule } from './module'
 
 export interface PermissionPageProps {
   permissions: {
@@ -13,4 +14,5 @@ export interface PermissionPageProps {
     }
   }
   roles: RoleWithPermissions[]
+  modules: SystemModule[]
 }
