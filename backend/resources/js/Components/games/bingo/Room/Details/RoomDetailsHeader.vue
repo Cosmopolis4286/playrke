@@ -40,7 +40,7 @@ defineProps<{
 .badge-danger    { background-color: #dc3545; color: white; }
 .badge-secondary { background-color: #6c757d; color: white; }
 .badge-dark      { background-color: #343a40; color: white; }
-.badge-light     { background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6; }
+.badge-light     { background-color: var(--ds-surface-2); color: var(--ds-text); border: 1px solid var(--ds-border); }
 
 .gap-2 { gap: 0.5rem; }
 </style>

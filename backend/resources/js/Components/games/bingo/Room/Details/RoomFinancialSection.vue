@@ -153,7 +153,7 @@ defineProps<{
   font-weight: 600;
   border-radius: 0.25rem;
 }
-.badge-light { background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6; }
+.badge-light { background-color: var(--ds-surface-2); color: var(--ds-text); border: 1px solid var(--ds-border); }
 
 /* Desglose por Moneda */
 .currency-breakdown {
