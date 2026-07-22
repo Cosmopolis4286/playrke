@@ -190,8 +190,8 @@
     <div class="col-12" v-show="roundsConfigActive" style="margin-top: 0.5rem; margin-bottom: 1rem">
       <div
         style="
-          background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
+          background-color: var(--ds-surface-2);
+          border: 1px solid var(--ds-border);
           border-radius: 0.25rem;
           padding: 1rem;
         "
