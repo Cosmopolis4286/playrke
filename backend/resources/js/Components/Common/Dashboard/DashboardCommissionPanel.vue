@@ -54,17 +54,17 @@
 
 .dcp-label {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--ds-text-2);
   font-weight: 500;
   text-align: center;
 }
 
 .dcp-hint {
   font-size: 0.76rem;
-  color: #8a9bb0;
+  color: var(--ds-text-2);
   margin: 0;
   padding: 0.5rem 0.75rem;
-  background: #f8f9fa;
+  background: var(--ds-surface-2);
   border-radius: 6px;
   border-left: 3px solid #0dcaf0;
 }
@@ -76,7 +76,7 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 2.5rem 1rem;
-  color: #adb5bd;
+  color: var(--ds-text-muted);
   font-size: 0.85rem;
   text-align: center;
 }

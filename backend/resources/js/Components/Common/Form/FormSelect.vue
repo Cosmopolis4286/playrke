@@ -174,12 +174,12 @@
 
   .multiselect-bootstrap {
     /* Input */
-    --ms-bg: #fff;
-    --ms-border-color: #ced4da;
+    --ms-bg: var(--ds-surface-2);
+    --ms-border-color: var(--ds-border);
     --ms-border-width: 1px;
     --ms-border-radius: 0.25rem;
-    --ms-placeholder-color: #6c757d;
-    --ms-color: #495057;
+    --ms-placeholder-color: var(--ds-text-muted);
+    --ms-color: var(--ds-text);
     --ms-font-size: 0.875rem;
     --ms-line-height: 1.5;
 
@@ -197,8 +197,8 @@
     --ms-option-color-selected: #fff;
     --ms-option-bg-selected-pointed: #0069d9;
 
-    --ms-option-bg-pointed: #f8f9fa;
-    --ms-option-color-pointed: #16181b;
+    --ms-option-bg-pointed: var(--ds-surface-2);
+    --ms-option-color-pointed: var(--ds-text);
 
     /* Dropdown */
     --ms-max-height: 200px;
@@ -268,7 +268,7 @@
 
   /* Disabled */
   .multiselect-bootstrap.is-disabled {
-    background-color: #e9ecef;
+    background-color: var(--ds-surface);
     opacity: 1;
   }
 
@@ -293,17 +293,18 @@
    * reglas globales (único consumidor de @vueform/multiselect en el proyecto).
    */
   .multiselect-dropdown {
-    --ms-dropdown-bg: #fff;
-    --ms-dropdown-border-color: #ced4da;
+    --ms-dropdown-bg: var(--ds-surface-2);
+    --ms-dropdown-border-color: var(--ds-border);
     --ms-dropdown-border-width: 1px;
     --ms-dropdown-radius: 0.25rem;
     --ms-option-font-size: 0.9rem;
+    --ms-option-color: var(--ds-text);
 
     --ms-option-bg-selected: #007bff;
     --ms-option-color-selected: #fff;
     --ms-option-bg-selected-pointed: #0069d9;
-    --ms-option-bg-pointed: #f8f9fa;
-    --ms-option-color-pointed: #16181b;
+    --ms-option-bg-pointed: var(--ds-surface);
+    --ms-option-color-pointed: var(--ds-text);
 
     --ms-max-height: 200px;
 

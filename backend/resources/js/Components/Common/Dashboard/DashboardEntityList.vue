@@ -47,7 +47,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 0.75rem;
-  background: #f8f9fa;
+  background: var(--ds-surface-2);
   border-radius: 8px;
 }
 
@@ -62,7 +62,7 @@
   flex: 1;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #495057;
+  color: var(--ds-text-2);
 }
 
 .del-value {

@@ -231,10 +231,10 @@
 
 <style scoped>
   .table-filter-container {
-    background-color: #f8f9fa;
+    background-color: var(--ds-surface);
     padding: 0.75rem 1rem;
     border-radius: 0.25rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--ds-border);
   }
 
   .active-filters {
