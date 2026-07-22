@@ -126,7 +126,8 @@ class Handler extends ExceptionHandler
             'ADMIN_USER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS',
             'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS',
             'ADMIN_USER_INVALID_WALLET_AMOUNT',
-            'ADMIN_USER_INVALID_XP_AMOUNT'
+            'ADMIN_USER_INVALID_XP_AMOUNT',
+            'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE'
             => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             // Fallback

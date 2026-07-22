@@ -41,6 +41,11 @@ final class AdminUserException extends DomainException
         return new self('ADMIN_USER_INVALID_XP_AMOUNT');
     }
 
+    public static function xpGrantRequiresPlayerRole(): self
+    {
+        return new self('ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE');
+    }
+
     public static function deleteFailed(): self
     {
         return new self('ADMIN_USER_DELETE_FAILED');

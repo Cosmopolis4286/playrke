@@ -21,6 +21,7 @@ interface UseAdminUserReturn {
     resetPassword: (id: string | number) => Promise<boolean>
     loadWalletBalance: (id: string | number) => Promise<boolean>
     getWalletBalance: (id: string | number) => Promise<{ balance: number, currency: any } | null>
+    grantXp: (id: string | number, amount: number, reason?: string) => Promise<boolean>
 }
 
 /**
@@ -293,6 +294,26 @@ export function useAdminUser(): UseAdminUserReturn {
         }
     }
 
+    /**
+     * Otorga XP manualmente a un usuario (solo aplica a rol Jugador — validado
+     * también en el backend vía AdminUserService::grantXp).
+     */
+    async function grantXp(id: string | number, amount: number, reason?: string): Promise<boolean> {
+        try {
+            const { data } = await backendClient.put(`/admin/user/${id}/grant-xp`, {
+                amount,
+                reason: reason || undefined,
+            })
+            showToast(data.message ?? `XP otorgado: ${amount}`, 'success')
+            await fetchUsers()
+            return true
+        } catch (error: any) {
+            console.error(error)
+            showToast(error?.response?.data?.message ?? 'Error al otorgar XP', 'error')
+            return false
+        }
+    }
+
     return {
         users,
         userEditData,
@@ -308,5 +329,6 @@ export function useAdminUser(): UseAdminUserReturn {
         resetPassword,
         loadWalletBalance,
         getWalletBalance,
+        grantXp,
     }
 }

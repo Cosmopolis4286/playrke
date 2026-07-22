@@ -16,6 +16,7 @@ return [
     'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS' => 'Only active users can be credited balance.',
     'ADMIN_USER_INVALID_WALLET_AMOUNT' => 'The entered amount is not valid.',
     'ADMIN_USER_INVALID_XP_AMOUNT' => 'The entered XP amount is not valid.',
+    'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE' => 'XP can only be granted to users with the Player role.',
     'ADMIN_USER_DELETE_FAILED' => 'The user could not be deleted.',
     'ADMIN_USER_CANNOT_MODIFY_SELF' => 'You cannot perform this action on your own account.',
     'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN' => 'You do not have permission to modify a Super Administrator account.',

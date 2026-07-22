@@ -157,6 +157,10 @@ final class AdminUserService
      */
     public function grantXp(User $user, int $amount, ?string $reason = null): array
     {
+        if (!$user->hasRole('player')) {
+            throw AdminUserException::xpGrantRequiresPlayerRole();
+        }
+
         if ($amount <= 0) {
             throw AdminUserException::invalidXpAmount();
         }

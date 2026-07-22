@@ -19,9 +19,10 @@
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
   import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
-  import XpGrantModal from '@js/Components/Common/Modal/XpGrantModal.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
   import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
+  import XpGrantForm from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
+  import type { XpGrantData } from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
 
   // ==========================================================================
   // Composables
@@ -62,6 +63,7 @@
     removeBulk,
     loadWalletBalance,
     getWalletBalance,
+    grantXp,
   } = useAdminUser()
 
   setInitialUsers(props.users.rows)
@@ -170,21 +172,27 @@
     showEditModal.value = true
   }
 
-  // Estado del modal de otorgar XP
-  const showXpModal = ref(false)
-  const xpUserId = ref<string | number>('')
-  const xpUserName = ref('')
+  // Modal de otorgar XP (Modal.vue + useModalForm) — solo aplica a usuarios
+  // con rol Jugador (validado también en el backend vía AdminUserService::grantXp).
+  const xpGrantTarget = ref<{ id?: string | number; name: string }>({ name: '' })
+  const xpGrantForm = ref<XpGrantData & { id?: string | number }>({ amount: '', reason: '' })
 
-  function openXpModal(userId: string | number, userName: string) {
-    xpUserId.value = userId
-    xpUserName.value = userName
-    showXpModal.value = true
+  async function submitXpGrant(): Promise<boolean> {
+    if (!xpGrantTarget.value.id) return false
+    const amount = parseInt(xpGrantForm.value.amount, 10)
+    return grantXp(xpGrantTarget.value.id, amount, xpGrantForm.value.reason || undefined)
   }
 
-  function closeXpModal() {
-    showXpModal.value = false
-    xpUserId.value = ''
-    xpUserName.value = ''
+  const {
+    showModalForm: showXpModal,
+    formRef: xpGrantFormRef,
+    handleSubmit: handleXpGrantSubmit,
+  } = useModalForm(xpGrantForm, submitXpGrant, { defaultTitle: 'XP', createTitle: 'Otorgar XP', editTitle: 'Otorgar XP' })
+
+  function openXpModal(userId: string | number, userName: string) {
+    xpGrantTarget.value = { id: userId, name: userName }
+    xpGrantForm.value = { amount: '', reason: '' }
+    showXpModal.value = true
   }
 
   async function refreshUserBalance() {
@@ -368,7 +376,9 @@
       icon: 'fas fa-star',
       class: 'btn-warning text-white',
       title: 'Otorgar XP',
-      show: (ids: string[]) => ids.length === 1,
+      // Solo aplica a usuarios con rol Jugador — el backend también lo exige
+      // (AdminUserService::grantXp), ocultarlo aquí evita un 422 innecesario.
+      show: (ids: string[]) => ids.length === 1 && users.value.find(u => u.id === ids[0])?.role_name === 'player',
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
           const user = users.value.find(u => u.id === ids[0])
@@ -467,11 +477,20 @@
   />
 
   <!-- Modal para otorgar XP -->
-  <XpGrantModal
-    :show="showXpModal"
-    :user-name="xpUserName"
-    :user-id="xpUserId"
-    @close="closeXpModal"
-    @success="closeXpModal"
-  />
+  <Modal
+    v-model="showXpModal"
+    title="Otorgar XP"
+    icon="fa-star"
+    static
+    show-confirm
+    confirm-text="Otorgar XP"
+    :on-submit="handleXpGrantSubmit"
+    :confirm-disabled="!(xpGrantFormRef?.isValid ?? false)"
+  >
+    <XpGrantForm
+      ref="xpGrantFormRef"
+      v-model="xpGrantForm"
+      :user-name="xpGrantTarget.name"
+    />
+  </Modal>
 </template>

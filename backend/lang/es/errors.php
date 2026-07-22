@@ -16,6 +16,7 @@ return [
     'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS' => 'Solo se puede cargar saldo a usuarios activos.',
     'ADMIN_USER_INVALID_WALLET_AMOUNT' => 'El monto ingresado no es válido.',
     'ADMIN_USER_INVALID_XP_AMOUNT' => 'El monto de XP ingresado no es válido.',
+    'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE' => 'Solo se puede otorgar XP a usuarios con rol Jugador.',
     'ADMIN_USER_DELETE_FAILED' => 'No se pudo eliminar el usuario.',
     'ADMIN_USER_CANNOT_MODIFY_SELF' => 'No puedes realizar esta acción sobre tu propio usuario.',
     'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN' => 'No tienes permisos para modificar una cuenta Super Administrador.',
