@@ -45,4 +45,14 @@ final class AdminUserException extends DomainException
     {
         return new self('ADMIN_USER_DELETE_FAILED');
     }
+
+    public static function cannotModifySelf(): self
+    {
+        return new self('ADMIN_USER_CANNOT_MODIFY_SELF');
+    }
+
+    public static function cannotModifySuperadmin(): self
+    {
+        return new self('ADMIN_USER_CANNOT_MODIFY_SUPERADMIN');
+    }
 }

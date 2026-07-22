@@ -29,6 +29,9 @@
     disableEditReason?: string | ((selectedIds: string[]) => string)
     disableDelete?: boolean | ((selectedIds: string[]) => boolean)
     disableDeleteReason?: string | ((selectedIds: string[]) => string)
+    /** IDs de filas cuyo checkbox debe deshabilitarse (ej. cuentas protegidas). */
+    disabledRowIds?: string[]
+    disabledRowReason?: string
     extraButtons?: ExtraButton[]
     loading?: boolean
     /** Activa paginación client-side con este tamaño de página */
@@ -225,6 +228,8 @@
     :disable-edit-reason="resolvedDisableEditReason"
     :disable-delete="resolvedDisableDelete"
     :disable-delete-reason="resolvedDisableDeleteReason"
+    :disabled-row-ids="props.disabledRowIds"
+    :disabled-row-reason="props.disabledRowReason"
     :loading="props.loading"
     :page-size="props.pageSize"
     :server-side="props.serverSide"

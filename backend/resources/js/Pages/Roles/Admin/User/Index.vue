@@ -18,6 +18,8 @@
   import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
   import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
   import XpGrantModal from '@js/Components/Common/Modal/XpGrantModal.vue'
+  import UserEditModal from '@js/Components/Common/Modal/UserEditModal.vue'
+  import UserCreateRoleModal from '@js/Components/Common/Modal/UserCreateRoleModal.vue'
 
   // ==========================================================================
   // Composables
@@ -48,7 +50,7 @@
     users,
     setInitialUsers,
     fetchUsers,
-    selectRoleAndRedirect,
+    redirectToRoleCreation,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
@@ -105,6 +107,30 @@
   const isSuperadmin = computed(() =>
     (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.prefix === 'superadmin') ?? false
   )
+  const currentUserId = computed(() => String((page.props.auth as any)?.user?.id ?? ''))
+
+  // Filas protegidas: cuentas superadmin (si el actor no lo es) y la propia
+  // cuenta del actor — mismo criterio que el guard de AdminUserService, para
+  // que la UI nunca ofrezca una acción que el servidor va a rechazar.
+  const disabledRowIds = computed<string[]>(() =>
+    users.value
+      .filter(u => String(u.id) === currentUserId.value || (u.role_name === 'superadmin' && !isSuperadmin.value))
+      .map(u => String(u.id))
+  )
+
+  function isProtectedSelection(ids: string[]): boolean {
+    return ids.some(id => disabledRowIds.value.includes(String(id)))
+  }
+
+  function getProtectedSelectionReason(ids: string[]): string {
+    if (ids.some(id => String(id) === currentUserId.value)) {
+      return 'No puedes realizar esta acción sobre tu propio usuario'
+    }
+    if (ids.some(id => disabledRowIds.value.includes(String(id)))) {
+      return 'No tienes permisos para modificar una cuenta Super Administrador'
+    }
+    return ''
+  }
 
   const showPermissionsModal = ref(false)
   const permissionsUserId = ref<string | number>('')
@@ -120,6 +146,27 @@
     showPermissionsModal.value = false
     permissionsUserId.value = ''
     permissionsUserName.value = ''
+  }
+
+  // Estado del modal de edición de usuario
+  const showEditModal = ref(false)
+  const editUserId = ref<string | number>('')
+
+  const editingUser = computed(() => users.value.find(u => u.id === editUserId.value) ?? null)
+
+  function openEditModal(userId: string | number) {
+    editUserId.value = userId
+    showEditModal.value = true
+  }
+
+  function closeEditModal() {
+    showEditModal.value = false
+    editUserId.value = ''
+  }
+
+  async function onEditSuccess() {
+    closeEditModal()
+    await fetchUsers()
   }
 
   // Estado del modal de otorgar XP
@@ -161,14 +208,28 @@
   // CRUD global (eventos tabla)
   // ==========================================================================
 
+  // Estado del modal de selección de rol para registrar usuario
+  const showCreateRoleModal = ref(false)
+
+  function closeCreateRoleModal() {
+    showCreateRoleModal.value = false
+  }
+
+  function onRoleSelected(roleName: string) {
+    closeCreateRoleModal()
+    redirectToRoleCreation(roleName)
+  }
+
   useCrudEventListener({
-    // "Crear" abre SweetAlert de selección de rol → redirige
+    // "Crear" abre el modal de selección de rol → redirige a la vista de creación
     create: () => {
-      selectRoleAndRedirect(props.roles)
+      showCreateRoleModal.value = true
     },
 
-    // Sin edición en esta vista — se gestiona en la vista específica del rol
-    edit: () => {},
+    edit: ids => {
+      if (!ids || ids.length !== 1) return
+      openEditModal(ids[0])
+    },
 
     delete: async ids => {
       if (!ids) return
@@ -324,8 +385,36 @@
     :filters="filters"
     search-placeholder="Buscar por nombre, username, email..."
     showCreateButton
+    showEditButton
     showDeleteButton
+    :disable-edit="isProtectedSelection"
+    :disable-edit-reason="getProtectedSelectionReason"
+    :disable-delete="isProtectedSelection"
+    :disable-delete-reason="getProtectedSelectionReason"
+    :disabled-row-ids="disabledRowIds"
+    disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
     :extra-buttons="extraButtons"
+  />
+
+  <!-- Modal de selección de rol para registrar usuario -->
+  <UserCreateRoleModal
+    :show="showCreateRoleModal"
+    :roles="props.roles"
+    @close="closeCreateRoleModal"
+    @select="onRoleSelected"
+  />
+
+  <!-- Modal de edición de usuario -->
+  <UserEditModal
+    :show="showEditModal"
+    :user="editingUser"
+    :roles="props.roles"
+    :countries="props.countries"
+    :is-actor-superadmin="isSuperadmin"
+    :is-self="editUserId ? String(editUserId) === currentUserId : false"
+    @close="closeEditModal"
+    @success="onEditSuccess"
+    @reset-password="(id) => resetPassword(id)"
   />
 
   <!-- Modal para carga de saldo -->

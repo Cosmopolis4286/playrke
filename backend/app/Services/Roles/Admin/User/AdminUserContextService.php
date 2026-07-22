@@ -59,6 +59,23 @@ final class AdminUserContextService
 
         $users = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
+        // Datos crudos adicionales (no son columnas visibles): necesarios para
+        // que el frontend decida qué filas/acciones deshabilitar (superadmin,
+        // usuario propio) y para precargar el modal de edición.
+        // Los rows ya vienen en el mismo orden que $collection (buildRows no
+        // reordena), así que se combinan por índice, no por id (el id de la
+        // row está hasheado, no es el id real del usuario).
+        $usersList = $collection->values();
+        $users['rows'] = collect($users['rows'])->map(function (array $row, int $index) use ($usersList) {
+            $user = $usersList->get($index);
+            $row['role_name']  = strtolower($user?->roles->first()?->name ?? '');
+            $row['role_id']    = $user?->roles->first()?->id;
+            $row['country_id'] = $user?->country_id;
+            $row['first_name'] = $user?->first_name;
+            $row['last_name']  = $user?->last_name;
+            return $row;
+        })->all();
+
         return ['users' => $users, 'pagination' => $pagination];
     }
 

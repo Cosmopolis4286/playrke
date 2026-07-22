@@ -3,14 +3,14 @@ import { router } from '@inertiajs/vue3'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
-import type { AdminUser, AdminRole, ROLE_ROUTE_MAP } from '@/js/types/roles/admin/admin-user'
+import type { AdminUser } from '@/js/types/roles/admin/admin-user'
 import Swal from 'sweetalert2'
 
 interface UseAdminUserReturn {
     users: Ref<AdminUser[]>
     setInitialUsers: (initial: AdminUser[]) => void
     fetchUsers: () => Promise<boolean>
-    selectRoleAndRedirect: (roles: AdminRole[]) => Promise<void>
+    redirectToRoleCreation: (roleName: string) => void
     toggleStatus: (id: string | number) => Promise<boolean>
     toggleStatusBulk: (ids: (string | number)[]) => Promise<boolean>
     remove: (id: string | number) => Promise<boolean>
@@ -57,38 +57,11 @@ export function useAdminUser(): UseAdminUserReturn {
     }
 
     /**
-     * Muestra SweetAlert con selector de rol.
-     * Al confirmar, redirige a la vista de creación correspondiente.
+     * Redirige a la vista de creación del rol indicado, usado por
+     * UserCreateRoleModal.vue tras seleccionar una tarjeta de rol.
      */
-    async function selectRoleAndRedirect(roles: AdminRole[]): Promise<void> {
-        const rolesWithRoute = roles.filter(r => r.name.toLowerCase() in ROLE_ROUTES)
-
-        if (rolesWithRoute.length === 0) {
-            showToast('No hay roles disponibles para registrar usuarios', 'warning')
-            return
-        }
-
-        const inputOptions = Object.fromEntries(
-            rolesWithRoute.map(r => [r.name.toLowerCase(), ucfirst(r.name)])
-        )
-
-        const { value: selectedRole, isConfirmed } = await Swal.fire({
-            title: 'Registrar nuevo usuario',
-            text: 'Selecciona el rol del usuario a registrar:',
-            input: 'select',
-            inputOptions,
-            inputPlaceholder: 'Seleccionar rol...',
-            showCancelButton: true,
-            confirmButtonText: 'Ir a registrar',
-            cancelButtonText: 'Cancelar',
-            inputValidator: value => {
-                if (!value) return 'Debes seleccionar un rol'
-            }
-        })
-
-        if (!isConfirmed || !selectedRole) return
-
-        const route = ROLE_ROUTES[selectedRole]
+    function redirectToRoleCreation(roleName: string): void {
+        const route = ROLE_ROUTES[roleName.toLowerCase()]
         if (route) {
             router.visit(route)
         }
@@ -272,7 +245,7 @@ export function useAdminUser(): UseAdminUserReturn {
         users,
         setInitialUsers,
         fetchUsers,
-        selectRoleAndRedirect,
+        redirectToRoleCreation,
         toggleStatus,
         toggleStatusBulk,
         remove,
@@ -281,8 +254,4 @@ export function useAdminUser(): UseAdminUserReturn {
         loadWalletBalance,
         getWalletBalance,
     }
-}
-
-function ucfirst(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1)
 }

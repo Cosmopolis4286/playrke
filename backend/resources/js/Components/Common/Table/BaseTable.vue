@@ -22,12 +22,18 @@
       allFilteredIds?: string[] | null
       /** true si el usuario tiene búsqueda/filtros activos (para diferenciar el mensaje de tabla vacía). */
       hasActiveFilters?: boolean
+      /** IDs de filas cuyo checkbox debe deshabilitarse (ej. cuentas protegidas). */
+      disabledRowIds?: string[]
+      /** Tooltip mostrado en filas deshabilitadas. */
+      disabledRowReason?: string
     }>(),
     {
       selectable: false,
       selectedIds: () => [],
       allFilteredIds: null,
-      hasActiveFilters: false
+      hasActiveFilters: false,
+      disabledRowIds: () => [],
+      disabledRowReason: 'Esta fila no puede modificarse'
     }
   )
 
@@ -90,6 +96,11 @@
   /** Verifica si fila está seleccionada */
   function isSelected(id: string | number): boolean {
     return props.selectedIds.includes(String(id))
+  }
+
+  /** Verifica si el checkbox de la fila debe estar deshabilitado */
+  function isRowDisabled(id: string | number): boolean {
+    return props.disabledRowIds.includes(String(id))
   }
 
   /** Solicita ordenar por una columna (delega el toggle asc/desc al padre) */
@@ -224,13 +235,15 @@
           <tr
             v-for="row in rows"
             :key="row.id"
-            :class="{ 'table-primary': selectable && isSelected(row.id) }"
-            v-bind="selectable ? { onClick: () => toggleRow(row.id), style: 'cursor: pointer' } : {}"
+            :class="{ 'table-primary': selectable && isSelected(row.id), 'table-row--disabled': isRowDisabled(row.id) }"
+            v-bind="selectable && !isRowDisabled(row.id) ? { onClick: () => toggleRow(row.id), style: 'cursor: pointer' } : {}"
           >
             <td v-if="selectable" class="text-center">
               <input
                 type="checkbox"
                 :checked="isSelected(row.id)"
+                :disabled="isRowDisabled(row.id)"
+                :title="isRowDisabled(row.id) ? disabledRowReason : undefined"
                 :aria-label="`Seleccionar fila ${rowLabel(row)}`"
                 @click.stop="toggleRow(row.id)"
               />
@@ -275,6 +288,14 @@
 
   .table-primary {
     background-color: rgba(0, 123, 255, 0.1) !important;
+  }
+
+  .table-row--disabled {
+    opacity: 0.6;
+  }
+
+  .table-row--disabled td:first-child {
+    cursor: not-allowed;
   }
 
   .is-sortable {

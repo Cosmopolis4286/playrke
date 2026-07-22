@@ -100,19 +100,33 @@ class Handler extends ExceptionHandler
     {
         return match ($errorCode) {
             // Not Found
-            'ADMIN_COMMERCE_NOT_FOUND' => Response::HTTP_NOT_FOUND,
+            'ADMIN_COMMERCE_NOT_FOUND',
+            'ADMIN_USER_NOT_FOUND'
+            => Response::HTTP_NOT_FOUND,
+
+            // Forbidden / Authorization
+            'ADMIN_USER_CANNOT_MODIFY_SELF',
+            'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN'
+            => Response::HTTP_FORBIDDEN,
 
             // Conflicts / Invalid state
             'ADMIN_COMMERCE_ALREADY_DELETED',
             'ADMIN_COMMERCE_INVALID_STATUS_CHANGE',
-            'ADMIN_COMMERCE_DESTROY_NOT_ALLOWED'
+            'ADMIN_COMMERCE_DESTROY_NOT_ALLOWED',
+            'ADMIN_USER_ALREADY_DELETED',
+            'ADMIN_USER_INVALID_STATUS_CHANGE'
             => Response::HTTP_CONFLICT,
 
             // Validation / Business rules
             'ADMIN_COMMERCE_CREATION_FAILED',
             'ADMIN_COMMERCE_UPDATE_FAILED',
             'ADMIN_COMMERCE_DELETE_FAILED',
-            'ADMIN_COMMERCE_PASSWORD_RESET_FAILED'
+            'ADMIN_COMMERCE_PASSWORD_RESET_FAILED',
+            'ADMIN_USER_DELETE_FAILED',
+            'ADMIN_USER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS',
+            'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS',
+            'ADMIN_USER_INVALID_WALLET_AMOUNT',
+            'ADMIN_USER_INVALID_XP_AMOUNT'
             => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             // Fallback

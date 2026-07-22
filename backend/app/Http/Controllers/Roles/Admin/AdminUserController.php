@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Roles\Admin;
 
+use App\DTOs\Roles\Admin\User\AdminUserUpdateDTO;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Roles\Admin\User\AdminUserUpdateRequest;
 use App\Models\User;
 use App\Services\Roles\Admin\User\AdminUserService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +28,16 @@ final class AdminUserController extends Controller
     {
         return $this->handleServiceJson(
             fn() => ['data' => $this->service->fetchList()]
+        );
+    }
+
+    /**
+     * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
+     */
+    public function update(AdminUserUpdateRequest $request, User $user): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->update($user, $request->toDTO(AdminUserUpdateDTO::class))
         );
     }
 

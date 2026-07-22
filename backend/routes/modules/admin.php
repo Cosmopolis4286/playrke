@@ -133,12 +133,13 @@ Route::middleware('auth')->group(function () {
     role_protected_routes(['role:admin'], 'admin/commerce',  AdminCommerceController::class,  $adminCrudRoutes, 'commerce');
     role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/player',    AdminPlayerController::class,    $adminCrudRoutes, 'player');
-    role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'commerce');
+    role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'treasurer');
 
-    // Rutas de usuarios (sin store/show/update — la creación se delega al flujo del rol)
+    // Rutas de usuarios (sin store/show — la creación se delega al flujo del rol)
     $userRoutes = [
         'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index'],
         'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
+        'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
         'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
         'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete'],
         'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],

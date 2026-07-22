@@ -33,6 +33,9 @@
     disableEditReason?: string
     disableDelete?: boolean
     disableDeleteReason?: string
+    /** IDs de filas cuyo checkbox debe deshabilitarse (ej. cuentas protegidas). */
+    disabledRowIds?: string[]
+    disabledRowReason?: string
     loading?: boolean
     /** Activa paginación client-side con este tamaño de página */
     pageSize?: number
@@ -201,6 +204,8 @@
         :selected-ids="stringSelectedIds"
         :all-filtered-ids="allFilteredIds"
         :has-active-filters="hasActiveFilters"
+        :disabled-row-ids="props.disabledRowIds"
+        :disabled-row-reason="props.disabledRowReason"
         @selection-change="handleSelectionChange"
         @sort-change="setSort"
         @clear-filters="handleClearFilters"

@@ -2,7 +2,9 @@
 
 namespace App\Services\Roles\Admin\User;
 
+use App\DTOs\Roles\Admin\User\AdminUserUpdateDTO;
 use App\Exceptions\Domain\Roles\Admin\User\AdminUserException;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\User\UserLevelService;
 use App\Services\User\UserPasswordService;
@@ -24,10 +26,30 @@ final class AdminUserService
     }
 
     /**
+     * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
+     */
+    public function update(User $user, AdminUserUpdateDTO $dto): void
+    {
+        $this->guardMutation($user);
+
+        if ($dto->roleId !== null) {
+            $this->guardRoleChange($user, $dto->roleId);
+        }
+
+        $user->update($dto->toArray());
+
+        if ($dto->roleId !== null) {
+            $user->roles()->sync([$dto->roleId]);
+        }
+    }
+
+    /**
      * Alternar estado ACTIVE / INACTIVE.
      */
     public function toggleStatus(User $user): void
     {
+        $this->guardMutation($user);
+
         if ($user->status === 'DELETED') {
             throw AdminUserException::invalidStatusChange();
         }
@@ -42,6 +64,8 @@ final class AdminUserService
      */
     public function delete(User $user): void
     {
+        $this->guardMutation($user);
+
         if ($user->status === 'DELETED') {
             throw AdminUserException::alreadyDeleted();
         }
@@ -55,6 +79,8 @@ final class AdminUserService
      */
     public function destroy(User $user): void
     {
+        $this->guardMutation($user);
+
         DB::transaction(function () use ($user) {
             $user->roles()->detach();
             $user->forceDelete();
@@ -66,11 +92,40 @@ final class AdminUserService
      */
     public function resetPassword(User $user): string
     {
+        $this->guardMutation($user);
+
         if ($user->status !== 'ACTIVE') {
             throw AdminUserException::passwordResetRequiresActiveStatus();
         }
 
         return $this->userPasswordService->resetPassword($user);
+    }
+
+    /**
+     * Bloquea auto-modificación y mutación de cuentas superadmin por parte
+     * de actores que no lo son (mismo criterio que AdministratorService).
+     */
+    private function guardMutation(User $user): void
+    {
+        if ($user->id === auth()->id()) {
+            throw AdminUserException::cannotModifySelf();
+        }
+
+        if ($user->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
+            throw AdminUserException::cannotModifySuperadmin();
+        }
+    }
+
+    /**
+     * Bloquea asignar el rol superadmin si el actor no lo es.
+     */
+    private function guardRoleChange(User $user, string $roleId): void
+    {
+        $role = Role::find($roleId);
+
+        if ($role && strtolower($role->name) === 'superadmin' && !auth()->user()->hasRole('superadmin')) {
+            throw AdminUserException::cannotModifySuperadmin();
+        }
     }
 
     /**

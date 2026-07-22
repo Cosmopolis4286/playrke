@@ -18,6 +18,12 @@ export interface AdminUser {
         symbol: string
         name: string
     }
+    /** Nombre de rol en minúsculas (ej. 'superadmin'), no es una columna visible. */
+    readonly role_name: string
+    readonly role_id: string | number | null
+    readonly country_id: string | number | null
+    readonly first_name: string | null
+    readonly last_name: string | null
 }
 
 export interface AdminRole {
