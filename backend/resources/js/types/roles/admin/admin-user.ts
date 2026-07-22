@@ -32,6 +32,19 @@ export interface AdminRole {
     readonly prefix: string | null
 }
 
+/**
+ * Datos editables del formulario de edición de usuario (UserEditForm.vue).
+ */
+export interface AdminUserEditData {
+    id: string | number
+    first_name: string
+    last_name: string
+    username: string
+    email: string
+    country_id: string | number | null
+    role_id: string | number | null
+}
+
 export interface AdminUserPageProps {
     users: {
         columns: Column[]
@@ -44,7 +57,6 @@ export interface AdminUserPageProps {
 
 /**
  * Mapa de rol → ruta Inertia de creación.
- * Se usa en el SweetAlert de selección de rol.
  */
 export const ROLE_ROUTE_MAP: Record<string, string> = {
     commerce:   '/admin/commerces',

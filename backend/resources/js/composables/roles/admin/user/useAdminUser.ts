@@ -3,14 +3,17 @@ import { router } from '@inertiajs/vue3'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
-import type { AdminUser } from '@/js/types/roles/admin/admin-user'
+import type { AdminUser, AdminUserEditData } from '@/js/types/roles/admin/admin-user'
 import Swal from 'sweetalert2'
 
 interface UseAdminUserReturn {
     users: Ref<AdminUser[]>
+    userEditData: Ref<Partial<AdminUserEditData>>
     setInitialUsers: (initial: AdminUser[]) => void
     fetchUsers: () => Promise<boolean>
     redirectToRoleCreation: (roleName: string) => void
+    editUser: (id: string | number) => void
+    updateUser: () => Promise<boolean>
     toggleStatus: (id: string | number) => Promise<boolean>
     toggleStatusBulk: (ids: (string | number)[]) => Promise<boolean>
     remove: (id: string | number) => Promise<boolean>
@@ -34,6 +37,7 @@ const ROLE_ROUTES: Record<string, string> = {
 export function useAdminUser(): UseAdminUserReturn {
     const loading = ref(false)
     const users   = ref<AdminUser[]>([])
+    const userEditData = ref<Partial<AdminUserEditData>>({})
 
     function setInitialUsers(initial: AdminUser[]) {
         users.value = [...initial]
@@ -58,12 +62,60 @@ export function useAdminUser(): UseAdminUserReturn {
 
     /**
      * Redirige a la vista de creación del rol indicado, usado por
-     * UserCreateRoleModal.vue tras seleccionar una tarjeta de rol.
+     * UserCreateRoleForm.vue tras seleccionar una tarjeta de rol.
      */
     function redirectToRoleCreation(roleName: string): void {
         const route = ROLE_ROUTES[roleName.toLowerCase()]
         if (route) {
             router.visit(route)
+        }
+    }
+
+    /**
+     * Carga los datos de un usuario en userEditData para abrir el modal de edición.
+     */
+    function editUser(id: string | number): void {
+        const user = users.value.find(u => u.id === id)
+        if (!user) return
+
+        userEditData.value = {
+            id: user.id,
+            first_name: user.first_name ?? '',
+            last_name: user.last_name ?? '',
+            username: user.username ?? '',
+            email: user.email ?? '',
+            country_id: user.country_id,
+            role_id: user.role_id,
+        }
+    }
+
+    /**
+     * Envía los cambios de userEditData al backend (PATCH /admin/user/{id}).
+     */
+    async function updateUser(): Promise<boolean> {
+        if (loading.value || !userEditData.value.id) return false
+
+        try {
+            loading.value = true
+
+            await backendClient.patch(`/admin/user/${userEditData.value.id}`, {
+                first_name: userEditData.value.first_name,
+                last_name: userEditData.value.last_name,
+                username: userEditData.value.username,
+                email: userEditData.value.email,
+                country_id: userEditData.value.country_id,
+                role_id: userEditData.value.role_id,
+            })
+
+            showToast('Usuario actualizado correctamente', 'success')
+            await fetchUsers()
+            return true
+        } catch (error: any) {
+            console.error(error)
+            showToast(error?.response?.data?.message ?? 'Error al actualizar el usuario', 'error')
+            return false
+        } finally {
+            loading.value = false
         }
     }
 
@@ -243,9 +295,12 @@ export function useAdminUser(): UseAdminUserReturn {
 
     return {
         users,
+        userEditData,
         setInitialUsers,
         fetchUsers,
         redirectToRoleCreation,
+        editUser,
+        updateUser,
         toggleStatus,
         toggleStatusBulk,
         remove,

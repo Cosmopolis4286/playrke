@@ -3,8 +3,9 @@
    * Página Admin → Usuarios
    *
    * Vista de todos los usuarios del sistema.
-   * No tiene formulario de creación propio: el botón "Crear" abre un SweetAlert
-   * para seleccionar el rol y redirige a la vista específica de ese rol.
+   * El botón "Crear" abre un modal para seleccionar el rol y redirige a la
+   * vista específica de ese rol; "Editar" abre el modal de edición de datos
+   * básicos + rol del usuario seleccionado.
    */
 
   import { computed, ref } from 'vue'
@@ -15,24 +16,26 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
   import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
   import XpGrantModal from '@js/Components/Common/Modal/XpGrantModal.vue'
-  import UserEditModal from '@js/Components/Common/Modal/UserEditModal.vue'
-  import UserCreateRoleModal from '@js/Components/Common/Modal/UserCreateRoleModal.vue'
+  import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
+  import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
 
   // ==========================================================================
   // Composables
   // ==========================================================================
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
+  import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminUser } from '@/js/composables/roles/admin/user/useAdminUser'
 
   // ==========================================================================
   // Types
   // ==========================================================================
 
-  import type { AdminUserPageProps } from '@js/types/roles/admin/admin-user'
+  import type { AdminUserPageProps, AdminUserEditData } from '@js/types/roles/admin/admin-user'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -48,9 +51,12 @@
 
   const {
     users,
+    userEditData,
     setInitialUsers,
     fetchUsers,
     redirectToRoleCreation,
+    editUser,
+    updateUser,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
@@ -148,25 +154,20 @@
     permissionsUserName.value = ''
   }
 
-  // Estado del modal de edición de usuario
-  const showEditModal = ref(false)
-  const editUserId = ref<string | number>('')
+  // Modal de edición de usuario (Modal.vue + useModalForm, patrón estándar del proyecto)
+  const {
+    showModalForm: showEditModal,
+    formRef: userEditFormRef,
+    handleSubmit: handleEditSubmit,
+  } = useModalForm(userEditData, updateUser, { defaultTitle: 'Usuario', createTitle: 'Editar Usuario', editTitle: 'Editar Usuario' })
 
-  const editingUser = computed(() => users.value.find(u => u.id === editUserId.value) ?? null)
+  const editingUser = computed(() => users.value.find(u => u.id === userEditData.value.id) ?? null)
+  const isEditingSelf = computed(() => !!userEditData.value.id && String(userEditData.value.id) === currentUserId.value)
+  const isEditingTargetSuperadmin = computed(() => editingUser.value?.role_name === 'superadmin')
 
   function openEditModal(userId: string | number) {
-    editUserId.value = userId
+    editUser(userId)
     showEditModal.value = true
-  }
-
-  function closeEditModal() {
-    showEditModal.value = false
-    editUserId.value = ''
-  }
-
-  async function onEditSuccess() {
-    closeEditModal()
-    await fetchUsers()
   }
 
   // Estado del modal de otorgar XP
@@ -208,21 +209,29 @@
   // CRUD global (eventos tabla)
   // ==========================================================================
 
-  // Estado del modal de selección de rol para registrar usuario
-  const showCreateRoleModal = ref(false)
+  // Modal de selección de rol para registrar usuario (Modal.vue + useModalForm)
+  const roleSelection = ref<{ id?: string; role: string | null }>({ role: null })
 
-  function closeCreateRoleModal() {
-    showCreateRoleModal.value = false
+  async function submitRoleSelection(): Promise<boolean> {
+    if (!roleSelection.value.role) return false
+    redirectToRoleCreation(roleSelection.value.role)
+    return true
   }
 
+  const {
+    showModalForm: showCreateRoleModal,
+    formRef: createRoleFormRef,
+    handleSubmit: handleCreateRoleSubmit,
+  } = useModalForm(roleSelection, submitRoleSelection, { defaultTitle: 'Usuario', createTitle: 'Registrar nuevo usuario', editTitle: 'Registrar nuevo usuario' })
+
   function onRoleSelected(roleName: string) {
-    closeCreateRoleModal()
-    redirectToRoleCreation(roleName)
+    roleSelection.value = { role: roleName }
   }
 
   useCrudEventListener({
     // "Crear" abre el modal de selección de rol → redirige a la vista de creación
     create: () => {
+      roleSelection.value = { role: null }
       showCreateRoleModal.value = true
     },
 
@@ -397,25 +406,44 @@
   />
 
   <!-- Modal de selección de rol para registrar usuario -->
-  <UserCreateRoleModal
-    :show="showCreateRoleModal"
-    :roles="props.roles"
-    @close="closeCreateRoleModal"
-    @select="onRoleSelected"
-  />
+  <Modal
+    v-model="showCreateRoleModal"
+    title="Registrar nuevo usuario"
+    icon="fa-user-plus"
+    static
+    show-confirm
+    confirm-text="Ir a registrar"
+    :on-submit="handleCreateRoleSubmit"
+    :confirm-disabled="!(createRoleFormRef?.isValid ?? false)"
+  >
+    <UserCreateRoleForm
+      ref="createRoleFormRef"
+      :roles="props.roles"
+      @select="onRoleSelected"
+    />
+  </Modal>
 
   <!-- Modal de edición de usuario -->
-  <UserEditModal
-    :show="showEditModal"
-    :user="editingUser"
-    :roles="props.roles"
-    :countries="props.countries"
-    :is-actor-superadmin="isSuperadmin"
-    :is-self="editUserId ? String(editUserId) === currentUserId : false"
-    @close="closeEditModal"
-    @success="onEditSuccess"
-    @reset-password="(id) => resetPassword(id)"
-  />
+  <Modal
+    v-model="showEditModal"
+    title="Editar Usuario"
+    icon="fa-user-edit"
+    static
+    show-confirm
+    :on-submit="handleEditSubmit"
+    :confirm-disabled="!(userEditFormRef?.isValid ?? false)"
+  >
+    <UserEditForm
+      ref="userEditFormRef"
+      v-model="userEditData"
+      :roles="props.roles"
+      :countries="props.countries"
+      :is-actor-superadmin="isSuperadmin"
+      :is-target-superadmin="isEditingTargetSuperadmin"
+      :is-self="isEditingSelf"
+      @reset-password="() => editingUser && resetPassword(editingUser.id)"
+    />
+  </Modal>
 
   <!-- Modal para carga de saldo -->
   <WalletLoadModal
