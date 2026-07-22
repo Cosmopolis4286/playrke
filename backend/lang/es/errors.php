@@ -14,6 +14,7 @@ return [
     'ADMIN_USER_INVALID_STATUS_CHANGE' => 'No se puede cambiar el estado de este usuario.',
     'ADMIN_USER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Solo se puede resetear la contraseña de usuarios activos.',
     'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS' => 'Solo se puede cargar saldo a usuarios activos.',
+    'ADMIN_USER_WALLET_LOAD_REQUIRES_ELIGIBLE_ROLE' => 'Solo se puede cargar saldo a usuarios con rol Comercio, Vendedor o Jugador.',
     'ADMIN_USER_INVALID_WALLET_AMOUNT' => 'El monto ingresado no es válido.',
     'ADMIN_USER_INVALID_XP_AMOUNT' => 'El monto de XP ingresado no es válido.',
     'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE' => 'Solo se puede otorgar XP a usuarios con rol Jugador.',

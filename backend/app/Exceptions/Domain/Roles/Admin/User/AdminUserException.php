@@ -31,6 +31,11 @@ final class AdminUserException extends DomainException
         return new self('ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS');
     }
 
+    public static function walletLoadRequiresEligibleRole(): self
+    {
+        return new self('ADMIN_USER_WALLET_LOAD_REQUIRES_ELIGIBLE_ROLE');
+    }
+
     public static function invalidWalletAmount(): self
     {
         return new self('ADMIN_USER_INVALID_WALLET_AMOUNT');

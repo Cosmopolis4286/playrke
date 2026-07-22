@@ -129,10 +129,19 @@ final class AdminUserService
     }
 
     /**
+     * Roles que pueden recibir carga de saldo manual desde el panel admin.
+     */
+    private const WALLET_LOAD_ALLOWED_ROLES = ['commerce', 'seller', 'player'];
+
+    /**
      * Cargar saldo en wallet del usuario (operación admin).
      */
-    public function loadWalletBalance(User $user, float $amount): string
+    public function loadWalletBalance(User $user, float $amount, ?string $reason = null): string
     {
+        if (!$user->hasRole(self::WALLET_LOAD_ALLOWED_ROLES)) {
+            throw AdminUserException::walletLoadRequiresEligibleRole();
+        }
+
         if ($user->status !== 'ACTIVE') {
             throw AdminUserException::walletLoadRequiresActiveStatus();
         }
@@ -141,10 +150,12 @@ final class AdminUserService
             throw AdminUserException::invalidWalletAmount();
         }
 
+        $description = $reason ?: 'Carga de saldo por administrador';
+
         $wallet = $this->walletService->recordAdminDeposit(
             user:        $user,
             amount:      $amount,
-            description: 'Carga de saldo por administrador',
+            description: $description,
         );
 
         $wallet->load('currency');

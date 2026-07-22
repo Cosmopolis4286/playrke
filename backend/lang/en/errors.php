@@ -14,6 +14,7 @@ return [
     'ADMIN_USER_INVALID_STATUS_CHANGE' => 'This user\'s status cannot be changed.',
     'ADMIN_USER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Only active users can have their password reset.',
     'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS' => 'Only active users can be credited balance.',
+    'ADMIN_USER_WALLET_LOAD_REQUIRES_ELIGIBLE_ROLE' => 'Balance can only be credited to users with the Commerce, Seller, or Player role.',
     'ADMIN_USER_INVALID_WALLET_AMOUNT' => 'The entered amount is not valid.',
     'ADMIN_USER_INVALID_XP_AMOUNT' => 'The entered XP amount is not valid.',
     'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE' => 'XP can only be granted to users with the Player role.',

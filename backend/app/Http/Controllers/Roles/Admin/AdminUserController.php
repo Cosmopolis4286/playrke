@@ -90,7 +90,11 @@ final class AdminUserController extends Controller
     {
         return $this->handleServiceJson(
             fn() => [
-                'message' => $this->service->loadWalletBalance($user, request('amount'))
+                'message' => $this->service->loadWalletBalance(
+                    $user,
+                    request('amount'),
+                    request('reason'),
+                )
             ]
         );
     }

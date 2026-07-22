@@ -29,6 +29,7 @@ class DispatchWalletNotificationJob implements ShouldQueue
         private readonly string $movementType,
         private readonly float  $amount,
         private readonly ?string $movementId = null,
+        private readonly ?string $reason = null,
     ) {}
 
     public function handle(NotificationService $notificationService): void
@@ -40,6 +41,7 @@ class DispatchWalletNotificationJob implements ShouldQueue
             movementType:   $this->movementType,
             amount:         $this->amount,
             movementId:     $this->movementId,
+            reason:         $this->reason,
         );
     }
 }

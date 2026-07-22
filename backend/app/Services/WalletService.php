@@ -645,7 +645,7 @@ final class WalletService
             return $locked;
         });
 
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount, $movementId);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount, $movementId, $description);
 
         return $wallet;
     }
@@ -927,7 +927,7 @@ final class WalletService
     /**
      * Emite el evento WebSocket con el nuevo saldo.
      */
-    private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount, ?string $movementId = null): void
+    private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount, ?string $movementId = null, ?string $reason = null): void
     {
         try {
             broadcast(new WalletUpdated(
@@ -951,6 +951,7 @@ final class WalletService
             movementType:   $type,
             amount:         $amount,
             movementId:     $movementId,
+            reason:         $reason,
         );
     }
 

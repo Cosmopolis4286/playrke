@@ -4,7 +4,6 @@ import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
 import type { AdminUser, AdminUserEditData } from '@/js/types/roles/admin/admin-user'
-import Swal from 'sweetalert2'
 
 interface UseAdminUserReturn {
     users: Ref<AdminUser[]>
@@ -19,7 +18,7 @@ interface UseAdminUserReturn {
     remove: (id: string | number) => Promise<boolean>
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
     resetPassword: (id: string | number) => Promise<boolean>
-    loadWalletBalance: (id: string | number) => Promise<boolean>
+    loadWalletBalance: (id: string | number, amount: number, reason?: string) => Promise<boolean>
     getWalletBalance: (id: string | number) => Promise<{ balance: number, currency: any } | null>
     grantXp: (id: string | number, amount: number, reason?: string) => Promise<boolean>
 }
@@ -251,34 +250,23 @@ export function useAdminUser(): UseAdminUserReturn {
         }
     }
 
-    async function loadWalletBalance(id: string | number): Promise<boolean> {
-        const user = users.value.find(u => u.id === id)
-        const name = user?.full_name || user?.username || 'este usuario'
-
-        const { value: amount, isConfirmed } = await Swal.fire({
-            title: 'Cargar Saldo',
-            text: `Ingrese el monto a cargar para <b>${name}</b>:`,
-            input: 'number',
-            inputPlaceholder: '0.00',
-            showCancelButton: true,
-            confirmButtonText: 'Cargar Saldo',
-            inputValidator: value => {
-                if (!value || parseFloat(value) <= 0) return 'Debe ingresar un monto válido mayor a 0'
-            }
-        })
-
-        if (!isConfirmed || !amount) return false
-
+    /**
+     * Carga saldo manual a un usuario (solo aplica a roles Comercio, Vendedor
+     * y Jugador — validado también en el backend vía
+     * AdminUserService::loadWalletBalance).
+     */
+    async function loadWalletBalance(id: string | number, amount: number, reason?: string): Promise<boolean> {
         try {
             const { data } = await backendClient.put(`/admin/user/${id}/load-wallet-balance`, {
-                amount: parseFloat(amount)
+                amount,
+                reason: reason || undefined,
             })
             showToast(data.message ?? `Saldo cargado: $${amount}`, 'success')
             await fetchUsers()
             return true
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
-            showToast('Error al cargar el saldo', 'error')
+            showToast(error?.response?.data?.message ?? 'Error al cargar el saldo', 'error')
             return false
         }
     }

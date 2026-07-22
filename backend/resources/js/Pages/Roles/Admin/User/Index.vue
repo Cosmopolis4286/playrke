@@ -17,12 +17,13 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
   import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
   import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
   import XpGrantForm from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
   import type { XpGrantData } from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
+  import WalletLoadForm from '@/js/Components/Roles/Admin/User/WalletLoadForm.vue'
+  import type { WalletLoadData } from '@/js/Components/Roles/Admin/User/WalletLoadForm.vue'
 
   // ==========================================================================
   // Composables
@@ -68,46 +69,46 @@
 
   setInitialUsers(props.users.rows)
 
-  // Estado del modal de carga de saldo
-  const showWalletModal = ref(false)
+  // Modal de carga de saldo (Modal.vue + useModalForm) — solo aplica a
+  // usuarios con rol Comercio, Vendedor o Jugador (validado también en el
+  // backend vía AdminUserService::loadWalletBalance).
   const selectedUserId = ref<string | number>('')
   const selectedUserName = ref('')
   const selectedUserBalance = ref<number | null>(null)
   const selectedUserCurrency = ref<any>(null)
+  const walletLoadForm = ref<WalletLoadData & { id?: string | number }>({ amount: '', reason: '' })
+
+  async function submitWalletLoad(): Promise<boolean> {
+    if (!selectedUserId.value) return false
+    const amount = parseFloat(walletLoadForm.value.amount)
+    const ok = await loadWalletBalance(selectedUserId.value, amount, walletLoadForm.value.reason || undefined)
+    if (ok) await refreshUserBalance()
+    return ok
+  }
+
+  const {
+    showModalForm: showWalletModal,
+    formRef: walletLoadFormRef,
+    handleSubmit: handleWalletLoadSubmit,
+  } = useModalForm(walletLoadForm, submitWalletLoad, { defaultTitle: 'Saldo', createTitle: 'Cargar Saldo', editTitle: 'Cargar Saldo' })
 
   async function openWalletModal(userId: string | number, userName: string) {
     selectedUserId.value = userId
     selectedUserName.value = userName
-    
-    // Obtener balance del usuario
+    walletLoadForm.value = { amount: '', reason: '' }
+
     const walletData = await getWalletBalance(userId)
     if (walletData) {
-      selectedUserBalance.value = typeof walletData.balance === 'string' 
-        ? parseFloat(walletData.balance) 
+      selectedUserBalance.value = typeof walletData.balance === 'string'
+        ? parseFloat(walletData.balance)
         : walletData.balance
       selectedUserCurrency.value = walletData.currency
     } else {
       selectedUserBalance.value = 0
       selectedUserCurrency.value = null
     }
-    
+
     showWalletModal.value = true
-  }
-
-  function closeWalletModal() {
-    showWalletModal.value = false
-    selectedUserId.value = ''
-    selectedUserName.value = ''
-    selectedUserBalance.value = null
-    selectedUserCurrency.value = null
-  }
-
-  function onWalletLoadSuccess() {
-    // Refrescar el balance del usuario actual
-    refreshUserBalance()
-    // No cerrar el modal para que el usuario vea el balance actualizado
-    // closeWalletModal()
-    fetchUsers() // Refrescar la lista de usuarios
   }
 
   // Estado del modal de permisos específicos por usuario (solo superadmin)
@@ -346,6 +347,9 @@
       icon: 'fas fa-wallet',
       class: 'btn-success text-white',
       title: 'Cargar Saldo',
+      // Solo aplica a usuarios con rol Comercio, Vendedor o Jugador — el
+      // backend también lo exige (AdminUserService::loadWalletBalance),
+      // ocultarlo aquí evita un 422 innecesario.
       show: isLoadWalletBalanceVisible,
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
@@ -390,8 +394,12 @@
     }
   ]
 
+  const WALLET_LOAD_ELIGIBLE_ROLES = ['commerce', 'seller', 'player']
+
   function isLoadWalletBalanceVisible(selectedIds: string[]): boolean {
-    return selectedIds.length === 1
+    if (selectedIds.length !== 1) return false
+    const user = users.value.find(u => u.id === selectedIds[0])
+    return !!user && WALLET_LOAD_ELIGIBLE_ROLES.includes(user.role_name)
   }
 </script>
 
@@ -456,16 +464,25 @@
   </Modal>
 
   <!-- Modal para carga de saldo -->
-  <WalletLoadModal
-    :show="showWalletModal"
-    :user-name="selectedUserName"
-    :user-id="selectedUserId"
-    :user-balance="selectedUserBalance"
-    :user-currency="selectedUserCurrency?.iso_code"
-    :user-currency-symbol="selectedUserCurrency?.symbol"
-    @close="closeWalletModal"
-    @success="onWalletLoadSuccess"
-  />
+  <Modal
+    v-model="showWalletModal"
+    title="Cargar Saldo"
+    icon="fa-wallet"
+    static
+    show-confirm
+    confirm-text="Cargar Saldo"
+    :on-submit="handleWalletLoadSubmit"
+    :confirm-disabled="!(walletLoadFormRef?.isValid ?? false)"
+  >
+    <WalletLoadForm
+      ref="walletLoadFormRef"
+      v-model="walletLoadForm"
+      :user-name="selectedUserName"
+      :user-balance="selectedUserBalance"
+      :user-currency="selectedUserCurrency?.iso_code"
+      :user-currency-symbol="selectedUserCurrency?.symbol"
+    />
+  </Modal>
 
   <!-- Modal para permisos específicos por usuario (solo superadmin) -->
   <UserPermissionsModal

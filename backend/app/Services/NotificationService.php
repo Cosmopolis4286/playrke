@@ -88,6 +88,7 @@ final class NotificationService
         string $movementType,
         float $amount,
         ?string $movementId = null,
+        ?string $reason = null,
     ): Notification {
         $catalogType = MovementType::catalog()->get($movementType);
         $label       = $catalogType->label ?? match ($movementType) {
@@ -119,6 +120,13 @@ final class NotificationService
             default => "Has {$verb} {$currencySymbol}{$amount} — {$label}",
         };
 
+        // Motivo opcional ingresado por el admin (ej. carga de saldo) — se
+        // anexa al mensaje solo cuando aporta contexto real, no cuando es el
+        // texto por defecto genérico del backend.
+        if ($reason && $reason !== 'Carga de saldo por administrador') {
+            $message .= " — {$reason}";
+        }
+
         return $this->create(
             userId: $userId,
             type: 'WALLET_UPDATED',
@@ -132,6 +140,7 @@ final class NotificationService
                 'is_credit' => $isCredit,
                 'amount' => $amount,
                 'movement_id' => $movementId,
+                'reason' => $reason,
                 'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ]
         );
