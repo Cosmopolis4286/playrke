@@ -109,11 +109,28 @@ final class BingoRoomContextService
             ]
             : null;
 
-        $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
-
         $authUser  = \Illuminate\Support\Facades\Auth::user();
         $authUserId = $authUser ? (string) $authUser->id : null;
         $isAdmin    = $authUser && $authUser->hasRole(['admin', 'superadmin']);
+
+        // Timezone del usuario que ve la tabla (no el del creador de cada sala) —
+        // usado por getStatusBadgeAttribute() para mostrar "última actualización"
+        // en hora local en vez de UTC crudo.
+        $displayTimezone = $authUser?->timeZone?->name ?? 'UTC';
+
+        // Último editor real de cada sala visible (tabla audits, evento 'updated'),
+        // resuelto en UNA sola query agrupada por auditable_id — evita N+1 al
+        // iterar 15 filas. Se setea en cada modelo ANTES de processCollectionTableData()
+        // porque getStatusBadgeAttribute() (que arma el popover) corre dentro de ese
+        // método y no puede recibir parámetros directamente.
+        $lastEditorsByRoomId = $this->resolveLastEditorsForRooms($collection->pluck('id')->all());
+
+        foreach ($collection as $model) {
+            $model->displayTimezone = $displayTimezone;
+            $model->lastEditor = $lastEditorsByRoomId[(string) $model->id] ?? null;
+        }
+
+        $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
         $currencyMap = $userId
             ? collect($this->currencyService->getAvailableCurrencies($userId, true))->pluck('iso_code', 'id')
