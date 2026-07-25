@@ -32,19 +32,19 @@ defineProps<Props>()
 
     <!-- Question Text -->
     <h2 class="text-2xl font-bold text-gray-900 leading-relaxed">
-      {{ question.questionText }}
+      {{ question.text }}
     </h2>
 
     <!-- Question Image -->
     <div
-      v-if="question.imageUrl"
+      v-if="question.image"
       class="mt-6 rounded-xl overflow-hidden"
     >
       <img
-        :src="question.imageUrl"
+        :src="question.image"
         :alt="'Imagen de la pregunta'"
         class="w-full h-64 object-cover"
-        @error="$event.target.style.display = 'none'"
+        @error="(e) => { if (e.target instanceof HTMLImageElement) e.target.style.display = 'none' }"
       />
     </div>
 
