@@ -164,6 +164,7 @@
 import { ref, computed, reactive } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import Swal from 'sweetalert2'
+import { sortByRoleHierarchy, formatRoleName, getRoleBadgeClass, isRoleSuperadmin } from '@/js/utils/roles/roleDisplay'
 
 interface Permission {
   id: string
@@ -203,28 +204,9 @@ const newPerm = ref({ name: '', guard_name: 'web', description: '' })
 const search = ref('')
 const collapsedGroups = reactive<Record<string, boolean>>({})
 
-// Orden jerárquico real del sistema (ver RoleSeeder.php): administración de
-// plataforma → negocio → operativo → consumidor final → externo. Roles que
-// no aparezcan aquí (futuros, o creados fuera del seeder) no se ocultan —
-// se ordenan alfabéticamente al final — a diferencia del bug original donde
-// un array hardcodeado los excluía en silencio de la matriz por completo.
-const ROLE_HIERARCHY = [
-  'superadmin', 'admin',
-  'commerce', 'subsidiary', 'seller', 'treasurer',
-  'customer', 'player',
-  'provider',
-]
-
-const displayRoles = computed(() =>
-  [...props.roles].sort((a, b) => {
-    const ia = ROLE_HIERARCHY.indexOf(a.name.toLowerCase())
-    const ib = ROLE_HIERARCHY.indexOf(b.name.toLowerCase())
-    if (ia === -1 && ib === -1) return a.name.localeCompare(b.name)
-    if (ia === -1) return 1
-    if (ib === -1) return -1
-    return ia - ib
-  })
-)
+// Orden jerárquico + formato de roles: ver utils/roleDisplay.ts (compartido
+// con SidebarMenuVisibilityMatrix.vue, antes duplicado en ambos componentes).
+const displayRoles = computed(() => sortByRoleHierarchy(props.roles))
 
 // Grid CSS en vez de <table>: columnas fijas para permiso/módulo/acciones y
 // una columna igual por cada rol, calculadas dinámicamente según cuántos
@@ -312,31 +294,11 @@ function formatPermissionName(name: string): string {
   return parts.length === 2 ? `${act} ${mod}` : act
 }
 
-function formatRoleName(name: string): string {
-  const map: Record<string, string> = {
-    superadmin: 'SuperAdmin', admin: 'Admin', commerce: 'Comercio',
-    subsidiary: 'Sucursal', seller: 'Freelancer', provider: 'Proveedor',
-    customer: 'Cliente', treasurer: 'Tesorero', player: 'Jugador',
-  }
-  return map[name.toLowerCase()] ?? name
-}
-
-// superadmin siempre tiene el 100% de los permisos y no es mutable desde
-// la matriz — el backend ya lo garantiza (PermissionService::createPermission
-// auto-asigna permisos nuevos a superadmin y revokePermissionsFromRole()
-// ignora ese rol), esto solo evita que la UI insinúe que se puede editar.
-function isRoleSuperadmin(name: string): boolean {
-  return name.toLowerCase() === 'superadmin'
-}
-
-function getRoleBadgeClass(name: string): string {
-  const map: Record<string, string> = {
-    superadmin: 'badge-purple', admin: 'badge-blue', commerce: 'badge-green',
-    subsidiary: 'badge-teal', seller: 'badge-yellow', provider: 'badge-orange',
-    customer: 'badge-pink', treasurer: 'badge-info', player: 'badge-secondary',
-  }
-  return map[name.toLowerCase()] ?? 'badge-secondary'
-}
+// formatRoleName / isRoleSuperadmin / getRoleBadgeClass: ver
+// utils/roles/roleDisplay.ts (importado arriba) — isRoleSuperadmin evita
+// que la UI insinúe que superadmin es editable: el backend ya lo garantiza
+// (PermissionService::createPermission auto-asigna permisos nuevos a
+// superadmin y revokePermissionsFromRole() ignora ese rol).
 
 async function handleSave() {
   saving.value = true
