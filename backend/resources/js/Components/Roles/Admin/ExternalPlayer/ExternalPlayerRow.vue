@@ -1,6 +1,10 @@
 <template>
   <div class="ep-row" :class="`is-${player.status.toLowerCase()}`">
-    <button class="ep-row-toggle" :title="expanded ? 'Ocultar detalle' : 'Ver detalle'" @click="expanded = !expanded">
+    <button
+      v-tooltip="expanded ? 'Ocultar detalle' : 'Ver detalle'"
+      class="ep-row-toggle"
+      @click="expanded = !expanded"
+    >
       <i class="fas fa-chevron-right" :class="{ 'is-open': expanded }"></i>
     </button>
 
@@ -24,15 +28,31 @@
         <i class="fas" :class="gameIcon"></i>{{ formattedGameName }}
       </span>
       <span v-if="player.country" class="ep-tag"><i class="fas fa-globe-americas mr-1"></i>{{ player.country.name }}</span>
-      <span v-if="player.expiration_date" class="ep-tag" :class="{ 'ep-tag--warning': isExpiringSoon }" :title="'Expira: ' + player.expiration_date">
+      <span
+        v-if="player.expiration_date"
+        v-tooltip="'Expira: ' + formatFullDate(player.expiration_date)"
+        class="ep-tag"
+        :class="{ 'ep-tag--warning': isExpiringSoon }"
+      >
         <i class="fas fa-clock mr-1"></i>{{ formattedExpiration }}
       </span>
     </div>
 
     <div class="ep-row-actions">
-      <button class="btn btn-sm btn-outline-secondary" title="Copiar link de acceso" @click="copyLink">
-        <i class="fas" :class="copied ? 'fa-check' : 'fa-link'"></i>
-      </button>
+      <VDropdown placement="top" :distance="8">
+        <button class="btn btn-sm btn-outline-secondary">
+          <i class="fas fa-link"></i>
+        </button>
+        <template #popper>
+          <div class="ep-link-popover">
+            <code class="ep-link-popover-value">{{ player.link }}</code>
+            <button class="btn btn-sm btn-primary" @click="copyLink">
+              <i class="fas" :class="copied ? 'fa-check' : 'fa-copy'"></i>
+              {{ copied ? 'Copiado' : 'Copiar' }}
+            </button>
+          </div>
+        </template>
+      </VDropdown>
       <button
         class="btn btn-sm"
         :class="player.status === 'BLOCKED' ? 'btn-outline-success' : 'btn-outline-danger'"
@@ -71,7 +91,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useToast } from 'vue-toastification'
 import type { ExternalPlayer } from '@/js/types/roles/admin/external-player'
+
+const toast = useToast()
 
 const props = defineProps<{
   player: ExternalPlayer
@@ -150,10 +173,13 @@ async function copyLink() {
   try {
     await navigator.clipboard.writeText(props.player.link)
     copied.value = true
+    toast.success('Link copiado al portapapeles')
     setTimeout(() => (copied.value = false), 1500)
   } catch {
-    // Clipboard API puede fallar por permisos/contexto no seguro — silencioso,
-    // el usuario ve que el ícono no cambia y puede copiar manualmente del detalle.
+    // Clipboard API puede fallar por permisos/contexto no seguro (ej. HTTP
+    // sin TLS) — el toast de error deja claro que debe copiarlo manualmente
+    // en vez de fallar en silencio.
+    toast.error('No se pudo copiar el link. Selecciónalo manualmente.')
   }
 }
 </script>
@@ -205,6 +231,21 @@ async function copyLink() {
 .ep-tag--warning { background: rgba(251, 191, 36, 0.18); color: #f59e0b; }
 
 .ep-row-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+
+.ep-link-popover {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.ep-link-popover-value {
+  font-size: 0.72rem;
+  background: var(--ds-surface-2);
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  color: var(--ds-text-2);
+}
 
 .badge-success   { background-color: rgba(52,211,153,.18); color: #34d399; }
 .badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
