@@ -28,6 +28,11 @@ export interface ExternalPlayerFilters {
   seller_user_id?: string
 }
 
+export interface GameOption {
+  id: string
+  name: string
+}
+
 export interface PaginatedResult<T> {
   data: T[]
   current_page: number

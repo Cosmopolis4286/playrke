@@ -158,12 +158,14 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      * JUGADORES EXTERNOS (Admin y SuperAdmin)
      * =========================================================
-     * Compradores de cartones de Bingo sin cuenta en la plataforma, ver
-     * App\Traits\Users\PlayerLinkTrait.
+     * Compradores sin cuenta en la plataforma captados por un vendedor —
+     * no exclusivo de Bingo, external_players.game_id admite cualquier
+     * juego del catálogo (ver App\Traits\Users\PlayerLinkTrait).
      */
     role_protected_routes(['role:admin,superadmin'], 'admin/external-players', ExternalPlayerAdminController::class, [
         'index'       => ['method' => 'get', 'uri' => '',              'action' => 'index'],
         'fetchList'   => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'export'      => ['method' => 'get', 'uri' => 'export',       'action' => 'export'],
         'toggleBlock' => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock'],
     ], 'externalPlayer');
 
