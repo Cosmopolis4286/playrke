@@ -6,7 +6,7 @@
             <h1 class="m-0 font-weight-bold">Jugadores Externos</h1>
             <p class="text-muted mb-0 mt-1">
               <i class="fas fa-info-circle text-primary mr-1"></i>
-              Compradores de cartones de Bingo sin cuenta en la plataforma, captados por un vendedor.
+              Compradores sin cuenta en la plataforma, captados por un vendedor.
             </p>
           </div>
           <div class="col-sm-6">
@@ -25,10 +25,12 @@
               :statistics="statistics"
               :pagination="pagination"
               :loading="loading"
+              :games="props.games"
               @search="handleSearch"
               @search-debounced="handleSearchDebounced"
               @page-change="goToPage"
               @toggle-block="handleToggleBlock"
+              @export="handleExport"
             />
           </div>
         </div>
@@ -41,11 +43,12 @@ import ExternalPlayerPanel from '@/js/Components/Roles/Admin/ExternalPlayer/Exte
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { useExternalPlayers } from '@/js/composables/roles/admin/external-player/useExternalPlayers'
 import Swal from 'sweetalert2'
-import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, PaginatedResult } from '@/js/types/roles/admin/external-player'
+import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, GameOption, PaginatedResult } from '@/js/types/roles/admin/external-player'
 
 const props = defineProps<{
   players: PaginatedResult<ExternalPlayer>
   statistics: ExternalPlayerStatistics
+  games: GameOption[]
 }>()
 
 const breadcrumbItems = [
@@ -54,17 +57,17 @@ const breadcrumbItems = [
   { label: 'Jugadores Externos' },
 ]
 
-const { players, pagination, statistics, loading, fetchPlayers, searchDebounced, goToPage, toggleBlock } = useExternalPlayers({
+const { players, pagination, statistics, loading, filters, fetchPlayers, searchDebounced, goToPage, toggleBlock } = useExternalPlayers({
   players: props.players,
   statistics: props.statistics,
 })
 
-async function handleSearch(filters: ExternalPlayerFilters) {
-  await fetchPlayers(filters)
+async function handleSearch(newFilters: ExternalPlayerFilters) {
+  await fetchPlayers(newFilters)
 }
 
-function handleSearchDebounced(filters: ExternalPlayerFilters) {
-  searchDebounced(filters)
+function handleSearchDebounced(newFilters: ExternalPlayerFilters) {
+  searchDebounced(newFilters)
 }
 
 async function handleToggleBlock(playerId: string) {
@@ -74,5 +77,12 @@ async function handleToggleBlock(playerId: string) {
   } catch {
     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el jugador' })
   }
+}
+
+function handleExport() {
+  const params = new URLSearchParams(
+    Object.entries(filters.value).filter(([, v]) => v !== undefined) as [string, string][]
+  )
+  window.location.href = `/admin/external-players/export?${params.toString()}`
 }
 </script>

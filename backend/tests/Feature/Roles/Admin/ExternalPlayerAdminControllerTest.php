@@ -194,6 +194,60 @@ class ExternalPlayerAdminControllerTest extends TestCase
         $response->assertJsonPath('statistics.blocked', 1);
     }
 
+    public function test_index_exposes_available_games_for_filter(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        Game::create(['name' => 'TRIVIA', 'status' => 'ACTIVE']);
+        Game::create(['name' => 'BINGO', 'status' => 'INACTIVE']); // no debe listarse
+
+        $response = $this->actingAs($superadmin)->get('/admin/external-players');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Roles/Admin/ExternalPlayer/Index')
+            ->has('games', 1)
+            ->where('games.0.name', 'TRIVIA')
+        );
+    }
+
+    public function test_admin_can_export_players_as_csv(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $this->makeExternalPlayer('ACTIVE');
+        $this->makeExternalPlayer('BLOCKED');
+
+        $response = $this->actingAs($superadmin)->get('/admin/external-players/export');
+
+        $response->assertOk();
+        $this->assertStringStartsWith('text/csv', $response->headers->get('Content-Type'));
+
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Nombre,Apellido,Teléfono', $content);
+        $this->assertSame(3, substr_count($content, "\n")); // header + 2 filas
+    }
+
+    public function test_export_respects_status_filter(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $this->makeExternalPlayer('ACTIVE');
+        $this->makeExternalPlayer('BLOCKED');
+
+        $response = $this->actingAs($superadmin)->get('/admin/external-players/export?status=BLOCKED');
+
+        $content = $response->streamedContent();
+        $this->assertSame(2, substr_count($content, "\n")); // header + 1 fila
+    }
+
+    public function test_non_admin_cannot_export(): void
+    {
+        $player = $this->makePlayer();
+
+        // getJson (no get): el proyecto usa RoleMiddleware, que redirige en
+        // requests no-JSON — mismo patrón que el resto de tests de autorización
+        // (ver PermissionControllerTest, ModuleControllerTest).
+        $this->actingAs($player)->getJson('/admin/external-players/export')->assertStatus(403);
+    }
+
     public function test_repository_generates_unique_28_char_link(): void
     {
         $repository = app(\App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface::class);

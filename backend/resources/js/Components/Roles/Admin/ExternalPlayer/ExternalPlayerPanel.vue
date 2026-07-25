@@ -20,14 +20,16 @@
     </div>
 
     <template v-else>
-      <div class="ep-list">
-        <ExternalPlayerRow
-          v-for="player in players"
-          :key="player.id"
-          :player="player"
-          :busy="busyId === player.id"
-          @toggle-block="handleToggleBlock"
-        />
+      <div class="ep-list-wrap">
+        <div class="ep-list">
+          <ExternalPlayerRow
+            v-for="player in players"
+            :key="player.id"
+            :player="player"
+            :busy="busyId === player.id"
+            @toggle-block="handleToggleBlock"
+          />
+        </div>
       </div>
 
       <ExternalPlayerPagination
@@ -95,7 +97,17 @@ async function handleToggleBlock(player: ExternalPlayer) {
 </script>
 
 <style scoped>
-.ep-panel { width: 100%; }
+/* Panel de altura fija respecto al viewport (header + breadcrumb + padding
+   de layout ~220px) para que .ep-list-wrap pueda repartirse el resto vía
+   flex — antes .ep-list tenía su propio max-height fijo (calc(100vh-460px))
+   que no descontaba la altura real de stats+toolbar+paginación, dejando un
+   hueco vacío entre la lista y el borde inferior de la pantalla. */
+.ep-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 220px);
+}
 
 .ep-empty {
   display: flex;
@@ -106,11 +118,12 @@ async function handleToggleBlock(player: ExternalPlayer) {
   padding: 3rem 1rem;
   color: var(--ds-text-muted);
   text-align: center;
+  flex: 1;
 }
 .ep-empty i { font-size: 2.2rem; opacity: 0.5; }
 
 /* ── Skeleton de carga ── */
-.ep-skeleton { display: flex; flex-direction: column; gap: 0.5rem; }
+.ep-skeleton { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
 .ep-skeleton-row {
   height: 58px;
   border-radius: 10px;
@@ -123,11 +136,21 @@ async function handleToggleBlock(player: ExternalPlayer) {
   100% { background-position: -200% 0; }
 }
 
+/* Absorbe todo el espacio vertical restante del panel; .ep-list scrollea
+   dentro de ese espacio en vez de crecer sin límite. */
+.ep-list-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .ep-list {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: calc(100vh - 460px);
   overflow-y: auto;
 }
 </style>
