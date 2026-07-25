@@ -18,6 +18,8 @@ export interface ModalFormExpose {
     discardDraft?: () => void
     /** Paso activo del wizard (formularios paginados por pasos, ej. BingoRoomForm). */
     step?: string
+    /** Lista completa de pasos del wizard, en orden (ej. BingoRoomForm: "Paso X de N"). */
+    steps?: string[]
     canGoPrev?: boolean
     canGoNext?: boolean
     goPrev?: () => void

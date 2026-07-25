@@ -83,7 +83,7 @@ const notification                     = useLobbyNotification(
   () => `/bingo/${roomRouteKey.value}/game`,
 )
 
-const userId = computed(() => page.props.auth?.user?.id ?? null)
+const userId = computed(() => (page.props.auth as any)?.user?.id ?? null)
 const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
   onPrizeChanged:   () => flash(prizeFlash),
   onPlayersChanged: (prev, next) => { if (next > prev) flash(playersFlash) },

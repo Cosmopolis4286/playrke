@@ -170,7 +170,7 @@
   /** "Paso X de Y" para orientar al usuario dentro del wizard del modal. */
   const stepProgressLabel = computed(() => {
     const ref = gameBingoRoomFormRef.value
-    if (!ref) return ''
+    if (!ref?.steps || !ref.step) return ''
     const idx = ref.steps.indexOf(ref.step)
     if (idx === -1) return ''
     return `Paso ${idx + 1} de ${ref.steps.length}`

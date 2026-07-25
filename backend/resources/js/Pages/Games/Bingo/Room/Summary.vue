@@ -46,7 +46,7 @@
 
   /** Verifica si el usuario es admin o superadmin usando props de Inertia */
   const isAdmin = computed(() => {
-    const userRoles = page.props.auth?.user?.userRoles || [];
+    const userRoles = (page.props.auth as any)?.user?.userRoles || [];
     return userRoles.some((ur: { role?: { prefix?: string } }) =>
       ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
     );
@@ -310,7 +310,7 @@
   /** "Paso X de Y" para orientar al usuario dentro del wizard del modal. */
   const stepProgressLabel = computed(() => {
     const ref = gameBingoRoomFormRef.value
-    if (!ref) return ''
+    if (!ref?.steps || !ref.step) return ''
     const idx = ref.steps.indexOf(ref.step)
     if (idx === -1) return ''
     return `Paso ${idx + 1} de ${ref.steps.length}`
