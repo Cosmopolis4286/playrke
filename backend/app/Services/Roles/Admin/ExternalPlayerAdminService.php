@@ -71,6 +71,30 @@ final class ExternalPlayerAdminService
     }
 
     /**
+     * Cursor sobre TODOS los resultados que coincidan con los filtros (sin
+     * paginar) — usado por ExternalPlayerAdminController::export() para
+     * generar el CSV completo sin materializar la colección entera en
+     * memoria como haría ->get().
+     *
+     * @return \Illuminate\Support\LazyCollection<int, ExternalPlayer>
+     */
+    public function searchForExport(array $filters): \Illuminate\Support\LazyCollection
+    {
+        return $this->buildQuery($filters)->cursor();
+    }
+
+    /**
+     * Catálogo de juegos para el selector de filtro — un jugador externo no
+     * es exclusivo de Bingo, cualquier juego con venta asistida por vendedor
+     * puede generar registros en external_players (game_id ya lo soporta a
+     * nivel de schema, solo faltaba exponerse en el panel).
+     */
+    public function availableGames(): Collection
+    {
+        return Game::query()->where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']);
+    }
+
+    /**
      * Antes: 4 (u 8, si se filtraba por juego) queries COUNT separadas —
      * una por cada estado más el total. Colapsado en una sola query con
      * SUM/CASE, delegado a ExternalPlayerRepository::getPlayerStatistics().

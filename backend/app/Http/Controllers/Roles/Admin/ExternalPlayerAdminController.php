@@ -28,6 +28,7 @@ final class ExternalPlayerAdminController extends Controller
         return Inertia::render('Roles/Admin/ExternalPlayer/Index', [
             'players'    => $this->service->search($request->filters(), $request->perPage()),
             'statistics' => $this->service->statistics(),
+            'games'      => $this->service->availableGames(),
         ]);
     }
 
