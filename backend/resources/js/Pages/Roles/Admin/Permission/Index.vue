@@ -60,8 +60,10 @@ import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import { useModules } from '@/js/composables/roles/admin/module/useModules'
-import Swal from 'sweetalert2'
+import { useToast } from 'vue-toastification'
 import type { PermissionPageProps } from '@/js/types/roles/admin/permission-page'
+
+const toast = useToast()
 
 const props = defineProps<PermissionPageProps>()
 
@@ -93,34 +95,34 @@ async function handleToggleModule(moduleId: string) {
   try {
     await toggleModuleStatus(moduleId)
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el módulo' })
+    toast.error('No se pudo actualizar el módulo')
   }
 }
 
 async function handleSave() {
   try {
     await saveChanges()
-    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Cambios guardados correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+    toast.success('Cambios guardados correctamente')
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron guardar los cambios' })
+    toast.error('No se pudieron guardar los cambios')
   }
 }
 
 async function handleCreate(data: { name: string; guard_name?: string; description?: string }) {
   try {
     await createPermission(data)
-    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Permiso creado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+    toast.success('Permiso creado correctamente')
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el permiso' })
+    toast.error('No se pudo crear el permiso')
   }
 }
 
 async function handleDelete(permissionId: string) {
   try {
     await deletePermission(permissionId)
-    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Permiso eliminado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+    toast.success('Permiso eliminado correctamente')
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar el permiso' })
+    toast.error('No se pudo eliminar el permiso')
   }
 }
 </script>

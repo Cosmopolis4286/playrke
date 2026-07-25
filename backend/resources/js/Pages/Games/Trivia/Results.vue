@@ -2,10 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import axios from 'axios'
+import { useToast } from 'vue-toastification'
 import Leaderboard from '@js/Components/games/Trivia/Score/Leaderboard.vue'
 import PlayerScore from '@js/Components/games/Trivia/Score/PlayerScore.vue'
 import LoadingOverlay from '@js/Components/games/Trivia/Shared/LoadingOverlay.vue'
 import type { Player, GameStats } from '@js/types/trivia'
+
+const toast = useToast()
 
 interface Props {
   gameId: string
@@ -42,7 +45,7 @@ function shareResults() {
   } else {
     // Fallback: copy to clipboard
     navigator.clipboard.writeText(window.location.href)
-    alert('¡Enlace copiado al portapapeles!')
+    toast.success('¡Enlace copiado al portapapeles!')
   }
 }
 

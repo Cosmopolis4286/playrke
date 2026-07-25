@@ -73,8 +73,11 @@
 import { ref, watch } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import Swal from 'sweetalert2'
+import { useToast } from 'vue-toastification'
 import type { AdminRole } from '@/js/types/roles/admin/role'
 import { useAdminRoles } from '@/js/composables/roles/admin/role/useAdminRoles'
+
+const toast = useToast()
 
 const isOpen = defineModel<boolean>({ required: true })
 
@@ -129,7 +132,7 @@ async function saveDescription(roleId: string) {
     await updateRoleDescription(roleId, value)
     editingId.value = null
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el rol' })
+    toast.error('No se pudo actualizar el rol')
   } finally {
     savingId.value = null
   }
@@ -157,7 +160,7 @@ async function handleToggle(role: AdminRole) {
   try {
     await toggleRoleStatus(role.id)
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el rol' })
+    toast.error('No se pudo actualizar el rol')
   } finally {
     savingId.value = null
   }

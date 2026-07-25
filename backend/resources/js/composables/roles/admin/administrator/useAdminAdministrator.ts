@@ -1,7 +1,10 @@
 import { computed, ref } from 'vue'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { useToast } from 'vue-toastification'
 import type { Administrator } from '@/js/types/roles/admin/administrator'
+
+const toast = useToast()
 
 /**
  * Composable para gestión de Administradores
@@ -40,7 +43,7 @@ export function useAdminAdministrator() {
             admins.value = response.data.data
         } catch (error) {
             console.error('Error fetching admins:', error)
-            Swal.fire('Error', 'No se pudieron cargar los administradores', 'error')
+            toast.error('No se pudieron cargar los administradores')
         } finally {
             loading.value = false
         }
@@ -49,11 +52,11 @@ export function useAdminAdministrator() {
     const toggleStatus = async (id: string) => {
         try {
             await axios.patch(window.route('admins.toggleStatus', { user: id }))
-            Swal.fire('Éxito', 'Estado cambiado correctamente', 'success')
+            toast.success('Estado cambiado correctamente')
             fetchadmins()
         } catch (error) {
             console.error('Error toggling status:', error)
-            Swal.fire('Error', 'No se pudo cambiar el estado', 'error')
+            toast.error('No se pudo cambiar el estado')
         }
     }
 
@@ -68,7 +71,7 @@ export function useAdminAdministrator() {
             fetchadmins()
         } catch (error) {
             console.error('Error resetting password:', error)
-            Swal.fire('Error', 'No se pudo restablecer la contraseña', 'error')
+            toast.error('No se pudo restablecer la contraseña')
         }
     }
 
@@ -87,12 +90,12 @@ export function useAdminAdministrator() {
                 await Promise.all(ids.map(id => 
                     axios.delete(window.route('admins.delete', { user: id }))
                 ))
-                Swal.fire('Eliminado', 'Administrador(es) eliminado(s)', 'success')
+                toast.success('Administrador(es) eliminado(s)')
                 fetchadmins()
                 selectedIds.value = []
             } catch (error) {
                 console.error('Error deleting admins:', error)
-                Swal.fire('Error', 'No se pudieron eliminar los administradores', 'error')
+                toast.error('No se pudieron eliminar los administradores')
             }
         }
     }
@@ -112,12 +115,12 @@ export function useAdminAdministrator() {
                 await Promise.all(ids.map(id => 
                     axios.delete(window.route('admins.destroy', { user: id }))
                 ))
-                Swal.fire('Eliminado', 'Administrador(es) eliminado(s) permanentemente', 'success')
+                toast.success('Administrador(es) eliminado(s) permanentemente')
                 fetchadmins()
                 selectedIds.value = []
             } catch (error) {
                 console.error('Error destroying admins:', error)
-                Swal.fire('Error', 'No se pudieron eliminar los administradores', 'error')
+                toast.error('No se pudieron eliminar los administradores')
             }
         }
     }

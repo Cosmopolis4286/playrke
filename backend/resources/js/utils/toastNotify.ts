@@ -1,48 +1,19 @@
 import Swal, { SweetAlertIcon, SweetAlertOptions } from 'sweetalert2';
+import { showToast as showToastificationToast } from '@/js/utils/toast';
 
 /**
- * Configuración base para toasts personalizados con SweetAlert2.
- */
-const Toast = Swal.mixin({
-  toast: true,
-  position: 'top-end',
-  showConfirmButton: false,
-  timer: 3500,
-  timerProgressBar: true,
-  didOpen: (toast: HTMLElement | null) => {
-    if (toast) {
-      // Pausar el timer al pasar el mouse sobre el toast
-      toast.addEventListener('mouseenter', Swal.stopTimer);
-      // Reanudar el timer al salir el mouse
-      toast.addEventListener('mouseleave', Swal.resumeTimer);
-    }
-  },
-});
-
-/**
- * Muestra un toast con texto e ícono, con opciones adicionales opcionales.
- *
- * @param {string} text - Texto a mostrar en el toast.
- * @param {SweetAlertIcon} icon - Tipo de ícono (success, error, warning, info, question).
- * @param {Partial<SweetAlertOptions>} [options] - Opciones adicionales para personalizar el toast.
+ * Re-exportado desde utils/toast.ts (vue-toastification) — fuente de verdad
+ * única para toasts efímeros de la app. Se mantiene esta firma y este punto
+ * de import para no tocar los +30 archivos que ya importan showToast desde
+ * aquí; `options` de sweetalert2 queda sin efecto (nadie lo usaba realmente,
+ * verificado antes de esta migración).
  */
 export function showToast(
   text: string,
   icon: SweetAlertIcon,
-  options?: Partial<SweetAlertOptions>
+  _options?: Partial<SweetAlertOptions>
 ): void {
-  // Validar que el icono sea uno válido para evitar errores
-  const validIcons: SweetAlertIcon[] = ['success', 'error', 'warning', 'info', 'question'];
-  if (!validIcons.includes(icon)) {
-    icon = 'info';
-  }
-
-  // Ejecutar el toast mezclando las opciones predeterminadas con las adicionales
-  Toast.fire({
-    icon,
-    title: text,
-    ...options,
-  } as SweetAlertOptions);
+  showToastificationToast(text, icon);
 }
 
 /**

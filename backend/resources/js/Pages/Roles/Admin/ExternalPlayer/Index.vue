@@ -42,8 +42,10 @@
 import ExternalPlayerPanel from '@/js/Components/Roles/Admin/ExternalPlayer/ExternalPlayerPanel.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { useExternalPlayers } from '@/js/composables/roles/admin/external-player/useExternalPlayers'
-import Swal from 'sweetalert2'
+import { useToast } from 'vue-toastification'
 import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, GameOption, PaginatedResult } from '@/js/types/roles/admin/external-player'
+
+const toast = useToast()
 
 const props = defineProps<{
   players: PaginatedResult<ExternalPlayer>
@@ -73,9 +75,9 @@ function handleSearchDebounced(newFilters: ExternalPlayerFilters) {
 async function handleToggleBlock(playerId: string) {
   try {
     await toggleBlock(playerId)
-    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Jugador actualizado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+    toast.success('Jugador actualizado correctamente')
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar el jugador' })
+    toast.error('No se pudo actualizar el jugador')
   }
 }
 

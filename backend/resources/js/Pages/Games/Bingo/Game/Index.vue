@@ -23,7 +23,10 @@ import { getBingoVariantDef }    from '@js/modules/games/bingo/utils/bingoVarian
 import type { WinnerEntry } from '@js/Components/games/bingo/views/inGame/types'
 import Swal from 'sweetalert2'
 import { SWAL_DARK } from '@js/utils/swal'
+import { useToast } from 'vue-toastification'
 import backendClient from '@/js/plugins/axios'
+
+const toast = useToast()
 
 useAntiDebug()
 
@@ -261,14 +264,7 @@ const { handleBingoDetected, claimingBingo } = useBingoDetection({
     // Si no, el banner "BINGO confirmado" es visible hasta que llegue GameEnded.
   },
   onBingoError: () => {
-    Swal.fire({
-      title: 'Error al verificar BINGO',
-      text: 'No se pudo conectar con el servidor. Tu BINGO puede haberse registrado de todas formas — espera el resultado.',
-      icon: 'warning',
-      timer: 5000,
-      showConfirmButton: false,
-      ...SWAL_DARK,
-    })
+    toast.warning('No se pudo conectar con el servidor. Tu BINGO puede haberse registrado de todas formas — espera el resultado.', { timeout: 5000 })
   },
 })
 
@@ -407,7 +403,7 @@ async function devResetTime() {
       // Resetear la vista del historial de bolas (Fix #3)
       nextTick(() => drawnBoardRef.value?.resetView())
       document.title = 'Bingo'
-      Swal.fire({ title: '¡Listo!', text: 'Sorteo regenerado. Comienza en ~2 minutos.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
+      toast.success('Sorteo regenerado. Comienza en ~2 minutos.', { timeout: 2000 })
     }
   } catch {
     Swal.fire({ title: 'Error', text: 'No se pudo regenerar el sorteo.', icon: 'error', ...SWAL_DARK })

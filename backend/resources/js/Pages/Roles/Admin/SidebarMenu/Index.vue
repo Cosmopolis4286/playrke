@@ -41,8 +41,10 @@
 import SidebarMenuVisibilityMatrix from '@/js/Components/Roles/Admin/SidebarMenuVisibilityMatrix.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { useSidebarMenuVisibility } from '@/js/composables/roles/admin/sidebarMenu/useSidebarMenuVisibility'
-import Swal from 'sweetalert2'
+import { useToast } from 'vue-toastification'
 import type { SidebarMenuPageProps } from '@/js/types/roles/admin/sidebar-menu'
+
+const toast = useToast()
 
 const props = defineProps<SidebarMenuPageProps>()
 
@@ -67,9 +69,9 @@ const {
 async function handleSave() {
   try {
     await saveChanges()
-    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Visibilidad del menú actualizada', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+    toast.success('Visibilidad del menú actualizada')
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo actualizar la visibilidad del menú' })
+    toast.error('No se pudo actualizar la visibilidad del menú')
   }
 }
 </script>
