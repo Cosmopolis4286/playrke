@@ -10,13 +10,9 @@ declare global {
 
 type BingoViewName = 'Form' | 'GameInfo' | 'Summary'
 
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 const views: Record<BingoViewName, () => Promise<{ default: Component }>> = {
-    // @ts-expect-error — TSC no resuelve alias @js en dynamic imports dentro de Record; Vite sí lo hace
     Form:     () => import('@js/Components/games/bingo/Room/Form/BingoRoomForm.vue'),
-    // @ts-expect-error
     GameInfo: () => import('@js/Components/games/bingo/views/gameInfo/GameInfo.vue'),
-    // @ts-expect-error
     Summary:  () => import('@js/Components/games/bingo/views/summary/Summary.vue'),
 }
 
