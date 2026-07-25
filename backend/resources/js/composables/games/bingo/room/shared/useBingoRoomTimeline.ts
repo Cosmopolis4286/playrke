@@ -52,7 +52,7 @@ export function useBingoRoomTimeline(
         for (const room of rooms.value) {
             const config = (room as any).config
             const unixDate: number | null | undefined = config?.unix_date ?? (room as any).unix_date
-            const statusCode: string = room.status?.code ?? ''
+            const statusCode: string = room.status ?? ''
 
             if (!unixDate || TERMINAL.has(statusCode)) continue
 
