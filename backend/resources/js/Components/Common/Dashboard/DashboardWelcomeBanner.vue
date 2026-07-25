@@ -91,7 +91,7 @@
           type="button"
           class="wb__action"
           :class="`wb__action--${action.variant ?? 'outline-primary'}`"
-          @click="action.onClick?.($event)"
+          @click="action.onClick?.()"
         >
           <i v-if="action.icon" :class="action.icon"></i>
           {{ action.label }}
