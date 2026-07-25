@@ -1,6 +1,6 @@
-import Swal from 'sweetalert2'
+import type { SweetAlertOptions } from 'sweetalert2'
 
-export const SWAL_DARK: Parameters<typeof Swal.fire>[0] = {
+export const SWAL_DARK: Partial<SweetAlertOptions> = {
   background: '#1a1f3a',
   color: '#fff',
 }

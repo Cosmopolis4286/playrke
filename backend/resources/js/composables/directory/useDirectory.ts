@@ -1,7 +1,8 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { DirectoryVEN, DirectoryTableData, DirectoryContext } from '@/js/types/directory/directory-ven'
+import type { DirectoryVEN } from '@/js/types/directory/directory-ven'
+import type { DirectoryTableData, DirectoryContext } from '@/js/types/directory/directory'
 
 /**
  * Contrato público del composable useDirectory

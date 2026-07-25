@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { GameState } from '@/types/trivia'
+import type { GameState } from '@/js/types/trivia'
 
 interface Props {
   state: GameState

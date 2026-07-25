@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Question } from '@/types/trivia'
+import type { Question } from '@/js/types/trivia'
 
 interface Props {
   question: Question

@@ -1,6 +1,7 @@
 import type { BanksVEN } from '../bank/banks-ven'
 import type { Currency } from '../currency'
 import type { DocumentType } from '../document-type'
+import type { DirectoryTableData } from './directory'
 
 /**
  * Directorio de Pago Móvil (Venezuela)

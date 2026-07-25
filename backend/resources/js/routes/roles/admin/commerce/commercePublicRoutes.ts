@@ -1,5 +1,7 @@
-import type { CommerceRoutes, CommerceAdminRouteName } from './commerceRoutesType';
 import { commerceRoutes } from '../../../commerceRoutes';
+
+type CommerceRoutes = typeof commerceRoutes;
+type CommerceAdminRouteName = 'prizes' | 'sellers' | 'currencyByCountry' | 'sellerInfoByCarton' | 'cartonLotPayment' | 'paymentDetailsPublic';
 
 export const commercePublicRoutes: Pick<CommerceRoutes, CommerceAdminRouteName> = {
   prizes: commerceRoutes.prizes,

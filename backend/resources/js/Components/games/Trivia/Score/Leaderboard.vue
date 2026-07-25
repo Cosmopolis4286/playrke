@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Player } from '@/types/trivia'
+import type { Player } from '@/js/types/trivia'
 
 interface Props {
   players: Player[]
