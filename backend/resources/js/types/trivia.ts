@@ -114,6 +114,17 @@ export interface Score {
   totalQuestions: number
 }
 
+/** Estadísticas de un jugador para el resumen de resultados (PlayerScore.vue, Results.vue). */
+export interface GameStats {
+  score: number
+  correctAnswers: number
+  wrongAnswers: number
+  accuracy: number
+  averageResponseTime: number
+  maxStreak?: number
+  position?: number
+}
+
 // ── WebSocket events (broadcastWith payloads) ─────────────────────────────────
 export interface WsPlayerJoined {
   player: { id: string; name: string; teamId?: string | null }
