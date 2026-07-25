@@ -160,6 +160,7 @@ import {
 } from "vue";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
+/** @type {{ calledNumbers: number[], currentNumber: number|null, variant: string, drawTimestamps: Record<number, string> }} */
 const props = defineProps({
   calledNumbers:  { type: Array,  default: () => [] },
   currentNumber:  { type: Number, default: null },
