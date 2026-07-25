@@ -36,7 +36,7 @@ export function useAdminAdministrator() {
     const fetchadmins = async () => {
         loading.value = true
         try {
-            const response = await axios.get(route('admins.fetchList'))
+            const response = await axios.get(window.route('admins.fetchList'))
             admins.value = response.data.data
         } catch (error) {
             console.error('Error fetching admins:', error)
@@ -48,7 +48,7 @@ export function useAdminAdministrator() {
 
     const toggleStatus = async (id: string) => {
         try {
-            await axios.patch(route('admins.toggleStatus', { user: id }))
+            await axios.patch(window.route('admins.toggleStatus', { user: id }))
             Swal.fire('Éxito', 'Estado cambiado correctamente', 'success')
             fetchadmins()
         } catch (error) {
@@ -59,7 +59,7 @@ export function useAdminAdministrator() {
 
     const resetPassword = async (id: string) => {
         try {
-            const response = await axios.put(route('admins.resetPassword', { user: id }))
+            const response = await axios.put(window.route('admins.resetPassword', { user: id }))
             Swal.fire({
                 title: 'Contraseña Restablecida',
                 text: `Nueva contraseña: ${response.data.password}`,
@@ -85,7 +85,7 @@ export function useAdminAdministrator() {
         if (result.isConfirmed) {
             try {
                 await Promise.all(ids.map(id => 
-                    axios.delete(route('admins.delete', { user: id }))
+                    axios.delete(window.route('admins.delete', { user: id }))
                 ))
                 Swal.fire('Eliminado', 'Administrador(es) eliminado(s)', 'success')
                 fetchadmins()
@@ -110,7 +110,7 @@ export function useAdminAdministrator() {
         if (result.isConfirmed) {
             try {
                 await Promise.all(ids.map(id => 
-                    axios.delete(route('admins.destroy', { user: id }))
+                    axios.delete(window.route('admins.destroy', { user: id }))
                 ))
                 Swal.fire('Eliminado', 'Administrador(es) eliminado(s) permanentemente', 'success')
                 fetchadmins()
