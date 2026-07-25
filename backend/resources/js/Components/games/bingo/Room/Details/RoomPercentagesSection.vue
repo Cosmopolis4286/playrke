@@ -24,7 +24,7 @@ defineProps<{
         <span class="detail-label">%Jackpot</span>
         <span class="detail-value">{{ room.config?.jackpot_pct ? fmt.pct(room.config?.jackpot_pct) : 'No aplica' }}</span>
       </div>
-      <div v-if="(room.config?.rounds ?? 1) > 1" class="detail-item">
+      <div v-if="Number(room.config?.rounds ?? 1) > 1" class="detail-item">
         <span class="detail-label">%Rondas</span>
         <span class="detail-value">{{ fmt.pct(room.config?.rounds_pct) }}</span>
       </div>
