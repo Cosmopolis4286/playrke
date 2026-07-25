@@ -28,6 +28,7 @@
   import type { PrizePageProps } from '@js/types/prizes/prize-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+  import type { Row } from '@js/types/common/table/column-row'
 
   // ==========================================================================
   // Props (Inertia)
@@ -154,7 +155,7 @@
     tableId="prizes-table"
     title="Premios"
     :columns="props.prizes.columns"
-    :rows="prizes"
+    :rows="(prizes as unknown as Row[])"
     :filters="filters"
     search-placeholder="Buscar por nombre, código..."
     showCreateButton

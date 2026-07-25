@@ -11,7 +11,6 @@
   import { useTableController } from '@/js/composables/common/table/useTableController'
 
   import type { AuditPageProps, AuditDetail } from '@/js/types/audit/audit'
-  import type { Row } from '@/js/types/common/table/column-row'
 
   /* -------------------------------------------------------------------------- */
   /* Props                                                                       */
@@ -52,7 +51,7 @@
     },
   ])
 
-  const { handleFilter, filteredRows } = useTableController<Row>({ columns, rows })
+  const { handleFilter, filteredRows } = useTableController({ columns, rows })
 
   /* -------------------------------------------------------------------------- */
   /* Filtros activos — para recargar desde backend                              */

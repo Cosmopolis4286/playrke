@@ -16,6 +16,7 @@
   import type { BingoPatternPageProps } from '@/js/types/games/bingo/pattern/bingo-pattern-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+  import type { Row } from '@js/types/common/table/column-row'
 
   const props = defineProps<BingoPatternPageProps>()
 
@@ -177,7 +178,7 @@
     tableId="bingo-patterns-table"
     title="Patrones de Bingo"
     :columns="props.bingoPatterns.columns"
-    :rows="bingoPatterns"
+    :rows="(bingoPatterns as unknown as Row[])"
     :filters="filters"
     search-placeholder="Buscar por nombre..."
     showCreateButton

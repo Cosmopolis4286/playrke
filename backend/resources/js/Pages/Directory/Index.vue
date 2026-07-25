@@ -22,7 +22,10 @@
 
   // Types
   import type { DirectoryPageProps } from '@/js/types/directory/directory'
-  import type { Row } from '@/js/types/common/table/column-row'
+  import type { Currency } from '@/js/types/currency'
+
+  /** `level` es agregado dinámicamente por CurrencyService::getAvailableCurrenciesWithLevel() (pivot). */
+  type CurrencyWithLevel = Currency & { level?: number }
 
   /* ==========================================================================
    * Props
@@ -81,7 +84,7 @@
    * Table Controller
    * ========================================================================== */
 
-  const { handleFilter, selectedIds, filteredRows } = useTableController<Row>({
+  const { handleFilter, selectedIds, filteredRows } = useTableController({
     columns,
     rows
   })
@@ -122,14 +125,14 @@
   const countries = computed(() => {
     if (props.currencies?.length) {
       // Map: iso_code_2 → { country info, minLevel }
-      const uniqueCountries = new Map<string, { id: number; iso_code_2: string; name: string; level: number }>()
+      const uniqueCountries = new Map<string, { id: string; iso_code_2: string; name: string; level: number }>()
 
       props.currencies.forEach(currency => {
         const country = currency.country
         if (!country?.iso_code_2) return
 
         const code = country.iso_code_2
-        const level = currency.level ?? 99
+        const level = (currency as CurrencyWithLevel).level ?? 99
 
         // Guardar solo el level más bajo (principal) por país
         if (!uniqueCountries.has(code) || level < uniqueCountries.get(code)!.level) {
@@ -146,13 +149,13 @@
         .sort((a, b) => a.level - b.level)
     }
 
-    return [{ id: 1, iso_code_2: 'VE', name: 'Venezuela', level: 1 }]
+    return [{ id: '1', iso_code_2: 'VE', name: 'Venezuela', level: 1 }]
   })
 
   // El tab inicial es el país con level=1 (o 'VE' como fallback)
   const defaultCode = props.currencies
     ?.slice()
-    .sort((a, b) => (a.level ?? 99) - (b.level ?? 99))
+    .sort((a, b) => ((a as CurrencyWithLevel).level ?? 99) - ((b as CurrencyWithLevel).level ?? 99))
     .find(c => c.country?.iso_code_2)
     ?.country?.iso_code_2 ?? 'VE'
 

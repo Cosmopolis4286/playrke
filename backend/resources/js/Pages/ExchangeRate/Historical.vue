@@ -4,7 +4,7 @@
   import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
   import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
 
-  import type { Column } from '@/js/types/common/table/column-row'
+  import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { ExchangeRateHistoricalPageProps } from '@js/types/exchange-rate'
 
   const props = defineProps<ExchangeRateHistoricalPageProps>()
@@ -53,7 +53,7 @@
       <BaseTable
         table-id="exchange-rate-historical-table"
         :columns="columns"
-        :rows="(exchangeRates as Record<string, any>[])"
+        :rows="(exchangeRates as unknown as Row[])"
         empty-message="No hay registros históricos para esta moneda"
       >
         <template #cell-currency_name="{ value }">

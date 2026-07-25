@@ -10,7 +10,7 @@ export interface ServerQuery {
     page: number
 }
 
-export function useTableController<T extends { id: string }>(options: {
+export function useTableController(options: {
     columns: Ref<Column[]>
     rows: Ref<Row[]>
     pageSize?: number
