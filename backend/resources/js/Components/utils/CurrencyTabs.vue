@@ -4,7 +4,7 @@
       <li v-for="currency in currencies" :key="currency.id" class="nav-item">
         <button
           class="nav-link"
-          :class="{ active: currency.id === currency }"
+          :class="{ active: currency.id === props.currency }"
           @click="$emit('update:currency', currency.id)"
         >
           {{ currency.symbol || currency.iso_code || currency.name }}
@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   currencies: Array<{ id: string | number; name?: string; symbol?: string; iso_code?: string }>
   currency?: string | number | null
   routeWithCurrency?: { route: string; parameters?: Record<string, unknown> }
