@@ -30,6 +30,8 @@ export interface GameHistoryRound {
 }
 
 export interface GameHistoryRow {
+  /** Alias de room_id — id estable para BaseTable (:key, selección de filas). */
+  id: string
   room_id: string
   room_code: string
   game_date: string | null

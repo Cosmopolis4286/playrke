@@ -1,16 +1,17 @@
 export type CommerceStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED'
 
 export interface Commerce {
-    readonly id: number | string,
+    readonly id: string,
     readonly name: string,
-    readonly country_id: number,
-    readonly time_zone_id: number,
-    readonly currency_id: number,
+    /** Snowflake ID serializado como string (ver Country/Currency). */
+    readonly country_id: string,
+    readonly time_zone_id: string,
+    readonly currency_id: string,
     readonly phone: string,
     readonly commission: string,
     readonly status: CommerceStatus,
     readonly username: string,
     readonly email: string,
-    readonly other_currencies?: number[],
-    readonly allowed_games?: number[]
+    readonly other_currencies?: string[],
+    readonly allowed_games?: string[]
 }

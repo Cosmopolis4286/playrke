@@ -1,17 +1,18 @@
 export type TreasurerStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED'
 
 export interface Treasurer {
-    id: number | string
+    id: string
     name: string
-    country_id: number | null
-    time_zone_id: number | null
-    currency_id: number | null
+    /** Snowflake ID serializado como string (ver Country/Currency/TimeZone). */
+    country_id: string | null
+    time_zone_id: string | null
+    currency_id: string | null
     phone: string
     has_commission?: boolean
     commission: string
     status?: TreasurerStatus
     username: string
     email: string
-    other_currencies?: (number | string)[]
-    allowed_games?: (number | string)[]
+    other_currencies?: string[]
+    allowed_games?: string[]
 }

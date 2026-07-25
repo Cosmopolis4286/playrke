@@ -235,6 +235,7 @@ final class PlayerGameHistoryService
         $isUsd        = ($currency?->iso_code ?? 'USD') === 'USD';
 
         return [
+            'id'              => (string) $ru->room_id,
             'room_id'         => (string) $ru->room_id,
             'room_code'       => $room?->uuid_code ?? (string) $ru->room_id,
             'game_date'       => $gameDate,

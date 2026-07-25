@@ -107,8 +107,7 @@
   const selectedIso2 = computed<string | null>(() => {
     if (!form.value.country_id) return null
     const match = props.countries.find(
-      // eslint-disable-next-line eqeqeq
-      c => c.id == form.value.country_id
+      c => c.id === form.value.country_id
     )
     return match?.iso_code_2 ?? null
   })
@@ -162,14 +161,12 @@
 
   const filteredCurrencies = computed(() => {
     if (!form.value.country_id) return []
-    // eslint-disable-next-line eqeqeq
-    return props.currencies.filter(c => c.country_id == form.value.country_id)
+    return props.currencies.filter(c => c.country_id === form.value.country_id)
   })
 
   const filteredTimeZones = computed(() => {
     if (!form.value.country_id) return []
-    // eslint-disable-next-line eqeqeq
-    return props.timeZones.filter(tz => tz.country_id == form.value.country_id)
+    return props.timeZones.filter(tz => tz.country_id === form.value.country_id)
   })
 
   const hasSingleCurrency = computed(() => filteredCurrencies.value.length === 1)
@@ -177,8 +174,7 @@
 
   const otherCurrenciesOptions = computed(() => {
     if (!form.value.currency_id) return props.currencies
-    // eslint-disable-next-line eqeqeq
-    return props.currencies.filter(c => c.id != form.value.currency_id)
+    return props.currencies.filter(c => c.id !== form.value.currency_id)
   })
 
   /* ==========================================================================
@@ -194,10 +190,8 @@
       if (!newVal) return
       await nextTick()
 
-      // eslint-disable-next-line eqeqeq
-      const currencies = props.currencies.filter(c => c.country_id == newVal)
-      // eslint-disable-next-line eqeqeq
-      const timeZones = props.timeZones.filter(tz => tz.country_id == newVal)
+      const currencies = props.currencies.filter(c => c.country_id === newVal)
+      const timeZones = props.timeZones.filter(tz => tz.country_id === newVal)
 
       form.value = {
         ...form.value,
