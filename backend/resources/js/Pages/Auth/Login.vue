@@ -3,8 +3,8 @@
   import { Link } from '@inertiajs/vue3'
   import { useLogin } from '@js/composables/auth/useLogin'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
-  import DemoCredentials from '@js/Components/Auth/DemoCredentials.vue'
-  import LoadingOverlay from '@js/Components/Games/Trivia/Shared/LoadingOverlay.vue'
+  import DemoCredentials from '@js/Components/auth/DemoCredentials.vue'
+  import LoadingOverlay from '@js/Components/games/Trivia/Shared/LoadingOverlay.vue'
 
   const props = defineProps<{ register: Boolean }>()
 

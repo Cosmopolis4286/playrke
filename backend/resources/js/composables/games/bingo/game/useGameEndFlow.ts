@@ -1,6 +1,6 @@
 import { ref, shallowRef, computed, type ComputedRef, type Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
-import type { WinnerEntry, GameEndData, PlayerProgress } from '@js/Components/Games/Bingo/views/inGame/types'
+import type { WinnerEntry, GameEndData, PlayerProgress } from '@js/Components/games/bingo/views/inGame/types'
 import type { GameEndedEvent } from '@js/composables/games/bingo/game/useBingoGameEcho'
 
 interface GameEndFlowDeps {

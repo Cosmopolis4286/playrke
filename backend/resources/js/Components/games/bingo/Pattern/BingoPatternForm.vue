@@ -4,7 +4,7 @@
   import FormInput         from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect        from '@/js/Components/Common/Form/FormSelect.vue'
   import FormSwitch        from '@/js/Components/Common/Form/FormSwitch.vue'
-  import BingoCardSelector from '@/js/Components/Games/Bingo/Pattern/BingoCardSelector.vue'
+  import BingoCardSelector from '@/js/Components/games/bingo/Pattern/BingoCardSelector.vue'
   import { validateBingoPatternForm } from '@/js/composables/games/bingo/pattern/bingoPatternFormSchema'
 
   import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-patterns'

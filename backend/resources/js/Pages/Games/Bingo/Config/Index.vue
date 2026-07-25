@@ -3,7 +3,7 @@
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ActionButtons from '@/js/Components/Common/Button/ActionButtons.vue'
-  import BingoConfigForm from '@/js/Components/Games/Bingo/Config/BingoConfigForm.vue'
+  import BingoConfigForm from '@/js/Components/games/bingo/Config/BingoConfigForm.vue'
   import BingoRulesModal from './Rules/BingoRulesModal.vue'
 
   import { useBingoConfig } from '@/js/composables/games/bingo/config/useBingoConfig'

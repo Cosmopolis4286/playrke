@@ -7,7 +7,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoPatternForm from '@/js/Components/Games/Bingo/Pattern/BingoPatternForm.vue'
+  import BingoPatternForm from '@/js/Components/games/bingo/Pattern/BingoPatternForm.vue'
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'

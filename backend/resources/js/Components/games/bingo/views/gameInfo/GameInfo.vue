@@ -40,8 +40,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import backendClient from '@js/plugins/axios'
 import echo         from '@js/plugins/echo'
-import BingoBoard   from '@js/Components/Games/Bingo/views/gameInfo/BingoBoard.vue'
-import NumberCaller from '@js/Components/Games/Bingo/views/gameInfo/NumberCaller.vue'
+import BingoBoard   from '@js/Components/games/bingo/views/gameInfo/BingoBoard.vue'
+import NumberCaller from '@js/Components/games/bingo/views/gameInfo/NumberCaller.vue'
 
 declare const route: (name: string, params?: unknown) => string
 

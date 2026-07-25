@@ -2,9 +2,9 @@
 import type { MyGamesPageProps } from '@/js/types/games/bingo/history/my-games'
 import { useMyGamesHistory } from '@js/composables/games/bingo/history/useMyGamesHistory'
 import { useMyGamesDetail } from '@js/composables/games/bingo/history/useMyGamesDetail'
-import MyGamesStats from '@js/Components/Games/Bingo/History/MyGamesStats.vue'
-import MyGamesHistoryTable from '@js/Components/Games/Bingo/History/MyGamesHistoryTable.vue'
-import GameDetailModal from '@js/Components/Games/Bingo/History/GameDetailModal.vue'
+import MyGamesStats from '@js/Components/games/bingo/History/MyGamesStats.vue'
+import MyGamesHistoryTable from '@js/Components/games/bingo/History/MyGamesHistoryTable.vue'
+import GameDetailModal from '@js/Components/games/bingo/History/GameDetailModal.vue'
 
 const props = defineProps<MyGamesPageProps>()
 

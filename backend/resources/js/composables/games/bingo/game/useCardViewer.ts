@@ -1,6 +1,6 @@
 import { ref, onUnmounted, type Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
-import type { WinnerEntry } from '@js/Components/Games/Bingo/views/inGame/types'
+import type { WinnerEntry } from '@js/Components/games/bingo/views/inGame/types'
 
 export interface WinningPosition { col: string; row: number; free: boolean }
 export interface ViewedCard {

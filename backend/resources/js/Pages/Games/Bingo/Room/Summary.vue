@@ -10,9 +10,9 @@
   // ==========================================================================
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
-  import BingoRoomDetails from '@/js/Components/Games/Bingo/Room/BingoRoomDetails.vue'
-  import BingoRoomActivateModal from '@/js/Components/Games/Bingo/Room/BingoRoomActivateModal.vue'
+  import BingoRoomForm from '@/js/Components/games/bingo/Room/Form/BingoRoomForm.vue'
+  import BingoRoomDetails from '@/js/Components/games/bingo/Room/BingoRoomDetails.vue'
+  import BingoRoomActivateModal from '@/js/Components/games/bingo/Room/BingoRoomActivateModal.vue'
 
   // ==========================================================================
   // Composables

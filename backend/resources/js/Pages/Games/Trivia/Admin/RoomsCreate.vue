@@ -6,12 +6,12 @@ import { localInputToUtc } from '@js/composables/useTimezone'
 import { useTriviaFeeByCurrency } from '@js/composables/games/trivia/admin/useTriviaFeeByCurrency'
 import { useTriviaPrizePayouts } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
 import { useTriviaPrizeRules } from '@js/composables/games/trivia/admin/useTriviaPrizeRules'
-import GameModeSection from '@js/Components/Games/Trivia/Admin/RoomForm/GameModeSection.vue'
-import GameSettingsSection from '@js/Components/Games/Trivia/Admin/RoomForm/GameSettingsSection.vue'
-import FeeByCurrencyEditor from '@js/Components/Games/Trivia/Admin/RoomForm/FeeByCurrencyEditor.vue'
-import PrizeConfigSection from '@js/Components/Games/Trivia/Admin/RoomForm/PrizeConfigSection.vue'
-import ScheduledAtField from '@js/Components/Games/Trivia/Admin/RoomForm/ScheduledAtField.vue'
-import AdvancedSettingsSection from '@js/Components/Games/Trivia/Admin/RoomForm/AdvancedSettingsSection.vue'
+import GameModeSection from '@js/Components/games/Trivia/Admin/RoomForm/GameModeSection.vue'
+import GameSettingsSection from '@js/Components/games/Trivia/Admin/RoomForm/GameSettingsSection.vue'
+import FeeByCurrencyEditor from '@js/Components/games/Trivia/Admin/RoomForm/FeeByCurrencyEditor.vue'
+import PrizeConfigSection from '@js/Components/games/Trivia/Admin/RoomForm/PrizeConfigSection.vue'
+import ScheduledAtField from '@js/Components/games/Trivia/Admin/RoomForm/ScheduledAtField.vue'
+import AdvancedSettingsSection from '@js/Components/games/Trivia/Admin/RoomForm/AdvancedSettingsSection.vue'
 
 interface Currency { id: string; symbol: string; name: string; iso_code: string }
 interface GameMode { value: string; label: string; description: string }

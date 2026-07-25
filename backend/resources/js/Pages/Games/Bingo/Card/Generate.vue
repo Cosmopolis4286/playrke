@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
-  import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/Generate/BingoCardGenerateForm.vue'
+  import BingoCardGenerateForm from '@/js/Components/games/bingo/Card/Generate/BingoCardGenerateForm.vue'
   import type { BingoCardGeneratePageProps } from '@/js/types/games/bingo/card/bingo-card-generate-page'
 
   // ==========================================================================

@@ -2,9 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import axios from 'axios'
-import Leaderboard from '@js/Components/Games/Trivia/Score/Leaderboard.vue'
-import PlayerScore from '@js/Components/Games/Trivia/Score/PlayerScore.vue'
-import LoadingOverlay from '@js/Components/Games/Trivia/Shared/LoadingOverlay.vue'
+import Leaderboard from '@js/Components/games/Trivia/Score/Leaderboard.vue'
+import PlayerScore from '@js/Components/games/Trivia/Score/PlayerScore.vue'
+import LoadingOverlay from '@js/Components/games/Trivia/Shared/LoadingOverlay.vue'
 import type { Player, GameStats } from '@js/types/trivia'
 
 interface Props {

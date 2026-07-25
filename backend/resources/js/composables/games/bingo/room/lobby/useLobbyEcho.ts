@@ -1,6 +1,6 @@
 import { onUnmounted, ref, watch } from 'vue'
 import echo from '@/js/plugins/echo'
-import type { LobbyLiveState } from '@js/Components/Games/Bingo/Room/Lobby/types'
+import type { LobbyLiveState } from '@js/Components/games/bingo/Room/Lobby/types'
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
 export type { LobbyLiveState }

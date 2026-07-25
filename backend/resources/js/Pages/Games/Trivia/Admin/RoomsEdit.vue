@@ -7,9 +7,9 @@ import { useTriviaFeeByCurrency, initFeeByCurrencyFromRoom } from '@js/composabl
 import { useTriviaPrizePayouts, initPrizePayoutsFromRoom } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
 import { useTriviaPrizeRules } from '@js/composables/games/trivia/admin/useTriviaPrizeRules'
 import { useTriviaRoomEditValidation } from '@js/composables/games/trivia/admin/useTriviaRoomEditValidation'
-import FeeByCurrencyEditor from '@js/Components/Games/Trivia/Admin/RoomForm/FeeByCurrencyEditor.vue'
-import PrizeConfigSection from '@js/Components/Games/Trivia/Admin/RoomForm/PrizeConfigSection.vue'
-import ScheduledAtField from '@js/Components/Games/Trivia/Admin/RoomForm/ScheduledAtField.vue'
+import FeeByCurrencyEditor from '@js/Components/games/Trivia/Admin/RoomForm/FeeByCurrencyEditor.vue'
+import PrizeConfigSection from '@js/Components/games/Trivia/Admin/RoomForm/PrizeConfigSection.vue'
+import ScheduledAtField from '@js/Components/games/Trivia/Admin/RoomForm/ScheduledAtField.vue'
 
 interface Currency { id: string; symbol: string; name: string; iso_code: string }
 

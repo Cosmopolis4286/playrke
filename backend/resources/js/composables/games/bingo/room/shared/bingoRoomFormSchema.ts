@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { percentageSchema } from '@/js/Components/Games/Bingo/Room/Form/Utils/percentage'
+import { percentageSchema } from '@/js/Components/games/bingo/Room/Form/Utils/percentage'
 
 /* ─── Rangos de porcentajes ─────────────────────────────────────────── */
 

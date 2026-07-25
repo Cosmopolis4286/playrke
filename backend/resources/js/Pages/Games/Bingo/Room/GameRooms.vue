@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import "@/css/games/bingo/bingo-game-rooms.css";
 
-import BingoGameRoomCard  from "@js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
-import BingoPurchaseModalWrapper from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue";
-import BingoRoomInfoModal from "@js/Components/Games/Bingo/Room/GameRooms/BingoRoomInfoModal.vue";
+import BingoGameRoomCard  from "@js/Components/games/bingo/Room/GameRooms/BingoGameRoomCard.vue";
+import BingoPurchaseModalWrapper from "@js/Components/games/bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue";
+import BingoRoomInfoModal from "@js/Components/games/bingo/Room/GameRooms/BingoRoomInfoModal.vue";
 import BingoRulesModal    from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
 
 import { useGameRooms }             from "@js/composables/games/bingo/room/game-rooms/useGameRooms";

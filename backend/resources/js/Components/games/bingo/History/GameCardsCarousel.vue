@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BingoCardDisplay from '@js/Components/Games/Bingo/Card/BingoCardDisplay.vue'
+import BingoCardDisplay from '@js/Components/games/bingo/Card/BingoCardDisplay.vue'
 import { isRoomOngoing } from '@js/composables/games/bingo/history/useMyGamesFormatters'
 import type { GameHistoryDetail, GameHistoryPlayerCard } from '@/js/types/games/bingo/history/my-games'
 

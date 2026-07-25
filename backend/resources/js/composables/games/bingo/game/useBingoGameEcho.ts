@@ -1,6 +1,6 @@
 import { onUnmounted, ref, type Ref } from 'vue'
 import echo from '@js/plugins/echo'
-import type { PlayerProgress } from '@js/Components/Games/Bingo/views/inGame/types'
+import type { PlayerProgress } from '@js/Components/games/bingo/views/inGame/types'
 
 export type { PlayerProgress }
 

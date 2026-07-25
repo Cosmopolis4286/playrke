@@ -2,7 +2,7 @@
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
-  import AuthDropdown from '@js/Components/Auth/AuthDropdown.vue'
+  import AuthDropdown from '@js/Components/auth/AuthDropdown.vue'
   import { useRegisterForm } from '@js/composables/auth/useRegister'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
 

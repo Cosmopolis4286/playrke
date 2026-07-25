@@ -3,7 +3,7 @@
   import { useHead } from '@vueuse/head'
   import '@/css/layout/guest-layout.css'
   import '@fortawesome/fontawesome-free/css/all.min.css'
-  import InfoModal from '@js/Components/Auth/InfoModal.vue'
+  import InfoModal from '@js/Components/auth/InfoModal.vue'
 
   type ModalKey = 'terms' | 'about' | 'privacy'
 

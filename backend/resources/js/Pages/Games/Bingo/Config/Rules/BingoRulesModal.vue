@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoRulesDefault from '@/js/Components/Games/Bingo/Config/Rules/Default.vue'
+  import BingoRulesDefault from '@/js/Components/games/bingo/Config/Rules/Default.vue'
   import { sanitizeHtml } from '@js/utils/sanitizeHtml'
 
   const props = defineProps<{

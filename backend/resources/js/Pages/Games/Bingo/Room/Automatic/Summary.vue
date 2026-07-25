@@ -13,7 +13,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
+  import BingoRoomForm from '@/js/Components/games/bingo/Room/Form/BingoRoomForm.vue'
 
   // ==========================================================================
   // Composables

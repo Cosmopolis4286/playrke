@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WinnerEntry, GameEndData } from '@js/Components/Games/Bingo/views/inGame/types'
+import type { WinnerEntry, GameEndData } from '@js/Components/games/bingo/views/inGame/types'
 
 defineProps<{
   gameEndData: GameEndData | null

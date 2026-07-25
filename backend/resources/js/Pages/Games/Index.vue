@@ -6,7 +6,7 @@
   // ==========================================================================
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal    from '@/js/Components/Common/Modal/Modal.vue'
-  import GameForm from '@/js/Components/Games/GameForm.vue'
+  import GameForm from '@/js/Components/games/GameForm.vue'
 
   // ==========================================================================
   // Composables
