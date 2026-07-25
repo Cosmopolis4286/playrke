@@ -3,6 +3,7 @@
 namespace App\Services\Menu;
 
 use App\Models\Module;
+use App\Models\SidebarMenuVisibility;
 use App\Models\WalletMovement;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
@@ -213,6 +214,11 @@ class SidebarMenuService
                     'permission' => 'audit.view',
                     'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
+                'sidebar_menu' => [
+                    'title' => 'Menú del Sidebar',
+                    'route' => 'sidebar-menu.index',
+                    'permission' => 'superadmin.access',
+                ],
             ],
         ],
         /*
@@ -311,16 +317,15 @@ class SidebarMenuService
             : $user->getAllPermissionNames();
 
         return collect($this->menuStructure)
-            ->map(function ($item) use ($userRoles, $userPermissions) {
+            ->map(function ($item, $parentKey) use ($userRoles, $userPermissions) {
                 // Filtrar submenús antes de decidir si mostrar el padre
                 if (isset($item['submenu'])) {
                     $item['submenu'] = collect($item['submenu'])
-                        ->filter(function ($subitem) use ($userRoles, $userPermissions) {
-                            // exclude_roles en subitem
-                            if (!empty($subitem['exclude_roles'])) {
-                                if (array_intersect($userRoles, $subitem['exclude_roles'])) {
-                                    return false;
-                                }
+                        ->filter(function ($subitem, $subKey) use ($parentKey, $userRoles, $userPermissions) {
+                            // Visibilidad por rol editable en BD (reemplaza
+                            // exclude_roles hardcodeado — ver isVisibleForRoles()).
+                            if (!$this->isVisibleForRoles("{$parentKey}.{$subKey}", $userRoles)) {
+                                return false;
                             }
                             // superadmin ve todo
                             if ($userPermissions === null) {
@@ -342,19 +347,20 @@ class SidebarMenuService
             })
             ->filter(function ($item, $key) use ($userRoles, $userPermissions) {
                 // Módulo apagado en /permissions → oculto para TODOS,
-                // incluido superadmin (a diferencia de exclude_roles/permission,
-                // que sí puede saltarse el superadmin). Se evalúa primero y sin
-                // excepción porque es un interruptor de disponibilidad del
-                // sistema, no de autorización por rol.
+                // incluido superadmin (a diferencia de la visibilidad por rol
+                // y de permission, que sí puede saltarse el superadmin). Se
+                // evalúa primero y sin excepción porque es un interruptor de
+                // disponibilidad del sistema, no de autorización por rol.
                 if (! $this->isModuleActive($key)) {
                     return false;
                 }
 
-                // exclude_roles en item padre
-                if (!empty($item['exclude_roles'])) {
-                    if (array_intersect($userRoles, $item['exclude_roles'])) {
-                        return false;
-                    }
+                // Visibilidad por rol editable en BD (reemplaza exclude_roles
+                // hardcodeado — ver isVisibleForRoles()). Se evalúa para
+                // todos los roles sin excepción, incluido superadmin (mismo
+                // criterio que exclude_roles tenía antes).
+                if (!$this->isVisibleForRoles($key, $userRoles)) {
+                    return false;
                 }
 
                 // superadmin ve todo lo no excluido
@@ -410,6 +416,54 @@ class SidebarMenuService
         }
 
         return $this->activeModuleKeys[$key] ?? true;
+    }
+
+    /**
+     * Set de "item_key:role_name" => is_visible, cacheado en memoria por
+     * instancia — una sola query total para todo el árbol, sin importar
+     * cuántos items/roles evalúe generateMenu() (mismo patrón que
+     * $activeModuleKeys/isModuleActive()).
+     *
+     * @var array<string, bool>|null
+     */
+    private ?array $itemRoleVisibility = null;
+
+    /**
+     * Reemplaza el filtro `exclude_roles` (antes hardcodeado en
+     * $menuStructure) por la fuente de verdad editable en BD
+     * (SidebarMenuVisibility). Sin fila para (itemKey, roleName) => visible
+     * por defecto (lista de excepciones, no whitelist — mismo criterio que
+     * isModuleActive()).
+     *
+     * $userRoles puede traer varios roles del mismo usuario: el item es
+     * visible si lo es para AL MENOS UNO de sus roles — replica el
+     * comportamiento previo de exclude_roles, donde bastaba con que ninguno
+     * de los roles del usuario estuviera en la lista de exclusión.
+     *
+     * Se indexa por Role::name (no Role::prefix): getRoleNames(), que arma
+     * $userRoles, devuelve name — prefix vive en BD en mayúsculas y no es
+     * el campo que exclude_roles comparaba.
+     *
+     * @param string[] $userRoles
+     */
+    private function isVisibleForRoles(string $itemKey, array $userRoles): bool
+    {
+        if ($this->itemRoleVisibility === null) {
+            $this->itemRoleVisibility = SidebarMenuVisibility::query()
+                ->join('roles', 'roles.id', '=', 'sidebar_menu_visibilities.role_id')
+                ->select('sidebar_menu_visibilities.item_key', 'roles.name', 'sidebar_menu_visibilities.is_visible')
+                ->get()
+                ->mapWithKeys(fn ($row) => ["{$row->item_key}:{$row->name}" => (bool) $row->is_visible])
+                ->all();
+        }
+
+        foreach ($userRoles as $roleName) {
+            if ($this->itemRoleVisibility["{$itemKey}:{$roleName}"] ?? true) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -529,5 +583,38 @@ class SidebarMenuService
         }
 
         return $breadcrumb;
+    }
+
+    /**
+     * Árbol de $menuStructure aplanado a una lista de items (padres +
+     * submenús) para la matriz de administración de visibilidad por rol.
+     * `permission` viaja solo como dato informativo de solo lectura — la
+     * matriz no lo edita, solo edita visibilidad por rol.
+     *
+     * @return array<int, array{key: string, parent_key: string|null, title: string, permission: string|null}>
+     */
+    public function getFlatMenuItemsForMatrix(): array
+    {
+        $flat = [];
+
+        foreach ($this->menuStructure as $parentKey => $parentItem) {
+            $flat[] = [
+                'key'        => $parentKey,
+                'parent_key' => null,
+                'title'      => $parentItem['title'],
+                'permission' => $parentItem['permission'] ?? null,
+            ];
+
+            foreach ($parentItem['submenu'] ?? [] as $subKey => $subItem) {
+                $flat[] = [
+                    'key'        => "{$parentKey}.{$subKey}",
+                    'parent_key' => $parentKey,
+                    'title'      => $subItem['title'],
+                    'permission' => $subItem['permission'] ?? null,
+                ];
+            }
+        }
+
+        return $flat;
     }
 }
