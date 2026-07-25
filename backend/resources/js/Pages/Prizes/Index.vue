@@ -27,7 +27,7 @@
 
   import type { PrizePageProps } from '@js/types/prizes/prize-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter } from '@js/types/common/table/table-filter'
+  import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 
   // ==========================================================================
   // Props (Inertia)
@@ -105,7 +105,7 @@
   // Filtros
   // ==========================================================================
 
-  const filters: readonly TableFilter[] = [
+  const filters: readonly TableFilterInterface[] = [
     {
       key: 'reward_type',
       label: 'Tipo',

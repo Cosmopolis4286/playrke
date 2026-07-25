@@ -15,7 +15,7 @@
 
   import type { BingoPatternPageProps } from '@/js/types/games/bingo/pattern/bingo-pattern-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter } from '@js/types/common/table/table-filter'
+  import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 
   const props = defineProps<BingoPatternPageProps>()
 
@@ -111,7 +111,7 @@
     }
   })
 
-  const filters: readonly TableFilter[] = [
+  const filters: readonly TableFilterInterface[] = [
     {
       key: 'type_pattern',
       label: 'Tipo',
