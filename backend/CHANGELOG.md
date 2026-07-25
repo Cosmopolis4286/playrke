@@ -2,6 +2,62 @@
 
 ---
 
+## [Feature] 2026-07-25 — Visibilidad del sidebar por rol (reemplaza `exclude_roles`)
+
+### Contexto
+El sidebar (`SidebarMenuService::$menuStructure`) decidía qué rol veía cada
+item/submenú con un array `exclude_roles` hardcodeado en PHP: cambiar esa
+visibilidad requería editar código y desplegar. Se pidió una "app" para que
+un superadmin habilite/deshabilite menús y submenús por rol desde el panel
+admin, siguiendo el mismo patrón ya validado en el proyecto para la Matriz
+de Permisos (`PermissionMatrix.vue` + `usePermissions.ts`): matriz item×rol
+con cambios pendientes batcheados y guardado explícito.
+
+### Diseño
+La estructura del árbol (título, ícono, ruta, permiso Spatie requerido)
+sigue viviendo en `$menuStructure` — no se duplicó en BD. La tabla nueva
+(`sidebar_menu_visibilities`) solo gestiona el booleano de visibilidad por
+`(item_key, role_id)`, con la misma semántica de "lista de excepciones" que
+ya usa `modules.is_active`: sin fila = visible por defecto, así un item
+nuevo agregado al array no requiere migración de datos.
+
+Detalle técnico no obvio: la resolución de rol se hace por `Role::name`
+(normalizado a minúsculas por el mutator del modelo), no por `Role::prefix`
+— este último vive en BD en mayúsculas (`SUPERADMIN`) y no es el campo que
+`$user->getRoleNames()` devuelve ni el que `exclude_roles` comparaba. El
+seeder inicial falló silenciosamente (0 filas) hasta corregir esto.
+
+Decisión de producto confirmada explícitamente: a diferencia de la Matriz
+de Permisos (superadmin blindado, no editable), aquí superadmin **sí** es
+editable por item — preserva el comportamiento que ya existía con
+`exclude_roles` (ej. "Mis Partidas" ya excluía a superadmin).
+
+### Verificación
+Se capturó un snapshot de `generateMenu()` por rol (Tinker) antes de tocar
+el pipeline de filtrado, y se comparó byte a byte contra el mismo snapshot
+tras el cambio — diff vacío para los 6 roles con usuario de prueba
+sembrado, confirmando cero regresión. Se probó además el toggle real en
+ambas direcciones (ocultar/mostrar un item vía BD → `generateMenu()`
+refleja el cambio inmediatamente).
+
+Ver `backend/docs/SIDEBAR_MENU_VISIBILITY.md` para el detalle de
+arquitectura, mapa de archivos y comandos de verificación.
+
+### Archivos clave
+- `database/migrations/2026_07_22_02_create_sidebar_menu_visibilities_table.php`
+- `app/Models/SidebarMenuVisibility.php`
+- `database/seeders/SidebarMenuVisibilitySeeder.php`
+- `app/Services/Menu/SidebarMenuService.php` (`isVisibleForRoles()`, `getFlatMenuItemsForMatrix()`, `generateMenu()` modificado)
+- `app/Services/Roles/Admin/SidebarMenuVisibilityService.php`
+- `app/Http/Controllers/Roles/SidebarMenuVisibilityController.php`
+- `app/Policies/Roles/Admin/SidebarMenuVisibilityPolicy.php`
+- `routes/modules/admin.php` (prefijo `sidebar-menu`, solo superadmin)
+- `resources/js/Pages/Roles/Admin/SidebarMenu/Index.vue` (página propia, no mezclada en `/permissions`)
+- `resources/js/Components/Roles/Admin/SidebarMenuVisibilityMatrix.vue`
+- `resources/js/composables/roles/admin/sidebarMenu/useSidebarMenuVisibility.ts`
+
+---
+
 ## [Refactor] 2026-07-07 — Migración del dominio Bingo a `App\Domains\Games\Bingo\*`
 
 ### Contexto
