@@ -1,17 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
-const props = defineProps({
-  room: Object,
-  roomState: Object,
-  players: Array,
-  playerCount: Number,
-})
+interface RoomShowPlayer {
+  player_id: string
+  nickname: string
+  status: string
+  joined_at: number | null
+}
+
+const props = defineProps<{
+  room: Record<string, any>
+  roomState: Record<string, any>
+  players: RoomShowPlayer[]
+  playerCount: number
+}>()
 
 // Auto-refresh cada 5 segundos para ver jugadores en tiempo real
-let refreshInterval = null
+let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   refreshInterval = setInterval(() => {
@@ -24,8 +31,8 @@ onUnmounted(() => {
 })
 
 // Estado colores
-const getStatusColor = (status) => {
-  const colors = {
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
     waiting: 'bg-yellow-100 text-yellow-800',
     playing: 'bg-green-100 text-green-800',
     closed: 'bg-gray-100 text-gray-800',
@@ -42,7 +49,7 @@ const confirmClose = () => {
 }
 
 // Formatear tiempo
-const formatTime = (timestamp) => {
+const formatTime = (timestamp: number | null) => {
   if (!timestamp) return '-'
   return new Date(timestamp * 1000).toLocaleTimeString('es-ES')
 }
