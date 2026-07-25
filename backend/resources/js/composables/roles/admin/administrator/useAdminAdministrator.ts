@@ -1,4 +1,6 @@
 import { computed, ref } from 'vue'
+import axios from 'axios'
+import Swal from 'sweetalert2'
 import type { Administrator } from '@/js/types/roles/admin/administrator'
 
 /**
@@ -34,7 +36,7 @@ export function useAdminAdministrator() {
     const fetchadmins = async () => {
         loading.value = true
         try {
-            const response = await window.axios.get(route('admin.indexfetchList'))
+            const response = await axios.get(route('admin.indexfetchList'))
             admins.value = response.data.data
         } catch (error) {
             console.error('Error fetching admins:', error)
@@ -46,7 +48,7 @@ export function useAdminAdministrator() {
 
     const toggleStatus = async (id: string) => {
         try {
-            await window.axios.patch(route('admin.indextoggleStatus', { user: id }))
+            await axios.patch(route('admin.indextoggleStatus', { user: id }))
             window.Swal.fire('Éxito', 'Estado cambiado correctamente', 'success')
             fetchadmins()
         } catch (error) {
@@ -57,7 +59,7 @@ export function useAdminAdministrator() {
 
     const resetPassword = async (id: string) => {
         try {
-            const response = await window.axios.put(route('admin.indexresetPassword', { user: id }))
+            const response = await axios.put(route('admin.indexresetPassword', { user: id }))
             window.Swal.fire({
                 title: 'Contraseña Restablecida',
                 text: `Nueva contraseña: ${response.data.password}`,
@@ -83,7 +85,7 @@ export function useAdminAdministrator() {
         if (result.isConfirmed) {
             try {
                 await Promise.all(ids.map(id => 
-                    window.axios.delete(route('admin.indexdelete', { user: id }))
+                    axios.delete(route('admin.indexdelete', { user: id }))
                 ))
                 window.Swal.fire('Eliminado', 'Administrador(es) eliminado(s)', 'success')
                 fetchadmins()
@@ -108,7 +110,7 @@ export function useAdminAdministrator() {
         if (result.isConfirmed) {
             try {
                 await Promise.all(ids.map(id => 
-                    window.axios.delete(route('admin.indexdestroy', { user: id }))
+                    axios.delete(route('admin.indexdestroy', { user: id }))
                 ))
                 window.Swal.fire('Eliminado', 'Administrador(es) eliminado(s) permanentemente', 'success')
                 fetchadmins()
