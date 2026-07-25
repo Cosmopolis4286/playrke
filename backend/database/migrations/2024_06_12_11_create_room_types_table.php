@@ -21,7 +21,7 @@ return new class extends Migration
 
             $table->string('code', 30)
                 ->unique()
-                ->comment('Código único del tipo de sala (PRIVATE, PUBLIC, VIP, MIXED)');
+                ->comment('Código único del tipo de sala (PRIVATE, PUBLIC, VIP, DEMO)');
 
             $table->string('label', 50)
                 ->comment('Nombre visible del tipo de sala');

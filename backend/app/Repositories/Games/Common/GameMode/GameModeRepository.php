@@ -17,41 +17,42 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
 
     public function getActiveGameModes(): Collection
     {
-        return $this->model->where('status', true)->get();
+        return $this->model->where('status', 'ACTIVE')->get();
     }
 
     public function getInactiveGameModes(): Collection
     {
-        return $this->model->where('status', false)->get();
+        return $this->model->where('status', 'INACTIVE')->get();
     }
 
-    public function getByDescription(string $description): ?GameMode
+    public function getByLabel(string $label): ?GameMode
     {
-        return $this->model->where('description', $description)->first();
+        return $this->model->where('label', $label)->first();
     }
 
-    public function searchByDescription(string $searchTerm): Collection
+    public function searchByLabel(string $searchTerm): Collection
     {
-        return $this->model->where('description', 'LIKE', "%{$searchTerm}%")->get();
+        return $this->model->where('label', 'LIKE', "%{$searchTerm}%")->get();
     }
 
     public function activateGameMode($gameModeId): bool
     {
         return $this->model->where('id', $gameModeId)
-            ->update(['status' => true]) > 0;
+            ->update(['status' => 'ACTIVE']) > 0;
     }
 
     public function deactivateGameMode($gameModeId): bool
     {
         return $this->model->where('id', $gameModeId)
-            ->update(['status' => false]) > 0;
+            ->update(['status' => 'INACTIVE']) > 0;
     }
 
-    public function createGameMode(string $description, bool $isActive = true): GameMode
+    public function createGameMode(string $code, string $label, bool $isActive = true): GameMode
     {
         return $this->model->create([
-            'description' => $description,
-            'status' => $isActive
+            'code' => $code,
+            'label' => $label,
+            'status' => $isActive ? 'ACTIVE' : 'INACTIVE'
         ]);
     }
 
@@ -61,9 +62,9 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
             ->update($data) > 0;
     }
 
-    public function existsByDescription(string $description): bool
+    public function existsByLabel(string $label): bool
     {
-        return $this->model->where('description', $description)->exists();
+        return $this->model->where('label', $label)->exists();
     }
 
     public function getGameModesWithPrizePoolTypes(): Collection
@@ -73,7 +74,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
 
     public function getGameModesByStatus(bool $isActive = true): Collection
     {
-        return $this->model->where('status', $isActive)->get();
+        return $this->model->where('status', $isActive ? 'ACTIVE' : 'INACTIVE')->get();
     }
 
     public function toggleGameModeStatus($gameModeId): bool
@@ -81,7 +82,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
         $gameMode = $this->model->find($gameModeId);
 
         if ($gameMode) {
-            return $gameMode->update(['status' => !$gameMode->status]);
+            return $gameMode->update(['status' => $gameMode->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE']);
         }
 
         return false;
@@ -90,20 +91,20 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
     public function bulkActivateGameModes(array $gameModeIds): int
     {
         return $this->model->whereIn('id', $gameModeIds)
-            ->update(['status' => true]);
+            ->update(['status' => 'ACTIVE']);
     }
 
     public function bulkDeactivateGameModes(array $gameModeIds): int
     {
         return $this->model->whereIn('id', $gameModeIds)
-            ->update(['status' => false]);
+            ->update(['status' => 'INACTIVE']);
     }
 
     public function getGameModeStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('status', true)->count();
-        $inactive = $this->model->where('status', false)->count();
+        $active = $this->model->where('status', 'ACTIVE')->count();
+        $inactive = $this->model->where('status', 'INACTIVE')->count();
 
         return [
             'total' => $total,

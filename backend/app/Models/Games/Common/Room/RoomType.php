@@ -9,7 +9,7 @@ use App\Traits\SnowflakeId;
  * Modelo para tipos de salas (RoomType).
  *
  * Se usa para definir y administrar los tipos disponibles:
- * PRIVATE, PUBLIC, VIP, MIXED, etc.
+ * PRIVATE, PUBLIC, VIP, DEMO, etc.
  */
 class RoomType extends Model
 {

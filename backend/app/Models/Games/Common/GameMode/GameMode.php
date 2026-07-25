@@ -12,12 +12,15 @@ class GameMode extends Model
     use SnowflakeId;
 
     protected $fillable = [
-        'description',
+        'code',
+        'label',
         'status',
     ];
 
     protected $casts = [
         'id' => 'string',
+        'code' => 'string',
+        'label' => 'string',
         'status' => 'string',
     ];
 

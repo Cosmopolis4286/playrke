@@ -12,19 +12,19 @@ interface GameModeRepositoryInterface extends BaseRepositoryInterface
 
     public function getInactiveGameModes(): Collection;
 
-    public function getByDescription(string $description): ?GameMode;
+    public function getByLabel(string $label): ?GameMode;
 
-    public function searchByDescription(string $searchTerm): Collection;
+    public function searchByLabel(string $searchTerm): Collection;
 
     public function activateGameMode($gameModeId): bool;
 
     public function deactivateGameMode($gameModeId): bool;
 
-    public function createGameMode(string $description, bool $isActive = true): GameMode;
+    public function createGameMode(string $code, string $label, bool $isActive = true): GameMode;
 
     public function updateGameMode($gameModeId, array $data): bool;
 
-    public function existsByDescription(string $description): bool;
+    public function existsByLabel(string $label): bool;
 
     public function getGameModesWithPrizePoolTypes(): Collection;
 
