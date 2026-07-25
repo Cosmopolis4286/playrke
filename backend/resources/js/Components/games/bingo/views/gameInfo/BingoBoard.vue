@@ -160,7 +160,6 @@ import {
 } from "vue";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
-/** @type {{ calledNumbers: number[], currentNumber: number|null, variant: string, drawTimestamps: Record<number, string> }} */
 const props = defineProps({
   calledNumbers:  { type: Array,  default: () => [] },
   currentNumber:  { type: Number, default: null },
@@ -168,6 +167,8 @@ const props = defineProps({
   // Map of number → ISO timestamp string (populated by parent when chip arrives)
   drawTimestamps: { type: Object, default: () => ({}) },
 });
+
+const calledNumbers = computed(() => /** @type {number[]} */ (props.calledNumbers));
 
 // ── Variant definitions ───────────────────────────────────────────────────────
 const VARIANT_DEFS = {
@@ -247,7 +248,7 @@ watch(() => props.currentNumber, (n) => {
 });
 
 // ── Recent chips (last 10, newest first) ─────────────────────────────────────
-const recentChips = computed(() => [...props.calledNumbers].reverse().slice(0, 10));
+const recentChips = computed(() => [...calledNumbers.value].reverse().slice(0, 10));
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
 const tooltip = reactive({ visible: false, number: null, x: 0, y: 0 });
