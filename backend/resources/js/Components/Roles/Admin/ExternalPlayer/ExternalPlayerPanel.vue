@@ -109,6 +109,20 @@ async function handleToggleBlock(player: ExternalPlayer) {
 }
 .ep-empty i { font-size: 2.2rem; opacity: 0.5; }
 
+/* ── Skeleton de carga ── */
+.ep-skeleton { display: flex; flex-direction: column; gap: 0.5rem; }
+.ep-skeleton-row {
+  height: 58px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--ds-surface-2) 25%, var(--ds-border) 50%, var(--ds-surface-2) 75%);
+  background-size: 200% 100%;
+  animation: ep-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ep-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .ep-list {
   display: flex;
   flex-direction: column;
