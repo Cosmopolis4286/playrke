@@ -163,12 +163,7 @@ export function usePrize(): UsePrizeReturn {
             const { data } = await backendClient.get<{ data: Prize }>(`/prizes/${id}/show`)
 
             // kit_items_data contains full objects with hashed IDs — use those as source of truth
-            const kitData = (data.data.kit_items_data ?? []).map((item: PrizeSearchResult) => ({
-                id:    item.id,
-                code:  item.code,
-                name:  item.name,
-                price: item.price,
-            }))
+            const kitData: PrizeSearchResult[] = data.data.kit_items_data ?? []
 
             prizeData.value = {
                 id:          data.data.id,
