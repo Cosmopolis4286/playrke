@@ -6,6 +6,10 @@ interface Props {
 }
 
 defineProps<Props>()
+
+function hideBrokenImage(event: Event) {
+  if (event.target instanceof HTMLImageElement) event.target.style.display = 'none'
+}
 </script>
 
 <template>
@@ -44,7 +48,7 @@ defineProps<Props>()
         :src="question.image"
         :alt="'Imagen de la pregunta'"
         class="w-full h-64 object-cover"
-        @error="(e) => { if (e.target instanceof HTMLImageElement) e.target.style.display = 'none' }"
+        @error="hideBrokenImage"
       />
     </div>
 
