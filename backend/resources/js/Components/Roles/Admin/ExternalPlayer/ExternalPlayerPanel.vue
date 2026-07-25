@@ -68,7 +68,7 @@
 
         <div class="ep-row-extra">
           <span v-if="player.game" class="ep-tag"><i class="fas fa-dice mr-1"></i>{{ player.game.name }}</span>
-          <span v-if="player.seller_user" class="ep-tag"><i class="fas fa-user-tie mr-1"></i>{{ player.seller_user.name }}</span>
+          <span v-if="player.seller_user" class="ep-tag"><i class="fas fa-user-tie mr-1"></i>{{ player.seller_user.first_name }} {{ player.seller_user.last_name }}</span>
           <span v-if="player.country" class="ep-tag"><i class="fas fa-globe-americas mr-1"></i>{{ player.country.name }}</span>
           <span v-if="player.expiration_date" class="ep-tag" :title="'Expira: ' + player.expiration_date">
             <i class="fas fa-clock mr-1"></i>{{ formatExpiration(player.expiration_date) }}

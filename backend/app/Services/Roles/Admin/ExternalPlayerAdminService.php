@@ -15,7 +15,7 @@ final class ExternalPlayerAdminService
     public function search(?string $term, ?string $status, ?string $gameId): Collection
     {
         $query = ExternalPlayer::query()
-            ->with(['game:id,name', 'sellerUser:id,name,email', 'country:id,name'])
+            ->with(['game:id,name', 'sellerUser:id,username,first_name,last_name,email', 'country:id,name'])
             ->latest();
 
         if ($status) {

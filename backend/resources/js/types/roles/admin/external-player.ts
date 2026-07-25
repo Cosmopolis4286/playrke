@@ -9,7 +9,7 @@ export interface ExternalPlayer {
   expiration_date: string | null
   created_at?: string
   game?: { id: string; name: string } | null
-  seller_user?: { id: string; name: string; email: string } | null
+  seller_user?: { id: string; username: string; first_name: string; last_name: string; email: string } | null
   country?: { id: string; name: string } | null
 }
 
