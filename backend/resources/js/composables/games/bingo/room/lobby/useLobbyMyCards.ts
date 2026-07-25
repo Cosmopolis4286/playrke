@@ -4,7 +4,8 @@ import backendClient from '@/js/plugins/axios'
 export interface LobbyCard {
   id: string
   serialNumber: number
-  cardMatrix: number[][]
+  /** Matriz del cartón por columna (B/I/N/G/O) — ver LobbyMyCardsModal::colNumbers(). */
+  cardMatrix: Record<string, number[]>
   isActive: boolean
   isCustomCard: boolean
   purchaseDate: string | null

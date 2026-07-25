@@ -26,8 +26,7 @@ function formatDate(raw: string | null): string {
 }
 
 function colNumbers(card: LobbyCard, col: string): number[] {
-  const m = card.cardMatrix as Record<string, number[]>
-  return m[col] ?? []
+  return card.cardMatrix[col] ?? []
 }
 </script>
 
