@@ -9,14 +9,14 @@
  */
 import { computed } from 'vue'
 import BaseTable from '../Common/Table/BaseTable.vue'
-import type { Directory } from '@/js/types/directory'
+import type { DirectoryVEN } from '@/js/types/directory/directory-ven'
 
 /**
  * Props del componente DirectoryTable
  */
 const props = defineProps<{
   /** Lista de directorios a mostrar */
-  directories: Directory[]
+  directories: DirectoryVEN[]
 }>()
 
 /**
@@ -43,9 +43,9 @@ const columns = [
 const rows = computed(() => {
   return props.directories.map(directory => ({
     id: directory.id,
-    document_info: `${directory.document_type?.code || ''}-${directory.document}`,
+    document_info: `${directory.document_type?.code ?? ''}-${directory.document_number}`,
     phone: directory.phone,
-    bank: directory.bank?.name || 'N/A',
+    bank: directory.bank?.name ?? 'N/A',
     _raw: directory
   }))
 })
