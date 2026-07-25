@@ -23,8 +23,11 @@
             <ExternalPlayerPanel
               :players="players"
               :statistics="statistics"
+              :pagination="pagination"
               :loading="loading"
               @search="handleSearch"
+              @search-debounced="handleSearchDebounced"
+              @page-change="goToPage"
               @toggle-block="handleToggleBlock"
             />
           </div>
@@ -38,10 +41,10 @@ import ExternalPlayerPanel from '@/js/Components/Roles/Admin/ExternalPlayer/Exte
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { useExternalPlayers } from '@/js/composables/roles/admin/external-player/useExternalPlayers'
 import Swal from 'sweetalert2'
-import type { ExternalPlayer, ExternalPlayerStatistics } from '@/js/types/roles/admin/external-player'
+import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, PaginatedResult } from '@/js/types/roles/admin/external-player'
 
 const props = defineProps<{
-  players: ExternalPlayer[]
+  players: PaginatedResult<ExternalPlayer>
   statistics: ExternalPlayerStatistics
 }>()
 
@@ -51,16 +54,17 @@ const breadcrumbItems = [
   { label: 'Jugadores Externos' },
 ]
 
-const { players, statistics, loading, fetchPlayers, toggleBlock } = useExternalPlayers({
+const { players, pagination, statistics, loading, fetchPlayers, searchDebounced, goToPage, toggleBlock } = useExternalPlayers({
   players: props.players,
   statistics: props.statistics,
 })
 
-async function handleSearch(filters: { search: string; status: string }) {
-  await fetchPlayers({
-    search: filters.search || undefined,
-    status: filters.status || undefined,
-  })
+async function handleSearch(filters: ExternalPlayerFilters) {
+  await fetchPlayers(filters)
+}
+
+function handleSearchDebounced(filters: ExternalPlayerFilters) {
+  searchDebounced(filters)
 }
 
 async function handleToggleBlock(playerId: string) {

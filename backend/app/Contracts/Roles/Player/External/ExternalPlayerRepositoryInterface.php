@@ -14,6 +14,14 @@ interface ExternalPlayerRepositoryInterface extends BaseRepositoryInterface
 
     public function getByRoomUser(string $gameId, string $roomUserId): ?ExternalPlayer;
 
+    /**
+     * Busca un jugador externo por la combinación exacta que identifica su
+     * asiento de compra (teléfono + país + juego + sala) — usado por
+     * ExternalPlayerController::check() para que un vendedor reconozca a un
+     * comprador recurrente antes de generar más cartones.
+     */
+    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId): ?ExternalPlayer;
+
     public function getValueByRoomUser(string $gameId, string $roomUserId, string $column): mixed;
 
     public function getByGame(string $gameId): Collection;

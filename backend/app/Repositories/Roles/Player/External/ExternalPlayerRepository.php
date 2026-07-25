@@ -44,6 +44,15 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
             ->first();
     }
 
+    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId): ?ExternalPlayer
+    {
+        return $this->model->where('phone', $phone)
+            ->where('country_id', $countryId)
+            ->where('game_id', $gameId)
+            ->where('room_id', $roomId)
+            ->first();
+    }
+
     public function getValueByRoomUser(string $gameId, string $roomUserId, string $column): mixed
     {
         return $this->model->where('game_id', $gameId)
@@ -148,16 +157,31 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
 
     /**
      * Estadísticas globales si $gameId es null, o acotadas a un juego.
+     *
+     * Una sola query con SUM/CASE en vez de 4 COUNT separados (uno por
+     * estado + el total) — mismo resultado, una sola vuelta a la base de
+     * datos independientemente de cuántos estados existan.
      */
     public function getPlayerStatistics(?string $gameId = null): array
     {
-        $query = fn () => $gameId ? $this->model->where('game_id', $gameId) : $this->model->newQuery();
+        $query = $this->model->newQuery();
+
+        if ($gameId) {
+            $query->where('game_id', $gameId);
+        }
+
+        $row = $query->selectRaw(
+            "COUNT(*) as total,
+             SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) as active,
+             SUM(CASE WHEN status = 'INACTIVE' THEN 1 ELSE 0 END) as inactive,
+             SUM(CASE WHEN status = 'BLOCKED' THEN 1 ELSE 0 END) as blocked"
+        )->first();
 
         return [
-            'total'    => $query()->count(),
-            'active'   => $query()->where('status', 'ACTIVE')->count(),
-            'inactive' => $query()->where('status', 'INACTIVE')->count(),
-            'blocked'  => $query()->where('status', 'BLOCKED')->count(),
+            'total'    => (int) $row->total,
+            'active'   => (int) $row->active,
+            'inactive' => (int) $row->inactive,
+            'blocked'  => (int) $row->blocked,
         ];
     }
 }

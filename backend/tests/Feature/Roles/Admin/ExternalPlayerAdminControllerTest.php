@@ -106,8 +106,25 @@ class ExternalPlayerAdminControllerTest extends TestCase
 
         $response = $this->actingAs($superadmin)->getJson('/admin/external-players/fetch-list');
 
-        $response->assertOk()->assertJsonCount(1, 'players');
+        $response->assertOk()->assertJsonCount(1, 'players.data');
         $response->assertJsonPath('statistics.total', 1);
+        $response->assertJsonPath('players.total', 1);
+        $response->assertJsonPath('players.per_page', 20);
+    }
+
+    public function test_list_is_paginated(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        for ($i = 0; $i < 3; $i++) {
+            $this->makeExternalPlayer();
+        }
+
+        $response = $this->actingAs($superadmin)->getJson('/admin/external-players/fetch-list?per_page=2');
+
+        $response->assertOk();
+        $response->assertJsonCount(2, 'players.data');
+        $response->assertJsonPath('players.total', 3);
+        $response->assertJsonPath('players.last_page', 2);
     }
 
     public function test_non_admin_cannot_access_external_players_routes(): void
@@ -146,7 +163,35 @@ class ExternalPlayerAdminControllerTest extends TestCase
 
         $response = $this->actingAs($superadmin)->getJson('/admin/external-players/fetch-list?status=BLOCKED');
 
-        $response->assertOk()->assertJsonCount(1, 'players');
+        $response->assertOk()->assertJsonCount(1, 'players.data');
+    }
+
+    public function test_search_filters_by_seller(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerA = $this->makeExternalPlayer();
+        $this->makeExternalPlayer();
+
+        $response = $this->actingAs($superadmin)
+            ->getJson('/admin/external-players/fetch-list?seller_user_id=' . $playerA->seller_user_id);
+
+        $response->assertOk()->assertJsonCount(1, 'players.data');
+    }
+
+    public function test_statistics_reflect_all_statuses_in_one_pass(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $this->makeExternalPlayer('ACTIVE');
+        $this->makeExternalPlayer('INACTIVE');
+        $this->makeExternalPlayer('BLOCKED');
+
+        $response = $this->actingAs($superadmin)->getJson('/admin/external-players/fetch-list');
+
+        $response->assertOk();
+        $response->assertJsonPath('statistics.total', 3);
+        $response->assertJsonPath('statistics.active', 1);
+        $response->assertJsonPath('statistics.inactive', 1);
+        $response->assertJsonPath('statistics.blocked', 1);
     }
 
     public function test_repository_generates_unique_28_char_link(): void

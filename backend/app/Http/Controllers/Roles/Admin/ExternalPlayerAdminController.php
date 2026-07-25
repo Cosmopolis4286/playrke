@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Roles\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Roles\Admin\ExternalPlayer\ExternalPlayerSearchRequest;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Services\Roles\Admin\ExternalPlayerAdminService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,29 +21,25 @@ final class ExternalPlayerAdminController extends Controller
         protected readonly ExternalPlayerAdminService $service,
     ) {}
 
-    public function index(): Response
+    public function index(ExternalPlayerSearchRequest $request): Response
     {
         $this->authorize('viewAny', ExternalPlayer::class);
 
         return Inertia::render('Roles/Admin/ExternalPlayer/Index', [
-            'players'    => $this->service->search(null, null, null),
+            'players'    => $this->service->search($request->filters(), $request->perPage()),
             'statistics' => $this->service->statistics(),
         ]);
     }
 
-    public function fetchList(Request $request): JsonResponse
+    public function fetchList(ExternalPlayerSearchRequest $request): JsonResponse
     {
         $this->authorize('viewAny', ExternalPlayer::class);
 
-        $players = $this->service->search(
-            $request->string('search')->toString() ?: null,
-            $request->string('status')->toString() ?: null,
-            $request->string('game_id')->toString() ?: null,
-        );
+        $filters = $request->filters();
 
         return response()->json([
-            'players'    => $players,
-            'statistics' => $this->service->statistics($request->string('game_id')->toString() ?: null),
+            'players'    => $this->service->search($filters, $request->perPage()),
+            'statistics' => $this->service->statistics($filters['game_id']),
         ]);
     }
 

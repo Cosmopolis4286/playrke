@@ -19,3 +19,19 @@ export interface ExternalPlayerStatistics {
   inactive: number
   blocked: number
 }
+
+export interface ExternalPlayerFilters {
+  search?: string
+  status?: '' | 'ACTIVE' | 'INACTIVE' | 'BLOCKED'
+  game_id?: string
+  country_id?: string
+  seller_user_id?: string
+}
+
+export interface PaginatedResult<T> {
+  data: T[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
