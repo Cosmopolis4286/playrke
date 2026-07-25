@@ -313,10 +313,17 @@
     outline-offset: 1px;
   }
 
-  /* Sticky header: mantiene encabezados visibles al hacer scroll vertical
-     dentro de .table-responsive (útil con muchas columnas/filas). */
+  /* Sin max-height/overflow-y propio: cualquier ancestro con scroll interno
+     recorta popovers position:absolute que se abren fuera de sus límites
+     (ver .room-status-popover más abajo — debe poder salir de la tabla sin
+     cortarse ni generar scrollbars). El scroll vertical pasa a ser el de la
+     página; el sticky header sigue funcionando porque position:sticky no
+     requiere un contenedor con overflow explícito, solo se fija respecto al
+     scroll ancestro más cercano (aquí, la página). overflow-x se mantiene
+     para permitir scroll horizontal en pantallas angostas con muchas columnas. */
   .table-responsive {
-    max-height: 70vh;
+    overflow-x: auto;
+    overflow-y: visible;
   }
 
   thead th {
@@ -472,17 +479,15 @@
   /* Panel del popover: oculto por defecto, revelado con hover/focus del ícono padre.
      Se abre hacia ABAJO del ícono (no hacia arriba) para no quedar tapado por la
      barra de acciones de la tabla cuando la fila está cerca del borde superior.
-     display:none (no solo visibility:hidden) es obligatorio aquí: un elemento
-     position:absolute oculto solo con visibility sigue ocupando espacio en el
-     layout y ese espacio se suma al scrollWidth/scrollHeight de cualquier
-     ancestro con overflow (.table-responsive tiene overflow-x:auto + el
-     max-height:70vh de arriba le agrega overflow-y) — eso generaba scrollbars
-     visibles en la tabla aunque el popover nunca se mostrara. */
+     .table-responsive ya no tiene overflow-y/max-height propio (ver arriba), así
+     que el popover puede salir libremente de los límites de la tabla sin
+     recortarse ni generar scrollbars falsos. z-index alto para quedar por encima
+     de modales/headers sticky de otras secciones de la página. */
   :deep(.room-status-popover) {
     display: none;
     opacity: 0;
     position: absolute;
-    z-index: 20;
+    z-index: 1080;
     top: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%) translateY(-4px);
