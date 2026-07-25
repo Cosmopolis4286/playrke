@@ -36,11 +36,11 @@ export function useAdminAdministrator() {
     const fetchadmins = async () => {
         loading.value = true
         try {
-            const response = await axios.get(route('admin.indexfetchList'))
+            const response = await axios.get(route('admins.fetchList'))
             admins.value = response.data.data
         } catch (error) {
             console.error('Error fetching admins:', error)
-            window.Swal.fire('Error', 'No se pudieron cargar los administradores', 'error')
+            Swal.fire('Error', 'No se pudieron cargar los administradores', 'error')
         } finally {
             loading.value = false
         }
@@ -48,19 +48,19 @@ export function useAdminAdministrator() {
 
     const toggleStatus = async (id: string) => {
         try {
-            await axios.patch(route('admin.indextoggleStatus', { user: id }))
-            window.Swal.fire('Éxito', 'Estado cambiado correctamente', 'success')
+            await axios.patch(route('admins.toggleStatus', { user: id }))
+            Swal.fire('Éxito', 'Estado cambiado correctamente', 'success')
             fetchadmins()
         } catch (error) {
             console.error('Error toggling status:', error)
-            window.Swal.fire('Error', 'No se pudo cambiar el estado', 'error')
+            Swal.fire('Error', 'No se pudo cambiar el estado', 'error')
         }
     }
 
     const resetPassword = async (id: string) => {
         try {
-            const response = await axios.put(route('admin.indexresetPassword', { user: id }))
-            window.Swal.fire({
+            const response = await axios.put(route('admins.resetPassword', { user: id }))
+            Swal.fire({
                 title: 'Contraseña Restablecida',
                 text: `Nueva contraseña: ${response.data.password}`,
                 icon: 'info'
@@ -68,12 +68,12 @@ export function useAdminAdministrator() {
             fetchadmins()
         } catch (error) {
             console.error('Error resetting password:', error)
-            window.Swal.fire('Error', 'No se pudo restablecer la contraseña', 'error')
+            Swal.fire('Error', 'No se pudo restablecer la contraseña', 'error')
         }
     }
 
     const remove = async (ids: string[]) => {
-        const result = await window.Swal.fire({
+        const result = await Swal.fire({
             title: 'Eliminar Administradores',
             text: `¿Está seguro de eliminar ${ids.length} administrador(es)?`,
             icon: 'warning',
@@ -85,20 +85,20 @@ export function useAdminAdministrator() {
         if (result.isConfirmed) {
             try {
                 await Promise.all(ids.map(id => 
-                    axios.delete(route('admin.indexdelete', { user: id }))
+                    axios.delete(route('admins.delete', { user: id }))
                 ))
-                window.Swal.fire('Eliminado', 'Administrador(es) eliminado(s)', 'success')
+                Swal.fire('Eliminado', 'Administrador(es) eliminado(s)', 'success')
                 fetchadmins()
                 selectedIds.value = []
             } catch (error) {
                 console.error('Error deleting admins:', error)
-                window.Swal.fire('Error', 'No se pudieron eliminar los administradores', 'error')
+                Swal.fire('Error', 'No se pudieron eliminar los administradores', 'error')
             }
         }
     }
 
     const destroy = async (ids: string[]) => {
-        const result = await window.Swal.fire({
+        const result = await Swal.fire({
             title: 'Eliminar Permanentemente',
             text: `¿Está seguro de eliminar permanentemente ${ids.length} administrador(es)? Esta acción no se puede deshacer.`,
             icon: 'error',
@@ -110,14 +110,14 @@ export function useAdminAdministrator() {
         if (result.isConfirmed) {
             try {
                 await Promise.all(ids.map(id => 
-                    axios.delete(route('admin.indexdestroy', { user: id }))
+                    axios.delete(route('admins.destroy', { user: id }))
                 ))
-                window.Swal.fire('Eliminado', 'Administrador(es) eliminado(s) permanentemente', 'success')
+                Swal.fire('Eliminado', 'Administrador(es) eliminado(s) permanentemente', 'success')
                 fetchadmins()
                 selectedIds.value = []
             } catch (error) {
                 console.error('Error destroying admins:', error)
-                window.Swal.fire('Error', 'No se pudieron eliminar los administradores', 'error')
+                Swal.fire('Error', 'No se pudieron eliminar los administradores', 'error')
             }
         }
     }

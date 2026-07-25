@@ -4,11 +4,17 @@
 
     <ExternalPlayerFilters
       :loading="loading"
+      :games="games"
       @change="filters => $emit('search', filters)"
       @change-debounced="filters => $emit('search-debounced', filters)"
+      @export="$emit('export')"
     />
 
-    <div v-if="!players.length" class="ep-empty">
+    <div v-if="loading && !players.length" class="ep-skeleton">
+      <div v-for="n in 4" :key="n" class="ep-skeleton-row"></div>
+    </div>
+
+    <div v-else-if="!players.length" class="ep-empty">
       <i class="fas fa-user-friends"></i>
       <p class="mb-0">No se encontraron jugadores externos.</p>
     </div>
@@ -41,13 +47,14 @@ import ExternalPlayerStats from './ExternalPlayerStats.vue'
 import ExternalPlayerFilters from './ExternalPlayerFilters.vue'
 import ExternalPlayerRow from './ExternalPlayerRow.vue'
 import ExternalPlayerPagination from './ExternalPlayerPagination.vue'
-import type { ExternalPlayer, ExternalPlayerFilters as Filters, ExternalPlayerStatistics } from '@/js/types/roles/admin/external-player'
+import type { ExternalPlayer, ExternalPlayerFilters as Filters, ExternalPlayerStatistics, GameOption } from '@/js/types/roles/admin/external-player'
 
 defineProps<{
   players: ExternalPlayer[]
   statistics: ExternalPlayerStatistics
   pagination: { currentPage: number; lastPage: number; perPage: number; total: number }
   loading: boolean
+  games: GameOption[]
 }>()
 
 const emit = defineEmits<{
@@ -55,6 +62,7 @@ const emit = defineEmits<{
   (e: 'search-debounced', filters: Filters): void
   (e: 'page-change', page: number): void
   (e: 'toggle-block', playerId: string): void
+  (e: 'export'): void
 }>()
 
 const busyId = ref<string | null>(null)
@@ -65,7 +73,7 @@ async function handleToggleBlock(player: ExternalPlayer) {
   if (willBlock) {
     const result = await Swal.fire({
       title: 'Bloquear jugador',
-      html: `<p class="mb-0">"${player.first_name} ${player.last_name}" (${player.phone}) no podrá seguir comprando cartones ni jugando mientras esté bloqueado.</p>`,
+      html: `<p class="mb-0">"${player.first_name} ${player.last_name}" (${player.phone}) no podrá seguir comprando ni jugando mientras esté bloqueado.</p>`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc3545',
