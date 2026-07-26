@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Common\Utils;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,7 @@ class GamePrize extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean'
+        'status' => AsActiveStatusEnum::class,
     ];
 
     public function game(): BelongsTo

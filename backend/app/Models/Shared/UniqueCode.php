@@ -2,6 +2,7 @@
 
 namespace App\Models\Shared;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ class UniqueCode extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean'
+        'status' => AsActiveStatusEnum::class,
     ];
 
     public function User()

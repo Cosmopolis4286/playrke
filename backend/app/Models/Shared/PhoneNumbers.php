@@ -2,6 +2,7 @@
 
 namespace App\Models\Shared;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Country;
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -36,7 +37,7 @@ class PhoneNumbers extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
     /**

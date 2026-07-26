@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Common\Utils;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,6 +17,6 @@ class GameSound extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Common\Utils;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -51,7 +52,7 @@ class GameConfig extends Model
         'param' => 'string',
         'value' => 'string',
         'description' => 'string',
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
     // ========================

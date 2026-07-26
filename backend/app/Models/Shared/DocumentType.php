@@ -2,6 +2,7 @@
 
 namespace App\Models\Shared;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Country;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -25,7 +26,7 @@ class DocumentType extends Model
 
     protected $casts = [
         'id' => 'string',
-        'status' => 'boolean'
+        'status' => AsActiveStatusEnum::class,
     ];
 
     public function country(): BelongsTo

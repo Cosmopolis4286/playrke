@@ -2,6 +2,7 @@
 
 namespace App\Models\Pivots\Roles;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,7 +48,7 @@ class RoleUser extends Pivot
      * @var array<string, string>
      */
     protected $casts = [
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Common\Utils;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Game;
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -22,7 +23,7 @@ class GameRule extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
     public function user(): BelongsTo

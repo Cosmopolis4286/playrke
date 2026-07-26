@@ -2,6 +2,7 @@
 
 namespace App\Models\Directories\Fiat\Colombia;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -44,7 +45,7 @@ class PaymentAccount extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AsActiveStatusEnum;
 use App\Models\Country;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -39,7 +40,7 @@ class TimeZone extends Model
     protected $casts = [
         'id' => 'string',
         'country_id' => 'string',
-        'status' => 'boolean',
+        'status' => AsActiveStatusEnum::class,
     ];
 
     /**
