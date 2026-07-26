@@ -15,6 +15,20 @@ export interface ExchangeRate {
     readonly updated_at?: string
 }
 
+/** Ver AdminExchangeRateResource::toArray() — tasas de cambio propias de un admin/comercio, con `currency` anidado. */
+export interface AdminExchangeRate {
+    readonly id?: number | string
+    readonly currency_id?: number | string
+    readonly amount: number
+    readonly currency?: {
+        readonly id: number | string
+        readonly iso_code: string
+        readonly name: string
+    }
+    readonly created_at?: string
+    readonly updated_at?: string
+}
+
 export interface ExchangeRatePageProps {
     currencies: Currency[]
     exchangeRates: ExchangeRate[]
