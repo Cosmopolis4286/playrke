@@ -211,8 +211,8 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             $query->whereHas('config', fn ($q) => $q->where('room_type_id', $filters['room_type_id']));
         }
 
-        if (!empty($filters['game_mode_id'])) {
-            $query->whereHas('config', fn ($q) => $q->where('connection_type_id', $filters['game_mode_id']));
+        if (!empty($filters['connection_type_id'])) {
+            $query->whereHas('config', fn ($q) => $q->where('connection_type_id', $filters['connection_type_id']));
         }
 
         if (!empty($filters['prize_pool_type_id'])) {

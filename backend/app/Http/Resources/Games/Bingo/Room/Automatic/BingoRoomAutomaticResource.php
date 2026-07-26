@@ -25,7 +25,7 @@ class BingoRoomAutomaticResource extends JsonResource
             'config' => [
                 'room_type_id'            => $this->room_type_id,
                 'time'                    => $this->formatted_time,
-                'game_mode_id'            => $this->game_mode_id,
+                'connection_type_id'      => $this->connection_type_id,
                 'prize_pool_type_id'      => $this->prize_pool_type_id,
                 'amount_added_prize_pool' => $this->amount_added_prize_pool,
                 'room_commission'         => $this->room_commission,

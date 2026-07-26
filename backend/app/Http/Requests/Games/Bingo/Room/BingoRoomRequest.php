@@ -42,7 +42,7 @@ class BingoRoomRequest extends BaseRequest
             // Cupo máximo de jugadores en la sala (opcional, sin límite si no se envía)
             'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
-            'gameMode'                    => ['required', 'exists:game_modes,id'],
+            'gameMode'                    => ['required', 'exists:connection_types,id'],
             'gameVariant'                 => ['nullable', 'string', 'in:BINGO_75,BINGO_90,BINGO_80,BINGO_30'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 

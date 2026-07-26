@@ -617,7 +617,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
             $query->where($field, $value);
         }
 
-        // room_type_id/game_mode_id/prize_pool_type_id/status son columnas propias
+        // room_type_id/connection_type_id/prize_pool_type_id/status son columnas propias
         // de bingo_rooms_automatic (no requieren whereHas sobre una relación).
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -627,8 +627,8 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
             $query->where('room_type_id', $filters['room_type_id']);
         }
 
-        if (!empty($filters['game_mode_id'])) {
-            $query->where('connection_type_id', $filters['game_mode_id']);
+        if (!empty($filters['connection_type_id'])) {
+            $query->where('connection_type_id', $filters['connection_type_id']);
         }
 
         if (!empty($filters['prize_pool_type_id'])) {

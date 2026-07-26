@@ -58,7 +58,7 @@ final class BingoRoomContextService
      * @param array{
      *     status?: string,
      *     room_type_id?: string,
-     *     game_mode_id?: string,
+     *     connection_type_id?: string,
      *     prize_pool_type_id?: string,
      *     from_house?: string,
      *     currency_id?: string,
@@ -443,7 +443,7 @@ final class BingoRoomContextService
      * @param array{
      *     status?: string,
      *     room_type_id?: string,
-     *     game_mode_id?: string,
+     *     connection_type_id?: string,
      *     prize_pool_type_id?: string,
      *     from_house?: string,
      *     currency_id?: string,

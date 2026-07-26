@@ -37,7 +37,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'date'                        => ['nullable', 'date', 'after_or_equal:today'],
             'time'                        => ['required', 'date_format:H:i'],
             'roomType'                    => ['required', 'exists:room_types,id'],
-            'gameMode'                    => ['required', 'exists:game_modes,id'],
+            'gameMode'                    => ['required', 'exists:connection_types,id'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 
             // Precio base del cartón en USD:

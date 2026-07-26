@@ -99,7 +99,7 @@ final class BingoRoomAutomaticController extends Controller
                 filters: array_filter([
                     'status' => $request->query('status'),
                     'room_type_id' => $request->query('room_type_id'),
-                    'game_mode_id' => $request->query('game_mode_id'),
+                    'connection_type_id' => $request->query('connection_type_id'),
                     'prize_pool_type_id' => $request->query('prize_pool_type_id'),
                     'currency_id' => $request->query('currency_id'),
                 ])
