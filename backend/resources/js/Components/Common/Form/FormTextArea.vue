@@ -77,7 +77,7 @@
       :required="required"
       :maxlength="maxlength"
       :rows="rows"
-      :style="{ resize }"
+      :style="{ resize: (resize as 'none' | 'vertical' | 'horizontal' | 'both') }"
       @input="onInput"
     />
 
