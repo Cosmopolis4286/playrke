@@ -84,7 +84,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getByGameMode(string $gameMode): Collection
     {
-        return $this->model->where('game_mode_id', $gameMode)->get();
+        return $this->model->where('connection_type_id', $gameMode)->get();
     }
 
     /**
@@ -295,9 +295,9 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
         $liveRooms = $this->model->where('in_live', 'Y')->count();
         $scheduledToday = $this->getTodayScheduledRooms()->count();
 
-        $byGameMode = $this->model->selectRaw('game_mode_id, COUNT(*) as count')
-            ->groupBy('game_mode_id')
-            ->pluck('count', 'game_mode_id')
+        $byGameMode = $this->model->selectRaw('connection_type_id, COUNT(*) as count')
+            ->groupBy('connection_type_id')
+            ->pluck('count', 'connection_type_id')
             ->toArray();
 
         $byRoomType = $this->model->selectRaw('room_type_id, COUNT(*) as count')
@@ -420,9 +420,9 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getGroupedByGameMode(): Collection
     {
-        return $this->model->selectRaw('game_mode_id, COUNT(*) as count')
-            ->groupBy('game_mode_id')
-            ->orderBy('game_mode_id')
+        return $this->model->selectRaw('connection_type_id, COUNT(*) as count')
+            ->groupBy('connection_type_id')
+            ->orderBy('connection_type_id')
             ->get();
     }
 
@@ -579,7 +579,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getRecommendedConfig(string $gameMode): array
     {
-        $averages = $this->model->where('game_mode', $gameMode)
+        $averages = $this->model->where('connection_type_id', $gameMode)
             ->selectRaw('
                 AVG(card_price) as avg_card_price,
                 AVG(rounds) as avg_rounds,
@@ -628,7 +628,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
         }
 
         if (!empty($filters['game_mode_id'])) {
-            $query->where('game_mode_id', $filters['game_mode_id']);
+            $query->where('connection_type_id', $filters['game_mode_id']);
         }
 
         if (!empty($filters['prize_pool_type_id'])) {

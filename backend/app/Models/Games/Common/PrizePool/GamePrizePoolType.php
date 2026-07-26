@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Common\PrizePool;
 
-use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +14,7 @@ class GamePrizePoolType extends Model
 
     protected $fillable = [
         'game_id',
-        'game_mode_id',
+        'connection_type_id',
         'prize_pool_type_id',
         'status',
     ];
@@ -24,9 +24,9 @@ class GamePrizePoolType extends Model
         return $this->belongsTo(Game::class, 'game_id');
     }
 
-    public function gameMode(): BelongsTo
+    public function connectionType(): BelongsTo
     {
-        return $this->belongsTo(GameMode::class, 'game_mode_id');
+        return $this->belongsTo(ConnectionType::class, 'connection_type_id');
     }
 
     public function prizePoolType(): BelongsTo

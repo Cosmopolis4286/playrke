@@ -13,9 +13,9 @@ import type {
  * Composable autónomo para la sección de selección de sala en el formulario de generación de cartones.
  *
  * Responsabilidades:
- * - Gestionar los filtros de búsqueda (fecha, tipo de sala, modo de juego).
+ * - Gestionar los filtros de búsqueda (fecha, tipo de sala, tipo de conexión).
  * - Obtener salas disponibles desde la API con debounce y control de concurrencia.
- * - Calcular la visibilidad progresiva de los selectores (fecha → tipo → modo → sala).
+ * - Calcular la visibilidad progresiva de los selectores (fecha → tipo → conexión → sala).
  * - Exponer `selectedRoom` para que el componente padre lo consuma vía `defineExpose`.
  *
  * @returns Estado y métodos necesarios para `BingoCardGenerateFormRoomSection`.
@@ -43,12 +43,12 @@ export function useBingoCardGenerateRoomSection() {
     const filters = reactive<{
         date: string
         roomType: string | null
-        gameMode: string | null
+        connectionType: string | null
         prizePoolType: string | null
     }>({
         date: '',
         roomType: null,
-        gameMode: null,
+        connectionType: null,
         prizePoolType: null,
     })
 
@@ -57,10 +57,10 @@ export function useBingoCardGenerateRoomSection() {
 
     /**
      * Indica si el servidor confirmó que existe al menos una sala para el
-     * roomType+gameMode actual (response.exists === true con gameMode activo).
-     * Se resetea en cuanto cambia gameMode o roomType.
+     * roomType+connectionType actual (response.exists === true con connectionType activo).
+     * Se resetea en cuanto cambia connectionType o roomType.
      */
-    const gameModeConfirmed = ref(false)
+    const connectionTypeConfirmed = ref(false)
 
     /** Sala seleccionada por el usuario. Expuesta vía `defineExpose` al padre. */
     const selectedRoom = ref<Room | null>(null)
@@ -107,7 +107,7 @@ export function useBingoCardGenerateRoomSection() {
             roomStepStatus.value === 'noRoomTypeRooms') ||
             (!!filters.roomType && (
                 roomStepStatus.value === 'loading' ||
-                roomStepStatus.value === 'noGameModeRooms' ||
+                roomStepStatus.value === 'noConnectionTypeRooms' ||
                 roomStepStatus.value === 'noPrizePoolTypeRooms'
             ))
         )
@@ -117,11 +117,11 @@ export function useBingoCardGenerateRoomSection() {
      * Visibilidad: roomType elegido y el fetch retornó exists para roomType.
      * Se mantiene visible durante cualquier carga posterior (roomType ya validado).
      */
-    const showGameMode = computed(() =>
+    const showConnectionType = computed(() =>
         !!filters.roomType && ((
             roomStepStatus.value === 'ready' ||
-            roomStepStatus.value === 'noGameModeRooms') ||
-            (!!filters.gameMode && (
+            roomStepStatus.value === 'noConnectionTypeRooms') ||
+            (!!filters.connectionType && (
                 roomStepStatus.value === 'loading' ||
                 roomStepStatus.value === 'noPrizePoolTypeRooms'
             ))
@@ -129,12 +129,12 @@ export function useBingoCardGenerateRoomSection() {
     )
 
     /**
-     * Visibilidad: el servidor confirmó salas para el gameMode actual.
-     * No se muestra durante la carga del gameMode — solo tras respuesta positiva.
+     * Visibilidad: el servidor confirmó salas para el connectionType actual.
+     * No se muestra durante la carga del connectionType — solo tras respuesta positiva.
      * Se mantiene visible en cargas posteriores (prizePoolType ya validado).
      */
     const showPrizePoolType = computed(() =>
-        gameModeConfirmed.value && (
+        connectionTypeConfirmed.value && (
             roomStepStatus.value === 'ready' ||
             roomStepStatus.value === 'noPrizePoolTypeRooms' ||
             roomStepStatus.value === 'loading'
@@ -145,11 +145,11 @@ export function useBingoCardGenerateRoomSection() {
 
     /**
      * Habilita el selector de sala.
-     * Requiere gameMode seleccionado y al menos una sala disponible.
+     * Requiere connectionType seleccionado y al menos una sala disponible.
      * prizePoolType es opcional y solo filtra las salas mostradas.
      */
     const canSelectRoom = computed(() =>
-        !!filters.gameMode && rooms.value.length > 0
+        !!filters.connectionType && rooms.value.length > 0
     )
 
     /**
@@ -160,7 +160,7 @@ export function useBingoCardGenerateRoomSection() {
         switch (roomStepStatus.value) {
             case 'noDateRooms': return 'No hay salas disponibles para la fecha seleccionada.'
             case 'noRoomTypeRooms': return 'No hay salas disponibles para el tipo de sala.'
-            case 'noGameModeRooms': return 'No hay salas disponibles para el modo de juego.'
+            case 'noConnectionTypeRooms': return 'No hay salas disponibles para el tipo de conexión.'
             case 'noPrizePoolTypeRooms': return 'No hay salas disponibles para el tipo de bote.'
             default: return ''
         }
@@ -177,7 +177,7 @@ export function useBingoCardGenerateRoomSection() {
         () => filters.date,
         () => {
             filters.roomType = null
-            filters.gameMode = null
+            filters.connectionType = null
             rooms.value = []
             roomStepStatus.value = 'idle'
             selectedRoom.value = null
@@ -187,16 +187,16 @@ export function useBingoCardGenerateRoomSection() {
     )
 
     /**
-     * Al cambiar el tipo de sala: limpia gameMode, prizePoolType y selectedRoom.
+     * Al cambiar el tipo de sala: limpia connectionType, prizePoolType y selectedRoom.
      * Si se limpia roomType pero hay fecha, relanza el fetch sin roomType para
      * mantener el campo visible (ya se hizo consulta de fecha).
      */
     watch(
         () => filters.roomType,
         () => {
-            filters.gameMode = null
+            filters.connectionType = null
             filters.prizePoolType = null
-            gameModeConfirmed.value = false
+            connectionTypeConfirmed.value = false
             selectedRoom.value = null
             rooms.value = []
 
@@ -212,18 +212,18 @@ export function useBingoCardGenerateRoomSection() {
     )
 
     /**
-     * Al cambiar el modo de juego: limpia prizePoolType y selectedRoom.
+     * Al cambiar el tipo de conexión: limpia prizePoolType y selectedRoom.
      * Adelanta status a 'loading' antes de limpiar rooms para evitar parpadeo.
      */
     watch(
-        () => filters.gameMode,
+        () => filters.connectionType,
         () => {
             filters.prizePoolType = null
-            gameModeConfirmed.value = false
+            connectionTypeConfirmed.value = false
             selectedRoom.value = null
             rooms.value = []
 
-            if (!filters.date || !filters.gameMode) {
+            if (!filters.date || !filters.connectionType) {
                 return
             }
             fetchRooms()
@@ -231,7 +231,7 @@ export function useBingoCardGenerateRoomSection() {
     )
 
     /**
-     * Al cambiar el tipo de bote: limpia la sala y relanza el fetch si hay gameMode.
+     * Al cambiar el tipo de bote: limpia la sala y relanza el fetch si hay connectionType.
      * Adelanta status a 'loading' antes de limpiar rooms para evitar parpadeo.
      */
     watch(
@@ -239,7 +239,7 @@ export function useBingoCardGenerateRoomSection() {
         () => {
             selectedRoom.value = null
             rooms.value = []
-            if (!filters.date || !filters.gameMode) {
+            if (!filters.date || !filters.connectionType) {
                 return
             }
             fetchRooms()
@@ -269,7 +269,10 @@ export function useBingoCardGenerateRoomSection() {
                     params: {
                         date: filters.date,
                         roomType: filters.roomType,
-                        gameMode: filters.gameMode,
+                        // El backend (BingoCardGenerateService::fetchRoom) todavía espera
+                        // la key 'gameMode' en el query string — no renombrar sin coordinar
+                        // con el agente de backend.
+                        gameMode: filters.connectionType,
                         prizePoolType: filters.prizePoolType,
                     }
                 }
@@ -283,15 +286,15 @@ export function useBingoCardGenerateRoomSection() {
 
             if (!response.exists) {
                 if (!filters.roomType) roomStepStatus.value = 'noDateRooms'
-                else if (!filters.gameMode) roomStepStatus.value = 'noRoomTypeRooms'
+                else if (!filters.connectionType) roomStepStatus.value = 'noRoomTypeRooms'
                 else if (filters.prizePoolType) roomStepStatus.value = 'noPrizePoolTypeRooms'
-                else roomStepStatus.value = 'noGameModeRooms'
-                gameModeConfirmed.value = false
+                else roomStepStatus.value = 'noConnectionTypeRooms'
+                connectionTypeConfirmed.value = false
                 return
             }
 
             roomStepStatus.value = 'ready'
-            if (filters.gameMode) gameModeConfirmed.value = true
+            if (filters.connectionType) connectionTypeConfirmed.value = true
 
         }
         catch (error: any) {
@@ -329,7 +332,7 @@ export function useBingoCardGenerateRoomSection() {
         isLoading,
         roomAlert,
         showRoomType,
-        showGameMode,
+        showConnectionType,
         showPrizePoolType,
         canSelectRoom,
     }

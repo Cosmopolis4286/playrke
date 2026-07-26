@@ -2,19 +2,20 @@ import { ref, shallowRef, computed, type ComputedRef, type Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import type { WinnerEntry, GameEndData, PlayerProgress } from '@js/Components/games/bingo/views/inGame/types'
 import type { GameEndedEvent } from '@js/composables/games/bingo/game/useBingoGameEcho'
+import type { BingoCard } from '@/js/types/games/bingo/card/in-game/bingo-card'
 
 interface GameEndFlowDeps {
   routeKey: ComputedRef<string>
   userId: string | null
   initialDraw: number[]
-  initialCartons: { id: string | number; [key: string]: any }[]
+  initialCartons: BingoCard[]
   initialPrizePool: number
   initialTotalPlayers: number
   initialRoomFinished: boolean
   initialStartTime: number
   totalChips: ComputedRef<number>
   gameStarted: Ref<boolean>
-  userClosedModal: ComputedRef<boolean>
+  userClosedModal: Ref<boolean> | ComputedRef<boolean>
   resetModal: () => void
   scheduleRetry: (fn: () => void, ms: number) => void
   isUnmounted: () => boolean
@@ -48,7 +49,7 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
   const liveDrawn = shallowRef<number[]>([...initialDraw])
   // Espejo mutable de props.cartons — se actualiza en resync cuando el usuario
   // compra cartones mientras el WebSocket estuvo caído.
-  const liveCartons = shallowRef<{ id: string | number; [key: string]: any }[]>([...initialCartons])
+  const liveCartons = shallowRef<BingoCard[]>([...initialCartons])
   const livePrize = ref(initialPrizePool)
   const livePlayers = ref(initialTotalPlayers)
   const playersProgress = ref<PlayerProgress[]>([])

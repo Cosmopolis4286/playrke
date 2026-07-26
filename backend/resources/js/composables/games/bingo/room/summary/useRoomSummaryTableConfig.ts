@@ -8,12 +8,12 @@ interface PrizePoolTypeOption { value: string; code: string; label: string }
 /** Filtros de la tabla de resumen de salas — el filtro "Origen" solo aplica a admin/superadmin. */
 export function useRoomSummaryFilters(deps: {
   roomTypeOptions: ComputedRef<OptionLike[]>
-  gameModeOptions: ComputedRef<OptionLike[]>
+  connectionTypeOptions: ComputedRef<OptionLike[]>
   prizePoolTypeOptions: ComputedRef<PrizePoolTypeOption[]>
   allowedCurrenciesOptions: ComputedRef<OptionLike[]>
   isAdmin: ComputedRef<boolean>
 }) {
-  const { roomTypeOptions, gameModeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin } = deps
+  const { roomTypeOptions, connectionTypeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin } = deps
 
   const filters = computed<readonly TableFilterInterface[]>(() => {
     const baseFilters = [
@@ -25,9 +25,9 @@ export function useRoomSummaryFilters(deps: {
       },
       {
         key: 'config_gamemode_label',
-        label: 'modo',
-        placeholder: 'Filtrar por modo',
-        options: gameModeOptions.value
+        label: 'tipo de conexión',
+        placeholder: 'Filtrar por tipo de conexión',
+        options: connectionTypeOptions.value
       },
       {
         key: 'config_prizepooltype_label',

@@ -16,7 +16,7 @@ import { SelectOption } from '@/js/types/common/form/form'
     errors: Record<string, any>
     automaticRoom?: boolean
     roomTypeOptions: SelectOption[]
-    gameModeOptions: SelectOption[]
+    connectionTypeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
     roomCommn: string | number
     jackpotPct: string | number
@@ -170,20 +170,20 @@ import { SelectOption } from '@/js/types/common/form/form'
       @update:modelValue="emit('update:modelValue', { ...modelValue, roomType: $event })"
     />
 
-    <!-- Modo de juego -->
+    <!-- Tipo de Conexión -->
     <FormSelect
-      label="Modo de Juego"
-      name="game_mode"
-      :error="errors.gameMode"
-      id="game-mode"
+      label="Tipo de Conexión"
+      name="connection_type"
+      :error="errors.connectionType"
+      id="connection-type"
       required
-      placeholder="Selecciona modo"
-      :options="gameModeOptions"
+      placeholder="Selecciona tipo de conexión"
+      :options="connectionTypeOptions"
       optionValue="value"
       optionLabel="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="modelValue.gameMode"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, gameMode: $event })"
+      :modelValue="modelValue.connectionType"
+      @update:modelValue="emit('update:modelValue', { ...modelValue, connectionType: $event })"
     />
 
     <!-- Variante de Bingo -->

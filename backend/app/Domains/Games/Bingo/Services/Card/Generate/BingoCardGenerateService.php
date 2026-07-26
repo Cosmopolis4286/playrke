@@ -39,7 +39,7 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface $sellerCurrencyRepository,
-        private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
+        private readonly \App\Contracts\Games\Common\ConnectionType\ConnectionTypeRepositoryInterface $connectionTypes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly BingoCardPriceCalculator $priceCalculator,
@@ -61,7 +61,7 @@ final class BingoCardGenerateService
     public function viewContext(int $userId): BingoCardGenerateContexDTO
     {
         return new BingoCardGenerateContexDTO(
-            gameModes: $this->gameModes->getActiveGameModes(),
+            gameModes: $this->connectionTypes->getActiveConnectionTypes(),
             roomTypes: $this->roomTypes->getActiveTypes(),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
         );
@@ -130,7 +130,7 @@ final class BingoCardGenerateService
             ])
             ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
             ->with([
-                'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date,time'
+                'config:id,room_id,room_type_id,connection_type_id,card_price_usd,date,time'
             ])
             ->orderBy('bingo_rooms_config.time')
             ->get()

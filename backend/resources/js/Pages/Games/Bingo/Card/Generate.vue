@@ -20,9 +20,11 @@
   })
 
   /**
-   * Opciones para modos de juego.
+   * Opciones para tipo de conexión.
+   * Nota: `props.gameModes` es la key expuesta por Inertia (el backend aún no
+   * la renombró) — se mapea aquí a vocabulario interno "Tipo de Conexión".
    */
-  const gameModeOptions = computed(() => {
+  const connectionTypeOptions = computed(() => {
     return (props.gameModes ?? []).map(g => ({
       value: String(g.id),
       label: g.label
@@ -47,7 +49,7 @@
     <div class="card-body">
       <BingoCardGenerateForm
         :room-type-options="roomTypeOptions"
-        :game-mode-options="gameModeOptions"
+        :connection-type-options="connectionTypeOptions"
         :prize-pool-type-options="prizePoolTypeOptions"
       />
     </div>

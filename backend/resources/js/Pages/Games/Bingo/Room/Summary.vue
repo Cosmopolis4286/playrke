@@ -202,9 +202,11 @@
   })
 
   /**
-   * Opciones para modos de juego.
+   * Opciones para tipo de conexión.
+   * Nota: `props.gameModes` es la key expuesta por Inertia (el backend aún no
+   * la renombró) — se mapea aquí a vocabulario interno "Tipo de Conexión".
    */
-  const gameModeOptions = computed(() => {
+  const connectionTypeOptions = computed(() => {
     return (props.gameModes ?? []).map(g => ({
       value: String(g.id),
       label: g.label
@@ -280,7 +282,7 @@
   // ==========================================================================
 
   const { filters } = useRoomSummaryFilters({
-    roomTypeOptions, gameModeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin,
+    roomTypeOptions, connectionTypeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin,
   })
 
   // ==========================================================================
@@ -352,7 +354,7 @@
       :is-edit="!!roomData.id"
       :room-meta="roomData"
       :room-type-options="roomTypeOptions"
-      :game-mode-options="gameModeOptions"
+      :connection-type-options="connectionTypeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
       :bingo-pattern-options="bingoPatternOptions"
@@ -466,7 +468,7 @@
       v-else
       :room="selectedRoomDetails"
       :room-type-options="roomTypeOptions"
-      :game-mode-options="gameModeOptions"
+      :connection-type-options="connectionTypeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
     />

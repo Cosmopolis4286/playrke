@@ -9,7 +9,7 @@
 
   defineProps<{
     roomTypeOptions: SelectOption[]
-    gameModeOptions: SelectOption[]
+    connectionTypeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
   }>()
 
@@ -72,7 +72,7 @@
     <BingoCardGenerateFormRoomSection
       ref="roomSectionRef"
       :room-type-options="roomTypeOptions"
-      :game-mode-options="gameModeOptions"
+      :connection-type-options="connectionTypeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :card-count="cardCount"
       :selected-country="selectedCountry"

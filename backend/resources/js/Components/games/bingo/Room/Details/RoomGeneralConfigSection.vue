@@ -5,7 +5,7 @@ import { fmt, VARIANT_LABELS, resolveOption } from '@js/composables/games/bingo/
 defineProps<{
   room: BingoRoom
   roomTypeOptions: { value: string; label: string }[]
-  gameModeOptions: { value: string; label: string }[]
+  connectionTypeOptions: { value: string; label: string }[]
   prizePoolTypeOptions: { value: string; code: string; label: string }[]
   startModeLabel: string
   scheduleInfo: string
@@ -21,8 +21,8 @@ defineProps<{
         <span class="detail-value">{{ resolveOption(roomTypeOptions, room.config?.room_type_id) }}</span>
       </div>
       <div class="detail-item">
-        <span class="detail-label">Modo de Juego</span>
-        <span class="detail-value">{{ resolveOption(gameModeOptions, room.config?.game_mode_id) }}</span>
+        <span class="detail-label">Tipo de Conexión</span>
+        <span class="detail-value">{{ resolveOption(connectionTypeOptions, room.config?.game_mode_id) }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Variante</span>

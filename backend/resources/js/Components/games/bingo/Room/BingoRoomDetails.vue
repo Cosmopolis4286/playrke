@@ -17,7 +17,7 @@ import WinnerCardViewerModal    from './Details/WinnerCardViewerModal.vue'
 interface Props {
   room: BingoRoom
   roomTypeOptions: { value: string; label: string }[]
-  gameModeOptions: { value: string; label: string }[]
+  connectionTypeOptions: { value: string; label: string }[]
   prizePoolTypeOptions: { value: string; code: string; label: string }[]
   allowedCurrenciesOptions: { value: string; label: string }[]
 }
@@ -49,7 +49,7 @@ const {
     <RoomGeneralConfigSection
       :room="room"
       :room-type-options="roomTypeOptions"
-      :game-mode-options="gameModeOptions"
+      :connection-type-options="connectionTypeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :start-mode-label="startModeLabel"
       :schedule-info="scheduleInfo"

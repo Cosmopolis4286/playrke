@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RoomTypeSeeder::class,
             GameSeeder::class,
             GameModeSeeder::class,
+            ConnectionTypeSeeder::class,
             GameStatusSeeder::class,
             GamePrizeSeeder::class,
             GameConfigSeeder::class,

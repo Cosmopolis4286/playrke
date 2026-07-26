@@ -15,7 +15,7 @@ final class BingoRoomAutomaticSummaryDTO implements ContextDTO
         public readonly array $currenciesWithActiveRate,
         public readonly Collection $bingoPatterns,
         public readonly Collection $prizePoolTypes,
-        public readonly Collection $gameModes,
+        public readonly Collection $connectionTypes,
         public readonly Collection $roomTypes,
     ) {}
 
@@ -30,7 +30,9 @@ final class BingoRoomAutomaticSummaryDTO implements ContextDTO
             'currenciesWithActiveRate' => $this->currenciesWithActiveRate,
             'bingoPatterns' => $this->bingoPatterns,
             'prizePoolTypes' => $this->prizePoolTypes,
-            'gameModes' => $this->gameModes,
+            // Key 'gameModes' se mantiene por ahora de cara al frontend (Inertia prop);
+            // el rename de esta key específica se coordina en un paso aparte.
+            'gameModes' => $this->connectionTypes,
             'roomTypes' => $this->roomTypes,
         ];
     }

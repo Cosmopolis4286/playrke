@@ -36,7 +36,7 @@ class CurrencyGameRoomRepository extends BaseRepository implements CurrencyGameR
         try {
             $this->model->create([
                 'game_id' => $game['game_id'],
-                'game_mode_id' => $game['game_mode_id'] ?? null,
+                'connection_type_id' => $game['game_mode_id'] ?? null,
                 'room_id' => $roomId,
                 'currency_id' => $currencyId,
             ]);
@@ -63,7 +63,7 @@ class CurrencyGameRoomRepository extends BaseRepository implements CurrencyGameR
             ->where('game_id', $gameId);
 
         if ($gameModeId !== null) {
-            $query->where('game_mode_id', $gameModeId);
+            $query->where('connection_type_id', $gameModeId);
         }
 
         return $query->exists();
@@ -84,7 +84,7 @@ class CurrencyGameRoomRepository extends BaseRepository implements CurrencyGameR
             ->where('room_id', $roomId);
 
         if ($gameModeId !== null) {
-            $query->where('game_mode_id', $gameModeId);
+            $query->where('connection_type_id', $gameModeId);
         }
 
         return $query->distinct()->get();
@@ -131,7 +131,7 @@ class CurrencyGameRoomRepository extends BaseRepository implements CurrencyGameR
      */
     public function getByGameMode($gameModeId): Collection
     {
-        return $this->model->where('game_mode_id', $gameModeId)->get();
+        return $this->model->where('connection_type_id', $gameModeId)->get();
     }
 
     /**
@@ -150,7 +150,7 @@ class CurrencyGameRoomRepository extends BaseRepository implements CurrencyGameR
             ->where('currency_id', $currencyId);
 
         if ($gameModeId !== null) {
-            $query->where('game_mode_id', $gameModeId);
+            $query->where('connection_type_id', $gameModeId);
         }
 
         return $query->delete() > 0;

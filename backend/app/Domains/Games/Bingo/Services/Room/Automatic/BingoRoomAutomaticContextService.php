@@ -21,7 +21,7 @@ final class BingoRoomAutomaticContextService
         private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
         private readonly \App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface $bingoPatterns,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
-        private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
+        private readonly \App\Contracts\Games\Common\ConnectionType\ConnectionTypeRepositoryInterface $connectionTypes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
     ) {}
 
@@ -61,7 +61,7 @@ final class BingoRoomAutomaticContextService
     private function resolveGameRooms(?int $userId, int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $labels  = ['Código', 'Estado', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Moneda(s)'];
-        $rowKeys = ['id', 'status_badge', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'allowed_currencies'];
+        $rowKeys = ['id', 'status_badge', 'days_description', 'formatted_time', 'roomType.label', 'connectionType.label', 'prizePoolType.label', 'allowed_currencies'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]
@@ -72,8 +72,8 @@ final class BingoRoomAutomaticContextService
             page: $page,
             conditions: $conditions,
             filters: $filters,
-            relations: ['roomType:id,label', 'gameMode:id,label', 'prizePoolType:id,label'],
-            fields: ['id', 'room_type_id', 'game_mode_id', 'prize_pool_type_id', 'days', 'time', 'allowed_currencies', 'creator_user_id', 'created_at', 'status']
+            relations: ['roomType:id,label', 'connectionType:id,label', 'prizePoolType:id,label'],
+            fields: ['id', 'room_type_id', 'connection_type_id', 'prize_pool_type_id', 'days', 'time', 'allowed_currencies', 'creator_user_id', 'created_at', 'status']
         );
 
         $collection = $source instanceof LengthAwarePaginator
@@ -166,7 +166,7 @@ final class BingoRoomAutomaticContextService
             currenciesWithActiveRate: $currenciesWithActiveRate,
             bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
-            gameModes: $this->gameModes->getActiveGameModes(),
+            connectionTypes: $this->connectionTypes->getActiveConnectionTypes(),
             roomTypes: $this->roomTypes->getActiveTypes()
         );
     }

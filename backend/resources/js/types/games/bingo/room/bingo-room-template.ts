@@ -50,7 +50,7 @@ export interface BingoRoomTemplateFormData {
     name?: string | null
     description?: string | null
     roomTypeId?: string | null
-    gameModeId?: string | null
+    connectionTypeId?: string | null
     inLive?: InLiveType
     useBaseUsd?: boolean
     cardPriceUsd?: number | null

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Games\Bingo\Models\Room;
 
-use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Games\Common\Room\RoomType;
@@ -55,7 +55,7 @@ class BingoRoomAutomatic extends Model
     protected $fillable = [
         'template_id',
         'in_live',
-        'game_mode_id',
+        'connection_type_id',
         'room_type_id',
         'rke_commission',
         'room_commission',
@@ -111,7 +111,7 @@ class BingoRoomAutomatic extends Model
     protected $casts = [
         'id'                      => 'string',
         'template_id'             => 'string',
-        'game_mode_id'            => 'string',
+        'connection_type_id'      => 'string',
         'room_type_id'            => 'string',
         'prize_pool_type_id'      => 'string',
         'creator_user_id'         => 'string',
@@ -184,9 +184,9 @@ class BingoRoomAutomatic extends Model
         return $this->belongsTo(BingoRoomTemplate::class, 'template_id');
     }
 
-    public function gameMode(): BelongsTo
+    public function connectionType(): BelongsTo
     {
-        return $this->belongsTo(GameMode::class, 'game_mode_id');
+        return $this->belongsTo(ConnectionType::class, 'connection_type_id');
     }
 
     public function prizePoolType(): BelongsTo

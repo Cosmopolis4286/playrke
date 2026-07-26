@@ -2,7 +2,7 @@
 
 namespace App\Domains\Games\Bingo\Models\Room;
 
-use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
@@ -31,7 +31,7 @@ class BingoRoomConfig extends Model
         'from_house',
         'room_type_id',
         'creator_user_id',
-        'game_mode_id',
+        'connection_type_id',
         'game_variant',
         'in_live',
         'date',
@@ -72,7 +72,7 @@ class BingoRoomConfig extends Model
         'from_house'              => 'string',
         'room_type_id'            => 'string',
         'creator_user_id'         => 'string',
-        'game_mode_id'            => 'string',
+        'connection_type_id'      => 'string',
         'game_variant'            => 'string',
         'prize_pool_type_id'      => 'string',
         'date'                    => 'date',
@@ -136,11 +136,11 @@ class BingoRoomConfig extends Model
     }
 
     /**
-     * Relación con el modo de juego
+     * Relación con el tipo de conexión
      */
-    public function gameMode(): BelongsTo
+    public function connectionType(): BelongsTo
     {
-        return $this->belongsTo(GameMode::class, 'game_mode_id');
+        return $this->belongsTo(ConnectionType::class, 'connection_type_id');
     }
 
     /**

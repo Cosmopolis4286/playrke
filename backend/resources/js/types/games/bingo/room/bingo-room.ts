@@ -259,7 +259,7 @@ export interface BingoRoomFormData {
     minCardsToStart?: number | null
     maxPlayers?: number | null
     roomType?: BingoRoomType | null
-    gameMode?: number | string | null
+    connectionType?: number | string | null
     gameVariant?: BingoGameVariant | null
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]

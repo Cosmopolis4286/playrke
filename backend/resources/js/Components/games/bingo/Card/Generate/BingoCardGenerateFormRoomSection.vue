@@ -9,7 +9,7 @@
 
   const props = defineProps<{
     roomTypeOptions: SelectOption[]
-    gameModeOptions: SelectOption[]
+    connectionTypeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
     cardCount: number
     /** Snowflake ID del país seleccionado como string (evita truncado JS). */
@@ -29,7 +29,7 @@
     isLoading,
     roomAlert,
     showRoomType,
-    showGameMode,
+    showConnectionType,
     showPrizePoolType,
     canSelectRoom
   } = useBingoCardGenerateRoomSection()
@@ -80,18 +80,18 @@
         v-model="filters.roomType"
       />
 
-      <!-- Modo de juego -->
+      <!-- Tipo de conexión -->
 
       <FormSelect
-        v-if="showGameMode"
+        v-if="showConnectionType"
         :disabled="isLoading"
-        label="Modo de juego"
-        name="game_mode"
-        :options="props.gameModeOptions"
+        label="Tipo de conexión"
+        name="connection_type"
+        :options="props.connectionTypeOptions"
         option-value="value"
         option-label="label"
         col="col-sm-6 col-md-3"
-        v-model="filters.gameMode"
+        v-model="filters.connectionType"
       />
 
       <!-- Tipo de Bote -->

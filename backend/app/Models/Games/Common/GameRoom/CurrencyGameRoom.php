@@ -3,7 +3,7 @@
 namespace App\Models\Games\Common\GameRoom;
 
 use App\Models\Game;
-use App\Models\Games\Common\GameMode\GameModes;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
 use App\Traits\SnowflakeId;
@@ -21,7 +21,7 @@ class CurrencyGameRoom extends Model
 
     protected $fillable = [
         'game_id',
-        'game_mode_id',
+        'connection_type_id',
         'room_id',
         'currency_id'
     ];
@@ -35,11 +35,11 @@ class CurrencyGameRoom extends Model
     }
 
     /**
-     * Relación con el modo de juego
+     * Relación con el tipo de conexión
      */
-    public function gameMode(): BelongsTo
+    public function connectionType(): BelongsTo
     {
-        return $this->belongsTo(GameModes::class, 'game_mode_id');
+        return $this->belongsTo(ConnectionType::class, 'connection_type_id');
     }
 
     /**
@@ -68,7 +68,7 @@ class CurrencyGameRoom extends Model
             ->whereHas('game', function($query) use ($gameName) {
                 $query->where('name', $gameName);
             })
-            ->where('game_mode_id', $gameMode) // Usar ID directamente
+            ->where('connection_type_id', $gameMode) // Usar ID directamente
             ->exists();
     }
 
@@ -82,7 +82,7 @@ class CurrencyGameRoom extends Model
 
         return static::create([
             'game_id' => $gameModel?->id,
-            'game_mode_id' => $game['game_mode'], // Usar ID directamente
+            'connection_type_id' => $game['game_mode'], // Usar ID directamente
             'room_id' => $roomId,
             'currency_id' => $currencyId
         ]);

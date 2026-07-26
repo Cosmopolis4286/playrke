@@ -466,7 +466,7 @@ class BingoRoomCrudService
     {
         $base = [
             'room_type_id'            => $dto->roomType,
-            'game_mode_id'            => $dto->gameMode,
+            'connection_type_id'      => $dto->gameMode,
             'game_variant'            => $dto->gameVariant ?? 'BINGO_75',
             'date'                    => $dto->date,
             'time'                    => $dto->time,
@@ -630,7 +630,7 @@ class BingoRoomCrudService
             return;
         }
 
-        $freshRoom = $room->fresh(['config.roomType', 'config.gameMode', 'status']);
+        $freshRoom = $room->fresh(['config.roomType', 'config.connectionType', 'status']);
         if (!$freshRoom) {
             return;
         }
@@ -1226,7 +1226,7 @@ class BingoRoomCrudService
             'time'                  => null,
             'startMode'             => 'MANUAL',
             'roomType'              => $config->room_type_id,
-            'gameMode'              => $config->game_mode_id,
+            'gameMode'              => $config->connection_type_id,
             'gameVariant'           => $config->game_variant ?? 'BINGO_75',
             'prizePoolType'         => $config->prize_pool_type_id,
             'allowedCurrencies'     => $config->allowed_currencies ?? [],

@@ -96,8 +96,8 @@ final class BingoCardGenerationService
             // Anexar atributo al array
             $cardOrder['roomUser'] = $roomUserId;
 
-            // Obtener el game_mode_id real de la config de la sala (Snowflake ID)
-            $gameModeId = $room->config?->game_mode_id;
+            // Obtener el connection_type_id real de la config de la sala (Snowflake ID)
+            $gameModeId = $room->config?->connection_type_id;
 
             if ($creator['type'] === 'commerce_id' || $seller) {
                 $sellerSaleCommn = $this->commissionCalculation->calculateSellerCommission($saleAmount, $seller, $roomId);

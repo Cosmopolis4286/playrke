@@ -21,7 +21,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
 
     public function getByGameMode($gameModeId): Collection
     {
-        return $this->model->where('game_mode_id', $gameModeId)->get();
+        return $this->model->where('connection_type_id', $gameModeId)->get();
     }
 
     public function getByPrizePoolType($prizePoolTypeId): Collection
@@ -32,7 +32,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
     public function getByGameAndMode($gameId, $gameModeId): Collection
     {
         return $this->model->where('game_id', $gameId)
-            ->where('game_mode_id', $gameModeId)
+            ->where('connection_type_id', $gameModeId)
             ->get();
     }
 
@@ -53,7 +53,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
 
     public function getByGameModeAndPrizePool($gameModeId, $prizePoolTypeId): ?GamePrizePoolType
     {
-        return $this->model->where('game_mode_id', $gameModeId)
+        return $this->model->where('connection_type_id', $gameModeId)
             ->where('prize_pool_type_id', $prizePoolTypeId)
             ->first();
     }
@@ -61,7 +61,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
     public function existsAssignment($gameId, $gameModeId, $prizePoolTypeId): bool
     {
         return $this->model->where('game_id', $gameId)
-            ->where('game_mode_id', $gameModeId)
+            ->where('connection_type_id', $gameModeId)
             ->where('prize_pool_type_id', $prizePoolTypeId)
             ->exists();
     }
@@ -70,7 +70,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
     {
         return $this->model->create([
             'game_id' => $gameId,
-            'game_mode_id' => $gameModeId,
+            'connection_type_id' => $gameModeId,
             'prize_pool_type_id' => $prizePoolTypeId,
             'status' => $status
         ]);
@@ -100,7 +100,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
     public function deleteAssignment($gameId, $gameModeId, $prizePoolTypeId): bool
     {
         return $this->model->where('game_id', $gameId)
-            ->where('game_mode_id', $gameModeId)
+            ->where('connection_type_id', $gameModeId)
             ->where('prize_pool_type_id', $prizePoolTypeId)
             ->delete() > 0;
     }
@@ -119,15 +119,15 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
     public function getGameModesByGame($gameId): Collection
     {
         return $this->model->where('game_id', $gameId)
-            ->with('gameMode')
+            ->with('connectionType')
             ->get()
-            ->pluck('gameMode')
+            ->pluck('connectionType')
             ->unique('id');
     }
 
     public function getPrizePoolsByGameMode($gameModeId): Collection
     {
-        return $this->model->where('game_mode_id', $gameModeId)
+        return $this->model->where('connection_type_id', $gameModeId)
             ->with('prizePoolType')
             ->get()
             ->pluck('prizePoolType')
@@ -156,7 +156,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
         $active = $this->model->where('game_id', $gameId)
             ->where('status', 'ACTIVE')->count();
         $modes = $this->model->where('game_id', $gameId)
-            ->distinct('game_mode_id')->count();
+            ->distinct('connection_type_id')->count();
         $prizePools = $this->model->where('game_id', $gameId)
             ->distinct('prize_pool_type_id')->count();
 
@@ -171,17 +171,17 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
     public function getUnassignedGameModes($gameId): Collection
     {
         $assignedModeIds = $this->model->where('game_id', $gameId)
-            ->pluck('game_mode_id');
+            ->pluck('connection_type_id');
 
-        return $this->model->selectRaw('game_modes.id, game_modes.description')
-            ->rightJoin('game_modes', 'game_modes.id', '=', 'game_prize_pool_types.game_mode_id')
-            ->whereNotIn('game_modes.id', $assignedModeIds)
+        return $this->model->selectRaw('connection_types.id, connection_types.label')
+            ->rightJoin('connection_types', 'connection_types.id', '=', 'game_prize_pool_types.connection_type_id')
+            ->whereNotIn('connection_types.id', $assignedModeIds)
             ->get();
     }
 
     public function getUnassignedPrizePools($gameModeId): Collection
     {
-        $assignedPoolIds = $this->model->where('game_mode_id', $gameModeId)
+        $assignedPoolIds = $this->model->where('connection_type_id', $gameModeId)
             ->pluck('prize_pool_type_id');
 
         return $this->model->selectRaw('prize_pool_types.id, prize_pool_types.name')

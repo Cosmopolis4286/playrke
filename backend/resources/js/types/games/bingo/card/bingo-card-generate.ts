@@ -1,4 +1,4 @@
-export type RoomStep = 'date' | 'roomType' | 'gameMode'
+export type RoomStep = 'date' | 'roomType' | 'connectionType'
 
 /**
  * Configuración asociada a una sala de bingo.
@@ -88,6 +88,6 @@ export type RoomStepStatus =
     | 'loading'
     | 'noDateRooms'
     | 'noRoomTypeRooms'
-    | 'noGameModeRooms'
+    | 'noConnectionTypeRooms'
     | 'noPrizePoolTypeRooms'
     | 'ready'

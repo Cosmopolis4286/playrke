@@ -20,7 +20,8 @@ import GameEndModal    from '@js/Components/games/bingo/views/inGame/GameEndModa
 import GameStarfield      from '@js/Components/games/bingo/views/inGame/GameStarfield.vue'
 import GameStatusBanners  from '@js/Components/games/bingo/views/inGame/GameStatusBanners.vue'
 import { getBingoVariantDef }    from '@js/modules/games/bingo/utils/bingoVariants'
-import type { WinnerEntry } from '@js/Components/games/bingo/views/inGame/types'
+import type { WinnerEntry, PlayerProgress } from '@js/Components/games/bingo/views/inGame/types'
+import type { BingoCard } from '@/js/types/games/bingo/card/in-game/bingo-card'
 import Swal from 'sweetalert2'
 import { SWAL_DARK } from '@js/utils/swal'
 import { useToast } from 'vue-toastification'
@@ -41,7 +42,7 @@ const { muted, toggleMute, playNext, playWinner, playTick, preload } = useBingoS
 interface Props {
   room?:          { id?: string | number; status?: string; status_code?: string; Config?: { rounds?: number; bingo_patterns?: boolean } }
   userId?:        string | null
-  cartons?:       { id: string | number; [key: string]: any }[]
+  cartons?:       BingoCard[]
   customerLogo?:  string | null
   currencySym?:   string
   prizePool?:     number
@@ -173,7 +174,7 @@ const showPlayersProgress = computed(() =>
 
 // Último valor no-vacío de playersProgress — evita que NearWinBanner desaparezca
 // cuando el backend devuelve [] en un resync antes del próximo evento PlayersProgress.
-const lastKnownProgress = ref<{ user_id: number | string; user_name: string; card_serial: string; missing: number }[]>([])
+const lastKnownProgress = ref<PlayerProgress[]>([])
 watch(playersProgress, (v) => { if (v.length > 0) lastKnownProgress.value = v }, { immediate: true })
 
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)

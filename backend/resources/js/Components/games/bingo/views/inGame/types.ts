@@ -17,7 +17,7 @@ export interface GameEndData {
 }
 
 export interface PlayerProgress {
-  user_id: number
+  user_id: number | string
   user_name: string
   missing: number
 }

@@ -327,7 +327,7 @@ trait SeamlessWallet
                 'customer_id' => $customer,
                 'user_id' => $clientUser,
                 'game_id' => $gameId,
-                'game_mode_id' => $game['game_mode'],
+                'connection_type_id' => $game['game_mode'],
                 'bet_id' => $betId,
                 'code' => $code, // transaction_id
                 'transaction_type' => $type,

@@ -35,7 +35,7 @@ defineProps<{
     </div>
     <div v-if="detail.game_mode" class="col-6 col-md-3">
       <div class="detail-info-card">
-        <div class="detail-info-card__label">Modo de juego</div>
+        <div class="detail-info-card__label">Tipo de Conexión</div>
         <div class="detail-info-card__value">{{ detail.game_mode }}</div>
       </div>
     </div>

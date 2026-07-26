@@ -25,7 +25,7 @@ class Transaction extends Model
         'customer_id',
         'user_id',
         'game_id',
-        'game_mode_id',
+        'connection_type_id',
         'bet_id',
         'code',
         'transaction_type',

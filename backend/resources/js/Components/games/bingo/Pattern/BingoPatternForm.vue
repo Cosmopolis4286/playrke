@@ -7,7 +7,7 @@
   import BingoCardSelector from '@/js/Components/games/bingo/Pattern/BingoCardSelector.vue'
   import { validateBingoPatternForm } from '@/js/composables/games/bingo/pattern/bingoPatternFormSchema'
 
-  import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-patterns'
+  import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-pattern'
 
   /* ==========================================================================
    * Props / Emits

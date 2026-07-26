@@ -53,7 +53,7 @@ export const bingoRoomFormSchema = z.object({
     time:             z.string().nullable().optional(),
     startMode:        z.enum(['SCHEDULED', 'MANUAL']).optional(),
     roomType:         z.enum(['PRIVATE', 'PUBLIC', 'VIP', 'DEMO']).nullable().optional(),
-    gameMode:         z.union([z.number(), z.string()]).nullable().optional(),
+    connectionType:   z.union([z.number(), z.string()]).nullable().optional(),
     prizePoolType:    z.union([z.number(), z.string()]).nullable().optional(),
     allowedCurrencies: z.array(z.union([z.number(), z.string()])).optional(),
     roomsPerCurrency:  z.boolean().optional(),
@@ -160,7 +160,7 @@ export function validateBingoRoomForm(
 
     /* ── Campos requeridos simples ── */
     if (!data.roomType)      e.roomType      = 'El tipo de sala es requerido.'
-    if (!data.gameMode)      e.gameMode      = 'Modo de juego requerido.'
+    if (!data.connectionType) e.connectionType = 'Tipo de conexión requerido.'
     if (!data.prizePoolType) e.prizePoolType = 'El tipo de bote es requerido.'
 
     /* ── Monedas ── */

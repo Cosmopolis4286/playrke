@@ -66,7 +66,7 @@ export interface BingoRoomConfigFormData {
     parentAutomaticId?: string | null
     isScheduled?: IsScheduledType
     roomTypeId?: string | null
-    gameModeId?: string | null
+    connectionTypeId?: string | null
     date?: string | null
     time?: string | null
     rkeCommission?: number

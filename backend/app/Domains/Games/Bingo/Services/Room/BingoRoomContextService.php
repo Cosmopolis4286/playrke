@@ -22,7 +22,7 @@ final class BingoRoomContextService
         private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
         private readonly \App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface $bingoPatterns,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
-        private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
+        private readonly \App\Contracts\Games\Common\ConnectionType\ConnectionTypeRepositoryInterface $connectionTypes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\UserRepositoryInterface $userRepository,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencyRepository,
@@ -69,7 +69,7 @@ final class BingoRoomContextService
     private function resolveSummaryGameRooms(?int $userId, int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $labels  = ['Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio'];
-        $rowKeys = ['code_start_badge', 'status_badge', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'config.allowed_currencies_badge', 'total_players_badge', 'total_cards_badge', 'prize_pool_badge'];
+        $rowKeys = ['code_start_badge', 'status_badge', 'config.roomType.label', 'config.connectionType.label', 'config.prizePoolType.label', 'config.allowed_currencies_badge', 'total_players_badge', 'total_cards_badge', 'prize_pool_badge'];
 
         // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
         $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
@@ -87,7 +87,7 @@ final class BingoRoomContextService
             // cardPrizes/cardLots solo traen las columnas necesarias para contar (vía
             // closure) — ganadores y cartones personalizados, sin cargar registros completos.
             relations: [
-                'config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status', 'rounds.prizes',
+                'config', 'config.roomType', 'config.connectionType', 'config.prizePoolType', 'status', 'rounds.prizes',
                 'cardPrizes' => fn($q) => $q->select('id', 'room_id', 'status')->where('status', 'ACTIVE'),
                 'cardLots' => fn($q) => $q->select('id', 'room_id', 'card_count', 'has_custom_cards', 'status')->where('status', 'ACTIVE'),
             ],
@@ -429,7 +429,7 @@ final class BingoRoomContextService
             currenciesWithActiveRate: $currenciesWithActiveRate,
             bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
-            gameModes: $this->gameModes->getActiveGameModes(),
+            connectionTypes: $this->connectionTypes->getActiveConnectionTypes(),
             roomTypes: $this->roomTypes->getActiveTypes()
         );
     }

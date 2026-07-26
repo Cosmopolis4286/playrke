@@ -89,7 +89,7 @@ class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfi
      */
     public function getByGameMode($gameModeId): Collection
     {
-        return $this->model->where('game_mode_id', $gameModeId)->get();
+        return $this->model->where('connection_type_id', $gameModeId)->get();
     }
 
     /**
