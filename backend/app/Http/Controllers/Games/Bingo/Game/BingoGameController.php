@@ -52,7 +52,7 @@ final class BingoGameController extends Controller
                 $room->load([
                     'status',
                     'config.roomType',
-                    'config.gameMode',
+                    'config.connectionType',
                     'players' => fn ($q) => $q->where('user_id', (int) $userId)->limit(1),
                 ]);
 
@@ -92,7 +92,7 @@ final class BingoGameController extends Controller
                     'card_price'            => $cardPrice,
                     'card_price_usd'        => $cardPriceUsd,
                     'room_type_description' => $config?->roomType?->description ?? 'Pública',
-                    'game_mode_description' => $config?->gameMode?->description ?? 'Mixto',
+                    'game_mode_description' => $config?->connectionType?->description ?? 'Mixto',
                     'unix_date'             => $config?->unix_date,
                     'date'                  => $config?->date?->format('Y-m-d'),
                     'time'                  => $config?->time,
