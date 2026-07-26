@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
 import { utcToLocalInput, localInputToUtc } from '@js/composables/useTimezone'
 import { useTriviaFeeByCurrency, initFeeByCurrencyFromRoom } from '@js/composables/games/trivia/admin/useTriviaFeeByCurrency'
-import { useTriviaPrizePayouts, initPrizePayoutsFromRoom } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
+import { useTriviaPrizePayouts, initPrizePayoutsFromRoom, type PrizePayout } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
 import { useTriviaPrizeRules } from '@js/composables/games/trivia/admin/useTriviaPrizeRules'
 import { useTriviaRoomEditValidation } from '@js/composables/games/trivia/admin/useTriviaRoomEditValidation'
 import FeeByCurrencyEditor from '@js/Components/games/Trivia/Admin/RoomForm/FeeByCurrencyEditor.vue'
@@ -41,6 +41,8 @@ const form = useForm({
   platform_rake_percent: Number(props.room.platform_rake_percent ?? 0),
   scheduled_at: utcToLocalInput(props.room.scheduled_at),
   settings: props.room.settings || {},
+  fee_by_currency: {} as Record<string, number>,
+  prize_payouts: null as PrizePayout[] | null,
 })
 
 const isEditable = computed(() => props.room.status === 'waiting')
