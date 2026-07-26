@@ -83,7 +83,7 @@ const scheduledLabel = r => {
   if (!r.scheduled_at) return null
   const d = new Date(r.scheduled_at)
   const isPast    = d < new Date()
-  const isNearby  = !isPast && (d - new Date()) < 30 * 60 * 1000
+  const isNearby  = !isPast && (d.getTime() - Date.now()) < 30 * 60 * 1000
   return { text: fmtShortDate(r.scheduled_at), isPast, isNearby }
 }
 </script>
