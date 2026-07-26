@@ -413,7 +413,7 @@ class BingoRoom extends BaseModel
         }
 
         return $query->whereHas(
-            'config.gameMode',
+            'config.connectionType',
             fn($q) => $q->where('id', $gameModeId)
         );
     }

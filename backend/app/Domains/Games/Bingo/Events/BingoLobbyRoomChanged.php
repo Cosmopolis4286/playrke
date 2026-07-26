@@ -58,7 +58,7 @@ final class BingoLobbyRoomChanged implements ShouldBroadcast
                 'total_cards'     => (int) $room->total_cards,
                 'creator_user_id' => (string) $room->creator_user_id,
                 'room_type'       => $config?->roomType?->code ?? 'PUBLIC',
-                'game_mode'       => $config?->gameMode?->code,
+                'game_mode'       => $config?->connectionType?->code,
                 'status_code'     => $room->status?->code ?? 'ACTIVE',
                 'rounds_count'    => $room->rounds()->count(),
                 'config' => $config ? [
