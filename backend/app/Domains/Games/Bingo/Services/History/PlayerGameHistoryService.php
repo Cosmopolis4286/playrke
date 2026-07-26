@@ -67,7 +67,7 @@ final class PlayerGameHistoryService
     {
         $room = BingoRoom::with([
             'config.roomType',
-            'config.gameMode',
+            'config.connectionType',
             'config.prizePoolType',
             'status',
             'rounds.prizes.currency',
@@ -189,7 +189,7 @@ final class PlayerGameHistoryService
             'game_date'       => $dateStr,
             'room_status'     => $room->status?->code,
             'room_type'       => $config?->roomType?->label,
-            'game_mode'       => $config?->gameMode?->label,
+            'game_mode'       => $config?->connectionType?->label,
             'prize_pool_type' => $config?->prizePoolType?->label
                 ? preg_replace('/^Bote\s+/i', '', $config->prizePoolType->label)
                 : null,
