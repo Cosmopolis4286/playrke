@@ -4,7 +4,7 @@ import { computed, watch } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
 import { localInputToUtc } from '@js/composables/useTimezone'
 import { useTriviaFeeByCurrency } from '@js/composables/games/trivia/admin/useTriviaFeeByCurrency'
-import { useTriviaPrizePayouts } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
+import { useTriviaPrizePayouts, type PrizePayout } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
 import { useTriviaPrizeRules } from '@js/composables/games/trivia/admin/useTriviaPrizeRules'
 import GameModeSection from '@js/Components/games/Trivia/Admin/RoomForm/GameModeSection.vue'
 import GameSettingsSection from '@js/Components/games/Trivia/Admin/RoomForm/GameSettingsSection.vue'
@@ -55,6 +55,8 @@ const form = useForm({
     show_leaderboard: true,
     public_room: true,
   },
+  fee_by_currency: {} as Record<string, number>,
+  prize_payouts: null as PrizePayout[] | null,
 })
 
 const { minScheduledAt, scheduledAtError, sponsorPrizeError, platformRakeError, prizePayoutsError } =
