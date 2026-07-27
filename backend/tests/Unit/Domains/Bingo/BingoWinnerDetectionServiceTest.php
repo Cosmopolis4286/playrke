@@ -14,7 +14,7 @@ use App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Models\Country;
 use App\Models\Currency;
-use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -50,10 +50,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
 
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
         $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        // GameMode::$fillable no incluye 'code' (deuda preexistente del modelo,
-        // ajena a Anti-Cheat) — forceCreate() evita el filtro de mass-assignment.
-        $gameMode = GameMode::where('code', 'STANDARD')->first()
-            ?? GameMode::forceCreate(['code' => 'STANDARD', 'label' => 'Estándar']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
         $prizePoolType = PrizePoolType::firstOrCreate(['code' => 'STANDARD'], ['label' => 'Estándar', 'is_accumulative' => false]);
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
 
@@ -67,7 +64,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
             'room_id'            => $room->id,
             'room_type_id'       => $roomType->id,
             'creator_user_id'    => $user->id,
-            'game_mode_id'       => $gameMode->id,
+            'connection_type_id' => $connectionType->id,
             'prize_pool_type_id' => $prizePoolType->id,
             'game_variant'       => BingoVariant::BINGO_75,
         ]);

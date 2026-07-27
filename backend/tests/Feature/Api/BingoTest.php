@@ -172,7 +172,7 @@ class BingoTest extends TestCase
     /**
      * Crea una sala de bingo + su config directamente vía DB (bypasea el boot
      * de SnowflakeId, igual que GenerateBingoRoomsCommandTest). Los FKs a
-     * room_types/game_modes/prize_pool_types usan IDs sintéticos: con
+     * room_types/connection_types/prize_pool_types usan IDs sintéticos: con
      * FOREIGN_KEY_CHECKS=0 no requieren fila real, igual que en el resto de
      * la suite de Bingo ya migrada.
      */
@@ -212,7 +212,7 @@ class BingoTest extends TestCase
             'from_house' => 'N',
             'room_type_id' => $this->nextId(),
             'creator_user_id' => $this->user->id,
-            'game_mode_id' => $this->nextId(),
+            'connection_type_id' => $this->nextId(),
             'in_live' => 'N',
             // unix_date en el futuro (no "ahora"): BingoRoomService::summaryData()
             // llama CheckExpiredBingoRoomsService::handle() en cada listado, que

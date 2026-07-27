@@ -69,7 +69,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
             'recurrence_days'         => json_encode([strtolower($now->englishDayOfWeek)]),
             'game_time'               => $now->format('H:i:s'),
             'room_type_id'            => $this->nextId(),
-            'game_mode_id'            => $this->nextId(),
+            'connection_type_id'      => $this->nextId(),
             'prize_pool_type_id'      => $this->nextId(),
             'creator_user_id'         => $this->nextId(),
             'rke_commission'          => 5.00,
@@ -286,7 +286,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
         $this->assertNotNull($config);
         $this->assertEquals($template->room_type_id, $config->room_type_id);
-        $this->assertEquals($template->game_mode_id, $config->game_mode_id);
+        $this->assertEquals($template->connection_type_id, $config->connection_type_id);
         $this->assertEquals($template->prize_pool_type_id, $config->prize_pool_type_id);
         $this->assertTrue((bool) $config->use_base_usd);
         $this->assertEquals(5.00, (float) $config->card_price_usd);

@@ -73,6 +73,26 @@ return new class extends Migration
 
             DB::statement("UPDATE {$table} SET connection_type_id = game_mode_id WHERE connection_type_id IS NULL");
 
+            $existingIndexes = fn () => collect(DB::select("SHOW INDEX FROM {$table}"))
+                ->pluck('Key_name')
+                ->unique();
+
+            // currencies_game_rooms tenía un unique explícito sobre
+            // game_mode_id (uniq_game_mode_room_currency). MySQL exige que la
+            // FK de game_mode_id quede respaldada por algún índice hasta el
+            // momento en que se dropea esa FK — como ese unique compuesto es
+            // uno de los índices que la respaldan, hay que crear primero el
+            // índice de reemplazo (sobre connection_type_id) y solo después
+            // dropear el viejo, o el DROP falla con error 1553.
+            if ($table === 'currencies_game_rooms' && !$existingIndexes()->contains('uniq_connection_type_room_currency')) {
+                Schema::table($table, function (Blueprint $blueprint) {
+                    $blueprint->unique(
+                        ['game_id', 'connection_type_id', 'room_id', 'currency_id'],
+                        'uniq_connection_type_room_currency'
+                    );
+                });
+            }
+
             $foreignKeys = collect(DB::select("
                 SELECT CONSTRAINT_NAME
                 FROM information_schema.KEY_COLUMN_USAGE
@@ -82,15 +102,15 @@ return new class extends Migration
                     AND REFERENCED_TABLE_NAME IS NOT NULL
             ", [$table]))->pluck('CONSTRAINT_NAME');
 
-            $indexes = collect(DB::select("SHOW INDEX FROM {$table}"))
-                ->pluck('Key_name')
-                ->unique();
-
-            Schema::table($table, function (Blueprint $blueprint) use ($foreignKeys, $indexes) {
+            Schema::table($table, function (Blueprint $blueprint) use ($foreignKeys) {
                 foreach ($foreignKeys as $foreignKey) {
                     $blueprint->dropForeign($foreignKey);
                 }
+            });
 
+            $indexes = $existingIndexes();
+
+            Schema::table($table, function (Blueprint $blueprint) use ($indexes) {
                 foreach ($indexes as $indexName) {
                     if (str_contains($indexName, 'game_mode')) {
                         $blueprint->dropIndex($indexName);
@@ -109,20 +129,6 @@ return new class extends Migration
                 // proyecto no tiene doctrine/dbal instalado, requisito de
                 // Blueprint::change().
                 DB::statement("ALTER TABLE {$table} MODIFY connection_type_id BIGINT UNSIGNED NOT NULL");
-            }
-
-            // currencies_game_rooms tenía un unique explícito sobre
-            // game_mode_id (uniq_game_mode_room_currency), dropeado arriba
-            // junto con los demás índices que mencionaban game_mode. Se
-            // recrea aquí sobre connection_type_id para no perder la
-            // protección contra combinaciones duplicadas.
-            if ($table === 'currencies_game_rooms') {
-                Schema::table($table, function (Blueprint $blueprint) {
-                    $blueprint->unique(
-                        ['game_id', 'connection_type_id', 'room_id', 'currency_id'],
-                        'uniq_connection_type_room_currency'
-                    );
-                });
             }
         }
 

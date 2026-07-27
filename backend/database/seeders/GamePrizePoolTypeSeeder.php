@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Game;
 use App\Models\Games\Common\PrizePool\GamePrizePoolType;
-use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use BradieTilley\Snowflake\Snowflake;
 
@@ -23,10 +23,10 @@ class GamePrizePoolTypeSeeder extends Seeder
             return;
         }
 
-        // Obtener todos los modos de juego
-        $gameModes = GameMode::all();
-        if ($gameModes->isEmpty()) {
-            $this->command->warn("No hay GameModes disponibles. Seeder omitido.");
+        // Obtener todos los tipos de conexión
+        $connectionTypes = ConnectionType::all();
+        if ($connectionTypes->isEmpty()) {
+            $this->command->warn("No hay ConnectionTypes disponibles. Seeder omitido.");
             return;
         }
 
@@ -38,12 +38,12 @@ class GamePrizePoolTypeSeeder extends Seeder
         }
 
         // Generar todas las combinaciones
-        foreach ($gameModes as $mode) {
+        foreach ($connectionTypes as $connectionType) {
             foreach ($prizePoolTypes as $poolType) {
                 GamePrizePoolType::updateOrCreate(
                     [
                         'game_id' => $gameId,
-                        'game_mode_id' => $mode->id,
+                        'connection_type_id' => $connectionType->id,
                         'prize_pool_type_id' => $poolType->id,
                     ],
                     [
