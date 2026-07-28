@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Games\Trivia\Room;
 
+use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Trivia\UpdateRoomRequest;
+use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -22,7 +24,8 @@ use Inertia\Response;
 final class TriviaRoomAdminController extends Controller
 {
     public function __construct(
-        private readonly RoomServiceInterface $roomService
+        private readonly RoomServiceInterface $roomService,
+        private readonly GameModeRepositoryInterface $gameModes,
     ) {}
 
     /**
@@ -71,11 +74,12 @@ final class TriviaRoomAdminController extends Controller
             'waiting' => TriviaRoom::where('status', 'waiting')->count(),
             'playing' => TriviaRoom::where('status', 'playing')->count(),
             'closed' => TriviaRoom::where('status', 'closed')->count(),
-            'by_mode' => [
-                'free_for_all' => TriviaRoom::where('game_mode', 'free_for_all')->count(),
-                'teams' => TriviaRoom::where('game_mode', 'teams')->count(),
-                'duel' => TriviaRoom::where('game_mode', 'duel')->count(),
-            ],
+            'by_mode' => TriviaRoom::query()
+                ->whereNotNull('game_mode_id')
+                ->selectRaw('game_mode_id, COUNT(*) as cnt')
+                ->groupBy('game_mode_id')
+                ->pluck('cnt', 'game_mode_id')
+                ->all(),
         ];
 
         return Inertia::render('Games/Trivia/Admin/RoomsIndex', [
@@ -125,15 +129,23 @@ final class TriviaRoomAdminController extends Controller
     }
 
     /**
-     * Modos de juego disponibles.
+     * Modos de juego disponibles para Trivia, desde el catálogo dinámico
+     * game_modes (administrable por admins vía GameModeController).
      */
     private function availableGameModes(): array
     {
-        return [
-            ['value' => 'free_for_all', 'label' => 'Todos vs Todos', 'description' => 'Cada jugador compite individualmente'],
-            ['value' => 'teams', 'label' => 'Equipos', 'description' => 'Jugadores divididos en equipos, gana el equipo con más puntos'],
-            ['value' => 'duel', 'label' => 'Duelo / Versus', 'description' => '2 equipos o 1vsX. Gana quien tenga más respuestas correctas'],
-        ];
+        $triviaGameId = Game::where('name', 'TRIVIA')->value('id');
+        if (!$triviaGameId) {
+            return [];
+        }
+
+        return $this->gameModes->getActiveByGame($triviaGameId)
+            ->map(fn ($mode) => [
+                'value' => (string) $mode->id,
+                'label' => $mode->label,
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -162,7 +174,7 @@ final class TriviaRoomAdminController extends Controller
             'title'              => 'required|string|max:255',
             'description'        => 'nullable|string|max:1000',
             'category'           => 'nullable|string|max:50',
-            'game_mode'          => 'required|in:free_for_all,teams,duel,tournament',
+            'game_mode'          => ['required', \Illuminate\Validation\Rule::exists('mysql.game_modes', 'id')],
             'teams_config'       => 'nullable|array',
             'teams_config.team_count' => 'nullable|integer|min:2|max:10',
             'teams_config.team_size'  => 'nullable|integer|min:1|max:100',
@@ -211,13 +223,16 @@ final class TriviaRoomAdminController extends Controller
             $validated['entry_fee']         = array_values($feeByCurrency)[0];
         }
 
+        $selectedMode = $this->gameModes->find($validated['game_mode']);
+
         try {
             $roomDto = $this->roomService->createRoom([
                 'host_id'           => (string) auth()->id(),
                 'title'             => $validated['title'],
                 'description'       => $validated['description'] ?? null,
                 'category'          => $validated['category'] ?? null,
-                'game_mode'         => $validated['game_mode'],
+                'game_mode'         => $selectedMode ? strtolower($selectedMode->code) : null,
+                'game_mode_id'      => $validated['game_mode'],
                 'teams_config'      => $validated['teams_config'] ?? null,
                 'max_players'       => $validated['max_players'],
                 'question_count'    => $validated['question_count'],

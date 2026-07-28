@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Models;
 
 use App\Models\BaseModel;
+use App\Models\Games\Common\GameMode\GameMode;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -26,7 +27,8 @@ class TriviaRoom extends BaseModel
         'category',
         'host_id',
         'status', // 'waiting', 'playing', 'closed', 'cancelled'
-        'game_mode', // 'free_for_all', 'teams', 'duel', 'tournament'
+        'game_mode', // legacy — se mantiene en BD, ya no es la fuente de verdad (ver game_mode_id)
+        'game_mode_id', // referencia blanda a game_modes.id (MySQL) — sin FK física, cross-database
         'teams_config',       // jsonb
         'max_players',
         'question_count',
@@ -67,6 +69,7 @@ class TriviaRoom extends BaseModel
         'question_count'     => 'integer',
         'time_per_question'  => 'integer',
         'current_players'    => 'integer',
+        'game_mode_id'       => 'integer',
         'platform_rake_percent' => 'decimal:2',
         'sponsor_prize'         => 'decimal:8',
         'pool_accumulated'      => 'decimal:8',
@@ -97,11 +100,22 @@ class TriviaRoom extends BaseModel
     }
 
     /**
+     * Relación blanda al catálogo de modos de juego (MySQL, conexión
+     * 'default'). Sin FK física: trivia_rooms vive en Postgres
+     * (pgsql_trivia), por lo que Eloquent resuelve esto con una query
+     * separada contra la otra conexión, no un JOIN real.
+     */
+    public function gameMode(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(GameMode::class, 'game_mode_id');
+    }
+
+    /**
      * Verificar si la sala usa equipos.
      */
     public function usesTeams(): bool
     {
-        return in_array($this->game_mode, ['teams', 'duel']);
+        return in_array($this->gameModeCode(), ['TEAMS', 'DUEL']);
     }
 
     /**
@@ -109,7 +123,18 @@ class TriviaRoom extends BaseModel
      */
     public function isDuelMode(): bool
     {
-        return $this->game_mode === 'duel';
+        return $this->gameModeCode() === 'DUEL';
+    }
+
+    /**
+     * Código del modo de juego actual, resuelto vía game_mode_id.
+     * Cae al string legacy `game_mode` (uppercased) si el modo no está
+     * asignado — cubre datos previos al backfill o filas creadas por código
+     * que todavía no haya migrado a enviar game_mode_id.
+     */
+    public function gameModeCode(): ?string
+    {
+        return $this->gameMode?->code ?? ($this->game_mode ? strtoupper($this->game_mode) : null);
     }
 
     /**

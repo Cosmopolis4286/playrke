@@ -38,6 +38,7 @@ class RoomService implements RoomServiceInterface
     public function createRoom(array $config): RoomDTO
     {
         $gameMode = $config['game_mode'] ?? 'free_for_all';
+        $gameModeId = $config['game_mode_id'] ?? null;
         $teamsConfig = $config['teams_config'] ?? null;
 
         // Crear en base de datos
@@ -49,6 +50,7 @@ class RoomService implements RoomServiceInterface
             'host_id'            => $config['host_id'] ?? null,
             'status'             => 'waiting',
             'game_mode'          => $gameMode,
+            'game_mode_id'       => $gameModeId,
             'teams_config'       => $teamsConfig,
             'max_players'        => $config['max_players'] ?? 100,
             'question_count'     => $config['question_count'] ?? 10,
@@ -88,6 +90,7 @@ class RoomService implements RoomServiceInterface
             playerIds: [],
             settings: array_merge($room->settings ?? [], [
                 'game_mode' => $room->game_mode,
+                'game_mode_id' => $room->game_mode_id,
                 'teams' => $room->teams->map(fn($t) => [
                     'id' => $t->id,
                     'name' => $t->name,
@@ -355,10 +358,13 @@ class RoomService implements RoomServiceInterface
         if (isset($config['game_mode'])) {
             $updateData['game_mode'] = $config['game_mode'];
         }
+        if (isset($config['game_mode_id'])) {
+            $updateData['game_mode_id'] = $config['game_mode_id'];
+        }
         if (isset($config['teams_config'])) {
             $updateData['teams_config'] = $config['teams_config'];
             // Recrear equipos si cambió la config
-            if ($room->usesTeams() || in_array($config['game_mode'] ?? '', ['teams', 'duel'])) {
+            if ($room->usesTeams() || in_array(strtolower($config['game_mode'] ?? ''), ['teams', 'duel'])) {
                 $room->teams()->delete();
                 $this->createTeamsForRoom($room, $config['teams_config']);
             }

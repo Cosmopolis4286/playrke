@@ -6,39 +6,24 @@ use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Common\GameMode\GameMode;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Contrato para el catálogo de modos de juego (GameMode), administrable por
+ * admins y específico de cada juego (Bingo, Trivia, etc.).
+ */
 interface GameModeRepositoryInterface extends BaseRepositoryInterface
 {
-    public function getActiveGameModes(): Collection;
+    /**
+     * Modos de un juego (activos e inactivos).
+     */
+    public function getByGame(string $gameId): Collection;
 
-    public function getInactiveGameModes(): Collection;
+    /**
+     * Modos activos de un juego, para selects/formularios.
+     */
+    public function getActiveByGame(string $gameId): Collection;
 
-    public function getByLabel(string $label): ?GameMode;
-
-    public function searchByLabel(string $searchTerm): Collection;
-
-    public function activateGameMode($gameModeId): bool;
-
-    public function deactivateGameMode($gameModeId): bool;
-
-    public function createGameMode(string $code, string $label, bool $isActive = true): GameMode;
-
-    public function updateGameMode($gameModeId, array $data): bool;
-
-    public function existsByLabel(string $label): bool;
-
-    public function getGameModesWithPrizePoolTypes(): Collection;
-
-    public function getGameModesByStatus(bool $isActive = true): Collection;
-
-    public function toggleGameModeStatus($gameModeId): bool;
-
-    public function bulkActivateGameModes(array $gameModeIds): int;
-
-    public function bulkDeactivateGameModes(array $gameModeIds): int;
-
-    public function getGameModeStatistics(): array;
-
-    public function getRecentlyCreatedGameModes(int $days = 30): Collection;
-
-    public function getPopularGameModes(): Collection;
+    /**
+     * Verificar si existe un modo con ese código dentro del juego.
+     */
+    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null): bool;
 }
