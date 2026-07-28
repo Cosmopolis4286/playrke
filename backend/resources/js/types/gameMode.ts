@@ -17,8 +17,3 @@ export interface GameModeGameOption {
     name: string
     status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE'
 }
-
-export interface GameModePageProps {
-    gameModes: GameMode[]
-    games: GameModeGameOption[]
-}

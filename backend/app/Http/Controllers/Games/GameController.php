@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Games;
 
 use App\Http\Controllers\Controller;
 use App\Models\Game;
+use App\Services\Games\Common\GameMode\GameModeService;
+use App\Services\Games\Common\Room\RoomTypeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,13 +14,22 @@ use Inertia\Response;
 
 class GameController extends Controller
 {
+    public function __construct(
+        private readonly GameModeService $gameModeService,
+        private readonly RoomTypeService $roomTypeService,
+    ) {}
+
     public function index(): Response
     {
         $this->authorize('viewAny', Game::class);
 
+        $games = Game::orderBy('name')->get();
+
         return Inertia::render('Games/Index', [
-            'games'    => Game::orderBy('name')->get(),
-            'roleUser' => Auth::user()?->roles?->first()?->prefix ?? 'guest',
+            'games'     => $games,
+            'gameModes' => $this->gameModeService->listByGame(),
+            'roomTypes' => $this->roomTypeService->list(),
+            'roleUser'  => Auth::user()?->roles?->first()?->prefix ?? 'guest',
         ]);
     }
 

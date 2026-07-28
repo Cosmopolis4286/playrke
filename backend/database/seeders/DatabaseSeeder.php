@@ -30,7 +30,6 @@ class DatabaseSeeder extends Seeder
             GamePrizeSeeder::class,
             GameConfigSeeder::class,
             PrizePoolTypeSeeder::class,
-            GamePrizePoolTypeSeeder::class,
             BingoPatternSeeder::class,
             SettingSeeder::class,
             ModuleSeeder::class,

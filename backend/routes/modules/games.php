@@ -25,10 +25,11 @@ route_group(
 );
 
 // ====================================
-// CATÁLOGOS DE JUEGO (superadmin) — consumidos por la pantalla con tabs
-// de games.index: Modos de Juego, Tipos de Sala, Tipos de Bote.
+// CATÁLOGOS DE JUEGO — consumidos por la pantalla con tabs de games.index:
+// Modos de Juego, Tipos de Sala, Tipos de Bote. Mismo nivel de acceso que
+// gestionar el catálogo de Juegos en sí (GamePolicy: superadmin, admin).
 // ====================================
-Route::middleware(['auth', 'role:superadmin'])->group(function () {
+Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     // Modos de juego (catálogo dinámico por juego)
     Route::get('game-modes/fetch-list',   [GameModeController::class, 'fetchList'])    ->name('game-modes.fetch-list');
     Route::get('game-modes/{id}',         [GameModeController::class, 'show'])         ->name('game-modes.show');
