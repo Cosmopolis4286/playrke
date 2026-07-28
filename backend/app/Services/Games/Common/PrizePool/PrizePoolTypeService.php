@@ -73,7 +73,8 @@ final class PrizePoolTypeService
         // /bingo_rooms_automatic ya protege el borrado a nivel de BD, pero se
         // valida aquí también para dar un mensaje claro en vez de un 500.
         $inUse = DB::table('bingo_rooms_config')->where('prize_pool_type_id', $id)->exists()
-            || DB::table('bingo_rooms_automatic')->where('prize_pool_type_id', $id)->exists();
+            || DB::table('bingo_rooms_automatic')->where('prize_pool_type_id', $id)->exists()
+            || DB::table('bingo_room_templates')->where('prize_pool_type_id', $id)->exists();
 
         if ($inUse) {
             throw new \InvalidArgumentException('No se puede eliminar: hay salas de Bingo usando este tipo de bote. Desactívalo en su lugar.');
