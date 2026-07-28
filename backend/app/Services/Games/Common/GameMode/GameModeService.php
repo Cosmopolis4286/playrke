@@ -13,32 +13,38 @@ final class GameModeService
         private readonly GameModeRepositoryInterface $gameModes,
     ) {}
 
-    public function listByGame(string $gameId): Collection
+    public function listByGame(?string $gameId = null): Collection
     {
-        return $this->gameModes->getByGame($gameId);
+        return $gameId ? $this->gameModes->getByGame($gameId) : $this->gameModes->all();
     }
 
-    public function create(string $gameId, string $code, string $label): GameMode
+    public function find(string $gameModeId): GameMode
     {
-        $code = strtoupper($code);
+        /** @var GameMode */
+        return $this->gameModes->findOrFail($gameModeId);
+    }
 
-        if ($this->gameModes->existsByGameAndCode($gameId, $code)) {
+    public function create(array $data): GameMode
+    {
+        $code = strtoupper($data['code']);
+
+        if ($this->gameModes->existsByGameAndCode($data['game_id'], $code)) {
             throw new \InvalidArgumentException("Ya existe un modo con código '{$code}' para este juego.");
         }
 
         return $this->gameModes->create([
-            'game_id' => $gameId,
+            'game_id' => $data['game_id'],
             'code' => $code,
-            'label' => $label,
-            'status' => 'ACTIVE',
+            'label' => $data['label'],
+            'status' => $data['status'] ?? 'ACTIVE',
         ]);
     }
 
-    public function update(string $gameModeId, string $code, string $label): GameMode
+    public function update(string $gameModeId, array $data): GameMode
     {
         /** @var GameMode $gameMode */
         $gameMode = $this->gameModes->findOrFail($gameModeId);
-        $code = strtoupper($code);
+        $code = strtoupper($data['code']);
 
         if ($this->gameModes->existsByGameAndCode($gameMode->game_id, $code, $gameModeId)) {
             throw new \InvalidArgumentException("Ya existe un modo con código '{$code}' para este juego.");
@@ -46,7 +52,8 @@ final class GameModeService
 
         return $this->gameModes->update($gameModeId, [
             'code' => $code,
-            'label' => $label,
+            'label' => $data['label'],
+            'status' => $data['status'] ?? $gameMode->status,
         ]);
     }
 

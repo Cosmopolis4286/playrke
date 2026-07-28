@@ -202,6 +202,11 @@ class SidebarMenuService
                     'route' => 'games.index',
                     'permission' => 'games.manage',
                 ],
+                'game_modes' => [
+                    'title' => 'Modos de Juego',
+                    'route' => 'game-modes.index',
+                    'permission' => 'superadmin.access',
+                ],
                 'settings' => [
                     'title' => 'Configuración',
                     'route' => 'settings.index',

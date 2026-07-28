@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Games\GameController;
 use App\Http\Controllers\Games\Common\GameModeController;
+use App\Http\Controllers\Games\Common\RoomTypeController;
+use Illuminate\Support\Facades\Route;
 
 // ====================================
 // JUEGOS (GAMES)
@@ -23,18 +25,23 @@ route_group(
 );
 
 // ====================================
-// MODOS DE JUEGO (GAME MODES) — catálogo dinámico por juego
+// CATÁLOGOS DE JUEGO (superadmin) — consumidos por la pantalla con tabs
+// de games.index: Modos de Juego, Tipos de Sala, Tipos de Bote.
 // ====================================
-route_group(
-    'game-modes',
-    'game-modes.',
-    ['auth', 'role:superadmin'],
-    GameModeController::class,
-    [
-        'fetchList'    => ['method' => 'get', 'uri' => 'by-game/{game}'],
-        'store'        => ['method' => 'post', 'uri' => ''],
-        'update'       => ['method' => 'put', 'uri' => '{gameMode}'],
-        'toggleStatus' => ['method' => 'put', 'uri' => '{gameMode}/status'],
-        'destroy'      => ['method' => 'delete', 'uri' => '{gameMode}'],
-    ]
-);
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
+    // Modos de juego (catálogo dinámico por juego)
+    Route::get('game-modes/fetch-list',   [GameModeController::class, 'fetchList'])    ->name('game-modes.fetch-list');
+    Route::get('game-modes/{id}',         [GameModeController::class, 'show'])         ->name('game-modes.show');
+    Route::post('game-modes',             [GameModeController::class, 'store'])        ->name('game-modes.store');
+    Route::put('game-modes/{id}',         [GameModeController::class, 'update'])       ->name('game-modes.update');
+    Route::put('game-modes/{id}/delete',  [GameModeController::class, 'delete'])       ->name('game-modes.delete');
+    Route::put('game-modes/{id}/status',  [GameModeController::class, 'toggleStatus']) ->name('game-modes.status');
+
+    // Tipos de sala (catálogo global)
+    Route::get('room-types/fetch-list',   [RoomTypeController::class, 'fetchList'])    ->name('room-types.fetch-list');
+    Route::get('room-types/{id}',         [RoomTypeController::class, 'show'])         ->name('room-types.show');
+    Route::post('room-types',             [RoomTypeController::class, 'store'])        ->name('room-types.store');
+    Route::put('room-types/{id}',         [RoomTypeController::class, 'update'])       ->name('room-types.update');
+    Route::put('room-types/{id}/delete',  [RoomTypeController::class, 'delete'])       ->name('room-types.delete');
+    Route::put('room-types/{id}/status',  [RoomTypeController::class, 'toggleStatus']) ->name('room-types.status');
+});
