@@ -67,11 +67,6 @@ class ConnectionTypeRepository extends BaseRepository implements ConnectionTypeR
         return $this->model->where('label', $label)->exists();
     }
 
-    public function getConnectionTypesWithPrizePoolTypes(): Collection
-    {
-        return $this->model->with('gamePrizePoolTypes')->get();
-    }
-
     public function getConnectionTypesByStatus(bool $isActive = true): Collection
     {
         return $this->model->where('status', $isActive ? 'ACTIVE' : 'INACTIVE')->get();
@@ -123,10 +118,4 @@ class ConnectionTypeRepository extends BaseRepository implements ConnectionTypeR
             ->get();
     }
 
-    public function getPopularConnectionTypes(): Collection
-    {
-        return $this->model->withCount('gamePrizePoolTypes')
-            ->orderBy('game_prize_pool_types_count', 'desc')
-            ->get();
-    }
 }

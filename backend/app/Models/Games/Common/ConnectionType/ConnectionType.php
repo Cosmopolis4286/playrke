@@ -4,8 +4,6 @@ namespace App\Models\Games\Common\ConnectionType;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\SnowflakeId;
-use App\Models\Games\Common\PrizePool\GamePrizePoolType;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modelo para tipos de conexión (ConnectionType).
@@ -80,15 +78,5 @@ class ConnectionType extends Model
     public function isInactive(): bool
     {
         return $this->status === 'INACTIVE';
-    }
-
-    /**
-     * Tipos de pozo de premios asociados a este tipo de conexión.
-     *
-     * @return HasMany
-     */
-    public function gamePrizePoolTypes(): HasMany
-    {
-        return $this->hasMany(GamePrizePoolType::class, 'connection_type_id');
     }
 }

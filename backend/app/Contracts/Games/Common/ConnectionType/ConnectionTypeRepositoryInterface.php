@@ -26,8 +26,6 @@ interface ConnectionTypeRepositoryInterface extends BaseRepositoryInterface
 
     public function existsByLabel(string $label): bool;
 
-    public function getConnectionTypesWithPrizePoolTypes(): Collection;
-
     public function getConnectionTypesByStatus(bool $isActive = true): Collection;
 
     public function toggleConnectionTypeStatus($connectionTypeId): bool;
@@ -39,6 +37,4 @@ interface ConnectionTypeRepositoryInterface extends BaseRepositoryInterface
     public function getConnectionTypeStatistics(): array;
 
     public function getRecentlyCreatedConnectionTypes(int $days = 30): Collection;
-
-    public function getPopularConnectionTypes(): Collection;
 }
