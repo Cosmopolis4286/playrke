@@ -11,10 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('history_plays')) {
-            return;
-        }
-
         Schema::create('history_plays', function (Blueprint $table) {
             // ID Snowflake único (PRIMARY KEY)
             $table->snowflake('id')->primary()->comment('ID único del historial de juego');

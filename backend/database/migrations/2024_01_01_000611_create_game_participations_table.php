@@ -18,10 +18,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('game_participations')) {
-            return;
-        }
-
         Schema::create('game_participations', function (Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');

@@ -11,10 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('treasurers_currencies')) {
-            return;
-        }
-
         Schema::create('treasurers_currencies', function (Blueprint $table) {
             // Tesorero
             $table->foreignSnowflake('treasurer_id')
@@ -45,9 +41,10 @@ return new class extends Migration
             // Soft deletes
             $table->softDeletes();
 
-            // Índices para optimizar búsquedas frecuentes
+            // Índice único: la PRIMARY KEY compuesta ya cubre la búsqueda por
+            // (treasurer_id, currency_id); se elimina el INDEX redundante
+            // 'idx_treasurer_currency' que existía sobre las mismas columnas.
             $table->primary(['treasurer_id', 'currency_id']);
-            $table->index(['treasurer_id', 'currency_id'], 'idx_treasurer_currency');
         });
     }
 

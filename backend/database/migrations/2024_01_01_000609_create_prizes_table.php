@@ -8,13 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('prizes')) {
-            return;
-        }
-
         Schema::create('prizes', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary();
 
             $table->string('code', 12)->comment('Código único del premio');
             $table->string('slug', 80);

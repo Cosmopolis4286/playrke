@@ -8,13 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('game_exchange_rates')) {
-            return;
-        }
-
         Schema::create('game_exchange_rates', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary();
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
             $table->foreignSnowflake('currency_id')->constrained('currencies')->onDelete('cascade');
             $table->integer('room');
