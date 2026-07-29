@@ -183,7 +183,7 @@ return new class extends Migration
             $table->index('is_scheduled', 'idx_bingo_rooms_config_is_scheduled');
             $table->index('room_type_id', 'idx_room_type_id');
             $table->index('creator_user_id', 'idx_creator_user_id');
-            $table->index('connection_type_id', 'idx_game_mode_id');
+            $table->index('connection_type_id', 'idx_connection_type_id');
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
             $table->index(['date', 'time'], 'idx_datetime');
             $table->index(['status'], 'idx_status');
