@@ -8,6 +8,24 @@ use Spatie\Permission\Models\Permission;
 
 class PermissionSeeder extends Seeder
 {
+    /**
+     * Permisos que gobiernan el propio sistema de roles/permisos y la
+     * configuración global — si se editan o eliminan por error, pueden dejar
+     * sin acceso administrativo a toda la plataforma (ver PermissionPolicy).
+     */
+    private const SYSTEM_PERMISSIONS = [
+        'superadmin.access',
+        'roles.view',
+        'roles.create',
+        'roles.edit',
+        'roles.delete',
+        'roles.assign',
+        'system.settings',
+        'system.maintenance',
+        'system.logs',
+        'system.backup',
+    ];
+
     public function run(): void
     {
         $timestamp = now();
@@ -167,6 +185,8 @@ class PermissionSeeder extends Seeder
                     'id' => $snowflake->id(),
                     'name' => $permission['name'],
                     'guard_name' => $permission['guard_name'],
+                    'description' => $permission['description'] ?? null,
+                    'is_system' => in_array($permission['name'], self::SYSTEM_PERMISSIONS, true),
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp,
                 ]);

@@ -33,6 +33,8 @@ class DatabaseSeeder extends Seeder
             BingoPatternSeeder::class,
             SettingSeeder::class,
             ModuleSeeder::class,
+            TosVersionSeeder::class,
+            WithdrawalLimitSeeder::class,
             RoleSeeder::class,
             PermissionSeeder::class,
             RolePermissionSeeder::class,
