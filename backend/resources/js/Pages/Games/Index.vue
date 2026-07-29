@@ -1,145 +1,90 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { ref, computed } from 'vue'
 
-  // ==========================================================================
-  // Componentes
-  // ==========================================================================
-  import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
-  import Modal    from '@/js/Components/Common/Modal/Modal.vue'
-  import GameForm from '@/js/Components/games/GameForm.vue'
+  import GamesTab from '@/js/Components/games/GamesTab.vue'
+  import GameModesTab from '@/js/Components/games/GameModesTab.vue'
+  import RoomTypesTab from '@/js/Components/games/RoomTypesTab.vue'
+  import PrizePoolTypesTab from '@/js/Components/games/PrizePoolTypesTab.vue'
 
-  // ==========================================================================
-  // Composables
-  // ==========================================================================
-  import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
-  import { useModalForm }         from '@/js/composables/common/useModalForm'
-  import { useGame }              from '@/js/composables/games/useGame'
+  import type { GamePageProps } from '@js/types/game'
+  import type { GameModeGameOption } from '@js/types/gameMode'
 
-  // ==========================================================================
-  // Types
-  // ==========================================================================
-  import type { GamePageProps }          from '@js/types/game'
-  import type { Column }                 from '@js/types/common/table/column-row'
-  import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
-
-  // ==========================================================================
-  // Props (Inertia)
-  // ==========================================================================
   const props = defineProps<GamePageProps>()
 
-  // ==========================================================================
-  // Lógica de negocio
-  // ==========================================================================
-  const isPrivileged = computed(() => ['superadmin', 'admin'].includes(props.roleUser?.toLowerCase()))
+  // Cada juego expuesto como opción {id, name, status} para los selects de
+  // los catálogos hijos (Modos de Juego, Tipos de Bote).
+  const gameOptions = computed<GameModeGameOption[]>(() =>
+    props.games.map(g => ({ id: g.id, name: g.name, status: g.status }))
+  )
 
-  const {
-    gameData,
-    games,
-    setInitialGames,
-    create,
-    edit,
-    remove,
-    toggleStatus,
-    submit,
-  } = useGame()
+  type TabKey = 'games' | 'gameModes' | 'roomTypes' | 'prizePoolTypes'
 
-  setInitialGames(props.games)
-
-  // ==========================================================================
-  // Modal
-  // ==========================================================================
-  const {
-    showModalForm,
-    modalTitle,
-    formRef: gameFormRef,
-    handleSubmit,
-  } = useModalForm(gameData, submit, { defaultTitle: 'Juego' })
-
-  // ==========================================================================
-  // Eventos de tabla (CRUD global)
-  // ==========================================================================
-  useCrudEventListener({
-    create: () => {
-      create()
-      showModalForm.value = true
-    },
-    edit: async ids => {
-      if (!ids || ids.length !== 1) return
-      const ok = await edit(ids[0])
-      if (ok) showModalForm.value = true
-    },
-    delete: async ids => {
-      if (!ids) return
-      for (const id of ids) await remove(id)
-    },
-    toggleStatus: async ids => {
-      if (!ids) return
-      for (const id of ids) await toggleStatus(id)
-    },
-  })
-
-  // ==========================================================================
-  // Columnas
-  // ==========================================================================
-  const columns: Column[] = [
-    { key: 'name',   label: 'Nombre' },
-    { key: 'status', label: 'Estado' },
+  const TABS: { key: TabKey; label: string; icon: string }[] = [
+    { key: 'games',          label: 'Juegos',          icon: 'fas fa-gamepad' },
+    { key: 'gameModes',      label: 'Modos de Juego',  icon: 'fas fa-sliders-h' },
+    { key: 'roomTypes',      label: 'Tipos de Sala',   icon: 'fas fa-door-open' },
+    { key: 'prizePoolTypes', label: 'Tipos de Bote',   icon: 'fas fa-coins' },
   ]
 
-  // ==========================================================================
-  // Filtros
-  // ==========================================================================
-  const filters = computed<readonly TableFilterInterface[]>(() => [
-    {
-      key: 'status',
-      label: 'Estado',
-      placeholder: 'Filtrar por estado',
-      options: [
-        { value: 'ACTIVE',      label: 'Activo' },
-        { value: 'INACTIVE',    label: 'Inactivo' },
-        { value: 'MAINTENANCE', label: 'Mantenimiento' },
-      ] as TableFilterOption[],
-    },
-  ])
+  const activeTab = ref<TabKey>('games')
+
+  // Cada tab monta su propio componente (con su propio useCrudEventListener)
+  // solo cuando está activo — evita que los listeners de eventos CRUD
+  // globales (window 'table:crud') de una tabla inactiva reaccionen a
+  // acciones de la tabla visible, ya que el evento no distingue por tabla.
 </script>
 
 <template>
-  <TableWithFilterBridge
-    table-id="games-table"
-    title="Catálogo de Juegos"
-    subtitle="Gestión de juegos disponibles en la plataforma"
-    :columns="columns"
-    :rows="games"
-    :filters="filters"
-    search-placeholder="Buscar por nombre..."
-    :show-create-button="isPrivileged"
-    show-edit-button
-    show-delete-button
-    empty-message="No hay juegos registrados"
-  >
-    <!-- Estado -->
-    <template #cell-status="{ row }">
-      <span :class="['badge', {
-        'badge-success':   row.status === 'ACTIVE',
-        'badge-secondary': row.status === 'INACTIVE',
-        'badge-warning':   row.status === 'MAINTENANCE',
-      }]">
-        {{ row.status === 'ACTIVE' ? 'Activo' : row.status === 'INACTIVE' ? 'Inactivo' : 'Mantenimiento' }}
-      </span>
-    </template>
-  </TableWithFilterBridge>
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <h1 class="m-0 font-weight-bold">Catálogo de Juegos</h1>
+          <p class="text-muted mb-0 mt-1">
+            Juegos, modos de juego, tipos de sala y tipos de bote de la plataforma
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <Modal
-    v-model="showModalForm"
-    :title="modalTitle"
-    static
-    show-confirm
-    :on-submit="handleSubmit"
-    :confirm-disabled="!(gameFormRef?.isValid ?? false)"
-  >
-    <GameForm
-      ref="gameFormRef"
-      v-model="gameData"
-    />
-  </Modal>
+  <section class="content">
+    <div class="container-fluid">
+      <ul class="nav nav-tabs mb-3">
+        <li v-for="tab in TABS" :key="tab.key" class="nav-item">
+          <button
+            type="button"
+            class="nav-link"
+            :class="{ active: activeTab === tab.key }"
+            @click="activeTab = tab.key"
+          >
+            <i :class="tab.icon" class="mr-1"></i>{{ tab.label }}
+          </button>
+        </li>
+      </ul>
+
+      <GamesTab
+        v-if="activeTab === 'games'"
+        :games="props.games"
+        :role-user="props.roleUser"
+      />
+
+      <GameModesTab
+        v-else-if="activeTab === 'gameModes'"
+        :game-modes="props.gameModes"
+        :games="gameOptions"
+      />
+
+      <RoomTypesTab
+        v-else-if="activeTab === 'roomTypes'"
+        :room-types="props.roomTypes"
+      />
+
+      <PrizePoolTypesTab
+        v-else-if="activeTab === 'prizePoolTypes'"
+        :prize-pool-types="props.prizePoolTypes"
+        :games="gameOptions"
+      />
+    </div>
+  </section>
 </template>

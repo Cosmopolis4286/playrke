@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Games;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Services\Games\Common\GameMode\GameModeService;
+use App\Services\Games\Common\PrizePool\PrizePoolTypeService;
 use App\Services\Games\Common\Room\RoomTypeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class GameController extends Controller
     public function __construct(
         private readonly GameModeService $gameModeService,
         private readonly RoomTypeService $roomTypeService,
+        private readonly PrizePoolTypeService $prizePoolTypeService,
     ) {}
 
     public function index(): Response
@@ -26,10 +28,11 @@ class GameController extends Controller
         $games = Game::orderBy('name')->get();
 
         return Inertia::render('Games/Index', [
-            'games'     => $games,
-            'gameModes' => $this->gameModeService->listByGame(),
-            'roomTypes' => $this->roomTypeService->list(),
-            'roleUser'  => Auth::user()?->roles?->first()?->prefix ?? 'guest',
+            'games'          => $games,
+            'gameModes'      => $this->gameModeService->listByGame(),
+            'roomTypes'      => $this->roomTypeService->list(),
+            'prizePoolTypes' => $this->prizePoolTypeService->listByGame(),
+            'roleUser'       => Auth::user()?->roles?->first()?->prefix ?? 'guest',
         ]);
     }
 

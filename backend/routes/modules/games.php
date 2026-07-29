@@ -3,6 +3,7 @@
 use App\Http\Controllers\Games\GameController;
 use App\Http\Controllers\Games\Common\GameModeController;
 use App\Http\Controllers\Games\Common\RoomTypeController;
+use App\Http\Controllers\Games\Common\PrizePoolTypeController;
 use Illuminate\Support\Facades\Route;
 
 // ====================================
@@ -45,4 +46,12 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::put('room-types/{id}',         [RoomTypeController::class, 'update'])       ->name('room-types.update');
     Route::put('room-types/{id}/delete',  [RoomTypeController::class, 'delete'])       ->name('room-types.delete');
     Route::put('room-types/{id}/status',  [RoomTypeController::class, 'toggleStatus']) ->name('room-types.status');
+
+    // Tipos de bote (catálogo dinámico por juego)
+    Route::get('prize-pool-types/fetch-list',   [PrizePoolTypeController::class, 'fetchList'])    ->name('prize-pool-types.fetch-list');
+    Route::get('prize-pool-types/{id}',         [PrizePoolTypeController::class, 'show'])         ->name('prize-pool-types.show');
+    Route::post('prize-pool-types',             [PrizePoolTypeController::class, 'store'])        ->name('prize-pool-types.store');
+    Route::put('prize-pool-types/{id}',         [PrizePoolTypeController::class, 'update'])       ->name('prize-pool-types.update');
+    Route::put('prize-pool-types/{id}/delete',  [PrizePoolTypeController::class, 'delete'])       ->name('prize-pool-types.delete');
+    Route::put('prize-pool-types/{id}/status',  [PrizePoolTypeController::class, 'toggleStatus']) ->name('prize-pool-types.status');
 });
