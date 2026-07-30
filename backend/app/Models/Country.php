@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Roles\Seller;
-use App\Models\Users\Player\External\ExternalPlayer;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
