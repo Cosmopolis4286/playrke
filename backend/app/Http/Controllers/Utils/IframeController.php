@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Utils;
 // Models
 
 use App\Http\Controllers\Controller;
-use App\Repositories\User\Roles\RoleRepository;
+use App\Models\Roles\Customer;
 use App\Traits\Users\Roles\Customer\CustomerTrait;
 // Traits
 use App\Traits\Users\UserTrait;
@@ -16,13 +16,13 @@ class IframeController extends Controller
 
     public function index()
     {
-        $user = $this->user(['id', 'user_type']);
+        $user = $this->user(['id']);
 
-        if (RoleRepository::getValueById($user->user_type, 'prefix') !== 'customer') {
+        if (!$user || !$user->roles->contains('prefix', 'customer')) {
             return redirect()->back();
         }
 
-        $customer = Customer::getByUserId($user->id, ['id', 'customer_id']);
+        $customer = Customer::where('user_id', $user->id)->select(['id', 'customer_id'])->first();
 
         $iframes = [
             [
@@ -53,9 +53,9 @@ class IframeController extends Controller
 
     public function getRouteGameRooms($userToken)
     {
-        $user = $this->user(['id', 'user_type']);
+        $user = $this->user(['id']);
 
-        if (RoleRepository::getValueById($user->user_type, 'prefix') !== 'customer') {
+        if (!$user || !$user->roles->contains('prefix', 'customer')) {
             return redirect()->back();
         }
 
