@@ -16,18 +16,14 @@
       </div>
 
       <div class="toolbar-actions">
+        <button class="btn btn-outline-secondary" :disabled="hasChanges" @click="showCopyModal = true">
+          <i class="fas fa-copy mr-2"></i>Copiar permisos
+        </button>
         <button class="btn btn-outline-primary" :disabled="loading" @click="$emit('reload')">
           <i class="fas fa-sync-alt mr-2" :class="{ 'fa-spin': loading }"></i>Recargar
         </button>
-        <button class="btn btn-primary" @click="showCreateModal = true">
+        <button class="btn btn-primary" @click="openCreateModal">
           <i class="fas fa-plus mr-2"></i>Nuevo permiso
-        </button>
-        <button
-          class="btn btn-success"
-          :disabled="!hasChanges || saving"
-          @click="handleSave"
-        >
-          <i class="fas fa-save mr-2"></i>{{ saving ? 'Guardando...' : `Guardar cambios${pendingChangeCount ? ` (${pendingChangeCount})` : ''}` }}
         </button>
       </div>
     </div>
@@ -40,27 +36,41 @@
       </p>
     </div>
 
-    <!-- Grid de permisos (columnas por rol) -->
-    <div v-else class="matrix-card">
-      <div class="matrix-scroll">
-        <div class="matrix-grid" :style="gridTemplateStyle">
-          <!-- Header -->
-          <div class="grid-head grid-head--permission">Permiso</div>
-          <div class="grid-head grid-head--module">Módulo</div>
-          <div v-for="role in displayRoles" :key="role.id" class="grid-head grid-head--role">
-            <span class="badge role-badge" :class="getRoleBadgeClass(role.name)">
-              {{ formatRoleName(role.name) }}
-            </span>
-          </div>
-          <div class="grid-head grid-head--actions"></div>
+    <!-- Grid de permisos — vista desktop/tablet (>=769px) -->
+    <div v-else class="matrix-card d-none d-md-block">
+      <div class="matrix-grid" :style="gridTemplateStyle">
+        <!-- Header -->
+        <div class="grid-head grid-head--permission">Permiso</div>
+        <div class="grid-head grid-head--module">Módulo</div>
+        <div v-for="role in displayRoles" :key="role.id" class="grid-head grid-head--role">
+          <label class="bulk-checkbox-wrapper" :title="`Seleccionar todos los permisos para ${formatRoleName(role.name)}`">
+            <input
+              type="checkbox"
+              class="custom-checkbox bulk-checkbox"
+              :checked="bulkSelection.isColumnFullyChecked(role.id)"
+              :ref="el => setColumnCheckboxRef(el, role.id)"
+              :disabled="isRoleSuperadmin(role.name) || saving"
+              @change="bulkSelection.toggleColumn(role.id)"
+            />
+          </label>
+          <RoleBadge :name="role.name" />
+        </div>
+        <div class="grid-head grid-head--actions"></div>
 
-          <!-- Grupos -->
-          <template v-for="category in permissionCategories" :key="category.name">
-            <button
-              class="grid-category"
-              :style="{ gridColumn: `1 / -1` }"
-              @click="toggleCollapse(category.name)"
-            >
+        <!-- Grupos -->
+        <template v-for="category in permissionCategories" :key="category.name">
+          <div class="grid-category" :style="{ gridColumn: `1 / -1` }">
+            <label class="bulk-checkbox-wrapper" title="Seleccionar toda la categoría" @click.stop>
+              <input
+                type="checkbox"
+                class="custom-checkbox bulk-checkbox"
+                :checked="bulkSelection.isCategoryFullyChecked(category.permissions)"
+                :ref="el => setCategoryCheckboxRef(el, category.name)"
+                :disabled="saving"
+                @change="bulkSelection.toggleCategory(category.permissions)"
+              />
+            </label>
+            <button class="grid-category-toggle" @click="toggleCollapse(category.name)">
               <i class="fas fa-chevron-right collapse-caret" :class="{ 'is-open': !isCollapsed(category.name) }"></i>
               <span class="category-dot"></span>
               <span class="category-title">
@@ -72,89 +82,198 @@
               </span>
               <span class="category-count">({{ category.permissions.length }})</span>
             </button>
+          </div>
 
-            <template v-if="!isCollapsed(category.name)">
-              <template v-for="permission in category.permissions" :key="permission.id">
-                <div class="grid-cell cell-permission">
-                  <i class="fas fa-key permission-key-icon"></i>
-                  <div class="permission-text">
-                    <span class="permission-name">
-                      {{ formatPermissionName(permission.name) }}
-                      <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
-                    </span>
-                    <code class="permission-slug">{{ permission.name }}</code>
-                  </div>
+          <template v-if="!isCollapsed(category.name)">
+            <template v-for="permission in category.permissions" :key="permission.id">
+              <div class="grid-cell cell-permission">
+                <i class="fas fa-key permission-key-icon"></i>
+                <div class="permission-text">
+                  <span class="permission-name">
+                    {{ formatPermissionName(permission.name) }}
+                    <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
+                  </span>
+                  <code class="permission-slug">{{ permission.name }}</code>
                 </div>
+              </div>
 
-                <div class="grid-cell cell-module">
-                  <span class="badge badge-light module-badge">{{ category.subModule || category.moduleName }}</span>
-                </div>
+              <div class="grid-cell cell-module">
+                <span class="badge badge-light module-badge">{{ category.subModule || category.moduleName }}</span>
+              </div>
 
-                <div v-for="role in displayRoles" :key="role.id" class="grid-cell cell-role">
-                  <div class="custom-checkbox-wrapper">
-                    <input
-                      type="checkbox"
-                      class="custom-checkbox"
-                      :checked="isRoleSuperadmin(role.name) || hasPermission(role.id, permission.id)"
-                      :disabled="permission.is_system || saving || isRoleSuperadmin(role.name)"
-                      :title="isRoleSuperadmin(role.name)
-                        ? 'SuperAdmin tiene todos los permisos por defecto y no es editable'
-                        : `${formatRoleName(role.name)} — ${permission.name}`"
-                      @change="$emit('toggle-permission', role.id, permission.id)"
-                    />
-                  </div>
+              <div v-for="role in displayRoles" :key="role.id" class="grid-cell cell-role">
+                <div class="custom-checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    class="custom-checkbox"
+                    :checked="isRoleSuperadmin(role.name) || hasPermission(role.id, permission.id)"
+                    :disabled="permission.is_system || saving || isRoleSuperadmin(role.name)"
+                    :title="isRoleSuperadmin(role.name)
+                      ? 'SuperAdmin tiene todos los permisos por defecto y no es editable'
+                      : `${formatRoleName(role.name)} — ${permission.name}`"
+                    @change="$emit('toggle-permission', role.id, permission.id)"
+                  />
                 </div>
+              </div>
 
-                <div class="grid-cell cell-actions">
-                  <button
-                    v-if="!permission.is_system"
-                    class="permission-delete"
-                    title="Eliminar permiso"
-                    @click="handleDelete(permission.id, permission.name)"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </template>
+              <div class="grid-cell cell-actions">
+                <button
+                  v-if="!permission.is_system"
+                  class="row-action-btn"
+                  title="Editar permiso"
+                  @click="openEditModal(permission)"
+                >
+                  <i class="fas fa-pencil-alt"></i>
+                </button>
+                <button
+                  v-if="!permission.is_system"
+                  class="row-action-btn row-action-btn--danger"
+                  title="Eliminar permiso"
+                  @click="handleDelete(permission.id, permission.name)"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
             </template>
           </template>
-        </div>
+        </template>
       </div>
     </div>
 
-    <!-- Modal crear permiso -->
+    <!-- Vista mobile (<769px): tarjetas por permiso -->
+    <div v-if="permissionCategories.length" class="mobile-cards d-md-none">
+      <div v-for="category in permissionCategories" :key="category.name" class="mobile-category">
+        <button class="mobile-category-header" @click="toggleCollapse(category.name)">
+          <i class="fas fa-chevron-right collapse-caret" :class="{ 'is-open': !isCollapsed(category.name) }"></i>
+          <span class="category-title">
+            {{ category.moduleName }}
+            <template v-if="category.subModule">
+              <i class="fas fa-angle-right category-sep"></i>
+              <span class="category-sub">{{ category.subModule }}</span>
+            </template>
+          </span>
+          <span class="category-count">({{ category.permissions.length }})</span>
+        </button>
+
+        <template v-if="!isCollapsed(category.name)">
+          <div v-for="permission in category.permissions" :key="permission.id" class="mobile-perm-card">
+            <div class="mobile-perm-card__header">
+              <div class="permission-text">
+                <span class="permission-name">
+                  {{ formatPermissionName(permission.name) }}
+                  <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
+                </span>
+                <code class="permission-slug">{{ permission.name }}</code>
+              </div>
+              <div v-if="!permission.is_system" class="mobile-perm-card__actions">
+                <button class="row-action-btn" title="Editar permiso" @click="openEditModal(permission)">
+                  <i class="fas fa-pencil-alt"></i>
+                </button>
+                <button class="row-action-btn row-action-btn--danger" title="Eliminar permiso" @click="handleDelete(permission.id, permission.name)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mobile-perm-card__roles">
+              <label
+                v-for="role in displayRoles"
+                :key="role.id"
+                class="mobile-role-toggle"
+                :class="{ 'is-disabled': permission.is_system || isRoleSuperadmin(role.name) }"
+              >
+                <input
+                  type="checkbox"
+                  :checked="isRoleSuperadmin(role.name) || hasPermission(role.id, permission.id)"
+                  :disabled="permission.is_system || saving || isRoleSuperadmin(role.name)"
+                  @change="$emit('toggle-permission', role.id, permission.id)"
+                />
+                <RoleBadge :name="role.name" />
+              </label>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Barra sticky de guardado, visible solo con cambios pendientes -->
+    <Transition name="save-bar">
+      <div v-if="hasChanges" class="save-bar">
+        <span class="save-bar__text">
+          <i class="fas fa-circle-exclamation mr-2"></i>
+          Tienes {{ pendingChangeCount }} cambio{{ pendingChangeCount === 1 ? '' : 's' }} sin guardar
+        </span>
+        <div class="save-bar__actions">
+          <button class="btn btn-outline-light btn-sm" :disabled="saving" @click="$emit('reload')">Descartar</button>
+          <button class="btn btn-success btn-sm" :disabled="saving" @click="handleSave">
+            <i class="fas fa-save mr-2"></i>{{ saving ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Modal crear/editar permiso -->
     <Modal
-      v-model="showCreateModal"
-      title="Crear nuevo permiso"
+      v-model="showFormModal"
+      :title="editingPermission ? 'Editar permiso' : 'Crear nuevo permiso'"
       icon="fa-key"
       size="md"
       show-confirm
-      confirm-text="Crear permiso"
-      :confirm-disabled="!newPerm.name.trim()"
-      :on-submit="handleCreate"
+      :confirm-text="editingPermission ? 'Guardar cambios' : 'Crear permiso'"
+      :confirm-disabled="!formPerm.name.trim()"
+      :on-submit="handleSubmitForm"
     >
       <div class="form-group">
         <label>Nombre del Permiso</label>
         <input
-          v-model="newPerm.name"
+          v-model="formPerm.name"
           type="text"
           class="form-control"
           placeholder="ej: users.create"
           required
-          @keydown.enter.prevent="handleCreate"
+          @keydown.enter.prevent="handleSubmitForm"
         />
         <small class="form-text text-muted">Formato: modulo.accion</small>
       </div>
       <div class="form-group">
         <label>Guard</label>
-        <select v-model="newPerm.guard_name" class="form-control">
+        <select v-model="formPerm.guard_name" class="form-control">
           <option value="web">Web</option>
           <option value="api">API</option>
         </select>
       </div>
       <div class="form-group mb-0">
         <label>Descripción</label>
-        <textarea v-model="newPerm.description" class="form-control" rows="3"></textarea>
+        <textarea v-model="formPerm.description" class="form-control" rows="3"></textarea>
+      </div>
+    </Modal>
+
+    <!-- Modal copiar permisos entre roles -->
+    <Modal
+      v-model="showCopyModal"
+      title="Copiar permisos entre roles"
+      icon="fa-copy"
+      size="md"
+      show-confirm
+      confirm-text="Copiar permisos"
+      :confirm-disabled="!copyForm.sourceRoleId || !copyForm.targetRoleId || copyForm.sourceRoleId === copyForm.targetRoleId"
+      :on-submit="handleCopy"
+    >
+      <p class="text-muted small">
+        Los permisos del rol origen se añadirán al rol destino sin quitarle los que ya tenía.
+      </p>
+      <div class="form-group">
+        <label>Copiar de</label>
+        <select v-model="copyForm.sourceRoleId" class="form-control">
+          <option value="" disabled>Selecciona un rol origen</option>
+          <option v-for="role in displayRoles" :key="role.id" :value="role.id">{{ formatRoleName(role.name) }}</option>
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label>Hacia</label>
+        <select v-model="copyForm.targetRoleId" class="form-control">
+          <option value="" disabled>Selecciona un rol destino</option>
+          <option v-for="role in copyTargetRoles" :key="role.id" :value="role.id">{{ formatRoleName(role.name) }}</option>
+        </select>
       </div>
     </Modal>
   </div>
@@ -163,8 +282,11 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
+import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
 import Swal from 'sweetalert2'
-import { sortByRoleHierarchy, formatRoleName, getRoleBadgeClass, isRoleSuperadmin } from '@/js/utils/roles/roleDisplay'
+import { useToast } from 'vue-toastification'
+import { sortByRoleHierarchy, formatRoleName, isRoleSuperadmin } from '@/js/utils/roles/roleDisplay'
+import { useMatrixBulkSelection } from '@/js/composables/roles/admin/shared/useMatrixBulkSelection'
 
 interface Permission {
   id: string
@@ -195,24 +317,32 @@ const emit = defineEmits<{
   (e: 'reload'): void
   (e: 'save'): void
   (e: 'create-permission', data: { name: string; guard_name: string; description?: string }): void
+  (e: 'update-permission', permissionId: string, data: { name: string; guard_name: string; description?: string }): void
   (e: 'delete-permission', permissionId: string): void
+  (e: 'copy-permissions', sourceRoleId: string, targetRoleId: string): void
 }>()
 
+const toast = useToast()
+
 const saving = ref(false)
-const showCreateModal = ref(false)
-const newPerm = ref({ name: '', guard_name: 'web', description: '' })
+const showFormModal = ref(false)
+const showCopyModal = ref(false)
+const editingPermission = ref<Permission | null>(null)
+const formPerm = ref({ name: '', guard_name: 'web', description: '' })
+const copyForm = reactive({ sourceRoleId: '', targetRoleId: '' })
 const search = ref('')
 const collapsedGroups = reactive<Record<string, boolean>>({})
 
 // Orden jerárquico + formato de roles: ver utils/roleDisplay.ts (compartido
 // con SidebarMenuVisibilityMatrix.vue, antes duplicado en ambos componentes).
 const displayRoles = computed(() => sortByRoleHierarchy(props.roles))
+const copyTargetRoles = computed(() => displayRoles.value.filter(r => !isRoleSuperadmin(r.name)))
 
 // Grid CSS en vez de <table>: columnas fijas para permiso/módulo/acciones y
 // una columna igual por cada rol, calculadas dinámicamente según cuántos
 // roles trae el backend (antes era un <table> con <th> por rol).
 const gridTemplateStyle = computed(() => ({
-  gridTemplateColumns: `minmax(220px, 2fr) minmax(110px, 0.7fr) repeat(${displayRoles.value.length}, minmax(90px, 0.8fr)) 48px`,
+  gridTemplateColumns: `minmax(220px, 2fr) minmax(110px, 0.7fr) repeat(${displayRoles.value.length}, minmax(90px, 0.8fr)) 64px`,
 }))
 
 function toggleCollapse(categoryName: string) {
@@ -263,6 +393,54 @@ const permissionCategories = computed(() => {
   return sorted
 })
 
+// ── Selección masiva (columna = rol completo, categoría = grupo completo) ──
+// rows()/cols() leen de permissionCategories/displayRoles (ya filtrados por
+// búsqueda), para que "seleccionar todo" no afecte permisos ocultos por el
+// filtro activo.
+const bulkSelection = useMatrixBulkSelection<Permission, RoleWithPermissions>({
+  rows: () => permissionCategories.value.flatMap(c => c.permissions),
+  cols: () => displayRoles.value,
+  getValue: (permId, roleId) => {
+    const role = displayRoles.value.find(r => r.id === roleId)
+    return !!role && (isRoleSuperadmin(role.name) || props.hasPermission(roleId, permId))
+  },
+  setValue: (permId, roleId) => emit('toggle-permission', roleId, permId),
+  isCellDisabled: (permId, roleId) => {
+    const permission = permissionCategories.value
+      .flatMap(c => c.permissions)
+      .find(p => p.id === permId)
+    const role = displayRoles.value.find(r => r.id === roleId)
+    return !!permission?.is_system || !!role && isRoleSuperadmin(role.name)
+  },
+})
+
+// indeterminate no tiene binding declarativo en Vue — se setea a mano vía ref.
+// Los refs de función reciben Element | ComponentPublicInstance | null; estos
+// siempre apuntan a un <input>, de ahí el cast a HTMLInputElement.
+const columnCheckboxRefs = new Map<string, HTMLInputElement>()
+function setColumnCheckboxRef(el: unknown, roleId: string) {
+  if (el) {
+    const input = el as HTMLInputElement
+    columnCheckboxRefs.set(roleId, input)
+    input.indeterminate = bulkSelection.isColumnPartiallyChecked(roleId)
+  } else {
+    columnCheckboxRefs.delete(roleId)
+  }
+}
+const categoryCheckboxRefs = new Map<string, HTMLInputElement>()
+function setCategoryCheckboxRef(el: unknown, categoryName: string) {
+  if (el) {
+    const input = el as HTMLInputElement
+    categoryCheckboxRefs.set(categoryName, input)
+    const category = permissionCategories.value.find(c => c.name === categoryName)
+    if (category) {
+      input.indeterminate = bulkSelection.isCategoryPartiallyChecked(category.permissions)
+    }
+  } else {
+    categoryCheckboxRefs.delete(categoryName)
+  }
+}
+
 function categorize(name: string): { module: string; subModule: string | null } {
   const parts = name.split('.')
   const mainModule = parts[0]
@@ -294,12 +472,6 @@ function formatPermissionName(name: string): string {
   return parts.length === 2 ? `${act} ${mod}` : act
 }
 
-// formatRoleName / isRoleSuperadmin / getRoleBadgeClass: ver
-// utils/roles/roleDisplay.ts (importado arriba) — isRoleSuperadmin evita
-// que la UI insinúe que superadmin es editable: el backend ya lo garantiza
-// (PermissionService::createPermission auto-asigna permisos nuevos a
-// superadmin y revokePermissionsFromRole() ignora ese rol).
-
 async function handleSave() {
   saving.value = true
   try {
@@ -328,14 +500,47 @@ async function handleDelete(permissionId: string, permissionName: string) {
   if (result.isConfirmed) emit('delete-permission', permissionId)
 }
 
-async function handleCreate(): Promise<boolean> {
-  if (!newPerm.value.name.trim()) return false
-  emit('create-permission', {
-    name: newPerm.value.name.trim(),
-    guard_name: newPerm.value.guard_name,
-    description: newPerm.value.description || undefined,
-  })
-  newPerm.value = { name: '', guard_name: 'web', description: '' }
+function openCreateModal() {
+  editingPermission.value = null
+  formPerm.value = { name: '', guard_name: 'web', description: '' }
+  showFormModal.value = true
+}
+
+function openEditModal(permission: Permission) {
+  editingPermission.value = permission
+  formPerm.value = {
+    name: permission.name,
+    guard_name: permission.guard_name,
+    description: permission.description ?? '',
+  }
+  showFormModal.value = true
+}
+
+async function handleSubmitForm(): Promise<boolean> {
+  if (!formPerm.value.name.trim()) return false
+
+  const data = {
+    name: formPerm.value.name.trim(),
+    guard_name: formPerm.value.guard_name,
+    description: formPerm.value.description || undefined,
+  }
+
+  if (editingPermission.value) {
+    emit('update-permission', editingPermission.value.id, data)
+  } else {
+    emit('create-permission', data)
+  }
+
+  editingPermission.value = null
+  formPerm.value = { name: '', guard_name: 'web', description: '' }
+  return true
+}
+
+async function handleCopy(): Promise<boolean> {
+  if (!copyForm.sourceRoleId || !copyForm.targetRoleId || copyForm.sourceRoleId === copyForm.targetRoleId) return false
+  emit('copy-permissions', copyForm.sourceRoleId, copyForm.targetRoleId)
+  copyForm.sourceRoleId = ''
+  copyForm.targetRoleId = ''
   return true
 }
 </script>
@@ -402,21 +607,19 @@ async function handleCreate(): Promise<boolean> {
 }
 .matrix-empty i { font-size: 2.2rem; opacity: 0.5; }
 
-/* ── Card contenedora + scroll ── */
+/* ── Card contenedora: SIN scroll vertical propio — el único scroll
+   vertical es el del layout (#content-scrollable, ver auth-layout.blade.php).
+   overflow-x:auto conserva el scroll horizontal en pantallas angostas sin
+   bloquear el eje vertical; overflow-y:visible + "clip" en vez de "hidden"
+   evita que este contenedor se registre como scroll container y rompa el
+   position:sticky del header de la tabla. ── */
 .matrix-card {
   border: 1px solid var(--ds-border);
   border-radius: 12px;
   background: var(--ds-surface);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
 }
-
-.matrix-scroll {
-  max-height: calc(100vh - 300px);
-  overflow: auto;
-}
-.matrix-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-.matrix-scroll::-webkit-scrollbar-track { background: transparent; }
-.matrix-scroll::-webkit-scrollbar-thumb { background: var(--ds-border-2); border-radius: 6px; }
 
 /* ── Grid: reemplaza <table> — misma jerarquía visual (header + filas +
    separadores de grupo) sin depender de layout de tabla HTML. ── */
@@ -437,9 +640,12 @@ async function handleCreate(): Promise<boolean> {
   white-space: nowrap;
   padding: 0.6rem 0.75rem;
 }
-.grid-head--role { text-align: center; }
-
-.role-badge { font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+.grid-head--role {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
 
 /* Fila de categoría: ocupa todas las columnas (gridColumn: 1 / -1 inline) */
 .grid-category {
@@ -447,13 +653,21 @@ async function handleCreate(): Promise<boolean> {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   background: var(--ds-surface-2);
-  border: none;
   border-top: 1px solid var(--ds-border);
   border-bottom: 1px solid var(--ds-border);
+}
+.grid-category-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  border: none;
+  background: transparent;
   cursor: pointer;
   text-align: left;
+  padding: 0.15rem 0;
 }
 .collapse-caret {
   font-size: 0.65rem;
@@ -509,8 +723,11 @@ async function handleCreate(): Promise<boolean> {
 .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #34d399; }
 .custom-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
 
-.cell-actions { justify-content: center; }
-.permission-delete {
+.bulk-checkbox-wrapper { display: flex; align-items: center; cursor: pointer; }
+.bulk-checkbox { accent-color: #6366f1; }
+
+.cell-actions { justify-content: center; gap: 0.25rem; }
+.row-action-btn {
   border: none;
   background: transparent;
   color: var(--ds-text-muted);
@@ -518,28 +735,92 @@ async function handleCreate(): Promise<boolean> {
   padding: 0.35rem;
   border-radius: 6px;
 }
-.permission-delete:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.row-action-btn:hover { color: #6366f1; background: rgba(99, 102, 241, 0.1); }
+.row-action-btn--danger:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
 
-/* Filas de permiso (hover en todas sus celdas vía nth-selector no es viable
-   con grid puro sin envolver en contenedor extra; el hover por celda basta
-   para dar feedback visual sin reintroducir <table>). */
 .grid-cell:hover { background: var(--ds-surface-2); }
 
-/* ── Badges de rol ── */
-.badge-purple    { background-color: rgba(124,58,237,.18); color: #a78bfa; }
-.badge-blue      { background-color: rgba(37,99,235,.18);  color: #60a5fa; }
-.badge-green     { background-color: rgba(5,150,105,.18);  color: #34d399; }
-.badge-teal      { background-color: rgba(13,148,136,.18); color: #2dd4bf; }
-.badge-yellow    { background-color: rgba(217,119,6,.18);  color: #fbbf24; }
-.badge-orange    { background-color: rgba(234,88,12,.18);  color: #fb923c; }
-.badge-pink      { background-color: rgba(219,39,119,.18); color: #f472b6; }
-.badge-info      { background-color: rgba(5,81,96,.25);    color: #22d3ee; }
-.badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
+/* ── Vista mobile: tarjetas ── */
+.mobile-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+.mobile-category {
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+  overflow: clip;
+}
+.mobile-category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--ds-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--ds-border);
+  text-align: left;
+}
+.mobile-perm-card {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--ds-border);
+}
+.mobile-perm-card:last-child { border-bottom: none; }
+.mobile-perm-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.mobile-perm-card__actions { display: flex; gap: 0.15rem; flex-shrink: 0; }
+.mobile-perm-card__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mobile-role-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.mobile-role-toggle.is-disabled { opacity: 0.6; cursor: not-allowed; }
+.mobile-role-toggle input { width: 18px; height: 18px; accent-color: #34d399; flex-shrink: 0; }
+
+/* ── Barra sticky de guardado ── */
+.save-bar {
+  position: sticky;
+  bottom: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #1f2937;
+  color: #f9fafb;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.save-bar__text { font-size: 0.85rem; font-weight: 500; }
+.save-bar__actions { display: flex; gap: 0.5rem; }
+
+.save-bar-enter-active,
+.save-bar-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.save-bar-enter-from,
+.save-bar-leave-to { opacity: 0; transform: translateY(8px); }
 
 @media (max-width: 768px) {
   .matrix-toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-search { max-width: none; }
   .toolbar-actions { justify-content: stretch; }
   .toolbar-actions .btn { flex: 1; }
+  .save-bar { flex-direction: column; align-items: stretch; }
+  .save-bar__actions .btn { flex: 1; }
 }
 </style>

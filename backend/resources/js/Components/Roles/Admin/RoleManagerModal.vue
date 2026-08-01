@@ -14,7 +14,7 @@
     <div v-else class="role-list">
       <div v-for="role in roles" :key="role.id" class="role-row" :class="{ 'is-inactive': !role.status }">
         <div class="role-row-main">
-          <span class="badge role-badge" :class="badgeClass(role.name)">{{ displayName(role.name) }}</span>
+          <RoleBadge :name="role.name" />
 
           <template v-if="editingId === role.id">
             <input
@@ -72,8 +72,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
+import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
 import Swal from 'sweetalert2'
 import { useToast } from 'vue-toastification'
+import { formatRoleName } from '@/js/utils/roles/roleDisplay'
 import type { AdminRole } from '@/js/types/roles/admin/role'
 import { useAdminRoles } from '@/js/composables/roles/admin/role/useAdminRoles'
 
@@ -97,23 +99,7 @@ function onVisibilityChange(open: boolean) {
   }
 }
 
-function displayName(name: string): string {
-  const map: Record<string, string> = {
-    superadmin: 'SuperAdmin', admin: 'Admin', commerce: 'Comercio',
-    subsidiary: 'Sucursal', seller: 'Freelancer', provider: 'Proveedor',
-    customer: 'Cliente', treasurer: 'Tesorero', player: 'Jugador',
-  }
-  return map[name.toLowerCase()] ?? name
-}
-
-function badgeClass(name: string): string {
-  const map: Record<string, string> = {
-    superadmin: 'badge-purple', admin: 'badge-blue', commerce: 'badge-green',
-    subsidiary: 'badge-teal', seller: 'badge-yellow', provider: 'badge-orange',
-    customer: 'badge-pink', treasurer: 'badge-info', player: 'badge-secondary',
-  }
-  return map[name.toLowerCase()] ?? 'badge-secondary'
-}
+const displayName = formatRoleName
 
 function startEdit(role: AdminRole) {
   editingId.value = role.id
@@ -191,8 +177,6 @@ async function handleToggle(role: AdminRole) {
   min-width: 0;
 }
 
-.role-badge { font-size: 0.75rem; padding: 0.3rem 0.6rem; flex-shrink: 0; }
-
 .role-desc {
   font-size: 0.85rem;
   color: var(--ds-text-2);
@@ -246,14 +230,4 @@ async function handleToggle(role: AdminRole) {
 .role-status-switch input:checked + .role-status-track .role-status-thumb { transform: translateX(14px); }
 
 .role-status-label { font-size: 0.8rem; font-weight: 600; color: var(--ds-text-2); min-width: 3.2rem; }
-
-.badge-purple    { background-color: rgba(124,58,237,.18); color: #a78bfa; }
-.badge-blue      { background-color: rgba(37,99,235,.18);  color: #60a5fa; }
-.badge-green     { background-color: rgba(5,150,105,.18);  color: #34d399; }
-.badge-teal      { background-color: rgba(13,148,136,.18); color: #2dd4bf; }
-.badge-yellow    { background-color: rgba(217,119,6,.18);  color: #fbbf24; }
-.badge-orange    { background-color: rgba(234,88,12,.18);  color: #fb923c; }
-.badge-pink      { background-color: rgba(219,39,119,.18); color: #f472b6; }
-.badge-info      { background-color: rgba(5,81,96,.25);    color: #22d3ee; }
-.badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
 </style>

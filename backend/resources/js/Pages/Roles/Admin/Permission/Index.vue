@@ -21,6 +21,21 @@
 
     <section class="content">
       <div class="container-fluid">
+        <div class="row stats-row">
+          <div class="col-6 col-md-3">
+            <StatTile label="Permisos totales" :value="stats.total" icon="fa-key" />
+          </div>
+          <div class="col-6 col-md-3">
+            <StatTile label="Permisos del sistema" :value="stats.system" icon="fa-lock" variant="warning" />
+          </div>
+          <div class="col-6 col-md-3">
+            <StatTile label="Roles activos" :value="stats.activeRoles" icon="fa-user-shield" variant="info" />
+          </div>
+          <div class="col-6 col-md-3">
+            <StatTile label="Módulos apagados" :value="stats.inactiveModules" icon="fa-power-off" variant="danger" />
+          </div>
+        </div>
+
         <div class="row">
           <div class="col-12">
             <ModulesPanel
@@ -42,7 +57,9 @@
               @reload="reload"
               @save="handleSave"
               @create-permission="handleCreate"
+              @update-permission="handleUpdate"
               @delete-permission="handleDelete"
+              @copy-permissions="handleCopy"
             />
           </div>
         </div>
@@ -53,11 +70,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import PermissionMatrix from '@/js/Components/Roles/Admin/PermissionMatrix.vue'
 import ModulesPanel from '@/js/Components/Roles/Admin/ModulesPanel.vue'
 import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
+import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import { useModules } from '@/js/composables/roles/admin/module/useModules'
 import { useToast } from 'vue-toastification'
@@ -86,10 +104,19 @@ const {
   reload,
   saveChanges,
   createPermission,
+  updatePermission,
   deletePermission,
+  copyPermissions,
 } = usePermissions({ permissions: props.permissions, roles: props.roles })
 
 const { modules, toggleModuleStatus } = useModules(props.modules)
+
+const stats = computed(() => ({
+  total: permissions.value.rows?.length ?? 0,
+  system: permissions.value.rows?.filter(p => p.is_system).length ?? 0,
+  activeRoles: roles.value.length,
+  inactiveModules: modules.value.filter(m => !m.is_active).length,
+}))
 
 async function handleToggleModule(moduleId: string) {
   try {
@@ -117,6 +144,15 @@ async function handleCreate(data: { name: string; guard_name?: string; descripti
   }
 }
 
+async function handleUpdate(permissionId: string, data: { name: string; guard_name?: string; description?: string }) {
+  try {
+    await updatePermission(permissionId, data)
+    toast.success('Permiso actualizado correctamente')
+  } catch {
+    toast.error('No se pudo actualizar el permiso')
+  }
+}
+
 async function handleDelete(permissionId: string) {
   try {
     await deletePermission(permissionId)
@@ -125,4 +161,20 @@ async function handleDelete(permissionId: string) {
     toast.error('No se pudo eliminar el permiso')
   }
 }
+
+async function handleCopy(sourceRoleId: string, targetRoleId: string) {
+  try {
+    const message = await copyPermissions(sourceRoleId, targetRoleId)
+    toast.success(message)
+  } catch {
+    toast.error('No se pudieron copiar los permisos')
+  }
+}
 </script>
+
+<style scoped>
+.stats-row {
+  margin-bottom: 1rem;
+  row-gap: 0.75rem;
+}
+</style>

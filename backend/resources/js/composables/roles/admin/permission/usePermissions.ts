@@ -76,22 +76,19 @@ export function usePermissions(initialData?: {
         await Promise.all([fetchPermissions(), fetchRoles()])
     }
 
+    // Guardado en una sola request transaccional (PATCH /permissions/matrix):
+    // evita el estado parcial que podía dejar el patrón anterior de N
+    // requests assign/revoke en paralelo si una de ellas fallaba a mitad.
     const saveChanges = async () => {
-        const promises: Promise<any>[] = []
+        const changes: { role_id: string; permission_id: string; granted: boolean }[] = []
 
         for (const [roleId, permMap] of Object.entries(pendingChanges)) {
-            const toAssign = Object.entries(permMap).filter(([, v]) => v).map(([k]) => k)
-            const toRevoke = Object.entries(permMap).filter(([, v]) => !v).map(([k]) => k)
-
-            if (toAssign.length) {
-                promises.push(axios.post(`/permissions/roles/${roleId}/assign`, { permission_ids: toAssign }))
-            }
-            if (toRevoke.length) {
-                promises.push(axios.post(`/permissions/roles/${roleId}/revoke`, { permission_ids: toRevoke }))
+            for (const [permissionId, granted] of Object.entries(permMap)) {
+                changes.push({ role_id: roleId, permission_id: permissionId, granted })
             }
         }
 
-        await Promise.all(promises)
+        await axios.patch('/permissions/matrix', { changes })
         clearPending()
         await fetchRoles() // actualizar checkboxes con estado real del servidor
     }
@@ -102,9 +99,23 @@ export function usePermissions(initialData?: {
         return response.data.permission
     }
 
+    const updatePermission = async (permissionId: string, data: { name: string; guard_name?: string; description?: string }) => {
+        const response = await axios.patch(`/permissions/${permissionId}`, data)
+        await fetchPermissions()
+        return response.data.permission
+    }
+
     const deletePermission = async (permissionId: string) => {
         await axios.delete(`/permissions/${permissionId}`)
         await fetchPermissions()
+    }
+
+    // Copia (merge) los permisos no-sistema de sourceRoleId hacia targetRoleId.
+    // No pasa por pendingChanges: es una acción inmediata contra el servidor.
+    const copyPermissions = async (sourceRoleId: string, targetRoleId: string) => {
+        const response = await axios.post(`/permissions/roles/${targetRoleId}/copy-from/${sourceRoleId}`)
+        await fetchRoles()
+        return response.data.message as string
     }
 
     return {
@@ -119,6 +130,8 @@ export function usePermissions(initialData?: {
         reload,
         saveChanges,
         createPermission,
+        updatePermission,
         deletePermission,
+        copyPermissions,
     }
 }
