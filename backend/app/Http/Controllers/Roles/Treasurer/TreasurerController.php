@@ -10,7 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OtherTreasurers;
 use App\Models\Treasurer;
 use App\Models\TreasurerCountryCurrency;
-use App\Models\PhoneNumbers;
+use App\Models\Shared\PhoneNumber;
 use App\Models\Role;
 use App\Models\Shared\UniqueCode;
 use App\Models\Wallet;
@@ -132,7 +132,7 @@ class TreasurerController extends Controller
             // Crear un nuevo Wallet para el usuario
             Wallet::create(['currency' => $request->currency, 'user' => $newUser]);
 
-            PhoneNumbers::create([
+            PhoneNumber::create([
                 'user' => $newUser,
                 'country' => $request->country,
                 'phone_number' => $phoneNumber
@@ -247,7 +247,7 @@ class TreasurerController extends Controller
                 $phoneNumber = $request->phone;
 
                 if ($phoneNumber <> $treasurer->phone) {
-                    PhoneNumbers::where('user', $treasurer->user)->update([
+                    PhoneNumber::where('user', $treasurer->user)->update([
                         'country' => $request->country,
                         'phone_number' => $phoneNumber
                     ]);

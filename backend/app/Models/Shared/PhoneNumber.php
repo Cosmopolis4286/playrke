@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa los números de teléfono asociados a usuarios con información
  * del país y estado de activación.
  */
-class PhoneNumbers extends Model
+class PhoneNumber extends Model
 {
     use SnowflakeId;
 
