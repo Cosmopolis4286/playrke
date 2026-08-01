@@ -92,10 +92,16 @@ return Application::configure(
                     $status = $e->getStatusCode();
                 }
 
-                return response()->json([
+                $response = [
                     'success' => false,
                     'message' => $e->getMessage(),
-                ], $status);
+                ];
+
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $response['errors'] = $e->errors();
+                }
+
+                return response()->json($response, $status);
             }
         });
     })
