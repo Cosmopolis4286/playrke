@@ -17,6 +17,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
   import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
   import XpGrantForm from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
@@ -333,8 +334,28 @@
         { value: 'SUSPENDED', label: 'Suspendido' },
         { value: 'PENDING_VERIFICATION', label: 'Pendiente' }
       ]
+    },
+    {
+      key: 'has_specific_permissions',
+      label: 'Permisos individuales',
+      placeholder: 'Filtrar por permisos',
+      options: [
+        { value: 'true', label: 'Con permisos individuales' },
+        { value: 'false', label: 'Sin permisos individuales' }
+      ]
     }
   ])
+
+  // ==========================================================================
+  // Estadísticas del header (derivadas de datos ya presentes, sin llamadas nuevas)
+  // ==========================================================================
+
+  const stats = computed(() => ({
+    total: users.value.length,
+    active: users.value.filter(u => u.status === 'ACTIVE').length,
+    withSpecificPermissions: users.value.filter(u => u.has_specific_permissions).length,
+    inactiveRolesAvailable: props.roles.length,
+  }))
 
   // ==========================================================================
   // Botones extra
@@ -391,8 +412,9 @@
     },
     {
       icon: 'fas fa-user-shield',
-      class: 'btn-info text-white',
-      title: 'Permisos específicos',
+      label: 'Permisos individuales',
+      class: 'btn-info text-white admin-user-btn--permissions',
+      title: 'Otorgar o revocar permisos específicos a este usuario, además de los que ya tiene por su rol',
       // Backend ya protege con UserPolicy::managePermissions (role:superadmin) —
       // ocultar el botón para otros roles evita un 403 innecesario en la UI.
       show: (ids: string[]) => ids.length === 1 && isSuperadmin.value,
@@ -433,6 +455,13 @@
 </script>
 
 <template>
+  <div class="admin-users-stats">
+    <StatTile label="Usuarios totales" :value="stats.total" icon="fa-users" />
+    <StatTile label="Usuarios activos" :value="stats.active" icon="fa-user-check" variant="success" />
+    <StatTile label="Con permisos individuales" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
+    <StatTile label="Roles disponibles" :value="stats.inactiveRolesAvailable" icon="fa-user-tag" />
+  </div>
+
   <TableWithFilterBridge
     tableId="user-table"
     title="Usuarios"
@@ -450,7 +479,16 @@
     :disabled-row-ids="disabledRowIds"
     disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
     :extra-buttons="extraButtons"
-  />
+  >
+    <template #cell-role_badge="{ row }">
+      <span v-html="row.role_badge"></span>
+      <i
+        v-if="row.has_specific_permissions"
+        class="fas fa-user-shield admin-user-permissions-flag"
+        title="Este usuario tiene permisos individuales adicionales a los de su rol"
+      ></i>
+    </template>
+  </TableWithFilterBridge>
 
   <!-- Modal de selección de rol para registrar usuario -->
   <Modal
@@ -556,3 +594,27 @@
     />
   </Modal>
 </template>
+
+<style scoped>
+.admin-users-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-user-permissions-flag {
+  margin-left: 0.4rem;
+  color: #6366f1;
+  font-size: 0.8rem;
+}
+
+/* Diferencia visualmente el botón de permisos individuales del resto de
+   acciones extra (reset password, saldo, XP) — es una acción sensible y
+   poco frecuente, no otra acción rutinaria más en la barra. */
+:deep(.admin-user-btn--permissions) {
+  margin-left: 0.5rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.4);
+  padding-left: 0.75rem !important;
+}
+</style>

@@ -24,6 +24,8 @@ export interface AdminUser {
     readonly country_id: string | number | null
     readonly first_name: string | null
     readonly last_name: string | null
+    /** true si el usuario tiene permisos específicos asignados además de los de su rol. */
+    readonly has_specific_permissions: boolean
 }
 
 export interface AdminRole {

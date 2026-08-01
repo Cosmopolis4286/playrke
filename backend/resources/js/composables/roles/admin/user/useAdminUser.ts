@@ -1,9 +1,15 @@
 import { ref, Ref } from 'vue'
 import { router } from '@inertiajs/vue3'
+import Swal from 'sweetalert2'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
 import type { AdminUser, AdminUserEditData } from '@/js/types/roles/admin/admin-user'
+
+interface BulkResult {
+    updated: number
+    skipped: { id: string; name: string; reason: string }[]
+}
 
 interface UseAdminUserReturn {
     users: Ref<AdminUser[]>
@@ -206,6 +212,36 @@ export function useAdminUser(): UseAdminUserReturn {
         `
     }
 
+    /**
+     * Muestra el resultado de una operación bulk. Si hubo omitidos (cuenta
+     * propia, cuenta superadmin sin permiso, etc.), detalla cada uno con su
+     * razón en vez de un toast genérico — el backend ya aplicó lo que pudo
+     * en una sola transacción (ver AdminUserService::toggleStatusBulk/deleteBulk).
+     */
+    async function reportBulkResult(result: BulkResult, successVerb: string): Promise<void> {
+        if (result.skipped.length === 0) {
+            showToast(`${result.updated} usuario(s) ${successVerb} correctamente`, 'success')
+            return
+        }
+
+        const skippedHtml = result.skipped
+            .map(s => `<li style="padding:4px 0;"><b>${s.name}</b>: ${s.reason}</li>`)
+            .join('')
+
+        await Swal.fire({
+            icon: result.updated > 0 ? 'warning' : 'error',
+            title: result.updated > 0 ? 'Completado parcialmente' : 'No se pudo completar',
+            html: `
+                <p style="margin-bottom:8px;">${result.updated} usuario(s) ${successVerb} correctamente.</p>
+                <p style="margin-bottom:4px;">${result.skipped.length} omitido(s):</p>
+                <div style="max-height:150px;overflow-y:auto;text-align:left;padding:10px;background:#f8f9fa;border-radius:6px;">
+                    <ul style="margin:0;padding-left:20px;">${skippedHtml}</ul>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+        })
+    }
+
     async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
         if (ids.length === 1) return toggleStatus(ids[0])
@@ -218,8 +254,8 @@ export function useAdminUser(): UseAdminUserReturn {
         if (!confirm) return false
 
         try {
-            for (const id of ids) await backendClient.put(`/admin/user/${id}/status`)
-            showToast(`Estado cambiado para ${ids.length} usuarios`, 'success')
+            const { data } = await backendClient.put<BulkResult>('/admin/user/bulk/status', { ids })
+            await reportBulkResult(data, 'actualizados')
             await fetchUsers()
             return true
         } catch {
@@ -240,8 +276,8 @@ export function useAdminUser(): UseAdminUserReturn {
         if (!confirm) return false
 
         try {
-            for (const id of ids) await backendClient.put(`/admin/user/${id}/delete`)
-            showToast(`${ids.length} usuarios eliminados con éxito`, 'success')
+            const { data } = await backendClient.put<BulkResult>('/admin/user/bulk/delete', { ids })
+            await reportBulkResult(data, 'eliminados')
             await fetchUsers()
             return true
         } catch {
