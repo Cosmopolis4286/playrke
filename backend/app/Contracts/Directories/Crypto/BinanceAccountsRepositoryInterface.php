@@ -2,13 +2,13 @@
 
 namespace App\Contracts\Directories\Crypto;
 
-use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repositorio de cuentas Binance
- * Define métodos específicos para operaciones con BinanceAccounts
+ * Define métodos específicos para operaciones con BinanceAccount
  */
 interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
 {
@@ -17,7 +17,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $accountType Tipo de cuenta (E/P/B)
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getByAccountType(string $accountType, array $columns = ['*']): Collection;
 
@@ -26,7 +26,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $userId ID del usuario
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getByUserId(string $userId, array $columns = ['*']): Collection;
 
@@ -34,7 +34,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas activas
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getActive(array $columns = ['*']): Collection;
 
@@ -42,7 +42,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas inactivas
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getInactive(array $columns = ['*']): Collection;
 
@@ -50,7 +50,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas bloqueadas
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getBlocked(array $columns = ['*']): Collection;
 
@@ -69,16 +69,16 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $dataValue Valor de los datos
      * @param array $columns Columnas a seleccionar
-     * @return BinanceAccounts|null
+     * @return BinanceAccount|null
      */
-    public function findByDataValue(string $dataValue, array $columns = ['*']): ?BinanceAccounts;
+    public function findByDataValue(string $dataValue, array $columns = ['*']): ?BinanceAccount;
 
     /**
      * Buscar cuentas por valor parcial
      *
      * @param string $searchTerm Término de búsqueda
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function searchByDataValue(string $searchTerm, array $columns = ['*']): Collection;
 
@@ -86,7 +86,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas de email
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getEmailAccounts(array $columns = ['*']): Collection;
 
@@ -94,7 +94,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas de teléfono
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getPhoneAccounts(array $columns = ['*']): Collection;
 
@@ -102,7 +102,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas por ID de Binance
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getBinanceIdAccounts(array $columns = ['*']): Collection;
 
@@ -111,7 +111,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $userId ID del usuario
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getActiveByUserId(string $userId, array $columns = ['*']): Collection;
 
@@ -133,7 +133,7 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * Obtener cuentas con usuario eager loaded
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getAllWithUser(array $columns = ['*']): Collection;
 }
