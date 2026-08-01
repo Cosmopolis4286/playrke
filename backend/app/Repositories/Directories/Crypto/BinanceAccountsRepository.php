@@ -2,18 +2,18 @@
 
 namespace App\Repositories\Directories\Crypto;
 
-use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Repositories\BaseRepository;
 use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para operaciones con cuentas Binance
- * Maneja todas las consultas complejas relacionadas con BinanceAccounts
+ * Maneja todas las consultas complejas relacionadas con BinanceAccount
  */
 class BinanceAccountsRepository extends BaseRepository implements BinanceAccountsRepositoryInterface
 {
-    public function __construct(BinanceAccounts $model)
+    public function __construct(BinanceAccount $model)
     {
         $this->model = $model;
     }
@@ -23,7 +23,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param string $accountType Tipo de cuenta (E/P/B)
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getByAccountType(string $accountType, array $columns = ['*']): Collection
     {
@@ -37,7 +37,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param string $userId ID del usuario
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getByUserId(string $userId, array $columns = ['*']): Collection
     {
@@ -50,7 +50,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas activas
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getActive(array $columns = ['*']): Collection
     {
@@ -61,7 +61,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas inactivas
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getInactive(array $columns = ['*']): Collection
     {
@@ -72,7 +72,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas bloqueadas
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getBlocked(array $columns = ['*']): Collection
     {
@@ -104,9 +104,9 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param string $dataValue Valor de los datos
      * @param array $columns Columnas a seleccionar
-     * @return BinanceAccounts|null
+     * @return BinanceAccount|null
      */
-    public function findByDataValue(string $dataValue, array $columns = ['*']): ?BinanceAccounts
+    public function findByDataValue(string $dataValue, array $columns = ['*']): ?BinanceAccount
     {
         return $this->model->where('data_value', $dataValue)->first($columns);
     }
@@ -116,7 +116,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param string $searchTerm Término de búsqueda
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function searchByDataValue(string $searchTerm, array $columns = ['*']): Collection
     {
@@ -129,7 +129,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas de email
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getEmailAccounts(array $columns = ['*']): Collection
     {
@@ -140,7 +140,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas de teléfono
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getPhoneAccounts(array $columns = ['*']): Collection
     {
@@ -151,7 +151,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas por ID de Binance
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getBinanceIdAccounts(array $columns = ['*']): Collection
     {
@@ -163,7 +163,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param string $userId ID del usuario
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getActiveByUserId(string $userId, array $columns = ['*']): Collection
     {
@@ -217,7 +217,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Obtener cuentas con usuario eager loaded
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getAllWithUser(array $columns = ['*']): Collection
     {
@@ -234,7 +234,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      */
     public function getAccountTypes(?string $excludeType = null): array
     {
-        $types = BinanceAccounts::TYPES;
+        $types = BinanceAccount::TYPES;
 
         if ($excludeType) {
             unset($types[$excludeType]);
@@ -248,7 +248,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param array $userIds Array de IDs de usuarios
      * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccounts>
+     * @return Collection<BinanceAccount>
      */
     public function getByMultipleUsers(array $userIds, array $columns = ['*']): Collection
     {
@@ -300,9 +300,9 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      *
      * @param string $id ID de la cuenta
      * @param array $fields Campos a seleccionar
-     * @return BinanceAccounts|null
+     * @return BinanceAccount|null
      */
-    public function getById(string $id, array $fields = ['*']): ?BinanceAccounts
+    public function getById(string $id, array $fields = ['*']): ?BinanceAccount
     {
         return $this->find($id, $fields);
     }

@@ -6,7 +6,7 @@ use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Events\Wallet\WalletUpdated;
 use App\Events\Wallet\WalletMovementRequested;
-use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Jobs\Wallet\DispatchWalletNotificationJob;
@@ -123,7 +123,7 @@ final class WalletService
 
     private function getBinanceDirectories(string $userId): array
     {
-        return BinanceAccounts::where('user_id', $userId)
+        return BinanceAccount::where('user_id', $userId)
             ->where('status', 'ACTIVE')
             ->get()
             ->map(fn($b) => [

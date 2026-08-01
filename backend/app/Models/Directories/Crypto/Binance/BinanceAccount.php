@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo BinanceAccounts refactorizado
+ * Modelo BinanceAccount refactorizado
  *
  * Solo contiene:
  * - Configuración de la tabla y propiedades
@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * NOTA: Las consultas complejas se han movido a BinanceAccountsRepository
  */
-class BinanceAccounts extends Model
+class BinanceAccount extends Model
 {
     use \App\Traits\SnowflakeId;
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Directories\Crypto;
 
 use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Traits\Users\UserTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +22,7 @@ class BinanceController extends Controller
     public function index()
     {
         $accounts = $this->binanceAccounts->getByUserId(Auth::id());
-        $accountTypes = BinanceAccounts::getAccountTypes();
+        $accountTypes = BinanceAccount::getAccountTypes();
 
         return view('all.directory.usdt.index', compact('accounts', 'accountTypes'));
     }
