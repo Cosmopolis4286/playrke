@@ -73,6 +73,7 @@ final class AdminUserContextService
             $row['country_id'] = $user?->country_id;
             $row['first_name'] = $user?->first_name;
             $row['last_name']  = $user?->last_name;
+            $row['has_specific_permissions'] = !empty($user?->specific_permissions);
             return $row;
         })->all();
 
@@ -82,13 +83,15 @@ final class AdminUserContextService
     private function roleBadge(string $role): string
     {
         return match (strtolower($role)) {
-            'admin'     => '<span class="badge badge-danger">Admin</span>',
-            'commerce'  => '<span class="badge badge-primary">Comercio</span>',
-            'seller'    => '<span class="badge badge-info">Vendedor</span>',
-            'customer'  => '<span class="badge badge-success">Cliente</span>',
-            'treasurer' => '<span class="badge badge-warning">Tesorero</span>',
-            'player'    => '<span class="badge badge-secondary">Jugador</span>',
-            default     => '<span class="badge badge-dark">' . ucfirst($role) . '</span>',
+            'admin'      => '<span class="badge badge-danger">Admin</span>',
+            'commerce'   => '<span class="badge badge-primary">Comercio</span>',
+            'seller'     => '<span class="badge badge-info">Vendedor</span>',
+            'customer'   => '<span class="badge badge-success">Cliente</span>',
+            'treasurer'  => '<span class="badge badge-warning">Tesorero</span>',
+            'player'     => '<span class="badge badge-secondary">Jugador</span>',
+            'subsidiary' => '<span class="badge badge-light">Sucursal</span>',
+            'provider'   => '<span class="badge badge-dark">Proveedor</span>',
+            default      => '<span class="badge badge-dark">' . ucfirst($role) . '</span>',
         };
     }
 

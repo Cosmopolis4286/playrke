@@ -145,6 +145,8 @@ Route::middleware('auth')->group(function () {
         'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
         'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
         'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
+        'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk'],
+        'deleteBulk'    => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk'],
         'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete'],
         'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],

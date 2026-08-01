@@ -8,6 +8,7 @@ use App\Http\Requests\Roles\Admin\User\AdminUserUpdateRequest;
 use App\Models\User;
 use App\Services\Roles\Admin\User\AdminUserService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Controlador de administración de Usuarios.
@@ -48,6 +49,36 @@ final class AdminUserController extends Controller
     {
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($user)
+        );
+    }
+
+    /**
+     * Alternar estado de varios usuarios en una sola transacción.
+     */
+    public function toggleStatusBulk(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->toggleStatusBulk($request->input('ids'))
+        );
+    }
+
+    /**
+     * Eliminación lógica de varios usuarios en una sola transacción.
+     */
+    public function deleteBulk(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->deleteBulk($request->input('ids'))
         );
     }
 

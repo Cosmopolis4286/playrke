@@ -117,6 +117,82 @@ final class AdminUserService
     }
 
     /**
+     * Alternar estado ACTIVE/INACTIVE de varios usuarios en una sola
+     * transacción. A diferencia de toggleStatus(), los usuarios protegidos
+     * (cuenta propia, superadmin sin permiso) no abortan el lote completo:
+     * se omiten y se reportan en 'skipped' para que el frontend informe con
+     * precisión qué se aplicó y qué no.
+     *
+     * @param array<int, string> $userIds
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function toggleStatusBulk(array $userIds): array
+    {
+        return DB::transaction(function () use ($userIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (User::whereIn('id', $userIds)->get() as $user) {
+                try {
+                    $this->guardMutation($user);
+
+                    if ($user->status === 'DELETED') {
+                        throw AdminUserException::invalidStatusChange();
+                    }
+
+                    $user->update(['status' => $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE']);
+                    $updated++;
+                } catch (AdminUserException $e) {
+                    $skipped[] = [
+                        'id' => (string) $user->id,
+                        'name' => trim("{$user->first_name} {$user->last_name}") ?: $user->username,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
+     * Eliminación lógica (soft delete) de varios usuarios en una sola
+     * transacción. Mismo criterio de omisión que toggleStatusBulk().
+     *
+     * @param array<int, string> $userIds
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function deleteBulk(array $userIds): array
+    {
+        return DB::transaction(function () use ($userIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (User::whereIn('id', $userIds)->get() as $user) {
+                try {
+                    $this->guardMutation($user);
+
+                    if ($user->status === 'DELETED') {
+                        throw AdminUserException::alreadyDeleted();
+                    }
+
+                    $user->update(['status' => 'DELETED']);
+                    $user->delete();
+                    $updated++;
+                } catch (AdminUserException $e) {
+                    $skipped[] = [
+                        'id' => (string) $user->id,
+                        'name' => trim("{$user->first_name} {$user->last_name}") ?: $user->username,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
      * Bloquea asignar el rol superadmin si el actor no lo es.
      */
     private function guardRoleChange(User $user, string $roleId): void
