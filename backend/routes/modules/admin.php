@@ -215,6 +215,8 @@ Route::middleware('auth')->group(function () {
         'update'               => ['method' => 'patch',  'uri' => '{permission}',             'action' => 'update'],
         'delete'               => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
         'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
+        'saveMatrix'           => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix'],
+        'copyToRole'           => ['method' => 'post',   'uri' => 'roles/{role}/copy-from/{sourceRole}', 'action' => 'copyToRole'],
     ], 'permission');
 
     /**

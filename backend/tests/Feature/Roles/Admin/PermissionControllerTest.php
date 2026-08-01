@@ -205,4 +205,97 @@ class PermissionControllerTest extends TestCase
 
         $response->assertStatus(404);
     }
+
+    // ── Guardado transaccional de la matriz (PATCH /permissions/matrix) ────
+
+    public function test_save_matrix_applies_grants_and_revokes_for_multiple_roles_atomically(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $player     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+        $permA      = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $permB      = Permission::create(['name' => 'reports.export', 'guard_name' => 'web']);
+
+        $player->givePermissionTo($permB);
+
+        $response = $this->actingAs($superadmin)->patchJson('/permissions/matrix', [
+            'changes' => [
+                ['role_id' => $player->id, 'permission_id' => $permA->id, 'granted' => true],
+                ['role_id' => $player->id, 'permission_id' => $permB->id, 'granted' => false],
+            ],
+        ]);
+
+        $response->assertOk();
+        $this->assertTrue($player->fresh()->hasPermissionTo('reports.view'));
+        $this->assertFalse($player->fresh()->hasPermissionTo('reports.export'));
+    }
+
+    public function test_save_matrix_excludes_system_permissions_and_protects_superadmin(): void
+    {
+        $superadmin     = $this->makeSuperadmin();
+        $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
+        $player         = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+        $sysPerm        = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
+        $normalPerm     = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+
+        $superadminRole->givePermissionTo($normalPerm);
+
+        $response = $this->actingAs($superadmin)->patchJson('/permissions/matrix', [
+            'changes' => [
+                ['role_id' => $player->id, 'permission_id' => $sysPerm->id, 'granted' => true],
+                ['role_id' => $superadminRole->id, 'permission_id' => $normalPerm->id, 'granted' => false],
+            ],
+        ]);
+
+        $response->assertOk();
+        $this->assertFalse($player->fresh()->hasPermissionTo('roles.view'));
+        $this->assertTrue($superadminRole->fresh()->hasPermissionTo('reports.view'));
+    }
+
+    public function test_save_matrix_validates_changes_shape(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+
+        $response = $this->actingAs($superadmin)->patchJson('/permissions/matrix', [
+            'changes' => [
+                ['role_id' => '999999999999999999', 'permission_id' => '999999999999999999', 'granted' => true],
+            ],
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    // ── Copiar permisos entre roles (POST /permissions/roles/{role}/copy-from/{sourceRole}) ──
+
+    public function test_copy_permissions_merges_into_target_role_without_removing_existing(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $source     = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
+        $target     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+        $permA      = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $permB      = Permission::create(['name' => 'reports.export', 'guard_name' => 'web']);
+        $sysPerm    = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
+        $existing   = Permission::create(['name' => 'reports.print', 'guard_name' => 'web']);
+
+        $source->givePermissionTo([$permA, $permB, $sysPerm]);
+        $target->givePermissionTo($existing);
+
+        $response = $this->actingAs($superadmin)->postJson("/permissions/roles/{$target->id}/copy-from/{$source->id}");
+
+        $response->assertOk();
+        $target = $target->fresh();
+        $this->assertTrue($target->hasPermissionTo('reports.view'));
+        $this->assertTrue($target->hasPermissionTo('reports.export'));
+        $this->assertTrue($target->hasPermissionTo('reports.print'));
+        $this->assertFalse($target->hasPermissionTo('roles.view'));
+    }
+
+    public function test_copy_permissions_from_nonexistent_role_returns_404(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $target     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->postJson("/permissions/roles/{$target->id}/copy-from/999999999999999999");
+
+        $response->assertStatus(404);
+    }
 }

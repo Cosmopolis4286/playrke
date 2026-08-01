@@ -201,4 +201,44 @@ final class PermissionController extends Controller
             'roles' => $roles,
         ]);
     }
+
+    /**
+     * Guardar en lote todos los cambios pendientes de la matriz de permisos
+     * (asignaciones y revocaciones de varios roles) en una sola transacción.
+     */
+    public function saveMatrix(Request $request): JsonResponse
+    {
+        $this->authorize('manageAssignments', Permission::class);
+
+        $validated = $request->validate([
+            'changes' => 'required|array',
+            'changes.*.role_id' => 'required|string|exists:roles,id',
+            'changes.*.permission_id' => 'required|string|exists:permissions,id',
+            'changes.*.granted' => 'required|boolean',
+        ]);
+
+        $this->service->applyMatrixChanges($validated['changes']);
+
+        return response()->json([
+            'message' => 'Cambios de permisos guardados correctamente',
+        ]);
+    }
+
+    /**
+     * Copiar (merge) los permisos no-sistema de un rol origen hacia un rol destino.
+     */
+    public function copyToRole(string $role, string $sourceRole): JsonResponse
+    {
+        $this->authorize('manageAssignments', Permission::class);
+
+        try {
+            $count = $this->service->copyPermissionsBetweenRoles($sourceRole, $role);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json(['message' => 'Rol no encontrado.'], 404);
+        }
+
+        return response()->json([
+            'message' => "Se copiaron {$count} permisos correctamente",
+        ]);
+    }
 }

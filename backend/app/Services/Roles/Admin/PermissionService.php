@@ -6,6 +6,7 @@ use App\DTOs\Roles\Admin\Permission\PermissionDTO;
 use App\DTOs\Roles\Admin\Permission\RolePermissionDTO;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use App\Models\Permission;
 
 final class PermissionService
@@ -185,6 +186,59 @@ final class PermissionService
         $permission->delete();
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
+     * Aplicar en una sola transacción todos los cambios pendientes de la
+     * matriz (varios roles a la vez). Reemplaza el patrón anterior de N
+     * requests assign/revoke en paralelo desde el frontend, que podía dejar
+     * el estado a medias si una de esas requests fallaba.
+     *
+     * $changes: array de ['role_id' => string, 'permission_id' => string, 'granted' => bool]
+     */
+    public function applyMatrixChanges(array $changes): void
+    {
+        DB::transaction(function () use ($changes) {
+            foreach (collect($changes)->groupBy('role_id') as $roleId => $roleChanges) {
+                $role = Role::findOrFail($roleId);
+
+                $toGrantIds = $roleChanges->where('granted', true)->pluck('permission_id');
+                $toRevokeIds = $role->name === 'superadmin'
+                    ? collect()
+                    : $roleChanges->where('granted', false)->pluck('permission_id');
+
+                $toGrant = Permission::whereIn('id', $toGrantIds)->where('is_system', false)->get();
+                $toRevoke = Permission::whereIn('id', $toRevokeIds)->where('is_system', false)->get();
+
+                if ($toGrant->isNotEmpty()) {
+                    $role->givePermissionTo($toGrant);
+                }
+
+                foreach ($toRevoke as $permission) {
+                    $role->revokePermissionTo($permission);
+                }
+            }
+        });
+    }
+
+    /**
+     * Copiar (merge) los permisos no-sistema de un rol origen hacia un rol
+     * destino. No reemplaza los permisos que el destino ya tenía.
+     */
+    public function copyPermissionsBetweenRoles(string $sourceRoleId, string $targetRoleId): int
+    {
+        return DB::transaction(function () use ($sourceRoleId, $targetRoleId) {
+            $source = Role::with('permissions')->findOrFail($sourceRoleId);
+            $target = Role::findOrFail($targetRoleId);
+
+            $permissions = $source->permissions->where('is_system', false);
+
+            if ($permissions->isNotEmpty()) {
+                $target->givePermissionTo($permissions);
+            }
+
+            return $permissions->count();
+        });
     }
 
     /**
