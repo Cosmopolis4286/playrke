@@ -97,7 +97,7 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      * @param float $percentage Porcentaje
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $amount, $percentage): bool
+    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage): bool
     {
         try {
             $data = [
