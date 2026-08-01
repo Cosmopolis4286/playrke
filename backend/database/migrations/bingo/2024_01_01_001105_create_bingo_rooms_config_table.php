@@ -65,7 +65,6 @@ return new class extends Migration
 
             $table->string('game_variant', 20)
                 ->default('BINGO_75')
-                ->after('connection_type_id')
                 ->comment('Variante de bingo: BINGO_75, BINGO_90, BINGO_80, BINGO_30');
 
             // Estado de transmisión
@@ -74,26 +73,23 @@ return new class extends Migration
 
             $table->enum('start_mode', ['SCHEDULED', 'MANUAL'])
                 ->default('SCHEDULED')
-                ->after('in_live')
                 ->comment('SCHEDULED = inicia por horario programado, MANUAL = requiere activación manual del anfitrión/admin');
 
             // Cartones mínimos y cupo máximo
             $table->unsignedInteger('min_cards_to_start')
                 ->nullable()
-                ->after('start_mode')
                 ->comment('Cantidad mínima de cartones vendidos requerida para iniciar el sorteo (null = sin condición)');
 
             $table->unsignedInteger('max_players')
                 ->nullable()
-                ->after('min_cards_to_start')
                 ->comment('Cupo máximo de jugadores en la sala (null = sin límite)');
 
             // Cartón personalizado
-            $table->boolean('allow_custom_card')->default(false)->after('max_players');
+            $table->boolean('allow_custom_card')->default(false);
 
             // % adicional sobre el precio base del cartón en la moneda de la sala,
             // aplicado al momento de la compra del cartón personalizado.
-            $table->decimal('custom_card_price_pct', 5, 2)->nullable()->after('allow_custom_card');
+            $table->decimal('custom_card_price_pct', 5, 2)->nullable();
 
             // Modo del cartón personalizado (solo aplica si allow_custom_card = true):
             // - paid: costo adicional (custom_card_price_pct)
@@ -101,9 +97,8 @@ return new class extends Migration
             // - every_x: gratis cada X cartones comprados (custom_card_every_x)
             // - free: uso libre, sin restricción ni costo adicional
             $table->enum('custom_card_mode', ['paid', 'by_range', 'every_x', 'free'])
-                ->nullable()
-                ->after('custom_card_price_pct');
-            $table->unsignedSmallInteger('custom_card_every_x')->nullable()->after('custom_card_mode');
+                ->nullable();
+            $table->unsignedSmallInteger('custom_card_every_x')->nullable();
 
             // Mover la casilla libre (solo aplica si allow_custom_card = true y
             // game_variant = BINGO_75, única variante con casilla libre):
@@ -112,14 +107,13 @@ return new class extends Migration
             // - free: mover la libre sin costo adicional
             // - null: no permite mover la libre (comportamiento por defecto)
             $table->enum('move_free_space_mode', ['paid', 'by_range', 'free'])
-                ->nullable()
-                ->after('custom_card_every_x');
-            $table->decimal('move_free_space_price_pct', 5, 2)->nullable()->after('move_free_space_mode');
+                ->nullable();
+            $table->decimal('move_free_space_price_pct', 5, 2)->nullable();
 
             // Cartón especial: independiente de allow_custom_card — solo limita la
             // cantidad máxima de cartones especiales que puede tener la sala.
-            $table->boolean('allow_special_card')->default(false)->after('move_free_space_price_pct');
-            $table->tinyInteger('max_special_cards')->unsigned()->nullable()->after('allow_special_card');
+            $table->boolean('allow_special_card')->default(false);
+            $table->tinyInteger('max_special_cards')->unsigned()->nullable();
 
             $table->date('date')->nullable()->comment('Fecha del juego (null si la sala es de inicio manual)');
             $table->string('time', 10)->nullable()->comment('Hora del juego (null si la sala es de inicio manual)');
@@ -146,7 +140,6 @@ return new class extends Migration
 
             $table->boolean('rooms_per_currency_split')
                 ->default(false)
-                ->after('allowed_currencies')
                 ->comment('Indica si esta sala fue generada como parte de un split por moneda');
 
             // Tipo de premio

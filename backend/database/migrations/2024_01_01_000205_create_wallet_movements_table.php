@@ -50,28 +50,28 @@ return new class extends Migration
             // Identificador determinístico opcional para prevenir doble acreditación
             // en pagos que pueden reintentarse. Nullable + unique: en MySQL múltiples
             // NULL no violan la restricción.
-            $table->string('idempotency_key', 100)->nullable()->unique()->after('reference_id');
+            $table->string('idempotency_key', 100)->nullable()->unique();
 
             // Path del comprobante de pago (depósitos)
-            $table->string('receipt_path', 512)->nullable()->after('idempotency_key')
+            $table->string('receipt_path', 512)->nullable()
                 ->comment('Ruta del comprobante de pago (depósitos)');
 
             // Información adicional en JSON (directorio destino en retiros, notas admin, etc.)
-            $table->json('metadata')->nullable()->after('receipt_path')
+            $table->json('metadata')->nullable()
                 ->comment('Datos adicionales: directorio de retiro, notas admin, etc.');
 
             // Notas del administrador al aprobar/rechazar
-            $table->string('admin_notes', 512)->nullable()->after('metadata')
+            $table->string('admin_notes', 512)->nullable()
                 ->comment('Notas del administrador al procesar el movimiento');
 
             // Admin que procesó el movimiento
-            $table->foreignSnowflake('processed_by')->nullable()->after('admin_notes')
+            $table->foreignSnowflake('processed_by')->nullable()
                 ->constrained('users')
                 ->nullOnDelete()
                 ->comment('ID del administrador que procesó el movimiento');
 
             // Fecha de procesamiento
-            $table->timestamp('processed_at')->nullable()->after('processed_by')
+            $table->timestamp('processed_at')->nullable()
                 ->comment('Fecha en que el movimiento fue procesado');
 
             $table->timestamps();

@@ -55,7 +55,7 @@ return new class extends Migration
             $table->decimal('total_sales', 15, 2)->default(0)->comment('Ventas totales de la sala (resumen)');
 
             // Desglose de métricas por moneda
-            $table->json('metrics_by_currency')->nullable()->after('total_sales')
+            $table->json('metrics_by_currency')->nullable()
                 ->comment('Desglose por moneda: ventas, cartones, bote y comisiones en moneda local');
 
             // Fecha de publicación

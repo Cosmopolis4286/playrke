@@ -36,7 +36,7 @@ return new class extends Migration
                 ->comment('Balance en moneda local');
 
             // Saldo no retirable, solo usable dentro de la app (premios de juegos)
-            $table->decimal('bonus_balance', 15, 2)->default(0.00)->after('balance')
+            $table->decimal('bonus_balance', 15, 2)->default(0.00)
                 ->comment('Saldo no retirable, solo usable dentro de la app (premios de juegos)');
 
             // Estado de la wallet

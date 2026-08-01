@@ -134,7 +134,7 @@ return new class extends Migration
             // Indica que el jugador eligió sus propios números en lugar de recibir
             // un cartón generado aleatoriamente. Útil para reportes, analíticas y
             // auditoría (detectar si un jugador siempre gana con cartones personalizados).
-            $table->boolean('is_custom_card')->default(false)->after('is_validated');
+            $table->boolean('is_custom_card')->default(false);
 
             $table->timestamp('validated_at')
                 ->nullable()

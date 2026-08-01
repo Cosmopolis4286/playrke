@@ -73,7 +73,7 @@ return new class extends Migration
             // vez de balance real. Permite reembolsar proporcionalmente a cada
             // columna si la sala se cancela (ver WalletService::recordRefund()
             // y BingoCardLotRefundJob).
-            $table->decimal('bonus_amount', 15, 2)->default(0.00)->after('sale_amount');
+            $table->decimal('bonus_amount', 15, 2)->default(0.00);
 
             $table->decimal('commission_amount', 10, 2)
                 ->nullable()
@@ -84,7 +84,7 @@ return new class extends Migration
 
             // True cuando al menos uno de los cartones del lote fue personalizado por el jugador.
             // Permite filtrar/reportar lotes con selección manual sin hacer JOIN a bingo_cards.
-            $table->boolean('has_custom_cards')->default(false)->after('status');
+            $table->boolean('has_custom_cards')->default(false);
 
             $table->timestamps();
             $table->softDeletes();

@@ -19,7 +19,6 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID del tipo de premio');
 
             $table->foreignSnowflake('game_id')
-                ->after('id')
                 ->constrained('games')
                 ->cascadeOnDelete()
                 ->comment('Juego al que pertenece este tipo de bote');

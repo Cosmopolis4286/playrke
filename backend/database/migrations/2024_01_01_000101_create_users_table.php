@@ -37,8 +37,8 @@ return new class extends Migration
             // Información de contacto y perfil
             $table->string('profile_photo_url', 500)->nullable()->comment('URL de la foto de perfil');
             $table->string('phone_number', 25)->nullable()->comment('Número de teléfono');
-            $table->string('bio', 500)->nullable()->after('phone_number');
-            $table->date('birth_date')->nullable()->after('phone_number')->comment('Fecha de nacimiento del usuario');
+            $table->string('bio', 500)->nullable();
+            $table->date('birth_date')->nullable()->comment('Fecha de nacimiento del usuario');
             $table->string('email', 320)->unique()->comment('Correo electrónico único');
             $table->timestamp('email_verified_at')->nullable()->comment('Fecha de verificación del email');
 
@@ -63,7 +63,6 @@ return new class extends Migration
 
             $table->boolean('is_system_account')
                 ->default(false)
-                ->after('status')
                 ->comment('Cuenta interna del sistema — no puede iniciar sesión ni ser modificada por admins');
 
             $table->boolean('is_demo_user')->default(false)->comment('Indica si es un usuario de demostración');
@@ -73,8 +72,8 @@ return new class extends Migration
             $table->timestamp('last_login_at')->nullable()->comment('Última fecha de inicio de sesión');
             $table->ipAddress('last_login_ip')->nullable()->comment('Última IP de inicio de sesión');
 
-            $table->unsignedInteger('login_streak_days')->default(0)->after('last_login_ip');
-            $table->unsignedInteger('best_login_streak_days')->default(0)->after('login_streak_days');
+            $table->unsignedInteger('login_streak_days')->default(0);
+            $table->unsignedInteger('best_login_streak_days')->default(0);
 
             // Configuraciones del usuario
             $table->boolean('is_email_notifications_enabled')->default(true)->comment('Notificaciones por email habilitadas');

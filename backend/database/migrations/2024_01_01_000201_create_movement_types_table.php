@@ -36,13 +36,13 @@ return new class extends Migration
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
-            $table->json('visible_roles')->nullable()->after('status')
+            $table->json('visible_roles')->nullable()
                 ->comment('Prefijos de rol (Role.prefix) que pueden ver este tipo en UI. null/[] = visible para todos los roles');
 
-            $table->string('game_group', 40)->nullable()->after('visible_roles')
+            $table->string('game_group', 40)->nullable()
                 ->comment('Agrupación temática para la UI (ej: BINGO, TRIVIA). null = genérico de billetera');
 
-            $table->integer('sort_order')->default(0)->after('game_group')
+            $table->integer('sort_order')->default(0)
                 ->comment('Orden de presentación en listados, ascendente');
 
             $table->timestamps();
