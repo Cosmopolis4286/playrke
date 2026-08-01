@@ -25,7 +25,7 @@ export function sortByRoleHierarchy<T extends { name: string }>(roles: T[]): T[]
 export function formatRoleName(name: string): string {
   const map: Record<string, string> = {
     superadmin: 'SuperAdmin', admin: 'Admin', commerce: 'Comercio',
-    subsidiary: 'Sucursal', seller: 'Freelancer', provider: 'Proveedor',
+    subsidiary: 'Sucursal', seller: 'Vendedor', provider: 'Proveedor',
     customer: 'Cliente', treasurer: 'Tesorero', player: 'Jugador',
   }
   return map[name.toLowerCase()] ?? name

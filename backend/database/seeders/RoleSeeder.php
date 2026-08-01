@@ -22,7 +22,11 @@ class RoleSeeder extends Seeder
             ['name' => 'Comercio',  'prefix' => 'commerce',   'description' => 'Comercio', 'status' => true, 'type' => 'web'],
             ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio', 'status' => true, 'type' => 'web'],
             ['name' => 'Vendedor',  'prefix' => 'seller',     'description' => 'Vendedor asociado', 'status' => true, 'type' => 'web'],
-            ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema', 'status' => true, 'type' => 'api'],      // API guard
+            // 'provider' es un rol RESERVADO: pensado para una futura integración de
+            // proveedor externo de juegos vía API. Hoy no tiene tabla, modelo Eloquent,
+            // controller ni gate propios — solo existe como fila en `roles` y como label
+            // decorativo en SidebarMenuService. No eliminar sin antes construir su CRUD.
+            ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema (rol reservado, sin CRUD propio aún)', 'status' => true, 'type' => 'api'],      // API guard
             ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente que usa nuestos servicios',               'status' => true, 'type' => 'web'],      // Cambiado a 'web' para acceso al menú
             ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero', 'status' => true, 'type' => 'web'],
         ];
