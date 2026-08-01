@@ -257,7 +257,7 @@ final class BingoRoomAutomaticCrudService
             'days'                 => $room->days ?? [],
             'time'                 => $room->formatted_time,
             'roomType'             => $room->room_type_id,
-            'gameMode'             => $room->connection_type_id,
+            'connectionType'       => $room->connection_type_id,
             'prizePoolType'        => $room->prize_pool_type_id,
             'allowedCurrencies'    => $room->allowed_currencies ?? [],
             'amountAddedPrizePool' => $room->amount_added_prize_pool ? (float) $room->amount_added_prize_pool : null,

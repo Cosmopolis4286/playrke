@@ -1226,7 +1226,7 @@ class BingoRoomCrudService
             'time'                  => null,
             'startMode'             => 'MANUAL',
             'roomType'              => $config->room_type_id,
-            'gameMode'              => $config->connection_type_id,
+            'connectionType'        => $config->connection_type_id,
             'gameVariant'           => $config->game_variant ?? 'BINGO_75',
             'prizePoolType'         => $config->prize_pool_type_id,
             'allowedCurrencies'     => $config->allowed_currencies ?? [],
