@@ -2,7 +2,6 @@
 
 namespace App\Services\ExchangeRate;
 
-use App\Contracts\ExchangeRate\ExchangeRateProviderInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\Log;
  * Esta clase pertenece a la capa de infraestructura y encapsula la lógica
  * de acceso a la API remota.
  */
-final class ExchangeRateApiService implements ExchangeRateProviderInterface
+final class ExchangeRateApiService
 {
     /**
      * URL de la API externa para obtener las tasas de cambio.
