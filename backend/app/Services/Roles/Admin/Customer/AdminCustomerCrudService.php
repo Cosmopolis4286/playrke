@@ -11,8 +11,8 @@ use App\Http\Resources\Roles\Admin\Customer\AdminCustomerResource;
 use App\Models\Game;
 use App\Models\User;
 use App\Models\Pivots\Roles\Customer\CustomerCurrency;
-use App\Models\Pivots\Roles\Customer\CustomerGame;
 use App\Models\Roles\Customer;
+use App\Models\Roles\Customer\CustomerGame;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
 

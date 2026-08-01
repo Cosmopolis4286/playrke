@@ -2,15 +2,20 @@
 
 namespace App\Models\Roles\Customer;
 
+use App\Models\Pivots\BasePivot;
 use App\Models\Roles\Customer;
 use App\Models\Game;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CustomerGame extends Model
+class CustomerGame extends BasePivot
 {
-    use SnowflakeId;
+    /**
+     * El pivot no es autoincremental y usa clave primaria compuesta.
+     */
+    public $incrementing = false;
+    protected $primaryKey = ['customer_id', 'game_id'];
+    protected $keyType = 'string';
+    protected array $pivotIdentityKeys = ['customer_id', 'game_id'];
 
     protected $table = "customers_games";
 
@@ -21,6 +26,12 @@ class CustomerGame extends Model
         'product',
         'description',
         'status'
+    ];
+
+    protected $casts = [
+        'status' => 'string',
+        'customer_id' => 'string',
+        'game_id' => 'string',
     ];
 
     public function customer(): BelongsTo
