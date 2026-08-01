@@ -3,6 +3,7 @@
 namespace App\Models\Games\Common\PrizePool;
 
 use App\Models\Game;
+use App\Traits\HasActiveStatusScope;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class PrizePoolType extends Model
 {
-    use SnowflakeId;
+    use SnowflakeId, HasActiveStatusScope;
 
     protected $fillable = [
         'game_id',
@@ -34,15 +35,5 @@ class PrizePoolType extends Model
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'ACTIVE');
-    }
-
-    public function isActive(): bool
-    {
-        return $this->status === 'ACTIVE';
     }
 }

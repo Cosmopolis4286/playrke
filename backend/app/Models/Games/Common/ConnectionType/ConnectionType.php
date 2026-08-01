@@ -3,6 +3,7 @@
 namespace App\Models\Games\Common\ConnectionType;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasActiveStatusScope;
 use App\Traits\SnowflakeId;
 
 /**
@@ -13,7 +14,7 @@ use App\Traits\SnowflakeId;
  */
 class ConnectionType extends Model
 {
-    use SnowflakeId;
+    use SnowflakeId, HasActiveStatusScope;
 
     /**
      * Nombre de la tabla asociada al modelo.
@@ -49,34 +50,4 @@ class ConnectionType extends Model
         'status' => 'string',  // Casteo del estado a string
     ];
 
-    /**
-     * Scope para filtrar tipos activos.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'ACTIVE');
-    }
-
-    /**
-     * Verifica si el tipo está activo.
-     *
-     * @return bool
-     */
-    public function isActive(): bool
-    {
-        return $this->status === 'ACTIVE';
-    }
-
-    /**
-     * Verifica si el tipo está inactivo.
-     *
-     * @return bool
-     */
-    public function isInactive(): bool
-    {
-        return $this->status === 'INACTIVE';
-    }
 }
