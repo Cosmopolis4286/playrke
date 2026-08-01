@@ -11,7 +11,7 @@ final class BingoRoomAutomaticCreateDTO
     public function __construct(
         public readonly string        $time,
         public readonly string        $roomType,
-        public readonly string|int    $gameMode,
+        public readonly string|int    $connectionType,
         public readonly string|int    $prizePoolType,
         public readonly array         $allowedCurrencies,
         public readonly float         $roomCommission,
@@ -69,7 +69,7 @@ final class BingoRoomAutomaticCreateDTO
         return new self(
             time: $data['time'],
             roomType: (string) ($data['roomType'] ?? 'PRIVATE'),
-            gameMode: $data['gameMode'],
+            connectionType: $data['connectionType'],
             prizePoolType: $data['prizePoolType'],
             allowedCurrencies: $allowedCurrencies,
             roomCommission: (float) ($data['roomCommn'] ?? 20),

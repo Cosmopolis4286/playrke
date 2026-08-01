@@ -227,7 +227,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'date'              => Carbon::now($creatorTz)->format('Y-m-d'),
             'time'              => $template->game_time ? $template->game_time->format('H:i') : '00:00',
             'roomType'          => $template->room_type_id,
-            'gameMode'          => $template->connection_type_id,
+            'connectionType'    => $template->connection_type_id,
             'prizePoolType'     => $template->prize_pool_type_id,
             'allowedCurrencies' => $template->allowed_currencies ?? [],
             'roomCommn'         => (float) $template->room_commission,

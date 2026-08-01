@@ -42,7 +42,7 @@ class BingoRoomRequest extends BaseRequest
             // Cupo máximo de jugadores en la sala (opcional, sin límite si no se envía)
             'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
-            'gameMode'                    => ['required', 'exists:connection_types,id'],
+            'connectionType'              => ['required', 'exists:connection_types,id'],
             'gameVariant'                 => ['nullable', 'string', 'in:BINGO_75,BINGO_90,BINGO_80,BINGO_30'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 
@@ -301,8 +301,8 @@ class BingoRoomRequest extends BaseRequest
             'roomType.required'               => 'El tipo de sala es obligatorio.',
             'roomType.exists'                 => 'El tipo de sala seleccionado no es válido.',
 
-            'gameMode.required'               => 'El modo de juego es obligatorio.',
-            'gameMode.exists'                 => 'El modo de juego seleccionado no es válido.',
+            'connectionType.required'         => 'El tipo de conexión es obligatorio.',
+            'connectionType.exists'           => 'El tipo de conexión seleccionado no es válido.',
 
             'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',

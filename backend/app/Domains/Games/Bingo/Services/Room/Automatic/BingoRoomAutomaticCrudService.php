@@ -53,7 +53,7 @@ final class BingoRoomAutomaticCrudService
                 'days'                    => $dto->days ?? null,
                 'time'                    => $dto->time,
                 'in_live'                 => $dto->inLive ?? 'N',
-                'connection_type_id'      => $dto->gameMode,
+                'connection_type_id'      => $dto->connectionType,
                 'room_type_id'            => $dto->roomType,
                 'prize_pool_type_id'      => $dto->prizePoolType,
                 'amount_added_prize_pool' => $dto->amountAddedPrizePool,

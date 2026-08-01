@@ -341,7 +341,7 @@ class BingoRoomCrudService
             'time'                  => $dto->time,
             'startMode'             => $dto->startMode,
             'roomType'              => $dto->roomType,
-            'gameMode'              => $dto->gameMode,
+            'connectionType'        => $dto->connectionType,
             'gameVariant'           => $dto->gameVariant,
             'prizePoolType'         => $dto->prizePoolType,
             'allowedCurrencies'     => [$currencyId],
@@ -466,7 +466,7 @@ class BingoRoomCrudService
     {
         $base = [
             'room_type_id'            => $dto->roomType,
-            'connection_type_id'      => $dto->gameMode,
+            'connection_type_id'      => $dto->connectionType,
             'game_variant'            => $dto->gameVariant ?? 'BINGO_75',
             'date'                    => $dto->date,
             'time'                    => $dto->time,

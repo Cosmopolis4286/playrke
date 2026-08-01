@@ -37,7 +37,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'date'                        => ['nullable', 'date', 'after_or_equal:today'],
             'time'                        => ['required', 'date_format:H:i'],
             'roomType'                    => ['required', 'exists:room_types,id'],
-            'gameMode'                    => ['required', 'exists:connection_types,id'],
+            'connectionType'              => ['required', 'exists:connection_types,id'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 
             // Precio base del cartón en USD:
@@ -256,8 +256,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'roomType.required'               => 'El tipo de sala es obligatorio.',
             'roomType.exists'                 => 'El tipo de sala seleccionado no es válido.',
 
-            'gameMode.required'               => 'El modo de juego es obligatorio.',
-            'gameMode.exists'                 => 'El modo de juego seleccionado no es válido.',
+            'connectionType.required'         => 'El tipo de conexión es obligatorio.',
+            'connectionType.exists'           => 'El tipo de conexión seleccionado no es válido.',
 
             'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',

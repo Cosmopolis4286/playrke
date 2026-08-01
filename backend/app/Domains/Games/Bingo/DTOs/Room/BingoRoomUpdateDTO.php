@@ -17,7 +17,7 @@ final class BingoRoomUpdateDTO
         public readonly ?string $startMode,
         public readonly ?int $minCardsToStart,
         public readonly ?string $roomType,
-        public readonly string|int|null $gameMode,
+        public readonly string|int|null $connectionType,
         public readonly string|int|null $prizePoolType,
         public readonly ?array $allowedCurrencies,
         public readonly ?float $amountAddedPrizePool,
@@ -75,7 +75,7 @@ final class BingoRoomUpdateDTO
                 ? (isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null)
                 : null,
             roomType: $data['roomType'] ?? null,
-            gameMode: $data['gameMode'] ?? null,
+            connectionType: $data['connectionType'] ?? null,
             prizePoolType: $data['prizePoolType'] ?? null,
             allowedCurrencies: $allowedCurrencies,
             amountAddedPrizePool: isset($data['amountAddedPrizePool'])
