@@ -5,6 +5,13 @@ import { useBingoRoomCrudFactory } from '../shared/useBingoRoomCrudFactory'
 
 import type { BingoRoomAutomatic, BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 
+/** Extrae el mensaje de error más específico posible: detalle de validación (422) si existe, si no el mensaje general. */
+function extractErrorMessage(err: any, fallback: string): string {
+    const errors = err?.response?.data?.errors
+    if (errors) return Object.values(errors).flat().join(' ')
+    return err?.response?.data?.message ?? fallback
+}
+
 /**
  * Contrato público del composable useBingoRoomAutomatic
  */
@@ -147,7 +154,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             return true
         } catch (error: any) {
             showToast(
-                error?.response?.data?.message ?? 'Error al guardar la sala de bingo',
+                extractErrorMessage(error, 'Error al guardar la sala de bingo'),
                 'error'
             )
             return false

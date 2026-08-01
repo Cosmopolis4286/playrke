@@ -5,6 +5,13 @@ import { useBingoRoomCrudFactory } from '../shared/useBingoRoomCrudFactory'
 
 import type { BingoRoom, BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 
+/** Extrae el mensaje de error más específico posible: detalle de validación (422) si existe, si no el mensaje general. */
+function extractErrorMessage(err: any, fallback: string): string {
+    const errors = err?.response?.data?.errors
+    if (errors) return Object.values(errors).flat().join(' ')
+    return err?.response?.data?.message ?? fallback
+}
+
 /**
  * Contrato público del composable useBingoRoom
  */
@@ -178,7 +185,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     )
                     showToast('Sala actualizada exitosamente', 'success')
                 } catch (updateError: any) {
-                    const message = updateError?.response?.data?.message ?? 'Error al actualizar la sala de bingo'
+                    const message = extractErrorMessage(updateError, 'Error al actualizar la sala de bingo')
                     showToast(`${message}. Tu borrador se mantuvo guardado, puedes reintentar.`, 'error')
                     return false
                 }
@@ -187,7 +194,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     await backendClient.post(`/${ENDPOINT}`, payload)
                     showToast('Sala creada exitosamente', 'success')
                 } catch (createError: any) {
-                    const message = createError?.response?.data?.message ?? 'Error al crear la sala de bingo'
+                    const message = extractErrorMessage(createError, 'Error al crear la sala de bingo')
                     showToast(`${message}. Tu borrador se mantuvo guardado, puedes reintentar.`, 'error')
                     return false
                 }
