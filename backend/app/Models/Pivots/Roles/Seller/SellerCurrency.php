@@ -366,7 +366,7 @@ class SellerCurrency extends BasePivot
     {
         return sprintf(
             '%s/%s [Nivel %d - %s]',
-            $this->getCountryName(),
+            $this->seller->country->name ?? 'Sin país',
             $this->getCurrencyCode(),
             $this->level,
             $this->isActive() ? 'ACTIVA' : 'INACTIVA'
