@@ -2,59 +2,20 @@
 
 namespace App\Contracts\Roles\Commerce;
 
-use App\Contracts\BaseRepositoryInterface;
-use App\Models\Roles\Commerce;
+use App\Contracts\RoleEntityRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de comercios
+ *
+ * Los métodos comunes (getByUserId, getByCodeUUID, getValueByCodeUUID,
+ * existsValue, getByCountry, getInactiveRecords, getBlockedRecords,
+ * updateStatus, activate, deactivate, block) están definidos en
+ * RoleEntityRepositoryInterface. Aquí solo quedan los métodos propios
+ * de comercios.
  */
-interface CommerceRepositoryInterface extends BaseRepositoryInterface
+interface CommerceRepositoryInterface extends RoleEntityRepositoryInterface
 {
-    /**
-     * Obtiene comercio por ID de usuario
-     *
-     * @param mixed $userId ID del usuario
-     * @param array $fields Campos a seleccionar
-     * @return Commerce|null
-     */
-    public function getByUserId($userId, array $fields = ['*']): ?Commerce;
-
-    /**
-     * Obtiene comercio por código UUID
-     *
-     * @param string $code Código UUID
-     * @param array $fields Campos a seleccionar
-     * @return Commerce|null
-     */
-    public function getByCodeUUID(string $code, array $fields = ['*']): ?Commerce;
-
-    /**
-     * Obtiene valor por código UUID
-     *
-     * @param string $code Código UUID
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByCodeUUID(string $code, string $field);
-
-    /**
-     * Verifica si existe un valor en una columna
-     *
-     * @param string $column Columna a verificar
-     * @param mixed $value Valor a buscar
-     * @return bool
-     */
-    public function existsValue(string $column, $value): bool;
-
-    /**
-     * Obtiene comercios por país
-     *
-     * @param mixed $countryId ID del país
-     * @return Collection
-     */
-    public function getByCountry($countryId): Collection;
-
     /**
      * Obtiene comercios por moneda
      *
@@ -62,53 +23,6 @@ interface CommerceRepositoryInterface extends BaseRepositoryInterface
      * @return Collection
      */
     public function getByCurrency($currencyId): Collection;
-
-    /**
-     * Obtiene comercios inactivos
-     *
-     * @return Collection
-     */
-    public function getInactiveCommerces(): Collection;
-
-    /**
-     * Obtiene comercios bloqueados
-     *
-     * @return Collection
-     */
-    public function getBlockedCommerces(): Collection;
-
-    /**
-     * Actualiza estado de un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @param string $status Nuevo estado
-     * @return bool
-     */
-    public function updateStatus($id, string $status): bool;
-
-    /**
-     * Activa un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @return bool
-     */
-    public function activate($id): bool;
-
-    /**
-     * Desactiva un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @return bool
-     */
-    public function deactivate($id): bool;
-
-    /**
-     * Bloquea un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @return bool
-     */
-    public function block($id): bool;
 
     /**
      * Actualiza comisión de un comercio

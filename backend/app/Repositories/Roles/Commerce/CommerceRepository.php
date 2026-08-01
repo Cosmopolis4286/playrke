@@ -101,7 +101,7 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
      *
      * @return Collection
      */
-    public function getInactiveCommerces(): Collection
+    public function getInactiveRecords(): Collection
     {
         return $this->model->where('status', 'INACTIVE')->get();
     }
@@ -111,7 +111,7 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
      *
      * @return Collection
      */
-    public function getBlockedCommerces(): Collection
+    public function getBlockedRecords(): Collection
     {
         return $this->model->where('status', 'BLOCKED')->get();
     }

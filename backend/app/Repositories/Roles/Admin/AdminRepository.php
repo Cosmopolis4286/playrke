@@ -90,7 +90,7 @@ class AdminRepository extends BaseRepository implements AdminRepositoryInterface
      *
      * @return Collection
      */
-    public function getInactiveAdmins(): Collection
+    public function getInactiveRecords(): Collection
     {
         return $this->model->where('status', 'INACTIVE')->get();
     }
@@ -100,7 +100,7 @@ class AdminRepository extends BaseRepository implements AdminRepositoryInterface
      *
      * @return Collection
      */
-    public function getBlockedAdmins(): Collection
+    public function getBlockedRecords(): Collection
     {
         return $this->model->where('status', 'BLOCKED')->get();
     }
