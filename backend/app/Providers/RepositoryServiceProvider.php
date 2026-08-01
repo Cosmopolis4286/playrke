@@ -8,9 +8,25 @@ use ReflectionClass;
 use App\Contracts\SettingRepositoryInterface;
 use App\Repositories\SettingRepository;
 use App\Models\Setting;
+use App\Contracts\RoleEntityRepositoryInterface;
+use App\Contracts\GameCatalogRepositoryInterface;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
+    /**
+     * Interfaces base compartidas por varias interfaces específicas
+     * (ej. AdminRepositoryInterface/CommerceRepositoryInterface extienden
+     * RoleEntityRepositoryInterface). El auto-scan de abajo captura TODAS
+     * las interfaces de getInterfaces(), incluidas las heredadas, así que
+     * sin esta exclusión terminarían bindeadas a la primera clase concreta
+     * que el filesystem devuelva (orden no determinista) en vez de quedar
+     * sin binding directo, ya que nadie debe inyectarlas por sí solas.
+     */
+    private const EXCLUDED_BASE_INTERFACES = [
+        RoleEntityRepositoryInterface::class,
+        GameCatalogRepositoryInterface::class,
+    ];
+
     public function register(): void
     {
         // Repositorio crítico con dependencias explícitas
@@ -55,6 +71,11 @@ class RepositoryServiceProvider extends ServiceProvider
 
                 // Evitar doble binding explícito
                 if ($interface->getName() === SettingRepositoryInterface::class) {
+                    continue;
+                }
+
+                // Interfaces base compartidas: no bindear directamente
+                if (in_array($interface->getName(), self::EXCLUDED_BASE_INTERFACES, true)) {
                     continue;
                 }
 
