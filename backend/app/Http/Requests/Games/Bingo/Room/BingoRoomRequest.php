@@ -4,6 +4,9 @@ namespace App\Http\Requests\Games\Bingo\Room;
 
 use App\Http\Requests\BaseRequest;
 use App\Models\ExchangeRate;
+use App\Models\Game;
+use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\Room\RoomType;
 use App\Services\Auth\PermissionService;
 
 /**
@@ -43,8 +46,14 @@ class BingoRoomRequest extends BaseRequest
             'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'connectionType'              => ['required', 'exists:connection_types,id'],
+            'gameMode'                    => ['nullable', 'exists:game_modes,id'],
             'gameVariant'                 => ['nullable', 'string', 'in:BINGO_75,BINGO_90,BINGO_80,BINGO_30'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
+
+            // Sala privada (solo aplica cuando roomType = tipo de sala PRIVATE)
+            'accessCode'                  => [$this->requiredIfPrivateRoom(), 'nullable', 'string', 'min:4', 'max:20'],
+            'roomPassword'                => [$this->requiredIfPrivateRoom(create: true), 'nullable', 'string', 'min:6', 'max:100'],
+            'hostUserId'                  => ['nullable', 'exists:users,id'],
 
             // Precio base del cartón en USD:
             // - Si useBaseUsd = true → cardPriceUsd es obligatorio
@@ -103,6 +112,25 @@ class BingoRoomRequest extends BaseRequest
             'roundsConfig.*.prizeId'                        => ['nullable', 'exists:prizes,id'],
             'roundsConfig.*.prizeName'                      => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * Regla `required_if:roomType,<id>` resuelta contra el id real del RoomType
+     * con código PRIVATE (roomType viaja como snowflake id, no como código).
+     *
+     * @param bool $create Si true, y estamos en creación, la regla es más estricta
+     *                      (usada por roomPassword: obligatoria solo al crear, opcional
+     *                      al editar para no forzar cambiarla cada vez).
+     */
+    private function requiredIfPrivateRoom(bool $create = false): string
+    {
+        if ($create && $this->route('room') !== null) {
+            return 'nullable';
+        }
+
+        $privateRoomTypeId = RoomType::where('code', 'PRIVATE')->value('id');
+
+        return $privateRoomTypeId ? "required_if:roomType,{$privateRoomTypeId}" : 'nullable';
     }
 
     /**
@@ -251,6 +279,19 @@ class BingoRoomRequest extends BaseRequest
                 );
             }
 
+            // gameMode: el exists:game_modes,id no verifica que el modo pertenezca al
+            // juego Bingo — GameMode es un catálogo compartido entre juegos (Trivia, etc.)
+            // y aceptar un id de otro juego dejaría la sala con un modo incoherente.
+            $gameMode = $this->input('gameMode');
+            if ($gameMode !== null && !$validator->errors()->has('gameMode')) {
+                $bingoGameId = Game::where('name', 'BINGO')->value('id');
+                $mode = GameMode::find($gameMode);
+
+                if (!$mode || (string) $mode->game_id !== (string) $bingoGameId) {
+                    $validator->errors()->add('gameMode', 'El modo de juego seleccionado no es válido para Bingo.');
+                }
+            }
+
             // Mover casilla libre: solo tiene sentido junto con cartón personalizado
             // y solo en BINGO_75 (única variante con casilla libre).
             $moveFreeSpaceMode = $this->input('moveFreeSpaceMode');
@@ -304,8 +345,20 @@ class BingoRoomRequest extends BaseRequest
             'connectionType.required'         => 'El tipo de conexión es obligatorio.',
             'connectionType.exists'           => 'El tipo de conexión seleccionado no es válido.',
 
+            'gameMode.exists'                 => 'El modo de juego seleccionado no es válido.',
+
             'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',
+
+            'accessCode.required_if'          => 'El código de acceso es obligatorio para salas privadas.',
+            'accessCode.min'                  => 'El código de acceso debe tener al menos 4 caracteres.',
+            'accessCode.max'                  => 'El código de acceso no puede superar 20 caracteres.',
+
+            'roomPassword.required_if'        => 'La contraseña es obligatoria para salas privadas.',
+            'roomPassword.min'                => 'La contraseña debe tener al menos 6 caracteres.',
+            'roomPassword.max'                => 'La contraseña no puede superar 100 caracteres.',
+
+            'hostUserId.exists'               => 'El usuario anfitrión seleccionado no es válido.',
 
             'cardPriceUsd.required'            => 'El precio del cartón en USD es obligatorio.',
             'cardPriceUsd.min'                 => 'El precio del cartón no puede ser menor a 0.5.',

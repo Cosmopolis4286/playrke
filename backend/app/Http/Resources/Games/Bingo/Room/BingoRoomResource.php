@@ -102,12 +102,19 @@ class BingoRoomResource extends JsonResource
 
             'config' => $config ? [
                 'room_type_id'            => $config->room_type_id,
+                // Sala privada: el código se expone para que el admin pueda compartirlo;
+                // la contraseña NUNCA sale del backend (ni en texto plano ni el hash) —
+                // solo un booleano indicando si ya tiene una configurada.
+                'access_code'             => $config->access_code,
+                'has_password'            => (bool) $config->room_password,
+                'host_user_id'            => $config->host_user_id,
                 'start_mode'              => $config->start_mode,
                 'min_cards_to_start'      => $config->min_cards_to_start,
                 'max_players'             => $config->max_players,
                 'date'                    => $config->date?->format('Y-m-d'),
                 'time'                    => $config->time,
                 'connection_type_id'      => $config->connection_type_id,
+                'game_mode_id'            => $config->game_mode_id,
                 'game_variant'            => $config->game_variant ?? 'BINGO_75',
                 'prize_pool_type_id'      => $config->prize_pool_type_id,
                 'amount_added_prize_pool' => $config->amount_added_prize_pool,

@@ -27,6 +27,7 @@ use App\Services\WalletService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -342,6 +343,7 @@ class BingoRoomCrudService
             'startMode'             => $dto->startMode,
             'roomType'              => $dto->roomType,
             'connectionType'        => $dto->connectionType,
+            'gameMode'              => $dto->gameMode,
             'gameVariant'           => $dto->gameVariant,
             'prizePoolType'         => $dto->prizePoolType,
             'allowedCurrencies'     => [$currencyId],
@@ -372,6 +374,9 @@ class BingoRoomCrudService
             'maxSpecialCards'       => $dto->maxSpecialCards,
             'minCardsToStart'       => $dto->minCardsToStart,
             'maxPlayers'            => $dto->maxPlayers,
+            'accessCode'            => $dto->accessCode,
+            'roomPassword'          => $dto->roomPassword,
+            'hostUserId'            => $dto->hostUserId,
         ]);
     }
 
@@ -467,6 +472,7 @@ class BingoRoomCrudService
         $base = [
             'room_type_id'            => $dto->roomType,
             'connection_type_id'      => $dto->connectionType,
+            'game_mode_id'            => $dto->gameMode,
             'game_variant'            => $dto->gameVariant ?? 'BINGO_75',
             'date'                    => $dto->date,
             'time'                    => $dto->time,
@@ -495,7 +501,17 @@ class BingoRoomCrudService
             'move_free_space_price_pct' => $dto->moveFreeSpacePricePct ?? null,
             'allow_special_card'      => $dto->allowSpecialCard ?? false,
             'max_special_cards'       => $dto->maxSpecialCards ?? null,
+            'access_code'             => $dto->accessCode ?? null,
+            'host_user_id'            => $dto->hostUserId ?? null,
         ];
+
+        // room_password: solo se toca si el DTO trae un valor nuevo — en update,
+        // null significa "no cambiar la contraseña existente" (el frontend nunca
+        // recibe/reenvía el hash guardado, así que no hay forma de "confirmar" el
+        // valor actual salvo omitiéndolo).
+        if ($dto->roomPassword !== null) {
+            $base['room_password'] = Hash::make($dto->roomPassword);
+        }
 
         // start_mode: editable tanto en creación como en actualización — el anfitrión
         // puede alternar entre sala programada y sala manual mientras no tenga jugadores
@@ -1227,6 +1243,7 @@ class BingoRoomCrudService
             'startMode'             => 'MANUAL',
             'roomType'              => $config->room_type_id,
             'connectionType'        => $config->connection_type_id,
+            'gameMode'              => $config->game_mode_id,
             'gameVariant'           => $config->game_variant ?? 'BINGO_75',
             'prizePoolType'         => $config->prize_pool_type_id,
             'allowedCurrencies'     => $config->allowed_currencies ?? [],
@@ -1253,6 +1270,11 @@ class BingoRoomCrudService
             'moveFreeSpacePricePct' => $config->move_free_space_price_pct !== null ? (float) $config->move_free_space_price_pct : null,
             'allowSpecialCard'      => (bool) $config->allow_special_card,
             'maxSpecialCards'       => $config->max_special_cards !== null ? (int) $config->max_special_cards : null,
+            'accessCode'            => $config->access_code,
+            'hostUserId'            => $config->host_user_id,
+            // roomPassword deliberadamente NO se copia: la sala copiada queda sin
+            // contraseña hasta que el admin defina una nueva desde el formulario.
+            'roomPassword'          => null,
         ]);
 
         return $this->saveRoom($dto);
@@ -1329,5 +1351,68 @@ class BingoRoomCrudService
 
             return $locked->forceDelete();
         });
+    }
+
+    /**
+     * Clave de sesión donde se acumulan los IDs de salas privadas verificadas
+     * por el usuario actual — compartida con la defensa en profundidad de
+     * BingoCardGenerateService (buyFromGameRooms / playerBuyFromGameRooms).
+     */
+    public const SESSION_VERIFIED_ROOMS_KEY = 'bingo_verified_rooms';
+
+    /**
+     * Verificar código/contraseña de acceso a una sala privada.
+     * Si la sala no es de tipo PRIVATE, retorna verificado sin más chequeos.
+     * Comparación en tiempo constante para el código (evita side-channel de
+     * duración) y Hash::check() para la contraseña.
+     *
+     * @return array{verified: bool}
+     */
+    public function verifyRoomAccess(BingoRoom $room, string $accessCode, string $password): array
+    {
+        $room->loadMissing('config.roomType');
+        $config = $room->config;
+
+        if (!$config || $config->roomType?->code !== 'PRIVATE') {
+            return ['verified' => true];
+        }
+
+        $codeMatches = $config->access_code !== null && hash_equals((string) $config->access_code, $accessCode);
+        $passwordMatches = $config->room_password !== null && Hash::check($password, $config->room_password);
+
+        if (!$codeMatches || !$passwordMatches) {
+            return ['verified' => false];
+        }
+
+        $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
+        if (!in_array((string) $room->id, $verifiedRooms, true)) {
+            $verifiedRooms[] = (string) $room->id;
+            session([self::SESSION_VERIFIED_ROOMS_KEY => $verifiedRooms]);
+        }
+
+        return ['verified' => true];
+    }
+
+    /**
+     * Si la sala es PRIVATE, exige que ya haya sido verificada en la sesión
+     * actual (vía verifyRoomAccess). Defensa en profundidad para el flujo de
+     * compra de cartones — no reemplaza la verificación de código/contraseña,
+     * solo evita que se salte pasando directo a comprar.
+     *
+     * @throws BingoRoomException Si la sala es privada y no fue verificada
+     */
+    public function assertRoomAccessVerified(BingoRoom $room): void
+    {
+        $room->loadMissing('config.roomType');
+        $config = $room->config;
+
+        if (!$config || $config->roomType?->code !== 'PRIVATE') {
+            return;
+        }
+
+        $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
+        if (!in_array((string) $room->id, $verifiedRooms, true)) {
+            throw BingoRoomException::privateRoomNotVerified();
+        }
     }
 }

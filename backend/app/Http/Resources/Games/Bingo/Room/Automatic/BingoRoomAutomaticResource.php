@@ -24,8 +24,15 @@ class BingoRoomAutomaticResource extends JsonResource
 
             'config' => [
                 'room_type_id'            => $this->room_type_id,
+                // Sala privada: el código se expone para que el admin pueda compartirlo;
+                // la contraseña NUNCA sale del backend (ni en texto plano ni el hash) —
+                // solo un booleano indicando si ya tiene una configurada.
+                'access_code'             => $this->access_code,
+                'has_password'            => (bool) $this->room_password,
+                'host_user_id'            => $this->host_user_id,
                 'time'                    => $this->formatted_time,
                 'connection_type_id'      => $this->connection_type_id,
+                'game_mode_id'            => $this->game_mode_id,
                 'prize_pool_type_id'      => $this->prize_pool_type_id,
                 'amount_added_prize_pool' => $this->amount_added_prize_pool,
                 'room_commission'         => $this->room_commission,

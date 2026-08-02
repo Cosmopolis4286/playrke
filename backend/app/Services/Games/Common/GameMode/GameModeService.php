@@ -3,6 +3,8 @@
 namespace App\Services\Games\Common\GameMode;
 
 use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Models\Games\Common\GameMode\GameMode;
 use Illuminate\Database\Eloquent\Collection;
@@ -75,6 +77,17 @@ final class GameModeService
         // ya se protegería solo vía restrictOnDelete si existiera.
         if (TriviaRoom::where('game_mode_id', $gameModeId)->exists()) {
             throw new \InvalidArgumentException('No se puede eliminar: hay salas de Trivia usando este modo.');
+        }
+
+        // bingo_rooms_config.game_mode_id sí tiene FK física (MySQL, misma conexión),
+        // pero es nullOnDelete (el modo es opcional) — sin este guard, borrar un modo
+        // en uso dejaría salas de Bingo con game_mode_id vaciado silenciosamente.
+        if (BingoRoomConfig::where('game_mode_id', $gameModeId)->exists()) {
+            throw new \InvalidArgumentException('No se puede eliminar: hay salas de Bingo usando este modo.');
+        }
+
+        if (BingoRoomAutomatic::where('game_mode_id', $gameModeId)->exists()) {
+            throw new \InvalidArgumentException('No se puede eliminar: hay salas automáticas de Bingo usando este modo.');
         }
 
         return $this->gameModes->delete($gameModeId);

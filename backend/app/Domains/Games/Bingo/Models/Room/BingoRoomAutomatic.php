@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Models\Room;
 
 use App\Models\Games\Common\ConnectionType\ConnectionType;
+use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Games\Common\Room\RoomType;
@@ -19,6 +20,10 @@ class BingoRoomAutomatic extends Model
     use SnowflakeId, SoftDeletes, HasHashedRouteKey;
 
     protected $table = 'bingo_rooms_automatic';
+
+    protected $hidden = [
+        'room_password',
+    ];
 
     public const STATUS_ACTIVE   = 'ACTIVE';
     public const STATUS_INACTIVE = 'INACTIVE';
@@ -56,7 +61,11 @@ class BingoRoomAutomatic extends Model
         'template_id',
         'in_live',
         'connection_type_id',
+        'game_mode_id',
         'room_type_id',
+        'access_code',
+        'room_password',
+        'host_user_id',
         'rke_commission',
         'room_commission',
         'use_base_usd',
@@ -112,7 +121,11 @@ class BingoRoomAutomatic extends Model
         'id'                      => 'string',
         'template_id'             => 'string',
         'connection_type_id'      => 'string',
+        'game_mode_id'            => 'string',
         'room_type_id'            => 'string',
+        'access_code'             => 'string',
+        'room_password'           => 'string',
+        'host_user_id'            => 'string',
         'prize_pool_type_id'      => 'string',
         'creator_user_id'         => 'string',
         'default_currency_id'     => 'string',
@@ -187,6 +200,22 @@ class BingoRoomAutomatic extends Model
     public function connectionType(): BelongsTo
     {
         return $this->belongsTo(ConnectionType::class, 'connection_type_id');
+    }
+
+    /**
+     * Relación con el modo de juego (catálogo game_modes, opcional).
+     */
+    public function gameMode(): BelongsTo
+    {
+        return $this->belongsTo(GameMode::class, 'game_mode_id');
+    }
+
+    /**
+     * Relación con el usuario anfitrión (solo aplica a salas privadas).
+     */
+    public function hostUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'host_user_id');
     }
 
     public function prizePoolType(): BelongsTo

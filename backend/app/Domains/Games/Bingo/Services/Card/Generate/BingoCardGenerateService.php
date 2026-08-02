@@ -48,6 +48,7 @@ final class BingoCardGenerateService
         private readonly \App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService $cardGenerationService,
         private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,
         private readonly \App\Services\ExchangeRate\ExchangeRateDomainService $exchangeRateDomain,
+        private readonly \App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService $bingoRoomCrud,
     ) {}
 
     /**
@@ -549,7 +550,7 @@ final class BingoCardGenerateService
 
         // 2. Validar sala — permite ACTIVE o IN_PROGRESS
         $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
-            ->with(['status:id,code', 'config:id,room_id,card_price_usd'])
+            ->with(['status:id,code', 'config:id,room_id,card_price_usd,room_type_id', 'config.roomType:id,code'])
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->where('id', $dto->roomId)
             ->first();
@@ -557,6 +558,10 @@ final class BingoCardGenerateService
         if (!$room) {
             throw new DomainException('Sala no encontrada o no disponible.');
         }
+
+        // Defensa en profundidad: si la sala es privada, exige haber verificado
+        // código/contraseña antes (POST /bingo-rooms/{room}/verify-access).
+        $this->bingoRoomCrud->assertRoomAccessVerified($room);
 
         // 3. Moneda del país seleccionado
         $currencyId = $this->currencies->getValueByCountry($dto->countryId, 'id');
@@ -1025,6 +1030,11 @@ final class BingoCardGenerateService
         }
 
         $room = BingoRoom::with('config')->findOrFail($roomId);
+
+        // Defensa en profundidad: si la sala es privada, exige haber verificado
+        // código/contraseña antes (POST /bingo-rooms/{room}/verify-access).
+        $this->bingoRoomCrud->assertRoomAccessVerified($room);
+
         $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
 
         $customCount = $customMatrices !== null ? count($customMatrices) : 0;

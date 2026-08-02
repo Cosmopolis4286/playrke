@@ -54,6 +54,10 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?float        $moveFreeSpacePricePct = null,
         public readonly ?bool         $allowSpecialCard      = null,
         public readonly ?int          $maxSpecialCards       = null,
+        public readonly string|int|null $gameMode            = null,
+        public readonly ?string       $accessCode            = null,
+        public readonly ?string       $roomPassword          = null,
+        public readonly string|int|null $hostUserId          = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -120,6 +124,11 @@ final class BingoRoomAutomaticUpdateDTO
             moveFreeSpacePricePct: isset($data['moveFreeSpacePricePct']) ? (float) $data['moveFreeSpacePricePct'] : null,
             allowSpecialCard: isset($data['allowSpecialCard']) ? (bool) $data['allowSpecialCard'] : null,
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
+            gameMode: array_key_exists('gameMode', $data) ? $data['gameMode'] : null,
+            accessCode: $data['accessCode'] ?? null,
+            // null = no cambiar la contraseña existente (el frontend nunca precarga el hash)
+            roomPassword: $data['roomPassword'] ?? null,
+            hostUserId: $data['hostUserId'] ?? null,
         );
     }
 }

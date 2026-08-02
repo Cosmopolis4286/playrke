@@ -184,4 +184,19 @@ final class BingoRoomService
     {
         return $this->crudService->destroy($room);
     }
+
+    /**
+     * Verificar código/contraseña de acceso a una sala privada. Si la sala no
+     * es privada, siempre retorna verificado. Si es válido, marca la sala como
+     * verificada en la sesión del usuario actual.
+     *
+     * @param BingoRoom $room Model
+     * @param string $accessCode Código de acceso ingresado
+     * @param string $password Contraseña ingresada
+     * @return array{verified: bool}
+     */
+    public function verifyRoomAccess(BingoRoom $room, string $accessCode, string $password): array
+    {
+        return $this->crudService->verifyRoomAccess($room, $accessCode, $password);
+    }
 }

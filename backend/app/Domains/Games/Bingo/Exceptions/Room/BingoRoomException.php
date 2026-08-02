@@ -65,6 +65,15 @@ final class BingoRoomException extends DomainException
     }
 
     /**
+     * Intento de comprar/generar cartones en una sala privada sin haber
+     * verificado antes el código de acceso y la contraseña.
+     */
+    public static function privateRoomNotVerified(): self
+    {
+        return new self('BINGO_ROOM_PRIVATE_NOT_VERIFIED');
+    }
+
+    /**
      * Intento de eliminación física de una sala con historial de actividad
      * (jugadores, cartones vendidos o bote acumulado) — el hard delete
      * cascadea hacia tablas financieras (premios, pagos, comisiones,

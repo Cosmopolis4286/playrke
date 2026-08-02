@@ -106,7 +106,8 @@ class Handler extends ExceptionHandler
 
             // Forbidden / Authorization
             'ADMIN_USER_CANNOT_MODIFY_SELF',
-            'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN'
+            'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN',
+            'BINGO_ROOM_PRIVATE_NOT_VERIFIED'
             => Response::HTTP_FORBIDDEN,
 
             // Conflicts / Invalid state

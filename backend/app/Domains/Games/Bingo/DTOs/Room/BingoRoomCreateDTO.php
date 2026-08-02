@@ -18,6 +18,7 @@ final class BingoRoomCreateDTO
         public readonly ?int $minCardsToStart,
         public readonly string $roomType,
         public readonly string|int $connectionType,
+        public readonly string|int|null $gameMode,
         public readonly string|int $prizePoolType,
         public readonly array $allowedCurrencies,
         public readonly ?float $amountAddedPrizePool,
@@ -47,6 +48,9 @@ final class BingoRoomCreateDTO
         public readonly bool $allowSpecialCard = false,
         public readonly ?int $maxSpecialCards = null,
         public readonly ?int $maxPlayers = null,
+        public readonly ?string $accessCode = null,
+        public readonly ?string $roomPassword = null,
+        public readonly string|int|null $hostUserId = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -68,6 +72,7 @@ final class BingoRoomCreateDTO
             minCardsToStart: isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null,
             roomType: $data['roomType'] ?? 'PRIVATE',
             connectionType: $data['connectionType'],
+            gameMode: $data['gameMode'] ?? null,
             prizePoolType: $data['prizePoolType'],
             allowedCurrencies: $allowedCurrencies,
             amountAddedPrizePool: isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
@@ -97,6 +102,9 @@ final class BingoRoomCreateDTO
             allowSpecialCard: (bool) ($data['allowSpecialCard'] ?? false),
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
             maxPlayers: isset($data['maxPlayers']) ? (int) $data['maxPlayers'] : null,
+            accessCode: $data['accessCode'] ?? null,
+            roomPassword: $data['roomPassword'] ?? null,
+            hostUserId: $data['hostUserId'] ?? null,
         );
     }
 }

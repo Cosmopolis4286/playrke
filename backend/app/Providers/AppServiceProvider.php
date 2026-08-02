@@ -106,6 +106,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($key);
         });
 
+        // Rate-limit: verificación de acceso a sala privada — 10 intentos por minuto
+        // por (usuario + sala). Mitiga fuerza bruta sobre código/contraseña.
+        RateLimiter::for('bingo-verify-access', function (Request $request) {
+            $key = ($request->user()?->id ?? 'guest') . '|' . $request->route('room');
+            return Limit::perMinute(10)->by($key);
+        });
+
         // Rate-limit: cambio de contraseña — 5 intentos por minuto por usuario.
         // Mitiga fuerza bruta sobre "current_password" desde una sesión ya autenticada.
         RateLimiter::for('profile-change-password', function (Request $request) {

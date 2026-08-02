@@ -23,10 +23,29 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('Tipo de conexión asignado');
 
+            // Modalidad de participación (Solitario, Múltiple, Ranking, etc.), catálogo
+            // per-game reutilizado de game_modes — no confundir con connection_type_id.
+            $table->foreignSnowflake('game_mode_id')
+                ->nullable()
+                ->constrained('game_modes')
+                ->nullOnDelete()
+                ->comment('Modo de juego asignado (catálogo game_modes, opcional)');
+
             $table->foreignSnowflake('room_type_id')
                 ->constrained('room_types')
                 ->cascadeOnDelete()
                 ->comment('Tipo de sala');
+
+            // Configuración de sala privada (solo aplica cuando room_type_id = PRIVATE)
+            $table->string('access_code', 20)->nullable()
+                ->comment('Código/PIN de acceso para salas privadas');
+            $table->string('room_password')->nullable()
+                ->comment('Hash (bcrypt) de la contraseña de acceso para salas privadas');
+            $table->foreignSnowflake('host_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->comment('Usuario anfitrión de la sala privada');
 
             $table->foreignSnowflake('template_id')
                 ->nullable()
@@ -207,6 +226,8 @@ return new class extends Migration
             $table->index('last_room_created_at', 'idx_bingo_rooms_automatic_last_created');
             $table->index('template_id', 'idx_bingo_rooms_automatic_template_id');
             $table->index('connection_type_id', 'idx_bingo_rooms_automatic_connection_type_id');
+            $table->index('game_mode_id', 'idx_bingo_rooms_automatic_game_mode_id');
+            $table->index('host_user_id', 'idx_bingo_rooms_automatic_host_user_id');
         });
     }
 

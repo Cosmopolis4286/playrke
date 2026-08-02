@@ -9,6 +9,7 @@ use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * Servicio CRUD para salas de bingo automáticas.
@@ -54,7 +55,10 @@ final class BingoRoomAutomaticCrudService
                 'time'                    => $dto->time,
                 'in_live'                 => $dto->inLive ?? 'N',
                 'connection_type_id'      => $dto->connectionType,
+                'game_mode_id'            => $dto->gameMode,
                 'room_type_id'            => $dto->roomType,
+                'access_code'             => $dto->accessCode ?? null,
+                'host_user_id'            => $dto->hostUserId ?? null,
                 'prize_pool_type_id'      => $dto->prizePoolType,
                 'amount_added_prize_pool' => $dto->amountAddedPrizePool,
                 'room_commission'         => $dto->roomCommission,
@@ -93,6 +97,12 @@ final class BingoRoomAutomaticCrudService
                 'allow_special_card'      => $dto->allowSpecialCard ?? false,
                 'max_special_cards'       => $dto->maxSpecialCards ?? null,
             ];
+
+            // room_password: solo se toca si el DTO trae un valor nuevo — en update,
+            // null significa "no cambiar la contraseña existente".
+            if ($dto->roomPassword !== null) {
+                $roomData['room_password'] = Hash::make($dto->roomPassword);
+            }
 
             if ($isCreate) {
                 $roomData['creator_user_id'] = $userId;
@@ -283,6 +293,12 @@ final class BingoRoomAutomaticCrudService
             'moveFreeSpacePricePct' => $room->move_free_space_price_pct !== null ? (float) $room->move_free_space_price_pct : null,
             'allowSpecialCard'     => (bool) $room->allow_special_card,
             'maxSpecialCards'      => $room->max_special_cards !== null ? (int) $room->max_special_cards : null,
+            'gameMode'             => $room->game_mode_id,
+            'accessCode'           => $room->access_code,
+            'hostUserId'           => $room->host_user_id,
+            // roomPassword deliberadamente NO se copia: la sala copiada queda sin
+            // contraseña hasta que el admin defina una nueva desde el formulario.
+            'roomPassword'         => null,
         ]);
 
         return $this->saveRoom($dto);

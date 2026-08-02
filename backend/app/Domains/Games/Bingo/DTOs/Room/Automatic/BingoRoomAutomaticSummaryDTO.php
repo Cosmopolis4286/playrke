@@ -17,6 +17,7 @@ final class BingoRoomAutomaticSummaryDTO implements ContextDTO
         public readonly Collection $prizePoolTypes,
         public readonly Collection $connectionTypes,
         public readonly Collection $roomTypes,
+        public readonly Collection $gameModeCatalog,
     ) {}
 
     public function toView(): array
@@ -32,8 +33,11 @@ final class BingoRoomAutomaticSummaryDTO implements ContextDTO
             'prizePoolTypes' => $this->prizePoolTypes,
             // Key 'gameModes' se mantiene por ahora de cara al frontend (Inertia prop);
             // el rename de esta key específica se coordina en un paso aparte.
+            // OJO: por esta razón el catálogo real de modos de juego (Solitario,
+            // Múltiple, Ranking...) se expone bajo 'gameModeCatalog', NO 'gameModes'.
             'gameModes' => $this->connectionTypes,
             'roomTypes' => $this->roomTypes,
+            'gameModeCatalog' => $this->gameModeCatalog,
         ];
     }
 }

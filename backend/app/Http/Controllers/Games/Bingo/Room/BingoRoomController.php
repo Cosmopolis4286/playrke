@@ -333,6 +333,33 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Verificar código/contraseña de acceso a una sala privada.
+     *
+     * Solo aplica cuando roomType = PRIVATE; para cualquier otro tipo responde
+     * éxito directo (no hay nada que verificar). Si es válido, marca la sala
+     * como verificada en la sesión del usuario para no repetir el prompt.
+     *
+     * @param Request $request Body con access_code y password.
+     * @param BingoRoom $room Sala decodificada por route model binding.
+     * @return JsonResponse
+     */
+    public function verifyAccess(Request $request, BingoRoom $room): JsonResponse
+    {
+        $data = $request->validate([
+            'access_code' => ['nullable', 'string'],
+            'password'    => ['nullable', 'string'],
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->verifyRoomAccess(
+                $room,
+                $data['access_code'] ?? '',
+                $data['password'] ?? '',
+            )
+        );
+    }
+
+    /**
      * Verificar el rol del usuario autenticado.
      *
      * @return JsonResponse

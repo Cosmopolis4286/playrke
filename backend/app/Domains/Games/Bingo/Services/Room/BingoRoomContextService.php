@@ -5,9 +5,11 @@ namespace App\Domains\Games\Bingo\Services\Room;
 use App\Domains\Games\Bingo\DTOs\Room\BingoGameRoomsDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomSummaryDTO;
 use App\Models\ExchangeRate;
+use App\Models\Game;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 
 final class BingoRoomContextService
 {
@@ -24,6 +26,7 @@ final class BingoRoomContextService
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly \App\Contracts\Games\Common\ConnectionType\ConnectionTypeRepositoryInterface $connectionTypes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
+        private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModeCatalog,
         private readonly \App\Contracts\UserRepositoryInterface $userRepository,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencyRepository,
         private readonly \App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService $generateService,
@@ -430,8 +433,18 @@ final class BingoRoomContextService
             bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
             connectionTypes: $this->connectionTypes->getActiveConnectionTypes(),
-            roomTypes: $this->roomTypes->getActiveTypes()
+            roomTypes: $this->roomTypes->getActiveTypes(),
+            gameModeCatalog: $this->bingoGameId() ? $this->gameModeCatalog->getActiveByGame((string) $this->bingoGameId()) : collect(),
         );
+    }
+
+    /**
+     * ID del juego BINGO, cacheado indefinidamente — misma cache key que
+     * BingoConfigContextService::bingoGameId() (fila de catálogo estática).
+     */
+    private function bingoGameId(): int|string|null
+    {
+        return Cache::rememberForever('game:id:BINGO', fn () => Game::where('name', 'BINGO')->value('id'));
     }
 
     /**

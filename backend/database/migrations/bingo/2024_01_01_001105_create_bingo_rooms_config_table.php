@@ -50,6 +50,17 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Tipo de sala');
 
+            // Configuración de sala privada (solo aplica cuando room_type_id = PRIVATE)
+            $table->string('access_code', 20)->nullable()
+                ->comment('Código/PIN de acceso para salas privadas');
+            $table->string('room_password')->nullable()
+                ->comment('Hash (bcrypt) de la contraseña de acceso para salas privadas');
+            $table->foreignSnowflake('host_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->comment('Usuario anfitrión de la sala privada');
+
             // Creador
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
@@ -62,6 +73,14 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->cascadeOnUpdate()
                 ->comment('Tipo de conexión asignado');
+
+            // Modalidad de participación (Solitario, Múltiple, Ranking, etc.), catálogo
+            // per-game reutilizado de game_modes — no confundir con connection_type_id.
+            $table->foreignSnowflake('game_mode_id')
+                ->nullable()
+                ->constrained('game_modes')
+                ->nullOnDelete()
+                ->comment('Modo de juego asignado (catálogo game_modes, opcional)');
 
             $table->string('game_variant', 20)
                 ->default('BINGO_75')
@@ -177,6 +196,8 @@ return new class extends Migration
             $table->index('room_type_id', 'idx_room_type_id');
             $table->index('creator_user_id', 'idx_creator_user_id');
             $table->index('connection_type_id', 'idx_connection_type_id');
+            $table->index('game_mode_id', 'idx_bingo_rooms_config_game_mode_id');
+            $table->index('host_user_id', 'idx_bingo_rooms_config_host_user_id');
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
             $table->index(['date', 'time'], 'idx_datetime');
             $table->index(['status'], 'idx_status');

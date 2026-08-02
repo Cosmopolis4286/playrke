@@ -53,6 +53,10 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?float        $moveFreeSpacePricePct = null,
         public readonly bool          $allowSpecialCard      = false,
         public readonly ?int          $maxSpecialCards       = null,
+        public readonly string|int|null $gameMode            = null,
+        public readonly ?string       $accessCode            = null,
+        public readonly ?string       $roomPassword          = null,
+        public readonly string|int|null $hostUserId          = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -111,6 +115,10 @@ final class BingoRoomAutomaticCreateDTO
             moveFreeSpacePricePct: isset($data['moveFreeSpacePricePct']) ? (float) $data['moveFreeSpacePricePct'] : null,
             allowSpecialCard: (bool) ($data['allowSpecialCard'] ?? false),
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
+            gameMode: $data['gameMode'] ?? null,
+            accessCode: $data['accessCode'] ?? null,
+            roomPassword: $data['roomPassword'] ?? null,
+            hostUserId: $data['hostUserId'] ?? null,
         );
     }
 }

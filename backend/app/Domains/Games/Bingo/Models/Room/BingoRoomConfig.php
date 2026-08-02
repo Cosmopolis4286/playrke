@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Models\Room;
 
 use App\Models\Games\Common\ConnectionType\ConnectionType;
+use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
@@ -20,6 +21,10 @@ class BingoRoomConfig extends Model
 
     protected $table = 'bingo_rooms_config';
 
+    protected $hidden = [
+        'room_password',
+    ];
+
     protected $fillable = [
         'room_id',
         'template_id',
@@ -30,8 +35,12 @@ class BingoRoomConfig extends Model
         'max_players',
         'from_house',
         'room_type_id',
+        'access_code',
+        'room_password',
+        'host_user_id',
         'creator_user_id',
         'connection_type_id',
+        'game_mode_id',
         'game_variant',
         'in_live',
         'date',
@@ -71,8 +80,12 @@ class BingoRoomConfig extends Model
         'start_mode'              => 'string',
         'from_house'              => 'string',
         'room_type_id'            => 'string',
+        'access_code'             => 'string',
+        'room_password'           => 'string',
+        'host_user_id'            => 'string',
         'creator_user_id'         => 'string',
         'connection_type_id'      => 'string',
+        'game_mode_id'            => 'string',
         'game_variant'            => 'string',
         'prize_pool_type_id'      => 'string',
         'date'                    => 'date',
@@ -133,6 +146,22 @@ class BingoRoomConfig extends Model
     public function creatorUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_user_id');
+    }
+
+    /**
+     * Relación con el usuario anfitrión (solo aplica a salas privadas).
+     */
+    public function hostUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'host_user_id');
+    }
+
+    /**
+     * Relación con el modo de juego (catálogo game_modes, opcional).
+     */
+    public function gameMode(): BelongsTo
+    {
+        return $this->belongsTo(GameMode::class, 'game_mode_id');
     }
 
     /**
