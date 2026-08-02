@@ -142,6 +142,7 @@ export interface BingoRoom {
         access_code?: string | null
         has_password?: boolean
         host_user_id?: string | number | null
+        host_user_label?: string | null
         start_mode?: string | null
         min_cards_to_start?: number | null
         max_players?: number | null
