@@ -13,7 +13,7 @@ use App\Models\Game;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Pivots\Roles\Customer\CustomerCurrency;
-use App\Models\Pivots\Roles\Customer\CustomerGame;
+use App\Models\Roles\Customer\CustomerGame;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
 use App\Models\Roles\Admin;
