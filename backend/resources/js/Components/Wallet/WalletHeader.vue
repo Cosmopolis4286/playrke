@@ -1,14 +1,24 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Wallet } from '@js/types/wallet'
 
-defineProps<{
+const props = defineProps<{
   wallets: Wallet[]
   activeWallet: Wallet | null
   formattedBalance: string
   formattedBonusBalance: string
   hasBonusBalance: boolean
   canWithdraw: boolean
+  pendingDepositsAmount?: number
 }>()
+
+const formattedPendingDeposits = computed(() => {
+  if (!props.activeWallet) return '0.00'
+  return new Intl.NumberFormat('es-VE', {
+    minimumFractionDigits: props.activeWallet.currency.decimal_places,
+    maximumFractionDigits: props.activeWallet.currency.decimal_places,
+  }).format(props.pendingDepositsAmount ?? 0)
+})
 
 const emit = defineEmits<{
   (e: 'select-wallet', wallet: Wallet): void
@@ -56,6 +66,14 @@ const emit = defineEmits<{
           <span class="badge-dot"></span>
           {{ activeWallet.status === 'ACTIVE' ? 'Activa' :
              activeWallet.status === 'INACTIVE' ? 'Inactiva' : 'Bloqueada' }}
+        </span>
+        <span
+          v-if="(pendingDepositsAmount ?? 0) > 0"
+          class="wallet-header__pending-badge"
+          :title="`Tienes un depósito de ${activeWallet.currency.symbol} ${formattedPendingDeposits} en revisión. Aún no se refleja en tu saldo.`"
+        >
+          <i class="fas fa-clock"></i>
+          {{ activeWallet.currency.symbol }}&nbsp;{{ formattedPendingDeposits }} en revisión
         </span>
       </div>
 
@@ -194,6 +212,20 @@ const emit = defineEmits<{
 .badge--active   { background: rgba(40, 167, 69, 0.85); color: #fff; }
 .badge--inactive { background: rgba(255, 193, 7, 0.85); color: #fff; }
 .badge--blocked  { background: rgba(220, 53, 69, 0.85); color: #fff; }
+
+.wallet-header__pending-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fff;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  cursor: help;
+}
 
 .badge-dot {
   width: 6px;

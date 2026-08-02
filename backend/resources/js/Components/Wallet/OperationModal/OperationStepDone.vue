@@ -9,15 +9,17 @@ defineProps<{
 
 <template>
   <div class="op-done">
-    <div class="op-done__icon">
-      <i class="fas fa-check"></i>
+    <div class="op-done__icon" :class="{ 'op-done__icon--pending': operation === 'deposit' }">
+      <i class="fas" :class="operation === 'deposit' ? 'fa-clock' : 'fa-check'"></i>
     </div>
-    <h3 class="op-done__title">¡Solicitud enviada!</h3>
+    <h3 class="op-done__title">
+      {{ operation === 'deposit' ? 'Depósito pendiente de confirmación' : '¡Solicitud enviada!' }}
+    </h3>
     <p class="op-done__text">{{ successMsg }}</p>
     <div class="op-done__detail">
       <i class="fas fa-info-circle"></i>
       {{ operation === 'deposit'
-        ? 'Un administrador revisará tu comprobante y acreditará el monto a tu billetera.'
+        ? 'Tu comprobante está en revisión. El monto NO se refleja en tu saldo ni en tus totales hasta que un administrador lo confirme (usualmente en minutos, hasta 24h).'
         : 'Un administrador procesará la transferencia a tu cuenta registrada.' }}
     </div>
   </div>
@@ -41,6 +43,11 @@ defineProps<{
   font-size: 1.75rem;
   margin: 0 auto 1rem;
   box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+}
+
+.op-done__icon--pending {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 16px rgba(245,158,11,0.3);
 }
 
 .op-done__title {

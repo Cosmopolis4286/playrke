@@ -34,18 +34,26 @@ const summaryMovements = computed(() => {
   return props.movements.filter(m => new Date(m.created_at).getTime() >= threshold)
 })
 
-const totalDeposits = computed(() =>
-  summaryMovements.value.filter(m => m.type === 'DEPOSIT').reduce((s, m) => s + m.amount, 0)
-)
-const totalPrizes = computed(() =>
-  summaryMovements.value.filter(m => m.type === 'PRIZE').reduce((s, m) => s + m.amount, 0)
-)
-const totalBonusPrizes = computed(() =>
-  summaryMovements.value.filter(m => m.type === 'BONUS_PRIZE').reduce((s, m) => s + m.amount, 0)
-)
-const totalWithdrawals = computed(() =>
-  summaryMovements.value.filter(m => m.type === 'WITHDRAWAL').reduce((s, m) => s + m.amount, 0)
-)
+// Solo los movimientos COMPLETED representan dinero ya confirmado/acreditado.
+// Un depósito PENDING aún no fue verificado por un admin y no debe contarse
+// como "recibido"; uno REJECTED/CANCELLED nunca llegó a concretarse.
+function completed(type: string) {
+  return summaryMovements.value.filter(m => m.type === type && m.status === 'COMPLETED')
+}
+function pending(type: string) {
+  return summaryMovements.value.filter(m => m.type === type && m.status === 'PENDING')
+}
+function sum(list: WalletMovement[]) {
+  return list.reduce((s, m) => s + m.amount, 0)
+}
+
+const totalDeposits = computed(() => sum(completed('DEPOSIT')))
+const totalPrizes = computed(() => sum(completed('PRIZE')))
+const totalBonusPrizes = computed(() => sum(completed('BONUS_PRIZE')))
+const totalWithdrawals = computed(() => sum(completed('WITHDRAWAL')))
+
+const pendingDeposits = computed(() => sum(pending('DEPOSIT')))
+const pendingWithdrawals = computed(() => sum(pending('WITHDRAWAL')))
 
 function formatAmount(value: number) {
   return new Intl.NumberFormat('es-VE', {
@@ -74,6 +82,10 @@ function formatAmount(value: number) {
         <div class="summary-item__info">
           <p class="summary-item__label">Depósitos</p>
           <p class="summary-item__sublabel">Total recibido</p>
+          <p v-if="pendingDeposits > 0" class="summary-item__pending">
+            <i class="fas fa-clock"></i>
+            {{ currencySymbol }} {{ formatAmount(pendingDeposits) }} en revisión
+          </p>
         </div>
         <p class="summary-item__amount summary-item__amount--deposit">
           {{ currencySymbol }} {{ formatAmount(totalDeposits) }}
@@ -96,6 +108,10 @@ function formatAmount(value: number) {
         <div class="summary-item__info">
           <p class="summary-item__label">Retiros</p>
           <p class="summary-item__sublabel">Total retirado</p>
+          <p v-if="pendingWithdrawals > 0" class="summary-item__pending">
+            <i class="fas fa-clock"></i>
+            {{ currencySymbol }} {{ formatAmount(pendingWithdrawals) }} en revisión
+          </p>
         </div>
         <p class="summary-item__amount summary-item__amount--withdrawal">
           {{ currencySymbol }} {{ formatAmount(totalWithdrawals) }}
@@ -224,6 +240,16 @@ function formatAmount(value: number) {
   font-size: 0.72rem;
   color: var(--ds-text-muted);
   margin: 0;
+}
+
+.summary-item__pending {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #d97706;
+  margin: 3px 0 0;
 }
 
 .summary-item__amount {

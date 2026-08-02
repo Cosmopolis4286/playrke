@@ -110,6 +110,15 @@ const hasMoreMovements = computed(() =>
   movementsMeta.value.current_page < movementsMeta.value.last_page
 )
 
+// Depósitos aún no confirmados por un admin, de la billetera activa: se
+// muestran como "en revisión" en el header para que el saldo no se perciba
+// como incorrecto cuando el usuario acaba de subir un comprobante.
+const pendingDepositsAmount = computed(() =>
+  movements.value
+    .filter(m => m.type === 'DEPOSIT' && m.status === 'PENDING' && m.wallet_id === activeWallet.value?.id)
+    .reduce((sum, m) => sum + m.amount, 0)
+)
+
 // ─── Sincroniza la altura máxima de "Tipos de movimiento" con "Resumen" ────
 const summaryCardRef    = ref<HTMLElement | null>(null)
 const movementTypesMaxHeight = ref<number | null>(null)
@@ -225,6 +234,7 @@ function handleSelectWallet(wallet: Wallet) {
         :formatted-bonus-balance="formattedBonusBalance"
         :has-bonus-balance="hasBonusBalance"
         :can-withdraw="canWithdraw"
+        :pending-deposits-amount="pendingDepositsAmount"
         @select-wallet="handleSelectWallet"
         @deposit="openDepositModal"
         @withdraw="openWithdrawModal"
