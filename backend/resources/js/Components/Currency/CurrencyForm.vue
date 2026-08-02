@@ -46,9 +46,17 @@
   }
 
   /**
+   * Submit
+   */
+  function submit(): boolean {
+    validate()
+    return isValid.value
+  }
+
+  /**
    * API pública para el modal
    */
-  defineExpose({ isValid })
+  defineExpose({ submit, isValid })
 </script>
 
 <template>

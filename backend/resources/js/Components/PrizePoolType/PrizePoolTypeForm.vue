@@ -35,7 +35,12 @@
     form.value.code = value.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 30)
   }
 
-  defineExpose({ isValid })
+  function submit(): boolean {
+    validate()
+    return isValid.value
+  }
+
+  defineExpose({ submit, isValid })
 </script>
 
 <template>

@@ -20,7 +20,12 @@
     { value: 'MAINTENANCE', label: 'Mantenimiento' },
   ]
 
-  defineExpose({ isValid })
+  function submit(): boolean {
+    validate()
+    return isValid.value
+  }
+
+  defineExpose({ submit, isValid })
 </script>
 
 <template>

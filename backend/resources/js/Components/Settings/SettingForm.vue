@@ -26,7 +26,12 @@
     form.value.param = val.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 50)
   }
 
-  defineExpose({ isValid })
+  function submit(): boolean {
+    validate()
+    return isValid.value
+  }
+
+  defineExpose({ submit, isValid })
 </script>
 
 <template>
