@@ -108,6 +108,7 @@ class BingoRoomResource extends JsonResource
                 'access_code'             => $config->access_code,
                 'has_password'            => (bool) $config->room_password,
                 'host_user_id'            => $config->host_user_id,
+                'host_user_label'         => $config->relationLoaded('hostUser') ? $config->hostUser?->username : null,
                 'start_mode'              => $config->start_mode,
                 'min_cards_to_start'      => $config->min_cards_to_start,
                 'max_players'             => $config->max_players,

@@ -68,7 +68,7 @@ class BingoRoomCrudService
 
         $room->refresh();
         $room->load([
-            'config', 'status', 'cardPrices',
+            'config.hostUser:id,username', 'status', 'cardPrices',
             'rounds.prizes', 'rounds.prizes.prize',
             'cardPrizes.creatorUser', 'cardPrizes.winningCard', 'cardPrizes.round',
         ]);

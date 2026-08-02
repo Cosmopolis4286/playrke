@@ -240,6 +240,20 @@ import { SelectOption } from '@/js/types/common/form/form'
       @update:modelValue="emit('update:modelValue', { ...modelValue, connectionType: $event })"
     />
 
+    <!-- Modo de Juego (Solitario, Múltiple, Ranking...) — opcional -->
+    <FormSelect
+      label="Modo de Juego"
+      name="game_mode"
+      :error="(errors as any).gameMode"
+      placeholder="Sin modo específico"
+      :options="gameModeOptions"
+      optionValue="value"
+      optionLabel="label"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).gameMode ?? null"
+      @update:modelValue="emit('update:modelValue', { ...modelValue, gameMode: $event } as any)"
+    />
+
     <!-- Variante de Bingo -->
     <FormSelect
       label="Variante de Bingo"
