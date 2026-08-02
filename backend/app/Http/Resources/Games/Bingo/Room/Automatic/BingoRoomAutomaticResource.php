@@ -30,6 +30,7 @@ class BingoRoomAutomaticResource extends JsonResource
                 'access_code'             => $this->access_code,
                 'has_password'            => (bool) $this->room_password,
                 'host_user_id'            => $this->host_user_id,
+                'host_user_label'         => $this->relationLoaded('hostUser') ? $this->hostUser?->username : null,
                 'time'                    => $this->formatted_time,
                 'connection_type_id'      => $this->connection_type_id,
                 'game_mode_id'            => $this->game_mode_id,

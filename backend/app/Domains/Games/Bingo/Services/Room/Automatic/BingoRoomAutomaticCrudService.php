@@ -31,6 +31,8 @@ final class BingoRoomAutomaticCrudService
             throw BingoRoomAutomaticException::notFound();
         }
 
+        $room->loadMissing('hostUser:id,username');
+
         return new BingoRoomAutomaticResource($room);
     }
 
