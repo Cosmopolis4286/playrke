@@ -3,13 +3,42 @@
 namespace App\Services;
 
 use App\Models\Wallet;
+use App\Models\WalletLimit;
 use App\Models\WalletMovement;
-use App\Models\WithdrawalLimit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
-final class WithdrawalLimitService
+final class WalletLimitService
 {
+    /**
+     * Lanza DomainException si el depósito viola algún límite.
+     * Se llama desde WalletService::requestDeposit() antes de ejecutar.
+     *
+     * @param  Wallet $wallet   La wallet del usuario ya resuelta.
+     * @param  float  $amount   Monto solicitado.
+     * @param  int    $kycLevel Nivel KYC actual del usuario (0/1/2).
+     */
+    public function assertDepositWithinLimits(Wallet $wallet, float $amount, int $kycLevel): void
+    {
+        $limit = WalletLimit::resolve((string) $wallet->currency_id, $kycLevel);
+
+        if (! $limit) {
+            throw new \DomainException('No hay límites de depósito configurados para esta moneda. Contacta soporte.');
+        }
+
+        if ($amount < $limit->min_deposit) {
+            throw new \DomainException(
+                "El monto mínimo de depósito es {$limit->min_deposit}."
+            );
+        }
+
+        if ($amount > $limit->max_deposit) {
+            throw new \DomainException(
+                "El monto máximo por depósito es {$limit->max_deposit}."
+            );
+        }
+    }
+
     /**
      * Lanza DomainException si el retiro viola algún límite.
      * Se llama desde WalletService::requestWithdraw() antes de ejecutar.
@@ -20,7 +49,7 @@ final class WithdrawalLimitService
      */
     public function assertWithinLimits(Wallet $wallet, float $amount, int $kycLevel): void
     {
-        $limit = WithdrawalLimit::resolve((string) $wallet->currency_id, $kycLevel);
+        $limit = WalletLimit::resolve((string) $wallet->currency_id, $kycLevel);
 
         if (! $limit) {
             // Sin configuración → bloquear por precaución
@@ -119,7 +148,7 @@ final class WithdrawalLimitService
      */
     public function usage(Wallet $wallet, int $kycLevel): array
     {
-        $limit    = WithdrawalLimit::resolve((string) $wallet->currency_id, $kycLevel);
+        $limit    = WalletLimit::resolve((string) $wallet->currency_id, $kycLevel);
         $walletId = (string) $wallet->id;
 
         if (! $limit) {
@@ -130,6 +159,7 @@ final class WithdrawalLimitService
 
         return [
             'kyc_level' => $kycLevel,
+            'deposit'   => ['min' => $limit->min_deposit, 'max' => $limit->max_deposit],
             'per_tx'    => ['max' => $limit->max_per_transaction, 'min' => $limit->min_per_transaction],
             'daily'     => ['used' => $sums['daily'],   'max' => $limit->max_daily],
             'weekly'    => ['used' => $sums['weekly'],  'max' => $limit->max_weekly],

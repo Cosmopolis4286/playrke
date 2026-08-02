@@ -4,6 +4,7 @@ use App\Http\Controllers\Directories\Crypto\BinanceController;
 use App\Http\Controllers\MovementTypeController;
 use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\WalletLimitController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -85,6 +86,25 @@ Route::middleware(['auth', 'multiPermission:movement-types.manage'])->group(func
     Route::put('movement-types/{id}',           [MovementTypeController::class, 'update'])        ->name('movement-types.update');
     Route::put('movement-types/{id}/delete',    [MovementTypeController::class, 'delete'])        ->name('movement-types.delete');
     Route::put('movement-types/{id}/status',    [MovementTypeController::class, 'toggleStatus'])  ->name('movement-types.status');
+});
+
+// ====================================
+// LÍMITES DE BILLETERA (ADMIN/SUPERADMIN)
+// ====================================
+// Lectura: basta con wallet-limits.view (o .manage, quien administra también puede ver).
+Route::middleware(['auth', 'multiPermission:wallet-limits.view,wallet-limits.manage'])->group(function () {
+    Route::get('wallet-limits',              [WalletLimitController::class, 'index']) ->name('wallet-limits.index');
+    Route::get('wallet-limits/{id}',         [WalletLimitController::class, 'show'])  ->name('wallet-limits.show');
+});
+
+// Escritura: requiere wallet-limits.manage explícito — mismo motivo que
+// movement-types: separar view/manage evita que un rol de solo-lectura pueda
+// crear/editar/borrar los topes que determinan cuánto puede mover un jugador.
+Route::middleware(['auth', 'multiPermission:wallet-limits.manage'])->group(function () {
+    Route::post('wallet-limits',             [WalletLimitController::class, 'store'])        ->name('wallet-limits.store');
+    Route::put('wallet-limits/{id}',        [WalletLimitController::class, 'update'])        ->name('wallet-limits.update');
+    Route::put('wallet-limits/{id}/delete', [WalletLimitController::class, 'delete'])        ->name('wallet-limits.delete');
+    Route::put('wallet-limits/{id}/status', [WalletLimitController::class, 'toggleStatus'])  ->name('wallet-limits.status');
 });
 
 // ====================================

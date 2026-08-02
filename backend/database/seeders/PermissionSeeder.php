@@ -165,6 +165,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
             ['name' => 'movement-types.view', 'guard_name' => 'web', 'description' => 'Ver catálogo de tipos de movimiento'],
             ['name' => 'movement-types.manage', 'guard_name' => 'web', 'description' => 'Gestionar catálogo de tipos de movimiento (crear/editar/desactivar)'],
+            ['name' => 'wallet-limits.view', 'guard_name' => 'web', 'description' => 'Ver límites de depósito/retiro de billetera'],
+            ['name' => 'wallet-limits.manage', 'guard_name' => 'web', 'description' => 'Gestionar límites de depósito/retiro de billetera (crear/editar/desactivar)'],
 
             // Billetera de plataforma (caja interna del sistema)
             ['name' => 'platform.wallet.view', 'guard_name' => 'web', 'description' => 'Ver billetera de plataforma'],

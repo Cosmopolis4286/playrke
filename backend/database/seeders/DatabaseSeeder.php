@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             ModuleSeeder::class,
             TosVersionSeeder::class,
-            WithdrawalLimitSeeder::class,
+            WalletLimitSeeder::class,
             RoleSeeder::class,
             PermissionSeeder::class,
             RolePermissionSeeder::class,

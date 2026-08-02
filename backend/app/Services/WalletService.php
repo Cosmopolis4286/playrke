@@ -16,7 +16,7 @@ use App\Models\Wallet;
 use App\Models\WalletMovement;
 use App\Services\NotificationService;
 use App\Services\WalletFraudService;
-use App\Services\WithdrawalLimitService;
+use App\Services\WalletLimitService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +26,7 @@ final class WalletService
         private readonly WalletRepositoryInterface         $walletRepository,
         private readonly WalletMovementRepositoryInterface $movementRepository,
         private readonly NotificationService                $notificationService,
-        private readonly WithdrawalLimitService             $withdrawalLimitService,
+        private readonly WalletLimitService                 $walletLimitService,
         private readonly WalletFraudService                 $fraudService,
     ) {}
 
@@ -152,6 +152,9 @@ final class WalletService
             throw new \DomainException('La billetera está bloqueada.');
         }
 
+        $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
+        $this->walletLimitService->assertDepositWithinLimits($wallet, $amount, $kycLevel);
+
         // Checks antifraude
         $this->fraudService->checkDepositVelocity((string) $wallet->user_id);
         $this->fraudService->checkDoubleSubmit((string) $wallet->id, $amount, WalletMovement::TYPE_DEPOSIT);
@@ -205,7 +208,7 @@ final class WalletService
         $this->fraudService->checkWithdrawalVelocity((string) $wallet->user_id);
         $this->fraudService->checkDoubleSubmit((string) $wallet->id, $amount, WalletMovement::TYPE_WITHDRAWAL);
         $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
-        $this->withdrawalLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
+        $this->walletLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
 
         $wallet = DB::transaction(function () use ($wallet, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
             $walletId = (string) $wallet->id;

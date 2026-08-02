@@ -167,6 +167,11 @@ class SidebarMenuService
                     'route' => 'movement-types.index',
                     'permission' => 'movement-types.view',
                 ],
+                'wallet_limits' => [
+                    'title' => 'Límites de Billetera',
+                    'route' => 'wallet-limits.index',
+                    'permission' => 'wallet-limits.view',
+                ],
             ],
         ],
 

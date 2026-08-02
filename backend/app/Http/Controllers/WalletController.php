@@ -7,7 +7,7 @@ use App\Http\Requests\WalletWithdrawRequest;
 use App\Models\MovementType;
 use App\Services\Roles\RoleUserService;
 use App\Services\WalletService;
-use App\Services\WithdrawalLimitService;
+use App\Services\WalletLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +20,7 @@ class WalletController extends Controller
 {
     public function __construct(
         private readonly WalletService         $walletService,
-        private readonly WithdrawalLimitService $limitService,
+        private readonly WalletLimitService $limitService,
         private readonly RoleUserService        $roleUserService,
     ) {}
 

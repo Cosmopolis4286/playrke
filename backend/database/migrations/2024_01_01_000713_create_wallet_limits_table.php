@@ -5,11 +5,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Tabla withdrawal_limits: configura los topes de retiro por moneda y
+ * Tabla wallet_limits: configura los topes de depósito y retiro por moneda y
  * nivel de KYC.  Los valores por defecto reflejan una política conservadora
  * hasta que el usuario verifique su identidad.
  *
- * kyc_level  0 = sin verificar  (solo puede retirar un monto simbólico)
+ * kyc_level  0 = sin verificar  (solo puede operar un monto simbólico)
  *            1 = email + teléfono verificados
  *            2 = documento de identidad verificado (KYC completo)
  *
@@ -21,7 +21,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('withdrawal_limits', function (Blueprint $table) {
+        Schema::create('wallet_limits', function (Blueprint $table) {
             $table->id();
 
             // NULL = aplica a todas las monedas (fallback global)
@@ -29,13 +29,16 @@ return new class extends Migration
             // 0 = sin KYC, 1 = básico, 2 = completo
             $table->unsignedTinyInteger('kyc_level')->default(0);
 
-            // Límites por ventana temporal (en unidades de la moneda)
+            // ── Depósito ──────────────────────────────────────────────────────
+            $table->decimal('min_deposit', 20, 8)->default(1);
+            $table->decimal('max_deposit', 20, 8)->default(1000);
+
+            // ── Retiro: límites por ventana temporal (en unidades de la moneda) ─
+            $table->decimal('min_per_transaction', 20, 8)->default(1);
             $table->decimal('max_per_transaction', 20, 8)->default(100);
             $table->decimal('max_daily', 20, 8)->default(200);
             $table->decimal('max_weekly', 20, 8)->default(500);
             $table->decimal('max_monthly', 20, 8)->default(1000);
-            // Monto mínimo por retiro
-            $table->decimal('min_per_transaction', 20, 8)->default(1);
 
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -47,6 +50,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('withdrawal_limits');
+        Schema::dropIfExists('wallet_limits');
     }
 };

@@ -52,6 +52,7 @@ class RolePermissionSeeder extends Seeder
                 'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
                 'wallet.movements.view', 'wallet.movements.manage', // Gestión de movimientos de billetera
                 'movement-types.view', 'movement-types.manage', // Catálogo de tipos de movimiento
+                'wallet-limits.view', 'wallet-limits.manage', // Límites de depósito/retiro de billetera
                 // Trivia - Gestión completa (admin gestiona salas/preguntas pero NO juega como player)
                 'games.trivia.view',
                 'games.trivia.rooms.view', 'games.trivia.rooms.create', 'games.trivia.rooms.edit', 'games.trivia.rooms.delete', 'games.trivia.rooms.manage',
