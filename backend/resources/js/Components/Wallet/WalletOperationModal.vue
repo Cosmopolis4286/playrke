@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import Modal from '@js/Components/Common/Modal/Modal.vue'
 import type { Wallet, WalletOperation, UserDirectory, PendingOperation } from '@js/types/wallet'
+import type { WithdrawalLimitUsage } from '@js/types/kyc'
 import type { WalletStep } from '@js/composables/wallet/useWallet'
 import OperationStepsIndicator from './OperationModal/OperationStepsIndicator.vue'
 import OperationStepAmount from './OperationModal/OperationStepAmount.vue'
@@ -29,6 +30,7 @@ const props = defineProps<{
 
   pendingOperation: PendingOperation | null
   pendingLoading: boolean
+  walletLimits: WithdrawalLimitUsage | null
 
   loading: boolean
   errorMsg: string | null
@@ -88,6 +90,7 @@ const modalIcon = computed(() => {
       :selected-quick-amount="selectedQuickAmount"
       :pending-operation="pendingOperation"
       :pending-loading="pendingLoading"
+      :wallet-limits="walletLimits"
       :error-msg="errorMsg"
       @update:amount="emit('update:amount', $event)"
       @select-quick-amount="emit('select-quick-amount', $event)"

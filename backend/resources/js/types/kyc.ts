@@ -12,6 +12,7 @@ export interface KycState {
 
 export interface WithdrawalLimitUsage {
   kyc_level: KycLevel
+  deposit:   { min: number; max: number }
   per_tx:    { max: number; min: number }
   daily:     { used: number; max: number }
   weekly:    { used: number; max: number }

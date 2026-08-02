@@ -316,6 +316,7 @@ function handleSelectWallet(wallet: Wallet) {
       :selected-directory="selectedDirectory"
       :pending-operation="pendingOperation"
       :pending-loading="pendingLoading"
+      :wallet-limits="kycLimits"
       :loading="loading"
       :error-msg="errorMsg"
       :success-msg="successMsg"

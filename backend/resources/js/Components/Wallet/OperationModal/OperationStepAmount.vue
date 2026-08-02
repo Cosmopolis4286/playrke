@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Wallet, WalletOperation, PendingOperation } from '@js/types/wallet'
+import type { WithdrawalLimitUsage } from '@js/types/kyc'
 import { formatAmount, formatOperationDate } from '@js/composables/wallet/useWalletOperationFormatters'
 
 const props = defineProps<{
@@ -10,8 +12,21 @@ const props = defineProps<{
   selectedQuickAmount: number | null
   pendingOperation: PendingOperation | null
   pendingLoading: boolean
+  walletLimits: WithdrawalLimitUsage | null
   errorMsg: string | null
 }>()
+
+const amountRangeHint = computed(() => {
+  if (!props.walletLimits) return null
+  const symbol = props.activeWallet?.currency.symbol ?? ''
+  const range = props.operation === 'deposit'
+    ? props.walletLimits.deposit
+    : props.walletLimits.per_tx
+  if (!range) return null
+  const min = props.operation === 'deposit' ? range.min : (range as { min: number }).min
+  const max = range.max
+  return `Monto permitido: ${symbol} ${amountFmt(min)} — ${symbol} ${amountFmt(max)}`
+})
 
 const emit = defineEmits<{
   (e: 'update:amount', v: string): void
@@ -121,6 +136,11 @@ function amountFmt(value: number): string {
           @input="onAmountInput"
         />
       </div>
+
+      <!-- Rango permitido según límites configurados -->
+      <p v-if="amountRangeHint" class="op-field__hint">
+        <i class="fas fa-info-circle"></i> {{ amountRangeHint }}
+      </p>
 
       <!-- Montos rápidos -->
       <div class="op-quick">
@@ -323,6 +343,15 @@ function amountFmt(value: number): string {
 .op-input--withdraw:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
 
 /* ── Quick amounts ── */
+.op-field__hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  margin: 8px 0 0;
+}
+
 .op-quick { margin-top: 10px; }
 
 .op-quick__label {

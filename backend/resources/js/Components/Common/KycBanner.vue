@@ -97,6 +97,10 @@ function fmt(n: number, symbol = '') {
         Máx. por transacción: {{ fmt(limits.per_tx.max, currencySymbol) }}
         · Mín.: {{ fmt(limits.per_tx.min, currencySymbol) }}
       </p>
+      <p v-if="limits.deposit" class="kyc-limits__hint">
+        <i class="fas fa-arrow-down" />
+        Depósito permitido: {{ fmt(limits.deposit.min, currencySymbol) }} — {{ fmt(limits.deposit.max, currencySymbol) }}
+      </p>
     </div>
 
   </div>
