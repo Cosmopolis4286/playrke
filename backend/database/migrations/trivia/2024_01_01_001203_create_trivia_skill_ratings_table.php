@@ -25,6 +25,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::connection('pgsql_trivia')->hasTable('trivia_skill_ratings')) {
+            return;
+        }
+
         Schema::connection('pgsql_trivia')->create('trivia_skill_ratings', function (Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('user_id');                          // FK lógica → MySQL users.id

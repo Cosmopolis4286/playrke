@@ -22,6 +22,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::connection('pgsql_trivia')->hasTable('trivia_prize_payments')) {
+            return;
+        }
+
         Schema::connection('pgsql_trivia')->create('trivia_prize_payments', function (Blueprint $table) {
             $table->string('id', 20)->primary();
 

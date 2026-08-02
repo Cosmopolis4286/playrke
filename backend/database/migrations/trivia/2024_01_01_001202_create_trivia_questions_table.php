@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::connection('pgsql_trivia')->hasTable('trivia_questions')) {
+            return;
+        }
+
         Schema::connection('pgsql_trivia')->create('trivia_questions', function (Blueprint $table) {
             $table->string('id', 20)->primary();
             // Nota: el orden de preguntas en un juego va en game_questions.order_index
