@@ -64,8 +64,12 @@ export interface BingoRoomAutomatic {
     readonly days?: DayOfWeek[] | null
     readonly time?: string | null
     readonly in_live?: 'Y' | 'N'
+    readonly connection_type_id?: string | null
     readonly game_mode_id?: string | null
     readonly room_type_id?: string | null
+    readonly access_code?: string | null
+    readonly has_password?: boolean
+    readonly host_user_id?: string | null
     readonly rke_commission?: number
     readonly room_commission?: number
     readonly card_price_usd?: number | null

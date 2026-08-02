@@ -217,7 +217,20 @@
   const roomTypeOptions = computed(() => {
     return (props.roomTypes ?? []).map(r => ({
       value: String(r.id),
+      code: r.code,
       label: r.label
+    }))
+  })
+
+  /**
+   * Opciones para modo de juego (catálogo real game_modes: Solitario, Múltiple,
+   * Ranking...) — NO confundir con `props.gameModes`, que hoy mapea Tipo de
+   * Conexión por un rename pendiente (ver comentario abajo).
+   */
+  const gameModeOptions = computed(() => {
+    return (props.gameModeCatalog ?? []).map(g => ({
+      value: String(g.id),
+      label: g.label
     }))
   })
 
@@ -373,6 +386,7 @@
       :is-edit="!!roomData.id"
       :room-type-options="roomTypeOptions"
       :connection-type-options="connectionTypeOptions"
+      :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
       :bingo-pattern-options="bingoPatternOptions"

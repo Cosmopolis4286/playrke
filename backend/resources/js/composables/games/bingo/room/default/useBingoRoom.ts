@@ -97,6 +97,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     maxPlayers: null,
     roomType: null,
     connectionType: null,
+    gameMode: null,
     gameVariant: 'BINGO_75',
     prizePoolType: null,
     allowedCurrencies: [],
@@ -122,6 +123,9 @@ const emptyFormData = (): BingoRoomFormData => ({
     customCardEveryX: null,
     allowSpecialCard: false,
     maxSpecialCards: null,
+    accessCode: null,
+    roomPassword: null,
+    hostUserId: null,
 })
 
 const ENDPOINT = 'bingo-rooms'
@@ -246,7 +250,8 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 minCardsToStart: config.min_cards_to_start != null ? Number(config.min_cards_to_start) : null,
                 maxPlayers: config.max_players != null ? Number(config.max_players) : null,
                 roomType: config.room_type_id ?? null,
-                connectionType: config.game_mode_id ?? null,
+                connectionType: config.connection_type_id ?? null,
+                gameMode: config.game_mode_id ?? null,
                 gameVariant: (config.game_variant ?? 'BINGO_75') as any,
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],
@@ -278,6 +283,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 customCardEveryX: config.custom_card_every_x != null ? Number(config.custom_card_every_x) : null,
                 allowSpecialCard: config.allow_special_card === true,
                 maxSpecialCards: config.max_special_cards != null ? Number(config.max_special_cards) : null,
+                accessCode: config.access_code ?? null,
+                // La contraseña nunca se recibe del backend (ni el hash) — se deja
+                // vacía en edición; si el admin no la toca, no se reenvía en el update.
+                roomPassword: null,
+                hostUserId: config.host_user_id ?? null,
             }
 
             return true

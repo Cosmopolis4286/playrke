@@ -77,6 +77,7 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     time: null,
     roomType: null,
     connectionType: null,
+    gameMode: null,
     prizePoolType: null,
     allowedCurrencies: [],
     roomsPerCurrency: false,
@@ -103,6 +104,9 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     customCardEveryX: null,
     allowSpecialCard: false,
     maxSpecialCards: null,
+    accessCode: null,
+    roomPassword: null,
+    hostUserId: null,
 })
 
 const ENDPOINT = 'bingo-automatic-rooms'
@@ -194,7 +198,8 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                 days: room.days ?? [],
                 time: config.time ?? null,
                 roomType: config.room_type_id ?? null,
-                connectionType: config.game_mode_id ?? null,
+                connectionType: config.connection_type_id ?? null,
+                gameMode: config.game_mode_id ?? null,
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],
                 roomsPerCurrency: room.rooms_per_currency === true,
@@ -227,6 +232,11 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                 customCardEveryX: config.custom_card_every_x != null ? Number(config.custom_card_every_x) : null,
                 allowSpecialCard: config.allow_special_card === true,
                 maxSpecialCards: config.max_special_cards != null ? Number(config.max_special_cards) : null,
+                accessCode: config.access_code ?? null,
+                // La contraseña nunca se recibe del backend (ni el hash) — se deja
+                // vacía en edición; si el admin no la toca, no se reenvía en el update.
+                roomPassword: null,
+                hostUserId: config.host_user_id ?? null,
             }
 
             return true

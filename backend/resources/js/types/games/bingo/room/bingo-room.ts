@@ -139,11 +139,15 @@ export interface BingoRoom {
     // Configuración completa (cargada en show)
     readonly config?: {
         room_type_id?: string | number | null
+        access_code?: string | null
+        has_password?: boolean
+        host_user_id?: string | number | null
         start_mode?: string | null
         min_cards_to_start?: number | null
         max_players?: number | null
         date?: string | null
         time?: string | null
+        connection_type_id?: string | number | null
         game_mode_id?: string | number | null
         prize_pool_type_id?: string | number | null
         amount_added_prize_pool?: number | string | null
@@ -260,6 +264,7 @@ export interface BingoRoomFormData {
     maxPlayers?: number | null
     roomType?: BingoRoomType | null
     connectionType?: number | string | null
+    gameMode?: number | string | null
     gameVariant?: BingoGameVariant | null
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]
@@ -287,4 +292,9 @@ export interface BingoRoomFormData {
     moveFreeSpacePricePct?: number | null
     allowSpecialCard?: boolean
     maxSpecialCards?: number | null
+    accessCode?: string | null
+    // Solo se envía si el admin la cambia; en edición inicia vacío/null (el
+    // backend nunca reenvía el hash) — null = no modificar la contraseña actual.
+    roomPassword?: string | null
+    hostUserId?: string | number | null
 }

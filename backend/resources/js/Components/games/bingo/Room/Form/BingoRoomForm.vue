@@ -37,6 +37,7 @@
     isEdit?: boolean
     roomTypeOptions: SelectOption[]
     connectionTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
@@ -480,6 +481,7 @@
           :automaticRoom="automaticRoom"
           :roomTypeOptions="roomTypeOptions"
           :connectionTypeOptions="connectionTypeOptions"
+          :gameModeOptions="gameModeOptions"
           :prizePoolTypeOptions="prizePoolTypeOptions"
           :roomCommn="roomCommn"
           :jackpotPct="jackpotPct"
