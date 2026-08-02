@@ -3,6 +3,8 @@
 
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import AsyncSelect from '@/js/Components/Common/Form/AsyncSelect.vue'
+  import { searchUsers } from '@/js/composables/users/useUserSearch'
 
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type {
@@ -17,6 +19,7 @@ import { SelectOption } from '@/js/types/common/form/form'
     automaticRoom?: boolean
     roomTypeOptions: SelectOption[]
     connectionTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
     roomCommn: string | number
     jackpotPct: string | number
@@ -24,6 +27,8 @@ import { SelectOption } from '@/js/types/common/form/form'
       roomCommn: { min: number; max: number }
       jackpotPct: { min: number; max: number }
     }
+    /** Etiqueta del anfitrión ya asignado (para precargar el AsyncSelect al editar sin re-buscarlo). */
+    hostUserLabel?: string | null
   }>()
 
   const emit = defineEmits<{
@@ -74,6 +79,17 @@ import { SelectOption } from '@/js/types/common/form/form'
   const isManualStart = computed(
     () => !props.automaticRoom && (props.modelValue as BingoRoomFormData).startMode === 'MANUAL'
   )
+
+  /** true si el "Tipo de Sala" seleccionado tiene código PRIVATE (busca el código en roomTypeOptions, ya que roomType viaja como id). */
+  const isPrivateRoom = computed(() => {
+    const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
+    return selected?.code === 'PRIVATE'
+  })
+
+  const hostUserInitialOption = computed(() => {
+    if (!props.modelValue.hostUserId) return null
+    return { value: props.modelValue.hostUserId, label: props.hostUserLabel ?? String(props.modelValue.hostUserId) }
+  })
 
   /* ==========================================================================
    * Handlers
@@ -169,6 +185,44 @@ import { SelectOption } from '@/js/types/common/form/form'
       :modelValue="modelValue.roomType"
       @update:modelValue="emit('update:modelValue', { ...modelValue, roomType: $event })"
     />
+
+    <!-- Configuración de sala privada (solo si Tipo de Sala = Privada) -->
+    <template v-if="isPrivateRoom">
+      <FormInput
+        label="Código de Acceso"
+        name="access_code"
+        :error="(errors as any).accessCode"
+        required
+        placeholder="Ej. FAMILIA2026"
+        col="col-sm-6 col-md-4 col-lg-3"
+        :modelValue="(modelValue as any).accessCode ?? null"
+        @update:modelValue="emit('update:modelValue', { ...modelValue, accessCode: $event } as any)"
+      />
+
+      <FormInput
+        label="Contraseña"
+        name="room_password"
+        :error="(errors as any).roomPassword"
+        :required="!automaticRoom"
+        type="password"
+        :placeholder="props.modelValue.hostUserId ? 'Dejar en blanco para no cambiar' : 'Contraseña de acceso'"
+        col="col-sm-6 col-md-4 col-lg-3"
+        :modelValue="(modelValue as any).roomPassword ?? null"
+        @update:modelValue="emit('update:modelValue', { ...modelValue, roomPassword: $event } as any)"
+      />
+
+      <AsyncSelect
+        label="Anfitrión"
+        name="host_user_id"
+        :error="(errors as any).hostUserId"
+        placeholder="Buscar usuario..."
+        col="col-sm-6 col-md-4 col-lg-3"
+        :search="searchUsers"
+        :initial-option="hostUserInitialOption"
+        :modelValue="(modelValue as any).hostUserId ?? null"
+        @update:modelValue="emit('update:modelValue', { ...modelValue, hostUserId: $event } as any)"
+      />
+    </template>
 
     <!-- Tipo de Conexión -->
     <FormSelect

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Users\{ProfileController, ReferralController};
+use App\Http\Controllers\Users\{ProfileController, ReferralController, UserSearchController};
 use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\Api\AchievementController;
 use Illuminate\Support\Facades\Route;
@@ -47,3 +47,8 @@ Route::middleware(['auth', 'web'])->prefix('referrals')->group(function () {
     Route::get('/{referralCode}',   [ReferralController::class, 'dashboard'])->name('referral.dashboard');
     Route::get('/r/{referralCode}', [ReferralController::class, 'link'])     ->name('referral.link');
 });
+
+// ── Búsqueda de usuarios (selectores async, ej. anfitrión de sala privada) ──
+Route::get('/users/search', [UserSearchController::class, 'search'])
+    ->middleware(['auth', 'web'])
+    ->name('users.search');
