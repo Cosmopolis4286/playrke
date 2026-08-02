@@ -1403,16 +1403,26 @@ class BingoRoomCrudService
      */
     public function assertRoomAccessVerified(BingoRoom $room): void
     {
+        if (!$this->isRoomAccessVerified($room)) {
+            throw BingoRoomException::privateRoomNotVerified();
+        }
+    }
+
+    /**
+     * Versión no-throwing de assertRoomAccessVerified(), para vistas (ej. Lobby)
+     * que necesitan decidir si mostrar el prompt de acceso sin lanzar excepción.
+     * true si la sala no es privada, o si ya fue verificada en esta sesión.
+     */
+    public function isRoomAccessVerified(BingoRoom $room): bool
+    {
         $room->loadMissing('config.roomType');
         $config = $room->config;
 
         if (!$config || $config->roomType?->code !== 'PRIVATE') {
-            return;
+            return true;
         }
 
         $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
-        if (!in_array((string) $room->id, $verifiedRooms, true)) {
-            throw BingoRoomException::privateRoomNotVerified();
-        }
+        return in_array((string) $room->id, $verifiedRooms, true);
     }
 }

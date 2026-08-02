@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Game;
 use App\Http\Controllers\Controller;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,6 +34,7 @@ final class BingoGameController extends Controller
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
         private readonly \App\Domains\Games\Bingo\Services\Config\BingoConfigContextService $bingoConfigContext,
         private readonly \App\Domains\Games\Bingo\Services\Game\BingoPatternPositionResolver $patternResolver,
+        private readonly BingoRoomCrudService $bingoRoomCrud,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -47,73 +49,104 @@ final class BingoGameController extends Controller
     {
         return $this->handleServiceInertia(
             function () use ($room) {
-                $userId = $this->userContext->resolveUserId();
+                $room->load(['config.roomType']);
+                $isPrivate = $room->config?->roomType?->code === 'PRIVATE';
+                $isVerified = $this->bingoRoomCrud->isRoomAccessVerified($room);
 
-                $room->load([
-                    'status',
-                    'config.roomType',
-                    'config.connectionType',
-                    'players' => fn ($q) => $q->where('user_id', (int) $userId)->limit(1),
-                ]);
-
-                $userCards = $room->players->first()?->cards_purchased ?? 0;
-
-                $config = $room->config;
-
-                // Resolver precio, moneda y tasa según el rol del usuario
-                $role           = $this->roleUserService->getActiveUserRolePrefix($userId);
-                $cardPriceUsd   = (float) ($config?->card_price_usd ?? 0);
-                $cardPrice      = $cardPriceUsd;
-                $currencySymbol = 'USD';
-                $exchangeRate   = 1.0;
-
-                if ($role === 'player') {
-                    try {
-                        $priceData      = $this->cardGenerateService->getPlayerCardPrice((string) $room->id, (int) $userId);
-                        $cardPrice      = $priceData['card_price'];
-                        $currencySymbol = $priceData['currency_symbol'];
-                        $exchangeRate   = $priceData['exchange_rate'];
-                    } catch (\Throwable) {
-                        // fallback a USD si el jugador no tiene billetera configurada
-                    }
+                // Sala privada sin verificar: no enviar ningún dato de la sala (premio,
+                // jugadores, precio, etc.) hasta que el usuario verifique código/contraseña
+                // — de lo contrario esos datos ya viajarían en la respuesta HTTP inicial
+                // aunque la UI los oculte visualmente tras el modal de acceso.
+                if ($isPrivate && !$isVerified) {
+                    return Inertia::render('Games/Bingo/Lobby/Index', [
+                        'room' => [
+                            'id'                 => (string) $room->id,
+                            'is_private'         => true,
+                            'is_access_verified' => false,
+                        ],
+                        'roomRouteKey' => $room->getRouteKey(),
+                    ]);
                 }
 
-                $roomData = [
-                    'id'                    => (string) $room->id,
-                    'uuid_code'             => $room->uuid_code,
-                    'status_code'           => $room->status_code,
-                    'prize_pool'            => (float) $room->prize_pool,
-                    'full_house_prize'      => $room->full_house_prize !== null ? (float) $room->full_house_prize : null,
-                    'serial_prize'          => $room->serial_prize   !== null ? (float) $room->serial_prize   : null,
-                    'total_players'         => (int) $room->total_players,
-                    'total_cards'           => (int) $room->total_cards,
-                    'close_room'            => $room->is_closed,
-                    'currency_symbol'       => $currencySymbol,
-                    'card_price'            => $cardPrice,
-                    'card_price_usd'        => $cardPriceUsd,
-                    'room_type_description' => $config?->roomType?->label ?? 'Pública',
-                    'game_mode_description' => $config?->connectionType?->label ?? 'Mixto',
-                    'unix_date'             => $config?->unix_date,
-                    'date'                  => $config?->date?->format('Y-m-d'),
-                    'time'                  => $config?->time,
-                    'time_chip'             => $config?->time_chip,
-                    'rounds'                => $config?->rounds,
-                    'min_cards_to_start'    => $config?->min_cards_to_start,
-                    'max_players'           => $config?->max_players,
-                    'game_variant'          => $config?->game_variant,
-                ];
-
-                return Inertia::render('Games/Bingo/Lobby/Index', [
-                    'room'             => $roomData,
-                    'roomRouteKey'     => $room->getRouteKey(),
-                    'userCards'        => $userCards,
-                    'exchangeRate'     => $exchangeRate,
-                    'bingoRules'       => $this->bingoConfigContext->getBingoRules((int) $userId),
-                    'imageBingoRules'  => $this->bingoConfigContext->getImageBingoRules((int) $userId),
-                ]);
+                return Inertia::render('Games/Bingo/Lobby/Index', $this->buildLobbyPayload($room));
             },
             'No se pudo cargar el lobby.'
         );
+    }
+
+    /**
+     * Arma el payload completo del lobby (room + metadatos). Compartido entre
+     * lobby() (sala pública o ya verificada) y verifyAccess() (justo después
+     * de verificar una sala privada, para no requerir un segundo round-trip).
+     */
+    private function buildLobbyPayload(BingoRoom $room): array
+    {
+        $userId = $this->userContext->resolveUserId();
+
+        $room->load([
+            'status',
+            'config.roomType',
+            'config.connectionType',
+            'players' => fn ($q) => $q->where('user_id', (int) $userId)->limit(1),
+        ]);
+
+        $userCards = $room->players->first()?->cards_purchased ?? 0;
+
+        $config = $room->config;
+
+        // Resolver precio, moneda y tasa según el rol del usuario
+        $role           = $this->roleUserService->getActiveUserRolePrefix($userId);
+        $cardPriceUsd   = (float) ($config?->card_price_usd ?? 0);
+        $cardPrice      = $cardPriceUsd;
+        $currencySymbol = 'USD';
+        $exchangeRate   = 1.0;
+
+        if ($role === 'player') {
+            try {
+                $priceData      = $this->cardGenerateService->getPlayerCardPrice((string) $room->id, (int) $userId);
+                $cardPrice      = $priceData['card_price'];
+                $currencySymbol = $priceData['currency_symbol'];
+                $exchangeRate   = $priceData['exchange_rate'];
+            } catch (\Throwable) {
+                // fallback a USD si el jugador no tiene billetera configurada
+            }
+        }
+
+        $roomData = [
+            'id'                    => (string) $room->id,
+            'uuid_code'             => $room->uuid_code,
+            'status_code'           => $room->status_code,
+            'prize_pool'            => (float) $room->prize_pool,
+            'full_house_prize'      => $room->full_house_prize !== null ? (float) $room->full_house_prize : null,
+            'serial_prize'          => $room->serial_prize   !== null ? (float) $room->serial_prize   : null,
+            'total_players'         => (int) $room->total_players,
+            'total_cards'           => (int) $room->total_cards,
+            'close_room'            => $room->is_closed,
+            'currency_symbol'       => $currencySymbol,
+            'card_price'            => $cardPrice,
+            'card_price_usd'        => $cardPriceUsd,
+            'room_type_description' => $config?->roomType?->label ?? 'Pública',
+            'game_mode_description' => $config?->connectionType?->label ?? 'Mixto',
+            'is_private'            => $config?->roomType?->code === 'PRIVATE',
+            'is_access_verified'    => true,
+            'unix_date'             => $config?->unix_date,
+            'date'                  => $config?->date?->format('Y-m-d'),
+            'time'                  => $config?->time,
+            'time_chip'             => $config?->time_chip,
+            'rounds'                => $config?->rounds,
+            'min_cards_to_start'    => $config?->min_cards_to_start,
+            'max_players'           => $config?->max_players,
+            'game_variant'          => $config?->game_variant,
+        ];
+
+        return [
+            'room'             => $roomData,
+            'roomRouteKey'     => $room->getRouteKey(),
+            'userCards'        => $userCards,
+            'exchangeRate'     => $exchangeRate,
+            'bingoRules'       => $this->bingoConfigContext->getBingoRules((int) $userId),
+            'imageBingoRules'  => $this->bingoConfigContext->getImageBingoRules((int) $userId),
+        ];
     }
 
     /**
