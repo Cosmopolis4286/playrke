@@ -58,6 +58,7 @@
   const {
     roomData,
     soldCurrencyIds,
+    hostUserLabel,
     roomFormData,
     rooms,
     loading,
@@ -369,6 +370,7 @@
       :room-type-options="roomTypeOptions"
       :connection-type-options="connectionTypeOptions"
       :game-mode-options="gameModeOptions"
+      :host-user-label="hostUserLabel"
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
       :bingo-pattern-options="bingoPatternOptions"

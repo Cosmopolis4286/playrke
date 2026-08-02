@@ -13,7 +13,7 @@ export const STEP_LABELS: Record<BingoRoomStep, string> = {
 }
 
 export const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
-    basic:      ['date', 'time', 'days', 'roomType', 'connectionType', 'prizePoolType', 'roomCommn', 'timeChip', 'rounds', 'jackpotPct', 'amountAddedPrizePool'],
+    basic:      ['date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'rounds', 'jackpotPct', 'amountAddedPrizePool', 'accessCode', 'roomPassword', 'hostUserId'],
     currencies: ['allowedCurrencies', 'cardPriceUsd', 'cardPriceByCurrency', 'usdExchangeRoundStep'],
     rounds:     ['roundsPct', 'roundsConfig', 'percentageSum'],
     options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards'],

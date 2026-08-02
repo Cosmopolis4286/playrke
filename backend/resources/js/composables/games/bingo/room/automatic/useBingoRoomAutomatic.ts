@@ -19,6 +19,9 @@ interface UseBingoRoomAutomaticReturn {
     /** Datos de la sala (para crear o editar) */
     roomData: Ref<Partial<BingoRoomAutomatic>>
 
+    /** Etiqueta (username) del anfitrión asignado a la sala en edición, para precargar el AsyncSelect. */
+    hostUserLabel: Ref<string | null>
+
     /** Datos del formulario de creación */
     roomFormData: Ref<BingoRoomAutomaticFormData>
 
@@ -132,6 +135,9 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
     /** Datos del formulario de creación/edición */
     const roomFormData = ref<BingoRoomAutomaticFormData>(emptyFormData())
 
+    /** Etiqueta del anfitrión asignado a la sala en edición */
+    const hostUserLabel = ref<string | null>(null)
+
     /**
      * Envío del formulario (create / update)
      */
@@ -173,6 +179,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
     function create(): void {
         roomData.value = { ...emptyBingoRoomAutomatic() }
         roomFormData.value = emptyFormData()
+        hostUserLabel.value = null
     }
 
     /**
@@ -192,6 +199,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             const config = room.config ?? {}
 
             roomData.value = { id: room.id }
+            hostUserLabel.value = config.host_user_label ?? null
 
             roomFormData.value = {
                 date: config.date ?? null,
@@ -254,6 +262,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
     function reset(): void {
         roomData.value = { ...emptyBingoRoomAutomatic() }
         roomFormData.value = emptyFormData()
+        hostUserLabel.value = null
     }
 
     /**
@@ -296,6 +305,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
 
     return {
         roomData,
+        hostUserLabel,
         roomFormData,
         rooms,
         setInitialRooms: crud.setInitialRooms,

@@ -52,9 +52,13 @@ export const bingoRoomFormSchema = z.object({
     date:             z.string().nullable().optional(),
     time:             z.string().nullable().optional(),
     startMode:        z.enum(['SCHEDULED', 'MANUAL']).optional(),
-    roomType:         z.enum(['PRIVATE', 'PUBLIC', 'VIP', 'DEMO']).nullable().optional(),
+    roomType:         z.union([z.number(), z.string()]).nullable().optional(),
     connectionType:   z.union([z.number(), z.string()]).nullable().optional(),
+    gameMode:         z.union([z.number(), z.string()]).nullable().optional(),
     prizePoolType:    z.union([z.number(), z.string()]).nullable().optional(),
+    accessCode:       z.string().nullable().optional(),
+    roomPassword:     z.string().nullable().optional(),
+    hostUserId:       z.union([z.number(), z.string()]).nullable().optional(),
     allowedCurrencies: z.array(z.union([z.number(), z.string()])).optional(),
     roomsPerCurrency:  z.boolean().optional(),
     roomCommn:    z.number().nullable().optional(),
@@ -100,6 +104,8 @@ export interface BingoRoomValidationContext {
     /** Número de rondas ya resuelto como entero (≥ 1).
      *  Calculado una sola vez en useBingoRoomBaseForm. */
     roundsCount: number
+    /** ID (snowflake) del RoomType con código PRIVATE — null si el catálogo aún no cargó. */
+    privateRoomTypeId: string | number | null
 }
 
 export function validateBingoRoomForm(
@@ -162,6 +168,13 @@ export function validateBingoRoomForm(
     if (!data.roomType)      e.roomType      = 'El tipo de sala es requerido.'
     if (!data.connectionType) e.connectionType = 'Tipo de conexión requerido.'
     if (!data.prizePoolType) e.prizePoolType = 'El tipo de bote es requerido.'
+
+    /* ── Sala privada: código de acceso + contraseña (obligatoria solo al crear) ── */
+    const isPrivateRoom = ctx.privateRoomTypeId !== null && String(data.roomType) === String(ctx.privateRoomTypeId)
+    if (isPrivateRoom) {
+        if (!data.accessCode) e.accessCode = 'El código de acceso es requerido para salas privadas.'
+        if (!ctx.isEdit && !data.roomPassword) e.roomPassword = 'La contraseña es requerida para salas privadas.'
+    }
 
     /* ── Monedas ── */
     if (!data.allowedCurrencies || data.allowedCurrencies.length === 0) {

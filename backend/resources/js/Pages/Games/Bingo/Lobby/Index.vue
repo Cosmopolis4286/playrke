@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import type { Ref } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { usePage, router } from '@inertiajs/vue3'
+import backendClient from '@/js/plugins/axios'
 import BingoPurchaseModalWrapper from '@js/Components/games/bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue'
 import BingoRulesModal   from '@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue'
 import LobbyHero          from '@js/Components/games/bingo/Room/Lobby/LobbyHero.vue'
@@ -11,6 +12,7 @@ import LobbyPlayersModal  from '@js/Components/games/bingo/Room/Lobby/LobbyPlaye
 import LobbyMyCardsModal  from '@js/Components/games/bingo/Room/Lobby/LobbyMyCardsModal.vue'
 import LobbyToasts        from '@js/Components/games/bingo/Room/Lobby/LobbyToasts.vue'
 import LobbyRedirectBanner from '@js/Components/games/bingo/Room/Lobby/LobbyRedirectBanner.vue'
+import LobbyAccessModal   from '@js/Components/games/bingo/Room/Lobby/LobbyAccessModal.vue'
 import { useGameRoomPurchaseModal } from '@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
 import { useLobbyEcho }          from '@js/composables/games/bingo/room/lobby/useLobbyEcho'
 import { useLobbyCountdown }     from '@js/composables/games/bingo/room/lobby/useLobbyCountdown'
@@ -49,6 +51,22 @@ const live = reactive({
 
 const liveFullHousePrize = ref<number | null>(props.room?.full_house_prize ?? null)
 const liveSerialPrize    = ref<number | null>(props.room?.serial_prize    ?? null)
+
+// Sala privada: el primer render solo trae el payload mínimo (is_private/
+// is_access_verified) — cuando router.reload() trae los datos reales tras
+// verificar, hay que resincronizar el estado `live` que se inicializó vacío.
+watch(() => props.room?.is_access_verified, (verified, wasVerified) => {
+  if (verified && !wasVerified) {
+    live.prizePool      = props.room?.prize_pool    ?? 0
+    live.totalPlayers    = props.room?.total_players ?? 0
+    live.totalCards       = props.room?.total_cards   ?? 0
+    live.statusCode      = props.room?.status_code   ?? ''
+    live.cardPrice        = props.room?.card_price    ?? props.room?.card_price_usd ?? 0
+    live.currencySymbol  = props.room?.currency_symbol ?? 'USD'
+    liveFullHousePrize.value = props.room?.full_house_prize ?? null
+    liveSerialPrize.value    = props.room?.serial_prize    ?? null
+  }
+})
 
 // ── Flash ──
 const prizeFlash   = ref(false)
@@ -106,6 +124,48 @@ const { redirecting, redirectSecs, cancel: cancelRedirect } = useLobbyRedirect(p
 const showRulesModal = ref(false)
 const modal      = useGameRoomPurchaseModal()
 const myCards    = useLobbyMyCards(props.roomRouteKey)
+
+// ── Acceso a sala privada ──
+// Si la sala es privada y no fue verificada aún en esta sesión (is_access_verified
+// resuelto server-side), se bloquea el lobby con un modal de código/contraseña
+// antes de mostrar cualquier dato de la sala. La verificación real ocurre en el
+// backend (POST verify-access); esto es solo la puerta de entrada en la UI —
+// la defensa real está en buyFromGameRooms/playerBuyFromGameRooms (403 si no
+// verificada), así que aunque se salte esta pantalla no se puede comprar.
+// computed (no ref) porque router.reload() actualiza props.room in-place tras
+// verificar — un ref inicializado una sola vez no reaccionaría a ese cambio.
+const accessVerified   = computed(() => props.room?.is_private ? (props.room?.is_access_verified ?? false) : true)
+const showAccessModal  = computed(() => !accessVerified.value)
+const verifyingAccess  = ref(false)
+const accessError      = ref<string | null>(null)
+
+async function handleVerifyAccess(accessCode: string, password: string) {
+  verifyingAccess.value = true
+  accessError.value = null
+  try {
+    const { data } = await backendClient.post<{ verified: boolean }>(
+      `/bingo-rooms/${props.room.id}/verify-access`,
+      { access_code: accessCode, password }
+    )
+    if (data.verified) {
+      // El backend recién ahora entrega los datos reales de la sala (premio,
+      // jugadores, precio, etc.) — hasta este punto solo viajó el payload
+      // mínimo (is_private/is_access_verified), así que se recarga la página
+      // completa vía Inertia para obtenerlos con la sesión ya verificada.
+      router.reload()
+    } else {
+      accessError.value = 'Código o contraseña incorrectos.'
+    }
+  } catch {
+    accessError.value = 'No se pudo verificar el acceso. Intenta de nuevo.'
+  } finally {
+    verifyingAccess.value = false
+  }
+}
+
+function handleLeaveAccessModal() {
+  window.location.href = '/bingo/game-rooms'
+}
 
 // Cierra el modal de compra si el sorteo arranca mientras está abierto
 watch(() => live.statusCode, (code) => {
@@ -211,6 +271,11 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; cardCou
       <div class="lby-spinner" />
     </div>
 
+    <!-- Sala privada sin verificar: no se muestra ningún dato hasta ingresar código/contraseña -->
+    <div v-else-if="showAccessModal" class="lby-loading">
+      <div class="lby-spinner" />
+    </div>
+
     <template v-else>
       <div class="lby-shell">
         <LobbyHero
@@ -258,6 +323,14 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; cardCou
     </template>
 
     <LobbyToasts :toasts="saleToasts" />
+
+    <LobbyAccessModal
+      :show="showAccessModal"
+      :loading="verifyingAccess"
+      :error="accessError"
+      @verify="handleVerifyAccess"
+      @leave="handleLeaveAccessModal"
+    />
 
     <LobbyPlayersModal
       :show="players.showModal.value"

@@ -22,6 +22,8 @@ export interface LobbyRoom {
   min_cards_to_start?: number | null
   max_players?: number | null
   game_variant?: string | null
+  is_private?: boolean
+  is_access_verified?: boolean
 }
 
 /** @deprecated Use LobbyLiveState */

@@ -22,6 +22,9 @@ interface UseBingoRoomReturn {
     /** IDs de monedas con al menos un cartón vendido en la sala en edición (no se pueden quitar de "monedas permitidas"). */
     soldCurrencyIds: Ref<string[]>
 
+    /** Etiqueta (username) del anfitrión asignado a la sala en edición, para precargar el AsyncSelect. */
+    hostUserLabel: Ref<string | null>
+
     /** Datos del formulario de creación */
     roomFormData: Ref<BingoRoomFormData>
 
@@ -151,6 +154,9 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     /** Monedas con cartones vendidos en la sala en edición (ver soldCurrencyIds) */
     const soldCurrencyIds = ref<string[]>([])
 
+    /** Etiqueta del anfitrión asignado a la sala en edición */
+    const hostUserLabel = ref<string | null>(null)
+
     /** Datos del formulario de creación/edición */
     const roomFormData = ref<BingoRoomFormData>(emptyFormData())
 
@@ -161,6 +167,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         roomData.value = { ...emptyBingoRoom() }
         roomFormData.value = emptyFormData()
         soldCurrencyIds.value = []
+        hostUserLabel.value = null
     }
 
     /**
@@ -242,6 +249,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 last_updated_by: room.last_updated_by,
             }
             soldCurrencyIds.value = (room.sold_currencies ?? []).map((id: string | number) => String(id))
+            hostUserLabel.value = config.host_user_label ?? null
 
             roomFormData.value = {
                 date: config.date ?? null,
@@ -419,6 +427,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     return {
         roomData,
         soldCurrencyIds,
+        hostUserLabel,
         roomFormData,
         rooms,
         loading,

@@ -38,6 +38,8 @@
     roomTypeOptions: SelectOption[]
     connectionTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
+    /** Etiqueta del anfitrión ya asignado (edición), para precargar el AsyncSelect sin re-buscarlo. */
+    hostUserLabel?: string | null
     prizePoolTypeOptions: SelectOption[]
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
@@ -69,6 +71,9 @@
   const useBaseUsd = ref(props.modelValue.useBaseUsd ?? true)
   const cardPriceByCurrencyActive = ref(false)
 
+  /** ID (snowflake) del RoomType con código PRIVATE, resuelto desde roomTypeOptions. */
+  const privateRoomTypeId = computed(() => props.roomTypeOptions.find(o => o.code === 'PRIVATE')?.value ?? null)
+
   const {
     form,
     errors,
@@ -86,7 +91,8 @@
     () => props.automaticRoom ?? false,
     () => useBaseUsd.value,
     () => props.isEdit ?? false,
-    () => props.currenciesWithActiveRate ?? []
+    () => props.currenciesWithActiveRate ?? [],
+    () => privateRoomTypeId.value
   )
 
   /* ==========================================================================
@@ -482,6 +488,7 @@
           :roomTypeOptions="roomTypeOptions"
           :connectionTypeOptions="connectionTypeOptions"
           :gameModeOptions="gameModeOptions"
+          :hostUserLabel="hostUserLabel"
           :prizePoolTypeOptions="prizePoolTypeOptions"
           :roomCommn="roomCommn"
           :jackpotPct="jackpotPct"

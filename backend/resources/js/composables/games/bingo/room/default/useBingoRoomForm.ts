@@ -7,7 +7,8 @@ export function useBingoRoomForm(
     automaticRoom: () => boolean,
     useBaseUsd: () => boolean = () => true,
     isEdit: () => boolean = () => false,
-    currenciesWithActiveRate: () => string[] = () => []
+    currenciesWithActiveRate: () => string[] = () => [],
+    privateRoomTypeId: () => string | number | null = () => null
 ) {
-    return useBingoRoomBaseForm(modelValueGetter, emit, automaticRoom, useBaseUsd, isEdit, currenciesWithActiveRate)
+    return useBingoRoomBaseForm(modelValueGetter, emit, automaticRoom, useBaseUsd, isEdit, currenciesWithActiveRate, privateRoomTypeId)
 }

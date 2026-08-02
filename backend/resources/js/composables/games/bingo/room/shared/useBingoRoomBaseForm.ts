@@ -13,7 +13,9 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     automaticRoom: () => boolean,
     useBaseUsd: () => boolean = () => true,
     isEdit: () => boolean = () => false,
-    currenciesWithActiveRate: () => string[] = () => []
+    currenciesWithActiveRate: () => string[] = () => [],
+    /** ID (snowflake) del RoomType con código PRIVATE — resuelto desde roomTypeOptions en el padre. */
+    privateRoomTypeId: () => string | number | null = () => null
 ) {
     /* ── v-model computado ── */
 
@@ -52,6 +54,7 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             currenciesMissingRate: currenciesMissingRate.value,
             availablePct:          availablePct.value,
             roundsCount:           roundsCount.value,
+            privateRoomTypeId:     privateRoomTypeId(),
         })
     )
 
