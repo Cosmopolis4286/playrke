@@ -144,6 +144,12 @@ const startLabel = computed(() => {
           <div v-if="startLabel" class="lby-start-time">
             <i class="fas fa-calendar-alt" /> {{ startLabel }}
           </div>
+          <!-- Fallback cuando la sala no tiene fecha/hora programada (inicio
+               manual) — mismo criterio que BingoGameRoomCard.vue en la
+               página de listado: antes este bloque se omitía por completo. -->
+          <div v-else class="lby-start-time lby-start-time--pending">
+            <i class="fas fa-hourglass-half" /> Sin programar
+          </div>
 
           <div
             v-if="(fullHousePrize ?? room.full_house_prize) != null || (serialPrize ?? room.serial_prize) != null"
@@ -294,6 +300,11 @@ const startLabel = computed(() => {
   color: rgba(180,200,255,.55); white-space: nowrap;
 }
 .lby-start-time i { font-size: 9px; opacity: .55; }
+
+/* Fallback "Sin programar" — mismo tono azul/violeta que .rc__meta-item--manual
+   en la card del listado (GameRooms), por consistencia entre ambas páginas. */
+.lby-start-time--pending { color: #8ea8ff; }
+.lby-start-time--pending i { color: #8ea8ff; opacity: .75; }
 
 .lby-timer {
   background: rgba(4,8,20,.85); border: 1px solid rgba(255,255,255,.1);

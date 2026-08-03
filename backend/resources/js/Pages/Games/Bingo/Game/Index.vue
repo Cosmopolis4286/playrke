@@ -349,12 +349,14 @@ watch(liveDrawn, (drawn) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // [DEV] Reset
 // ─────────────────────────────────────────────────────────────────────────────
+// Máximo 3 unidades — mismo criterio que HeaderPrizeCountdown.vue: con días
+// presentes se omiten los segundos, antes podía mostrar 4 partes (d/h/m/s).
 function formatCountdown(): string | null {
   if (!hasTime.value || !cd.value) return null
   const { days, hours, minutes, seconds } = cd.value.time
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`
   const parts: string[] = []
-  if (days > 0)    parts.push(`${days}d`)
-  if (hours > 0)   parts.push(`${hours}h`)
+  if (hours > 0) parts.push(`${hours}h`)
   parts.push(`${minutes}m`, `${seconds}s`)
   return parts.join(' ')
 }

@@ -46,18 +46,27 @@ const countdownUrgency = computed(() => {
   </div>
   <div v-else-if="hasTime && cd" class="gh-countdown" :class="`gh-countdown--${countdownUrgency}`">
     <span class="gh-countdown__label"><i class="fas fa-clock" /> Inicia en</span>
+    <!-- Máximo 3 unidades de tiempo, siempre las más significativas — con
+         días presentes se omiten los segundos (D:H:M), igual criterio que
+         GameRoomsKpiHeader.vue y useLobbyCountdown.ts. Antes mostraba D:H:M:S
+         (4 bloques) cuando había días Y horas a la vez. -->
     <div class="gh-timer" :class="`gh-timer--${countdownUrgency}`">
       <template v-if="cd.time.days > 0">
         <div class="gh-tu"><b>{{ cd.time.days }}</b><small>D</small></div>
         <span class="gh-tsep">:</span>
-      </template>
-      <template v-if="cd.time.hours > 0">
-        <div class="gh-tu"><b>{{ cd.time.hours }}</b><small>H</small></div>
+        <div class="gh-tu"><b>{{ pad(cd.time.hours) }}</b><small>H</small></div>
         <span class="gh-tsep">:</span>
+        <div class="gh-tu"><b>{{ pad(cd.time.minutes) }}</b><small>M</small></div>
       </template>
-      <div class="gh-tu"><b>{{ pad(cd.time.minutes) }}</b><small>M</small></div>
-      <span class="gh-tsep">:</span>
-      <div class="gh-tu"><b>{{ pad(cd.time.seconds) }}</b><small>S</small></div>
+      <template v-else>
+        <template v-if="cd.time.hours > 0">
+          <div class="gh-tu"><b>{{ cd.time.hours }}</b><small>H</small></div>
+          <span class="gh-tsep">:</span>
+        </template>
+        <div class="gh-tu"><b>{{ pad(cd.time.minutes) }}</b><small>M</small></div>
+        <span class="gh-tsep">:</span>
+        <div class="gh-tu"><b>{{ pad(cd.time.seconds) }}</b><small>S</small></div>
+      </template>
     </div>
   </div>
   <div v-else class="gh-badge gh-badge--live">

@@ -21,6 +21,17 @@ export function useLobbyCountdown(getUnixDate: (() => number | null | undefined)
     }
     isLive.value   = false
     isUrgent.value = diff < 300
+    // Máximo 3 unidades de tiempo, siempre las 3 más significativas —
+    // mismo criterio que GameRoomsKpiHeader.vue. Antes, sin tope de días,
+    // una sala programada a 3 días vista mostraba "72:15:40" en vez de
+    // "3d 00h 15m" (h crecía sin límite más allá de 24).
+    const days = Math.floor(diff / 86400)
+    if (days >= 1) {
+      const hours   = Math.floor((diff % 86400) / 3600)
+      const minutes = Math.floor((diff % 3600) / 60)
+      countdown.value = `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`
+      return
+    }
     const h = Math.floor(diff / 3600)
     const m = Math.floor((diff % 3600) / 60)
     const s = diff % 60
