@@ -56,7 +56,7 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
-  const { isLive, newUsersToday, cardsSoldToday } = useAdminActivityRealtime(prependActivity)
+  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(prependActivity)
 
   const recentMovements = ref<ActivityItem[]>([])
 
@@ -199,10 +199,15 @@
           <DashboardSection
             title="Actividad reciente"
             icon="fas fa-history"
-            subtitle="Últimos usuarios registrados"
-            class="ds-scroll-section"
+            subtitle="Usuarios, ventas, ganadores y movimientos en vivo"
           >
-            <DashboardActivityFeed :items="sortedActivity" :maxItems="10" class="ds-activity-compact" />
+            <DashboardActivityFeed
+              :items="sortedActivity"
+              :maxItems="30"
+              :maxHeight="320"
+              filterable
+              :isLive="isLive"
+            />
           </DashboardSection>
         </div>
 
@@ -313,45 +318,11 @@
   50%       { opacity: 0.5; transform: scale(0.8); }
 }
 
-/* Altura igual con scroll solo en el contenido (card-body) */
+/* Altura igual con scroll solo en el contenido (card-body) — usado por
+   "Entidades por rol", que no tiene scroll propio como el activity feed. */
 .ds-scroll-section :deep(.card-body) {
   max-height: 320px;
   overflow-y: auto;
-}
-
-/* Items de actividad más compactos y minimalistas */
-.ds-activity-compact :deep(.activity-feed__item) {
-  padding: 0.5rem 0.75rem;
-  gap: 0.75rem;
-  border: none;
-  border-bottom: 1px solid var(--ds-border);
-  border-radius: 0;
-  background: transparent;
-}
-
-.ds-activity-compact :deep(.activity-feed__item:last-child) {
-  border-bottom: none;
-}
-
-.ds-activity-compact :deep(.activity-feed__item:hover) {
-  background: var(--ds-surface-2);
-  box-shadow: none;
-  transform: none;
-}
-
-.ds-activity-compact :deep(.activity-feed__icon) {
-  width: 32px !important;
-  height: 32px !important;
-  font-size: 0.75rem;
-}
-
-.ds-activity-compact :deep(.activity-feed__item p) {
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.ds-activity-compact :deep(.activity-feed__item .small) {
-  font-size: 0.75rem;
 }
 
 /* Salud del sistema */

@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Events;
 
 use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
@@ -44,9 +45,17 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
         $this->prize = $prize;
     }
 
+    /**
+     * Además del canal por sala (consumido por los jugadores en juego), se
+     * publica en `admins.activity` para alimentar el feed de actividad
+     * reciente del dashboard de Admin/SuperAdmin.
+     */
     public function broadcastOn()
     {
-        return new Channel("bingo.room.{$this->roomId}");
+        return [
+            new Channel("bingo.room.{$this->roomId}"),
+            new PrivateChannel('admins.activity'),
+        ];
     }
 
     public function broadcastAs()

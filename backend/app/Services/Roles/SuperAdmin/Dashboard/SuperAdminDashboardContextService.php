@@ -39,12 +39,10 @@ final class SuperAdminDashboardContextService
         $period = ucfirst($now->translatedFormat('F Y'));
 
         $cached = Cache::remember('dashboard:superadmin:aggregates', self::CACHE_TTL_SECONDS, function () {
-            $activeRooms   = BingoRoom::active()->count();
-            $activeAdmins  = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))->active()->count();
-            $activeCommerce = Commerce::where('status', 'ACTIVE')->count();
+            $activeRooms = BingoRoom::active()->count();
 
             return [
-                'stats'          => $this->buildStats($activeRooms, $activeAdmins, $activeCommerce),
+                'stats'          => $this->buildStats($activeRooms),
                 'recentActivity' => $this->buildRecentActivity(excludeSystemAccounts: true),
                 'adminActivity'  => $this->buildAdminActivity(),
                 'entityCounts'   => $this->buildEntityCounts(),
@@ -70,11 +68,10 @@ final class SuperAdminDashboardContextService
     // Stats principales para SuperAdmin
     // -------------------------------------------------------------------------
 
-    private function buildStats(int $activeRooms, int $activeAdmins, int $activeCommerce): array
+    private function buildStats(int $activeRooms): array
     {
         $totalUsers       = User::excludeSystemAccounts()->count();
         $totalAdmins      = Admin::count();
-        $activeSystems    = $this->countActiveSystems($activeRooms, $activeAdmins, $activeCommerce);
         $totalPermissions = Permission::count();
 
         return [
@@ -92,12 +89,13 @@ final class SuperAdminDashboardContextService
                 'variant' => 'danger',
                 'href'    => '/admins',
             ],
-            'activeSystems' => [
-                'label'       => 'Sistemas activos',
-                'value'       => $activeSystems,
-                'icon'        => 'fas fa-server',
+            'activeRooms' => [
+                'label'       => 'Salas de Bingo activas',
+                'value'       => $activeRooms,
+                'icon'        => 'fas fa-dice',
                 'variant'     => 'info',
-                'description' => "de 3 monitoreados",
+                'description' => $activeRooms > 0 ? 'En operación ahora' : 'Sin salas activas',
+                'href'        => '/bingo-rooms',
             ],
             'totalPermissions' => [
                 'label'   => 'Permisos totales',
@@ -207,26 +205,4 @@ final class SuperAdminDashboardContextService
         ];
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private function countActiveSystems(int $activeRooms, int $activeAdmins, int $activeCommerce): int
-    {
-        $count = 0;
-
-        if ($activeRooms > 0) {
-            $count++;
-        }
-
-        if ($activeAdmins > 0) {
-            $count++;
-        }
-
-        if ($activeCommerce > 0) {
-            $count++;
-        }
-
-        return $count;
-    }
 }

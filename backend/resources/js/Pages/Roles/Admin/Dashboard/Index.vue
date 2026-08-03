@@ -48,7 +48,7 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, salesTrend, pendingWalletCount, prependActivity } = useAdminDashboard(props)
-  const { isLive, newUsersToday, cardsSoldToday } = useAdminActivityRealtime(prependActivity)
+  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(prependActivity)
 
   const recentMovements = ref<ActivityItem[]>([])
 
@@ -161,9 +161,15 @@
           <DashboardSection
             title="Actividad reciente"
             icon="fas fa-history"
-            subtitle="Últimos usuarios registrados"
+            subtitle="Usuarios, ventas, ganadores y movimientos en vivo"
           >
-            <DashboardActivityFeed :items="sortedActivity" :maxItems="10" />
+            <DashboardActivityFeed
+              :items="sortedActivity"
+              :maxItems="30"
+              :maxHeight="320"
+              filterable
+              :isLive="isLive"
+            />
           </DashboardSection>
         </div>
 

@@ -7,7 +7,7 @@ import type { StatCardData, ActivityItem, StatCardVariant } from '@/js/types/com
 export interface SuperAdminStats {
     totalUsers:         StatCardData
     totalAdmins:        StatCardData
-    activeSystems:      StatCardData
+    activeRooms:        StatCardData
     totalPermissions:   StatCardData
 }
 
