@@ -14,7 +14,7 @@
   import DashboardStatCard            from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
   import DashboardSection             from '@/js/Components/Common/Dashboard/DashboardSection.vue'
   import DashboardActivityFeed        from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
-  import DashboardQuickLinks          from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardQuickLinksGroup     from '@/js/Components/Common/Dashboard/DashboardQuickLinksGroup.vue'
   import DashboardEntityList          from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
   import DashboardTrendChart          from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
   import DashboardPendingWalletWidget from '@/js/Components/Common/Dashboard/DashboardPendingWalletWidget.vue'
@@ -107,7 +107,7 @@
   // Accesos rápidos
   // ==========================================================================
 
-  const quickLinks = useDashboardQuickLinks('superadmin')
+  const quickLinkGroups = useDashboardQuickLinks('superadmin', entityCounts)
 </script>
 
 <template>
@@ -168,7 +168,7 @@
         icon="fas fa-bolt"
         subtitle="Gestión completa del sistema"
       >
-        <DashboardQuickLinks :links="quickLinks" :columns="4" />
+        <DashboardQuickLinksGroup :groups="quickLinkGroups" :columns="4" />
       </DashboardSection>
 
       <!-- Tendencia + Wallet pendientes -->
