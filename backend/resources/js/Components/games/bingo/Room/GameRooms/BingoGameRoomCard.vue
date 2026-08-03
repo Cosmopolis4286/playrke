@@ -130,6 +130,7 @@ function handleClick(event: MouseEvent) {
         :timer-level="timerLevel"
         :countdown="countdown"
         :uuid-code="room.uuid_code"
+        :room-type="room.room_type"
       />
 
       <!-- ── Body ── -->

@@ -11,6 +11,7 @@ const props = defineProps<{
   timerLevel: TimerLevel
   countdown: RoomCountdown | undefined
   uuidCode?: string | null
+  roomType?: string | null
 }>()
 
 // Código corto de sala — solo los últimos 6 caracteres, igual criterio que en BingoRoomInfoModal.vue
@@ -31,6 +32,12 @@ const shortRoomCode = computed(() => {
     <!-- Código corto de sala — discreto, esquina superior izquierda -->
     <span v-if="shortRoomCode" class="rc__room-code">
       <i class="fas fa-hashtag" />{{ shortRoomCode }}
+    </span>
+
+    <!-- Badge de sala privada — esquina superior derecha (única libre: la
+         izquierda tiene el código, el centro tiene el badge de estado/timer) -->
+    <span v-if="roomType === 'PRIVATE'" v-tooltip="'Sala privada: requiere código de acceso'" class="rc__private-badge">
+      <i class="fas fa-lock" /> Privada
     </span>
 
     <!-- Un solo badge: fusiona estado + countdown cuando hay tiempo activo,
@@ -124,6 +131,19 @@ const shortRoomCode = computed(() => {
   text-shadow: 0 1px 3px rgba(0,0,0,.6);
 }
 .rc__room-code i { font-size: 6.5px; opacity: .7; }
+
+/* Badge "Privada" — esquina superior derecha, tono ámbar (consistente con
+   el ícono de candado usado en los modales de acceso privado) */
+.rc__private-badge {
+  position: absolute; top: 6px; right: 8px; z-index: 3;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 10px;
+  font-size: 8px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  background: rgba(42,32,6,.7); border: 1px solid rgba(255,194,0,.35);
+  color: #ffc200;
+  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+.rc__private-badge i { font-size: 7px; }
 
 /* badge único — top centrado; fusiona estado + countdown para no apilar dos pastillas */
 .rc__status-badge {

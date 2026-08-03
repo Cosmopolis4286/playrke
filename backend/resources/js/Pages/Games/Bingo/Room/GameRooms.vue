@@ -5,6 +5,9 @@ import BingoGameRoomCard  from "@js/Components/games/bingo/Room/GameRooms/BingoG
 import BingoPurchaseModalWrapper from "@js/Components/games/bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue";
 import BingoRoomInfoModal from "@js/Components/games/bingo/Room/GameRooms/BingoRoomInfoModal.vue";
 import BingoRulesModal    from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
+import GameRoomsJoinByCodeModal from "@js/Components/games/bingo/Room/GameRooms/GameRoomsJoinByCodeModal.vue";
+import GameRoomsKpiHeader from "@js/Components/games/bingo/Room/GameRooms/GameRoomsKpiHeader.vue";
+import GameRoomsFilterBar from "@js/Components/games/bingo/Room/GameRooms/GameRoomsFilterBar.vue";
 
 import { useGameRooms }             from "@js/composables/games/bingo/room/game-rooms/useGameRooms";
 import { BINGO_ROOM_IMG } from "@js/modules/games/bingo/room/game-rooms/gameRoomUtils";
@@ -27,6 +30,16 @@ const {
   modal,
   goToLobby,
   redirectingToLobby,
+  joinByCode,
+  filters,
+  filtersLoading,
+  isFiltered,
+  applyFilters,
+  resetFilters,
+  goToFilterPage,
+  paginationState,
+  nextRoomUnixDate,
+  totalActiveRooms,
 } = useGameRooms(props);
 </script>
 
@@ -56,6 +69,29 @@ const {
         Selecciona una sala activa para comprar tus cartones
       </p>
       <div class="grp-header-line" />
+
+      <div class="grp-toolbar">
+        <GameRoomsKpiHeader
+          :next-room-unix-date="nextRoomUnixDate"
+          :total-active-rooms="totalActiveRooms"
+          :loading="filtersLoading"
+        />
+
+        <GameRoomsFilterBar
+          :filters="filters"
+          :loading="filtersLoading"
+          @apply="applyFilters"
+          @reset="resetFilters"
+        />
+
+        <button
+          type="button"
+          class="grp-join-code-btn"
+          @click="joinByCode.open()"
+        >
+          <i class="fas fa-key" /> Código
+        </button>
+      </div>
     </div>
 
     <!-- ── Sin salas ── -->
@@ -84,6 +120,32 @@ const {
             @select="openRoomInfo"
           />
         </div>
+      </div>
+
+      <!-- ── Paginación (solo cuando hay filtro activo con más de una página) ── -->
+      <div
+        v-if="isFiltered && paginationState && paginationState.last_page > 1"
+        class="game-rooms-page__pagination"
+      >
+        <button
+          type="button"
+          class="grp-page-btn"
+          :disabled="filtersLoading || paginationState.current_page <= 1"
+          @click="goToFilterPage(paginationState.current_page - 1)"
+        >
+          <i class="fas fa-chevron-left" />
+        </button>
+        <span class="grp-page-info">
+          Página {{ paginationState.current_page }} de {{ paginationState.last_page }}
+        </span>
+        <button
+          type="button"
+          class="grp-page-btn"
+          :disabled="filtersLoading || paginationState.current_page >= paginationState.last_page"
+          @click="goToFilterPage(paginationState.current_page + 1)"
+        >
+          <i class="fas fa-chevron-right" />
+        </button>
       </div>
     </div>
   </div>
@@ -116,6 +178,16 @@ const {
     :exchange-rate="props.exchangeRate ?? 1"
     :guard="canBuy"
     @success="onPurchaseSuccess"
+  />
+
+  <!-- ══ Modal "Tengo un código" (unirse a sala privada) ══ -->
+  <GameRoomsJoinByCodeModal
+    :show="joinByCode.isOpen.value"
+    :loading="joinByCode.loading.value"
+    :error="joinByCode.error.value"
+    :redirecting="joinByCode.redirecting.value"
+    @submit="joinByCode.submit"
+    @close="joinByCode.close"
   />
 </template>
 
@@ -320,13 +392,13 @@ const {
 ═══════════════════════════════ */
 .game-rooms-page__header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
   position: relative;
   animation: fadeSlideDown 0.7s ease both;
 }
 
 @media (max-width: 380px) {
-  .game-rooms-page__header { margin-bottom: 26px; }
+  .game-rooms-page__header { margin-bottom: 18px; }
 }
 
 @keyframes fadeSlideDown {
@@ -415,6 +487,44 @@ const {
   border-radius: 50%;
   box-shadow: 0 0 8px #2af598;
 }
+
+.grp-toolbar {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 8px;
+  margin: 14px auto 0; max-width: 720px; padding: 0 12px;
+}
+
+.grp-join-code-btn {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  padding: 6px 14px; border-radius: 20px;
+  background: rgba(255,194,0,.08); border: 1px solid rgba(255,194,0,.28);
+  color: #ffc200; font-size: 11px; font-weight: 700; letter-spacing: .2px;
+  cursor: pointer; transition: background .2s, transform .2s;
+}
+.grp-join-code-btn:hover {
+  background: rgba(255,194,0,.16);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 380px) {
+  .grp-toolbar { gap: 6px; margin-top: 10px; }
+  .grp-join-code-btn { padding: 5px 11px; font-size: 10px; }
+}
+
+.game-rooms-page__pagination {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin: 28px auto 0;
+}
+.grp-page-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  color: #c8d8f0; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.grp-page-btn:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+.grp-page-btn:disabled { opacity: .35; cursor: not-allowed; }
+.grp-page-info { font-size: 11px; color: #7a96c8; font-weight: 600; }
 
 /* ═══════════════════════════════
    EMPTY STATE — compacto y minimalista

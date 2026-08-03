@@ -9,16 +9,12 @@ import backendClient from '@/js/plugins/axios'
  */
 export function useGameRoomJoinByCode() {
   const isOpen = ref(false)
-  const accessCode = ref('')
-  const password = ref('')
   const loading = ref(false)
   const error = ref<string | null>(null)
   const redirecting = ref(false)
 
   function open(): void {
     isOpen.value = true
-    accessCode.value = ''
-    password.value = ''
     error.value = null
   }
 
@@ -26,8 +22,8 @@ export function useGameRoomJoinByCode() {
     isOpen.value = false
   }
 
-  async function submit(): Promise<void> {
-    if (!accessCode.value || !password.value) return
+  async function submit(accessCode: string, password: string): Promise<void> {
+    if (!accessCode || !password) return
 
     loading.value = true
     error.value = null
@@ -35,7 +31,7 @@ export function useGameRoomJoinByCode() {
     try {
       const { data } = await backendClient.post<{ verified: boolean; room_route_key: string | null }>(
         '/bingo/game-rooms/join-by-code',
-        { access_code: accessCode.value, password: password.value }
+        { access_code: accessCode, password }
       )
 
       if (data.verified && data.room_route_key) {
@@ -57,8 +53,6 @@ export function useGameRoomJoinByCode() {
 
   return {
     isOpen,
-    accessCode,
-    password,
     loading,
     error,
     redirecting,

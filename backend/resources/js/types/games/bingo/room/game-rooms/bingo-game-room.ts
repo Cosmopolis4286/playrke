@@ -122,6 +122,25 @@ export interface BingoGameRoomDetail {
 }
 
 /**
+ * KPIs del listado de salas de juego (header) para el path filtrado/paginado
+ * — devueltos por GET /bingo/game-rooms/filter-data.
+ */
+export interface GameRoomKpisPayload {
+  readonly next_room_unix_date: number | null
+  readonly next_room_id: string | null
+  readonly total_active_rooms: number
+}
+
+/**
+ * Estado de filtros (fecha/variante) del listado de salas de juego.
+ */
+export interface GameRoomFilters {
+  dateFrom: string | null
+  dateTo: string | null
+  variant: string | null
+}
+
+/**
  * Props de la página GameRooms (Inertia).
  */
 export interface BingoGameRoomsPageProps {
