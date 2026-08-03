@@ -86,20 +86,6 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     ): ?BingoRoom;
 
     /**
-     * Conteo de salas activas dentro de los filtros de rol/fecha/variante
-     * indicados.
-     *
-     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
-     */
-    public function countActiveRoomsForView(
-        int $userId,
-        array $filters,
-        bool $isPlayer,
-        bool $isCommerceCustomer = false,
-        bool $isAdmin = false
-    ): int;
-
-    /**
      * Paginar el listado admin/commerce de salas (Room/Summary) con filtros
      * reales aplicados en SQL, en vez de traer una sola página fija y filtrar
      * en el cliente.

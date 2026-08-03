@@ -181,40 +181,12 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     }
 
     /**
-     * Conteo de salas activas dentro de los mismos filtros de rol/fecha/variante
-     * — KPI "salas activas" para el path filtrado/paginado (ver
-     * findNextStartingRoom() para el porqué de la distinción con el path
-     * cliente-calculado).
-     *
-     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
-     */
-    public function countActiveRoomsForView(
-        int $userId,
-        array $filters,
-        bool $isPlayer,
-        bool $isCommerceCustomer = false,
-        bool $isAdmin = false
-    ): int {
-        $from = $filters['date_from'] ?? now()->toDateString();
-        $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
-
-        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, light: true)
-            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
-
-        if (!empty($filters['variant'])) {
-            $query->whereHas('config', fn($q) => $q->where('game_variant', $filters['variant']));
-        }
-
-        return $query->count();
-    }
-
-    /**
      * Query base compartida por getActiveRoomsForViewWithRoleFilter(),
-     * paginateRoomsForViewWithFilters(), findNextStartingRoom() y
-     * countActiveRoomsForView() — resuelve el filtrado por rol (jugador ve
-     * solo PUBLIC, commerce/customer solo from_house=N, admin sin filtro,
-     * fallback a solo las propias) y el eager loading, sin aplicar todavía el
-     * filtro de fecha/variante (cada llamador lo agrega según su propio rango).
+     * paginateRoomsForViewWithFilters() y findNextStartingRoom() — resuelve
+     * el filtrado por rol (jugador ve solo PUBLIC, commerce/customer solo
+     * from_house=N, admin sin filtro, fallback a solo las propias) y el
+     * eager loading, sin aplicar todavía el filtro de fecha/variante (cada
+     * llamador lo agrega según su propio rango).
      *
      * @param bool $light Si true, omite los with() pesados (players,
      *                     playersPreview) usados solo por el listado real de
