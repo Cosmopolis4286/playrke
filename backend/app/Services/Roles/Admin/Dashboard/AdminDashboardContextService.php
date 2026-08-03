@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Menu\SidebarMenuService;
 use App\Services\Roles\Dashboard\Concerns\BuildsRecentActivity;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
+use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -21,6 +22,7 @@ final class AdminDashboardContextService
 {
     use BuildsRecentActivity;
     use BuildsSalesTrend;
+    use BuildsWeeklyTrend;
 
     private const CACHE_TTL_SECONDS = 90;
 
@@ -72,18 +74,20 @@ final class AdminDashboardContextService
         $activeRooms     = BingoRoom::active()->count();
 
         return [
-            'totalUsers' => [
+            'totalUsers' => array_merge([
                 'label'       => 'Usuarios totales',
                 'value'       => $totalUsers,
                 'icon'        => 'fas fa-users',
                 'variant'     => 'primary',
                 'description' => "{$activeUsers} activos",
-            ],
+                'href'        => '/admin/users',
+            ], $this->buildWeeklyTrend(User::query())),
             'newUsersThisMonth' => [
                 'label'   => 'Nuevos este mes',
                 'value'   => $newUsersThisMonth,
                 'icon'    => 'fas fa-user-plus',
                 'variant' => 'success',
+                'href'    => '/admin/users',
             ],
             'cardsToday' => [
                 'label'       => 'Cartones hoy',
@@ -97,6 +101,7 @@ final class AdminDashboardContextService
                 'value'   => $activeRooms,
                 'icon'    => 'fas fa-store',
                 'variant' => 'warning',
+                'href'    => '/bingo-rooms',
             ],
         ];
     }

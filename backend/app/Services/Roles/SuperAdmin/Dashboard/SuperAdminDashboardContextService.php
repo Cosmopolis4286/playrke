@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Menu\SidebarMenuService;
 use App\Services\Roles\Dashboard\Concerns\BuildsRecentActivity;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
+use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -23,6 +24,7 @@ final class SuperAdminDashboardContextService
 {
     use BuildsRecentActivity;
     use BuildsSalesTrend;
+    use BuildsWeeklyTrend;
 
     private const CACHE_TTL_SECONDS = 90;
 
@@ -76,29 +78,33 @@ final class SuperAdminDashboardContextService
         $totalPermissions = Permission::count();
 
         return [
-            'totalUsers' => [
+            'totalUsers' => array_merge([
                 'label'       => 'Usuarios totales',
                 'value'       => $totalUsers,
                 'icon'        => 'fas fa-users',
                 'variant'     => 'primary',
-            ],
+                'href'        => '/admin/users',
+            ], $this->buildWeeklyTrend(User::excludeSystemAccounts())),
             'totalAdmins' => [
                 'label'   => 'Administradores',
                 'value'   => $totalAdmins,
                 'icon'    => 'fas fa-user-shield',
                 'variant' => 'danger',
+                'href'    => '/admins',
             ],
             'activeSystems' => [
                 'label'       => 'Sistemas activos',
                 'value'       => $activeSystems,
                 'icon'        => 'fas fa-server',
                 'variant'     => 'info',
+                'description' => "de 3 monitoreados",
             ],
             'totalPermissions' => [
                 'label'   => 'Permisos totales',
                 'value'   => $totalPermissions,
                 'icon'    => 'fas fa-key',
                 'variant' => 'warning',
+                'href'    => '/permissions',
             ],
         ];
     }
@@ -112,12 +118,12 @@ final class SuperAdminDashboardContextService
         $playersCount = User::role('player')->count();
 
         return [
-            ['label' => 'Administradores', 'value' => Admin::count(),     'icon' => 'fas fa-user-shield',   'variant' => 'danger'],
-            ['label' => 'Comercios',       'value' => Commerce::count(),  'icon' => 'fas fa-building',      'variant' => 'primary'],
-            ['label' => 'Vendedores',      'value' => Seller::count(),    'icon' => 'fas fa-user-tie',      'variant' => 'success'],
-            ['label' => 'Clientes',        'value' => Customer::count(),  'icon' => 'fas fa-handshake',     'variant' => 'info'],
-            ['label' => 'Jugadores',       'value' => $playersCount,      'icon' => 'fas fa-gamepad',       'variant' => 'secondary'],
-            ['label' => 'Tesoreros',       'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',    'variant' => 'warning'],
+            ['label' => 'Administradores', 'value' => Admin::count(),     'icon' => 'fas fa-user-shield',   'variant' => 'danger',    'href' => '/admins'],
+            ['label' => 'Comercios',       'value' => Commerce::count(),  'icon' => 'fas fa-building',      'variant' => 'primary',   'href' => '/admin/commerces'],
+            ['label' => 'Vendedores',      'value' => Seller::count(),    'icon' => 'fas fa-user-tie',      'variant' => 'success',   'href' => '/admin/sellers'],
+            ['label' => 'Clientes',        'value' => Customer::count(),  'icon' => 'fas fa-handshake',     'variant' => 'info',      'href' => '/admin/customers'],
+            ['label' => 'Jugadores',       'value' => $playersCount,      'icon' => 'fas fa-gamepad',       'variant' => 'secondary', 'href' => '/admin/players'],
+            ['label' => 'Tesoreros',       'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',    'variant' => 'warning',   'href' => '/admin/treasurers'],
         ];
     }
 
