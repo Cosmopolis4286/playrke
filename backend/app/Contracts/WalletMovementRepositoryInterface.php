@@ -39,4 +39,18 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
      * Últimos N movimientos de una billetera (sin paginar, para resumen).
      */
     public function getLatestByWallet(string $walletId, int $limit = 10): Collection;
+
+    /**
+     * Listado paginado y filtrable para el panel admin, con las relaciones
+     * (wallet.currency, user, processedBy) ya cargadas para el DTO de salida.
+     *
+     * @param array{type?: ?string, status?: ?string, search?: ?string} $filters
+     */
+    public function getForAdminPanel(array $filters, int $perPage = 20): LengthAwarePaginator;
+
+    /**
+     * Carga un único movimiento con las mismas relaciones que getForAdminPanel,
+     * para el detalle/aprobación/rechazo del panel admin.
+     */
+    public function loadForAdminPanel(WalletMovement $movement): WalletMovement;
 }

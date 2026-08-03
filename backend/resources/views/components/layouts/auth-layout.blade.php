@@ -42,6 +42,10 @@
         {{-- Ticker de ganancias en vivo (montado por Vue) --}}
         <div id="platform-win-ticker"></div>
 
+        {{-- Sincroniza en tiempo real el badge de pendientes del navbar y del
+             sidebar (montado por Vue; ver PendingMovementsBadge.vue) --}}
+        <div id="pending-movements-badge" data-initial-pending-count="{{ $navPendingCount ?? 0 }}"></div>
+
         {{-- Sidebar dinámico --}}
         <x-template.sidebar-dynamic />
 

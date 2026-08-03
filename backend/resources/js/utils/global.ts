@@ -6,6 +6,7 @@ import { initLogout } from '../helpers/user/logout'
 import { initModalFocus } from '@js/helpers/modal/modals'
 import ScrollToTop from '@js/Components/ui/ScrollToTop.vue'
 import PlatformWinTicker from '@js/Components/Common/Platform/PlatformWinTicker.vue'
+import PendingMovementsBadge from '@js/Components/Common/Wallet/PendingMovementsBadge.vue'
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes
@@ -65,6 +66,18 @@ function mountPlatformWinTicker(): void {
 }
 
 /**
+ * Monta el sincronizador en tiempo real del badge de "movimientos
+ * pendientes" (navbar + sidebar). Solo existe en el layout autenticado.
+ */
+function mountPendingMovementsBadge(): void {
+  const el = document.getElementById('pending-movements-badge')
+  if (!el) return
+
+  const initialPendingCount = Number(el.dataset.initialPendingCount ?? 0)
+  createApp(PendingMovementsBadge, { initialPendingCount }).mount(el)
+}
+
+/**
  * Inicializa la aplicación globalmente
  */
 export async function initGlobal(): Promise<void> {
@@ -83,6 +96,9 @@ export async function initGlobal(): Promise<void> {
 
     // 🔹 Ticker de ganancias en vivo
     mountPlatformWinTicker()
+
+    // 🔹 Badge de movimientos pendientes en tiempo real (navbar + sidebar)
+    mountPendingMovementsBadge()
 
     // 🔹 Mostrar mensajes flash de sesión
     if (window.Session?.message?.trim()) {

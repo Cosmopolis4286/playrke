@@ -43,4 +43,42 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
             ->limit($limit)
             ->get();
     }
+
+    private const ADMIN_PANEL_RELATIONS = [
+        'wallet:id,currency_id',
+        'wallet.currency:id,iso_code,symbol,decimal_places',
+        'user:id,first_name,last_name,email,username',
+        'processedBy:id,first_name,last_name,email',
+    ];
+
+    public function getForAdminPanel(array $filters, int $perPage = 20): LengthAwarePaginator
+    {
+        $query = $this->model
+            ->with(self::ADMIN_PANEL_RELATIONS)
+            ->orderByDesc('created_at');
+
+        if (! empty($filters['type'])) {
+            $query->where('type', strtoupper($filters['type']));
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', strtoupper($filters['status']));
+        }
+
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('user', fn ($q) => $q
+                ->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%"));
+        }
+
+        return $query->paginate($perPage);
+    }
+
+    public function loadForAdminPanel(WalletMovement $movement): WalletMovement
+    {
+        return $movement->load(self::ADMIN_PANEL_RELATIONS);
+    }
 }

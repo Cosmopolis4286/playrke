@@ -44,7 +44,14 @@
                                            class="{{ $menuService->getMenuItemClasses($subitem['route']) }}">
                                             <p>
                                                 {{ $subitem['title'] }}
-                                                @if(!empty($subitem['badge']))
+                                                @if($subitem['route'] === 'wallet-movements.index')
+                                                    {{-- Recalculado en tiempo real por PendingMovementsBadge.vue (ver global.ts) --}}
+                                                    <span
+                                                        id="sidebar-pending-badge"
+                                                        class="badge badge-danger right"
+                                                        style="{{ empty($subitem['badge']) ? 'display:none' : '' }}"
+                                                    >{{ $subitem['badge'] ?? 0 }}</span>
+                                                @elseif(!empty($subitem['badge']))
                                                     <span class="badge badge-danger right">{{ $subitem['badge'] }}</span>
                                                 @endif
                                             </p>

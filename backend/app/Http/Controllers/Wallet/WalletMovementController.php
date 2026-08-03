@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Wallet;
 
+use App\Contracts\WalletMovementRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Models\MovementType;
 use App\Models\WalletMovement;
+use App\Services\Menu\SidebarMenuService;
 use App\Services\WalletService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,31 +16,27 @@ use Inertia\Response;
 
 final class WalletMovementController extends Controller
 {
-    public function __construct(private readonly WalletService $walletService) {}
+    private const DEFAULT_PER_PAGE = 20;
 
-    public function index(): Response
+    public function __construct(
+        private readonly WalletService $walletService,
+        private readonly WalletMovementRepositoryInterface $movementRepository,
+        private readonly SidebarMenuService $sidebarMenuService,
+    ) {}
+
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', WalletMovement::class);
 
-        $paginator = WalletMovement::with([
-            'wallet:id,currency_id',
-            'wallet.currency:id,iso_code,symbol,decimal_places',
-            'user:id,first_name,last_name,email,username',
-            'processedBy:id,first_name,last_name,email',
-        ])
-        ->orderByDesc('created_at')
-        ->paginate(20);
+        $perPage   = (int) $request->query('per_page', self::DEFAULT_PER_PAGE);
+        $paginator = $this->movementRepository->getForAdminPanel([], $perPage);
 
         return Inertia::render('Wallet/Movements/Index', [
-            'title'         => 'Movimientos de Billetera',
-            'movements'     => collect($paginator->items())->map(fn(WalletMovement $m) => $this->mapMovement($m)),
-            'movementTypes' => MovementType::orderBy('label')->get(['code', 'label', 'description', 'icon', 'color', 'is_credit', 'requires_approval']),
-            'meta'          => [
-                'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
-            ],
+            'title'               => 'Movimientos de Billetera',
+            'movements'           => collect($paginator->items())->map(fn (WalletMovement $m) => $this->mapMovement($m)),
+            'movementTypes'       => MovementType::orderBy('label')->get(['code', 'label', 'description', 'icon', 'color', 'is_credit', 'requires_approval']),
+            'meta'                => $this->mapMeta($paginator),
+            'initialPendingCount' => $this->sidebarMenuService->pendingWalletMovementsCount(),
         ]);
     }
 
@@ -50,39 +49,17 @@ final class WalletMovementController extends Controller
         $this->authorize('viewAny', WalletMovement::class);
 
         return $this->handleServiceJson(function () use ($request) {
-            $perPage = (int) $request->query('per_page', 20);
-            $type    = $request->query('type');
-            $status  = $request->query('status');
-            $search  = $request->query('search');
+            $perPage = (int) $request->query('per_page', self::DEFAULT_PER_PAGE);
 
-            $query = WalletMovement::with([
-                'wallet:id,currency_id',
-                'wallet.currency:id,iso_code,symbol,decimal_places',
-                'user:id,first_name,last_name,email,username',
-                'processedBy:id,first_name,last_name,email',
-            ])
-            ->orderByDesc('created_at');
-
-            if ($type)   $query->where('type', strtoupper($type));
-            if ($status) $query->where('status', strtoupper($status));
-            if ($search) {
-                $query->whereHas('user', fn($q) =>
-                    $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                );
-            }
-
-            $paginator = $query->paginate($perPage);
+            $paginator = $this->movementRepository->getForAdminPanel([
+                'type'   => $request->query('type'),
+                'status' => $request->query('status'),
+                'search' => $request->query('search'),
+            ], $perPage);
 
             return [
-                'data' => collect($paginator->items())->map(fn(WalletMovement $m) => $this->mapMovement($m)),
-                'meta' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page'    => $paginator->lastPage(),
-                    'per_page'     => $paginator->perPage(),
-                    'total'        => $paginator->total(),
-                ],
+                'data' => collect($paginator->items())->map(fn (WalletMovement $m) => $this->mapMovement($m)),
+                'meta' => $this->mapMeta($paginator),
             ];
         });
     }
@@ -91,14 +68,9 @@ final class WalletMovementController extends Controller
     {
         $this->authorize('view', $movement);
 
-        $movement->load([
-            'wallet:id,currency_id',
-            'wallet.currency:id,iso_code,symbol,decimal_places',
-            'user:id,first_name,last_name,email,username',
-            'processedBy:id,first_name,last_name,email',
-        ]);
+        $this->movementRepository->loadForAdminPanel($movement);
 
-        return $this->handleServiceJson(fn() => ['data' => $this->mapMovement($movement)]);
+        return $this->handleServiceJson(fn () => ['data' => $this->mapMovement($movement)]);
     }
 
     /**
@@ -114,10 +86,7 @@ final class WalletMovementController extends Controller
         return $this->handleServiceJson(function () use ($request, $movement) {
             $adminNotes = $request->input('admin_notes');
 
-            $type = \App\Models\MovementType::catalog()->get($movement->type);
-            if (! $type || ! $type->requires_approval) {
-                throw new \DomainException("El tipo {$movement->type} no requiere aprobación.");
-            }
+            $this->assertRequiresApproval($movement);
 
             $updated = match ($movement->type) {
                 WalletMovement::TYPE_DEPOSIT    => $this->walletService->approveDeposit($movement, $adminNotes),
@@ -125,12 +94,7 @@ final class WalletMovementController extends Controller
                 default => $this->walletService->approveGeneric($movement, $adminNotes),
             };
 
-            $updated->load([
-                'wallet:id,currency_id',
-                'wallet.currency:id,iso_code,symbol,decimal_places',
-                'user:id,first_name,last_name,email,username',
-                'processedBy:id,first_name,last_name,email',
-            ]);
+            $this->movementRepository->loadForAdminPanel($updated);
 
             return ['data' => $this->mapMovement($updated)];
         });
@@ -150,10 +114,7 @@ final class WalletMovementController extends Controller
         return $this->handleServiceJson(function () use ($request, $movement) {
             $adminNotes = $request->input('admin_notes');
 
-            $type = \App\Models\MovementType::catalog()->get($movement->type);
-            if (! $type || ! $type->requires_approval) {
-                throw new \DomainException("El tipo {$movement->type} no requiere aprobación.");
-            }
+            $this->assertRequiresApproval($movement);
 
             $updated = match ($movement->type) {
                 WalletMovement::TYPE_DEPOSIT    => $this->walletService->rejectDeposit($movement, $adminNotes),
@@ -161,18 +122,32 @@ final class WalletMovementController extends Controller
                 default => $this->walletService->rejectGeneric($movement, $adminNotes),
             };
 
-            $updated->load([
-                'wallet:id,currency_id',
-                'wallet.currency:id,iso_code,symbol,decimal_places',
-                'user:id,first_name,last_name,email,username',
-                'processedBy:id,first_name,last_name,email',
-            ]);
+            $this->movementRepository->loadForAdminPanel($updated);
 
             return ['data' => $this->mapMovement($updated)];
         });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private function assertRequiresApproval(WalletMovement $movement): void
+    {
+        $type = MovementType::catalog()->get($movement->type);
+        if (! $type || ! $type->requires_approval) {
+            throw new \DomainException("El tipo {$movement->type} no requiere aprobación.");
+        }
+    }
+
+    /** @return array{current_page: int, last_page: int, per_page: int, total: int} */
+    private function mapMeta(LengthAwarePaginator $paginator): array
+    {
+        return [
+            'current_page' => $paginator->currentPage(),
+            'last_page'    => $paginator->lastPage(),
+            'per_page'     => $paginator->perPage(),
+            'total'        => $paginator->total(),
+        ];
+    }
 
     private function mapMovement(WalletMovement $m): array
     {
