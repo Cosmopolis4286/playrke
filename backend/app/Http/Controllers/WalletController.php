@@ -26,6 +26,13 @@ class WalletController extends Controller
 
     /**
      * Página de billetera del jugador.
+     *
+     * SuperAdmin no tiene wallet de jugador propia (excluido deliberadamente
+     * de la creación de wallets, ver TestUserSeeder) — en su lugar, esta misma
+     * ruta muestra la Billetera de Plataforma (caja de Playrke), reutilizando
+     * el panel ya existente en el dashboard (PlatformWalletPanel.vue +
+     * PlatformCashModal.vue) en vez del flujo de depósito/retiro del jugador,
+     * que no aplica aquí (sin comprobante, sin aprobación, sin KYC).
      */
     public function index(): Response
     {
@@ -37,6 +44,10 @@ class WalletController extends Controller
             $rolePrefix = $this->roleUserService->getActiveUserRolePrefix((int) Auth::id());
         } catch (\DomainException) {
             $rolePrefix = null;
+        }
+
+        if ($rolePrefix === 'superadmin') {
+            return Inertia::render('Wallet/PlatformIndex');
         }
 
         return Inertia::render('Wallet/Index', [
