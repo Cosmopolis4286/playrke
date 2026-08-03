@@ -617,6 +617,11 @@ final class BingoRoomContextService
             imageBingoRules: '',
         );
 
+        // El total de salas activas para el KPI es el mismo total ya resuelto
+        // por el paginator (paginate() ya ejecuta su propio COUNT(*) internamente)
+        // — evita una segunda query de conteo redundante en cada refetch.
+        $nextRoom = $this->bingoRooms->findNextStartingRoom($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin);
+
         return [
             'rooms' => $dto->toView()['rooms'],
             'pagination' => [
@@ -627,28 +632,11 @@ final class BingoRoomContextService
                 'from' => $paginator->firstItem(),
                 'to' => $paginator->lastItem(),
             ],
-            'kpis' => $this->computeGameRoomsKpis($userId, $isPlayer, $isCommerceCustomer, $isAdmin, $filters),
-        ];
-    }
-
-    /**
-     * KPIs del listado de salas de juego para el path filtrado/paginado —
-     * en la carga inicial (Inertia, sin filtro) el frontend los calcula en
-     * el cliente desde el listado ya completo, sin necesidad de estas
-     * queries adicionales.
-     *
-     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
-     * @return array{next_room_unix_date: ?int, next_room_id: ?string, total_active_rooms: int}
-     */
-    private function computeGameRoomsKpis(int $userId, bool $isPlayer, bool $isCommerceCustomer, bool $isAdmin, array $filters): array
-    {
-        $nextRoom = $this->bingoRooms->findNextStartingRoom($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin);
-        $totalActive = $this->bingoRooms->countActiveRoomsForView($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin);
-
-        return [
-            'next_room_unix_date' => $nextRoom?->config?->unix_date,
-            'next_room_id' => $nextRoom?->getRouteKey(),
-            'total_active_rooms' => $totalActive,
+            'kpis' => [
+                'next_room_unix_date' => $nextRoom?->config?->unix_date,
+                'next_room_id' => $nextRoom?->getRouteKey(),
+                'total_active_rooms' => $paginator->total(),
+            ],
         ];
     }
 
