@@ -511,34 +511,7 @@ final class BingoRoomContextService
 
         // Commerce/seller/admin ven en USD (manejan múltiples monedas).
         // Solo players usan la moneda de su país (moneda única fija).
-        $exchangeRate = 1.0;
-        $currencySym = 'USD';
-
-        if ($isPlayer) {
-            $currentUserId = $this->userContext->resolveUserId();
-            $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
-
-            if ($countryId) {
-                $playerCurrency = $this->currencyRepository
-                    ->getByCountry($countryId, ['id', 'iso_code', 'symbol'])
-                    ->first();
-
-                if ($playerCurrency) {
-                    $currencySym = $playerCurrency->symbol;
-                    try {
-                        $exchangeRate = $this->currencyExchangeRate->getActiveRate($playerCurrency->id);
-                    } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException $e) {
-                        // Vista de solo lectura (lobby): no bloquear la carga de la sala por
-                        // falta de tasa — se deja constancia en logs para que se corrija la
-                        // tasa antes de que el jugador intente comprar (ahí sí se bloquea).
-                        \Illuminate\Support\Facades\Log::warning('[BingoRoomContextService] Sin tasa activa al armar contexto del lobby', [
-                            'currency_id' => $playerCurrency->id,
-                            'error'       => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
-        }
+        ['rate' => $exchangeRate, 'sym' => $currencySym] = $this->resolvePlayerCurrency($userId, $isPlayer);
 
         return new BingoGameRoomsDTO(
             rooms: $rooms,
@@ -550,6 +523,133 @@ final class BingoRoomContextService
             bingoRules: $this->bingoConfigContext->getBingoRules($userId),
             imageBingoRules: $this->bingoConfigContext->getImageBingoRules($userId),
         );
+    }
+
+    /**
+     * Resuelve moneda/tasa de cambio para el contexto de salas de juego —
+     * extraído de viewGameRooms() para ser reutilizado también por
+     * gameRoomsDataForRefetch() (endpoint de filtros). Comercio/seller/admin
+     * siempre ven en USD (manejan múltiples monedas); solo players usan la
+     * moneda fija de su país.
+     *
+     * @return array{rate: float, sym: string}
+     */
+    private function resolvePlayerCurrency(int $userId, bool $isPlayer): array
+    {
+        $exchangeRate = 1.0;
+        $currencySym = 'USD';
+
+        if (!$isPlayer) {
+            return ['rate' => $exchangeRate, 'sym' => $currencySym];
+        }
+
+        $currentUserId = $this->userContext->resolveUserId();
+        $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
+
+        if (!$countryId) {
+            return ['rate' => $exchangeRate, 'sym' => $currencySym];
+        }
+
+        $playerCurrency = $this->currencyRepository
+            ->getByCountry($countryId, ['id', 'iso_code', 'symbol'])
+            ->first();
+
+        if (!$playerCurrency) {
+            return ['rate' => $exchangeRate, 'sym' => $currencySym];
+        }
+
+        $currencySym = $playerCurrency->symbol;
+        try {
+            $exchangeRate = $this->currencyExchangeRate->getActiveRate($playerCurrency->id);
+        } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException $e) {
+            // Vista de solo lectura (lobby/listado): no bloquear la carga de la sala por
+            // falta de tasa — se deja constancia en logs para que se corrija la
+            // tasa antes de que el jugador intente comprar (ahí sí se bloquea).
+            \Illuminate\Support\Facades\Log::warning('[BingoRoomContextService] Sin tasa activa al armar contexto del lobby', [
+                'currency_id' => $playerCurrency->id,
+                'error'       => $e->getMessage(),
+            ]);
+        }
+
+        return ['rate' => $exchangeRate, 'sym' => $currencySym];
+    }
+
+    /**
+     * Refetch paginado/filtrado del listado de salas de juego (game-rooms),
+     * usado por el botón de filtros (fecha/variante) del listado de jugador —
+     * mismo patrón que summaryDataForRefetch() (listado admin/commerce), pero
+     * para BingoGameRoomsDTO en vez de BingoRoomSummaryDTO.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     * @return array{rooms: array, pagination: array, kpis: array}
+     */
+    public function gameRoomsDataForRefetch(int $userId, int $page, int $perPage, array $filters): array
+    {
+        $isPlayer           = $this->userContext->userHasRole('player');
+        $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
+        $isAdmin            = $this->userContext->userHasRole('admin') || $this->userContext->userHasRole('superadmin');
+
+        $paginator = $this->bingoRooms->paginateRoomsForViewWithFilters(
+            $userId,
+            $filters,
+            $page,
+            $perPage,
+            $isPlayer,
+            $isCommerceCustomer,
+            $isAdmin
+        );
+
+        ['rate' => $exchangeRate, 'sym' => $currencySym] = $this->resolvePlayerCurrency($userId, $isPlayer);
+
+        $roomIds = collect($paginator->items())->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $cardPrices = $isPlayer && !empty($roomIds)
+            ? $this->generateService->getPlayerCardPricesForRooms($roomIds, $userId)
+            : null;
+
+        $dto = new BingoGameRoomsDTO(
+            rooms: collect($paginator->items()),
+            exchangeRate: $exchangeRate,
+            currencySym: $currencySym,
+            userToken: null,
+            dateTimeRooms: null,
+            cardPrices: $cardPrices,
+            bingoRules: '',
+            imageBingoRules: '',
+        );
+
+        return [
+            'rooms' => $dto->toView()['rooms'],
+            'pagination' => [
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+            'kpis' => $this->computeGameRoomsKpis($userId, $isPlayer, $isCommerceCustomer, $isAdmin, $filters),
+        ];
+    }
+
+    /**
+     * KPIs del listado de salas de juego para el path filtrado/paginado —
+     * en la carga inicial (Inertia, sin filtro) el frontend los calcula en
+     * el cliente desde el listado ya completo, sin necesidad de estas
+     * queries adicionales.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     * @return array{next_room_unix_date: ?int, next_room_id: ?string, total_active_rooms: int}
+     */
+    private function computeGameRoomsKpis(int $userId, bool $isPlayer, bool $isCommerceCustomer, bool $isAdmin, array $filters): array
+    {
+        $nextRoom = $this->bingoRooms->findNextStartingRoom($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin);
+        $totalActive = $this->bingoRooms->countActiveRoomsForView($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin);
+
+        return [
+            'next_room_unix_date' => $nextRoom?->config?->unix_date,
+            'next_room_id' => $nextRoom?->getRouteKey(),
+            'total_active_rooms' => $totalActive,
+        ];
     }
 
     /**
