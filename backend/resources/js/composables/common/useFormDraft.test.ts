@@ -3,6 +3,7 @@ import { defineComponent, h, nextTick, ref } from 'vue'
 import type { Ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { useFormDraft } from './useFormDraft'
+import type { UseFormDraftOptions } from './useFormDraft'
 
 interface TestForm {
     name: string
@@ -13,7 +14,7 @@ const STORAGE_KEY = 'test-draft-key'
 
 /** Monta un componente host para que onMounted/onUnmounted del composable se disparen,
  *  y expone tanto la API del composable como el ref del form para mutarlo en los tests. */
-function mountDraft(initial: TestForm, options?: Parameters<typeof useFormDraft>[2]) {
+function mountDraft(initial: TestForm, options?: UseFormDraftOptions<TestForm>) {
     let api!: ReturnType<typeof useFormDraft<TestForm>>
     let formRef!: Ref<TestForm>
     const wrapper = mount(
@@ -219,5 +220,91 @@ describe('useFormDraft', () => {
         expect(api.hasDraft.value).toBe(false)
         expect(api.peekDraft()).toBeNull()
         wrapper.unmount()
+    })
+
+    it('descarta un draft guardado con una versión de esquema distinta a la configurada', async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            v: 1,
+            savedAt: new Date().toISOString(),
+            data: { name: 'Shape viejo', count: 1 }
+        }))
+
+        const { api, wrapper } = mountDraft({ name: '', count: 0 }, { version: 2 })
+        await nextTick()
+
+        expect(api.hasDraft.value).toBe(false)
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+        wrapper.unmount()
+    })
+
+    it('guarda y detecta correctamente usando una versión de esquema no-default', async () => {
+        vi.useFakeTimers()
+        const { form, api, wrapper } = mountDraft({ name: '', count: 0 }, { version: 3, debounceMs: 500 })
+        await nextTick()
+
+        form.value = { name: 'Con version 3', count: 9 }
+        await nextTick()
+        await vi.advanceTimersByTimeAsync(500)
+
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+        expect(saved.v).toBe(3)
+        wrapper.unmount()
+        vi.useRealTimers()
+    })
+
+    it('sanitize repara el draft leído antes de exponerlo (peekDraft y restoreDraft)', async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            v: 1,
+            savedAt: new Date().toISOString(),
+            data: { name: 'Con referencia muerta', count: -5 }
+        }))
+
+        const sanitize = (data: TestForm): TestForm => ({ ...data, count: Math.max(0, data.count) })
+        const { api, form, wrapper } = mountDraft({ name: '', count: 0 }, { sanitize })
+        await nextTick()
+
+        expect(api.peekDraft()).toEqual({ name: 'Con referencia muerta', count: 0 })
+
+        api.restoreDraft()
+        expect(form.value.count).toBe(0)
+        wrapper.unmount()
+    })
+
+    it('flush guarda inmediatamente el último valor pendiente sin esperar el debounce', async () => {
+        vi.useFakeTimers()
+        const { form, api, wrapper } = mountDraft({ name: '', count: 0 }, { debounceMs: 5000 })
+        await nextTick()
+
+        form.value = { name: 'Cambio reciente sin flush', count: 1 }
+        await nextTick()
+
+        // Antes del debounce: nada persistido todavía
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+        api.flush()
+
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+        expect(saved.data).toEqual({ name: 'Cambio reciente sin flush', count: 1 })
+        expect(api.draftStatus.value).toBe('saved')
+
+        wrapper.unmount()
+        vi.useRealTimers()
+    })
+
+    it('al desmontar (ej. modal cerrado) hace flush automático del cambio pendiente', async () => {
+        vi.useFakeTimers()
+        const { form, wrapper } = mountDraft({ name: '', count: 0 }, { debounceMs: 5000 })
+        await nextTick()
+
+        form.value = { name: 'Cerrado antes del debounce', count: 2 }
+        await nextTick()
+
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+        wrapper.unmount()
+
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+        expect(saved.data).toEqual({ name: 'Cerrado antes del debounce', count: 2 })
+        vi.useRealTimers()
     })
 })

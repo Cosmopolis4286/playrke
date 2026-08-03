@@ -100,16 +100,12 @@
    * abierto para no perder el trabajo si se cierra por accidente.
    * ========================================================================== */
 
-  const draftStorageKey = computed(() => {
-    const scope = props.automaticRoom ? 'automatic' : 'default'
-    return `bingo-room-draft:${scope}:${props.editingRoomId ?? 'create'}`
+  const { hasDraft, draftSavedAt, draftDateExpired, draftStatus, isDraftStale, restoreDraft, discardDraft } = useBingoRoomDraft(form, {
+    scope: props.automaticRoom ? 'automatic' : 'default',
+    id: props.editingRoomId ?? 'create',
+    automaticRoom: props.automaticRoom ?? false,
+    validBingoPatternIds: props.bingoPatternOptions.map(o => String(o.value)),
   })
-
-  const { hasDraft, draftSavedAt, draftDateExpired, draftStatus, isDraftStale, restoreDraft, discardDraft } = useBingoRoomDraft(
-    form,
-    draftStorageKey.value,
-    props.automaticRoom ?? false
-  )
 
   const draftSavedAtLabel = computed(() => {
     if (!draftSavedAt.value) return ''
