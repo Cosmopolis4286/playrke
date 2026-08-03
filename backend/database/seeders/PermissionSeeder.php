@@ -149,6 +149,13 @@ class PermissionSeeder extends Seeder
             // Opciones independientes del menú
             ['name' => 'directory.view', 'guard_name' => 'web', 'description' => 'Ver directorio de comercios'],
             ['name' => 'directory.search', 'guard_name' => 'web', 'description' => 'Buscar en directorio'],
+
+            // Jugadores externos (compradores sin cuenta en la plataforma, vía link de vendedor)
+            ['name' => 'external-players.view', 'guard_name' => 'web', 'description' => 'Ver jugadores externos'],
+            ['name' => 'external-players.create', 'guard_name' => 'web', 'description' => 'Generar links de jugador externo'],
+            ['name' => 'external-players.manage', 'guard_name' => 'web', 'description' => 'Gestionar jugadores externos'],
+            ['name' => 'external-players.block', 'guard_name' => 'web', 'description' => 'Bloquear/desbloquear jugadores externos'],
+            ['name' => 'external-players.export', 'guard_name' => 'web', 'description' => 'Exportar jugadores externos'],
             
             ['name' => 'prizes.view', 'guard_name' => 'web', 'description' => 'Ver premios'],
             ['name' => 'prizes.create', 'guard_name' => 'web', 'description' => 'Crear premios'],

@@ -8,7 +8,7 @@ export const ROLE_HIERARCHY = [
   'superadmin', 'admin',
   'commerce', 'subsidiary', 'seller', 'treasurer',
   'customer', 'player',
-  'provider',
+  'provider', 'external_player',
 ]
 
 export function sortByRoleHierarchy<T extends { name: string }>(roles: T[]): T[] {
@@ -27,6 +27,7 @@ export function formatRoleName(name: string): string {
     superadmin: 'SuperAdmin', admin: 'Admin', commerce: 'Comercio',
     subsidiary: 'Sucursal', seller: 'Vendedor', provider: 'Proveedor',
     customer: 'Cliente', treasurer: 'Tesorero', player: 'Jugador',
+    external_player: 'Jugador Externo',
   }
   return map[name.toLowerCase()] ?? name
 }
@@ -36,6 +37,7 @@ export function getRoleBadgeClass(name: string): string {
     superadmin: 'badge-purple', admin: 'badge-blue', commerce: 'badge-green',
     subsidiary: 'badge-teal', seller: 'badge-yellow', provider: 'badge-orange',
     customer: 'badge-pink', treasurer: 'badge-info', player: 'badge-secondary',
+    external_player: 'badge-orange',
   }
   return map[name.toLowerCase()] ?? 'badge-secondary'
 }

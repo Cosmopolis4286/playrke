@@ -29,6 +29,11 @@ class RoleSeeder extends Seeder
             ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema (rol reservado, sin CRUD propio aún)', 'status' => true, 'type' => 'api'],      // API guard
             ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente que usa nuestos servicios',               'status' => true, 'type' => 'web'],      // Cambiado a 'web' para acceso al menú
             ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero', 'status' => true, 'type' => 'web'],
+            // 'external_player' es un rol LÓGICO (sin User/login): gobierna permisos
+            // y juegos habilitados para App\Models\Roles\Player\External\ExternalPlayer
+            // (comprador de cartones sin cuenta, captado por un vendedor vía link).
+            // No aparece en /admin/users ni en TestUserSeeder/DemoRoleDataSeeder.
+            ['name' => 'Jugador Externo', 'prefix' => 'external_player', 'description' => 'Jugador sin cuenta en la plataforma (captado vía link de vendedor)', 'status' => true, 'type' => 'web'],
         ];
 
         // Añadimos ID único (Snowflake) y timestamps

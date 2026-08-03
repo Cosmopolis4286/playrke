@@ -38,11 +38,6 @@ Route::middleware('auth')->group(function () {
         'admin',
         AdminController::class,
         [
-            'dashboard' => [
-                'method' => 'get',
-                'uri'    => '',
-                'action' => 'dashboard',
-            ],
             'customers' => [
                 'method' => 'get',
                 'uri'    => 'customers',
@@ -158,17 +153,22 @@ Route::middleware('auth')->group(function () {
 
     /**
      * =========================================================
-     * JUGADORES EXTERNOS (Admin y SuperAdmin)
+     * JUGADORES EXTERNOS (permisos external-players.*)
      * =========================================================
      * Compradores sin cuenta en la plataforma captados por un vendedor —
      * no exclusivo de Bingo, external_players.game_id admite cualquier
      * juego del catálogo (ver App\Traits\Users\PlayerLinkTrait).
+     *
+     * Middleware por permiso (no por rol fijo) para que admin/commerce/seller
+     * puedan acceder según lo que RolePermissionSeeder les otorgue; superadmin
+     * pasa siempre vía RoleAuthorizationService. La autorización fina por
+     * acción vive en ExternalPlayerPolicy.
      */
-    role_protected_routes(['role:admin,superadmin'], 'admin/external-players', ExternalPlayerAdminController::class, [
+    role_protected_routes(['multiPermission:external-players.view'], 'admin/external-players', ExternalPlayerAdminController::class, [
         'index'       => ['method' => 'get', 'uri' => '',              'action' => 'index'],
         'fetchList'   => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
-        'export'      => ['method' => 'get', 'uri' => 'export',       'action' => 'export'],
-        'toggleBlock' => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock'],
+        'export'      => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
+        'toggleBlock' => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
     ], 'externalPlayer');
 
     /**

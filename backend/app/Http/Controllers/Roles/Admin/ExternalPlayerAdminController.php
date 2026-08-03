@@ -53,7 +53,7 @@ final class ExternalPlayerAdminController extends Controller
      */
     public function export(ExternalPlayerSearchRequest $request): StreamedResponse
     {
-        $this->authorize('viewAny', ExternalPlayer::class);
+        $this->authorize('export', ExternalPlayer::class);
 
         $filters = $request->filters();
 
@@ -85,7 +85,7 @@ final class ExternalPlayerAdminController extends Controller
     public function toggleBlock(string $externalPlayer): JsonResponse
     {
         $player = ExternalPlayer::findOrFail($externalPlayer);
-        $this->authorize('update', $player);
+        $this->authorize('toggleBlock', $player);
 
         $updated = $this->service->toggleBlock($externalPlayer);
 

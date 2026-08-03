@@ -537,6 +537,7 @@ class SidebarMenuService
                 'provider' => 'Proveedor',
                 'customer' => 'Cliente',
                 'player' => 'Jugador',
+                'external_player' => 'Jugador Externo',
                 default => ucfirst($role),
             };
         });

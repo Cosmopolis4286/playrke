@@ -20,6 +20,7 @@ class RolePermissionSeeder extends Seeder
         $provider = Role::where('name', 'provider')->where('guard_name', 'api')->first();
         $customer = Role::where('name', 'customer')->where('guard_name', 'web')->first();
         $player = Role::where('name', 'player')->where('guard_name', 'web')->first();
+        $externalPlayer = Role::where('name', 'external_player')->where('guard_name', 'web')->first();
 
         // SuperAdmin: Todos los permisos (solo web guard)
         if ($superadmin) {
@@ -53,6 +54,7 @@ class RolePermissionSeeder extends Seeder
                 'wallet.movements.view', 'wallet.movements.manage', // Gestión de movimientos de billetera
                 'movement-types.view', 'movement-types.manage', // Catálogo de tipos de movimiento
                 'wallet-limits.view', 'wallet-limits.manage', // Límites de depósito/retiro de billetera
+                'external-players.view', 'external-players.create', 'external-players.manage', 'external-players.block', 'external-players.export',
                 // Trivia - Gestión completa (admin gestiona salas/preguntas pero NO juega como player)
                 'games.trivia.view',
                 'games.trivia.rooms.view', 'games.trivia.rooms.create', 'games.trivia.rooms.edit', 'games.trivia.rooms.delete', 'games.trivia.rooms.manage',
@@ -75,6 +77,7 @@ class RolePermissionSeeder extends Seeder
                 // Opciones independientes
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit',
+                'external-players.view', 'external-players.create', 'external-players.manage', 'external-players.block',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
                 'games.trivia.view',
                 'games.trivia.games.view',
@@ -95,6 +98,7 @@ class RolePermissionSeeder extends Seeder
                 // Opciones independientes
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit',
+                'external-players.view', 'external-players.create', 'external-players.manage', 'external-players.block',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
                 'games.trivia.view',
                 'games.trivia.games.view',
@@ -109,6 +113,7 @@ class RolePermissionSeeder extends Seeder
             $sellerPermissions = [
                 'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
+                'external-players.view', 'external-players.create',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
                 'games.trivia.view',
                 'games.trivia.games.view',
@@ -178,6 +183,19 @@ class RolePermissionSeeder extends Seeder
             ];
             $player->givePermissionTo($playerPermissions);
             $this->command->info('✅ Permisos asignados a Player');
+        }
+
+        // External Player: rol LÓGICO sin User/login (ver RoleSeeder). Solo gobierna
+        // qué juegos están habilitados para App\Models\Roles\Player\External\ExternalPlayer;
+        // no tiene wallet propia (juega con saldo gestionado por el vendedor que lo captó).
+        if ($externalPlayer) {
+            $externalPlayerPermissions = [
+                'games.bingo', // Acceso a juegos de bingo
+                'games.trivia.view',
+                'games.trivia.play',
+            ];
+            $externalPlayer->givePermissionTo($externalPlayerPermissions);
+            $this->command->info('✅ Permisos asignados a External Player');
         }
 
         $this->command->info('✅ Asignación de permisos a roles completada');
