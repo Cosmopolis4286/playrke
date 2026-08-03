@@ -41,7 +41,8 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
      * Para otros roles, devuelve todas las salas activas.
      *
      * @param int    $userId ID del usuario creador
-     * @param string $today  Fecha en formato YYYY-MM-DD
+     * @param string $today  Fecha de "hoy" ya resuelta en el timezone del usuario que
+     *                       consulta (no el timezone del servidor)
      * @param bool   $isPlayer Si el usuario tiene rol 'player'
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>

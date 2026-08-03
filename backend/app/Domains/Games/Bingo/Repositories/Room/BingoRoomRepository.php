@@ -68,18 +68,22 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      * Para otros roles, devuelve todas las salas activas.
      *
      * @param int    $userId ID del usuario creador
-     * @param string $today  Fecha en formato YYYY-MM-DD
+     * @param string $today  Fecha de "hoy" ya resuelta en el timezone del usuario que
+     *                       consulta (ver BingoRoomContextService::resolveUserTimezone())
+     *                       — no timezone del servidor, para no comparar la columna `date`
+     *                       (guardada en timezone del creador de cada sala) contra un
+     *                       "hoy" desalineado.
      * @param bool   $isPlayer Si el usuario tiene rol 'player'
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection
     {
-        // Ventana ±1 día para cubrir diferencias de timezone entre servidor (UTC)
-        // y zonas de los creadores (ej. America/Caracas UTC-4).
-        // El frontend filtra visualmente por countdown expirado.
+        // -1 día de margen (diferencias residuales entre el tz del usuario que consulta
+        // y el tz de cada creador individual) + 7 días hacia adelante — antes era ±1 día,
+        // demasiado angosto para salas programadas con más de 1 día de anticipación.
         $from = Carbon::parse($today)->subDay()->toDateString();
-        $to   = Carbon::parse($today)->addDay()->toDateString();
+        $to   = Carbon::parse($today)->addDays(7)->toDateString();
 
         $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
             ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: true));
@@ -116,6 +120,12 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         // cuando el usuario NO pidió un rango de fecha explícito — no tiene
         // sentido que aparezcan al filtrar "solo el 10 de agosto", ya que no
         // tienen una fecha con la que comparar.
+        //
+        // El now() de aquí es solo un fallback defensivo: en el flujo real,
+        // BingoRoomContextService::gameRoomsDataForRefetch() ya completa
+        // $filters['date_from'] con el "hoy" resuelto en el timezone del
+        // usuario (no el del servidor) antes de llamar a este método — este
+        // repositorio no conoce usuarios/timezones y no debe resolverlos.
         $hasExplicitDateFilter = !empty($filters['date_from']) || !empty($filters['date_to']);
         $from = $filters['date_from'] ?? now()->toDateString();
         $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
@@ -167,6 +177,8 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         bool $isCommerceCustomer = false,
         bool $isAdmin = false
     ): ?BingoRoom {
+        // now() aquí es fallback defensivo — ver comentario en
+        // paginateRoomsForViewWithFilters(), mismo criterio.
         $hasExplicitDateFilter = !empty($filters['date_from']) || !empty($filters['date_to']);
         $from = $filters['date_from'] ?? now()->toDateString();
         $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
@@ -252,7 +264,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         $query = $this->model
             ->with($with)
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id'])
+            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id', 'created_at'])
             ->withCount('rounds');
 
         if ($isPlayer) {

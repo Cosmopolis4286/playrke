@@ -32,6 +32,7 @@ final class BingoRoomContextService
         private readonly \App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService $generateService,
         private readonly \App\Domains\Games\Bingo\Services\Config\BingoConfigContextService $bingoConfigContext,
         private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,
+        private readonly \App\Services\Games\UserTimezoneService $userTimezone,
     ) {}
 
     /**
@@ -481,7 +482,12 @@ final class BingoRoomContextService
      */
     private function viewGameRooms(int $userId): BingoGameRoomsDTO
     {
-        $today = now()->toDateString();
+        // "Hoy" en el timezone del propio usuario que consulta (jugador/admin/commerce),
+        // no el timezone del servidor — las columnas `date` de cada sala están guardadas
+        // en el timezone de SU creador, así que comparar contra un "hoy" de servidor
+        // (normalmente UTC) desalinea la ventana cuando el usuario y el servidor no
+        // comparten timezone. Ver App\Services\Games\UserTimezoneService.
+        $today = now($this->userTimezone->resolve($userId))->toDateString();
 
         // Verificar roles del usuario
         $isPlayer          = $this->userContext->userHasRole('player');
@@ -589,6 +595,13 @@ final class BingoRoomContextService
         $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
         $isAdmin            = $this->userContext->userHasRole('admin') || $this->userContext->userHasRole('superadmin');
 
+        // Sin filtro de fecha explícito del usuario: completar el default con "hoy" en
+        // SU timezone (no el del servidor) antes de llegar al repositorio — mismo
+        // criterio que viewGameRooms(), ver comentario ahí.
+        if (empty($filters['date_from']) && empty($filters['date_to'])) {
+            $filters['date_from'] = now($this->userTimezone->resolve($userId))->toDateString();
+        }
+
         $paginator = $this->bingoRooms->paginateRoomsForViewWithFilters(
             $userId,
             $filters,
@@ -650,7 +663,8 @@ final class BingoRoomContextService
     {
         try {
             $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
-            $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true, $isCommerceCustomer);
+            $today = now($this->userTimezone->resolve($userId))->toDateString();
+            $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, true, $isCommerceCustomer);
 
             if ($rooms->isEmpty()) {
                 return null;
