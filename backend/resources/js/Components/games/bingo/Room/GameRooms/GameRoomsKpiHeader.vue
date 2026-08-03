@@ -45,8 +45,8 @@ const nextRoomLabel = computed(() => {
 </script>
 
 <template>
-  <div class="grk-row" :class="{ 'grk-row--loading': loading }">
-    <span class="grk-chip">
+  <div class="grk-row inline-flex items-center gap-2.5" :class="{ 'grk-row--loading': loading }">
+    <span class="grk-chip inline-flex items-center gap-1.5 whitespace-nowrap">
       <i class="fas fa-hourglass-half grk-chip__icon" />
       <b class="grk-chip__value">{{ nextRoomLabel }}</b>
       <span class="grk-chip__label">próxima</span>
@@ -54,7 +54,7 @@ const nextRoomLabel = computed(() => {
 
     <span class="grk-sep" />
 
-    <span class="grk-chip">
+    <span class="grk-chip inline-flex items-center gap-1.5 whitespace-nowrap">
       <i class="fas fa-door-open grk-chip__icon" />
       <b class="grk-chip__value">{{ totalActiveRooms }}</b>
       <span class="grk-chip__label">activas</span>
@@ -64,15 +64,12 @@ const nextRoomLabel = computed(() => {
 
 <style scoped>
 .grk-row {
-  display: inline-flex; align-items: center; gap: 10px;
   padding: 6px 14px; border-radius: 20px;
   background: linear-gradient(160deg, rgba(123,79,255,.08) 0%, rgba(10,15,36,.55) 100%);
   border: 1px solid rgba(255,255,255,.08);
   transition: opacity .2s;
 }
 .grk-row--loading { opacity: .5; }
-
-.grk-chip { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .grk-chip__icon {
   font-size: 12px; color: #2af598;
   filter: drop-shadow(0 0 5px rgba(42,245,152,.35));
