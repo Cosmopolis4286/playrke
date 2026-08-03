@@ -82,7 +82,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         $to   = Carbon::parse($today)->addDay()->toDateString();
 
         $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
-            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+            ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: true));
 
         return $query->orderBy(
             BingoRoomConfig::select('time')
@@ -112,11 +112,16 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         // Sin filtro de fecha explícito: ventana amplia (hoy → +30 días) en vez
         // de la unbounded query completa, para no escanear todo el histórico
         // futuro de salas cuando el usuario solo quiere "ver más allá de hoy".
+        // Salas sin horario (date NULL, start_mode MANUAL) solo se incluyen
+        // cuando el usuario NO pidió un rango de fecha explícito — no tiene
+        // sentido que aparezcan al filtrar "solo el 10 de agosto", ya que no
+        // tienen una fecha con la que comparar.
+        $hasExplicitDateFilter = !empty($filters['date_from']) || !empty($filters['date_to']);
         $from = $filters['date_from'] ?? now()->toDateString();
         $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
 
         $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
-            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+            ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: !$hasExplicitDateFilter));
 
         if (!empty($filters['variant'])) {
             $query->whereHas('config', fn($q) => $q->where('game_variant', $filters['variant']));
@@ -162,12 +167,13 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         bool $isCommerceCustomer = false,
         bool $isAdmin = false
     ): ?BingoRoom {
+        $hasExplicitDateFilter = !empty($filters['date_from']) || !empty($filters['date_to']);
         $from = $filters['date_from'] ?? now()->toDateString();
         $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
 
         $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, light: true)
             ->whereHas('status', fn($q) => $q->where('code', 'ACTIVE'))
-            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+            ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: !$hasExplicitDateFilter));
 
         if (!empty($filters['variant'])) {
             $query->whereHas('config', fn($q) => $q->where('game_variant', $filters['variant']));
@@ -178,6 +184,26 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
                 ->whereColumn('room_id', 'bingo_rooms.id')
                 ->limit(1)
         )->first();
+    }
+
+    /**
+     * Aplica la ventana de fecha [from, to] a una query sobre bingo_rooms_config,
+     * incluyendo opcionalmente las salas sin horario programado (date NULL —
+     * start_mode MANUAL, "activar cuando quiera el anfitrión"). whereBetween()
+     * por sí solo excluye NULLs en SQL, así que sin este OR esas salas nunca
+     * aparecerían en el listado de jugador aunque estén ACTIVE.
+     */
+    private function applyDateWindow(Builder $query, string $from, string $to, bool $includeNullDate): void
+    {
+        if ($includeNullDate) {
+            $query->where(function ($q) use ($from, $to) {
+                $q->whereBetween('date', [$from, $to])
+                    ->orWhereNull('date');
+            });
+            return;
+        }
+
+        $query->whereBetween('date', [$from, $to]);
     }
 
     /**
