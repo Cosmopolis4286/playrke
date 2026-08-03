@@ -10,21 +10,26 @@
   // Componentes
   // ==========================================================================
 
-  import DashboardWelcomeBanner from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
-  import DashboardStatCard      from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
-  import DashboardSection       from '@/js/Components/Common/Dashboard/DashboardSection.vue'
-  import DashboardActivityFeed  from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
-  import DashboardQuickLinks    from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
-  import DashboardEntityList    from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
-  import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardWelcomeBanner       from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
+  import DashboardStatCard            from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+  import DashboardSection             from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+  import DashboardActivityFeed        from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
+  import DashboardQuickLinks          from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardEntityList          from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
+  import DashboardTrendChart          from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
+  import DashboardPendingWalletWidget from '@/js/Components/Common/Dashboard/DashboardPendingWalletWidget.vue'
 
   // ==========================================================================
   // Composables
   // ==========================================================================
 
-  import { useAdminDashboard }        from '@/js/composables/roles/admin/dashboard/useAdminDashboard'
-  import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { ref }                         from 'vue'
+  import { useAdminDashboard }           from '@/js/composables/roles/admin/dashboard/useAdminDashboard'
+  import { useAdminActivityRealtime }    from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { useWalletMovementsRealtime, type WalletMovementRequestedPayload } from '@/js/composables/wallet/admin/useWalletMovementsRealtime'
+  import { useDashboardQuickLinks }      from '@/js/composables/common/dashboard/useDashboardQuickLinks'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
+  import type { ActivityItem }           from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
   // Types
@@ -42,57 +47,30 @@
   // Composable
   // ==========================================================================
 
-  const { statCards, sortedActivity, entityCounts, prependActivity } = useAdminDashboard(props)
+  const { statCards, sortedActivity, entityCounts, salesTrend, pendingWalletCount, prependActivity } = useAdminDashboard(props)
   const { isLive, newUsersToday, cardsSoldToday } = useAdminActivityRealtime(prependActivity)
+
+  const recentMovements = ref<ActivityItem[]>([])
+
+  function prependMovement(payload: WalletMovementRequestedPayload) {
+    const item: ActivityItem = {
+      id: `movement-${payload.movement_id}`,
+      type: 'alert',
+      title: payload.movement_type === 'DEPOSIT' ? 'Depósito pendiente' : 'Retiro pendiente',
+      description: `${payload.user_name} · ${payload.currency_symbol}${payload.amount.toFixed(2)}`,
+      timestamp: new Date().toISOString(),
+    }
+    recentMovements.value = [item, ...recentMovements.value].slice(0, 5)
+  }
+
+  const { pendingCount: livePendingCount, isLive: isWalletLive } =
+    useWalletMovementsRealtime(pendingWalletCount.value, prependMovement)
 
   // ==========================================================================
   // Accesos rápidos
   // ==========================================================================
 
-  const quickLinks: QuickLink[] = [
-    {
-      label:       'Usuarios',
-      description: 'Gestionar todos los usuarios',
-      icon:        'fas fa-users',
-      href:        '/admin/users',
-      variant:     'primary',
-    },
-    {
-      label:       'Comercios',
-      description: 'Gestionar comercializadoras',
-      icon:        'fas fa-building',
-      href:        '/admin/commerces',
-      variant:     'info',
-    },
-    {
-      label:       'Vendedores',
-      description: 'Gestionar vendedores',
-      icon:        'fas fa-user-tie',
-      href:        '/admin/sellers',
-      variant:     'success',
-    },
-    {
-      label:       'Clientes',
-      description: 'Gestionar clientes',
-      icon:        'fas fa-handshake',
-      href:        '/admin/customers',
-      variant:     'warning',
-    },
-    {
-      label:       'Jugadores',
-      description: 'Gestionar jugadores',
-      icon:        'fas fa-gamepad',
-      href:        '/admin/players',
-      variant:     'secondary',
-    },
-    {
-      label:       'Tesoreros',
-      description: 'Gestionar tesoreros',
-      icon:        'fas fa-piggy-bank',
-      href:        '/admin/treasurers',
-      variant:     'secondary',
-    },
-  ]
+  const quickLinks = useDashboardQuickLinks('admin')
 </script>
 
 <template>
@@ -154,6 +132,26 @@
       >
         <DashboardQuickLinks :links="quickLinks" :columns="3" />
       </DashboardSection>
+
+      <!-- Tendencia + Wallet pendientes -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Tendencia de ventas"
+            icon="fas fa-chart-area"
+            subtitle="Cartones vendidos · últimos 14 días"
+          >
+            <DashboardTrendChart :data="salesTrend" label="Cartones vendidos" />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-5">
+          <DashboardPendingWalletWidget
+            :pending-count="livePendingCount"
+            :is-live="isWalletLive"
+            :recent-movements="recentMovements"
+          />
+        </div>
+      </div>
 
       <!-- Fila inferior -->
       <div class="row g-3">

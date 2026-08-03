@@ -10,23 +10,47 @@ use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Treasurer;
 use App\Models\User;
+use App\Services\Menu\SidebarMenuService;
+use App\Services\Roles\Dashboard\Concerns\BuildsRecentActivity;
+use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 final class AdminDashboardContextService
 {
+    use BuildsRecentActivity;
+    use BuildsSalesTrend;
+
+    private const CACHE_TTL_SECONDS = 90;
+
+    public function __construct(
+        private readonly SidebarMenuService $sidebarMenu,
+    ) {}
+
     public function dashboardContext(): AdminDashboardContextDTO
     {
         $user   = Auth::user();
         $now    = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
+        $cached = Cache::remember('dashboard:admin:aggregates', self::CACHE_TTL_SECONDS, function () use ($now) {
+            return [
+                'stats'          => $this->buildStats($now),
+                'recentActivity' => $this->buildRecentActivity(),
+                'entityCounts'   => $this->buildEntityCounts(),
+                'salesTrend'     => $this->buildSalesTrend(),
+            ];
+        });
+
         return new AdminDashboardContextDTO(
-            userName:       $user?->first_name ?? $user?->username ?? 'Admin',
-            stats:          $this->buildStats($now),
-            recentActivity: $this->buildRecentActivity(),
-            entityCounts:   $this->buildEntityCounts(),
-            period:         $period,
+            userName:           $user?->first_name ?? $user?->username ?? 'Admin',
+            stats:              $cached['stats'],
+            recentActivity:     $cached['recentActivity'],
+            entityCounts:       $cached['entityCounts'],
+            salesTrend:         $cached['salesTrend'],
+            pendingWalletCount: $this->sidebarMenu->pendingWalletMovementsCount(),
+            period:             $period,
         );
     }
 
@@ -42,10 +66,6 @@ final class AdminDashboardContextService
         $totalUsers        = User::count();
         $activeUsers       = User::active()->count();
         $newUsersThisMonth = User::where('created_at', '>=', $startOfMonth)->count();
-
-        $totalCommerce  = Commerce::where('status', 'ACTIVE')->count();
-        $totalSellers   = Seller::where('status', 'ACTIVE')->count();
-        $totalCustomers = Customer::where('status', 'ACTIVE')->count();
 
         $cardsToday      = BingoCard::where('created_at', '>=', $startOfDay)->count();
         $cardsThisMonth  = BingoCard::where('created_at', '>=', $startOfMonth)->count();
@@ -93,31 +113,5 @@ final class AdminDashboardContextService
             ['label' => 'Clientes',    'value' => Customer::count(),  'icon' => 'fas fa-handshake',      'variant' => 'info'],
             ['label' => 'Tesoreros',   'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',     'variant' => 'warning'],
         ];
-    }
-
-    // -------------------------------------------------------------------------
-    // Actividad reciente (últimos 10 usuarios registrados)
-    // -------------------------------------------------------------------------
-
-    private function buildRecentActivity(): array
-    {
-        return User::with('roles:id,name')
-            ->latest()
-            ->limit(10)
-            ->get(['id', 'first_name', 'last_name', 'username', 'status', 'created_at'])
-            ->map(function (User $user) {
-                $name = trim("{$user->first_name} {$user->last_name}") ?: $user->username;
-                $role = $user->roles->first()?->name ?? 'sin rol';
-
-                return [
-                    'id'          => (string) $user->getKey(),
-                    'type'        => $user->status === 'ACTIVE' ? 'success' : 'info',
-                    'title'       => "Nuevo usuario: {$name}",
-                    'description' => "Rol: " . ucfirst($role),
-                    'timestamp'   => $user->created_at->toIso8601String(),
-                    'actor'       => $name,
-                ];
-            })
-            ->all();
     }
 }

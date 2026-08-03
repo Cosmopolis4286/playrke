@@ -23,18 +23,31 @@ export interface EntityCount {
 }
 
 // --------------------------------------------------------------------------
+// Tendencia de ventas
+// --------------------------------------------------------------------------
+
+export interface SalesTrendPoint {
+    date:  string
+    count: number
+}
+
+// --------------------------------------------------------------------------
 // Inertia page props
 // --------------------------------------------------------------------------
 
 export interface DashboardAdminPageProps {
     /** Nombre del usuario autenticado */
-    userName?:       string
+    userName?:            string
     /** Stats principales del sistema */
-    stats?:          AdminStats
+    stats?:               AdminStats
     /** Actividad reciente (últimos registros) */
-    recentActivity?: ActivityItem[]
+    recentActivity?:      ActivityItem[]
     /** Conteos de entidades por rol */
-    entityCounts?:   EntityCount[]
+    entityCounts?:        EntityCount[]
+    /** Serie diaria de cartones vendidos (últimos 14 días) */
+    salesTrend?:          SalesTrendPoint[]
+    /** Movimientos de billetera pendientes de aprobación */
+    pendingWalletCount?:  number
     /** Período activo (e.g. "Marzo 2026") */
-    period?:         string
+    period?:              string
 }

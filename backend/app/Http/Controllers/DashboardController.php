@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Roles\ContextResolverService;
+use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -13,8 +15,13 @@ use Inertia\Response;
  */
 class DashboardController extends Controller
 {
+    /** Prefijos de rol cuya carpeta de vista no coincide con ucfirst($prefix). */
+    private const VIEW_FOLDER_OVERRIDES = [
+        'superadmin' => 'SuperAdmin',
+    ];
+
     public function __construct(
-        private readonly \App\Services\Roles\Admin\AdminContextService $service,
+        private readonly ContextResolverService $service,
     ) {}
 
     /**
@@ -30,15 +37,15 @@ class DashboardController extends Controller
 
         return $this->handleServiceInertia(
             function () use ($rolePrefix) {
-                // Mapeo de prefijos a nombres de carpetas (casos especiales)
-                $viewFolder = match ($rolePrefix) {
-                    'superadmin' => 'SuperAdmin',
-                    default => ucfirst($rolePrefix),
-                };
-                $view = "Roles/{$viewFolder}/Dashboard/Index";
+                $view = "Roles/" . $this->viewFolderFor($rolePrefix) . "/Dashboard/Index";
 
                 try {
                     $context = $this->service->resolve($rolePrefix . '_dashboard')->toView();
+                } catch (DomainException $e) {
+                    Log::warning('Dashboard sin contexto implementado para este rol', [
+                        'role' => $rolePrefix,
+                    ]);
+                    $context = [];
                 } catch (\Throwable $e) {
                     Log::error('Error cargando dashboard', [
                         'role' => $rolePrefix,
@@ -55,5 +62,10 @@ class DashboardController extends Controller
             },
             'No se pudo cargar el dashboard.'
         );
+    }
+
+    private function viewFolderFor(string $rolePrefix): string
+    {
+        return self::VIEW_FOLDER_OVERRIDES[$rolePrefix] ?? ucfirst($rolePrefix);
     }
 }

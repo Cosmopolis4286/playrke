@@ -1,12 +1,17 @@
 <?php
 
-namespace App\Services\Roles\Admin;
+namespace App\Services\Roles;
 
 use App\DTOs\ContextDTO;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 
-final class AdminContextService
+/**
+ * Resuelve el ContextDTO correspondiente a un tipo de página/dashboard por rol.
+ * No es exclusivo de Admin: cubre dashboards (admin/superadmin/player) y
+ * listados CRUD (commerces/customers/players/users/sellers/treasurers).
+ */
+final class ContextResolverService
 {
     use HashedTableDataTrait;
 
@@ -23,7 +28,7 @@ final class AdminContextService
     ) {}
 
     /**
-     * Resolver contexto para Admin.
+     * Resolver contexto por tipo de página/rol.
      *
      * @param string $context Tipo de contexto a resolver
      * @return ContextDTO

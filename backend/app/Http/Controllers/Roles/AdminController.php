@@ -23,21 +23,6 @@ class AdminController extends Controller
     public function __construct(protected AdminService $service) {}
 
     /**
-     * Vista principal del dashboard de administrador
-     */
-    public function dashboard(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context('dashboard');
-                $response['title'] = 'Dashboard';
-                return Inertia::render('Roles/Admin/Dashboard/Index', $response);
-            },
-            'No se pudo cargar el dashboard.'
-        );
-    }
-
-    /**
      * Muestra el listado de comercializadoras usando Inertia.
      *
      * @return Response

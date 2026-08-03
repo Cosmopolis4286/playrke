@@ -22,7 +22,6 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
         ->as('superadmin.')
         ->controller(SuperAdminController::class)
         ->group(function () {
-            Route::get('', 'dashboard')->name('dashboard');
             Route::get('rke-summary', 'rkeSummary')->name('rke-summary');
             Route::get('platform-wallets', 'platformWallets')->name('platform-wallets');
             Route::get('platform-movements', 'platformMovements')->name('platform-movements');

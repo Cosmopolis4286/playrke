@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useDashboard } from '@/js/composables/common/dashboard/useDashboard'
-import type { DashboardAdminPageProps, AdminStats, EntityCount } from '@/js/types/roles/admin/dashboard/dashboard-admin'
+import type { DashboardAdminPageProps, AdminStats, EntityCount, SalesTrendPoint } from '@/js/types/roles/admin/dashboard/dashboard-admin'
 import type { StatCardData, ActivityItem } from '@/js/types/common/dashboard/dashboard'
 
 const DEFAULT_STATS: StatCardData[] = [
@@ -21,5 +21,9 @@ export function useAdminDashboard(props: DashboardAdminPageProps) {
 
     const entityCounts = computed<EntityCount[]>(() => props.entityCounts ?? [])
 
-    return { statCards, sortedActivity, entityCounts, prependActivity }
+    const salesTrend = computed<SalesTrendPoint[]>(() => props.salesTrend ?? [])
+
+    const pendingWalletCount = computed<number>(() => props.pendingWalletCount ?? 0)
+
+    return { statCards, sortedActivity, entityCounts, salesTrend, pendingWalletCount, prependActivity }
 }

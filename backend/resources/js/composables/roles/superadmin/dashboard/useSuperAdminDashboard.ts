@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useDashboard } from '@/js/composables/common/dashboard/useDashboard'
-import type { DashboardSuperAdminPageProps, SuperAdminStats, EntityCount, SystemHealth } from '@/js/types/roles/superadmin/dashboard/dashboard-superadmin'
+import type { DashboardSuperAdminPageProps, SuperAdminStats, EntityCount, SystemHealth, SalesTrendPoint } from '@/js/types/roles/superadmin/dashboard/dashboard-superadmin'
 import type { StatCardData, ActivityItem } from '@/js/types/common/dashboard/dashboard'
 
 const DEFAULT_STATS: StatCardData[] = [
@@ -14,6 +14,8 @@ const DEFAULT_HEALTH: SystemHealth = {
     status: 'healthy',
     label: 'Saludable',
     issues: 0,
+    failedJobsCount: 0,
+    broadcastLive: false,
 }
 
 export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {
@@ -31,5 +33,9 @@ export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {
 
     const adminActivity = computed<ActivityItem[]>(() => props.adminActivity ?? [])
 
-    return { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, prependActivity }
+    const salesTrend = computed<SalesTrendPoint[]>(() => props.salesTrend ?? [])
+
+    const pendingWalletCount = computed<number>(() => props.pendingWalletCount ?? 0)
+
+    return { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity }
 }

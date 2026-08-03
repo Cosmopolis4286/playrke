@@ -17,32 +17,23 @@ interface CardSoldPayload {
   amount_usd: number
 }
 
-interface WalletMovementRequestedPayload {
-  movement_id: string
-  user_id: string
-  user_name: string
-  movement_type: 'DEPOSIT' | 'WITHDRAWAL'
-  amount: number
-  currency_symbol: string
-  currency_iso: string
-  url: string
-}
-
 const ROLE_LABELS: Record<string, string> = {
   player: 'Jugador', commerce: 'Comercio', customer: 'Cliente', treasurer: 'Tesorero',
 }
 
 /**
- * Escucha el canal privado `admins.activity` (nuevos usuarios + ventas de cartones)
- * y `admins.wallet-movements` (depósitos/retiros pendientes). Pensado para los
- * dashboards de Admin y SuperAdmin, que comparten el mismo contexto de visibilidad.
+ * Escucha el canal privado `admins.activity` (nuevos usuarios + ventas de
+ * cartones). Pensado para los dashboards de Admin y SuperAdmin, que comparten
+ * el mismo contexto de visibilidad.
  *
- * Antepone los eventos recibidos al feed de actividad reciente y mantiene un
- * contador de movimientos pendientes que crece en vivo sin recargar la página.
+ * Los movimientos de wallet pendientes se manejan aparte en
+ * `useWalletMovementsRealtime` (canal `admins.wallet-movements`), que puede
+ * compartir la suscripción con el badge del sidebar sin pisarla.
+ *
+ * Antepone los eventos recibidos al feed de actividad reciente.
  */
-export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => void, initialPendingCount = 0) {
+export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => void) {
   const isLive = ref(false)
-  const pendingCount = ref(initialPendingCount)
   const newUsersToday = ref(0)
   const cardsSoldToday = ref(0)
 
@@ -73,25 +64,11 @@ export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => voi
 
     activityChannel.subscribed(() => { isLive.value = true })
     activityChannel.error(() => { isLive.value = false })
-
-    const walletChannel = echo.private('admins.wallet-movements')
-
-    walletChannel.listen('.wallet.movement.requested', (payload: WalletMovementRequestedPayload) => {
-      pendingCount.value++
-      onActivity({
-        id: `movement-${payload.movement_id}`,
-        type: 'alert',
-        title: payload.movement_type === 'DEPOSIT' ? 'Depósito pendiente' : 'Retiro pendiente',
-        description: `${payload.user_name} · ${payload.currency_symbol}${payload.amount.toFixed(2)}`,
-        timestamp: new Date().toISOString(),
-      })
-    })
   })
 
   onBeforeUnmount(() => {
     echo.leave('admins.activity')
-    echo.leave('admins.wallet-movements')
   })
 
-  return { isLive, pendingCount, newUsersToday, cardsSoldToday }
+  return { isLive, newUsersToday, cardsSoldToday }
 }

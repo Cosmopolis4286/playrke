@@ -27,9 +27,20 @@ export interface EntityCount {
 // --------------------------------------------------------------------------
 
 export interface SystemHealth {
-    status:  'healthy' | 'warning' | 'critical'
-    label:   string
-    issues:  number
+    status:           'healthy' | 'warning' | 'critical'
+    label:             string
+    issues:            number
+    failedJobsCount:   number
+    broadcastLive:     boolean
+}
+
+// --------------------------------------------------------------------------
+// Tendencia de ventas
+// --------------------------------------------------------------------------
+
+export interface SalesTrendPoint {
+    date:  string
+    count: number
 }
 
 // --------------------------------------------------------------------------
@@ -38,17 +49,21 @@ export interface SystemHealth {
 
 export interface DashboardSuperAdminPageProps {
     /** Nombre del usuario autenticado */
-    userName?:       string
+    userName?:            string
     /** Stats principales del sistema */
-    stats?:          SuperAdminStats
+    stats?:               SuperAdminStats
     /** Actividad reciente (últimos registros) */
-    recentActivity?: ActivityItem[]
+    recentActivity?:      ActivityItem[]
     /** Actividad de administradores */
-    adminActivity?:  ActivityItem[]
+    adminActivity?:       ActivityItem[]
     /** Conteos de entidades por rol */
-    entityCounts?:   EntityCount[]
+    entityCounts?:        EntityCount[]
     /** Salud del sistema */
-    systemHealth?:   SystemHealth
+    systemHealth?:        SystemHealth
+    /** Serie diaria de cartones vendidos (últimos 14 días) */
+    salesTrend?:          SalesTrendPoint[]
+    /** Movimientos de billetera pendientes de aprobación */
+    pendingWalletCount?:  number
     /** Período activo (e.g. "Marzo 2026") */
-    period?:         string
+    period?:              string
 }

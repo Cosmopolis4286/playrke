@@ -2,12 +2,13 @@
 
 namespace App\Services\Roles\Admin;
 
+use App\Services\Roles\ContextResolverService;
 use Illuminate\Support\Facades\Log;
 
 final class AdminService
 {
     public function __construct(
-        private readonly AdminContextService $context,
+        private readonly ContextResolverService $context,
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customers,
         private readonly \App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface $treasurers,

@@ -15,6 +15,10 @@ final class AdminDashboardContextDTO implements ContextDTO
         public readonly array $recentActivity,
         /** Totales de entidades por rol */
         public readonly array $entityCounts,
+        /** Serie diaria de cartones vendidos (últimos 14 días) */
+        public readonly array $salesTrend,
+        /** Movimientos de billetera pendientes de aprobación */
+        public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
     ) {}
@@ -22,11 +26,13 @@ final class AdminDashboardContextDTO implements ContextDTO
     public function toView(): array
     {
         return [
-            'userName'       => $this->userName,
-            'stats'          => $this->stats,
-            'recentActivity' => $this->recentActivity,
-            'entityCounts'   => $this->entityCounts,
-            'period'         => $this->period,
+            'userName'           => $this->userName,
+            'stats'              => $this->stats,
+            'recentActivity'     => $this->recentActivity,
+            'entityCounts'       => $this->entityCounts,
+            'salesTrend'         => $this->salesTrend,
+            'pendingWalletCount' => $this->pendingWalletCount,
+            'period'             => $this->period,
         ];
     }
 }

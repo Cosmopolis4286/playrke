@@ -19,6 +19,10 @@ final class SuperAdminDashboardContextDTO implements ContextDTO
         public readonly array $entityCounts,
         /** Salud del sistema */
         public readonly array $systemHealth,
+        /** Serie diaria de cartones vendidos (últimos 14 días) */
+        public readonly array $salesTrend,
+        /** Movimientos de billetera pendientes de aprobación */
+        public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
     ) {}
@@ -26,13 +30,15 @@ final class SuperAdminDashboardContextDTO implements ContextDTO
     public function toView(): array
     {
         return [
-            'userName'       => $this->userName,
-            'stats'          => $this->stats,
-            'recentActivity' => $this->recentActivity,
-            'adminActivity'  => $this->adminActivity,
-            'entityCounts'   => $this->entityCounts,
-            'systemHealth'   => $this->systemHealth,
-            'period'         => $this->period,
+            'userName'           => $this->userName,
+            'stats'              => $this->stats,
+            'recentActivity'     => $this->recentActivity,
+            'adminActivity'      => $this->adminActivity,
+            'entityCounts'       => $this->entityCounts,
+            'systemHealth'       => $this->systemHealth,
+            'salesTrend'         => $this->salesTrend,
+            'pendingWalletCount' => $this->pendingWalletCount,
+            'period'             => $this->period,
         ];
     }
 }

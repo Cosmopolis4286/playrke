@@ -10,29 +10,34 @@
   // Componentes
   // ==========================================================================
 
-  import DashboardWelcomeBanner from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
-  import DashboardStatCard      from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
-  import DashboardSection       from '@/js/Components/Common/Dashboard/DashboardSection.vue'
-  import DashboardActivityFeed  from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
-  import DashboardQuickLinks    from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
-  import DashboardEntityList    from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
-  import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
-  import PlatformWalletPanel    from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
-  import PlatformCashModal      from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
-  import RkeCommissionsSection  from '@/js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
+  import DashboardWelcomeBanner       from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
+  import DashboardStatCard            from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+  import DashboardSection             from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+  import DashboardActivityFeed        from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
+  import DashboardQuickLinks          from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardEntityList          from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
+  import DashboardTrendChart          from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
+  import DashboardPendingWalletWidget from '@/js/Components/Common/Dashboard/DashboardPendingWalletWidget.vue'
+  import PlatformWalletPanel          from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
+  import PlatformCashModal            from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
+  import RkeCommissionsSection        from '@/js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
 
   // ==========================================================================
   // Composables
   // ==========================================================================
 
-  import { onMounted }                from 'vue'
+  import { onMounted, ref }           from 'vue'
   import { useSuperAdminDashboard }   from '@/js/composables/roles/superadmin/dashboard/useSuperAdminDashboard'
   import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { useWalletMovementsRealtime, type WalletMovementRequestedPayload } from '@/js/composables/wallet/admin/useWalletMovementsRealtime'
   import { useMovementTypeCatalog }   from '@/js/composables/wallet/useMovementTypeCatalog'
+  import { useDashboardQuickLinks }   from '@/js/composables/common/dashboard/useDashboardQuickLinks'
+  import { useDashboardFormatters }   from '@/js/composables/common/dashboard/useDashboardFormatters'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
   import { useRkeSummary }          from '@/js/composables/roles/superadmin/dashboard/useRkeSummary'
   import { usePlatformWallet }      from '@/js/composables/roles/superadmin/dashboard/usePlatformWallet'
   import { usePlatformCashModal }   from '@/js/composables/roles/superadmin/dashboard/usePlatformCashModal'
+  import type { ActivityItem }      from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
   // Types
@@ -50,8 +55,24 @@
   // Composables de dominio
   // ==========================================================================
 
-  const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, prependActivity } = useSuperAdminDashboard(props)
+  const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
   const { isLive, newUsersToday, cardsSoldToday } = useAdminActivityRealtime(prependActivity)
+
+  const recentMovements = ref<ActivityItem[]>([])
+
+  function prependMovement(payload: WalletMovementRequestedPayload) {
+    const item: ActivityItem = {
+      id: `movement-${payload.movement_id}`,
+      type: 'alert',
+      title: payload.movement_type === 'DEPOSIT' ? 'Depósito pendiente' : 'Retiro pendiente',
+      description: `${payload.user_name} · ${payload.currency_symbol}${payload.amount.toFixed(2)}`,
+      timestamp: new Date().toISOString(),
+    }
+    recentMovements.value = [item, ...recentMovements.value].slice(0, 5)
+  }
+
+  const { pendingCount: livePendingCount, isLive: isWalletLive } =
+    useWalletMovementsRealtime(pendingWalletCount.value, prependMovement)
 
   const { rkeSummary, rkeLoading, rkeError, loadRkeSummary } = useRkeSummary()
 
@@ -80,83 +101,13 @@
   // Helpers de formato
   // ==========================================================================
 
-  function formatUsd(v: number, decimals = 2) {
-    return new Intl.NumberFormat('es-VE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v)
-  }
-
-  function formatDate(iso: string | null) {
-    if (!iso) return '—'
-    return new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(iso))
-  }
-
-  function formatDateTime(iso: string) {
-    return new Intl.DateTimeFormat('es-VE', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    }).format(new Date(iso))
-  }
+  const { formatUsd, formatDate, formatDateTime } = useDashboardFormatters()
 
   // ==========================================================================
   // Accesos rápidos
   // ==========================================================================
 
-  const quickLinks: QuickLink[] = [
-    {
-      label:       'Administradores',
-      description: 'Gestionar administradores del sistema',
-      icon:        'fas fa-user-shield',
-      href:        '/admins',
-      variant:     'danger',
-    },
-    {
-      label:       'Permisos',
-      description: 'Configurar permisos de roles',
-      icon:        'fas fa-key',
-      href:        '/permissions',
-      variant:     'warning',
-    },
-    {
-      label:       'Usuarios',
-      description: 'Gestionar todos los usuarios',
-      icon:        'fas fa-users',
-      href:        '/admin/users',
-      variant:     'primary',
-    },
-    {
-      label:       'Comercios',
-      description: 'Gestionar comercializadoras',
-      icon:        'fas fa-building',
-      href:        '/admin/commerces',
-      variant:     'info',
-    },
-    {
-      label:       'Vendedores',
-      description: 'Gestionar vendedores',
-      icon:        'fas fa-user-tie',
-      href:        '/admin/sellers',
-      variant:     'success',
-    },
-    {
-      label:       'Clientes',
-      description: 'Gestionar clientes',
-      icon:        'fas fa-handshake',
-      href:        '/admin/customers',
-      variant:     'warning',
-    },
-    {
-      label:       'Jugadores',
-      description: 'Gestionar jugadores',
-      icon:        'fas fa-gamepad',
-      href:        '/admin/players',
-      variant:     'secondary',
-    },
-    {
-      label:       'Tesoreros',
-      description: 'Gestionar tesoreros',
-      icon:        'fas fa-piggy-bank',
-      href:        '/admin/treasurers',
-      variant:     'secondary',
-    },
-  ]
+  const quickLinks = useDashboardQuickLinks('superadmin')
 </script>
 
 <template>
@@ -220,6 +171,26 @@
         <DashboardQuickLinks :links="quickLinks" :columns="4" />
       </DashboardSection>
 
+      <!-- Tendencia + Wallet pendientes -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Tendencia de ventas"
+            icon="fas fa-chart-area"
+            subtitle="Cartones vendidos · últimos 14 días"
+          >
+            <DashboardTrendChart :data="salesTrend" label="Cartones vendidos" />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-5">
+          <DashboardPendingWalletWidget
+            :pending-count="livePendingCount"
+            :is-live="isWalletLive"
+            :recent-movements="recentMovements"
+          />
+        </div>
+      </div>
+
       <!-- Fila inferior -->
       <div class="row g-3">
 
@@ -248,6 +219,38 @@
         </div>
 
       </div>
+
+      <!-- Salud del sistema -->
+      <DashboardSection
+        title="Salud del sistema"
+        icon="fas fa-heartbeat"
+        :subtitle="systemHealth.label"
+      >
+        <div class="row g-3">
+          <div class="col-12 col-sm-4">
+            <div class="sh-item">
+              <span class="sh-item__label">Estado general</span>
+              <span class="sh-item__value" :class="`sh-item__value--${systemHealth.status}`">{{ systemHealth.label }}</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <div class="sh-item">
+              <span class="sh-item__label">Jobs fallidos</span>
+              <span class="sh-item__value" :class="{ 'sh-item__value--warning': systemHealth.failedJobsCount > 0 }">
+                {{ systemHealth.failedJobsCount }}
+              </span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <div class="sh-item">
+              <span class="sh-item__label">Broadcast (Reverb)</span>
+              <span class="sh-item__value" :class="systemHealth.broadcastLive ? 'sh-item__value--healthy' : 'sh-item__value--warning'">
+                {{ systemHealth.broadcastLive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </DashboardSection>
 
       <!-- ══ BILLETERA DE PLATAFORMA ══════════════════════════════════ -->
       <PlatformWalletPanel
@@ -350,4 +353,29 @@
 .ds-activity-compact :deep(.activity-feed__item .small) {
   font-size: 0.75rem;
 }
+
+/* Salud del sistema */
+.sh-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0.6rem 0.75rem;
+  background: var(--ds-surface-2);
+  border-radius: 8px;
+}
+.sh-item__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--ds-text-2);
+}
+.sh-item__value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+.sh-item__value--healthy  { color: #34d399; }
+.sh-item__value--warning  { color: #f59e0b; }
+.sh-item__value--critical { color: #ef4444; }
 </style>
