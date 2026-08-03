@@ -360,6 +360,56 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Resolver y verificar una sala privada a partir de su código de acceso,
+     * sin conocer de antemano su ID ("Tengo un código" en el listado de
+     * salas de juego). A diferencia de verifyAccess(), no recibe {room} vía
+     * route model binding — la sala es desconocida hasta resolver el código.
+     *
+     * @param Request $request Body con access_code y password.
+     * @return JsonResponse
+     */
+    public function joinByCode(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'access_code' => ['required', 'string', 'max:20'],
+            'password'    => ['required', 'string'],
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->joinRoomByCode($data['access_code'], $data['password'])
+        );
+    }
+
+    /**
+     * Refetch paginado/filtrado del listado de salas de juego (game-rooms),
+     * usado por los filtros de fecha/variante del botón de filtros del
+     * listado de jugador tras la carga inicial vía Inertia.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function filterData(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to'   => ['nullable', 'date', 'after_or_equal:date_from'],
+            'variant'   => ['nullable', 'string', \Illuminate\Validation\Rule::in(['BINGO_75', 'BINGO_90', 'BINGO_80', 'BINGO_30'])],
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->gameRoomsData(
+                page: (int) $request->query('page', 1),
+                perPage: (int) $request->query('per_page', 24),
+                filters: array_filter([
+                    'date_from' => $data['date_from'] ?? null,
+                    'date_to' => $data['date_to'] ?? null,
+                    'variant' => $data['variant'] ?? null,
+                ])
+            )
+        );
+    }
+
+    /**
      * Verificar el rol del usuario autenticado.
      *
      * @return JsonResponse

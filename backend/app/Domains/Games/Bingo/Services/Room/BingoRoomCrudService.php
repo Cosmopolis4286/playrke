@@ -1425,4 +1425,53 @@ class BingoRoomCrudService
         $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
         return in_array((string) $room->id, $verifiedRooms, true);
     }
+
+    /**
+     * Resolver y verificar una sala privada a partir de su código de acceso,
+     * sin conocer de antemano su ID — usado por el botón "Tengo un código" del
+     * listado de salas de juego (a diferencia de verifyRoomAccess(), que ya
+     * recibe la sala resuelta vía route model binding).
+     *
+     * access_code no tiene constraint de unicidad a nivel de BD, así que puede
+     * haber más de una sala PRIVATE activa con el mismo código: se itera el
+     * conjunto (naturalmente pequeño, acotado a PRIVATE+ACTIVE/IN_PROGRESS) y
+     * se usa la contraseña para desambiguar — nunca se asume que la primera
+     * coincidencia de código es la sala correcta.
+     *
+     * Deliberadamente no distingue "código no existe" vs "contraseña
+     * incorrecta" en la respuesta, mismo principio que verifyRoomAccess():
+     * evita un oráculo de enumeración de salas/códigos.
+     *
+     * @return array{verified: bool, room_route_key: ?string}
+     */
+    public function joinRoomByCode(string $accessCode, string $password): array
+    {
+        if ($accessCode === '' || $password === '') {
+            return ['verified' => false, 'room_route_key' => null];
+        }
+
+        $candidates = $this->bingoRooms->findActivePrivateRoomsByAccessCode($accessCode);
+
+        foreach ($candidates as $room) {
+            $config = $room->config;
+            if (!$config) {
+                continue;
+            }
+
+            $codeMatches = $config->access_code !== null && hash_equals((string) $config->access_code, $accessCode);
+            $passwordMatches = $config->room_password !== null && Hash::check($password, $config->room_password);
+
+            if ($codeMatches && $passwordMatches) {
+                $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
+                if (!in_array((string) $room->id, $verifiedRooms, true)) {
+                    $verifiedRooms[] = (string) $room->id;
+                    session([self::SESSION_VERIFIED_ROOMS_KEY => $verifiedRooms]);
+                }
+
+                return ['verified' => true, 'room_route_key' => $room->getRouteKey()];
+            }
+        }
+
+        return ['verified' => false, 'room_route_key' => null];
+    }
 }

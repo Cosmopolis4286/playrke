@@ -3,9 +3,12 @@
 namespace App\Domains\Games\Bingo\Repositories\Room;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Repositories\BaseRepository;
 use App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface;
 use App\Models\Games\Common\Utils\GameStatus;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -72,6 +75,159 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      */
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection
     {
+        // Ventana ±1 día para cubrir diferencias de timezone entre servidor (UTC)
+        // y zonas de los creadores (ej. America/Caracas UTC-4).
+        // El frontend filtra visualmente por countdown expirado.
+        $from = Carbon::parse($today)->subDay()->toDateString();
+        $to   = Carbon::parse($today)->addDay()->toDateString();
+
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
+            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+
+        return $query->orderBy(
+            BingoRoomConfig::select('time')
+                ->whereColumn('room_id', 'bingo_rooms.id')
+                ->limit(1)
+        )->get();
+    }
+
+    /**
+     * Paginar salas activas para la vista de juego (game-rooms) con filtros de
+     * fecha/variante reales aplicados en SQL — variante paginada de
+     * getActiveRoomsForViewWithRoleFilter() para el endpoint de filtros del
+     * listado de jugador (no confundir con paginateSummaryGameRooms(), que es
+     * el listado admin/commerce con sus propios filtros).
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     */
+    public function paginateRoomsForViewWithFilters(
+        int $userId,
+        array $filters,
+        int $page,
+        int $perPage,
+        bool $isPlayer,
+        bool $isCommerceCustomer = false,
+        bool $isAdmin = false
+    ): LengthAwarePaginator {
+        // Sin filtro de fecha explícito: ventana amplia (hoy → +30 días) en vez
+        // de la unbounded query completa, para no escanear todo el histórico
+        // futuro de salas cuando el usuario solo quiere "ver más allá de hoy".
+        $from = $filters['date_from'] ?? now()->toDateString();
+        $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
+
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
+            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+
+        if (!empty($filters['variant'])) {
+            $query->whereHas('config', fn($q) => $q->where('game_variant', $filters['variant']));
+        }
+
+        return $query->orderBy(
+            BingoRoomConfig::select('time')
+                ->whereColumn('room_id', 'bingo_rooms.id')
+                ->limit(1)
+        )->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Sala PRIVATE activa más próxima cuyo access_code coincide con el
+     * indicado — candidato(s) para BingoRoomCrudService::joinRoomByCode(),
+     * que desambigua por contraseña ya que access_code no tiene constraint
+     * de unicidad a nivel de BD.
+     */
+    public function findActivePrivateRoomsByAccessCode(string $accessCode): Collection
+    {
+        return BingoRoom::with(['config.roomType', 'status'])
+            ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
+            ->whereHas('config', function ($q) use ($accessCode) {
+                $q->where('access_code', $accessCode)
+                    ->whereHas('roomType', fn($rq) => $rq->where('code', 'PRIVATE'));
+            })
+            ->get();
+    }
+
+    /**
+     * Sala activa con el inicio programado más próximo, dentro de los mismos
+     * filtros de rol/fecha/variante que paginateRoomsForViewWithFilters() —
+     * usada para el KPI "próxima sala" cuando hay un filtro de fecha activo
+     * (fuera de ese caso, el KPI se calcula en el cliente desde el listado ya
+     * cargado, sin necesidad de esta query).
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     */
+    public function findNextStartingRoom(
+        int $userId,
+        array $filters,
+        bool $isPlayer,
+        bool $isCommerceCustomer = false,
+        bool $isAdmin = false
+    ): ?BingoRoom {
+        $from = $filters['date_from'] ?? now()->toDateString();
+        $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
+
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, light: true)
+            ->whereHas('status', fn($q) => $q->where('code', 'ACTIVE'))
+            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+
+        if (!empty($filters['variant'])) {
+            $query->whereHas('config', fn($q) => $q->where('game_variant', $filters['variant']));
+        }
+
+        return $query->orderBy(
+            BingoRoomConfig::select('unix_date')
+                ->whereColumn('room_id', 'bingo_rooms.id')
+                ->limit(1)
+        )->first();
+    }
+
+    /**
+     * Conteo de salas activas dentro de los mismos filtros de rol/fecha/variante
+     * — KPI "salas activas" para el path filtrado/paginado (ver
+     * findNextStartingRoom() para el porqué de la distinción con el path
+     * cliente-calculado).
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     */
+    public function countActiveRoomsForView(
+        int $userId,
+        array $filters,
+        bool $isPlayer,
+        bool $isCommerceCustomer = false,
+        bool $isAdmin = false
+    ): int {
+        $from = $filters['date_from'] ?? now()->toDateString();
+        $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
+
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, light: true)
+            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]));
+
+        if (!empty($filters['variant'])) {
+            $query->whereHas('config', fn($q) => $q->where('game_variant', $filters['variant']));
+        }
+
+        return $query->count();
+    }
+
+    /**
+     * Query base compartida por getActiveRoomsForViewWithRoleFilter(),
+     * paginateRoomsForViewWithFilters(), findNextStartingRoom() y
+     * countActiveRoomsForView() — resuelve el filtrado por rol (jugador ve
+     * solo PUBLIC, commerce/customer solo from_house=N, admin sin filtro,
+     * fallback a solo las propias) y el eager loading, sin aplicar todavía el
+     * filtro de fecha/variante (cada llamador lo agrega según su propio rango).
+     *
+     * @param bool $light Si true, omite los with() pesados (players,
+     *                     playersPreview) usados solo por el listado real de
+     *                     salas — las queries de agregación (KPIs) no los
+     *                     necesitan y serían N+1 innecesarios.
+     */
+    private function buildActiveRoomsQuery(
+        bool $isPlayer,
+        bool $isCommerceCustomer,
+        bool $isAdmin,
+        int $userId,
+        bool $light = false
+    ): Builder {
         $with = [
             'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,connection_type_id,min_cards_to_start,max_players,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x',
             'config.prizePoolType:id,code,label',
@@ -80,29 +236,24 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             'status:id,code',
         ];
 
-        // Cargar cartones del jugador actual en cada sala
-        if ($isPlayer) {
-            $with['players'] = fn($q) => $q->where('user_id', $userId)->select(['room_id', 'user_id', 'cards_purchased']);
+        if (!$light) {
+            // Cargar cartones del jugador actual en cada sala
+            if ($isPlayer) {
+                $with['players'] = fn($q) => $q->where('user_id', $userId)->select(['room_id', 'user_id', 'cards_purchased']);
+            }
+
+            // Preview de jugadores (prueba social en la card del lobby): solo username/first_name,
+            // nunca datos sensibles (email, teléfono). Se trunca a 4 en PHP tras cargar — sin
+            // límite por-sala real en la query (HasMany no soporta limit-per-group sin window
+            // functions), aceptable porque las salas no acumulan miles de jugadores. Relación
+            // separada de `players` para no pisar su constraint por user_id (ver comentario arriba).
+            $with['playersPreview'] = fn($q) => $q->select(['id', 'room_id', 'user_id']);
+            $with['playersPreview.user'] = fn($q) => $q->select(['id', 'username', 'first_name']);
         }
-
-        // Preview de jugadores (prueba social en la card del lobby): solo username/first_name,
-        // nunca datos sensibles (email, teléfono). Se trunca a 4 en PHP tras cargar — sin
-        // límite por-sala real en la query (HasMany no soporta limit-per-group sin window
-        // functions), aceptable porque las salas no acumulan miles de jugadores. Relación
-        // separada de `players` para no pisar su constraint por user_id (ver comentario arriba).
-        $with['playersPreview'] = fn($q) => $q->select(['id', 'room_id', 'user_id']);
-        $with['playersPreview.user'] = fn($q) => $q->select(['id', 'username', 'first_name']);
-
-        // Ventana ±1 día para cubrir diferencias de timezone entre servidor (UTC)
-        // y zonas de los creadores (ej. America/Caracas UTC-4).
-        // El frontend filtra visualmente por countdown expirado.
-        $from = now()->subDay()->toDateString();
-        $to   = now()->addDay()->toDateString();
 
         $query = $this->model
             ->with($with)
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]))
             ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id'])
             ->withCount('rounds');
 
@@ -119,11 +270,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             $query->where('bingo_rooms.creator_user_id', $userId);
         }
 
-        return $query->orderBy(
-            \App\Domains\Games\Bingo\Models\Room\BingoRoomConfig::select('time')
-                ->whereColumn('room_id', 'bingo_rooms.id')
-                ->limit(1)
-        )->get();
+        return $query;
     }
 
     /**

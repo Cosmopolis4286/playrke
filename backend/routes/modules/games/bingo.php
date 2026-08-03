@@ -144,6 +144,8 @@ Route::get('bingo/my-games/{roomId}/detail', [PlayerGameHistoryController::class
  */
 route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoRoomController::class, [
     'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
+    'join-by-code'     => ['method' => 'post', 'uri' => 'join-by-code', 'action' => 'joinByCode', 'middleware' => ['throttle:bingo-join-by-code']],
+    'filter-data'      => ['method' => 'get',  'uri' => 'filter-data', 'action' => 'filterData'],
     'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
     'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms', 'middleware' => ['throttle:bingo-player-buy']],
     'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],

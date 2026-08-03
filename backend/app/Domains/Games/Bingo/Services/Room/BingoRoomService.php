@@ -199,4 +199,28 @@ final class BingoRoomService
     {
         return $this->crudService->verifyRoomAccess($room, $accessCode, $password);
     }
+
+    /**
+     * Resolver y verificar una sala privada por código de acceso, sin conocer
+     * su ID de antemano ("Tengo un código" en el listado de salas de juego).
+     *
+     * @return array{verified: bool, room_route_key: ?string}
+     */
+    public function joinRoomByCode(string $accessCode, string $password): array
+    {
+        return $this->crudService->joinRoomByCode($accessCode, $password);
+    }
+
+    /**
+     * Refetch paginado/filtrado del listado de salas de juego (game-rooms),
+     * usado por los filtros de fecha/variante del listado de jugador.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     * @return array{rooms: array, pagination: array, kpis: array}
+     */
+    public function gameRoomsData(int $page, int $perPage, array $filters): array
+    {
+        $userId = $this->userContext->resolveUserId();
+        return $this->contextService->gameRoomsDataForRefetch($userId, $page, $perPage, $filters);
+    }
 }

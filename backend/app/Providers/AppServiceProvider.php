@@ -113,6 +113,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($key);
         });
 
+        // Rate-limit: unirse a sala privada por código ("Tengo un código") — 6
+        // intentos por minuto por usuario. Más estricto que bingo-verify-access
+        // porque ahí la clave incluye el room_id (los intentos se diluyen entre
+        // salas distintas); aquí la sala es desconocida hasta resolver el
+        // código, así que no hay esa dilución natural.
+        RateLimiter::for('bingo-join-by-code', function (Request $request) {
+            return Limit::perMinute(6)->by($request->user()?->id ?? $request->ip());
+        });
+
         // Rate-limit: cambio de contraseña — 5 intentos por minuto por usuario.
         // Mitiga fuerza bruta sobre "current_password" desde una sesión ya autenticada.
         RateLimiter::for('profile-change-password', function (Request $request) {

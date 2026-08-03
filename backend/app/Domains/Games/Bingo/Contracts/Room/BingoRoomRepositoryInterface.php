@@ -49,6 +49,57 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection;
 
     /**
+     * Paginar salas activas para la vista de juego (game-rooms) con filtros de
+     * fecha/variante reales aplicados en SQL.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     */
+    public function paginateRoomsForViewWithFilters(
+        int $userId,
+        array $filters,
+        int $page,
+        int $perPage,
+        bool $isPlayer,
+        bool $isCommerceCustomer = false,
+        bool $isAdmin = false
+    ): LengthAwarePaginator;
+
+    /**
+     * Sala(s) PRIVATE activa(s) cuyo access_code coincide con el indicado.
+     * access_code no tiene constraint de unicidad, así que puede devolver más
+     * de una fila — el llamador desambigua por contraseña.
+     */
+    public function findActivePrivateRoomsByAccessCode(string $accessCode): Collection;
+
+    /**
+     * Sala activa con el inicio programado más próximo dentro de los filtros
+     * de rol/fecha/variante indicados, o null si no hay ninguna.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     */
+    public function findNextStartingRoom(
+        int $userId,
+        array $filters,
+        bool $isPlayer,
+        bool $isCommerceCustomer = false,
+        bool $isAdmin = false
+    ): ?BingoRoom;
+
+    /**
+     * Conteo de salas activas dentro de los filtros de rol/fecha/variante
+     * indicados.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     */
+    public function countActiveRoomsForView(
+        int $userId,
+        array $filters,
+        bool $isPlayer,
+        bool $isCommerceCustomer = false,
+        bool $isAdmin = false
+    ): int;
+
+    /**
      * Paginar el listado admin/commerce de salas (Room/Summary) con filtros
      * reales aplicados en SQL, en vez de traer una sola página fija y filtrar
      * en el cliente.
