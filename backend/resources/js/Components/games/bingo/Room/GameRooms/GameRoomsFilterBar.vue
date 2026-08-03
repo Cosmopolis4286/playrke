@@ -34,9 +34,9 @@ function handleReset() {
 </script>
 
 <template>
-  <div class="grfb-bar">
+  <div class="grfb-bar flex w-full flex-wrap items-center justify-center gap-1.5">
     <!-- Toggle fecha: colapsado por defecto, evita ocupar 2 inputs siempre visibles -->
-    <div class="grfb-date-wrap">
+    <div class="relative">
       <button
         type="button"
         class="grfb-icon-btn"
@@ -65,7 +65,7 @@ function handleReset() {
       </div>
     </div>
 
-    <div class="grfb-variants">
+    <div class="grfb-variants flex max-w-full gap-1 overflow-x-auto">
       <button
         type="button"
         class="grfb-pill"
@@ -102,12 +102,10 @@ function handleReset() {
 </template>
 
 <style scoped>
-.grfb-bar {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 6px; width: 100%;
-}
-
-.grfb-date-wrap { position: relative; }
+/* .grfb-bar y el layout de .grfb-variants ahora en Tailwind (ver template);
+   solo queda aquí lo visual (colores/bordes/animaciones). */
+.grfb-variants::-webkit-scrollbar { display: none; }
+.grfb-variants { scrollbar-width: none; }
 
 .grfb-icon-btn {
   position: relative;
@@ -158,11 +156,6 @@ function handleReset() {
 .grfb-apply:hover:not(:disabled) { filter: brightness(1.08); }
 .grfb-apply:disabled { opacity: .5; cursor: not-allowed; }
 
-.grfb-variants {
-  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
-  max-width: 100%;
-}
-.grfb-variants::-webkit-scrollbar { display: none; }
 .grfb-pill {
   padding: 5px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 700;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);

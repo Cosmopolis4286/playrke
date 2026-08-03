@@ -100,16 +100,16 @@ const {
       <p class="grp-empty-title">No hay salas disponibles</p>
     </div>
 
-    <!-- ── Grid de tarjetas ── -->
-    <div v-else class="game-rooms-page__grid-wrap">
+    <!-- ── Grid de tarjetas (Tailwind: columnas responsivas 1/2/3, gap consistente) ── -->
+    <div v-else class="game-rooms-page__grid-wrap mx-auto w-full max-w-[1180px] px-1">
       <div
-        class="game-rooms-page__grid"
-        :class="{ 'game-rooms-page__grid--centered': filteredRooms.length < 4 }"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3"
+        :class="{ 'justify-items-center': filteredRooms.length < 4 }"
       >
         <div
           v-for="(room, index) in filteredRooms"
           :key="room.id"
-          class="game-rooms-page__grid-item"
+          class="flex w-full max-w-[460px]"
         >
           <BingoGameRoomCard
             :room="room"
@@ -490,8 +490,14 @@ const {
 
 .grp-toolbar {
   display: flex; align-items: center; justify-content: center;
-  flex-wrap: wrap; gap: 8px;
-  margin: 14px auto 0; max-width: 720px; padding: 0 12px;
+  flex-wrap: wrap; gap: 10px;
+  margin: 16px auto 0; max-width: 760px; padding: 0 12px;
+}
+
+/* ≥640px: suficiente ancho para que KPIs+filtros+código respiren en una sola
+   fila sin wrap — separa visualmente los grupos con un poco más de gap. */
+@media (min-width: 640px) {
+  .grp-toolbar { gap: 14px; }
 }
 
 .grp-join-code-btn {
@@ -560,43 +566,12 @@ const {
 }
 
 /* ═══════════════════════════════
-   GRID — cards horizontales responsive
+   GRID — columnas/gap ahora en Tailwind (ver template); solo queda el
+   padding fino en mobile muy angosto, que Tailwind no cubre por breakpoint
+   propio a 380px (su "sm" empieza en 640px).
 ═══════════════════════════════ */
-.game-rooms-page__grid-wrap {
-  width: 100%;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 4px;
-}
-
-.game-rooms-page__grid {
-  display: grid;
-  gap: 16px;
-  /* minmax más ancho: la card horizontal aprovecha mejor 320-460px que 260px,
-     y con pocas salas cada columna crece hasta el máximo del item en vez de
-     quedar angosta con espacio vacío alrededor. */
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-}
-
-.game-rooms-page__grid-item {
-  display: flex;
-  width: 100%;
-  max-width: 460px;
-}
-
-/* Con pocas cards: centrar la fila */
-.game-rooms-page__grid--centered {
-  justify-content: center;
-}
-.game-rooms-page__grid--centered .game-rooms-page__grid-item {
-  max-width: 460px;
-}
-
 @media (max-width: 380px) {
   .game-rooms-page__grid-wrap { padding: 0; }
-  .game-rooms-page__grid { grid-template-columns: 1fr; gap: 10px; }
-  .game-rooms-page__grid-item,
-  .game-rooms-page__grid--centered .game-rooms-page__grid-item { max-width: none; }
 }
 
 /* estilos del modal de info movidos a BingoRoomInfoModal.vue */
