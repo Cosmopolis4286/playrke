@@ -47,8 +47,6 @@ const getEchoInstance = (): Echo<any> => {
     const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
     const IS_HTTPS = SCHEME === 'https'
 
-    console.log('[Echo Debug] Config:', { APP_KEY, HOST, PORT, SCHEME, IS_HTTPS })
-
     /**
      * Creación de la instancia Echo usando Pusher
      * conectado al servidor Reverb.
@@ -109,11 +107,6 @@ const getEchoInstance = (): Echo<any> => {
  * Puede importarse directamente en cualquier módulo.
  */
 const echo = getEchoInstance()
-
-echo.channel('test-channel')
-    .listen('.TestEvent', (e) => {
-        console.log('🎉 Evento recibido:', e)
-    })
 
 export default echo
 export { getEchoInstance }
