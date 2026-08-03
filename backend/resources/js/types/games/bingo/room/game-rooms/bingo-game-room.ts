@@ -92,6 +92,8 @@ export interface BingoGameRoom {
   readonly rounds_count?: number | null
   /** Total de cartones vendidos en la sala (todos los jugadores) */
   readonly total_cards?: number
+  /** Timestamp Unix (segundos) de creación de la sala — fallback de "abierta hace X" cuando no hay fecha/hora programada */
+  readonly unix_created_at?: number | null
 }
 
 /**

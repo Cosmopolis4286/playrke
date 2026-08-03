@@ -54,12 +54,16 @@ final class BingoGameRoomsDTO implements ContextDTO
             $roomData = array_merge(
                 $room->toArray(),
                 [
-                    'status_code'     => $room->status?->code ?? 'ACTIVE',
-                    'room_type'       => $room->config?->roomType?->code ?? 'PUBLIC',
-                    'game_mode'       => $room->config?->connectionType?->code ?? null,
-                    'id'              => $room->getRouteKey(), // Usar ID hasheado para route binding
-                    'players_room'    => $playersRoom,
-                    'players_preview' => $playersPreview,
+                    'status_code'      => $room->status?->code ?? 'ACTIVE',
+                    'room_type'        => $room->config?->roomType?->code ?? 'PUBLIC',
+                    'game_mode'        => $room->config?->connectionType?->code ?? null,
+                    'id'               => $room->getRouteKey(), // Usar ID hasheado para route binding
+                    'players_room'     => $playersRoom,
+                    'players_preview'  => $playersPreview,
+                    // Timestamp Unix (no string ISO) — mismo criterio que config.unix_date,
+                    // evita parsear fechas en el frontend. Usado como fallback de "abierta
+                    // hace X" cuando la sala no tiene fecha/hora programada (start_mode MANUAL).
+                    'unix_created_at'  => $room->created_at?->timestamp,
                 ],
             );
 

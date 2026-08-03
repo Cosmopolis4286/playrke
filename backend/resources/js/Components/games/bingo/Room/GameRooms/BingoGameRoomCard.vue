@@ -6,6 +6,7 @@ import {
   GAME_VARIANT_LABELS,
   isAccumulatedPrize,
   getTimerLevel,
+  formatOpenSince,
 } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 import { useSellingFastIndicator } from '@js/composables/games/bingo/room/game-rooms/useSellingFastIndicator'
@@ -79,6 +80,13 @@ const minEntryCostFormatted = computed(() => {
   return (price * minCardsToStart.value).toFixed(2)
 })
 
+// Fallback de la segunda línea de precio cuando la sala NO tiene mínimo de
+// cartones (minEntryCostFormatted null) — evita dejar ese espacio reservado
+// vacío en el footer.
+const openSinceLabel = computed(() =>
+  minEntryCostFormatted.value ? null : formatOpenSince(props.room.unix_created_at)
+)
+
 // Prueba social: preview anónimo de jugadores (solo iniciales), máx. 4 + contador de restantes
 const playersPreview = computed(() => props.room.players_preview ?? [])
 const extraPlayersCount = computed(() =>
@@ -148,12 +156,26 @@ function handleClick(event: MouseEvent) {
           >
             <i class="fas fa-rotate" />{{ roundsCount }} Ronda{{ roundsCount !== 1 ? 's' : '' }}
           </span>
-          <template v-if="startLabel">
-            <span class="rc__meta-dot" />
-            <span v-tooltip="'Fecha y hora programada de inicio del sorteo'" class="rc__meta-item">
-              <i class="far fa-calendar-alt" />{{ startLabel }}
-            </span>
-          </template>
+          <span class="rc__meta-dot" />
+          <span
+            v-if="startLabel"
+            v-tooltip="'Fecha y hora programada de inicio del sorteo'"
+            class="rc__meta-item"
+          >
+            <i class="far fa-calendar-alt" />{{ startLabel }}
+          </span>
+          <!-- Fallback cuando la sala no tiene fecha/hora programada todavía
+               (inicio manual, a la espera de que el anfitrión la programe o
+               la active) — antes este segmento se omitía por completo con
+               v-if="startLabel", dejando la fila sin ninguna señal de
+               "cuándo empieza esto". -->
+          <span
+            v-else
+            v-tooltip="'El anfitrión aún no programó fecha y hora para esta sala'"
+            class="rc__meta-item rc__meta-item--manual"
+          >
+            <i class="fas fa-hourglass-half" />Sin programar
+          </span>
         </div>
 
         <RoomCardPrizeProgress
@@ -175,6 +197,7 @@ function handleClick(event: MouseEvent) {
           :card-price-formatted="cardPriceFormatted"
           :sym="sym"
           :min-entry-cost-formatted="minEntryCostFormatted"
+          :open-since-label="openSinceLabel"
           :min-cards-to-start="minCardsToStart"
           :players-preview="playersPreview"
           :extra-players-count="extraPlayersCount"
@@ -347,6 +370,12 @@ function handleClick(event: MouseEvent) {
   width: 3px; height: 3px; border-radius: 50%;
   background: #34486a; flex-shrink: 0;
 }
+
+/* Fallback "Sin programar" — azul/violeta (distinto del ámbar ya usado por
+   el candado de sala privada, para no mezclar señales) para diferenciarlo
+   de la metadata neutra de al lado sin leer como alerta/advertencia. */
+.rc__meta-item--manual { color: #8ea8ff; }
+.rc__meta-item--manual i { color: #8ea8ff; }
 
 /* UX-02: etiqueta "Cerrada" para salas rc--off */
 .rc__closed-label {

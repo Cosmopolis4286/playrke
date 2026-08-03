@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { GAME_VARIANT_LABELS } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 import type { GameRoomFilters } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 
@@ -11,7 +11,24 @@ const props = defineProps<{
 const emit = defineEmits<{ apply: []; reset: [] }>()
 
 const showDatePicker = ref(false)
-const showRange = ref(false)
+// Refleja si ya hay un rango real aplicado (dateTo distinto de dateFrom) al
+// reabrir el popover — antes arrancaba siempre en false, así que un rango ya
+// aplicado se "perdía" visualmente (el input dateTo se ocultaba) hasta que
+// el usuario tocaba "Rango" de nuevo.
+const showRange = ref(!!props.filters.dateTo && props.filters.dateTo !== props.filters.dateFrom)
+
+const rootEl = ref<HTMLElement | null>(null)
+
+// Badge junto al ícono: muestra el rango completo (dd/mm–dd/mm) cuando dateTo
+// difiere de dateFrom, no solo la primera fecha — antes siempre mostraba
+// nada más que filters.dateFrom, ocultando que había un rango de días activo.
+const dateBadgeLabel = computed(() => {
+  const from = props.filters.dateFrom
+  if (!from) return null
+  const to = props.filters.dateTo
+  if (to && to !== from) return `${from.slice(5)}–${to.slice(5)}`
+  return from.slice(5)
+})
 
 function setVariant(variant: string | null) {
   props.filters.variant = variant
@@ -31,12 +48,21 @@ function handleReset() {
   showRange.value = false
   emit('reset')
 }
+
+function handleClickOutside(event: MouseEvent) {
+  if (showDatePicker.value && rootEl.value && !rootEl.value.contains(event.target as Node)) {
+    showDatePicker.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('mousedown', handleClickOutside))
+onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 </script>
 
 <template>
   <div class="grfb-bar flex w-full flex-wrap items-center justify-center gap-1.5">
     <!-- Toggle fecha: colapsado por defecto, evita ocupar 2 inputs siempre visibles -->
-    <div class="relative">
+    <div ref="rootEl" class="relative">
       <button
         type="button"
         class="grfb-icon-btn"
@@ -45,7 +71,7 @@ function handleReset() {
         @click="showDatePicker = !showDatePicker"
       >
         <i class="fas fa-calendar-day" />
-        <span v-if="filters.dateFrom" class="grfb-date-badge">{{ filters.dateFrom.slice(5) }}</span>
+        <span v-if="dateBadgeLabel" class="grfb-date-badge">{{ dateBadgeLabel }}</span>
       </button>
 
       <div v-if="showDatePicker" class="grfb-date-popover">
@@ -109,10 +135,10 @@ function handleReset() {
 
 .grfb-icon-btn {
   position: relative;
-  width: 30px; height: 30px; border-radius: 9px;
+  width: 26px; height: 26px; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
-  color: #7a96c8; font-size: 12px; cursor: pointer;
+  color: #7a96c8; font-size: 10.5px; cursor: pointer;
   transition: background .15s, color .15s, border-color .15s;
   flex-shrink: 0;
 }
@@ -128,8 +154,14 @@ function handleReset() {
 }
 
 .grfb-date-popover {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  /* Centrado respecto al propio botón que lo abre (su ancestro .relative),
+     no anclado a left:0 — con left:0 el popover se desplazaba hacia la
+     derecha del botón y se desbordaba del viewport en pantallas angostas
+     o cuando el botón está cerca del borde del toolbar. */
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  z-index: 40;
   display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  width: max-content; max-width: calc(100vw - 24px);
   padding: 8px; border-radius: 10px;
   background: #0d1530; border: 1px solid rgba(255,255,255,.12);
   box-shadow: 0 10px 30px rgba(0,0,0,.5);
@@ -157,7 +189,7 @@ function handleReset() {
 .grfb-apply:disabled { opacity: .5; cursor: not-allowed; }
 
 .grfb-pill {
-  padding: 5px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 700;
+  padding: 4px 9px; border-radius: 16px; font-size: 9.5px; font-weight: 700;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
   color: #7a96c8; cursor: pointer; white-space: nowrap; flex-shrink: 0;
   transition: background .15s, color .15s, border-color .15s;
@@ -166,7 +198,6 @@ function handleReset() {
 .grfb-pill:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 380px) {
-  .grfb-date-popover { left: 50%; transform: translateX(-50%); }
   .grfb-date__input { width: 108px; }
 }
 </style>

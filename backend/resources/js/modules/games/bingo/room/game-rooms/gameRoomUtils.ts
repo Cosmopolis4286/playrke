@@ -39,6 +39,29 @@ export function isLive(cd: RoomCountdown | undefined): boolean {
   return !cd || cd.expired
 }
 
+/**
+ * "Abierta hace X" — usado como fallback en el footer de la card cuando la
+ * sala no tiene un mínimo de cartones configurado (segunda línea bajo el
+ * precio, que si no se rellena queda vacía). No es un countdown reactivo:
+ * se recalcula solo cuando Vue re-renderiza el componente (suficiente para
+ * un dato de granularidad "minutos/horas", no necesita setInterval propio).
+ */
+export function formatOpenSince(unixCreatedAt: number | null | undefined): string | null {
+  if (!unixCreatedAt) return null
+  const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - unixCreatedAt)
+
+  if (elapsed < 60) return 'Abierta recién'
+
+  const minutes = Math.floor(elapsed / 60)
+  if (minutes < 60) return `Abierta hace ${minutes}m`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Abierta hace ${hours}h`
+
+  const days = Math.floor(hours / 24)
+  return `Abierta hace ${days}d`
+}
+
 export type TimerLevel = 'ok' | 'warning' | 'urgent'
 
 /**

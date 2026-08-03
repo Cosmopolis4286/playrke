@@ -9,6 +9,8 @@ const props = defineProps<{
   cardPriceFormatted: string
   sym: string
   minEntryCostFormatted: string | null
+  /** Fallback de la 2da línea cuando la sala no tiene mínimo de cartones ("Abierta hace X") */
+  openSinceLabel: string | null
   minCardsToStart: number | null
   playersPreview: PlayerPreview[]
   extraPlayersCount: number
@@ -46,6 +48,16 @@ const isFull = computed(() =>
         class="rc__price-min"
       >
         desde {{ minEntryCostFormatted }} {{ sym }}
+      </span>
+      <!-- Fallback cuando la sala no tiene mínimo de cartones: sin esto, el
+           espacio reservado por min-height en .rc__price-block quedaba
+           vacío en vez de aprovecharse para mostrar información útil. -->
+      <span
+        v-else-if="openSinceLabel"
+        v-tooltip="'Tiempo transcurrido desde que esta sala se abrió'"
+        class="rc__price-min"
+      >
+        {{ openSinceLabel }}
       </span>
     </div>
 
@@ -95,9 +107,16 @@ const isFull = computed(() =>
   flex-shrink: 0;
 }
 
+/* min-height reserva el espacio de las 2 líneas (precio + "desde X USD")
+   siempre, aunque la sala no tenga mínimo de cartones configurado y esa
+   segunda línea quede vacía — sin esto, las cards con/sin mínimo dentro de
+   la misma fila del grid quedaban con distinta altura de footer, generando
+   un hueco descuadrado entre el borde inferior de unas y otras. */
 .rc__price-block {
   display: flex; flex-direction: column; gap: 1px;
   min-width: 0;
+  min-height: 27px;
+  justify-content: center;
 }
 
 .rc__price {

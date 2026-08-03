@@ -29,40 +29,50 @@ const shortRoomCode = computed(() => {
     <div class="rc__img-veil" />
     <div class="rc__side-accent" />
 
-    <!-- Código corto de sala — discreto, esquina superior izquierda -->
-    <span v-if="shortRoomCode" class="rc__room-code">
-      <i class="fas fa-hashtag" />{{ shortRoomCode }}
-    </span>
+    <!-- Fila superior: código a la izquierda, estado + candado (solo ícono,
+         sin texto "Privada") agrupados a la derecha — evita el badge de
+         texto ancho que antes competía por espacio con el badge de estado
+         centrado. -->
+    <div class="rc__top-row">
+      <span v-if="shortRoomCode" class="rc__room-code">
+        <i class="fas fa-hashtag" />{{ shortRoomCode }}
+      </span>
+      <span v-else />
 
-    <!-- Badge de sala privada — esquina superior derecha (única libre: la
-         izquierda tiene el código, el centro tiene el badge de estado/timer) -->
-    <span v-if="roomType === 'PRIVATE'" v-tooltip="'Sala privada: requiere código de acceso'" class="rc__private-badge">
-      <i class="fas fa-lock" /> Privada
-    </span>
+      <div class="rc__top-row-right">
+        <!-- Un solo badge: fusiona estado + countdown cuando hay tiempo activo,
+             para no apilar dos pastillas (arriba/abajo) y ganar altura.
+             Semáforo: verde (>10min) → amarillo (2-10min) → rojo (<2min). -->
+        <div
+          v-if="hasTime"
+          v-tooltip="'Tiempo restante para el inicio del sorteo'"
+          class="rc__status-badge rc__status-badge--timer"
+          :class="`rc__status-badge--${timerLevel}`"
+        >
+          <i class="far fa-clock" /><b>{{ formatCountdown(countdown) }}</b>
+        </div>
+        <div
+          v-else
+          v-tooltip="isAvailable
+            ? 'Sala abierta: puedes comprar cartones ahora mismo'
+            : isInProgress
+              ? 'El sorteo ya comenzó — no se pueden comprar más cartones'
+              : 'Esta sala ya no admite compras'"
+          class="rc__status-badge"
+          :class="isAvailable ? 'rc__status-badge--ok' : isInProgress ? 'rc__status-badge--live' : 'rc__status-badge--off'"
+        >
+          <span class="rc__status-dot" />
+          {{ isAvailable ? 'ACTIVA' : isInProgress ? 'EN JUEGO' : 'CERRADA' }}
+        </div>
 
-    <!-- Un solo badge: fusiona estado + countdown cuando hay tiempo activo,
-         para no apilar dos pastillas (arriba/abajo) y ganar altura.
-         Semáforo: verde (>10min) → amarillo (2-10min) → rojo (<2min). -->
-    <div
-      v-if="hasTime"
-      v-tooltip="'Tiempo restante para el inicio del sorteo'"
-      class="rc__status-badge rc__status-badge--timer"
-      :class="`rc__status-badge--${timerLevel}`"
-    >
-      <i class="far fa-clock" /><b>{{ formatCountdown(countdown) }}</b>
-    </div>
-    <div
-      v-else
-      v-tooltip="isAvailable
-        ? 'Sala abierta: puedes comprar cartones ahora mismo'
-        : isInProgress
-          ? 'El sorteo ya comenzó — no se pueden comprar más cartones'
-          : 'Esta sala ya no admite compras'"
-      class="rc__status-badge"
-      :class="isAvailable ? 'rc__status-badge--ok' : isInProgress ? 'rc__status-badge--live' : 'rc__status-badge--off'"
-    >
-      <span class="rc__status-dot" />
-      {{ isAvailable ? 'ACTIVA' : isInProgress ? 'EN JUEGO' : 'CERRADA' }}
+        <span
+          v-if="roomType === 'PRIVATE'"
+          v-tooltip="'Sala privada: requiere código de acceso'"
+          class="rc__private-icon"
+        >
+          <i class="fas fa-lock" />
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -122,37 +132,46 @@ const shortRoomCode = computed(() => {
   opacity: .5;
 }
 
-/* Código corto de sala — discreto, esquina superior izquierda, sin badge */
+/* Fila superior: código a la izquierda, estado + candado agrupados a la
+   derecha — reemplaza el badge de estado centrado (colisionaba con el
+   badge "Privada" de texto ancho) por un layout de fila con espacio
+   dedicado a cada elemento, sin solapamientos posibles. */
+.rc__top-row {
+  position: absolute; top: 6px; left: 8px; right: 8px; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+
+.rc__top-row-right {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+
 .rc__room-code {
-  position: absolute; top: 6px; left: 8px; z-index: 3;
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 8px; font-weight: 600; letter-spacing: .4px;
   color: rgba(255,255,255,.38);
   text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  flex-shrink: 0;
 }
 .rc__room-code i { font-size: 6.5px; opacity: .7; }
 
-/* Badge "Privada" — esquina superior derecha, tono ámbar (consistente con
-   el ícono de candado usado en los modales de acceso privado) */
-.rc__private-badge {
-  position: absolute; top: 6px; right: 8px; z-index: 3;
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 7px; border-radius: 10px;
-  font-size: 8px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
-  background: rgba(42,32,6,.7); border: 1px solid rgba(255,194,0,.35);
-  color: #ffc200;
-  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+/* Ícono "Privada" — solo candado circular, sin texto (menos ancho que el
+   badge de texto anterior, tono ámbar consistente con los modales de
+   acceso privado). */
+.rc__private-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(42,32,6,.75); border: 1px solid rgba(255,194,0,.4);
+  color: #ffc200; font-size: 7px;
 }
-.rc__private-badge i { font-size: 7px; }
 
-/* badge único — top centrado; fusiona estado + countdown para no apilar dos pastillas */
+/* badge único — ya no centrado absoluto, vive en el flujo de .rc__top-row-right;
+   fusiona estado + countdown para no apilar dos pastillas */
 .rc__status-badge {
-  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 10px; border-radius: 20px;
   font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
   white-space: nowrap; backdrop-filter: blur(10px);
-  box-shadow: 0 2px 10px rgba(0,0,0,.4); z-index: 3;
+  box-shadow: 0 2px 10px rgba(0,0,0,.4);
   transition: box-shadow .3s ease;
 }
 .rc__status-dot {
@@ -173,13 +192,13 @@ const shortRoomCode = computed(() => {
 }
 .rc__status-badge i.far { font-size: 8.5px; opacity: .7; }
 
-/* ── Badge del timer — agrandado para mejor legibilidad, con semáforo por tiempo restante ── */
-.rc__status-badge--timer {
-  padding: 5px 14px 5px 12px; border-radius: 22px;
-  gap: 6px;
-}
-.rc__status-badge--timer i.far { font-size: 10px; }
-.rc__status-badge--timer b { font-size: 12px; letter-spacing: .5px; }
+/* Badge del timer — mismo alto/padding/tamaño de texto que el badge de
+   estado (antes tenía padding y font-size mayores, así que ambos badges se
+   veían con distinta altura al alternar entre salas con/sin countdown
+   activo dentro de la misma grilla). Semáforo por tiempo restante vía las
+   clases --ok/--warning/--urgent de abajo. */
+.rc__status-badge--timer i.far { font-size: 8.5px; }
+.rc__status-badge--timer b { font-size: 9.5px; letter-spacing: .3px; }
 
 /* Verde: sorteo tranquilo, >10 minutos */
 .rc__status-badge--ok.rc__status-badge--timer {

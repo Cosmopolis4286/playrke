@@ -8,8 +8,9 @@
  */
 import { onMounted } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import PlatformWalletPanel from '@js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
-import PlatformCashModal   from '@js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
+import PlatformWalletPanel   from '@js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
+import PlatformCashModal     from '@js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
+import RkeCommissionsSection from '@js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
 import { usePlatformWallet }    from '@js/composables/roles/superadmin/dashboard/usePlatformWallet'
 import { usePlatformCashModal } from '@js/composables/roles/superadmin/dashboard/usePlatformCashModal'
 import { useMovementTypeCatalog } from '@js/composables/wallet/useMovementTypeCatalog'
@@ -27,8 +28,8 @@ const { cashModal, openCashModal, closeCashModal, withdrawConfirmed, submitCash 
   usePlatformCashModal(activePlatformWallet, loadPlatformWallets)
 
 const { metaFor: movMeta, fetchMovementTypes } = useMovementTypeCatalog()
-const { rkeSummary, loadRkeSummary } = useRkeSummary()
-const { formatUsd, formatDateTime } = useDashboardFormatters()
+const { rkeSummary, rkeLoading, rkeError, loadRkeSummary } = useRkeSummary()
+const { formatUsd, formatDate, formatDateTime } = useDashboardFormatters()
 
 onMounted(() => {
   loadPlatformWallets()
@@ -66,6 +67,15 @@ onMounted(() => {
       :format-usd="formatUsd"
       @close="closeCashModal"
       @submit="submitCash"
+    />
+
+    <RkeCommissionsSection
+      :summary="rkeSummary"
+      :loading="rkeLoading"
+      :error="rkeError"
+      :format-usd="formatUsd"
+      :format-date="formatDate"
+      @refresh="loadRkeSummary"
     />
   </div>
 </template>

@@ -71,11 +71,22 @@ const {
       <div class="grp-header-line" />
 
       <div class="grp-toolbar">
-        <GameRoomsKpiHeader
-          :next-room-unix-date="nextRoomUnixDate"
-          :total-active-rooms="totalActiveRooms"
-          :loading="filtersLoading"
-        />
+        <div class="grp-toolbar__top">
+          <GameRoomsKpiHeader
+            :next-room-unix-date="nextRoomUnixDate"
+            :total-active-rooms="totalActiveRooms"
+            :loading="filtersLoading"
+          />
+
+          <button
+            type="button"
+            class="grp-join-code-btn"
+            title="Unirse a una sala privada con código"
+            @click="joinByCode.open()"
+          >
+            <i class="fas fa-key" />
+          </button>
+        </div>
 
         <GameRoomsFilterBar
           :filters="filters"
@@ -83,14 +94,6 @@ const {
           @apply="applyFilters"
           @reset="resetFilters"
         />
-
-        <button
-          type="button"
-          class="grp-join-code-btn"
-          @click="joinByCode.open()"
-        >
-          <i class="fas fa-key" /> Código
-        </button>
       </div>
     </div>
 
@@ -100,16 +103,19 @@ const {
       <p class="grp-empty-title">No hay salas disponibles</p>
     </div>
 
-    <!-- ── Grid de tarjetas (Tailwind: columnas responsivas 1/2/3, gap consistente) ── -->
+    <!-- ── Grid de tarjetas ──
+         justify-content: center sobre el propio grid (no justify-items, que
+         centra CADA item dentro de SU columna) centra el bloque de columnas
+         completo dentro del contenedor cuando sobra espacio — con 1, 2, 3 o
+         N cards el resultado es siempre el conjunto centrado, sin depender
+         de un conteo condicional frágil. Columnas de ancho fijo (220px) +
+         auto-fit: el navegador decide cuántas caben, sin breakpoints manuales. -->
     <div v-else class="game-rooms-page__grid-wrap mx-auto w-full max-w-[1180px] px-1">
-      <div
-        class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3"
-        :class="{ 'justify-items-center': filteredRooms.length < 4 }"
-      >
+      <div class="grp-cards-grid">
         <div
           v-for="(room, index) in filteredRooms"
           :key="room.id"
-          class="flex w-full max-w-[460px]"
+          class="flex"
         >
           <BingoGameRoomCard
             :room="room"
@@ -342,16 +348,16 @@ const {
    del contenido de la página. */
 .grp-rules-fab {
   position: absolute;
-  right: 20px;
-  bottom: 24px;
+  right: 16px;
+  bottom: 18px;
   z-index: 50;
-  width: 50px;
-  height: 50px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid rgba(123,79,255,0.35);
   background: linear-gradient(135deg, #2a1f5e 0%, #1a2a52 100%);
   color: #cdd8ff;
-  font-size: 18px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -379,11 +385,11 @@ const {
 
 @media (max-width: 576px) {
   .grp-rules-fab {
-    right: 14px;
-    bottom: 18px;
-    width: 44px;
-    height: 44px;
-    font-size: 16px;
+    right: 12px;
+    bottom: 14px;
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
   }
 }
 
@@ -392,13 +398,20 @@ const {
 ═══════════════════════════════ */
 .game-rooms-page__header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   position: relative;
+  /* La animación (opacity+transform) crea su propio stacking context, así
+     que el z-index del popover de fecha (dentro de .grp-toolbar, hijo de
+     este header) solo compite DENTRO de este contexto — nunca contra
+     .game-rooms-page__grid-wrap, que es HERMANO del header, no descendiente.
+     Sin z-index aquí, el popover quedaba atrapado detrás de las cards pese
+     a tener z-index alto en sí mismo. */
+  z-index: 5;
   animation: fadeSlideDown 0.7s ease both;
 }
 
 @media (max-width: 380px) {
-  .game-rooms-page__header { margin-bottom: 18px; }
+  .game-rooms-page__header { margin-bottom: 14px; }
 }
 
 @keyframes fadeSlideDown {
@@ -418,13 +431,13 @@ const {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
 .grp-dice {
-  font-size: 28px;
-  filter: drop-shadow(0 0 10px rgba(42,245,152,0.6));
+  font-size: 18px;
+  filter: drop-shadow(0 0 8px rgba(42,245,152,0.6));
   animation: spinDice 8s linear infinite;
   color: #2af598;
   flex-shrink: 0;
@@ -432,8 +445,8 @@ const {
 .grp-dice--2 { animation-direction: reverse; animation-duration: 10s; color: #009efd; }
 
 @media (max-width: 380px) {
-  .grp-title-wrap { gap: 10px; }
-  .grp-dice { font-size: 20px; }
+  .grp-title-wrap { gap: 8px; }
+  .grp-dice { font-size: 14px; }
 }
 
 @keyframes spinDice {
@@ -441,15 +454,20 @@ const {
   100% { transform: rotate(360deg); }
 }
 
+/* Fuente más "gaming/display" que Anton para el título — Orbitron ya se usa
+   en los valores de KPI/timers de esta misma página (ver GameRoomsKpiHeader,
+   RoomCardThumbnail), así que reutilizarla aquí da coherencia tipográfica
+   en vez de mezclar una tercera fuente. */
 .game-rooms-page__title {
-  font-family: "Anton", sans-serif;
-  font-size: clamp(24px, 7vw, 44px);
-  letter-spacing: 4px;
+  font-family: "Orbitron", "Anton", sans-serif;
+  font-size: clamp(18px, 5vw, 28px);
+  font-weight: 800;
+  letter-spacing: 2px;
   color: #e0eaff;
   margin: 0;
   text-shadow:
-    0 0 40px rgba(42,245,152,0.25),
-    0 0 80px rgba(123,79,255,0.15),
+    0 0 30px rgba(42,245,152,0.22),
+    0 0 60px rgba(123,79,255,0.12),
     0 2px 4px rgba(0,0,0,0.5);
   background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, #7b4fff 100%);
   -webkit-background-clip: text;
@@ -458,20 +476,20 @@ const {
 }
 
 .game-rooms-page__subtitle {
-  font-size: 13px;
+  font-size: 11px;
   color: #7a96c8;
-  letter-spacing: 0.8px;
-  margin: 0 0 16px;
+  letter-spacing: 0.4px;
+  margin: 0 0 10px;
   padding: 0 12px;
 }
 
 @media (max-width: 380px) {
-  .game-rooms-page__title { letter-spacing: 2px; }
-  .game-rooms-page__subtitle { font-size: 12px; }
+  .game-rooms-page__title { letter-spacing: 1px; }
+  .game-rooms-page__subtitle { font-size: 10px; }
 }
 
 .grp-header-line {
-  width: 80px;
+  width: 60px;
   height: 2px;
   margin: 0 auto;
   background: linear-gradient(90deg, transparent, #2af598, #009efd, transparent);
@@ -489,32 +507,39 @@ const {
 }
 
 .grp-toolbar {
-  display: flex; align-items: center; justify-content: center;
-  flex-wrap: wrap; gap: 10px;
-  margin: 16px auto 0; max-width: 760px; padding: 0 12px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px;
+  margin: 10px auto 0; max-width: 620px; padding: 0 12px;
+  /* Contexto de apilamiento propio, por encima del grid de cards: las cards
+     tienen `animation` (crea stacking context) y su :key.hover sube z-index
+     implícitamente, así que sin esto el popover de fecha (z-index:20, pero
+     relativo a un ancestro con z-index menor) terminaba renderizando DEBAJO
+     de las cards pese a estar antes en el DOM. */
+  position: relative;
+  z-index: 30;
 }
 
-/* ≥640px: suficiente ancho para que KPIs+filtros+código respiren en una sola
-   fila sin wrap — separa visualmente los grupos con un poco más de gap. */
-@media (min-width: 640px) {
-  .grp-toolbar { gap: 14px; }
+.grp-toolbar__top {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 
+/* Botón "Código" — ícono circular compacto, separado de la fila de filtros
+   para no competir visualmente con los pills de variante. */
 .grp-join-code-btn {
-  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
-  padding: 6px 14px; border-radius: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
   background: rgba(255,194,0,.08); border: 1px solid rgba(255,194,0,.28);
-  color: #ffc200; font-size: 11px; font-weight: 700; letter-spacing: .2px;
+  color: #ffc200; font-size: 12px;
   cursor: pointer; transition: background .2s, transform .2s;
 }
 .grp-join-code-btn:hover {
-  background: rgba(255,194,0,.16);
-  transform: translateY(-1px);
+  background: rgba(255,194,0,.18);
+  transform: translateY(-1px) scale(1.05);
 }
 
 @media (max-width: 380px) {
-  .grp-toolbar { gap: 6px; margin-top: 10px; }
-  .grp-join-code-btn { padding: 5px 11px; font-size: 10px; }
+  .grp-toolbar { gap: 6px; margin-top: 8px; }
+  .grp-join-code-btn { width: 26px; height: 26px; font-size: 11px; }
 }
 
 .game-rooms-page__pagination {
@@ -566,12 +591,26 @@ const {
 }
 
 /* ═══════════════════════════════
-   GRID — columnas/gap ahora en Tailwind (ver template); solo queda el
-   padding fino en mobile muy angosto, que Tailwind no cubre por breakpoint
-   propio a 380px (su "sm" empieza en 640px).
+   GRID — auto-fit + justify-content:center centra el BLOQUE de columnas
+   completo (a diferencia de justify-items, que centra cada card dentro de
+   su propia columna y deja el conjunto pegado a la izquierda cuando el
+   número de items no llena la última fila). Funciona igual con 1 o con 20
+   cards, sin conteos condicionales.
 ═══════════════════════════════ */
+.grp-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 220px));
+  justify-content: center;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .grp-cards-grid { gap: 18px; }
+}
+
 @media (max-width: 380px) {
   .game-rooms-page__grid-wrap { padding: 0; }
+  .grp-cards-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
 }
 
 /* estilos del modal de info movidos a BingoRoomInfoModal.vue */

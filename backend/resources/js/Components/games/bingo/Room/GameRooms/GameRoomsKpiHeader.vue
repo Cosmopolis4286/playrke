@@ -26,6 +26,10 @@ const secondsRemaining = computed(() => {
   return Math.max(0, props.nextRoomUnixDate - Math.floor(now.value / 1000))
 })
 
+// Máximo 3 unidades de tiempo, siempre las 3 más significativas para la
+// magnitud restante: ≥1 día → días/horas/minutos; si no, horas/minutos/segundos.
+// Antes cortaba a solo "Xd Xh" (2 unidades) cuando había días, perdiendo
+// precisión frente al caso <1 día que sí mostraba segundos.
 const nextRoomLabel = computed(() => {
   const secs = secondsRemaining.value
   if (secs === null) return '—'
@@ -34,7 +38,8 @@ const nextRoomLabel = computed(() => {
   const days = Math.floor(secs / 86400)
   if (days >= 1) {
     const hours = Math.floor((secs % 86400) / 3600)
-    return `${days}d ${hours}h`
+    const minutes = Math.floor((secs % 3600) / 60)
+    return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`
   }
 
   const h = Math.floor(secs / 3600)
@@ -64,30 +69,30 @@ const nextRoomLabel = computed(() => {
 
 <style scoped>
 .grk-row {
-  padding: 6px 14px; border-radius: 20px;
+  padding: 5px 12px; border-radius: 18px;
   background: linear-gradient(160deg, rgba(123,79,255,.08) 0%, rgba(10,15,36,.55) 100%);
   border: 1px solid rgba(255,255,255,.08);
   transition: opacity .2s;
 }
 .grk-row--loading { opacity: .5; }
 .grk-chip__icon {
-  font-size: 12px; color: #2af598;
+  font-size: 10.5px; color: #2af598;
   filter: drop-shadow(0 0 5px rgba(42,245,152,.35));
 }
 .grk-chip__value {
   font-family: 'Orbitron', 'Anton', monospace;
-  font-size: 12.5px; font-weight: 700; letter-spacing: .2px;
+  font-size: 11px; font-weight: 700; letter-spacing: .2px;
   color: #e0eaff;
 }
 .grk-chip__label {
-  font-size: 8.5px; letter-spacing: .3px; color: #7a96c8;
+  font-size: 7.5px; letter-spacing: .3px; color: #7a96c8;
   text-transform: uppercase;
 }
-.grk-sep { width: 1px; height: 14px; background: rgba(255,255,255,.1); flex-shrink: 0; }
+.grk-sep { width: 1px; height: 12px; background: rgba(255,255,255,.1); flex-shrink: 0; }
 
 @media (max-width: 380px) {
-  .grk-row { padding: 5px 10px; gap: 7px; }
-  .grk-chip__value { font-size: 11px; }
+  .grk-row { padding: 4px 9px; gap: 6px; }
+  .grk-chip__value { font-size: 10px; }
   .grk-chip__label { display: none; }
 }
 </style>
