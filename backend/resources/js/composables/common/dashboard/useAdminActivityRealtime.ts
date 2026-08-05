@@ -17,9 +17,15 @@ interface CardSoldPayload {
   amount_usd: number
 }
 
-interface WinnerDeclaredPayload {
-  room_id: string
-  winner: { id: string; name: string; card_id: string; pattern: string; prize: number }
+interface WinEventPayload {
+  id: string
+  game: string
+  winner_name: string
+  prize_kind: 'money' | 'item' | 'service'
+  prize_label: string | null
+  amount: number | null
+  currency_symbol: string
+  is_usd: boolean
   timestamp: string
 }
 
@@ -35,21 +41,39 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 /**
- * Alimenta el feed de actividad reciente del dashboard de Admin/SuperAdmin
- * escuchando dos canales privados que ya existen en el sistema:
+ * Qué tipos de evento ve cada rol en el feed general de actividad. Config
+ * simple en código (no hay UI de administración para esto — con 2 roles y
+ * 4 tipos de evento no se justifica una tabla de visibilidad ni una página
+ * de gestión dedicada; si crece, migrar a un patrón tipo SidebarMenuVisibility).
  *
- * - `admins.activity`: usuarios nuevos, cartones vendidos, ganadores de bingo.
- * - `admins.wallet-movements`: solo el desenlace (aprobado/rechazado) de un
- *   movimiento — la solicitud en sí ya la maneja `useWalletMovementsRealtime`
- *   para el widget de pendientes, este composable únicamente añade el cierre
- *   del ciclo al feed general para que quede visible ahí también.
- *
- * Ambos canales toleran múltiples suscriptores simultáneos (Echo cuenta
- * referencias), así que compartir `admins.wallet-movements` con el widget de
- * pendientes es seguro siempre que se usen `stopListening` y no `leave` al
- * desmontar — de lo contrario se cortaría la suscripción del otro consumidor.
+ * Admin no ve el desenlace de movimientos de wallet en el feed general —
+ * sigue teniendo su propio widget de pendientes (DashboardPendingWalletWidget),
+ * pero el feed general es sobre usuarios/ventas/ganadores.
  */
-export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => void) {
+const WALLET_EVENTS_VISIBLE_FOR: Array<'admin' | 'superadmin'> = ['superadmin']
+
+/**
+ * Alimenta el feed de actividad reciente del dashboard de Admin/SuperAdmin.
+ * Escucha solo señales de alto valor, sin duplicados:
+ *
+ * - `admins.activity` (privado): usuarios nuevos, cartones vendidos.
+ * - `platform.win-events` (público): ganadores de CUALQUIER juego (bingo,
+ *   trivia, futuros). Se usa este evento agregador en vez de escuchar el
+ *   `.WinnerDeclared` específico de bingo porque ambos se disparan para el
+ *   mismo gane (BingoDrawService dispara los dos secuencialmente) — escuchar
+ *   ambos duplicaría la notificación en el feed.
+ * - `admins.wallet-movements` (privado, solo SuperAdmin): solo el desenlace
+ *   (aprobado/rechazado) de un movimiento — la solicitud en sí ya la maneja
+ *   `useWalletMovementsRealtime` para el widget de pendientes, este
+ *   composable añade el cierre del ciclo al feed general.
+ *
+ * Los canales privados toleran múltiples suscriptores simultáneos (Echo
+ * cuenta referencias), así que compartir `admins.wallet-movements` con el
+ * widget de pendientes es seguro siempre que se use `stopListening` y no
+ * `leave` al desmontar — de lo contrario se cortaría la suscripción del
+ * otro consumidor.
+ */
+export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => void, role: 'admin' | 'superadmin' = 'admin') {
   const isLive = ref(false)
   const newUsersToday = ref(0)
   const cardsSoldToday = ref(0)
@@ -77,13 +101,16 @@ export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => voi
     })
   }
 
-  const onWinnerDeclared = (payload: WinnerDeclaredPayload) => {
+  const onWinEvent = (payload: WinEventPayload) => {
     winnersToday.value++
+    const prize = payload.prize_kind === 'money' && payload.amount !== null
+      ? `${payload.currency_symbol}${payload.amount.toFixed(2)}`
+      : (payload.prize_label ?? 'Premio')
     onActivity({
-      id: `winner-${payload.winner.card_id}-${Date.now()}`,
+      id: `win-${payload.id}`,
       type: 'bingo',
-      title: `🏆 ${payload.winner.name} ganó`,
-      description: `Patrón ${payload.winner.pattern} · $${payload.winner.prize.toFixed(2)}`,
+      title: `🏆 ${payload.winner_name} ganó en ${payload.game}`,
+      description: prize,
       timestamp: payload.timestamp,
     })
   }
@@ -98,28 +125,38 @@ export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => voi
     })
   }
 
+  const showWalletEvents = WALLET_EVENTS_VISIBLE_FOR.includes(role)
+
   onMounted(() => {
     const activityChannel = echo.private('admins.activity')
 
     activityChannel.listen('.user.registered', onUserRegistered)
     activityChannel.listen('.card.sold', onCardSold)
-    activityChannel.listen('.WinnerDeclared', onWinnerDeclared)
 
     activityChannel.subscribed(() => { isLive.value = true })
     activityChannel.error(() => { isLive.value = false })
 
-    echo.private('admins.wallet-movements')
-      .listen('.wallet.movement.processed', onMovementProcessed)
+    echo.channel('platform.win-events')
+      .listen('.NewWin', onWinEvent)
+
+    if (showWalletEvents) {
+      echo.private('admins.wallet-movements')
+        .listen('.wallet.movement.processed', onMovementProcessed)
+    }
   })
 
   onBeforeUnmount(() => {
     echo.private('admins.activity')
       .stopListening('.user.registered', onUserRegistered)
       .stopListening('.card.sold', onCardSold)
-      .stopListening('.WinnerDeclared', onWinnerDeclared)
 
-    echo.private('admins.wallet-movements')
-      .stopListening('.wallet.movement.processed', onMovementProcessed)
+    echo.channel('platform.win-events')
+      .stopListening('.NewWin', onWinEvent)
+
+    if (showWalletEvents) {
+      echo.private('admins.wallet-movements')
+        .stopListening('.wallet.movement.processed', onMovementProcessed)
+    }
   })
 
   return { isLive, newUsersToday, cardsSoldToday, winnersToday }

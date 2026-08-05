@@ -56,7 +56,7 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
-  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(prependActivity)
+  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(prependActivity, 'superadmin')
 
   const recentMovements = ref<ActivityItem[]>([])
 
