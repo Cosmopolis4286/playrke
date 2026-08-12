@@ -103,6 +103,14 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Cupo máximo de jugadores en la sala (null = sin límite)');
 
+            $table->unsignedInteger('max_cards_to_start')
+                ->nullable()
+                ->comment('Máximo de cartones permitido en la sala (null = sin límite)');
+
+            $table->unsignedInteger('min_players')
+                ->nullable()
+                ->comment('Cantidad mínima de jugadores requerida para iniciar el sorteo (null = sin condición)');
+
             // Cartón personalizado
             $table->boolean('allow_custom_card')->default(false);
 

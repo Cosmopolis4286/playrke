@@ -44,6 +44,9 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?bool         $autoCreateRoom    = null,
         public readonly ?int          $maxRoomsPerDay        = null,
         public readonly ?int          $minCardsToStart       = null,
+        public readonly ?int          $maxCardsToStart       = null,
+        public readonly ?int          $minPlayers            = null,
+        public readonly ?int          $maxPlayers            = null,
         public readonly ?int          $salesStartOffsetDays  = null,
         public readonly ?bool         $roomsPerCurrency      = null,
         public readonly ?bool         $allowCustomCard       = null,
@@ -114,6 +117,15 @@ final class BingoRoomAutomaticUpdateDTO
             autoCreateRoom: isset($data['autoCreateRoom']) ? (bool) $data['autoCreateRoom'] : null,
             maxRoomsPerDay: isset($data['maxRoomsPerDay']) ? (int) $data['maxRoomsPerDay'] : null,
             minCardsToStart: isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null,
+            maxCardsToStart: array_key_exists('maxCardsToStart', $data)
+                ? (isset($data['maxCardsToStart']) ? (int) $data['maxCardsToStart'] : null)
+                : null,
+            minPlayers: array_key_exists('minPlayers', $data)
+                ? (isset($data['minPlayers']) ? (int) $data['minPlayers'] : null)
+                : null,
+            maxPlayers: array_key_exists('maxPlayers', $data)
+                ? (isset($data['maxPlayers']) ? (int) $data['maxPlayers'] : null)
+                : null,
             salesStartOffsetDays: isset($data['salesStartOffsetDays']) ? (int) $data['salesStartOffsetDays'] : null,
             roomsPerCurrency: isset($data['roomsPerCurrency']) ? (bool) $data['roomsPerCurrency'] : null,
             allowCustomCard: isset($data['allowCustomCard']) ? (bool) $data['allowCustomCard'] : null,

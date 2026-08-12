@@ -42,8 +42,12 @@ class BingoRoomRequest extends BaseRequest
 
             // Cantidad mínima de cartones vendidos para permitir el inicio del sorteo (opcional)
             'minCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:10000'],
+            // Máximo de cartones permitido en la sala (opcional, sin límite si no se envía)
+            'maxCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:10000'],
             // Cupo máximo de jugadores en la sala (opcional, sin límite si no se envía)
             'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
+            // Cantidad mínima de jugadores requerida para permitir el inicio del sorteo (opcional)
+            'minPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'connectionType'              => ['required', 'exists:connection_types,id'],
             'gameMode'                    => ['nullable', 'exists:game_modes,id'],
@@ -311,6 +315,30 @@ class BingoRoomRequest extends BaseRequest
                     );
                 }
             }
+
+            // Validación cruzada min/max: solo si AMBOS extremos del par tienen valor
+            // (nuevo del request, o el ya guardado en la sala si el campo no vino en
+            // este request), min debe ser <= max. Cada campo del par sigue siendo
+            // independientemente opcional — esto solo bloquea la combinación
+            // inconsistente cuando los dos están presentes a la vez.
+            $room = $this->route('room');
+            $currentConfig = $room?->config?->first();
+
+            $resolvePair = function (string $minKey, string $maxKey, string $currentMinCol, string $currentMaxCol) use ($currentConfig) {
+                $min = $this->has($minKey) ? $this->input($minKey) : ($currentConfig?->{$currentMinCol} ?? null);
+                $max = $this->has($maxKey) ? $this->input($maxKey) : ($currentConfig?->{$currentMaxCol} ?? null);
+                return [$min, $max];
+            };
+
+            [$minCards, $maxCards] = $resolvePair('minCardsToStart', 'maxCardsToStart', 'min_cards_to_start', 'max_cards_to_start');
+            if ($minCards !== null && $maxCards !== null && !$validator->errors()->has('maxCardsToStart') && (int) $minCards > (int) $maxCards) {
+                $validator->errors()->add('maxCardsToStart', 'El máximo de cartones debe ser mayor o igual al mínimo.');
+            }
+
+            [$minPlayersVal, $maxPlayersVal] = $resolvePair('minPlayers', 'maxPlayers', 'min_players', 'max_players');
+            if ($minPlayersVal !== null && $maxPlayersVal !== null && !$validator->errors()->has('maxPlayers') && (int) $minPlayersVal > (int) $maxPlayersVal) {
+                $validator->errors()->add('maxPlayers', 'El máximo de jugadores debe ser mayor o igual al mínimo.');
+            }
         });
     }
 
@@ -335,9 +363,17 @@ class BingoRoomRequest extends BaseRequest
             'minCardsToStart.min'             => 'La cantidad mínima de cartones debe ser al menos 1.',
             'minCardsToStart.max'             => 'La cantidad mínima de cartones no puede superar 10000.',
 
+            'maxCardsToStart.integer'          => 'El máximo de cartones debe ser un número entero.',
+            'maxCardsToStart.min'              => 'El máximo de cartones debe ser al menos 1.',
+            'maxCardsToStart.max'              => 'El máximo de cartones no puede superar 10000.',
+
             'maxPlayers.integer'              => 'El cupo máximo de jugadores debe ser un número entero.',
             'maxPlayers.min'                  => 'El cupo máximo de jugadores debe ser al menos 1.',
             'maxPlayers.max'                  => 'El cupo máximo de jugadores no puede superar 100000.',
+
+            'minPlayers.integer'              => 'El mínimo de jugadores debe ser un número entero.',
+            'minPlayers.min'                  => 'El mínimo de jugadores debe ser al menos 1.',
+            'minPlayers.max'                  => 'El mínimo de jugadores no puede superar 100000.',
 
             'roomType.required'               => 'El tipo de sala es obligatorio.',
             'roomType.exists'                 => 'El tipo de sala seleccionado no es válido.',

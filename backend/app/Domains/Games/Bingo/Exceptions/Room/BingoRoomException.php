@@ -150,6 +150,11 @@ final class BingoRoomException extends DomainException
         return new self("La sala requiere al menos {$required} cartones vendidos para iniciar (actualmente tiene {$current}).");
     }
 
+    public static function minPlayersNotReached(int $required, int $current): self
+    {
+        return new self("La sala requiere al menos {$required} jugadores para iniciar (actualmente tiene {$current}).");
+    }
+
     public static function roomFull(): static
     {
         return new static('La sala ha alcanzado el límite máximo de jugadores.');

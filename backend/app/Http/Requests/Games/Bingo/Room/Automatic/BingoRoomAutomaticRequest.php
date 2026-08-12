@@ -110,6 +110,12 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             // Mínimo de cartones para iniciar el juego
             'minCardsToStart'            => ['nullable', 'integer', 'min:1', 'max:10000'],
+            // Máximo de cartones permitido en la sala (opcional, sin límite si no se envía)
+            'maxCardsToStart'            => ['nullable', 'integer', 'min:1', 'max:10000'],
+            // Cupo máximo de jugadores en la sala (opcional, sin límite si no se envía)
+            'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
+            // Cantidad mínima de jugadores requerida para permitir el inicio del sorteo (opcional)
+            'minPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
 
             // Días de anticipación para publicar la sala antes del inicio del juego
             // null = mismo día; 1..30 = la sala se publica N días antes
@@ -182,6 +188,27 @@ class BingoRoomAutomaticRequest extends BaseRequest
                     'moveFreeSpaceMode',
                     'Mover la casilla libre requiere permitir cartón personalizado.'
                 );
+            }
+
+            // Validación cruzada min/max: solo si AMBOS extremos del par tienen valor
+            // (nuevo del request, o el ya guardado en la sala si el campo no vino en
+            // este request), min debe ser <= max. Estos 3 campos viven en la raíz del
+            // modelo BingoRoomAutomatic (no hay relación `config` como en salas
+            // manuales), así que se resuelven directo contra $currentRoom.
+            // Insertada ANTES del bloque de allowedCurrencies porque ese bloque tiene
+            // varios `return` tempranos que cortarían esta validación si fuera después.
+            $currentRoom = $this->route('room');
+
+            $minCards = $this->has('minCardsToStart') ? $this->input('minCardsToStart') : ($currentRoom?->min_cards_to_start ?? null);
+            $maxCards = $this->has('maxCardsToStart') ? $this->input('maxCardsToStart') : ($currentRoom?->max_cards_to_start ?? null);
+            if ($minCards !== null && $maxCards !== null && !$validator->errors()->has('maxCardsToStart') && (int) $minCards > (int) $maxCards) {
+                $validator->errors()->add('maxCardsToStart', 'El máximo de cartones debe ser mayor o igual al mínimo.');
+            }
+
+            $minPlayersVal = $this->has('minPlayers') ? $this->input('minPlayers') : ($currentRoom?->min_players ?? null);
+            $maxPlayersVal = $this->has('maxPlayers') ? $this->input('maxPlayers') : ($currentRoom?->max_players ?? null);
+            if ($minPlayersVal !== null && $maxPlayersVal !== null && !$validator->errors()->has('maxPlayers') && (int) $minPlayersVal > (int) $maxPlayersVal) {
+                $validator->errors()->add('maxPlayers', 'El máximo de jugadores debe ser mayor o igual al mínimo.');
             }
 
             $allowedCurrencies = $this->input('allowedCurrencies');
@@ -346,6 +373,18 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'minCardsToStart.integer'         => 'El mínimo de cartones debe ser un número entero.',
             'minCardsToStart.min'             => 'El mínimo de cartones debe ser al menos 1.',
             'minCardsToStart.max'             => 'El mínimo de cartones no puede superar 10.000.',
+
+            'maxCardsToStart.integer'         => 'El máximo de cartones debe ser un número entero.',
+            'maxCardsToStart.min'             => 'El máximo de cartones debe ser al menos 1.',
+            'maxCardsToStart.max'             => 'El máximo de cartones no puede superar 10.000.',
+
+            'maxPlayers.integer'              => 'El cupo máximo de jugadores debe ser un número entero.',
+            'maxPlayers.min'                  => 'El cupo máximo de jugadores debe ser al menos 1.',
+            'maxPlayers.max'                  => 'El cupo máximo de jugadores no puede superar 100000.',
+
+            'minPlayers.integer'              => 'El mínimo de jugadores debe ser un número entero.',
+            'minPlayers.min'                  => 'El mínimo de jugadores debe ser al menos 1.',
+            'minPlayers.max'                  => 'El mínimo de jugadores no puede superar 100000.',
 
             'salesStartOffsetDays.integer'    => 'Los días de anticipación deben ser un número entero.',
             'salesStartOffsetDays.min'        => 'Los días de anticipación deben ser al menos 1.',

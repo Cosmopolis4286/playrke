@@ -373,7 +373,9 @@ class BingoRoomCrudService
             'moveFreeSpacePricePct' => $dto->moveFreeSpacePricePct,
             'maxSpecialCards'       => $dto->maxSpecialCards,
             'minCardsToStart'       => $dto->minCardsToStart,
+            'maxCardsToStart'       => $dto->maxCardsToStart,
             'maxPlayers'            => $dto->maxPlayers,
+            'minPlayers'            => $dto->minPlayers,
             'accessCode'            => $dto->accessCode,
             'roomPassword'          => $dto->roomPassword,
             'hostUserId'            => $dto->hostUserId,
@@ -529,6 +531,13 @@ class BingoRoomCrudService
         // max_players: cupo opcional de jugadores, aplicado por BingoRoomCapacityGuard
         // en BingoCardGenerationService al comprar cartones. null = sin límite.
         $base['max_players'] = $dto->maxPlayers;
+
+        // max_cards_to_start: máximo de cartones permitido (informativo, no bloquea
+        // compra — no existe guard de capacidad de cartones análogo a
+        // BingoRoomCapacityGuard). min_players: condición opcional de jugadores
+        // mínimos, análoga a min_cards_to_start, para permitir el inicio del sorteo.
+        $base['max_cards_to_start'] = $dto->maxCardsToStart;
+        $base['min_players'] = $dto->minPlayers;
 
         // En update, omitir allowed_currencies si no vino en el request (null = no modificar)
         if ($dto->allowedCurrencies === null && !$isCreate) {
@@ -1083,6 +1092,11 @@ class BingoRoomCrudService
             $minCards = $room->config?->min_cards_to_start;
             if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
                 throw BingoRoomException::minCardsNotReached($minCards, $room->total_cards ?? 0);
+            }
+
+            $minPlayers = $room->config?->min_players;
+            if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
+                throw BingoRoomException::minPlayersNotReached($minPlayers, $room->total_players ?? 0);
             }
 
             $now = Carbon::now('UTC');

@@ -101,6 +101,18 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Cartones mínimos necesarios para iniciar el juego (null = sin condición)');
 
+            $table->unsignedSmallInteger('max_cards_to_start')
+                ->nullable()
+                ->comment('Máximo de cartones permitido en la sala (null = sin límite)');
+
+            $table->unsignedSmallInteger('min_players')
+                ->nullable()
+                ->comment('Cantidad mínima de jugadores requerida para iniciar el sorteo (null = sin condición)');
+
+            $table->unsignedInteger('max_players')
+                ->nullable()
+                ->comment('Cupo máximo de jugadores en la sala (null = sin límite)');
+
             // Días de anticipación con que se publica la sala antes de que inicie el juego.
             // null = la sala se publica y juega el mismo día (comportamiento legacy).
             // Ej: 3 → la sala se crea 3 días antes de la hora programada en `time`.

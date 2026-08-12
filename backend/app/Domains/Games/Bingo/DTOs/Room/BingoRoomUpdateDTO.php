@@ -46,6 +46,8 @@ final class BingoRoomUpdateDTO
         public readonly ?bool $allowSpecialCard = null,
         public readonly ?int $maxSpecialCards = null,
         public readonly ?int $maxPlayers = null,
+        public readonly ?int $maxCardsToStart = null,
+        public readonly ?int $minPlayers = null,
         public readonly ?string $accessCode = null,
         public readonly ?string $roomPassword = null,
         public readonly string|int|null $hostUserId = null,
@@ -110,6 +112,12 @@ final class BingoRoomUpdateDTO
             allowSpecialCard: isset($data['allowSpecialCard']) ? (bool) $data['allowSpecialCard'] : null,
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
             maxPlayers: isset($data['maxPlayers']) ? (int) $data['maxPlayers'] : null,
+            maxCardsToStart: array_key_exists('maxCardsToStart', $data)
+                ? (isset($data['maxCardsToStart']) ? (int) $data['maxCardsToStart'] : null)
+                : null,
+            minPlayers: array_key_exists('minPlayers', $data)
+                ? (isset($data['minPlayers']) ? (int) $data['minPlayers'] : null)
+                : null,
             accessCode: $data['accessCode'] ?? null,
             // null = no cambiar la contraseña existente (el frontend nunca precarga el hash)
             roomPassword: $data['roomPassword'] ?? null,
