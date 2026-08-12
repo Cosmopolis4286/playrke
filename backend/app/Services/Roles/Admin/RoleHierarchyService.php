@@ -17,11 +17,18 @@ use Illuminate\Support\Collection;
  * Roles nuevos que no aparezcan en DOMAIN_TREE se cuelgan automáticamente de
  * la raíz (superadmin) como huérfanos, para que un rol agregado solo en
  * RoleSeeder (sin tocar este mapa) siga siendo visible en el árbol.
+ *
+ * Las claves de DOMAIN_TREE/FUNCTIONS son Role::prefix en minúscula. Role::
+ * prefix se persiste en MAYÚSCULA (ver Role::setPrefixAttribute(), que aplica
+ * strtoupper()), así que todo lookup contra estos mapas pasa \$role->prefix
+ * por strtolower() primero — mismo criterio que User.php y
+ * RoleUserRepository.php al comparar prefijos. Role::name ('SuperAdmin',
+ * 'Comercio'...) es solo el label de UI, no sirve como clave aquí.
  */
 final class RoleHierarchyService
 {
     /**
-     * Mapa prefix => prefix del padre. null = raíz.
+     * Mapa prefix (minúscula) => prefix del padre. null = raíz.
      * 'admin' y 'treasurer' son transversales (reportan directo a superadmin,
      * no dependen de un Commerce específico). 'provider' es un rol reservado
      * sin dominio propio aún (ver RoleSeeder). 'external_player' cuelga de
@@ -59,22 +66,22 @@ final class RoleHierarchyService
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->keyBy('prefix');
+            ->keyBy(fn (Role $role) => strtolower((string) $role->prefix));
 
         $nodesByParent = $this->groupByParent($roles);
 
-        $roots = $roles->filter(fn (Role $role) => $this->parentOf($role->prefix) === null || !$roles->has($this->parentOf($role->prefix)));
+        $roots = $roles->filter(fn (Role $role) => $this->parentOf($role) === null || !$roles->has($this->parentOf($role)));
 
         return $roots
             ->sortBy('sort_order')
             ->values()
-            ->map(fn (Role $role) => $this->serializeNode($role, $nodesByParent, $roles))
+            ->map(fn (Role $role) => $this->serializeNode($role, $nodesByParent))
             ->all();
     }
 
-    private function parentOf(string $rolePrefix): ?string
+    private function parentOf(Role $role): ?string
     {
-        return self::DOMAIN_TREE[$rolePrefix] ?? null;
+        return self::DOMAIN_TREE[strtolower((string) $role->prefix)] ?? null;
     }
 
     /**
@@ -83,15 +90,17 @@ final class RoleHierarchyService
      */
     private function groupByParent(Collection $roles): Collection
     {
-        return $roles->groupBy(fn (Role $role) => $this->parentOf($role->prefix) ?? '__root__');
+        return $roles->groupBy(fn (Role $role) => $this->parentOf($role) ?? '__root__');
     }
 
-    private function serializeNode(Role $role, Collection $nodesByParent, Collection $allRoles): array
+    private function serializeNode(Role $role, Collection $nodesByParent): array
     {
-        $children = $nodesByParent->get($role->prefix, collect())
+        $prefixKey = strtolower((string) $role->prefix);
+
+        $children = $nodesByParent->get($prefixKey, collect())
             ->sortBy('sort_order')
             ->values()
-            ->map(fn (Role $child) => $this->serializeNode($child, $nodesByParent, $allRoles))
+            ->map(fn (Role $child) => $this->serializeNode($child, $nodesByParent))
             ->all();
 
         return [
@@ -99,7 +108,7 @@ final class RoleHierarchyService
             'name' => $role->name,
             'prefix' => $role->prefix,
             'description' => $role->description,
-            'function' => self::FUNCTIONS[$role->prefix] ?? $role->description,
+            'function' => self::FUNCTIONS[$prefixKey] ?? $role->description,
             'status' => $role->status,
             'sort_order' => $role->sort_order,
             'icon' => $role->icon,
