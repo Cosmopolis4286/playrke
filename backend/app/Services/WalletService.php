@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
+use App\Events\Games\Trivia\TriviaEntryPurchased;
 use App\Events\Wallet\WalletUpdated;
 use App\Events\Wallet\WalletMovementRequested;
 use App\Models\Directories\Crypto\Binance\BinanceAccount;
@@ -351,9 +352,18 @@ final class WalletService
     /**
      * Descuenta la entrada a una sala de Trivia y registra el movimiento TRIVIA_ENTRY.
      * La wallet se pasa ya resuelta (sin aceptar walletId externo).
+     *
+     * $roomId/$roomName son opcionales para no romper otros callers futuros,
+     * pero si se pasan disparan TriviaEntryPurchased hacia admins.activity —
+     * mismo patrón que BingoCardSold para ventas de cartones.
      */
-    public function recordTriviaEntry(Wallet $wallet, float $amount, string $description = 'Entrada sala Trivia'): Wallet
-    {
+    public function recordTriviaEntry(
+        Wallet $wallet,
+        float $amount,
+        string $description = 'Entrada sala Trivia',
+        ?string $roomId = null,
+        ?string $roomName = null,
+    ): Wallet {
         $movementId = null;
 
         $result = DB::transaction(function () use ($wallet, $amount, $description, &$movementId) {
@@ -398,6 +408,15 @@ final class WalletService
         });
 
         $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount, $movementId);
+
+        if ($roomId !== null && $roomName !== null) {
+            broadcast(new TriviaEntryPurchased(
+                roomId:         $roomId,
+                roomName:       $roomName,
+                amount:         $amount,
+                currencySymbol: $result->currency?->symbol ?? '',
+            ));
+        }
 
         return $result;
     }

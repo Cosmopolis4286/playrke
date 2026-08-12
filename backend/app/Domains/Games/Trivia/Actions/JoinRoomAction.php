@@ -241,6 +241,8 @@ class JoinRoomAction
             wallet:      $chargeWallet,
             amount:      $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
+            roomId:      (string) $room->id,
+            roomName:    $room->title,
         );
     }
 
@@ -274,6 +276,8 @@ class JoinRoomAction
             wallet:      $wallet,
             amount:      $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
+            roomId:      (string) $room->id,
+            roomName:    $room->title,
         );
     }
 

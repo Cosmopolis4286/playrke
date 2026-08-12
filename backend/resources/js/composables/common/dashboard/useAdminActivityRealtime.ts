@@ -17,6 +17,13 @@ interface CardSoldPayload {
   amount_usd: number
 }
 
+interface TriviaEntryPayload {
+  room_id: string
+  room_name: string
+  amount: number
+  currency_symbol: string
+}
+
 interface WinEventPayload {
   id: string
   game: string
@@ -56,7 +63,8 @@ const WALLET_EVENTS_VISIBLE_FOR: Array<'admin' | 'superadmin'> = ['superadmin']
  * Alimenta el feed de actividad reciente del dashboard de Admin/SuperAdmin.
  * Escucha solo señales de alto valor, sin duplicados:
  *
- * - `admins.activity` (privado): usuarios nuevos, cartones vendidos.
+ * - `admins.activity` (privado): usuarios nuevos, cartones de bingo vendidos,
+ *   entradas pagadas a salas de Trivia.
  * - `platform.win-events` (público): ganadores de CUALQUIER juego (bingo,
  *   trivia, futuros). Se usa este evento agregador en vez de escuchar el
  *   `.WinnerDeclared` específico de bingo porque ambos se disparan para el
@@ -101,6 +109,16 @@ export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => voi
     })
   }
 
+  const onTriviaEntry = (payload: TriviaEntryPayload) => {
+    onActivity({
+      id: `trivia-entry-${payload.room_id}-${Date.now()}`,
+      type: 'sale',
+      title: 'Entrada a sala Trivia',
+      description: `Sala ${payload.room_name} · ${payload.currency_symbol}${payload.amount.toFixed(2)}`,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   const onWinEvent = (payload: WinEventPayload) => {
     winnersToday.value++
     const prize = payload.prize_kind === 'money' && payload.amount !== null
@@ -132,6 +150,7 @@ export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => voi
 
     activityChannel.listen('.user.registered', onUserRegistered)
     activityChannel.listen('.card.sold', onCardSold)
+    activityChannel.listen('.trivia.entry', onTriviaEntry)
 
     activityChannel.subscribed(() => { isLive.value = true })
     activityChannel.error(() => { isLive.value = false })
@@ -149,6 +168,7 @@ export function useAdminActivityRealtime(onActivity: (item: ActivityItem) => voi
     echo.private('admins.activity')
       .stopListening('.user.registered', onUserRegistered)
       .stopListening('.card.sold', onCardSold)
+      .stopListening('.trivia.entry', onTriviaEntry)
 
     echo.channel('platform.win-events')
       .stopListening('.NewWin', onWinEvent)
