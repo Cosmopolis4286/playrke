@@ -42,6 +42,7 @@ export function useDashboard(initialStats?: Partial<Record<string, StatCardData>
     }
 
     function prependActivity(item: ActivityItem): void {
+        if (recentActivity.value.some((existing) => existing.id === item.id)) return
         recentActivity.value.unshift(item)
     }
 

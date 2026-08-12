@@ -26,6 +26,7 @@
   import { ref }                         from 'vue'
   import { useAdminDashboard }           from '@/js/composables/roles/admin/dashboard/useAdminDashboard'
   import { useAdminActivityRealtime }    from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { useActivityLogReconciliation } from '@/js/composables/common/dashboard/useActivityLogReconciliation'
   import { useWalletMovementsRealtime, type WalletMovementRequestedPayload } from '@/js/composables/wallet/admin/useWalletMovementsRealtime'
   import { useDashboardQuickLinks }      from '@/js/composables/common/dashboard/useDashboardQuickLinks'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
@@ -48,7 +49,17 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, salesTrend, pendingWalletCount, prependActivity } = useAdminDashboard(props)
-  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(prependActivity, 'admin')
+
+  const { noteRealtimeItem } = useActivityLogReconciliation(
+    (items) => items.forEach((item) => prependActivity(item)),
+  )
+
+  function onLiveActivity(item: ActivityItem) {
+    prependActivity(item)
+    noteRealtimeItem(item)
+  }
+
+  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(onLiveActivity, 'admin')
 
   const recentMovements = ref<ActivityItem[]>([])
 

@@ -29,6 +29,7 @@
   import { onMounted, ref }           from 'vue'
   import { useSuperAdminDashboard }   from '@/js/composables/roles/superadmin/dashboard/useSuperAdminDashboard'
   import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { useActivityLogReconciliation } from '@/js/composables/common/dashboard/useActivityLogReconciliation'
   import { useWalletMovementsRealtime, type WalletMovementRequestedPayload } from '@/js/composables/wallet/admin/useWalletMovementsRealtime'
   import { useMovementTypeCatalog }   from '@/js/composables/wallet/useMovementTypeCatalog'
   import { useDashboardQuickLinks }   from '@/js/composables/common/dashboard/useDashboardQuickLinks'
@@ -56,7 +57,17 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
-  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(prependActivity, 'superadmin')
+
+  const { noteRealtimeItem } = useActivityLogReconciliation(
+    (items) => items.forEach((item) => prependActivity(item)),
+  )
+
+  function onLiveActivity(item: ActivityItem) {
+    prependActivity(item)
+    noteRealtimeItem(item)
+  }
+
+  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(onLiveActivity, 'superadmin')
 
   const recentMovements = ref<ActivityItem[]>([])
 

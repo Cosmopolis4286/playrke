@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\Roles\ContextResolverService;
+use App\Services\Roles\Dashboard\ActivityLogQueryService;
+use Carbon\Carbon;
 use DomainException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -22,6 +26,7 @@ class DashboardController extends Controller
 
     public function __construct(
         private readonly ContextResolverService $service,
+        private readonly ActivityLogQueryService $activityLogService,
     ) {}
 
     /**
@@ -67,5 +72,23 @@ class DashboardController extends Controller
     private function viewFolderFor(string $rolePrefix): string
     {
         return self::VIEW_FOLDER_OVERRIDES[$rolePrefix] ?? ucfirst($rolePrefix);
+    }
+
+    /**
+     * Reconstruye la actividad reciente desde las tablas de origen (sin
+     * copia persistida) — usado por el frontend para reconciliar el feed
+     * en vivo tras una desconexión del WebSocket, no como fuente primaria.
+     */
+    public function activityLog(Request $request): JsonResponse
+    {
+        $since = $request->query('since')
+            ? Carbon::parse($request->query('since'))
+            : null;
+
+        $includeWalletEvents = Auth::user()?->hasRole('superadmin') ?? false;
+
+        return response()->json([
+            'items' => $this->activityLogService->since($since, $includeWalletEvents),
+        ]);
     }
 }
