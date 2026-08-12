@@ -69,7 +69,9 @@ final class BingoLobbyRoomChanged implements ShouldBroadcast
                     'date'               => $config->date?->toDateString(),
                     'time'               => $config->time,
                     'min_cards_to_start' => $config->min_cards_to_start,
+                    'max_cards_to_start' => $config->max_cards_to_start,
                     'max_players'        => $config->max_players,
+                    'min_players'        => $config->min_players,
                 ] : null,
             ],
         ];

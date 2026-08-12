@@ -239,7 +239,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         bool $light = false
     ): Builder {
         $with = [
-            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,connection_type_id,min_cards_to_start,max_players,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x',
+            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,connection_type_id,min_cards_to_start,max_cards_to_start,max_players,min_players,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x',
             'config.prizePoolType:id,code,label',
             'config.roomType:id,code,label',
             'config.connectionType:id,code,label',

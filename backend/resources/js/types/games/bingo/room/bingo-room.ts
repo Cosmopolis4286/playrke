@@ -145,7 +145,9 @@ export interface BingoRoom {
         host_user_label?: string | null
         start_mode?: string | null
         min_cards_to_start?: number | null
+        max_cards_to_start?: number | null
         max_players?: number | null
+        min_players?: number | null
         date?: string | null
         time?: string | null
         connection_type_id?: string | number | null
@@ -262,7 +264,9 @@ export interface BingoRoomFormData {
     time?: string | null
     startMode?: BingoRoomStartMode
     minCardsToStart?: number | null
+    maxCardsToStart?: number | null
     maxPlayers?: number | null
+    minPlayers?: number | null
     roomType?: BingoRoomType | null
     connectionType?: number | string | null
     gameMode?: number | string | null

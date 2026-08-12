@@ -74,6 +74,7 @@ final class BingoRoomHealthCheckService
             fn() => $this->assertHasRounds($room),
             fn() => $this->assertRoundsHavePatterns($room),
             fn() => $this->assertMinCardsReached($room),
+            fn() => $this->assertMinPlayersReached($room),
             fn() => $this->assertPrizePoolCoherent($room),
         ];
     }
@@ -137,6 +138,16 @@ final class BingoRoomHealthCheckService
         if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
             throw new \DomainException(
                 "La sala #{$room->id} requiere mínimo {$minCards} cartones para sortear, tiene " . ($room->total_cards ?? 0) . "."
+            );
+        }
+    }
+
+    private function assertMinPlayersReached(BingoRoom $room): void
+    {
+        $minPlayers = $room->config?->min_players;
+        if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
+            throw new \DomainException(
+                "La sala #{$room->id} requiere mínimo {$minPlayers} jugadores para sortear, tiene " . ($room->total_players ?? 0) . "."
             );
         }
     }

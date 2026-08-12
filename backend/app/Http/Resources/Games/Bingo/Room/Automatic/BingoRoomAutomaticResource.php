@@ -13,6 +13,9 @@ class BingoRoomAutomaticResource extends JsonResource
             'status'                => $this->status->code,
             'days'                  => $this->days ?? [],
             'min_cards_to_start'    => $this->min_cards_to_start,
+            'max_cards_to_start'    => $this->max_cards_to_start,
+            'min_players'           => $this->min_players,
+            'max_players'           => $this->max_players,
             'sales_start_offset_days' => $this->sales_start_offset_days,
 
             'allowed_currencies' => $this->allowed_currencies ?? [],

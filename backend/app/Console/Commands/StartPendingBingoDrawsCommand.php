@@ -57,7 +57,7 @@ class StartPendingBingoDrawsCommand extends Command
                     'rounds as active_round_count'   => fn($q) => $q->whereIn('status', ['ACTIVE', 'IN_PROGRESS']),
                     'rounds as finished_round_count' => fn($q) => $q->where('status', 'FINISHED'),
                 ])
-                ->with('config:id,room_id,unix_date,min_cards_to_start')
+                ->with('config:id,room_id,unix_date,min_cards_to_start,min_players')
                 ->get();
 
             foreach ($rooms as $room) {
@@ -65,6 +65,14 @@ class StartPendingBingoDrawsCommand extends Command
                 // vendidos antes de poder iniciar su sorteo (ver min_cards_to_start).
                 $minCards = $room->config?->min_cards_to_start;
                 if ($minCards !== null && ($room->total_cards_count ?? 0) < $minCards) {
+                    continue;
+                }
+
+                // Condición opcional análoga, pero de jugadores en vez de cartones —
+                // reutiliza registered_players_count ya calculado en el withCount de
+                // arriba, sin agregar una query nueva.
+                $minPlayers = $room->config?->min_players;
+                if ($minPlayers !== null && ($room->registered_players_count ?? 0) < $minPlayers) {
                     continue;
                 }
 
