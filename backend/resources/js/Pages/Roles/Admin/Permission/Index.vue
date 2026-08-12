@@ -36,30 +36,56 @@
           </div>
         </div>
 
-        <div class="row">
-          <div class="col-12">
-            <ModulesPanel
-              :modules="modules"
-              @toggle="handleToggleModule"
-            />
+        <ul class="nav nav-tabs section-tabs">
+          <li class="nav-item">
+            <button class="nav-link" :class="{ active: activeTab === 'matrix' }" @click="activeTab = 'matrix'">
+              <i class="fas fa-table mr-2"></i>Matriz de Permisos
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" :class="{ active: activeTab === 'hierarchy' }" @click="onHierarchyTabClick">
+              <i class="fas fa-sitemap mr-2"></i>Jerarquía de Roles
+            </button>
+          </li>
+        </ul>
+
+        <div v-show="activeTab === 'matrix'">
+          <div class="row">
+            <div class="col-12">
+              <ModulesPanel
+                :modules="modules"
+                @toggle="handleToggleModule"
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <PermissionMatrix
+                :permissions="permissions"
+                :roles="roles"
+                :loading="loading"
+                :has-changes="hasChanges"
+                :pending-change-count="pendingChangeCount"
+                :has-permission="hasPermission"
+                @toggle-permission="togglePermission"
+                @reload="reload"
+                @save="handleSave"
+                @create-permission="handleCreate"
+                @update-permission="handleUpdate"
+                @delete-permission="handleDelete"
+                @copy-permissions="handleCopy"
+              />
+            </div>
           </div>
         </div>
-        <div class="row">
+
+        <div v-show="activeTab === 'hierarchy'" class="row">
           <div class="col-12">
-            <PermissionMatrix
-              :permissions="permissions"
-              :roles="roles"
-              :loading="loading"
-              :has-changes="hasChanges"
-              :pending-change-count="pendingChangeCount"
-              :has-permission="hasPermission"
-              @toggle-permission="togglePermission"
-              @reload="reload"
-              @save="handleSave"
-              @create-permission="handleCreate"
-              @update-permission="handleUpdate"
-              @delete-permission="handleDelete"
-              @copy-permissions="handleCopy"
+            <RoleHierarchyTree
+              :tree="hierarchyTree"
+              :loading="hierarchyLoading"
+              :on-save="handleHierarchySave"
+              @reload="fetchHierarchy"
             />
           </div>
         </div>
@@ -74,18 +100,22 @@ import { computed, ref } from 'vue'
 import PermissionMatrix from '@/js/Components/Roles/Admin/PermissionMatrix.vue'
 import ModulesPanel from '@/js/Components/Roles/Admin/ModulesPanel.vue'
 import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
+import RoleHierarchyTree from '@/js/Components/Roles/Admin/RoleHierarchyTree.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import { useModules } from '@/js/composables/roles/admin/module/useModules'
+import { useRoleHierarchy } from '@/js/composables/roles/admin/role/useRoleHierarchy'
 import { useToast } from 'vue-toastification'
 import type { PermissionPageProps } from '@/js/types/roles/admin/permission-page'
+import type { RoleMetaUpdate } from '@/js/types/roles/admin/role'
 
 const toast = useToast()
 
 const props = defineProps<PermissionPageProps>()
 
 const showRoleManager = ref(false)
+const activeTab = ref<'matrix' | 'hierarchy'>('matrix')
 
 const breadcrumbItems = [
   { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
@@ -110,6 +140,21 @@ const {
 } = usePermissions({ permissions: props.permissions, roles: props.roles })
 
 const { modules, toggleModuleStatus } = useModules(props.modules)
+
+const { tree: hierarchyTree, loading: hierarchyLoading, fetchHierarchy, updateRoleMeta } = useRoleHierarchy()
+
+let hierarchyLoaded = false
+function onHierarchyTabClick() {
+  activeTab.value = 'hierarchy'
+  if (!hierarchyLoaded) {
+    hierarchyLoaded = true
+    fetchHierarchy()
+  }
+}
+
+async function handleHierarchySave(roleId: string, attributes: RoleMetaUpdate) {
+  await updateRoleMeta(roleId, attributes)
+}
 
 const stats = computed(() => ({
   total: permissions.value.rows?.length ?? 0,
@@ -176,5 +221,26 @@ async function handleCopy(sourceRoleId: string, targetRoleId: string) {
 .stats-row {
   margin-bottom: 1rem;
   row-gap: 0.75rem;
+}
+
+.section-tabs {
+  border-bottom: 1px solid var(--ds-border);
+  margin-bottom: 1rem;
+  gap: 0.25rem;
+}
+.section-tabs .nav-link {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ds-text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+}
+.section-tabs .nav-link:hover { color: var(--ds-text); }
+.section-tabs .nav-link.active {
+  color: var(--ds-primary, #2563eb);
+  border-bottom-color: var(--ds-primary, #2563eb);
 }
 </style>

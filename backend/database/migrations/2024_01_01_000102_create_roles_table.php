@@ -19,6 +19,9 @@ return new class extends Migration
             $table->enum('type', ['web', 'api'])->default('web')->comment('Tipo de rol: web o api');
             $table->string('description')->nullable();
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+            $table->unsignedSmallInteger('sort_order')->default(0)->comment('Orden/nivel en el organigrama de roles (menor = más alto en jerarquía)');
+            $table->string('icon')->nullable()->comment('Clase de icono FontAwesome para el organigrama, ej. fa-crown');
+            $table->string('color', 20)->nullable()->comment('Color hex/token para el organigrama, ej. #7c3aed');
             $table->timestamps();
         });
     }

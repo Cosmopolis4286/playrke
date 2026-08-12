@@ -13,15 +13,18 @@ final class RoleService
     }
 
     /**
-     * Actualiza solo metadatos editables (description). El campo `name` es
-     * la clave técnica que consumen Spatie, el middleware `role:` y
-     * SidebarMenuService::exclude_roles — no se expone a edición aquí para
-     * no romper autorización en cascada por un typo.
+     * Actualiza solo metadatos editables (description, sort_order, icon,
+     * color). El campo `name` es la clave técnica que consumen Spatie, el
+     * middleware `role:` y SidebarMenuService::exclude_roles — no se expone
+     * a edición aquí para no romper autorización en cascada por un typo.
+     *
+     * $attributes ya viene validado/filtrado por RoleController::update()
+     * (solo claves permitidas: description, sort_order, icon, color).
      */
-    public function updateDescription(string $roleId, string $description): Role
+    public function updateMeta(string $roleId, array $attributes): Role
     {
         $role = Role::findOrFail($roleId);
-        $role->update(['description' => $description]);
+        $role->update($attributes);
 
         return $role;
     }

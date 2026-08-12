@@ -44,6 +44,9 @@ class Role extends Model implements RoleContract
         'prefix',       // Prefijo del rol (para categorización)
         'description',  // Descripción del rol
         'status',       // Estado del rol (activo/inactivo)
+        'sort_order',   // Orden/nivel en el organigrama de roles
+        'icon',         // Icono FontAwesome para el organigrama
+        'color',        // Color para el organigrama
     ];
 
     /**
@@ -53,6 +56,7 @@ class Role extends Model implements RoleContract
      */
     protected $casts = [
         'status' => AsActiveStatusEnum::class,
+        'sort_order' => 'integer',
     ];
 
 

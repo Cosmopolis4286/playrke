@@ -249,6 +249,7 @@ Route::middleware('auth')->group(function () {
      */
     role_protected_routes(['role:superadmin'], 'roles-admin', RoleController::class, [
         'fetchList'    => ['method' => 'get',   'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'hierarchy'    => ['method' => 'get',   'uri' => 'hierarchy',     'action' => 'hierarchy'],
         'update'       => ['method' => 'patch', 'uri' => '{role}',        'action' => 'update'],
         'toggleStatus' => ['method' => 'put',   'uri' => '{role}/status', 'action' => 'toggleStatus'],
     ], 'role');

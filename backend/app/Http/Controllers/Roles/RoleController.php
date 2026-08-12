@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Models\Role;
+use App\Services\Roles\Admin\RoleHierarchyService;
 use App\Services\Roles\Admin\RoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ final class RoleController extends Controller
 {
     public function __construct(
         protected readonly RoleService $service,
+        protected readonly RoleHierarchyService $hierarchyService,
     ) {}
 
     public function fetchList(): JsonResponse
@@ -29,16 +31,28 @@ final class RoleController extends Controller
         ]);
     }
 
+    public function hierarchy(): JsonResponse
+    {
+        $this->authorize('viewAny', Role::class);
+
+        return response()->json([
+            'tree' => $this->hierarchyService->buildTree(),
+        ]);
+    }
+
     public function update(Request $request, string $role): JsonResponse
     {
         $roleModel = Role::findOrFail($role);
         $this->authorize('update', $roleModel);
 
-        $request->validate([
-            'description' => 'required|string|max:255',
+        $validated = $request->validate([
+            'description' => 'sometimes|required|string|max:255',
+            'sort_order' => 'sometimes|required|integer|min:0|max:65535',
+            'icon' => 'sometimes|nullable|string|max:50',
+            'color' => 'sometimes|nullable|string|max:20',
         ]);
 
-        $updated = $this->service->updateDescription($role, $request->string('description')->toString());
+        $updated = $this->service->updateMeta($role, $validated);
 
         return response()->json([
             'message' => 'Rol actualizado correctamente',
