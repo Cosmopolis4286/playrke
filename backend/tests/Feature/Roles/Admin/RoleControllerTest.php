@@ -74,8 +74,43 @@ class RoleControllerTest extends TestCase
         $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
 
         $this->actingAs($player)->getJson('/roles-admin/fetch-list')->assertStatus(403);
+        $this->actingAs($player)->getJson('/roles-admin/hierarchy')->assertStatus(403);
         $this->actingAs($player)->patchJson("/roles-admin/{$playerRole->id}", ['description' => 'x'])->assertStatus(403);
         $this->actingAs($player)->putJson("/roles-admin/{$playerRole->id}/status")->assertStatus(403);
+    }
+
+    public function test_superadmin_can_view_role_hierarchy(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+
+        $response = $this->actingAs($superadmin)->getJson('/roles-admin/hierarchy');
+
+        $response->assertOk();
+        $tree = $response->json('tree');
+        $this->assertNotEmpty($tree);
+        $this->assertSame('SuperAdmin', $tree[0]['name']);
+        $this->assertSame('SUPERADMIN', $tree[0]['prefix']);
+        $this->assertArrayHasKey('children', $tree[0]);
+        $this->assertArrayHasKey('users_count', $tree[0]);
+        $this->assertArrayHasKey('permissions_count', $tree[0]);
+    }
+
+    public function test_superadmin_can_update_role_sort_order_icon_and_color(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
+            'sort_order' => 42,
+            'icon' => 'fa-star',
+            'color' => '#123456',
+        ]);
+
+        $response->assertOk();
+        $fresh = $playerRole->fresh();
+        $this->assertSame(42, $fresh->sort_order);
+        $this->assertSame('fa-star', $fresh->icon);
+        $this->assertSame('#123456', $fresh->color);
     }
 
     public function test_superadmin_can_update_role_description(): void
