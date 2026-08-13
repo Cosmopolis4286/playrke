@@ -28,6 +28,8 @@
             :player="player"
             :busy="busyId === player.id"
             @toggle-block="handleToggleBlock"
+            @regenerate-link="handleRegenerateLink"
+            @reactivate="handleReactivate"
           />
         </div>
       </div>
@@ -64,6 +66,8 @@ const emit = defineEmits<{
   (e: 'search-debounced', filters: Filters): void
   (e: 'page-change', page: number): void
   (e: 'toggle-block', playerId: string): void
+  (e: 'regenerate-link', playerId: string): void
+  (e: 'reactivate', playerId: string): void
   (e: 'export'): void
 }>()
 
@@ -90,6 +94,37 @@ async function handleToggleBlock(player: ExternalPlayer) {
   busyId.value = player.id
   try {
     emit('toggle-block', player.id)
+  } finally {
+    busyId.value = null
+  }
+}
+
+async function handleRegenerateLink(player: ExternalPlayer) {
+  const result = await Swal.fire({
+    title: 'Regenerar link',
+    html: `<p class="mb-0">El link actual de "${player.first_name} ${player.last_name}" dejará de funcionar y se generará uno nuevo. Úsalo si el link se compartió por error.</p>`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#0d6efd',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, regenerar',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true,
+  })
+  if (!result.isConfirmed) return
+
+  busyId.value = player.id
+  try {
+    emit('regenerate-link', player.id)
+  } finally {
+    busyId.value = null
+  }
+}
+
+async function handleReactivate(player: ExternalPlayer) {
+  busyId.value = player.id
+  try {
+    emit('reactivate', player.id)
   } finally {
     busyId.value = null
   }

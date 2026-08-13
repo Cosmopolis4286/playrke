@@ -70,6 +70,13 @@ class SettingSeeder extends Seeder
             ['param' => 'bingo_max_cards_per_player',   'value' => '20',     'status' => 'ACTIVE'],
 
             // ─────────────────────────────────────────────
+            // JUGADORES EXTERNOS
+            // ─────────────────────────────────────────────
+            // Días de vigencia del link de un jugador externo antes de expirar
+            // (ver App\Traits\Users\PlayerLinkTrait::handleExternalPlayers()).
+            ['param' => 'external_player_link_expiration_days', 'value' => '7', 'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
             // BINGO – JUEGO
             // ─────────────────────────────────────────────
             // Tiempo (segundos) entre cada bolilla sorteada.

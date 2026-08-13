@@ -54,6 +54,24 @@
         </template>
       </VDropdown>
       <button
+        v-if="player.status === 'INACTIVE'"
+        v-tooltip="'Reactivar jugador expirado y renovar su link'"
+        class="btn btn-sm btn-outline-primary"
+        :disabled="busy"
+        @click="$emit('reactivate', player)"
+      >
+        <i class="fas fa-rotate-right"></i> Reactivar
+      </button>
+      <button
+        v-if="player.status !== 'BLOCKED'"
+        v-tooltip="'Invalida el link actual y genera uno nuevo, sin bloquear al jugador'"
+        class="btn btn-sm btn-outline-secondary"
+        :disabled="busy"
+        @click="$emit('regenerate-link', player)"
+      >
+        <i class="fas fa-rotate"></i> Regenerar link
+      </button>
+      <button
         class="btn btn-sm"
         :class="player.status === 'BLOCKED' ? 'btn-outline-success' : 'btn-outline-danger'"
         :disabled="busy"
@@ -84,6 +102,10 @@
           <span class="ep-detail-label">Expira</span>
           <span class="ep-detail-value">{{ player.expiration_date ? formatFullDate(player.expiration_date) : '—' }}</span>
         </div>
+        <div class="ep-detail-item">
+          <span class="ep-detail-label">Código de compra</span>
+          <code class="ep-detail-value ep-detail-link">{{ player.purchase_code?.purchase_code ?? '—' }}</code>
+        </div>
       </div>
     </Transition>
   </div>
@@ -103,6 +125,8 @@ const props = defineProps<{
 
 defineEmits<{
   (e: 'toggle-block', player: ExternalPlayer): void
+  (e: 'regenerate-link', player: ExternalPlayer): void
+  (e: 'reactivate', player: ExternalPlayer): void
 }>()
 
 const expanded = ref(false)

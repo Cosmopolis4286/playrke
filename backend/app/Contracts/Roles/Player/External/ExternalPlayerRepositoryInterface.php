@@ -56,6 +56,13 @@ interface ExternalPlayerRepositoryInterface extends BaseRepositoryInterface
 
     public function existsByLink(string $link): bool;
 
+    /**
+     * Reemplaza el link vigente de un jugador externo por uno nuevo y
+     * reinicia su expiración — usado cuando un link se comparte por error o
+     * se sospecha filtrado, sin necesidad de bloquear al jugador entero.
+     */
+    public function regenerateLink(string $playerId, int $expirationDays): ?ExternalPlayer;
+
     public function getPlayersWithPurchaseCode(string $purchaseCodeId): Collection;
 
     public function getPlayerStatistics(?string $gameId = null): array;

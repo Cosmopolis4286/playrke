@@ -26,6 +26,14 @@
       <option value="BLOCKED">Bloqueados</option>
     </select>
 
+    <input
+      v-model="sellerSearch"
+      type="text"
+      class="form-control ep-filter"
+      placeholder="Filtrar por vendedor..."
+      @input="onSearchInput"
+    />
+
     <button v-if="hasActiveFilters" class="btn btn-outline-secondary" title="Limpiar filtros" @click="resetFilters">
       <i class="fas fa-filter-circle-xmark mr-2"></i>Limpiar
     </button>
@@ -58,8 +66,9 @@ const emit = defineEmits<{
 const search = ref('')
 const status = ref<ExternalPlayerFilters['status']>('')
 const gameId = ref('')
+const sellerSearch = ref('')
 
-const hasActiveFilters = computed(() => !!(search.value || status.value || gameId.value))
+const hasActiveFilters = computed(() => !!(search.value || status.value || gameId.value || sellerSearch.value))
 
 // Nombres de juego se guardan en mayúsculas (BINGO, TRIVIA) — formato legible.
 function formatGameName(name: string): string {
@@ -71,6 +80,7 @@ function currentFilters(): ExternalPlayerFilters {
     search: search.value || undefined,
     status: status.value || undefined,
     game_id: gameId.value || undefined,
+    seller_search: sellerSearch.value || undefined,
   }
 }
 
@@ -91,6 +101,7 @@ function resetFilters() {
   search.value = ''
   status.value = ''
   gameId.value = ''
+  sellerSearch.value = ''
   emitChange()
 }
 </script>

@@ -62,6 +62,22 @@ export function useExternalPlayers(initial?: {
         return data.player as ExternalPlayer
     }
 
+    /** Reemplaza el link vigente (para links filtrados/compartidos por error) sin bloquear al jugador. */
+    const regenerateLink = async (playerId: string) => {
+        const { data } = await axios.put(`/admin/external-players/${playerId}/regenerate-link`)
+        const index = players.value.findIndex(p => p.id === playerId)
+        if (index !== -1) players.value[index] = data.player
+        return data.player as ExternalPlayer
+    }
+
+    /** Reactiva manualmente un jugador INACTIVE (expirado por tiempo), extendiendo su link. */
+    const reactivate = async (playerId: string) => {
+        const { data } = await axios.put(`/admin/external-players/${playerId}/reactivate`)
+        const index = players.value.findIndex(p => p.id === playerId)
+        if (index !== -1) players.value[index] = data.player
+        return data.player as ExternalPlayer
+    }
+
     return {
         players,
         pagination,
@@ -72,5 +88,7 @@ export function useExternalPlayers(initial?: {
         searchDebounced,
         goToPage,
         toggleBlock,
+        regenerateLink,
+        reactivate,
     }
 }

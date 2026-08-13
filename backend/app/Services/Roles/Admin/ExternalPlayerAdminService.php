@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin;
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Models\Game;
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Services\Roles\Player\External\ExternalPlayerLinkSettings;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,6 +16,7 @@ final class ExternalPlayerAdminService
         'game:id,name',
         'sellerUser:id,username,first_name,last_name,email',
         'country:id,name',
+        'purchaseCode:id,purchase_code',
     ];
 
     public function __construct(
@@ -54,6 +56,21 @@ final class ExternalPlayerAdminService
 
         if (!empty($filters['seller_user_id'])) {
             $query->where('seller_user_id', $filters['seller_user_id']);
+        }
+
+        /**
+         * Filtro por texto libre del vendedor (nombre/email) — antes el
+         * backend solo aceptaba seller_user_id exacto, sin exponerse en la
+         * UI porque el admin no conoce esos IDs de memoria.
+         */
+        if (!empty($filters['seller_search'])) {
+            $term = $filters['seller_search'];
+            $query->whereHas('sellerUser', function (Builder $q) use ($term) {
+                $q->where('first_name', 'LIKE', "%{$term}%")
+                    ->orWhere('last_name', 'LIKE', "%{$term}%")
+                    ->orWhere('email', 'LIKE', "%{$term}%")
+                    ->orWhere('username', 'LIKE', "%{$term}%");
+            });
         }
 
         if (!empty($filters['search'])) {
@@ -132,5 +149,50 @@ final class ExternalPlayerAdminService
         }
 
         return ExternalPlayer::with(self::EAGER_RELATIONS)->findOrFail($playerId);
+    }
+
+    /**
+     * Reemplaza el link vigente por uno nuevo y reinicia la expiración — para
+     * cuando un link se compartió por error o se sospecha filtrado, sin tener
+     * que bloquear al jugador entero (antes la única acción disponible era
+     * BLOCKED, que revoca acceso completo en vez de solo invalidar el link).
+     */
+    public function regenerateLink(string $playerId): ExternalPlayer
+    {
+        $player = $this->repository->regenerateLink($playerId, ExternalPlayerLinkSettings::expirationDays());
+
+        if (!$player) {
+            throw (new \Illuminate\Database\Eloquent\ModelNotFoundException())
+                ->setModel(ExternalPlayer::class, [$playerId]);
+        }
+
+        return $player->load(self::EAGER_RELATIONS);
+    }
+
+    /**
+     * Reactiva manualmente un jugador INACTIVE (expirado) extendiendo su
+     * expiration_date — antes el panel solo permitía alternar ACTIVE/BLOCKED,
+     * sin forma de recuperar un jugador que expiró por tiempo (ver
+     * toggleBlock() arriba). No aplica a BLOCKED: ese estado se revierte
+     * exclusivamente con toggleBlock(), es una decisión deliberada del admin,
+     * no una expiración por tiempo.
+     */
+    public function reactivate(string $playerId): ExternalPlayer
+    {
+        $current = $this->repository->getValueById($playerId, 'status');
+
+        if ($current === null) {
+            throw (new \Illuminate\Database\Eloquent\ModelNotFoundException())
+                ->setModel(ExternalPlayer::class, [$playerId]);
+        }
+
+        if ($current !== 'INACTIVE') {
+            throw new \RuntimeException('Solo se puede reactivar un jugador externo expirado (INACTIVE).');
+        }
+
+        $player = $this->repository->regenerateLink($playerId, ExternalPlayerLinkSettings::expirationDays());
+        $this->repository->updatePlayerStatus($playerId, 'ACTIVE');
+
+        return $player->fresh(self::EAGER_RELATIONS);
     }
 }

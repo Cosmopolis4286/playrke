@@ -59,7 +59,7 @@ final class ExternalPlayerAdminController extends Controller
 
         return response()->streamDownload(function () use ($filters) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nombre', 'Apellido', 'Teléfono', 'Identificación', 'Estado', 'Juego', 'País', 'Vendedor', 'Expira', 'Link']);
+            fputcsv($handle, ['Nombre', 'Apellido', 'Teléfono', 'Identificación', 'Estado', 'Juego', 'País', 'Vendedor', 'Expira', 'Link', 'Código de compra']);
 
             foreach ($this->service->searchForExport($filters) as $player) {
                 fputcsv($handle, [
@@ -73,6 +73,7 @@ final class ExternalPlayerAdminController extends Controller
                     $player->sellerUser ? "{$player->sellerUser->first_name} {$player->sellerUser->last_name}" : null,
                     $player->expiration_date?->format('Y-m-d'),
                     $player->link,
+                    $player->purchaseCode?->purchase_code,
                 ]);
             }
 
@@ -91,6 +92,39 @@ final class ExternalPlayerAdminController extends Controller
 
         return response()->json([
             'message' => 'Jugador actualizado correctamente',
+            'player'  => $updated,
+        ]);
+    }
+
+    /**
+     * Regenera el link vigente (para links filtrados/compartidos por error)
+     * sin bloquear al jugador entero.
+     */
+    public function regenerateLink(string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('update', $player);
+
+        $updated = $this->service->regenerateLink($externalPlayer);
+
+        return response()->json([
+            'message' => 'Link regenerado correctamente',
+            'player'  => $updated,
+        ]);
+    }
+
+    /**
+     * Reactiva manualmente un jugador INACTIVE (expirado por tiempo).
+     */
+    public function reactivate(string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('update', $player);
+
+        $updated = $this->service->reactivate($externalPlayer);
+
+        return response()->json([
+            'message' => 'Jugador reactivado correctamente',
             'player'  => $updated,
         ]);
     }

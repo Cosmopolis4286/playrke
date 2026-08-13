@@ -139,10 +139,11 @@ Route::middleware('auth')->group(function () {
         'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index'],
         'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
         'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export'],
+        'show'          => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show'],
         'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
         'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
-        'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk'],
-        'deleteBulk'    => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk'],
+        'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
+        'deleteBulk'    => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
         'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete'],
         'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],
@@ -166,10 +167,12 @@ Route::middleware('auth')->group(function () {
      * acción vive en ExternalPlayerPolicy.
      */
     role_protected_routes(['multiPermission:external-players.view'], 'admin/external-players', ExternalPlayerAdminController::class, [
-        'index'       => ['method' => 'get', 'uri' => '',              'action' => 'index'],
-        'fetchList'   => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
-        'export'      => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
-        'toggleBlock' => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
+        'index'          => ['method' => 'get', 'uri' => '',              'action' => 'index'],
+        'fetchList'      => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'export'         => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
+        'toggleBlock'    => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
+        'regenerateLink' => ['method' => 'put', 'uri' => '{externalPlayer}/regenerate-link', 'action' => 'regenerateLink', 'middleware' => 'multiPermission:external-players.manage'],
+        'reactivate'     => ['method' => 'put', 'uri' => '{externalPlayer}/reactivate', 'action' => 'reactivate', 'middleware' => 'multiPermission:external-players.manage'],
     ], 'externalPlayer');
 
     /**
@@ -218,7 +221,7 @@ Route::middleware('auth')->group(function () {
         'update'               => ['method' => 'patch',  'uri' => '{permission}',             'action' => 'update'],
         'delete'               => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
         'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
-        'saveMatrix'           => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix'],
+        'saveMatrix'           => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix', 'middleware' => 'throttle:admin-permissions-matrix'],
         'copyToRole'           => ['method' => 'post',   'uri' => 'roles/{role}/copy-from/{sourceRole}', 'action' => 'copyToRole'],
     ], 'permission');
 

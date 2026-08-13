@@ -6,6 +6,7 @@ use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Models\Game;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Player\External\UserPurchaseCode;
+use App\Services\Roles\Player\External\ExternalPlayerLinkSettings;
 use Illuminate\Support\Str;
 
 trait PlayerLinkTrait
@@ -103,7 +104,7 @@ trait PlayerLinkTrait
                 'identification' => null,
                 'phone' => (string)$playerPhone,
                 'purchase_code_id' => (string)$purchaseCode,
-                'expiration_date' => now()->addDays(7),
+                'expiration_date' => now()->addDays(ExternalPlayerLinkSettings::expirationDays()),
             ];
 
             // Crear el nuevo registro

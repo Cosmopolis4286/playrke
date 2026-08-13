@@ -25,6 +25,7 @@ class ExternalPlayerSearchRequest extends BaseRequest
             'game_id'  => ['sometimes', 'nullable', 'string', 'exists:games,id'],
             'country_id' => ['sometimes', 'nullable', 'string', 'exists:countries,id'],
             'seller_user_id' => ['sometimes', 'nullable', 'string', 'exists:users,id'],
+            'seller_search'  => ['sometimes', 'nullable', 'string', 'max:100'],
             'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
             'page'     => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
@@ -38,6 +39,7 @@ class ExternalPlayerSearchRequest extends BaseRequest
             'game_id'        => $this->validated('game_id') ?: null,
             'country_id'     => $this->validated('country_id') ?: null,
             'seller_user_id' => $this->validated('seller_user_id') ?: null,
+            'seller_search'  => $this->validated('seller_search') ?: null,
         ];
     }
 

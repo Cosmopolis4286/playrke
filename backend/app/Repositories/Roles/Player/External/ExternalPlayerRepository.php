@@ -150,6 +150,22 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
         return $this->model->where('link', $link)->exists();
     }
 
+    public function regenerateLink(string $playerId, int $expirationDays): ?ExternalPlayer
+    {
+        $player = $this->model->find($playerId);
+
+        if (!$player) {
+            return null;
+        }
+
+        $player->update([
+            'link' => $this->generateUniqueLink(),
+            'expiration_date' => now()->addDays($expirationDays),
+        ]);
+
+        return $player->fresh();
+    }
+
     public function getPlayersWithPurchaseCode(string $purchaseCodeId): Collection
     {
         return $this->model->where('purchase_code_id', $purchaseCodeId)->get();

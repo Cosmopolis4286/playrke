@@ -30,6 +30,8 @@
               @search-debounced="handleSearchDebounced"
               @page-change="goToPage"
               @toggle-block="handleToggleBlock"
+              @regenerate-link="handleRegenerateLink"
+              @reactivate="handleReactivate"
               @export="handleExport"
             />
           </div>
@@ -59,7 +61,7 @@ const breadcrumbItems = [
   { label: 'Jugadores Externos' },
 ]
 
-const { players, pagination, statistics, loading, filters, fetchPlayers, searchDebounced, goToPage, toggleBlock } = useExternalPlayers({
+const { players, pagination, statistics, loading, filters, fetchPlayers, searchDebounced, goToPage, toggleBlock, regenerateLink, reactivate } = useExternalPlayers({
   players: props.players,
   statistics: props.statistics,
 })
@@ -78,6 +80,24 @@ async function handleToggleBlock(playerId: string) {
     toast.success('Jugador actualizado correctamente')
   } catch {
     toast.error('No se pudo actualizar el jugador')
+  }
+}
+
+async function handleRegenerateLink(playerId: string) {
+  try {
+    await regenerateLink(playerId)
+    toast.success('Link regenerado correctamente')
+  } catch {
+    toast.error('No se pudo regenerar el link')
+  }
+}
+
+async function handleReactivate(playerId: string) {
+  try {
+    await reactivate(playerId)
+    toast.success('Jugador reactivado correctamente')
+  } catch {
+    toast.error('No se pudo reactivar el jugador')
   }
 }
 
