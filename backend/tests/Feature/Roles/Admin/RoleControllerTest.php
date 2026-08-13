@@ -88,11 +88,18 @@ class RoleControllerTest extends TestCase
         $response->assertOk();
         $tree = $response->json('tree');
         $this->assertNotEmpty($tree);
-        $this->assertSame('SuperAdmin', $tree[0]['name']);
-        $this->assertSame('SUPERADMIN', $tree[0]['prefix']);
-        $this->assertArrayHasKey('children', $tree[0]);
-        $this->assertArrayHasKey('users_count', $tree[0]);
-        $this->assertArrayHasKey('permissions_count', $tree[0]);
+
+        // 'superadmin' es raíz por DOMAIN_TREE (padre null) — buscarlo por
+        // nombre en vez de asumir tree[0], ya que el orden entre raíces con
+        // igual sort_order (default 0 en este seed de test, sin el sort_order
+        // explícito por rol que sí trae RoleSeeder en producción) no está
+        // garantizado.
+        $superadminNode = collect($tree)->firstWhere('name', 'superadmin');
+        $this->assertNotNull($superadminNode);
+        $this->assertSame('SUPERADMIN', $superadminNode['prefix']);
+        $this->assertArrayHasKey('children', $superadminNode);
+        $this->assertArrayHasKey('users_count', $superadminNode);
+        $this->assertArrayHasKey('permissions_count', $superadminNode);
     }
 
     public function test_superadmin_can_update_role_sort_order_icon_and_color(): void
