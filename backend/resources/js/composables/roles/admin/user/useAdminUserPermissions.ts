@@ -47,10 +47,10 @@ export function useAdminUserPermissions() {
         }
     }
 
-    async function savePermissions(userId: string | number, permissions: string[]): Promise<boolean> {
+    async function savePermissions(userId: string | number, permissions: string[], reason?: string): Promise<boolean> {
         saving.value = true
         try {
-            await backendClient.put(`/admin/user/${userId}/permissions`, { permissions })
+            await backendClient.put(`/admin/user/${userId}/permissions`, { permissions, reason: reason || undefined })
             showToast('Permisos actualizados correctamente', 'success')
             return true
         } catch (error) {

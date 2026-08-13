@@ -10,6 +10,7 @@
     modelValue: string[]
     catalog: CatalogPermission[]
     viaRoles: string[]
+    reason: string
   }>()
 
   /* ==========================================================================
@@ -18,6 +19,7 @@
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: string[]): void
+    (e: 'update:reason', value: string): void
   }>()
 
   /* ==========================================================================
@@ -29,6 +31,11 @@
     set: value => emit('update:modelValue', [...value])
   })
   const searchQuery = ref('')
+
+  const reasonValue = computed<string>({
+    get: () => props.reason,
+    set: value => emit('update:reason', value)
+  })
 
   /* ==========================================================================
    * Agrupación por módulo
@@ -129,6 +136,18 @@
       solo se pueden otorgar/revocar permisos <strong>específicos</strong> adicionales.
     </p>
 
+    <div class="form-group mb-3">
+      <label class="upm-reason-label" for="upm-reason">Motivo del cambio <span class="text-muted">(opcional, queda en el historial de auditoría)</span></label>
+      <input
+        id="upm-reason"
+        v-model="reasonValue"
+        type="text"
+        class="form-control"
+        placeholder="Ej. Cobertura temporal de vacaciones del tesorero"
+        maxlength="255"
+      />
+    </div>
+
     <input
       v-model="searchQuery"
       type="text"
@@ -197,4 +216,6 @@
 }
 
 .upm-item__desc { margin-left: 1.6rem; font-size: 0.75rem; }
+
+.upm-reason-label { font-size: 0.82rem; font-weight: 600; color: var(--ds-text-2); }
 </style>

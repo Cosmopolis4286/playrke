@@ -2,9 +2,12 @@
 
 namespace App\Services\Roles\Admin\User;
 
+use App\Models\Audit;
 use App\Models\Permission;
 use App\Models\User;
 use App\Services\Roles\Admin\PermissionService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 
 /**
  * Gestión de permisos específicos por usuario (users.specific_permissions).
@@ -48,24 +51,56 @@ final class UserPermissionService
      * es el único punto real que impide otorgar/revocar permisos estructurales
      * del sistema directamente a un usuario.
      *
+     * Una sola escritura ($user->update(), no giveSpecificPermission() +
+     * revokeSpecificPermission() por separado) para que User::Auditable
+     * registre un único evento 'updated' por sync, no dos. El $reason opcional
+     * queda en un evento de auditoría MANUAL aparte (ver logGrantReason) —
+     * Audit no tiene columna de metadata libre, así que no cabe en el diff
+     * automático de columnas que ya genera Auditable.
+     *
      * @param string[] $permissionNames Nombres de permiso (no IDs — specific_permissions
      *   guarda strings, igual que ya lo hacen los 3 servicios de activación de juegos).
      */
-    public function syncSpecificPermissions(User $user, array $permissionNames): void
+    public function syncSpecificPermissions(User $user, array $permissionNames, ?string $reason = null): void
     {
         $systemPermissionNames = Permission::where('is_system', true)->pluck('name')->all();
 
         $current       = $user->specific_permissions ?? [];
-        $requestedSafe = array_diff($permissionNames, $systemPermissionNames);
+        $requestedSafe = array_values(array_diff($permissionNames, $systemPermissionNames));
 
         $toRevoke = array_diff($current, $requestedSafe, $systemPermissionNames);
         $toGrant  = array_diff($requestedSafe, $current);
 
-        if ($toRevoke !== []) {
-            $user->revokeSpecificPermission(array_values($toRevoke));
+        if ($toRevoke === [] && $toGrant === []) {
+            return;
         }
-        if ($toGrant !== []) {
-            $user->giveSpecificPermission(array_values($toGrant));
+
+        $user->update(['specific_permissions' => $requestedSafe]);
+
+        if ($reason !== null && trim($reason) !== '') {
+            $this->logSyncReason($user, $toGrant, $toRevoke, trim($reason));
         }
+    }
+
+    /**
+     * Evento de auditoría manual con el motivo declarado por el admin al
+     * otorgar/revocar permisos específicos — separado del evento 'updated'
+     * automático de User (que ya cubre el diff old/new de specific_permissions)
+     * porque el motivo es información de negocio, no un valor de columna.
+     */
+    private function logSyncReason(User $user, array $granted, array $revoked, string $reason): void
+    {
+        Audit::create([
+            'user_id'        => Auth::id(),
+            'actor_type'     => Auth::check() ? 'user' : 'system',
+            'auditable_type' => User::class,
+            'auditable_id'   => (string) $user->getKey(),
+            'event'          => 'specific_permissions_synced',
+            'old_values'     => json_encode(['revoked' => array_values($revoked)]),
+            'new_values'     => json_encode(['granted' => array_values($granted), 'reason' => $reason]),
+            'url'            => Request::instance()?->fullUrl(),
+            'ip_address'     => Request::instance()?->ip(),
+            'user_agent'     => Request::instance()?->userAgent(),
+        ]);
     }
 }

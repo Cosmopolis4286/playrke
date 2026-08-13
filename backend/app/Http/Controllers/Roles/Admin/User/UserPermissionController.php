@@ -40,9 +40,10 @@ final class UserPermissionController extends Controller
         $request->validate([
             'permissions'   => 'present|array',
             'permissions.*' => 'string',
+            'reason'        => 'nullable|string|max:255',
         ]);
 
-        $this->service->syncSpecificPermissions($user, $request->input('permissions'));
+        $this->service->syncSpecificPermissions($user, $request->input('permissions'), $request->input('reason'));
 
         return response()->json(['message' => 'Permisos actualizados correctamente']);
     }
