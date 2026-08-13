@@ -12,9 +12,7 @@
     allowedCurrenciesOptions: SelectOption[]
     useBaseUsd: boolean
     canUseBaseUsd?: boolean
-    cardPriceByCurrencyActive: boolean
     canAdjustCardPriceByCurrency: boolean
-    hasCardPriceByCurrencyErrors: boolean
     currenciesWithActiveRate?: string[]
     /** IDs de monedas con cartones ya vendidos — no se pueden quitar de "Monedas Permitidas". */
     soldCurrencyIds?: string[]
@@ -23,7 +21,6 @@
   const emit = defineEmits<{
     (e: 'update:modelValue', value: BingoRoomFormData): void
     (e: 'update:useBaseUsd', value: boolean): void
-    (e: 'update:cardPriceByCurrencyActive', value: boolean): void
   }>()
 
   /**
@@ -44,11 +41,6 @@
     }
 
     emit('update:modelValue', { ...props.modelValue, allowedCurrencies: value as any })
-  }
-
-  function toggleCardPriceByCurrency() {
-    if (!props.canAdjustCardPriceByCurrency) return
-    emit('update:cardPriceByCurrencyActive', !props.cardPriceByCurrencyActive)
   }
 
   function onCurrencyPriceChange(currency: string | number, value: string | number | null) {
@@ -97,37 +89,9 @@
     optionValue="value"
     optionLabel="label"
     col="col-sm-6"
-    inputGroup
     :modelValue="modelValue.allowedCurrencies"
     @update:modelValue="onAllowedCurrenciesChange"
-  >
-    <template #append>
-      <VDropdown
-        :shown="hasCardPriceByCurrencyErrors"
-        :triggers="[]"
-        placement="top-end"
-        :autoHide="false"
-        container="body"
-        popperClass="popover-error"
-      >
-        <button
-          class="btn btn-outline-secondary"
-          type="button"
-          :data-active="cardPriceByCurrencyActive ? 1 : 0"
-          :disabled="!canAdjustCardPriceByCurrency"
-          @click="toggleCardPriceByCurrency"
-          title="Ajustar precios por moneda"
-        >
-          <i class="fa-solid fa-sliders"></i>
-        </button>
-        <template #popper>
-          <div style="padding: 4px 6.5px; max-width: 245px; font-size: 0.79rem; white-space: pre-line">
-            Configuración pendiente
-          </div>
-        </template>
-      </VDropdown>
-    </template>
-  </FormSelect>
+  />
 
   <!-- Switch: Sala única / Salas por moneda -->
   <div class="col-12" v-show="canChooseRoomMode" style="margin-bottom: 1rem">
@@ -150,8 +114,10 @@
     </small>
   </div>
 
-  <!-- Panel de precios de cartones -->
-  <div class="col-12" v-show="cardPriceByCurrencyActive" style="margin-bottom: 1rem">
+  <!-- Panel de precios de cartones — siempre visible en cuanto hay al menos
+       1 moneda seleccionada (canAdjustCardPriceByCurrency), ya no depende de
+       un botón ⚙️ que lo mantenía oculto pese a ser obligatorio completarlo. -->
+  <div class="col-12" v-show="canAdjustCardPriceByCurrency" style="margin-bottom: 1rem">
     <div style="border: 1px solid var(--ds-border); border-radius: 0.3rem; padding: 0.6rem 0.85rem">
       <div class="d-flex align-items-center justify-content-between mb-1">
         <div class="d-flex align-items-center" style="gap: 0.4rem">
@@ -174,15 +140,6 @@
               <label class="custom-control-label" for="useBaseUsdSwitch" style="cursor: pointer" />
             </div>
           </div>
-          <button
-            type="button"
-            class="close"
-            style="font-size: 1rem; line-height: 1"
-            @click="emit('update:cardPriceByCurrencyActive', false)"
-            aria-label="Cerrar"
-          >
-            <span aria-hidden="true">&times;</span>
-          </button>
         </div>
       </div>
 

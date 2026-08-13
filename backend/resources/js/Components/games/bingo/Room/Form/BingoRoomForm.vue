@@ -69,7 +69,6 @@
   // useBaseUsd: inicializa desde el modelo (edición) o true por defecto
   // Se sincroniza bidirecccionalmente con form.value.useBaseUsd via watcher
   const useBaseUsd = ref(props.modelValue.useBaseUsd ?? true)
-  const cardPriceByCurrencyActive = ref(false)
 
   /** ID (snowflake) del RoomType con código PRIVATE, resuelto desde roomTypeOptions. */
   const privateRoomTypeId = computed(() => props.roomTypeOptions.find(o => o.code === 'PRIVATE')?.value ?? null)
@@ -251,13 +250,6 @@
 
   const canChooseRoomMode = computed(() => (form.value.allowedCurrencies?.length ?? 0) > 1)
 
-  const hasCardPriceByCurrencyErrors = computed(() => {
-    if (cardPriceByCurrencyActive.value) return false
-    if (errors.value.cardPriceUsd || errors.value.usdExchangeRoundStep) return true
-    const err = errors.value.cardPriceByCurrency
-    return !!(err && Object.keys(err).length > 0)
-  })
-
   /* ==========================================================================
    * Watchers de sincronización
    * ========================================================================== */
@@ -337,18 +329,6 @@
       }
     }
   })
-
-  // Cerrar panel de precios si las monedas bajan a 1
-  watch(canAdjustCardPriceByCurrency, can => {
-    if (!can) cardPriceByCurrencyActive.value = false
-  })
-
-  // Abrir automáticamente el panel de precios si al editar la sala ya trae
-  // errores en ese panel (ej. falta precio por moneda) — de lo contrario el
-  // usuario ve el botón "Guardar" deshabilitado sin ninguna pista visible.
-  if (props.isEdit && hasCardPriceByCurrencyErrors.value) {
-    cardPriceByCurrencyActive.value = true
-  }
 
   // Resetear "Salas por moneda" si las monedas bajan a 1 (ya no aplica)
   watch(canChooseRoomMode, can => {
@@ -540,14 +520,11 @@
           :allowedCurrenciesOptions="allowedCurrenciesOptions"
           :useBaseUsd="useBaseUsd"
           :canUseBaseUsd="canUseBaseUsd"
-          :cardPriceByCurrencyActive="cardPriceByCurrencyActive"
           :canAdjustCardPriceByCurrency="canAdjustCardPriceByCurrency"
-          :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"
           :currenciesWithActiveRate="currenciesWithActiveRate ?? []"
           :soldCurrencyIds="soldCurrencyIds"
           @update:modelValue="form = $event"
           @update:useBaseUsd="useBaseUsd = $event"
-          @update:cardPriceByCurrencyActive="cardPriceByCurrencyActive = $event"
         />
       </template>
 

@@ -116,10 +116,45 @@
   function currencyLabel(id: string | number) {
     return getCurrencyLabel(id, props.allowedCurrenciesOptions)
   }
+
+  /**
+   * Resumen en vivo de la distribución del bote — los 4 porcentajes que se
+   * validan juntos contra 100% (ver percentageSum en validateBingoRoomForm /
+   * la misma fórmula replicada en RoomOptionsSection.vue) viven repartidos en
+   * 3 tabs distintos (%Sala y %Jackpot en "Datos básicos", %Rondas aquí,
+   * %Seriales en "Más/Opcional"), así que el usuario nunca los ve juntos
+   * hasta que la suma falla. Este resumen los muestra siempre, sin necesidad
+   * de saltar entre tabs.
+   */
+  const distributionTotal = computed(() =>
+    (Number(props.modelValue.roomCommn) || 0) +
+    (Number(props.modelValue.roundsPct) || 0) +
+    (props.modelValue.useSerials ? (Number(props.modelValue.serialsPct) || 0) : 0) +
+    (Number(props.modelValue.jackpotPct) || 0)
+  )
 </script>
 
 <template>
   <div style="display: contents">
+    <!-- Distribución del bote: %Sala + %Rondas + %Seriales + %Jackpot, los 4
+         porcentajes que se suman entre sí, mostrados juntos aunque vivan en
+         tabs distintos del formulario. -->
+    <div class="col-12" style="margin-bottom: 0.75rem">
+      <div
+        class="d-flex align-items-center flex-wrap"
+        :class="distributionTotal > 100 ? 'text-danger' : 'text-muted'"
+        style="gap: 0.3rem; font-size: 0.78rem; padding: 0.4rem 0.65rem; border: 1px solid var(--ds-border); border-radius: 0.25rem; background: var(--ds-surface-2)"
+      >
+        <i class="fa-solid fa-chart-pie" style="opacity: 0.7"></i>
+        <span>Distribución:</span>
+        <span>%Sala <strong>{{ modelValue.roomCommn ?? 0 }}</strong></span>
+        <span>+ %Rondas <strong>{{ modelValue.roundsPct ?? 0 }}</strong></span>
+        <span v-if="modelValue.useSerials">+ %Seriales <strong>{{ modelValue.serialsPct ?? 0 }}</strong></span>
+        <span>+ %Jackpot <strong>{{ modelValue.jackpotPct ?? 0 }}</strong></span>
+        <span>= <strong>{{ distributionTotal.toFixed(2) }}</strong> / 100%</span>
+      </div>
+    </div>
+
     <!-- Rondas -->
     <FormInput
       label="Rondas"
