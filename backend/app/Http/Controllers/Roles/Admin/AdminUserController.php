@@ -77,6 +77,17 @@ final class AdminUserController extends Controller
     }
 
     /**
+     * Ficha consolidada de un usuario (datos básicos, wallet, nivel/XP,
+     * últimos eventos de auditoría) para el modal de detalle.
+     */
+    public function show(User $user): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->getUserDetail($user)
+        );
+    }
+
+    /**
      * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
      */
     public function update(AdminUserUpdateRequest $request, User $user): JsonResponse

@@ -36,6 +36,29 @@ export interface AdminRole {
     readonly prefix: string | null
 }
 
+export interface AdminUserDetailAudit {
+    readonly id: string
+    readonly date: string | null
+    readonly actor: string
+    readonly event: string
+}
+
+export interface AdminUserDetail {
+    readonly id: string
+    readonly full_name: string
+    readonly username: string
+    readonly email: string
+    readonly status: UserStatus
+    readonly country: string | null
+    readonly role_name: string
+    readonly role_label: string | null
+    readonly created_at: string | null
+    readonly has_specific_permissions: boolean
+    readonly wallet: { balance: number; currency: { iso_code: string; symbol: string; name: string } | null } | null
+    readonly level: Record<string, unknown> | null
+    readonly recent_audits: AdminUserDetailAudit[]
+}
+
 /**
  * Datos editables del formulario de edición de usuario (UserEditForm.vue).
  */

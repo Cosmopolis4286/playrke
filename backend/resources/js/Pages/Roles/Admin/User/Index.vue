@@ -25,6 +25,7 @@
   import WalletLoadForm from '@/js/Components/Roles/Admin/User/WalletLoadForm.vue'
   import type { WalletLoadData } from '@/js/Components/Roles/Admin/User/WalletLoadForm.vue'
   import UserPermissionsForm from '@/js/Components/Roles/Admin/User/UserPermissionsForm.vue'
+  import UserDetailModal from '@/js/Components/Roles/Admin/User/UserDetailModal.vue'
 
   // ==========================================================================
   // Composables
@@ -34,6 +35,7 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminUser } from '@/js/composables/roles/admin/user/useAdminUser'
   import { useAdminUserPermissions } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
+  import { useAdminUserDetail } from '@/js/composables/roles/admin/user/useAdminUserDetail'
   import type { CatalogPermission } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
 
   // ==========================================================================
@@ -230,6 +232,30 @@
     showXpModal.value = true
   }
 
+  // Modal de ficha de usuario (datos básicos + wallet + nivel + actividad reciente)
+  const showUserDetailModal = ref(false)
+  const { loading: userDetailLoading, detail: userDetail, fetchDetail: fetchUserDetail, clearDetail: clearUserDetail } = useAdminUserDetail()
+
+  async function openUserDetail(rowId: string) {
+    const user = users.value.find(u => u.id === rowId)
+    if (!user?.real_id) return
+    showUserDetailModal.value = true
+    await fetchUserDetail(user.real_id)
+  }
+
+  function handleUserDetailVisibility(open: boolean) {
+    showUserDetailModal.value = open
+    if (!open) clearUserDetail()
+  }
+
+  function handleViewFullHistory(userRealId: string) {
+    showUserDetailModal.value = false
+    clearUserDetail()
+    router.visit('/audit', {
+      data: { entity: 'App\\Models\\User', auditable_id: String(userRealId) },
+    })
+  }
+
   /** Exporta a CSV los usuarios que coincidan con los filtros/búsqueda activos en la tabla. */
   function handleExport() {
     const params = new URLSearchParams()
@@ -239,19 +265,6 @@
     if (lastQuery.value.filters.status) params.set('status', lastQuery.value.filters.status)
     if (lastQuery.value.filters.has_specific_permissions) params.set('has_specific_permissions', lastQuery.value.filters.has_specific_permissions)
     window.location.href = `/admin/user/export?${params.toString()}`
-  }
-
-  /**
-   * Navega a /audit filtrado por este usuario como SUJETO auditado
-   * (auditable_id), no como actor — usa real_id (PK real), no el id
-   * hasheado de la fila de tabla.
-   */
-  function openAuditHistory(rowId: string) {
-    const user = users.value.find(u => u.id === rowId)
-    if (!user?.real_id) return
-    router.visit('/audit', {
-      data: { entity: 'App\\Models\\User', auditable_id: String(user.real_id) },
-    })
   }
 
   async function refreshUserBalance() {
@@ -460,13 +473,13 @@
       }
     },
     {
-      icon: 'fas fa-history',
+      icon: 'fas fa-id-card',
       class: 'btn-outline-secondary',
-      title: 'Ver historial de auditoría de este usuario',
+      title: 'Ver ficha del usuario',
       show: (ids: string[]) => ids.length === 1,
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
-          openAuditHistory(ids[0])
+          openUserDetail(ids[0])
         }
       }
     },
@@ -647,6 +660,15 @@
       :user-name="xpGrantTarget.name"
     />
   </Modal>
+
+  <!-- Modal de ficha de usuario -->
+  <UserDetailModal
+    :model-value="showUserDetailModal"
+    :loading="userDetailLoading"
+    :detail="userDetail"
+    @update:model-value="handleUserDetailVisibility"
+    @view-full-history="handleViewFullHistory"
+  />
 </template>
 
 <style scoped>

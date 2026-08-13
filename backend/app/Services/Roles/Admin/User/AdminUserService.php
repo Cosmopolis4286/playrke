@@ -307,4 +307,50 @@ final class AdminUserService
             ] : null
         ];
     }
+
+    /**
+     * Detalle consolidado de un usuario para el modal de ficha (datos básicos,
+     * wallet si aplica, nivel/XP si es player, y últimos eventos de
+     * auditoría) — antes esta información vivía repartida en modales
+     * separados sin un lugar único para verla junta.
+     */
+    public function getUserDetail(User $user): array
+    {
+        $user->load(['country:id,name', 'roles:id,name,prefix']);
+        $roleName = strtolower($user->roles->first()?->name ?? '');
+
+        $wallet = $user->hasRole(self::WALLET_LOAD_ALLOWED_ROLES) ? $this->getWalletBalance($user) : null;
+
+        $level = $roleName === 'player'
+            ? $this->userLevelService->getUserLevelInfo($user)
+            : null;
+
+        $recentAudits = \App\Models\Audit::ofAuditable(User::class, $user->id)
+            ->with('user:id,first_name,last_name,email')
+            ->latest('created_at')
+            ->limit(10)
+            ->get()
+            ->map(fn (\App\Models\Audit $audit) => [
+                'id'     => (string) $audit->id,
+                'date'   => $audit->created_at?->format('d/m/Y H:i:s'),
+                'actor'  => $audit->user?->full_name ?? 'Sistema',
+                'event'  => $audit->event,
+            ]);
+
+        return [
+            'id'                        => (string) $user->id,
+            'full_name'                 => trim("{$user->first_name} {$user->last_name}"),
+            'username'                  => $user->username,
+            'email'                     => $user->email,
+            'status'                    => $user->status,
+            'country'                   => $user->country?->name,
+            'role_name'                 => $roleName,
+            'role_label'                => $user->roles->first()?->name,
+            'created_at'                => $user->created_at?->format('d/m/Y H:i:s'),
+            'has_specific_permissions'  => !empty($user->specific_permissions),
+            'wallet'                    => $wallet,
+            'level'                     => $level,
+            'recent_audits'             => $recentAudits,
+        ];
+    }
 }
