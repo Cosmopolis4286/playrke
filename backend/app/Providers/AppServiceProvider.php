@@ -159,6 +159,20 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: guardado en batch de la matriz de permisos (solo
+        // superadmin) — acción de alto impacto (puede tocar decenas de
+        // asignaciones rol↔permiso a la vez) sin límite previo.
+        RateLimiter::for('admin-permissions-matrix', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
+        });
+
+        // Rate-limit: acciones masivas destructivas sobre usuarios
+        // (activar/desactivar, eliminar en lote) — antes sin límite pese a
+        // ser irreversibles o de alto impacto sobre múltiples cuentas.
+        RateLimiter::for('admin-users-bulk', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------
