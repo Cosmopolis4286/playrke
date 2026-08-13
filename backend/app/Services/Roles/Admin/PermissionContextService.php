@@ -13,7 +13,10 @@ final class PermissionContextService
 
     public function permissionContext(): PermissionContextDTO
     {
-        $permissions = Permission::orderBy('name')->get();
+        // withCount('roles') evita cruzar colecciones en memoria para saber
+        // qué permisos no están asignados a ningún rol ("huérfanos") — antes
+        // no existía ninguna señal de esto en la matriz.
+        $permissions = Permission::withCount('roles')->orderBy('name')->get();
 
         $mappedPermissions = $permissions->map(fn($permission) => [
             'id'          => (string) $permission->id,
@@ -21,6 +24,7 @@ final class PermissionContextService
             'guard_name'  => $permission->guard_name,
             'description' => $permission->description,
             'is_system'   => (bool) $permission->is_system,
+            'is_orphan'   => $permission->roles_count === 0,
             'created_at'  => $permission->created_at?->format('Y-m-d H:i:s'),
         ])->toArray();
 

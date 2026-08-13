@@ -5,6 +5,8 @@ export interface Permission {
   description?: string
   /** true = permiso estructural del sistema (roles.*, superadmin.access, system.*) — no editable ni eliminable. */
   is_system: boolean
+  /** true = no está asignado a ningún rol actualmente. */
+  is_orphan?: boolean
   status: boolean
   created_at?: string
   updated_at?: string

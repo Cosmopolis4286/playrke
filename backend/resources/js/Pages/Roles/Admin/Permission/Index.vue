@@ -22,16 +22,19 @@
     <section class="content">
       <div class="container-fluid">
         <div class="row stats-row">
-          <div class="col-6 col-md-3">
+          <div class="col-6 col-lg">
             <StatTile label="Permisos totales" :value="stats.total" icon="fa-key" />
           </div>
-          <div class="col-6 col-md-3">
+          <div class="col-6 col-lg">
             <StatTile label="Permisos del sistema" :value="stats.system" icon="fa-lock" variant="warning" />
           </div>
-          <div class="col-6 col-md-3">
+          <div class="col-6 col-lg">
+            <StatTile label="Permisos huérfanos" :value="stats.orphans" icon="fa-exclamation-triangle" variant="danger" />
+          </div>
+          <div class="col-6 col-lg">
             <StatTile label="Roles activos" :value="stats.activeRoles" icon="fa-user-shield" variant="info" />
           </div>
-          <div class="col-6 col-md-3">
+          <div class="col-6 col-lg">
             <StatTile label="Módulos apagados" :value="stats.inactiveModules" icon="fa-power-off" variant="danger" />
           </div>
         </div>
@@ -159,6 +162,7 @@ async function handleHierarchySave(roleId: string, attributes: RoleMetaUpdate) {
 const stats = computed(() => ({
   total: permissions.value.rows?.length ?? 0,
   system: permissions.value.rows?.filter(p => p.is_system).length ?? 0,
+  orphans: permissions.value.rows?.filter(p => p.is_orphan).length ?? 0,
   activeRoles: roles.value.length,
   inactiveModules: modules.value.filter(m => !m.is_active).length,
 }))

@@ -92,6 +92,11 @@
                   <span class="permission-name">
                     {{ formatPermissionName(permission.name) }}
                     <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
+                    <i
+                      v-if="isPermissionOrphan(permission)"
+                      class="fas fa-exclamation-triangle text-warning ml-1"
+                      title="Ningún rol tiene este permiso asignado"
+                    ></i>
                   </span>
                   <code class="permission-slug">{{ permission.name }}</code>
                 </div>
@@ -162,6 +167,11 @@
                 <span class="permission-name">
                   {{ formatPermissionName(permission.name) }}
                   <i v-if="permission.is_system" class="fas fa-lock text-danger ml-1" title="Permiso del sistema"></i>
+                  <i
+                    v-if="isPermissionOrphan(permission)"
+                    class="fas fa-exclamation-triangle text-warning ml-1"
+                    title="Ningún rol tiene este permiso asignado"
+                  ></i>
                 </span>
                 <code class="permission-slug">{{ permission.name }}</code>
               </div>
@@ -294,6 +304,8 @@ interface Permission {
   guard_name: string
   description?: string
   is_system: boolean
+  /** true = no está asignado a ningún rol (calculado por el backend al cargar). */
+  is_orphan?: boolean
 }
 
 interface RoleWithPermissions {
@@ -337,6 +349,16 @@ const collapsedGroups = reactive<Record<string, boolean>>({})
 // con SidebarMenuVisibilityMatrix.vue, antes duplicado en ambos componentes).
 const displayRoles = computed(() => sortByRoleHierarchy(props.roles))
 const copyTargetRoles = computed(() => displayRoles.value.filter(r => !isRoleSuperadmin(r.name)))
+
+/**
+ * Un permiso está "huérfano" si ningún rol lo tiene activo — recalculado en
+ * vivo contra `hasPermission` (no solo el `is_orphan` inicial del backend)
+ * para que se actualice al togglear checkboxes en la matriz, antes incluso
+ * de guardar.
+ */
+function isPermissionOrphan(permission: Permission): boolean {
+  return !displayRoles.value.some(role => props.hasPermission(role.id, permission.id))
+}
 
 // Grid CSS en vez de <table>: columnas fijas para permiso/módulo/acciones y
 // una columna igual por cada rol, calculadas dinámicamente según cuántos

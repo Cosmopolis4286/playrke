@@ -4,7 +4,9 @@
       <h2 class="modules-panel-title">Módulos del sistema</h2>
       <p class="modules-panel-desc">
         Apagar un módulo aquí lo oculta del sidebar de <strong>todos</strong> los usuarios, incluido SuperAdmin.
-        Úsalo para mantenimiento o lanzamientos por etapas — no reemplaza la matriz de permisos.
+        <strong class="text-warning">No bloquea el acceso real:</strong> quien ya tenga la URL directa
+        puede seguir usándolo, porque esto solo controla el menú, no los permisos de backend.
+        Para revocar acceso de verdad usa la Matriz de Permisos.
       </p>
     </div>
 
@@ -49,7 +51,7 @@ async function handleToggle(module: SystemModule) {
   if (module.is_active) {
     const result = await Swal.fire({
       title: 'Apagar módulo',
-      html: `<p class="mb-0">"${module.label}" se ocultará del menú para <strong>todos</strong> los usuarios, incluido SuperAdmin, hasta que lo reactives.</p>`,
+      html: `<p class="mb-0">"${module.label}" se ocultará del menú para <strong>todos</strong> los usuarios, incluido SuperAdmin, hasta que lo reactives. Esto <strong>no</strong> revoca el acceso por URL directa — para eso usa la Matriz de Permisos.</p>`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc3545',
