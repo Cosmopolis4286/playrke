@@ -138,6 +138,7 @@ Route::middleware('auth')->group(function () {
     $userRoutes = [
         'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index'],
         'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
+        'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export'],
         'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
         'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
         'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk'],

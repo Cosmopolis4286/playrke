@@ -27,17 +27,67 @@ final class AdminUserContextService
         );
     }
 
-    public function resolveUsers(): array
+    /**
+     * Query base con filtros aplicados — compartida entre `resolveUsers()`
+     * (paginado, para la tabla) y `exportQuery()` (cursor completo, para CSV).
+     */
+    public function buildFilteredQuery(array $filters = []): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = User::with([
+                'country:id,name',
+                'roles:id,name,prefix',
+            ])
+            ->excludeSystemAccounts();
+
+        if (!empty($filters['search'])) {
+            $term = $filters['search'];
+            $query->where(function ($q) use ($term) {
+                $q->where('first_name', 'LIKE', "%{$term}%")
+                    ->orWhere('last_name', 'LIKE', "%{$term}%")
+                    ->orWhere('username', 'LIKE', "%{$term}%")
+                    ->orWhere('email', 'LIKE', "%{$term}%");
+            });
+        }
+
+        if (!empty($filters['role_name'])) {
+            $roleName = strtolower($filters['role_name']);
+            $query->whereHas('roles', fn ($q) => $q->where('name', $roleName));
+        }
+
+        if (!empty($filters['country_name'])) {
+            $countryName = $filters['country_name'];
+            $query->whereHas('country', fn ($q) => $q->where('name', $countryName));
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['has_specific_permissions']) && $filters['has_specific_permissions'] !== '') {
+            $hasPermissions = filter_var($filters['has_specific_permissions'], FILTER_VALIDATE_BOOLEAN);
+            $query->when(
+                $hasPermissions,
+                fn ($q) => $q->whereNotNull('specific_permissions')->whereJsonLength('specific_permissions', '>', 0),
+                fn ($q) => $q->whereNull('specific_permissions')->orWhereJsonLength('specific_permissions', 0),
+            );
+        }
+
+        return $query;
+    }
+
+    /**
+     * $filters acepta: search (nombre/username/email), role_name, country_name,
+     * status, has_specific_permissions ('true'|'false'). Antes se ignoraban
+     * por completo — la tabla del frontend "filtraba" solo la página de 15
+     * registros ya cargada, dando resultados incompletos/engañosos frente al
+     * total real del sistema.
+     */
+    public function resolveUsers(array $filters = [], int $page = 1, int $perPage = 15): array
     {
         $labels  = ['Rol', 'Nombre', 'Username', 'Email', 'País', 'Status'];
         $rowKeys = ['role_badge', 'full_name', 'username', 'email', 'country_name', 'status_badge'];
 
-        $source = User::with([
-                'country:id,name',
-                'roles:id,name,prefix',
-            ])
-            ->excludeSystemAccounts()
-            ->paginate(15);
+        $source = $this->buildFilteredQuery($filters)->paginate($perPage, ['*'], 'page', $page);
 
         $collection = $source->getCollection()->map(function (User $user) {
             $fullName = trim("{$user->first_name} {$user->last_name}");
@@ -74,6 +124,10 @@ final class AdminUserContextService
             $row['first_name'] = $user?->first_name;
             $row['last_name']  = $user?->last_name;
             $row['has_specific_permissions'] = !empty($user?->specific_permissions);
+            // ID real del usuario (distinto del 'id' hasheado de la fila) —
+            // necesario para deep-linkear al historial de auditoría, donde
+            // Audit.auditable_id se guarda con la PK real, no el hash de tabla.
+            $row['real_id'] = $user?->id;
             return $row;
         })->all();
 

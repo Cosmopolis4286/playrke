@@ -9,7 +9,7 @@
    */
 
   import { computed, ref } from 'vue'
-  import { usePage } from '@inertiajs/vue3'
+  import { router, usePage } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -56,9 +56,13 @@
 
   const {
     users,
+    pagination,
+    loading,
+    lastQuery,
     userEditData,
     setInitialUsers,
     fetchUsers,
+    onQueryChange,
     redirectToRoleCreation,
     editUser,
     updateUser,
@@ -70,7 +74,7 @@
     grantXp,
   } = useAdminUser()
 
-  setInitialUsers(props.users.rows)
+  setInitialUsers(props.users.rows, props.users_pagination)
 
   // Modal de carga de saldo (Modal.vue + useModalForm) — solo aplica a
   // usuarios con rol Comercio, Vendedor o Jugador (validado también en el
@@ -153,12 +157,12 @@
   const permissionsUserName = ref('')
   const permissionsCatalog = ref<CatalogPermission[]>([])
   const permissionsViaRoles = ref<string[]>([])
-  const permissionsForm = ref<{ id?: string | number; specific: string[] }>({ specific: [] })
+  const permissionsForm = ref<{ id?: string | number; specific: string[]; reason: string }>({ specific: [], reason: '' })
   const permissionsLoading = ref(false)
 
   async function submitPermissions(): Promise<boolean> {
     if (!permissionsUserId.value) return false
-    return savePermissions(permissionsUserId.value, permissionsForm.value.specific)
+    return savePermissions(permissionsUserId.value, permissionsForm.value.specific, permissionsForm.value.reason)
   }
 
   const {
@@ -170,7 +174,7 @@
   async function openPermissionsModal(userId: string | number, userName: string) {
     permissionsUserId.value = userId
     permissionsUserName.value = userName
-    permissionsForm.value = { specific: [] }
+    permissionsForm.value = { specific: [], reason: '' }
     permissionsCatalog.value = []
     permissionsViaRoles.value = []
 
@@ -181,7 +185,7 @@
     if (data) {
       permissionsCatalog.value = data.catalog
       permissionsViaRoles.value = data.viaRoles
-      permissionsForm.value = { id: userId, specific: data.specific }
+      permissionsForm.value = { id: userId, specific: data.specific, reason: '' }
     }
 
     showPermissionsModal.value = true
@@ -224,6 +228,30 @@
     xpGrantTarget.value = { id: userId, name: userName }
     xpGrantForm.value = { amount: '', reason: '' }
     showXpModal.value = true
+  }
+
+  /** Exporta a CSV los usuarios que coincidan con los filtros/búsqueda activos en la tabla. */
+  function handleExport() {
+    const params = new URLSearchParams()
+    if (lastQuery.value.search) params.set('search', lastQuery.value.search)
+    if (lastQuery.value.filters.role_name) params.set('role_name', lastQuery.value.filters.role_name)
+    if (lastQuery.value.filters.country_name) params.set('country_name', lastQuery.value.filters.country_name)
+    if (lastQuery.value.filters.status) params.set('status', lastQuery.value.filters.status)
+    if (lastQuery.value.filters.has_specific_permissions) params.set('has_specific_permissions', lastQuery.value.filters.has_specific_permissions)
+    window.location.href = `/admin/user/export?${params.toString()}`
+  }
+
+  /**
+   * Navega a /audit filtrado por este usuario como SUJETO auditado
+   * (auditable_id), no como actor — usa real_id (PK real), no el id
+   * hasheado de la fila de tabla.
+   */
+  function openAuditHistory(rowId: string) {
+    const user = users.value.find(u => u.id === rowId)
+    if (!user?.real_id) return
+    router.visit('/audit', {
+      data: { entity: 'App\\Models\\User', auditable_id: String(user.real_id) },
+    })
   }
 
   async function refreshUserBalance() {
@@ -350,8 +378,12 @@
   // Estadísticas del header (derivadas de datos ya presentes, sin llamadas nuevas)
   // ==========================================================================
 
+  // Los totales vienen de pagination (todo el catálogo), no de users.value
+  // (solo la página cargada) — antes "Usuarios totales/activos" reflejaban
+  // únicamente los 15 registros en memoria, una métrica engañosa que no
+  // representaba el sistema real.
   const stats = computed(() => ({
-    total: users.value.length,
+    total: pagination.value?.total ?? users.value.length,
     active: users.value.filter(u => u.status === 'ACTIVE').length,
     withSpecificPermissions: users.value.filter(u => u.has_specific_permissions).length,
     inactiveRolesAvailable: props.roles.length,
@@ -428,6 +460,17 @@
       }
     },
     {
+      icon: 'fas fa-history',
+      class: 'btn-outline-secondary',
+      title: 'Ver historial de auditoría de este usuario',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          openAuditHistory(ids[0])
+        }
+      }
+    },
+    {
       icon: 'fas fa-star',
       class: 'btn-warning text-white',
       title: 'Otorgar XP',
@@ -457,8 +500,8 @@
 <template>
   <div class="admin-users-stats">
     <StatTile label="Usuarios totales" :value="stats.total" icon="fa-users" />
-    <StatTile label="Usuarios activos" :value="stats.active" icon="fa-user-check" variant="success" />
-    <StatTile label="Con permisos individuales" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
+    <StatTile label="Activos (esta página)" :value="stats.active" icon="fa-user-check" variant="success" />
+    <StatTile label="Con permisos individuales (esta página)" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
     <StatTile label="Roles disponibles" :value="stats.inactiveRolesAvailable" icon="fa-user-tag" />
   </div>
 
@@ -469,6 +512,9 @@
     :rows="users"
     :filters="filters"
     search-placeholder="Buscar por nombre, username, email..."
+    :loading="loading"
+    server-side
+    :server-total-pages="pagination?.last_page ?? 1"
     showCreateButton
     showEditButton
     showDeleteButton
@@ -479,6 +525,7 @@
     :disabled-row-ids="disabledRowIds"
     disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
     :extra-buttons="extraButtons"
+    @query-change="onQueryChange"
   >
     <template #cell-role_badge="{ row }">
       <span v-html="row.role_badge"></span>
@@ -487,6 +534,12 @@
         class="fas fa-user-shield admin-user-permissions-flag"
         title="Este usuario tiene permisos individuales adicionales a los de su rol"
       ></i>
+    </template>
+
+    <template #action-buttons>
+      <button class="btn btn-sm btn-outline-secondary" title="Exportar usuarios filtrados a CSV" @click="handleExport">
+        <i class="fas fa-file-csv mr-1"></i>Exportar
+      </button>
     </template>
   </TableWithFilterBridge>
 
@@ -571,6 +624,7 @@
       v-else
       ref="permissionsFormRef"
       v-model="permissionsForm.specific"
+      v-model:reason="permissionsForm.reason"
       :catalog="permissionsCatalog"
       :via-roles="permissionsViaRoles"
     />

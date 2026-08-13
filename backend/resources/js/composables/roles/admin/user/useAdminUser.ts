@@ -5,6 +5,8 @@ import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
 import type { AdminUser, AdminUserEditData } from '@/js/types/roles/admin/admin-user'
+import type { Pagination } from '@/js/types/common/table/pagination'
+import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
 interface BulkResult {
     updated: number
@@ -13,9 +15,13 @@ interface BulkResult {
 
 interface UseAdminUserReturn {
     users: Ref<AdminUser[]>
+    pagination: Ref<Pagination | null>
+    loading: Ref<boolean>
+    lastQuery: Ref<ServerQuery>
     userEditData: Ref<Partial<AdminUserEditData>>
-    setInitialUsers: (initial: AdminUser[]) => void
+    setInitialUsers: (initial: AdminUser[], initialPagination?: Pagination | null) => void
     fetchUsers: () => Promise<boolean>
+    onQueryChange: (query: ServerQuery) => Promise<void>
     redirectToRoleCreation: (roleName: string) => void
     editUser: (id: string | number) => void
     updateUser: () => Promise<boolean>
@@ -43,18 +49,38 @@ const ROLE_ROUTES: Record<string, string> = {
 export function useAdminUser(): UseAdminUserReturn {
     const loading = ref(false)
     const users   = ref<AdminUser[]>([])
+    const pagination = ref<Pagination | null>(null)
     const userEditData = ref<Partial<AdminUserEditData>>({})
 
-    function setInitialUsers(initial: AdminUser[]) {
+    // Último query server-side aplicado (búsqueda/filtros/página) — se
+    // reutiliza tras cada mutación (editar, cambiar estado, etc.) para que la
+    // tabla no "pierda" el filtro activo al refrescar, y para exportar
+    // exactamente lo que el admin está viendo (ver handleExport en Index.vue).
+    const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: null }, page: 1 })
+
+    function setInitialUsers(initial: AdminUser[], initialPagination: Pagination | null = null) {
         users.value = [...initial]
+        pagination.value = initialPagination
     }
 
     async function fetchUsers(): Promise<boolean> {
         try {
             loading.value = true
-            const response = await backendClient.get<{ data: AdminUser[] }>('/admin/user/fetch-list')
+            const response = await backendClient.get<{ data: AdminUser[]; meta: Pagination }>('/admin/user/fetch-list', {
+                params: {
+                    page: lastQuery.value.page,
+                    search: lastQuery.value.search || undefined,
+                    role_name: lastQuery.value.filters.role_name || undefined,
+                    country_name: lastQuery.value.filters.country_name || undefined,
+                    status: lastQuery.value.filters.status || undefined,
+                    has_specific_permissions: lastQuery.value.filters.has_specific_permissions || undefined,
+                },
+            })
             if (Array.isArray(response.data?.data)) {
                 users.value = response.data.data
+            }
+            if (response.data?.meta) {
+                pagination.value = response.data.meta
             }
             return true
         } catch (error) {
@@ -64,6 +90,12 @@ export function useAdminUser(): UseAdminUserReturn {
         } finally {
             loading.value = false
         }
+    }
+
+    /** Adapta el evento query-change de TableWithFilterBridge (server-side) al fetch. */
+    async function onQueryChange(query: ServerQuery): Promise<void> {
+        lastQuery.value = query
+        await fetchUsers()
     }
 
     /**
@@ -340,9 +372,13 @@ export function useAdminUser(): UseAdminUserReturn {
 
     return {
         users,
+        pagination,
+        loading,
+        lastQuery,
         userEditData,
         setInitialUsers,
         fetchUsers,
+        onQueryChange,
         redirectToRoleCreation,
         editUser,
         updateUser,

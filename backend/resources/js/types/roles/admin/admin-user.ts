@@ -26,6 +26,8 @@ export interface AdminUser {
     readonly last_name: string | null
     /** true si el usuario tiene permisos específicos asignados además de los de su rol. */
     readonly has_specific_permissions: boolean
+    /** ID real del usuario (distinto de `id`, que viene hasheado para la tabla). */
+    readonly real_id: string | number | null
 }
 
 export interface AdminRole {

@@ -20,9 +20,26 @@ final class AdminUserService
         private readonly UserLevelService        $userLevelService,
     ) {}
 
-    public function fetchList(): array
+    public function fetchList(array $filters = [], int $page = 1): array
     {
-        return $this->context->resolveUsers()['users']['rows'] ?? [];
+        $data = $this->context->resolveUsers($filters, $page);
+
+        return [
+            'rows'       => $data['users']['rows'] ?? [],
+            'pagination' => $data['pagination'],
+        ];
+    }
+
+    /**
+     * Cursor sobre TODOS los usuarios que coincidan con los filtros (sin
+     * paginar) — mismo patrón que ExternalPlayerAdminService::searchForExport(),
+     * evita materializar el catálogo completo en memoria como haría ->get().
+     *
+     * @return \Illuminate\Support\LazyCollection<int, User>
+     */
+    public function exportForCsv(array $filters = []): \Illuminate\Support\LazyCollection
+    {
+        return $this->context->buildFilteredQuery($filters)->cursor();
     }
 
     /**

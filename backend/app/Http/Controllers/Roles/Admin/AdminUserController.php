@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Roles\Admin\User\AdminUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador de administración de Usuarios.
@@ -23,13 +24,56 @@ final class AdminUserController extends Controller
     ) {}
 
     /**
-     * Listado paginado de usuarios (JSON).
+     * Listado paginado de usuarios (JSON). Server-side real: search, role_name,
+     * country_name, status y has_specific_permissions filtran contra TODO el
+     * catálogo de usuarios, no solo la página cargada en memoria.
      */
-    public function fetchList(): JsonResponse
+    public function fetchList(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => ['data' => $this->service->fetchList()]
-        );
+        return $this->handleServiceJson(function () use ($request) {
+            $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions']);
+            $page    = (int) $request->get('page', 1);
+
+            $result = $this->service->fetchList($filters, $page);
+
+            return [
+                'data' => $result['rows'],
+                'meta' => $result['pagination'],
+            ];
+        });
+    }
+
+    /**
+     * Exporta a CSV todos los usuarios que coincidan con los filtros actuales
+     * (sin límite de paginación) — mismo patrón que
+     * ExternalPlayerAdminController::export().
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions']);
+
+        return response()->streamDownload(function () use ($filters) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nombre', 'Apellido', 'Username', 'Email', 'Rol', 'País', 'Estado', 'Permisos individuales', 'Registrado']);
+
+            foreach ($this->service->exportForCsv($filters) as $user) {
+                fputcsv($handle, [
+                    $user->first_name,
+                    $user->last_name,
+                    $user->username,
+                    $user->email,
+                    $user->roles->first()?->name,
+                    $user->country?->name,
+                    $user->status,
+                    !empty($user->specific_permissions) ? 'Sí' : 'No',
+                    $user->created_at?->format('Y-m-d'),
+                ]);
+            }
+
+            fclose($handle);
+        }, 'usuarios-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     /**
