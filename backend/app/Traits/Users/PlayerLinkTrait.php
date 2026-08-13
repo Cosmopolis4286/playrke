@@ -48,8 +48,8 @@ trait PlayerLinkTrait
         // Verificar si el jugador no existe
         if (!$player) {
 
-            $playerName = $data['playerName'] ?? $player->first_name;
-            $playerLastName = $data['playerLastName'] ?? $player->lastname;
+            $playerName = $data['playerName'] ?? null;
+            $playerLastName = $data['playerLastName'] ?? null;
             $country = $data['country'];
 
             // Crear código de compra
@@ -77,17 +77,16 @@ trait PlayerLinkTrait
             // Get the authenticated user ID for seller_user_id
             $sellerUserId = auth()->id();
 
-            // Debug: Log the values to understand what's causing the issue
-            \Log::info('PlayerLinkTrait Debug', [
-                'roomUser' => $roomUser,
-                'roomUser_type' => gettype($roomUser),
-                'creator' => $data['creator'] ?? 'missing',
-                'creator_type' => gettype($data['creator'] ?? 'missing'),
-                'seller' => $data['seller'] ?? 'missing',
-                'seller_type' => gettype($data['seller'] ?? 'missing'),
+            // Log de diagnóstico sin PII: solo tipos/presencia de campos e IDs
+            // técnicos, nunca teléfono/nombre del jugador (ver hallazgo de
+            // auditoría: estos logs persistían datos personales sin política
+            // de retención).
+            \Log::info('PlayerLinkTrait: creando ExternalPlayer', [
+                'game_id' => $data['gameId'] ?? null,
+                'room_id' => $data['roomId'] ?? null,
                 'seller_user_id' => $sellerUserId,
-                'currency' => $data['currency'] ?? 'missing',
-                'currency_type' => gettype($data['currency'] ?? 'missing'),
+                'has_creator' => isset($data['creator']),
+                'has_currency' => isset($data['currency']),
             ]);
 
             $dataPlayer = [
@@ -153,25 +152,17 @@ trait PlayerLinkTrait
             $playerLink = ExternalPlayer::getValueById($playerLink, 'link');
         }
 
-        // Debug: Log the player link and search
-        \Log::info('getGameLinkByPlayer Debug', [
-            'playerLink' => $playerLink,
-            'playerLink_type' => gettype($playerLink)
-        ]);
-
-        // Get the external player record to get the room_id
+        // El link en sí (28 chars aleatorios) no es PII — se loguea igual que
+        // cualquier identificador técnico, pero nunca los datos del jugador
+        // asociado (nombre/teléfono).
         $externalPlayer = ExternalPlayer::where('link', $playerLink)->first();
 
         if (!$externalPlayer) {
-            \Log::error('External player not found for link', ['playerLink' => $playerLink]);
+            \Log::warning('PlayerLinkTrait: external player no encontrado por link', ['link' => $playerLink]);
 
             // Try to find by ID as fallback
             if (is_numeric($playerLink)) {
                 $externalPlayer = ExternalPlayer::find($playerLink);
-                \Log::info('Trying to find by ID as fallback', [
-                    'playerLink' => $playerLink,
-                    'found' => $externalPlayer ? true : false
-                ]);
             }
 
             if (!$externalPlayer) {
@@ -182,20 +173,9 @@ trait PlayerLinkTrait
         $roomId = $externalPlayer->room_id;
 
         if (!$roomId) {
-            \Log::error('Room ID is null for external player', [
-                'playerLink' => $playerLink,
-                'externalPlayer' => $externalPlayer->toArray()
-            ]);
+            \Log::error('PlayerLinkTrait: room_id nulo para external player', ['external_player_id' => $externalPlayer->id]);
             throw new \Exception('ID de sala no encontrado para el jugador externo');
         }
-
-        \Log::info('Generating game link', [
-            'playerLink' => $playerLink,
-            'roomId' => $roomId,
-            'route' => 'bingo.game',
-            'externalPlayer_id' => $externalPlayer->id,
-            'externalPlayer_link' => $externalPlayer->link
-        ]);
 
         return route('bingo.game', ['room' => $roomId]);
     }
