@@ -1,41 +1,41 @@
 <?php
 
-namespace App\Traits\Users;
+namespace App\Services\Roles\Player\External;
 
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
-use App\Models\Game;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Player\External\UserPurchaseCode;
-use App\Services\Roles\Player\External\ExternalPlayerLinkSettings;
 use Illuminate\Support\Str;
 
-trait PlayerLinkTrait
+/**
+ * Ciclo de vida del link de un ExternalPlayer (comprador de cartones sin
+ * cuenta en la plataforma, captado por un vendedor): generarlo, crear el
+ * registro asociado (con su UserPurchaseCode), y resolverlo de vuelta a una
+ * sala de juego.
+ *
+ * Antes vivía como App\Traits\Users\PlayerLinkTrait — nombre engañoso (sin
+ * relación con el jugador registrado `User`+rol `player`), mezclado por
+ * `use` en BingoCardGenerateService con un solo consumidor real (no
+ * justificaba un trait) y con initialCharacters(), un helper de formateo de
+ * texto sin ninguna relación con jugadores externos ni con links (código
+ * muerto, sin consumidores, descartado en esta migración).
+ */
+final class ExternalPlayerLinkService
 {
-    /**
-     * Crear un enlace único para un jugador externo.
-     *
-     * Delega en ExternalPlayerRepository::generateUniqueLink() — antes
-     * duplicaba aquí la misma lógica con una longitud distinta (28 vs 20
-     * caracteres del repositorio, que además nunca estaba bindeado), dos
-     * generadores inconsistentes para el mismo campo `link`.
-     *
-     * @param string $gameId The game ID
-     * @param string $roomId The room ID (sin uso — la unicidad del link es
-     *   global por diseño de la columna `external_players.link`, no por juego)
-     * @return string El enlace creado
-     */
-    public function createExternalPlayers(string $gameId, string $roomId = '')
-    {
-        return app(ExternalPlayerRepositoryInterface::class)->generateUniqueLink();
-    }
+    public function __construct(
+        private readonly ExternalPlayerRepositoryInterface $repository,
+    ) {}
 
     /**
-     * Manejar jugadores externos
-     * 
-     * @param array $data Los datos a manejar
-     * @return void
+     * Busca un ExternalPlayer existente para esta sala/teléfono; si no
+     * existe, lo crea junto con su UserPurchaseCode y le asigna un link
+     * nuevo. Devuelve $data con `playerLink` seteado al ID del jugador
+     * externo (nuevo o encontrado).
+     *
+     * @param array $data Requiere: gameId, roomId, roomUser, playerPhone,
+     *   country, creator, currency. Opcionales: playerName, playerLastName.
      */
-    public function handleExternalPlayers($data)
+    public function resolveOrCreatePlayer(array $data): array
     {
         $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
@@ -46,14 +46,11 @@ trait PlayerLinkTrait
                     ->orWhere('id', $roomUser);
             })->value('id');
 
-        // Verificar si el jugador no existe
         if (!$player) {
-
             $playerName = $data['playerName'] ?? null;
             $playerLastName = $data['playerLastName'] ?? null;
             $country = $data['country'];
 
-            // Crear código de compra
             // Limpiar teléfono para que quepa en 14 caracteres (eliminar espacios y guiones)
             $cleanPhone = preg_replace('/[\s\-]/', '', $playerPhone);
             if (strlen($cleanPhone) > 14) {
@@ -73,16 +70,12 @@ trait PlayerLinkTrait
                 throw new \Exception('Error al crear el código de compra');
             }
 
-            $playerLink = $this->createExternalPlayers($data['gameId'], $data['roomId']);
-
-            // Get the authenticated user ID for seller_user_id
+            $playerLink = $this->repository->generateUniqueLink();
             $sellerUserId = auth()->id();
 
             // Log de diagnóstico sin PII: solo tipos/presencia de campos e IDs
-            // técnicos, nunca teléfono/nombre del jugador (ver hallazgo de
-            // auditoría: estos logs persistían datos personales sin política
-            // de retención).
-            \Log::info('PlayerLinkTrait: creando ExternalPlayer', [
+            // técnicos, nunca teléfono/nombre del jugador.
+            \Log::info('ExternalPlayerLinkService: creando ExternalPlayer', [
                 'game_id' => $data['gameId'] ?? null,
                 'room_id' => $data['roomId'] ?? null,
                 'seller_user_id' => $sellerUserId,
@@ -107,7 +100,6 @@ trait PlayerLinkTrait
                 'expiration_date' => now()->addDays(ExternalPlayerLinkSettings::expirationDays()),
             ];
 
-            // Crear el nuevo registro
             $player = ExternalPlayer::create($dataPlayer)->id;
 
             if (!$player) {
@@ -122,33 +114,17 @@ trait PlayerLinkTrait
         return $data;
     }
 
-    public function initialCharacters($text)
+    /**
+     * Resuelve la URL de la sala de Bingo asociada a un link/ID de
+     * ExternalPlayer. $playerLink null significa jugador interno (con
+     * cuenta), no requiere resolución.
+     */
+    public function resolveGameUrl($playerLink): ?string
     {
-        // Verificar si $text es un array
-        if (is_array($text)) {
-            $initialCharacters = [];
-
-            foreach ($text as $value) {
-                $character = strtoupper(substr($value, 0, 1));
-                $initialCharacters[] = $character;
-            }
-            return $initialCharacters;
-        } else {
-            // Si $text no es un array
-            $firstCharacter = strtoupper(substr($text, 0, 1));
-            return $firstCharacter;
-        }
-    }
-
-    public function getGameLinkByPlayer($playerLink)
-    {
-        // If playerLink is null, it's an internal player, return null
         if ($playerLink === null) {
-            \Log::info('Internal player detected, no external player link needed');
             return null;
         }
 
-        // If playerLink is an integer, it's the external player ID, get the link
         if (is_int($playerLink)) {
             $playerLink = ExternalPlayer::getValueById($playerLink, 'link');
         }
@@ -159,9 +135,8 @@ trait PlayerLinkTrait
         $externalPlayer = ExternalPlayer::where('link', $playerLink)->first();
 
         if (!$externalPlayer) {
-            \Log::warning('PlayerLinkTrait: external player no encontrado por link', ['link' => $playerLink]);
+            \Log::warning('ExternalPlayerLinkService: external player no encontrado por link', ['link' => $playerLink]);
 
-            // Try to find by ID as fallback
             if (is_numeric($playerLink)) {
                 $externalPlayer = ExternalPlayer::find($playerLink);
             }
@@ -174,7 +149,7 @@ trait PlayerLinkTrait
         $roomId = $externalPlayer->room_id;
 
         if (!$roomId) {
-            \Log::error('PlayerLinkTrait: room_id nulo para external player', ['external_player_id' => $externalPlayer->id]);
+            \Log::error('ExternalPlayerLinkService: room_id nulo para external player', ['external_player_id' => $externalPlayer->id]);
             throw new \Exception('ID de sala no encontrado para el jugador externo');
         }
 

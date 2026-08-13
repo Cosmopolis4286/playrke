@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 /**
  * Lectura del setting 'external_player_link_expiration_days' (ver
  * SettingSeeder) — días de vigencia del link de un jugador externo antes de
- * expirar. Compartido entre el flujo de venta (PlayerLinkTrait) y el panel
+ * expirar. Compartido entre el flujo de venta (ExternalPlayerLinkService) y el panel
  * admin (ExternalPlayerAdminService::regenerateLink()), antes era un valor
  * fijo de 7 días sin forma de ajustarlo.
  */

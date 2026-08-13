@@ -14,7 +14,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Services\Card\BingoCardPriceCalculator;
 use App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService;
 use App\Services\WalletService;
-use App\Traits\Users\PlayerLinkTrait;
+use App\Services\Roles\Player\External\ExternalPlayerLinkService;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +27,6 @@ use App\Models\Game;
  */
 final class BingoCardGenerateService
 {
-    use PlayerLinkTrait;
-
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
@@ -49,6 +47,7 @@ final class BingoCardGenerateService
         private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,
         private readonly \App\Services\ExchangeRate\ExchangeRateDomainService $exchangeRateDomain,
         private readonly \App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService $bingoRoomCrud,
+        private readonly ExternalPlayerLinkService $externalPlayerLink,
     ) {}
 
     /**
@@ -512,9 +511,9 @@ final class BingoCardGenerateService
 
             $cardOrder['roomUser'] = $roomUser;
 
-            $cardOrder = $this->handleExternalPlayers($cardOrder);
+            $cardOrder = $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
 
-            $playerLink = $this->getGameLinkByPlayer($cardOrder['roomUser']['id'] ?? null);
+            $playerLink = $this->externalPlayerLink->resolveGameUrl($cardOrder['roomUser']['id'] ?? null);
 
             return [
                 'type'       => 'success',
@@ -621,7 +620,7 @@ final class BingoCardGenerateService
                 throw new DomainException('Error al generar cartones');
             }
 
-            $this->handleExternalPlayers($cardOrder);
+            $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
 
             return [
                 'type'       => 'success',

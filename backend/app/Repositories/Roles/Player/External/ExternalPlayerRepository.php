@@ -11,12 +11,14 @@ use Illuminate\Support\Str;
 /**
  * Repositorio de ExternalPlayer (jugadores de Bingo captados por un vendedor
  * sin cuenta en la plataforma, identificados por `link` temporal — ver
- * App\Traits\Users\PlayerLinkTrait para el flujo de creación real).
+ * App\Services\Roles\Player\External\ExternalPlayerLinkService para el flujo
+ * de creación real).
  *
  * generateUniqueLink() usa 28 caracteres para coincidir con el generador real
- * de PlayerLinkTrait::createExternalPlayers() y con external_players.link
- * (string(28)) — antes de este fix existían dos generadores inconsistentes
- * (20 vs 28 chars) sin que ninguno de los dos se usara realmente en conjunto.
+ * de ExternalPlayerLinkService::resolveOrCreatePlayer() y con
+ * external_players.link (string(28)) — antes de este fix existían dos
+ * generadores inconsistentes (20 vs 28 chars) sin que ninguno de los dos se
+ * usara realmente en conjunto.
  */
 class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerRepositoryInterface
 {
