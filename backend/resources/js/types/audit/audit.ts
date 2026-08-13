@@ -23,6 +23,10 @@ export interface AuditFilterOptions {
 export interface AuditPageProps {
     audits: AuditTableData
     filterOptions: AuditFilterOptions
+    initialFilters?: {
+        entity?: string
+        auditable_id?: string
+    }
 }
 
 export interface AuditDetail {

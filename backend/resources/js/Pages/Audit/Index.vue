@@ -57,10 +57,22 @@
   /* Filtros activos — para recargar desde backend                              */
   /* -------------------------------------------------------------------------- */
 
-  const activeFilters = ref<Record<string, string>>({})
+  const activeFilters = ref<Record<string, string>>({ ...(props.initialFilters ?? {}) })
   const showDateFilters = ref(false)
   const dateFrom = ref('')
   const dateTo   = ref('')
+
+  const subjectFilterLabel = computed(() => {
+    if (!activeFilters.value.auditable_id) return null
+    const entityLabel = props.filterOptions.entities.find(e => e.value === activeFilters.value.entity)?.label
+    return `${entityLabel ?? 'Entidad'} #${activeFilters.value.auditable_id}`
+  })
+
+  async function clearSubjectFilter(): Promise<void> {
+    const { auditable_id, entity, ...rest } = activeFilters.value
+    activeFilters.value = rest
+    await fetchList(rest as any, 1)
+  }
 
   async function onFilter(payload: { search: string; filters: Record<string, string> }): Promise<void> {
     activeFilters.value = payload.filters
@@ -140,6 +152,14 @@
     <CardHeader title="Auditoría" subtitle="Registro de actividad del sistema" />
 
     <div class="card-body">
+
+      <!-- Filtro por sujeto (deep-link desde otra pantalla, ej. ficha de usuario) -->
+      <div v-if="subjectFilterLabel" class="alert alert-info d-flex align-items-center justify-content-between py-2 px-3 mb-3">
+        <span><i class="fas fa-filter me-2"></i>Mostrando historial de <strong>{{ subjectFilterLabel }}</strong></span>
+        <button class="btn btn-sm btn-outline-secondary" @click="clearSubjectFilter">
+          <i class="fas fa-times me-1"></i>Quitar filtro
+        </button>
+      </div>
 
       <!-- Filtros rápidos por fecha -->
       <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">

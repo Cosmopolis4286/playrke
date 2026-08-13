@@ -151,6 +151,17 @@ class AuditService
             $query->where('user_id', $filters['user_id']);
         }
 
+        /**
+         * Filtra por el SUJETO auditado (auditable_id), no por el actor que
+         * ejecutó la acción (user_id). Usado para "ver historial de esta
+         * entidad" — ej. deep-link desde /admin/users hacia el historial de
+         * cambios de un usuario puntual. Requiere 'entity' para acotar el
+         * tipo, ya que auditable_id no es único entre distintos modelos.
+         */
+        if (!empty($filters['auditable_id']) && !empty($filters['entity'])) {
+            $query->where('auditable_id', $filters['auditable_id']);
+        }
+
         if (!empty($filters['date_from'])) {
             $query->whereDate('audits.created_at', '>=', $filters['date_from']);
         }

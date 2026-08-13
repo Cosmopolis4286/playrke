@@ -15,15 +15,17 @@ class AuditController extends Controller
         private AuditService $service
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return $this->handleServiceInertia(function () {
-            $tableData     = $this->service->getTableData();
+        return $this->handleServiceInertia(function () use ($request) {
+            $filters       = $request->only(['entity', 'auditable_id']);
+            $tableData     = $this->service->getTableData($filters);
             $filterOptions = $this->service->filterOptions();
 
             return Inertia::render('Audit/Index', [
-                'audits'        => $tableData,
-                'filterOptions' => $filterOptions,
+                'audits'         => $tableData,
+                'filterOptions'  => $filterOptions,
+                'initialFilters' => $filters,
             ]);
         });
     }
@@ -31,7 +33,7 @@ class AuditController extends Controller
     public function fetchList(Request $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['event', 'actor_type', 'entity', 'user_id', 'date_from', 'date_to']);
+            $filters = $request->only(['event', 'actor_type', 'entity', 'user_id', 'auditable_id', 'date_from', 'date_to']);
             $page    = (int) $request->get('page', 1);
 
             return ['data' => $this->service->fetchList($filters, $page)];
