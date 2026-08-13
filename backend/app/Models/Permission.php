@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 
@@ -12,7 +13,7 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
  */
 class Permission extends SpatiePermission
 {
-    use SnowflakeId;
+    use SnowflakeId, Auditable;
 
     protected $casts = [
         'is_system' => 'boolean',

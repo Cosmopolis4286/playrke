@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\AsActiveStatusEnum;
 use App\Models\User;
+use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -25,7 +26,7 @@ use Spatie\Permission\Traits\RefreshesPermissionCache;
  */
 class Role extends Model implements RoleContract
 {
-    use SnowflakeId, HasPermissions, RefreshesPermissionCache;
+    use SnowflakeId, HasPermissions, RefreshesPermissionCache, Auditable;
 
     /**
      * Nombre de la tabla asociada al modelo.
