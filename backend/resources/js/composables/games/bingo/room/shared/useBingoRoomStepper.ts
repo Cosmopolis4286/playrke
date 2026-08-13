@@ -16,7 +16,7 @@ export const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
     basic:      ['date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'rounds', 'jackpotPct', 'amountAddedPrizePool', 'accessCode', 'roomPassword', 'hostUserId'],
     currencies: ['allowedCurrencies', 'cardPriceUsd', 'cardPriceByCurrency', 'usdExchangeRoundStep'],
     rounds:     ['roundsPct', 'roundsConfig', 'percentageSum'],
-    options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards'],
+    options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
     review:     [],
 }
 

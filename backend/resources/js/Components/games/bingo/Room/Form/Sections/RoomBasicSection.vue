@@ -320,46 +320,6 @@ import { SelectOption } from '@/js/types/common/form/form'
       </template>
     </FormInput>
 
-    <!-- Min. Cartones — aplica a salas normales y automáticas -->
-    <FormInput
-      label="Min. Cartones"
-      name="min_cards_to_start"
-      :error="(errors as any).minCardsToStart"
-      type="number"
-      placeholder="Sin condición"
-      :step="1"
-      :min="1"
-      :max="10000"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).minCardsToStart ?? null"
-      @update:modelValue="
-        emit('update:modelValue', {
-          ...modelValue,
-          minCardsToStart: $event === '' || $event === null ? null : Number($event)
-        } as any)
-      "
-    />
-
-    <!-- Cupo máximo de jugadores — opcional, sin límite si se deja vacío -->
-    <FormInput
-      label="Máx. Jugadores"
-      name="max_players"
-      :error="(errors as any).maxPlayers"
-      type="number"
-      placeholder="Sin límite"
-      :step="1"
-      :min="1"
-      :max="100000"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).maxPlayers ?? null"
-      @update:modelValue="
-        emit('update:modelValue', {
-          ...modelValue,
-          maxPlayers: $event === '' || $event === null ? null : Number($event)
-        } as any)
-      "
-    />
-
     <!-- %Jackpot -->
     <FormInput
       label="%Jackpot"

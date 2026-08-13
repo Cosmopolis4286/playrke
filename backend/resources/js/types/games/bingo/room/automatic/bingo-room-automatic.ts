@@ -100,6 +100,9 @@ export interface BingoRoomAutomatic {
     readonly auto_create_room?: boolean
     readonly max_rooms_per_day?: number | null
     readonly min_cards_to_start?: number | null
+    readonly max_cards_to_start?: number | null
+    readonly min_players?: number | null
+    readonly max_players?: number | null
     readonly sales_start_offset_days?: number | null
     readonly rooms_created?: number
     readonly last_room_created_at?: string | null

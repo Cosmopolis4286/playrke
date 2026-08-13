@@ -171,6 +171,14 @@ const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin edicio
             <dt>Mín. cartones para iniciar</dt>
             <dd>{{ form.minCardsToStart }}</dd>
           </template>
+          <template v-if="form.maxCardsToStart != null">
+            <dt>Máx. cartones</dt>
+            <dd>{{ form.maxCardsToStart }}</dd>
+          </template>
+          <template v-if="form.minPlayers != null">
+            <dt>Mín. jugadores para iniciar</dt>
+            <dd>{{ form.minPlayers }}</dd>
+          </template>
           <template v-if="form.maxPlayers != null">
             <dt>Cupo máx. jugadores</dt>
             <dd>{{ form.maxPlayers }}</dd>

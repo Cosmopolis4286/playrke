@@ -65,7 +65,9 @@ export const bingoRoomFormSchema = z.object({
     jackpotPct:   z.number().nullable().optional(),
     timeChip:     z.number().nullable().optional(),
     minCardsToStart: z.number().nullable().optional(),
+    maxCardsToStart: z.number().nullable().optional(),
     maxPlayers:      z.number().nullable().optional(),
+    minPlayers:      z.number().nullable().optional(),
     rounds:       z.number().nullable().optional(),
     roundsPct:    z.number().nullable().optional(),
     roundsConfig: z.array(roundConfigSchema).optional(),
@@ -204,11 +206,39 @@ export function validateBingoRoomForm(
             e.minCardsToStart = 'La cantidad mínima de cartones debe ser un entero entre 1 y 10000.'
         }
     }
+    if (data.maxCardsToStart !== null && data.maxCardsToStart !== undefined) {
+        const max = Number(data.maxCardsToStart)
+        if (!Number.isInteger(max) || max < 1 || max > 10000) {
+            e.maxCardsToStart = 'El máximo de cartones debe ser un entero entre 1 y 10000.'
+        }
+    }
     if (data.maxPlayers !== null && data.maxPlayers !== undefined) {
         const max = Number(data.maxPlayers)
         if (!Number.isInteger(max) || max < 1 || max > 100000) {
             e.maxPlayers = 'El cupo máximo de jugadores debe ser un entero entre 1 y 100000.'
         }
+    }
+    if (data.minPlayers !== null && data.minPlayers !== undefined) {
+        const min = Number(data.minPlayers)
+        if (!Number.isInteger(min) || min < 1 || min > 100000) {
+            e.minPlayers = 'El mínimo de jugadores debe ser un entero entre 1 y 100000.'
+        }
+    }
+
+    /* ── Validación cruzada min/max (solo si ambos extremos del par tienen valor) ── */
+    if (
+        data.minCardsToStart != null && data.maxCardsToStart != null &&
+        !e.minCardsToStart && !e.maxCardsToStart &&
+        Number(data.minCardsToStart) > Number(data.maxCardsToStart)
+    ) {
+        e.maxCardsToStart = 'El máximo de cartones debe ser mayor o igual al mínimo.'
+    }
+    if (
+        data.minPlayers != null && data.maxPlayers != null &&
+        !e.minPlayers && !e.maxPlayers &&
+        Number(data.minPlayers) > Number(data.maxPlayers)
+    ) {
+        e.maxPlayers = 'El máximo de jugadores debe ser mayor o igual al mínimo.'
     }
 
     /* ── Seriales (pre-compiled schema) ── */
