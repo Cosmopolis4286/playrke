@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 
 /**
  * Jugadores externos demo (compradores de cartones de Bingo sin cuenta en la
- * plataforma, ver App\Traits\Users\PlayerLinkTrait) — datos de prueba para el
+ * plataforma, ver App\Services\Roles\Player\External\ExternalPlayerLinkService) — datos de prueba para el
  * panel admin en /admin/external-players.
  *
  * Depende de: RoleSeeder, TestUserSeeder, DemoRoleDataSeeder (commerce/seller

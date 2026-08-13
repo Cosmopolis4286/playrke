@@ -8,7 +8,7 @@ use App\Services\Auth\RoleAuthorizationService;
 
 /**
  * Policy de autorización para la administración de Jugadores Externos
- * (compradores de cartones de Bingo sin cuenta, ver App\Traits\Users\PlayerLinkTrait).
+ * (compradores de cartones de Bingo sin cuenta, ver App\Services\Roles\Player\External\ExternalPlayerLinkService).
  *
  * A diferencia del resto de policies de Roles/Admin, NO extiende BaseRolePolicy
  * (que autoriza por rol fijo): usa permisos granulares `external-players.*`

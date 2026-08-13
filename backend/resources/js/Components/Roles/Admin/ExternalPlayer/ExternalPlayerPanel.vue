@@ -30,6 +30,7 @@
             @toggle-block="handleToggleBlock"
             @regenerate-link="handleRegenerateLink"
             @reactivate="handleReactivate"
+            @convert-to-user="handleConvertToUser"
           />
         </div>
       </div>
@@ -68,6 +69,7 @@ const emit = defineEmits<{
   (e: 'toggle-block', playerId: string): void
   (e: 'regenerate-link', playerId: string): void
   (e: 'reactivate', playerId: string): void
+  (e: 'convert-to-user', playerId: string): void
   (e: 'export'): void
 }>()
 
@@ -125,6 +127,28 @@ async function handleReactivate(player: ExternalPlayer) {
   busyId.value = player.id
   try {
     emit('reactivate', player.id)
+  } finally {
+    busyId.value = null
+  }
+}
+
+async function handleConvertToUser(player: ExternalPlayer) {
+  const result = await Swal.fire({
+    title: 'Convertir a usuario registrado',
+    html: `<p class="mb-0">Se creará una cuenta con rol Jugador para "${player.first_name} ${player.last_name}". El comprador podrá iniciar sesión con una contraseña temporal que se mostrará solo una vez. Esta acción no se puede deshacer.</p>`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#0d6efd',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, convertir',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true,
+  })
+  if (!result.isConfirmed) return
+
+  busyId.value = player.id
+  try {
+    emit('convert-to-user', player.id)
   } finally {
     busyId.value = null
   }

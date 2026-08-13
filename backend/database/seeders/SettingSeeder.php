@@ -73,7 +73,7 @@ class SettingSeeder extends Seeder
             // JUGADORES EXTERNOS
             // ─────────────────────────────────────────────
             // Días de vigencia del link de un jugador externo antes de expirar
-            // (ver App\Traits\Users\PlayerLinkTrait::handleExternalPlayers()).
+            // (ver App\Services\Roles\Player\External\ExternalPlayerLinkService::resolveOrCreatePlayer()).
             ['param' => 'external_player_link_expiration_days', 'value' => '7', 'status' => 'ACTIVE'],
 
             // ─────────────────────────────────────────────

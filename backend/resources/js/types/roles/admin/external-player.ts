@@ -12,6 +12,7 @@ export interface ExternalPlayer {
   seller_user?: { id: string; username: string; first_name: string; last_name: string; email: string } | null
   country?: { id: string; name: string } | null
   purchase_code?: { id: string; purchase_code: string } | null
+  converted_user?: { id: string; username: string; email: string } | null
 }
 
 export interface ExternalPlayerStatistics {

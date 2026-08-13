@@ -26,7 +26,8 @@ class ExternalPlayer extends BaseModel
         'identification',
         'phone',
         'purchase_code_id',
-        'status'
+        'status',
+        'converted_user_id',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class ExternalPlayer extends BaseModel
         'room_user_id' => 'string',
         'status' => 'string',
         'expiration_date' => 'datetime',
+        'converted_user_id' => 'string',
     ];
 
     public function game(): BelongsTo
@@ -67,6 +69,16 @@ class ExternalPlayer extends BaseModel
     public function purchaseCode(): BelongsTo
     {
         return $this->belongsTo(UserPurchaseCode::class, 'purchase_code_id');
+    }
+
+    /**
+     * Usuario registrado resultante de convertir este jugador externo (ver
+     * ExternalPlayerAdminService::convertToUser()) — null mientras siga
+     * siendo un comprador sin cuenta.
+     */
+    public function convertedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'converted_user_id');
     }
 
     /**

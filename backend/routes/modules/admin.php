@@ -173,6 +173,7 @@ Route::middleware('auth')->group(function () {
         'toggleBlock'    => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
         'regenerateLink' => ['method' => 'put', 'uri' => '{externalPlayer}/regenerate-link', 'action' => 'regenerateLink', 'middleware' => 'multiPermission:external-players.manage'],
         'reactivate'     => ['method' => 'put', 'uri' => '{externalPlayer}/reactivate', 'action' => 'reactivate', 'middleware' => 'multiPermission:external-players.manage'],
+        'convertToUser'  => ['method' => 'put', 'uri' => '{externalPlayer}/convert-to-user', 'action' => 'convertToUser', 'middleware' => 'multiPermission:external-players.manage'],
     ], 'externalPlayer');
 
     /**

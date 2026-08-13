@@ -53,6 +53,9 @@
           </div>
         </template>
       </VDropdown>
+      <span v-if="player.converted_user" v-tooltip="`Convertido a @${player.converted_user.username}`" class="badge badge-info ep-converted-badge">
+        <i class="fas fa-user-check mr-1"></i>Convertido
+      </span>
       <button
         v-if="player.status === 'INACTIVE'"
         v-tooltip="'Reactivar jugador expirado y renovar su link'"
@@ -61,6 +64,15 @@
         @click="$emit('reactivate', player)"
       >
         <i class="fas fa-rotate-right"></i> Reactivar
+      </button>
+      <button
+        v-if="!player.converted_user"
+        v-tooltip="'Crea una cuenta registrada (rol Jugador) para este comprador'"
+        class="btn btn-sm btn-outline-info"
+        :disabled="busy"
+        @click="$emit('convert-to-user', player)"
+      >
+        <i class="fas fa-user-plus"></i> Convertir a usuario
       </button>
       <button
         v-if="player.status !== 'BLOCKED'"
@@ -127,6 +139,7 @@ defineEmits<{
   (e: 'toggle-block', player: ExternalPlayer): void
   (e: 'regenerate-link', player: ExternalPlayer): void
   (e: 'reactivate', player: ExternalPlayer): void
+  (e: 'convert-to-user', player: ExternalPlayer): void
 }>()
 
 const expanded = ref(false)
@@ -274,6 +287,7 @@ async function copyLink() {
 .badge-success   { background-color: rgba(52,211,153,.18); color: #34d399; }
 .badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
 .badge-danger    { background-color: rgba(239,68,68,.18);  color: #ef4444; }
+.ep-converted-badge { font-size: 0.7rem; padding: 0.3rem 0.55rem; background-color: rgba(37,99,235,.18); color: #60a5fa; }
 
 /* ── Detalle expandido ── */
 .ep-row-detail {

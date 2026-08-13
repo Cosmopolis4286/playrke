@@ -78,6 +78,19 @@ export function useExternalPlayers(initial?: {
         return data.player as ExternalPlayer
     }
 
+    /**
+     * Convierte un jugador externo en un User registrado con rol player —
+     * alcance mínimo, no migra historial. Devuelve la contraseña temporal
+     * una sola vez (no se puede recuperar después). El registro se mantiene
+     * en la lista (queda como histórico), solo se marca purchase_code/convertido.
+     */
+    const convertToUser = async (playerId: string) => {
+        const { data } = await axios.put(`/admin/external-players/${playerId}/convert-to-user`)
+        const index = players.value.findIndex(p => p.id === playerId)
+        if (index !== -1) players.value[index] = { ...players.value[index], converted_user: data.user }
+        return data as { message: string; user: { id: string; username: string; email: string }; temporary_password: string }
+    }
+
     return {
         players,
         pagination,
@@ -90,5 +103,6 @@ export function useExternalPlayers(initial?: {
         toggleBlock,
         regenerateLink,
         reactivate,
+        convertToUser,
     }
 }

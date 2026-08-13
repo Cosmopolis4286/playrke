@@ -3,12 +3,18 @@
 namespace App\Services\Roles\Admin;
 
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
+use App\Contracts\UserRepositoryInterface;
 use App\Models\Game;
+use App\Models\Role;
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\User;
 use App\Services\Roles\Player\External\ExternalPlayerLinkSettings;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 final class ExternalPlayerAdminService
 {
@@ -17,10 +23,12 @@ final class ExternalPlayerAdminService
         'sellerUser:id,username,first_name,last_name,email',
         'country:id,name',
         'purchaseCode:id,purchase_code',
+        'convertedUser:id,username,email',
     ];
 
     public function __construct(
         private readonly ExternalPlayerRepositoryInterface $repository,
+        private readonly UserRepositoryInterface $userRepository,
     ) {}
 
     /**
@@ -124,7 +132,7 @@ final class ExternalPlayerAdminService
     /**
      * BLOCKED es el único estado que un admin fija manualmente (mal uso,
      * fraude sospechado); ACTIVE/INACTIVE los gestiona el flujo de venta
-     * automáticamente (ver PlayerLinkTrait). Alternar aquí solo cubre
+     * automáticamente (ver ExternalPlayerLinkService). Alternar aquí solo cubre
      * ACTIVE <-> BLOCKED — no reactivamos un INACTIVE por expiración desde
      * el panel, eso requeriría además extender expiration_date, que está
      * fuera del alcance de un simple toggle de estado.
@@ -194,5 +202,74 @@ final class ExternalPlayerAdminService
         $this->repository->updatePlayerStatus($playerId, 'ACTIVE');
 
         return $player->fresh(self::EAGER_RELATIONS);
+    }
+
+    /**
+     * Convierte un jugador externo (sin cuenta) en un User real con rol
+     * 'player' — alcance mínimo: no migra historial de partidas ni compras
+     * previas, solo crea la cuenta y vincula el registro para trazabilidad
+     * (ExternalPlayer.converted_user_id). El admin puede cargarle saldo o
+     * completar sus datos después desde /admin/users si corresponde.
+     *
+     * Username/email se generan a partir del teléfono porque ExternalPlayer
+     * no captura email; ambos son placeholders editables — el jugador (o el
+     * admin en su nombre) los actualiza tras la conversión.
+     *
+     * @return array{user: User, temporary_password: string}
+     */
+    public function convertToUser(string $playerId): array
+    {
+        $player = ExternalPlayer::with('country')->findOrFail($playerId);
+
+        if ($player->converted_user_id) {
+            throw new \RuntimeException('Este jugador externo ya fue convertido a usuario registrado.');
+        }
+
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->first();
+
+        if (!$playerRole) {
+            throw new \RuntimeException('El rol "player" no existe en el sistema.');
+        }
+
+        return DB::transaction(function () use ($player, $playerRole) {
+            $temporaryPassword = Str::random(12);
+            $baseHandle = 'ext_' . preg_replace('/\D/', '', $player->phone);
+
+            $user = User::create([
+                'username' => $this->uniqueHandle($baseHandle, 'username'),
+                'email' => $this->uniqueHandle($baseHandle, 'email') . '@pendiente.playrke.com',
+                'first_name' => $player->first_name,
+                'last_name' => $player->last_name,
+                'phone_number' => $player->phone,
+                'country_id' => $player->country_id,
+                'password' => Hash::make($temporaryPassword),
+                'status' => 'ACTIVE',
+                'referral_code' => $this->userRepository->generateUniqueReferralCode(),
+            ]);
+
+            $user->roles()->attach($playerRole->id);
+
+            $player->update(['converted_user_id' => $user->id]);
+
+            return ['user' => $user, 'temporary_password' => $temporaryPassword];
+        });
+    }
+
+    /**
+     * Genera un handle único agregando un sufijo aleatorio si hay colisión —
+     * poco probable con el teléfono como base, pero dos jugadores externos
+     * podrían compartir prefijo si el teléfono se registró con formato distinto.
+     */
+    private function uniqueHandle(string $base, string $column): string
+    {
+        $handle = $base;
+        $suffix = 0;
+
+        while (User::where($column, $column === 'email' ? "{$handle}@pendiente.playrke.com" : $handle)->exists()) {
+            $suffix++;
+            $handle = "{$base}_{$suffix}";
+        }
+
+        return $handle;
     }
 }

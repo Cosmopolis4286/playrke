@@ -32,6 +32,7 @@
               @toggle-block="handleToggleBlock"
               @regenerate-link="handleRegenerateLink"
               @reactivate="handleReactivate"
+              @convert-to-user="handleConvertToUser"
               @export="handleExport"
             />
           </div>
@@ -45,6 +46,7 @@ import ExternalPlayerPanel from '@/js/Components/Roles/Admin/ExternalPlayer/Exte
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { useExternalPlayers } from '@/js/composables/roles/admin/external-player/useExternalPlayers'
 import { useToast } from 'vue-toastification'
+import { showPasswordModal } from '@/js/helpers/user/password'
 import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, GameOption, PaginatedResult } from '@/js/types/roles/admin/external-player'
 
 const toast = useToast()
@@ -61,7 +63,7 @@ const breadcrumbItems = [
   { label: 'Jugadores Externos' },
 ]
 
-const { players, pagination, statistics, loading, filters, fetchPlayers, searchDebounced, goToPage, toggleBlock, regenerateLink, reactivate } = useExternalPlayers({
+const { players, pagination, statistics, loading, filters, fetchPlayers, searchDebounced, goToPage, toggleBlock, regenerateLink, reactivate, convertToUser } = useExternalPlayers({
   players: props.players,
   statistics: props.statistics,
 })
@@ -98,6 +100,16 @@ async function handleReactivate(playerId: string) {
     toast.success('Jugador reactivado correctamente')
   } catch {
     toast.error('No se pudo reactivar el jugador')
+  }
+}
+
+async function handleConvertToUser(playerId: string) {
+  try {
+    const result = await convertToUser(playerId)
+    toast.success(result.message)
+    await showPasswordModal(result.temporary_password)
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message ?? 'No se pudo convertir el jugador')
   }
 }
 

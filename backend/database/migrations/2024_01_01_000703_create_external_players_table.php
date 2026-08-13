@@ -71,6 +71,15 @@ return new class extends Migration
                 ->default('ACTIVE')
                 ->comment('Estado del jugador');
 
+            // Usuario registrado en que se convirtió este jugador externo
+            // (ver ExternalPlayerAdminService::convertToUser()) — nullable
+            // mientras siga siendo un comprador sin cuenta.
+            $table->foreignSnowflake('converted_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->comment('Usuario registrado resultante de convertir este jugador externo, si aplica');
+
             // Timestamps
             $table->timestamps();
             $table->softDeletes();

@@ -14,7 +14,7 @@ use Inertia\Response;
 /**
  * Panel admin de Jugadores Externos (compradores sin cuenta en la
  * plataforma, captados por un vendedor — no exclusivo de Bingo, ver
- * App\Traits\Users\PlayerLinkTrait). Protegido por middleware
+ * App\Services\Roles\Player\External\ExternalPlayerLinkService). Protegido por middleware
  * `role:admin,superadmin` en la ruta y por ExternalPlayerPolicy.
  */
 final class ExternalPlayerAdminController extends Controller
@@ -126,6 +126,25 @@ final class ExternalPlayerAdminController extends Controller
         return response()->json([
             'message' => 'Jugador reactivado correctamente',
             'player'  => $updated,
+        ]);
+    }
+
+    /**
+     * Convierte un jugador externo en un usuario registrado con rol player.
+     * Devuelve la contraseña temporal una sola vez (no se puede recuperar
+     * después) — mismo patrón que resetPassword de AdminUserController.
+     */
+    public function convertToUser(string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('update', $player);
+
+        $result = $this->service->convertToUser($externalPlayer);
+
+        return response()->json([
+            'message'             => 'Jugador convertido a usuario registrado correctamente',
+            'user'                => $result['user'],
+            'temporary_password'  => $result['temporary_password'],
         ]);
     }
 }
