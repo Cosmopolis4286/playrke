@@ -110,10 +110,11 @@ export function usePermissions(initialData?: {
         await fetchPermissions()
     }
 
-    // Copia (merge) los permisos no-sistema de sourceRoleId hacia targetRoleId.
+    // Copia los permisos no-sistema de sourceRoleId hacia targetRoleId.
+    // replace=true reemplaza el set completo del destino en vez de fusionar.
     // No pasa por pendingChanges: es una acción inmediata contra el servidor.
-    const copyPermissions = async (sourceRoleId: string, targetRoleId: string) => {
-        const response = await axios.post(`/permissions/roles/${targetRoleId}/copy-from/${sourceRoleId}`)
+    const copyPermissions = async (sourceRoleId: string, targetRoleId: string, replace = false) => {
+        const response = await axios.post(`/permissions/roles/${targetRoleId}/copy-from/${sourceRoleId}`, { replace })
         await fetchRoles()
         return response.data.message as string
     }

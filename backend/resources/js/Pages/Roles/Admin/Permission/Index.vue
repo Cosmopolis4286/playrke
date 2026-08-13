@@ -211,9 +211,9 @@ async function handleDelete(permissionId: string) {
   }
 }
 
-async function handleCopy(sourceRoleId: string, targetRoleId: string) {
+async function handleCopy(sourceRoleId: string, targetRoleId: string, replace: boolean) {
   try {
-    const message = await copyPermissions(sourceRoleId, targetRoleId)
+    const message = await copyPermissions(sourceRoleId, targetRoleId, replace)
     toast.success(message)
   } catch {
     toast.error('No se pudieron copiar los permisos')

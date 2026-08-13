@@ -222,18 +222,24 @@ final class PermissionService
     }
 
     /**
-     * Copiar (merge) los permisos no-sistema de un rol origen hacia un rol
-     * destino. No reemplaza los permisos que el destino ya tenía.
+     * $replace = false (default): merge, solo agrega los permisos del origen
+     * sin quitarle nada al destino que ya tenía. $replace = true: el destino
+     * termina con EXACTAMENTE los permisos no-sistema del origen — sus
+     * permisos no-sistema previos que no estén en el origen se revocan. Los
+     * permisos de sistema del destino nunca se tocan en ningún modo.
      */
-    public function copyPermissionsBetweenRoles(string $sourceRoleId, string $targetRoleId): int
+    public function copyPermissionsBetweenRoles(string $sourceRoleId, string $targetRoleId, bool $replace = false): int
     {
-        return DB::transaction(function () use ($sourceRoleId, $targetRoleId) {
+        return DB::transaction(function () use ($sourceRoleId, $targetRoleId, $replace) {
             $source = Role::with('permissions')->findOrFail($sourceRoleId);
-            $target = Role::findOrFail($targetRoleId);
+            $target = Role::with('permissions')->findOrFail($targetRoleId);
 
             $permissions = $source->permissions->where('is_system', false);
 
-            if ($permissions->isNotEmpty()) {
+            if ($replace) {
+                $systemPermissions = $target->permissions->where('is_system', true);
+                $target->syncPermissions($systemPermissions->merge($permissions));
+            } elseif ($permissions->isNotEmpty()) {
                 $target->givePermissionTo($permissions);
             }
 

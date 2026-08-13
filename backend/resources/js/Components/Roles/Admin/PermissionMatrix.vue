@@ -269,7 +269,9 @@
       :on-submit="handleCopy"
     >
       <p class="text-muted small">
-        Los permisos del rol origen se añadirán al rol destino sin quitarle los que ya tenía.
+        {{ copyForm.replace
+          ? 'El rol destino quedará con EXACTAMENTE los permisos del origen — se revocará cualquier permiso no-sistema que tuviera y no esté en el origen.'
+          : 'Los permisos del rol origen se añadirán al rol destino sin quitarle los que ya tenía.' }}
       </p>
       <div class="form-group">
         <label>Copiar de</label>
@@ -278,12 +280,18 @@
           <option v-for="role in displayRoles" :key="role.id" :value="role.id">{{ formatRoleName(role.name) }}</option>
         </select>
       </div>
-      <div class="form-group mb-0">
+      <div class="form-group">
         <label>Hacia</label>
         <select v-model="copyForm.targetRoleId" class="form-control">
           <option value="" disabled>Selecciona un rol destino</option>
           <option v-for="role in copyTargetRoles" :key="role.id" :value="role.id">{{ formatRoleName(role.name) }}</option>
         </select>
+      </div>
+      <div class="form-group mb-0 form-check">
+        <input id="copy-replace" v-model="copyForm.replace" type="checkbox" class="form-check-input" />
+        <label for="copy-replace" class="form-check-label" :class="{ 'text-danger font-weight-bold': copyForm.replace }">
+          Reemplazar en vez de fusionar
+        </label>
       </div>
     </Modal>
   </div>
@@ -331,7 +339,7 @@ const emit = defineEmits<{
   (e: 'create-permission', data: { name: string; guard_name: string; description?: string }): void
   (e: 'update-permission', permissionId: string, data: { name: string; guard_name: string; description?: string }): void
   (e: 'delete-permission', permissionId: string): void
-  (e: 'copy-permissions', sourceRoleId: string, targetRoleId: string): void
+  (e: 'copy-permissions', sourceRoleId: string, targetRoleId: string, replace: boolean): void
 }>()
 
 const toast = useToast()
@@ -341,7 +349,7 @@ const showFormModal = ref(false)
 const showCopyModal = ref(false)
 const editingPermission = ref<Permission | null>(null)
 const formPerm = ref({ name: '', guard_name: 'web', description: '' })
-const copyForm = reactive({ sourceRoleId: '', targetRoleId: '' })
+const copyForm = reactive({ sourceRoleId: '', targetRoleId: '', replace: false })
 const search = ref('')
 const collapsedGroups = reactive<Record<string, boolean>>({})
 
@@ -560,9 +568,10 @@ async function handleSubmitForm(): Promise<boolean> {
 
 async function handleCopy(): Promise<boolean> {
   if (!copyForm.sourceRoleId || !copyForm.targetRoleId || copyForm.sourceRoleId === copyForm.targetRoleId) return false
-  emit('copy-permissions', copyForm.sourceRoleId, copyForm.targetRoleId)
+  emit('copy-permissions', copyForm.sourceRoleId, copyForm.targetRoleId, copyForm.replace)
   copyForm.sourceRoleId = ''
   copyForm.targetRoleId = ''
+  copyForm.replace = false
   return true
 }
 </script>

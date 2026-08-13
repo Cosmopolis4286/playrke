@@ -225,20 +225,26 @@ final class PermissionController extends Controller
     }
 
     /**
-     * Copiar (merge) los permisos no-sistema de un rol origen hacia un rol destino.
+     * Copiar los permisos no-sistema de un rol origen hacia un rol destino.
+     * `replace=true` deja al destino con EXACTAMENTE los permisos del origen
+     * (revoca lo que no coincida); por defecto es merge (solo agrega).
      */
-    public function copyToRole(string $role, string $sourceRole): JsonResponse
+    public function copyToRole(Request $request, string $role, string $sourceRole): JsonResponse
     {
         $this->authorize('manageAssignments', Permission::class);
 
+        $replace = $request->boolean('replace');
+
         try {
-            $count = $this->service->copyPermissionsBetweenRoles($sourceRole, $role);
+            $count = $this->service->copyPermissionsBetweenRoles($sourceRole, $role, $replace);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Rol no encontrado.'], 404);
         }
 
+        $verb = $replace ? 'reemplazaron' : 'copiaron';
+
         return response()->json([
-            'message' => "Se copiaron {$count} permisos correctamente",
+            'message' => "Se {$verb} {$count} permisos correctamente",
         ]);
     }
 }
