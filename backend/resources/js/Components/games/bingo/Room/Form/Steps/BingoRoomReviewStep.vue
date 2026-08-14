@@ -9,6 +9,10 @@ const props = defineProps<{
   form:   BingoRoomFormData
   errors: Record<string, unknown>
   currencyOptions?: SelectOption[]
+  roomTypeOptions?: SelectOption[]
+  connectionTypeOptions?: SelectOption[]
+  gameModeOptions?: SelectOption[]
+  prizePoolTypeOptions?: SelectOption[]
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
   lockActivateRoom?: boolean
   /** Metadatos de solo lectura de la sala en edición (null en modo creación). */
@@ -22,7 +26,7 @@ const emit = defineEmits<{
 
 type StepKey = Exclude<BingoRoomStep, 'review'>
 
-const STEPS: StepKey[] = ['basic', 'currencies', 'rounds', 'options']
+const STEPS: StepKey[] = ['basic', 'capacity', 'currencies', 'rounds', 'options']
 
 function stepHasErrors(step: StepKey): boolean {
   return STEP_ERROR_KEYS[step].some(k => k in props.errors)
@@ -108,6 +112,43 @@ const createdAtLabel = computed(() => formatDateTime(props.roomMeta?.created_at)
 const updatedAtLabel = computed(() => formatDateTime(props.roomMeta?.updated_at))
 const lastEditor = computed(() => props.roomMeta?.last_updated_by ?? null)
 const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin ediciones registradas')
+
+/** Resuelve el label legible de un id contra una lista de opciones (roomType/connectionType/gameMode/prizePoolType viajan como ids). */
+function optionLabel(id: string | number | null | undefined, options?: SelectOption[]): string | null {
+  if (id == null) return null
+  return options?.find(o => String(o.value) === String(id))?.label ?? String(id)
+}
+
+const roomTypeLabel = computed(() => optionLabel(props.form.roomType, props.roomTypeOptions))
+const connectionTypeLabel = computed(() => optionLabel(props.form.connectionType, props.connectionTypeOptions))
+const gameModeLabel = computed(() => optionLabel(props.form.gameMode, props.gameModeOptions))
+const prizePoolTypeLabel = computed(() => optionLabel(props.form.prizePoolType, props.prizePoolTypeOptions))
+
+const isPrivateRoom = computed(() => {
+  const selected = props.roomTypeOptions?.find(o => String(o.value) === String(props.form.roomType))
+  return selected?.code === 'PRIVATE'
+})
+
+const GAME_VARIANT_LABELS: Record<string, string> = {
+  BINGO_75: 'Bingo 75 bolas',
+  BINGO_90: 'Bingo 90 bolas',
+  BINGO_80: 'Bingo 80 bolas',
+  BINGO_30: 'Speed Bingo 30 bolas',
+}
+const gameVariantLabel = computed(() => {
+  const v = props.form.gameVariant
+  return v ? (GAME_VARIANT_LABELS[v] ?? v) : null
+})
+
+/** "Programado: dd/mm hh:mm" o "Manual (sin horario fijo)". */
+const scheduleLabel = computed(() => {
+  if (props.form.startMode === 'MANUAL') return 'Manual (sin horario fijo)'
+  const { date, time } = props.form
+  if (!date || !time) return '—'
+  const parsed = new Date(`${date}T${time}:00`)
+  if (isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+})
 </script>
 
 <template>
@@ -159,14 +200,66 @@ const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin edicio
           </button>
         </h4>
         <dl class="bingo-review-step__dl">
+          <dt>Tipo de sala</dt>
+          <dd>{{ roomTypeLabel ?? '—' }}</dd>
+          <dt>Tipo de conexión</dt>
+          <dd>{{ connectionTypeLabel ?? '—' }}</dd>
+          <template v-if="gameModeLabel">
+            <dt>Modo de juego</dt>
+            <dd>{{ gameModeLabel }}</dd>
+          </template>
+          <dt>Variante</dt>
+          <dd>{{ gameVariantLabel ?? '—' }}</dd>
+          <dt>Tipo de bote</dt>
+          <dd>{{ prizePoolTypeLabel ?? '—' }}</dd>
+          <template v-if="form.amountAddedPrizePool != null">
+            <dt>Valor fijo/extra al bote</dt>
+            <dd>${{ form.amountAddedPrizePool }}</dd>
+          </template>
+          <dt>Horario</dt>
+          <dd>{{ scheduleLabel }}</dd>
           <dt>Rondas</dt>
           <dd>{{ form.rounds ?? '—' }}</dd>
-          <dt>Comisión</dt>
+          <dt>Comisión de sala</dt>
           <dd>{{ form.roomCommn != null ? form.roomCommn + '%' : '—' }}</dd>
           <dt>Jackpot</dt>
           <dd>{{ form.jackpotPct != null ? form.jackpotPct + '%' : '—' }}</dd>
           <dt>Tiempo por ficha</dt>
           <dd>{{ form.timeChip != null ? form.timeChip + 's' : '—' }}</dd>
+        </dl>
+
+        <template v-if="isPrivateRoom">
+          <hr style="margin: 0.6rem 0" />
+          <p class="bingo-review-step__subtitle">
+            <i class="fa-solid fa-lock" style="opacity: 0.7"></i> Sala privada
+          </p>
+          <dl class="bingo-review-step__dl">
+            <dt>Código de acceso</dt>
+            <dd>{{ form.accessCode ?? '—' }}</dd>
+            <dt>Contraseña</dt>
+            <dd>{{ form.roomPassword ? 'Se actualizará al guardar' : 'Sin cambios' }}</dd>
+            <template v-if="form.hostUserId">
+              <dt>Anfitrión</dt>
+              <dd>{{ form.hostUserId }}</dd>
+            </template>
+          </dl>
+        </template>
+      </section>
+
+      <!-- Capacidad -->
+      <section class="bingo-review-step__section">
+        <h4 class="bingo-review-step__section-title">
+          <i class="fa-solid fa-users bingo-review-step__section-icon"></i>
+          Capacidad
+          <span v-if="stepHasErrors('capacity')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
+          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('capacity')">
+            <i class="fa-solid fa-pen"></i> Editar
+          </button>
+        </h4>
+        <dl
+          v-if="form.minCardsToStart != null || form.maxCardsToStart != null || form.minPlayers != null || form.maxPlayers != null"
+          class="bingo-review-step__dl"
+        >
           <template v-if="form.minCardsToStart != null">
             <dt>Mín. cartones para iniciar</dt>
             <dd>{{ form.minCardsToStart }}</dd>
@@ -184,6 +277,7 @@ const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin edicio
             <dd>{{ form.maxPlayers }}</dd>
           </template>
         </dl>
+        <p v-else class="bingo-review-step__empty">Sin límites configurados — cartones y jugadores ilimitados.</p>
       </section>
 
       <!-- Monedas -->
@@ -373,6 +467,11 @@ const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin edicio
 .bingo-review-step__dl dt { font-weight: 500; color: var(--bs-secondary, #6c757d); font-size: .8125rem; }
 .bingo-review-step__dl dd { margin: 0; font-size: .8125rem; }
 .bingo-review-step__empty { margin: 0; font-size: .8125rem; color: var(--bs-secondary, #6c757d); font-style: italic; }
+.bingo-review-step__subtitle {
+  font-size: .8rem; font-weight: 600; margin: 0 0 .5rem;
+  display: flex; align-items: center; gap: .4rem;
+  color: var(--bs-secondary, #6c757d);
+}
 .bingo-review-step__section--meta {
   background: color-mix(in srgb, var(--bs-secondary, #6c757d) 5%, transparent);
 }

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 
   const props = defineProps<{
@@ -213,92 +212,6 @@
             </small>
           </div>
         </template>
-      </div>
-    </div>
-
-    <!-- Capacidad de la sala: min/máx cartones, min/máx jugadores — todos
-         opcionales e independientes entre sí. Sin toggle (a diferencia de las
-         demás secciones de este tab) porque no hay un booleano "activador":
-         cada campo vacío simplemente significa "sin límite/condición". -->
-    <div class="col-12">
-      <hr style="margin: 0.25rem 0 0.75rem" />
-      <p class="mb-2" style="font-weight: 500; font-size: 0.85rem">Capacidad de la sala</p>
-      <div class="row">
-        <FormInput
-          label="Min. Cartones"
-          name="min_cards_to_start"
-          :error="(errors as any).minCardsToStart"
-          type="number"
-          placeholder="Sin condición"
-          :step="1"
-          :min="1"
-          :max="10000"
-          col="col-sm-6 col-md-3"
-          :modelValue="(modelValue as any).minCardsToStart ?? null"
-          @update:modelValue="
-            emit('update:modelValue', {
-              ...modelValue,
-              minCardsToStart: $event === '' || $event === null ? null : Number($event)
-            } as any)
-          "
-        />
-
-        <FormInput
-          label="Máx. Cartones"
-          name="max_cards_to_start"
-          :error="(errors as any).maxCardsToStart"
-          type="number"
-          placeholder="Sin límite"
-          :step="1"
-          :min="1"
-          :max="10000"
-          col="col-sm-6 col-md-3"
-          :modelValue="(modelValue as any).maxCardsToStart ?? null"
-          @update:modelValue="
-            emit('update:modelValue', {
-              ...modelValue,
-              maxCardsToStart: $event === '' || $event === null ? null : Number($event)
-            } as any)
-          "
-        />
-
-        <FormInput
-          label="Mín. Jugadores"
-          name="min_players"
-          :error="(errors as any).minPlayers"
-          type="number"
-          placeholder="Sin condición"
-          :step="1"
-          :min="1"
-          :max="100000"
-          col="col-sm-6 col-md-3"
-          :modelValue="(modelValue as any).minPlayers ?? null"
-          @update:modelValue="
-            emit('update:modelValue', {
-              ...modelValue,
-              minPlayers: $event === '' || $event === null ? null : Number($event)
-            } as any)
-          "
-        />
-
-        <FormInput
-          label="Máx. Jugadores"
-          name="max_players"
-          :error="(errors as any).maxPlayers"
-          type="number"
-          placeholder="Sin límite"
-          :step="1"
-          :min="1"
-          :max="100000"
-          col="col-sm-6 col-md-3"
-          :modelValue="(modelValue as any).maxPlayers ?? null"
-          @update:modelValue="
-            emit('update:modelValue', {
-              ...modelValue,
-              maxPlayers: $event === '' || $event === null ? null : Number($event)
-            } as any)
-          "
-        />
       </div>
     </div>
 

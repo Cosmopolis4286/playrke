@@ -1,11 +1,12 @@
 import { ref, computed } from 'vue'
 
-export type BingoRoomStep = 'basic' | 'currencies' | 'rounds' | 'options' | 'review'
+export type BingoRoomStep = 'basic' | 'capacity' | 'currencies' | 'rounds' | 'options' | 'review'
 
-const STEPS: BingoRoomStep[] = ['basic', 'currencies', 'rounds', 'options', 'review']
+const STEPS: BingoRoomStep[] = ['basic', 'capacity', 'currencies', 'rounds', 'options', 'review']
 
 export const STEP_LABELS: Record<BingoRoomStep, string> = {
     basic:      'Datos básicos',
+    capacity:   'Capacidad',
     currencies: 'Monedas y precios',
     rounds:     'Rondas',
     options:    'Más / Opcional',
@@ -14,9 +15,10 @@ export const STEP_LABELS: Record<BingoRoomStep, string> = {
 
 export const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
     basic:      ['date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'rounds', 'jackpotPct', 'amountAddedPrizePool', 'accessCode', 'roomPassword', 'hostUserId'],
+    capacity:   ['minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
     currencies: ['allowedCurrencies', 'cardPriceUsd', 'cardPriceByCurrency', 'usdExchangeRoundStep'],
     rounds:     ['roundsPct', 'roundsConfig', 'percentageSum'],
-    options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
+    options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards'],
     review:     [],
 }
 

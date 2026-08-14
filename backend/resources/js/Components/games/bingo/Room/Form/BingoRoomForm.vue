@@ -3,6 +3,7 @@
 
   // Secciones
   import RoomBasicSection from './Sections/RoomBasicSection.vue'
+  import RoomCapacitySection from './Sections/RoomCapacitySection.vue'
   import RoomCurrencySection from './Sections/RoomCurrencySection.vue'
   import RoomRoundsSection from './Sections/RoomRoundsSection.vue'
   import RoomOptionsSection from './Sections/RoomOptionsSection.vue'
@@ -505,6 +506,15 @@
         </FormInput>
       </template>
 
+      <!-- Paso: Capacidad -->
+      <template v-if="step === 'capacity'">
+        <RoomCapacitySection
+          :modelValue="form"
+          :errors="errors"
+          @update:modelValue="form = $event"
+        />
+      </template>
+
       <!-- Paso: Monedas y precios -->
       <template v-if="step === 'currencies'">
         <div v-if="isEdit && soldCurrencyIds.length" class="col-12 mb-2">
@@ -566,6 +576,10 @@
           :form="form"
           :errors="errors"
           :currency-options="allowedCurrenciesOptions"
+          :room-type-options="roomTypeOptions"
+          :connection-type-options="connectionTypeOptions"
+          :game-mode-options="gameModeOptions"
+          :prize-pool-type-options="prizePoolTypeOptions"
           :lock-activate-room="lockedByPlayers"
           :room-meta="isEdit ? roomMeta : null"
           @update:form="form = $event"
