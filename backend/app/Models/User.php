@@ -122,6 +122,16 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
+     * Campos excluidos del registro de auditoría (App\Traits\Auditable) —
+     * no deben quedar en texto plano en audits.old_values/new_values.
+     */
+    protected array $auditHidden = [
+        'password',
+        'demo_password',
+        'remember_token',
+    ];
+
+    /**
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [

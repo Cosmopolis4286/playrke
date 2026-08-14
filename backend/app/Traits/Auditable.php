@@ -169,12 +169,18 @@ trait Auditable
     }
 
     /**
-     * Filtra atributos no relevantes para auditoría.
+     * Filtra atributos no relevantes o sensibles para auditoría.
+     *
+     * Además de los timestamps, excluye los campos declarados por el modelo
+     * en `protected array $auditHidden = [...]` (ej. password, tokens) para
+     * que no queden en texto plano en old_values/new_values.
      */
     protected function filterAuditableAttributes(array $values): array
     {
+        $hidden = property_exists($this, 'auditHidden') ? $this->auditHidden : [];
+
         return collect($values)
-            ->except(['created_at', 'updated_at', 'deleted_at'])
+            ->except(['created_at', 'updated_at', 'deleted_at', ...$hidden])
             ->toArray();
     }
 
