@@ -6,6 +6,7 @@ use App\Contracts\Roles\Admin\AdminRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
+use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\Services\Security\UserContextService;
 use DomainException;
 
@@ -14,10 +15,11 @@ use DomainException;
  * de la entidad asociada a un usuario según su rol.
  *
  * Ejemplos:
- *  - Rol "admin"     → entidad Admin
- *  - Rol "commerce"  → entidad Commerce
- *  - Rol "customer"  → entidad Customer
- *  - Rol "seller"    → entidad Seller
+ *  - Rol "admin"      → entidad Admin
+ *  - Rol "commerce"   → entidad Commerce
+ *  - Rol "subsidiary" → entidad Subsidiary (agencia)
+ *  - Rol "customer"   → entidad Customer
+ *  - Rol "seller"     → entidad Seller
  */
 final class RoleEntityResolver
 {
@@ -26,6 +28,7 @@ final class RoleEntityResolver
         private readonly CommerceRepositoryInterface $commerceRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly SellerRepositoryInterface $sellerRepository,
+        private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly UserContextService $userContext,
         private readonly RoleUserService $roleUserService,
     ) {}
@@ -53,6 +56,7 @@ final class RoleEntityResolver
         return match ($role) {
             'admin', 'superadmin' => $this->adminRepository->getValueByUserId($userId, 'id'),
             'commerce'            => $this->commerceRepository->getValueByUserId($userId, 'id'),
+            'subsidiary'          => $this->subsidiaryRepository->getValueByUserId($userId, 'id'),
             'customer'            => $this->customerRepository->getValueByUserId($userId, 'id'),
             'seller'              => $this->sellerRepository->getValueByUserId($userId, 'id'),
             default               => throw new DomainException("Rol inválido: {$role}"),

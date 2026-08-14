@@ -48,6 +48,7 @@ final class BingoCardGenerateService
         private readonly \App\Services\ExchangeRate\ExchangeRateDomainService $exchangeRateDomain,
         private readonly \App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService $bingoRoomCrud,
         private readonly ExternalPlayerLinkService $externalPlayerLink,
+        private readonly \App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface $subsidiaryRepository,
     ) {}
 
     /**
@@ -245,11 +246,32 @@ final class BingoCardGenerateService
     {
         return match ($role) {
             // getAvailableCurrenciesIds filtra por status = 'ACTIVE' internamente
-            'commerce' => $this->commerceCurrencyRepository->getAvailableCurrenciesIds($entityId),
+            'commerce'   => $this->commerceCurrencyRepository->getAvailableCurrenciesIds($entityId),
             // segundo parámetro true = solo relaciones activas (status = 1)
-            'seller'   => $this->sellerCurrencyRepository->getAvailableCurrencies($entityId, true),
-            default    => throw new DomainException('Rol sin soporte de monedas: ' . $role),
+            'seller'     => $this->sellerCurrencyRepository->getAvailableCurrencies($entityId, true),
+            // Subsidiary no tiene tabla de monedas propia — opera con las
+            // monedas de su Commerce padre (la agencia hereda el catálogo
+            // de la comercializadora que la administra).
+            'subsidiary' => $this->resolveSubsidiaryCurrencies($entityId),
+            default      => throw new DomainException('Rol sin soporte de monedas: ' . $role),
         };
+    }
+
+    /**
+     * Monedas activas del Commerce padre de una Subsidiary. Devuelve array
+     * vacío (sin lanzar excepción) si la Subsidiary no tiene commerce_id —
+     * el intersect() de arriba simplemente no dejará pasar ninguna moneda,
+     * lo cual es el comportamiento correcto para una agencia mal configurada.
+     */
+    private function resolveSubsidiaryCurrencies(string $subsidiaryId): array
+    {
+        $commerceId = $this->subsidiaryRepository->getValueById($subsidiaryId, 'commerce_id');
+
+        if (!$commerceId) {
+            return [];
+        }
+
+        return $this->commerceCurrencyRepository->getAvailableCurrenciesIds($commerceId);
     }
 
     /**
@@ -343,7 +365,13 @@ final class BingoCardGenerateService
      * Resuelve el commerce_id y el creator_user_id (user_id del commerce) según el rol.
      *
      * - commerce: el propio commerce; creator_user_id = $userId.
-     * - seller:   el commerce del manager; creator_user_id = manager_user_id del seller.
+     * - seller:   el commerce real del vendedor, resuelto vía
+     *   Seller::resolveCommerce() — directo (manager_user_id → Commerce) o a
+     *   través de una agencia intermedia (subsidiary_id → Subsidiary →
+     *   Commerce). creator_user_id = user_id del Commerce resuelto, NUNCA
+     *   manager_user_id crudo: cuando el seller pertenece a una Subsidiary,
+     *   manager_user_id apunta al usuario de la agencia, no al del Commerce
+     *   dueño real de la sala/BingoCreator.
      *
      * @param string $userId ID del usuario autenticado.
      * @param string $role   Rol activo ('commerce' | 'seller').
@@ -360,14 +388,14 @@ final class BingoCardGenerateService
                 $userId,
             ],
             'seller' => (function () use ($userId): array {
-                $managerUserId = $this->sellerRepository->getValueByUserId($userId, 'manager_user_id');
-                $commerceId    = $this->commerceRepository->getValueByUserId($managerUserId, 'id');
+                $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id']);
+                $commerce = $seller?->resolveCommerce();
 
-                if (!$commerceId) {
+                if (!$commerce) {
                     throw new DomainException('Comercio asociado al vendedor no encontrado.');
                 }
 
-                return [$commerceId, $managerUserId];
+                return [$commerce->id, $commerce->user_id];
             })(),
             default => throw new DomainException("Rol sin soporte de commerce: {$role}"),
         };
@@ -408,8 +436,13 @@ final class BingoCardGenerateService
     public function generate(BingoCardGenerateDTO $dto): array
     {
         // 1. Obtener seller autenticado
-        // manager_user_id = user_id del commerce que gestiona este seller
-        $seller = Seller::select(['id', 'commission', 'manager_user_id'])
+        // resolveCommerce() resuelve el Commerce real sin importar si el
+        // seller reporta directo (manager_user_id) o vía una agencia
+        // intermedia (subsidiary_id → Subsidiary → Commerce) — ver
+        // Seller::resolveCommerce(). Antes se asumía siempre manager_user_id
+        // → Commerce directo, lanzando 'Comercio asociado no encontrado'
+        // para cualquier seller de una Subsidiary.
+        $seller = Seller::select(['id', 'commission', 'manager_user_id', 'subsidiary_id'])
             ->where('user_id', Auth::id())
             ->first();
 
@@ -417,12 +450,14 @@ final class BingoCardGenerateService
             throw new DomainException('Vendedor no encontrado.');
         }
 
-        $creatorUser = $seller->manager_user_id;
-        $commerce    = Commerce::where('user_id', $creatorUser)->value('id');
+        $commerceModel = $seller->resolveCommerce();
 
-        if (!$commerce) {
+        if (!$commerceModel) {
             throw new DomainException('Comercio asociado no encontrado.');
         }
+
+        $creatorUser = $commerceModel->user_id;
+        $commerce    = $commerceModel->id;
 
         // 2. Validar sala — solo se permiten salas con código ACTIVE o IN_PROGRESS
         $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')

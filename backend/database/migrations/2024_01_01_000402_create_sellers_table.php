@@ -35,6 +35,20 @@ return new class extends Migration
                 ->constrained('users')->cascadeOnDelete()
                 ->comment('Usuario principal al que representa'); // Usuario al que vende
 
+            // Sucursal/agencia a la que pertenece el vendedor (jerarquía real
+            // Comercializadora → Agencia → Taquilla). Nullable: un seller
+            // puede reportar directo al Commerce sin agencia intermedia.
+            // Cuando está seteado, es la fuente de verdad del Commerce real
+            // del seller (ver Seller::resolveCommerce()) — manager_user_id
+            // sigue siendo NOT NULL por compatibilidad histórica, pero deja
+            // de ser confiable por sí solo cuando subsidiary_id está presente.
+            $table->foreignSnowflake('subsidiary_id')
+                ->nullable()
+                ->constrained('subsidiaries')
+                ->cascadeOnUpdate()
+                ->nullOnDelete()
+                ->comment('Sucursal/agencia a la que pertenece (opcional)');
+
             // Estado del vendedor
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
                 ->default('ACTIVE')

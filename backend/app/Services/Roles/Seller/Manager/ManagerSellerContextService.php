@@ -52,11 +52,11 @@ class ManagerSellerContextService
             : [];
 
         $relations = $isAdmin
-            ? ['country:id,name', 'user:id,email', 'managerCommerce:id,user_id,name']
+            ? ['country:id,name', 'user:id,email', 'managerCommerce:id,user_id,name', 'subsidiary:id,name']
             : ['country:id,name', 'user:id,email'];
 
         $fields = $isAdmin
-            ? ['id', 'country_id', 'user_id', 'manager_user_id', 'name', 'phone', 'status']
+            ? ['id', 'country_id', 'user_id', 'manager_user_id', 'subsidiary_id', 'name', 'phone', 'status']
             : ['id', 'country_id', 'user_id', 'name', 'phone', 'status'];
 
         $source = $this->sellerRepository->paginateWithRelations(

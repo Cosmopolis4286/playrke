@@ -39,6 +39,7 @@ class Seller extends BaseModel
         'user_id',         // ID del usuario asociado
         'country_id',      // ID del país
         'manager_user_id', // ID del usuario manager al que representa
+        'subsidiary_id',   // Agencia/sucursal a la que pertenece (opcional)
         'status',       // Estado del vendedor (activo/inactivo)
     ];
 
@@ -53,6 +54,7 @@ class Seller extends BaseModel
         'user_id' => 'string',
         'country_id' => 'string',
         'manager_user_id' => 'string',
+        'subsidiary_id' => 'string',
     ];
 
     // ========================
@@ -91,9 +93,24 @@ class Seller extends BaseModel
     }
 
     /**
-     * Commerce que actúa como manager de este vendedor.
-     * Busca el commerce cuyo user_id = manager_user_id del seller.
+     * Agencia/sucursal a la que pertenece este vendedor (jerarquía real:
+     * Comercializadora → Agencia → Taquilla). Null si reporta directo al
+     * Commerce sin agencia intermedia.
+     */
+    public function subsidiary(): BelongsTo
+    {
+        return $this->belongsTo(Subsidiary::class, 'subsidiary_id');
+    }
+
+    /**
+     * Commerce que actúa como manager DIRECTO de este vendedor (caso sin
+     * agencia intermedia). Busca el commerce cuyo user_id = manager_user_id.
      * Inversa de Commerce::sellers().
+     *
+     * OJO: cuando el seller tiene subsidiary_id, manager_user_id apunta al
+     * usuario de la Subsidiary (rol 'subsidiary'), no a un Commerce — esta
+     * relación devolvería null en ese caso. Usar resolveCommerce() para
+     * obtener el Commerce real sin importar si hay agencia intermedia.
      */
     public function managerCommerce(): HasOne
     {
@@ -101,19 +118,45 @@ class Seller extends BaseModel
     }
 
     /**
-     * Accessor: nombre del manager (texto plano).
+     * Resuelve el Commerce real de este vendedor sin importar si reporta
+     * directo (manager_user_id → Commerce) o a través de una agencia
+     * (subsidiary_id → Subsidiary → commerce_id → Commerce). Punto único de
+     * verdad reemplazando las resoluciones ad-hoc que existían en
+     * BingoCardGenerateService/SellerController/ManagerSellerContextService
+     * (todas asumían manager_user_id → Commerce directo, rompiéndose
+     * silenciosamente para sellers de una Subsidiary).
+     */
+    public function resolveCommerce(): ?Commerce
+    {
+        if ($this->subsidiary_id) {
+            return $this->subsidiary?->commerce;
+        }
+
+        return $this->managerCommerce;
+    }
+
+    /**
+     * Accessor: nombre del manager directo (agencia si existe, si no el
+     * commerce).
      */
     public function getManagerNameAttribute(): string
     {
+        if ($this->subsidiary_id) {
+            return $this->subsidiary?->name ?? '—';
+        }
+
         return $this->managerCommerce?->name ?? '—';
     }
 
     /**
-     * Accessor: rol del manager como badge HTML.
+     * Accessor: rol del manager directo como badge HTML — antes hardcodeado
+     * a "Commerce" incluso cuando el manager real era una Subsidiary.
      */
     public function getManagerRoleBadgeAttribute(): string
     {
-        return '<span class="badge badge-info text-white">Commerce</span>';
+        return $this->subsidiary_id
+            ? '<span class="badge badge-teal text-white">Sucursal</span>'
+            : '<span class="badge badge-info text-white">Commerce</span>';
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Models\Game;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -93,6 +94,16 @@ class Commerce extends BaseModel
     public function sellers(): HasMany
     {
         return $this->hasMany(Seller::class, 'manager_user_id', 'user_id');
+    }
+
+    /**
+     * Agencias/sucursales de este comercio (jerarquía real: Comercializadora
+     * → Agencia → Taquilla). FK directa commerce_id, a diferencia de
+     * sellers() que resuelve vía user_id/manager_user_id.
+     */
+    public function subsidiaries(): HasMany
+    {
+        return $this->hasMany(Subsidiary::class, 'commerce_id');
     }
 
     /**

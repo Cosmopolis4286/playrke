@@ -41,13 +41,18 @@ final class ManagerSellerCrudService
      *
      * @param ManagerSellerDTO $dto
      * @param int $managerUserId ID del usuario manager al que representa el vendedor
+     *   — siempre el user_id de un Commerce (ver ManagerSellerService::create()),
+     *   nunca el de una Subsidiary directamente.
+     * @param string|null $subsidiaryId Agencia a la que pertenece el vendedor,
+     *   si fue creado por un usuario 'subsidiary'. Null si reporta directo al
+     *   Commerce sin agencia intermedia.
      * @return string Contraseña generada para el vendedor
      *
      * @throws ManagerSellerException
      */
-    public function create(ManagerSellerDTO $dto, int $managerUserId): string
+    public function create(ManagerSellerDTO $dto, int $managerUserId, ?string $subsidiaryId = null): string
     {
-        return DB::transaction(function () use ($dto, $managerUserId) {
+        return DB::transaction(function () use ($dto, $managerUserId, $subsidiaryId) {
 
             $plainPassword = bin2hex(random_bytes(4));
 
@@ -63,6 +68,7 @@ final class ManagerSellerCrudService
                 'user_id' => $user->id,
                 'country_id' => $dto->country,
                 'manager_user_id' => $managerUserId,
+                'subsidiary_id' => $subsidiaryId,
                 'status' => 'ACTIVE',
             ]);
 

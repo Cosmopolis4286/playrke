@@ -2,9 +2,11 @@
 
 namespace App\Services\Roles\Seller\Manager;
 
+use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
 use App\Models\Roles\Seller;
+use App\Services\Roles\RoleUserService;
 use App\Services\User\UserPasswordService;
 use App\Services\Roles\Seller\Manager\ManagerSellerCrudService;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
@@ -28,6 +30,8 @@ final class ManagerSellerService
         private readonly ManagerSellerCrudService $crud,
         private readonly UserContextService $userContext,
         private readonly UserPasswordService $userPasswordService,
+        private readonly RoleUserService $roleUserService,
+        private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
     ) {}
 
     /**
@@ -67,13 +71,56 @@ final class ManagerSellerService
      */
     public function create(ManagerSellerDTO $dto, ?string $publicToken = null): string
     {
-        // Si el DTO trae manager_user_id (caso admin asignando a otro manager), usarlo.
-        // Si no, usar el usuario autenticado (caso commerce/customer creando sus propios sellers).
-        $managerUserId = $dto->managerUserId !== null
+        // Si el DTO trae manager_user_id (caso admin eligiendo explícitamente
+        // a quién asignar el seller — puede ser una Comercializadora o una
+        // Agencia, ver ManagerSellerForm.vue), resolverlo igual que el resto:
+        // el manager puede ser cualquier rol de la jerarquía comercial.
+        // Si no, resolver desde el usuario autenticado (caso
+        // commerce/subsidiary/customer creando sus propios sellers).
+        $targetUserId = $dto->managerUserId !== null
             ? (int) $dto->managerUserId
             : $this->userContext->resolveUserId($publicToken);
 
-        return $this->crud->create($dto, $managerUserId);
+        [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser($targetUserId);
+
+        return $this->crud->create($dto, $managerUserId, $subsidiaryId);
+    }
+
+    /**
+     * Resuelve el manager_user_id real (siempre el user_id de un Commerce) y
+     * el subsidiary_id (si aplica) para un usuario dado, sin importar si ese
+     * usuario es 'commerce' o 'subsidiary' (agencia).
+     *
+     * manager_user_id se persiste NOT NULL con FK a users, y todo el código
+     * que resuelve el commerce de un seller (managerCommerce(), reportes,
+     * BingoCardGenerateService) asume que apunta al user_id de un Commerce
+     * — nunca al de una Subsidiary directamente. Cuando el manager real es
+     * una agencia, se guarda el Commerce padre en manager_user_id y la
+     * agencia en subsidiary_id (ver Seller::resolveCommerce()).
+     *
+     * @return array{0: int, 1: ?string} [managerUserId, subsidiaryId]
+     */
+    private function resolveManagerForUser(int $targetUserId): array
+    {
+        $role = $this->roleUserService->getActiveUserRolePrefix($targetUserId);
+
+        if ($role !== 'subsidiary') {
+            return [$targetUserId, null];
+        }
+
+        $subsidiary = $this->subsidiaryRepository->getByUserId($targetUserId, ['id', 'commerce_id']);
+
+        if (!$subsidiary || !$subsidiary->commerce_id) {
+            throw ManagerSellerException::creationFailed();
+        }
+
+        $commerceUserId = \App\Models\Roles\Commerce::where('id', $subsidiary->commerce_id)->value('user_id');
+
+        if (!$commerceUserId) {
+            throw ManagerSellerException::creationFailed();
+        }
+
+        return [(int) $commerceUserId, $subsidiary->id];
     }
 
     /**

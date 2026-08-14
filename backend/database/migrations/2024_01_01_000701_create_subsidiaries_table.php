@@ -58,6 +58,10 @@ return new class extends Migration
             // Timestamps automáticos
             $table->timestamps();
 
+            // Soft deletes — BaseModel (que Subsidiary extiende) usa
+            // SoftDeletes por defecto; sin esta columna, delete() fallaría.
+            $table->softDeletes();
+
             // Índices compuestos para consultas frecuentes
             $table->index(['status', 'commerce_id', 'country_id']);
         });

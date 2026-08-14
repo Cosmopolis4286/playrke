@@ -15,6 +15,7 @@ use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Seller;
+use App\Services\Roles\Player\External\ExternalPlayerLinkService;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\UserTrait;
@@ -29,12 +30,13 @@ class SellerController extends Controller
     public function __construct(
         private readonly CurrencyRepositoryInterface $currencies,
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRates,
+        private readonly ExternalPlayerLinkService $externalPlayerLink,
     ) {}
 
     public function getAvailableCountriesBySeller($roomId)
     {
-        $seller = $this->seller(['id', 'manager_user_id']);
-        $commerceId = Commerce::where('user_id', $seller->manager_user_id)->value('id');
+        $seller = $this->seller(['id', 'manager_user_id', 'subsidiary_id']);
+        $commerceId = $seller->resolveCommerce()?->id;
 
         // Obtenemos las monedas disponibles para el vendedor y el comercio
         $sellerCurrencies = SellerCurrency::getAvailableCurrencies($seller->id);
@@ -94,9 +96,12 @@ class SellerController extends Controller
             return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
 
-        // Obtener comercio asociado al usuario autenticado (vía manager_user_id → commerces.user_id)
-        $managerUserId = Seller::getValueByUserId(Auth::id(), 'manager_user_id');
-        $commerceId = $managerUserId ? Commerce::where('user_id', $managerUserId)->value('id') : null;
+        // Obtener comercio real asociado al vendedor autenticado — resuelve
+        // directo (manager_user_id → Commerce) o vía agencia intermedia
+        // (subsidiary_id → Subsidiary → Commerce), ver Seller::resolveCommerce().
+        $seller = Seller::where('user_id', Auth::id())->first(['id', 'manager_user_id', 'subsidiary_id']);
+        $commerce = $seller?->resolveCommerce();
+        $commerceId = $commerce?->id;
         if (!$commerceId) {
             return response()->json(['error' => 'Comercio no encontrado'], 404);
         }
@@ -110,8 +115,11 @@ class SellerController extends Controller
         $value = $exchangeRate;
 
         // Obtener el creador de la sala (comercio) para buscar precio personalizado
+        // — usa el user_id del Commerce resuelto, no manager_user_id crudo:
+        // cuando el seller pertenece a una Subsidiary, manager_user_id apunta
+        // al usuario de la agencia, no al del Commerce dueño de la sala.
         $bingoCreatorID = BingoCreator::where('room_id', $roomId)
-            ->where('user_id', $managerUserId)
+            ->where('user_id', $commerce->user_id)
             ->value('id');
 
         // Intentar obtener el precio configurado
@@ -152,7 +160,7 @@ class SellerController extends Controller
 
                 if (!$player) return response()->json(['response' => false]);
 
-                $route = $this->getGameLinkByPlayer($player->link);
+                $route = $this->externalPlayerLink->resolveGameUrl($player->link);
                 $cardsPlayer = BingoRoomUser::where('id', $player->room_user_id)->value('cards_purchased') ?? 0;
 
                 return response()->json([
