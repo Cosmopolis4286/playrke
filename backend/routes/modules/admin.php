@@ -269,9 +269,10 @@ Route::middleware('auth')->group(function () {
      * AUDITORÍA (SuperAdmin y Admin)
      * =========================================================
      */
-    role_protected_routes(['role:superadmin,admin'], 'audit', AuditController::class, [
+    role_protected_routes(['multiPermission:audit.view'], 'audit', AuditController::class, [
         'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
         'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
+        'export'    => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:audit.export'],
         'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
     ]);
 
