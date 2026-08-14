@@ -29,10 +29,17 @@ final class RoleHierarchyService
 {
     /**
      * Mapa prefix (minúscula) => prefix del padre. null = raíz.
+     *
+     * Jerarquía real de negocio: Comercializadora (commerce) → Agencia
+     * (subsidiary) → Taquilla (seller) → Jugador (external_player). 'seller'
+     * cuelga de 'subsidiary', no de 'commerce' directo — un seller puede
+     * seguir reportando directo a un Commerce sin agencia intermedia
+     * (Seller.subsidiary_id nullable, ver Seller::resolveCommerce()), pero
+     * el árbol de ROLES modela la jerarquía completa de 4 niveles.
+     *
      * 'admin' y 'treasurer' son transversales (reportan directo a superadmin,
-     * no dependen de un Commerce específico). 'provider' es un rol reservado
-     * sin dominio propio aún (ver RoleSeeder). 'external_player' cuelga de
-     * 'seller' porque es quien lo capta vía link (ver ExternalPlayer).
+     * no dependen de una Comercializadora específica). 'provider' es un rol
+     * reservado sin dominio propio aún (ver RoleSeeder).
      */
     private const DOMAIN_TREE = [
         'superadmin' => null,
@@ -41,7 +48,7 @@ final class RoleHierarchyService
         'provider' => 'superadmin',
         'commerce' => 'admin',
         'subsidiary' => 'commerce',
-        'seller' => 'commerce',
+        'seller' => 'subsidiary',
         'customer' => 'admin',
         'player' => 'admin',
         'external_player' => 'seller',
@@ -50,14 +57,14 @@ final class RoleHierarchyService
     private const FUNCTIONS = [
         'superadmin' => 'Control total del sistema: roles, permisos, configuración global y respaldo.',
         'admin' => 'Gestión operativa transversal: usuarios, comercios, juegos, reportes y auditoría.',
-        'commerce' => 'Administra su propio negocio: sucursales, vendedores y ventas de juegos.',
-        'subsidiary' => 'Sucursal dependiente de un comercio, mismos permisos operativos que Commerce.',
-        'seller' => 'Vende cartones/participaciones y capta jugadores externos vía link.',
+        'commerce' => 'Comercializadora: administra su negocio, agencias, vendedores y ventas de juegos.',
+        'subsidiary' => 'Agencia/sucursal de una comercializadora — gestiona sus propias taquillas (vendedores).',
+        'seller' => 'Taquilla: vende cartones/participaciones y capta jugadores externos vía link.',
         'treasurer' => 'Responsable financiero: tesorería, tasas de cambio y reportes financieros.',
         'customer' => 'Cliente que usa los servicios de la plataforma con cuenta propia.',
         'player' => 'Jugador registrado: participa en salas de Bingo/Trivia con su propia billetera.',
         'provider' => 'Rol reservado para integración futura de proveedor externo de juegos vía API.',
-        'external_player' => 'Jugador SIN cuenta, captado por un vendedor vía link único, sin login.',
+        'external_player' => 'Jugador SIN cuenta, captado por una taquilla vía link único, sin login.',
     ];
 
     public function buildTree(): array
