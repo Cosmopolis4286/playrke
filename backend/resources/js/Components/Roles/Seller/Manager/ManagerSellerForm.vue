@@ -62,7 +62,12 @@
   }
 
   /* ==========================================================================
-   * Admin — lista de managers (commerces activos)
+   * Admin — lista de managers (comercializadoras + agencias activas)
+   *
+   * Jerarquía real: Comercializadora (commerce) → Agencia (subsidiary) →
+   * Taquilla (seller). Un admin puede asignar el vendedor nuevo directo a
+   * una comercializadora o a una agencia específica — antes solo listaba
+   * commerces, sin forma de crear un seller ya vinculado a una Subsidiary.
    * ========================================================================== */
 
   const managers = ref<ManagerOption[]>([])
@@ -73,10 +78,17 @@
     try {
       loadingManagers.value = true
       const { default: backendClient } = await import('@/js/plugins/axios')
-      const { data } = await backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/commerce')
-      managers.value = Array.isArray(data)
-        ? data.map(m => ({ id: m.user_id, name: m.name }))
+      const [commercesRes, subsidiariesRes] = await Promise.all([
+        backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/commerce'),
+        backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/subsidiary'),
+      ])
+      const commerceOptions = Array.isArray(commercesRes.data)
+        ? commercesRes.data.map(m => ({ id: m.user_id, name: `${m.name} (Comercializadora)` }))
         : []
+      const subsidiaryOptions = Array.isArray(subsidiariesRes.data)
+        ? subsidiariesRes.data.map(m => ({ id: m.user_id, name: `${m.name} (Agencia)` }))
+        : []
+      managers.value = [...commerceOptions, ...subsidiaryOptions]
     } catch {
       managers.value = []
     } finally {
@@ -228,7 +240,7 @@
   <form id="seller-form" novalidate @submit.prevent="submit">
     <div v-if="roleUser === 'admin'" class="row mb-3">
       <FormSelect
-        label="Manager (Commerce)"
+        label="Manager (Comercializadora o Agencia)"
         name="manager_user_id"
         required
         placeholder="Seleccionar manager"

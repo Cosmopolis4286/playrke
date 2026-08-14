@@ -61,3 +61,9 @@ Schedule::command('trivia:retry-failed-prize-payouts')
     ->withoutOverlapping()
     ->everyFiveMinutes()
     ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('audit:prune')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->daily()
+    ->appendOutputTo(storage_path('logs/schedule.log'));

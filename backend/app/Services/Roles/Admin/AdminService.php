@@ -12,6 +12,7 @@ final class AdminService
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customers,
         private readonly \App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface $treasurers,
+        private readonly \App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface $subsidiaries,
     ) {}
 
     /**
@@ -48,6 +49,7 @@ final class AdminService
                 'commerce' => $this->getFilteredUsers($this->commerces->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
                 'customer' => $this->getFilteredUsers($this->customers->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
                 'treasurer' => $this->getFilteredUsers($this->treasurers->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
+                'subsidiary' => $this->getFilteredUsers($this->subsidiaries->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
                 default => []
             };
 

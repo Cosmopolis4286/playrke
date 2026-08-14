@@ -3,10 +3,18 @@
 namespace App\Services\Audit;
 
 use App\Models\Audit;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\LazyCollection;
 
 class AuditService
 {
     private const PAGE_SIZE = 50;
+
+    /**
+     * Columnas ordenables por el usuario — deben ser columnas reales de la
+     * tabla `audits`, no valores computados en toRow() (actor/entity_id).
+     */
+    private const SORTABLE_COLUMNS = ['id', 'created_at', 'actor_type', 'event', 'auditable_type'];
 
     /**
      * Columnas para la tabla del frontend
@@ -47,9 +55,9 @@ class AuditService
     /**
      * Lista paginada para fetch-list (AJAX)
      */
-    public function fetchList(array $filters = [], int $page = 1): array
+    public function fetchList(array $filters = [], int $page = 1, ?string $sort = null, string $direction = 'desc'): array
     {
-        $query = $this->buildQuery($filters)->latest('audits.created_at');
+        $query = $this->applySort($this->buildQuery($filters), $sort, $direction);
         $total = (clone $query)->count();
 
         $rows = $query
@@ -67,6 +75,31 @@ class AuditService
             'current_page' => $page,
             'last_page'    => (int) ceil($total / self::PAGE_SIZE),
         ];
+    }
+
+    /**
+     * Cursor sobre TODOS los resultados que coincidan con los filtros (sin
+     * paginar) — usado por AuditController::export() para generar el CSV
+     * completo sin materializar la colección entera en memoria.
+     *
+     * @return LazyCollection<int, Audit>
+     */
+    public function exportCursor(array $filters = []): LazyCollection
+    {
+        return $this->buildQuery($filters)->latest('audits.created_at')->cursor();
+    }
+
+    private function applySort(\Illuminate\Database\Eloquent\Builder $query, ?string $sort, string $direction): \Illuminate\Database\Eloquent\Builder
+    {
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === null || !in_array($sort, self::SORTABLE_COLUMNS, true)) {
+            return $query->orderBy('audits.created_at', 'desc');
+        }
+
+        $column = $sort === 'id' || $sort === 'created_at' ? "audits.{$sort}" : $sort;
+
+        return $query->orderBy($column, $direction);
     }
 
     /**
@@ -93,38 +126,44 @@ class AuditService
     }
 
     /**
-     * Opciones de filtros disponibles para el frontend
+     * Opciones de filtros disponibles para el frontend.
+     *
+     * Cacheado 10 min: son 3 SELECT DISTINCT sobre toda la tabla `audits`,
+     * que de otro modo corren en cada carga de /audit sin necesidad — los
+     * eventos/tipos/entidades auditables cambian con muy baja frecuencia.
      */
     public function filterOptions(): array
     {
-        $events = Audit::select('event')
-            ->distinct()
-            ->orderBy('event')
-            ->pluck('event')
-            ->map(fn ($e) => ['label' => ucfirst($e), 'value' => $e])
-            ->values()
-            ->toArray();
+        return Cache::remember('audit:filter-options', 600, function (): array {
+            $events = Audit::select('event')
+                ->distinct()
+                ->orderBy('event')
+                ->pluck('event')
+                ->map(fn ($e) => ['label' => ucfirst($e), 'value' => $e])
+                ->values()
+                ->toArray();
 
-        $actorTypes = Audit::select('actor_type')
-            ->distinct()
-            ->orderBy('actor_type')
-            ->pluck('actor_type')
-            ->map(fn ($t) => ['label' => ucfirst($t), 'value' => $t])
-            ->values()
-            ->toArray();
+            $actorTypes = Audit::select('actor_type')
+                ->distinct()
+                ->orderBy('actor_type')
+                ->pluck('actor_type')
+                ->map(fn ($t) => ['label' => ucfirst($t), 'value' => $t])
+                ->values()
+                ->toArray();
 
-        $entities = Audit::select('auditable_type')
-            ->distinct()
-            ->orderBy('auditable_type')
-            ->pluck('auditable_type')
-            ->map(function ($fqcn) {
-                $parts = explode('\\', $fqcn);
-                return ['label' => end($parts), 'value' => $fqcn];
-            })
-            ->values()
-            ->toArray();
+            $entities = Audit::select('auditable_type')
+                ->distinct()
+                ->orderBy('auditable_type')
+                ->pluck('auditable_type')
+                ->map(function ($fqcn) {
+                    $parts = explode('\\', $fqcn);
+                    return ['label' => end($parts), 'value' => $fqcn];
+                })
+                ->values()
+                ->toArray();
 
-        return compact('events', 'actorTypes', 'entities');
+            return compact('events', 'actorTypes', 'entities');
+        });
     }
 
     // -------------------------------------------------------------------------
@@ -136,30 +175,40 @@ class AuditService
             ->select('audits.*');
 
         if (!empty($filters['event'])) {
-            $query->where('event', $filters['event']);
+            $query->ofEvent($filters['event']);
         }
 
         if (!empty($filters['actor_type'])) {
-            $query->where('actor_type', $filters['actor_type']);
-        }
-
-        if (!empty($filters['entity'])) {
-            $query->where('auditable_type', $filters['entity']);
+            $query->ofActor($filters['actor_type']);
         }
 
         if (!empty($filters['user_id'])) {
-            $query->where('user_id', $filters['user_id']);
+            $query->forUser($filters['user_id']);
         }
 
         /**
-         * Filtra por el SUJETO auditado (auditable_id), no por el actor que
-         * ejecutó la acción (user_id). Usado para "ver historial de esta
-         * entidad" — ej. deep-link desde /admin/users hacia el historial de
-         * cambios de un usuario puntual. Requiere 'entity' para acotar el
-         * tipo, ya que auditable_id no es único entre distintos modelos.
+         * Filtra por el SUJETO auditado (auditable_type + auditable_id), no
+         * por el actor que ejecutó la acción (user_id). Usado para "ver
+         * historial de esta entidad" — ej. deep-link desde /admin/users
+         * hacia el historial de cambios de un usuario puntual. Requiere
+         * 'entity' para acotar el tipo, ya que auditable_id no es único
+         * entre distintos modelos. ofAuditable() compara con JSON_UNQUOTE
+         * porque auditable_id se persiste como JSON (ver Audit::scopeOfAuditable).
          */
         if (!empty($filters['auditable_id']) && !empty($filters['entity'])) {
-            $query->where('auditable_id', $filters['auditable_id']);
+            $query->ofAuditable($filters['entity'], $filters['auditable_id']);
+        } elseif (!empty($filters['entity'])) {
+            $query->ofModel($filters['entity']);
+        }
+
+        if (!empty($filters['search'])) {
+            $term = $filters['search'];
+            $query->where(function (\Illuminate\Database\Eloquent\Builder $q) use ($term) {
+                $q->where('event', 'LIKE', "%{$term}%")
+                    ->orWhere('actor_type', 'LIKE', "%{$term}%")
+                    ->orWhere('auditable_type', 'LIKE', "%{$term}%")
+                    ->orWhere('ip_address', 'LIKE', "%{$term}%");
+            });
         }
 
         if (!empty($filters['date_from'])) {

@@ -100,6 +100,14 @@ class SettingSeeder extends Seeder
             ['param' => 'support_email',     'value' => 'soporte@playrke.com', 'status' => 'ACTIVE'],
             ['param' => 'support_whatsapp',  'value' => '',                    'status' => 'INACTIVE'],
 
+            // ─────────────────────────────────────────────
+            // AUDITORÍA
+            // ─────────────────────────────────────────────
+            // Días de retención de registros en la tabla `audits` antes de
+            // ser purgados por el comando audit:prune (ver
+            // App\Services\Audit\AuditRetentionSettings).
+            ['param' => 'audit_retention_days', 'value' => '90', 'status' => 'ACTIVE'],
+
         ];
 
         foreach ($settings as $data) {

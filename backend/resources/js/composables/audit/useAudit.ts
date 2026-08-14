@@ -1,24 +1,28 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
-import type { AuditTableData, AuditDetail, AuditFilterOptions } from '@/js/types/audit/audit'
+import type { AuditTableData, AuditDetail } from '@/js/types/audit/audit'
+import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
 interface AuditFilters {
     event?: string
     actor_type?: string
     entity?: string
     user_id?: string
+    auditable_id?: string
     date_from?: string
     date_to?: string
+    search?: string
 }
 
 interface UseAuditReturn {
     audits: Ref<AuditTableData>
     detail: Ref<AuditDetail | null>
     loading: Ref<boolean>
-    currentPage: Ref<number>
+    lastQuery: Ref<ServerQuery>
     setInitialAudits: (data: AuditTableData) => void
     fetchList: (filters?: AuditFilters, page?: number) => Promise<boolean>
+    onQueryChange: (query: ServerQuery, extraFilters?: AuditFilters) => Promise<void>
     fetchDetail: (id: string) => Promise<boolean>
     clearDetail: () => void
 }
@@ -26,10 +30,16 @@ interface UseAuditReturn {
 const emptyTableData = (): AuditTableData => ({ columns: [], rows: [] })
 
 export function useAudit(): UseAuditReturn {
-    const loading     = ref(false)
-    const audits      = ref<AuditTableData>(emptyTableData())
-    const detail      = ref<AuditDetail | null>(null)
-    const currentPage = ref(1)
+    const loading   = ref(false)
+    const audits    = ref<AuditTableData>(emptyTableData())
+    const detail    = ref<AuditDetail | null>(null)
+
+    /**
+     * Último query resuelto por TableWithFilterBridge (server-side) — se
+     * reusa para reconstruir los mismos filtros al exportar a CSV, igual
+     * que AdminUser/Index.vue con su handleExport().
+     */
+    const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: 'asc' }, page: 1 })
 
     function setInitialAudits(data: AuditTableData): void {
         audits.value = {
@@ -46,7 +56,6 @@ export function useAudit(): UseAuditReturn {
         if (loading.value) return false
         try {
             loading.value = true
-            currentPage.value = page
 
             const params = { ...filters, page }
             const { data } = await backendClient.get<{ data: AuditTableData }>(
@@ -65,6 +74,24 @@ export function useAudit(): UseAuditReturn {
         } finally {
             loading.value = false
         }
+    }
+
+    /**
+     * Adapta el evento query-change de TableWithFilterBridge (server-side)
+     * al fetch — extraFilters permite mantener filtros ad-hoc que la tabla
+     * genérica no conoce (rango de fechas, filtro de sujeto por deep-link).
+     */
+    async function onQueryChange(query: ServerQuery, extraFilters: AuditFilters = {}): Promise<void> {
+        lastQuery.value = query
+
+        await fetchList(
+            {
+                ...extraFilters,
+                ...query.filters,
+                search: query.search || undefined,
+            } as AuditFilters,
+            query.page
+        )
     }
 
     async function fetchDetail(id: string): Promise<boolean> {
@@ -95,9 +122,10 @@ export function useAudit(): UseAuditReturn {
         audits,
         detail,
         loading,
-        currentPage,
+        lastQuery,
         setInitialAudits,
         fetchList,
+        onQueryChange,
         fetchDetail,
         clearDetail,
     }
