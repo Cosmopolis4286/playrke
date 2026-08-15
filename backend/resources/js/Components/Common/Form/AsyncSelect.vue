@@ -26,6 +26,8 @@
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: string | number | null): void
+    /** Emitido cuando una búsqueda con texto suficiente no devuelve resultados — el dropdown ya lo indica inline (no-results-text), este evento es para que el padre pueda además avisar con un toast si lo necesita. */
+    (e: 'no-results', query: string): void
   }>()
 
   const inputId = computed(() => props.id ?? props.name)
@@ -39,7 +41,10 @@
     if (!query || query.trim().length < 2) {
       return props.initialOption ? [props.initialOption] : []
     }
-    return props.search(query.trim())
+    const trimmed = query.trim()
+    const results = await props.search(trimmed)
+    if (results.length === 0) emit('no-results', trimmed)
+    return results
   }
 </script>
 

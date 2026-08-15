@@ -3,7 +3,6 @@
 
   // Secciones
   import RoomBasicSection from './Sections/RoomBasicSection.vue'
-  import RoomCapacitySection from './Sections/RoomCapacitySection.vue'
   import RoomCurrencySection from './Sections/RoomCurrencySection.vue'
   import RoomRoundsSection from './Sections/RoomRoundsSection.vue'
   import RoomOptionsSection from './Sections/RoomOptionsSection.vue'
@@ -121,8 +120,10 @@
   const {
     step,
     stepLabel,
+    stepDescription,
     steps,
     stepLabels,
+    stepDescriptions,
     canGoNext,
     canGoPrev,
     goNext,
@@ -440,12 +441,13 @@
   </div>
 
   <!-- Navegación del wizard -->
-  <ul class="nav nav-tabs mb-3" style="font-size: 0.85rem">
+  <ul class="nav nav-tabs mb-2" style="font-size: 0.85rem">
     <li v-for="s in steps" :key="s" class="nav-item">
       <button
         type="button"
         class="nav-link"
         :class="{ active: step === s, 'text-danger': stepHasErrors(s) && step !== s }"
+        :title="stepDescriptions[s]"
         @click="goTo(s)"
       >
         {{ stepLabels[s] }}
@@ -453,6 +455,12 @@
       </button>
     </li>
   </ul>
+
+  <!-- Descripción del paso activo -->
+  <p class="text-muted mb-3" style="font-size: 0.8rem">
+    <i class="fa-solid fa-circle-info mr-1" style="opacity: 0.7"></i>
+    {{ stepDescription }}
+  </p>
 
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
@@ -504,15 +512,6 @@
             <span class="input-group-text">$</span>
           </template>
         </FormInput>
-      </template>
-
-      <!-- Paso: Capacidad -->
-      <template v-if="step === 'capacity'">
-        <RoomCapacitySection
-          :modelValue="form"
-          :errors="errors"
-          @update:modelValue="form = $event"
-        />
       </template>
 
       <!-- Paso: Monedas y precios -->

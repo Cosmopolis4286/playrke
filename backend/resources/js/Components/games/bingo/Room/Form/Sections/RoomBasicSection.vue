@@ -4,7 +4,10 @@
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import AsyncSelect from '@/js/Components/Common/Form/AsyncSelect.vue'
+  import RoomCapacitySection from './RoomCapacitySection.vue'
   import { searchUsers } from '@/js/composables/users/useUserSearch'
+  import { showToast } from '@/js/utils/toastNotify'
+  import { generateAccessCode, generateRoomPassword } from '../Composables/useRoomPrivateAccess'
 
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type {
@@ -104,6 +107,18 @@ import { SelectOption } from '@/js/types/common/form/form'
       ...(startMode === 'MANUAL' ? { date: null, time: null } : {})
     } as BingoRoomFormData)
   }
+
+  function onGenerateAccessCode(): void {
+    emit('update:modelValue', { ...props.modelValue, accessCode: generateAccessCode() } as any)
+  }
+
+  function onGenerateRoomPassword(): void {
+    emit('update:modelValue', { ...props.modelValue, roomPassword: generateRoomPassword() } as any)
+  }
+
+  function onHostUserNoResults(query: string): void {
+    showToast(`No se encontraron usuarios para "${query}".`, 'info')
+  }
 </script>
 
 <template>
@@ -195,9 +210,21 @@ import { SelectOption } from '@/js/types/common/form/form'
         required
         placeholder="Ej. FAMILIA2026"
         col="col-sm-6 col-md-4 col-lg-3"
+        inputGroup
         :modelValue="(modelValue as any).accessCode ?? null"
         @update:modelValue="emit('update:modelValue', { ...modelValue, accessCode: $event } as any)"
-      />
+      >
+        <template #append>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            title="Generar código automáticamente"
+            @click="onGenerateAccessCode"
+          >
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </template>
+      </FormInput>
 
       <FormInput
         label="Contraseña"
@@ -207,22 +234,50 @@ import { SelectOption } from '@/js/types/common/form/form'
         type="password"
         :placeholder="props.modelValue.hostUserId ? 'Dejar en blanco para no cambiar' : 'Contraseña de acceso'"
         col="col-sm-6 col-md-4 col-lg-3"
+        inputGroup
         :modelValue="(modelValue as any).roomPassword ?? null"
         @update:modelValue="emit('update:modelValue', { ...modelValue, roomPassword: $event } as any)"
-      />
+      >
+        <template #append>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            title="Generar contraseña automáticamente"
+            @click="onGenerateRoomPassword"
+          >
+            <i class="fa-solid fa-key"></i>
+          </button>
+        </template>
+      </FormInput>
 
       <AsyncSelect
         label="Anfitrión"
         name="host_user_id"
         :error="(errors as any).hostUserId"
+        required
         placeholder="Buscar usuario..."
         col="col-sm-6 col-md-4 col-lg-3"
         :search="searchUsers"
         :initial-option="hostUserInitialOption"
         :modelValue="(modelValue as any).hostUserId ?? null"
         @update:modelValue="emit('update:modelValue', { ...modelValue, hostUserId: $event } as any)"
+        @no-results="onHostUserNoResults"
       />
     </template>
+
+    <!-- Capacidad de la sala: min/máx cartones, min/máx jugadores -->
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
+        <i class="fa-solid fa-gauge-high mr-1" style="opacity: 0.7"></i>
+        Capacidad de la sala
+      </p>
+    </div>
+    <RoomCapacitySection
+      :modelValue="modelValue as BingoRoomFormData"
+      :errors="errors"
+      @update:modelValue="emit('update:modelValue', $event as any)"
+    />
 
     <!-- Tipo de Conexión -->
     <FormSelect
@@ -240,12 +295,13 @@ import { SelectOption } from '@/js/types/common/form/form'
       @update:modelValue="emit('update:modelValue', { ...modelValue, connectionType: $event })"
     />
 
-    <!-- Modo de Juego (Solitario, Múltiple, Ranking...) — opcional -->
+    <!-- Modo de Juego (Solitario, Múltiple, Ranking...) -->
     <FormSelect
       label="Modo de Juego"
       name="game_mode"
       :error="(errors as any).gameMode"
-      placeholder="Sin modo específico"
+      required
+      placeholder="Selecciona modo de juego"
       :options="gameModeOptions"
       optionValue="value"
       optionLabel="label"

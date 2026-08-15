@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 type StepKey = Exclude<BingoRoomStep, 'review'>
 
-const STEPS: StepKey[] = ['basic', 'capacity', 'currencies', 'rounds', 'options']
+const STEPS: StepKey[] = ['basic', 'currencies', 'rounds', 'options']
 
 function stepHasErrors(step: StepKey): boolean {
   return STEP_ERROR_KEYS[step].some(k => k in props.errors)
@@ -251,8 +251,7 @@ const scheduleLabel = computed(() => {
         <h4 class="bingo-review-step__section-title">
           <i class="fa-solid fa-users bingo-review-step__section-icon"></i>
           Capacidad
-          <span v-if="stepHasErrors('capacity')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('capacity')">
+          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('basic')">
             <i class="fa-solid fa-pen"></i> Editar
           </button>
         </h4>
