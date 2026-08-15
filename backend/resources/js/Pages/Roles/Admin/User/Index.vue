@@ -18,6 +18,10 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
+  import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
+  import Button from '@/js/Components/Common/Button/Button.vue'
+  import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
+  import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
   import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
   import XpGrantForm from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
@@ -126,6 +130,16 @@
     (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.prefix === 'superadmin') ?? false
   )
   const currentUserId = computed(() => String((page.props.auth as any)?.user?.id ?? ''))
+
+  // Modal "Gestionar roles" (RoleManagerModal.vue) — mismo componente que usa
+  // /permissions, para editar descripción/estado de roles desde el listado
+  // de usuarios sin tener que navegar a la matriz de permisos.
+  const showRoleManager = ref(false)
+
+  const breadcrumbItems = [
+    { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+    { label: 'Usuarios' },
+  ]
 
   // Filas protegidas: cuentas superadmin (si el actor no lo es) y la propia
   // cuenta del actor — mismo criterio que el guard de AdminUserService, para
@@ -511,50 +525,97 @@
 </script>
 
 <template>
-  <div class="admin-users-stats">
-    <StatTile label="Usuarios totales" :value="stats.total" icon="fa-users" />
-    <StatTile label="Activos (esta página)" :value="stats.active" icon="fa-user-check" variant="success" />
-    <StatTile label="Con permisos individuales (esta página)" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
-    <StatTile label="Roles disponibles" :value="stats.inactiveRolesAvailable" icon="fa-user-tag" />
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-6">
+          <h1 class="m-0 font-weight-bold">Usuarios</h1>
+          <p class="text-muted mb-0 mt-1">
+            <i class="fas fa-users text-primary mr-1"></i>
+            Administra las cuentas del sistema: rol, estado, saldo y permisos individuales.
+          </p>
+        </div>
+        <div class="col-sm-6 d-flex flex-column align-items-sm-end">
+          <Breadcrumb :items="breadcrumbItems" />
+          <Button
+            v-if="isSuperadmin"
+            class="mt-2"
+            variant="primary"
+            outline
+            icon="fa-user-shield"
+            @click="showRoleManager = true"
+          >
+            Gestionar roles
+          </Button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <TableWithFilterBridge
-    tableId="user-table"
-    title="Usuarios"
-    :columns="props.users.columns"
-    :rows="users"
-    :filters="filters"
-    search-placeholder="Buscar por nombre, username, email..."
-    :loading="loading"
-    server-side
-    :server-total-pages="pagination?.last_page ?? 1"
-    showCreateButton
-    showEditButton
-    showDeleteButton
-    :disable-edit="isProtectedSelection"
-    :disable-edit-reason="getProtectedSelectionReason"
-    :disable-delete="isProtectedSelection"
-    :disable-delete-reason="getProtectedSelectionReason"
-    :disabled-row-ids="disabledRowIds"
-    disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
-    :extra-buttons="extraButtons"
-    @query-change="onQueryChange"
-  >
-    <template #cell-role_badge="{ row }">
-      <span v-html="row.role_badge"></span>
-      <i
-        v-if="row.has_specific_permissions"
-        class="fas fa-user-shield admin-user-permissions-flag"
-        title="Este usuario tiene permisos individuales adicionales a los de su rol"
-      ></i>
-    </template>
+  <section class="content">
+    <div class="container-fluid">
+      <div class="admin-users-stats">
+        <StatTile label="Usuarios totales" :value="stats.total" icon="fa-users" />
+        <StatTile label="Activos (esta página)" :value="stats.active" icon="fa-user-check" variant="success" />
+        <StatTile label="Con permisos individuales (esta página)" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
+        <StatTile label="Roles disponibles" :value="stats.inactiveRolesAvailable" icon="fa-user-tag" />
+      </div>
 
-    <template #action-buttons>
-      <button class="btn btn-sm btn-outline-secondary" title="Exportar usuarios filtrados a CSV" @click="handleExport">
-        <i class="fas fa-file-csv mr-1"></i>Exportar
-      </button>
-    </template>
-  </TableWithFilterBridge>
+      <TableWithFilterBridge
+        tableId="user-table"
+        title="Usuarios"
+        :columns="props.users.columns"
+        :rows="users"
+        :filters="filters"
+        search-placeholder="Buscar por nombre, username, email..."
+        :loading="loading"
+        server-side
+        :server-total-pages="pagination?.last_page ?? 1"
+        showCreateButton
+        showEditButton
+        showDeleteButton
+        :disable-edit="isProtectedSelection"
+        :disable-edit-reason="getProtectedSelectionReason"
+        :disable-delete="isProtectedSelection"
+        :disable-delete-reason="getProtectedSelectionReason"
+        :disabled-row-ids="disabledRowIds"
+        disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
+        :extra-buttons="extraButtons"
+        @query-change="onQueryChange"
+      >
+        <template #cell-role_badge="{ row }">
+          <span v-html="row.role_badge"></span>
+        </template>
+
+        <template #cell-full_name="{ row }">
+          <div class="admin-user-cell">
+            <span class="admin-user-cell__name">{{ row.full_name }}</span>
+            <span class="admin-user-cell__meta">
+              <i class="fas fa-at"></i>{{ row.username }}
+              <span class="admin-user-cell__sep">·</span>
+              <i class="fas fa-envelope"></i>{{ row.email }}
+            </span>
+          </div>
+        </template>
+
+        <template #cell-permissions_badge="{ row }">
+          <span v-html="row.permissions_badge"></span>
+        </template>
+
+        <template #cell-registered_at="{ row }">
+          <RelativeTime :value="row.registered_at" />
+        </template>
+
+        <template #action-buttons>
+          <button class="btn btn-sm btn-outline-secondary" title="Exportar usuarios filtrados a CSV" @click="handleExport">
+            <i class="fas fa-file-csv mr-1"></i>Exportar
+          </button>
+        </template>
+      </TableWithFilterBridge>
+    </div>
+  </section>
+
+  <RoleManagerModal v-if="isSuperadmin" v-model="showRoleManager" />
 
   <!-- Modal de selección de rol para registrar usuario -->
   <Modal
@@ -679,10 +740,33 @@
   margin-bottom: 1rem;
 }
 
-.admin-user-permissions-flag {
-  margin-left: 0.4rem;
-  color: #6366f1;
-  font-size: 0.8rem;
+/* Celda "Usuario" acoplada: nombre + username + email en un solo bloque */
+.admin-user-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.admin-user-cell__name {
+  font-weight: 600;
+  color: var(--ds-text);
+}
+.admin-user-cell__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--ds-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-user-cell__meta i {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+.admin-user-cell__sep {
+  opacity: 0.5;
 }
 
 /* Diferencia visualmente el botón de permisos individuales del resto de

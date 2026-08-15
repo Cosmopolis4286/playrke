@@ -8,7 +8,9 @@ export interface AdminUser {
     readonly id: string | number
     readonly role_badge: string
     readonly full_name: string
+    /** Dato crudo (no es columna independiente): se muestra junto a full_name en el slot #cell-full_name. */
     readonly username: string
+    /** Dato crudo (no es columna independiente): se muestra junto a full_name en el slot #cell-full_name. */
     readonly email: string
     readonly country_name: string
     readonly status: UserStatus
@@ -26,8 +28,12 @@ export interface AdminUser {
     readonly last_name: string | null
     /** true si el usuario tiene permisos específicos asignados además de los de su rol. */
     readonly has_specific_permissions: boolean
+    /** Cantidad de permisos individuales asignados directamente (además de los de su rol). */
+    readonly specific_permissions_count: number
     /** ID real del usuario (distinto de `id`, que viene hasheado para la tabla). */
     readonly real_id: string | number | null
+    /** Fecha de registro en formato ISO 8601, para formatear tiempo relativo en el frontend. */
+    readonly registered_at: string | null
 }
 
 export interface AdminRole {

@@ -65,8 +65,8 @@ final class AdminUserController extends Controller
                     $user->roles->first()?->name,
                     $user->country?->name,
                     $user->status,
-                    !empty($user->specific_permissions) ? 'Sí' : 'No',
-                    $user->created_at?->format('Y-m-d'),
+                    count($user->specific_permissions ?? []),
+                    $user->created_at?->format('Y-m-d H:i:s'),
                 ]);
             }
 

@@ -84,16 +84,23 @@ final class AdminUserContextService
      */
     public function resolveUsers(array $filters = [], int $page = 1, int $perPage = 15): array
     {
-        $labels  = ['Rol', 'Nombre', 'Username', 'Email', 'País', 'Status'];
-        $rowKeys = ['role_badge', 'full_name', 'username', 'email', 'country_name', 'status_badge'];
+        // "Usuario" acopla nombre + username + email en una sola columna
+        // (antes 3 columnas separadas) para dejar espacio a Permisos y
+        // Registrado sin sobrecargar la tabla — el frontend arma el bloque
+        // visual a partir de full_name/username/email vía slot #cell-full_name.
+        $labels  = ['Rol', 'Usuario', 'País', 'Permisos', 'Registrado', 'Status'];
+        $rowKeys = ['role_badge', 'full_name', 'country_name', 'permissions_badge', 'registered_at', 'status_badge'];
 
         $source = $this->buildFilteredQuery($filters)->paginate($perPage, ['*'], 'page', $page);
 
         $collection = $source->getCollection()->map(function (User $user) {
             $fullName = trim("{$user->first_name} {$user->last_name}");
+            $permissionsCount = count($user->specific_permissions ?? []);
             $user->setAttribute('full_name',    $fullName);
             $user->setAttribute('role_badge',   $this->roleBadge($user->roles->first()?->name ?? ''));
             $user->setAttribute('country_name', $user->country?->name ?? '—');
+            $user->setAttribute('permissions_badge', $this->permissionsBadge($permissionsCount));
+            $user->setAttribute('registered_at', $user->created_at?->toIso8601String());
             $user->setAttribute('status_badge', $this->statusBadge($user->status ?? ''));
             return $user;
         });
@@ -123,7 +130,13 @@ final class AdminUserContextService
             $row['country_id'] = $user?->country_id;
             $row['first_name'] = $user?->first_name;
             $row['last_name']  = $user?->last_name;
+            // username/email dejaron de ser columnas independientes (ver
+            // labels/rowKeys arriba) pero se necesitan como datos crudos para
+            // el slot #cell-full_name (bloque "Usuario" acoplado) y la búsqueda.
+            $row['username']   = $user?->username;
+            $row['email']      = $user?->email;
             $row['has_specific_permissions'] = !empty($user?->specific_permissions);
+            $row['specific_permissions_count'] = count($user?->specific_permissions ?? []);
             // ID real del usuario (distinto del 'id' hasheado de la fila) —
             // necesario para deep-linkear al historial de auditoría, donde
             // Audit.auditable_id se guarda con la PK real, no el hash de tabla.
@@ -147,6 +160,15 @@ final class AdminUserContextService
             'provider'   => '<span class="badge badge-dark">Proveedor</span>',
             default      => '<span class="badge badge-dark">' . ucfirst($role) . '</span>',
         };
+    }
+
+    private function permissionsBadge(int $count): string
+    {
+        if ($count === 0) {
+            return '<span class="badge badge-light text-muted">Sin permisos individuales</span>';
+        }
+
+        return '<span class="badge badge-info"><i class="fas fa-user-shield mr-1"></i>' . $count . ' individual' . ($count > 1 ? 'es' : '') . '</span>';
     }
 
     private function statusBadge(string $status): string
