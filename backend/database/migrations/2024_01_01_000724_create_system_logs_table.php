@@ -23,6 +23,27 @@ return new class extends Migration
             $table->text('stack')->nullable();
             $table->json('meta')->nullable();
 
+            /**
+             * Agrupación de errores repetidos (ej. un job en loop generando
+             * el mismo error cientos de veces) — sin esto, /logs se llena de
+             * filas idénticas en vez de mostrar "este error pasó N veces".
+             * fingerprint = hash(message + primera línea propia del stack).
+             */
+            $table->string('fingerprint', 64)->nullable()->index();
+            $table->unsignedInteger('occurrences')->default(1);
+            $table->timestamp('last_seen_at')->nullable();
+
+            /**
+             * Marcado manual de revisión — distingue "ya lo vi, es conocido"
+             * de "nuevo, sin revisar" cuando hay más de un admin mirando logs.
+             */
+            $table->timestamp('reviewed_at')->nullable();
+            $table->foreignSnowflake('reviewed_by_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->cascadeOnUpdate();
+
             $table->timestamp('created_at')->useCurrent();
 
             $table->index('created_at');

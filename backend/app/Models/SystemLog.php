@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SystemLog extends Model
 {
@@ -22,10 +23,23 @@ class SystemLog extends Model
         'context',
         'stack',
         'meta',
+        'fingerprint',
+        'occurrences',
+        'last_seen_at',
+        'reviewed_at',
+        'reviewed_by_user_id',
     ];
 
     protected $casts = [
-        'meta'       => 'array',
-        'created_at' => 'datetime',
+        'meta'         => 'array',
+        'created_at'   => 'datetime',
+        'last_seen_at' => 'datetime',
+        'reviewed_at'  => 'datetime',
+        'occurrences'  => 'integer',
     ];
+
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
 }

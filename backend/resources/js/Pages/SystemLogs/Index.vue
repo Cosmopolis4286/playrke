@@ -8,6 +8,7 @@
 
   import { useSystemLogs } from '@/js/composables/audit/useSystemLogs'
   import { formatLevelName } from '@/js/utils/logs/logLevelDisplay'
+  import { showToast } from '@/js/utils/toastNotify'
 
   import type { SystemLogPageProps } from '@/js/types/audit/system-log'
   import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
@@ -23,7 +24,7 @@
   /* Composable                                                                  */
   /* -------------------------------------------------------------------------- */
 
-  const { logs, detail, loading, lastQuery, setInitialLogs, onQueryChange, fetchDetail, clearDetail } = useSystemLogs()
+  const { logs, detail, loading, lastQuery, setInitialLogs, onQueryChange, fetchDetail, toggleReviewed, clearDetail } = useSystemLogs()
 
   setInitialLogs(props.logs)
 
@@ -50,6 +51,11 @@
         { label: 'Error',        value: 'error' },
         { label: 'Advertencia',  value: 'warn' },
       ],
+    },
+    {
+      key:     'context',
+      label:   'Contexto',
+      options: props.contexts,
     },
   ])
 
@@ -97,6 +103,39 @@
 
   watch(showDetail, isOpen => {
     if (!isOpen) clearDetail()
+  })
+
+  async function handleToggleReviewed(): Promise<void> {
+    if (!detail.value) return
+    const wasReviewed = !!detail.value.reviewed_at
+    const ok = await toggleReviewed(detail.value.id)
+    if (ok) {
+      showToast(wasReviewed ? 'Log marcado como no revisado' : 'Log marcado como revisado', 'success')
+      await refetch()
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Stack trace: resaltar la primera línea "propia" (no vendor/)               */
+  /* -------------------------------------------------------------------------- */
+
+  const stackLines = computed(() => {
+    if (!detail.value?.stack) return []
+    let highlighted = false
+    return detail.value.stack.split('\n').map(line => {
+      const isOrigin = !highlighted && !line.includes('/vendor/') && line.trim() !== ''
+      if (isOrigin) highlighted = true
+      return { text: line, isOrigin }
+    })
+  })
+
+  /* -------------------------------------------------------------------------- */
+  /* Correlación con /audit: si el log capturó un usuario autenticado           */
+  /* -------------------------------------------------------------------------- */
+
+  const relatedUserId = computed(() => {
+    const value = detail.value?.meta?.user_id
+    return typeof value === 'string' || typeof value === 'number' ? String(value) : null
   })
 </script>
 
@@ -173,6 +212,18 @@
       <span class="text-truncate d-inline-block" style="max-width: 420px" :title="value">{{ value }}</span>
     </template>
 
+    <!-- Columna: Ocurrencias (agrupación de errores repetidos) -->
+    <template #cell-occurrences="{ value }">
+      <span v-if="value > 1" class="badge bg-secondary">×{{ value }}</span>
+      <span v-else class="text-muted small">—</span>
+    </template>
+
+    <!-- Columna: Revisado -->
+    <template #cell-reviewed="{ value }">
+      <i v-if="value" class="fas fa-check-circle text-success" title="Revisado"></i>
+      <i v-else class="fas fa-circle text-muted" style="font-size: 0.5rem" title="Sin revisar"></i>
+    </template>
+
     <!-- Columna: Acciones -->
     <template #cell-id="{ row }">
       <button
@@ -193,28 +244,60 @@
     size="lg"
   >
     <template v-if="detail">
+      <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-sm" :class="detail.reviewed_at ? 'btn-outline-secondary' : 'btn-success'" @click="handleToggleReviewed">
+          <i class="fas" :class="detail.reviewed_at ? 'fa-times' : 'fa-check'"></i>
+          {{ detail.reviewed_at ? 'Marcar como no revisado' : 'Marcar como revisado' }}
+        </button>
+      </div>
+
       <div class="row g-3">
         <div class="col-md-6">
-          <small class="text-muted d-block">Fecha</small>
+          <small class="text-muted d-block">Primera vez</small>
           <span>{{ detail.date }}</span>
+        </div>
+        <div class="col-md-6">
+          <small class="text-muted d-block">Última vez</small>
+          <span>{{ detail.last_seen_at ?? detail.date }}</span>
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Nivel</small>
           <LogLevelBadge :level="detail.level" />
         </div>
         <div class="col-md-6">
+          <small class="text-muted d-block">Ocurrencias</small>
+          <span>{{ detail.occurrences }}</span>
+        </div>
+        <div class="col-md-6">
           <small class="text-muted d-block">Contexto</small>
           <span class="font-monospace small">{{ detail.context ?? '—' }}</span>
+        </div>
+        <div v-if="relatedUserId" class="col-md-6">
+          <small class="text-muted d-block">Usuario en sesión</small>
+          <a :href="`/audit?user_id=${relatedUserId}`" class="small">
+            <i class="fas fa-history me-1"></i>Ver actividad de este usuario en /audit
+          </a>
+        </div>
+        <div class="col-md-6">
+          <small class="text-muted d-block">Revisado</small>
+          <span v-if="detail.reviewed_at" class="text-success small">
+            <i class="fas fa-check-circle me-1"></i>{{ detail.reviewed_at }}{{ detail.reviewed_by ? ` — ${detail.reviewed_by}` : '' }}
+          </span>
+          <span v-else class="text-muted small">Sin revisar</span>
         </div>
         <div class="col-12">
           <small class="text-muted d-block">Mensaje</small>
           <span>{{ detail.message }}</span>
         </div>
 
-        <!-- Stack trace -->
+        <!-- Stack trace (primera línea propia resaltada) -->
         <div v-if="detail.stack" class="col-12">
           <small class="text-muted d-block mb-1">Stack trace</small>
-          <pre class="log-stack rounded p-3 small mb-0" style="max-height:300px;overflow:auto">{{ detail.stack }}</pre>
+          <pre class="log-stack rounded p-3 small mb-0" style="max-height:300px;overflow:auto"><span
+            v-for="(line, idx) in stackLines"
+            :key="idx"
+            :class="{ 'log-stack-origin': line.isOrigin }"
+          >{{ line.text }}<br /></span></pre>
         </div>
 
         <!-- Meta -->
@@ -245,5 +328,13 @@
   font-family: 'Courier New', monospace;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.log-stack-origin {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  font-weight: 700;
+  display: inline-block;
+  width: 100%;
 }
 </style>

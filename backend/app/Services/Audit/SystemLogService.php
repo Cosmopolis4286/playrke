@@ -3,29 +3,32 @@
 namespace App\Services\Audit;
 
 use App\Models\SystemLog;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class SystemLogService
 {
     private const PAGE_SIZE = 100;
 
-    private const SORTABLE_COLUMNS = ['id', 'created_at', 'level'];
+    private const SORTABLE_COLUMNS = ['id', 'created_at', 'level', 'occurrences'];
 
     private function columns(): array
     {
         return [
-            ['key' => 'id',      'label' => '#',        'sortable' => true],
-            ['key' => 'date',    'label' => 'Fecha',    'sortable' => true],
-            ['key' => 'level',   'label' => 'Nivel',     'sortable' => true],
-            ['key' => 'message', 'label' => 'Mensaje',   'sortable' => false],
-            ['key' => 'context', 'label' => 'Contexto',  'sortable' => false],
+            ['key' => 'id',          'label' => '#',           'sortable' => true],
+            ['key' => 'date',        'label' => 'Última vez',  'sortable' => true],
+            ['key' => 'level',       'label' => 'Nivel',       'sortable' => true],
+            ['key' => 'message',     'label' => 'Mensaje',     'sortable' => false],
+            ['key' => 'context',     'label' => 'Contexto',    'sortable' => false],
+            ['key' => 'occurrences', 'label' => 'Ocurrencias', 'sortable' => true],
+            ['key' => 'reviewed',    'label' => 'Revisado',    'sortable' => false],
         ];
     }
 
     public function getTableData(array $filters = []): array
     {
         $rows = $this->buildQuery($filters)
-            ->latest('system_logs.created_at')
+            ->latest('system_logs.last_seen_at')
             ->limit(self::PAGE_SIZE)
             ->get()
             ->map(fn (SystemLog $log) => $this->toRow($log))
@@ -62,17 +65,27 @@ class SystemLogService
 
     public function show(string $id): array
     {
+        $log = SystemLog::with('reviewedBy')->findOrFail($id);
+
+        return $this->toDetail($log);
+    }
+
+    /**
+     * Marca (o desmarca) un log como revisado — distingue "ya lo vi, es
+     * conocido" de "nuevo, sin revisar" cuando hay más de un admin mirando
+     * /logs.
+     */
+    public function toggleReviewed(string $id): array
+    {
         $log = SystemLog::findOrFail($id);
 
-        return [
-            'id'      => $log->id,
-            'date'    => $log->created_at?->format('d/m/Y H:i:s'),
-            'level'   => $log->level,
-            'message' => $log->message,
-            'context' => $log->context,
-            'stack'   => $log->stack,
-            'meta'    => $log->meta,
-        ];
+        if ($log->reviewed_at) {
+            $log->forceFill(['reviewed_at' => null, 'reviewed_by_user_id' => null])->save();
+        } else {
+            $log->forceFill(['reviewed_at' => now(), 'reviewed_by_user_id' => Auth::id()])->save();
+        }
+
+        return $this->toDetail($log->fresh('reviewedBy'));
     }
 
     /**
@@ -101,10 +114,10 @@ class SystemLogService
         $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
 
         if ($sort === null || !in_array($sort, self::SORTABLE_COLUMNS, true)) {
-            return $query->orderBy('system_logs.created_at', 'desc');
+            return $query->orderBy('system_logs.last_seen_at', 'desc');
         }
 
-        $column = $sort === 'id' || $sort === 'created_at' ? "system_logs.{$sort}" : $sort;
+        $column = in_array($sort, ['id', 'created_at', 'occurrences'], true) ? "system_logs.{$sort}" : $sort;
 
         return $query->orderBy($column, $direction);
     }
@@ -117,6 +130,10 @@ class SystemLogService
             $query->where('level', $filters['level']);
         }
 
+        if (!empty($filters['context'])) {
+            $query->where('context', $filters['context']);
+        }
+
         if (!empty($filters['search'])) {
             $term = $filters['search'];
             $query->where(function (\Illuminate\Database\Eloquent\Builder $q) use ($term) {
@@ -126,24 +143,61 @@ class SystemLogService
         }
 
         if (!empty($filters['date_from'])) {
-            $query->whereDate('system_logs.created_at', '>=', $filters['date_from']);
+            $query->whereDate('system_logs.last_seen_at', '>=', $filters['date_from']);
         }
 
         if (!empty($filters['date_to'])) {
-            $query->whereDate('system_logs.created_at', '<=', $filters['date_to']);
+            $query->whereDate('system_logs.last_seen_at', '<=', $filters['date_to']);
         }
 
         return $query;
     }
 
+    /**
+     * Contextos distintos ya vistos — alimenta el filtro dropdown de
+     * "Contexto" en el frontend. Cacheado igual que audit filterOptions().
+     */
+    public function contexts(): array
+    {
+        return Cache::remember('system-logs:contexts', 300, function (): array {
+            return SystemLog::query()
+                ->whereNotNull('context')
+                ->distinct()
+                ->orderBy('context')
+                ->pluck('context')
+                ->map(fn ($c) => ['label' => $c, 'value' => $c])
+                ->values()
+                ->toArray();
+        });
+    }
+
     private function toRow(SystemLog $log): array
     {
         return [
-            'id'      => (string) $log->id,
-            'date'    => $log->created_at?->format('d/m/Y H:i:s') ?? '—',
-            'level'   => $log->level,
-            'message' => $log->message,
-            'context' => $log->context ?? '—',
+            'id'          => (string) $log->id,
+            'date'        => ($log->last_seen_at ?? $log->created_at)?->format('d/m/Y H:i:s') ?? '—',
+            'level'       => $log->level,
+            'message'     => $log->message,
+            'context'     => $log->context ?? '—',
+            'occurrences' => $log->occurrences,
+            'reviewed'    => (bool) $log->reviewed_at,
+        ];
+    }
+
+    private function toDetail(SystemLog $log): array
+    {
+        return [
+            'id'           => $log->id,
+            'date'         => $log->created_at?->format('d/m/Y H:i:s'),
+            'last_seen_at' => $log->last_seen_at?->format('d/m/Y H:i:s'),
+            'level'        => $log->level,
+            'message'      => $log->message,
+            'context'      => $log->context,
+            'stack'        => $log->stack,
+            'meta'         => $log->meta,
+            'occurrences'  => $log->occurrences,
+            'reviewed_at'  => $log->reviewed_at?->format('d/m/Y H:i:s'),
+            'reviewed_by'  => $log->reviewedBy?->full_name,
         ];
     }
 }

@@ -132,6 +132,17 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
+     * Eventos que disparan una alerta (Log::critical(), visible en /logs) al
+     * ocurrir — borrar una cuenta de usuario es el único caso universalmente
+     * sensible; otros eventos (ej. cambio de rol) requieren definir la regla
+     * de negocio exacta antes de alertar, no se asume aquí.
+     */
+    protected array $auditAlertEvents = [
+        'deleted',
+        'force_deleted',
+    ];
+
+    /**
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [

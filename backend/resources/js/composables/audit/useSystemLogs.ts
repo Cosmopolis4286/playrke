@@ -6,6 +6,7 @@ import type { ServerQuery } from '@/js/composables/common/table/useTableControll
 
 interface SystemLogFilters {
     level?: string
+    context?: string
     date_from?: string
     date_to?: string
     search?: string
@@ -20,6 +21,7 @@ interface UseSystemLogsReturn {
     fetchList: (filters?: SystemLogFilters, page?: number) => Promise<boolean>
     onQueryChange: (query: ServerQuery, extraFilters?: SystemLogFilters) => Promise<void>
     fetchDetail: (id: string) => Promise<boolean>
+    toggleReviewed: (id: string) => Promise<boolean>
     clearDetail: () => void
 }
 
@@ -100,6 +102,22 @@ export function useSystemLogs(): UseSystemLogsReturn {
         }
     }
 
+    async function toggleReviewed(id: string): Promise<boolean> {
+        try {
+            const { data } = await backendClient.put<{ data: SystemLogDetail }>(
+                `/logs/${id}/reviewed`
+            )
+            if (data?.data) {
+                detail.value = data.data
+            }
+            return true
+        } catch (error) {
+            console.error(error)
+            showToast('Error al actualizar el estado de revisión', 'error')
+            return false
+        }
+    }
+
     function clearDetail(): void {
         detail.value = null
     }
@@ -113,6 +131,7 @@ export function useSystemLogs(): UseSystemLogsReturn {
         fetchList,
         onQueryChange,
         fetchDetail,
+        toggleReviewed,
         clearDetail,
     }
 }

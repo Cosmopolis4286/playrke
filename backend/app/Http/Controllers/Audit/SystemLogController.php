@@ -11,7 +11,7 @@ use Inertia\Response;
 
 class SystemLogController extends Controller
 {
-    private const LIST_FILTER_KEYS = ['level', 'date_from', 'date_to', 'search'];
+    private const LIST_FILTER_KEYS = ['level', 'context', 'date_from', 'date_to', 'search'];
 
     public function __construct(
         private SystemLogService $service
@@ -21,8 +21,9 @@ class SystemLogController extends Controller
     {
         return $this->handleServiceInertia(function () {
             return Inertia::render('SystemLogs/Index', [
-                'logs'  => $this->service->getTableData(),
-                'stats' => $this->service->stats(),
+                'logs'     => $this->service->getTableData(),
+                'stats'    => $this->service->stats(),
+                'contexts' => $this->service->contexts(),
             ]);
         });
     }
@@ -43,6 +44,13 @@ class SystemLogController extends Controller
     {
         return $this->handleServiceJson(function () use ($id) {
             return ['data' => $this->service->show($id)];
+        });
+    }
+
+    public function toggleReviewed(Request $request, string $id): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($id) {
+            return ['data' => $this->service->toggleReviewed($id)];
         });
     }
 }

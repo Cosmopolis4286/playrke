@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\Audit;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
 
 /**
@@ -103,6 +104,35 @@ trait Auditable
             'ip_address' => Request::instance()?->ip(),
             'user_agent' => Request::instance()?->userAgent(),
         ]);
+
+        $this->alertIfSensitive($event);
+    }
+
+    /**
+     * Notifica (vía Log::critical(), que persiste en /logs por el canal
+     * 'database') cuando el evento auditado está en la lista opt-in
+     * `protected array $auditAlertEvents = [...]` del modelo — ej. borrar un
+     * usuario. Mismo mecanismo de visibilidad que logs:alert-threshold, sin
+     * inventar reglas de negocio no confirmadas: cada modelo decide qué
+     * eventos propios son sensibles.
+     */
+    protected function alertIfSensitive(string $event): void
+    {
+        $sensitiveEvents = property_exists($this, 'auditAlertEvents') ? $this->auditAlertEvents : [];
+
+        if (! in_array($event, $sensitiveEvents, true)) {
+            return;
+        }
+
+        $actor = Auth::check() ? (Auth::user()->full_name ?? Auth::id()) : $this->resolveActorType();
+
+        Log::critical(sprintf(
+            '[audit] Cambio sensible: %s#%s — evento "%s" ejecutado por %s',
+            class_basename($this),
+            $this->serializeValue($this->getAuditableId()),
+            $event,
+            $actor
+        ));
     }
 
     /**

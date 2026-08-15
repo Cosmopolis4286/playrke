@@ -19,17 +19,27 @@ export interface SystemLogStats {
     byLevel: SystemLogLevelCount[]
 }
 
+export interface SystemLogContextOption {
+    label: string
+    value: string
+}
+
 export interface SystemLogPageProps {
     logs: SystemLogTableData
     stats: SystemLogStats
+    contexts: SystemLogContextOption[]
 }
 
 export interface SystemLogDetail {
     id: string
     date: string
+    last_seen_at: string | null
     level: string
     message: string
     context: string | null
     stack: string | null
     meta: Record<string, unknown> | null
+    occurrences: number
+    reviewed_at: string | null
+    reviewed_by: string | null
 }
