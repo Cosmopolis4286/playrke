@@ -170,12 +170,14 @@ export function validateBingoRoomForm(
     if (!data.roomType)      e.roomType      = 'El tipo de sala es requerido.'
     if (!data.connectionType) e.connectionType = 'Tipo de conexión requerido.'
     if (!data.prizePoolType) e.prizePoolType = 'El tipo de bote es requerido.'
+    if (!data.gameMode)      e.gameMode      = 'El modo de juego es requerido.'
 
-    /* ── Sala privada: código de acceso + contraseña (obligatoria solo al crear) ── */
+    /* ── Sala privada: código de acceso + contraseña (obligatoria solo al crear) + anfitrión ── */
     const isPrivateRoom = ctx.privateRoomTypeId !== null && String(data.roomType) === String(ctx.privateRoomTypeId)
     if (isPrivateRoom) {
         if (!data.accessCode) e.accessCode = 'El código de acceso es requerido para salas privadas.'
         if (!ctx.isEdit && !data.roomPassword) e.roomPassword = 'La contraseña es requerida para salas privadas.'
+        if (!data.hostUserId) e.hostUserId = 'El anfitrión es requerido para salas privadas.'
     }
 
     /* ── Monedas ── */

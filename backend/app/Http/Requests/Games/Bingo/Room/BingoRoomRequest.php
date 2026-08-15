@@ -50,14 +50,14 @@ class BingoRoomRequest extends BaseRequest
             'minPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'connectionType'              => ['required', 'exists:connection_types,id'],
-            'gameMode'                    => ['nullable', 'exists:game_modes,id'],
+            'gameMode'                    => ['required', 'exists:game_modes,id'],
             'gameVariant'                 => ['nullable', 'string', 'in:BINGO_75,BINGO_90,BINGO_80,BINGO_30'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 
             // Sala privada (solo aplica cuando roomType = tipo de sala PRIVATE)
             'accessCode'                  => [$this->requiredIfPrivateRoom(), 'nullable', 'string', 'min:4', 'max:20'],
             'roomPassword'                => [$this->requiredIfPrivateRoom(create: true), 'nullable', 'string', 'min:6', 'max:100'],
-            'hostUserId'                  => ['nullable', 'exists:users,id'],
+            'hostUserId'                  => [$this->requiredIfPrivateRoom(), 'nullable', 'exists:users,id'],
 
             // Precio base del cartón en USD:
             // - Si useBaseUsd = true → cardPriceUsd es obligatorio
@@ -381,6 +381,7 @@ class BingoRoomRequest extends BaseRequest
             'connectionType.required'         => 'El tipo de conexión es obligatorio.',
             'connectionType.exists'           => 'El tipo de conexión seleccionado no es válido.',
 
+            'gameMode.required'               => 'El modo de juego es obligatorio.',
             'gameMode.exists'                 => 'El modo de juego seleccionado no es válido.',
 
             'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
@@ -394,6 +395,7 @@ class BingoRoomRequest extends BaseRequest
             'roomPassword.min'                => 'La contraseña debe tener al menos 6 caracteres.',
             'roomPassword.max'                => 'La contraseña no puede superar 100 caracteres.',
 
+            'hostUserId.required_if'          => 'El anfitrión es obligatorio para salas privadas.',
             'hostUserId.exists'               => 'El usuario anfitrión seleccionado no es válido.',
 
             'cardPriceUsd.required'            => 'El precio del cartón en USD es obligatorio.',
