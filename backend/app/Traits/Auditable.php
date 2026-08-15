@@ -71,7 +71,7 @@ trait Auditable
             /**
              * Tipo de actor que originó la acción.
              */
-            'actor_type' => Auth::check() ? 'user' : 'system',
+            'actor_type' => $this->resolveActorType(),
 
             /**
              * Modelo auditado (polimórfico).
@@ -103,6 +103,31 @@ trait Auditable
             'ip_address' => Request::instance()?->ip(),
             'user_agent' => Request::instance()?->userAgent(),
         ]);
+    }
+
+    /**
+     * Determina el actor_type real de la acción (user | job | command | system).
+     *
+     * Antes solo distinguía user/system — con un usuario autenticado en
+     * sesión de cola (raro pero posible, ej. impersonation en un job) o
+     * corriendo por CLI, el resto de la app quedaba sin poder diferenciar
+     * "lo hizo un cron/artisan command" de "lo hizo el sistema en un
+     * request HTTP anónimo", pese a que el schema/UI ya soportaban ambos
+     * valores.
+     */
+    protected function resolveActorType(): string
+    {
+        if (Auth::check()) {
+            return 'user';
+        }
+
+        if (! app()->runningInConsole()) {
+            return 'system';
+        }
+
+        $command = $_SERVER['argv'][1] ?? null;
+
+        return str_starts_with((string) $command, 'queue:') ? 'job' : 'command';
     }
 
     /**
