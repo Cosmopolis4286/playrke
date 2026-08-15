@@ -3,6 +3,8 @@
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\Platform\WinEventController;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,6 +19,40 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 Route::get('/', [PublicController::class, 'root'])->name('root')->defaults('inertiaOnly', true);
 Route::get('getInfo/{page}', [PublicController::class, 'info'])->name('info');
+
+/**
+ * Health check para monitoreo externo (uptime monitors, load balancers).
+ * Sin autenticación — no expone datos, solo disponibilidad de dependencias
+ * críticas. Verifica DB y cache; si alguna falla responde 503.
+ */
+Route::get('/health', function () {
+    $checks = [];
+    $healthy = true;
+
+    try {
+        DB::connection()->getPdo();
+        $checks['database'] = 'ok';
+    } catch (Throwable) {
+        $checks['database'] = 'error';
+        $healthy = false;
+    }
+
+    try {
+        $probeKey = 'health-check:probe';
+        Cache::put($probeKey, true, 5);
+        $checks['cache'] = Cache::get($probeKey) === true ? 'ok' : 'error';
+        $healthy = $healthy && $checks['cache'] === 'ok';
+    } catch (Throwable) {
+        $checks['cache'] = 'error';
+        $healthy = false;
+    }
+
+    return response()->json([
+        'status' => $healthy ? 'ok' : 'error',
+        'checks' => $checks,
+        'timestamp' => now()->toIso8601String(),
+    ], $healthy ? 200 : 503);
+})->name('health');
 
 // ====================================
 // API PÚBLICAS
