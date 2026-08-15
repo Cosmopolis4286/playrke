@@ -3,6 +3,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 
   import { useAudit } from '@/js/composables/audit/useAudit'
 
@@ -92,6 +93,35 @@
   async function clearDateFilter(): Promise<void> {
     dateFrom.value = ''
     dateTo.value   = ''
+    await refetch()
+  }
+
+  /**
+   * Atajos de rango de fecha — cubren el caso de uso más común ("¿qué pasó
+   * hoy/esta semana?") sin obligar a abrir el date picker manual.
+   */
+  function toDateInputValue(date: Date): string {
+    return date.toISOString().slice(0, 10)
+  }
+
+  async function applyDateShortcut(shortcut: 'today' | 'last7' | 'thisMonth'): Promise<void> {
+    const now = new Date()
+    showDateFilters.value = true
+
+    if (shortcut === 'today') {
+      dateFrom.value = toDateInputValue(now)
+      dateTo.value   = toDateInputValue(now)
+    } else if (shortcut === 'last7') {
+      const from = new Date(now)
+      from.setDate(from.getDate() - 6)
+      dateFrom.value = toDateInputValue(from)
+      dateTo.value   = toDateInputValue(now)
+    } else {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1)
+      dateFrom.value = toDateInputValue(from)
+      dateTo.value   = toDateInputValue(now)
+    }
+
     await refetch()
   }
 
@@ -215,6 +245,19 @@
 </script>
 
 <template>
+  <!-- Stat tiles -->
+  <div class="audit-stats mb-3">
+    <StatTile label="Registros totales" :value="stats.total" icon="fa-list" />
+    <StatTile
+      v-for="item in stats.topEntities"
+      :key="item.entity"
+      :label="`${item.entity} (top entidad)`"
+      :value="item.count"
+      icon="fa-database"
+      variant="info"
+    />
+  </div>
+
   <!-- Filtro por sujeto (deep-link desde otra pantalla, ej. ficha de usuario) -->
   <div v-if="subjectFilterLabel" class="alert alert-info d-flex align-items-center justify-content-between py-2 px-3 mb-3">
     <span><i class="fas fa-filter me-2"></i>Mostrando historial de <strong>{{ subjectFilterLabel }}</strong></span>
@@ -224,41 +267,51 @@
   </div>
 
   <!-- Filtros ad-hoc: fecha + usuario actor -->
-  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-    <button
-      class="btn btn-sm btn-outline-secondary"
-      @click="showDateFilters = !showDateFilters"
-    >
-      <i class="fas fa-calendar-alt me-1"></i> Filtrar por fecha
-    </button>
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          @click="showDateFilters = !showDateFilters"
+        >
+          <i class="fas fa-calendar-alt me-1"></i> Filtrar por fecha
+        </button>
 
-    <div v-if="showDateFilters" class="d-flex align-items-center gap-2 flex-wrap">
-      <div class="input-group input-group-sm" style="width: 170px">
-        <span class="input-group-text">Desde</span>
-        <input type="date" class="form-control" v-model="dateFrom" />
-      </div>
-      <div class="input-group input-group-sm" style="width: 170px">
-        <span class="input-group-text">Hasta</span>
-        <input type="date" class="form-control" v-model="dateTo" />
-      </div>
-      <button class="btn btn-sm btn-primary" @click="applyDateFilter" :disabled="loading">
-        <i class="fas fa-search me-1"></i> Aplicar
-      </button>
-      <button class="btn btn-sm btn-outline-danger" @click="clearDateFilter" :disabled="loading">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
+        <div class="btn-group btn-group-sm" role="group">
+          <button class="btn btn-outline-secondary" :disabled="loading" @click="applyDateShortcut('today')">Hoy</button>
+          <button class="btn btn-outline-secondary" :disabled="loading" @click="applyDateShortcut('last7')">Últimos 7 días</button>
+          <button class="btn btn-outline-secondary" :disabled="loading" @click="applyDateShortcut('thisMonth')">Este mes</button>
+        </div>
 
-    <div class="input-group input-group-sm" style="width: 220px">
-      <span class="input-group-text">Usuario (ID)</span>
-      <input type="text" class="form-control" v-model="userId" placeholder="ID de actor" />
+        <div v-if="showDateFilters" class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="input-group input-group-sm" style="width: 170px">
+            <span class="input-group-text">Desde</span>
+            <input type="date" class="form-control" v-model="dateFrom" />
+          </div>
+          <div class="input-group input-group-sm" style="width: 170px">
+            <span class="input-group-text">Hasta</span>
+            <input type="date" class="form-control" v-model="dateTo" />
+          </div>
+          <button class="btn btn-sm btn-primary" @click="applyDateFilter" :disabled="loading">
+            <i class="fas fa-search me-1"></i> Aplicar
+          </button>
+          <button class="btn btn-sm btn-outline-danger" @click="clearDateFilter" :disabled="loading">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="input-group input-group-sm" style="width: 220px">
+          <span class="input-group-text">Usuario (ID)</span>
+          <input type="text" class="form-control" v-model="userId" placeholder="ID de actor" />
+        </div>
+        <button class="btn btn-sm btn-primary" @click="applyUserFilter" :disabled="loading">
+          <i class="fas fa-search me-1"></i> Aplicar
+        </button>
+        <button v-if="userId" class="btn btn-sm btn-outline-danger" @click="clearUserFilter" :disabled="loading">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
     </div>
-    <button class="btn btn-sm btn-primary" @click="applyUserFilter" :disabled="loading">
-      <i class="fas fa-search me-1"></i> Aplicar
-    </button>
-    <button v-if="userId" class="btn btn-sm btn-outline-danger" @click="clearUserFilter" :disabled="loading">
-      <i class="fas fa-times"></i>
-    </button>
   </div>
 
   <TableWithFilterBridge
@@ -394,3 +447,11 @@
     </template>
   </Modal>
 </template>
+
+<style scoped>
+.audit-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+</style>

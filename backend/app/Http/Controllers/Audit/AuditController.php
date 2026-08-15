@@ -24,11 +24,13 @@ class AuditController extends Controller
             $filters       = $request->only(['entity', 'auditable_id']);
             $tableData     = $this->service->getTableData($filters);
             $filterOptions = $this->service->filterOptions();
+            $stats         = $this->service->stats();
 
             return Inertia::render('Audit/Index', [
                 'audits'         => $tableData,
                 'filterOptions'  => $filterOptions,
                 'initialFilters' => $filters,
+                'stats'          => $stats,
             ]);
         });
     }

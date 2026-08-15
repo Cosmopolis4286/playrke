@@ -20,6 +20,16 @@ export interface AuditFilterOptions {
     entities: AuditFilterOption[]
 }
 
+export interface AuditTopEntity {
+    entity: string
+    count: number
+}
+
+export interface AuditStats {
+    total: number
+    topEntities: AuditTopEntity[]
+}
+
 export interface AuditPageProps {
     audits: AuditTableData
     filterOptions: AuditFilterOptions
@@ -27,6 +37,7 @@ export interface AuditPageProps {
         entity?: string
         auditable_id?: string
     }
+    stats: AuditStats
 }
 
 export interface AuditDetail {

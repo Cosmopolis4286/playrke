@@ -166,6 +166,32 @@ class AuditService
         });
     }
 
+    /**
+     * Estadísticas para los stat tiles del frontend: total de registros y
+     * top 3 entidades más auditadas. Cacheado igual que filterOptions() —
+     * no necesita recalcularse en cada filtro/página, solo al cargar /audit.
+     */
+    public function stats(): array
+    {
+        return Cache::remember('audit:stats', 600, function (): array {
+            $total = Audit::count();
+
+            $topEntities = Audit::selectRaw('auditable_type, COUNT(*) as total')
+                ->groupBy('auditable_type')
+                ->orderByDesc('total')
+                ->limit(3)
+                ->get()
+                ->map(fn ($row) => [
+                    'entity' => class_basename($row->auditable_type),
+                    'count'  => (int) $row->total,
+                ])
+                ->values()
+                ->toArray();
+
+            return compact('total', 'topEntities');
+        });
+    }
+
     // -------------------------------------------------------------------------
 
     private function buildQuery(array $filters): \Illuminate\Database\Eloquent\Builder
@@ -207,7 +233,13 @@ class AuditService
                 $q->where('event', 'LIKE', "%{$term}%")
                     ->orWhere('actor_type', 'LIKE', "%{$term}%")
                     ->orWhere('auditable_type', 'LIKE', "%{$term}%")
-                    ->orWhere('ip_address', 'LIKE', "%{$term}%");
+                    ->orWhere('ip_address', 'LIKE', "%{$term}%")
+                    // Búsqueda dentro del contenido de los cambios (ej. "¿quién
+                    // cambió el email a X?") — LIKE sobre columnas JSON, sin
+                    // índice dedicado; aceptable dado el volumen de /audit y
+                    // que ya se acota primero por los demás filtros/fecha.
+                    ->orWhere('old_values', 'LIKE', "%{$term}%")
+                    ->orWhere('new_values', 'LIKE', "%{$term}%");
             });
         }
 
