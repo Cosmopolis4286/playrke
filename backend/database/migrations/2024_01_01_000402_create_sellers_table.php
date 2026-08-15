@@ -42,11 +42,14 @@ return new class extends Migration
             // del seller (ver Seller::resolveCommerce()) — manager_user_id
             // sigue siendo NOT NULL por compatibilidad histórica, pero deja
             // de ser confiable por sí solo cuando subsidiary_id está presente.
+            //
+            // Sin ->constrained() aquí a propósito: la tabla `subsidiaries`
+            // se crea en una migración posterior (2024_01_01_000701), y el
+            // FK constraint se agrega ahí mismo una vez que ambas tablas ya
+            // existen — declararlo inline aquí falla con
+            // "Failed to open the referenced table 'subsidiaries'".
             $table->foreignSnowflake('subsidiary_id')
                 ->nullable()
-                ->constrained('subsidiaries')
-                ->cascadeOnUpdate()
-                ->nullOnDelete()
                 ->comment('Sucursal/agencia a la que pertenece (opcional)');
 
             // Estado del vendedor

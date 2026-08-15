@@ -65,6 +65,17 @@ return new class extends Migration
             // Índices compuestos para consultas frecuentes
             $table->index(['status', 'commerce_id', 'country_id']);
         });
+
+        // FK de sellers.subsidiary_id → subsidiaries.id, agregada aquí (no
+        // en 2024_01_01_000402_create_sellers_table) porque esta tabla se
+        // crea después — declarar el constraint inline en `sellers` fallaría
+        // con "Failed to open the referenced table 'subsidiaries'".
+        Schema::table('sellers', function (Blueprint $table) {
+            $table->foreign('subsidiary_id')
+                ->references('id')->on('subsidiaries')
+                ->cascadeOnUpdate()
+                ->nullOnDelete();
+        });
     }
 
     /**
@@ -72,6 +83,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('sellers', function (Blueprint $table) {
+            $table->dropForeign(['subsidiary_id']);
+        });
+
         Schema::dropIfExists('subsidiaries');
     }
 };
