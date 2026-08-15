@@ -36,6 +36,7 @@ export interface AuditPageProps {
     initialFilters?: {
         entity?: string
         auditable_id?: string
+        user_id?: string
     }
     stats: AuditStats
 }

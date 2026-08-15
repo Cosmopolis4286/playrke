@@ -271,10 +271,11 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      */
     role_protected_routes(['multiPermission:audit.view'], 'audit', AuditController::class, [
-        'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
-        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
-        'export'    => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:audit.export'],
-        'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
+        'index'              => ['method' => 'get', 'uri' => '',                    'action' => 'index'],
+        'fetchList'          => ['method' => 'get', 'uri' => 'fetch-list',          'action' => 'fetchList'],
+        'export'             => ['method' => 'get', 'uri' => 'export',              'action' => 'export', 'middleware' => 'multiPermission:audit.export'],
+        'mostChangedFields'  => ['method' => 'get', 'uri' => 'most-changed-fields', 'action' => 'mostChangedFields'],
+        'show'               => ['method' => 'get', 'uri' => '{id}/show',           'action' => 'show'],
     ]);
 
     /**
@@ -283,9 +284,10 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      */
     role_protected_routes(['multiPermission:system.logs'], 'logs', SystemLogController::class, [
-        'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
-        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
-        'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
+        'index'          => ['method' => 'get', 'uri' => '',                'action' => 'index'],
+        'fetchList'      => ['method' => 'get', 'uri' => 'fetch-list',      'action' => 'fetchList'],
+        'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
+        'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
     ]);
 
     /**

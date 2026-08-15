@@ -5,6 +5,7 @@
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 
+  import backendClient from '@/js/plugins/axios'
   import { useAudit } from '@/js/composables/audit/useAudit'
 
   import type { AuditPageProps } from '@/js/types/audit/audit'
@@ -53,11 +54,12 @@
   /* Filtros ad-hoc (fuera de TableWithFilterBridge): fecha, usuario, sujeto     */
   /* -------------------------------------------------------------------------- */
 
-  const subjectFilter = ref<{ entity?: string; auditable_id?: string }>({ ...(props.initialFilters ?? {}) })
+  const { user_id: initialUserId, ...initialSubjectFilter } = props.initialFilters ?? {}
+  const subjectFilter = ref<{ entity?: string; auditable_id?: string }>({ ...initialSubjectFilter })
   const showDateFilters = ref(false)
   const dateFrom = ref('')
   const dateTo   = ref('')
-  const userId   = ref('')
+  const userId   = ref(initialUserId ?? '')
 
   const subjectFilterLabel = computed(() => {
     if (!subjectFilter.value.auditable_id) return null
@@ -136,6 +138,38 @@
 
   async function handleQueryChange(query: ServerQuery): Promise<void> {
     await onQueryChange(query, extraFilters.value)
+    await loadMostChangedFields(query.filters.entity ?? subjectFilter.value.entity)
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Campos que más cambian en la entidad filtrada (insight bajo demanda)       */
+  /* -------------------------------------------------------------------------- */
+
+  const mostChangedFields = ref<{ field: string; count: number }[]>([])
+  const loadingMostChanged = ref(false)
+
+  async function loadMostChangedFields(entity: string | undefined): Promise<void> {
+    if (!entity) {
+      mostChangedFields.value = []
+      return
+    }
+    try {
+      loadingMostChanged.value = true
+      const { data } = await backendClient.get<{ data: { field: string; count: number }[] }>(
+        '/audit/most-changed-fields',
+        { params: { entity } }
+      )
+      mostChangedFields.value = data?.data ?? []
+    } catch (error) {
+      console.error(error)
+      mostChangedFields.value = []
+    } finally {
+      loadingMostChanged.value = false
+    }
+  }
+
+  if (subjectFilter.value.entity) {
+    loadMostChangedFields(subjectFilter.value.entity)
   }
 
   /* -------------------------------------------------------------------------- */
@@ -371,6 +405,18 @@
       </button>
     </template>
   </TableWithFilterBridge>
+
+  <!-- Campos que más cambian en la entidad filtrada (insight bajo demanda) -->
+  <div v-if="mostChangedFields.length" class="card mt-3">
+    <div class="card-body py-2">
+      <small class="text-muted d-block mb-2">Campos que más cambian en esta entidad (muestra reciente)</small>
+      <div class="d-flex flex-wrap gap-2">
+        <span v-for="item in mostChangedFields" :key="item.field" class="badge bg-light text-dark border">
+          {{ item.field }} <span class="text-muted">×{{ item.count }}</span>
+        </span>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Detalle del registro -->
   <Modal

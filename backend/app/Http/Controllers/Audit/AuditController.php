@@ -21,7 +21,7 @@ class AuditController extends Controller
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(function () use ($request) {
-            $filters       = $request->only(['entity', 'auditable_id']);
+            $filters       = $request->only(['entity', 'auditable_id', 'user_id']);
             $tableData     = $this->service->getTableData($filters);
             $filterOptions = $this->service->filterOptions();
             $stats         = $this->service->stats();
@@ -84,6 +84,24 @@ class AuditController extends Controller
     {
         return $this->handleServiceJson(function () use ($id) {
             return ['data' => $this->service->show((int) $id)];
+        });
+    }
+
+    /**
+     * Campos que más cambian en una entidad — insight bajo demanda desde el
+     * dropdown de "Entidad" en el frontend, no se calcula en cada carga de
+     * /audit (ver AuditService::mostChangedFields()).
+     */
+    public function mostChangedFields(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($request) {
+            $entity = (string) $request->get('entity');
+
+            if ($entity === '') {
+                return ['data' => []];
+            }
+
+            return ['data' => $this->service->mostChangedFields($entity)];
         });
     }
 }

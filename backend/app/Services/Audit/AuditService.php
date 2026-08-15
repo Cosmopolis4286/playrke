@@ -192,6 +192,48 @@ class AuditService
         });
     }
 
+    /**
+     * Campos que más cambian en eventos "updated" de una entidad — responde
+     * "¿qué campos se editan más en User?". Analítico, no operativo: se
+     * calcula solo sobre una muestra reciente (no toda la tabla) para no
+     * escanear JSON en cada fila histórica, y se cachea 1h porque no es un
+     * dato que necesite estar al segundo.
+     *
+     * @return array<int, array{field: string, count: int}>
+     */
+    public function mostChangedFields(string $entity, int $sampleSize = 500, int $limit = 10): array
+    {
+        $cacheKey = 'audit:most-changed-fields:' . md5($entity) . ":{$sampleSize}";
+
+        return Cache::remember($cacheKey, 3600, function () use ($entity, $sampleSize, $limit): array {
+            $samples = Audit::query()
+                ->where('auditable_type', $entity)
+                ->where('event', 'updated')
+                ->latest('created_at')
+                ->limit($sampleSize)
+                ->pluck('new_values');
+
+            $counts = [];
+
+            foreach ($samples as $newValues) {
+                if (! is_array($newValues)) {
+                    continue;
+                }
+                foreach (array_keys($newValues) as $field) {
+                    $counts[$field] = ($counts[$field] ?? 0) + 1;
+                }
+            }
+
+            arsort($counts);
+
+            return collect($counts)
+                ->take($limit)
+                ->map(fn ($count, $field) => ['field' => $field, 'count' => $count])
+                ->values()
+                ->toArray();
+        });
+    }
+
     // -------------------------------------------------------------------------
 
     private function buildQuery(array $filters): \Illuminate\Database\Eloquent\Builder
