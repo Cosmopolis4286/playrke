@@ -67,3 +67,15 @@ Schedule::command('audit:prune')
     ->withoutOverlapping()
     ->daily()
     ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('logs:prune')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->daily()
+    ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('logs:alert-threshold')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->everyFifteenMinutes()
+    ->appendOutputTo(storage_path('logs/schedule.log'));

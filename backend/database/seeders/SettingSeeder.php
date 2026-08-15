@@ -108,6 +108,17 @@ class SettingSeeder extends Seeder
             // App\Services\Audit\AuditRetentionSettings).
             ['param' => 'audit_retention_days', 'value' => '90', 'status' => 'ACTIVE'],
 
+            // Días de retención de registros en la tabla `system_logs` antes
+            // de ser purgados por el comando logs:prune (ver
+            // App\Services\Audit\SystemLogRetentionSettings).
+            ['param' => 'system_log_retention_days', 'value' => '30', 'status' => 'ACTIVE'],
+
+            // Umbral de errores (system_logs, level=error) dentro de la
+            // ventana configurada que dispara una alerta — ver comando
+            // logs:alert-threshold y App\Services\Audit\LogAlertSettings.
+            ['param' => 'log_alert_error_threshold', 'value' => '20', 'status' => 'ACTIVE'],
+            ['param' => 'log_alert_window_minutes',  'value' => '15', 'status' => 'ACTIVE'],
+
         ];
 
         foreach ($settings as $data) {

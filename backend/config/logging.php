@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\DatabaseLoggerFactory;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -121,6 +122,18 @@ return [
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
+        ],
+
+        /**
+         * Persiste error()/warning()/critical()/etc. en la tabla
+         * `system_logs` (ver App\Logging\DatabaseLogHandler) — alimenta la
+         * pantalla /logs. info/debug/notice se ignoran a propósito para no
+         * saturar la tabla con ruido de bajo valor.
+         */
+        'database' => [
+            'driver' => 'custom',
+            'via' => DatabaseLoggerFactory::class,
+            'level' => env('LOG_DATABASE_LEVEL', 'warning'),
         ],
 
         'emergency' => [

@@ -219,6 +219,12 @@ class SidebarMenuService
                     'permission' => 'audit.view',
                     'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
+                'logs' => [
+                    'title' => 'Logs del Sistema',
+                    'route' => 'logs.index',
+                    'permission' => 'system.logs',
+                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+                ],
                 'sidebar_menu' => [
                     'title' => 'Menú del Sidebar',
                     'route' => 'sidebar-menu.index',

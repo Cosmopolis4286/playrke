@@ -16,6 +16,7 @@ use App\Http\Controllers\Roles\SidebarMenuVisibilityController;
 use App\Http\Controllers\Roles\RoleController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 use App\Http\Controllers\Audit\AuditController;
+use App\Http\Controllers\Audit\SystemLogController;
 use App\Http\Controllers\Roles\Admin\AdminWinEventController;
 
 /*
@@ -273,6 +274,17 @@ Route::middleware('auth')->group(function () {
         'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
         'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
         'export'    => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:audit.export'],
+        'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
+    ]);
+
+    /**
+     * =========================================================
+     * LOGS DEL SISTEMA (SuperAdmin — permiso protegido system.logs)
+     * =========================================================
+     */
+    role_protected_routes(['multiPermission:system.logs'], 'logs', SystemLogController::class, [
+        'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
         'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
     ]);
 
