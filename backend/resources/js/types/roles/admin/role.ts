@@ -15,8 +15,8 @@ export interface RoleHierarchyNode {
   id: string
   name: string
   prefix: string
+  /** Única fuente de descripción del rol — la misma columna que edita RoleManagerModal.vue ("Gestionar roles"). */
   description: string | null
-  function: string | null
   status: boolean
   sort_order: number
   icon: string | null

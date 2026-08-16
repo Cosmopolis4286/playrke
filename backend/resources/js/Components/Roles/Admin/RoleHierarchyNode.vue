@@ -20,7 +20,7 @@
           <span v-if="!node.status" class="badge badge-secondary node-status">Inactivo</span>
           <span class="badge node-order" title="Orden/nivel">#{{ node.sort_order }}</span>
         </div>
-        <p class="node-function">{{ node.function || node.description || 'Sin descripción' }}</p>
+        <p class="node-function">{{ node.description || 'Sin descripción' }}</p>
         <div class="node-stats">
           <span title="Usuarios con este rol"><i class="fas fa-users"></i> {{ node.users_count }}</span>
           <span title="Permisos asignados"><i class="fas fa-key"></i> {{ node.permissions_count }}</span>
