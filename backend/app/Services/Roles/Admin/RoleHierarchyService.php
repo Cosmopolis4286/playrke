@@ -12,15 +12,19 @@ use Illuminate\Support\Collection;
  *   Seller capta ExternalPlayers, etc.), no editable desde la UI.
  * - Metadatos DINÁMICOS por rol (sort_order, description, icon, color,
  *   cantidad de usuarios y permisos) — sí editables desde /admin/permissions,
- *   ver RoleController::update().
+ *   tanto en el organigrama (RoleHierarchyTree.vue) como en "Gestionar roles"
+ *   (RoleManagerModal.vue): ambos leen/escriben Role::description, la MISMA
+ *   columna — antes el organigrama mostraba un texto hardcoded aparte
+ *   (FUNCTIONS) que no coincidía con lo que "Gestionar roles" editaba,
+ *   dando la falsa impresión de que eran descripciones distintas.
  *
  * Roles nuevos que no aparezcan en DOMAIN_TREE se cuelgan automáticamente de
  * la raíz (superadmin) como huérfanos, para que un rol agregado solo en
  * RoleSeeder (sin tocar este mapa) siga siendo visible en el árbol.
  *
- * Las claves de DOMAIN_TREE/FUNCTIONS son Role::prefix en minúscula. Role::
- * prefix se persiste en MAYÚSCULA (ver Role::setPrefixAttribute(), que aplica
- * strtoupper()), así que todo lookup contra estos mapas pasa \$role->prefix
+ * Las claves de DOMAIN_TREE son Role::prefix en minúscula. Role::prefix se
+ * persiste en MAYÚSCULA (ver Role::setPrefixAttribute(), que aplica
+ * strtoupper()), así que todo lookup contra este mapa pasa \$role->prefix
  * por strtolower() primero — mismo criterio que User.php y
  * RoleUserRepository.php al comparar prefijos. Role::name ('SuperAdmin',
  * 'Comercio'...) es solo el label de UI, no sirve como clave aquí.
@@ -52,19 +56,6 @@ final class RoleHierarchyService
         'customer' => 'admin',
         'player' => 'admin',
         'external_player' => 'seller',
-    ];
-
-    private const FUNCTIONS = [
-        'superadmin' => 'Control total del sistema: roles, permisos, configuración global y respaldo.',
-        'admin' => 'Gestión operativa transversal: usuarios, comercios, juegos, reportes y auditoría.',
-        'commerce' => 'Comercializadora: administra su negocio, agencias, vendedores y ventas de juegos.',
-        'subsidiary' => 'Agencia/sucursal de una comercializadora — gestiona sus propias taquillas (vendedores).',
-        'seller' => 'Taquilla: vende cartones/participaciones y capta jugadores externos vía link.',
-        'treasurer' => 'Responsable financiero: tesorería, tasas de cambio y reportes financieros.',
-        'customer' => 'Cliente que usa los servicios de la plataforma con cuenta propia.',
-        'player' => 'Jugador registrado: participa en salas de Bingo/Trivia con su propia billetera.',
-        'provider' => 'Rol reservado para integración futura de proveedor externo de juegos vía API.',
-        'external_player' => 'Jugador SIN cuenta, captado por una taquilla vía link único, sin login.',
     ];
 
     public function buildTree(): array
@@ -115,7 +106,6 @@ final class RoleHierarchyService
             'name' => $role->name,
             'prefix' => $role->prefix,
             'description' => $role->description,
-            'function' => self::FUNCTIONS[$prefixKey] ?? $role->description,
             'status' => $role->status,
             'sort_order' => $role->sort_order,
             'icon' => $role->icon,
