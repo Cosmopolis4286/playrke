@@ -25,12 +25,30 @@
           <span title="Usuarios con este rol"><i class="fas fa-users"></i> {{ node.users_count }}</span>
           <span title="Permisos asignados"><i class="fas fa-key"></i> {{ node.permissions_count }}</span>
           <span class="node-guard" :title="`Guard: ${node.guard_name}`">{{ node.guard_name }}</span>
+          <span v-if="node.status_changed_at" title="Último cambio de estado">
+            <i class="fas fa-history"></i> <RelativeTime :value="node.status_changed_at" :show-icon="false" />
+          </span>
         </div>
       </div>
 
-      <button class="btn btn-sm btn-link node-edit" title="Editar rol" @click="$emit('edit', node)">
-        <i class="fas fa-pencil-alt"></i>
-      </button>
+      <div class="node-actions">
+        <span v-if="node.name === 'superadmin'" class="badge badge-locked" title="El rol superadmin no puede desactivarse">
+          <i class="fas fa-lock"></i>
+        </span>
+        <label v-else class="node-status-switch" :class="{ 'is-busy': togglingStatus }" title="Activar/desactivar rol">
+          <input
+            type="checkbox"
+            :checked="node.status"
+            :disabled="togglingStatus"
+            @change="$emit('toggle-status', node)"
+          />
+          <span class="node-status-track"><span class="node-status-thumb"></span></span>
+        </label>
+
+        <button class="btn btn-sm btn-link node-edit" title="Editar rol" @click="$emit('edit', node)">
+          <i class="fas fa-pencil-alt"></i>
+        </button>
+      </div>
     </div>
 
     <ul v-if="node.children.length && !collapsed" class="node-children">
@@ -38,26 +56,32 @@
         v-for="child in node.children"
         :key="child.id"
         :node="child"
+        :toggling-status-id="togglingStatusId"
         @edit="$emit('edit', $event)"
+        @toggle-status="$emit('toggle-status', $event)"
       />
     </ul>
   </li>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
 import { formatRoleName } from '@/js/utils/roles/roleDisplay'
 import type { RoleHierarchyNode as RoleHierarchyNodeType } from '@/js/types/roles/admin/role'
 
-defineProps<{
+const props = defineProps<{
   node: RoleHierarchyNodeType
+  togglingStatusId?: string | null
 }>()
 
 defineEmits<{
   edit: [node: RoleHierarchyNodeType]
+  'toggle-status': [node: RoleHierarchyNodeType]
 }>()
 
 const collapsed = ref(false)
+const togglingStatus = computed(() => props.togglingStatusId === props.node.id)
 </script>
 
 <style scoped>
@@ -140,11 +164,58 @@ const collapsed = ref(false)
   border: 1px solid var(--ds-border);
 }
 
+.node-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .node-edit {
   flex-shrink: 0;
   color: var(--ds-text-muted);
 }
 .node-edit:hover { color: var(--ds-text); }
+
+.badge-locked {
+  background: var(--ds-surface);
+  color: var(--ds-text-muted);
+  border: 1px solid var(--ds-border);
+  font-size: 0.65rem;
+  padding: 0.3rem 0.5rem;
+}
+
+.node-status-switch {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.node-status-switch.is-busy { opacity: 0.6; cursor: not-allowed; }
+.node-status-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.node-status-track {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--ds-border-2);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.node-status-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  transition: transform 0.15s;
+}
+.node-status-switch input:checked + .node-status-track { background: #34d399; }
+.node-status-switch input:checked + .node-status-track .node-status-thumb { transform: translateX(12px); }
 
 .node-children {
   list-style: none;

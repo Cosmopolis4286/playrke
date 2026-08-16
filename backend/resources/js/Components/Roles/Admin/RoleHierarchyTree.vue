@@ -22,7 +22,9 @@
         v-for="root in tree"
         :key="root.id"
         :node="root"
+        :toggling-status-id="togglingStatusId"
         @edit="openEditor"
+        @toggle-status="handleToggleStatus"
       />
     </ul>
 
@@ -85,7 +87,9 @@ import { computed, ref } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
 import RoleHierarchyNode from '@/js/Components/Roles/Admin/RoleHierarchyNode.vue'
+import Swal from 'sweetalert2'
 import { useToast } from 'vue-toastification'
+import { formatRoleName } from '@/js/utils/roles/roleDisplay'
 import type { RoleHierarchyNode as RoleHierarchyNodeType, RoleMetaUpdate } from '@/js/types/roles/admin/role'
 
 const props = defineProps<{
@@ -103,6 +107,7 @@ const toast = useToast()
 const isEditing = ref(false)
 const saving = ref(false)
 const editingNode = ref<RoleHierarchyNodeType | null>(null)
+const togglingStatusId = ref<string | null>(null)
 const form = ref<{ description: string; sort_order: number; icon: string; color: string }>({
   description: '',
   sort_order: 0,
@@ -143,6 +148,34 @@ async function handleSave(): Promise<boolean> {
     return false
   } finally {
     saving.value = false
+  }
+}
+
+async function handleToggleStatus(node: RoleHierarchyNodeType): Promise<void> {
+  if (togglingStatusId.value) return
+
+  if (node.status) {
+    const result = await Swal.fire({
+      title: 'Desactivar rol',
+      html: `<p class="mb-0">Los usuarios con el rol "${formatRoleName(node.name)}" perderán acceso al sistema hasta que lo reactives.</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, desactivar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+    })
+    if (!result.isConfirmed) return
+  }
+
+  togglingStatusId.value = node.id
+  try {
+    await props.onSave(node.id, { status: !node.status })
+  } catch {
+    toast.error('No se pudo actualizar el rol')
+  } finally {
+    togglingStatusId.value = null
   }
 }
 </script>

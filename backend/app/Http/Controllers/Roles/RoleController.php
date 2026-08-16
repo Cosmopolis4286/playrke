@@ -50,7 +50,16 @@ final class RoleController extends Controller
             'sort_order' => 'sometimes|required|integer|min:0|max:65535',
             'icon' => 'sometimes|nullable|string|max:50',
             'color' => 'sometimes|nullable|string|max:20',
+            'status' => 'sometimes|required|boolean',
         ]);
+
+        // El switch de status en RoleHierarchyTree.vue reusa este mismo
+        // endpoint (en vez de PUT .../status) porque ya viaja junto al resto
+        // de metadatos del modal de edición del árbol — RoleManagerModal.vue
+        // sigue usando PUT .../status (toggleStatus) para su switch inline.
+        if (array_key_exists('status', $validated) && $roleModel->name === 'superadmin') {
+            abort(422, 'El rol superadmin no puede desactivarse.');
+        }
 
         $updated = $this->service->updateMeta($role, $validated);
 

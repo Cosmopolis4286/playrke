@@ -144,6 +144,20 @@ class RoleControllerTest extends TestCase
         $this->assertFalse($playerRole->fresh()->status);
     }
 
+    /** RoleHierarchyTree.vue manda `status` junto al resto de metadatos por el mismo PATCH, no por PUT .../status. */
+    public function test_superadmin_can_update_role_status_via_patch(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
+            'status' => false,
+        ]);
+
+        $response->assertOk();
+        $this->assertFalse($playerRole->fresh()->status);
+    }
+
     // ── superadmin: rol raíz, no editable ni desactivable ──────────────────
 
     public function test_superadmin_role_cannot_be_deactivated(): void

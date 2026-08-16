@@ -18,6 +18,8 @@ export interface RoleHierarchyNode {
   /** Única fuente de descripción del rol — la misma columna que edita RoleManagerModal.vue ("Gestionar roles"). */
   description: string | null
   status: boolean
+  /** Fecha ISO 8601 del último cambio de `status` (auditoría), null si nunca cambió desde su creación. */
+  status_changed_at: string | null
   sort_order: number
   icon: string | null
   color: string | null
@@ -32,4 +34,5 @@ export interface RoleMetaUpdate {
   sort_order?: number
   icon?: string | null
   color?: string | null
+  status?: boolean
 }

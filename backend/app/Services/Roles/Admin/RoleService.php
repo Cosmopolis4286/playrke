@@ -2,11 +2,8 @@
 
 namespace App\Services\Roles\Admin;
 
-use App\Models\Audit;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection as SupportCollection;
 
 final class RoleService
 {
@@ -17,16 +14,18 @@ final class RoleService
     /**
      * Roles ordenados según la Jerarquía de Roles (mismo árbol que
      * RoleHierarchyService::buildTree() usa en /admin/permissions), no por
-     * nombre alfabético — para que RoleManagerModal.vue (ambas pantallas:
-     * /permissions y /admin/users) muestre superadmin → admin → comercio →
-     * agencia → taquilla → ... en vez de un orden arbitrario. Cada rol lleva
-     * además `status_changed_at`: la fecha del último Audit donde su
-     * `status` cambió (null si nunca cambió desde su creación).
+     * nombre alfabético — para que RoleManagerModal.vue (vista rápida en
+     * /admin/users y en el botón de acceso rápido de /permissions) muestre
+     * superadmin → admin → comercio → agencia → taquilla → ... en vez de un
+     * orden arbitrario. Cada rol lleva además `status_changed_at`: la fecha
+     * del último Audit donde su `status` cambió (null si nunca cambió desde
+     * su creación) — calculada por RoleHierarchyService para no duplicar la
+     * consulta de auditoría entre ambas pantallas.
      */
     public function getAll(): Collection
     {
         $orderedIds = $this->flattenTreeIds($this->hierarchyService->buildTree());
-        $statusChanges = $this->lastStatusChangeByRoleId();
+        $statusChanges = $this->hierarchyService->lastStatusChangeByRoleId();
 
         return Role::whereIn('id', $orderedIds)
             ->get()
@@ -51,58 +50,6 @@ final class RoleService
         }
 
         return $ids;
-    }
-
-    /**
-     * Último cambio de `status` por rol, leído de la auditoría (Role usa el
-     * trait Auditable). new_values guarda TODOS los atributos en cada
-     * 'updated' (no solo el campo modificado), así que se filtra en PHP
-     * comparando old_values.status vs new_values.status — el volumen de
-     * roles/audits es bajo (decenas), no amerita una consulta JSON compleja.
-     *
-     * @return array<string, ?Carbon> role_id (string) => fecha del cambio
-     */
-    private function lastStatusChangeByRoleId(): array
-    {
-        return Audit::ofModel(Role::class)
-            ->ofEvent('updated')
-            ->latest('created_at')
-            ->get(['auditable_id', 'old_values', 'new_values', 'created_at'])
-            ->map(function (Audit $audit) {
-                $audit->old_values = $this->decodeAuditValues($audit->old_values);
-                $audit->new_values = $this->decodeAuditValues($audit->new_values);
-                return $audit;
-            })
-            ->filter(fn (Audit $audit) =>
-                array_key_exists('status', $audit->old_values ?? [])
-                && array_key_exists('status', $audit->new_values ?? [])
-                && $audit->old_values['status'] !== $audit->new_values['status']
-            )
-            ->groupBy(fn (Audit $audit) => (string) (is_array($audit->auditable_id) ? ($audit->auditable_id[0] ?? '') : $audit->auditable_id))
-            ->map(fn (SupportCollection $audits) => $audits->first()->created_at)
-            ->all();
-    }
-
-    /**
-     * Decodifica old_values/new_values tolerando audits antiguos guardados
-     * con doble serialización (Auditable::serializeValue() hacía json_encode()
-     * manual sobre columnas que ya tienen cast 'array', ver fix en ese trait)
-     * — esos registros históricos quedaron con un string JSON dentro de la
-     * columna JSON en vez de un objeto, así que el cast del modelo entrega
-     * ese string tal cual y hay que decodificarlo una vez más aquí.
-     */
-    private function decodeAuditValues(mixed $value): ?array
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            return is_array($decoded) ? $decoded : null;
-        }
-
-        return null;
     }
 
     /**
