@@ -14,6 +14,7 @@ final class AdminUserUpdateDTO
         public readonly ?string $lastName,
         public readonly ?string $username,
         public readonly ?string $email,
+        public readonly ?string $phoneNumber,
         public readonly ?string $countryId,
         public readonly ?string $roleId,
     ) {}
@@ -25,6 +26,7 @@ final class AdminUserUpdateDTO
             $data['last_name'] ?? null,
             $data['username'] ?? null,
             $data['email'] ?? null,
+            $data['phone_number'] ?? null,
             $data['country_id'] ?? null,
             $data['role_id'] ?? null,
         );
@@ -33,11 +35,12 @@ final class AdminUserUpdateDTO
     public function toArray(): array
     {
         return array_filter([
-            'first_name' => $this->firstName,
-            'last_name'  => $this->lastName,
-            'username'   => $this->username,
-            'email'      => $this->email,
-            'country_id' => $this->countryId,
+            'first_name'   => $this->firstName,
+            'last_name'    => $this->lastName,
+            'username'     => $this->username,
+            'email'        => $this->email,
+            'phone_number' => $this->phoneNumber,
+            'country_id'   => $this->countryId,
         ], static fn ($value) => $value !== null && $value !== '');
     }
 }

@@ -122,6 +122,7 @@ export function useAdminUser(): UseAdminUserReturn {
             last_name: user.last_name ?? '',
             username: user.username ?? '',
             email: user.email ?? '',
+            phone_number: user.phone_number ?? '',
             country_id: user.country_id,
             role_id: user.role_id,
         }
@@ -141,6 +142,7 @@ export function useAdminUser(): UseAdminUserReturn {
                 last_name: userEditData.value.last_name,
                 username: userEditData.value.username,
                 email: userEditData.value.email,
+                phone_number: userEditData.value.phone_number,
                 country_id: userEditData.value.country_id,
                 role_id: userEditData.value.role_id,
             })

@@ -10,7 +10,7 @@
 
   // Types
   import type { Country } from '@/js/types/country'
-  import type { AdminRole, AdminUserEditData } from '@/js/types/roles/admin/admin-user'
+  import { ROLE_ROUTE_MAP, type AdminRole, type AdminUserEditData } from '@/js/types/roles/admin/admin-user'
 
   /* ==========================================================================
    * Props
@@ -28,6 +28,10 @@
     isActorSuperadmin: boolean
     /** true si el usuario editado es el propio actor autenticado. */
     isSelf: boolean
+    /** Nombre del rol del usuario editado en minúsculas (ej. 'commerce'), para decidir si mostrar "Ver más". */
+    targetRoleName?: string
+    /** Id del registro de dominio (Commerce/Seller/etc.) del usuario editado, para el botón "Ver más". */
+    targetDomainId?: string | number | null
   }>()
 
   /* ==========================================================================
@@ -38,7 +42,22 @@
     (e: 'submit'): void
     (e: 'update:modelValue', value: Partial<AdminUserEditData>): void
     (e: 'reset-password'): void
+    (e: 'view-role-detail', route: string, domainId: string | number): void
   }>()
+
+  /* ==========================================================================
+   * "Ver más" — solo visible si el rol del usuario tiene página dedicada
+   * (ROLE_ROUTE_MAP) y se resolvió el id de su registro de dominio.
+   * ========================================================================== */
+
+  const roleDetailRoute = computed(() =>
+    props.targetRoleName ? ROLE_ROUTE_MAP[props.targetRoleName] ?? null : null
+  )
+
+  function viewRoleDetail() {
+    if (!roleDetailRoute.value || !props.targetDomainId) return
+    emit('view-role-detail', roleDetailRoute.value, props.targetDomainId)
+  }
 
   /* ==========================================================================
    * Form logic
@@ -159,6 +178,16 @@
         v-model="form.email"
       />
 
+      <FormInput
+        label="Teléfono"
+        name="phone_number"
+        type="tel"
+        col="col-sm-6"
+        :error="errors.phone_number"
+        :disabled="isFormLocked"
+        v-model="form.phone_number"
+      />
+
       <FormSelect
         label="País"
         name="country_id"
@@ -192,10 +221,23 @@
       </div>
     </div>
 
-    <button type="button" class="btn btn-outline-dark btn-sm mt-2" :disabled="isFormLocked" @click="emit('reset-password')">
-      <i class="fas fa-key mr-2"></i>
-      Resetear contraseña
-    </button>
+    <div class="user-edit-form-actions mt-2">
+      <button type="button" class="btn btn-outline-dark btn-sm" :disabled="isFormLocked" @click="emit('reset-password')">
+        <i class="fas fa-key mr-2"></i>
+        Resetear contraseña
+      </button>
+
+      <button
+        v-if="roleDetailRoute && targetDomainId"
+        type="button"
+        class="btn btn-outline-primary btn-sm"
+        title="Abre la página de gestión de este rol con la ficha del usuario ya cargada"
+        @click="viewRoleDetail"
+      >
+        <i class="fas fa-arrow-up-right-from-square mr-2"></i>
+        Ver más
+      </button>
+    </div>
   </form>
 </template>
 
@@ -219,6 +261,19 @@
   color: var(--ds-text);
 }
 .btn-outline-dark:hover { background: var(--ds-surface-2); }
+
+.btn-outline-primary {
+  background: transparent;
+  border: 1.5px solid #667eea;
+  color: #667eea;
+}
+.btn-outline-primary:hover { background: rgba(102, 126, 234, 0.1); }
+
+.user-edit-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
 .role-locked-hint { margin-top: -0.5rem; font-size: 0.75rem; }
 </style>

@@ -22,12 +22,13 @@ class AdminUserUpdateRequest extends BaseRequest
         $userId = $this->getId('user');
 
         return [
-            'first_name' => ['sometimes', 'string', 'max:60'],
-            'last_name'  => ['sometimes', 'string', 'max:60'],
-            'username'   => ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)],
-            'email'      => ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)],
-            'country_id' => ['sometimes', 'string', 'exists:countries,id'],
-            'role_id'    => ['sometimes', 'string', 'exists:roles,id'],
+            'first_name'   => ['sometimes', 'string', 'max:60'],
+            'last_name'    => ['sometimes', 'string', 'max:60'],
+            'username'     => ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)],
+            'email'        => ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)],
+            'phone_number' => ['sometimes', 'nullable', 'string', 'max:25'],
+            'country_id'   => ['sometimes', 'string', 'exists:countries,id'],
+            'role_id'      => ['sometimes', 'string', 'exists:roles,id'],
         ];
     }
 
@@ -37,6 +38,7 @@ class AdminUserUpdateRequest extends BaseRequest
             'username.unique'   => 'El nombre de usuario no está disponible.',
             'email.email'       => 'El correo electrónico debe ser válido.',
             'email.unique'      => 'Este correo ya está registrado.',
+            'phone_number.max'  => 'El teléfono no puede superar los 25 caracteres.',
             'country_id.exists' => 'El país seleccionado no es válido.',
             'role_id.exists'    => 'El rol seleccionado no es válido.',
         ];
