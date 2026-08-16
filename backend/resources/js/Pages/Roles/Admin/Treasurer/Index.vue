@@ -3,7 +3,7 @@
    * Página Admin → Tesoreros
    */
 
-  import { computed, watch } from 'vue'
+  import { computed, onMounted, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -71,6 +71,14 @@
       adminTreasurerFormRef.value?.reset?.()
       create()
     }
+  })
+
+  // Auto-abre el detalle de un tesorero al llegar desde el botón "Ver más"
+  // de Admin > Usuarios (?open={treasurerId} -> props.openId).
+  onMounted(async () => {
+    if (!props.openId) return
+    const ok = await edit(props.openId)
+    if (ok) showModalForm.value = true
   })
 
   // ==========================================================================

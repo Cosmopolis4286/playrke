@@ -27,6 +27,7 @@ export interface AdminUser {
     readonly country_id: string | number | null
     readonly first_name: string | null
     readonly last_name: string | null
+    readonly phone_number: string | null
     /** true si el usuario tiene permisos específicos asignados además de los de su rol. */
     readonly has_specific_permissions: boolean
     /** Cantidad de permisos individuales asignados directamente (además de los de su rol). */
@@ -35,6 +36,8 @@ export interface AdminUser {
     readonly real_id: string | number | null
     /** Fecha de registro en formato ISO 8601, para formatear tiempo relativo en el frontend. */
     readonly registered_at: string | null
+    /** ID del registro de dominio (Commerce/Seller/Customer/Treasurer, o el propio User para player) para el botón "Ver más". Null si el rol no tiene página dedicada. */
+    readonly domain_id: string | number | null
 }
 
 export interface AdminRole {
@@ -75,6 +78,7 @@ export interface AdminUserEditData {
     last_name: string
     username: string
     email: string
+    phone_number: string
     country_id: string | number | null
     role_id: string | number | null
 }

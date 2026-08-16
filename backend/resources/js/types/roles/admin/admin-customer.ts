@@ -15,5 +15,7 @@ export interface AdminCustomerPageProps {
     countries: Country[],
     currencies: Currency[],
     games: Game[],
-    timeZones: TimeZone[]
+    timeZones: TimeZone[],
+    /** Id del cliente a abrir automáticamente (llegada desde el botón "Ver más" de Admin > Usuarios). */
+    openId?: string | number | null
 }

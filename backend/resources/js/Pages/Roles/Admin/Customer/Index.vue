@@ -3,7 +3,7 @@
    * Página Admin → Clientes
    */
 
-  import { computed, watch } from 'vue'
+  import { computed, onMounted, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -71,6 +71,14 @@
       adminCustomerFormRef.value?.reset?.()
       create()
     }
+  })
+
+  // Auto-abre el detalle de un cliente al llegar desde el botón "Ver más" de
+  // Admin > Usuarios (?open={customerId} -> props.openId).
+  onMounted(async () => {
+    if (!props.openId) return
+    const ok = await edit(props.openId)
+    if (ok) showModalForm.value = true
   })
 
   // ==========================================================================

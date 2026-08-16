@@ -34,6 +34,9 @@ class AdminController extends Controller
                 $response = $this->service->context('commerces');
 
                 $response['title'] = 'Comercializadoras';
+                // Id de la comercializadora a abrir automáticamente al llegar
+                // desde el botón "Ver más" de Admin > Usuarios.
+                $response['openId'] = request('open');
 
                 return Inertia::render('Roles/Admin/Commerce/Index', $response);
             },
@@ -53,6 +56,7 @@ class AdminController extends Controller
                 $response = $this->service->context('customers');
 
                 $response['title'] = 'Clientes';
+                $response['openId'] = request('open');
 
                 return Inertia::render('Roles/Admin/Customer/Index', $response);
             },
@@ -72,6 +76,7 @@ class AdminController extends Controller
                 $response = $this->service->context('players');
 
                 $response['title'] = 'Jugadores';
+                $response['openId'] = request('open');
 
                 return Inertia::render('Roles/Admin/Player/Index', $response);
             },
@@ -91,6 +96,7 @@ class AdminController extends Controller
                 $response = $this->service->context('sellers');
 
                 $response['title'] = 'Vendedores';
+                $response['openId'] = request('open');
 
                 return Inertia::render('Roles/Seller/Manager/Index', $response);
             },
@@ -110,6 +116,7 @@ class AdminController extends Controller
                 $response = $this->service->context('treasurers');
 
                 $response['title'] = 'Tesoreros';
+                $response['openId'] = request('open');
 
                 return Inertia::render('Roles/Admin/Treasurer/Index', $response);
             },

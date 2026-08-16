@@ -36,6 +36,12 @@ final class AdminUserContextService
         $query = User::with([
                 'country:id,name',
                 'roles:id,name,prefix',
+                // Solo 'id' — necesario para resolver domain_id (botón "Ver
+                // más" -> página dedicada del rol), no se expone nada más.
+                'commerce:id,user_id',
+                'seller:id,user_id',
+                'customer:id,user_id',
+                'treasurer:id,user_id',
             ])
             ->excludeSystemAccounts();
 
@@ -138,12 +144,27 @@ final class AdminUserContextService
             $row['role_badge'] = $user?->role_badge;
             $row['username']   = $user?->username;
             $row['email']      = $user?->email;
+            $row['phone_number'] = $user?->phone_number;
             $row['has_specific_permissions'] = !empty($user?->specific_permissions);
             $row['specific_permissions_count'] = count($user?->specific_permissions ?? []);
             // ID real del usuario (distinto del 'id' hasheado de la fila) —
             // necesario para deep-linkear al historial de auditoría, donde
             // Audit.auditable_id se guarda con la PK real, no el hash de tabla.
             $row['real_id'] = $user?->id;
+            // ID del registro de dominio (Commerce/Seller/Customer/Treasurer)
+            // para el botón "Ver más" -> página dedicada del rol
+            // (/admin/commerces, etc.), que identifica sus filas por ese id,
+            // no por el id del User. 'player' no tiene modelo de dominio
+            // propio (ver AdminPlayerContextService, opera sobre User
+            // directo), así que ahí domain_id es el mismo real_id.
+            $row['domain_id'] = match ($row['role_name']) {
+                'commerce'  => $user?->commerce?->id,
+                'seller'    => $user?->seller?->id,
+                'customer'  => $user?->customer?->id,
+                'treasurer' => $user?->treasurer?->id,
+                'player'    => $user?->id,
+                default     => null,
+            };
             return $row;
         })->all();
 

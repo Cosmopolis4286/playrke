@@ -3,7 +3,7 @@
    * Página Admin → Comercializadoras
    */
 
-  import { computed } from 'vue'
+  import { computed, onMounted } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -64,6 +64,14 @@
     handleSubmit
   } = useModalForm(commerceData, submit, {
     defaultTitle: 'Comercializadora'
+  })
+
+  // Auto-abre el detalle de una comercializadora al llegar desde el botón
+  // "Ver más" de Admin > Usuarios (?open={commerceId} -> props.openId).
+  onMounted(async () => {
+    if (!props.openId) return
+    const ok = await edit(props.openId)
+    if (ok) showModalForm.value = true
   })
 
   // ==========================================================================

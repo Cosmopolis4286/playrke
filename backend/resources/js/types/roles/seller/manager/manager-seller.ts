@@ -21,5 +21,7 @@ export interface ManagerSellerPageProps {
     currencies: Currency[],
     games: Game[],
     timeZones: TimeZone[],
-    roleUser: string
+    roleUser: string,
+    /** Id del vendedor a abrir automáticamente (llegada desde el botón "Ver más" de Admin > Usuarios). */
+    openId?: string | number | null
 }

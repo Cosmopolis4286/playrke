@@ -3,7 +3,7 @@
    * Página Admin → Jugadores
    */
 
-  import { computed } from 'vue'
+  import { computed, onMounted } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -64,6 +64,15 @@
     handleSubmit
   } = useModalForm(playerData, submit, {
     defaultTitle: 'Jugador'
+  })
+
+  // Auto-abre el detalle de un jugador al llegar desde el botón "Ver más" de
+  // Admin > Usuarios (?open={userId} -> props.openId; 'player' no tiene
+  // modelo de dominio propio, domain_id ES el User.id).
+  onMounted(async () => {
+    if (!props.openId) return
+    const ok = await edit(props.openId)
+    if (ok) showModalForm.value = true
   })
 
   // ==========================================================================

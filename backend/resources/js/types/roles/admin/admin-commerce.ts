@@ -15,5 +15,7 @@ export interface AdminCommercePageProps {
     countries: Country[],
     currencies: Currency[],
     games: Game[],
-    timeZones: TimeZone[]
+    timeZones: TimeZone[],
+    /** Id de la comercializadora a abrir automáticamente (llegada desde el botón "Ver más" de Admin > Usuarios). */
+    openId?: string | number | null
 }

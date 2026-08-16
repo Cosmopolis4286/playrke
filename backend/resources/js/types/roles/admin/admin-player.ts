@@ -12,4 +12,6 @@ export interface AdminPlayerPageProps {
     players_pagination: Pagination | null
     countries: Country[]
     timeZones: TimeZone[]
+    /** Id del usuario jugador a abrir automáticamente (llegada desde el botón "Ver más" de Admin > Usuarios). */
+    openId?: string | number | null
 }
