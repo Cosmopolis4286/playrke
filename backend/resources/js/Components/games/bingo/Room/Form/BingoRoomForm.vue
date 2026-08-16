@@ -123,14 +123,14 @@
     stepDescription,
     steps,
     stepLabels,
-    stepDescriptions,
     canGoNext,
     canGoPrev,
     goNext,
     goPrev,
     goTo,
-    stepHasErrors
-  } = useBingoRoomStepper(errors)
+    stepHasErrors,
+    stepStatus
+  } = useBingoRoomStepper(errors, () => form.value)
 
   const onRestoreDraft = (): void => {
     restoreDraft()
@@ -409,13 +409,13 @@
     stepDescription,
     steps,
     stepLabels,
-    stepDescriptions,
     canGoNext,
     canGoPrev,
     goNext,
     goPrev,
     goTo,
-    stepHasErrors
+    stepHasErrors,
+    stepStatus
   })
 </script>
 
@@ -442,18 +442,21 @@
     </button>
   </div>
 
-  <!-- Navegación del wizard -->
+  <!-- Navegación del wizard — semáforo por tab: rojo (error), amarillo
+       (válido pero con opcionales sin completar), verde (completo). -->
   <ul class="nav nav-tabs mb-2" style="font-size: 0.85rem">
     <li v-for="s in steps" :key="s" class="nav-item">
       <button
         type="button"
-        class="nav-link"
-        :class="{ active: step === s, 'text-danger': stepHasErrors(s) && step !== s }"
-        :title="stepDescriptions[s]"
+        class="nav-link bingo-room-form__tab"
+        :class="{ active: step === s }"
         @click="goTo(s)"
       >
+        <span
+          class="bingo-room-form__tab-dot"
+          :class="`bingo-room-form__tab-dot--${stepStatus(s)}`"
+        />
         {{ stepLabels[s] }}
-        <i v-if="stepHasErrors(s)" class="fa-solid fa-circle-exclamation ml-1" style="font-size: 0.7rem"></i>
       </button>
     </li>
   </ul>
@@ -581,6 +584,7 @@
           :connection-type-options="connectionTypeOptions"
           :game-mode-options="gameModeOptions"
           :prize-pool-type-options="prizePoolTypeOptions"
+          :host-user-label="hostUserLabel"
           :lock-activate-room="lockedByPlayers"
           :room-meta="isEdit ? roomMeta : null"
           @update:form="form = $event"
@@ -648,3 +652,14 @@
     </ItemSearchPicker>
   </Modal>
 </template>
+
+<style scoped>
+.bingo-room-form__tab { display: inline-flex; align-items: center; gap: .4rem; }
+.bingo-room-form__tab-dot {
+  width: .5rem; height: .5rem; border-radius: 50%; flex-shrink: 0;
+  transition: background-color .15s ease;
+}
+.bingo-room-form__tab-dot--error { background: var(--bs-danger, #dc3545); box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-danger, #dc3545) 20%, transparent); }
+.bingo-room-form__tab-dot--incomplete { background: var(--bs-warning, #ffc107); }
+.bingo-room-form__tab-dot--complete { background: var(--bs-success, #198754); }
+</style>

@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BingoRoomReviewStep">
-import { computed } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import type { BingoRoomFormData, BingoRoomLastUpdatedBy } from '@/js/types/games/bingo/room/bingo-room'
 import type { SelectOption } from '@/js/types/common/form/form'
 import { STEP_LABELS, STEP_ERROR_KEYS, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
@@ -13,6 +13,8 @@ const props = defineProps<{
   connectionTypeOptions?: SelectOption[]
   gameModeOptions?: SelectOption[]
   prizePoolTypeOptions?: SelectOption[]
+  /** Etiqueta del anfitrión ya asignado (para mostrar el nombre en vez del id crudo). */
+  hostUserLabel?: string | null
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
   lockActivateRoom?: boolean
   /** Metadatos de solo lectura de la sala en edición (null en modo creación). */
@@ -34,6 +36,39 @@ function stepHasErrors(step: StepKey): boolean {
 
 const stepsWithErrors = computed(() => STEPS.filter(stepHasErrors))
 const isReady = computed(() => stepsWithErrors.value.length === 0)
+
+/** Progreso: cuántas de las 4 secciones editables (todas menos Activación, que no valida) están sin errores. */
+const completedCount = computed(() => STEPS.length - stepsWithErrors.value.length)
+
+/**
+ * Acordeón: cada sección arranca colapsada si ya está sin errores (nada que
+ * revisar de urgencia) y expandida si tiene errores (el usuario necesita
+ * verla). Solo se fija el valor INICIAL con este watch — después el usuario
+ * puede expandir/colapsar libremente sin que se le pise el click.
+ */
+const expanded = reactive<Record<StepKey, boolean>>({
+  basic: stepHasErrors('basic'),
+  currencies: stepHasErrors('currencies'),
+  rounds: stepHasErrors('rounds'),
+  options: stepHasErrors('options'),
+})
+
+function toggleSection(step: StepKey): void {
+  expanded[step] = !expanded[step]
+}
+
+// Si una sección pasa a tener errores (el usuario los introdujo editando otro
+// paso y volvió a Revisión), se re-expande automáticamente para que no quede
+// escondida con un error que el usuario no ve porque la dejó colapsada antes.
+watch(stepsWithErrors, (withErrors) => {
+  withErrors.forEach(s => { expanded[s] = true })
+})
+
+/** Mensaje de error de un campo puntual, si existe, para resaltarlo en la propia fila del resumen (no solo el badge genérico del título). */
+function fieldError(key: string): string | null {
+  const value = props.errors[key]
+  return typeof value === 'string' ? value : null
+}
 
 /**
  * Una sala programada (no manual) cuya fecha/hora ya pasó no debería poder
@@ -153,15 +188,36 @@ const scheduleLabel = computed(() => {
 
 <template>
   <div class="bingo-review-step">
-    <div v-if="!isReady" class="bingo-review-step__alerts">
-      <div
-        v-for="step in stepsWithErrors"
-        :key="step"
-        class="bingo-review-step__alert bingo-review-step__alert--error"
-      >
-        <span class="bingo-review-step__alert-icon">⚠</span>
-        <span>Corrige los errores en <strong>{{ STEP_LABELS[step] }}</strong> antes de guardar.</span>
-        <button type="button" class="bingo-review-step__alert-fix" @click="goToStep(step)">Ir a corregir</button>
+    <!-- Progreso: cuántas de las 4 secciones editables están sin errores -->
+    <div class="bingo-review-step__progress">
+      <div class="bingo-review-step__progress-dots">
+        <span
+          v-for="s in STEPS"
+          :key="s"
+          class="bingo-review-step__progress-dot"
+          :class="stepHasErrors(s) ? 'bingo-review-step__progress-dot--pending' : 'bingo-review-step__progress-dot--done'"
+          :title="STEP_LABELS[s]"
+        />
+      </div>
+      <span class="bingo-review-step__progress-label">{{ completedCount }} de {{ STEPS.length }} secciones completas</span>
+    </div>
+
+    <!-- Alerta consolidada: una sola caja con todas las secciones pendientes (antes se repetía una caja idéntica por cada sección con error) -->
+    <div v-if="!isReady" class="bingo-review-step__alert bingo-review-step__alert--error">
+      <span class="bingo-review-step__alert-icon">⚠</span>
+      <div class="bingo-review-step__alert-body">
+        <span>Faltan datos o hay errores en:</span>
+        <div class="bingo-review-step__alert-chips">
+          <button
+            v-for="step in stepsWithErrors"
+            :key="step"
+            type="button"
+            class="bingo-review-step__alert-chip"
+            @click="goToStep(step)"
+          >
+            {{ STEP_LABELS[step] }} <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -190,111 +246,107 @@ const scheduleLabel = computed(() => {
       </section>
 
       <!-- Datos básicos -->
-      <section class="bingo-review-step__section">
-        <h4 class="bingo-review-step__section-title">
+      <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.basic }">
+        <h4 class="bingo-review-step__section-title" @click="toggleSection('basic')">
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.basic }"></i>
           <i class="fa-solid fa-sliders bingo-review-step__section-icon"></i>
           Datos básicos
           <span v-if="stepHasErrors('basic')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('basic')">
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('basic')">
             <i class="fa-solid fa-pen"></i> Editar
           </button>
         </h4>
-        <dl class="bingo-review-step__dl">
-          <dt>Tipo de sala</dt>
-          <dd>{{ roomTypeLabel ?? '—' }}</dd>
-          <dt>Tipo de conexión</dt>
-          <dd>{{ connectionTypeLabel ?? '—' }}</dd>
-          <template v-if="gameModeLabel">
+        <div v-show="expanded.basic">
+          <dl class="bingo-review-step__dl">
+            <dt>Tipo de sala</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomType') }">{{ roomTypeLabel ?? (fieldError('roomType') ?? '—') }}</dd>
+            <dt>Tipo de conexión</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('connectionType') }">{{ connectionTypeLabel ?? (fieldError('connectionType') ?? '—') }}</dd>
             <dt>Modo de juego</dt>
-            <dd>{{ gameModeLabel }}</dd>
-          </template>
-          <dt>Variante</dt>
-          <dd>{{ gameVariantLabel ?? '—' }}</dd>
-          <dt>Tipo de bote</dt>
-          <dd>{{ prizePoolTypeLabel ?? '—' }}</dd>
-          <template v-if="form.amountAddedPrizePool != null">
-            <dt>Valor fijo/extra al bote</dt>
-            <dd>${{ form.amountAddedPrizePool }}</dd>
-          </template>
-          <dt>Horario</dt>
-          <dd>{{ scheduleLabel }}</dd>
-          <dt>Rondas</dt>
-          <dd>{{ form.rounds ?? '—' }}</dd>
-          <dt>Comisión de sala</dt>
-          <dd>{{ form.roomCommn != null ? form.roomCommn + '%' : '—' }}</dd>
-          <dt>Jackpot</dt>
-          <dd>{{ form.jackpotPct != null ? form.jackpotPct + '%' : '—' }}</dd>
-          <dt>Tiempo por ficha</dt>
-          <dd>{{ form.timeChip != null ? form.timeChip + 's' : '—' }}</dd>
-        </dl>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('gameMode') }">{{ gameModeLabel ?? (fieldError('gameMode') ?? '—') }}</dd>
+            <dt>Variante</dt>
+            <dd>{{ gameVariantLabel ?? '—' }}</dd>
+            <dt>Tipo de bote</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('prizePoolType') }">{{ prizePoolTypeLabel ?? (fieldError('prizePoolType') ?? '—') }}</dd>
+            <template v-if="form.amountAddedPrizePool != null">
+              <dt>Valor fijo/extra al bote</dt>
+              <dd>${{ form.amountAddedPrizePool }}</dd>
+            </template>
+            <dt>Horario</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('date') || fieldError('time') }">{{ scheduleLabel }}</dd>
+            <dt>Rondas</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('rounds') }">{{ form.rounds ?? (fieldError('rounds') ?? '—') }}</dd>
+            <dt>Comisión de sala</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomCommn') }">{{ form.roomCommn != null ? form.roomCommn + '%' : (fieldError('roomCommn') ?? '—') }}</dd>
+            <dt>Jackpot</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotPct') }">{{ form.jackpotPct != null ? form.jackpotPct + '%' : '—' }}</dd>
+            <dt>Tiempo por ficha</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('timeChip') }">{{ form.timeChip != null ? form.timeChip + 's' : (fieldError('timeChip') ?? '—') }}</dd>
+          </dl>
 
-        <template v-if="isPrivateRoom">
+          <template v-if="isPrivateRoom">
+            <hr style="margin: 0.6rem 0" />
+            <p class="bingo-review-step__subtitle">
+              <i class="fa-solid fa-lock" style="opacity: 0.7"></i> Sala privada
+            </p>
+            <dl class="bingo-review-step__dl">
+              <dt>Código de acceso</dt>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('accessCode') }">{{ form.accessCode ?? (fieldError('accessCode') ?? '—') }}</dd>
+              <dt>Contraseña</dt>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomPassword') }">{{ form.roomPassword ? 'Se actualizará al guardar' : (fieldError('roomPassword') ?? 'Sin cambios') }}</dd>
+              <dt>Anfitrión</dt>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('hostUserId') }">{{ (form.hostUserId ? (hostUserLabel ?? String(form.hostUserId)) : null) ?? (fieldError('hostUserId') ?? '—') }}</dd>
+            </dl>
+          </template>
+
           <hr style="margin: 0.6rem 0" />
           <p class="bingo-review-step__subtitle">
-            <i class="fa-solid fa-lock" style="opacity: 0.7"></i> Sala privada
+            <i class="fa-solid fa-gauge-high" style="opacity: 0.7"></i> Capacidad
           </p>
-          <dl class="bingo-review-step__dl">
-            <dt>Código de acceso</dt>
-            <dd>{{ form.accessCode ?? '—' }}</dd>
-            <dt>Contraseña</dt>
-            <dd>{{ form.roomPassword ? 'Se actualizará al guardar' : 'Sin cambios' }}</dd>
-            <template v-if="form.hostUserId">
-              <dt>Anfitrión</dt>
-              <dd>{{ form.hostUserId }}</dd>
+          <dl
+            v-if="form.minCardsToStart != null || form.maxCardsToStart != null || form.minPlayers != null || form.maxPlayers != null"
+            class="bingo-review-step__dl"
+          >
+            <template v-if="form.minCardsToStart != null">
+              <dt>Mín. cartones para iniciar</dt>
+              <dd>{{ form.minCardsToStart }}</dd>
+            </template>
+            <template v-if="form.maxCardsToStart != null">
+              <dt>Máx. cartones</dt>
+              <dd>{{ form.maxCardsToStart }}</dd>
+            </template>
+            <template v-if="form.minPlayers != null">
+              <dt>Mín. jugadores para iniciar</dt>
+              <dd>{{ form.minPlayers }}</dd>
+            </template>
+            <template v-if="form.maxPlayers != null">
+              <dt>Cupo máx. jugadores</dt>
+              <dd>{{ form.maxPlayers }}</dd>
             </template>
           </dl>
-        </template>
-      </section>
-
-      <!-- Capacidad -->
-      <section class="bingo-review-step__section">
-        <h4 class="bingo-review-step__section-title">
-          <i class="fa-solid fa-users bingo-review-step__section-icon"></i>
-          Capacidad
-          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('basic')">
-            <i class="fa-solid fa-pen"></i> Editar
-          </button>
-        </h4>
-        <dl
-          v-if="form.minCardsToStart != null || form.maxCardsToStart != null || form.minPlayers != null || form.maxPlayers != null"
-          class="bingo-review-step__dl"
-        >
-          <template v-if="form.minCardsToStart != null">
-            <dt>Mín. cartones para iniciar</dt>
-            <dd>{{ form.minCardsToStart }}</dd>
-          </template>
-          <template v-if="form.maxCardsToStart != null">
-            <dt>Máx. cartones</dt>
-            <dd>{{ form.maxCardsToStart }}</dd>
-          </template>
-          <template v-if="form.minPlayers != null">
-            <dt>Mín. jugadores para iniciar</dt>
-            <dd>{{ form.minPlayers }}</dd>
-          </template>
-          <template v-if="form.maxPlayers != null">
-            <dt>Cupo máx. jugadores</dt>
-            <dd>{{ form.maxPlayers }}</dd>
-          </template>
-        </dl>
-        <p v-else class="bingo-review-step__empty">Sin límites configurados — cartones y jugadores ilimitados.</p>
+          <p v-else class="bingo-review-step__empty">Sin límites configurados — cartones y jugadores ilimitados.</p>
+        </div>
       </section>
 
       <!-- Monedas -->
-      <section class="bingo-review-step__section">
-        <h4 class="bingo-review-step__section-title">
+      <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.currencies }">
+        <h4 class="bingo-review-step__section-title" @click="toggleSection('currencies')">
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.currencies }"></i>
           <i class="fa-solid fa-coins bingo-review-step__section-icon"></i>
           Monedas y precios
           <span v-if="stepHasErrors('currencies')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('currencies')">
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('currencies')">
             <i class="fa-solid fa-pen"></i> Editar
           </button>
         </h4>
-        <dl class="bingo-review-step__dl">
+        <dl v-show="expanded.currencies" class="bingo-review-step__dl">
           <dt>Monedas permitidas</dt>
-          <dd>{{ currencyPriceRows.map(r => r.iso).join(', ') || '—' }}</dd>
+          <dd :class="{ 'bingo-review-step__dd--error': fieldError('allowedCurrencies') }">{{ currencyPriceRows.map(r => r.iso).join(', ') || (fieldError('allowedCurrencies') ?? '—') }}</dd>
           <template v-if="form.useBaseUsd">
             <dt>Precio base (USD)</dt>
-            <dd>{{ form.cardPriceUsd != null ? '$' + form.cardPriceUsd : '—' }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('cardPriceUsd') }">{{ form.cardPriceUsd != null ? '$' + form.cardPriceUsd : (fieldError('cardPriceUsd') ?? '—') }}</dd>
           </template>
           <template v-else>
             <dt>Precio del cartón</dt>
@@ -315,59 +367,65 @@ const scheduleLabel = computed(() => {
       </section>
 
       <!-- Rondas -->
-      <section class="bingo-review-step__section">
-        <h4 class="bingo-review-step__section-title">
+      <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.rounds }">
+        <h4 class="bingo-review-step__section-title" @click="toggleSection('rounds')">
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.rounds }"></i>
           <i class="fa-solid fa-list-ol bingo-review-step__section-icon"></i>
           Rondas
           <span v-if="stepHasErrors('rounds')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('rounds')">
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('rounds')">
             <i class="fa-solid fa-pen"></i> Editar
           </button>
         </h4>
-        <dl class="bingo-review-step__dl">
+        <dl v-show="expanded.rounds" class="bingo-review-step__dl">
           <dt>% rondas</dt>
-          <dd>{{ form.roundsPct != null ? form.roundsPct + '%' : '—' }}</dd>
+          <dd :class="{ 'bingo-review-step__dd--error': fieldError('roundsPct') }">{{ form.roundsPct != null ? form.roundsPct + '%' : (fieldError('roundsPct') ?? '—') }}</dd>
           <dt>% seriales</dt>
           <dd>{{ form.serialsPct != null ? form.serialsPct + '%' : '—' }}</dd>
         </dl>
       </section>
 
       <!-- Más / Opcional -->
-      <section class="bingo-review-step__section">
-        <h4 class="bingo-review-step__section-title">
+      <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.options }">
+        <h4 class="bingo-review-step__section-title" @click="toggleSection('options')">
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.options }"></i>
           <i class="fa-solid fa-star bingo-review-step__section-icon"></i>
           Más / Opcional
           <span v-if="stepHasErrors('options')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <button type="button" class="bingo-review-step__edit-btn" @click="goToStep('options')">
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('options')">
             <i class="fa-solid fa-pen"></i> Editar
           </button>
         </h4>
-        <dl v-if="hasOptionalConfig" class="bingo-review-step__dl">
-          <template v-if="form.useSerials">
-            <dt>Seriales</dt>
-            <dd>
-              Sí — {{ form.numSerials ?? '—' }} seriales
-              <template v-if="form.serialsPct != null"> ({{ form.serialsPct }}% bote)</template>
-            </dd>
-          </template>
-          <template v-if="form.allowCustomCard">
-            <dt>Cartón personalizado</dt>
-            <dd>
-              {{ customCardModeLabel ?? '—' }}
-              <template v-if="form.customCardMode === 'paid' && form.customCardPricePct != null">
-                ({{ form.customCardPricePct }}% recargo)
-              </template>
-              <template v-if="form.customCardMode === 'every_x' && form.customCardEveryX != null">
-                (cada {{ form.customCardEveryX }} cartones)
-              </template>
-            </dd>
-          </template>
-          <template v-if="form.allowSpecialCard">
-            <dt>Cartón especial</dt>
-            <dd>Sí — máx. {{ form.maxSpecialCards ?? '—' }}</dd>
-          </template>
-        </dl>
-        <p v-else class="bingo-review-step__empty">Sin opciones adicionales configuradas.</p>
+        <div v-show="expanded.options">
+          <dl v-if="hasOptionalConfig" class="bingo-review-step__dl">
+            <template v-if="form.useSerials">
+              <dt>Seriales</dt>
+              <dd>
+                Sí — {{ form.numSerials ?? '—' }} seriales
+                <template v-if="form.serialsPct != null"> ({{ form.serialsPct }}% bote)</template>
+              </dd>
+            </template>
+            <template v-if="form.allowCustomCard">
+              <dt>Cartón personalizado</dt>
+              <dd>
+                {{ customCardModeLabel ?? '—' }}
+                <template v-if="form.customCardMode === 'paid' && form.customCardPricePct != null">
+                  ({{ form.customCardPricePct }}% recargo)
+                </template>
+                <template v-if="form.customCardMode === 'every_x' && form.customCardEveryX != null">
+                  (cada {{ form.customCardEveryX }} cartones)
+                </template>
+              </dd>
+            </template>
+            <template v-if="form.allowSpecialCard">
+              <dt>Cartón especial</dt>
+              <dd>Sí — máx. {{ form.maxSpecialCards ?? '—' }}</dd>
+            </template>
+          </dl>
+          <p v-else class="bingo-review-step__empty">Sin opciones adicionales configuradas.</p>
+        </div>
       </section>
 
       <!-- Activación -->
@@ -402,16 +460,30 @@ const scheduleLabel = computed(() => {
 
 <style scoped>
 .bingo-review-step { display: flex; flex-direction: column; gap: 1rem; }
-.bingo-review-step__alerts { display: flex; flex-direction: column; gap: .5rem; }
+
+/* Progreso */
+.bingo-review-step__progress {
+  display: flex; align-items: center; gap: .6rem;
+}
+.bingo-review-step__progress-dots { display: flex; gap: .3rem; }
+.bingo-review-step__progress-dot {
+  width: .55rem; height: .55rem; border-radius: 50%; flex-shrink: 0;
+}
+.bingo-review-step__progress-dot--done { background: var(--bs-success, #198754); }
+.bingo-review-step__progress-dot--pending { background: var(--bs-border-color, #dee2e6); }
+.bingo-review-step__progress-label { font-size: .78rem; color: var(--bs-secondary, #6c757d); }
+
+/* Alerta consolidada de secciones pendientes */
 .bingo-review-step__alert {
-  display: flex; align-items: center; gap: .5rem;
+  display: flex; align-items: flex-start; gap: .5rem;
   padding: .6rem 1rem; border-radius: .4rem;
   background: color-mix(in srgb, var(--bs-danger, #dc3545) 12%, transparent);
   color: var(--bs-danger, #dc3545);
 }
-.bingo-review-step__alert-fix {
-  margin-left: auto;
-  flex-shrink: 0;
+.bingo-review-step__alert-body { display: flex; flex-direction: column; gap: .4rem; font-size: .8125rem; }
+.bingo-review-step__alert-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.bingo-review-step__alert-chip {
+  display: inline-flex; align-items: center; gap: .3rem;
   border: none;
   background: var(--bs-danger, #dc3545);
   color: #fff;
@@ -421,8 +493,10 @@ const scheduleLabel = computed(() => {
   border-radius: .3rem;
   cursor: pointer;
   white-space: nowrap;
+  transition: filter .15s;
 }
-.bingo-review-step__alert-fix:hover { filter: brightness(1.1); }
+.bingo-review-step__alert-chip:hover { filter: brightness(1.1); }
+
 .bingo-review-step__ready {
   display: flex; align-items: center; gap: .5rem;
   padding: .6rem 1rem; border-radius: .4rem;
@@ -431,10 +505,18 @@ const scheduleLabel = computed(() => {
 }
 .bingo-review-step__sections { display: flex; flex-direction: column; gap: 1.25rem; }
 .bingo-review-step__section { border: 1px solid var(--bs-border-color, #dee2e6); border-radius: .4rem; padding: 1rem; }
+.bingo-review-step__section--collapsed { padding-bottom: 1rem; }
 .bingo-review-step__section-title {
   font-size: .875rem; font-weight: 600; margin-bottom: .75rem;
   display: flex; align-items: center; gap: .5rem;
+  cursor: pointer; user-select: none;
 }
+.bingo-review-step__section--collapsed .bingo-review-step__section-title { margin-bottom: 0; }
+.bingo-review-step__chevron {
+  font-size: .7rem; color: var(--bs-secondary, #6c757d);
+  transition: transform .15s ease;
+}
+.bingo-review-step__chevron--open { transform: rotate(90deg); }
 .bingo-review-step__section-icon {
   font-size: .8rem;
   color: var(--bs-primary, #4a6fff);
@@ -443,9 +525,11 @@ const scheduleLabel = computed(() => {
   text-align: center;
 }
 .bingo-review-step__badge {
+  display: inline-flex; align-items: center;
   font-size: .7rem; font-weight: 600; padding: .15rem .5rem; border-radius: 999px;
 }
 .bingo-review-step__badge--error { background: var(--bs-danger, #dc3545); color: #fff; }
+.bingo-review-step__badge--ok { background: color-mix(in srgb, var(--bs-success, #198754) 15%, transparent); color: var(--bs-success, #198754); padding: .15rem .4rem; }
 .bingo-review-step__edit-btn {
   margin-left: auto;
   display: inline-flex;
@@ -465,6 +549,7 @@ const scheduleLabel = computed(() => {
 .bingo-review-step__dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: 0; }
 .bingo-review-step__dl dt { font-weight: 500; color: var(--bs-secondary, #6c757d); font-size: .8125rem; }
 .bingo-review-step__dl dd { margin: 0; font-size: .8125rem; }
+.bingo-review-step__dd--error { color: var(--bs-danger, #dc3545); font-weight: 600; }
 .bingo-review-step__empty { margin: 0; font-size: .8125rem; color: var(--bs-secondary, #6c757d); font-style: italic; }
 .bingo-review-step__subtitle {
   font-size: .8rem; font-weight: 600; margin: 0 0 .5rem;
