@@ -18,25 +18,30 @@ class RoleSeeder extends Seeder
         // 'sort_order' fija el nivel/orden en el organigrama (menor = más alto
         // en jerarquía) — editable luego desde /admin/permissions, ver
         // RoleController::update() y RoleHierarchyService.
+        // 'description' usa el mismo texto que antes vivía hardcoded en
+        // RoleHierarchyService::FUNCTIONS — description es la ÚNICA fuente de
+        // verdad ahora (editable desde /admin/permissions vía RoleManagerModal
+        // y RoleHierarchyTree, ambos escriben la misma columna), así que el
+        // valor inicial ya nace con el texto rico que el organigrama mostraba.
         $roles = [
-            ['name' => 'SuperAdmin', 'prefix' => 'superadmin', 'description' => 'Super Administrador', 'status' => true, 'type' => 'web', 'sort_order' => 10, 'icon' => 'fa-crown', 'color' => '#7c3aed'],
-            ['name' => 'Admin',     'prefix' => 'admin',      'description' => 'Administrador', 'status' => true, 'type' => 'web', 'sort_order' => 20, 'icon' => 'fa-shield-alt', 'color' => '#2563eb'],
-            ['name' => 'Comercio',  'prefix' => 'commerce',   'description' => 'Comercio', 'status' => true, 'type' => 'web', 'sort_order' => 30, 'icon' => 'fa-store', 'color' => '#16a34a'],
-            ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio', 'status' => true, 'type' => 'web', 'sort_order' => 40, 'icon' => 'fa-code-branch', 'color' => '#0d9488'],
-            ['name' => 'Vendedor',  'prefix' => 'seller',     'description' => 'Vendedor asociado', 'status' => true, 'type' => 'web', 'sort_order' => 50, 'icon' => 'fa-tags', 'color' => '#ca8a04'],
-            ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero', 'status' => true, 'type' => 'web', 'sort_order' => 60, 'icon' => 'fa-dollar-sign', 'color' => '#0891b2'],
-            ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente que usa nuestos servicios',               'status' => true, 'type' => 'web', 'sort_order' => 70, 'icon' => 'fa-headset', 'color' => '#db2777'],      // Cambiado a 'web' para acceso al menú
-            ['name' => 'Jugador',   'prefix' => 'player',     'description' => 'Jugador registrado', 'status' => true, 'type' => 'web', 'sort_order' => 80, 'icon' => 'fa-gamepad', 'color' => '#64748b'],
+            ['name' => 'SuperAdmin', 'prefix' => 'superadmin', 'description' => 'Control total del sistema: roles, permisos, configuración global y respaldo.', 'status' => true, 'type' => 'web', 'sort_order' => 10, 'icon' => 'fa-crown', 'color' => '#7c3aed'],
+            ['name' => 'Admin',     'prefix' => 'admin',      'description' => 'Gestión operativa transversal: usuarios, comercios, juegos, reportes y auditoría.', 'status' => true, 'type' => 'web', 'sort_order' => 20, 'icon' => 'fa-shield-alt', 'color' => '#2563eb'],
+            ['name' => 'Comercio',  'prefix' => 'commerce',   'description' => 'Comercializadora: administra su negocio, agencias, vendedores y ventas de juegos.', 'status' => true, 'type' => 'web', 'sort_order' => 30, 'icon' => 'fa-store', 'color' => '#16a34a'],
+            ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Agencia/sucursal de una comercializadora — gestiona sus propias taquillas (vendedores).', 'status' => true, 'type' => 'web', 'sort_order' => 40, 'icon' => 'fa-code-branch', 'color' => '#0d9488'],
+            ['name' => 'Vendedor',  'prefix' => 'seller',     'description' => 'Taquilla: vende cartones/participaciones y capta jugadores externos vía link.', 'status' => true, 'type' => 'web', 'sort_order' => 50, 'icon' => 'fa-tags', 'color' => '#ca8a04'],
+            ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero: tesorería, tasas de cambio y reportes financieros.', 'status' => true, 'type' => 'web', 'sort_order' => 60, 'icon' => 'fa-dollar-sign', 'color' => '#0891b2'],
+            ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente que usa los servicios de la plataforma con cuenta propia.',               'status' => true, 'type' => 'web', 'sort_order' => 70, 'icon' => 'fa-headset', 'color' => '#db2777'],      // Cambiado a 'web' para acceso al menú
+            ['name' => 'Jugador',   'prefix' => 'player',     'description' => 'Jugador registrado: participa en salas de Bingo/Trivia con su propia billetera.', 'status' => true, 'type' => 'web', 'sort_order' => 80, 'icon' => 'fa-gamepad', 'color' => '#64748b'],
             // 'provider' es un rol RESERVADO: pensado para una futura integración de
             // proveedor externo de juegos vía API. Hoy no tiene tabla, modelo Eloquent,
             // controller ni gate propios — solo existe como fila en `roles` y como label
             // decorativo en SidebarMenuService. No eliminar sin antes construir su CRUD.
-            ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema (rol reservado, sin CRUD propio aún)', 'status' => true, 'type' => 'api', 'sort_order' => 90, 'icon' => 'fa-plug', 'color' => '#ea580c'],      // API guard
+            ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Rol reservado para integración futura de proveedor externo de juegos vía API.', 'status' => true, 'type' => 'api', 'sort_order' => 90, 'icon' => 'fa-plug', 'color' => '#ea580c'],      // API guard
             // 'external_player' es un rol LÓGICO (sin User/login): gobierna permisos
             // y juegos habilitados para App\Models\Roles\Player\External\ExternalPlayer
             // (comprador de cartones sin cuenta, captado por un vendedor vía link).
             // No aparece en /admin/users ni en TestUserSeeder/DemoRoleDataSeeder.
-            ['name' => 'Jugador Externo', 'prefix' => 'external_player', 'description' => 'Jugador sin cuenta en la plataforma (captado vía link de vendedor)', 'status' => true, 'type' => 'web', 'sort_order' => 100, 'icon' => 'fa-user-clock', 'color' => '#9333ea'],
+            ['name' => 'Jugador Externo', 'prefix' => 'external_player', 'description' => 'Jugador SIN cuenta, captado por una taquilla vía link único, sin login.', 'status' => true, 'type' => 'web', 'sort_order' => 100, 'icon' => 'fa-user-clock', 'color' => '#9333ea'],
         ];
 
         // Añadimos ID único (Snowflake) y timestamps
