@@ -10,8 +10,11 @@
     value: string | null
     /** Ícono FontAwesome mostrado antes del texto relativo. */
     icon?: string
+    /** Oculta el ícono propio — útil cuando el contenedor ya muestra uno. */
+    showIcon?: boolean
   }>(), {
     icon: 'fas fa-clock',
+    showIcon: true,
   })
 
   const relativeLabel = computed(() => formatRelative(props.value))
@@ -63,7 +66,7 @@
 <template>
   <VDropdown placement="top" :distance="8" :triggers="['hover', 'click', 'focus']">
     <span class="relative-time" tabindex="0">
-      <i :class="icon" class="relative-time-icon"></i>{{ relativeLabel }}
+      <i v-if="showIcon" :class="icon" class="relative-time-icon"></i>{{ relativeLabel }}
     </span>
     <template #popper>
       <div class="relative-time-popover">{{ fullLabel }}</div>

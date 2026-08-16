@@ -11,6 +11,9 @@
       Cargando roles...
     </div>
 
+    <!-- El orden ya llega del backend según la Jerarquía de Roles
+         (RoleService::getAll() -> RoleHierarchyService::buildTree() aplanado),
+         no se reordena en el frontend. -->
     <div v-else class="role-list">
       <div v-for="role in roles" :key="role.id" class="role-row" :class="{ 'is-inactive': !role.status }">
         <div class="role-row-main">
@@ -45,7 +48,15 @@
           </template>
         </div>
 
-        <div class="role-row-status">
+        <div class="role-row-side">
+          <span v-if="role.status_changed_at" class="role-row-status-change" title="Último cambio de estado">
+            <i class="fas fa-history"></i>
+            <RelativeTime :value="role.status_changed_at" :show-icon="false" />
+          </span>
+          <span v-else class="role-row-status-change role-row-status-change--empty">
+            <i class="fas fa-history"></i>Sin cambios de estado
+          </span>
+
           <span v-if="role.name === 'superadmin'" class="badge badge-locked" title="El rol superadmin no puede desactivarse">
             <i class="fas fa-lock mr-1"></i>Protegido
           </span>
@@ -62,10 +73,6 @@
         </div>
       </div>
     </div>
-
-    <template #footer>
-      <button class="modal-btn modal-btn--ghost" @click="isOpen = false">Cerrar</button>
-    </template>
   </Modal>
 </template>
 
@@ -73,6 +80,7 @@
 import { ref, watch } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
+import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
 import Swal from 'sweetalert2'
 import { useToast } from 'vue-toastification'
 import { formatRoleName } from '@/js/utils/roles/roleDisplay'
@@ -186,7 +194,28 @@ async function handleToggle(role: AdminRole) {
 }
 .role-desc-input { max-width: 260px; }
 
-.role-row-status { flex-shrink: 0; }
+.role-row-side {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-shrink: 0;
+}
+
+.role-row-status-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-text-2);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.role-row-status-change--empty {
+  color: var(--ds-text-muted);
+}
+.role-row-status-change i {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
 
 .badge-locked {
   background: var(--ds-surface);
