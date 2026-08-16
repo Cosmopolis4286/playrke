@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
+import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+import type { Column } from '@/js/types/common/table/column-row'
 
 interface Game {
   id: string
@@ -98,10 +100,10 @@ function fmt(n: number): string {
   return n.toLocaleString('es-ES')
 }
 
-function accuracy(s: ScoreEntry): number {
-  const total = s.correct_answers + s.wrong_answers
+function accuracy(correct: number, wrong: number): number {
+  const total = correct + wrong
   if (!total) return 0
-  return Math.round((s.correct_answers / total) * 100)
+  return Math.round((correct / total) * 100)
 }
 
 const maxScore = computed(() =>
@@ -121,6 +123,29 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
   if (pos === 3) return '🥉'
   return String(pos ?? '—')
 }
+
+// ── Scoreboard como BaseTable ────────────────────────────────────────────────
+
+const scoreboardColumns: Column[] = [
+  { key: 'rank', label: '#' },
+  { key: 'name', label: 'Jugador' },
+  { key: 'final_score', label: 'Puntuación' },
+  { key: 'correct_answers', label: 'Aciertos', hideBelow: 'sm' },
+  { key: 'wrong_answers', label: 'Fallos', hideBelow: 'md' },
+  { key: 'max_streak', label: 'Racha', hideBelow: 'md' },
+  { key: 'avg_response_ms', label: 'Resp. prom.', hideBelow: 'lg' },
+  { key: 'accuracy', label: '% Acierto' },
+]
+
+/**
+ * BaseTable exige `id` por fila — se usa player_id, ya único en el scoreboard.
+ * `position` se resuelve con fallback al índice+1 aquí (antes se hacía inline
+ * con `s.position ?? idx + 1` dentro del v-for; en BaseTable los slots de
+ * celda no reciben el índice de fila, así que se precalcula en la fuente).
+ */
+const scoreboardRows = computed(() =>
+  props.scoreboard.map((s, idx) => ({ ...s, id: s.player_id, position: s.position ?? idx + 1 }))
+)
 </script>
 
 <template>
@@ -192,6 +217,10 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
       </div>
 
       <!-- ── Scoreboard ──────────────────────────────────────────────────────── -->
+      <!-- Nota: BaseTable no expone clase condicional por fila, así que el
+           highlight de fondo que tenía la fila del ganador (bg-yellow-50/60)
+           se pierde aquí; el badge "Ganador" en la celda de nombre sigue
+           comunicando lo mismo. -->
       <div class="gs-card rounded-xl shadow-sm overflow-hidden">
         <div class="gs-header-border px-5 py-4 border-b">
           <h2 class="text-base font-semibold gs-text">🏅 Clasificación de jugadores</h2>
@@ -201,88 +230,63 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
           No hay datos de puntuación para esta partida.
         </div>
 
-        <table v-else class="min-w-full text-sm gs-divide">
-          <thead class="gs-thead">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-12">#</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Jugador</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Puntuación</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Aciertos</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Fallos</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Racha</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Resp. prom.</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">% Acierto</th>
-            </tr>
-          </thead>
-          <tbody class="gs-divide">
-            <tr
-              v-for="(s, idx) in scoreboard"
-              :key="s.player_id"
-              :class="[
-                'gs-row-hover transition-colors',
-                s.is_winner && 'bg-yellow-50/60 dark:bg-yellow-900/10'
-              ]"
-            >
-              <!-- Posición -->
-              <td class="px-4 py-3 whitespace-nowrap">
-                <span :class="['inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold', rankBadgeClass(s.position ?? idx + 1, s.is_winner)]">
-                  {{ rankIcon(s.position ?? idx + 1, s.is_winner) }}
-                </span>
-              </td>
+        <BaseTable
+          v-else
+          table-id="trivia-game-scoreboard"
+          class="gs-scoreboard-table"
+          :columns="scoreboardColumns"
+          :rows="scoreboardRows"
+        >
+          <template #cell-rank="{ row: s }">
+            <span :class="['inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold', rankBadgeClass(s.position, s.is_winner)]">
+              {{ rankIcon(s.position, s.is_winner) }}
+            </span>
+          </template>
 
-              <!-- Jugador -->
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-2">
-                  <p class="text-sm font-medium gs-text">{{ s.name }}</p>
-                  <span v-if="s.is_winner" class="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-1.5 py-0.5 rounded-full">Ganador</span>
-                </div>
-              </td>
+          <template #cell-name="{ row: s }">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium gs-text mb-0">{{ s.name }}</p>
+              <span v-if="s.is_winner" class="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-1.5 py-0.5 rounded-full">Ganador</span>
+            </div>
+          </template>
 
-              <!-- Puntuación -->
-              <td class="px-4 py-3 whitespace-nowrap text-right">
-                <p class="text-sm font-bold gs-text">{{ fmt(s.final_score) }}</p>
-                <div class="mt-1 w-20 h-1 gs-track rounded-full ml-auto hidden sm:block">
-                  <div
-                    class="h-full bg-indigo-500 rounded-full"
-                    :style="{ width: Math.round((s.final_score / maxScore) * 100) + '%' }"
-                  />
-                </div>
-              </td>
+          <template #cell-final_score="{ row: s }">
+            <p class="text-sm font-bold gs-text mb-0 text-end">{{ fmt(s.final_score) }}</p>
+            <div class="mt-1 w-20 h-1 gs-track rounded-full ms-auto d-none d-sm-block">
+              <div
+                class="h-full bg-indigo-500 rounded-full"
+                :style="{ width: Math.round((s.final_score / maxScore) * 100) + '%' }"
+              />
+            </div>
+          </template>
 
-              <!-- Aciertos -->
-              <td class="px-4 py-3 whitespace-nowrap text-right text-green-600 dark:text-green-400 font-medium hidden sm:table-cell">
-                {{ s.correct_answers }}
-              </td>
+          <template #cell-correct_answers="{ row: s }">
+            <span class="text-green-600 dark:text-green-400 font-medium">{{ s.correct_answers }}</span>
+          </template>
 
-              <!-- Fallos -->
-              <td class="px-4 py-3 whitespace-nowrap text-right text-red-500 dark:text-red-400 hidden md:table-cell">
-                {{ s.wrong_answers }}
-              </td>
+          <template #cell-wrong_answers="{ row: s }">
+            <span class="text-red-500 dark:text-red-400">{{ s.wrong_answers }}</span>
+          </template>
 
-              <!-- Racha -->
-              <td class="px-4 py-3 whitespace-nowrap text-right gs-text-secondary hidden md:table-cell">
-                🔥 {{ s.max_streak }}
-              </td>
+          <template #cell-max_streak="{ row: s }">
+            <span class="gs-text-secondary">🔥 {{ s.max_streak }}</span>
+          </template>
 
-              <!-- Tiempo promedio -->
-              <td class="px-4 py-3 whitespace-nowrap text-right gs-text-secondary hidden lg:table-cell">
-                {{ msToSec(s.avg_response_ms) }}
-              </td>
+          <template #cell-avg_response_ms="{ row: s }">
+            <span class="gs-text-secondary">{{ msToSec(s.avg_response_ms) }}</span>
+          </template>
 
-              <!-- % Acierto -->
-              <td class="px-4 py-3 whitespace-nowrap text-right">
-                <span :class="[
-                  'px-2 py-0.5 rounded-full text-xs font-medium',
-                  accuracy(s) >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                  accuracy(s) >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                ]">
-                  {{ accuracy(s) }}%
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <template #cell-accuracy="{ row: s }">
+            <span :class="[
+              'px-2 py-0.5 rounded-full text-xs font-medium',
+              accuracy(s.correct_answers, s.wrong_answers) >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+              accuracy(s.correct_answers, s.wrong_answers) >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+            ]">
+              {{ accuracy(s.correct_answers, s.wrong_answers) }}%
+            </span>
+          </template>
+        </BaseTable>
       </div>
 
       <!-- ── Preguntas jugadas ───────────────────────────────────────────────── -->
@@ -375,4 +379,40 @@ function rankIcon(pos: number | null, isWinner: boolean): string {
 .gs-back-btn { border-color: var(--ds-border); color: var(--ds-text-2); }
 .gs-back-btn:hover { background: var(--ds-surface-2); }
 .gs-option-border { border-color: var(--ds-border); }
+
+/* Adapta el look de BaseTable (Bootstrap) al estilo Tailwind del resto de
+   esta página: sin bordes/rayas de Bootstrap, header en mayúsculas discreto,
+   mismo padding de celda que el resto del módulo Trivia. */
+.gs-scoreboard-table :deep(table) {
+  --bs-table-striped-bg: transparent;
+  border-collapse: collapse;
+}
+.gs-scoreboard-table :deep(thead th) {
+  background: var(--ds-surface-2);
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  padding: 0.75rem 1rem;
+  text-align: right;
+}
+.gs-scoreboard-table :deep(thead th:first-child),
+.gs-scoreboard-table :deep(thead th:nth-child(2)) {
+  text-align: left;
+}
+.gs-scoreboard-table :deep(tbody td) {
+  border: none;
+  border-top: 1px solid var(--ds-border);
+  padding: 0.75rem 1rem;
+  text-align: right;
+  vertical-align: middle;
+}
+.gs-scoreboard-table :deep(tbody td:first-child),
+.gs-scoreboard-table :deep(tbody td:nth-child(2)) {
+  text-align: left;
+}
+.gs-scoreboard-table :deep(tbody tr:hover) {
+  background: var(--ds-surface-2);
+}
 </style>

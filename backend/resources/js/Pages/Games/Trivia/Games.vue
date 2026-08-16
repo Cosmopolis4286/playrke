@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import debounce from 'lodash/debounce'
 import { getRoute } from '@js/routes/triviaRoutes'
+import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+import type { Column } from '@/js/types/common/table/column-row'
 
 interface Game {
   id: string
@@ -79,6 +81,24 @@ function progressPct(g: Game): number {
   if (!g.total_questions) return 0
   return Math.round((g.current_question_index / g.total_questions) * 100)
 }
+
+// ── Tabla como BaseTable ──────────────────────────────────────────────────────
+// Solo se reemplaza el renderer de la tabla; paginación (links de Laravel) y
+// filtros (fecha/estado/búsqueda vía query params al servidor) se mantienen
+// como están — no encajan en el contrato server-side de TableWithFilterBridge
+// (Pagination con total/last_page, filtros por columna vs. rango de fechas).
+
+const tableColumns: Column[] = [
+  { key: 'game_code', label: 'Partida' },
+  { key: 'room_title', label: 'Sala' },
+  { key: 'status', label: 'Estado' },
+  { key: 'player_count', label: 'Jugadores', hideBelow: 'sm' },
+  { key: 'progress', label: 'Progreso', hideBelow: 'md' },
+  { key: 'winner_name', label: 'Ganador', hideBelow: 'lg' },
+  { key: 'started_at', label: 'Inicio', hideBelow: 'lg' },
+  { key: 'duration_min', label: 'Duración', hideBelow: 'xl' },
+  { key: 'actions', label: 'Ver' },
+]
 </script>
 
 <template>
@@ -150,110 +170,78 @@ function progressPct(g: Game): number {
 
       <!-- Tabla -->
       <div class="gp-card rounded-xl shadow-sm overflow-hidden">
-        <table class="min-w-full gp-divide text-sm">
-          <thead class="gp-thead">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Partida</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Sala</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Estado</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Jugadores</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Progreso</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Ganador</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Inicio</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden xl:table-cell">Duración</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Ver</th>
-            </tr>
-          </thead>
-          <tbody class="gp-divide">
+        <BaseTable
+          table-id="trivia-games-table"
+          class="gp-games-table"
+          :columns="tableColumns"
+          :rows="games.data"
+          empty-message="No se encontraron partidas con los filtros aplicados."
+        >
+          <template #cell-game_code="{ row: g }">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🎲</span>
+              <div>
+                <p class="font-mono text-xs font-semibold gp-text-secondary mb-0">{{ g.game_code }}</p>
+                <p class="text-xs text-gray-400 d-none d-sm-block mb-0">{{ g.time_per_question }}s / pregunta</p>
+              </div>
+            </div>
+          </template>
 
-            <tr
-              v-for="g in games.data"
-              :key="g.id"
-              class="gp-row-hover transition-colors"
+          <template #cell-room_title="{ row: g }">
+            <p class="text-sm font-medium gp-text truncate max-w-[140px] mb-0">{{ g.room_title }}</p>
+            <code class="text-xs text-gray-400">{{ g.room_code }}</code>
+          </template>
+
+          <template #cell-status="{ row: g }">
+            <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', STATUS_COLOR[g.status] ?? STATUS_COLOR.waiting]">
+              {{ STATUS_LABEL[g.status] ?? g.status }}
+            </span>
+          </template>
+
+          <template #cell-player_count="{ row: g }">
+            <span class="gp-text-secondary">{{ g.player_count }}</span>
+            <span class="text-xs text-gray-400"> / {{ g.max_players }}</span>
+          </template>
+
+          <template #cell-progress="{ row: g }">
+            <div class="flex items-center gap-2">
+              <div class="w-20 h-1.5 gp-track rounded-full">
+                <div
+                  class="h-full bg-indigo-500 rounded-full transition-all"
+                  :style="{ width: progressPct(g) + '%' }"
+                />
+              </div>
+              <span class="text-xs text-gray-500">{{ g.current_question_index }}/{{ g.total_questions }}</span>
+            </div>
+          </template>
+
+          <template #cell-winner_name="{ row: g }">
+            <template v-if="g.winner_name">
+              <p class="text-sm font-medium gp-text-secondary truncate max-w-[120px] mb-0">
+                🏆 {{ g.winner_name }}
+              </p>
+              <p v-if="g.winner_score" class="text-xs text-yellow-600 mb-0">{{ g.winner_score.toLocaleString() }} pts</p>
+            </template>
+            <span v-else class="text-xs text-gray-400">—</span>
+          </template>
+
+          <template #cell-started_at="{ row: g }">
+            <span class="text-xs text-gray-500">{{ formatDate(g.started_at) }}</span>
+          </template>
+
+          <template #cell-duration_min="{ row: g }">
+            <span class="text-xs text-gray-500">{{ g.duration_min !== null ? g.duration_min + ' min' : '—' }}</span>
+          </template>
+
+          <template #cell-actions="{ row: g }">
+            <Link
+              :href="getRoute('gamesShow', { id: g.id })"
+              class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 text-sm font-medium"
             >
-              <!-- Partida -->
-              <td class="px-4 py-3 whitespace-nowrap">
-                <div class="flex items-center gap-2">
-                  <span class="text-lg">🎲</span>
-                  <div>
-                    <p class="font-mono text-xs font-semibold gp-text-secondary">{{ g.game_code }}</p>
-                    <p class="text-xs text-gray-400 hidden sm:block">{{ g.time_per_question }}s / pregunta</p>
-                  </div>
-                </div>
-              </td>
-
-              <!-- Sala -->
-              <td class="px-4 py-3">
-                <p class="text-sm font-medium gp-text truncate max-w-[140px]">{{ g.room_title }}</p>
-                <code class="text-xs text-gray-400">{{ g.room_code }}</code>
-              </td>
-
-              <!-- Estado -->
-              <td class="px-4 py-3 whitespace-nowrap">
-                <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', STATUS_COLOR[g.status] ?? STATUS_COLOR.waiting]">
-                  {{ STATUS_LABEL[g.status] ?? g.status }}
-                </span>
-              </td>
-
-              <!-- Jugadores -->
-              <td class="px-4 py-3 whitespace-nowrap hidden sm:table-cell">
-                <span class="gp-text-secondary">{{ g.player_count }}</span>
-                <span class="text-xs text-gray-400"> / {{ g.max_players }}</span>
-              </td>
-
-              <!-- Progreso -->
-              <td class="px-4 py-3 hidden md:table-cell">
-                <div class="flex items-center gap-2">
-                  <div class="w-20 h-1.5 gp-track rounded-full">
-                    <div
-                      class="h-full bg-indigo-500 rounded-full transition-all"
-                      :style="{ width: progressPct(g) + '%' }"
-                    />
-                  </div>
-                  <span class="text-xs text-gray-500">{{ g.current_question_index }}/{{ g.total_questions }}</span>
-                </div>
-              </td>
-
-              <!-- Ganador -->
-              <td class="px-4 py-3 hidden lg:table-cell">
-                <template v-if="g.winner_name">
-                  <p class="text-sm font-medium gp-text-secondary truncate max-w-[120px]">
-                    🏆 {{ g.winner_name }}
-                  </p>
-                  <p v-if="g.winner_score" class="text-xs text-yellow-600">{{ g.winner_score.toLocaleString() }} pts</p>
-                </template>
-                <span v-else class="text-xs text-gray-400">—</span>
-              </td>
-
-              <!-- Inicio -->
-              <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 hidden lg:table-cell">
-                {{ formatDate(g.started_at) }}
-              </td>
-
-              <!-- Duración -->
-              <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 hidden xl:table-cell">
-                {{ g.duration_min !== null ? g.duration_min + ' min' : '—' }}
-              </td>
-
-              <!-- Acción -->
-              <td class="px-4 py-3 whitespace-nowrap text-right">
-                <Link
-                  :href="getRoute('gamesShow', { id: g.id })"
-                  class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 text-sm font-medium"
-                >
-                  Detalle
-                </Link>
-              </td>
-            </tr>
-
-            <tr v-if="games.data.length === 0">
-              <td colspan="9" class="px-6 py-14 text-center gp-text-faint">
-                <p class="text-4xl mb-2">🎮</p>
-                <p class="text-sm">No se encontraron partidas con los filtros aplicados.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              Detalle
+            </Link>
+          </template>
+        </BaseTable>
 
         <!-- Paginación -->
         <div class="gp-pagination px-6 py-3 border-t flex items-center justify-between">

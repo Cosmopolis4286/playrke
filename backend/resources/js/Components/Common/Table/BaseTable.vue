@@ -131,6 +131,11 @@
     return props.sort.direction === 'asc' ? 'ascending' : 'descending'
   }
 
+  /** Clase Bootstrap para ocultar la columna en pantallas menores al breakpoint indicado. */
+  function hideBelowClass(column: Column): string | null {
+    return column.hideBelow ? `d-none d-${column.hideBelow}-table-cell` : null
+  }
+
   /** Activa el ordenamiento también desde teclado (Enter/Espacio) en el header */
   function onSortKeydown(event: KeyboardEvent, column: Column): void {
     if (event.key !== 'Enter' && event.key !== ' ') return
@@ -227,7 +232,7 @@
             <th
               v-for="column in columns"
               :key="column.key"
-              :class="{ 'is-sortable': column.sortable }"
+              :class="[{ 'is-sortable': column.sortable }, hideBelowClass(column)]"
               :tabindex="column.sortable ? 0 : undefined"
               :role="column.sortable ? 'button' : undefined"
               :aria-sort="ariaSort(column)"
@@ -257,7 +262,7 @@
                 @click.stop="toggleRow(row.id)"
               />
             </td>
-            <td v-for="column in columns" :key="column.key" :class="{ 'cell-truncate': column.truncate }">
+            <td v-for="column in columns" :key="column.key" :class="[{ 'cell-truncate': column.truncate }, hideBelowClass(column)]">
               <slot :name="`cell-${column.key}`" :row="row" :value="getNestedValue(row, column.key)">
                 <span v-if="column.html" v-html="formatCell(row, column)"></span>
                 <span v-else :title="column.truncate ? formatCell(row, column) : undefined">{{ formatCell(row, column) }}</span>

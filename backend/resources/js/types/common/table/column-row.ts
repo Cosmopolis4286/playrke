@@ -14,6 +14,14 @@ export interface Column {
      * de forma útil. Por defecto true (comportamiento previo).
      */
     readonly searchable?: boolean
+    /**
+     * Oculta esta columna (header + celdas) en pantallas MENORES al
+     * breakpoint indicado, vía las utilidades Bootstrap `d-none d-{bp}-table-cell`
+     * ya presentes en el proyecto — mismo criterio que `hidden {bp}:table-cell`
+     * de Tailwind en las tablas de Trivia, para no perder ese responsive al
+     * migrar una tabla a BaseTable.
+     */
+    readonly hideBelow?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 /**

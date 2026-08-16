@@ -11,9 +11,6 @@
           </div>
           <div class="col-sm-6 d-flex flex-column align-items-sm-end">
             <Breadcrumb :items="breadcrumbItems" />
-            <Button class="mt-2" variant="primary" outline icon="fa-user-shield" @click="showRoleManager = true">
-              Gestionar roles
-            </Button>
           </div>
         </div>
       </div>
@@ -94,18 +91,14 @@
         </div>
       </div>
     </section>
-
-    <RoleManagerModal v-model="showRoleManager" />
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import PermissionMatrix from '@/js/Components/Roles/Admin/PermissionMatrix.vue'
 import ModulesPanel from '@/js/Components/Roles/Admin/ModulesPanel.vue'
-import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
 import RoleHierarchyTree from '@/js/Components/Roles/Admin/RoleHierarchyTree.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
-import Button from '@/js/Components/Common/Button/Button.vue'
 import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import { useModules } from '@/js/composables/roles/admin/module/useModules'
@@ -118,7 +111,6 @@ const toast = useToast()
 
 const props = defineProps<PermissionPageProps>()
 
-const showRoleManager = ref(false)
 const activeTab = ref<'matrix' | 'hierarchy'>('matrix')
 
 const breadcrumbItems = [

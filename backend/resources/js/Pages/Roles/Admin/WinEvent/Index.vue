@@ -2,6 +2,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
+import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+import type { Column } from '@/js/types/common/table/column-row'
 
 interface WinEventRow {
   id: string
@@ -15,6 +17,14 @@ interface WinEventRow {
   reported_by: string | null
   created_at: string
 }
+
+const columns: Column[] = [
+  { key: 'winner_name', label: 'Ganador' },
+  { key: 'game_name', label: 'Origen' },
+  { key: 'prize', label: 'Premio' },
+  { key: 'source_label', label: 'Fuente' },
+  { key: 'created_label', label: 'Fecha' },
+]
 
 const PRIZE_KIND_LABELS: Record<string, string> = {
   money: 'Dinero',
@@ -91,6 +101,9 @@ function resetForm(): void {
 // ── Listado ──
 const rows = ref<WinEventRow[]>([])
 const loading = ref(false)
+
+/** BaseTable espera Row[] (con `id`) — se reusa el WinEventRow tal cual, ya lo trae. */
+const tableRows = computed(() => rows.value)
 
 async function fetchList(): Promise<void> {
   try {
@@ -201,35 +214,26 @@ onMounted(fetchList)
             </button>
           </div>
           <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th>Ganador</th>
-                    <th>Origen</th>
-                    <th>Premio</th>
-                    <th>Fuente</th>
-                    <th>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="rows.length === 0">
-                    <td colspan="5" class="text-center text-muted py-4">Sin eventos registrados</td>
-                  </tr>
-                  <tr v-for="row in rows" :key="row.id">
-                    <td>{{ row.winner_name }}</td>
-                    <td>{{ row.game_name }}</td>
-                    <td>
-                      <span class="badge bg-light text-dark border me-1">{{ PRIZE_KIND_LABELS[row.prize_kind] }}</span>
-                      <span v-if="row.amount_usd !== null">${{ row.amount_usd.toFixed(2) }}</span>
-                      <span v-else>{{ row.prize_label }}</span>
-                    </td>
-                    <td><small class="text-muted">{{ SOURCE_TYPE_LABELS[row.source_type] ?? row.source_type }}</small></td>
-                    <td><small class="text-muted">{{ new Date(row.created_at).toLocaleString() }}</small></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <BaseTable
+              table-id="win-event-table"
+              :columns="columns"
+              :rows="tableRows"
+              empty-message="Sin eventos registrados"
+            >
+              <template #cell-prize="{ row }">
+                <span class="badge bg-light text-dark border me-1">{{ PRIZE_KIND_LABELS[row.prize_kind] }}</span>
+                <span v-if="row.amount_usd !== null">${{ row.amount_usd.toFixed(2) }}</span>
+                <span v-else>{{ row.prize_label }}</span>
+              </template>
+
+              <template #cell-source_label="{ row }">
+                <small class="text-muted">{{ SOURCE_TYPE_LABELS[row.source_type] ?? row.source_type }}</small>
+              </template>
+
+              <template #cell-created_label="{ row }">
+                <small class="text-muted">{{ new Date(row.created_at).toLocaleString() }}</small>
+              </template>
+            </BaseTable>
           </div>
         </div>
       </div>

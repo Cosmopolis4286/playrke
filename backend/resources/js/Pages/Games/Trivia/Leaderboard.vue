@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
+import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+import type { Column } from '@/js/types/common/table/column-row'
 
 interface Player {
   rank: number
@@ -85,6 +87,23 @@ const rest   = computed(() => props.players.slice(3))
 
 // Máximo score para barra de progreso relativa
 const maxScore = computed(() => props.players[0]?.total_score ?? 1)
+
+// ── Tabla completa como BaseTable ────────────────────────────────────────────
+
+const tableColumns: Column[] = [
+  { key: 'rank', label: '#' },
+  { key: 'name', label: 'Jugador' },
+  { key: 'total_score', label: 'Puntuación' },
+  { key: 'games_played', label: 'Partidas', hideBelow: 'sm' },
+  { key: 'wins', label: 'Victorias', hideBelow: 'md' },
+  { key: 'total_correct', label: 'Aciertos', hideBelow: 'md' },
+  { key: 'best_streak', label: 'Mejor racha', hideBelow: 'lg' },
+  { key: 'avg_response_ms', label: 'Resp. prom.', hideBelow: 'lg' },
+  { key: 'accuracy', label: '% Acierto' },
+]
+
+/** BaseTable exige `id` por fila — se usa player_id, ya único en el leaderboard. */
+const tableRows = computed(() => props.players.map(p => ({ ...p, id: p.player_id })))
 </script>
 
 <template>
@@ -195,113 +214,88 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
         </div>
 
         <!-- ── Tabla completa ─────────────────────────────────────────────── -->
+        <!-- Nota: BaseTable no expone clase condicional por fila, así que el
+             highlight de fondo del top-3 (bg-amber-50/40) se pierde aquí; el
+             badge de medalla en la celda de rank sigue comunicando lo mismo. -->
         <div class="lb-card rounded-xl shadow-sm overflow-hidden">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="lb-thead border-b">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-12">#</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Jugador</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Puntuación</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Partidas</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Victorias</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Aciertos</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Mejor racha</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Resp. prom.</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">% Acierto</th>
-              </tr>
-            </thead>
-            <tbody class="lb-divide">
-              <tr
-                v-for="p in players"
-                :key="p.player_id"
+          <BaseTable
+            table-id="trivia-leaderboard-table"
+            class="lb-leaderboard-table"
+            :columns="tableColumns"
+            :rows="tableRows"
+          >
+            <template #cell-rank="{ row: p }">
+              <span
                 :class="[
-                  'lb-row-hover transition-colors',
-                  p.rank <= 3 && 'bg-amber-50/40 dark:bg-amber-900/10'
+                  'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold',
+                  p.rank === 1 ? 'bg-yellow-400 text-white' :
+                  p.rank === 2 ? 'bg-gray-300 text-gray-700' :
+                  p.rank === 3 ? 'bg-amber-600 text-white' :
+                  'lb-neutral-badge'
                 ]"
               >
-                <!-- Rank -->
-                <td class="px-4 py-3 whitespace-nowrap">
-                  <span
-                    :class="[
-                      'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold',
-                      p.rank === 1 ? 'bg-yellow-400 text-white' :
-                      p.rank === 2 ? 'bg-gray-300 text-gray-700' :
-                      p.rank === 3 ? 'bg-amber-600 text-white' :
-                      'lb-neutral-badge'
-                    ]"
-                  >
-                    {{ medalIcon(p.rank) ?? p.rank }}
-                  </span>
-                </td>
+                {{ medalIcon(p.rank) ?? p.rank }}
+              </span>
+            </template>
 
-                <!-- Jugador -->
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
-                    <div :class="['w-9 h-9 rounded-full bg-gradient-to-br flex-shrink-0 flex items-center justify-center text-white text-xs font-bold', avatarColor(p.rank)]">
-                      {{ initials(p.name) }}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="text-sm font-medium lb-text truncate">{{ p.name }}</p>
-                      <p v-if="p.email" class="text-xs lb-text-faint truncate hidden sm:block">{{ p.email }}</p>
-                    </div>
-                  </div>
-                </td>
+            <template #cell-name="{ row: p }">
+              <div class="flex items-center gap-3">
+                <div :class="['w-9 h-9 rounded-full bg-gradient-to-br flex-shrink-0 flex items-center justify-center text-white text-xs font-bold', avatarColor(p.rank)]">
+                  {{ initials(p.name) }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium lb-text truncate mb-0">{{ p.name }}</p>
+                  <p v-if="p.email" class="text-xs lb-text-faint truncate d-none d-sm-block mb-0">{{ p.email }}</p>
+                </div>
+              </div>
+            </template>
 
-                <!-- Puntuación + barra relativa -->
-                <td class="px-4 py-3 whitespace-nowrap text-right">
-                  <p class="text-sm font-bold lb-text">{{ fmt(p.total_score) }}</p>
-                  <div class="mt-1 w-20 h-1 lb-track rounded-full ml-auto hidden sm:block">
-                    <div
-                      class="h-full bg-indigo-500 rounded-full"
-                      :style="{ width: Math.round((p.total_score / maxScore) * 100) + '%' }"
-                    />
-                  </div>
-                </td>
+            <template #cell-total_score="{ row: p }">
+              <p class="text-sm font-bold lb-text mb-0 text-end">{{ fmt(p.total_score) }}</p>
+              <div class="mt-1 w-20 h-1 lb-track rounded-full ms-auto d-none d-sm-block">
+                <div
+                  class="h-full bg-indigo-500 rounded-full"
+                  :style="{ width: Math.round((p.total_score / maxScore) * 100) + '%' }"
+                />
+              </div>
+            </template>
 
-                <!-- Partidas -->
-                <td class="px-4 py-3 whitespace-nowrap text-right lb-text-secondary hidden sm:table-cell">
-                  {{ p.games_played }}
-                </td>
+            <template #cell-games_played="{ row: p }">
+              <span class="lb-text-secondary">{{ p.games_played }}</span>
+            </template>
 
-                <!-- Victorias -->
-                <td class="px-4 py-3 whitespace-nowrap text-right hidden md:table-cell">
-                  <span class="lb-text">{{ p.wins }}</span>
-                  <span class="text-xs lb-text-faint ml-1">({{ p.win_rate }}%)</span>
-                </td>
+            <template #cell-wins="{ row: p }">
+              <span class="lb-text">{{ p.wins }}</span>
+              <span class="text-xs lb-text-faint ms-1">({{ p.win_rate }}%)</span>
+            </template>
 
-                <!-- Aciertos / fallos -->
-                <td class="px-4 py-3 whitespace-nowrap text-right hidden md:table-cell">
-                  <span class="text-green-600">{{ fmt(p.total_correct) }}</span>
-                  <span class="text-gray-400 mx-0.5">/</span>
-                  <span class="text-red-500">{{ fmt(p.total_wrong) }}</span>
-                </td>
+            <template #cell-total_correct="{ row: p }">
+              <span class="text-green-600">{{ fmt(p.total_correct) }}</span>
+              <span class="text-gray-400 mx-0.5">/</span>
+              <span class="text-red-500">{{ fmt(p.total_wrong) }}</span>
+            </template>
 
-                <!-- Mejor racha -->
-                <td class="px-4 py-3 whitespace-nowrap text-right lb-text-secondary hidden lg:table-cell">
-                  🔥 {{ p.best_streak }}
-                </td>
+            <template #cell-best_streak="{ row: p }">
+              <span class="lb-text-secondary">🔥 {{ p.best_streak }}</span>
+            </template>
 
-                <!-- Tiempo promedio -->
-                <td class="px-4 py-3 whitespace-nowrap text-right lb-text-secondary hidden lg:table-cell">
-                  {{ msToSec(p.avg_response_ms) }}
-                </td>
+            <template #cell-avg_response_ms="{ row: p }">
+              <span class="lb-text-secondary">{{ msToSec(p.avg_response_ms) }}</span>
+            </template>
 
-                <!-- % Acierto -->
-                <td class="px-4 py-3 whitespace-nowrap text-right">
-                  <span
-                    :class="[
-                      'px-2 py-0.5 rounded-full text-xs font-medium',
-                      p.accuracy >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                      p.accuracy >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                         'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    ]"
-                  >
-                    {{ p.accuracy }}%
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <template #cell-accuracy="{ row: p }">
+              <span
+                :class="[
+                  'px-2 py-0.5 rounded-full text-xs font-medium',
+                  p.accuracy >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                  p.accuracy >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                ]"
+              >
+                {{ p.accuracy }}%
+              </span>
+            </template>
+          </BaseTable>
 
           <!-- Footer con leyenda -->
           <div class="lb-footer px-6 py-3 border-t flex items-center justify-between text-xs lb-text-muted">
@@ -332,4 +326,40 @@ const maxScore = computed(() => props.players[0]?.total_score ?? 1)
 .lb-neutral-badge { background: var(--ds-surface-2); color: var(--ds-text-muted); }
 .lb-track { background: var(--ds-surface-2); }
 .lb-footer { background: var(--ds-surface-2); border-color: var(--ds-border); }
+
+/* Adapta el look de BaseTable (Bootstrap) al estilo Tailwind del resto de
+   esta página — mismo criterio que .gs-scoreboard-table en GameShow.vue. */
+.lb-leaderboard-table :deep(table) {
+  --bs-table-striped-bg: transparent;
+  border-collapse: collapse;
+}
+.lb-leaderboard-table :deep(thead th) {
+  background: var(--ds-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--ds-border);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  padding: 0.75rem 1rem;
+  text-align: right;
+}
+.lb-leaderboard-table :deep(thead th:first-child),
+.lb-leaderboard-table :deep(thead th:nth-child(2)) {
+  text-align: left;
+}
+.lb-leaderboard-table :deep(tbody td) {
+  border: none;
+  border-top: 1px solid var(--ds-border);
+  padding: 0.75rem 1rem;
+  text-align: right;
+  vertical-align: middle;
+}
+.lb-leaderboard-table :deep(tbody td:first-child),
+.lb-leaderboard-table :deep(tbody td:nth-child(2)) {
+  text-align: left;
+}
+.lb-leaderboard-table :deep(tbody tr:hover) {
+  background: var(--ds-surface-2);
+}
 </style>
