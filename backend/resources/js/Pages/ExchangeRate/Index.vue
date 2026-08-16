@@ -240,6 +240,7 @@
         :show-create-button="canCreate"
         show-edit-button
         show-delete-button
+        has-extra-actions
         @create="handleCreate"
         @edit="handleEdit"
         @delete="handleDelete"

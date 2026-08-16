@@ -1,5 +1,5 @@
 <script setup lang="ts" name="TableWithFilterBridge">
-  import { computed, ref } from 'vue'
+  import { computed, ref, useSlots } from 'vue'
   import { vTooltip } from 'floating-vue'
   import TableWithFilter from './TableWithFilter.vue'
 
@@ -39,6 +39,8 @@
     /** Modo server-side: ver TableWithFilter.vue */
     serverSide?: boolean
     serverTotalPages?: number
+    /** Alineación vertical del contenido de las celdas — ver BaseTable.vue. */
+    rowVerticalAlign?: 'top' | 'middle' | 'bottom'
   }>()
 
   /**
@@ -165,6 +167,20 @@
   )
 
   /**
+   * true si va a haber al menos un botón "extra" junto a Crear/Editar/
+   * Eliminar — combina las dos formas de proveerlos: la prop `extraButtons`
+   * (ej. "Salas Automáticas"/"Ver Salas" en bingo-rooms) y el slot manual
+   * `#action-buttons` (ej. "Exportar" en /admin/users). `$slots['action-buttons']`
+   * aquí SÍ refleja fielmente lo que la página consumidora declaró, porque
+   * este es el primer eslabón de la cadena de reenvío — a diferencia de
+   * TableActionButtons.vue/ActionButtons.vue más abajo, donde el slot
+   * existe siempre por el reenvío aunque esté vacío. Se propaga como prop
+   * explícita `hasExtraActions` hacia el resto de la cadena.
+   */
+  const slots = useSlots()
+  const hasExtraActions = computed(() => visibleExtraButtons.value.length > 0 || !!slots['action-buttons'])
+
+  /**
    * Actualiza selección y la re-emite al padre.
    */
   function handleSelectionChange(ids: string[]) {
@@ -234,6 +250,8 @@
     :page-size="props.pageSize"
     :server-side="props.serverSide"
     :server-total-pages="props.serverTotalPages"
+    :row-vertical-align="props.rowVerticalAlign"
+    :has-extra-actions="hasExtraActions"
     @create="actionHandlers.create"
     @edit="actionHandlers.edit"
     @delete="actionHandlers.delete"
@@ -245,9 +263,11 @@
       <slot :name="name" v-bind="slotData" />
     </template>
 
-    <!-- Botones extra -->
+    <!-- Botones extra. Sin separador propio aquí: ActionButtons.vue (el punto
+         de convergencia real de este contenido, ver TableActionButtons.vue)
+         ya antepone uno cuando el slot #actions tiene contenido — duplicarlo
+         aquí generaba dos separadores consecutivos. -->
     <template #action-buttons="{ selectedIds }">
-      <span v-if="visibleExtraButtons.length" class="table-extra-buttons__divider" aria-hidden="true" />
       <button
         v-for="(btn, i) in visibleExtraButtons"
         :key="i"
@@ -266,12 +286,3 @@
   </TableWithFilter>
 </template>
 
-<style scoped>
-.table-extra-buttons__divider {
-  width: 1px;
-  align-self: stretch;
-  min-height: 1.5rem;
-  background: var(--bs-border-color, #dee2e6);
-  margin: 0 0.25rem;
-}
-</style>

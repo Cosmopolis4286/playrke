@@ -1,5 +1,5 @@
 <script setup lang="ts" name="ActionButtons">
-  import type { PropType } from 'vue'
+  import { type PropType } from 'vue'
   import { vTooltip } from 'floating-vue'
 
   const props = defineProps({
@@ -67,6 +67,21 @@
     size: {
       type: String as PropType<'sm' | 'md'>,
       default: 'sm'
+    },
+
+    /**
+     * true si el slot #actions va a renderizar al menos un botón real.
+     * Necesario como prop explícita (no inferible desde `useSlots()`):
+     * intermediarios como TableActionButtons.vue siempre DECLARAN
+     * `<template #actions>` para reenviar su propio slot #action-buttons,
+     * así que la función del slot existe aunque el consumidor final no haya
+     * puesto ningún botón ahí — inspeccionar slots.actions() daría un falso
+     * positivo constante. El separador antes de este slot depende de esta
+     * prop, no de la mera presencia del slot.
+     */
+    hasExtraActions: {
+      type: Boolean,
+      default: false
     }
   })
 
@@ -136,6 +151,12 @@
       <i class="fas fa-trash" />
       <span v-if="selectedIds.length > 1" class="ms-1">({{ selectedIds.length }})</span>
     </button>
+
+    <!-- Separador antes de las acciones personalizadas (ej. "Exportar") —
+         visible siempre que el slot tenga contenido, no solo cuando hay
+         selección (ese es el separador de arriba, entre Crear y las
+         acciones CRUD sobre la fila seleccionada; son conceptos distintos). -->
+    <span v-if="hasExtraActions" class="action-buttons__divider" aria-hidden="true" />
 
     <!-- Acciones personalizadas -->
     <slot name="actions" :selectedIds="selectedIds" />

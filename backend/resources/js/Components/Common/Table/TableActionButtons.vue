@@ -16,7 +16,9 @@
     disableEditReason:   { type: String,  default: '' },
     showDeleteButton:    { type: Boolean, default: true },
     disableDelete:       { type: Boolean, default: false },
-    disableDeleteReason: { type: String,  default: '' }
+    disableDeleteReason: { type: String,  default: '' },
+    /** true si el slot #action-buttons va a renderizar contenido real — ver ActionButtons.vue. */
+    hasExtraActions:     { type: Boolean, default: false }
   })
 
   const emit = defineEmits<{
@@ -36,6 +38,7 @@
     :show-delete="showDeleteButton"
     :disable-delete="disableDelete"
     :disable-delete-reason="disableDeleteReason"
+    :has-extra-actions="hasExtraActions"
     @create="emit('create')"
     @edit="(id) => emit('edit', id)"
     @delete="(ids) => emit('delete', ids)"

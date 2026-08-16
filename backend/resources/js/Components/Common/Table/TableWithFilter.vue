@@ -45,6 +45,10 @@
      */
     serverSide?: boolean
     serverTotalPages?: number
+    /** Alineación vertical del contenido de las celdas — ver BaseTable.vue. */
+    rowVerticalAlign?: 'top' | 'middle' | 'bottom'
+    /** true si el slot #action-buttons va a renderizar contenido real — ver ActionButtons.vue. */
+    hasExtraActions?: boolean
   }>()
 
   /**
@@ -176,6 +180,7 @@
         :disable-edit-reason="props.disableEditReason ?? ''"
         :disable-delete="props.disableDelete ?? false"
         :disable-delete-reason="props.disableDeleteReason ?? ''"
+        :has-extra-actions="props.hasExtraActions ?? false"
         @create="$emit('create')"
         @edit="$emit('edit', $event)"
         @delete="$emit('delete', $event)"
@@ -206,6 +211,7 @@
         :has-active-filters="hasActiveFilters"
         :disabled-row-ids="props.disabledRowIds"
         :disabled-row-reason="props.disabledRowReason"
+        :row-vertical-align="props.rowVerticalAlign"
         @selection-change="handleSelectionChange"
         @sort-change="setSort"
         @clear-filters="handleClearFilters"

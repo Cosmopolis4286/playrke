@@ -26,6 +26,14 @@
       disabledRowIds?: string[]
       /** Tooltip mostrado en filas deshabilitadas. */
       disabledRowReason?: string
+      /**
+       * Alineación vertical del contenido de las celdas de datos (no afecta
+       * el header). 'top' es el comportamiento previo — útil cuando la
+       * mayoría de columnas tiene una sola línea de texto y una celda con
+       * contenido más alto (ej. bloques de 2 líneas) no debe "tirar" del
+       * resto hacia arriba de forma desalineada.
+       */
+      rowVerticalAlign?: 'top' | 'middle' | 'bottom'
     }>(),
     {
       selectable: false,
@@ -33,7 +41,8 @@
       allFilteredIds: null,
       hasActiveFilters: false,
       disabledRowIds: () => [],
-      disabledRowReason: 'Esta fila no puede modificarse'
+      disabledRowReason: 'Esta fila no puede modificarse',
+      rowVerticalAlign: 'top'
     }
   )
 
@@ -231,7 +240,7 @@
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody :class="`row-valign-${rowVerticalAlign}`">
           <tr
             v-for="row in rows"
             :key="row.id"
@@ -293,6 +302,11 @@
   .table-row--disabled {
     opacity: 0.6;
   }
+
+  /* Alineación vertical del contenido de celda — ver prop rowVerticalAlign */
+  .row-valign-top td { vertical-align: top; }
+  .row-valign-middle td { vertical-align: middle; }
+  .row-valign-bottom td { vertical-align: bottom; }
 
   .table-row--disabled td:first-child {
     cursor: not-allowed;

@@ -242,6 +242,7 @@
         show-create-button
         show-edit-button
         show-delete-button
+        :has-extra-actions="selectedIds.length > 0"
         @create="handleCreate"
         @edit="handleEdit"
         @delete="handleDelete"
