@@ -125,9 +125,12 @@
   }
 
   // Estado del modal de permisos específicos por usuario (solo superadmin)
+  // Se compara por role.name (minúscula, ej. 'superadmin'), NO por
+  // role.prefix — prefix se guarda en MAYÚSCULA ('SUPERADMIN') a nivel de
+  // datos, así que compararlo contra un literal en minúscula nunca hacía match.
   const page = usePage()
   const isSuperadmin = computed(() =>
-    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.prefix === 'superadmin') ?? false
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
   )
   const currentUserId = computed(() => String((page.props.auth as any)?.user?.id ?? ''))
 
@@ -141,12 +144,18 @@
     { label: 'Usuarios' },
   ]
 
-  // Filas protegidas: cuentas superadmin (si el actor no lo es) y la propia
-  // cuenta del actor — mismo criterio que el guard de AdminUserService, para
-  // que la UI nunca ofrezca una acción que el servidor va a rechazar.
+  // Filas protegidas: cuentas superadmin (si el actor no lo es), cuentas
+  // admin (si el actor no es superadmin — un admin no puede modificar a
+  // OTRO admin) y la propia cuenta del actor — mismo criterio que el guard
+  // de AdminUserService::guardMutation(), para que la UI nunca ofrezca una
+  // acción que el servidor va a rechazar.
   const disabledRowIds = computed<string[]>(() =>
     users.value
-      .filter(u => String(u.id) === currentUserId.value || (u.role_name === 'superadmin' && !isSuperadmin.value))
+      .filter(u =>
+        String(u.id) === currentUserId.value ||
+        (u.role_name === 'superadmin' && !isSuperadmin.value) ||
+        (u.role_name === 'admin' && !isSuperadmin.value)
+      )
       .map(u => String(u.id))
   )
 
@@ -158,8 +167,11 @@
     if (ids.some(id => String(id) === currentUserId.value)) {
       return 'No puedes realizar esta acción sobre tu propio usuario'
     }
-    if (ids.some(id => disabledRowIds.value.includes(String(id)))) {
+    if (ids.some(id => users.value.find(u => u.id === id)?.role_name === 'superadmin')) {
       return 'No tienes permisos para modificar una cuenta Super Administrador'
+    }
+    if (ids.some(id => users.value.find(u => u.id === id)?.role_name === 'admin')) {
+      return 'Solo un Super Administrador puede modificar la cuenta de otro Administrador'
     }
     return ''
   }
@@ -217,6 +229,10 @@
   const editingUser = computed(() => users.value.find(u => u.id === userEditData.value.id) ?? null)
   const isEditingSelf = computed(() => !!userEditData.value.id && String(userEditData.value.id) === currentUserId.value)
   const isEditingTargetSuperadmin = computed(() => editingUser.value?.role_name === 'superadmin')
+  // Un admin no puede editar a OTRO admin (solo superadmin puede) — el
+  // backend refuerza esto en AdminUserService::guardMutation(); ocultar/
+  // bloquear aquí evita que la UI ofrezca una acción que el servidor rechazará.
+  const isEditingTargetAdmin = computed(() => editingUser.value?.role_name === 'admin')
 
   function openEditModal(userId: string | number) {
     editUser(userId)
@@ -583,13 +599,12 @@
         :extra-buttons="extraButtons"
         @query-change="onQueryChange"
       >
-        <template #cell-role_badge="{ row }">
-          <span v-html="row.role_badge"></span>
-        </template>
-
         <template #cell-full_name="{ row }">
           <div class="admin-user-cell">
-            <span class="admin-user-cell__name">{{ row.full_name }}</span>
+            <div class="admin-user-cell__top">
+              <span class="admin-user-cell__name">{{ row.full_name }}</span>
+              <span v-html="row.role_badge"></span>
+            </div>
             <span class="admin-user-cell__meta">
               <i class="fas fa-at"></i>{{ row.username }}
               <span class="admin-user-cell__sep">·</span>
@@ -652,6 +667,7 @@
       :countries="props.countries"
       :is-actor-superadmin="isSuperadmin"
       :is-target-superadmin="isEditingTargetSuperadmin"
+      :is-target-admin="isEditingTargetAdmin"
       :is-self="isEditingSelf"
       @reset-password="() => editingUser && resetPassword(editingUser.id)"
     />
@@ -740,12 +756,18 @@
   margin-bottom: 1rem;
 }
 
-/* Celda "Usuario" acoplada: nombre + username + email en un solo bloque */
+/* Celda "Usuario" acoplada: rol + nombre + username + email en un solo bloque */
 .admin-user-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
   min-width: 0;
+}
+.admin-user-cell__top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 .admin-user-cell__name {
   font-weight: 600;

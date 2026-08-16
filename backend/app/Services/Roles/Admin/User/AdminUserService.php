@@ -119,8 +119,12 @@ final class AdminUserService
     }
 
     /**
-     * Bloquea auto-modificación y mutación de cuentas superadmin por parte
-     * de actores que no lo son (mismo criterio que AdministratorService).
+     * Bloquea auto-modificación, mutación de cuentas superadmin por parte de
+     * actores que no lo son (mismo criterio que AdministratorService), y
+     * mutación de OTRA cuenta admin por parte de un actor admin (solo
+     * superadmin puede modificar a otro administrador) — evita que un admin
+     * desactive/elimine/resetee la contraseña de un par para quedarse con
+     * control exclusivo del panel.
      */
     private function guardMutation(User $user): void
     {
@@ -130,6 +134,10 @@ final class AdminUserService
 
         if ($user->hasRole('superadmin') && !auth()->user()->hasRole('superadmin')) {
             throw AdminUserException::cannotModifySuperadmin();
+        }
+
+        if ($user->hasRole('admin') && !auth()->user()->hasRole('superadmin')) {
+            throw AdminUserException::cannotModifyOtherAdmin();
         }
     }
 
@@ -210,14 +218,21 @@ final class AdminUserService
     }
 
     /**
-     * Bloquea asignar el rol superadmin si el actor no lo es.
+     * Bloquea asignar el rol superadmin o admin si el actor no es superadmin
+     * — un admin no puede promover a nadie (ni a sí mismo, ya bloqueado por
+     * guardMutation) a su propio nivel o superior.
      */
     private function guardRoleChange(User $user, string $roleId): void
     {
         $role = Role::find($roleId);
+        $roleName = $role ? strtolower($role->name) : null;
 
-        if ($role && strtolower($role->name) === 'superadmin' && !auth()->user()->hasRole('superadmin')) {
+        if ($roleName === 'superadmin' && !auth()->user()->hasRole('superadmin')) {
             throw AdminUserException::cannotModifySuperadmin();
+        }
+
+        if ($roleName === 'admin' && !auth()->user()->hasRole('superadmin')) {
+            throw AdminUserException::cannotAssignAdminRole();
         }
     }
 

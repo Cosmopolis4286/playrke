@@ -21,6 +21,8 @@ return [
     'ADMIN_USER_DELETE_FAILED' => 'No se pudo eliminar el usuario.',
     'ADMIN_USER_CANNOT_MODIFY_SELF' => 'No puedes realizar esta acción sobre tu propio usuario.',
     'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN' => 'No tienes permisos para modificar una cuenta Super Administrador.',
+    'ADMIN_USER_CANNOT_MODIFY_OTHER_ADMIN' => 'Solo un Super Administrador puede modificar la cuenta de otro Administrador.',
+    'ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE' => 'Solo un Super Administrador puede asignar el rol Administrador.',
 
     // Comercios (admin/commerce)
     'ADMIN_COMMERCE_NOT_FOUND' => 'Comercio no encontrado.',

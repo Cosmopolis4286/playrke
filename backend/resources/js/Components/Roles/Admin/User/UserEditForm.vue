@@ -22,6 +22,8 @@
     roles: AdminRole[]
     /** true si el usuario editado es superadmin. */
     isTargetSuperadmin: boolean
+    /** true si el usuario editado es admin (otro admin, no el actor). */
+    isTargetAdmin?: boolean
     /** true si el actor autenticado es superadmin. */
     isActorSuperadmin: boolean
     /** true si el usuario editado es el propio actor autenticado. */
@@ -42,21 +44,48 @@
    * Form logic
    * ========================================================================== */
 
-  const { form, errors, isValid } = useAdminUserEditForm(() => props.modelValue, emit)
+  const { form, errors, isValid: isFormDataValid } = useAdminUserEditForm(() => props.modelValue, emit)
 
   /* ==========================================================================
    * Bloqueo de rol
    * ========================================================================== */
 
   const isRoleLocked = computed(() =>
-    props.isSelf || (props.isTargetSuperadmin && !props.isActorSuperadmin)
+    props.isSelf ||
+    (props.isTargetSuperadmin && !props.isActorSuperadmin) ||
+    (props.isTargetAdmin && !props.isActorSuperadmin)
   )
 
   const roleLockedReason = computed(() => {
     if (props.isSelf) return 'No puedes cambiar tu propio rol'
     if (props.isTargetSuperadmin && !props.isActorSuperadmin) return 'Solo un Super Administrador puede reasignar este rol'
+    if (props.isTargetAdmin && !props.isActorSuperadmin) return 'Solo un Super Administrador puede modificar el rol de otro Administrador'
     return ''
   })
+
+  /**
+   * Opciones de rol disponibles en el selector — un actor que no es
+   * superadmin nunca debe poder seleccionar "Admin" (evita promover a
+   * alguien a su propio nivel), reforzado también en el backend vía
+   * AdminUserService::guardRoleChange().
+   */
+  const selectableRoles = computed(() =>
+    props.isActorSuperadmin
+      ? props.roles
+      : props.roles.filter(r => r.name.toLowerCase() !== 'admin')
+  )
+
+  /**
+   * Bloquea el formulario COMPLETO (no solo el rol): un admin no puede
+   * modificar ningún dato de otro admin — el backend rechaza la request
+   * entera vía AdminUserService::guardMutation(), así que ni vale la pena
+   * dejar editables nombre/username/email/país aquí. En el flujo normal la
+   * fila ya está deshabilitada en la tabla (ver disabledRowIds en Index.vue)
+   * y este modal no llega a abrirse; esto es defensa en profundidad.
+   */
+  const isFormLocked = computed(() => !!props.isTargetAdmin && !props.isActorSuperadmin)
+
+  const isValid = computed(() => isFormDataValid.value && !isFormLocked.value)
 
   /* ==========================================================================
    * Submit
@@ -81,6 +110,10 @@
       <i class="fas fa-shield-alt mr-1"></i>
       Esta cuenta es Super Administrador — solo otro Super Administrador puede cambiar su rol.
     </div>
+    <div v-else-if="isTargetAdmin && !isActorSuperadmin" class="alert alert-warning small mb-3">
+      <i class="fas fa-shield-alt mr-1"></i>
+      Esta cuenta es Administrador — solo un Super Administrador puede modificarla.
+    </div>
 
     <div class="row">
       <FormInput
@@ -89,6 +122,7 @@
         required
         col="col-sm-6"
         :error="errors.first_name"
+        :disabled="isFormLocked"
         v-model="form.first_name"
       />
 
@@ -98,6 +132,7 @@
         required
         col="col-sm-6"
         :error="errors.last_name"
+        :disabled="isFormLocked"
         v-model="form.last_name"
       />
 
@@ -109,6 +144,7 @@
         maxlength="20"
         col="col-sm-6"
         :error="errors.username"
+        :disabled="isFormLocked"
         v-model="form.username"
       />
 
@@ -119,6 +155,7 @@
         required
         col="col-sm-6"
         :error="errors.email"
+        :disabled="isFormLocked"
         v-model="form.email"
       />
 
@@ -132,6 +169,7 @@
         optionLabel="name"
         col="col-sm-6"
         :error="errors.country_id"
+        :disabled="isFormLocked"
         v-model="form.country_id"
       />
 
@@ -141,11 +179,11 @@
           name="role_id"
           required
           placeholder="Seleccionar rol"
-          :options="props.roles"
+          :options="selectableRoles"
           optionValue="id"
           optionLabel="name"
           col=""
-          :disabled="isRoleLocked"
+          :disabled="isRoleLocked || isFormLocked"
           v-model="form.role_id"
         />
         <small v-if="isRoleLocked" class="text-muted d-block role-locked-hint">
@@ -154,7 +192,7 @@
       </div>
     </div>
 
-    <button type="button" class="btn btn-outline-dark btn-sm mt-2" @click="emit('reset-password')">
+    <button type="button" class="btn btn-outline-dark btn-sm mt-2" :disabled="isFormLocked" @click="emit('reset-password')">
       <i class="fas fa-key mr-2"></i>
       Resetear contraseña
     </button>

@@ -65,4 +65,14 @@ final class AdminUserException extends DomainException
     {
         return new self('ADMIN_USER_CANNOT_MODIFY_SUPERADMIN');
     }
+
+    public static function cannotModifyOtherAdmin(): self
+    {
+        return new self('ADMIN_USER_CANNOT_MODIFY_OTHER_ADMIN');
+    }
+
+    public static function cannotAssignAdminRole(): self
+    {
+        return new self('ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE');
+    }
 }
