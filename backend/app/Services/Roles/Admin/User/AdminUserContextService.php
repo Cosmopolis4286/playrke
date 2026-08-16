@@ -84,12 +84,13 @@ final class AdminUserContextService
      */
     public function resolveUsers(array $filters = [], int $page = 1, int $perPage = 15): array
     {
-        // "Usuario" acopla nombre + username + email en una sola columna
-        // (antes 3 columnas separadas) para dejar espacio a Permisos y
-        // Registrado sin sobrecargar la tabla — el frontend arma el bloque
-        // visual a partir de full_name/username/email vía slot #cell-full_name.
-        $labels  = ['Rol', 'Usuario', 'País', 'Permisos', 'Registrado', 'Status'];
-        $rowKeys = ['role_badge', 'full_name', 'country_name', 'permissions_badge', 'registered_at', 'status_badge'];
+        // "Usuario" acopla rol + nombre + username + email en una sola columna
+        // (antes 4 columnas separadas: Rol, Nombre, Username, Email) para dejar
+        // espacio a Permisos y Registrado sin sobrecargar la tabla — el
+        // frontend arma el bloque visual a partir de role_badge/full_name/
+        // username/email vía slot #cell-full_name.
+        $labels  = ['Usuario', 'País', 'Permisos', 'Registrado', 'Status'];
+        $rowKeys = ['full_name', 'country_name', 'permissions_badge', 'registered_at', 'status_badge'];
 
         $source = $this->buildFilteredQuery($filters)->paginate($perPage, ['*'], 'page', $page);
 
@@ -130,9 +131,11 @@ final class AdminUserContextService
             $row['country_id'] = $user?->country_id;
             $row['first_name'] = $user?->first_name;
             $row['last_name']  = $user?->last_name;
-            // username/email dejaron de ser columnas independientes (ver
-            // labels/rowKeys arriba) pero se necesitan como datos crudos para
-            // el slot #cell-full_name (bloque "Usuario" acoplado) y la búsqueda.
+            // role_badge/username/email dejaron de ser columnas independientes
+            // (ver labels/rowKeys arriba) pero se necesitan como datos crudos
+            // para el slot #cell-full_name (bloque "Usuario" acoplado: rol +
+            // nombre + username + email) y la búsqueda.
+            $row['role_badge'] = $user?->role_badge;
             $row['username']   = $user?->username;
             $row['email']      = $user?->email;
             $row['has_specific_permissions'] = !empty($user?->specific_permissions);

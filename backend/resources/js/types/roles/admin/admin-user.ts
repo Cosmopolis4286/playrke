@@ -6,6 +6,7 @@ export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'SUSPENDED' | 'PEND
 
 export interface AdminUser {
     readonly id: string | number
+    /** Dato crudo (no es columna independiente): se muestra junto a full_name en el slot #cell-full_name. */
     readonly role_badge: string
     readonly full_name: string
     /** Dato crudo (no es columna independiente): se muestra junto a full_name en el slot #cell-full_name. */
