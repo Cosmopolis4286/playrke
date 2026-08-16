@@ -234,6 +234,16 @@
   // bloquear aquí evita que la UI ofrezca una acción que el servidor rechazará.
   const isEditingTargetAdmin = computed(() => editingUser.value?.role_name === 'admin')
 
+  /**
+   * Botón "Ver más" del modal de edición: navega a la página dedicada del
+   * rol (ej. /admin/commerces) pasando ?open={domainId} para que esa página
+   * auto-abra la ficha del usuario al montar (ver onMounted en cada
+   * Roles/Admin/{Rol}/Index.vue).
+   */
+  function handleViewRoleDetail(route: string, domainId: string | number) {
+    router.visit(route, { data: { open: domainId } })
+  }
+
   function openEditModal(userId: string | number) {
     editUser(userId)
     showEditModal.value = true
@@ -597,6 +607,7 @@
         :disabled-row-ids="disabledRowIds"
         disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
         :extra-buttons="extraButtons"
+        row-vertical-align="middle"
         @query-change="onQueryChange"
       >
         <template #cell-full_name="{ row }">
@@ -669,7 +680,10 @@
       :is-target-superadmin="isEditingTargetSuperadmin"
       :is-target-admin="isEditingTargetAdmin"
       :is-self="isEditingSelf"
+      :target-role-name="editingUser?.role_name"
+      :target-domain-id="editingUser?.domain_id"
       @reset-password="() => editingUser && resetPassword(editingUser.id)"
+      @view-role-detail="handleViewRoleDetail"
     />
   </Modal>
 
