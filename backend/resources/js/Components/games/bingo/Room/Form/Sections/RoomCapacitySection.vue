@@ -14,18 +14,17 @@
 
 <template>
   <div style="display: contents">
-    <div class="col-12 mb-3">
-      <p class="text-muted mb-0" style="font-size: 0.82rem">
-        Todos los límites son opcionales e independientes entre sí — podés dejar
-        cualquiera vacío (sin condición/sin límite), fijar solo uno de cada par,
-        o ambos. Si fijás mínimo y máximo del mismo par, el mínimo no puede
-        superar al máximo.
-      </p>
+    <div class="col-12 mb-2">
+      <small class="text-muted d-block" style="font-size: 0.74rem">
+        <i class="fa-solid fa-circle-info fa-fw"></i>
+        Todos los límites son opcionales e independientes — podés dejar cualquiera
+        vacío, fijar solo uno de cada par, o ambos (el mínimo no puede superar al máximo).
+      </small>
     </div>
 
     <div class="col-12">
-      <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
-        <i class="fa-solid fa-layer-group mr-1" style="opacity: 0.7"></i>
+      <p class="mb-2" style="font-weight: 500; font-size: 0.8rem">
+        <i class="fa-solid fa-layer-group mr-1" style="opacity: 0.6"></i>
         Cartones
       </p>
       <div class="row">
@@ -77,8 +76,8 @@
 
     <div class="col-12">
       <hr style="margin: 0.25rem 0 0.75rem" />
-      <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
-        <i class="fa-solid fa-users mr-1" style="opacity: 0.7"></i>
+      <p class="mb-2" style="font-weight: 500; font-size: 0.8rem">
+        <i class="fa-solid fa-users mr-1" style="opacity: 0.6"></i>
         Jugadores
       </p>
       <div class="row">

@@ -123,6 +123,17 @@ import { SelectOption } from '@/js/types/common/form/form'
 
 <template>
   <div style="display: contents">
+    <!-- Horario -->
+    <div class="col-12">
+      <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
+        <i class="fa-solid fa-calendar-days mr-1" style="opacity: 0.7"></i>
+        Horario
+      </p>
+      <p class="text-muted mb-2" style="font-size: 0.78rem">
+        Cuándo y cómo inicia el sorteo — programado a fecha/hora fija, o manual (el anfitrión lo activa cuando quiera).
+      </p>
+    </div>
+
     <!-- Modo de inicio (solo salas normales) -->
     <FormSelect
       v-if="!automaticRoom"
@@ -185,6 +196,18 @@ import { SelectOption } from '@/js/types/common/form/form'
       :modelValue="modelValue.time"
       @update:modelValue="emit('update:modelValue', { ...modelValue, time: $event })"
     />
+
+    <!-- Tipo y acceso -->
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
+        <i class="fa-solid fa-door-open mr-1" style="opacity: 0.7"></i>
+        Tipo y acceso
+      </p>
+      <p class="text-muted mb-2" style="font-size: 0.78rem">
+        Pública (cualquiera puede entrar) o privada (requiere código + contraseña, con un anfitrión responsable).
+      </p>
+    </div>
 
     <!-- Tipo de sala -->
     <FormSelect
@@ -272,12 +295,27 @@ import { SelectOption } from '@/js/types/common/form/form'
         <i class="fa-solid fa-gauge-high mr-1" style="opacity: 0.7"></i>
         Capacidad de la sala
       </p>
+      <p class="text-muted mb-2" style="font-size: 0.78rem">
+        Límites opcionales de cartones y jugadores — dejalos vacíos si no querés restricción.
+      </p>
     </div>
     <RoomCapacitySection
       :modelValue="modelValue as BingoRoomFormData"
       :errors="errors"
       @update:modelValue="emit('update:modelValue', $event as any)"
     />
+
+    <!-- Configuración general -->
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
+        <i class="fa-solid fa-sliders mr-1" style="opacity: 0.7"></i>
+        Configuración general
+      </p>
+      <p class="text-muted mb-2" style="font-size: 0.78rem">
+        Conexión, modo y variante de juego, tipo de bote, comisiones y tiempo entre fichas.
+      </p>
+    </div>
 
     <!-- Tipo de Conexión -->
     <FormSelect
@@ -346,6 +384,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       name="room_commission"
       id="room-commn"
       :error="errors.roomCommn"
+      hint="% del bote que se queda la casa como comisión."
       type="number"
       required
       :step="0.05"
@@ -361,6 +400,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="Tiempo Ficha"
       name="time_chip"
       :error="errors.timeChip"
+      hint="Segundos entre cada ficha cantada durante el sorteo."
       type="number"
       required
       :step="1"
@@ -381,6 +421,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="%Jackpot"
       name="jackpot_pct"
       id="jackpot-pct"
+      hint="% del bote destinado al jackpot (opcional)."
       type="number"
       :step="0.5"
       :min="percentageLimits.jackpotPct.min"
@@ -397,6 +438,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="Días de Anticipación"
       name="sales_start_offset_days"
       :error="(errors as any).salesStartOffsetDays"
+      hint="Días antes del sorteo en que la sala se publica y empieza a vender."
       type="number"
       placeholder="Mismo día"
       :step="1"

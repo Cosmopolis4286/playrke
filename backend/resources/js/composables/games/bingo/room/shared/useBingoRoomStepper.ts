@@ -26,9 +26,12 @@ export const STEP_DESCRIPTIONS: Record<BingoRoomStep, string> = {
 }
 
 export const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
-    basic:      ['date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'rounds', 'jackpotPct', 'amountAddedPrizePool', 'accessCode', 'roomPassword', 'hostUserId', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
+    basic:      ['date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'jackpotPct', 'amountAddedPrizePool', 'accessCode', 'roomPassword', 'hostUserId', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
     currencies: ['allowedCurrencies', 'cardPriceUsd', 'cardPriceByCurrency', 'usdExchangeRoundStep'],
-    rounds:     ['roundsPct', 'roundsConfig', 'percentageSum'],
+    // 'rounds' (cantidad de rondas) vive en el input de este mismo tab (RoomRoundsSection.vue)
+    // pese a que el % de comisión que también depende de él está en "Datos básicos" — el ícono
+    // de error debe reflejar dónde está el INPUT visualmente, no dónde vive el dato relacionado.
+    rounds:     ['rounds', 'roundsPct', 'roundsConfig', 'percentageSum'],
     options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards'],
     review:     [],
 }
