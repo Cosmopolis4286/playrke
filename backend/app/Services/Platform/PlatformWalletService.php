@@ -320,12 +320,15 @@ final class PlatformWalletService
             'auditable_type' => Wallet::class,
             'auditable_id'   => (string) $wallet->id,
             'event'          => "platform_wallet_{$action}",
-            'old_values'     => json_encode(['balance' => $balanceBefore], JSON_THROW_ON_ERROR),
-            'new_values'     => json_encode([
+            // Sin json_encode() manual: old_values/new_values ya tienen cast
+            // 'array' en Audit, Eloquent se encarga de (de)serializar — igual
+            // que Auditable::auditChanges() (ver ese trait para el porqué).
+            'old_values'     => ['balance' => $balanceBefore],
+            'new_values'     => [
                 'balance'     => $balanceAfter,
                 'amount'      => $amount,
                 'description' => $description,
-            ], JSON_THROW_ON_ERROR),
+            ],
             'url'        => Request::instance()?->fullUrl(),
             'ip_address' => Request::instance()?->ip(),
             'user_agent' => Request::instance()?->userAgent(),

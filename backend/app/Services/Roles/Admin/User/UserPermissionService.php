@@ -96,8 +96,11 @@ final class UserPermissionService
             'auditable_type' => User::class,
             'auditable_id'   => (string) $user->getKey(),
             'event'          => 'specific_permissions_synced',
-            'old_values'     => json_encode(['revoked' => array_values($revoked)]),
-            'new_values'     => json_encode(['granted' => array_values($granted), 'reason' => $reason]),
+            // Sin json_encode() manual: old_values/new_values ya tienen cast
+            // 'array' en Audit, Eloquent se encarga de (de)serializar — igual
+            // que Auditable::auditChanges() (ver ese trait para el porqué).
+            'old_values'     => ['revoked' => array_values($revoked)],
+            'new_values'     => ['granted' => array_values($granted), 'reason' => $reason],
             'url'            => Request::instance()?->fullUrl(),
             'ip_address'     => Request::instance()?->ip(),
             'user_agent'     => Request::instance()?->userAgent(),

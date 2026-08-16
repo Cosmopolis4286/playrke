@@ -78,9 +78,17 @@ trait Auditable
              * Modelo auditado (polimórfico).
              */
             'auditable_type' => $this->getMorphClass(),
-            'auditable_id'   => $this->serializeValue(
-                $this->getAuditableId()
-            ),
+            /**
+             * auditable_id/old_values/new_values se pasan en su forma nativa
+             * (array o escalar), SIN json_encode() manual: las tres columnas
+             * ya tienen cast 'array' en Audit — Eloquent las serializa al
+             * guardar y las decodifica al leer. Codificarlas aquí también
+             * causaba doble serialización (un JSON-string quedaba persistido
+             * como valor escalar dentro de la columna JSON), por lo que
+             * $audit->old_values/new_values nunca se leían como array real en
+             * ningún consumidor (AuditController, AuditService, etc.).
+             */
+            'auditable_id' => $this->getAuditableId(),
 
             /**
              * Evento ejecutado.
@@ -90,12 +98,8 @@ trait Auditable
             /**
              * Cambios.
              */
-            'old_values' => $this->serializeValue(
-                $this->getOldValues($event)
-            ),
-            'new_values' => $this->serializeValue(
-                $this->getNewValues($event)
-            ),
+            'old_values' => $this->getOldValues($event),
+            'new_values' => $this->getNewValues($event),
 
             /**
              * Contexto de ejecución.
@@ -240,7 +244,11 @@ trait Auditable
     }
 
     /**
-     * Serializa valores para persistencia segura en base de datos.
+     * Serializa un valor a texto legible para logs (ver alertIfSensitive()).
+     * NO se usa para las columnas auditable_id/old_values/new_values de
+     * Audit — esas ya tienen cast 'array' y se pasan en su forma nativa
+     * (ver auditChanges()), para que Eloquent sea el único responsable de
+     * (de)serializarlas.
      *
      * - int|string => se devuelve tal cual
      * - array      => JSON
