@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, nextTick, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { useFormDraft } from './useFormDraft'
@@ -22,6 +22,35 @@ function mountDraft(initial: TestForm, options?: UseFormDraftOptions<TestForm>) 
             setup() {
                 formRef = ref(initial) as Ref<TestForm>
                 api = useFormDraft(formRef, STORAGE_KEY, options)
+                return () => h('div')
+            }
+        })
+    )
+    return { wrapper, api, get form() { return formRef } }
+}
+
+/**
+ * Variante de mountDraft que además registra, DESPUÉS de useFormDraft (mismo
+ * orden que BingoRoomForm.vue: useBingoRoomForm() -> useBingoRoomDraft() ->
+ * watchers de sincronización), un watch con `immediate: true` que muta el
+ * form — replica el patrón real que causaba el bug (ver useRoomRounds.ts,
+ * sincroniza roundsConfig a la cantidad de rondas apenas se monta el form).
+ */
+function mountDraftWithImmediateSync(initial: TestForm, options?: UseFormDraftOptions<TestForm>) {
+    let api!: ReturnType<typeof useFormDraft<TestForm>>
+    let formRef!: Ref<TestForm>
+    const wrapper = mount(
+        defineComponent({
+            setup() {
+                formRef = ref(initial) as Ref<TestForm>
+                api = useFormDraft(formRef, STORAGE_KEY, options)
+                // Simula un watcher del formulario real que auto-completa/normaliza
+                // un campo apenas se monta, sin ninguna interacción del usuario.
+                watch(
+                    () => formRef.value.count,
+                    () => { formRef.value = { ...formRef.value, name: formRef.value.name || 'auto-filled' } },
+                    { immediate: true }
+                )
                 return () => h('div')
             }
         })
@@ -305,6 +334,118 @@ describe('useFormDraft', () => {
 
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
         expect(saved.data).toEqual({ name: 'Cerrado antes del debounce', count: 2 })
+        vi.useRealTimers()
+    })
+
+    it('no guarda un draft fantasma cuando un watch immediate:true del propio formulario muta el form al montar, sin que el usuario haya tocado nada', async () => {
+        // Regresión: formularios reales (ej. BingoRoomForm.vue) suelen tener
+        // watchers con immediate:true que auto-completan/normalizan campos
+        // apenas se montan (ej. generar la config de rondas según la cantidad
+        // de rondas). Esa mutación ocurre durante el mismo setup(), antes de
+        // que onMounted() fije snapshotLocked — sin el fix, disparaba igual
+        // el autosave con debounce y dejaba un "borrador" guardado pese a que
+        // el usuario nunca interactuó con el formulario. Abrir y cerrar el
+        // modal sin cambiar nada terminaba mostrando "hay un borrador" en la
+        // siguiente apertura.
+        vi.useFakeTimers()
+        const { api, wrapper } = mountDraftWithImmediateSync({ name: '', count: 0 }, { debounceMs: 500 })
+        await nextTick()
+
+        await vi.advanceTimersByTimeAsync(500)
+        expect(api.draftStatus.value).not.toBe('saving')
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+        wrapper.unmount()
+        expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+        vi.useRealTimers()
+    })
+
+    it('con confirmOverwrite: si el usuario confirma, arranca el autosave y persiste el cambio nuevo', async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            v: 1,
+            savedAt: new Date().toISOString(),
+            data: { name: 'Borrador viejo', count: 5 }
+        }))
+
+        vi.useFakeTimers()
+        const confirmOverwrite = vi.fn().mockResolvedValue(true)
+        const { form, api, wrapper } = mountDraft({ name: '', count: 0 }, { debounceMs: 500, confirmOverwrite })
+        await nextTick()
+        expect(api.hasDraft.value).toBe(true)
+
+        form.value = { name: 'Editado sin restaurar', count: 1 }
+        await nextTick()
+        // confirmOverwrite es async: hay que dejar correr sus microtasks antes de que arme el autosave
+        await Promise.resolve()
+        await Promise.resolve()
+        await nextTick()
+
+        expect(confirmOverwrite).toHaveBeenCalledTimes(1)
+        expect(api.hasDraft.value).toBe(false)
+
+        await vi.advanceTimersByTimeAsync(500)
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+        expect(saved.data).toEqual({ name: 'Editado sin restaurar', count: 1 })
+
+        wrapper.unmount()
+        vi.useRealTimers()
+    })
+
+    it('con confirmOverwrite: si el usuario cancela, revierte el cambio y deja el borrador guardado intacto', async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            v: 1,
+            savedAt: new Date().toISOString(),
+            data: { name: 'Borrador que quiero conservar', count: 5 }
+        }))
+
+        vi.useFakeTimers()
+        const confirmOverwrite = vi.fn().mockResolvedValue(false)
+        const { form, api, wrapper } = mountDraft({ name: '', count: 0 }, { debounceMs: 500, confirmOverwrite })
+        await nextTick()
+        expect(api.hasDraft.value).toBe(true)
+
+        form.value = { name: 'Edité por error sin restaurar', count: 1 }
+        await nextTick()
+        await Promise.resolve()
+        await Promise.resolve()
+        await nextTick()
+
+        expect(confirmOverwrite).toHaveBeenCalledTimes(1)
+        // El form vuelve al estado previo al cambio cancelado
+        expect(form.value).toEqual({ name: '', count: 0 })
+        // El borrador guardado en localStorage sigue siendo el original, sin pisar
+        expect(api.hasDraft.value).toBe(true)
+        const stillSaved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+        expect(stillSaved.data).toEqual({ name: 'Borrador que quiero conservar', count: 5 })
+
+        await vi.advanceTimersByTimeAsync(500)
+        expect(api.draftStatus.value).not.toBe('saving')
+
+        wrapper.unmount()
+        vi.useRealTimers()
+    })
+
+    it('sin confirmOverwrite configurado, edita libremente y pisa el borrador viejo sin preguntar (comportamiento default)', async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            v: 1,
+            savedAt: new Date().toISOString(),
+            data: { name: 'Borrador viejo', count: 5 }
+        }))
+
+        vi.useFakeTimers()
+        const { form, api, wrapper } = mountDraft({ name: '', count: 0 }, { debounceMs: 500 })
+        await nextTick()
+        expect(api.hasDraft.value).toBe(true)
+
+        form.value = { name: 'Editado sin preguntar', count: 1 }
+        await nextTick()
+        await vi.advanceTimersByTimeAsync(500)
+
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+        expect(saved.data).toEqual({ name: 'Editado sin preguntar', count: 1 })
+
+        wrapper.unmount()
         vi.useRealTimers()
     })
 })

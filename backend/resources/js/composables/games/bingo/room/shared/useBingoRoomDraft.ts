@@ -48,9 +48,11 @@ export function useBingoRoomDraft(
         automaticRoom?: boolean
         validBingoPatternIds?: string[]
         debounceMs?: number
+        /** Ver UseFormDraftOptions.confirmOverwrite — se reenvía tal cual. */
+        confirmOverwrite?: () => Promise<boolean>
     },
 ) {
-    const { scope, id, automaticRoom = false, validBingoPatternIds, debounceMs = 800 } = opts
+    const { scope, id, automaticRoom = false, validBingoPatternIds, debounceMs = 800, confirmOverwrite } = opts
     const draftDateExpired = ref(false)
 
     const sanitize = (data: BingoRoomFormData): BingoRoomFormData => {
@@ -72,6 +74,7 @@ export function useBingoRoomDraft(
             ttlMs: automaticRoom ? AUTOMATIC_TTL_MS : DEFAULT_TTL_MS,
             version: SCHEMA_VERSION,
             sanitize,
+            confirmOverwrite,
         })
 
     function restoreDraft(): boolean {

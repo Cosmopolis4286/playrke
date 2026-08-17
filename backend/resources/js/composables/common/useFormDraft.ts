@@ -27,6 +27,15 @@ export interface UseFormDraftOptions<T> {
      * borrador. Debe devolver un objeto del mismo shape que `T`.
      */
     sanitize?: (data: T) => T
+    /**
+     * Se invoca la primera vez que el usuario edita el form mientras hay un
+     * borrador guardado sin restaurar ni descartar (`hasDraft` true). Debe
+     * resolver a `true` para permitir que el autosave arranque (y por lo
+     * tanto empiece a sobrescribir ese borrador), o `false` para revertir el
+     * cambio y dejar el borrador intacto. Si no se pasa, el autosave arranca
+     * sin preguntar (comportamiento previo).
+     */
+    confirmOverwrite?: () => Promise<boolean>
 }
 
 /**
@@ -48,7 +57,7 @@ export function useFormDraft<T>(
     storageKey: string,
     options: UseFormDraftOptions<T> = {},
 ) {
-    const { debounceMs = 800, ttlMs = 24 * 60 * 60 * 1000, version = 1, sanitize } = options
+    const { debounceMs = 800, ttlMs = 24 * 60 * 60 * 1000, version = 1, sanitize, confirmOverwrite } = options
 
     const hasDraft   = ref(false)
     const draftSavedAt = ref<string | null>(null)
@@ -59,6 +68,11 @@ export function useFormDraft<T>(
 
     /** Último valor visto por el watcher — permite un flush inmediato (sin esperar el debounce) al desmontar. */
     let pendingValue: T | null = null
+
+    /** true mientras se espera la respuesta de confirmOverwrite() — evita reabrir el diálogo por cada tecla mientras el primero sigue en pantalla. */
+    let confirmingOverwrite = false
+    /** true durante el único tick en que se reescribe form.value de vuelta al estado previo tras un "Cancelar" — evita que ese propio revert dispare de nuevo el diálogo. */
+    let revertingOverwrite = false
 
     /**
      * Snapshot de los datos con los que se abrió el formulario. Se usa para
@@ -137,20 +151,72 @@ export function useFormDraft<T>(
      * (antes del primer onMounted) sigue al valor inicial para no confundir
      * datos que llegan async con cambios del usuario; en todo momento además
      * dispara el autosave con debounce. Fusionado en un solo watcher para no
-     * pagar dos recorridos deep de Vue por cada cambio del formulario. ── */
-    watch(form, (value) => {
+     * pagar dos recorridos deep de Vue por cada cambio del formulario.
+     *
+     * BUG previo: el formulario suele traer watchers propios con
+     * `immediate: true` (ej. sincronizar roundsConfig según la cantidad de
+     * rondas al abrir) que mutan `form` DURANTE el mismo setup(), antes de
+     * que onMounted() fije snapshotLocked. Ese cambio "automático" (no hecho
+     * por el usuario) disparaba este watcher con snapshotLocked aún false:
+     * el snapshot se actualizaba correctamente (bien), pero el autosave de
+     * abajo IGUAL se armaba con ese valor — persistiendo a los pocos ms un
+     * "borrador" que en realidad era solo la sincronización inicial del
+     * formulario, no una edición real. Resultado: abrir y cerrar el modal
+     * sin tocar nada dejaba un draft guardado, que la próxima apertura
+     * detectaba como "borrador real" sin serlo.
+     * Fix: si esta pasada fue solo para fijar el snapshot inicial (aún no
+     * montado), no arrancar el autosave — cortar acá mismo. ── */
+    watch(form, (value, oldValue) => {
         if (!snapshotLocked) {
             initialSnapshot = JSON.stringify(value)
             checkDraft()
+            return
         }
 
+        if (revertingOverwrite) {
+            revertingOverwrite = false
+            return
+        }
+
+        // Hay un borrador guardado sin restaurar ni descartar y el usuario
+        // está editando en vivo (no vía restoreDraft, que ya puso hasDraft en
+        // false antes de que este watcher reaccione): sin este guard, el
+        // autosave de abajo persistiría el nuevo valor a los pocos ms y
+        // pisaría en silencio el borrador que el usuario todavía no vio ni
+        // decidió qué hacer con él — el escenario reportado: "no restauré el
+        // borrador que quería, edité sobre una plantilla limpia, y se borró".
+        if (hasDraft.value && confirmOverwrite && !confirmingOverwrite) {
+            confirmingOverwrite = true
+            // Copia estructurada del valor previo: no confiar en la identidad de
+            // `oldValue` (con watchers deep, si algo mutara `form.value` in-place
+            // en vez de reemplazarlo, Vue podría entregar la misma referencia que
+            // `value` y el revert de abajo no restauraría nada).
+            const reverted: T = JSON.parse(JSON.stringify(oldValue))
+            confirmOverwrite().then((proceed) => {
+                confirmingOverwrite = false
+                if (proceed) {
+                    hasDraft.value = false
+                    armAutosave(value)
+                } else {
+                    revertingOverwrite = true
+                    form.value = reverted
+                }
+            })
+            return
+        }
+        if (confirmingOverwrite) return
+
+        armAutosave(value)
+    }, { deep: true })
+
+    function armAutosave(value: T): void {
         draftStatus.value = 'saving'
         pendingValue = value
         // Cancelar el timer de reset-a-idle para no sobreescribir 'saving' con 'idle'
         if (savedTimer) clearTimeout(savedTimer)
         if (timer) clearTimeout(timer)
         timer = setTimeout(() => persist(value), debounceMs)
-    }, { deep: true })
+    }
 
     function peekDraft(): T | null {
         const envelope = readEnvelope()
