@@ -382,60 +382,67 @@
     />
 
     <template #footer>
-      <button
-        v-if="editingRoomHasPlayers"
-        type="button"
-        class="btn btn-sm btn-outline-warning"
-        style="margin-right: auto"
-        :disabled="isSubmitting"
-        title="Ver ventas, ganadores y desglose financiero sin cerrar la edición"
-        @click="openRoomDetails([String(roomData.id)])"
-      >
-        <i class="fas fa-info-circle"></i> Ver Detalles
-      </button>
-      <small v-if="stepProgressLabel" class="text-muted mr-2" style="font-size: 0.78rem">
-        {{ stepProgressLabel }}
-      </small>
-      <small
-        v-if="gameBingoRoomFormRef?.draftStatus === 'saving' || gameBingoRoomFormRef?.draftStatus === 'saved'"
-        class="text-muted mr-2"
-        style="font-size: 0.78rem"
-      >
-        <i class="fa-solid fa-circle-notch fa-spin mr-1" v-if="gameBingoRoomFormRef?.draftStatus === 'saving'"></i>
-        <i class="fa-solid fa-check mr-1" v-else></i>
-        {{ gameBingoRoomFormRef?.draftStatus === 'saving' ? 'Guardando borrador...' : 'Borrador guardado' }}
-      </small>
-      <button class="btn btn-sm btn-secondary" :disabled="isSubmitting" @click="showModalForm = false">Cerrar</button>
-      <button
-        v-if="gameBingoRoomFormRef?.canGoPrev"
-        type="button"
-        class="btn btn-sm btn-outline-secondary"
-        :disabled="isSubmitting"
-        @click="gameBingoRoomFormRef?.goPrev()"
-      >
-        <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
-      </button>
-      <button
-        v-if="gameBingoRoomFormRef?.step !== 'review'"
-        type="button"
-        class="btn btn-sm btn-primary"
-        :disabled="isSubmitting || !gameBingoRoomFormRef?.canGoNext"
-        :title="!gameBingoRoomFormRef?.canGoNext ? 'Corrige los errores de este paso para continuar' : ''"
-        @click="gameBingoRoomFormRef?.goNext()"
-      >
-        Siguiente <i class="fa-solid fa-arrow-right ml-1"></i>
-      </button>
-      <button
-        v-else
-        class="btn btn-sm btn-primary"
-        :disabled="!canAttemptSave || isSubmitting || loading"
-        :title="!canAttemptSave ? 'Corrige los errores señalados en el resumen antes de guardar' : ''"
-        @click="onSaveClick"
-      >
-        <span v-if="isSubmitting" class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
-        <i v-else class="fa-solid fa-floppy-disk mr-1"></i>
-        {{ isSubmitting ? 'Guardando...' : 'Guardar' }}
-      </button>
+      <div class="brf">
+        <!-- Fila de estado: detalles + progreso + borrador (se envuelve/oculta antes que los botones de acción) -->
+        <div class="brf__status">
+          <button
+            v-if="editingRoomHasPlayers"
+            type="button"
+            class="btn btn-sm btn-outline-warning brf__details-btn"
+            :disabled="isSubmitting"
+            title="Ver ventas, ganadores y desglose financiero sin cerrar la edición"
+            @click="openRoomDetails([String(roomData.id)])"
+          >
+            <i class="fas fa-info-circle"></i> <span class="brf__details-text">Ver Detalles</span>
+          </button>
+          <small v-if="stepProgressLabel" class="text-muted brf__step-label">
+            {{ stepProgressLabel }}
+          </small>
+          <small
+            v-if="gameBingoRoomFormRef?.draftStatus === 'saving' || gameBingoRoomFormRef?.draftStatus === 'saved'"
+            class="text-muted brf__draft-label"
+          >
+            <i class="fa-solid fa-circle-notch fa-spin mr-1" v-if="gameBingoRoomFormRef?.draftStatus === 'saving'"></i>
+            <i class="fa-solid fa-check mr-1" v-else></i>
+            {{ gameBingoRoomFormRef?.draftStatus === 'saving' ? 'Guardando borrador...' : 'Borrador guardado' }}
+          </small>
+        </div>
+
+        <!-- Fila de acciones: navegación del wizard, siempre visible y clickeable -->
+        <div class="brf__actions">
+          <button class="btn btn-sm btn-secondary brf__btn" :disabled="isSubmitting" @click="showModalForm = false">Cerrar</button>
+          <button
+            v-if="gameBingoRoomFormRef?.canGoPrev"
+            type="button"
+            class="btn btn-sm btn-outline-secondary brf__btn"
+            :disabled="isSubmitting"
+            @click="gameBingoRoomFormRef?.goPrev()"
+          >
+            <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
+          </button>
+          <button
+            v-if="gameBingoRoomFormRef?.step !== 'review'"
+            type="button"
+            class="btn btn-sm btn-primary brf__btn"
+            :disabled="isSubmitting || !gameBingoRoomFormRef?.canGoNext"
+            :title="!gameBingoRoomFormRef?.canGoNext ? 'Corrige los errores de este paso para continuar' : ''"
+            @click="gameBingoRoomFormRef?.goNext()"
+          >
+            Siguiente <i class="fa-solid fa-arrow-right ml-1"></i>
+          </button>
+          <button
+            v-else
+            class="btn btn-sm btn-primary brf__btn"
+            :disabled="!canAttemptSave || isSubmitting || loading"
+            :title="!canAttemptSave ? 'Corrige los errores señalados en el resumen antes de guardar' : ''"
+            @click="onSaveClick"
+          >
+            <span v-if="isSubmitting" class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+            <i v-else class="fa-solid fa-floppy-disk mr-1"></i>
+            {{ isSubmitting ? 'Guardando...' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
     </template>
   </Modal>
 
@@ -504,3 +511,55 @@
     @schedule-start="handleScheduleStart"
   />
 </template>
+
+<style scoped>
+/* Footer del wizard de registro/edición de sala — el slot #footer de Modal.vue
+   solo reemplaza el CONTENIDO de .modal-footer (que sigue siendo flex-nowrap,
+   justify-end del propio Modal), así que en pantallas angostas los ~6
+   elementos (detalles, progreso, borrador, cerrar, anterior, siguiente/guardar)
+   se comprimían o desbordaban sin ningún manejo responsive. Este wrapper toma
+   el control total del layout interno sin tocar Modal.vue (compartido por
+   otros modales del proyecto).
+   Estructura: 2 filas — estado (info secundaria) arriba, acciones (siempre
+   visibles y clickeables) abajo. En desktop ancho, ambas filas caben en una
+   sola línea y se muestran lado a lado. */
+.brf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+.brf__status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+.brf__step-label, .brf__draft-label { font-size: 0.78rem; white-space: nowrap; }
+.brf__details-btn { flex-shrink: 0; }
+.brf__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.brf__btn { flex: 0 0 auto; }
+
+/* ≥576px (sm): una sola fila, estado a la izquierda y acciones a la derecha —
+   mismo aspecto que el footer original en pantallas normales. */
+@media (min-width: 576px) {
+  .brf { flex-direction: row; align-items: center; justify-content: space-between; }
+  .brf__status { flex: 1 1 auto; }
+  .brf__actions { flex: 0 0 auto; }
+}
+
+/* <400px: los botones de acción ocupan el ancho completo, apilados, para que
+   sigan siendo fáciles de tocar en vez de comprimirse en una fila apretada. */
+@media (max-width: 399px) {
+  .brf__details-text { display: none; }
+  .brf__actions { flex-direction: column; align-items: stretch; }
+  .brf__btn { width: 100%; justify-content: center; }
+}
+</style>
