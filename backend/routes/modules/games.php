@@ -4,6 +4,7 @@ use App\Http\Controllers\Games\GameController;
 use App\Http\Controllers\Games\Common\GameModeController;
 use App\Http\Controllers\Games\Common\RoomTypeController;
 use App\Http\Controllers\Games\Common\PrizePoolTypeController;
+use App\Http\Controllers\Games\Common\JackpotTypeController;
 use Illuminate\Support\Facades\Route;
 
 // ====================================
@@ -54,4 +55,12 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::put('prize-pool-types/{id}',         [PrizePoolTypeController::class, 'update'])       ->name('prize-pool-types.update');
     Route::put('prize-pool-types/{id}/delete',  [PrizePoolTypeController::class, 'delete'])       ->name('prize-pool-types.delete');
     Route::put('prize-pool-types/{id}/status',  [PrizePoolTypeController::class, 'toggleStatus']) ->name('prize-pool-types.status');
+
+    // Jackpots (catálogo dinámico por juego)
+    Route::get('jackpot-types/fetch-list',   [JackpotTypeController::class, 'fetchList'])    ->name('jackpot-types.fetch-list');
+    Route::get('jackpot-types/{id}',         [JackpotTypeController::class, 'show'])         ->name('jackpot-types.show');
+    Route::post('jackpot-types',             [JackpotTypeController::class, 'store'])        ->name('jackpot-types.store');
+    Route::put('jackpot-types/{id}',         [JackpotTypeController::class, 'update'])       ->name('jackpot-types.update');
+    Route::put('jackpot-types/{id}/delete',  [JackpotTypeController::class, 'delete'])       ->name('jackpot-types.delete');
+    Route::put('jackpot-types/{id}/status',  [JackpotTypeController::class, 'toggleStatus']) ->name('jackpot-types.status');
 });

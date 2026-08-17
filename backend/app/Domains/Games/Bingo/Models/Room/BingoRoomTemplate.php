@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Models\Room;
 
 use App\Models\Games\Common\ConnectionType\ConnectionType;
+use App\Models\Games\Common\Jackpot\JackpotType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
@@ -39,6 +40,7 @@ class BingoRoomTemplate extends Model
         'serials_pct',
         'num_serials',
         'jackpot_pct',
+        'jackpot_type_id',
     ];
 
     protected $casts = [
@@ -57,6 +59,7 @@ class BingoRoomTemplate extends Model
         'use_serials' => 'boolean',
         'serials_pct' => 'decimal:2',
         'jackpot_pct' => 'decimal:2',
+        'jackpot_type_id' => 'string',
     ];
 
     public function roomType(): BelongsTo
@@ -77,6 +80,11 @@ class BingoRoomTemplate extends Model
     public function prizePoolType(): BelongsTo
     {
         return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
+    }
+
+    public function jackpotType(): BelongsTo
+    {
+        return $this->belongsTo(JackpotType::class, 'jackpot_type_id');
     }
 
     public function configs(): HasMany

@@ -4,6 +4,7 @@ namespace App\Domains\Games\Bingo\Models\Room;
 
 use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\Jackpot\JackpotType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
@@ -64,6 +65,7 @@ class BingoRoomConfig extends Model
         'serials_pct',
         'num_serials',
         'jackpot_pct',
+        'jackpot_type_id',
         'allow_custom_card',
         'custom_card_price_pct',
         'custom_card_mode',
@@ -103,6 +105,7 @@ class BingoRoomConfig extends Model
         'use_serials'             => 'boolean',
         'serials_pct'             => 'decimal:2',
         'jackpot_pct'             => 'decimal:2',
+        'jackpot_type_id'         => 'string',
         'unix_date'               => 'integer',
         'num_serials'             => 'integer',
         'time_chip'               => 'integer',
@@ -182,6 +185,14 @@ class BingoRoomConfig extends Model
     public function prizePoolType(): BelongsTo
     {
         return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
+    }
+
+    /**
+     * Relación con el tipo de jackpot al que aporta el % configurado en jackpot_pct.
+     */
+    public function jackpotType(): BelongsTo
+    {
+        return $this->belongsTo(JackpotType::class, 'jackpot_type_id');
     }
 
     public function template(): BelongsTo

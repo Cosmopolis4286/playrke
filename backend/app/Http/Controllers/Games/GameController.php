@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Games;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use App\Services\Games\Common\GameMode\GameModeService;
+use App\Services\Games\Common\Jackpot\JackpotTypeService;
 use App\Services\Games\Common\PrizePool\PrizePoolTypeService;
 use App\Services\Games\Common\Room\RoomTypeService;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ class GameController extends Controller
         private readonly GameModeService $gameModeService,
         private readonly RoomTypeService $roomTypeService,
         private readonly PrizePoolTypeService $prizePoolTypeService,
+        private readonly JackpotTypeService $jackpotTypeService,
     ) {}
 
     public function index(): Response
@@ -32,6 +34,7 @@ class GameController extends Controller
             'gameModes'      => $this->gameModeService->listByGame(),
             'roomTypes'      => $this->roomTypeService->list(),
             'prizePoolTypes' => $this->prizePoolTypeService->listByGame(),
+            'jackpotTypes'   => $this->jackpotTypeService->listByGame(),
             'roleUser'       => Auth::user()?->roles?->first()?->prefix ?? 'guest',
         ]);
     }

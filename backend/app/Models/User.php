@@ -70,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public const STATUSES = [
         'ACTIVE' => 'Activo',
         'INACTIVE' => 'Inactivo',
+        'DELETED' => 'Eliminado',
         'SUSPENDED' => 'Suspendido',
         'PENDING_VERIFICATION' => 'Pendiente de verificación',
     ];

@@ -4,6 +4,7 @@ namespace App\Domains\Games\Bingo\Models\Room;
 
 use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\Jackpot\JackpotType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Games\Common\Room\RoomType;
@@ -82,6 +83,7 @@ class BingoRoomAutomatic extends Model
         'serials_pct',
         'num_serials',
         'jackpot_pct',
+        'jackpot_type_id',
         'min_cards_to_start',
         'max_cards_to_start',
         'min_players',
@@ -156,6 +158,7 @@ class BingoRoomAutomatic extends Model
         'rounds_pct'              => 'decimal:2',
         'serials_pct'             => 'decimal:2',
         'jackpot_pct'             => 'decimal:2',
+        'jackpot_type_id'         => 'string',
         'min_cards_to_start'      => 'integer',
         'max_cards_to_start'      => 'integer',
         'min_players'             => 'integer',
@@ -227,6 +230,11 @@ class BingoRoomAutomatic extends Model
     public function prizePoolType(): BelongsTo
     {
         return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
+    }
+
+    public function jackpotType(): BelongsTo
+    {
+        return $this->belongsTo(JackpotType::class, 'jackpot_type_id');
     }
 
     public function creatorUser(): BelongsTo

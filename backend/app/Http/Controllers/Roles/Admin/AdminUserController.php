@@ -89,6 +89,17 @@ final class AdminUserController extends Controller
     }
 
     /**
+     * Historial de auditoría paginado del usuario (botón "Cargar más" en la
+     * ficha, más allá del tope inicial que trae show()).
+     */
+    public function auditHistory(User $user, Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->getUserAuditHistory($user, (int) $request->get('page', 1))
+        );
+    }
+
+    /**
      * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
      */
     public function update(AdminUserUpdateRequest $request, User $user): JsonResponse

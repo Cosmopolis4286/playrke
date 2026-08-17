@@ -4,9 +4,11 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
+  import AsyncSelect from '@/js/Components/Common/Form/AsyncSelect.vue'
 
   import backendClient from '@/js/plugins/axios'
   import { useAudit } from '@/js/composables/audit/useAudit'
+  import { searchUsers } from '@/js/composables/users/useUserSearch'
 
   import type { AuditPageProps } from '@/js/types/audit/audit'
   import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
@@ -59,7 +61,7 @@
   const showDateFilters = ref(false)
   const dateFrom = ref('')
   const dateTo   = ref('')
-  const userId   = ref(initialUserId ?? '')
+  const userId   = ref<string | null>(initialUserId ?? null)
 
   const subjectFilterLabel = computed(() => {
     if (!subjectFilter.value.auditable_id) return null
@@ -127,12 +129,8 @@
     await refetch()
   }
 
-  async function applyUserFilter(): Promise<void> {
-    await refetch()
-  }
-
-  async function clearUserFilter(): Promise<void> {
-    userId.value = ''
+  async function handleUserFilterChange(value: string | number | null): Promise<void> {
+    userId.value = value === null ? null : String(value)
     await refetch()
   }
 
@@ -266,11 +264,14 @@
   /* -------------------------------------------------------------------------- */
 
   const eventBadgeClass: Record<string, string> = {
-    created:       'badge bg-success',
-    updated:       'badge bg-warning text-dark',
-    deleted:       'badge bg-danger',
-    restored:      'badge bg-info',
-    force_deleted: 'badge bg-dark',
+    created:                  'badge bg-success',
+    updated:                  'badge bg-warning text-dark',
+    deleted:                  'badge bg-danger',
+    restored:                 'badge bg-info',
+    force_deleted:            'badge bg-dark',
+    password_reset_by_admin:  'badge bg-primary',
+    wallet_loaded_by_admin:   'badge bg-primary',
+    xp_granted_by_admin:      'badge bg-primary',
   }
 
   function eventClass(event: string): string {
@@ -334,16 +335,17 @@
           </button>
         </div>
 
-        <div class="input-group input-group-sm" style="width: 220px">
-          <span class="input-group-text">Usuario (ID)</span>
-          <input type="text" class="form-control" v-model="userId" placeholder="ID de actor" />
+        <div class="audit-actor-filter">
+          <AsyncSelect
+            name="audit-actor-filter"
+            label=""
+            :model-value="userId"
+            :search="searchUsers"
+            placeholder="Buscar actor por nombre..."
+            col="p-0"
+            @update:model-value="handleUserFilterChange"
+          />
         </div>
-        <button class="btn btn-sm btn-primary" @click="applyUserFilter" :disabled="loading">
-          <i class="fas fa-search me-1"></i> Aplicar
-        </button>
-        <button v-if="userId" class="btn btn-sm btn-outline-danger" @click="clearUserFilter" :disabled="loading">
-          <i class="fas fa-times"></i>
-        </button>
       </div>
     </div>
   </div>
@@ -499,5 +501,15 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
+}
+
+.audit-actor-filter {
+  width: 260px;
+}
+.audit-actor-filter :deep(.form-group) {
+  margin-bottom: 0;
+}
+.audit-actor-filter :deep(label) {
+  display: none;
 }
 </style>
