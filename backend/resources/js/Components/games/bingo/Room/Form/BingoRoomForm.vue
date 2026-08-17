@@ -41,6 +41,7 @@
     /** Etiqueta del anfitrión ya asignado (edición), para precargar el AsyncSelect sin re-buscarlo. */
     hostUserLabel?: string | null
     prizePoolTypeOptions: SelectOption[]
+    jackpotTypeOptions?: SelectOption[]
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
     currenciesWithActiveRate?: string[]
@@ -497,6 +498,7 @@
           :gameModeOptions="gameModeOptions"
           :hostUserLabel="hostUserLabel"
           :prizePoolTypeOptions="prizePoolTypeOptions"
+          :jackpotTypeOptions="jackpotTypeOptions ?? []"
           :roomCommn="roomCommn"
           :jackpotPct="jackpotPct"
           :percentageLimits="percentageLimits"
@@ -601,6 +603,7 @@
           :connection-type-options="connectionTypeOptions"
           :game-mode-options="gameModeOptions"
           :prize-pool-type-options="prizePoolTypeOptions"
+          :jackpot-type-options="jackpotTypeOptions ?? []"
           :host-user-label="hostUserLabel"
           :lock-activate-room="lockedByPlayers"
           :room-meta="isEdit ? roomMeta : null"

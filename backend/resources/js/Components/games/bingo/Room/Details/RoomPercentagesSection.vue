@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BingoRoom } from '@js/types/games/bingo/room/bingo-room'
 import { fmt } from '@js/composables/games/bingo/room/useBingoRoomFormatters'
 
-defineProps<{
+const props = defineProps<{
   room: BingoRoom
   totalPct: number
+  jackpotTypeOptions?: { value: string; code: string; label: string }[]
 }>()
+
+const jackpotTypeLabel = computed(() => {
+  const id = props.room.config?.jackpot_type_id
+  if (!id) return null
+  return props.jackpotTypeOptions?.find(o => String(o.value) === String(id))?.label ?? null
+})
 </script>
 
 <template>
@@ -23,6 +31,10 @@ defineProps<{
       <div class="detail-item">
         <span class="detail-label">%Jackpot</span>
         <span class="detail-value">{{ room.config?.jackpot_pct ? fmt.pct(room.config?.jackpot_pct) : 'No aplica' }}</span>
+      </div>
+      <div v-if="jackpotTypeLabel" class="detail-item">
+        <span class="detail-label">Destino del jackpot</span>
+        <span class="detail-value">{{ jackpotTypeLabel }}</span>
       </div>
       <div v-if="Number(room.config?.rounds ?? 1) > 1" class="detail-item">
         <span class="detail-label">%Rondas</span>

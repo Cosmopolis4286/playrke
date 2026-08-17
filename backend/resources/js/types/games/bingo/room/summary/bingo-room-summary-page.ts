@@ -18,5 +18,6 @@ export interface BingoRoomSummaryPageProps {
     gameModes: SelectOption[],
     gameModeCatalog: { id: string | number; code: string; label: string }[],
     prizePoolTypes: { id: string | number; code: string; label: string }[],
+    jackpotTypes: { id: string | number; code: string; label: string }[],
     bingoPatterns?: { id: string | number; name: string }[]
 }

@@ -19,6 +19,7 @@ interface Props {
   roomTypeOptions: { value: string; label: string }[]
   connectionTypeOptions: { value: string; label: string }[]
   prizePoolTypeOptions: { value: string; code: string; label: string }[]
+  jackpotTypeOptions?: { value: string; code: string; label: string }[]
   allowedCurrenciesOptions: { value: string; label: string }[]
 }
 
@@ -64,7 +65,7 @@ const {
       :metrics-by-currency-list="metricsByCurrencyList"
     />
 
-    <RoomPercentagesSection :room="room" :total-pct="totalPct" />
+    <RoomPercentagesSection :room="room" :total-pct="totalPct" :jackpot-type-options="jackpotTypeOptions ?? []" />
 
     <RoomRoundsSection
       :room="room"

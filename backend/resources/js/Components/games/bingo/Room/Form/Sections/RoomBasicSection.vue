@@ -24,6 +24,7 @@ import { SelectOption } from '@/js/types/common/form/form'
     connectionTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
+    jackpotTypeOptions?: SelectOption[]
     roomCommn: string | number
     jackpotPct: string | number
     percentageLimits: {
@@ -430,6 +431,20 @@ import { SelectOption } from '@/js/types/common/form/form'
       col="col-sm-6 col-md-4 col-lg-3"
       :modelValue="jackpotPct"
       @update:modelValue="emit('update:jackpotPct', $event)"
+    />
+
+    <!-- Jackpot: a cuál pozo va el %Jackpot configurado arriba -->
+    <FormSelect
+      label="Jackpot"
+      name="jackpot_type"
+      :error="(errors as any).jackpotType"
+      placeholder="Sin jackpot (opcional)"
+      :options="jackpotTypeOptions ?? []"
+      optionValue="value"
+      optionLabel="label"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).jackpotType ?? null"
+      @update:modelValue="emit('update:modelValue', { ...modelValue, jackpotType: $event } as any)"
     />
 
     <!-- Días de Anticipación de Ventas (solo salas automáticas) -->

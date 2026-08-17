@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Games;
 
 use App\Http\Controllers\Controller;
+use App\Models\Currency;
 use App\Models\Game;
 use App\Services\Games\Common\GameMode\GameModeService;
 use App\Services\Games\Common\Jackpot\JackpotTypeService;
@@ -35,6 +36,7 @@ class GameController extends Controller
             'roomTypes'      => $this->roomTypeService->list(),
             'prizePoolTypes' => $this->prizePoolTypeService->listByGame(),
             'jackpotTypes'   => $this->jackpotTypeService->listByGame(),
+            'currencies'     => Currency::orderBy('iso_code')->get(['id', 'iso_code', 'name']),
             'roleUser'       => Auth::user()?->roles?->first()?->prefix ?? 'guest',
         ]);
     }

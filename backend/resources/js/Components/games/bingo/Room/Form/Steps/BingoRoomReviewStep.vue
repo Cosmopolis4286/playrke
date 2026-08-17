@@ -13,6 +13,7 @@ const props = defineProps<{
   connectionTypeOptions?: SelectOption[]
   gameModeOptions?: SelectOption[]
   prizePoolTypeOptions?: SelectOption[]
+  jackpotTypeOptions?: SelectOption[]
   /** Etiqueta del anfitrión ya asignado (para mostrar el nombre en vez del id crudo). */
   hostUserLabel?: string | null
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
@@ -163,6 +164,7 @@ const roomTypeLabel = computed(() => optionLabel(props.form.roomType, props.room
 const connectionTypeLabel = computed(() => optionLabel(props.form.connectionType, props.connectionTypeOptions))
 const gameModeLabel = computed(() => optionLabel(props.form.gameMode, props.gameModeOptions))
 const prizePoolTypeLabel = computed(() => optionLabel(props.form.prizePoolType, props.prizePoolTypeOptions))
+const jackpotTypeLabel = computed(() => optionLabel(props.form.jackpotType, props.jackpotTypeOptions))
 
 const isPrivateRoom = computed(() => {
   const selected = props.roomTypeOptions?.find(o => String(o.value) === String(props.form.roomType))
@@ -287,6 +289,10 @@ const scheduleLabel = computed(() => {
             <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomCommn') }">{{ form.roomCommn != null ? form.roomCommn + '%' : (fieldError('roomCommn') ?? '—') }}</dd>
             <dt>Jackpot</dt>
             <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotPct') }">{{ form.jackpotPct != null ? form.jackpotPct + '%' : '—' }}</dd>
+            <template v-if="form.jackpotType != null">
+              <dt>Destino del jackpot</dt>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotType') }">{{ jackpotTypeLabel ?? '—' }}</dd>
+            </template>
             <dt>Tiempo por ficha</dt>
             <dd :class="{ 'bingo-review-step__dd--error': fieldError('timeChip') }">{{ form.timeChip != null ? form.timeChip + 's' : (fieldError('timeChip') ?? '—') }}</dd>
           </dl>

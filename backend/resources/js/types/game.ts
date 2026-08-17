@@ -11,11 +11,18 @@ export interface Game {
     updated_at?: string
 }
 
+export interface GameCurrencyOption {
+    id: string
+    iso_code: string
+    name: string
+}
+
 export interface GamePageProps {
     games: Game[]
     gameModes: import('./gameMode').GameMode[]
     roomTypes: import('./roomType').RoomType[]
     prizePoolTypes: import('./prizePoolType').PrizePoolType[]
     jackpotTypes: import('./jackpotType').JackpotType[]
+    currencies: GameCurrencyOption[]
     roleUser: string
 }

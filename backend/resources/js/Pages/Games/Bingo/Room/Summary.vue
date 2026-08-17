@@ -239,6 +239,17 @@
   })
 
   /**
+   * Opciones para tipos de jackpot.
+   */
+  const jackpotTypeOptions = computed(() => {
+    return (props.jackpotTypes ?? []).map(j => ({
+      value: String(j.id),
+      code: j.code,
+      label: j.label
+    }))
+  })
+
+  /**
    * Opciones de monedas permitidas.
    */
   const allowedCurrenciesOptions = computed(() => {
@@ -372,6 +383,7 @@
       :game-mode-options="gameModeOptions"
       :host-user-label="hostUserLabel"
       :prize-pool-type-options="prizePoolTypeOptions"
+      :jackpot-type-options="jackpotTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
       :bingo-pattern-options="bingoPatternOptions"
       :currencies-with-active-rate="props.currenciesWithActiveRate"
@@ -493,6 +505,7 @@
       :room-type-options="roomTypeOptions"
       :connection-type-options="connectionTypeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
+      :jackpot-type-options="jackpotTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
     />
 

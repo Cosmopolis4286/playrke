@@ -5,6 +5,7 @@
   import GameModesTab from '@/js/Components/games/GameModesTab.vue'
   import RoomTypesTab from '@/js/Components/games/RoomTypesTab.vue'
   import PrizePoolTypesTab from '@/js/Components/games/PrizePoolTypesTab.vue'
+  import JackpotTypesTab from '@/js/Components/games/JackpotTypesTab.vue'
 
   import type { GamePageProps } from '@js/types/game'
   import type { GameModeGameOption } from '@js/types/gameMode'
@@ -17,13 +18,14 @@
     props.games.map(g => ({ id: g.id, name: g.name, status: g.status }))
   )
 
-  type TabKey = 'games' | 'gameModes' | 'roomTypes' | 'prizePoolTypes'
+  type TabKey = 'games' | 'gameModes' | 'roomTypes' | 'prizePoolTypes' | 'jackpotTypes'
 
   const TABS: { key: TabKey; label: string; icon: string }[] = [
     { key: 'games',          label: 'Juegos',          icon: 'fas fa-gamepad' },
     { key: 'gameModes',      label: 'Modos de Juego',  icon: 'fas fa-sliders-h' },
     { key: 'roomTypes',      label: 'Tipos de Sala',   icon: 'fas fa-door-open' },
     { key: 'prizePoolTypes', label: 'Tipos de Bote',   icon: 'fas fa-coins' },
+    { key: 'jackpotTypes',   label: 'Jackpots',        icon: 'fas fa-trophy' },
   ]
 
   const activeTab = ref<TabKey>('games')
@@ -41,7 +43,7 @@
         <div class="col-12">
           <h1 class="m-0 font-weight-bold">Catálogo de Juegos</h1>
           <p class="text-muted mb-0 mt-1">
-            Juegos, modos de juego, tipos de sala y tipos de bote de la plataforma
+            Juegos, modos de juego, tipos de sala, tipos de bote y jackpots de la plataforma
           </p>
         </div>
       </div>
@@ -84,6 +86,13 @@
         v-else-if="activeTab === 'prizePoolTypes'"
         :prize-pool-types="props.prizePoolTypes"
         :games="gameOptions"
+      />
+
+      <JackpotTypesTab
+        v-else-if="activeTab === 'jackpotTypes'"
+        :jackpot-types="props.jackpotTypes"
+        :games="gameOptions"
+        :currencies="props.currencies"
       />
     </div>
   </section>

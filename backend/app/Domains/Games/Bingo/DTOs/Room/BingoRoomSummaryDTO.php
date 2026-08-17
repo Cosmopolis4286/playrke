@@ -15,6 +15,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
         public readonly array $currenciesWithActiveRate,
         public readonly Collection $bingoPatterns,
         public readonly Collection $prizePoolTypes,
+        public readonly Collection $jackpotTypes,
         public readonly Collection $connectionTypes,
         public readonly Collection $roomTypes,
         public readonly Collection $gameModeCatalog,
@@ -30,6 +31,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
             'currenciesWithActiveRate' => $this->currenciesWithActiveRate,
             'bingoPatterns' => $this->bingoPatterns,
             'prizePoolTypes' => $this->prizePoolTypes,
+            'jackpotTypes' => $this->jackpotTypes,
             // Key 'gameModes' se mantiene por ahora de cara al frontend (Inertia prop);
             // el rename de esta key específica se coordina en un paso aparte.
             // OJO: por esta razón el catálogo real de modos de juego (Solitario,
