@@ -4,12 +4,15 @@ namespace App\Services\Roles\Admin\User;
 
 use App\DTOs\Roles\Admin\User\AdminUserUpdateDTO;
 use App\Exceptions\Domain\Roles\Admin\User\AdminUserException;
+use App\Models\Audit;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\User\UserLevelService;
 use App\Services\User\UserPasswordService;
 use App\Services\WalletService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Request;
 
 final class AdminUserService
 {
@@ -115,7 +118,11 @@ final class AdminUserService
             throw AdminUserException::passwordResetRequiresActiveStatus();
         }
 
-        return $this->userPasswordService->resetPassword($user);
+        $password = $this->userPasswordService->resetPassword($user);
+
+        $this->logAdminAction($user, 'password_reset_by_admin', ['reset_by' => 'admin']);
+
+        return $password;
     }
 
     /**
@@ -241,6 +248,12 @@ final class AdminUserService
      */
     private const WALLET_LOAD_ALLOWED_ROLES = ['commerce', 'seller', 'player'];
 
+    /** Tope de eventos mostrados en "Actividad reciente" dentro de la ficha. */
+    private const RECENT_AUDITS_LIMIT = 10;
+
+    /** Tamaño de página al paginar el historial completo vía "Cargar más". */
+    private const AUDIT_HISTORY_PAGE_SIZE = 15;
+
     /**
      * Cargar saldo en wallet del usuario (operación admin).
      */
@@ -268,6 +281,13 @@ final class AdminUserService
 
         $wallet->load('currency');
 
+        $this->logAdminAction($user, 'wallet_loaded_by_admin', [
+            'amount'      => $amount,
+            'currency'    => $wallet->currency?->iso_code,
+            'reason'      => $description,
+            'new_balance' => (float) $wallet->balance,
+        ]);
+
         return "Saldo cargado exitosamente: {$wallet->currency->symbol}{$amount}. Nuevo saldo: {$wallet->currency->symbol}{$wallet->balance}";
     }
 
@@ -294,7 +314,36 @@ final class AdminUserService
             throw AdminUserException::invalidXpAmount();
         }
 
+        $this->logAdminAction($user, 'xp_granted_by_admin', [
+            'amount' => $amount,
+            'reason' => $reason ?: 'XP otorgado por administrador',
+        ]);
+
         return $result;
+    }
+
+    /**
+     * Evento de auditoría manual para acciones admin que no dejan (o no
+     * dejan completo) rastro vía el diff automático de Auditable — reset de
+     * contraseña no toca ninguna columna, y carga de wallet / otorgo de XP
+     * mutan tablas distintas a `users` (wallets/wallet_movements,
+     * user_levels), así que sin esto la ficha de usuario no vería nada.
+     * Mismo patrón que UserPermissionService::logSyncReason().
+     */
+    private function logAdminAction(User $user, string $event, array $newValues, array $oldValues = []): void
+    {
+        Audit::create([
+            'user_id'        => Auth::id(),
+            'actor_type'     => Auth::check() ? 'user' : 'system',
+            'auditable_type' => User::class,
+            'auditable_id'   => (string) $user->getKey(),
+            'event'          => $event,
+            'old_values'     => $oldValues,
+            'new_values'     => $newValues,
+            'url'            => Request::instance()?->fullUrl(),
+            'ip_address'     => Request::instance()?->ip(),
+            'user_agent'     => Request::instance()?->userAgent(),
+        ]);
     }
 
     /**
@@ -340,32 +389,60 @@ final class AdminUserService
             ? $this->userLevelService->getUserLevelInfo($user)
             : null;
 
-        $recentAudits = \App\Models\Audit::ofAuditable(User::class, $user->id)
+        $recentAudits = Audit::ofAuditable(User::class, $user->id)
             ->with('user:id,first_name,last_name,email')
             ->latest('created_at')
-            ->limit(10)
+            ->limit(self::RECENT_AUDITS_LIMIT)
             ->get()
-            ->map(fn (\App\Models\Audit $audit) => [
-                'id'     => (string) $audit->id,
-                'date'   => $audit->created_at?->format('d/m/Y H:i:s'),
-                'actor'  => $audit->user?->full_name ?? 'Sistema',
-                'event'  => $audit->event,
-            ]);
+            ->map(fn (Audit $audit) => $this->mapAuditRow($audit));
 
         return [
-            'id'                        => (string) $user->id,
-            'full_name'                 => trim("{$user->first_name} {$user->last_name}"),
-            'username'                  => $user->username,
-            'email'                     => $user->email,
-            'status'                    => $user->status,
-            'country'                   => $user->country?->name,
-            'role_name'                 => $roleName,
-            'role_label'                => $user->roles->first()?->name,
-            'created_at'                => $user->created_at?->format('d/m/Y H:i:s'),
-            'has_specific_permissions'  => !empty($user->specific_permissions),
-            'wallet'                    => $wallet,
-            'level'                     => $level,
-            'recent_audits'             => $recentAudits,
+            'id'                          => (string) $user->id,
+            'full_name'                   => trim("{$user->first_name} {$user->last_name}"),
+            'username'                    => $user->username,
+            'email'                       => $user->email,
+            'phone_number'                => $user->phone_number,
+            'status'                      => $user->status,
+            'country'                     => $user->country?->name,
+            'role_name'                   => $roleName,
+            'role_label'                  => $user->roles->first()?->name,
+            'created_at'                  => $user->created_at?->format('d/m/Y H:i:s'),
+            'last_login_at'               => $user->last_login_at?->format('d/m/Y H:i:s'),
+            'has_specific_permissions'    => !empty($user->specific_permissions),
+            'specific_permissions_count'  => count($user->specific_permissions ?? []),
+            'wallet'                      => $wallet,
+            'level'                       => $level,
+            'recent_audits'               => $recentAudits,
+            'has_more_audits'             => Audit::ofAuditable(User::class, $user->id)->count() > self::RECENT_AUDITS_LIMIT,
+        ];
+    }
+
+    /**
+     * Historial de auditoría paginado de un usuario — usado por el botón
+     * "Cargar más" del modal de ficha cuando los RECENT_AUDITS_LIMIT
+     * mostrados por defecto no bastan, sin obligar a saltar a /audit.
+     */
+    public function getUserAuditHistory(User $user, int $page = 1): array
+    {
+        $paginator = Audit::ofAuditable(User::class, $user->id)
+            ->with('user:id,first_name,last_name,email')
+            ->latest('created_at')
+            ->paginate(self::AUDIT_HISTORY_PAGE_SIZE, ['*'], 'page', $page);
+
+        return [
+            'rows'        => $paginator->getCollection()->map(fn (Audit $audit) => $this->mapAuditRow($audit))->values(),
+            'has_more'    => $paginator->hasMorePages(),
+            'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    private function mapAuditRow(Audit $audit): array
+    {
+        return [
+            'id'    => (string) $audit->id,
+            'date'  => $audit->created_at?->format('d/m/Y H:i:s'),
+            'actor' => $audit->user?->full_name ?? 'Sistema',
+            'event' => $audit->event,
         ];
     }
 }

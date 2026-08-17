@@ -55,20 +55,35 @@ export interface AdminUserDetailAudit {
     readonly event: string
 }
 
+export interface AdminUserDetailLevel {
+    readonly level: number
+    readonly current_xp: number
+    readonly total_xp: number
+    readonly xp_to_next_level: number
+    readonly xp_needed_for_next_level: number
+    readonly progress_percentage: number
+    readonly leveled_up_at: string | null
+}
+
 export interface AdminUserDetail {
     readonly id: string
     readonly full_name: string
     readonly username: string
     readonly email: string
+    readonly phone_number: string | null
     readonly status: UserStatus
     readonly country: string | null
     readonly role_name: string
     readonly role_label: string | null
     readonly created_at: string | null
+    readonly last_login_at: string | null
     readonly has_specific_permissions: boolean
+    readonly specific_permissions_count: number
     readonly wallet: { balance: number; currency: { iso_code: string; symbol: string; name: string } | null } | null
-    readonly level: Record<string, unknown> | null
+    readonly level: AdminUserDetailLevel | null
     readonly recent_audits: AdminUserDetailAudit[]
+    /** true si hay más eventos de auditoría además de los ya incluidos en recent_audits — habilita el botón "Cargar más". */
+    readonly has_more_audits: boolean
 }
 
 /**
