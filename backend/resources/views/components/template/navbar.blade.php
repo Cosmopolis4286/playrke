@@ -143,7 +143,10 @@
             </div>
         </div>
 
-        {{-- Usuario --}}
+        {{-- Usuario — $navUser es null para guests (ver NavbarComposer::compose());
+             este bloque completo asume un usuario autenticado, así que no se
+             renderiza sin uno para evitar acceder a propiedades de null. --}}
+        @if ($navUser)
         <div class="nav-item dropdown">
             <button class="nb-user-btn"
                     type="button" id="userDropdown"
@@ -237,6 +240,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
     </div>{{-- /.nb-right --}}
 </nav>
