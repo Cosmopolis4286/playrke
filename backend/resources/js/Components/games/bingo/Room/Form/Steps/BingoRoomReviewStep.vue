@@ -2,7 +2,7 @@
 import { computed, reactive, watch } from 'vue'
 import type { BingoRoomFormData, BingoRoomLastUpdatedBy } from '@/js/types/games/bingo/room/bingo-room'
 import type { SelectOption } from '@/js/types/common/form/form'
-import { STEP_LABELS, STEP_ERROR_KEYS, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
+import { STEP_LABELS, STEP_ERROR_KEYS, getStepStatus, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
 import { getCurrencyLabel } from '../Composables/useRoomCurrency'
 
 const props = defineProps<{
@@ -32,6 +32,11 @@ const STEPS: StepKey[] = ['basic', 'currencies', 'rounds', 'options']
 
 function stepHasErrors(step: StepKey): boolean {
   return STEP_ERROR_KEYS[step].some(k => k in props.errors)
+}
+
+/** Semáforo de 3 estados (error/incomplete/complete) — misma función pura que usa la barra de tabs (BingoRoomForm.vue), para que ambos indicadores coincidan siempre. */
+function sectionStatus(step: StepKey) {
+  return getStepStatus(step, props.errors, props.form)
 }
 
 const stepsWithErrors = computed(() => STEPS.filter(stepHasErrors))
@@ -188,14 +193,15 @@ const scheduleLabel = computed(() => {
 
 <template>
   <div class="bingo-review-step">
-    <!-- Progreso: cuántas de las 4 secciones editables están sin errores -->
+    <!-- Progreso: semáforo por sección (mismo criterio que la barra de tabs) —
+         rojo = error, amarillo = válida pero con opcionales sin completar, verde = completa -->
     <div class="bingo-review-step__progress">
       <div class="bingo-review-step__progress-dots">
         <span
           v-for="s in STEPS"
           :key="s"
           class="bingo-review-step__progress-dot"
-          :class="stepHasErrors(s) ? 'bingo-review-step__progress-dot--pending' : 'bingo-review-step__progress-dot--done'"
+          :class="`bingo-review-step__progress-dot--${sectionStatus(s)}`"
           :title="STEP_LABELS[s]"
         />
       </div>
@@ -469,8 +475,9 @@ const scheduleLabel = computed(() => {
 .bingo-review-step__progress-dot {
   width: .55rem; height: .55rem; border-radius: 50%; flex-shrink: 0;
 }
-.bingo-review-step__progress-dot--done { background: var(--bs-success, #198754); }
-.bingo-review-step__progress-dot--pending { background: var(--bs-border-color, #dee2e6); }
+.bingo-review-step__progress-dot--error { background: var(--bs-danger, #dc3545); }
+.bingo-review-step__progress-dot--incomplete { background: var(--bs-warning, #ffc107); }
+.bingo-review-step__progress-dot--complete { background: var(--bs-success, #198754); }
 .bingo-review-step__progress-label { font-size: .78rem; color: var(--bs-secondary, #6c757d); }
 
 /* Alerta consolidada de secciones pendientes */

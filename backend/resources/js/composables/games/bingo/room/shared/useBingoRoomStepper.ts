@@ -54,6 +54,68 @@ const STEP_OPTIONAL_KEYS: Partial<Record<BingoRoomStep, (keyof BingoRoomFormData
     basic: ['jackpotPct', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
 }
 
+/** Los 4 tabs editables — 'review' no tiene campos propios, su semáforo se deriva de estos. */
+const EDITABLE_STEPS: Exclude<BingoRoomStep, 'review'>[] = ['basic', 'currencies', 'rounds', 'options']
+
+export function stepHasErrorsFor(s: BingoRoomStep, errors: Record<string, unknown>): boolean {
+    return STEP_ERROR_KEYS[s].some(k => k in errors)
+}
+
+function singleStepStatus(
+    s: Exclude<BingoRoomStep, 'review'>,
+    errors: Record<string, unknown>,
+    form?: BingoRoomFormData
+): StepStatus {
+    if (stepHasErrorsFor(s, errors)) return 'error'
+    if (!form) return 'complete'
+
+    if (s === 'options') {
+        const hasAnyOption = !!form.useSerials || !!form.allowCustomCard || !!form.allowSpecialCard
+        return hasAnyOption ? 'complete' : 'incomplete'
+    }
+
+    const optionalKeys = STEP_OPTIONAL_KEYS[s]
+    if (!optionalKeys) return 'complete'
+    const allEmpty = optionalKeys.every(k => form[k] == null)
+    return allEmpty ? 'incomplete' : 'complete'
+}
+
+/**
+ * Semáforo de 3 estados para un tab del formulario de sala de Bingo, en
+ * orden de severidad — función pura de módulo (no atada al estado interno
+ * del stepper) para poder reutilizarla tanto en la barra de tabs
+ * (BingoRoomForm.vue) como en el indicador de progreso de Revisión
+ * (BingoRoomReviewStep.vue) sin duplicar las reglas ni instanciar un
+ * segundo stepper solo para leer esto.
+ *
+ * - 'error': al menos un campo obligatorio de la sección está vacío/inválido.
+ * - 'incomplete': sin errores, pero al menos un campo opcional relevante
+ *   sigue vacío (ver STEP_OPTIONAL_KEYS) — para 'options', "vacío" significa
+ *   los 3 toggles (seriales/cartón personalizado/cartón especial) apagados.
+ * - 'complete': sin errores y todo lo relevante (obligatorio + opcional) cargado.
+ *
+ * 'review' no tiene campos propios (STEP_ERROR_KEYS.review está vacío a
+ * propósito), así que su color se deriva del PEOR estado entre los 4 tabs
+ * editables — nunca se evalúa de forma aislada, o siempre daría "complete"
+ * sin importar que las otras secciones tuvieran errores reales.
+ *
+ * @param form Form actual — opcional; sin él, el resultado cae a error/complete
+ *             (sin distinguir 'incomplete', ya que esa distinción necesita leer valores del form).
+ */
+export function getStepStatus(
+    s: BingoRoomStep,
+    errors: Record<string, unknown>,
+    form?: BingoRoomFormData
+): StepStatus {
+    if (s === 'review') {
+        const statuses = EDITABLE_STEPS.map(step => singleStepStatus(step, errors, form))
+        if (statuses.includes('error')) return 'error'
+        if (statuses.includes('incomplete')) return 'incomplete'
+        return 'complete'
+    }
+    return singleStepStatus(s, errors, form)
+}
+
 /**
  * Gestiona el paso activo del wizard de creación/edición de sala de bingo.
  *
@@ -77,32 +139,11 @@ export function useBingoRoomStepper(
     const stepDescription = computed(() => STEP_DESCRIPTIONS[step.value])
 
     function stepHasErrors(s: BingoRoomStep): boolean {
-        const keys = STEP_ERROR_KEYS[s]
-        return keys.some(k => k in errors.value)
+        return stepHasErrorsFor(s, errors.value)
     }
 
-    /**
-     * Semáforo de 3 estados para el tab, en orden de severidad:
-     * - 'error': al menos un campo obligatorio de la sección está vacío/inválido.
-     * - 'incomplete': sin errores, pero al menos un campo opcional relevante
-     *   sigue vacío (ver STEP_OPTIONAL_KEYS) — para 'options', "vacío" significa
-     *   los 3 toggles (seriales/cartón personalizado/cartón especial) apagados.
-     * - 'complete': sin errores y todo lo relevante (obligatorio + opcional) cargado.
-     */
     function stepStatus(s: BingoRoomStep): StepStatus {
-        if (stepHasErrors(s)) return 'error'
-        if (!formGetter) return 'complete'
-        const form = formGetter()
-
-        if (s === 'options') {
-            const hasAnyOption = !!form.useSerials || !!form.allowCustomCard || !!form.allowSpecialCard
-            return hasAnyOption ? 'complete' : 'incomplete'
-        }
-
-        const optionalKeys = STEP_OPTIONAL_KEYS[s]
-        if (!optionalKeys) return 'complete'
-        const allEmpty = optionalKeys.every(k => form[k] == null)
-        return allEmpty ? 'incomplete' : 'complete'
+        return getStepStatus(s, errors.value, formGetter?.())
     }
 
     const canGoNext = computed(() =>

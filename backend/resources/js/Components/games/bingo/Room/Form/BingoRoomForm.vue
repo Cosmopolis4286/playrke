@@ -444,7 +444,7 @@
 
   <!-- Navegación del wizard — semáforo por tab: rojo (error), amarillo
        (válido pero con opcionales sin completar), verde (completo). -->
-  <ul class="nav nav-tabs mb-2" style="font-size: 0.85rem">
+  <ul class="nav nav-tabs mb-2 flex-nowrap" style="font-size: 0.8rem">
     <li v-for="s in steps" :key="s" class="nav-item">
       <button
         type="button"
@@ -654,9 +654,15 @@
 </template>
 
 <style scoped>
-.bingo-room-form__tab { display: inline-flex; align-items: center; gap: .4rem; }
+/* Padding reducido respecto al default de Bootstrap (~0.5rem 1rem) para que
+   los 5 tabs quepan en una sola fila sin wrap, incluso con el semáforo. */
+.bingo-room-form__tab {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .45rem .65rem !important;
+  white-space: nowrap;
+}
 .bingo-room-form__tab-dot {
-  width: .5rem; height: .5rem; border-radius: 50%; flex-shrink: 0;
+  width: .4rem; height: .4rem; border-radius: 50%; flex-shrink: 0;
   transition: background-color .15s ease;
 }
 .bingo-room-form__tab-dot--error { background: var(--bs-danger, #dc3545); box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-danger, #dc3545) 20%, transparent); }
