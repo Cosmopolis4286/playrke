@@ -81,14 +81,16 @@ class RegisteredUserController extends Controller
             $user = User::create([
                 'email' => $request->email,
                 'username' => $request->username,
-                'country' => $request->country,
+                'country_id' => $request->country,
                 'password' => Hash::make($request->password),
                 'referral_code' => app(UserRepository::class)->generateUniqueReferralCode(),
-                'referred_by' => $this->getReferredBy(),
+                'status' => 'ACTIVE',
             ]);
 
+            $user->assignRole('player');
+
             // Obtener el valor de la moneda para el país del usuario
-            $currency = $this->currencies->getValueByCountry($user->country, 'id');
+            $currency = $this->currencies->getValueByCountry($user->country_id, 'id');
 
             // Crear un nuevo Wallet para el usuario
             Wallet::create([

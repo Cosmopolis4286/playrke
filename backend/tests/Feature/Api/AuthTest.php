@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Country;
 use App\Models\Currency;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -33,6 +34,20 @@ class AuthTest extends TestCase
             'country_id' => $this->country->id,
             'iso_code' => 'VES',
         ]);
+
+        // RegisteredUserController::store() asigna el rol 'player' al usuario
+        // recién creado — sin sembrarlo, assignRole('player') falla.
+        if (!Role::where('name', 'player')->where('guard_name', 'web')->exists()) {
+            $role = new Role([
+                'name' => 'player',
+                'guard_name' => 'web',
+                'prefix' => 'player',
+                'type' => 'web',
+                'status' => true,
+            ]);
+            $role->id = (string) random_int(500000000000000000, 599999999999999999);
+            $role->save();
+        }
     }
 
     /** @test */
