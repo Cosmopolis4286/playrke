@@ -87,6 +87,7 @@ RUN mkdir -p \
     bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache \
+ && touch vendor/bradietilley/php-snowflake/sequence.json \
  && chown www-data:www-data vendor/bradietilley/php-snowflake vendor/bradietilley/php-snowflake/sequence.json \
  && chmod 775 vendor/bradietilley/php-snowflake \
  && chmod 664 vendor/bradietilley/php-snowflake/sequence.json
