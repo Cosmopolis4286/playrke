@@ -330,7 +330,16 @@
 
   // Modal de ficha de usuario (datos básicos + wallet + nivel + actividad reciente)
   const showUserDetailModal = ref(false)
-  const { loading: userDetailLoading, detail: userDetail, fetchDetail: fetchUserDetail, clearDetail: clearUserDetail } = useAdminUserDetail()
+  const {
+    loading: userDetailLoading,
+    detail: userDetail,
+    error: userDetailError,
+    fetchDetail: fetchUserDetail,
+    retryFetchDetail,
+    clearDetail: clearUserDetail,
+    loadingMoreAudits: userDetailLoadingMoreAudits,
+    loadMoreAudits: loadMoreUserDetailAudits,
+  } = useAdminUserDetail()
 
   async function openUserDetail(rowId: string) {
     const user = users.value.find(u => u.id === rowId)
@@ -347,6 +356,13 @@
   function handleUserDetailVisibility(open: boolean) {
     showUserDetailModal.value = open
     if (!open) clearUserDetail()
+  }
+
+  function handleViewPermissionsFromDetail(userId: string) {
+    if (!userDetail.value) return
+    showUserDetailModal.value = false
+    clearUserDetail()
+    openPermissionsModal(userId, userDetail.value.full_name || userDetail.value.username)
   }
 
   function handleViewFullHistory(userRealId: string) {
@@ -873,8 +889,13 @@
     :model-value="showUserDetailModal"
     :loading="userDetailLoading"
     :detail="userDetail"
+    :error="userDetailError"
+    :loading-more-audits="userDetailLoadingMoreAudits"
     @update:model-value="handleUserDetailVisibility"
     @view-full-history="handleViewFullHistory"
+    @view-permissions="handleViewPermissionsFromDetail"
+    @retry="retryFetchDetail"
+    @load-more-audits="loadMoreUserDetailAudits"
   />
 
   <!-- Loader bloqueante mientras se redirige desde "Ver más" (UserEditForm.vue) -->

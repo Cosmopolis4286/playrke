@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
         'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
         'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export'],
         'show'          => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show'],
+        'auditHistory'  => ['method' => 'get',    'uri' => '{user}/audit-history', 'action' => 'auditHistory'],
         'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
         'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
         'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
