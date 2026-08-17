@@ -22,6 +22,7 @@
   import Button from '@/js/Components/Common/Button/Button.vue'
   import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
   import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
+  import RoleHierarchyTree from '@/js/Components/Roles/Admin/RoleHierarchyTree.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
   import UserCreateRoleForm from '@/js/Components/Roles/Admin/User/UserCreateRoleForm.vue'
   import XpGrantForm from '@/js/Components/Roles/Admin/User/XpGrantForm.vue'
@@ -40,6 +41,7 @@
   import { useAdminUser } from '@/js/composables/roles/admin/user/useAdminUser'
   import { useAdminUserPermissions } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
   import { useAdminUserDetail } from '@/js/composables/roles/admin/user/useAdminUserDetail'
+  import { useRoleHierarchy } from '@/js/composables/roles/admin/role/useRoleHierarchy'
   import type { CatalogPermission } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
 
   // ==========================================================================
@@ -49,6 +51,7 @@
   import type { AdminUserPageProps, AdminUserEditData } from '@js/types/roles/admin/admin-user'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { RoleMetaUpdate } from '@js/types/roles/admin/role'
 
   // ==========================================================================
   // Props (Inertia)
@@ -138,6 +141,25 @@
   // /permissions, para editar descripción/estado de roles desde el listado
   // de usuarios sin tener que navegar a la matriz de permisos.
   const showRoleManager = ref(false)
+
+  // Tabs "Listado" / "Jerarquía de Roles" — mismo patrón y mismo componente
+  // (RoleHierarchyTree.vue) que usa /admin/permissions, para no navegar fuera
+  // de /admin/users solo para consultar el organigrama de roles.
+  const activeTab = ref<'list' | 'hierarchy'>('list')
+  const { tree: hierarchyTree, loading: hierarchyLoading, fetchHierarchy, updateRoleMeta } = useRoleHierarchy()
+
+  let hierarchyLoaded = false
+  function onHierarchyTabClick() {
+    activeTab.value = 'hierarchy'
+    if (!hierarchyLoaded) {
+      hierarchyLoaded = true
+      fetchHierarchy()
+    }
+  }
+
+  async function handleHierarchySave(roleId: string, attributes: RoleMetaUpdate) {
+    await updateRoleMeta(roleId, attributes)
+  }
 
   const breadcrumbItems = [
     { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
@@ -238,10 +260,12 @@
    * Botón "Ver más" del modal de edición: navega a la página dedicada del
    * rol (ej. /admin/commerces) pasando ?open={domainId} para que esa página
    * auto-abra la ficha del usuario al montar (ver onMounted en cada
-   * Roles/Admin/{Rol}/Index.vue).
+   * Roles/Admin/{Rol}/Index.vue). domainId es null para roles sin auto-open
+   * (ej. 'admin' -> /admins, que no tiene modal de edición) — ahí es pura
+   * navegación, sin query param.
    */
-  function handleViewRoleDetail(route: string, domainId: string | number) {
-    router.visit(route, { data: { open: domainId } })
+  function handleViewRoleDetail(route: string, domainId: string | number | null) {
+    router.visit(route, domainId ? { data: { open: domainId } } : {})
   }
 
   function openEditModal(userId: string | number) {
@@ -580,64 +604,92 @@
 
   <section class="content">
     <div class="container-fluid">
-      <div class="admin-users-stats">
-        <StatTile label="Usuarios totales" :value="stats.total" icon="fa-users" />
-        <StatTile label="Activos (esta página)" :value="stats.active" icon="fa-user-check" variant="success" />
-        <StatTile label="Con permisos individuales (esta página)" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
-        <StatTile label="Roles disponibles" :value="stats.inactiveRolesAvailable" icon="fa-user-tag" />
+      <ul class="nav nav-tabs section-tabs">
+        <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'list' }" @click="activeTab = 'list'">
+            <i class="fas fa-table mr-2"></i>Listado
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" :class="{ active: activeTab === 'hierarchy' }" @click="onHierarchyTabClick">
+            <i class="fas fa-sitemap mr-2"></i>Jerarquía de Roles
+          </button>
+        </li>
+      </ul>
+
+      <div v-show="activeTab === 'list'">
+        <div class="admin-users-stats">
+          <StatTile label="Usuarios totales" :value="stats.total" icon="fa-users" />
+          <StatTile label="Activos (esta página)" :value="stats.active" icon="fa-user-check" variant="success" />
+          <StatTile label="Con permisos individuales (esta página)" :value="stats.withSpecificPermissions" icon="fa-user-shield" variant="info" />
+          <StatTile label="Roles disponibles" :value="stats.inactiveRolesAvailable" icon="fa-user-tag" />
+        </div>
+
+        <TableWithFilterBridge
+          tableId="user-table"
+          title="Usuarios"
+          :columns="props.users.columns"
+          :rows="users"
+          :filters="filters"
+          search-placeholder="Buscar por nombre, username, email..."
+          :loading="loading"
+          server-side
+          :server-total-pages="pagination?.last_page ?? 1"
+          showCreateButton
+          showEditButton
+          showDeleteButton
+          :disable-edit="isProtectedSelection"
+          :disable-edit-reason="getProtectedSelectionReason"
+          :disable-delete="isProtectedSelection"
+          :disable-delete-reason="getProtectedSelectionReason"
+          :disabled-row-ids="disabledRowIds"
+          disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
+          :extra-buttons="extraButtons"
+          row-vertical-align="middle"
+          @query-change="onQueryChange"
+        >
+          <template #cell-full_name="{ row }">
+            <div class="admin-user-cell">
+              <div class="admin-user-cell__top">
+                <span class="admin-user-cell__name">{{ row.full_name }}</span>
+                <span v-html="row.role_badge"></span>
+              </div>
+              <span class="admin-user-cell__meta">
+                <i class="fas fa-at"></i>{{ row.username }}
+                <span class="admin-user-cell__sep">·</span>
+                <i class="fas fa-envelope"></i>{{ row.email }}
+                <template v-if="row.phone_number">
+                  <span class="admin-user-cell__sep">·</span>
+                  <i class="fas fa-phone-alt"></i>{{ row.phone_number }}
+                </template>
+              </span>
+            </div>
+          </template>
+
+          <template #cell-permissions_badge="{ row }">
+            <span v-html="row.permissions_badge"></span>
+          </template>
+
+          <template #cell-registered_at="{ row }">
+            <RelativeTime :value="row.registered_at" />
+          </template>
+
+          <template #action-buttons>
+            <button class="btn btn-sm btn-outline-secondary" title="Exportar usuarios filtrados a CSV" @click="handleExport">
+              <i class="fas fa-file-csv mr-1"></i>Exportar
+            </button>
+          </template>
+        </TableWithFilterBridge>
       </div>
 
-      <TableWithFilterBridge
-        tableId="user-table"
-        title="Usuarios"
-        :columns="props.users.columns"
-        :rows="users"
-        :filters="filters"
-        search-placeholder="Buscar por nombre, username, email..."
-        :loading="loading"
-        server-side
-        :server-total-pages="pagination?.last_page ?? 1"
-        showCreateButton
-        showEditButton
-        showDeleteButton
-        :disable-edit="isProtectedSelection"
-        :disable-edit-reason="getProtectedSelectionReason"
-        :disable-delete="isProtectedSelection"
-        :disable-delete-reason="getProtectedSelectionReason"
-        :disabled-row-ids="disabledRowIds"
-        disabled-row-reason="Cuenta protegida: no puede modificarse desde aquí"
-        :extra-buttons="extraButtons"
-        row-vertical-align="middle"
-        @query-change="onQueryChange"
-      >
-        <template #cell-full_name="{ row }">
-          <div class="admin-user-cell">
-            <div class="admin-user-cell__top">
-              <span class="admin-user-cell__name">{{ row.full_name }}</span>
-              <span v-html="row.role_badge"></span>
-            </div>
-            <span class="admin-user-cell__meta">
-              <i class="fas fa-at"></i>{{ row.username }}
-              <span class="admin-user-cell__sep">·</span>
-              <i class="fas fa-envelope"></i>{{ row.email }}
-            </span>
-          </div>
-        </template>
-
-        <template #cell-permissions_badge="{ row }">
-          <span v-html="row.permissions_badge"></span>
-        </template>
-
-        <template #cell-registered_at="{ row }">
-          <RelativeTime :value="row.registered_at" />
-        </template>
-
-        <template #action-buttons>
-          <button class="btn btn-sm btn-outline-secondary" title="Exportar usuarios filtrados a CSV" @click="handleExport">
-            <i class="fas fa-file-csv mr-1"></i>Exportar
-          </button>
-        </template>
-      </TableWithFilterBridge>
+      <div v-show="activeTab === 'hierarchy'">
+        <RoleHierarchyTree
+          :tree="hierarchyTree"
+          :loading="hierarchyLoading"
+          :on-save="handleHierarchySave"
+          @reload="fetchHierarchy"
+        />
+      </div>
     </div>
   </section>
 
@@ -763,6 +815,27 @@
 </template>
 
 <style scoped>
+.section-tabs {
+  border-bottom: 1px solid var(--ds-border);
+  margin-bottom: 1rem;
+  gap: 0.25rem;
+}
+.section-tabs .nav-link {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ds-text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+}
+.section-tabs .nav-link:hover { color: var(--ds-text); }
+.section-tabs .nav-link.active {
+  color: var(--ds-primary, #2563eb);
+  border-bottom-color: var(--ds-primary, #2563eb);
+}
+
 .admin-users-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

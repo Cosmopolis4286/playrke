@@ -15,37 +15,49 @@
          (RoleService::getAll() -> RoleHierarchyService::buildTree() aplanado),
          no se reordena en el frontend. -->
     <div v-else class="role-list">
-      <div v-for="role in roles" :key="role.id" class="role-row" :class="{ 'is-inactive': !role.status }">
+      <div v-for="role in roles" :key="role.id" class="role-row" :class="{ 'is-inactive': !role.status }" :style="{ '--role-color': role.color || '#64748b' }">
         <div class="role-row-main">
-          <RoleBadge :name="role.name" />
+          <span class="role-icon"><i class="fas" :class="role.icon || 'fa-user'"></i></span>
 
-          <template v-if="editingId === role.id">
-            <input
-              v-model="editValue"
-              type="text"
-              class="form-control form-control-sm role-desc-input"
-              maxlength="255"
-              @keydown.enter="saveDescription(role.id)"
-              @keydown.escape="cancelEdit"
-            />
-            <button class="btn btn-sm btn-success" :disabled="!editValue.trim() || savingId === role.id" @click="saveDescription(role.id)">
-              <i class="fas fa-check"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" @click="cancelEdit">
-              <i class="fas fa-times"></i>
-            </button>
-          </template>
-          <template v-else>
-            <span class="role-desc">{{ role.description || 'Sin descripción' }}</span>
-            <button
-              class="btn btn-sm btn-link"
-              title="Editar descripción"
-              :disabled="role.name === 'superadmin'"
-              @click="startEdit(role)"
-            >
-              <i class="fas fa-pencil-alt"></i>
-            </button>
-          </template>
+          <div class="role-row-title">
+            <div class="role-row-name-line">
+              <RoleBadge :name="role.name" />
+              <span class="role-stats">
+                <span title="Usuarios con este rol"><i class="fas fa-users"></i> {{ role.users_count }}</span>
+                <span title="Permisos asignados"><i class="fas fa-key"></i> {{ role.permissions_count }}</span>
+              </span>
+            </div>
+
+            <div class="role-row-desc-line">
+              <template v-if="editingId === role.id">
+                <input
+                  v-model="editValue"
+                  type="text"
+                  class="form-control form-control-sm role-desc-input"
+                  maxlength="255"
+                  @keydown.enter="saveDescription(role.id)"
+                  @keydown.escape="cancelEdit"
+                />
+                <button class="btn btn-sm btn-success" :disabled="!editValue.trim() || savingId === role.id" @click="saveDescription(role.id)">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" @click="cancelEdit">
+                  <i class="fas fa-times"></i>
+                </button>
+              </template>
+              <template v-else>
+                <span class="role-desc">{{ role.description || 'Sin descripción' }}</span>
+                <button
+                  class="btn btn-sm btn-link"
+                  title="Editar descripción"
+                  :disabled="role.name === 'superadmin'"
+                  @click="startEdit(role)"
+                >
+                  <i class="fas fa-pencil-alt"></i>
+                </button>
+              </template>
+            </div>
+          </div>
         </div>
 
         <div class="role-row-side">
@@ -179,10 +191,54 @@ async function handleToggle(role: AdminRole) {
 
 .role-row-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   flex: 1 1 320px;
   min-width: 0;
+}
+
+.role-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--role-color) 18%, transparent);
+  color: var(--role-color);
+  font-size: 0.9rem;
+  margin-top: 0.1rem;
+}
+
+.role-row-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.role-row-name-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.role-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  color: var(--ds-text-muted);
+}
+.role-stats i { margin-right: 0.2rem; }
+
+.role-row-desc-line {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .role-desc {

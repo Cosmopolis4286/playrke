@@ -10,7 +10,7 @@
 
   // Types
   import type { Country } from '@/js/types/country'
-  import { ROLE_ROUTE_MAP, type AdminRole, type AdminUserEditData } from '@/js/types/roles/admin/admin-user'
+  import { ROLE_DETAIL_ROUTE_MAP, ROLES_WITH_AUTO_OPEN, type AdminRole, type AdminUserEditData } from '@/js/types/roles/admin/admin-user'
 
   /* ==========================================================================
    * Props
@@ -42,21 +42,32 @@
     (e: 'submit'): void
     (e: 'update:modelValue', value: Partial<AdminUserEditData>): void
     (e: 'reset-password'): void
-    (e: 'view-role-detail', route: string, domainId: string | number): void
+    (e: 'view-role-detail', route: string, domainId: string | number | null): void
   }>()
 
   /* ==========================================================================
-   * "Ver más" — solo visible si el rol del usuario tiene página dedicada
-   * (ROLE_ROUTE_MAP) y se resolvió el id de su registro de dominio.
+   * "Ver más" — visible si el rol del usuario tiene página dedicada
+   * (ROLE_DETAIL_ROUTE_MAP). El domainId solo es obligatorio para roles que
+   * auto-abren una ficha (ROLES_WITH_AUTO_OPEN: commerce/customer/player/
+   * seller/treasurer) — 'admin' navega a /admins sin abrir nada (esa página
+   * no tiene modal de edición de datos), así que no debe bloquearse por falta
+   * de domain_id (que para admin siempre es null, al no tener registro de
+   * dominio propio).
    * ========================================================================== */
 
   const roleDetailRoute = computed(() =>
-    props.targetRoleName ? ROLE_ROUTE_MAP[props.targetRoleName] ?? null : null
+    props.targetRoleName ? ROLE_DETAIL_ROUTE_MAP[props.targetRoleName] ?? null : null
   )
 
+  const canViewRoleDetail = computed(() => {
+    if (!roleDetailRoute.value) return false
+    if (!props.targetRoleName) return false
+    return ROLES_WITH_AUTO_OPEN.has(props.targetRoleName) ? !!props.targetDomainId : true
+  })
+
   function viewRoleDetail() {
-    if (!roleDetailRoute.value || !props.targetDomainId) return
-    emit('view-role-detail', roleDetailRoute.value, props.targetDomainId)
+    if (!canViewRoleDetail.value || !roleDetailRoute.value) return
+    emit('view-role-detail', roleDetailRoute.value, props.targetDomainId ?? null)
   }
 
   /* ==========================================================================
@@ -228,10 +239,12 @@
       </button>
 
       <button
-        v-if="roleDetailRoute && targetDomainId"
+        v-if="canViewRoleDetail"
         type="button"
         class="btn btn-outline-primary btn-sm"
-        title="Abre la página de gestión de este rol con la ficha del usuario ya cargada"
+        :title="targetRoleName && ROLES_WITH_AUTO_OPEN.has(targetRoleName)
+          ? 'Abre la página de gestión de este rol con la ficha del usuario ya cargada'
+          : 'Abre la página de gestión de este rol'"
         @click="viewRoleDetail"
       >
         <i class="fas fa-arrow-up-right-from-square mr-2"></i>

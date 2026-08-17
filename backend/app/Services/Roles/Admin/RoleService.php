@@ -20,14 +20,19 @@ final class RoleService
      * orden arbitrario. Cada rol lleva además `status_changed_at`: la fecha
      * del último Audit donde su `status` cambió (null si nunca cambió desde
      * su creación) — calculada por RoleHierarchyService para no duplicar la
-     * consulta de auditoría entre ambas pantallas.
+     * consulta de auditoría entre ambas pantallas. `icon`/`color` ya son
+     * columnas nativas del modelo; `users_count`/`permissions_count` se
+     * agregan con withCount (mismos contadores que ve RoleHierarchyTree.vue)
+     * para que el modal muestre exactamente los mismos badges/contadores que
+     * el organigrama, sin que ambas vistas se desincronicen visualmente.
      */
     public function getAll(): Collection
     {
         $orderedIds = $this->flattenTreeIds($this->hierarchyService->buildTree());
         $statusChanges = $this->hierarchyService->lastStatusChangeByRoleId();
 
-        return Role::whereIn('id', $orderedIds)
+        return Role::withCount(['users', 'permissions'])
+            ->whereIn('id', $orderedIds)
             ->get()
             ->keyBy('id')
             ->sortBy(fn (Role $role) => array_search($role->id, $orderedIds, true))

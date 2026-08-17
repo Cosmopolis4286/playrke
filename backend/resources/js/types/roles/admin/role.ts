@@ -9,6 +9,8 @@ export interface AdminRole {
   color: string | null
   /** Fecha ISO 8601 del último cambio de `status` (auditoría), null si nunca cambió desde su creación. */
   status_changed_at: string | null
+  users_count: number
+  permissions_count: number
 }
 
 export interface RoleHierarchyNode {

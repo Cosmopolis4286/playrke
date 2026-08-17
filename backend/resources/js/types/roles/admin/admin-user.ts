@@ -103,3 +103,25 @@ export const ROLE_ROUTE_MAP: Record<string, string> = {
     seller:     '/admin/sellers',
     treasurer:  '/admin/treasurers',
 }
+
+/**
+ * Mapa de rol → ruta de la página dedicada, para el botón "Ver más" del
+ * modal de edición (UserEditForm.vue). Superset de ROLE_ROUTE_MAP: incluye
+ * 'admin' -> /admins, que no admite creación por el flujo genérico de
+ * ROLE_ROUTE_MAP (los admins se gestionan aparte, ver AdministratorController)
+ * pero sí tiene una página de listado a la que navegar.
+ */
+export const ROLE_DETAIL_ROUTE_MAP: Record<string, string> = {
+    ...ROLE_ROUTE_MAP,
+    admin: '/admins',
+}
+
+/**
+ * Roles cuya página dedicada (ROLE_DETAIL_ROUTE_MAP) sabe auto-abrir la
+ * ficha de un registro específico vía ?open={domainId} (ver onMounted en
+ * cada Roles/Admin/{Rol}/Index.vue). 'admin' queda fuera: /admins
+ * (Administrator/Index.vue) no tiene modal de edición de datos, solo
+ * gestión de estado/contraseña — "Ver más" ahí es pura navegación, no
+ * requiere resolver domain_id.
+ */
+export const ROLES_WITH_AUTO_OPEN = new Set(Object.keys(ROLE_ROUTE_MAP))
