@@ -113,6 +113,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($key);
         });
 
+        // Rate-limit: vista pública de juego de un ExternalPlayer (sin
+        // sesión — ver ExternalPlayerGameController) — clave por `link`, el
+        // token de 28 caracteres que actúa como credencial de acceso. Más
+        // generoso que bingo-check-bingo porque agrupa TODAS las acciones
+        // de esta pantalla (game, drawState, cards, checkBingo), no solo el
+        // reclamo de bingo.
+        RateLimiter::for('external-player-game', function (Request $request) {
+            return Limit::perMinute(30)->by($request->route('link') ?? $request->ip());
+        });
+
         // Rate-limit: unirse a sala privada por código ("Tengo un código") — 6
         // intentos por minuto por usuario. Más estricto que bingo-verify-access
         // porque ahí la clave incluye el room_id (los intentos se diluyen entre
