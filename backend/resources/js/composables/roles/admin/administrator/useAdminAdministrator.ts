@@ -102,6 +102,8 @@ export function useAdminAdministrator(): UseAdminAdministratorReturn {
             email: admin.email ?? '',
             phone_number: admin.phone_number ?? '',
             country_id: admin.country_id,
+            status: admin.status,
+            real_id: admin.real_id,
         }
     }
 

@@ -76,9 +76,9 @@ class AdministratorControllerTest extends TestCase
 
         $this->actingAs($player)->getJson('/admins/fetch-list')->assertStatus(403);
         $this->actingAs($player)->postJson('/admins', [])->assertStatus(403);
-        $this->actingAs($player)->patchJson("/admins/{$target->id}", [])->assertStatus(403);
-        $this->actingAs($player)->patchJson("/admins/{$target->id}/toggle-status")->assertStatus(403);
-        $this->actingAs($player)->deleteJson("/admins/{$target->id}")->assertStatus(403);
+        $this->actingAs($player)->patchJson("/admins/{$target->getRouteKey()}", [])->assertStatus(403);
+        $this->actingAs($player)->patchJson("/admins/{$target->getRouteKey()}/toggle-status")->assertStatus(403);
+        $this->actingAs($player)->deleteJson("/admins/{$target->getRouteKey()}")->assertStatus(403);
     }
 
     public function test_admin_cannot_access_administrator_routes(): void
@@ -160,7 +160,7 @@ class AdministratorControllerTest extends TestCase
         $superadmin = $this->makeSuperadmin();
         $target = $this->makeAdmin();
 
-        $response = $this->actingAs($superadmin)->patchJson("/admins/{$target->id}", [
+        $response = $this->actingAs($superadmin)->patchJson("/admins/{$target->getRouteKey()}", [
             'first_name' => 'Actualizado',
         ]);
 
@@ -168,15 +168,39 @@ class AdministratorControllerTest extends TestCase
         $this->assertSame('Actualizado', $target->fresh()->first_name);
     }
 
-    public function test_superadmin_cannot_update_self_via_administrator_endpoint(): void
+    /**
+     * A diferencia de las acciones sensibles (status/password/delete), editar
+     * datos básicos SÍ permite auto-edición — UserPolicy::editAdministrator()
+     * (distinta de manageAdministrator()) no bloquea id === auth()->id().
+     */
+    public function test_superadmin_can_update_own_basic_data(): void
     {
         $superadmin = $this->makeSuperadmin();
 
-        $response = $this->actingAs($superadmin)->patchJson("/admins/{$superadmin->id}", [
-            'first_name' => 'Intento',
+        $response = $this->actingAs($superadmin)->patchJson("/admins/{$superadmin->getRouteKey()}", [
+            'first_name' => 'Actualizado',
         ]);
 
-        $response->assertStatus(403);
+        $response->assertOk();
+        $this->assertSame('Actualizado', $superadmin->fresh()->first_name);
+    }
+
+    /**
+     * El status nunca viaja por PATCH /admins/{user} (AdministratorUpdateDTO
+     * no incluye ese campo) — enviarlo en el payload se ignora silenciosamente,
+     * confirmando que la auto-edición no puede colarse como auto-desactivación.
+     */
+    public function test_update_endpoint_ignores_status_field(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+
+        $response = $this->actingAs($superadmin)->patchJson("/admins/{$superadmin->getRouteKey()}", [
+            'first_name' => 'Actualizado',
+            'status' => 'INACTIVE',
+        ]);
+
+        $response->assertOk();
+        $this->assertSame('ACTIVE', $superadmin->fresh()->status);
     }
 
     // ── Status / Delete guards ──────────────────────────────────────────
@@ -188,7 +212,7 @@ class AdministratorControllerTest extends TestCase
         // Con $superadmin + $target activos (2 total), desactivar a $target
         // es válido: queda $superadmin como administrador activo.
 
-        $response = $this->actingAs($superadmin)->patchJson("/admins/{$target->id}/toggle-status");
+        $response = $this->actingAs($superadmin)->patchJson("/admins/{$target->getRouteKey()}/toggle-status");
 
         $response->assertOk();
         $this->assertSame('INACTIVE', $target->fresh()->status);
@@ -233,7 +257,7 @@ class AdministratorControllerTest extends TestCase
         // de auto-modificación.
         $actor = $this->makeSuperadmin();
 
-        $response = $this->actingAs($actor)->deleteJson("/admins/{$onlySuperadmin->id}/force-delete");
+        $response = $this->actingAs($actor)->deleteJson("/admins/{$onlySuperadmin->getRouteKey()}/force-delete");
 
         // Hay 2 superadmins (onlySuperadmin + actor), así que esto sí se
         // permite — confirma que la regla es sobre el ÚLTIMO, no cualquiera.
@@ -269,7 +293,7 @@ class AdministratorControllerTest extends TestCase
         $target = $this->makeAdmin();
         $target->update(['status' => 'INACTIVE']);
 
-        $response = $this->actingAs($superadmin)->putJson("/admins/{$target->id}/reset-password");
+        $response = $this->actingAs($superadmin)->putJson("/admins/{$target->getRouteKey()}/reset-password");
 
         $response->assertStatus(422);
     }
@@ -280,7 +304,7 @@ class AdministratorControllerTest extends TestCase
         $target = $this->makeAdmin();
         $originalHash = $target->password;
 
-        $response = $this->actingAs($superadmin)->putJson("/admins/{$target->id}/reset-password");
+        $response = $this->actingAs($superadmin)->putJson("/admins/{$target->getRouteKey()}/reset-password");
 
         $response->assertOk();
         $this->assertArrayHasKey('password', $response->json());

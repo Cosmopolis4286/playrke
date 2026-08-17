@@ -69,6 +69,24 @@
     return ''
   })
 
+  /**
+   * El checkbox nativo del switch cambia su apariencia en el click mismo
+   * (evento síncrono), antes de que la confirmación async (SweetAlert) del
+   * padre resuelva. Si el usuario cancela, targetStatus no cambia →
+   * isStatusSwitchOn tampoco → Vue no vuelve a tocar el DOM del input porque
+   * el valor vinculado es idéntico al anterior, dejando el checkbox "atascado"
+   * visualmente en la posición que el usuario alcanzó a ver por el click,
+   * aunque el estado real no cambió. Forzar un remount del FormSwitch en
+   * cada intento (confirmado o cancelado) descarta ese DOM y lo recrea desde
+   * el valor real, eliminando el desfase.
+   */
+  const statusSwitchRenderKey = ref(0)
+
+  function handleToggleStatusClick() {
+    statusSwitchRenderKey.value++
+    emit('toggle-status')
+  }
+
   /* ==========================================================================
    * "Ver más" — visible si el rol del usuario tiene página dedicada
    * (ROLE_DETAIL_ROUTE_MAP). El domainId solo es obligatorio para roles que
@@ -316,12 +334,13 @@
 
       <div v-if="targetStatus" class="col-sm-6">
         <FormSwitch
+          :key="statusSwitchRenderKey"
           :label="isStatusSwitchOn ? 'Activo' : 'Inactivo'"
           name="status"
           col=""
           :model-value="isStatusSwitchOn"
           :disabled="isStatusSwitchLocked"
-          @update:model-value="emit('toggle-status')"
+          @update:model-value="handleToggleStatusClick"
         />
         <small v-if="isStatusSwitchLocked" class="text-muted d-block role-locked-hint">
           <i class="fas fa-lock mr-1"></i>{{ statusSwitchLockedReason }}

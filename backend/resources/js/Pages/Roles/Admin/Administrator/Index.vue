@@ -68,9 +68,12 @@
     { label: 'Administradores' },
   ]
 
-  // Fila protegida: la propia cuenta del actor — el backend ya lo bloquea
+  // Filas de acciones SENSIBLES bloqueadas (status/password/delete/destroy)
+  // sobre la propia cuenta del actor — el backend ya lo bloquea
   // (UserPolicy::manageAdministrator), esto evita ofrecer en la UI una
-  // acción que el servidor va a rechazar con 403.
+  // acción que el servidor va a rechazar con 403. "Editar" datos básicos SÍ
+  // se permite sobre uno mismo (UserPolicy::editAdministrator) — no entra
+  // en este set.
   const disabledRowIds = computed<string[]>(() =>
     admins.value
       .filter(a => String(a.real_id ?? a.id) === currentUserId.value)
@@ -83,6 +86,22 @@
 
   function getProtectedSelectionReason(): string {
     return 'No puedes realizar esta acción sobre tu propio usuario'
+  }
+
+  const isEditingSelf = computed(() => !!editData.value.real_id && String(editData.value.real_id) === currentUserId.value)
+  const togglingStatusId = ref<string | null>(null)
+
+  async function handleToggleStatusFromForm() {
+    if (!editData.value.id || isEditingSelf.value) return
+    togglingStatusId.value = String(editData.value.id)
+    try {
+      const ok = await toggleStatus(String(editData.value.id))
+      if (ok) {
+        editData.value = { ...editData.value, status: editData.value.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }
+      }
+    } finally {
+      togglingStatusId.value = null
+    }
   }
 
   // ==========================================================================
@@ -274,12 +293,8 @@
         showCreateButton
         showEditButton
         showDeleteButton
-        :disable-edit="isProtectedSelection"
-        :disable-edit-reason="getProtectedSelectionReason"
         :disable-delete="isProtectedSelection"
         :disable-delete-reason="getProtectedSelectionReason"
-        :disabled-row-ids="disabledRowIds"
-        disabled-row-reason="Cuenta propia: no puede modificarse desde aquí"
         :extra-buttons="extraButtons"
         row-vertical-align="middle"
         @query-change="onQueryChange"
@@ -341,7 +356,10 @@
       ref="editFormRef"
       v-model="editData"
       :countries="props.countries"
-      @reset-password="() => editData.id && resetPassword(String(editData.id))"
+      :is-self="isEditingSelf"
+      :toggling-status="!!togglingStatusId"
+      @reset-password="() => editData.id && !isEditingSelf && resetPassword(String(editData.id))"
+      @toggle-status="handleToggleStatusFromForm"
     />
   </Modal>
 </template>

@@ -43,6 +43,9 @@ export interface AdministratorCreateData {
 
 /**
  * Datos editables del formulario de edición de un administrador existente.
+ * `status`/`real_id` son informativos (no viajan en el PATCH de update, que
+ * nunca incluye status) — se usan para renderizar el switch de estado y
+ * decidir si el actor autenticado puede alterarlo (nunca sobre sí mismo).
  */
 export interface AdministratorEditData {
     id: string | number
@@ -52,4 +55,6 @@ export interface AdministratorEditData {
     email: string
     phone_number: string
     country_id: string | number | null
+    status: AdministratorStatus
+    real_id: string | number | null
 }

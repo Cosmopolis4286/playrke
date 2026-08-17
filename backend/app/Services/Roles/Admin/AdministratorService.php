@@ -2,6 +2,7 @@
 
 namespace App\Services\Roles\Admin;
 
+use App\Contracts\UserRepositoryInterface;
 use App\DTOs\Roles\Admin\Administrator\AdministratorStoreDTO;
 use App\DTOs\Roles\Admin\Administrator\AdministratorUpdateDTO;
 use App\Exceptions\Domain\Roles\Admin\Administrator\AdministratorException;
@@ -14,6 +15,7 @@ final class AdministratorService
 {
     public function __construct(
         private readonly AdministratorContextService $context,
+        private readonly UserRepositoryInterface $users,
     ) {}
 
     public function fetchList(array $filters = [], int $page = 1): array
@@ -39,6 +41,7 @@ final class AdministratorService
                 'phone_number' => $dto->phoneNumber,
                 'status'       => 'ACTIVE',
                 'email_verified_at' => now(),
+                'referral_code' => $this->users->generateUniqueReferralCode(),
             ]);
 
             $user->assignRole('admin');
@@ -48,11 +51,15 @@ final class AdministratorService
     }
 
     /**
-     * Actualizar datos básicos de un administrador existente.
+     * Actualizar datos básicos de un administrador existente. A diferencia
+     * del resto de acciones de este service, SÍ permite auto-edición (un
+     * superadmin puede editar su propia ficha) — AdministratorUpdateDTO no
+     * incluye `status`, así que esta vía nunca puede auto-desactivar al
+     * actor ni a nadie más (ver toggleStatus() para eso).
      */
     public function update(User $user, AdministratorUpdateDTO $dto): void
     {
-        $this->validateAdministrator($user);
+        $this->validateIsAdministrator($user);
 
         $user->update($dto->toArray());
     }
@@ -143,16 +150,27 @@ final class AdministratorService
     }
 
     /**
-     * Validar que el usuario sea un administrador y que el actor no se esté
-     * modificando a sí mismo. Reasegura a nivel de service lo que
-     * UserPolicy::manageAdministrator() ya bloquea, para que ningún otro
-     * caller que invoque el service directamente pueda saltarse la regla.
+     * Validar que el usuario sea realmente un administrador (admin o
+     * superadmin), sin restricción de auto-modificación — usado por update(),
+     * la única acción que un superadmin puede aplicarse a sí mismo.
      */
-    private function validateAdministrator(User $user): void
+    private function validateIsAdministrator(User $user): void
     {
         if (!$user->hasRole('admin') && !$user->hasRole('superadmin')) {
             throw AdministratorException::notAdministrator();
         }
+    }
+
+    /**
+     * Validar que el usuario sea un administrador y que el actor no se esté
+     * aplicando a sí mismo una acción sensible (status/password/delete).
+     * Reasegura a nivel de service lo que UserPolicy::manageAdministrator()
+     * ya bloquea, para que ningún otro caller que invoque el service
+     * directamente pueda saltarse la regla.
+     */
+    private function validateAdministrator(User $user): void
+    {
+        $this->validateIsAdministrator($user);
 
         if ($user->id === auth()->id()) {
             throw AdministratorException::cannotModifySelf();

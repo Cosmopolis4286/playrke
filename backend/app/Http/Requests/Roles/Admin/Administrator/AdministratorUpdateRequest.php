@@ -11,15 +11,18 @@ use Illuminate\Validation\Rule;
  * Request para validar la actualización de datos básicos de un
  * administrador desde /admins (AdministratorController::update).
  *
- * authorize() delega en UserPolicy::manageAdministrator, resuelto contra el
- * User del route model binding — bloquea auto-modificación y exige que el
- * objetivo sea realmente admin/superadmin.
+ * authorize() delega en UserPolicy::editAdministrator, resuelto contra el
+ * User del route model binding — a diferencia de manageAdministrator(), SÍ
+ * permite auto-edición (un superadmin puede editar su propia ficha), pero
+ * exige que el objetivo sea realmente admin/superadmin. El status nunca
+ * viaja por este endpoint (ver rules() — no incluye 'status'), así que la
+ * auto-edición nunca puede auto-desactivarse.
  */
 class AdministratorUpdateRequest extends BaseRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('manageAdministrator', $this->route('user')) ?? false;
+        return $this->user()?->can('editAdministrator', $this->route('user')) ?? false;
     }
 
     public function rules(): array

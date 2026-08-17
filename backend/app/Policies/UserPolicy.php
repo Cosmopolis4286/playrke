@@ -49,14 +49,34 @@ class UserPolicy extends BaseRolePolicy
     }
 
     /**
-     * Gestionar (editar datos, activar/desactivar, resetear contraseña,
-     * eliminar) un administrador existente — pantalla /admins.
+     * Editar los datos básicos (nombre, email, teléfono, país, username) de
+     * un administrador existente — pantalla /admins. A diferencia de
+     * manageAdministrator(), SÍ permite auto-edición: un superadmin puede
+     * actualizar su propia ficha (el status, en cambio, nunca se toca por
+     * esta vía — ver AdministratorUpdateDTO, que no incluye ese campo).
+     *
+     * @param Model $targetUser Tipado como Model para mantener la firma
+     *   compatible con BaseRolePolicy::update().
+     */
+    public function editAdministrator(User $actingUser, Model $targetUser): bool
+    {
+        if (!$this->hasAccess($actingUser)) {
+            return false;
+        }
+
+        return $targetUser instanceof User
+            && ($targetUser->hasRole('admin') || $targetUser->hasRole('superadmin'));
+    }
+
+    /**
+     * Gestionar acciones sensibles (activar/desactivar, resetear contraseña,
+     * eliminar) de un administrador existente — pantalla /admins.
      *
      * Reglas, en orden:
      * - Solo superadmin tiene acceso base a esta pantalla.
-     * - Nadie puede gestionarse a sí mismo desde aquí (evita que un admin se
-     *   desactive/elimine solo y quede el sistema sin decisión clara de quién
-     *   lo reactiva).
+     * - Nadie puede aplicarse estas acciones a sí mismo (evita que un admin
+     *   se desactive/elimine/resetee su propia contraseña y quede el sistema
+     *   sin decisión clara de quién lo reactiva).
      * - El objetivo debe ser realmente un admin o superadmin — evita que este
      *   endpoint se use como atajo para mutar cualquier User del sistema.
      *

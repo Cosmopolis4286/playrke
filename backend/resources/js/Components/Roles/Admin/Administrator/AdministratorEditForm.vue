@@ -16,12 +16,17 @@
   const props = defineProps<{
     modelValue: Partial<AdministratorEditData>
     countries: Country[]
+    /** true si el administrador editado es el propio actor autenticado — el status nunca es alterable sobre uno mismo. */
+    isSelf: boolean
+    /** true mientras se procesa el toggle de status (deshabilita el switch). */
+    togglingStatus?: boolean
   }>()
 
   const emit = defineEmits<{
     (e: 'submit'): void
     (e: 'update:modelValue', value: Partial<AdministratorEditData>): void
     (e: 'reset-password'): void
+    (e: 'toggle-status'): void
   }>()
 
   const { form, errors, isValid: isFormDataValid } = useAdministratorEditForm(() => props.modelValue, emit)
@@ -68,6 +73,25 @@
 
 <template>
   <form id="administrator-edit-form" novalidate @submit.prevent="submit">
+    <div class="administrator-status-row">
+      <div>
+        <span class="administrator-status-label">Estado de la cuenta</span>
+        <p v-if="isSelf" class="administrator-status-hint">
+          <i class="fas fa-lock mr-1"></i>No puedes cambiar el estado de tu propia cuenta.
+        </p>
+      </div>
+      <label class="administrator-status-switch" :class="{ 'is-busy': togglingStatus, 'is-disabled': isSelf }">
+        <input
+          type="checkbox"
+          :checked="modelValue.status === 'ACTIVE'"
+          :disabled="isSelf || togglingStatus"
+          @change="emit('toggle-status')"
+        />
+        <span class="administrator-status-track"><span class="administrator-status-thumb"></span></span>
+        <span class="administrator-status-text">{{ modelValue.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}</span>
+      </label>
+    </div>
+
     <div class="row">
       <FormInput
         label="Nombre"
@@ -149,15 +173,78 @@
     </div>
 
     <div class="administrator-edit-form-actions mt-2">
-      <button type="button" class="btn btn-outline-dark btn-sm" @click="emit('reset-password')">
+      <button type="button" class="btn btn-outline-dark btn-sm" :disabled="isSelf" @click="emit('reset-password')">
         <i class="fas fa-key mr-2"></i>
         Resetear contraseña
       </button>
+      <small v-if="isSelf" class="text-muted d-block reset-locked-hint">
+        <i class="fas fa-lock mr-1"></i>No puedes resetear tu propia contraseña desde aquí.
+      </small>
     </div>
   </form>
 </template>
 
 <style scoped>
+.administrator-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  background: var(--ds-surface-2);
+}
+
+.administrator-status-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ds-text);
+}
+.administrator-status-hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: var(--ds-text-muted);
+}
+
+.administrator-status-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.administrator-status-switch.is-busy,
+.administrator-status-switch.is-disabled { opacity: 0.6; cursor: not-allowed; }
+.administrator-status-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.administrator-status-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--ds-border-2);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.administrator-status-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  transition: transform 0.15s;
+}
+.administrator-status-switch input:checked + .administrator-status-track { background: #34d399; }
+.administrator-status-switch input:checked + .administrator-status-track .administrator-status-thumb { transform: translateX(14px); }
+
+.administrator-status-text { font-size: 0.8rem; font-weight: 600; color: var(--ds-text-2); min-width: 3.2rem; }
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -177,6 +264,9 @@
   color: var(--ds-text);
 }
 .btn-outline-dark:hover { background: var(--ds-surface-2); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.reset-locked-hint { margin-top: 0.35rem; font-size: 0.75rem; width: 100%; }
 
 .administrator-edit-form-actions {
   display: flex;
