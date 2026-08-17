@@ -396,6 +396,11 @@ final class AdminUserService
             ->get()
             ->map(fn (Audit $audit) => $this->mapAuditRow($audit));
 
+        $activePermissionsCount = $user->specificPermissionGrants()
+            ->active()
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->count();
+
         return [
             'id'                          => (string) $user->id,
             'full_name'                   => trim("{$user->first_name} {$user->last_name}"),
@@ -408,8 +413,8 @@ final class AdminUserService
             'role_label'                  => $user->roles->first()?->name,
             'created_at'                  => $user->created_at?->format('d/m/Y H:i:s'),
             'last_login_at'               => $user->last_login_at?->format('d/m/Y H:i:s'),
-            'has_specific_permissions'    => !empty($user->specific_permissions),
-            'specific_permissions_count'  => count($user->specific_permissions ?? []),
+            'has_specific_permissions'    => $activePermissionsCount > 0,
+            'specific_permissions_count'  => $activePermissionsCount,
             'wallet'                      => $wallet,
             'level'                       => $level,
             'recent_audits'               => $recentAudits,

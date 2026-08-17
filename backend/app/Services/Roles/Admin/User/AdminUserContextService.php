@@ -37,7 +37,7 @@ final class AdminUserContextService
                 'country:id,name',
                 // withCount('permissions') agrega permissions_count al rol —
                 // necesario para el badge "N por rol" de la columna Permisos
-                // (heredados vía Spatie, distintos de specific_permissions).
+                // (heredados vía Spatie, distintos de los grants específicos).
                 'roles' => fn ($q) => $q->select('id', 'name', 'prefix')->withCount('permissions'),
                 // Solo 'id' — necesario para resolver domain_id (botón "Ver
                 // más" -> página dedicada del rol), no se expone nada más.
@@ -46,6 +46,14 @@ final class AdminUserContextService
                 'customer:id,user_id',
                 'treasurer:id,user_id',
             ])
+            // withCount con constraint filtra grants activos y no expirados
+            // (mismo criterio que UserSpecificPermissionGrant::scopeActive() +
+            // scopeExpired(), duplicado aquí porque withCount no acepta scopes
+            // que usen el query builder pasado en closure fuera de where/whereNull).
+            ->withCount(['specificPermissionGrants as active_specific_permissions_count' => function ($q) {
+                $q->whereNull('revoked_at')
+                    ->where(fn ($q2) => $q2->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+            }])
             ->excludeSystemAccounts();
 
         if (!empty($filters['search'])) {
@@ -74,10 +82,13 @@ final class AdminUserContextService
 
         if (isset($filters['has_specific_permissions']) && $filters['has_specific_permissions'] !== '') {
             $hasPermissions = filter_var($filters['has_specific_permissions'], FILTER_VALIDATE_BOOLEAN);
+            $activeGrant = fn ($q) => $q->whereNull('revoked_at')
+                ->where(fn ($q2) => $q2->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+
             $query->when(
                 $hasPermissions,
-                fn ($q) => $q->whereNotNull('specific_permissions')->whereJsonLength('specific_permissions', '>', 0),
-                fn ($q) => $q->whereNull('specific_permissions')->orWhereJsonLength('specific_permissions', 0),
+                fn ($q) => $q->whereHas('specificPermissionGrants', $activeGrant),
+                fn ($q) => $q->whereDoesntHave('specificPermissionGrants', $activeGrant),
             );
         }
 
@@ -105,7 +116,7 @@ final class AdminUserContextService
 
         $collection = $source->getCollection()->map(function (User $user) {
             $fullName = trim("{$user->first_name} {$user->last_name}");
-            $specificCount = count($user->specific_permissions ?? []);
+            $specificCount = $user->active_specific_permissions_count ?? 0;
             $roleCount = $user->roles->first()?->permissions_count ?? 0;
             $user->setAttribute('full_name',    $fullName);
             $user->setAttribute('role_badge',   $this->roleBadge($user->roles->first()?->name ?? ''));
@@ -150,8 +161,8 @@ final class AdminUserContextService
             $row['username']   = $user?->username;
             $row['email']      = $user?->email;
             $row['phone_number'] = $user?->phone_number;
-            $row['has_specific_permissions'] = !empty($user?->specific_permissions);
-            $row['specific_permissions_count'] = count($user?->specific_permissions ?? []);
+            $row['has_specific_permissions'] = ($user?->active_specific_permissions_count ?? 0) > 0;
+            $row['specific_permissions_count'] = $user?->active_specific_permissions_count ?? 0;
             // ID real del usuario (distinto del 'id' hasheado de la fila) —
             // necesario para deep-linkear al historial de auditoría, donde
             // Audit.auditable_id se guarda con la PK real, no el hash de tabla.

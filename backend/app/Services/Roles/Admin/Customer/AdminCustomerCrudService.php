@@ -232,21 +232,25 @@ final class AdminCustomerCrudService
                 ->all();
         }
 
-        // Actualizar permisos específicos del usuario del customer
+        // Actualizar permisos específicos de juego del usuario del customer
+        // (permisos no-juego quedan intactos: solo se tocan los 'games.*').
         $user = User::find($customer->user_id);
         if ($user) {
-            $currentPermissions = $user->specific_permissions ?? [];
+            $currentGamePermissions = $user->specificPermissionGrants()
+                ->active()
+                ->where('permission_name', 'like', 'games.%')
+                ->pluck('permission_name')
+                ->all();
 
-            // Filtrar permisos que no son de juegos
-            $nonGamePermissions = array_filter(
-                $currentPermissions,
-                fn($perm) => !str_starts_with($perm, 'games.')
-            );
+            $toRevoke = array_diff($currentGamePermissions, $gamePermissions);
+            $toGrant  = array_diff($gamePermissions, $currentGamePermissions);
 
-            // Combinar permisos no-juego + nuevos permisos de juegos
-            $newPermissions = array_values(array_unique(array_merge($nonGamePermissions, $gamePermissions)));
-
-            $user->update(['specific_permissions' => $newPermissions]);
+            if ($toRevoke !== []) {
+                $user->revokeSpecificPermission($toRevoke);
+            }
+            if ($toGrant !== []) {
+                $user->giveSpecificPermission($toGrant);
+            }
         }
 
         CustomerGame::where('customer_id', $customer->id)

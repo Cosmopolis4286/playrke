@@ -65,6 +65,14 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $keyType = 'string';
 
     /**
+     * Memoización por instancia de activeSpecificPermissionNames() — ver ese
+     * método. null = aún no calculado, [] = calculado y sin permisos activos.
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $specificPermissionNamesCache = null;
+
+    /**
      * Estados disponibles para usuarios
      */
     public const STATUSES = [
@@ -102,6 +110,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_email_notifications_enabled',
         'is_two_factor_enabled',
         'user_preferences',
+        // specific_permissions: deprecated, reemplazada por specificPermissionGrants()
+        // (tabla user_specific_permission_grants, soporta expiración). Se mantiene en
+        // fillable/casts temporalmente por compatibilidad de lectura de datos
+        // históricos; ver comando de backfill en Console/Commands.
         'specific_permissions',
         'bio',
         'tos_accepted_version',
@@ -772,10 +784,46 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Nombres de permiso con grant activo (revoked_at null y no expirado),
+     * memoizados en la instancia — hasPermissionTo() puede llamarse decenas
+     * de veces en el mismo request (cada can()/@can), así que esto evita una
+     * query por chequeo. No se cachea entre requests (a diferencia de
+     * MovementType::catalog()) porque otorgar/revocar debe reflejarse de
+     * inmediato sin depender de invalidar una cache key por usuario.
+     *
+     * @return array<int, string>
+     */
+    private function activeSpecificPermissionNames(): array
+    {
+        if ($this->specificPermissionNamesCache === null) {
+            $this->specificPermissionNamesCache = $this->specificPermissionGrants()
+                ->active()
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                })
+                ->pluck('permission_name')
+                ->all();
+        }
+
+        return $this->specificPermissionNamesCache;
+    }
+
+    /**
+     * Grants de permisos específicos del usuario (histórico completo,
+     * incluye revocados/expirados) — usar activeSpecificPermissionNames()
+     * para el chequeo de autorización, esta relación es para el modal de
+     * gestión y la auditoría.
+     */
+    public function specificPermissionGrants(): HasMany
+    {
+        return $this->hasMany(UserSpecificPermissionGrant::class, 'user_id');
+    }
+
+    /**
      * Obtener todos los permisos del usuario como array de nombres: heredados
      * por rol (Spatie, vía roles()/role_has_permissions) + específicos del
-     * usuario (specific_permissions). Fuente única para menús/gates que
-     * necesiten la lista completa en vez de verificar un permiso puntual.
+     * usuario (grants activos y no expirados). Fuente única para menús/gates
+     * que necesiten la lista completa en vez de verificar un permiso puntual.
      *
      * @return array<int, string>
      */
@@ -783,18 +831,19 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $viaRoles = $this->getAllPermissions()->pluck('name')->all();
 
-        return array_values(array_unique(array_merge($viaRoles, $this->specific_permissions ?? [])));
+        return array_values(array_unique(array_merge($viaRoles, $this->activeSpecificPermissionNames())));
     }
 
     /**
-     * Verificar si el usuario tiene un permiso específico
+     * Verificar si el usuario tiene un permiso específico (grant activo y no
+     * expirado).
      *
      * @param string $permission
      * @return bool
      */
     public function hasSpecificPermission(string $permission): bool
     {
-        return in_array($permission, $this->specific_permissions ?? []);
+        return in_array($permission, $this->activeSpecificPermissionNames(), true);
     }
 
     /**
@@ -822,41 +871,42 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Agregar un permiso específico al usuario
+     * Agregar uno o más permisos específicos al usuario, sin expiración ni
+     * motivo — usar UserPermissionService::syncSpecificPermissions() desde
+     * el flujo de superadmin, que sí soporta expires_at/reason/granted_by.
+     * No hace nada si el usuario ya tiene un grant activo para ese permiso
+     * (evita violar el índice único user_id+permission_name+revoked_at).
      *
-     * @param string|array $permissions
-     * @return void
+     * @param string|array<int, string> $permissions
      */
     public function giveSpecificPermission($permissions): void
     {
-        $currentPermissions = $this->specific_permissions ?? [];
-        
-        if (is_array($permissions)) {
-            $newPermissions = array_unique(array_merge($currentPermissions, $permissions));
-        } else {
-            $newPermissions = array_unique(array_merge($currentPermissions, [$permissions]));
+        $names = array_unique(is_array($permissions) ? $permissions : [$permissions]);
+        $existing = $this->specificPermissionGrants()->active()->whereIn('permission_name', $names)->pluck('permission_name')->all();
+
+        foreach (array_diff($names, $existing) as $name) {
+            $this->specificPermissionGrants()->create(['permission_name' => $name]);
         }
-        
-        $this->update(['specific_permissions' => $newPermissions]);
+
+        $this->specificPermissionNamesCache = null;
     }
 
     /**
-     * Quitar un permiso específico al usuario
+     * Revocar uno o más permisos específicos del usuario (marca revoked_at,
+     * no elimina la fila — conserva el historial).
      *
-     * @param string|array $permissions
-     * @return void
+     * @param string|array<int, string> $permissions
      */
     public function revokeSpecificPermission($permissions): void
     {
-        $currentPermissions = $this->specific_permissions ?? [];
-        
-        if (is_array($permissions)) {
-            $newPermissions = array_diff($currentPermissions, $permissions);
-        } else {
-            $newPermissions = array_diff($currentPermissions, [$permissions]);
-        }
-        
-        $this->update(['specific_permissions' => array_values($newPermissions)]);
+        $names = is_array($permissions) ? $permissions : [$permissions];
+
+        $this->specificPermissionGrants()
+            ->active()
+            ->whereIn('permission_name', $names)
+            ->update(['revoked_at' => now(), 'revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_MANUAL]);
+
+        $this->specificPermissionNamesCache = null;
     }
 
     /**
@@ -866,7 +916,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function clearSpecificPermissions(): void
     {
-        $this->update(['specific_permissions' => []]);
+        $this->specificPermissionGrants()
+            ->active()
+            ->update(['revoked_at' => now(), 'revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_MANUAL]);
+
+        $this->specificPermissionNamesCache = null;
     }
 
     public function hasTosAccepted(): bool

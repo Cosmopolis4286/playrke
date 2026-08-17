@@ -32,15 +32,19 @@ final class UserPermissionController extends Controller
 
     /**
      * Reemplaza el set completo de permisos específicos del usuario.
+     * Cada permiso puede traer su propia expiración opcional (null =
+     * permanente), por eso 'permissions' es un array de {name, expires_at}
+     * en vez de strings planos.
      */
     public function update(Request $request, User $user): JsonResponse
     {
         $this->authorize('managePermissions', $user);
 
         $request->validate([
-            'permissions'   => 'present|array',
-            'permissions.*' => 'string',
-            'reason'        => 'nullable|string|max:255',
+            'permissions'               => 'present|array',
+            'permissions.*.name'        => 'required|string',
+            'permissions.*.expires_at'  => 'nullable|date|after:now',
+            'reason'                    => 'nullable|string|max:255',
         ]);
 
         $this->service->syncSpecificPermissions($user, $request->input('permissions'), $request->input('reason'));
