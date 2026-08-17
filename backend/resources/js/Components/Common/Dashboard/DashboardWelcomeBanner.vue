@@ -139,6 +139,13 @@
 }
 .wb__body::-webkit-scrollbar { display: none; }
 
+@media (max-width: 768px) {
+  .wb__body {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
 /* ── Avatar ── */
 .wb__avatar-ring {
   position: relative;
@@ -161,6 +168,16 @@
   font-weight: 800;
   letter-spacing: .02em;
   user-select: none;
+  transition: width .15s ease, height .15s ease, font-size .15s ease;
+}
+
+/* El avatar se reduce en pantallas angostas para ceder espacio al texto
+   y evitar que el saludo/badge salten de línea antes de lo necesario. */
+@media (max-width: 576px) {
+  .wb__avatar { width: 30px; height: 30px; font-size: 0.65rem; }
+}
+@media (max-width: 400px) {
+  .wb__avatar { width: 26px; height: 26px; font-size: 0.58rem; }
 }
 
 .wb__avatar--img {
@@ -188,6 +205,11 @@
   gap: 6px;
   flex-wrap: nowrap;
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .wb__text { flex: 1 1 auto; }
+  .wb__greeting-row { flex-wrap: wrap; }
 }
 
 .wb__greeting {
@@ -228,6 +250,10 @@
 .wb__date { text-transform: capitalize; }
 .wb__sep { color: var(--ds-border-2); }
 
+@media (max-width: 768px) {
+  .wb__sub { flex-wrap: wrap; white-space: normal; }
+}
+
 /* ── Highlights contextuales ── */
 .wb__highlights {
   display: flex;
@@ -239,6 +265,28 @@
   white-space: nowrap;
 }
 
+@media (max-width: 768px) {
+  .wb__highlights {
+    flex: 1 1 auto;
+    order: 3;
+    min-width: 0;
+    padding: 0.6rem 0 0;
+    margin: 0;
+    border-left: none;
+    border-top: 1px solid var(--ds-border);
+    /* Fila horizontal con scroll en vez de apilar en varias líneas:
+       evita que cada stat consuma su propia fila vertical en móvil. */
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 1.1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .wb__highlights::-webkit-scrollbar { display: none; }
+  .wb__highlights > :deep(*) { flex-shrink: 0; }
+}
+
 /* ── Acciones ── */
 .wb__actions {
   display: flex;
@@ -247,6 +295,28 @@
   margin-left: auto;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .wb__actions {
+    order: 3;
+    margin-left: 0.75rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--ds-border);
+  }
+}
+
+@media (max-width: 480px) {
+  /* Muy angosto: highlights y acciones ya no entran en una sola fila
+     junto al texto — acciones pasan a su propia fila compacta debajo. */
+  .wb__highlights { flex: 1 1 100%; }
+  .wb__actions {
+    flex: 1 1 100%;
+    order: 4;
+    margin-left: 0;
+    border-top: none;
+    padding-top: 0;
+  }
 }
 
 .wb__action {
@@ -292,6 +362,10 @@
 .wb__action--outline-secondary:hover{ background: var(--ds-surface-2); }
 
 @media (max-width: 576px) {
-  .wb__body { padding: 0.6rem 0.85rem; }
+  .wb__body { padding: 0.6rem 0.85rem; gap: 0.5rem; }
+
+  .wb__badge { font-size: 0.56rem; padding: 1px 6px; }
+
+  .wb__action { padding: 4px 9px; font-size: 0.68rem; }
 }
 </style>
