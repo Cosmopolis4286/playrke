@@ -109,7 +109,10 @@ class ProfileController extends Controller
             'email'        => $request->email,
             'phone_number' => $request->phone,
             'birth_date'   => $request->birth_date,
-            'country_id'   => $request->country_id,
+            // country_id NO es nullable en la tabla users — si el cliente
+            // omite el campo (validación lo permite), preservar el valor
+            // actual en vez de sobreescribirlo con null y romper la query.
+            'country_id'   => $request->country_id ?? $user->country_id,
             'bio'          => $request->bio,
         ]);
 
