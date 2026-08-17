@@ -1,13 +1,13 @@
 <script setup lang="ts" name="UserPermissionsForm">
   import { computed, ref } from 'vue'
-  import type { CatalogPermission } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
+  import type { CatalogPermission, SpecificPermissionGrant } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
 
   /* ==========================================================================
    * Props
    * ========================================================================== */
 
   const props = defineProps<{
-    modelValue: string[]
+    modelValue: SpecificPermissionGrant[]
     catalog: CatalogPermission[]
     viaRoles: string[]
     reason: string
@@ -18,17 +18,18 @@
    * ========================================================================== */
 
   const emit = defineEmits<{
-    (e: 'update:modelValue', value: string[]): void
+    (e: 'update:modelValue', value: SpecificPermissionGrant[]): void
     (e: 'update:reason', value: string): void
   }>()
 
   /* ==========================================================================
-   * Estado local (selección editable de permisos específicos)
+   * Estado local (selección editable de permisos específicos + su expiración)
    * ========================================================================== */
 
-  const selected = computed<Set<string>>({
-    get: () => new Set(props.modelValue),
-    set: value => emit('update:modelValue', [...value])
+  const grantsByName = computed<Map<string, SpecificPermissionGrant>>(() => {
+    const map = new Map<string, SpecificPermissionGrant>()
+    for (const g of props.modelValue) map.set(g.name, g)
+    return map
   })
   const searchQuery = ref('')
 
@@ -36,6 +37,57 @@
     get: () => props.reason,
     set: value => emit('update:reason', value)
   })
+
+  /* ==========================================================================
+   * Opciones rápidas de expiración
+   * ========================================================================== */
+
+  type ExpiryPreset = 'never' | '7' | '30' | '90' | 'custom'
+
+  const EXPIRY_PRESETS: { value: ExpiryPreset; label: string }[] = [
+    { value: 'never', label: 'Permanente' },
+    { value: '7', label: '7 días' },
+    { value: '30', label: '30 días' },
+    { value: '90', label: '90 días' },
+    { value: 'custom', label: 'Fecha personalizada' },
+  ]
+
+  function presetFromExpiresAt(expiresAt: string | null): ExpiryPreset {
+    if (!expiresAt) return 'never'
+    const days = Math.round((new Date(expiresAt).getTime() - Date.now()) / 86_400_000)
+    if (days === 7 || days === 30 || days === 90) return String(days) as ExpiryPreset
+    return 'custom'
+  }
+
+  function applyPreset(name: string, preset: ExpiryPreset) {
+    const next = new Map(grantsByName.value)
+    const current = next.get(name)
+    if (!current) return
+
+    if (preset === 'never') {
+      next.set(name, { ...current, expires_at: null })
+    } else if (preset === 'custom') {
+      // Deja la fecha actual (o vacía) para que el <input type="date"> la fije.
+      next.set(name, { ...current, expires_at: current.expires_at ?? new Date().toISOString() })
+    } else {
+      const days = Number(preset)
+      const date = new Date(Date.now() + days * 86_400_000)
+      next.set(name, { ...current, expires_at: date.toISOString() })
+    }
+    emit('update:modelValue', [...next.values()])
+  }
+
+  function applyCustomDate(name: string, dateStr: string) {
+    const next = new Map(grantsByName.value)
+    const current = next.get(name)
+    if (!current || !dateStr) return
+    next.set(name, { ...current, expires_at: new Date(dateStr).toISOString() })
+    emit('update:modelValue', [...next.values()])
+  }
+
+  function dateInputValue(expiresAt: string | null): string {
+    return expiresAt ? expiresAt.slice(0, 10) : ''
+  }
 
   /* ==========================================================================
    * Agrupación por módulo
@@ -101,18 +153,18 @@
   }
 
   function isChecked(name: string): boolean {
-    return hasViaRole(name) || selected.value.has(name)
+    return hasViaRole(name) || grantsByName.value.has(name)
   }
 
   function toggle(perm: CatalogPermission) {
     if (isLocked(perm)) return
-    const next = new Set(selected.value)
+    const next = new Map(grantsByName.value)
     if (next.has(perm.name)) {
       next.delete(perm.name)
     } else {
-      next.add(perm.name)
+      next.set(perm.name, { name: perm.name, expires_at: null })
     }
-    selected.value = next
+    emit('update:modelValue', [...next.values()])
   }
 
   /* ==========================================================================
@@ -133,7 +185,8 @@
     <p class="text-muted small mb-3">
       <i class="fas fa-info-circle mr-1"></i>
       Los permisos con candado ya los tiene por su rol o son del sistema y no pueden modificarse aquí —
-      solo se pueden otorgar/revocar permisos <strong>específicos</strong> adicionales.
+      solo se pueden otorgar/revocar permisos <strong>específicos</strong> adicionales. Cada uno puede
+      tener su propia fecha de expiración; al vencer se revoca automáticamente y se notifica.
     </p>
 
     <div class="form-group mb-3">
@@ -170,6 +223,28 @@
             <i v-if="isLocked(perm)" class="fas fa-lock text-muted ml-2" :title="lockedReason(perm)"></i>
           </label>
           <small v-if="perm.description" class="text-muted d-block upm-item__desc">{{ perm.description }}</small>
+
+          <div v-if="!isLocked(perm) && grantsByName.has(perm.name)" class="upm-expiry">
+            <i class="fas fa-clock upm-expiry__icon"></i>
+            <select
+              class="upm-expiry__select"
+              :value="presetFromExpiresAt(grantsByName.get(perm.name)!.expires_at)"
+              @change="applyPreset(perm.name, ($event.target as HTMLSelectElement).value as any)"
+            >
+              <option v-for="opt in EXPIRY_PRESETS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <input
+              v-if="presetFromExpiresAt(grantsByName.get(perm.name)!.expires_at) === 'custom'"
+              type="date"
+              class="upm-expiry__date"
+              :min="new Date(Date.now() + 86400000).toISOString().slice(0, 10)"
+              :value="dateInputValue(grantsByName.get(perm.name)!.expires_at)"
+              @change="applyCustomDate(perm.name, ($event.target as HTMLInputElement).value)"
+            />
+            <span v-if="grantsByName.get(perm.name)!.expires_at" class="upm-expiry__hint">
+              Expira {{ new Date(grantsByName.get(perm.name)!.expires_at!).toLocaleDateString('es-VE') }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -218,4 +293,25 @@
 .upm-item__desc { margin-left: 1.6rem; font-size: 0.75rem; }
 
 .upm-reason-label { font-size: 0.82rem; font-weight: 600; color: var(--ds-text-2); }
+
+.upm-expiry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0 1.6rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--ds-surface-2);
+  border-radius: 6px;
+}
+.upm-expiry__icon { font-size: 0.72rem; color: var(--ds-text-muted); }
+.upm-expiry__select,
+.upm-expiry__date {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--ds-border-2);
+  border-radius: 5px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+.upm-expiry__hint { font-size: 0.74rem; color: var(--ds-text-muted); margin-left: auto; }
 </style>

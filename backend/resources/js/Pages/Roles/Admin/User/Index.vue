@@ -43,7 +43,7 @@
   import { useAdminUserPermissions } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
   import { useAdminUserDetail } from '@/js/composables/roles/admin/user/useAdminUserDetail'
   import { useRoleHierarchy } from '@/js/composables/roles/admin/role/useRoleHierarchy'
-  import type { CatalogPermission } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
+  import type { CatalogPermission, SpecificPermissionGrant } from '@/js/composables/roles/admin/user/useAdminUserPermissions'
 
   // ==========================================================================
   // Types
@@ -219,7 +219,7 @@
   const permissionsUserName = ref('')
   const permissionsCatalog = ref<CatalogPermission[]>([])
   const permissionsViaRoles = ref<string[]>([])
-  const permissionsForm = ref<{ id?: string | number; specific: string[]; reason: string }>({ specific: [], reason: '' })
+  const permissionsForm = ref<{ id?: string | number; specific: SpecificPermissionGrant[]; reason: string }>({ specific: [], reason: '' })
   const permissionsLoading = ref(false)
 
   async function submitPermissions(): Promise<boolean> {

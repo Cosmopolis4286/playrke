@@ -542,6 +542,42 @@ final class NotificationService
     }
 
     /**
+     * Notificación in-app a un superadmin cuando un permiso individual de
+     * otro usuario expiró automáticamente (job) o está por expirar.
+     */
+    public function createSpecificPermissionExpiryNotification(
+        string $superadminId,
+        string $affectedUserId,
+        string $affectedUserName,
+        string $permissionName,
+        bool $alreadyExpired,
+        ?string $expiresAt = null,
+    ): Notification {
+        $title = $alreadyExpired
+            ? '🔒 Permiso individual expirado'
+            : '⏳ Permiso individual por expirar';
+
+        $message = $alreadyExpired
+            ? "El permiso '{$permissionName}' de {$affectedUserName} expiró y fue revocado automáticamente."
+            : "El permiso '{$permissionName}' de {$affectedUserName} expira pronto" . ($expiresAt ? " ({$expiresAt})" : '') . '.';
+
+        return $this->create(
+            userId: $superadminId,
+            type: 'SYSTEM',
+            title: $title,
+            message: $message,
+            data: [
+                'affected_user_id'   => $affectedUserId,
+                'affected_user_name' => $affectedUserName,
+                'permission_name'    => $permissionName,
+                'expires_at'         => $expiresAt,
+                'already_expired'    => $alreadyExpired,
+                'url'                => "/admin/users?open_permissions={$affectedUserId}",
+            ]
+        );
+    }
+
+    /**
      * Crear notificaciones masivas para múltiples usuarios
      *
      * @param array $userIds

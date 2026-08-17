@@ -65,7 +65,7 @@ final class AdminUserController extends Controller
                     $user->roles->first()?->name,
                     $user->country?->name,
                     $user->status,
-                    count($user->specific_permissions ?? []),
+                    $user->specificPermissionGrants()->active()->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->count(),
                     $user->created_at?->format('Y-m-d H:i:s'),
                     $user->last_login_at?->format('Y-m-d H:i:s') ?? 'Nunca',
                 ]);

@@ -79,3 +79,15 @@ Schedule::command('logs:alert-threshold')
     ->withoutOverlapping()
     ->everyFifteenMinutes()
     ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('permissions:expire-specific-grants')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->everyFiveMinutes()
+    ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('permissions:notify-expiring-specific-grants')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->dailyAt('08:00')
+    ->appendOutputTo(storage_path('logs/schedule.log'));

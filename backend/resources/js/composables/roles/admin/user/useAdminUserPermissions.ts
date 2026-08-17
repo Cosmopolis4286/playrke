@@ -10,12 +10,18 @@ export interface CatalogPermission {
     is_system: boolean
 }
 
+export interface SpecificPermissionGrant {
+    name: string
+    /** ISO 8601, o null si el permiso es permanente. */
+    expires_at: string | null
+}
+
 export interface UserPermissionsData {
     userId: string | number
     userName: string
     catalog: CatalogPermission[]
     viaRoles: string[]
-    specific: string[]
+    specific: SpecificPermissionGrant[]
 }
 
 /**
@@ -47,7 +53,7 @@ export function useAdminUserPermissions() {
         }
     }
 
-    async function savePermissions(userId: string | number, permissions: string[], reason?: string): Promise<boolean> {
+    async function savePermissions(userId: string | number, permissions: SpecificPermissionGrant[], reason?: string): Promise<boolean> {
         saving.value = true
         try {
             await backendClient.put(`/admin/user/${userId}/permissions`, { permissions, reason: reason || undefined })
