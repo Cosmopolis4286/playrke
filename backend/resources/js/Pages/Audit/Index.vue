@@ -201,7 +201,10 @@
   }
 
   watch(showDetail, isOpen => {
-    if (!isOpen) clearDetail()
+    if (!isOpen) {
+      clearDetail()
+      showAllFields.value = false
+    }
   })
 
   /* -------------------------------------------------------------------------- */
@@ -244,6 +247,13 @@
       return { key, status, oldValue, newValue }
     })
   })
+
+  /** Solo lo que realmente cambió — es lo que interesa ver primero, el resto es ruido de contexto. */
+  const changedDiffRows = computed(() => diffRows.value.filter(d => d.status !== 'unchanged'))
+
+  /** Por defecto solo se muestran los campos modificados; "ver todos" expone también los que no cambiaron, para comparar contexto completo si hace falta. */
+  const showAllFields = ref(false)
+  const visibleDiffRows = computed(() => showAllFields.value ? diffRows.value : changedDiffRows.value)
 
   const diffStatusClass: Record<DiffStatus, string> = {
     unchanged: 'text-muted',
@@ -464,11 +474,19 @@
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Actor</small>
-          <span>{{ detail.actor }}</span>
-        </div>
-        <div class="col-md-6">
-          <small class="text-muted d-block">Tipo de Actor</small>
-          <span>{{ detail.actor_type }}</span>
+          <span>{{ detail.actor }}
+            <i
+              class="ms-1 text-muted"
+              :class="{
+                'fas fa-user':       detail.actor_type === 'user',
+                'fas fa-cogs':       detail.actor_type === 'system',
+                'fas fa-clock':      detail.actor_type === 'job',
+                'fas fa-terminal':   detail.actor_type === 'command',
+                'fas fa-plug':       detail.actor_type === 'webhook',
+              }"
+              :title="detail.actor_type"
+            ></i>
+          </span>
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Evento</small>
@@ -476,11 +494,7 @@
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Entidad</small>
-          <span>{{ detail.entity }}</span>
-        </div>
-        <div class="col-md-6">
-          <small class="text-muted d-block">ID Entidad</small>
-          <span class="font-monospace small">{{ detail.entity_id ?? '—' }}</span>
+          <span class="font-monospace small">{{ detail.entity }}<template v-if="detail.entity_id"> #{{ detail.entity_id }}</template></span>
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">IP</small>
@@ -492,9 +506,22 @@
         </div>
 
         <!-- Diff campo a campo -->
-        <div v-if="diffRows.length" class="col-12">
-          <small class="text-muted d-block mb-1">Cambios</small>
-          <div class="table-responsive" style="max-height:280px;overflow:auto">
+        <div class="col-12">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <small class="text-muted">
+              Cambios
+              <span v-if="changedDiffRows.length" class="badge bg-warning text-dark ms-1">{{ changedDiffRows.length }}</span>
+            </small>
+            <button
+              v-if="diffRows.length > changedDiffRows.length"
+              class="btn btn-sm btn-link p-0"
+              @click="showAllFields = !showAllFields"
+            >
+              {{ showAllFields ? 'Ver solo cambios' : `Ver todos los campos (${diffRows.length})` }}
+            </button>
+          </div>
+
+          <div v-if="visibleDiffRows.length" class="table-responsive" style="max-height:280px;overflow:auto">
             <table class="table table-sm mb-0">
               <thead>
                 <tr>
@@ -505,7 +532,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="diff in diffRows" :key="diff.key" :class="diffStatusClass[diff.status]">
+                <tr v-for="diff in visibleDiffRows" :key="diff.key" :class="diffStatusClass[diff.status]">
                   <td class="font-monospace small">{{ diff.key }}</td>
                   <td class="small text-break">{{ formatDiffValue(diff.oldValue) }}</td>
                   <td class="small text-break">{{ formatDiffValue(diff.newValue) }}</td>
@@ -514,12 +541,19 @@
               </tbody>
             </table>
           </div>
+          <p v-else-if="diffRows.length === 0" class="text-muted small fst-italic mb-0">
+            Este evento no registra cambios de campos (ej. creación/eliminación sin diff aplicable).
+          </p>
+          <p v-else class="text-muted small fst-italic mb-0">
+            Ningún campo visible cambió en este evento.
+          </p>
         </div>
       </div>
     </template>
     <template v-else>
       <div class="text-center py-4">
         <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        <p class="text-muted small mt-2 mb-0">Cargando detalle del registro...</p>
       </div>
     </template>
   </Modal>
