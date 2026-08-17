@@ -36,6 +36,8 @@ export interface AdminUser {
     readonly real_id: string | number | null
     /** Fecha de registro en formato ISO 8601, para formatear tiempo relativo en el frontend. */
     readonly registered_at: string | null
+    /** Fecha de último inicio de sesión en formato ISO 8601 (User.last_login_at), null si nunca inició sesión. */
+    readonly last_login_at: string | null
     /** ID del registro de dominio (Commerce/Seller/Customer/Treasurer, o el propio User para player) para el botón "Ver más". Null si el rol no tiene página dedicada. */
     readonly domain_id: string | number | null
 }

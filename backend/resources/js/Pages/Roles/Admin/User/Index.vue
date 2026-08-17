@@ -75,6 +75,7 @@
     redirectToRoleCreation,
     editUser,
     updateUser,
+    toggleStatus,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
@@ -135,6 +136,15 @@
   const isSuperadmin = computed(() =>
     (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
   )
+  const isAdmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'admin') ?? false
+  )
+  // Gestión de roles (botón "Gestionar roles" + tab "Jerarquía de Roles"):
+  // superadmin y admin — mismo criterio que RolePolicy::update() en el
+  // backend, que además impide a un admin tocar 'superadmin' o 'admin'
+  // (RoleManagerModal.vue/RoleHierarchyTree.vue ya bloquean esos dos roles
+  // específicos en la UI cuando el actor no es superadmin).
+  const canManageRoles = computed(() => isSuperadmin.value || isAdmin.value)
   const currentUserId = computed(() => String((page.props.auth as any)?.user?.id ?? ''))
 
   // Modal "Gestionar roles" (RoleManagerModal.vue) — mismo componente que usa
@@ -268,6 +278,20 @@
     router.visit(route, domainId ? { data: { open: domainId } } : {})
   }
 
+  /**
+   * Switch de estado dentro del modal de edición — reusa el mismo
+   * toggleStatus(id) que ya usa la tabla, con la misma confirmación.
+   * UserEditForm.vue ya bloquea el switch para cuentas superadmin (por
+   * seguridad, no pueden desactivarse desde aquí); igual se revalida acá
+   * porque el backend también lo rechaza (AdminUserService::guardMutation).
+   */
+  async function handleToggleStatusFromModal(userId: string | number) {
+    await toggleStatus(userId)
+    if (editingUser.value?.id === userId) {
+      editUser(userId)
+    }
+  }
+
   function openEditModal(userId: string | number) {
     editUser(userId)
     showEditModal.value = true
@@ -353,29 +377,18 @@
   // CRUD global (eventos tabla)
   // ==========================================================================
 
-  // Modal de selección de rol para registrar usuario (Modal.vue + useModalForm)
-  const roleSelection = ref<{ id?: string; role: string | null }>({ role: null })
-
-  async function submitRoleSelection(): Promise<boolean> {
-    if (!roleSelection.value.role) return false
-    redirectToRoleCreation(roleSelection.value.role)
-    return true
-  }
-
-  const {
-    showModalForm: showCreateRoleModal,
-    formRef: createRoleFormRef,
-    handleSubmit: handleCreateRoleSubmit,
-  } = useModalForm(roleSelection, submitRoleSelection, { defaultTitle: 'Usuario', createTitle: 'Registrar nuevo usuario', editTitle: 'Registrar nuevo usuario' })
+  // Modal de selección de rol para registrar usuario — cada tarjeta redirige
+  // de inmediato al hacer click (sin paso de confirmación aparte).
+  const showCreateRoleModal = ref(false)
 
   function onRoleSelected(roleName: string) {
-    roleSelection.value = { role: roleName }
+    showCreateRoleModal.value = false
+    redirectToRoleCreation(roleName)
   }
 
   useCrudEventListener({
     // "Crear" abre el modal de selección de rol → redirige a la vista de creación
     create: () => {
-      roleSelection.value = { role: null }
       showCreateRoleModal.value = true
     },
 
@@ -588,7 +601,7 @@
         <div class="col-sm-6 d-flex flex-column align-items-sm-end">
           <Breadcrumb :items="breadcrumbItems" />
           <Button
-            v-if="isSuperadmin"
+            v-if="canManageRoles"
             class="mt-2"
             variant="primary"
             outline
@@ -610,7 +623,7 @@
             <i class="fas fa-table mr-2"></i>Listado
           </button>
         </li>
-        <li class="nav-item">
+        <li v-if="canManageRoles" class="nav-item">
           <button class="nav-link" :class="{ active: activeTab === 'hierarchy' }" @click="onHierarchyTabClick">
             <i class="fas fa-sitemap mr-2"></i>Jerarquía de Roles
           </button>
@@ -674,6 +687,10 @@
             <RelativeTime :value="row.registered_at" />
           </template>
 
+          <template #cell-last_login_at="{ row }">
+            <RelativeTime :value="row.last_login_at" icon="fas fa-sign-in-alt" />
+          </template>
+
           <template #action-buttons>
             <button class="btn btn-sm btn-outline-secondary" title="Exportar usuarios filtrados a CSV" @click="handleExport">
               <i class="fas fa-file-csv mr-1"></i>Exportar
@@ -693,7 +710,7 @@
     </div>
   </section>
 
-  <RoleManagerModal v-if="isSuperadmin" v-model="showRoleManager" />
+  <RoleManagerModal v-if="canManageRoles" v-model="showRoleManager" />
 
   <!-- Modal de selección de rol para registrar usuario -->
   <Modal
@@ -701,14 +718,10 @@
     title="Registrar nuevo usuario"
     icon="fa-user-plus"
     static
-    show-confirm
-    confirm-text="Ir a registrar"
-    :on-submit="handleCreateRoleSubmit"
-    :confirm-disabled="!(createRoleFormRef?.isValid ?? false)"
   >
     <UserCreateRoleForm
-      ref="createRoleFormRef"
       :roles="props.roles"
+      :is-superadmin="isSuperadmin"
       @select="onRoleSelected"
     />
   </Modal>
@@ -734,8 +747,10 @@
       :is-self="isEditingSelf"
       :target-role-name="editingUser?.role_name"
       :target-domain-id="editingUser?.domain_id"
+      :target-status="editingUser?.status"
       @reset-password="() => editingUser && resetPassword(editingUser.id)"
       @view-role-detail="handleViewRoleDetail"
+      @toggle-status="() => editingUser && handleToggleStatusFromModal(editingUser.id)"
     />
   </Modal>
 

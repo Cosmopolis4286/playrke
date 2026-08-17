@@ -95,8 +95,8 @@ final class AdminUserContextService
         // espacio a Permisos y Registrado sin sobrecargar la tabla — el
         // frontend arma el bloque visual a partir de role_badge/full_name/
         // username/email vía slot #cell-full_name.
-        $labels  = ['Usuario', 'País', 'Permisos', 'Registrado', 'Status'];
-        $rowKeys = ['full_name', 'country_name', 'permissions_badge', 'registered_at', 'status_badge'];
+        $labels  = ['Usuario', 'País', 'Permisos', 'Registrado', 'Última conexión', 'Status'];
+        $rowKeys = ['full_name', 'country_name', 'permissions_badge', 'registered_at', 'last_login_at', 'status_badge'];
 
         $source = $this->buildFilteredQuery($filters)->paginate($perPage, ['*'], 'page', $page);
 
@@ -108,6 +108,7 @@ final class AdminUserContextService
             $user->setAttribute('country_name', $user->country?->name ?? '—');
             $user->setAttribute('permissions_badge', $this->permissionsBadge($permissionsCount));
             $user->setAttribute('registered_at', $user->created_at?->toIso8601String());
+            $user->setAttribute('last_login_at', $user->last_login_at?->toIso8601String());
             $user->setAttribute('status_badge', $this->statusBadge($user->status ?? ''));
             return $user;
         });
