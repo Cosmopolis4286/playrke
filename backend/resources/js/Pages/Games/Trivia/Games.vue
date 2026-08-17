@@ -77,9 +77,9 @@ function formatDate(d: string | null): string {
   return new Date(d).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
-function progressPct(g: Game): number {
-  if (!g.total_questions) return 0
-  return Math.round((g.current_question_index / g.total_questions) * 100)
+function progressPct(currentIndex: number, totalQuestions: number): number {
+  if (!totalQuestions) return 0
+  return Math.round((currentIndex / totalQuestions) * 100)
 }
 
 // ── Tabla como BaseTable ──────────────────────────────────────────────────────
@@ -208,7 +208,7 @@ const tableColumns: Column[] = [
               <div class="w-20 h-1.5 gp-track rounded-full">
                 <div
                   class="h-full bg-indigo-500 rounded-full transition-all"
-                  :style="{ width: progressPct(g) + '%' }"
+                  :style="{ width: progressPct(g.current_question_index, g.total_questions) + '%' }"
                 />
               </div>
               <span class="text-xs text-gray-500">{{ g.current_question_index }}/{{ g.total_questions }}</span>
@@ -292,4 +292,38 @@ const tableColumns: Column[] = [
 .gp-page-link:hover { background: var(--ds-surface-2); }
 .gp-page-link-disabled { color: var(--ds-text-muted); }
 .gp-badge-neutral { background: var(--ds-surface-2); color: var(--ds-text-2); }
+
+/* Adapta el look de BaseTable (Bootstrap) al estilo Tailwind del resto de
+   esta página — mismo criterio que .gs-scoreboard-table en GameShow.vue.
+   A diferencia de esa tabla, aquí el layout original alinea todo a la
+   izquierda salvo la última columna ("Ver"). */
+.gp-games-table :deep(table) {
+  --bs-table-striped-bg: transparent;
+  border-collapse: collapse;
+}
+.gp-games-table :deep(thead th) {
+  background: var(--ds-surface-2);
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+.gp-games-table :deep(thead th:last-child) {
+  text-align: right;
+}
+.gp-games-table :deep(tbody td) {
+  border: none;
+  border-top: 1px solid var(--ds-border);
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+.gp-games-table :deep(tbody td:last-child) {
+  text-align: right;
+}
+.gp-games-table :deep(tbody tr:hover) {
+  background: var(--ds-surface-2);
+}
 </style>

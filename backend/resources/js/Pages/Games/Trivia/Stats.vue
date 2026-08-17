@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
+import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+import type { Column } from '@/js/types/common/table/column-row'
 
 interface RoomStats {
   total: number
@@ -63,9 +65,9 @@ function msToSeconds(ms: number): string {
   return (ms / 1000).toFixed(1) + 's'
 }
 
-function winRate(player: TopPlayer): string {
-  if (!player.games_played) return '0%'
-  return Math.round((player.wins / player.games_played) * 100) + '%'
+function winRate(wins: number, gamesPlayed: number): string {
+  if (!gamesPlayed) return '0%'
+  return Math.round((wins / gamesPlayed) * 100) + '%'
 }
 
 function formatMonth(m: string): string {
@@ -105,6 +107,23 @@ const questionActivePercent = computed(() =>
   props.questionStats.total > 0
     ? Math.round((props.questionStats.active / props.questionStats.total) * 100)
     : 0
+)
+
+// ── Top jugadores como BaseTable ─────────────────────────────────────────────
+
+const topPlayersColumns: Column[] = [
+  { key: 'rank', label: '#' },
+  { key: 'player_id', label: 'Jugador' },
+  { key: 'total_score', label: 'Puntuación' },
+  { key: 'games_played', label: 'Partidas' },
+  { key: 'wins', label: 'Victorias' },
+  { key: 'correct', label: 'Aciertos' },
+  { key: 'win_rate', label: '% Victoria' },
+]
+
+/** BaseTable exige `id` por fila — se usa player_id, ya único. */
+const topPlayersRows = computed(() =>
+  props.topPlayers.map((p, i) => ({ ...p, id: p.player_id, rank: i + 1 }))
 )
 </script>
 
@@ -288,55 +307,53 @@ const questionActivePercent = computed(() =>
         <h2 class="text-base font-semibold st-text mb-4">🏆 Top Jugadores</h2>
 
         <div v-if="topPlayers.length" class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="st-border-b">
-                <th class="pb-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                <th class="pb-2 text-left text-xs font-medium text-gray-500 uppercase">Jugador</th>
-                <th class="pb-2 text-right text-xs font-medium text-gray-500 uppercase">Puntuación</th>
-                <th class="pb-2 text-right text-xs font-medium text-gray-500 uppercase">Partidas</th>
-                <th class="pb-2 text-right text-xs font-medium text-gray-500 uppercase">Victorias</th>
-                <th class="pb-2 text-right text-xs font-medium text-gray-500 uppercase">Aciertos</th>
-                <th class="pb-2 text-right text-xs font-medium text-gray-500 uppercase">% Victoria</th>
-              </tr>
-            </thead>
-            <tbody class="st-divide">
-              <tr
-                v-for="(player, i) in topPlayers"
-                :key="player.player_id"
-                class="st-row-hover transition-colors"
-              >
-                <td class="py-2.5 pr-3">
-                  <span
-                    :class="[
-                      'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold',
-                      i === 0 ? 'bg-yellow-400 text-white' :
-                      i === 1 ? 'bg-gray-300 text-white' :
-                      i === 2 ? 'bg-amber-600 text-white' :
-                      'st-neutral-badge'
-                    ]"
-                  >{{ i + 1 }}</span>
-                </td>
-                <td class="py-2.5">
-                  <span class="font-mono text-xs st-text-muted">{{ player.player_id.slice(0, 8) }}…</span>
-                </td>
-                <td class="py-2.5 text-right font-semibold st-text">
-                  {{ formatNumber(player.total_score) }}
-                </td>
-                <td class="py-2.5 text-right st-text-secondary">{{ player.games_played }}</td>
-                <td class="py-2.5 text-right st-text-secondary">{{ player.wins }}</td>
-                <td class="py-2.5 text-right st-text-secondary">{{ formatNumber(player.correct) }}</td>
-                <td class="py-2.5 text-right">
-                  <span
-                    :class="[
-                      'px-2 py-0.5 rounded-full text-xs font-medium',
-                      +winRate(player).replace('%','') >= 50 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                    ]"
-                  >{{ winRate(player) }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <BaseTable
+            table-id="trivia-stats-top-players"
+            class="st-top-players-table"
+            :columns="topPlayersColumns"
+            :rows="topPlayersRows"
+          >
+            <template #cell-rank="{ row: player, value: rank }">
+              <span
+                :class="[
+                  'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold',
+                  rank === 1 ? 'bg-yellow-400 text-white' :
+                  rank === 2 ? 'bg-gray-300 text-white' :
+                  rank === 3 ? 'bg-amber-600 text-white' :
+                  'st-neutral-badge'
+                ]"
+              >{{ rank }}</span>
+            </template>
+
+            <template #cell-player_id="{ row: player }">
+              <span class="font-mono text-xs st-text-muted">{{ player.player_id.slice(0, 8) }}…</span>
+            </template>
+
+            <template #cell-total_score="{ row: player }">
+              <span class="font-semibold st-text">{{ formatNumber(player.total_score) }}</span>
+            </template>
+
+            <template #cell-games_played="{ row: player }">
+              <span class="st-text-secondary">{{ player.games_played }}</span>
+            </template>
+
+            <template #cell-wins="{ row: player }">
+              <span class="st-text-secondary">{{ player.wins }}</span>
+            </template>
+
+            <template #cell-correct="{ row: player }">
+              <span class="st-text-secondary">{{ formatNumber(player.correct) }}</span>
+            </template>
+
+            <template #cell-win_rate="{ row: player }">
+              <span
+                :class="[
+                  'px-2 py-0.5 rounded-full text-xs font-medium',
+                  +winRate(player.wins, player.games_played).replace('%','') >= 50 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                ]"
+              >{{ winRate(player.wins, player.games_played) }}</span>
+            </template>
+          </BaseTable>
         </div>
         <div v-else class="py-10 text-center text-gray-400">
           <p class="text-3xl mb-2">🎮</p>
@@ -388,4 +405,40 @@ const questionActivePercent = computed(() =>
 .st-divide > :not([hidden]) ~ :not([hidden]) { border-top: 1px solid var(--ds-border); }
 .st-row-hover:hover { background: var(--ds-surface-2); }
 .st-neutral-badge { background: var(--ds-surface-2); color: var(--ds-text-2); }
+
+/* Adapta el look de BaseTable (Bootstrap) al estilo Tailwind del resto de
+   esta página — mismo criterio que .gs-scoreboard-table en GameShow.vue. */
+.st-top-players-table :deep(table) {
+  --bs-table-striped-bg: transparent;
+  border-collapse: collapse;
+}
+.st-top-players-table :deep(thead th) {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--ds-border);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--ds-text-muted);
+  padding: 0 0 0.5rem;
+  text-align: right;
+}
+.st-top-players-table :deep(thead th:first-child),
+.st-top-players-table :deep(thead th:nth-child(2)) {
+  text-align: left;
+}
+.st-top-players-table :deep(tbody td) {
+  border: none;
+  border-top: 1px solid var(--ds-border);
+  padding: 0.625rem 0;
+  text-align: right;
+  vertical-align: middle;
+}
+.st-top-players-table :deep(tbody td:first-child),
+.st-top-players-table :deep(tbody td:nth-child(2)) {
+  text-align: left;
+}
+.st-top-players-table :deep(tbody tr:hover) {
+  background: var(--ds-surface-2);
+}
 </style>
