@@ -62,6 +62,25 @@ trait Auditable
      */
     protected function auditChanges(string $event): void
     {
+        $oldValuesPreview = $this->getOldValues($event);
+        $newValuesPreview = $this->getNewValues($event);
+
+        if ($event === 'updated' && ! $this->hasAuditableDiff($oldValuesPreview, $newValuesPreview)) {
+            /**
+             * updated() se dispara con isDirty() en al menos un atributo,
+             * pero ese atributo puede ser uno excluido por auditHidden (ej.
+             * remember_token: Laravel lo regenera en CADA logout de un
+             * usuario con "recordarme" activo, vía
+             * SessionGuard::cycleRememberToken() -> EloquentUserProvider::
+             * updateRememberToken() -> $user->save()). Sin este corte, cada
+             * logout generaba un registro 'updated' con url=/logout y diff
+             * vacío (todos los campos visibles "sin cambio") — ruido que no
+             * aporta nada rastreable, ya que el único campo que sí cambió es
+             * justamente el que se oculta por ser un secreto de sesión.
+             */
+            return;
+        }
+
         Audit::create([
             /**
              * Usuario humano que ejecutó la acción.
@@ -98,8 +117,8 @@ trait Auditable
             /**
              * Cambios.
              */
-            'old_values' => $this->getOldValues($event),
-            'new_values' => $this->getNewValues($event),
+            'old_values' => $oldValuesPreview,
+            'new_values' => $newValuesPreview,
 
             /**
              * Contexto de ejecución.
@@ -109,7 +128,71 @@ trait Auditable
             'user_agent' => Request::instance()?->userAgent(),
         ]);
 
+        $this->logSuspiciousChangeForDiagnosis($event, $oldValuesPreview, $newValuesPreview);
+
         $this->alertIfSensitive($event);
+    }
+
+    /**
+     * true si hay al menos un campo (ya filtrado por auditHidden/timestamps)
+     * cuyo valor difiere entre old y new — ver el corte en auditChanges()
+     * para 'updated'. created/deleted/restored no llaman esto (uno de los
+     * dos lados siempre es null ahí por diseño de getOldValues/getNewValues,
+     * así que "sin diff" no aplica como concepto para esos eventos).
+     */
+    private function hasAuditableDiff(?array $oldValues, ?array $newValues): bool
+    {
+        $old = $oldValues ?? [];
+        $new = $newValues ?? [];
+
+        foreach (array_unique([...array_keys($old), ...array_keys($new)]) as $key) {
+            if (($old[$key] ?? null) !== ($new[$key] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * DIAGNÓSTICO TEMPORAL — remover una vez identificada la causa raíz.
+     * Se detectó un audit real de User#updated con url=/logout que cambiaba
+     * country_id (dos Snowflake IDs distintos, no un problema de formato)
+     * sin que ningún código revisado (controlador de logout, listeners de
+     * Auth::logout, observers, middlewares globales) explique el save().
+     * Vuelca un backtrace corto a storage/logs cuando vuelva a ocurrir, para
+     * capturar con certeza qué línea ejecutó el save()/update() responsable.
+     */
+    private function logSuspiciousChangeForDiagnosis(string $event, ?array $oldValues, ?array $newValues): void
+    {
+        if ($event !== 'updated' || $this->getMorphClass() !== \App\Models\User::class) {
+            return;
+        }
+
+        $watchedFields = ['country_id'];
+        $changed = array_filter(
+            $watchedFields,
+            fn ($field) => array_key_exists($field, $oldValues ?? [])
+                && array_key_exists($field, $newValues ?? [])
+                && ($oldValues[$field] ?? null) !== ($newValues[$field] ?? null)
+        );
+
+        if ($changed === []) {
+            return;
+        }
+
+        Log::warning('[audit:diagnostico-temporal] Cambio inesperado en campo vigilado de User', [
+            'user_id'   => $this->getAuditableId(),
+            'campos'    => $changed,
+            'old'       => array_intersect_key($oldValues ?? [], array_flip($changed)),
+            'new'       => array_intersect_key($newValues ?? [], array_flip($changed)),
+            'url'       => Request::instance()?->fullUrl(),
+            'actor_id'  => Auth::id(),
+            'backtrace' => collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12))
+                ->map(fn ($frame) => ($frame['class'] ?? '') . ($frame['type'] ?? '') . ($frame['function'] ?? '') . ':' . ($frame['line'] ?? '?'))
+                ->values()
+                ->toArray(),
+        ]);
     }
 
     /**
@@ -201,6 +284,16 @@ trait Auditable
 
     /**
      * Obtiene los valores anteriores del modelo según el evento.
+     *
+     * getRawOriginal() (no getOriginal()) a propósito: getOriginal() aplica
+     * los casts del modelo (ej. 'datetime' produce un Carbon), mientras que
+     * getNewValues() usa getAttributes(), que NUNCA aplica casts y devuelve
+     * el valor crudo tal como está en el atributo interno. Comparar un lado
+     * casteado contra el otro sin castear generaba "cambios" falsos en cada
+     * updated() para cualquier campo con cast datetime/array/etc. — el mismo
+     * instante quedaba serializado con formato distinto en old_values
+     * (Carbon::jsonSerialize(), ISO+microsegundos+Z) y new_values (string
+     * crudo de la BD), aunque el valor real no hubiera cambiado.
      */
     protected function getOldValues(string $event): ?array
     {
@@ -209,7 +302,7 @@ trait Auditable
         }
 
         return $this->filterAuditableAttributes(
-            $this->getOriginal()
+            $this->getRawOriginal()
         );
     }
 
