@@ -215,6 +215,60 @@ final class BingoGameService
     }
 
     /**
+     * Cartones de un ExternalPlayer (comprador sin cuenta) en una sala —
+     * equivalente a getUserCartons() pero filtrando por
+     * ExternalPlayerParticipation en vez de user_id: varios ExternalPlayer
+     * del mismo vendedor comparten el mismo BingoRoomUser
+     * (bingo_room_users.user_id = creador/Commerce), así que filtrar por ese
+     * room_user_id devolvería los cartones de TODOS los compradores del
+     * vendedor, no solo los de este jugador específico.
+     *
+     * @param bool $includeWinners true para salas finalizadas — incluye STATUS_WINNER además de STATUS_ACTIVE
+     */
+    public function getUserCartonsForExternalPlayer(int|string $externalPlayerId, bool $includeWinners = false): array
+    {
+        $cardIds = \App\Models\Roles\Player\External\ExternalPlayerParticipation::participableIdsFor(
+            $externalPlayerId,
+            \App\Domains\Games\Bingo\Models\Card\BingoCard::class,
+        );
+
+        if (empty($cardIds)) {
+            return [];
+        }
+
+        $validStatuses = $includeWinners
+            ? [\App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE, \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_WINNER]
+            : [\App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE];
+
+        return \App\Domains\Games\Bingo\Models\Card\BingoCard::query()
+            ->whereIn('id', $cardIds)
+            ->whereIn('status', $validStatuses)
+            ->with(['currency', 'cardLot', 'roomUser'])
+            ->orderBy('serial_number')
+            ->get()
+            ->map(fn ($card) => $card->toFrontendFormat())
+            ->all();
+    }
+
+    /**
+     * Datos para la vista del juego (game) de un ExternalPlayer — mismo
+     * payload que getInGameData(), pero resolviendo cartones vía
+     * ExternalPlayerParticipation (ver getUserCartonsForExternalPlayer())
+     * en vez de por user_id, ya que un ExternalPlayer no tiene fila en
+     * `users`.
+     */
+    public function getInGameDataForExternalPlayer(BingoRoom $room, \App\Models\Roles\Player\External\ExternalPlayer $externalPlayer): array
+    {
+        $data = $this->getInGameData($room, null);
+
+        $roomIsFinished = (bool) $data['roomFinished'];
+        $data['cartons'] = $this->getUserCartonsForExternalPlayer((string) $externalPlayer->id, $roomIsFinished);
+        $data['userId'] = null;
+
+        return $data;
+    }
+
+    /**
      * Resuelve moneda, tasa de cambio y precio del cartón para el jugador,
      * según la wallet activa que tenga configurada (si tiene alguna).
      */

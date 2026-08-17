@@ -30,7 +30,14 @@ return new class extends Migration
 
             $table->string('room_id')->comment('ID de la sala');
 
-            $table->string('room_user_id')->comment('ID de usuario dentro de la sala');
+            // Nullable: dato informativo (BingoRoomUser compartido del
+            // Commerce, no del jugador individual) — la relación real entre
+            // este ExternalPlayer y SUS cartones/entradas específicos vive en
+            // external_player_participations, no aquí. Puede completarse
+            // después de crear el ExternalPlayer (ver
+            // ExternalPlayerLinkService::resolveOrCreatePlayer()), que ya no
+            // depende de que exista un BingoRoomUser previo.
+            $table->string('room_user_id')->nullable()->comment('ID de usuario dentro de la sala (informativo)');
 
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')

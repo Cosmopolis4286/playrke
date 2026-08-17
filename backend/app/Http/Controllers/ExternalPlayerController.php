@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Models\Game;
+use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Vinkla\Hashids\Facades\Hashids;
@@ -70,7 +71,12 @@ class ExternalPlayerController extends Controller
             ]);
         }
 
-        $cardCount = BingoCard::where('room_user_id', $externalPlayer->room_user_id)->count();
+        // Conteo por jugador externo INDIVIDUAL, no por BingoRoomUser
+        // compartido — varios ExternalPlayer del mismo vendedor en la misma
+        // sala comparten room_user_id, así que contar por esa columna
+        // devolvía los cartones de TODOS los compradores del vendedor, no
+        // solo los de este jugador (ver ExternalPlayerParticipation).
+        $cardCount = count(ExternalPlayerParticipation::participableIdsFor($externalPlayer->id, BingoCard::class));
 
         return response()->json([
             'success' => true,

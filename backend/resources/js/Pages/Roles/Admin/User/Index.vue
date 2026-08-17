@@ -334,9 +334,14 @@
 
   async function openUserDetail(rowId: string) {
     const user = users.value.find(u => u.id === rowId)
-    if (!user?.real_id) return
+    if (!user) return
     showUserDetailModal.value = true
-    await fetchUserDetail(user.real_id)
+    // user.id (el hash de fila, NO real_id) — AdminUserController::show(User $user)
+    // resuelve el route model binding vía HasHashedRouteKey::resolveRouteBinding(),
+    // que decodifica un Hashid, no la PK cruda. real_id (Snowflake sin hashear)
+    // es para el caso distinto de handleViewFullHistory(), donde Audit.auditable_id
+    // se filtra contra la PK real guardada en la tabla audits, no contra un hash.
+    await fetchUserDetail(user.id)
   }
 
   function handleUserDetailVisibility(open: boolean) {

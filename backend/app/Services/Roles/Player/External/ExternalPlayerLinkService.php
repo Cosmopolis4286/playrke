@@ -29,11 +29,17 @@ final class ExternalPlayerLinkService
     /**
      * Busca un ExternalPlayer existente para esta sala/teléfono; si no
      * existe, lo crea junto con su UserPurchaseCode y le asigna un link
-     * nuevo. Devuelve $data con `playerLink` seteado al ID del jugador
-     * externo (nuevo o encontrado).
+     * nuevo. Devuelve $data con `playerLink` (el link string, para la URL
+     * pública) y `externalPlayerId` (el ID real, para vincular
+     * participaciones vía ExternalPlayerParticipation) seteados.
      *
-     * @param array $data Requiere: gameId, roomId, roomUser, playerPhone,
-     *   country, creator, currency. Opcionales: playerName, playerLastName.
+     * `roomUser` es opcional: se puede llamar ANTES de generar los cartones
+     * (el BingoRoomUser compartido del Commerce puede no existir todavía) —
+     * external_players.room_user_id es solo informativo, ver
+     * updateRoomUser().
+     *
+     * @param array $data Requiere: gameId, roomId, playerPhone, country,
+     *   creator, currency. Opcionales: roomUser, playerName, playerLastName.
      */
     public function resolveOrCreatePlayer(array $data): array
     {
@@ -41,10 +47,8 @@ final class ExternalPlayerLinkService
         $playerPhone = $data['playerPhone'] ?? null;
 
         $player = ExternalPlayer::where('game_id', $data['gameId'])->where('room_id', $data['roomId'])
-            ->where(function ($query) use ($playerPhone, $roomUser) {
-                $query->where('phone', $playerPhone)
-                    ->orWhere('id', $roomUser);
-            })->value('id');
+            ->where('phone', $playerPhone)
+            ->first(['id', 'link']);
 
         if (!$player) {
             $playerName = $data['playerName'] ?? null;
@@ -87,7 +91,7 @@ final class ExternalPlayerLinkService
                 'game_id' => (string)$data['gameId'],
                 'room_id' => (string)$data['roomId'],
                 'creator_user_id' => is_array($data['creator']) ? (string)($data['creator']['id'] ?? $data['creator']) : (string)$data['creator'],
-                'room_user_id' => is_array($roomUser) ? (string)($roomUser['room_user_id'] ?? $roomUser['id'] ?? $roomUser) : (string)$roomUser,
+                'room_user_id' => $roomUser ? (is_array($roomUser) ? (string)($roomUser['room_user_id'] ?? $roomUser['id'] ?? $roomUser) : (string)$roomUser) : null,
                 'seller_user_id' => (string)$sellerUserId,
                 'country_id' => (string)$country,
                 'currency_id' => is_array($data['currency']) ? (string)($data['currency']['id'] ?? $data['currency']) : (string)$data['currency'],
@@ -100,14 +104,15 @@ final class ExternalPlayerLinkService
                 'expiration_date' => now()->addDays(ExternalPlayerLinkSettings::expirationDays()),
             ];
 
-            $player = ExternalPlayer::create($dataPlayer)->id;
+            $player = ExternalPlayer::create($dataPlayer);
 
-            if (!$player) {
+            if (!$player->id) {
                 throw new \Exception('Error al crear la información del jugador');
             }
         }
 
-        $data['playerLink'] = $player;
+        $data['externalPlayerId'] = $player->id;
+        $data['playerLink'] = $player->link;
 
         unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastName']);
 
@@ -115,44 +120,46 @@ final class ExternalPlayerLinkService
     }
 
     /**
-     * Resuelve la URL de la sala de Bingo asociada a un link/ID de
-     * ExternalPlayer. $playerLink null significa jugador interno (con
-     * cuenta), no requiere resolución.
+     * Completa/actualiza el room_user_id informativo de un ExternalPlayer
+     * una vez que su BingoRoomUser ya existe — llamado después de generar
+     * cartones, cuando resolveOrCreatePlayer() se invocó sin `roomUser`
+     * disponible todavía.
      */
-    public function resolveGameUrl($playerLink): ?string
+    public function updateRoomUser(int|string $externalPlayerId, int|string $roomUserId): void
+    {
+        ExternalPlayer::where('id', $externalPlayerId)
+            ->whereNull('room_user_id')
+            ->update(['room_user_id' => (string) $roomUserId]);
+    }
+
+    /**
+     * Resuelve la URL PÚBLICA de acceso (sin cuenta) para un ExternalPlayer,
+     * a partir de su `link` o su ID. $playerLink null significa jugador
+     * interno (con cuenta), no requiere resolución.
+     *
+     * Apunta a external-players.game (ruta pública, ver
+     * routes/modules/external-player.php) — NO a bingo.game, que exige
+     * sesión autenticada con rol player y siempre rechazaría a un
+     * ExternalPlayer sin cuenta.
+     */
+    public function resolveGameUrl(int|string|null $playerLink): ?string
     {
         if ($playerLink === null) {
             return null;
         }
 
-        if (is_int($playerLink)) {
-            $playerLink = ExternalPlayer::getValueById($playerLink, 'link');
-        }
-
         // El link en sí (28 chars aleatorios) no es PII — se loguea igual que
         // cualquier identificador técnico, pero nunca los datos del jugador
         // asociado (nombre/teléfono).
-        $externalPlayer = ExternalPlayer::where('link', $playerLink)->first();
+        $externalPlayer = is_numeric($playerLink)
+            ? ExternalPlayer::find($playerLink) ?? ExternalPlayer::where('link', $playerLink)->first()
+            : ExternalPlayer::where('link', $playerLink)->first();
 
         if (!$externalPlayer) {
-            \Log::warning('ExternalPlayerLinkService: external player no encontrado por link', ['link' => $playerLink]);
-
-            if (is_numeric($playerLink)) {
-                $externalPlayer = ExternalPlayer::find($playerLink);
-            }
-
-            if (!$externalPlayer) {
-                throw new \Exception('Jugador externo no encontrado');
-            }
+            \Log::warning('ExternalPlayerLinkService: external player no encontrado', ['player_link_or_id' => $playerLink]);
+            throw new \Exception('Jugador externo no encontrado');
         }
 
-        $roomId = $externalPlayer->room_id;
-
-        if (!$roomId) {
-            \Log::error('ExternalPlayerLinkService: room_id nulo para external player', ['external_player_id' => $externalPlayer->id]);
-            throw new \Exception('ID de sala no encontrado para el jugador externo');
-        }
-
-        return route('bingo.game', ['room' => $roomId]);
+        return route('external-players.game', ['link' => $externalPlayer->link]);
     }
 }

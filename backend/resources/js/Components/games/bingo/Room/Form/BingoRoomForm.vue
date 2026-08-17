@@ -104,6 +104,14 @@
     id: props.editingRoomId ?? 'create',
     automaticRoom: props.automaticRoom ?? false,
     validBingoPatternIds: props.bingoPatternOptions.map(o => String(o.value)),
+    // Sin restaurar/descartar el borrador, seguir editando lo pisaría en
+    // silencio (autosave) sin que el usuario haya decidido qué hacer con él
+    // — confirmar antes de dejar avanzar el primer cambio en ese estado.
+    confirmOverwrite: () => showToastConfirmAction(
+      'Hay un borrador sin restaurar de esta sala. Si seguís editando, se reemplazará por los cambios nuevos y no vas a poder recuperarlo. ¿Continuar de todos modos?',
+      'warning',
+      'Continuar sin restaurar'
+    ),
   })
 
   const draftSavedAtLabel = computed(() => {

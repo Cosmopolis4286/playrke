@@ -538,17 +538,25 @@ final class BingoCardGenerateService
 
         // 7. Ejecutar transacción atómica
         $result = DB::transaction(function () use ($cardOrder) {
+            // Resolver/crear el ExternalPlayer ANTES de generar los cartones —
+            // external_players.room_user_id ahora es nullable/informativo
+            // (ver create_external_players_table), así que no depende de que
+            // el BingoRoomUser ya exista. Necesitamos su ID ya en este punto
+            // para vincular cada cartón individual vía
+            // ExternalPlayerParticipation (ver BingoCardGenerationService),
+            // sin lo cual todos los compradores externos de este vendedor en
+            // esta sala quedarían indistinguibles entre sí.
+            $cardOrder = $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
+
             $roomUser = $this->cardGenerationService->generateCards($cardOrder);
 
             if (!$roomUser) {
                 throw new DomainException('Error al generar cartones');
             }
 
-            $cardOrder['roomUser'] = $roomUser;
+            $this->externalPlayerLink->updateRoomUser($cardOrder['externalPlayerId'], $roomUser['room_user_id']);
 
-            $cardOrder = $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
-
-            $playerLink = $this->externalPlayerLink->resolveGameUrl($cardOrder['roomUser']['id'] ?? null);
+            $playerLink = $this->externalPlayerLink->resolveGameUrl($cardOrder['externalPlayerId']);
 
             return [
                 'type'       => 'success',
