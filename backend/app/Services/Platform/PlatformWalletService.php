@@ -201,16 +201,14 @@ final class PlatformWalletService
             return [];
         }
 
-        // Garantiza una wallet por cada moneda activa (ej: monedas dadas de alta después).
-        foreach (Currency::where('status', true)->get() as $currency) {
-            Wallet::firstOrCreate(
-                ['user_id' => $user->id, 'currency_id' => $currency->id],
-                ['balance' => 0.00, 'status' => 'ACTIVE']
-            );
+        $wallets = $this->walletRepository->getActiveWalletsByUser((string) $user->id);
+
+        $createdAny = $this->ensureWalletsForActiveCurrencies($user, $wallets);
+        if ($createdAny) {
+            $wallets = $this->walletRepository->getActiveWalletsByUser((string) $user->id);
         }
 
-        return $this->walletRepository
-            ->getActiveWalletsByUser((string) $user->id)
+        return $wallets
             ->load('currency')
             ->map(fn(Wallet $w) => [
                 'id'             => (string) $w->id,
@@ -300,6 +298,40 @@ final class PlatformWalletService
     private function cacheKey(string $currencyId): string
     {
         return "platform_wallet_{$currencyId}";
+    }
+
+    /**
+     * Garantiza una wallet de plataforma por cada moneda activa (ej: monedas dadas
+     * de alta después). El listado de monedas activas se cachea (cambia poco) y el
+     * firstOrCreate solo se ejecuta para monedas sin wallet todavía, evitando un
+     * INSERT...ON DUPLICATE innecesario en cada carga del dashboard.
+     *
+     * @param  \Illuminate\Support\Collection<int, Wallet> $existingWallets Wallets activas ya cargadas del usuario.
+     * @return bool true si se creó al menos una wallet nueva (el caller debe refrescar su colección).
+     */
+    private function ensureWalletsForActiveCurrencies(User $user, \Illuminate\Support\Collection $existingWallets): bool
+    {
+        $activeCurrencyIds = Cache::remember(
+            'currencies_active_ids',
+            self::CACHE_TTL,
+            fn () => Currency::where('status', true)->pluck('id')->map(fn ($id) => (string) $id)->all()
+        );
+
+        $existingCurrencyIds = $existingWallets
+            ->pluck('currency_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        $missingCurrencyIds = array_diff($activeCurrencyIds, $existingCurrencyIds);
+
+        foreach ($missingCurrencyIds as $currencyId) {
+            Wallet::firstOrCreate(
+                ['user_id' => $user->id, 'currency_id' => $currencyId],
+                ['balance' => 0.00, 'status' => 'ACTIVE']
+            );
+        }
+
+        return count($missingCurrencyIds) > 0;
     }
 
     /**

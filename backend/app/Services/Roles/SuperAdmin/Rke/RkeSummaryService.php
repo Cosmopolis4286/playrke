@@ -3,10 +3,14 @@
 namespace App\Services\Roles\SuperAdmin\Rke;
 
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 final class RkeSummaryService
 {
+    private const CACHE_KEY = 'superadmin:rke-summary';
+    private const CACHE_TTL = 90; // mismo TTL que el resto de agregados del dashboard superadmin
+
     /**
      * Resumen de comisiones RKE agrupadas por sala.
      *
@@ -15,6 +19,11 @@ final class RkeSummaryService
      *  - `rooms`: lista por sala con anfitrión, total vendido, RKE cobrado y fecha
      */
     public function getSummary(): array
+    {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => $this->buildSummary());
+    }
+
+    private function buildSummary(): array
     {
         $rows = BingoCreatorSale::query()
             ->select([

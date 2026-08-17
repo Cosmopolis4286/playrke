@@ -149,12 +149,12 @@ class MovementTypeController extends Controller
      */
     public function fetchList(Request $request): JsonResponse
     {
-        $movementTypes = MovementType::when($request->get('status'), function ($query, $status) {
-                $query->where('status', $status);
-            })
-            ->orderBy('sort_order')
-            ->orderBy('label')
-            ->get();
+        $status = $request->get('status');
+
+        $movementTypes = MovementType::catalog()
+            ->when($status, fn ($collection) => $collection->where('status', $status))
+            ->sortBy(['sort_order', 'label'])
+            ->values();
 
         return response()->json([
             'success' => true,

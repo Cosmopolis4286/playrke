@@ -81,9 +81,12 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         
-        // Cargar relaciones si el usuario está autenticado
+        // Cargar relaciones si el usuario está autenticado.
+        // timeZone se precarga aquí (aunque no se usa en este share()) para que
+        // SetUserTimezone, que corre después en el stack de 'web', la reutilice
+        // sin disparar una query lazy-load adicional en cada request.
         if ($user) {
-            $user->load(['roles']);
+            $user->load(['roles', 'timeZone']);
         }
         
         return [
