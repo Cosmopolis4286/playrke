@@ -109,6 +109,16 @@
       <span v-if="required" class="text-danger">*</span>
     </label>
 
+    <!-- can-deselect="!required" (junto a clearable/can-clear): clearable/can-clear
+         SOLO ocultan el botón "X" visible — @vueform/multiselect por defecto
+         (canDeselect=true) igual permite vaciar el campo con un click sobre la
+         opción YA seleccionada dentro del dropdown (gesto natural al reabrir
+         para revisar). Sin can-deselect="false" en campos requeridos, ese click
+         limpia el valor real a null sin que el usuario lo note — el select puede
+         seguir "mostrando" la opción por un fallback visual del padre (ej.
+         `:modelValue="x.campo ?? 'DEFAULT'"`), mientras el dato real queda vacío
+         y solo se descubre al fallar la validación del backend. -->
+
     <!-- INPUT GROUP -->
     <div v-if="inputGroup" :class="['input-group', inputGroupClass]">
       <div v-if="slots.prepend" class="input-group-prepend">
@@ -128,6 +138,7 @@
           :searchable="true"
           :clearable="!required"
           :can-clear="!required"
+          :can-deselect="!required"
           :disabled="disabled"
           append-to-body
           class="multiselect-bootstrap"
@@ -156,6 +167,7 @@
       :searchable="true"
       :clearable="!required"
       :can-clear="!required"
+      :can-deselect="!required"
       :disabled="disabled"
       append-to-body
       class="multiselect-bootstrap"
