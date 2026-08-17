@@ -545,9 +545,15 @@
       label: 'Permisos individuales',
       class: 'btn-info text-white admin-user-btn--permissions',
       title: 'Otorgar o revocar permisos específicos a este usuario, además de los que ya tiene por su rol',
-      // Backend ya protege con UserPolicy::managePermissions (role:superadmin) —
-      // ocultar el botón para otros roles evita un 403 innecesario en la UI.
-      show: (ids: string[]) => ids.length === 1 && isSuperadmin.value,
+      // Backend ya protege con UserPolicy::managePermissions (role:superadmin,
+      // y excluye target superadmin) — ocultar el botón para otros roles/
+      // superadmin evita un 403 innecesario en la UI. Superadmin ya tiene
+      // 'superadmin.access' (acceso total): asignarle/quitarle permisos
+      // individuales no tendría ningún efecto real.
+      show: (ids: string[]) =>
+        ids.length === 1 &&
+        isSuperadmin.value &&
+        users.value.find(u => u.id === ids[0])?.role_name !== 'superadmin',
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
           const user = users.value.find(u => u.id === ids[0])
@@ -718,7 +724,7 @@
           </template>
 
           <template #cell-permissions_badge="{ row }">
-            <span v-html="row.permissions_badge"></span>
+            <span class="admin-user-permissions-cell" v-html="row.permissions_badge"></span>
           </template>
 
           <template #cell-registered_at="{ row }">
@@ -897,6 +903,14 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+/* Celda "Permisos": badges de rol + individuales. */
+.admin-user-permissions-cell {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
 /* Celda "Usuario" acoplada: rol + nombre + username + email en un solo bloque */
