@@ -35,7 +35,10 @@ final class AdminUserContextService
     {
         $query = User::with([
                 'country:id,name',
-                'roles:id,name,prefix',
+                // withCount('permissions') agrega permissions_count al rol —
+                // necesario para el badge "N por rol" de la columna Permisos
+                // (heredados vía Spatie, distintos de specific_permissions).
+                'roles' => fn ($q) => $q->select('id', 'name', 'prefix')->withCount('permissions'),
                 // Solo 'id' — necesario para resolver domain_id (botón "Ver
                 // más" -> página dedicada del rol), no se expone nada más.
                 'commerce:id,user_id',
@@ -102,11 +105,12 @@ final class AdminUserContextService
 
         $collection = $source->getCollection()->map(function (User $user) {
             $fullName = trim("{$user->first_name} {$user->last_name}");
-            $permissionsCount = count($user->specific_permissions ?? []);
+            $specificCount = count($user->specific_permissions ?? []);
+            $roleCount = $user->roles->first()?->permissions_count ?? 0;
             $user->setAttribute('full_name',    $fullName);
             $user->setAttribute('role_badge',   $this->roleBadge($user->roles->first()?->name ?? ''));
             $user->setAttribute('country_name', $user->country?->name ?? '—');
-            $user->setAttribute('permissions_badge', $this->permissionsBadge($permissionsCount));
+            $user->setAttribute('permissions_badge', $this->permissionsBadge($roleCount, $specificCount));
             $user->setAttribute('registered_at', $user->created_at?->toIso8601String());
             $user->setAttribute('last_login_at', $user->last_login_at?->toIso8601String());
             $user->setAttribute('status_badge', $this->statusBadge($user->status ?? ''));
@@ -187,13 +191,24 @@ final class AdminUserContextService
         };
     }
 
-    private function permissionsBadge(int $count): string
+    /**
+     * Dos badges: permisos heredados por rol (Spatie, vía Role::permissions)
+     * y permisos individuales (User::specific_permissions, distintos de los
+     * del rol). El frontend hace clic en esta celda para abrir el mismo
+     * modal que el botón "Permisos individuales" — ver #cell-permissions_badge
+     * en Pages/Roles/Admin/User/Index.vue.
+     */
+    private function permissionsBadge(int $roleCount, int $specificCount): string
     {
-        if ($count === 0) {
-            return '<span class="badge badge-light text-muted">Sin permisos individuales</span>';
-        }
+        $roleBadge = '<span class="badge badge-secondary mr-1" title="Permisos heredados por su rol">'
+            . '<i class="fas fa-shield-alt mr-1"></i>' . $roleCount . ' por rol</span>';
 
-        return '<span class="badge badge-info"><i class="fas fa-user-shield mr-1"></i>' . $count . ' individual' . ($count > 1 ? 'es' : '') . '</span>';
+        $specificBadge = $specificCount > 0
+            ? '<span class="badge badge-info" title="Permisos individuales adicionales"><i class="fas fa-user-shield mr-1"></i>'
+                . $specificCount . ' individual' . ($specificCount > 1 ? 'es' : '') . '</span>'
+            : '<span class="badge badge-light text-muted" title="Sin permisos individuales adicionales">0 individuales</span>';
+
+        return $roleBadge . $specificBadge;
     }
 
     private function statusBadge(string $status): string
