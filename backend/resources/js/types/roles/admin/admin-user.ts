@@ -79,6 +79,8 @@ export interface AdminUserDetail {
     readonly last_login_at: string | null
     readonly has_specific_permissions: boolean
     readonly specific_permissions_count: number
+    /** Permisos individuales activos que expiran dentro de los próximos 7 días. */
+    readonly specific_permissions_expiring_soon_count: number
     readonly wallet: { balance: number; currency: { iso_code: string; symbol: string; name: string } | null } | null
     readonly level: AdminUserDetailLevel | null
     readonly recent_audits: AdminUserDetailAudit[]

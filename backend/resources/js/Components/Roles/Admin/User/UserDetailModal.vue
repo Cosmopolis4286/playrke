@@ -129,14 +129,19 @@ function formatEventLabel(event: string): string {
           </div>
           <div class="ud-field">
             <span class="ud-field-label"><i class="fas fa-user-shield"></i>Permisos individuales</span>
-            <button
-              v-if="detail.has_specific_permissions"
-              class="ud-permissions-link"
-              @click="$emit('view-permissions', detail.id)"
-            >
-              {{ detail.specific_permissions_count }} asignado{{ detail.specific_permissions_count === 1 ? '' : 's' }}
-              <i class="fas fa-arrow-up-right-from-square ml-1"></i>
-            </button>
+            <template v-if="detail.has_specific_permissions">
+              <button
+                class="ud-permissions-link"
+                @click="$emit('view-permissions', detail.id)"
+              >
+                {{ detail.specific_permissions_count }} asignado{{ detail.specific_permissions_count === 1 ? '' : 's' }}
+                <i class="fas fa-arrow-up-right-from-square ml-1"></i>
+              </button>
+              <span v-if="detail.specific_permissions_expiring_soon_count > 0" class="ud-expiring-badge">
+                <i class="fas fa-clock"></i>
+                {{ detail.specific_permissions_expiring_soon_count }} expira{{ detail.specific_permissions_expiring_soon_count === 1 ? '' : 'n' }} pronto
+              </span>
+            </template>
             <span v-else class="ud-field-value">Ninguno</span>
           </div>
         </div>
@@ -281,6 +286,20 @@ function formatEventLabel(event: string): string {
   cursor: pointer;
 }
 .ud-permissions-link:hover { text-decoration: underline; }
+
+.ud-expiring-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: flex-start;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(217,119,6,.15);
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+}
 
 .ud-section { margin-bottom: 1.25rem; }
 .ud-section:last-child { margin-bottom: 0; }

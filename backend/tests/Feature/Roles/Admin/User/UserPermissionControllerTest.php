@@ -89,7 +89,7 @@ class UserPermissionControllerTest extends TestCase
         $perm        = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $response = $this->actingAs($superadmin)->putJson("/admin/user/{$targetAdmin->hashed_id}/permissions", [
-            'permissions' => [$perm->name],
+            'permissions' => [['name' => $perm->name, 'expires_at' => null]],
         ]);
 
         $response->assertOk();
@@ -126,7 +126,7 @@ class UserPermissionControllerTest extends TestCase
         $this->assertFalse($player->fresh()->can('reports.view'));
 
         $response = $this->actingAs($superadmin)->putJson("/admin/user/{$player->hashed_id}/permissions", [
-            'permissions' => [$perm->name],
+            'permissions' => [['name' => $perm->name, 'expires_at' => null]],
         ]);
 
         $response->assertOk();
@@ -183,6 +183,81 @@ class UserPermissionControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('via_roles', ['games.bingo'])
-            ->assertJsonPath('specific', ['reports.view']);
+            ->assertJsonPath('specific.0.name', 'reports.view')
+            ->assertJsonPath('specific.0.expires_at', null);
+    }
+
+    // ── Expiración de permisos individuales ─────────────────────────────────
+
+    public function test_granting_permission_with_future_expiry_is_active_until_expiry(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $player     = $this->makePlayer();
+        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+
+        $response = $this->actingAs($superadmin)->putJson("/admin/user/{$player->hashed_id}/permissions", [
+            'permissions' => [['name' => $perm->name, 'expires_at' => now()->addDays(3)->toISOString()]],
+        ]);
+
+        $response->assertOk();
+        $this->assertTrue($player->fresh()->can('reports.view'));
+
+        $grant = \App\Models\UserSpecificPermissionGrant::where('user_id', $player->id)
+            ->where('permission_name', 'reports.view')
+            ->first();
+        $this->assertNotNull($grant->expires_at);
+        $this->assertNull($grant->revoked_at);
+    }
+
+    public function test_granting_permission_rejects_past_expiry_date(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $player     = $this->makePlayer();
+        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+
+        $response = $this->actingAs($superadmin)->putJson("/admin/user/{$player->hashed_id}/permissions", [
+            'permissions' => [['name' => $perm->name, 'expires_at' => now()->subDay()->toISOString()]],
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_expired_grant_no_longer_grants_access(): void
+    {
+        $player = $this->makePlayer();
+        Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+
+        \App\Models\UserSpecificPermissionGrant::create([
+            'user_id'         => $player->id,
+            'permission_name' => 'reports.view',
+            'expires_at'      => now()->subHour(),
+        ]);
+
+        $this->assertFalse($player->fresh()->can('reports.view'));
+    }
+
+    public function test_expiration_command_revokes_due_grants_and_notifies(): void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $player     = $this->makePlayer();
+        Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+
+        $grant = \App\Models\UserSpecificPermissionGrant::create([
+            'user_id'         => $player->id,
+            'permission_name' => 'reports.view',
+            'expires_at'      => now()->subHour(),
+        ]);
+
+        $this->artisan('permissions:expire-specific-grants')->assertSuccessful();
+
+        $this->assertNotNull($grant->fresh()->revoked_at);
+        $this->assertEquals(
+            \App\Models\UserSpecificPermissionGrant::REVOKED_REASON_EXPIRED,
+            $grant->fresh()->revoked_reason
+        );
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $superadmin->id,
+            'type'    => 'SYSTEM',
+        ]);
     }
 }

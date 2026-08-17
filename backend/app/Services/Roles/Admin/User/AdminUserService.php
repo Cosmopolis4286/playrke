@@ -401,6 +401,12 @@ final class AdminUserService
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->count();
 
+        $expiringSoonCount = $user->specificPermissionGrants()
+            ->active()
+            ->whereNotNull('expires_at')
+            ->whereBetween('expires_at', [now(), now()->addDays(7)])
+            ->count();
+
         return [
             'id'                          => (string) $user->id,
             'full_name'                   => trim("{$user->first_name} {$user->last_name}"),
@@ -415,6 +421,7 @@ final class AdminUserService
             'last_login_at'               => $user->last_login_at?->format('d/m/Y H:i:s'),
             'has_specific_permissions'    => $activePermissionsCount > 0,
             'specific_permissions_count'  => $activePermissionsCount,
+            'specific_permissions_expiring_soon_count' => $expiringSoonCount,
             'wallet'                      => $wallet,
             'level'                       => $level,
             'recent_audits'               => $recentAudits,
