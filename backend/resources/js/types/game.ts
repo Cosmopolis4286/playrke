@@ -16,5 +16,6 @@ export interface GamePageProps {
     gameModes: import('./gameMode').GameMode[]
     roomTypes: import('./roomType').RoomType[]
     prizePoolTypes: import('./prizePoolType').PrizePoolType[]
+    jackpotTypes: import('./jackpotType').JackpotType[]
     roleUser: string
 }

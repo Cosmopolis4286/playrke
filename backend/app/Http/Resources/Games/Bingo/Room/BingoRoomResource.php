@@ -127,6 +127,7 @@ class BingoRoomResource extends JsonResource
                 'card_price_usd'          => $config->card_price_usd,
                 'usd_exchange_round_step' => $config->usd_exchange_round_step,
                 'jackpot_pct'             => $config->jackpot_pct,
+                'jackpot_type_id'         => $config->jackpot_type_id,
                 'time_chip'               => $config->time_chip,
                 'rounds'                  => $config->rounds,
                 'rounds_pct'              => $config->rounds_pct,

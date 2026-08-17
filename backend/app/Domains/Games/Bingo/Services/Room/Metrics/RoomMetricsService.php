@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
+use App\Services\Jackpot\JackpotLedgerService;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
 
@@ -226,7 +227,7 @@ class RoomMetricsService implements RoomMetricsInterface
 
             // Obtener configuración de la sala
             $bingoConfig = BingoRoomConfig::where('room_id', $room->id)
-                ->select(['rke_commission', 'room_commission', 'prize_pool_type_id'])
+                ->select(['rke_commission', 'room_commission', 'prize_pool_type_id', 'jackpot_pct', 'jackpot_type_id'])
                 ->first();
             
             if (!$bingoConfig) {
@@ -248,8 +249,12 @@ class RoomMetricsService implements RoomMetricsInterface
                 $creatorCommission = round(($saleAmount * $bingoConfig->room_commission) / 100, 3);
                 // Comisión de PlayRKE
                 $rkeCommission = round(($saleAmount * $bingoConfig->rke_commission) / 100, 3);
-                // Restar al bote las comisiones
-                $prizePool = $saleAmount - $rkeCommission - $creatorCommission - $sellerCommission;
+                // Aporte al jackpot (solo si la sala tiene un jackpot asignado Y un % configurado)
+                $jackpotContribution = ($bingoConfig->jackpot_type_id && $bingoConfig->jackpot_pct)
+                    ? round(($saleAmount * $bingoConfig->jackpot_pct) / 100, 3)
+                    : 0.0;
+                // Restar al bote las comisiones y el aporte al jackpot
+                $prizePool = $saleAmount - $rkeCommission - $creatorCommission - $sellerCommission - $jackpotContribution;
 
                 $updateData = [
                     'rke_commission' => ($room->rke_commission ?? 0) + $rkeCommission,
@@ -276,6 +281,25 @@ class RoomMetricsService implements RoomMetricsInterface
                         Log::warning('PlatformWallet: no se pudo acreditar RKE', [
                             'roomId' => $room->id,
                             'amount' => $rkeCommission,
+                            'error'  => $e->getMessage(),
+                        ]);
+                    }
+                }
+
+                // Acreditar el aporte al pozo del jackpot — nunca debe interrumpir la venta.
+                if ($jackpotContribution > 0) {
+                    try {
+                        app(JackpotLedgerService::class)->contribute(
+                            jackpotTypeId: (string) $bingoConfig->jackpot_type_id,
+                            amount: $jackpotContribution,
+                            roomId: (string) $room->id,
+                            description: 'Aporte jackpot – Sala #' . $room->uuid_code,
+                            metadata: ['currency_id' => $saleData['currency'] ?? null],
+                        );
+                    } catch (\Throwable $e) {
+                        Log::warning('JackpotLedger: no se pudo acreditar aporte', [
+                            'roomId' => $room->id,
+                            'amount' => $jackpotContribution,
                             'error'  => $e->getMessage(),
                         ]);
                     }

@@ -160,6 +160,7 @@ export interface BingoRoom {
         card_price_usd?: number | string | null
         usd_exchange_round_step?: number | string | null
         jackpot_pct?: number | string | null
+        jackpot_type_id?: string | null
         game_variant?: string | null
         time_chip?: number | string | null
         rounds?: number | string | null
@@ -277,6 +278,7 @@ export interface BingoRoomFormData {
     amountAddedPrizePool?: number | null
     roomCommn?: number | null
     jackpotPct?: number | null
+    jackpotType?: string | null
     timeChip?: number | null
     rounds?: number | null
     roundsPct?: number | null

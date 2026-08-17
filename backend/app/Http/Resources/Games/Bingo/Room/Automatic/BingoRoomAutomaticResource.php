@@ -45,6 +45,7 @@ class BingoRoomAutomaticResource extends JsonResource
                 'card_price_usd'          => $this->card_price_usd !== null ? (float) $this->card_price_usd : null,
                 'usd_exchange_round_step' => $this->usd_exchange_round_step !== null ? (float) $this->usd_exchange_round_step : null,
                 'jackpot_pct'             => $this->jackpot_pct,
+                'jackpot_type_id'         => $this->jackpot_type_id,
                 'time_chip'               => $this->time_chip,
                 'rounds'                  => $this->rounds,
                 'rounds_pct'              => $this->rounds_pct,

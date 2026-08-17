@@ -84,6 +84,7 @@ export interface BingoRoomAutomatic {
     readonly serials_pct?: number | null
     readonly num_serials?: number | null
     readonly jackpot_pct?: number | null
+    readonly jackpot_type_id?: string | null
     readonly creator_user_id?: string
     readonly status?: BingoRoomAutomaticStatus
     readonly created_at?: string

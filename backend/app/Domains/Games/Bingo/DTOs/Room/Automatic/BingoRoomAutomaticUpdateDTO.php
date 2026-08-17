@@ -61,6 +61,7 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?string       $accessCode            = null,
         public readonly ?string       $roomPassword          = null,
         public readonly string|int|null $hostUserId          = null,
+        public readonly ?string       $jackpotType           = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -141,6 +142,7 @@ final class BingoRoomAutomaticUpdateDTO
             // null = no cambiar la contraseña existente (el frontend nunca precarga el hash)
             roomPassword: $data['roomPassword'] ?? null,
             hostUserId: $data['hostUserId'] ?? null,
+            jackpotType: array_key_exists('jackpotType', $data) ? $data['jackpotType'] : null,
         );
     }
 }

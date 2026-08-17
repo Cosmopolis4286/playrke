@@ -76,6 +76,7 @@ final class BingoRoomAutomaticCrudService
                 'serials_pct'             => $dto->serialsPct ?? null,
                 'num_serials'             => $dto->numSerials ?? null,
                 'jackpot_pct'             => $dto->jackpotPct,
+                'jackpot_type_id'         => $dto->jackpotType,
                 'status'                  => ($dto->activateRoom ?? false) ? 'ACTIVE' : 'INACTIVE',
                 // New scheduling fields
                 'recurrence_type'         => $dto->recurrenceType ?? 'WEEKLY',
@@ -282,6 +283,7 @@ final class BingoRoomAutomaticCrudService
             'usdExchangeRoundStep' => $room->usd_exchange_round_step !== null ? (float) $room->usd_exchange_round_step : null,
             'cardPriceByCurrency'  => $cardPriceByCurrency,
             'jackpotPct'           => $room->jackpot_pct ? (float) $room->jackpot_pct : null,
+            'jackpotType'          => $room->jackpot_type_id,
             'timeChip'             => (int) $room->time_chip,
             'rounds'               => (int) $room->rounds,
             'roundsPct'            => $room->rounds_pct ? (float) $room->rounds_pct : null,

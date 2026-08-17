@@ -76,6 +76,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
             // Comisiones
             'roomCommn'                   => ['required', 'numeric', 'min:10', 'max:50'],
             'jackpotPct'                  => ['nullable', 'numeric', 'min:1', 'max:15'],
+            'jackpotType'                 => ['nullable', 'exists:jackpot_types,id'],
 
             // Configuración general del juego
             'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],
@@ -211,6 +212,18 @@ class BingoRoomAutomaticRequest extends BaseRequest
                 $validator->errors()->add('maxPlayers', 'El máximo de jugadores debe ser mayor o igual al mínimo.');
             }
 
+            // Igual que en BingoRoomRequest: un jackpot desactivado no debe
+            // poder recibir nuevos aportes. Insertado en este mismo bloque
+            // (antes de los `return` tempranos de abajo) por el mismo motivo
+            // que la validación de capacidad.
+            $jackpotTypeId = $this->input('jackpotType');
+            if ($jackpotTypeId !== null && !$validator->errors()->has('jackpotType')) {
+                $jackpotType = \App\Models\Games\Common\Jackpot\JackpotType::find($jackpotTypeId);
+                if (!$jackpotType || !$jackpotType->isActive()) {
+                    $validator->errors()->add('jackpotType', 'El jackpot seleccionado no está activo.');
+                }
+            }
+
             $allowedCurrencies = $this->input('allowedCurrencies');
             $cardPriceByCurrency = $this->input('cardPriceByCurrency');
 
@@ -332,6 +345,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',
+
+            'jackpotType.exists'              => 'El jackpot seleccionado no es válido.',
 
             'accessCode.required_if'          => 'El código de acceso es obligatorio para salas privadas.',
             'accessCode.min'                  => 'El código de acceso debe tener al menos 4 caracteres.',

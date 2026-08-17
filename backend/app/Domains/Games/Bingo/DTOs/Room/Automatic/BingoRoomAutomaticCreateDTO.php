@@ -60,6 +60,7 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?string       $accessCode            = null,
         public readonly ?string       $roomPassword          = null,
         public readonly string|int|null $hostUserId          = null,
+        public readonly ?string       $jackpotType           = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -125,6 +126,7 @@ final class BingoRoomAutomaticCreateDTO
             accessCode: $data['accessCode'] ?? null,
             roomPassword: $data['roomPassword'] ?? null,
             hostUserId: $data['hostUserId'] ?? null,
+            jackpotType: $data['jackpotType'] ?? null,
         );
     }
 }
