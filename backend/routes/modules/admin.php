@@ -222,10 +222,16 @@ Route::middleware('auth')->group(function () {
         'assignPermissions'    => ['method' => 'post',   'uri' => 'roles/{role}/assign',       'action' => 'assignPermissions'],
         'revokePermissions'    => ['method' => 'post',   'uri' => 'roles/{role}/revoke',       'action' => 'revokePermissions'],
         'store'                => ['method' => 'post',   'uri' => '',                          'action' => 'store'],
+        'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
+        // saveMatrix (PATCH 'matrix') debe declararse ANTES que update/delete
+        // (PATCH/DELETE '{permission}') — {permission} es un wildcard que
+        // matchea literalmente "matrix" también, y Laravel toma la primera
+        // ruta que coincide por orden de declaración. Con el orden anterior,
+        // PATCH /permissions/matrix se resolvía como update() con
+        // {permission}="matrix" (nunca existe) -> 404 en vez de saveMatrix().
+        'saveMatrix'           => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix', 'middleware' => 'throttle:admin-permissions-matrix'],
         'update'               => ['method' => 'patch',  'uri' => '{permission}',             'action' => 'update'],
         'delete'               => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
-        'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
-        'saveMatrix'           => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix', 'middleware' => 'throttle:admin-permissions-matrix'],
         'copyToRole'           => ['method' => 'post',   'uri' => 'roles/{role}/copy-from/{sourceRole}', 'action' => 'copyToRole'],
     ], 'permission');
 
