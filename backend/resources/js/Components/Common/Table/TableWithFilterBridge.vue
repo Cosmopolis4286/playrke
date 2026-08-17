@@ -181,6 +181,21 @@
   const hasExtraActions = computed(() => visibleExtraButtons.value.length > 0 || !!slots['action-buttons'])
 
   /**
+   * Nombres de slot a reenviar automáticamente hacia TableWithFilter,
+   * EXCLUYENDO 'action-buttons' — ese tiene su propia definición combinada
+   * más abajo (extraButtons + lo que el padre haya puesto en su propio slot
+   * #action-buttons). Se filtra aquí, antes del v-for, en vez de con un
+   * v-if dentro del loop: un `<template v-for="(_,name) in $slots" #[name]>`
+   * registra sus entradas como "slots dinámicos", que en Vue 3 se resuelven
+   * en runtime y pueden pisar una entrada estática (`<template #action-buttons>`)
+   * sin importar el orden textual en que aparezcan — un v-if adentro del
+   * loop no evita ese registro, solo evita que el contenido interno
+   * renderice, dejando el slot "reclamado" pero vacío. Filtrar la lista de
+   * nombres ANTES del v-for es lo único que evita el conflicto de raíz.
+   */
+  const forwardableSlotNames = computed(() => Object.keys(slots).filter(name => name !== 'action-buttons'))
+
+  /**
    * Actualiza selección y la re-emite al padre.
    */
   function handleSelectionChange(ids: string[]) {
@@ -258,15 +273,22 @@
     @selection-change="handleSelectionChange"
     @query-change="emit('query-change', $event)"
   >
-    <!-- Reenvío automático de slots -->
-    <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
+    <!-- Reenvío automático de slots — EXCEPTO 'action-buttons' (ver
+         forwardableSlotNames arriba: filtrado ANTES del v-for, no con un
+         v-if adentro, porque un slot dinámico #[name] registrado vía v-for
+         reclama esa entrada en el objeto de slots aunque su contenido no
+         renderice, pisando la definición estática de más abajo). -->
+    <template v-for="name in forwardableSlotNames" #[name]="slotData" :key="name">
       <slot :name="name" v-bind="slotData" />
     </template>
 
-    <!-- Botones extra. Sin separador propio aquí: ActionButtons.vue (el punto
-         de convergencia real de este contenido, ver TableActionButtons.vue)
-         ya antepone uno cuando el slot #actions tiene contenido — duplicarlo
-         aquí generaba dos separadores consecutivos. -->
+    <!-- Botones extra: los de la prop `extraButtons` primero, seguidos del
+         contenido que el padre haya puesto en su propio slot
+         #action-buttons (ej. "Exportar") — ambas fuentes conviven en la
+         misma barra en vez de competir por el mismo slot name. Sin
+         separador propio aquí: ActionButtons.vue (el punto de convergencia
+         real de este contenido, ver TableActionButtons.vue) ya antepone uno
+         cuando el slot #actions tiene contenido. -->
     <template #action-buttons="{ selectedIds }">
       <button
         v-for="(btn, i) in visibleExtraButtons"
@@ -282,6 +304,7 @@
 
         <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
       </button>
+      <slot name="action-buttons" :selectedIds="selectedIds" />
     </template>
   </TableWithFilter>
 </template>
