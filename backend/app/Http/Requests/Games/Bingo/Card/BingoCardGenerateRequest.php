@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Games\Bingo\Card;
 
 use App\Http\Requests\BaseRequest;
+use App\Rules\ValidPhoneForCountry;
 use App\Services\Auth\PermissionService;
 
 /**
@@ -34,7 +35,7 @@ class BingoCardGenerateRequest extends BaseRequest
             'room_id'          => ['required', 'string', 'exists:bingo_rooms,id'],
             'card_count'         => ['required', 'integer', 'min:1', 'max:40'],
             'country_id'       => ['required', 'string', 'exists:countries,id'],
-            'player.phone'     => ['required', 'string', 'max:20'],
+            'player.phone'     => ['required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country_id'))],
             'player.first_name' => ['required', 'string', 'max:100'],
             'player.last_name' => ['required', 'string', 'max:100'],
             'receipt_number'   => ['required', 'string', 'max:100'],
