@@ -86,6 +86,7 @@ class ExternalPlayerController extends Controller
                 'last_name'  => $externalPlayer->last_name,
                 'phone'      => $externalPlayer->phone,
                 'card_count' => $cardCount,
+                'link'       => route('external-players.game', ['link' => $externalPlayer->link]),
             ],
             'message' => 'Jugador encontrado',
         ]);

@@ -67,6 +67,60 @@ final class BingoWinnerDetectionService
      */
     public function checkWinnerForUser(BingoRoom $room, int $userId): ?array
     {
+        $cards = BingoCard::where('room_id', (string) $room->id)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->where(fn ($q) => $q
+                ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))
+                ->orWhere('creator_user_id', (string) $userId)
+            )
+            ->get();
+
+        return $this->checkWinnerForCards($room, $cards, antiCheatUserId: (string) $userId);
+    }
+
+    /**
+     * Verifica bingo para un ExternalPlayer (comprador sin cuenta) en una
+     * sala — mismos cartones que ve getUserCartonsForExternalPlayer()
+     * (BingoGameService), resueltos vía ExternalPlayerParticipation en vez
+     * de user_id, ya que un ExternalPlayer no tiene fila en `users`.
+     *
+     * El gate anti-fraude de timing se aplica igual (protege el juego
+     * completo, no solo cuentas registradas), pero SIN registrar un
+     * AntiCheatFlag — esa tabla tiene FK real a `users.id`, que un
+     * ExternalPlayer no tiene.
+     */
+    public function checkWinnerForExternalPlayer(BingoRoom $room, int|string $externalPlayerId): ?array
+    {
+        $cardIds = \App\Models\Roles\Player\External\ExternalPlayerParticipation::participableIdsFor(
+            $externalPlayerId,
+            BingoCard::class,
+        );
+
+        if (empty($cardIds)) {
+            return null;
+        }
+
+        $cards = BingoCard::whereIn('id', $cardIds)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->get();
+
+        return $this->checkWinnerForCards($room, $cards, antiCheatUserId: null);
+    }
+
+    /**
+     * Lógica compartida de detección de bingo: patrón activo, gate
+     * anti-fraude de timing, y reclamo del premio — independiente de cómo
+     * se resolvieron los $cards del jugador (por user_id o por
+     * ExternalPlayerParticipation).
+     *
+     * @param \Illuminate\Support\Collection<int, BingoCard> $cards
+     */
+    private function checkWinnerForCards(BingoRoom $room, \Illuminate\Support\Collection $cards, ?string $antiCheatUserId): ?array
+    {
+        if ($cards->isEmpty()) {
+            return null;
+        }
+
         if (!$room->relationLoaded('config')) {
             $room->load('config');
         }
@@ -102,15 +156,6 @@ final class BingoWinnerDetectionService
 
         $patternPositions = $this->patternResolver->resolve($pattern, $variant);
 
-        // Cartones activos del usuario — primero por room_user, fallback por creator
-        $cards = BingoCard::where('room_id', (string) $room->id)
-            ->where('status', BingoCard::STATUS_ACTIVE)
-            ->where(fn ($q) => $q
-                ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))
-                ->orWhere('creator_user_id', (string) $userId)
-            )
-            ->get();
-
         $lastDraw = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
         if (!$lastDraw) {
             return null;
@@ -123,22 +168,24 @@ final class BingoWinnerDetectionService
         $minDelayMs = (int) config('anticheat.bingo.min_claim_delay_ms', 400);
 
         if ($elapsedMs < $minDelayMs) {
-            $this->antiCheat->flag(
-                userId: (string) $userId,
-                game: GameSlug::BINGO,
-                signal: AntiCheatSignalType::IMPOSSIBLE_CLAIM_TIMING,
-                gameId: (string) $room->id,
-                metadata: [
-                    'last_draw_id'    => $lastDrawId,
-                    'last_draw_at'    => $lastDraw->created_at->toIso8601String(),
-                    'elapsed_ms'      => $elapsedMs,
-                    'min_required_ms' => $minDelayMs,
-                ],
-            );
+            if ($antiCheatUserId !== null) {
+                $this->antiCheat->flag(
+                    userId: $antiCheatUserId,
+                    game: GameSlug::BINGO,
+                    signal: AntiCheatSignalType::IMPOSSIBLE_CLAIM_TIMING,
+                    gameId: (string) $room->id,
+                    metadata: [
+                        'last_draw_id'    => $lastDrawId,
+                        'last_draw_at'    => $lastDraw->created_at->toIso8601String(),
+                        'elapsed_ms'      => $elapsedMs,
+                        'min_required_ms' => $minDelayMs,
+                    ],
+                );
+            }
 
             Log::warning('[BingoWinnerDetection] Timing de reclamo sospechoso — bloqueado', [
                 'room_id'    => $room->id,
-                'user_id'    => $userId,
+                'user_id'    => $antiCheatUserId,
                 'elapsed_ms' => $elapsedMs,
             ]);
 
