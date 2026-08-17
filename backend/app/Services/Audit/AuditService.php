@@ -17,19 +17,25 @@ class AuditService
     private const SORTABLE_COLUMNS = ['id', 'created_at', 'actor_type', 'event', 'auditable_type'];
 
     /**
-     * Columnas para la tabla del frontend
+     * Columnas para la tabla del frontend.
+     *
+     * Sin columna 'id' visible: la fila completa es clicable para abrir el
+     * detalle (ver Audit/Index.vue), el ID crudo del registro de auditoría
+     * no aporta nada por sí solo. Las antiguas 'entity'/'entity_id' se
+     * fusionan en 'entity_label' para no gastar dos columnas en un dato que
+     * se lee junto (ej. "User #123"); 'changes_summary' resume qué campos
+     * cambiaron sin tener que abrir el modal para saberlo.
      */
     private function columns(): array
     {
         return [
-            ['key' => 'id',             'label' => '#',           'sortable' => true],
-            ['key' => 'date',           'label' => 'Fecha',       'sortable' => true],
-            ['key' => 'actor',          'label' => 'Actor',       'sortable' => false],
-            ['key' => 'actor_type',     'label' => 'Tipo Actor',  'sortable' => true],
-            ['key' => 'event',          'label' => 'Evento',      'sortable' => true],
-            ['key' => 'entity',         'label' => 'Entidad',     'sortable' => true],
-            ['key' => 'entity_id',      'label' => 'ID Entidad',  'sortable' => false],
-            ['key' => 'ip_address',     'label' => 'IP',          'sortable' => false],
+            ['key' => 'date',             'label' => 'Fecha',      'sortable' => true],
+            ['key' => 'actor',            'label' => 'Actor',      'sortable' => false],
+            ['key' => 'actor_type',       'label' => 'Tipo Actor', 'sortable' => true],
+            ['key' => 'event',            'label' => 'Evento',     'sortable' => true],
+            ['key' => 'entity_label',     'label' => 'Entidad',    'sortable' => false],
+            ['key' => 'changes_summary',  'label' => 'Cambios',    'sortable' => false],
+            ['key' => 'ip_address',       'label' => 'IP',         'sortable' => false],
         ];
     }
 
@@ -298,17 +304,57 @@ class AuditService
 
     private function toRow(Audit $audit): array
     {
+        $entityId = is_array($audit->auditable_id)
+            ? implode(' / ', $audit->auditable_id)
+            : (string) ($audit->auditable_id ?? '');
+
         return [
-            'id'         => (string) $audit->id,
-            'date'       => $audit->created_at?->format('d/m/Y H:i:s') ?? '—',
-            'actor'      => $audit->user?->full_name ?? 'Sistema',
-            'actor_type' => $audit->actor_type,
-            'event'      => $audit->event,
-            'entity'     => $audit->auditable_name,
-            'entity_id'  => is_array($audit->auditable_id)
-                ? implode(' / ', $audit->auditable_id)
-                : (string) ($audit->auditable_id ?? '—'),
-            'ip_address' => $audit->ip_address ?? '—',
+            /**
+             * 'id' no es columna visible (ver columns()) pero se mantiene en
+             * el row: es la clave que usa Audit/Index.vue para abrir el
+             * detalle al hacer click en cualquier celda de la fila.
+             */
+            'id'               => (string) $audit->id,
+            'date'             => $audit->created_at?->format('d/m/Y H:i:s') ?? '—',
+            'actor'            => $audit->user?->full_name ?? 'Sistema',
+            'actor_type'       => $audit->actor_type,
+            'event'            => $audit->event,
+            'entity'           => $audit->auditable_name,
+            /** Compuesto para el frontend, ej. "User #123" — reemplaza la antigua columna separada 'entity_id'. */
+            'entity_label'     => $entityId !== '' ? "{$audit->auditable_name} #{$entityId}" : $audit->auditable_name,
+            'changes_summary'  => $this->summarizeChanges($audit),
+            'ip_address'       => $audit->ip_address ?? '—',
         ];
+    }
+
+    /**
+     * Resumen legible de qué cambió, para verlo directo en la tabla sin
+     * abrir el modal de detalle — ej. "email, status +2 más". Solo tiene
+     * sentido para 'updated' (created/deleted no tienen diff campo a campo);
+     * excluye los campos ya filtrados por Auditable (auditHidden/timestamps),
+     * que nunca llegan a old_values/new_values.
+     */
+    private function summarizeChanges(Audit $audit): string
+    {
+        if ($audit->event !== 'updated') {
+            return '—';
+        }
+
+        $old = $audit->old_values ?? [];
+        $new = $audit->new_values ?? [];
+
+        $changedFields = collect(array_unique([...array_keys($old), ...array_keys($new)]))
+            ->filter(fn ($key) => ($old[$key] ?? null) !== ($new[$key] ?? null))
+            ->sort()
+            ->values();
+
+        if ($changedFields->isEmpty()) {
+            return 'Sin cambios visibles';
+        }
+
+        $preview = $changedFields->take(2)->implode(', ');
+        $remaining = $changedFields->count() - 2;
+
+        return $remaining > 0 ? "{$preview} +{$remaining} más" : $preview;
     }
 }
