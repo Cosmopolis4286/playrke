@@ -40,6 +40,12 @@ services:
         php-fpm
       "
     env_file: .env.dev
+    environment:
+      # off por defecto: Xdebug instrumenta cada request PHP-FPM aun sin
+      # trigger activo cuando el modo incluye 'debug'/'coverage', agregando
+      # ~1-2s de overhead por request. Para debuggear paso a paso, exportar
+      # XDEBUG_MODE=debug antes de levantar el stack (o en .env.dev local).
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
     volumes:
       - ./app:/var/www/app
       - ./config:/var/www/config

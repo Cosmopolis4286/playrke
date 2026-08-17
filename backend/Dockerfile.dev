@@ -33,9 +33,14 @@ RUN { \
         echo "opcache.enable_cli=1"; \
     } > /usr/local/etc/php/conf.d/opcache.ini
 
-# Xdebug apunta al IDE en el host Windows
+# Xdebug apunta al IDE en el host Windows.
+# mode=off por defecto en el .ini: con debug/coverage cargado, Xdebug
+# instrumenta cada llamada de función en todo request PHP-FPM aun sin trigger,
+# agregando ~1-2s de overhead por request. El modo real se controla en runtime
+# vía la env var XDEBUG_MODE (docker-compose.yml / .env), que Xdebug lee y
+# sobreescribe el valor del .ini sin necesitar rebuild de imagen.
 RUN { \
-        echo "xdebug.mode=debug,coverage"; \
+        echo "xdebug.mode=off"; \
         echo "xdebug.start_with_request=trigger"; \
         echo "xdebug.client_host=host.docker.internal"; \
         echo "xdebug.client_port=9003"; \
