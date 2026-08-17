@@ -8,17 +8,23 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Policy de autorización para la gestión de Roles (CRUD de metadatos +
- * activar/desactivar). Solo superadmin — mismo patrón que PermissionPolicy.
+ * activar/desactivar). Superadmin y admin — mismo patrón de "admin con
+ * techo" que AdminUserService::guardMutation() usa para la gestión de
+ * usuarios: un admin puede gestionar roles, pero no el rol 'superadmin' ni
+ * el rol 'admin' (ni siquiera el suyo propio) — evita que un admin se
+ * desactive a sí mismo o a otro admin y quede con control exclusivo del
+ * panel, o que desactive la cuenta raíz de autorización.
  *
- * El rol 'superadmin' en sí nunca puede desactivarse ni editarse: es la
- * cuenta raíz de autorización (ver RoleAuthorizationService::isSuperadmin);
- * desactivarlo dejaría al propio superadmin sin acceso administrativo.
+ * El rol 'superadmin' en sí nunca puede desactivarse ni editarse, ni
+ * siquiera por otro superadmin: es la cuenta raíz de autorización (ver
+ * RoleAuthorizationService::isSuperadmin); desactivarlo dejaría al propio
+ * superadmin sin acceso administrativo.
  */
 class RolePolicy extends BaseRolePolicy
 {
     protected function requiredRole(): string|array
     {
-        return 'superadmin';
+        return ['superadmin', 'admin'];
     }
 
     /**
@@ -28,7 +34,18 @@ class RolePolicy extends BaseRolePolicy
      */
     public function update(User $user, Model $model): bool
     {
-        return $this->hasAccess($user) && $model->name !== 'superadmin';
+        if (!$this->hasAccess($user) || $model->name === 'superadmin') {
+            return false;
+        }
+
+        // Un admin (no superadmin) no puede gestionar el rol 'admin' —
+        // mismo criterio que AdminUserService::guardMutation() aplica a
+        // usuarios individuales, aquí aplicado al ROL en sí.
+        if ($model->name === 'admin' && !$user->hasRole('superadmin')) {
+            return false;
+        }
+
+        return true;
     }
 
     public function delete(User $user, Model $model): bool

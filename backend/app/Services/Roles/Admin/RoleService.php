@@ -75,10 +75,11 @@ final class RoleService
     }
 
     /**
-     * Excluye siempre el rol 'superadmin' — reasegura a nivel de service lo
-     * que RolePolicy::update() ya bloquea, para que ningún otro caller que
-     * invoque el service directamente (ej. un comando artisan futuro) pueda
-     * desactivar accidentalmente la cuenta raíz de autorización.
+     * Excluye siempre el rol 'superadmin', y el rol 'admin' si el actor no es
+     * superadmin — reasegura a nivel de service lo que RolePolicy::update()
+     * ya bloquea, para que ningún otro caller que invoque el service
+     * directamente (ej. un comando artisan futuro) pueda desactivar
+     * accidentalmente la cuenta raíz de autorización o el rol 'admin'.
      */
     public function toggleStatus(string $roleId): Role
     {
@@ -86,6 +87,10 @@ final class RoleService
 
         if ($role->name === 'superadmin') {
             throw new \RuntimeException('El rol superadmin no puede desactivarse.');
+        }
+
+        if ($role->name === 'admin' && !auth()->user()?->hasRole('superadmin')) {
+            throw new \RuntimeException('Solo un superadmin puede modificar el rol admin.');
         }
 
         $role->update(['status' => ! $role->status]);

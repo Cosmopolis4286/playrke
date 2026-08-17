@@ -23,6 +23,7 @@
         :key="root.id"
         :node="root"
         :toggling-status-id="togglingStatusId"
+        :is-superadmin="isSuperadmin"
         @edit="openEditor"
         @toggle-status="handleToggleStatus"
       />
@@ -84,6 +85,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
 import RoleHierarchyNode from '@/js/Components/Roles/Admin/RoleHierarchyNode.vue'
@@ -104,6 +106,15 @@ const emit = defineEmits<{
 
 const toast = useToast()
 
+// Un admin (no superadmin) puede gestionar roles, pero no 'superadmin' ni
+// 'admin' — mismo criterio que RolePolicy::update() en el backend, aplicado
+// aquí solo para no ofrecer en la UI una acción que el servidor va a
+// rechazar con 403.
+const page = usePage()
+const isSuperadmin = computed(() =>
+  (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
+)
+
 const isEditing = ref(false)
 const saving = ref(false)
 const editingNode = ref<RoleHierarchyNodeType | null>(null)
@@ -120,7 +131,15 @@ const colorValue = computed({
   set: (value: string) => { form.value.color = value },
 })
 
+function canManage(node: RoleHierarchyNodeType): boolean {
+  if (node.name === 'superadmin') return false
+  if (node.name === 'admin' && !isSuperadmin.value) return false
+  return true
+}
+
 function openEditor(node: RoleHierarchyNodeType) {
+  if (!canManage(node)) return
+
   editingNode.value = node
   form.value = {
     description: node.description ?? '',
@@ -152,7 +171,7 @@ async function handleSave(): Promise<boolean> {
 }
 
 async function handleToggleStatus(node: RoleHierarchyNodeType): Promise<void> {
-  if (togglingStatusId.value) return
+  if (togglingStatusId.value || !canManage(node)) return
 
   if (node.status) {
     const result = await Swal.fire({

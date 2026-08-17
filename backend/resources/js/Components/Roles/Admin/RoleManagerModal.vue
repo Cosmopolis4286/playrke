@@ -48,9 +48,9 @@
               <template v-else>
                 <span class="role-desc">{{ role.description || 'Sin descripción' }}</span>
                 <button
+                  v-if="!isLocked(role)"
                   class="btn btn-sm btn-link"
                   title="Editar descripción"
-                  :disabled="role.name === 'superadmin'"
                   @click="startEdit(role)"
                 >
                   <i class="fas fa-pencil-alt"></i>
@@ -69,7 +69,7 @@
             <i class="fas fa-history"></i>Sin cambios de estado
           </span>
 
-          <span v-if="role.name === 'superadmin'" class="badge badge-locked" title="El rol superadmin no puede desactivarse">
+          <span v-if="isLocked(role)" class="badge badge-locked" :title="lockedReason(role)">
             <i class="fas fa-lock mr-1"></i>Protegido
           </span>
           <label v-else class="role-status-switch" :class="{ 'is-busy': savingId === role.id }">
@@ -89,7 +89,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
 import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
@@ -108,6 +109,25 @@ const { adminRoles: roles, loading, fetchAdminRoles, updateRoleDescription, togg
 const editingId = ref<string | null>(null)
 const editValue = ref('')
 const savingId = ref<string | null>(null)
+
+// Un admin (no superadmin) puede gestionar roles, pero no 'superadmin' ni
+// 'admin' — mismo criterio que RolePolicy::update() en el backend, aplicado
+// aquí solo para no ofrecer en la UI una acción que el servidor va a
+// rechazar con 403.
+const page = usePage()
+const isSuperadmin = computed(() =>
+  (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
+)
+
+function isLocked(role: AdminRole): boolean {
+  return role.name === 'superadmin' || (role.name === 'admin' && !isSuperadmin.value)
+}
+
+function lockedReason(role: AdminRole): string {
+  return role.name === 'superadmin'
+    ? 'El rol superadmin no puede desactivarse'
+    : 'Solo un superadmin puede gestionar el rol admin'
+}
 
 watch(isOpen, open => {
   if (open) fetchAdminRoles()
@@ -145,7 +165,7 @@ async function saveDescription(roleId: string) {
 }
 
 async function handleToggle(role: AdminRole) {
-  if (savingId.value) return
+  if (savingId.value || isLocked(role)) return
 
   if (role.status) {
     const result = await Swal.fire({

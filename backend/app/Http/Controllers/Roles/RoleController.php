@@ -11,9 +11,10 @@ use Illuminate\Http\Request;
 
 /**
  * Controlador de administración de Roles (metadatos + activar/desactivar).
- * Protegido por middleware `role:superadmin` en la ruta
- * (role_protected_routes()) y además por RolePolicy — mismo patrón que
- * PermissionController.
+ * Protegido por middleware `role:superadmin,admin` en la ruta
+ * (role_protected_routes()) y además por RolePolicy, que es quien aplica el
+ * "techo" real: un admin no puede gestionar el rol 'superadmin' ni el rol
+ * 'admin' (ver RolePolicy::update()) — mismo patrón que PermissionController.
  */
 final class RoleController extends Controller
 {

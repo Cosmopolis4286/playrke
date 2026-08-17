@@ -32,7 +32,7 @@
       </div>
 
       <div class="node-actions">
-        <span v-if="node.name === 'superadmin'" class="badge badge-locked" title="El rol superadmin no puede desactivarse">
+        <span v-if="locked" class="badge badge-locked" :title="lockedReason">
           <i class="fas fa-lock"></i>
         </span>
         <label v-else class="node-status-switch" :class="{ 'is-busy': togglingStatus }" title="Activar/desactivar rol">
@@ -45,7 +45,7 @@
           <span class="node-status-track"><span class="node-status-thumb"></span></span>
         </label>
 
-        <button class="btn btn-sm btn-link node-edit" title="Editar rol" @click="$emit('edit', node)">
+        <button v-if="!locked" class="btn btn-sm btn-link node-edit" title="Editar rol" @click="$emit('edit', node)">
           <i class="fas fa-pencil-alt"></i>
         </button>
       </div>
@@ -57,6 +57,7 @@
         :key="child.id"
         :node="child"
         :toggling-status-id="togglingStatusId"
+        :is-superadmin="isSuperadmin"
         @edit="$emit('edit', $event)"
         @toggle-status="$emit('toggle-status', $event)"
       />
@@ -73,6 +74,8 @@ import type { RoleHierarchyNode as RoleHierarchyNodeType } from '@/js/types/role
 const props = defineProps<{
   node: RoleHierarchyNodeType
   togglingStatusId?: string | null
+  /** Actor actual — un admin (no superadmin) no puede gestionar 'superadmin' ni 'admin'. */
+  isSuperadmin: boolean
 }>()
 
 defineEmits<{
@@ -82,6 +85,15 @@ defineEmits<{
 
 const collapsed = ref(false)
 const togglingStatus = computed(() => props.togglingStatusId === props.node.id)
+
+const locked = computed(() =>
+  props.node.name === 'superadmin' || (props.node.name === 'admin' && !props.isSuperadmin)
+)
+const lockedReason = computed(() =>
+  props.node.name === 'superadmin'
+    ? 'El rol superadmin no puede desactivarse'
+    : 'Solo un superadmin puede gestionar el rol admin'
+)
 </script>
 
 <style scoped>
