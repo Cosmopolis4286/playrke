@@ -24,6 +24,16 @@ return [
     'ADMIN_USER_CANNOT_MODIFY_OTHER_ADMIN' => 'Solo un Super Administrador puede modificar la cuenta de otro Administrador.',
     'ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE' => 'Solo un Super Administrador puede asignar el rol Administrador.',
 
+    // Administradores (admin/administrator)
+    'ADMINISTRATOR_NOT_FOUND' => 'Administrador no encontrado.',
+    'ADMINISTRATOR_NOT_ADMINISTRATOR' => 'El usuario no es un administrador.',
+    'ADMINISTRATOR_ALREADY_DELETED' => 'El administrador ya fue eliminado.',
+    'ADMINISTRATOR_INVALID_STATUS_CHANGE' => 'No se puede cambiar el estado de este administrador.',
+    'ADMINISTRATOR_CANNOT_DELETE_LAST_SUPERADMIN' => 'No se puede eliminar al último SuperAdmin del sistema.',
+    'ADMINISTRATOR_CANNOT_MODIFY_SELF' => 'No puedes realizar esta acción sobre tu propio usuario de administrador.',
+    'ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE' => 'No se puede desactivar/eliminar al último administrador activo del sistema.',
+    'ADMINISTRATOR_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Solo se puede resetear la contraseña de administradores activos.',
+
     // Comercios (admin/commerce)
     'ADMIN_COMMERCE_NOT_FOUND' => 'Comercio no encontrado.',
     'ADMIN_COMMERCE_ALREADY_DELETED' => 'El comercio ya fue eliminado.',

@@ -1,15 +1,14 @@
 import type { Administrator } from './administrator'
+import type { Country } from '../../country'
+import type { Column } from '../../common/table/column-row'
+import type { Pagination } from '../../common/table/pagination'
 
 export interface AdminAdministratorPageProps {
     admins: {
+        columns: Column[]
         rows: Administrator[]
-        pagination: {
-            total: number
-            per_page: number
-            current_page: number
-            last_page: number
-            from: number
-            to: number
-        }
+        pagination: Pagination | null
     }
+    countries: Country[]
+    roles: { id: string; name: string; prefix: string | null }[]
 }

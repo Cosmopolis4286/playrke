@@ -22,6 +22,16 @@ return [
     'ADMIN_USER_CANNOT_MODIFY_SELF' => 'You cannot perform this action on your own account.',
     'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN' => 'You do not have permission to modify a Super Administrator account.',
 
+    // Administrators (admin/administrator)
+    'ADMINISTRATOR_NOT_FOUND' => 'Administrator not found.',
+    'ADMINISTRATOR_NOT_ADMINISTRATOR' => 'The user is not an administrator.',
+    'ADMINISTRATOR_ALREADY_DELETED' => 'The administrator has already been deleted.',
+    'ADMINISTRATOR_INVALID_STATUS_CHANGE' => 'This administrator\'s status cannot be changed.',
+    'ADMINISTRATOR_CANNOT_DELETE_LAST_SUPERADMIN' => 'The last SuperAdmin in the system cannot be deleted.',
+    'ADMINISTRATOR_CANNOT_MODIFY_SELF' => 'You cannot perform this action on your own administrator account.',
+    'ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE' => 'The last active administrator in the system cannot be deactivated/deleted.',
+    'ADMINISTRATOR_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Only active administrators can have their password reset.',
+
     // Commerces (admin/commerce)
     'ADMIN_COMMERCE_NOT_FOUND' => 'Commerce not found.',
     'ADMIN_COMMERCE_ALREADY_DELETED' => 'The commerce has already been deleted.',

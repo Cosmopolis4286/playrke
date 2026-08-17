@@ -101,7 +101,8 @@ class Handler extends ExceptionHandler
         return match ($errorCode) {
             // Not Found
             'ADMIN_COMMERCE_NOT_FOUND',
-            'ADMIN_USER_NOT_FOUND'
+            'ADMIN_USER_NOT_FOUND',
+            'ADMINISTRATOR_NOT_FOUND'
             => Response::HTTP_NOT_FOUND,
 
             // Forbidden / Authorization
@@ -109,6 +110,8 @@ class Handler extends ExceptionHandler
             'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN',
             'ADMIN_USER_CANNOT_MODIFY_OTHER_ADMIN',
             'ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE',
+            'ADMINISTRATOR_NOT_ADMINISTRATOR',
+            'ADMINISTRATOR_CANNOT_MODIFY_SELF',
             'BINGO_ROOM_PRIVATE_NOT_VERIFIED'
             => Response::HTTP_FORBIDDEN,
 
@@ -117,7 +120,11 @@ class Handler extends ExceptionHandler
             'ADMIN_COMMERCE_INVALID_STATUS_CHANGE',
             'ADMIN_COMMERCE_DESTROY_NOT_ALLOWED',
             'ADMIN_USER_ALREADY_DELETED',
-            'ADMIN_USER_INVALID_STATUS_CHANGE'
+            'ADMIN_USER_INVALID_STATUS_CHANGE',
+            'ADMINISTRATOR_ALREADY_DELETED',
+            'ADMINISTRATOR_INVALID_STATUS_CHANGE',
+            'ADMINISTRATOR_CANNOT_DELETE_LAST_SUPERADMIN',
+            'ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE'
             => Response::HTTP_CONFLICT,
 
             // Validation / Business rules
@@ -131,7 +138,8 @@ class Handler extends ExceptionHandler
             'ADMIN_USER_INVALID_WALLET_AMOUNT',
             'ADMIN_USER_INVALID_XP_AMOUNT',
             'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE',
-            'ADMIN_USER_WALLET_LOAD_REQUIRES_ELIGIBLE_ROLE'
+            'ADMIN_USER_WALLET_LOAD_REQUIRES_ELIGIBLE_ROLE',
+            'ADMINISTRATOR_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS'
             => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             // Fallback

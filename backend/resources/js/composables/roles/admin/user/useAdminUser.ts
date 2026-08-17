@@ -36,9 +36,12 @@ interface UseAdminUserReturn {
 }
 
 /**
- * Mapa rol.name → ruta Inertia de creación
+ * Mapa rol.name → ruta Inertia de creación. 'admin' no tiene una vista de
+ * alta propia todavía (ver AdministratorController) — redirige al listado
+ * de administradores existente, no a un formulario de registro.
  */
 const ROLE_ROUTES: Record<string, string> = {
+    admin:      '/admins',
     commerce:   '/admin/commerces',
     customer:   '/admin/customers',
     player:     '/admin/players',

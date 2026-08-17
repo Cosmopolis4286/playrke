@@ -54,7 +54,7 @@ final class AdminUserController extends Controller
 
         return response()->streamDownload(function () use ($filters) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nombre', 'Apellido', 'Username', 'Email', 'Rol', 'País', 'Estado', 'Permisos individuales', 'Registrado']);
+            fputcsv($handle, ['Nombre', 'Apellido', 'Username', 'Email', 'Rol', 'País', 'Estado', 'Permisos individuales', 'Registrado', 'Última conexión']);
 
             foreach ($this->service->exportForCsv($filters) as $user) {
                 fputcsv($handle, [
@@ -67,6 +67,7 @@ final class AdminUserController extends Controller
                     $user->status,
                     count($user->specific_permissions ?? []),
                     $user->created_at?->format('Y-m-d H:i:s'),
+                    $user->last_login_at?->format('Y-m-d H:i:s') ?? 'Nunca',
                 ]);
             }
 

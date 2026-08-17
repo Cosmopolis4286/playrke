@@ -202,6 +202,8 @@ Route::middleware('auth')->group(function () {
     role_protected_routes(['role:superadmin'], 'admins', AdministratorController::class, [
         'index'         => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
         'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
+        'store'         => ['method' => 'post',   'uri' => '',                     'action' => 'store'],
+        'update'        => ['method' => 'patch',  'uri' => '{user}',               'action' => 'update'],
         'toggleStatus'  => ['method' => 'patch', 'uri' => '{user}/toggle-status',  'action' => 'toggleStatus'],
         'delete'        => ['method' => 'delete', 'uri' => '{user}',               'action' => 'delete'],
         'destroy'       => ['method' => 'delete', 'uri' => '{user}/force-delete',     'action' => 'destroy'],
@@ -250,10 +252,11 @@ Route::middleware('auth')->group(function () {
 
     /**
      * =========================================================
-     * ROLES (Solo SuperAdmin)
+     * ROLES (SuperAdmin y Admin — Admin no puede tocar 'superadmin' ni
+     * 'admin' mismo, ver RolePolicy::guardMutation())
      * =========================================================
      */
-    role_protected_routes(['role:superadmin'], 'roles-admin', RoleController::class, [
+    role_protected_routes(['role:superadmin,admin'], 'roles-admin', RoleController::class, [
         'fetchList'    => ['method' => 'get',   'uri' => 'fetch-list',    'action' => 'fetchList'],
         'hierarchy'    => ['method' => 'get',   'uri' => 'hierarchy',     'action' => 'hierarchy'],
         'update'       => ['method' => 'patch', 'uri' => '{role}',        'action' => 'update'],

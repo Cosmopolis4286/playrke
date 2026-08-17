@@ -35,4 +35,45 @@ class UserPolicy extends BaseRolePolicy
     {
         return $this->hasAccess($actingUser);
     }
+
+    /**
+     * Crear un nuevo administrador (rol 'admin') — pantalla /admins. Solo
+     * superadmin: un admin no puede promoverse a sí mismo ni a otros a su
+     * propio nivel, mismo criterio que
+     * AdminUserService::guardRoleChange() aplica al cambiar el rol de un
+     * usuario existente a 'admin'.
+     */
+    public function createAdministrator(User $actingUser): bool
+    {
+        return $this->hasAccess($actingUser);
+    }
+
+    /**
+     * Gestionar (editar datos, activar/desactivar, resetear contraseña,
+     * eliminar) un administrador existente — pantalla /admins.
+     *
+     * Reglas, en orden:
+     * - Solo superadmin tiene acceso base a esta pantalla.
+     * - Nadie puede gestionarse a sí mismo desde aquí (evita que un admin se
+     *   desactive/elimine solo y quede el sistema sin decisión clara de quién
+     *   lo reactiva).
+     * - El objetivo debe ser realmente un admin o superadmin — evita que este
+     *   endpoint se use como atajo para mutar cualquier User del sistema.
+     *
+     * @param Model $targetUser Tipado como Model para mantener la firma
+     *   compatible con BaseRolePolicy::update().
+     */
+    public function manageAdministrator(User $actingUser, Model $targetUser): bool
+    {
+        if (!$this->hasAccess($actingUser)) {
+            return false;
+        }
+
+        if ($actingUser->id === $targetUser->id) {
+            return false;
+        }
+
+        return $targetUser instanceof User
+            && ($targetUser->hasRole('admin') || $targetUser->hasRole('superadmin'));
+    }
 }

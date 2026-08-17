@@ -2,37 +2,47 @@
 
 namespace App\Exceptions\Domain\Roles\Admin\Administrator;
 
-use App\Exceptions\DomainException;
+use App\Exceptions\Domain\DomainException;
 
 final class AdministratorException extends DomainException
 {
     public static function notAdministrator(): self
     {
-        return new self('El usuario no es un administrador');
+        return new self('ADMINISTRATOR_NOT_ADMINISTRATOR');
     }
 
     public static function invalidStatusChange(): self
     {
-        return new self('No se puede cambiar el estado de este administrador');
+        return new self('ADMINISTRATOR_INVALID_STATUS_CHANGE');
     }
 
     public static function alreadyDeleted(): self
     {
-        return new self('El administrador ya está eliminado');
+        return new self('ADMINISTRATOR_ALREADY_DELETED');
     }
 
     public static function cannotDeleteLastSuperAdmin(): self
     {
-        return new self('No se puede eliminar al último SuperAdmin del sistema');
+        return new self('ADMINISTRATOR_CANNOT_DELETE_LAST_SUPERADMIN');
     }
 
     public static function notFound(): self
     {
-        return new self('Administrador no encontrado');
+        return new self('ADMINISTRATOR_NOT_FOUND');
     }
 
     public static function cannotModifySelf(): self
     {
-        return new self('No puedes modificar tu propio usuario de administrador');
+        return new self('ADMINISTRATOR_CANNOT_MODIFY_SELF');
+    }
+
+    public static function cannotRemoveLastActiveAdministrator(): self
+    {
+        return new self('ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE');
+    }
+
+    public static function passwordResetRequiresActiveStatus(): self
+    {
+        return new self('ADMINISTRATOR_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
     }
 }
