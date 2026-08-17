@@ -24,16 +24,22 @@ class UserPolicy extends BaseRolePolicy
 
     /**
      * Ver/editar los permisos específicos (specific_permissions) de otro
-     * usuario. Sin restricción adicional por rol del usuario objetivo —
-     * decisión de producto: aplica a cualquier usuario del sistema, incluidos
-     * otros admin/superadmin.
+     * usuario. Aplica a cualquier usuario del sistema, incluidos otros
+     * admin — EXCEPTO superadmin: esa cuenta ya tiene el permiso
+     * 'superadmin.access' (acceso total, ver PermissionSeeder), así que
+     * otorgarle/quitarle permisos individuales no tiene ningún efecto real
+     * y solo genera confusión sobre qué controla su acceso.
      *
      * @param Model $targetUser Tipado como Model (no User) para mantener la
      *   firma compatible con el resto de métodos de BaseRolePolicy.
      */
     public function managePermissions(User $actingUser, Model $targetUser): bool
     {
-        return $this->hasAccess($actingUser);
+        if (!$this->hasAccess($actingUser)) {
+            return false;
+        }
+
+        return !($targetUser instanceof User && $targetUser->hasRole('superadmin'));
     }
 
     /**

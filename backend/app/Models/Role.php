@@ -99,7 +99,7 @@ class Role extends Model implements RoleContract
             ->first();
 
         if (! $role) {
-            throw RoleDoesNotExist::named($name);
+            throw RoleDoesNotExist::named($name, $guardName);
         }
 
         return $role;
