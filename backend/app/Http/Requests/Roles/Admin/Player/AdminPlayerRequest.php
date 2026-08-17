@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Roles\Admin\Player;
 
 use App\Http\Requests\BaseRequest;
-use App\Models\Country;
 use App\Models\User;
+use App\Rules\ValidPhoneForCountry;
 use App\Services\Auth\PermissionService;
 use Illuminate\Validation\Rule;
 
@@ -32,7 +32,7 @@ class AdminPlayerRequest extends BaseRequest
             'last_name'  => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:50'],
             'country'    => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
             'time_zone'  => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'      => array_filter([$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', $this->phoneRegex()]),
+            'phone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
         ];
 
         if ($isUpdate) {
@@ -57,27 +57,9 @@ class AdminPlayerRequest extends BaseRequest
             'first_name.required'=> 'El nombre es obligatorio.',
             'last_name.required' => 'El apellido es obligatorio.',
             'phone.required'     => 'El teléfono es obligatorio.',
-            'phone.regex'        => 'El formato del teléfono no es válido para el país seleccionado.',
             'country.required'   => 'El país es obligatorio.',
             'time_zone.required' => 'La zona horaria es obligatoria.',
         ];
-    }
-
-    private const PHONE_PATTERNS = [
-        'VE' => '/^\+58 0[2-4]\d{2}-\d{7}$/',
-        'BR' => '/^\+55 \(\d{2}\) \d{5}-\d{4}$/',
-        'CO' => '/^\+57 3\d{2} \d{3} \d{4}$/',
-    ];
-
-    private function phoneRegex(): ?string
-    {
-        $countryId = $this->input('country');
-        if (! $countryId) return null;
-
-        $iso2 = Country::where('id', $countryId)->value('iso_code_2');
-        if (! $iso2 || ! isset(self::PHONE_PATTERNS[$iso2])) return null;
-
-        return 'regex:' . self::PHONE_PATTERNS[$iso2];
     }
 
     /**
