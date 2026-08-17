@@ -21,6 +21,7 @@
   import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
   import Button from '@/js/Components/Common/Button/Button.vue'
   import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
+  import BlockingLoader from '@/js/Components/Common/Loader/BlockingLoader.vue'
   import RoleManagerModal from '@/js/Components/Roles/Admin/RoleManagerModal.vue'
   import RoleHierarchyTree from '@/js/Components/Roles/Admin/RoleHierarchyTree.vue'
   import UserEditForm from '@/js/Components/Roles/Admin/User/UserEditForm.vue'
@@ -49,6 +50,7 @@
   // ==========================================================================
 
   import type { AdminUserPageProps, AdminUserEditData } from '@js/types/roles/admin/admin-user'
+  import { ROLE_DETAIL_ROUTE_MAP, ROLES_WITH_AUTO_OPEN } from '@js/types/roles/admin/admin-user'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
   import type { RoleMetaUpdate } from '@js/types/roles/admin/role'
@@ -274,8 +276,14 @@
    * (ej. 'admin' -> /admins, que no tiene modal de edición) — ahí es pura
    * navegación, sin query param.
    */
+  const viewingRoleDetail = ref(false)
+
   function handleViewRoleDetail(route: string, domainId: string | number | null) {
-    router.visit(route, domainId ? { data: { open: domainId } } : {})
+    viewingRoleDetail.value = true
+    router.visit(route, {
+      ...(domainId ? { data: { open: domainId } } : {}),
+      onFinish: () => { viewingRoleDetail.value = false },
+    })
   }
 
   /**
@@ -575,6 +583,13 @@
           }
         }
       }
+    },
+    {
+      icon: 'fas fa-arrow-up-right-from-square',
+      class: 'btn-outline-primary',
+      title: 'Abre la página de gestión de este rol',
+      show: isViewRoleDetailVisible,
+      onClick: handleViewRoleDetailClick
     }
   ]
 
@@ -584,6 +599,29 @@
     if (selectedIds.length !== 1) return false
     const user = users.value.find(u => u.id === selectedIds[0])
     return !!user && WALLET_LOAD_ELIGIBLE_ROLES.includes(user.role_name)
+  }
+
+  /**
+   * "Ver más" en la barra de acciones — mismo criterio que el botón homónimo
+   * dentro del modal de edición (UserEditForm.vue): visible si el rol tiene
+   * página dedicada (ROLE_DETAIL_ROUTE_MAP) y, para los roles que auto-abren
+   * ficha (ROLES_WITH_AUTO_OPEN), solo si se pudo resolver su domain_id.
+   */
+  function isViewRoleDetailVisible(selectedIds: string[]): boolean {
+    if (selectedIds.length !== 1) return false
+    const user = users.value.find(u => u.id === selectedIds[0])
+    if (!user) return false
+    if (!ROLE_DETAIL_ROUTE_MAP[user.role_name]) return false
+    return ROLES_WITH_AUTO_OPEN.has(user.role_name) ? !!user.domain_id : true
+  }
+
+  function handleViewRoleDetailClick(selectedIds: string[]) {
+    if (selectedIds.length !== 1) return
+    const user = users.value.find(u => u.id === selectedIds[0])
+    if (!user) return
+    const route = ROLE_DETAIL_ROUTE_MAP[user.role_name]
+    if (!route) return
+    handleViewRoleDetail(route, user.domain_id ?? null)
   }
 </script>
 
@@ -827,6 +865,9 @@
     @update:model-value="handleUserDetailVisibility"
     @view-full-history="handleViewFullHistory"
   />
+
+  <!-- Loader bloqueante mientras se redirige desde "Ver más" (UserEditForm.vue) -->
+  <BlockingLoader :show="viewingRoleDetail" text="Redirigiendo…" />
 </template>
 
 <style scoped>
