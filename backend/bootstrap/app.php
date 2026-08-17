@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\Domain\DomainException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -62,11 +63,32 @@ return Application::configure(
     })
     ->withExceptions(function (Exceptions $exceptions) {
         /**
-         * Manejo global de excepciones
+         * Manejo global de excepciones.
          *
-         * Aquí puedes registrar reportes personalizados,
-         * logging adicional o vistas JSON para API.
+         * DomainException (App\Exceptions\Domain\DomainException) se maneja
+         * PRIMERO y aparte: su `message` es un ERROR CODE (ej.
+         * 'ADMINISTRATOR_NOT_FOUND'), no texto para el usuario — se resuelve
+         * a status HTTP + mensaje traducido vía App\Exceptions\Handler
+         * (resolveStatusCode()/resolveMessage()), reutilizado aquí en vez de
+         * duplicar el mapa de códigos. Antes de este fix, DomainException no
+         * estaba registrada en ningún lado de bootstrap/app.php (Laravel 11
+         * ya NO auto-registra app/Exceptions/Handler.php como hacían las
+         * versiones ≤10) y cualquier `throw AlgoException::...()` en
+         * cualquier service cayó siempre al 500 genérico de abajo, perdiendo
+         * el código HTTP real (403/404/409/422) y el mensaje traducido.
          */
+        $exceptions->dontReport(DomainException::class);
+
+        $exceptions->render(function (DomainException $e, $request) {
+            $handler = app(\App\Exceptions\Handler::class);
+            $errorCode = $e->getMessage();
+
+            return response()->json([
+                'success'    => false,
+                'error_code' => $errorCode,
+                'message'    => $handler->resolveMessage($errorCode),
+            ], $handler->resolveStatusCode($errorCode));
+        });
 
         // Ejemplo: loguear todas las excepciones en un canal custom
         $exceptions->report(function (Throwable $e) {

@@ -10,6 +10,14 @@ use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * NOTA: Laravel 11 (bootstrap/app.php con Application::configure()) ya NO
+ * auto-registra este Handler como hacían las versiones ≤10 — render()/
+ * dontReport() de esta clase nunca se invocan por el framework. Se conserva
+ * como contenedor de resolveStatusCode()/resolveMessage() (ambos public),
+ * reutilizados directamente desde bootstrap/app.php's withExceptions(),
+ * que es el punto real donde Laravel 11 resuelve excepciones.
+ */
 class Handler extends ExceptionHandler
 {
     /**
@@ -93,10 +101,16 @@ class Handler extends ExceptionHandler
     /**
      * Mapea error codes de dominio a HTTP status codes.
      *
+     * Public: invocado también desde bootstrap/app.php (withExceptions),
+     * que es el punto real donde Laravel 11 resuelve excepciones — este
+     * Handler ya no se auto-registra como en versiones ≤10, así que se
+     * reutiliza como fuente de verdad del mapa de códigos en vez de
+     * duplicarlo inline en bootstrap/app.php.
+     *
      * @param string $errorCode
      * @return int
      */
-    protected function resolveStatusCode(string $errorCode): int
+    public function resolveStatusCode(string $errorCode): int
     {
         return match ($errorCode) {
             // Not Found
@@ -148,12 +162,12 @@ class Handler extends ExceptionHandler
     }
 
     /**
-     * Resuelve el mensaje traducido del error.
+     * Resuelve el mensaje traducido del error. Public: ver resolveStatusCode().
      *
      * @param string $errorCode
      * @return string
      */
-    protected function resolveMessage(string $errorCode): string
+    public function resolveMessage(string $errorCode): string
     {
         return trans("errors.{$errorCode}", [], app()->getLocale())
             ?: $errorCode;
