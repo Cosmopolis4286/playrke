@@ -118,6 +118,14 @@ export function validateBingoRoomForm(
     const e: Record<string, string | Record<string, string>> = {}
     const isManualStart = !ctx.automaticRoom && data.startMode === 'MANUAL'
 
+    /* ── Modo de inicio (solo salas normales; automáticas no tienen este campo) ──
+     * Sin esto, un startMode vacío/null (ej. vaciado por el Multiselect al
+     * deseleccionar la opción activa) pasaba sin error visible en el wizard y
+     * solo se descubría al fallar la validación del backend en el último paso. */
+    if (!ctx.automaticRoom && !data.startMode) {
+        e.startMode = 'El modo de inicio es obligatorio.'
+    }
+
     /* ── Fecha ── */
     if (!ctx.automaticRoom && !isManualStart) {
         if (!data.date) {

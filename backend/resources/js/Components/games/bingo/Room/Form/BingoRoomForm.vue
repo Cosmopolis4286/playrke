@@ -134,6 +134,15 @@
 
   const onRestoreDraft = (): void => {
     restoreDraft()
+    // useBaseUsd es un ref LOCAL desacoplado de form.value.useBaseUsd (solo se
+    // inicializa una vez al montar, y solo se sincroniza form→ref vía este
+    // punto explícito o al tocar el switch en RoomCurrencySection.vue — nunca
+    // automáticamente). restoreDraft() reemplaza form.value entero por fuera
+    // de ese flujo normal, así que sin esto el dato quedaba bien restaurado
+    // pero el panel de "Monedas y precios" seguía mostrando el modo viejo
+    // (base USD vs. precio manual por moneda) — el síntoma real de "restaurar
+    // no funciona" que reportó el usuario, aunque el form sí se restauraba.
+    useBaseUsd.value = form.value.useBaseUsd ?? true
     // Un borrador viejo puede traer una fecha/hora ya vencida — llevar al
     // usuario al step donde está el campo para que la actualice, en vez de
     // dejarlo con errores rojos sin contexto de por qué aparecieron.
