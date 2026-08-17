@@ -1400,10 +1400,16 @@ button.nb-icon-btn {
   overflow: clip;
 }
 
-/* ── Navbar: buscador global ─────────────────────────────── */
+/* ── Navbar: buscador global (colapsable a solo ícono) ───── */
 .nb-search-wrap {
   flex: 0 1 320px;
   min-width: 0;
+  transition: flex-basis .2s ease;
+}
+
+/* Colapsado: sin foco y sin texto → achicar a solo la lupa */
+.nb-search-wrap:not(.nb-search-wrap--active):not(:focus-within) {
+  flex: 0 0 34px;
 }
 
 .nb-search-form {
@@ -1414,7 +1420,7 @@ button.nb-icon-btn {
   border: 1px solid rgba(255,255,255,0.11);
   border-radius: 10px;
   padding: 0 10px;
-  transition: background .2s, border-color .2s, box-shadow .2s;
+  transition: background .2s, border-color .2s, box-shadow .2s, padding .2s;
   height: 34px;
 }
 
@@ -1429,6 +1435,7 @@ button.nb-icon-btn {
   color: rgba(255,255,255,0.4);
   flex-shrink: 0;
   margin-right: 7px;
+  cursor: pointer;
 }
 
 .nb-search-form:focus-within .nb-search-icon {
@@ -1465,6 +1472,23 @@ button.nb-icon-btn {
   margin-left: 6px;
   background: rgba(255,255,255,0.05);
   user-select: none;
+}
+
+/* Colapsado: ocultar input/kbd, centrar la lupa, forma circular */
+.nb-search-wrap:not(.nb-search-wrap--active):not(:focus-within) .nb-search-form {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.nb-search-wrap:not(.nb-search-wrap--active):not(:focus-within) .nb-search-icon {
+  margin-right: 0;
+}
+
+.nb-search-wrap:not(.nb-search-wrap--active):not(:focus-within) .nb-search-input,
+.nb-search-wrap:not(.nb-search-wrap--active):not(:focus-within) .nb-search-kbd {
+  display: none;
 }
 
 /* ── Navbar: chips de acceso rápido ──────────────────────── */

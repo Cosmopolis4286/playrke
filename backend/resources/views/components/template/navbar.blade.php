@@ -53,10 +53,10 @@
             </nav>
         @endif
 
-        {{-- Buscador global rápido (visible en md+) --}}
-        <div class="nb-search-wrap">
+        {{-- Buscador global rápido (visible en md+, colapsa a solo lupa sin foco/texto) --}}
+        <div class="nb-search-wrap" id="nb-search-wrap">
             <form action="{{ url('/search') }}" method="GET" class="nb-search-form" onsubmit="return nbGlobalSearch(event, this)">
-                <i class="fas fa-search nb-search-icon"></i>
+                <i class="fas fa-search nb-search-icon" id="nb-search-icon" aria-hidden="true"></i>
                 <input
                     type="search"
                     name="q"
@@ -611,6 +611,32 @@ document.addEventListener('keydown', function (e) {
         if (inp) inp.focus();
     }
 });
+
+// ── Buscador colapsable: mantener expandido si hay texto, ─
+// ── click en la lupa colapsada expande y enfoca el input ──
+(function () {
+    var wrap = document.getElementById('nb-search-wrap');
+    if (!wrap) return;
+    var input = wrap.querySelector('.nb-search-input');
+    var icon  = document.getElementById('nb-search-icon');
+
+    function syncActive() {
+        wrap.classList.toggle('nb-search-wrap--active', !!input.value.trim());
+    }
+    input.addEventListener('input', syncActive);
+    input.addEventListener('blur', syncActive);
+    syncActive();
+
+    // mousedown (no click): dispara antes de que el navegador resuelva el
+    // foco del click, y preventDefault evita que el input pierda el foco
+    // que le estamos por dar. Expandir primero: mientras está colapsado
+    // el input es display:none y no puede recibir foco programático.
+    icon.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        wrap.classList.add('nb-search-wrap--active');
+        input.focus();
+    });
+})();
 
 // ── Theme toggle ─────────────────────────────────────────
 window.__playrkeTheme = (function () {
