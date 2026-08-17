@@ -133,7 +133,7 @@ final class BingoCardGenerationService
             $lotID = $this->cardManagement->createCardLot($cardOrder, $saleAmount);
 
             // Generar y almacenar los cartones de bingo (lanza excepción si falla)
-            $this->cardManagement->generateAndStoreCards($cardOrder, $lotID);
+            $cardIds = $this->cardManagement->generateAndStoreCards($cardOrder, $lotID);
 
             // Guardar comprobante de pago si se proporcionó
             if (isset($cardOrder['receiptImage']) && $cardOrder['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
@@ -147,6 +147,22 @@ final class BingoCardGenerationService
             } elseif (isset($cardOrder['receiptNumber']) && $cardOrder['receiptNumber'] && isset($cardOrder['receiptImage'])) {
                 // Jugador interno con comprobante de pago
                 $this->createCardPayment($cardOrder, $roomUserId, $lotID);
+            }
+
+            // Vincular cada cartón recién creado a su ExternalPlayer específico —
+            // sin esto, todos los compradores externos de un mismo vendedor
+            // comparten room_user_id y es imposible separar "mis cartones" de
+            // los de otro comprador (ver App\Models\Roles\Player\External\
+            // ExternalPlayerParticipation, patrón polimórfico manual como Audit,
+            // pensado para reusarse en otros juegos además de Bingo).
+            if (isset($cardOrder['externalPlayerId']) && $cardOrder['externalPlayerId']) {
+                foreach ($cardIds as $cardId) {
+                    \App\Models\Roles\Player\External\ExternalPlayerParticipation::recordFor(
+                        $cardOrder['externalPlayerId'],
+                        \App\Domains\Games\Bingo\Models\Card\BingoCard::class,
+                        $cardId,
+                    );
+                }
             }
 
             // El descuento de billetera para jugadores internos NO ocurre aquí: el único

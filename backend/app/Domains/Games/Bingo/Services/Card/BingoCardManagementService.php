@@ -59,9 +59,10 @@ class BingoCardManagementService
      *   es 1, ese cartón usa los números elegidos por el jugador en vez de
      *   generarlos al azar.
      * @param string $lotId ID del lote
-     * @return bool True si se generaron correctamente
+     * @return array<int, string> IDs de los cartones creados (orden de generación) —
+     *   ej. para vincular cada cartón a un ExternalPlayerParticipation.
      */
-    public function generateAndStoreCards(array $cartonData, string $lotId): bool
+    public function generateAndStoreCards(array $cartonData, string $lotId): array
     {
         try {
             $cards = [];
@@ -106,7 +107,11 @@ class BingoCardManagementService
                 ];
             }
 
-            return BingoCard::insert($cards);
+            if (!BingoCard::insert($cards)) {
+                throw new \RuntimeException('El insert de cartones no reportó filas afectadas.');
+            }
+
+            return $cardIds;
         } catch (\Throwable $e) {
             Log::error('Error al generar y almacenar cartones: ' . $e->getMessage(), [
                 'cartonData' => $cartonData,
