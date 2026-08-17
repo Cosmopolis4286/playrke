@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,6 +46,13 @@ class RegistrationTest extends TestCase
             $role->id = (string) random_int(500000000000000000, 599999999999999999);
             $role->save();
         }
+
+        // RegisteredUserController::create() redirige a /login si el setting
+        // REGISTER no está activo (registro deshabilitado por defecto).
+        Setting::updateOrCreate(
+            ['param' => 'REGISTER'],
+            ['value' => 'true', 'status' => Setting::STATUS_ACTIVE]
+        );
     }
 
     public function test_registration_screen_can_be_rendered(): void
@@ -102,7 +110,10 @@ class RegistrationTest extends TestCase
         $currency = Currency::where('country_id', $this->country->id)->firstOrFail();
 
         $wallet = Wallet::where('user_id', $user->id)->firstOrFail();
-        $this->assertSame($currency->id, $wallet->currency_id);
+        // assertEquals (no assertSame): currency_id puede llegar como
+        // int|string según el cast en juego (Snowflake ID), el valor real
+        // es lo que importa aquí, no el tipo exacto de PHP.
+        $this->assertEquals($currency->id, $wallet->currency_id);
         $this->assertSame(0.0, (float) $wallet->balance);
     }
 }
