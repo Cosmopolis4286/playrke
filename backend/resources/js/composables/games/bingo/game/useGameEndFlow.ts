@@ -5,7 +5,6 @@ import type { GameEndedEvent } from '@js/composables/games/bingo/game/useBingoGa
 import type { BingoCard } from '@/js/types/games/bingo/card/in-game/bingo-card'
 
 interface GameEndFlowDeps {
-  routeKey: ComputedRef<string>
   userId: string | null
   initialDraw: number[]
   initialCartons: BingoCard[]
@@ -19,6 +18,11 @@ interface GameEndFlowDeps {
   resetModal: () => void
   scheduleRetry: (fn: () => void, ms: number) => void
   isUnmounted: () => boolean
+  /** Prefijo de API — `/bingo/${routeKey}` para un jugador con cuenta, o
+   * `/bingo/external/${link}` para un ExternalPlayer sin cuenta (ver
+   * Game/Index.vue). Ambos exponen los mismos sub-paths (user-cards,
+   * draw-state). */
+  apiBase: ComputedRef<string>
 }
 
 /**
@@ -37,9 +41,9 @@ interface GameEndFlowDeps {
  */
 export function useGameEndFlow(deps: GameEndFlowDeps) {
   const {
-    routeKey, userId, initialDraw, initialCartons, initialPrizePool, initialTotalPlayers,
+    userId, initialDraw, initialCartons, initialPrizePool, initialTotalPlayers,
     initialRoomFinished, initialStartTime, totalChips, gameStarted, userClosedModal,
-    resetModal, scheduleRetry, isUnmounted,
+    resetModal, scheduleRetry, isUnmounted, apiBase,
   } = deps
 
   // shallowRef: cada actualización reasigna .value con un array nuevo (nunca se
@@ -102,7 +106,7 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
   // Política: sobreescribe si el backend devuelve más cartones (nunca resta).
   async function refreshUserCards(overwrite = false) {
     try {
-      const r = await backendClient.get(`/bingo/${routeKey.value}/user-cards`)
+      const r = await backendClient.get(`${apiBase.value}/user-cards`)
       if (isUnmounted()) return
       const cards = r.data?.data
       if (!Array.isArray(cards)) return
@@ -116,11 +120,11 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
   // Reverb/Pusher no reenvía eventos emitidos mientras el cliente estuvo
   // desconectado, así que se refresca contra el backend (ver useBingoGameEcho.onReconnected).
   async function resyncDrawState(attempt = 0) {
-    if (!routeKey.value) return
+    if (!apiBase.value) return
     try {
       const [stateRes, cardsRes] = await Promise.all([
-        backendClient.get(`/bingo/${routeKey.value}/draw-state`),
-        backendClient.get(`/bingo/${routeKey.value}/user-cards`).catch(() => null),
+        backendClient.get(`${apiBase.value}/draw-state`),
+        backendClient.get(`${apiBase.value}/user-cards`).catch(() => null),
       ])
       if (isUnmounted()) return
       const data = stateRes.data

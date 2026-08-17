@@ -61,6 +61,12 @@ interface Props {
   gameVariant?:   string
   roomFinished?:  boolean
   hotThreshold?:  number
+  /** Presente solo cuando la vista se sirve vía ExternalPlayerGameController
+   * (jugador externo sin cuenta, acceso público por link) — ver
+   * ExternalPlayerLinkService::resolveGameUrl(). Cambia el prefijo de API
+   * usado por los composables (apiBase) y desactiva WS/HTTP que requieren
+   * un userId real. */
+  externalPlayer?: { link: string; first_name: string | null; last_name: string | null } | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -82,6 +88,7 @@ const props = withDefaults(defineProps<Props>(), {
   gameVariant:  'BINGO_75',
   roomFinished:  false,
   hotThreshold:  10,
+  externalPlayer: null,
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,6 +111,16 @@ function chipLetter(n: number): string { return chipLetterMap.value.get(n) ?? '?
 // ─────────────────────────────────────────────────────────────────────────────
 const roomId   = computed(() => props.roomId || String(props.room?.id ?? ''))
 const routeKey = computed(() => props.roomRouteKey || roomId.value)
+
+// Prefijo de API: rutas autenticadas (/bingo/{routeKey}/...) para un jugador
+// con cuenta, o rutas públicas por link (/bingo/external/{link}/...) para un
+// ExternalPlayer sin cuenta — mismos sub-paths en ambas (ver
+// routes/modules/external-players.php).
+const apiBase = computed(() =>
+  props.externalPlayer
+    ? `/bingo/external/${props.externalPlayer.link}`
+    : `/bingo/${routeKey.value}`
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Estado reactivo local
@@ -138,7 +155,7 @@ const {
   roomFinishedLocal, gameEndData, isMyWin, showWinnerModal, isFinished,
   bindEchoHelpers, handleGameEnded, refreshUserCards, resyncDrawState, closeWinnerModal: _closeWinnerModal,
 } = useGameEndFlow({
-  routeKey,
+  apiBase,
   userId: props.userId,
   initialDraw: props.draw ?? [],
   initialCartons: props.cartons ?? [],
@@ -251,7 +268,7 @@ const _stopTickWatch = watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) pla
 // Bingo detection
 // ─────────────────────────────────────────────────────────────────────────────
 const { handleBingoDetected, claimingBingo } = useBingoDetection({
-  routeKey,
+  apiBase,
   isMyWin,
   isFinished,
   onBingoConfirmed: () => {
@@ -479,6 +496,11 @@ onUnmounted(() => {
     <GameStarfield />
     <div class="ig-inner">
 
+      <div v-if="externalPlayer" class="ig-external-player-banner">
+        <i class="fas fa-user-check" aria-hidden="true"></i>
+        <span>Hola{{ externalPlayer.first_name ? `, ${externalPlayer.first_name}` : '' }} — estás viendo tus cartones como invitado.</span>
+      </div>
+
       <GameHeader
         :prizePoolType="prizePoolType"
         :currencySym="currencySym"
@@ -645,6 +667,19 @@ onUnmounted(() => {
 }
 
 .ig-cards-section { width: 100%; }
+
+.ig-external-player-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(102, 126, 234, 0.14);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #c7d2fe;
+  font-size: 0.85rem;
+}
+.ig-external-player-banner i { opacity: 0.85; }
 </style>
 
 <!-- ig-fade es usado por DrawnBoard y NearWinBanner vía <Transition>. Debe ser global. -->

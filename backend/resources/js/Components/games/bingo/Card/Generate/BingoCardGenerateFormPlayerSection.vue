@@ -154,6 +154,16 @@
     }
   }
 
+  async function copyExistingPlayerLink() {
+    if (!props.player.link) return
+    try {
+      await navigator.clipboard.writeText(props.player.link)
+      showToast('Link copiado al portapapeles', 'success')
+    } catch {
+      showToast('No se pudo copiar el link', 'error')
+    }
+  }
+
   /* ───────── Check player ───────── */
 
   const clearReceiptFields = () => {
@@ -196,7 +206,8 @@
           firstName: data.player?.first_name ?? '',
           lastName: data.player?.last_name ?? '',
           cardCount: data.player?.card_count || 0,
-          receiptNumber: receiptNumber.value
+          receiptNumber: receiptNumber.value,
+          link: data.player?.link ?? undefined
         })
 
         emit('update:playerExists', true)
@@ -393,6 +404,16 @@
               El jugador ya está registrado!
               <strong>Ha comprado {{ player.cardCount || 0 }} cartones</strong>
             </h6>
+          </div>
+        </div>
+
+        <div v-if="player.link" class="alert alert-secondary">
+          <div class="mb-2"><i class="fas fa-link me-2"></i>Link de acceso del jugador:</div>
+          <div class="input-group">
+            <input type="text" class="form-control" readonly :value="player.link" @click="($event.target as HTMLInputElement)?.select()" />
+            <button type="button" class="btn btn-outline-secondary" @click="copyExistingPlayerLink">
+              <i class="fas fa-copy me-1"></i>Copiar
+            </button>
           </div>
         </div>
       </div>

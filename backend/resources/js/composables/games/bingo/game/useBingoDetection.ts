@@ -2,7 +2,8 @@ import { type Ref, type ComputedRef, ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 
 export interface UseBingoDetectionOptions {
-  routeKey:        Ref<string>
+  /** Prefijo de API — `/bingo/${routeKey}` o `/bingo/external/${link}` (ver Game/Index.vue). */
+  apiBase:         Ref<string> | ComputedRef<string>
   isMyWin:         Ref<boolean>
   isFinished:      ComputedRef<boolean>
   onBingoConfirmed: () => void
@@ -10,7 +11,7 @@ export interface UseBingoDetectionOptions {
 }
 
 export function useBingoDetection(options: UseBingoDetectionOptions) {
-  const { routeKey, isMyWin, isFinished, onBingoConfirmed, onBingoError } = options
+  const { apiBase, isMyWin, isFinished, onBingoConfirmed, onBingoError } = options
 
   const claimingBingo = ref(false)
 
@@ -25,7 +26,7 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
         success: boolean
         hasBingo: boolean
         winner:   Record<string, unknown> | null
-      }>(`/bingo/${routeKey.value}/check-bingo`, {
+      }>(`${apiBase.value}/check-bingo`, {
         card_id:  cards[0].id,
         card_ids: cards.map(c => c.id),
       })

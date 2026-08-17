@@ -44,6 +44,8 @@ export interface Player {
     cardCount?: number
     receiptNumber?: string
     receiptImage?: File | null
+    /** Link público de acceso al juego, presente cuando el jugador ya existía (ver check()). */
+    link?: string
 }
 
 /**
@@ -78,6 +80,16 @@ export interface CardPriceResponse {
     is_custom_price: boolean
     /** Porcentaje de comisión del vendedor autenticado (ej: 5.00 = 5%). */
     seller_commission: number
+}
+
+/**
+ * Respuesta del endpoint POST /bingo-card/{room}/generate
+ */
+export interface GenerateCardResponse {
+    type: string
+    message: string
+    /** Link público de acceso al juego para el ExternalPlayer (ver ExternalPlayerGameController). */
+    playerLink: string | null
 }
 
 /**

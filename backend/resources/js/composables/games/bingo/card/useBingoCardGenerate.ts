@@ -9,6 +9,7 @@ import type { Country } from '@/js/types/country'
 import type {
     CardPriceResponse,
     GenerateCardPayload,
+    GenerateCardResponse,
     Player,
     Room
 } from '@/js/types/games/bingo/card/bingo-card-generate'
@@ -69,6 +70,14 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      * `null` mientras no se haya consultado o si no hay país seleccionado.
      */
     const cardPriceData = ref<CardPriceResponse | null>(null)
+
+    /**
+     * Link público de acceso al juego para el último jugador externo generado.
+     * Se debe mostrar al vendedor para que lo comparta con el comprador — sin
+     * cuenta, es la única forma que tiene de ver sus cartones y el sorteo
+     * (ver ExternalPlayerGameController).
+     */
+    const generatedPlayerLink = ref<string | null>(null)
 
     /* ───────── COMPUTED ───────── */
 
@@ -138,6 +147,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player.lastName = ''
         player.receiptNumber = ''
         player.receiptImage = null
+        generatedPlayerLink.value = null
     }
 
     /**
@@ -265,12 +275,13 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         }
 
         try {
-            const { data } = await backendClient.post(`/bingo-card/${roomHashedId}/generate`, formData, {
+            const { data } = await backendClient.post<GenerateCardResponse>(`/bingo-card/${roomHashedId}/generate`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             })
             showToast(data.message, 'success')
+            generatedPlayerLink.value = data.playerLink ?? null
             resetAfterGeneration()
             return true
         }
@@ -299,6 +310,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         sellerCommission,
         commerceAmount,
         isFormValid,
+        generatedPlayerLink,
         generate
     }
 }
