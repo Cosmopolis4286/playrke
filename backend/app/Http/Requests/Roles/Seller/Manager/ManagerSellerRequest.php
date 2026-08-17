@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Roles\Seller\Manager;
 
 use App\Http\Requests\BaseRequest;
-use App\Models\Country;
 use App\Models\Roles\Seller;
+use App\Rules\ValidPhoneForCountry;
 use App\Services\Auth\PermissionService;
 use Illuminate\Validation\Rule;
 
@@ -46,7 +46,7 @@ class ManagerSellerRequest extends BaseRequest
             'country'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
             'currency'         => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
             'time_zone'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'            => array_filter([$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', $this->phoneRegex()]),
+            'phone'            => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
             'name'             => [$isUpdate ? 'sometimes' : 'required', 'string'],
             'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
@@ -89,7 +89,6 @@ class ManagerSellerRequest extends BaseRequest
             'email.unique'      => 'Este correo ya está registrado.',
             'phone.required'    => 'El teléfono es obligatorio.',
             'phone.unique'      => 'El número ya está registrado.',
-            'phone.regex'       => 'El formato del teléfono no es válido para el país seleccionado.',
             'name.required'     => 'El nombre del comercio es obligatorio.',
             'country.required'  => 'El país es obligatorio.',
             'currency.required' => 'La moneda principal es obligatoria.',
@@ -103,30 +102,6 @@ class ManagerSellerRequest extends BaseRequest
             'allowed_games.required' => 'Debes permitir al menos un juego.',
             'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
         ];
-    }
-
-    /**
-     * Patrones de teléfono por ISO-2 (mirrors usePhoneField.ts).
-     */
-    private const PHONE_PATTERNS = [
-        'VE' => '/^\+58 0[2-4]\d{2}-\d{7}$/',
-        'BR' => '/^\+55 \(\d{2}\) \d{5}-\d{4}$/',
-        'CO' => '/^\+57 3\d{2} \d{3} \d{4}$/',
-    ];
-
-    /**
-     * Resuelve el regex de teléfono según el país enviado en el request.
-     * Retorna null si el país no está configurado (sin restricción de formato).
-     */
-    private function phoneRegex(): ?string
-    {
-        $countryId = $this->input('country');
-        if (!$countryId) return null;
-
-        $iso2 = Country::where('id', $countryId)->value('iso_code_2');
-        if (!$iso2 || !isset(self::PHONE_PATTERNS[$iso2])) return null;
-
-        return 'regex:' . self::PHONE_PATTERNS[$iso2];
     }
 
     /**
