@@ -3,7 +3,8 @@
    * Página Admin → Jugadores
    */
 
-  import { computed, onMounted } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
+  import { router } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -12,6 +13,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminPlayerForm from '@/js/Components/Roles/Admin/Player/AdminPlayerForm.vue'
+  import UserDetailModal from '@/js/Components/Roles/Admin/User/UserDetailModal.vue'
 
   // ==========================================================================
   // Composables
@@ -20,6 +22,7 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminPlayer } from '@/js/composables/roles/admin/player/useAdminPlayer'
+  import { useAdminUserDetail } from '@/js/composables/roles/admin/user/useAdminUserDetail'
 
   // ==========================================================================
   // Types
@@ -28,6 +31,7 @@
   import type { AdminPlayerPageProps } from '@js/types/roles/admin/admin-player'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
   // ==========================================================================
   // Props (Inertia)
@@ -42,16 +46,20 @@
   const {
     playerData,
     players,
+    pagination,
+    loading,
+    lastQuery,
     setInitialPlayers,
     create,
     edit,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
-    submit
+    submit,
+    onQueryChange,
   } = useAdminPlayer()
 
-  setInitialPlayers(props.players.rows)
+  setInitialPlayers(props.players.rows, props.players_pagination)
 
   // ==========================================================================
   // Modal + Form handler
@@ -108,6 +116,57 @@
   })
 
   // ==========================================================================
+  // Ficha de detalle (reusa UserDetailModal.vue / useAdminUserDetail.ts de
+  // /admin/users — un jugador es un User, GET admin/user/{id}/show funciona
+  // igual sin importar desde qué pantalla se llame)
+  // ==========================================================================
+
+  const showPlayerDetailModal = ref(false)
+  const {
+    loading: playerDetailLoading,
+    detail: playerDetail,
+    error: playerDetailError,
+    fetchDetail: fetchPlayerDetail,
+    retryFetchDetail: retryPlayerDetail,
+    clearDetail: clearPlayerDetail,
+    loadingMoreAudits: playerDetailLoadingMoreAudits,
+    loadMoreAudits: loadMorePlayerDetailAudits,
+  } = useAdminUserDetail()
+
+  async function openPlayerDetail(rowId: string) {
+    showPlayerDetailModal.value = true
+    // rowId ya es el hashed_id de la fila (HasHashedRouteKey::getHashedIdAttribute()
+    // vía HasHashedCollection::hashCollectionIds() — mismo hash global sin
+    // importar el prefijo de ruta), válido directo contra admin/user/{id}/show.
+    await fetchPlayerDetail(rowId)
+  }
+
+  function handlePlayerDetailVisibility(open: boolean) {
+    showPlayerDetailModal.value = open
+    if (!open) clearPlayerDetail()
+  }
+
+  function handleViewFullHistory(userRealId: string) {
+    showPlayerDetailModal.value = false
+    clearPlayerDetail()
+    router.visit('/audit', {
+      data: { entity: 'App\\Models\\User', auditable_id: String(userRealId) },
+    })
+  }
+
+  // ==========================================================================
+  // Export CSV
+  // ==========================================================================
+
+  function handleExport(): void {
+    const params = new URLSearchParams()
+    if (lastQuery.value.search) params.set('search', lastQuery.value.search)
+    if (lastQuery.value.filters.country_name) params.set('country_name', lastQuery.value.filters.country_name)
+    if (lastQuery.value.filters.status) params.set('status', lastQuery.value.filters.status)
+    window.location.href = `/admin/player/export?${params.toString()}`
+  }
+
+  // ==========================================================================
   // Filtros
   // ==========================================================================
 
@@ -160,6 +219,17 @@
 
   const extraButtons: ExtraButton[] = [
     {
+      icon: 'fas fa-id-card',
+      class: 'btn-outline-secondary',
+      title: 'Ver ficha del jugador',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          openPlayerDetail(ids[0])
+        }
+      }
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
@@ -174,6 +244,10 @@
       disabledReason: getResetPasswordDisabledReason
     }
   ]
+
+  async function handleQueryChange(query: ServerQuery): Promise<void> {
+    await onQueryChange(query)
+  }
 </script>
 
 <template>
@@ -184,11 +258,21 @@
     :rows="players"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
+    :loading="loading"
+    server-side
+    :server-total-pages="pagination?.last_page ?? 1"
     showCreateButton
     showEditButton
     showDeleteButton
     :extra-buttons="extraButtons"
-  />
+    @query-change="handleQueryChange"
+  >
+    <template #action-buttons>
+      <button class="btn btn-sm btn-outline-secondary" title="Exportar jugadores filtrados a CSV" @click="handleExport">
+        <i class="fas fa-file-csv me-1"></i>Exportar
+      </button>
+    </template>
+  </TableWithFilterBridge>
 
   <Modal
     v-model="showModalForm"
@@ -205,4 +289,17 @@
       :time-zones="props.timeZones"
     />
   </Modal>
+
+  <!-- Ficha de detalle del jugador (datos básicos + wallet + nivel + stats de juego + actividad reciente) -->
+  <UserDetailModal
+    :model-value="showPlayerDetailModal"
+    :loading="playerDetailLoading"
+    :detail="playerDetail"
+    :error="playerDetailError"
+    :loading-more-audits="playerDetailLoadingMoreAudits"
+    @update:model-value="handlePlayerDetailVisibility"
+    @view-full-history="handleViewFullHistory"
+    @retry="retryPlayerDetail"
+    @load-more-audits="loadMorePlayerDetailAudits"
+  />
 </template>
