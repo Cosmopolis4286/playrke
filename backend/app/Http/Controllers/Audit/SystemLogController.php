@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SystemLogController extends Controller
 {
@@ -51,6 +52,48 @@ class SystemLogController extends Controller
     {
         return $this->handleServiceJson(function () use ($id) {
             return ['data' => $this->service->toggleReviewed($id)];
+        });
+    }
+
+    /**
+     * Exporta a CSV todos los logs que coincidan con los filtros actuales
+     * (sin límite de paginación) — mismo patrón que AuditController::export().
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $filters = $request->only(self::LIST_FILTER_KEYS);
+
+        return response()->streamDownload(function () use ($filters) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Fecha', 'Nivel', 'Mensaje', 'Contexto', 'Ocurrencias', 'Revisado']);
+
+            foreach ($this->service->exportCursor($filters) as $log) {
+                fputcsv($handle, [
+                    ($log->last_seen_at ?? $log->created_at)?->format('d/m/Y H:i:s'),
+                    $log->level,
+                    $log->message,
+                    $log->context,
+                    $log->occurrences,
+                    $log->reviewed_at ? 'Sí' : 'No',
+                ]);
+            }
+
+            fclose($handle);
+        }, 'logs-sistema-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Cuenta cuántos logs nuevos hay desde $since — usado por el polling del
+     * frontend (banner "hay N errores nuevos") sin repedir la tabla completa.
+     */
+    public function checkNew(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($request) {
+            $since = (string) $request->get('since');
+
+            return ['data' => ['count' => $since !== '' ? $this->service->countSince($since) : 0]];
         });
     }
 }

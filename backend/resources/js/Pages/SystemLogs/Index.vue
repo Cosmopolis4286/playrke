@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed, watch } from 'vue'
+  import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
@@ -24,17 +24,27 @@
   /* Composable                                                                  */
   /* -------------------------------------------------------------------------- */
 
-  const { logs, detail, loading, lastQuery, setInitialLogs, onQueryChange, fetchDetail, toggleReviewed, clearDetail } = useSystemLogs()
+  const {
+    logs, detail, loading, lastQuery, newLogsCount,
+    setInitialLogs, initPolling, onQueryChange, fetchDetail, toggleReviewed, clearDetail,
+    startPolling, stopPolling,
+  } = useSystemLogs()
 
   setInitialLogs(props.logs)
+  initPolling()
+  onMounted(() => startPolling())
+  onUnmounted(() => stopPolling())
 
   /* -------------------------------------------------------------------------- */
   /* Stat tiles                                                                  */
   /* -------------------------------------------------------------------------- */
 
   const statVariant: Record<string, 'danger' | 'warning' | 'default'> = {
-    error: 'danger',
-    warn:  'warning',
+    emergency: 'danger',
+    alert:     'danger',
+    critical:  'danger',
+    error:     'danger',
+    warn:      'warning',
   }
 
   /* -------------------------------------------------------------------------- */
@@ -48,8 +58,11 @@
       key:   'level',
       label: 'Nivel',
       options: [
-        { label: 'Error',        value: 'error' },
-        { label: 'Advertencia',  value: 'warn' },
+        { label: 'Emergencia',    value: 'emergency' },
+        { label: 'Alerta',        value: 'alert' },
+        { label: 'Crítico',       value: 'critical' },
+        { label: 'Error',         value: 'error' },
+        { label: 'Advertencia',   value: 'warn' },
       ],
     },
     {
@@ -88,6 +101,20 @@
 
   async function handleQueryChange(query: ServerQuery): Promise<void> {
     await onQueryChange(query, extraFilters.value)
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Export CSV                                                                  */
+  /* -------------------------------------------------------------------------- */
+
+  function handleExport(): void {
+    const params = new URLSearchParams()
+    if (lastQuery.value.search) params.set('search', lastQuery.value.search)
+    if (lastQuery.value.filters.level) params.set('level', lastQuery.value.filters.level)
+    if (lastQuery.value.filters.context) params.set('context', lastQuery.value.filters.context)
+    if (dateFrom.value) params.set('date_from', dateFrom.value)
+    if (dateTo.value) params.set('date_to', dateTo.value)
+    window.location.href = `/logs/export?${params.toString()}`
   }
 
   /* -------------------------------------------------------------------------- */
@@ -140,6 +167,17 @@
 </script>
 
 <template>
+  <!-- Banner: logs nuevos detectados por el polling en background -->
+  <div v-if="newLogsCount > 0" class="alert alert-warning d-flex align-items-center justify-content-between py-2 px-3 mb-3">
+    <span>
+      <i class="fas fa-bell me-2"></i>
+      Hay {{ newLogsCount }} log{{ newLogsCount === 1 ? '' : 's' }} nuevo{{ newLogsCount === 1 ? '' : 's' }} desde la última carga
+    </span>
+    <button class="btn btn-sm btn-warning" @click="refetch">
+      <i class="fas fa-rotate-right me-1"></i>Actualizar
+    </button>
+  </div>
+
   <!-- Stat tiles -->
   <div class="logs-stats mb-3">
     <StatTile label="Logs totales" :value="stats.total" icon="fa-server" />
@@ -202,6 +240,12 @@
     :show-delete-button="false"
     @query-change="handleQueryChange"
   >
+    <template #action-buttons>
+      <button class="btn btn-sm btn-outline-secondary" title="Exportar logs filtrados a CSV" @click="handleExport">
+        <i class="fas fa-file-csv me-1"></i>Exportar
+      </button>
+    </template>
+
     <!-- Columna: Nivel (badge de color) -->
     <template #cell-level="{ value }">
       <LogLevelBadge :level="value" />

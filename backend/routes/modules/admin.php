@@ -296,6 +296,8 @@ Route::middleware('auth')->group(function () {
     role_protected_routes(['multiPermission:system.logs'], 'logs', SystemLogController::class, [
         'index'          => ['method' => 'get', 'uri' => '',                'action' => 'index'],
         'fetchList'      => ['method' => 'get', 'uri' => 'fetch-list',      'action' => 'fetchList'],
+        'export'         => ['method' => 'get', 'uri' => 'export',         'action' => 'export'],
+        'checkNew'       => ['method' => 'get', 'uri' => 'check-new',      'action' => 'checkNew'],
         'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
         'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
     ]);

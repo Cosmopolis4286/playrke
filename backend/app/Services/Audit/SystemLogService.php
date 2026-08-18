@@ -5,12 +5,19 @@ namespace App\Services\Audit;
 use App\Models\SystemLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\LazyCollection;
 
 class SystemLogService
 {
     private const PAGE_SIZE = 100;
 
-    private const SORTABLE_COLUMNS = ['id', 'created_at', 'level', 'occurrences'];
+    /**
+     * Columnas ordenables por el usuario, mapeadas a su columna real en BD
+     * (ver applySort()) — 'date' no es una columna física, se muestra al
+     * usuario pero internamente ordena por last_seen_at, que es lo que
+     * realmente representa "última vez" en toRow().
+     */
+    private const SORTABLE_COLUMNS = ['id', 'date', 'level', 'occurrences'];
 
     private function columns(): array
     {
@@ -71,6 +78,29 @@ class SystemLogService
     }
 
     /**
+     * Cursor sobre TODOS los logs que coincidan con los filtros (sin
+     * paginar) — mismo patrón que AuditService::exportCursor(), evita
+     * materializar el resultado completo en memoria para el CSV.
+     *
+     * @return LazyCollection<int, SystemLog>
+     */
+    public function exportCursor(array $filters = []): LazyCollection
+    {
+        return $this->buildQuery($filters)->latest('system_logs.last_seen_at')->cursor();
+    }
+
+    /**
+     * Logs cuyo last_seen_at es posterior a $sinceIso — usado por el
+     * auto-refresh del frontend (polling) para detectar errores nuevos sin
+     * repedir la tabla completa. Solo cuenta + trae un preview corto, no
+     * reemplaza fetchList(): el admin decide cuándo refrescar la vista real.
+     */
+    public function countSince(string $sinceIso): int
+    {
+        return SystemLog::where('last_seen_at', '>', $sinceIso)->count();
+    }
+
+    /**
      * Marca (o desmarca) un log como revisado — distingue "ya lo vi, es
      * conocido" de "nuevo, sin revisar" cuando hay más de un admin mirando
      * /logs.
@@ -117,7 +147,10 @@ class SystemLogService
             return $query->orderBy('system_logs.last_seen_at', 'desc');
         }
 
-        $column = in_array($sort, ['id', 'created_at', 'occurrences'], true) ? "system_logs.{$sort}" : $sort;
+        // 'date' (nombre visible en la tabla) no es columna física — el dato
+        // que muestra toRow() para 'date' es last_seen_at.
+        $realColumn = $sort === 'date' ? 'last_seen_at' : $sort;
+        $column = in_array($sort, ['id', 'date', 'occurrences'], true) ? "system_logs.{$realColumn}" : $realColumn;
 
         return $query->orderBy($column, $direction);
     }
