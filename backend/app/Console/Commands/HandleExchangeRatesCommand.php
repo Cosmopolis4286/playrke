@@ -67,20 +67,12 @@ class HandleExchangeRatesCommand extends Command
         }
 
         if ($ratesFetchFailed && empty($bcvOnlyUserIds)) {
-            app(CommandService::class)->logCommandExecution(
-                $this->signature,
-                'No se pudieron obtener las tasas desde la API externa.',
-                'ERROR'
-            );
+            $this->logExecutionSafely('No se pudieron obtener las tasas desde la API externa.', 'ERROR');
             return;
         }
 
         if (empty($rates) && $bcvFetchFailed) {
-            app(CommandService::class)->logCommandExecution(
-                $this->signature,
-                'No se pudieron obtener las tasas desde la API externa ni la tasa del BCV.',
-                'ERROR'
-            );
+            $this->logExecutionSafely('No se pudieron obtener las tasas desde la API externa ni la tasa del BCV.', 'ERROR');
             return;
         }
 
@@ -125,10 +117,26 @@ class HandleExchangeRatesCommand extends Command
             $this->error($output);
         }
 
-        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        $this->logExecutionSafely($output, $status);
 
         if ($status === 'SUCCESS') {
             $this->info($output);
+        }
+    }
+
+    /**
+     * Envuelto en try/catch: si logCommandExecution() fallara por cualquier
+     * motivo, el error visible al operador debe ser el original de la
+     * tarea, no uno de logging que lo enmascare. Extraído a método propio
+     * porque este comando registra el resultado desde 3 puntos distintos
+     * (2 salidas tempranas + el flujo normal).
+     */
+    private function logExecutionSafely(string $output, string $status): void
+    {
+        try {
+            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        } catch (Throwable $logEx) {
+            $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
     }
 }

@@ -33,7 +33,7 @@ class StartScheduledTriviaRoomsCommand extends Command
 
             if ($rooms->isEmpty()) {
                 $output = 'No hay salas programadas pendientes de inicio.';
-                app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+                $this->logExecutionSafely($output, $status);
                 $this->info($output);
                 return;
             }
@@ -102,10 +102,26 @@ class StartScheduledTriviaRoomsCommand extends Command
             Log::error('[Trivia:Scheduled] ' . $output);
         }
 
-        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        $this->logExecutionSafely($output, $status);
 
         if ($status === 'SUCCESS') {
             $this->info($output);
+        }
+    }
+
+    /**
+     * Envuelto en try/catch: si logCommandExecution() fallara por cualquier
+     * motivo, el error visible al operador debe ser el original de la
+     * tarea, no uno de logging que lo enmascare. Extraído a método propio
+     * porque este comando registra el resultado desde 2 puntos distintos
+     * (salida temprana sin salas + flujo normal).
+     */
+    private function logExecutionSafely(string $output, string $status): void
+    {
+        try {
+            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        } catch (Throwable $logEx) {
+            $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
     }
 }

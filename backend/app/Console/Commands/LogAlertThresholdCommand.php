@@ -76,7 +76,14 @@ class LogAlertThresholdCommand extends Command
             $this->error($output);
         }
 
-        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        // Envuelto en try/catch: si logCommandExecution() fallara por
+        // cualquier motivo, el error visible al operador debe ser el
+        // original de la tarea, no uno de logging que lo enmascare.
+        try {
+            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        } catch (Throwable $logEx) {
+            $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
+        }
 
         if ($status === 'SUCCESS') {
             $this->info($output);
