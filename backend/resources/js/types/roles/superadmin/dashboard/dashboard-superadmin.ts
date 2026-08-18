@@ -26,12 +26,21 @@ export interface EntityCount {
 // Salud del sistema
 // --------------------------------------------------------------------------
 
+export interface SystemHealthIssue {
+    code:  string
+    label: string
+    count: number
+}
+
 export interface SystemHealth {
-    status:           'healthy' | 'warning' | 'critical'
-    label:             string
-    issues:            number
-    failedJobsCount:   number
-    broadcastLive:     boolean
+    status:               'healthy' | 'warning' | 'critical'
+    label:                 string
+    issues:                number
+    issueDetails:           SystemHealthIssue[]
+    failedJobsCount:       number
+    pendingJobsCount:      number
+    inactiveAdminsCount:   number
+    broadcastLive:         boolean
 }
 
 // --------------------------------------------------------------------------

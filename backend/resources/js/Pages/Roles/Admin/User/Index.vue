@@ -8,7 +8,7 @@
    * básicos + rol del usuario seleccionado.
    */
 
-  import { computed, ref } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import { router, usePage } from '@inertiajs/vue3'
 
   // ==========================================================================
@@ -87,6 +87,19 @@
   } = useAdminUser()
 
   setInitialUsers(props.users.rows, props.users_pagination)
+
+  // Deep-link desde el widget "Salud del sistema" del dashboard superadmin
+  // (?last_login_before=<ISO>) — filtra admins sin acceso reciente. Se lee
+  // una sola vez al montar; no es un filtro expuesto en la UI de la tabla.
+  onMounted(() => {
+    const lastLoginBefore = new URLSearchParams(window.location.search).get('last_login_before')
+    if (lastLoginBefore) {
+      onQueryChange({
+        ...lastQuery.value,
+        filters: { ...lastQuery.value.filters, last_login_before: lastLoginBefore },
+      })
+    }
+  })
 
   // Modal de carga de saldo (Modal.vue + useModalForm) — solo aplica a
   // usuarios con rol Comercio, Vendedor o Jugador (validado también en el

@@ -14,7 +14,10 @@ const DEFAULT_HEALTH: SystemHealth = {
     status: 'healthy',
     label: 'Saludable',
     issues: 0,
+    issueDetails: [],
     failedJobsCount: 0,
+    pendingJobsCount: 0,
+    inactiveAdminsCount: 0,
     broadcastLive: false,
 }
 

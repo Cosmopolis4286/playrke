@@ -31,7 +31,7 @@ final class AdminUserController extends Controller
     public function fetchList(Request $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions']);
+            $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions', 'last_login_before']);
             $page    = (int) $request->get('page', 1);
 
             $result = $this->service->fetchList($filters, $page);

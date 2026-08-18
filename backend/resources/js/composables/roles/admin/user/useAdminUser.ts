@@ -77,6 +77,7 @@ export function useAdminUser(): UseAdminUserReturn {
                     country_name: lastQuery.value.filters.country_name || undefined,
                     status: lastQuery.value.filters.status || undefined,
                     has_specific_permissions: lastQuery.value.filters.has_specific_permissions || undefined,
+                    last_login_before: lastQuery.value.filters.last_login_before || undefined,
                 },
             })
             if (Array.isArray(response.data?.data)) {

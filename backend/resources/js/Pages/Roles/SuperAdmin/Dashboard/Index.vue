@@ -21,12 +21,14 @@
   import PlatformWalletPanel          from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
   import PlatformCashModal            from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
   import RkeCommissionsSection        from '@/js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
+  import FailedJobsModal              from '@/js/Components/Roles/SuperAdmin/Dashboard/FailedJobsModal.vue'
 
   // ==========================================================================
   // Composables
   // ==========================================================================
 
   import { onMounted, ref }           from 'vue'
+  import { Link }                     from '@inertiajs/vue3'
   import { useSuperAdminDashboard }   from '@/js/composables/roles/superadmin/dashboard/useSuperAdminDashboard'
   import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
   import { useActivityLogReconciliation } from '@/js/composables/common/dashboard/useActivityLogReconciliation'
@@ -38,6 +40,7 @@
   import { useRkeSummary }          from '@/js/composables/roles/superadmin/dashboard/useRkeSummary'
   import { usePlatformWallet }      from '@/js/composables/roles/superadmin/dashboard/usePlatformWallet'
   import { usePlatformCashModal }   from '@/js/composables/roles/superadmin/dashboard/usePlatformCashModal'
+  import { useFailedJobs }          from '@/js/composables/roles/superadmin/dashboard/useFailedJobs'
   import type { ActivityItem }      from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
@@ -96,6 +99,18 @@
 
   const { cashModal, openCashModal, closeCashModal, withdrawConfirmed, submitCash } =
     usePlatformCashModal(activePlatformWallet, loadPlatformWallets)
+
+  // Modal de jobs fallidos (widget "Salud del sistema")
+  const showFailedJobsModal = ref(false)
+  const {
+    jobs: failedJobsList, loading: failedJobsLoading, retryingUuid, retryingAll,
+    loadJobs: loadFailedJobs, retryJob, retryAll: retryAllFailedJobs, forgetJob,
+  } = useFailedJobs()
+
+  function openFailedJobsModal() {
+    showFailedJobsModal.value = true
+    loadFailedJobs()
+  }
 
   // Catálogo de tipos de movimiento (MovementType), gestionable por admin/
   // superadmin vía CRUD — esta página no recibe el catálogo por props
@@ -242,22 +257,45 @@
         icon="fas fa-heartbeat"
         :subtitle="systemHealth.label"
       >
+        <template #actions>
+          <button
+            v-if="systemHealth.failedJobsCount > 0"
+            class="sh-detail-btn"
+            @click="openFailedJobsModal"
+          >
+            Ver jobs fallidos <i class="fas fa-arrow-right ml-1"></i>
+          </button>
+        </template>
+
         <div class="row g-3">
-          <div class="col-12 col-sm-4">
+          <div class="col-12 col-sm-3">
             <div class="sh-item">
               <span class="sh-item__label">Estado general</span>
               <span class="sh-item__value" :class="`sh-item__value--${systemHealth.status}`">{{ systemHealth.label }}</span>
             </div>
           </div>
-          <div class="col-12 col-sm-4">
+          <div class="col-12 col-sm-3">
             <div class="sh-item">
               <span class="sh-item__label">Jobs fallidos</span>
-              <span class="sh-item__value" :class="{ 'sh-item__value--warning': systemHealth.failedJobsCount > 0 }">
-                {{ systemHealth.failedJobsCount }}
+              <button
+                v-if="systemHealth.failedJobsCount > 0"
+                class="sh-item__link sh-item__value--warning"
+                @click="openFailedJobsModal"
+              >
+                {{ systemHealth.failedJobsCount }} <i class="fas fa-arrow-up-right-from-square ml-1"></i>
+              </button>
+              <span v-else class="sh-item__value">0</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-3">
+            <div class="sh-item">
+              <span class="sh-item__label">Jobs en cola</span>
+              <span class="sh-item__value" :class="{ 'sh-item__value--warning': systemHealth.pendingJobsCount > 20 }">
+                {{ systemHealth.pendingJobsCount }}
               </span>
             </div>
           </div>
-          <div class="col-12 col-sm-4">
+          <div class="col-12 col-sm-3">
             <div class="sh-item">
               <span class="sh-item__label">Broadcast (Reverb)</span>
               <span class="sh-item__value" :class="systemHealth.broadcastLive ? 'sh-item__value--healthy' : 'sh-item__value--warning'">
@@ -266,7 +304,31 @@
             </div>
           </div>
         </div>
+
+        <!-- Desglose de advertencias -->
+        <ul v-if="systemHealth.issueDetails.length" class="sh-issues">
+          <li v-for="issue in systemHealth.issueDetails" :key="issue.code" class="sh-issue">
+            <i class="fas fa-circle-exclamation sh-issue__icon"></i>
+            <span v-if="issue.code === 'inactive_admins'">
+              <Link :href="`/admin/users?last_login_before=${encodeURIComponent(new Date(Date.now() - 30*86400000).toISOString())}`" class="sh-issue__link">
+                {{ issue.label }} ({{ issue.count }})
+              </Link>
+            </span>
+            <span v-else>{{ issue.label }} ({{ issue.count }})</span>
+          </li>
+        </ul>
       </DashboardSection>
+
+      <FailedJobsModal
+        v-model="showFailedJobsModal"
+        :jobs="failedJobsList"
+        :loading="failedJobsLoading"
+        :retrying-uuid="retryingUuid"
+        :retrying-all="retryingAll"
+        @retry="retryJob"
+        @retry-all="retryAllFailedJobs"
+        @forget="forgetJob"
+      />
 
       <!-- ══ BILLETERA DE PLATAFORMA ══════════════════════════════════ -->
       <PlatformWalletPanel
@@ -360,4 +422,36 @@
 .sh-item__value--healthy  { color: #34d399; }
 .sh-item__value--warning  { color: #f59e0b; }
 .sh-item__value--critical { color: #ef4444; }
+
+.sh-item__link {
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sh-detail-btn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #667eea;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.sh-detail-btn:hover { text-decoration: underline; }
+
+.sh-issues { list-style: none; margin: 0.85rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.sh-issue {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--ds-text-2);
+}
+.sh-issue__icon { color: #f59e0b; font-size: 0.72rem; }
+.sh-issue__link { color: #667eea; text-decoration: none; }
+.sh-issue__link:hover { text-decoration: underline; }
 </style>

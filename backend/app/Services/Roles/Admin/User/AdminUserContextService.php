@@ -92,6 +92,17 @@ final class AdminUserContextService
             );
         }
 
+        // Usado por el link "Administradores sin acceso reciente" del widget
+        // "Salud del sistema" del dashboard superadmin — valor ISO 8601, filtra
+        // usuarios cuyo last_login_at es anterior a esa fecha o nunca iniciaron sesión.
+        if (!empty($filters['last_login_before'])) {
+            $cutoff = $filters['last_login_before'];
+            $query->where(function ($q) use ($cutoff) {
+                $q->whereNull('last_login_at')
+                    ->orWhere('last_login_at', '<', $cutoff);
+            });
+        }
+
         return $query;
     }
 

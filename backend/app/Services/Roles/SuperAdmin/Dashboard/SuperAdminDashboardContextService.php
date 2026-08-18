@@ -18,6 +18,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redis;
 use Spatie\Permission\Models\Permission;
 
 final class SuperAdminDashboardContextService
@@ -159,50 +161,121 @@ final class SuperAdminDashboardContextService
     // Salud del sistema
     // -------------------------------------------------------------------------
 
+    /**
+     * Cada issue queda como {code, label, count} para que el frontend pueda
+     * mostrar el desglose real en vez de solo un número — antes sumaba
+     * inactiveAdmins/failedJobsCount al mismo contador sin decir cuál era
+     * cuál. reverbHealthy se calcula aparte (checkReverbHealth(), con su
+     * propio caché de 20s) para que un ping de red lento no alargue el TTL
+     * de 90s del resto del dashboard.
+     */
     private function buildSystemHealth(int $activeRooms): array
     {
-        $issues = 0;
-        $status = 'healthy';
-        $label  = 'Saludable';
+        $issues = [];
 
         if ($activeRooms === 0) {
-            $issues++;
+            $issues[] = ['code' => 'no_active_rooms', 'label' => 'Sin salas de Bingo activas', 'count' => 1];
         }
 
         // Admins sin login reciente (más de 30 días)
-        $inactiveAdmins = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))
+        $inactiveAdminsCount = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))
             ->where(function ($q) {
                 $q->whereNull('last_login_at')
                   ->orWhere('last_login_at', '<', Carbon::now()->subDays(30));
             })
             ->count();
-        if ($inactiveAdmins > 0) {
-            $issues += $inactiveAdmins;
+        if ($inactiveAdminsCount > 0) {
+            $issues[] = ['code' => 'inactive_admins', 'label' => 'Administradores sin acceso reciente (30+ días)', 'count' => $inactiveAdminsCount];
         }
 
-        // Jobs fallidos en cola (tabla failed_jobs, driver database)
+        // Jobs fallidos en cola (tabla failed_jobs)
         $failedJobsCount = DB::table('failed_jobs')->count();
         if ($failedJobsCount > 0) {
-            $issues += $failedJobsCount;
+            $issues[] = ['code' => 'failed_jobs', 'label' => 'Jobs fallidos pendientes de revisión', 'count' => $failedJobsCount];
         }
 
-        $broadcastLive = config('broadcasting.default') === 'reverb';
+        $pendingJobsCount = $this->queuePendingCount();
 
-        if ($issues > 5) {
+        $reverbHealthy = $this->checkReverbHealth();
+        if (!$reverbHealthy) {
+            $issues[] = ['code' => 'reverb_down', 'label' => 'Servidor de WebSockets (Reverb) no responde', 'count' => 1];
+        }
+
+        $totalIssues = array_sum(array_column($issues, 'count'));
+
+        $status = 'healthy';
+        $label  = 'Saludable';
+        if ($totalIssues > 5) {
             $status = 'critical';
             $label  = 'Crítico';
-        } elseif ($issues > 0) {
+        } elseif ($totalIssues > 0) {
             $status = 'warning';
             $label  = 'Advertencias';
         }
 
         return [
-            'status'          => $status,
-            'label'           => $label,
-            'issues'          => $issues,
-            'failedJobsCount' => $failedJobsCount,
-            'broadcastLive'   => $broadcastLive,
+            'status'              => $status,
+            'label'               => $label,
+            'issues'              => $totalIssues,
+            'issueDetails'        => $issues,
+            'failedJobsCount'     => $failedJobsCount,
+            'pendingJobsCount'    => $pendingJobsCount,
+            'inactiveAdminsCount' => $inactiveAdminsCount,
+            'broadcastLive'       => $reverbHealthy,
         ];
+    }
+
+    /**
+     * Ping real (no solo de config) al endpoint /up interno de Reverb —
+     * expuesto nativamente por laravel/reverb (protocolo Pusher). Se cachea
+     * 20s aparte del bloque de 90s del resto del dashboard: un timeout de
+     * red no debe alargar la espera de todo dashboardContext().
+     */
+    private function checkReverbHealth(): bool
+    {
+        if (config('broadcasting.default') !== 'reverb') {
+            return false;
+        }
+
+        return Cache::remember('dashboard:superadmin:reverb-health', 20, function () {
+            $options = config('broadcasting.connections.reverb.options', []);
+            $host    = $options['host']   ?? null;
+            $port    = $options['port']   ?? 8080;
+            $scheme  = $options['scheme'] ?? 'http';
+
+            if (!$host) {
+                return false;
+            }
+
+            try {
+                return Http::timeout(2)->get("{$scheme}://{$host}:{$port}/up")->successful();
+            } catch (\Throwable) {
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Jobs pendientes (no fallidos) en la cola default de Redis —
+     * complementa failedJobsCount con "cuánto trabajo hay esperando",
+     * señal de un worker caído o saturado que failed_jobs por sí solo no
+     * muestra (un job atascado no cuenta como fallido hasta agotar reintentos).
+     */
+    private function queuePendingCount(): int
+    {
+        if (config('queue.default') !== 'redis') {
+            return 0;
+        }
+
+        try {
+            $connection = config('queue.connections.redis.connection', 'default');
+            $queueName  = config('queue.connections.redis.queue', 'default');
+            $prefix     = config("database.redis.options.prefix", '');
+
+            return (int) Redis::connection($connection)->llen("{$prefix}queues:{$queueName}");
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
 }
