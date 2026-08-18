@@ -384,32 +384,9 @@
       </button>
     </template>
 
-    <!-- Toda la fila es clicable (abre el detalle) — cada celda envuelve su
-         contenido en .audit-row-cell con el mismo handler, ya que BaseTable
-         no expone un evento de click a nivel de <tr> fuera del modo
-         selectable (checkboxes), que esta tabla no usa. -->
-    <template #cell-date="{ row, value }">
-      <div class="audit-row-cell" :title="'Ver detalle del registro #' + row.id" @click="openDetail(String(row.id))">
-        {{ value }}
-      </div>
-    </template>
-
-    <template #cell-actor="{ row, value }">
-      <div class="audit-row-cell" @click="openDetail(String(row.id))">
-        {{ value }}
-      </div>
-    </template>
-
-    <!-- Columna: Evento (badge de color) -->
-    <template #cell-event="{ row, value }">
-      <div class="audit-row-cell" @click="openDetail(String(row.id))">
-        <span :class="eventClass(value)">{{ value }}</span>
-      </div>
-    </template>
-
     <!-- Columna: Actor (ícono según tipo) -->
-    <template #cell-actor_type="{ row, value }">
-      <div class="audit-row-cell text-muted small" @click="openDetail(String(row.id))">
+    <template #cell-actor_type="{ value }">
+      <span class="text-muted small">
         <i
           :class="{
             'fas fa-user':       value === 'user',
@@ -421,29 +398,41 @@
           class="me-1"
         ></i>
         {{ value }}
-      </div>
+      </span>
+    </template>
+
+    <!-- Columna: Evento (badge de color) -->
+    <template #cell-event="{ value }">
+      <span :class="eventClass(value)">{{ value }}</span>
     </template>
 
     <!-- Columna: Entidad (fusiona antigua entidad + ID) -->
-    <template #cell-entity_label="{ row, value }">
-      <div class="audit-row-cell font-monospace small" @click="openDetail(String(row.id))">
-        {{ value }}
-      </div>
+    <template #cell-entity_label="{ value }">
+      <span class="font-monospace small">{{ value }}</span>
     </template>
 
     <!-- Columna: Resumen de cambios (campos modificados, sin abrir el modal) -->
-    <template #cell-changes_summary="{ row, value }">
-      <div class="audit-row-cell" @click="openDetail(String(row.id))">
-        <span v-if="value === '—'" class="text-muted small">—</span>
-        <span v-else-if="value === 'Sin cambios visibles'" class="text-muted small fst-italic">{{ value }}</span>
-        <span v-else class="small">{{ value }}</span>
-      </div>
+    <template #cell-changes_summary="{ value }">
+      <span v-if="value === '—'" class="text-muted small">—</span>
+      <span v-else-if="value === 'Sin cambios visibles'" class="text-muted small fst-italic">{{ value }}</span>
+      <span v-else class="small">{{ value }}</span>
     </template>
 
-    <template #cell-ip_address="{ row, value }">
-      <div class="audit-row-cell text-muted small" @click="openDetail(String(row.id))">
-        {{ value }}
-      </div>
+    <template #cell-ip_address="{ value }">
+      <span class="text-muted small">{{ value }}</span>
+    </template>
+
+    <!-- Columna: Acciones — botón explícito para ver el detalle, en vez de
+         que toda la fila sea clicable (evita aperturas accidentales al
+         seleccionar texto o hacer click cerca de otro control). -->
+    <template #cell-actions="{ row }">
+      <button
+        class="btn btn-sm btn-outline-secondary"
+        title="Ver detalle del registro"
+        @click="openDetail(String(row.id))"
+      >
+        <i class="fas fa-eye"></i>
+      </button>
     </template>
   </TableWithFilterBridge>
 
@@ -576,12 +565,4 @@
   display: none;
 }
 
-.audit-row-cell {
-  cursor: pointer;
-  /* Ocupa todo el área de la celda (el padding real de .table td, ver
-     styles.css) para que el click funcione en cualquier punto de la fila,
-     no solo sobre el texto. */
-  margin: -0.75rem;
-  padding: 0.75rem;
-}
 </style>

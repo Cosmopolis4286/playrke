@@ -19,12 +19,13 @@ class AuditService
     /**
      * Columnas para la tabla del frontend.
      *
-     * Sin columna 'id' visible: la fila completa es clicable para abrir el
-     * detalle (ver Audit/Index.vue), el ID crudo del registro de auditoría
-     * no aporta nada por sí solo. Las antiguas 'entity'/'entity_id' se
-     * fusionan en 'entity_label' para no gastar dos columnas en un dato que
-     * se lee junto (ej. "User #123"); 'changes_summary' resume qué campos
-     * cambiaron sin tener que abrir el modal para saberlo.
+     * Sin columna 'id' visible: el ID crudo del registro de auditoría no
+     * aporta nada por sí solo, pero se mantiene en el row (ver toRow()) para
+     * el botón de la columna 'actions' que abre el detalle (ver
+     * Audit/Index.vue). Las antiguas 'entity'/'entity_id' se fusionan en
+     * 'entity_label' para no gastar dos columnas en un dato que se lee junto
+     * (ej. "User #123"); 'changes_summary' resume qué campos cambiaron sin
+     * tener que abrir el modal para saberlo.
      */
     private function columns(): array
     {
@@ -36,6 +37,7 @@ class AuditService
             ['key' => 'entity_label',     'label' => 'Entidad',    'sortable' => false],
             ['key' => 'changes_summary',  'label' => 'Cambios',    'sortable' => false],
             ['key' => 'ip_address',       'label' => 'IP',         'sortable' => false],
+            ['key' => 'actions',          'label' => '',           'sortable' => false],
         ];
     }
 
