@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Models\Commands;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * Registro de control por comando programado (routes/console.php) — is_enabled
+ * gobierna únicamente si el scheduler automático lo corre (ver
+ * App\Support\Scheduling\ScheduledCommandGate), no bloquea invocación manual
+ * ni afecta la cadencia, que sigue definida en código.
+ */
+class ScheduledCommand extends Model
+{
+    use \App\Traits\SnowflakeId;
+
+    protected $table = 'scheduled_commands';
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'command',
+        'label',
+        'description',
+        'is_enabled',
+        'disabled_at',
+        'disabled_by',
+    ];
+
+    protected $casts = [
+        'is_enabled'  => 'boolean',
+        'disabled_at' => 'datetime',
+    ];
+
+    public function disabledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'disabled_by');
+    }
+
+    public function scopeEnabled($query)
+    {
+        return $query->where('is_enabled', true);
+    }
+
+    public function scopeDisabled($query)
+    {
+        return $query->where('is_enabled', false);
+    }
+
+    public function scopeByCommand($query, string $command)
+    {
+        return $query->where('command', $command);
+    }
+}

@@ -35,6 +35,10 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Role::class                                => \App\Policies\Roles\Admin\RolePolicy::class,
         \App\Models\Roles\Player\External\ExternalPlayer::class => \App\Policies\Roles\Admin\ExternalPlayerPolicy::class,
         \App\Models\User::class                               => \App\Policies\UserPolicy::class,
+        // JobsCenterPolicy no tiene un Model Eloquent único (vista compuesta
+        // sobre scheduled_commands + jobs + failed_jobs) — se registra contra
+        // su propia clase para poder usar $this->authorize('manage', JobsCenterPolicy::class).
+        \App\Policies\System\JobsCenterPolicy::class          => \App\Policies\System\JobsCenterPolicy::class,
     ];
 
     /**

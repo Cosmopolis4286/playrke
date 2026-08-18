@@ -12,10 +12,14 @@ export interface FailedJob {
 }
 
 /**
- * Gestión de jobs fallidos (failed_jobs) desde el panel de detalle del
- * widget "Salud del sistema" del dashboard superadmin.
+ * Gestión de jobs fallidos (failed_jobs) — usado por el modal del widget
+ * "Salud del sistema" del dashboard (baseUrl default /superadmin/failed-jobs)
+ * y por el panel inline de /system/jobs (baseUrl /system/jobs/failed).
+ * Misma lógica de fetch/retry/forget en ambos, solo cambia el prefijo de ruta
+ * — evita duplicar este composable para un segundo consumidor de los mismos
+ * datos (FailedJobService es la única fuente de verdad en el backend).
  */
-export function useFailedJobs() {
+export function useFailedJobs(baseUrl: string = '/superadmin/failed-jobs') {
     const jobs = ref<FailedJob[]>([])
     const loading = ref(false)
     const retryingUuid = ref<string | null>(null)
@@ -24,7 +28,7 @@ export function useFailedJobs() {
     async function loadJobs(): Promise<void> {
         loading.value = true
         try {
-            const { data } = await axios.get('/superadmin/failed-jobs')
+            const { data } = await axios.get(baseUrl)
             jobs.value = data.data ?? []
         } catch (error) {
             console.error(error)
@@ -37,7 +41,7 @@ export function useFailedJobs() {
     async function retryJob(uuid: string): Promise<void> {
         retryingUuid.value = uuid
         try {
-            const { data } = await axios.post(`/superadmin/failed-jobs/${uuid}/retry`)
+            const { data } = await axios.post(`${baseUrl}/${uuid}/retry`)
             showToast(data.message, data.success ? 'success' : 'error')
             if (data.success) jobs.value = jobs.value.filter(j => j.uuid !== uuid)
         } catch (error) {
@@ -51,7 +55,7 @@ export function useFailedJobs() {
     async function retryAll(): Promise<void> {
         retryingAll.value = true
         try {
-            const { data } = await axios.post('/superadmin/failed-jobs/retry-all')
+            const { data } = await axios.post(`${baseUrl}/retry-all`)
             showToast(data.message, 'success')
             jobs.value = []
         } catch (error) {
@@ -64,7 +68,7 @@ export function useFailedJobs() {
 
     async function forgetJob(uuid: string): Promise<void> {
         try {
-            const { data } = await axios.delete(`/superadmin/failed-jobs/${uuid}`)
+            const { data } = await axios.delete(`${baseUrl}/${uuid}`)
             showToast(data.message, data.success ? 'success' : 'error')
             if (data.success) jobs.value = jobs.value.filter(j => j.uuid !== uuid)
         } catch (error) {

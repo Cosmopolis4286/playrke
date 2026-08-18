@@ -225,6 +225,12 @@ class SidebarMenuService
                     'permission' => 'system.logs',
                     'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
+                'jobs' => [
+                    'title' => 'Jobs y Scheduler',
+                    'route' => 'system.jobs.index',
+                    'permission' => 'system.jobs',
+                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+                ],
                 'sidebar_menu' => [
                     'title' => 'Menú del Sidebar',
                     'route' => 'sidebar-menu.index',

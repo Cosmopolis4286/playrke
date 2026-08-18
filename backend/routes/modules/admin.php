@@ -18,6 +18,7 @@ use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 use App\Http\Controllers\Audit\AuditController;
 use App\Http\Controllers\Audit\SystemLogController;
 use App\Http\Controllers\Roles\Admin\AdminWinEventController;
+use App\Http\Controllers\System\JobsCenterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -314,6 +315,28 @@ Route::middleware('auth')->group(function () {
         'checkNew'       => ['method' => 'get', 'uri' => 'check-new',      'action' => 'checkNew'],
         'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
         'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
+    ]);
+
+    /**
+     * =========================================================
+     * JOBS Y SCHEDULER (SuperAdmin — permiso protegido system.jobs)
+     * =========================================================
+     * {id} en scheduler/{id}/toggle es el snowflake de ScheduledCommand (no
+     * el signature del comando, que contiene ':' y complicaría el binding).
+     * {command} en scheduler/{command}/history sí es el signature — el
+     * frontend debe encodeURIComponent() ese segmento.
+     */
+    role_protected_routes(['multiPermission:system.jobs'], 'system/jobs', JobsCenterController::class, [
+        'index'                  => ['method' => 'get',    'uri' => '',                            'action' => 'index'],
+        'scheduledCommands'      => ['method' => 'get',    'uri' => 'scheduler',                   'action' => 'scheduledCommands'],
+        'toggleScheduledCommand' => ['method' => 'put',    'uri' => 'scheduler/{id}/toggle',        'action' => 'toggleScheduledCommand'],
+        'scheduledCommandHistory'=> ['method' => 'get',    'uri' => 'scheduler/{command}/history',  'action' => 'scheduledCommandHistory'],
+        'pendingJobs'            => ['method' => 'get',    'uri' => 'pending',                      'action' => 'pendingJobs'],
+        'pendingJobsByQueue'     => ['method' => 'get',    'uri' => 'pending/{queue}',              'action' => 'pendingJobsByQueue'],
+        'failedJobs'             => ['method' => 'get',    'uri' => 'failed',                       'action' => 'failedJobs'],
+        'retryFailedJob'         => ['method' => 'post',   'uri' => 'failed/{uuid}/retry',          'action' => 'retryFailedJob'],
+        'retryAllFailedJobs'     => ['method' => 'post',   'uri' => 'failed/retry-all',             'action' => 'retryAllFailedJobs'],
+        'forgetFailedJob'        => ['method' => 'delete', 'uri' => 'failed/{uuid}',                'action' => 'forgetFailedJob'],
     ]);
 
     /**

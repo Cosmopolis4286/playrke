@@ -24,6 +24,7 @@ class PermissionSeeder extends Seeder
         'system.maintenance',
         'system.logs',
         'system.backup',
+        'system.jobs',
     ];
 
     public function run(): void
@@ -133,6 +134,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'system.maintenance', 'guard_name' => 'web', 'description' => 'Modo mantenimiento'],
             ['name' => 'system.logs', 'guard_name' => 'web', 'description' => 'Ver logs del sistema'],
             ['name' => 'system.backup', 'guard_name' => 'web', 'description' => 'Gestionar backups'],
+            ['name' => 'system.jobs', 'guard_name' => 'web', 'description' => 'Ver y gestionar jobs, colas y scheduler del sistema'],
             ['name' => 'settings.manage', 'guard_name' => 'web', 'description' => 'Gestionar configuración general de la plataforma'],
 
             // Auditoría
