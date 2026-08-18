@@ -389,6 +389,8 @@ final class AdminUserService
             ? $this->userLevelService->getUserLevelInfo($user)
             : null;
 
+        $gameStats = $roleName === 'player' ? $this->getPlayerGameStats($user) : null;
+
         $recentAudits = Audit::ofAuditable(User::class, $user->id)
             ->with('user:id,first_name,last_name,email')
             ->latest('created_at')
@@ -424,6 +426,7 @@ final class AdminUserService
             'specific_permissions_expiring_soon_count' => $expiringSoonCount,
             'wallet'                      => $wallet,
             'level'                       => $level,
+            'game_stats'                  => $gameStats,
             'recent_audits'               => $recentAudits,
             'has_more_audits'             => Audit::ofAuditable(User::class, $user->id)->count() > self::RECENT_AUDITS_LIMIT,
         ];
@@ -445,6 +448,45 @@ final class AdminUserService
             'rows'        => $paginator->getCollection()->map(fn (Audit $audit) => $this->mapAuditRow($audit))->values(),
             'has_more'    => $paginator->hasMorePages(),
             'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    /**
+     * Estadísticas de juego del jugador — partidas jugadas/ganadas, ganancias
+     * totales y logros desbloqueados. Estos accessors/relaciones ya existían
+     * en User (usados por ProfileController para el perfil del propio
+     * jugador) pero nunca se habían expuesto a ningún admin: soporte/
+     * detección de fraude no tenía forma de ver esta información sin acceso
+     * directo a BD.
+     */
+    private function getPlayerGameStats(User $user): array
+    {
+        $achievements = $user->achievements()
+            ->wherePivotNotNull('unlocked_at')
+            ->orderByDesc('user_achievements.unlocked_at')
+            ->limit(10)
+            ->get(['achievements.id', 'achievements.name', 'achievements.icon', 'achievements.badge_color'])
+            ->map(fn ($achievement) => [
+                'id'          => $achievement->id,
+                'name'        => $achievement->name,
+                'icon'        => $achievement->icon,
+                'badge_color' => $achievement->badge_color,
+                // El pivot user_achievements es genérico (sin ->using(UserAchievement::class)
+                // en User::achievements()), así que unlocked_at llega como string
+                // crudo de BD, no como Carbon — \Carbon\Carbon::parse() antes de
+                // formatear, igual que se necesitaría en cualquier otro consumidor
+                // de este pivot (ver AchievementService.php, que lo deja sin formatear).
+                'unlocked_at' => $achievement->pivot->unlocked_at
+                    ? \Carbon\Carbon::parse($achievement->pivot->unlocked_at)->format('d/m/Y H:i:s')
+                    : null,
+            ]);
+
+        return [
+            'games_played'       => $user->games_played_count,
+            'games_won'          => $user->games_won_count,
+            'total_winnings'     => $user->total_winnings,
+            'achievements'       => $achievements,
+            'achievements_count' => $user->achievements()->wherePivotNotNull('unlocked_at')->count(),
         ];
     }
 

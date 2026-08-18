@@ -65,6 +65,22 @@ export interface AdminUserDetailLevel {
     readonly leveled_up_at: string | null
 }
 
+export interface AdminUserDetailAchievement {
+    readonly id: string
+    readonly name: string
+    readonly icon: string | null
+    readonly badge_color: string
+    readonly unlocked_at: string | null
+}
+
+export interface AdminUserDetailGameStats {
+    readonly games_played: number
+    readonly games_won: number
+    readonly total_winnings: number
+    readonly achievements: AdminUserDetailAchievement[]
+    readonly achievements_count: number
+}
+
 export interface AdminUserDetail {
     readonly id: string
     readonly full_name: string
@@ -83,6 +99,7 @@ export interface AdminUserDetail {
     readonly specific_permissions_expiring_soon_count: number
     readonly wallet: { balance: number; currency: { iso_code: string; symbol: string; name: string } | null } | null
     readonly level: AdminUserDetailLevel | null
+    readonly game_stats: AdminUserDetailGameStats | null
     readonly recent_audits: AdminUserDetailAudit[]
     /** true si hay más eventos de auditoría además de los ya incluidos en recent_audits — habilita el botón "Cargar más". */
     readonly has_more_audits: boolean
