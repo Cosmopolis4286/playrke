@@ -23,6 +23,7 @@
 
   import { usePlayerDashboard }          from '@/js/composables/roles/player/dashboard/usePlayerDashboard'
   import { usePlayerDashboardRealtime }  from '@/js/composables/roles/player/dashboard/usePlayerDashboardRealtime'
+  import { useDashboardMountLoading }    from '@/js/composables/common/dashboard/useDashboardMountLoading'
 
   // ==========================================================================
   // Types
@@ -42,6 +43,7 @@
 
   const { statCards, sortedActivity } = usePlayerDashboard(props)
   const { liveBalance, isLive } = usePlayerDashboardRealtime(props.stats?.walletBalance.value ?? '—')
+  const { loading: sectionsLoading } = useDashboardMountLoading()
 
   // ==========================================================================
   // Accesos rápidos
@@ -129,6 +131,8 @@
         title="Accesos rápidos"
         icon="fas fa-bolt"
         subtitle="Mis opciones"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
       >
         <DashboardQuickLinks :links="quickLinks" :columns="3" />
       </DashboardSection>
@@ -138,6 +142,8 @@
         title="Mis cartones recientes"
         icon="fas fa-th"
         subtitle="Últimos cartones adquiridos"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
       >
         <DashboardActivityFeed :items="sortedActivity" :maxItems="8" :columns="2" />
       </DashboardSection>

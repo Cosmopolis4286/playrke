@@ -1,6 +1,7 @@
 <script setup lang="ts" name="DashboardQuickLinksGroup">
   import { computed, ref } from 'vue'
   import DashboardQuickLinks from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
   import type { QuickLinkGroup } from '@/js/composables/common/dashboard/useDashboardQuickLinks'
 
   const props = withDefaults(defineProps<{
@@ -48,7 +49,13 @@
         <DashboardQuickLinks :links="group.links" :columns="columns" />
       </div>
     </div>
-    <p v-else class="qlg__empty">Sin accesos que coincidan con "{{ search }}".</p>
+    <DashboardEmptyState
+      v-else
+      compact
+      icon="fas fa-search"
+      title="Sin resultados"
+      :description="`Ningún acceso coincide con “${search}”.`"
+    />
   </div>
 </template>
 
@@ -94,13 +101,5 @@
   letter-spacing: .05em;
   color: var(--ds-text-2);
   margin-bottom: 0.6rem;
-}
-
-.qlg__empty {
-  font-size: 0.8rem;
-  color: var(--ds-text-2);
-  text-align: center;
-  padding: 1.5rem 0;
-  margin: 0;
 }
 </style>

@@ -7,9 +7,11 @@
     pendingCount: number
     isLive?: boolean
     recentMovements?: ActivityItem[]
+    loading?: boolean
   }>(), {
     isLive: false,
     recentMovements: () => [],
+    loading: false,
   })
 </script>
 
@@ -18,6 +20,8 @@
     title="Movimientos pendientes"
     icon="fas fa-wallet"
     subtitle="Depósitos y retiros por aprobar"
+    :loading="loading"
+    skeleton-variant="list"
   >
     <template #actions>
       <a href="/wallet-movements" class="pw-link">Ver todos</a>

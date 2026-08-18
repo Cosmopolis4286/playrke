@@ -1,5 +1,6 @@
 <script setup lang="ts" name="DashboardActivityFeed">
   import { computed, ref, watch } from 'vue'
+  import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
   import type { ActivityItem, ActivityType } from '@/js/types/common/dashboard/dashboard'
 
   const props = withDefaults(defineProps<{
@@ -169,9 +170,13 @@
         </li>
       </template>
 
-      <li v-else class="col-12 text-muted small text-center py-4">
-        <i class="fas fa-inbox mb-2 d-block fs-4"></i>
-        {{ activeFilter ? 'Sin actividad de este tipo.' : 'Sin actividad reciente' }}
+      <li v-else class="col-12">
+        <DashboardEmptyState
+          compact
+          icon="fas fa-inbox"
+          :title="activeFilter ? 'Sin actividad de este tipo' : 'Sin actividad reciente'"
+          :description="activeFilter ? 'Prueba con otro filtro o vuelve a \'Todo\'.' : 'Las últimas acciones aparecerán aquí en cuanto ocurran.'"
+        />
       </li>
     </ul>
   </div>

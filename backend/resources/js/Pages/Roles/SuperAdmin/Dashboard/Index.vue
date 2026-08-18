@@ -36,6 +36,7 @@
   import { useMovementTypeCatalog }   from '@/js/composables/wallet/useMovementTypeCatalog'
   import { useDashboardQuickLinks }   from '@/js/composables/common/dashboard/useDashboardQuickLinks'
   import { useDashboardFormatters }   from '@/js/composables/common/dashboard/useDashboardFormatters'
+  import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
   import { useRkeSummary }          from '@/js/composables/roles/superadmin/dashboard/useRkeSummary'
   import { usePlatformWallet }      from '@/js/composables/roles/superadmin/dashboard/usePlatformWallet'
@@ -60,6 +61,8 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
+
+  const { loading: sectionsLoading } = useDashboardMountLoading()
 
   const { noteRealtimeItem } = useActivityLogReconciliation(
     (items) => items.forEach((item) => prependActivity(item)),
@@ -193,6 +196,8 @@
         title="Accesos rápidos"
         icon="fas fa-bolt"
         subtitle="Gestión completa del sistema"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
       >
         <DashboardQuickLinksGroup :groups="quickLinkGroups" :columns="4" />
       </DashboardSection>
@@ -204,6 +209,8 @@
             title="Tendencia de ventas"
             icon="fas fa-chart-area"
             subtitle="Cartones vendidos · últimos 14 días"
+            :loading="sectionsLoading"
+            skeleton-variant="chart"
           >
             <DashboardTrendChart :data="salesTrend" label="Cartones vendidos" />
           </DashboardSection>
@@ -213,6 +220,7 @@
             :pending-count="livePendingCount"
             :is-live="isWalletLive"
             :recent-movements="recentMovements"
+            :loading="sectionsLoading"
           />
         </div>
       </div>
@@ -226,6 +234,8 @@
             title="Actividad reciente"
             icon="fas fa-history"
             subtitle="Usuarios, ventas, ganadores y movimientos en vivo"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
           >
             <DashboardActivityFeed
               :items="sortedActivity"
@@ -244,6 +254,8 @@
             icon="fas fa-layer-group"
             subtitle="Totales registrados"
             class="ds-scroll-section"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
           >
             <DashboardEntityList :items="entityCounts" />
           </DashboardSection>
@@ -256,6 +268,7 @@
         title="Salud del sistema"
         icon="fas fa-heartbeat"
         :subtitle="systemHealth.label"
+        :loading="sectionsLoading"
       >
         <template #actions>
           <button

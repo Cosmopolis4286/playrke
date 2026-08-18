@@ -73,6 +73,8 @@ export interface ActivityItem {
 // Section / Widget
 // --------------------------------------------------------------------------
 
+export type DashboardSkeletonVariant = 'lines' | 'list' | 'chart' | 'stat'
+
 export interface DashboardSectionProps {
     title?: string
     subtitle?: string
@@ -82,6 +84,8 @@ export interface DashboardSectionProps {
     bordered?: boolean
     /** Mostrar skeleton mientras carga */
     loading?: boolean
+    /** Forma del skeleton — 'lines' (genérico, default), 'list' (filas tipo EntityList/ActivityFeed), 'chart' (barras tipo TrendChart), 'stat' (bloque grande tipo CommissionPanel). */
+    skeletonVariant?: DashboardSkeletonVariant
     /** Clase CSS adicional para el wrapper */
     class?: string
 }

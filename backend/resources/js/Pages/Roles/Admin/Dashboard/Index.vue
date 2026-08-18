@@ -30,6 +30,7 @@
   import { useWalletMovementsRealtime, type WalletMovementRequestedPayload } from '@/js/composables/wallet/admin/useWalletMovementsRealtime'
   import { useDashboardQuickLinks }      from '@/js/composables/common/dashboard/useDashboardQuickLinks'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
+  import { useDashboardMountLoading }    from '@/js/composables/common/dashboard/useDashboardMountLoading'
   import type { ActivityItem }           from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
@@ -49,6 +50,8 @@
   // ==========================================================================
 
   const { statCards, sortedActivity, entityCounts, salesTrend, pendingWalletCount, prependActivity } = useAdminDashboard(props)
+
+  const { loading: sectionsLoading } = useDashboardMountLoading()
 
   const { noteRealtimeItem } = useActivityLogReconciliation(
     (items) => items.forEach((item) => prependActivity(item)),
@@ -140,6 +143,8 @@
         title="Accesos rápidos"
         icon="fas fa-bolt"
         subtitle="Gestión del sistema"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
       >
         <DashboardQuickLinksGroup :groups="quickLinkGroups" :columns="3" />
       </DashboardSection>
@@ -151,6 +156,8 @@
             title="Tendencia de ventas"
             icon="fas fa-chart-area"
             subtitle="Cartones vendidos · últimos 14 días"
+            :loading="sectionsLoading"
+            skeleton-variant="chart"
           >
             <DashboardTrendChart :data="salesTrend" label="Cartones vendidos" />
           </DashboardSection>
@@ -160,6 +167,7 @@
             :pending-count="livePendingCount"
             :is-live="isWalletLive"
             :recent-movements="recentMovements"
+            :loading="sectionsLoading"
           />
         </div>
       </div>
@@ -173,6 +181,8 @@
             title="Actividad reciente"
             icon="fas fa-history"
             subtitle="Usuarios, ventas, ganadores y movimientos en vivo"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
           >
             <DashboardActivityFeed
               :items="sortedActivity"
@@ -190,6 +200,8 @@
             title="Entidades por rol"
             icon="fas fa-layer-group"
             subtitle="Totales registrados"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
           >
             <DashboardEntityList :items="entityCounts" />
           </DashboardSection>

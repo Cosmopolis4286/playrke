@@ -1,4 +1,6 @@
 <script setup lang="ts" name="DashboardCommissionPanel">
+  import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
+
   defineProps<{
     commission?: number | string | null
   }>()
@@ -15,10 +17,12 @@
       Tu comisión se calcula sobre el total de cartones vendidos cada período.
     </p>
   </div>
-  <div v-else class="dcp-empty">
-    <i class="fas fa-percentage"></i>
-    <p class="mb-0">Información de comisión no disponible.</p>
-  </div>
+  <DashboardEmptyState
+    v-else
+    icon="fas fa-percentage"
+    title="Información de comisión no disponible"
+    description="Contacta a tu comercio o administrador para configurar tu tasa."
+  />
 </template>
 
 <style scoped>
@@ -68,17 +72,4 @@
   border-radius: 6px;
   border-left: 3px solid #0dcaf0;
 }
-
-.dcp-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 2.5rem 1rem;
-  color: var(--ds-text-muted);
-  font-size: 0.85rem;
-  text-align: center;
-}
-.dcp-empty i { font-size: 2rem; }
 </style>

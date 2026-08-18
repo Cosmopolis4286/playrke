@@ -1,6 +1,7 @@
 <script setup lang="ts" name="DashboardTrendChart">
   import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
   import VueApexCharts from 'vue3-apexcharts'
+  import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
   import type { ApexOptions } from 'apexcharts'
 
   const props = withDefaults(defineProps<{
@@ -76,13 +77,28 @@
       tooltip: { theme: isLightTheme.value ? 'light' : 'dark' },
     }
   })
+
+  /**
+   * "Sin datos" no es que el array venga vacío — buildSalesTrend() siempre
+   * rellena los N días del período con count:0 (ver backend) — sino que
+   * ningún día del período tuvo ventas. Un gráfico plano en cero no aporta
+   * nada frente a un mensaje claro.
+   */
+  const hasData = computed(() => props.data.some((d) => d.count > 0))
 </script>
 
 <template>
   <VueApexCharts
+    v-if="hasData"
     type="area"
     height="220"
     :options="chartOptions"
     :series="series"
+  />
+  <DashboardEmptyState
+    v-else
+    icon="fas fa-chart-area"
+    title="Sin datos de tendencia todavía"
+    description="El gráfico aparecerá en cuanto haya ventas registradas en el período."
   />
 </template>

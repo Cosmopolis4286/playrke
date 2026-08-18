@@ -25,6 +25,7 @@
 
   import { useDashboard }             from '@/js/composables/common/dashboard/useDashboard'
   import { useCreatorSalesRealtime }  from '@/js/composables/common/dashboard/useCreatorSalesRealtime'
+  import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
 
   // ==========================================================================
   // Types
@@ -45,6 +46,7 @@
 
   const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity)
   const { isLive, cardsSoldToday, amountSoldToday } = useCreatorSalesRealtime(prependActivity)
+  const { loading: sectionsLoading } = useDashboardMountLoading()
 
   // ==========================================================================
   // Stats — placeholder estático cuando el backend aún no los envía
@@ -184,6 +186,8 @@
         title="Accesos rápidos"
         icon="fas fa-bolt"
         subtitle="Operaciones frecuentes"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
       >
         <DashboardQuickLinks :links="quickLinks" :columns="4" />
       </DashboardSection>
@@ -197,6 +201,8 @@
             title="Actividad reciente"
             icon="fas fa-history"
             subtitle="Últimas operaciones"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
           >
             <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
           </DashboardSection>
@@ -208,6 +214,8 @@
             title="Mi comisión"
             icon="fas fa-percentage"
             subtitle="Información de tu tasa"
+            :loading="sectionsLoading"
+            skeleton-variant="stat"
           >
             <DashboardCommissionPanel :commission="commission" />
           </DashboardSection>
