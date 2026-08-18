@@ -1,4 +1,6 @@
-import type { StatCardData, ActivityItem, StatCardVariant } from '@/js/types/common/dashboard/dashboard'
+import type { StatCardData, ActivityItem, EntityCount } from '@/js/types/common/dashboard/dashboard'
+
+export type { EntityCount }
 
 // --------------------------------------------------------------------------
 // Stats específicos del Admin
@@ -9,17 +11,6 @@ export interface AdminStats {
     newUsersThisMonth:  StatCardData
     cardsToday:         StatCardData
     activeRooms:        StatCardData
-}
-
-// --------------------------------------------------------------------------
-// Conteo de entidades por rol
-// --------------------------------------------------------------------------
-
-export interface EntityCount {
-    label:   string
-    value:   number
-    icon:    string
-    variant: StatCardVariant
 }
 
 // --------------------------------------------------------------------------

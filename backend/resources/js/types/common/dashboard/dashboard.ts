@@ -34,6 +34,23 @@ export interface StatCardData {
 }
 
 // --------------------------------------------------------------------------
+// Entity Count (conteo de entidades por rol)
+// --------------------------------------------------------------------------
+
+export interface EntityCount {
+    label:   string
+    value:   number
+    icon:    string
+    variant: StatCardVariant
+    /** Enlace opcional a la pantalla de gestión de esta entidad */
+    href?:       string
+    /** Tendencia semana-a-semana (ver BuildsWeeklyTrend) */
+    trend?:      StatCardTrend
+    trendValue?: number
+    trendLabel?: string
+}
+
+// --------------------------------------------------------------------------
 // Activity Feed
 // --------------------------------------------------------------------------
 

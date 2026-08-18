@@ -113,10 +113,22 @@ final class AdminDashboardContextService
     private function buildEntityCounts(): array
     {
         return [
-            ['label' => 'Comercios',   'value' => Commerce::count(),  'icon' => 'fas fa-building',      'variant' => 'primary'],
-            ['label' => 'Vendedores',  'value' => Seller::count(),    'icon' => 'fas fa-user-tie',       'variant' => 'success'],
-            ['label' => 'Clientes',    'value' => Customer::count(),  'icon' => 'fas fa-handshake',      'variant' => 'info'],
-            ['label' => 'Tesoreros',   'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',     'variant' => 'warning'],
+            array_merge([
+                'label' => 'Comercios', 'value' => Commerce::count(), 'icon' => 'fas fa-building',
+                'variant' => 'primary', 'href' => '/admin/commerces',
+            ], $this->buildWeeklyTrend(Commerce::query())),
+            array_merge([
+                'label' => 'Vendedores', 'value' => Seller::count(), 'icon' => 'fas fa-user-tie',
+                'variant' => 'success', 'href' => '/admin/sellers',
+            ], $this->buildWeeklyTrend(Seller::query())),
+            array_merge([
+                'label' => 'Clientes', 'value' => Customer::count(), 'icon' => 'fas fa-handshake',
+                'variant' => 'info', 'href' => '/admin/customers',
+            ], $this->buildWeeklyTrend(Customer::query())),
+            array_merge([
+                'label' => 'Tesoreros', 'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',
+                'variant' => 'warning', 'href' => '/admin/treasurers',
+            ], $this->buildWeeklyTrend(Treasurer::query())),
         ];
     }
 }

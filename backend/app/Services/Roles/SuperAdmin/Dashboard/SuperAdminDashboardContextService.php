@@ -115,15 +115,31 @@ final class SuperAdminDashboardContextService
 
     private function buildEntityCounts(): array
     {
-        $playersCount = User::role('player')->count();
-
         return [
-            ['label' => 'Administradores', 'value' => Admin::count(),     'icon' => 'fas fa-user-shield',   'variant' => 'danger',    'href' => '/admins'],
-            ['label' => 'Comercios',       'value' => Commerce::count(),  'icon' => 'fas fa-building',      'variant' => 'primary',   'href' => '/admin/commerces'],
-            ['label' => 'Vendedores',      'value' => Seller::count(),    'icon' => 'fas fa-user-tie',      'variant' => 'success',   'href' => '/admin/sellers'],
-            ['label' => 'Clientes',        'value' => Customer::count(),  'icon' => 'fas fa-handshake',     'variant' => 'info',      'href' => '/admin/customers'],
-            ['label' => 'Jugadores',       'value' => $playersCount,      'icon' => 'fas fa-gamepad',       'variant' => 'secondary', 'href' => '/admin/players'],
-            ['label' => 'Tesoreros',       'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',    'variant' => 'warning',   'href' => '/admin/treasurers'],
+            array_merge([
+                'label' => 'Administradores', 'value' => Admin::count(), 'icon' => 'fas fa-user-shield',
+                'variant' => 'danger', 'href' => '/admins',
+            ], $this->buildWeeklyTrend(Admin::query())),
+            array_merge([
+                'label' => 'Comercios', 'value' => Commerce::count(), 'icon' => 'fas fa-building',
+                'variant' => 'primary', 'href' => '/admin/commerces',
+            ], $this->buildWeeklyTrend(Commerce::query())),
+            array_merge([
+                'label' => 'Vendedores', 'value' => Seller::count(), 'icon' => 'fas fa-user-tie',
+                'variant' => 'success', 'href' => '/admin/sellers',
+            ], $this->buildWeeklyTrend(Seller::query())),
+            array_merge([
+                'label' => 'Clientes', 'value' => Customer::count(), 'icon' => 'fas fa-handshake',
+                'variant' => 'info', 'href' => '/admin/customers',
+            ], $this->buildWeeklyTrend(Customer::query())),
+            array_merge([
+                'label' => 'Jugadores', 'value' => User::role('player')->count(), 'icon' => 'fas fa-gamepad',
+                'variant' => 'secondary', 'href' => '/admin/players',
+            ], $this->buildWeeklyTrend(User::role('player'))),
+            array_merge([
+                'label' => 'Tesoreros', 'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',
+                'variant' => 'warning', 'href' => '/admin/treasurers',
+            ], $this->buildWeeklyTrend(Treasurer::query())),
         ];
     }
 
