@@ -132,8 +132,22 @@ Route::middleware('auth')->group(function () {
 
     role_protected_routes(['role:admin'], 'admin/commerce',  AdminCommerceController::class,  $adminCrudRoutes, 'commerce');
     role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
-    role_protected_routes(['role:admin'], 'admin/player',    AdminPlayerController::class,    $adminCrudRoutes, 'player');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'treasurer');
+
+    /**
+     * Rutas de jugadores: array propio (copia de $adminCrudRoutes + export/
+     * bulk) en vez de reusar el compartido — agregar acciones directamente a
+     * $adminCrudRoutes afectaría también a commerce/customer/treasurer, que
+     * no las necesitan. Mismo patrón de bulk que admin/user (throttle
+     * dedicado, uri 'bulk/status' y 'bulk/delete' sin conflicto con '{id}'
+     * porque Laravel resuelve por segmento literal antes que por parámetro).
+     */
+    $playerRoutes = $adminCrudRoutes + [
+        'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export'],
+        'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
+        'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
+    ];
+    role_protected_routes(['role:admin'], 'admin/player', AdminPlayerController::class, $playerRoutes, 'player');
 
     // Rutas de usuarios (sin store/show — la creación se delega al flujo del rol)
     $userRoutes = [

@@ -8,6 +8,8 @@ use App\Http\Requests\Roles\Admin\Player\AdminPlayerRequest;
 use App\Models\User;
 use App\Services\Roles\Admin\Player\AdminPlayerService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador de administración de Players.
@@ -31,11 +33,56 @@ final class AdminPlayerController extends Controller
         );
     }
 
-    public function fetchList(): JsonResponse
+    /**
+     * Listado paginado de jugadores (JSON). Server-side real: search,
+     * country_name y status filtran contra TODO el catálogo de jugadores,
+     * no solo la página cargada en memoria.
+     */
+    public function fetchList(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => ['data' => $this->service->fetchList()]
-        );
+        return $this->handleServiceJson(function () use ($request) {
+            $filters = $request->only(['search', 'country_name', 'status']);
+            $page    = (int) $request->get('page', 1);
+
+            $result = $this->service->fetchList($filters, $page);
+
+            return [
+                'data' => $result['rows'],
+                'meta' => $result['pagination'],
+            ];
+        });
+    }
+
+    /**
+     * Exporta a CSV todos los jugadores que coincidan con los filtros
+     * actuales (sin límite de paginación) — mismo patrón que
+     * AdminUserController::export().
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $filters = $request->only(['search', 'country_name', 'status']);
+
+        return response()->streamDownload(function () use ($filters) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nombre', 'Apellido', 'Username', 'Email', 'País', 'Teléfono', 'Estado', 'Registrado']);
+
+            foreach ($this->service->exportForCsv($filters) as $user) {
+                fputcsv($handle, [
+                    $user->first_name,
+                    $user->last_name,
+                    $user->username,
+                    $user->email,
+                    $user->country?->name,
+                    $user->phone_number,
+                    $user->status,
+                    $user->created_at?->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($handle);
+        }, 'jugadores-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function show(User $player): JsonResponse
@@ -73,6 +120,36 @@ final class AdminPlayerController extends Controller
     {
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($player)
+        );
+    }
+
+    /**
+     * Alternar estado de varios jugadores en una sola transacción.
+     */
+    public function toggleStatusBulk(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->toggleStatusBulk($request->input('ids'))
+        );
+    }
+
+    /**
+     * Eliminación lógica de varios jugadores en una sola transacción.
+     */
+    public function deleteBulk(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->deleteBulk($request->input('ids'))
         );
     }
 

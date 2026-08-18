@@ -1,13 +1,24 @@
 import { ref, Ref } from 'vue'
+import Swal from 'sweetalert2'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
 import type { Player } from '@/js/types/roles/player/player'
+import type { Pagination } from '@/js/types/common/table/pagination'
+import type { ServerQuery } from '@/js/composables/common/table/useTableController'
+
+interface BulkResult {
+    updated: number
+    skipped: { id: string; name: string; reason: string }[]
+}
 
 interface UseAdminPlayerReturn {
     playerData: Ref<Partial<Player>>
     players: Ref<Player[]>
-    setInitialPlayers: (initial: Player[]) => void
+    pagination: Ref<Pagination | null>
+    loading: Ref<boolean>
+    lastQuery: Ref<ServerQuery>
+    setInitialPlayers: (initial: Player[], initialPagination?: Pagination | null) => void
     submit: () => Promise<boolean>
     create: () => void
     edit: (id: string | number) => Promise<boolean>
@@ -18,6 +29,7 @@ interface UseAdminPlayerReturn {
     remove: (id: string | number) => Promise<boolean>
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
     fetchPlayers: () => Promise<boolean>
+    onQueryChange: (query: ServerQuery) => Promise<void>
 }
 
 const emptyPlayer = (): Partial<Player> =>
@@ -35,9 +47,16 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
     const loading   = ref(false)
     const playerData = ref<Partial<Player>>(emptyPlayer())
     const players   = ref<Player[]>([])
+    const pagination = ref<Pagination | null>(null)
 
-    function setInitialPlayers(initial: Player[]) {
+    // Último query server-side aplicado (búsqueda/filtros/página) — mismo
+    // patrón que useAdminUser.ts, reemplaza el fetch sin filtros anterior
+    // que solo "filtraba" la página de 15 registros ya cargada en memoria.
+    const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: null }, page: 1 })
+
+    function setInitialPlayers(initial: Player[], initialPagination: Pagination | null = null) {
         players.value = [...initial]
+        pagination.value = initialPagination
     }
 
     function reset(): void {
@@ -49,9 +68,19 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
     async function fetchPlayers(): Promise<boolean> {
         try {
             loading.value = true
-            const response = await backendClient.get<{ data: Player[] }>('/admin/player/fetch-list')
+            const response = await backendClient.get<{ data: Player[]; meta: Pagination }>('/admin/player/fetch-list', {
+                params: {
+                    page: lastQuery.value.page,
+                    search: lastQuery.value.search || undefined,
+                    country_name: lastQuery.value.filters.country_name || undefined,
+                    status: lastQuery.value.filters.status || undefined,
+                },
+            })
             if (Array.isArray(response.data?.data)) {
                 players.value = response.data.data
+            }
+            if (response.data?.meta) {
+                pagination.value = response.data.meta
             }
             return true
         } catch (error) {
@@ -61,6 +90,12 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
         } finally {
             loading.value = false
         }
+    }
+
+    /** Adapta el evento query-change de TableWithFilterBridge (server-side) al fetch. */
+    async function onQueryChange(query: ServerQuery): Promise<void> {
+        lastQuery.value = query
+        await fetchPlayers()
     }
 
     function buildPayload(): Record<string, unknown> {
@@ -214,6 +249,41 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
         `
     }
 
+    /**
+     * Muestra el resultado de una operación bulk. Si hubo omitidos (ej.
+     * jugadores ya eliminados), detalla cada uno con su razón en vez de un
+     * toast genérico — el backend ya aplicó lo que pudo en una sola
+     * transacción (ver AdminPlayerCrudService::toggleStatusBulk/deleteBulk).
+     */
+    async function reportBulkResult(result: BulkResult, successVerb: string): Promise<void> {
+        if (result.skipped.length === 0) {
+            showToast(`${result.updated} jugador(es) ${successVerb} correctamente`, 'success')
+            return
+        }
+
+        const skippedHtml = result.skipped
+            .map(s => `<li style="padding:4px 0;"><b>${s.name}</b>: ${s.reason}</li>`)
+            .join('')
+
+        await Swal.fire({
+            icon: result.updated > 0 ? 'warning' : 'error',
+            title: result.updated > 0 ? 'Completado parcialmente' : 'No se pudo completar',
+            html: `
+                <p style="margin-bottom:8px;">${result.updated} jugador(es) ${successVerb} correctamente.</p>
+                <p style="margin-bottom:4px;">${result.skipped.length} omitido(s):</p>
+                <div style="max-height:150px;overflow-y:auto;text-align:left;padding:10px;background:#f8f9fa;border-radius:6px;">
+                    <ul style="margin:0;padding-left:20px;">${skippedHtml}</ul>
+                </div>
+            `,
+            confirmButtonText: 'Entendido',
+        })
+    }
+
+    /**
+     * Una sola request transaccional al backend (antes hacía un loop
+     * secuencial de N requests, sin atomicidad ni reporte de omitidos) —
+     * mismo patrón que useAdminUser.ts.
+     */
     async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
         if (ids.length === 1) return toggleStatus(ids[0])
@@ -226,8 +296,8 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
         if (!confirm) return false
 
         try {
-            for (const id of ids) await backendClient.put(`/admin/player/${id}/status`)
-            showToast(`Estado cambiado para ${ids.length} jugadores`, 'success')
+            const { data } = await backendClient.put<BulkResult>('/admin/player/bulk/status', { ids })
+            await reportBulkResult(data, 'actualizados')
             await fetchPlayers()
             return true
         } catch {
@@ -248,8 +318,8 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
         if (!confirm) return false
 
         try {
-            for (const id of ids) await backendClient.put(`/admin/player/${id}/delete`)
-            showToast(`${ids.length} jugadores eliminados con éxito`, 'success')
+            const { data } = await backendClient.put<BulkResult>('/admin/player/bulk/delete', { ids })
+            await reportBulkResult(data, 'eliminados')
             await fetchPlayers()
             return true
         } catch {
@@ -261,6 +331,9 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
     return {
         playerData,
         players,
+        pagination,
+        loading,
+        lastQuery,
         setInitialPlayers,
         submit,
         create,
@@ -272,5 +345,6 @@ export function useAdminPlayer(): UseAdminPlayerReturn {
         remove,
         removeBulk,
         fetchPlayers,
+        onQueryChange,
     }
 }

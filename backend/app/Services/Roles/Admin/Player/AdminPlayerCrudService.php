@@ -116,6 +116,79 @@ final class AdminPlayerCrudService
     }
 
     /**
+     * Alternar estado ACTIVE/INACTIVE de varios jugadores en una sola
+     * transacción. Mismo patrón que AdminUserService::toggleStatusBulk():
+     * los jugadores protegidos (ya eliminados) no abortan el lote completo,
+     * se omiten y se reportan en 'skipped'. Sin guard de auto-modificación/
+     * jerarquía (a diferencia de AdminUserService) porque un player nunca es
+     * el actor admin que ejecuta la acción.
+     *
+     * @param array<int, string> $userIds
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function toggleStatusBulk(array $userIds): array
+    {
+        return DB::transaction(function () use ($userIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (User::whereIn('id', $userIds)->get() as $user) {
+                try {
+                    if ($user->status === 'DELETED') {
+                        throw AdminPlayerException::invalidStatusChange();
+                    }
+
+                    $user->update(['status' => $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE']);
+                    $updated++;
+                } catch (AdminPlayerException $e) {
+                    $skipped[] = [
+                        'id' => (string) $user->id,
+                        'name' => trim("{$user->first_name} {$user->last_name}") ?: $user->username,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
+     * Eliminación lógica (soft delete) de varios jugadores en una sola
+     * transacción. Mismo criterio de omisión que toggleStatusBulk().
+     *
+     * @param array<int, string> $userIds
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function deleteBulk(array $userIds): array
+    {
+        return DB::transaction(function () use ($userIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (User::whereIn('id', $userIds)->get() as $user) {
+                try {
+                    if ($user->status === 'DELETED') {
+                        throw AdminPlayerException::alreadyDeleted();
+                    }
+
+                    $user->update(['status' => 'DELETED']);
+                    $user->delete();
+                    $updated++;
+                } catch (AdminPlayerException $e) {
+                    $skipped[] = [
+                        'id' => (string) $user->id,
+                        'name' => trim("{$user->first_name} {$user->last_name}") ?: $user->username,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
      * Eliminación definitiva (hard delete).
      */
     public function destroy(User $user): void
