@@ -3,7 +3,9 @@
 namespace App\Logging;
 
 use App\Models\SystemLog;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Level;
 use Monolog\LogRecord;
@@ -51,33 +53,75 @@ class DatabaseLogHandler extends AbstractProcessingHandler
              * vez de insertar una fila nueva por cada ocurrencia — sin esto,
              * un error en loop (ej. job que reintenta cada minuto) satura la
              * tabla con cientos de filas idénticas.
+             *
+             * increment() primero (UPDATE ... WHERE fingerprint = ?) en vez de
+             * where()->first() + save(): si ninguna fila coincide, devuelve 0
+             * filas afectadas sin haber leído nada, y el create() de abajo la
+             * crea. Con fingerprint ahora unique() a nivel de BD (ver
+             * migración add_stability_indexes_to_system_logs_table), dos
+             * requests concurrentes con el mismo fingerprint ya no pueden
+             * generar dos filas: como mucho, ambas intentan el create() tras
+             * ver 0 filas afectadas, y la segunda choca contra la restricción
+             * unique — se captura y se reintenta como increment(), quedando
+             * igual de agrupado que si hubiera llegado un instante después.
              */
-            $existing = SystemLog::where('fingerprint', $fingerprint)->first();
+            $updated = SystemLog::where('fingerprint', $fingerprint)
+                ->update(['occurrences' => DB::raw('occurrences + 1'), 'last_seen_at' => now()]);
 
-            if ($existing) {
-                $existing->increment('occurrences');
-                $existing->forceFill(['last_seen_at' => now()])->save();
+            if ($updated > 0) {
                 return;
             }
 
-            SystemLog::create([
-                'level'        => $level,
-                'message'      => $record->message,
-                'context'      => $record->channel,
-                'stack'        => $stack,
-                'meta'         => $meta ?: null,
-                'fingerprint'  => $fingerprint,
-                'occurrences'  => 1,
-                'last_seen_at' => now(),
-            ]);
+            try {
+                SystemLog::create([
+                    'level'        => $level,
+                    'message'      => $record->message,
+                    'context'      => $record->channel,
+                    'stack'        => $stack,
+                    'meta'         => $meta ?: null,
+                    'fingerprint'  => $fingerprint,
+                    'occurrences'  => 1,
+                    'last_seen_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                if (! $this->isUniqueConstraintViolation($e)) {
+                    throw $e;
+                }
+
+                // Otro request ganó la carrera y ya creó la fila entre
+                // nuestro update() (0 filas) y este create() — nos sumamos a
+                // su ocurrencia en vez de duplicar.
+                SystemLog::where('fingerprint', $fingerprint)
+                    ->update(['occurrences' => DB::raw('occurrences + 1'), 'last_seen_at' => now()]);
+            }
         } catch (Throwable) {
             // Nunca interrumpir el flujo de logging real por un fallo de persistencia.
         }
     }
 
+    private function isUniqueConstraintViolation(QueryException $e): bool
+    {
+        // 23000 = SQLSTATE de integridad referencial/unicidad en MySQL/MariaDB/SQLite.
+        return $e->getCode() === '23000';
+    }
+
+    /**
+     * Mapea el nivel Monolog al valor persistido en system_logs.level.
+     * Antes colapsaba todo lo >= Error a 'error', perdiendo la distinción
+     * entre un error común y un critical/emergency (sistema caído) — ambos
+     * se veían idénticos en /logs. Ahora cada nivel de PSR-3/Monolog >=
+     * Warning tiene su propio valor; la columna ya es string(10), que cabe
+     * el más largo ('emergency').
+     */
     private function mapLevel(Level $level): string
     {
-        return $level->value >= Level::Error->value ? 'error' : 'warn';
+        return match (true) {
+            $level->value >= Level::Emergency->value => 'emergency',
+            $level->value >= Level::Alert->value     => 'alert',
+            $level->value >= Level::Critical->value  => 'critical',
+            $level->value >= Level::Error->value     => 'error',
+            default                                  => 'warn',
+        };
     }
 
     /**
