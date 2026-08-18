@@ -1,5 +1,6 @@
 <script setup lang="ts" name="DashboardEntityList">
   import { computed } from 'vue'
+  import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
   import type { EntityCount } from '@/js/types/common/dashboard/dashboard'
 
   const props = defineProps<{
@@ -63,11 +64,12 @@
       <i v-if="entity.href" class="fas fa-chevron-right del-chevron"></i>
     </component>
   </div>
-  <div v-else class="del-empty">
-    <i class="fas fa-layer-group"></i>
-    <p class="mb-1 fw-semibold">Sin entidades registradas todavía</p>
-    <p class="mb-0 text-muted small">Los conteos aparecerán aquí en cuanto se creen comercios, vendedores u otros roles.</p>
-  </div>
+  <DashboardEmptyState
+    v-else
+    icon="fas fa-layer-group"
+    title="Sin entidades registradas todavía"
+    description="Los conteos aparecerán aquí en cuanto se creen comercios, vendedores u otros roles."
+  />
 </template>
 
 <style scoped>
@@ -160,17 +162,4 @@
   color: var(--ds-text-muted);
   flex-shrink: 0;
 }
-
-.del-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 2.5rem 1rem;
-  color: #adb5bd;
-  font-size: 0.85rem;
-  text-align: center;
-}
-.del-empty i { font-size: 2rem; }
 </style>
