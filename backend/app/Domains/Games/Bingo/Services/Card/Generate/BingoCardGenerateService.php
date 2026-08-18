@@ -505,9 +505,6 @@ final class BingoCardGenerateService
             ->where('phone', $dto->playerPhone)
             ->value('room_user_id');
 
-        $arrInitials = $this->initialCharacters([$dto->playerName, $dto->playerLastName]);
-
-
         // Definir ID del juego
         $gameId = Game::getValueByName('BINGO', 'id');
 
@@ -526,7 +523,6 @@ final class BingoCardGenerateService
             'playerPhone'   => $dto->playerPhone,
             'playerName'    => $dto->playerName,
             'playerLastName' => $dto->playerLastName,
-            'initials'      => $arrInitials[0] . $arrInitials[1],
             'exchangeRate'  => $exchangeRate,
             'receiptNumber' => $dto->receiptNumber,
             'receiptImage'  => $dto->receiptImage,

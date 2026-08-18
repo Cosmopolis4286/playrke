@@ -128,8 +128,6 @@ trait Auditable
             'user_agent' => Request::instance()?->userAgent(),
         ]);
 
-        $this->logSuspiciousChangeForDiagnosis($event, $oldValuesPreview, $newValuesPreview);
-
         $this->alertIfSensitive($event);
     }
 
@@ -152,47 +150,6 @@ trait Auditable
         }
 
         return false;
-    }
-
-    /**
-     * DIAGNÓSTICO TEMPORAL — remover una vez identificada la causa raíz.
-     * Se detectó un audit real de User#updated con url=/logout que cambiaba
-     * country_id (dos Snowflake IDs distintos, no un problema de formato)
-     * sin que ningún código revisado (controlador de logout, listeners de
-     * Auth::logout, observers, middlewares globales) explique el save().
-     * Vuelca un backtrace corto a storage/logs cuando vuelva a ocurrir, para
-     * capturar con certeza qué línea ejecutó el save()/update() responsable.
-     */
-    private function logSuspiciousChangeForDiagnosis(string $event, ?array $oldValues, ?array $newValues): void
-    {
-        if ($event !== 'updated' || $this->getMorphClass() !== \App\Models\User::class) {
-            return;
-        }
-
-        $watchedFields = ['country_id'];
-        $changed = array_filter(
-            $watchedFields,
-            fn ($field) => array_key_exists($field, $oldValues ?? [])
-                && array_key_exists($field, $newValues ?? [])
-                && ($oldValues[$field] ?? null) !== ($newValues[$field] ?? null)
-        );
-
-        if ($changed === []) {
-            return;
-        }
-
-        Log::warning('[audit:diagnostico-temporal] Cambio inesperado en campo vigilado de User', [
-            'user_id'   => $this->getAuditableId(),
-            'campos'    => $changed,
-            'old'       => array_intersect_key($oldValues ?? [], array_flip($changed)),
-            'new'       => array_intersect_key($newValues ?? [], array_flip($changed)),
-            'url'       => Request::instance()?->fullUrl(),
-            'actor_id'  => Auth::id(),
-            'backtrace' => collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12))
-                ->map(fn ($frame) => ($frame['class'] ?? '') . ($frame['type'] ?? '') . ($frame['function'] ?? '') . ':' . ($frame['line'] ?? '?'))
-                ->values()
-                ->toArray(),
-        ]);
     }
 
     /**
