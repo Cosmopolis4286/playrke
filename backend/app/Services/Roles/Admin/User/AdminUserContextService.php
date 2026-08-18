@@ -183,13 +183,33 @@ final class AdminUserContextService
             // (/admin/commerces, etc.), que identifica sus filas por ese id,
             // no por el id del User. 'player' no tiene modelo de dominio
             // propio (ver AdminPlayerContextService, opera sobre User
-            // directo), así que ahí domain_id es el mismo real_id.
+            // directo), así que ahí domain_id es el mismo usuario.
+            //
+            // hashed_id (no ->id crudo) para commerce/seller/treasurer/player:
+            // Commerce/Seller/Treasurer/User usan HasHashedRouteKey (vía
+            // BaseModel o directo), así que sus rutas de detalle
+            // ({commerce}/show, {player}/show, etc.) resuelven el route model
+            // binding decodificando un Hashids, no comparando la PK cruda —
+            // pasar el ID sin hashear en domain_id hacía que
+            // router.visit(route, {data:{open:domainId}}) llegara a
+            // /admin/{rol}s?open={id-crudo}, y el composable de esa página
+            // llamara GET /admin/{rol}/{id-crudo}/show, que
+            // HasHashedRouteKey::resolveRouteBinding() no puede decodificar
+            // (Hashids::decode() devuelve vacío) -> 404.
+            //
+            // 'customer' es la excepción: Customer extends Model directo, SIN
+            // HasHashedRouteKey (ver app/Models/Roles/Customer.php) —
+            // AdminCustomerController::show(Customer $customer) resuelve por
+            // binding implícito estándar (compara la PK cruda), así que aquí
+            // corresponde ->id, no ->hashed_id (que además no existe como
+            // accessor real en Customer: devolvería null en vez de fallar,
+            // dejando el botón "Ver más" sin aparecer para ese rol).
             $row['domain_id'] = match ($row['role_name']) {
-                'commerce'  => $user?->commerce?->id,
-                'seller'    => $user?->seller?->id,
+                'commerce'  => $user?->commerce?->hashed_id,
+                'seller'    => $user?->seller?->hashed_id,
                 'customer'  => $user?->customer?->id,
-                'treasurer' => $user?->treasurer?->id,
-                'player'    => $user?->id,
+                'treasurer' => $user?->treasurer?->hashed_id,
+                'player'    => $user?->hashed_id,
                 default     => null,
             };
             return $row;
