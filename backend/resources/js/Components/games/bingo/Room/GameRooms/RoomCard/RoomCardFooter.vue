@@ -17,17 +17,21 @@ const props = defineProps<{
   totalPlayers: number
   playerCardCount: number
   maxPlayers?: number | null
+  minPlayers?: number | null
 }>()
 
 // "X/X" (actual/máximo) cuando la sala define un cupo; si no, solo el total
 const playersLabel = computed(() =>
   props.maxPlayers ? `${props.totalPlayers}/${props.maxPlayers}` : `${props.totalPlayers}`
 )
-const playersTooltip = computed(() =>
-  props.maxPlayers
-    ? `${props.totalPlayers} de ${props.maxPlayers} jugadores — cupo máximo de la sala`
-    : `${props.totalPlayers} jugador${props.totalPlayers !== 1 ? 'es' : ''} en esta sala`
-)
+const playersTooltip = computed(() => {
+  const min = props.minPlayers
+    ? ` · mín. ${props.minPlayers} para iniciar el sorteo`
+    : ''
+  return props.maxPlayers
+    ? `${props.totalPlayers} de ${props.maxPlayers} jugadores — cupo máximo de la sala${min}`
+    : `${props.totalPlayers} jugador${props.totalPlayers !== 1 ? 'es' : ''} en esta sala${min}`
+})
 const isFull = computed(() =>
   props.maxPlayers != null && props.totalPlayers >= props.maxPlayers
 )

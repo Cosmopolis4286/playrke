@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   isAccumulated: boolean
   prizeFormatted: string
   sym: string
@@ -9,8 +9,16 @@ defineProps<{
   showSellingFast: boolean
   totalCards: number
   minCardsToStart: number | null
+  maxCardsToStart?: number | null
   cardsProgressPct: number
 }>()
+
+const progressTooltip = () => {
+  const cap = props.maxCardsToStart ? ` (tope de la sala: ${props.maxCardsToStart} cartones)` : ''
+  return props.cardsProgressReady
+    ? `Ya se alcanzó el mínimo de cartones — el sorteo puede iniciar${cap}`
+    : `Faltan ${props.cardsRemaining} cartón${props.cardsRemaining !== 1 ? 'es' : ''} vendido${props.cardsRemaining !== 1 ? 's' : ''} para que la sala pueda iniciar${cap}`
+}
 </script>
 
 <template>
@@ -35,9 +43,7 @@ defineProps<{
   <!-- Barra de progreso cartones -->
   <div
     v-if="showCardsProgress"
-    v-tooltip="cardsProgressReady
-      ? 'Ya se alcanzó el mínimo de cartones — el sorteo puede iniciar'
-      : `Faltan ${cardsRemaining} cartón${cardsRemaining !== 1 ? 'es' : ''} vendido${cardsRemaining !== 1 ? 's' : ''} para que la sala pueda iniciar`"
+    v-tooltip="progressTooltip()"
     class="rc__progress"
     :class="{ 'rc__progress--ready': cardsProgressReady }"
   >

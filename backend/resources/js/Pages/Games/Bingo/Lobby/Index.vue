@@ -193,6 +193,7 @@ const canPurchaseCards = computed(() =>
 )
 
 const minCardsToStart = computed(() => props.room?.min_cards_to_start ?? null)
+const maxCardsToStart = computed(() => props.room?.max_cards_to_start ?? null)
 
 const showCardsProgress = computed(() =>
   minCardsToStart.value != null && minCardsToStart.value > 0
@@ -297,6 +298,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; cardCou
           v-if="showCardsProgress"
           :total-cards="live.totalCards"
           :min-cards-to-start="minCardsToStart"
+          :max-cards-to-start="maxCardsToStart"
           :progress-pct="cardsProgressPct"
           :ready="cardsProgressReady"
         />

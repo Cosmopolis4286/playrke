@@ -4,6 +4,7 @@ import { watch, ref } from 'vue'
 const props = defineProps<{
   totalCards: number
   minCardsToStart: number | null
+  maxCardsToStart?: number | null
   progressPct: number
   ready: boolean
 }>()
@@ -30,10 +31,14 @@ watch(() => props.ready, (isReady, wasReady) => {
         <i class="fas fa-layer-group" />
         {{ ready ? '¡Listos para iniciar!' : 'Cartones para iniciar' }}
       </span>
-      <span class="lby-progress-panel__count">
+      <span
+        class="lby-progress-panel__count"
+        :title="maxCardsToStart ? `Tope de cartones vendibles en la sala: ${maxCardsToStart}` : undefined"
+      >
         <span class="lby-progress-panel__cur">{{ totalCards }}</span>
         <span class="lby-progress-panel__sep">/</span>
         <span class="lby-progress-panel__max">{{ minCardsToStart }}</span>
+        <span v-if="maxCardsToStart" class="lby-progress-panel__cap">(tope {{ maxCardsToStart }})</span>
       </span>
     </div>
 
@@ -76,6 +81,7 @@ watch(() => props.ready, (isReady, wasReady) => {
 .lby-progress-panel--ready .lby-progress-panel__cur { color: #2af598; }
 .lby-progress-panel__sep   { font-size: 11px; color: #2a3f58; margin: 0 1px; }
 .lby-progress-panel__max   { font-family: 'Anton', sans-serif; font-size: 12px; color: #3a5068; }
+.lby-progress-panel__cap   { font-size: 8px; color: #2a3f58; margin-left: 3px; }
 .lby-progress-panel__track {
   height: 6px; border-radius: 20px; overflow: hidden;
   background: rgba(255,255,255,.05); display: flex;

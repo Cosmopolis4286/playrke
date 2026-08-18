@@ -60,6 +60,7 @@ const shortRoomCode = computed(() => {
 
 // ── Progreso de cartones mínimos para iniciar (realtime, igual que la card/lobby) ──
 const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
+const maxCardsToStart = computed(() => props.room.config?.max_cards_to_start ?? null)
 const totalCards      = computed(() => props.room.total_cards ?? 0)
 
 const showCardsProgress = computed(() =>
@@ -86,12 +87,19 @@ const showUrgencyHint = computed(() =>
 
 // Cupo de la sala: "X/X" (actual/máximo) cuando la sala define un límite de jugadores
 const maxPlayers = computed(() => props.room.config?.max_players ?? null)
+const minPlayers = computed(() => props.room.config?.min_players ?? null)
 const playersLabel = computed(() =>
   maxPlayers.value ? `${props.room.total_players}/${maxPlayers.value}` : `${props.room.total_players}`
 )
 const isRoomFull = computed(() =>
   maxPlayers.value != null && props.room.total_players >= maxPlayers.value
 )
+const playersTooltip = computed(() => {
+  if (minPlayers.value == null) return null
+  return props.room.total_players >= minPlayers.value
+    ? `Ya se alcanzó el mínimo de ${minPlayers.value} jugadores requerido para iniciar`
+    : `Se requieren al menos ${minPlayers.value} jugadores para que el sorteo pueda iniciar`
+})
 </script>
 
 <template>
@@ -185,7 +193,13 @@ const isRoomFull = computed(() =>
                   <i class="fas fa-layer-group" />
                   {{ cardsProgressReady ? '¡Listo para iniciar!' : 'Cartones para iniciar' }}
                 </span>
-                <span class="rim-cards-progress__count">{{ totalCards }} / {{ minCardsToStart }}</span>
+                <span
+                  class="rim-cards-progress__count"
+                  v-tooltip="maxCardsToStart ? `Tope de cartones vendibles en la sala: ${maxCardsToStart}` : null"
+                >
+                  {{ totalCards }} / {{ minCardsToStart }}
+                  <small v-if="maxCardsToStart" class="rim-cards-progress__cap">(tope {{ maxCardsToStart }})</small>
+                </span>
               </div>
               <div class="rim-cards-progress__track">
                 <div class="rim-cards-progress__fill" :style="{ width: cardsProgressPct + '%' }" />
@@ -194,7 +208,11 @@ const isRoomFull = computed(() =>
 
             <!-- Stats row -->
             <div class="rim-stats rim-reveal" style="--rd: 170ms">
-              <div class="rim-stat" :class="{ 'rim-stat--full': isRoomFull }">
+              <div
+                class="rim-stat"
+                :class="{ 'rim-stat--full': isRoomFull }"
+                v-tooltip="playersTooltip"
+              >
                 <span class="rim-stat__val">{{ playersLabel }}</span>
                 <span class="rim-stat__lbl">Jugadores</span>
               </div>
@@ -550,6 +568,10 @@ const isRoomFull = computed(() =>
 .rim-cards-progress__label i { font-size: 9px; opacity: .8; }
 .rim-cards-progress__count {
   font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: .5px; color: #d8e4ff;
+}
+.rim-cards-progress__cap {
+  font-family: inherit; font-size: 8px; letter-spacing: .2px; color: #4a6090;
+  margin-left: 3px;
 }
 .rim-cards-progress__track {
   height: 7px; border-radius: 20px; overflow: hidden;

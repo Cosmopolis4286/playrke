@@ -36,6 +36,21 @@ const roomIsNearFull = computed(() =>
   props.live.totalPlayers >= props.room.max_players * 0.8
 )
 
+// min_players es informativo (no bloquea la compra, a diferencia de
+// max_players) — BingoRoomHealthCheckService ya bloquea el inicio real del
+// sorteo en backend si no se alcanza. Solo se muestra como contexto.
+const playersTooltip = computed(() => {
+  if (props.room.min_players == null) return 'Ver lista de jugadores'
+  return props.live.totalPlayers >= props.room.min_players
+    ? `Ver lista de jugadores — ya se alcanzó el mínimo de ${props.room.min_players} para iniciar`
+    : `Ver lista de jugadores — se requieren al menos ${props.room.min_players} para iniciar el sorteo`
+})
+
+const cardsGoalTooltip = computed(() => {
+  if (!props.room.max_cards_to_start) return undefined
+  return `Tope de cartones vendibles en la sala: ${props.room.max_cards_to_start}`
+})
+
 </script>
 
 <template>
@@ -45,7 +60,7 @@ const roomIsNearFull = computed(() =>
       <div
         class="lby-stat lby-stat--clickable"
         :class="{ 'lby-flash': playersFlash, 'lby-stat--full': roomIsFull, 'lby-stat--near-full': roomIsNearFull }"
-        title="Ver lista de jugadores"
+        :title="playersTooltip"
         @click="emit('openPlayers')"
       >
         <div class="lby-stat__icon-wrap"><i class="fas fa-users" /></div>
@@ -71,6 +86,7 @@ const roomIsNearFull = computed(() =>
       <div
         class="lby-stat"
         :class="{ 'lby-stat--ready': cardsProgressReady, 'lby-stat--closed': room.close_room }"
+        :title="cardsGoalTooltip"
       >
         <div class="lby-stat__icon-wrap">
           <i :class="minCardsToStart

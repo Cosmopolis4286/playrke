@@ -57,6 +57,8 @@ const startLabel = computed(() => {
 })
 
 const minCardsToStart   = computed(() => props.room.config?.min_cards_to_start ?? null)
+const maxCardsToStart   = computed(() => props.room.config?.max_cards_to_start ?? null)
+const minPlayers        = computed(() => props.room.config?.min_players ?? null)
 const totalCards        = computed(() => props.room.total_cards ?? 0)
 const showCardsProgress = computed(() => minCardsToStart.value != null && minCardsToStart.value > 0)
 const cardsProgressPct  = computed(() => {
@@ -188,6 +190,7 @@ function handleClick(event: MouseEvent) {
           :show-selling-fast="showSellingFast"
           :total-cards="totalCards"
           :min-cards-to-start="minCardsToStart"
+          :max-cards-to-start="maxCardsToStart"
           :cards-progress-pct="cardsProgressPct"
         />
 
@@ -204,6 +207,7 @@ function handleClick(event: MouseEvent) {
           :total-players="room.total_players"
           :player-card-count="playerCardCount"
           :max-players="maxPlayers"
+          :min-players="minPlayers"
         />
 
       </div>
