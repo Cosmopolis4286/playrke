@@ -141,6 +141,7 @@
           :can-deselect="!required"
           :disabled="disabled"
           append-to-body
+          open-direction="bottom"
           class="multiselect-bootstrap"
           :class="{ 'ms-invalid': !!error }"
           style="width: 100%"
@@ -170,6 +171,7 @@
       :can-deselect="!required"
       :disabled="disabled"
       append-to-body
+      open-direction="bottom"
       class="multiselect-bootstrap"
       :class="{ 'ms-invalid': !!error }"
     />

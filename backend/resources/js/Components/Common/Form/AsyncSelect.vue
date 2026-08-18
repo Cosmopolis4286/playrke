@@ -73,6 +73,7 @@
       :can-clear="!required"
       :disabled="disabled"
       append-to-body
+      open-direction="bottom"
       class="multiselect-bootstrap"
       :class="{ 'ms-invalid': !!error }"
       no-results-text="Sin resultados"

@@ -73,7 +73,7 @@ function formatEventLabel(event: string): string {
     <div v-else-if="error" class="ud-error">
       <i class="fas fa-triangle-exclamation ud-error-icon"></i>
       <p class="ud-error-text">{{ error }}</p>
-      <button class="modal-btn modal-btn--ghost" @click="$emit('retry')">
+      <button type="button" class="ud-close-btn" @click="$emit('retry')">
         <i class="fas fa-rotate-right mr-1"></i>Reintentar
       </button>
     </div>
@@ -174,6 +174,41 @@ function formatEventLabel(event: string): string {
         </div>
       </div>
 
+      <!-- Estadísticas de juego -->
+      <div v-if="detail.game_stats" class="ud-section">
+        <h4 class="ud-section-title"><i class="fas fa-gamepad mr-2"></i>Estadísticas de juego</h4>
+        <div class="ud-grid ud-grid--stats">
+          <div class="ud-field">
+            <span class="ud-field-label"><i class="fas fa-dice"></i>Partidas jugadas</span>
+            <span class="ud-field-value">{{ detail.game_stats.games_played.toLocaleString() }}</span>
+          </div>
+          <div class="ud-field">
+            <span class="ud-field-label"><i class="fas fa-trophy"></i>Partidas ganadas</span>
+            <span class="ud-field-value">{{ detail.game_stats.games_won.toLocaleString() }}</span>
+          </div>
+          <div class="ud-field">
+            <span class="ud-field-label"><i class="fas fa-sack-dollar"></i>Ganancias totales</span>
+            <span class="ud-field-value">{{ detail.wallet?.currency?.symbol ?? '' }}{{ detail.game_stats.total_winnings.toLocaleString() }}</span>
+          </div>
+        </div>
+
+        <div v-if="detail.game_stats.achievements.length" class="ud-achievements">
+          <span class="ud-field-label mb-2"><i class="fas fa-medal"></i>Logros desbloqueados ({{ detail.game_stats.achievements_count }})</span>
+          <ul class="ud-achievement-list">
+            <li v-for="achievement in detail.game_stats.achievements" :key="achievement.id" class="ud-achievement-item">
+              <span class="ud-achievement-icon" :style="{ background: achievement.badge_color }">
+                <i class="fas" :class="achievement.icon ?? 'fa-medal'"></i>
+              </span>
+              <span class="ud-achievement-body">
+                <span class="ud-achievement-name">{{ achievement.name }}</span>
+                <span class="ud-achievement-date">{{ achievement.unlocked_at }}</span>
+              </span>
+            </li>
+          </ul>
+        </div>
+        <p v-else class="text-muted small mb-0">Sin logros desbloqueados.</p>
+      </div>
+
       <!-- Actividad reciente -->
       <div class="ud-section">
         <div class="ud-section-header">
@@ -205,12 +240,37 @@ function formatEventLabel(event: string): string {
     </div>
 
     <template #footer>
-      <button class="modal-btn modal-btn--ghost" @click="$emit('update:modelValue', false)">Cerrar</button>
+      <button type="button" class="ud-close-btn" @click="$emit('update:modelValue', false)">Cerrar</button>
     </template>
   </Modal>
 </template>
 
 <style scoped>
+/**
+ * Botón local (no .modal-btn de Modal.vue): los estilos scoped de Modal.vue
+ * no alcanzan el contenido de sus slots (#footer, y el body vía <slot />
+ * por defecto) porque ese markup se renderiza y se marca con el atributo
+ * data-v-xxxx de ESTE componente, no el de Modal.vue — scoped no atraviesa
+ * la frontera padre/slot. Mismo patrón que MovementDetailModal.vue (.op-btn).
+ */
+.ud-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid var(--ds-border-2);
+  background: transparent;
+  color: var(--ds-text-2);
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+.ud-close-btn:hover { background: var(--ds-surface-2); }
+
 .ud-loading { display: flex; align-items: center; justify-content: center; padding: 2.5rem 0; color: var(--ds-text-muted); font-size: 0.88rem; }
 
 .ud-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 2.5rem 1rem; text-align: center; }
@@ -323,6 +383,34 @@ function formatEventLabel(event: string): string {
 .ud-level-bar { height: 8px; border-radius: 4px; background: var(--ds-border); overflow: hidden; }
 .ud-level-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease; }
 .ud-level-meta { font-size: 0.76rem; color: var(--ds-text-muted); margin: 0.5rem 0 0; }
+
+.ud-grid--stats { margin-bottom: 1rem; }
+
+.ud-achievements { margin-top: 0.25rem; }
+.ud-achievement-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.ud-achievement-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--ds-surface-2);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.ud-achievement-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.7rem;
+}
+.ud-achievement-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.ud-achievement-name { font-weight: 600; color: var(--ds-text); }
+.ud-achievement-date { color: var(--ds-text-muted); font-size: 0.74rem; }
 
 .ud-audit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 .ud-audit-item {
