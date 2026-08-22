@@ -10,6 +10,7 @@ use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\Admin\ExternalPlayerAdminController;
 use App\Http\Controllers\Roles\Admin\KycAdminController;
 use App\Http\Controllers\Roles\Admin\AntiCheatAdminController;
+use App\Http\Controllers\Roles\Admin\ImpersonationController;
 use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
 use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
@@ -361,6 +362,19 @@ Route::middleware('auth')->group(function () {
             Route::post('suspensions/{suspension}/resolve', [AntiCheatAdminController::class, 'resolveSuspension'])->name('admin.anticheat.resolveSuspension');
             Route::post('users/{user}/suspend', [AntiCheatAdminController::class, 'suspendManually'])->name('admin.anticheat.suspendManually');
         });
+
+    /**
+     * =========================================================
+     * IMPERSONACIÓN (soporte a jugadores) — Solo SuperAdmin, mismo criterio
+     * que /logs (role:superadmin en vez de un permiso dedicado): es una
+     * acción de alto riesgo (acceso completo a la cuenta de un jugador real,
+     * incluyendo su wallet), no algo delegable a un admin cualquiera.
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin'], 'admin/impersonation', ImpersonationController::class, [
+        'start' => ['method' => 'post', 'uri' => '{player}/start', 'action' => 'start'],
+        'stop'  => ['method' => 'post', 'uri' => 'stop',           'action' => 'stop'],
+    ], 'player');
 
     /**
      * =========================================================

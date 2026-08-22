@@ -29,6 +29,7 @@ return Application::configure(
             'publicToken'     => App\Http\Middleware\PublicTokenMiddleware::class,
             'validate.token'  => \App\Http\Middleware\ValidateToken::class,
             'tos'             => \App\Http\Middleware\RequireTosAcceptance::class,
+            'block-during-impersonation' => \App\Http\Middleware\BlockDuringImpersonation::class,
         ]);
 
         /**
