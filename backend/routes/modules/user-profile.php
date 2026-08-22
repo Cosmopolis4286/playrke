@@ -17,7 +17,11 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     // ── API JSON ───────────────────────────────────────────────────────────
     Route::get('/data',            [ProfileController::class, 'getProfileData'])   ->name('profile.api.data');
     Route::put('/update',          [ProfileController::class, 'updateProfile'])    ->name('profile.api.update')->middleware('throttle:profile-update');
-    Route::patch('/password',      [ProfileController::class, 'changePassword'])   ->name('profile.changePassword')->middleware('throttle:profile-change-password');
+    // block-during-impersonation: un admin impersonando a un jugador (ver
+    // ImpersonationService) no puede cambiar la contraseña real de esa
+    // cuenta — evita que la impersonación se use para tomar control
+    // permanente en vez de solo diagnosticar un problema de soporte.
+    Route::patch('/password',      [ProfileController::class, 'changePassword'])   ->name('profile.changePassword')->middleware(['throttle:profile-change-password', 'block-during-impersonation']);
     Route::post('/avatar',         [ProfileController::class, 'uploadAvatar'])     ->name('profile.api.upload-avatar')->middleware('throttle:profile-avatar');
     Route::delete('/avatar',       [ProfileController::class, 'deleteAvatar'])     ->name('profile.api.delete-avatar')->middleware('throttle:profile-avatar');
     Route::get('/preferences',     [ProfileController::class, 'getPreferences'])   ->name('profile.api.preferences');
