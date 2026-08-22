@@ -85,4 +85,9 @@ return [
     'MANAG_SELLER_DELETE_FAILED' => 'The seller could not be deleted.',
     'MANAG_SELLER_PASSWORD_RESET_FAILED' => 'The seller\'s password could not be reset.',
     'MANAG_SELLER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Only active sellers can have their password reset.',
+
+    // Impersonation (player support)
+    'ALREADY_IMPERSONATING' => 'There is already an active support session. End it before starting another.',
+    'IMPERSONATION_TARGET_MUST_BE_PLAYER' => 'Only users with the Player role can be impersonated.',
+    'NOT_IMPERSONATING' => 'There is no active support session to end.',
 ];

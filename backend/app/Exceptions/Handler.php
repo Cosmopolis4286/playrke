@@ -126,7 +126,8 @@ class Handler extends ExceptionHandler
             'ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE',
             'ADMINISTRATOR_NOT_ADMINISTRATOR',
             'ADMINISTRATOR_CANNOT_MODIFY_SELF',
-            'BINGO_ROOM_PRIVATE_NOT_VERIFIED'
+            'BINGO_ROOM_PRIVATE_NOT_VERIFIED',
+            'IMPERSONATION_TARGET_MUST_BE_PLAYER'
             => Response::HTTP_FORBIDDEN,
 
             // Conflicts / Invalid state
@@ -138,7 +139,9 @@ class Handler extends ExceptionHandler
             'ADMINISTRATOR_ALREADY_DELETED',
             'ADMINISTRATOR_INVALID_STATUS_CHANGE',
             'ADMINISTRATOR_CANNOT_DELETE_LAST_SUPERADMIN',
-            'ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE'
+            'ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE',
+            'ALREADY_IMPERSONATING',
+            'NOT_IMPERSONATING'
             => Response::HTTP_CONFLICT,
 
             // Validation / Business rules

@@ -87,4 +87,9 @@ return [
     'MANAG_SELLER_DELETE_FAILED' => 'No se pudo eliminar el vendedor.',
     'MANAG_SELLER_PASSWORD_RESET_FAILED' => 'No se pudo resetear la contraseña del vendedor.',
     'MANAG_SELLER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Solo se puede resetear la contraseña de vendedores activos.',
+
+    // Impersonación (soporte a jugadores)
+    'ALREADY_IMPERSONATING' => 'Ya hay una sesión de soporte activa. Debes finalizarla antes de iniciar otra.',
+    'IMPERSONATION_TARGET_MUST_BE_PLAYER' => 'Solo se puede impersonar a usuarios con rol Jugador.',
+    'NOT_IMPERSONATING' => 'No hay ninguna sesión de soporte activa para finalizar.',
 ];
