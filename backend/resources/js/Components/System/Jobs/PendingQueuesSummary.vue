@@ -4,6 +4,7 @@ import type { PendingQueueSummary } from '@/js/types/system/jobs'
 
 defineProps<{
   queues: PendingQueueSummary[]
+  refreshing?: boolean
 }>()
 
 const queueLabels: Record<string, string> = {
@@ -18,7 +19,7 @@ function labelFor(queue: string): string {
 </script>
 
 <template>
-  <div class="pqs-grid">
+  <div class="pqs-grid" :class="{ 'pqs-grid--refreshing': refreshing }">
     <StatTile
       v-for="q in queues"
       :key="q.queue"
@@ -35,5 +36,7 @@ function labelFor(queue: string): string {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
+  transition: opacity 0.15s;
 }
+.pqs-grid--refreshing { opacity: 0.6; }
 </style>
