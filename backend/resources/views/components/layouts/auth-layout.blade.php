@@ -46,6 +46,17 @@
              sidebar (montado por Vue; ver PendingMovementsBadge.vue) --}}
         <div id="pending-movements-badge" data-initial-pending-count="{{ $navPendingCount ?? 0 }}"></div>
 
+        {{-- Banner de sesión de soporte activa (montado por Vue solo si hay
+             impersonación en curso; ver ImpersonationService/ImpersonationBanner.vue) --}}
+        @if(session()->has('impersonator_id'))
+            <div
+                id="impersonation-banner"
+                data-impersonating="true"
+                data-admin-name="{{ \App\Models\User::find(session('impersonator_id'))?->username }}"
+                data-player-name="{{ auth()->user()?->username }}"
+            ></div>
+        @endif
+
         {{-- Sidebar dinámico --}}
         <x-template.sidebar-dynamic />
 
