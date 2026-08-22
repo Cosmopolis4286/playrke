@@ -46,6 +46,7 @@ class RolePermissionSeeder extends Seeder
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
                 'kyc.view', 'kyc.manage',
+                'anticheat.view', 'anticheat.manage',
                 'win-events.manage',
                 'settings.manage', // Configuración general de la plataforma
                 // Opciones independientes

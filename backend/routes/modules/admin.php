@@ -8,6 +8,8 @@ use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\Admin\ExternalPlayerAdminController;
+use App\Http\Controllers\Roles\Admin\KycAdminController;
+use App\Http\Controllers\Roles\Admin\AntiCheatAdminController;
 use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
 use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
@@ -157,6 +159,7 @@ Route::middleware('auth')->group(function () {
         'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export'],
         'show'          => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show'],
         'auditHistory'  => ['method' => 'get',    'uri' => '{user}/audit-history', 'action' => 'auditHistory'],
+        'walletHistory' => ['method' => 'get',    'uri' => '{user}/wallet-history', 'action' => 'walletHistory'],
         'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
         'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
         'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
@@ -316,6 +319,48 @@ Route::middleware('auth')->group(function () {
         'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
         'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
     ]);
+
+    /**
+     * =========================================================
+     * KYC (verificación de identidad de jugadores) — view/manage separados:
+     * cualquiera con kyc.view o kyc.manage puede ver la cola/detalle, pero
+     * solo kyc.manage puede aprobar/rechazar (mismo criterio que
+     * wallet-movements.approve/reject en routes/modules/wallets.php).
+     * =========================================================
+     */
+    role_protected_routes(['multiPermission:kyc.view,kyc.manage'], 'admin/kyc', KycAdminController::class, [
+        'index'     => ['method' => 'get', 'uri' => '',                 'action' => 'index'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',       'action' => 'fetchList'],
+        'show'      => ['method' => 'get', 'uri' => '{document}/show',  'action' => 'show'],
+        'image'     => ['method' => 'get', 'uri' => '{document}/image/{type}', 'action' => 'image'],
+    ], 'document');
+
+    Route::middleware(['auth', 'multiPermission:kyc.manage', 'throttle:30,1'])
+        ->prefix('admin/kyc')
+        ->group(function () {
+            Route::post('{document}/approve', [KycAdminController::class, 'approve'])->name('admin.kyc.approve');
+            Route::post('{document}/reject',  [KycAdminController::class, 'reject'])->name('admin.kyc.reject');
+        });
+
+    /**
+     * =========================================================
+     * ANTI-CHEAT (flags y suspensiones de jugadores) — mismo criterio
+     * view/manage que KYC: cualquiera con anticheat.view puede ver flags/
+     * suspensión activa, solo anticheat.manage puede resolver/suspender.
+     * =========================================================
+     */
+    Route::middleware(['auth', 'multiPermission:anticheat.view,anticheat.manage'])
+        ->prefix('admin/anticheat')
+        ->group(function () {
+            Route::get('users/{user}/flags', [AntiCheatAdminController::class, 'flagsForUser'])->name('admin.anticheat.flags');
+        });
+
+    Route::middleware(['auth', 'multiPermission:anticheat.manage', 'throttle:30,1'])
+        ->prefix('admin/anticheat')
+        ->group(function () {
+            Route::post('suspensions/{suspension}/resolve', [AntiCheatAdminController::class, 'resolveSuspension'])->name('admin.anticheat.resolveSuspension');
+            Route::post('users/{user}/suspend', [AntiCheatAdminController::class, 'suspendManually'])->name('admin.anticheat.suspendManually');
+        });
 
     /**
      * =========================================================

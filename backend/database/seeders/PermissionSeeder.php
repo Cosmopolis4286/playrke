@@ -145,6 +145,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'kyc.view', 'guard_name' => 'web', 'description' => 'Ver documentos KYC'],
             ['name' => 'kyc.manage', 'guard_name' => 'web', 'description' => 'Aprobar/rechazar documentos KYC'],
 
+            // Anti-cheat (flags y suspensiones de jugadores)
+            ['name' => 'anticheat.view', 'guard_name' => 'web', 'description' => 'Ver señales y suspensiones anti-cheat'],
+            ['name' => 'anticheat.manage', 'guard_name' => 'web', 'description' => 'Suspender/reactivar jugadores por anti-cheat'],
+
             // Eventos de ganancia (ticker de la plataforma)
             ['name' => 'win-events.manage', 'guard_name' => 'web', 'description' => 'Registrar y ver eventos de ganancia manuales'],
 
