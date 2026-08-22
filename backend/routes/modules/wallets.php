@@ -29,7 +29,11 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
     // throttle:5,1 → máximo 5 intentos por minuto por usuario
     Route::middleware(['tos', 'throttle:5,1'])->group(function () {
         Route::post('wallet/deposit',  [WalletController::class, 'deposit'])  ->name('wallet.deposit');
-        Route::post('wallet/withdraw', [WalletController::class, 'withdraw']) ->name('wallet.withdraw');
+        // block-during-impersonation: un admin impersonando a un jugador
+        // (ver ImpersonationService) no puede retirar fondos reales de esa
+        // cuenta — depositar sí se permite (no mueve dinero fuera del
+        // sistema), pero un retiro sí, así que solo esta ruta lo bloquea.
+        Route::post('wallet/withdraw', [WalletController::class, 'withdraw']) ->name('wallet.withdraw')->middleware('block-during-impersonation');
     });
 });
 
