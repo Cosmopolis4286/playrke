@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Roles;
 use App\Http\Controllers\Controller;
 use App\Services\Platform\PlatformWalletService;
 use App\Services\Roles\SuperAdmin\Rke\RkeSummaryService;
+use App\Services\Roles\SuperAdmin\Dashboard\CommerceHierarchyService;
+use App\Services\Roles\SuperAdmin\Dashboard\TriviaSummaryService;
+use App\Services\Roles\SuperAdmin\Dashboard\ExchangeRateSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,6 +26,9 @@ class SuperAdminController extends Controller
     public function __construct(
         protected RkeSummaryService $rkeSummaryService,
         protected PlatformWalletService $platformWallet,
+        protected CommerceHierarchyService $commerceHierarchy,
+        protected TriviaSummaryService $triviaSummary,
+        protected ExchangeRateSummaryService $exchangeRateSummary,
     ) {}
 
     /**
@@ -31,6 +37,30 @@ class SuperAdminController extends Controller
     public function rkeSummary(): JsonResponse
     {
         return response()->json($this->rkeSummaryService->getSummary());
+    }
+
+    /**
+     * Jerarquía Comercializadora → Agencia → Vendedor (JSON para el dashboard superadmin)
+     */
+    public function commerceHierarchy(): JsonResponse
+    {
+        return response()->json($this->commerceHierarchy->getHierarchy());
+    }
+
+    /**
+     * Resumen de actividad Trivia por sala (JSON para el dashboard superadmin)
+     */
+    public function triviaSummary(): JsonResponse
+    {
+        return response()->json($this->triviaSummary->getSummary());
+    }
+
+    /**
+     * Tasas de cambio activas agrupadas por moneda (JSON para el dashboard superadmin)
+     */
+    public function exchangeRateSummary(): JsonResponse
+    {
+        return response()->json($this->exchangeRateSummary->getSummary());
     }
 
     /**
