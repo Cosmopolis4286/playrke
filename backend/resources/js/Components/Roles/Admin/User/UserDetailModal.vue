@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Swal from 'sweetalert2'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
 import type { AdminUserDetail } from '@/js/types/roles/admin/admin-user'
@@ -9,6 +10,8 @@ const props = defineProps<{
   detail: AdminUserDetail | null
   error?: string | null
   loadingMoreAudits?: boolean
+  loadingMoreWalletMovements?: boolean
+  resolvingSuspension?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -17,7 +20,49 @@ const emit = defineEmits<{
   'view-permissions': [userId: string]
   retry: []
   'load-more-audits': []
+  'load-more-wallet-movements': []
+  'resolve-suspension': [suspensionId: string, notes: string]
 }>()
+
+async function handleResolveSuspension(suspensionId: string) {
+  const result = await Swal.fire({
+    title: 'Resolver suspensión',
+    input: 'textarea',
+    inputLabel: 'Notas de resolución',
+    inputPlaceholder: 'Motivo por el que se reactiva al jugador...',
+    inputValidator: (value) => (!value || !value.trim() ? 'Las notas son obligatorias' : undefined),
+    showCancelButton: true,
+    confirmButtonText: 'Reactivar jugador',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#16a34a',
+    reverseButtons: true,
+  })
+
+  if (!result.isConfirmed || !result.value) return
+  emit('resolve-suspension', suspensionId, result.value.trim())
+}
+
+const walletMovementTypeLabel: Record<string, string> = {
+  DEPOSIT: 'Depósito',
+  WITHDRAWAL: 'Retiro',
+  PURCHASE: 'Compra',
+  PRIZE: 'Premio',
+  BONUS_PRIZE: 'Premio bono',
+  REFUND: 'Reembolso',
+  TRIVIA_ENTRY: 'Entrada trivia',
+  RKE_COMMISSION: 'Comisión RKE',
+}
+
+function formatWalletMovementType(type: string): string {
+  return walletMovementTypeLabel[type] ?? type
+}
+
+const kycStatusLabel: Record<string, string> = {
+  NONE: 'Sin verificar',
+  PENDING: 'En revisión',
+  VERIFIED: 'Verificado',
+  REJECTED: 'Rechazado',
+}
 
 const statusLabel: Record<string, string> = {
   ACTIVE: 'Activo',
@@ -154,6 +199,31 @@ function formatEventLabel(event: string): string {
           {{ detail.wallet.currency?.symbol ?? '' }}{{ detail.wallet.balance.toFixed(2) }}
           <span class="text-muted small">{{ detail.wallet.currency?.iso_code }}</span>
         </p>
+
+        <div v-if="detail.wallet.recent_movements.length" class="ud-movements">
+          <span class="ud-field-label mb-2"><i class="fas fa-receipt"></i>Movimientos recientes</span>
+          <ul class="ud-movement-list">
+            <li v-for="movement in detail.wallet.recent_movements" :key="movement.id" class="ud-movement-item">
+              <span class="ud-movement-body">
+                <span class="ud-movement-type">{{ formatWalletMovementType(movement.type) }}</span>
+                <span class="ud-movement-meta">{{ movement.date }} · {{ movement.status }}</span>
+              </span>
+              <span class="ud-movement-amount" :class="{ 'ud-movement-amount--negative': movement.amount < 0 }">
+                {{ movement.amount >= 0 ? '+' : '' }}{{ movement.amount.toFixed(2) }}
+              </span>
+            </li>
+          </ul>
+          <button
+            v-if="detail.has_more_wallet_movements"
+            class="btn btn-sm btn-link ud-audit-more"
+            :disabled="loadingMoreWalletMovements"
+            @click="$emit('load-more-wallet-movements')"
+          >
+            <span v-if="loadingMoreWalletMovements" class="spinner-border spinner-border-sm me-1"></span>
+            <template v-else>Cargar más</template>
+          </button>
+        </div>
+        <p v-else class="text-muted small mb-0 mt-2">Sin movimientos registrados.</p>
       </div>
 
       <!-- Nivel / XP -->
@@ -207,6 +277,61 @@ function formatEventLabel(event: string): string {
           </ul>
         </div>
         <p v-else class="text-muted small mb-0">Sin logros desbloqueados.</p>
+      </div>
+
+      <!-- KYC -->
+      <div v-if="detail.kyc" class="ud-section">
+        <h4 class="ud-section-title"><i class="fas fa-id-card-clip mr-2"></i>Verificación de identidad (KYC)</h4>
+        <div class="ud-grid">
+          <div class="ud-field">
+            <span class="ud-field-label"><i class="fas fa-layer-group"></i>Nivel</span>
+            <span class="ud-field-value">{{ detail.kyc.level }}</span>
+          </div>
+          <div class="ud-field">
+            <span class="ud-field-label"><i class="fas fa-check-double"></i>Estado</span>
+            <span class="badge ud-kyc-badge" :class="`ud-kyc-badge--${detail.kyc.status}`">
+              {{ kycStatusLabel[detail.kyc.status] ?? detail.kyc.status }}
+            </span>
+          </div>
+          <div v-if="detail.kyc.verified_at" class="ud-field">
+            <span class="ud-field-label"><i class="fas fa-calendar-check"></i>Verificado</span>
+            <span class="ud-field-value">{{ detail.kyc.verified_at }}</span>
+          </div>
+        </div>
+        <p v-if="detail.kyc.rejection_reason" class="ud-kyc-rejection">
+          <i class="fas fa-triangle-exclamation mr-1"></i>{{ detail.kyc.rejection_reason }}
+        </p>
+      </div>
+
+      <!-- Seguridad (anti-cheat / suspensiones) -->
+      <div v-if="detail.security" class="ud-section">
+        <h4 class="ud-section-title"><i class="fas fa-user-shield mr-2"></i>Seguridad</h4>
+
+        <div v-if="detail.security.active_suspension" class="ud-suspension-alert">
+          <div class="ud-suspension-header">
+            <i class="fas fa-ban"></i>
+            <span>Jugador suspendido</span>
+          </div>
+          <p class="ud-suspension-reason">{{ detail.security.active_suspension.reason }}</p>
+          <p class="ud-suspension-meta">
+            {{ detail.security.active_suspension.origin === 'anti_cheat' ? 'Automática (anti-cheat)' : 'Manual' }}
+            · {{ detail.security.active_suspension.created_at }}
+            <template v-if="detail.security.active_suspension.suspended_by"> · por {{ detail.security.active_suspension.suspended_by }}</template>
+          </p>
+          <button
+            class="btn btn-sm btn-success mt-2"
+            :disabled="resolvingSuspension"
+            @click="handleResolveSuspension(detail.security.active_suspension.id)"
+          >
+            <span v-if="resolvingSuspension" class="spinner-border spinner-border-sm me-1"></span>
+            <template v-else><i class="fas fa-unlock mr-1"></i>Resolver suspensión</template>
+          </button>
+        </div>
+        <p v-else class="text-muted small mb-0">Sin suspensiones activas.</p>
+
+        <p v-if="detail.security.recent_flags_count > 0" class="ud-flags-count">
+          <i class="fas fa-flag mr-1"></i>{{ detail.security.recent_flags_count }} señal{{ detail.security.recent_flags_count === 1 ? '' : 'es' }} anti-cheat reciente{{ detail.security.recent_flags_count === 1 ? '' : 's' }}
+        </p>
       </div>
 
       <!-- Actividad reciente -->
@@ -438,4 +563,58 @@ function formatEventLabel(event: string): string {
 .ud-audit-event { font-weight: 600; color: var(--ds-text); }
 .ud-audit-meta { color: var(--ds-text-muted); font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ud-audit-more { display: block; margin: 0.5rem auto 0; font-size: 0.8rem; }
+
+.ud-movements { margin-top: 0.85rem; }
+.ud-movement-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.ud-movement-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--ds-surface-2);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.ud-movement-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.ud-movement-type { font-weight: 600; color: var(--ds-text); }
+.ud-movement-meta { color: var(--ds-text-muted); font-size: 0.74rem; }
+.ud-movement-amount { font-weight: 700; color: #34d399; white-space: nowrap; }
+.ud-movement-amount--negative { color: #f87171; }
+
+.ud-kyc-badge { font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+.ud-kyc-badge--NONE { background: var(--ds-surface-2); color: var(--ds-text-2); }
+.ud-kyc-badge--PENDING { background: rgba(217,119,6,.18); color: #fbbf24; }
+.ud-kyc-badge--VERIFIED { background: rgba(5,150,105,.18); color: #34d399; }
+.ud-kyc-badge--REJECTED { background: rgba(220,38,38,.18); color: #f87171; }
+.ud-kyc-rejection {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: #f87171;
+  background: rgba(220,38,38,.1);
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+}
+
+.ud-suspension-alert {
+  background: rgba(220,38,38,.08);
+  border: 1px solid rgba(220,38,38,.3);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+.ud-suspension-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: #f87171;
+  font-size: 0.9rem;
+}
+.ud-suspension-reason { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--ds-text); }
+.ud-suspension-meta { margin: 0.25rem 0 0; font-size: 0.76rem; color: var(--ds-text-muted); }
+.ud-flags-count {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: #fbbf24;
+}
 </style>

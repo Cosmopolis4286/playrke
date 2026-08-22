@@ -81,6 +81,37 @@ export interface AdminUserDetailGameStats {
     readonly achievements_count: number
 }
 
+export interface AdminUserDetailWalletMovement {
+    readonly id: string
+    readonly date: string | null
+    readonly type: string
+    readonly status: string
+    readonly amount: number
+    readonly balance_after: number
+    readonly description: string | null
+}
+
+export interface AdminUserDetailKyc {
+    readonly level: number
+    readonly status: string
+    readonly verified_at: string | null
+    readonly rejection_reason: string | null
+}
+
+export interface AdminUserDetailSuspension {
+    readonly id: string
+    readonly origin: string
+    readonly reason: string
+    readonly notes: string | null
+    readonly created_at: string | null
+    readonly suspended_by: string | null
+}
+
+export interface AdminUserDetailSecurity {
+    readonly active_suspension: AdminUserDetailSuspension | null
+    readonly recent_flags_count: number
+}
+
 export interface AdminUserDetail {
     readonly id: string
     readonly full_name: string
@@ -97,9 +128,17 @@ export interface AdminUserDetail {
     readonly specific_permissions_count: number
     /** Permisos individuales activos que expiran dentro de los próximos 7 días. */
     readonly specific_permissions_expiring_soon_count: number
-    readonly wallet: { balance: number; currency: { iso_code: string; symbol: string; name: string } | null } | null
+    readonly wallet: {
+        balance: number
+        currency: { iso_code: string; symbol: string; name: string } | null
+        recent_movements: AdminUserDetailWalletMovement[]
+    } | null
+    /** true si hay más movimientos de billetera además de los ya incluidos en wallet.recent_movements — habilita el botón "Cargar más". */
+    readonly has_more_wallet_movements: boolean
     readonly level: AdminUserDetailLevel | null
     readonly game_stats: AdminUserDetailGameStats | null
+    readonly kyc: AdminUserDetailKyc | null
+    readonly security: AdminUserDetailSecurity | null
     readonly recent_audits: AdminUserDetailAudit[]
     /** true si hay más eventos de auditoría además de los ya incluidos en recent_audits — habilita el botón "Cargar más". */
     readonly has_more_audits: boolean

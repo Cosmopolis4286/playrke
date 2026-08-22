@@ -4,9 +4,13 @@ namespace App\Services\Roles\Admin\User;
 
 use App\DTOs\Roles\Admin\User\AdminUserUpdateDTO;
 use App\Exceptions\Domain\Roles\Admin\User\AdminUserException;
+use App\Models\AntiCheat\AntiCheatFlag;
+use App\Models\AntiCheat\UserSuspension;
 use App\Models\Audit;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\WalletMovement;
+use App\Services\Games\AntiCheatService;
 use App\Services\User\UserLevelService;
 use App\Services\User\UserPasswordService;
 use App\Services\WalletService;
@@ -21,6 +25,7 @@ final class AdminUserService
         private readonly UserPasswordService     $userPasswordService,
         private readonly WalletService           $walletService,
         private readonly UserLevelService        $userLevelService,
+        private readonly AntiCheatService        $antiCheatService,
     ) {}
 
     public function fetchList(array $filters = [], int $page = 1): array
@@ -384,12 +389,32 @@ final class AdminUserService
         $roleName = strtolower($user->roles->first()?->name ?? '');
 
         $wallet = $user->hasRole(self::WALLET_LOAD_ALLOWED_ROLES) ? $this->getWalletBalance($user) : null;
+        $hasMoreWalletMovements = false;
+
+        if ($wallet !== null) {
+            $recentMovements = $this->getRecentWalletMovements($user);
+            $wallet['recent_movements'] = $recentMovements;
+            $hasMoreWalletMovements = count($recentMovements) >= self::RECENT_AUDITS_LIMIT
+                && $user->walletMovements()->count() > self::RECENT_AUDITS_LIMIT;
+        }
 
         $level = $roleName === 'player'
             ? $this->userLevelService->getUserLevelInfo($user)
             : null;
 
         $gameStats = $roleName === 'player' ? $this->getPlayerGameStats($user) : null;
+
+        // KYC solo tiene sentido de negocio para jugadores (verificación de
+        // identidad ligada a operaciones de dinero real) — mismo criterio
+        // condicional que wallet/level/game_stats.
+        $kyc = $roleName === 'player' ? [
+            'level'             => $user->kyc_level,
+            'status'            => $user->kyc_status,
+            'verified_at'       => $user->kyc_verified_at?->format('d/m/Y H:i:s'),
+            'rejection_reason'  => $user->kyc_rejection_reason,
+        ] : null;
+
+        $security = $roleName === 'player' ? $this->getPlayerSecurityInfo($user) : null;
 
         $recentAudits = Audit::ofAuditable(User::class, $user->id)
             ->with('user:id,first_name,last_name,email')
@@ -425,10 +450,17 @@ final class AdminUserService
             'specific_permissions_count'  => $activePermissionsCount,
             'specific_permissions_expiring_soon_count' => $expiringSoonCount,
             'wallet'                      => $wallet,
+            'has_more_wallet_movements'   => $hasMoreWalletMovements,
             'level'                       => $level,
             'game_stats'                  => $gameStats,
+            'kyc'                         => $kyc,
+            'security'                    => $security,
             'recent_audits'               => $recentAudits,
-            'has_more_audits'             => Audit::ofAuditable(User::class, $user->id)->count() > self::RECENT_AUDITS_LIMIT,
+            // Igual que achievements_count: si la lista (limit
+            // RECENT_AUDITS_LIMIT) no llegó al tope, no puede haber más —
+            // evita el count() aparte en el caso común.
+            'has_more_audits'             => $recentAudits->count() >= self::RECENT_AUDITS_LIMIT
+                && Audit::ofAuditable(User::class, $user->id)->count() > self::RECENT_AUDITS_LIMIT,
         ];
     }
 
@@ -448,6 +480,83 @@ final class AdminUserService
             'rows'        => $paginator->getCollection()->map(fn (Audit $audit) => $this->mapAuditRow($audit))->values(),
             'has_more'    => $paginator->hasMorePages(),
             'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    /** Preview de movimientos recientes embebido en getUserDetail() — ver getWalletMovementHistory() para el paginado completo ("Cargar más"). */
+    private function getRecentWalletMovements(User $user): array
+    {
+        return $user->walletMovements()
+            ->latest('created_at')
+            ->limit(self::RECENT_AUDITS_LIMIT)
+            ->get()
+            ->map(fn (WalletMovement $movement) => $this->mapWalletMovementRow($movement))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Historial de movimientos de billetera paginado — mismo patrón que
+     * getUserAuditHistory(), botón "Cargar más" en la sección Billetera de la
+     * ficha. Antes solo se veía el balance actual (getWalletBalance()), sin
+     * ninguna forma de auditar depósitos/retiros/premios individuales desde
+     * el panel admin pese a que WalletMovement ya tiene los índices listos
+     * para esto (ver migración add_type_status_index_to_wallet_movements_table).
+     */
+    public function getWalletMovementHistory(User $user, int $page = 1): array
+    {
+        $paginator = $user->walletMovements()
+            ->latest('created_at')
+            ->paginate(self::AUDIT_HISTORY_PAGE_SIZE, ['*'], 'page', $page);
+
+        return [
+            'rows'         => $paginator->getCollection()->map(fn (WalletMovement $m) => $this->mapWalletMovementRow($m))->values(),
+            'has_more'     => $paginator->hasMorePages(),
+            'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    private function mapWalletMovementRow(WalletMovement $movement): array
+    {
+        return [
+            'id'             => (string) $movement->id,
+            'date'           => $movement->created_at?->format('d/m/Y H:i:s'),
+            'type'           => $movement->type,
+            'status'         => $movement->status,
+            'amount'         => (float) $movement->amount,
+            'balance_after'  => (float) $movement->balance_after,
+            'description'    => $movement->description,
+        ];
+    }
+
+    /**
+     * Estado de seguridad del jugador: suspensión activa (si existe, con
+     * quién/por qué) y conteo de señales anti-cheat recientes. AntiCheatService
+     * ya detecta y auto-suspende (evaluateAutoSuspension()) y
+     * UserSuspension::resolve() ya sabe reactivar — pero hasta ahora ningún
+     * admin podía ver por qué un jugador quedó SUSPENDED ni resolverlo desde
+     * la UI, solo entrando a la BD.
+     */
+    private function getPlayerSecurityInfo(User $user): array
+    {
+        $activeSuspension = UserSuspension::where('user_id', $user->id)
+            ->active()
+            ->with('triggeringFlag', 'suspendedBy:id,first_name,last_name')
+            ->latest('created_at')
+            ->first();
+
+        return [
+            'active_suspension' => $activeSuspension ? [
+                'id'          => (string) $activeSuspension->id,
+                'origin'      => $activeSuspension->origin,
+                'reason'      => $activeSuspension->reason,
+                'notes'       => $activeSuspension->notes,
+                'created_at'  => $activeSuspension->created_at?->format('d/m/Y H:i:s'),
+                'suspended_by' => $activeSuspension->suspendedBy?->full_name,
+            ] : null,
+            'recent_flags_count' => AntiCheatFlag::forUser((string) $user->id)
+                ->recent((int) config('anticheat.window_minutes', 1440))
+                ->count(),
         ];
     }
 
@@ -481,12 +590,20 @@ final class AdminUserService
                     : null,
             ]);
 
+        // Evita una segunda query idéntica salvo el count(): si la lista (limit
+        // 10) no llegó al tope, su tamaño YA es el total real de logros
+        // desbloqueados — el count() aparte solo hace falta en el caso menos
+        // común (10+ logros) donde el límite pudo haber cortado el total real.
+        $achievementsCount = $achievements->count() < 10
+            ? $achievements->count()
+            : $user->achievements()->wherePivotNotNull('unlocked_at')->count();
+
         return [
             'games_played'       => $user->games_played_count,
             'games_won'          => $user->games_won_count,
             'total_winnings'     => $user->total_winnings,
             'achievements'       => $achievements,
-            'achievements_count' => $user->achievements()->wherePivotNotNull('unlocked_at')->count(),
+            'achievements_count' => $achievementsCount,
         ];
     }
 

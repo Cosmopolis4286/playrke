@@ -100,6 +100,17 @@ final class AdminUserController extends Controller
     }
 
     /**
+     * Historial de movimientos de billetera paginado del usuario (botón
+     * "Cargar más" en la sección Billetera de la ficha).
+     */
+    public function walletHistory(User $user, Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->getWalletMovementHistory($user, (int) $request->get('page', 1))
+        );
+    }
+
+    /**
      * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
      */
     public function update(AdminUserUpdateRequest $request, User $user): JsonResponse
