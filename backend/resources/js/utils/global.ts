@@ -7,6 +7,7 @@ import { initModalFocus } from '@js/helpers/modal/modals'
 import ScrollToTop from '@js/Components/ui/ScrollToTop.vue'
 import PlatformWinTicker from '@js/Components/Common/Platform/PlatformWinTicker.vue'
 import PendingMovementsBadge from '@js/Components/Common/Wallet/PendingMovementsBadge.vue'
+import ImpersonationBanner from '@js/Components/Common/ImpersonationBanner.vue'
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes
@@ -78,6 +79,23 @@ function mountPendingMovementsBadge(): void {
 }
 
 /**
+ * Monta el banner de "sesión de soporte activa" cuando un superadmin está
+ * impersonando a un jugador (ver ImpersonationService). El div solo existe
+ * en auth-layout.blade.php cuando session('impersonator_id') está presente
+ * — data-impersonating siempre es 'true' cuando el elemento existe, pero se
+ * valida igual por claridad y por si el atributo cambia en el futuro.
+ */
+function mountImpersonationBanner(): void {
+  const el = document.getElementById('impersonation-banner')
+  if (!el || el.dataset.impersonating !== 'true') return
+
+  createApp(ImpersonationBanner, {
+    adminName: el.dataset.adminName ?? '',
+    playerName: el.dataset.playerName ?? '',
+  }).mount(el)
+}
+
+/**
  * Inicializa la aplicación globalmente
  */
 export async function initGlobal(): Promise<void> {
@@ -99,6 +117,9 @@ export async function initGlobal(): Promise<void> {
 
     // 🔹 Badge de movimientos pendientes en tiempo real (navbar + sidebar)
     mountPendingMovementsBadge()
+
+    // 🔹 Banner de sesión de soporte activa (impersonación)
+    mountImpersonationBanner()
 
     // 🔹 Mostrar mensajes flash de sesión
     if (window.Session?.message?.trim()) {
