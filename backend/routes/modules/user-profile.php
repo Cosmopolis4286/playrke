@@ -15,23 +15,23 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     Route::get('/',  [ProfileController::class, 'index'])->name('profile.index');
 
     // ── API JSON ───────────────────────────────────────────────────────────
+    // block-during-impersonation (ver ImpersonationService): estas rutas
+    // mutan identidad/credenciales/sesiones del jugador — un admin
+    // impersonando solo debe poder diagnosticar, no dejar la cuenta en un
+    // estado distinto al que tenía o tomar control permanente de ella.
     Route::get('/data',            [ProfileController::class, 'getProfileData'])   ->name('profile.api.data');
-    Route::put('/update',          [ProfileController::class, 'updateProfile'])    ->name('profile.api.update')->middleware('throttle:profile-update');
-    // block-during-impersonation: un admin impersonando a un jugador (ver
-    // ImpersonationService) no puede cambiar la contraseña real de esa
-    // cuenta — evita que la impersonación se use para tomar control
-    // permanente en vez de solo diagnosticar un problema de soporte.
+    Route::put('/update',          [ProfileController::class, 'updateProfile'])    ->name('profile.api.update')->middleware(['throttle:profile-update', 'block-during-impersonation']);
     Route::patch('/password',      [ProfileController::class, 'changePassword'])   ->name('profile.changePassword')->middleware(['throttle:profile-change-password', 'block-during-impersonation']);
-    Route::post('/avatar',         [ProfileController::class, 'uploadAvatar'])     ->name('profile.api.upload-avatar')->middleware('throttle:profile-avatar');
-    Route::delete('/avatar',       [ProfileController::class, 'deleteAvatar'])     ->name('profile.api.delete-avatar')->middleware('throttle:profile-avatar');
+    Route::post('/avatar',         [ProfileController::class, 'uploadAvatar'])     ->name('profile.api.upload-avatar')->middleware(['throttle:profile-avatar', 'block-during-impersonation']);
+    Route::delete('/avatar',       [ProfileController::class, 'deleteAvatar'])     ->name('profile.api.delete-avatar')->middleware(['throttle:profile-avatar', 'block-during-impersonation']);
     Route::get('/preferences',     [ProfileController::class, 'getPreferences'])   ->name('profile.api.preferences');
     Route::put('/preferences',     [ProfileController::class, 'updatePreferences'])->name('profile.api.update-preferences');
     Route::get('/stats',           [ProfileController::class, 'getStats'])         ->name('profile.api.stats');
 
     // ── Sesiones ───────────────────────────────────────────────────────────
     Route::get('/sessions',        [ProfileController::class, 'getSessions'])      ->name('profile.api.sessions');
-    Route::delete('/sessions/{id}',[ProfileController::class, 'revokeSession'])    ->name('profile.api.sessions.revoke');
-    Route::delete('/sessions',     [ProfileController::class, 'revokeAllSessions'])->name('profile.api.sessions.revoke-all');
+    Route::delete('/sessions/{id}',[ProfileController::class, 'revokeSession'])    ->name('profile.api.sessions.revoke')->middleware('block-during-impersonation');
+    Route::delete('/sessions',     [ProfileController::class, 'revokeAllSessions'])->name('profile.api.sessions.revoke-all')->middleware('block-during-impersonation');
 
     // ── Niveles ────────────────────────────────────────────────────────────
     Route::get('/level',           [UserLevelController::class, 'getUserLevel'])   ->name('profile.api.level');

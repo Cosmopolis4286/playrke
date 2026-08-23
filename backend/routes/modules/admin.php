@@ -134,7 +134,18 @@ Route::middleware('auth')->group(function () {
         ]
     ];
 
-    role_protected_routes(['role:admin'], 'admin/commerce',  AdminCommerceController::class,  $adminCrudRoutes, 'commerce');
+    /**
+     * Commerce: array propio (copia de $adminCrudRoutes + export/bulk),
+     * mismo criterio que $playerRoutes más abajo — Customer/Treasurer siguen
+     * en el CRUD genérico hasta que se les aplique el mismo patrón.
+     */
+    $commerceRoutes = $adminCrudRoutes + [
+        'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export'],
+        'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
+        'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
+    ];
+    role_protected_routes(['role:admin'], 'admin/commerce', AdminCommerceController::class, $commerceRoutes, 'commerce');
+
     role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'treasurer');
 
@@ -375,6 +386,11 @@ Route::middleware('auth')->group(function () {
         'start' => ['method' => 'post', 'uri' => '{player}/start', 'action' => 'start'],
         'stop'  => ['method' => 'post', 'uri' => 'stop',           'action' => 'stop'],
     ], 'player');
+
+    Route::middleware(['auth', 'role:superadmin'])->prefix('admin/impersonation')->group(function () {
+        Route::get('history',      [ImpersonationController::class, 'historyPage'])->name('admin.impersonation.history.page');
+        Route::get('history/data', [ImpersonationController::class, 'history'])->name('admin.impersonation.history');
+    });
 
     /**
      * =========================================================

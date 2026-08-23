@@ -10,6 +10,8 @@ use App\Services\Auth\ImpersonationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Impersonación de jugadores para soporte — solo SuperAdmin (ver
@@ -50,6 +52,23 @@ final class ImpersonationController extends Controller
         }
     }
 
+    public function historyPage(): Response
+    {
+        return Inertia::render('Roles/Admin/Impersonation/History', [
+            'history' => $this->resolveHistory(1),
+        ]);
+    }
+
+    public function history(Request $request): JsonResponse
+    {
+        $page = (int) $request->get('page', 1);
+
+        return response()->json([
+            'success' => true,
+            ...$this->resolveHistory($page),
+        ]);
+    }
+
     /**
      * Historial consolidado: cada 'impersonation_started' emparejado con su
      * 'impersonation_ended' correspondiente (mismo admin + mismo jugador,
@@ -58,9 +77,8 @@ final class ImpersonationController extends Controller
      * pasar por stop(), ej. expiró la sesión HTTP completa) — se marca como
      * tal en vez de ocultarse, es información operativa relevante.
      */
-    public function history(Request $request): JsonResponse
+    private function resolveHistory(int $page): array
     {
-        $page = (int) $request->get('page', 1);
         $perPage = 20;
 
         $starts = Audit::ofEvent('impersonation_started')
@@ -79,24 +97,30 @@ final class ImpersonationController extends Controller
                 ->first();
 
             return [
-                'id'             => (string) $start->id,
-                'admin_username' => $start->user?->username ?? $start->new_values['admin_username'] ?? '—',
-                'target_username'=> $start->new_values['target_username'] ?? '—',
-                'started_at'     => $start->created_at?->format('d/m/Y H:i:s'),
-                'ended_at'       => $end?->created_at?->format('d/m/Y H:i:s'),
-                'is_active'      => $end === null,
-                'duration_minutes' => $end ? $start->created_at->diffInMinutes($end->created_at) : null,
+                'id'                => (string) $start->id,
+                'admin_username'    => $start->user?->username ?? $start->new_values['admin_username'] ?? '—',
+                'target_username'   => $start->new_values['target_username'] ?? '—',
+                'started_at'        => $start->created_at?->format('d/m/Y H:i:s'),
+                'ended_at'          => $end?->created_at?->format('d/m/Y H:i:s'),
+                'is_active'         => $end === null,
+                'duration_minutes'  => $end ? $start->created_at->diffInMinutes($end->created_at) : null,
             ];
         });
 
-        return response()->json([
-            'success'      => true,
+        return [
+            'columns' => [
+                ['key' => 'admin_username',  'label' => 'Admin',    'sortable' => false],
+                ['key' => 'target_username', 'label' => 'Jugador',  'sortable' => false],
+                ['key' => 'started_at',      'label' => 'Inicio',   'sortable' => false],
+                ['key' => 'ended_at',        'label' => 'Fin',      'sortable' => false],
+                ['key' => 'is_active',       'label' => 'Estado',   'sortable' => false],
+            ],
             'rows'         => $rows->values(),
             'total'        => $starts->total(),
             'per_page'     => $starts->perPage(),
             'current_page' => $starts->currentPage(),
             'last_page'    => $starts->lastPage(),
-        ]);
+        ];
     }
 
     private function resolveErrorMessage(DomainException $e): string

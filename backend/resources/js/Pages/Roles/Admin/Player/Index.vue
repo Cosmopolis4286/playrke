@@ -342,6 +342,14 @@
       <button class="btn btn-sm btn-outline-secondary" title="Exportar jugadores filtrados a CSV" @click="handleExport">
         <i class="fas fa-file-csv me-1"></i>Exportar
       </button>
+      <button
+        v-if="isSuperadmin"
+        class="btn btn-sm btn-outline-secondary"
+        title="Ver historial de sesiones de soporte (impersonación)"
+        @click="router.visit('/admin/impersonation/history')"
+      >
+        <i class="fas fa-user-secret me-1"></i>Historial de impersonaciones
+      </button>
     </template>
   </TableWithFilterBridge>
 
