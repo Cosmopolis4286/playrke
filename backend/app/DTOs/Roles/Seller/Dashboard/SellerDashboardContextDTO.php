@@ -15,6 +15,12 @@ final class SellerDashboardContextDTO implements ContextDTO
         public readonly array $stats,
         /** Actividad reciente (ventas propias) */
         public readonly array $recentActivity,
+        /** A quién reporta el vendedor: Commerce directo o Agencia/Subsidiary intermedia */
+        public readonly ?array $reportsTo,
+        /** Comisiones especiales configuradas por sala (sellers_room_limits) */
+        public readonly array $roomCommissions,
+        /** Serie diaria de cartones vendidos (últimos 14 días) */
+        public readonly array $salesTrend,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
     ) {}
@@ -22,11 +28,14 @@ final class SellerDashboardContextDTO implements ContextDTO
     public function toView(): array
     {
         return [
-            'userName'       => $this->userName,
-            'commission'     => $this->commission,
-            'stats'          => $this->stats,
-            'recentActivity' => $this->recentActivity,
-            'period'         => $this->period,
+            'userName'        => $this->userName,
+            'commission'      => $this->commission,
+            'stats'           => $this->stats,
+            'recentActivity'  => $this->recentActivity,
+            'reportsTo'       => $this->reportsTo,
+            'roomCommissions' => $this->roomCommissions,
+            'salesTrend'      => $this->salesTrend,
+            'period'          => $this->period,
         ];
     }
 }

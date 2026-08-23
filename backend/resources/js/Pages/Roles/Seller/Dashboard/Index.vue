@@ -17,6 +17,8 @@
   import DashboardActivityFeed     from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
   import DashboardQuickLinks       from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
   import DashboardCommissionPanel  from '@/js/Components/Common/Dashboard/DashboardCommissionPanel.vue'
+  import DashboardTrendChart       from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
+  import DashboardRoomCommissionList from '@/js/Components/Common/Dashboard/DashboardRoomCommissionList.vue'
   import type { QuickLink }        from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -89,6 +91,7 @@
       props.stats.winnersToday,
     ]
   })
+
 
   // ==========================================================================
   // Accesos rápidos — rutas del sidebar del vendedor
@@ -192,6 +195,34 @@
         <DashboardQuickLinks :links="quickLinks" :columns="4" />
       </DashboardSection>
 
+      <!-- Tendencia + Panel de comisión -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Tendencia de comisión"
+            icon="fas fa-chart-area"
+            subtitle="Cartones vendidos · últimos 14 días"
+            :loading="sectionsLoading"
+            skeleton-variant="chart"
+          >
+            <DashboardTrendChart :data="salesTrend ?? []" label="Cartones vendidos" />
+          </DashboardSection>
+        </div>
+
+        <!-- Panel de comisión -->
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Mi comisión"
+            icon="fas fa-percentage"
+            subtitle="Información de tu tasa"
+            :loading="sectionsLoading"
+            skeleton-variant="stat"
+          >
+            <DashboardCommissionPanel :commission="commission" :reports-to="reportsTo" />
+          </DashboardSection>
+        </div>
+      </div>
+
       <!-- Fila inferior -->
       <div class="row g-3">
 
@@ -208,16 +239,16 @@
           </DashboardSection>
         </div>
 
-        <!-- Panel de comisión -->
+        <!-- Comisiones especiales por sala -->
         <div class="col-12 col-lg-5">
           <DashboardSection
-            title="Mi comisión"
-            icon="fas fa-percentage"
-            subtitle="Información de tu tasa"
+            title="Comisiones por sala"
+            icon="fas fa-door-open"
+            subtitle="Tasas especiales configuradas"
             :loading="sectionsLoading"
-            skeleton-variant="stat"
+            skeleton-variant="list"
           >
-            <DashboardCommissionPanel :commission="commission" />
+            <DashboardRoomCommissionList :rows="roomCommissions ?? []" />
           </DashboardSection>
         </div>
 

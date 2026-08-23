@@ -28,6 +28,27 @@ export interface SellerQuickLink {
 }
 
 // --------------------------------------------------------------------------
+// A quién reporta / comisiones por sala / tendencia
+// --------------------------------------------------------------------------
+
+export interface SellerReportsTo {
+    name:          string
+    type:          'commerce' | 'subsidiary'
+    commerce_name: string
+}
+
+export interface SellerRoomCommission {
+    room_id:    string
+    room_name:  string
+    commission: number
+}
+
+export interface SalesTrendPoint {
+    date:  string
+    count: number
+}
+
+// --------------------------------------------------------------------------
 // Inertia page props
 // --------------------------------------------------------------------------
 
@@ -40,6 +61,12 @@ export interface DashboardSellerPageProps {
     stats?: SellerStats
     /** Actividad reciente */
     recentActivity?: ActivityItem[]
+    /** A quién reporta el vendedor */
+    reportsTo?: SellerReportsTo | null
+    /** Comisiones especiales configuradas por sala */
+    roomCommissions?: SellerRoomCommission[]
+    /** Serie diaria de cartones vendidos (últimos 14 días) */
+    salesTrend?: SalesTrendPoint[]
     /** Período activo (e.g. "Marzo 2026") */
     period?: string
 }

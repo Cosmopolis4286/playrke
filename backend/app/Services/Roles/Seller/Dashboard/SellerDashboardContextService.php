@@ -5,7 +5,9 @@ namespace App\Services\Roles\Seller\Dashboard;
 use App\DTOs\Roles\Seller\Dashboard\SellerDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\Roles\Seller;
+use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,6 +18,8 @@ use Illuminate\Support\Facades\Auth;
  */
 final class SellerDashboardContextService
 {
+    use BuildsSalesTrend;
+
     public function dashboardContext(): SellerDashboardContextDTO
     {
         $user   = Auth::user();
@@ -23,15 +27,65 @@ final class SellerDashboardContextService
         $now    = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
-        $seller = Seller::where('user_id', $userId)->first(['id', 'commission']);
+        $seller = Seller::where('user_id', $userId)->first(['id', 'commission', 'manager_user_id', 'subsidiary_id']);
 
         return new SellerDashboardContextDTO(
-            userName:       $user?->first_name ?? $user?->username ?? 'Vendedor',
-            commission:     $seller ? number_format((float) $seller->commission, 2) : '0.00',
-            stats:          $this->buildStats($userId, $seller, $now),
-            recentActivity: $this->buildRecentActivity($userId),
-            period:         $period,
+            userName:        $user?->first_name ?? $user?->username ?? 'Vendedor',
+            commission:      $seller ? number_format((float) $seller->commission, 2) : '0.00',
+            stats:           $this->buildStats($userId, $seller, $now),
+            recentActivity:  $this->buildRecentActivity($userId),
+            reportsTo:       $this->buildReportsTo($seller),
+            roomCommissions: $this->buildRoomCommissions($seller),
+            salesTrend:      $this->buildSalesTrend(scope: fn ($q) => $q->where('seller_user_id', $userId)),
+            period:          $period,
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // A quién reporta: Commerce directo o Agencia/Subsidiary intermedia
+    // -------------------------------------------------------------------------
+
+    private function buildReportsTo(?Seller $seller): ?array
+    {
+        if (!$seller) {
+            return null;
+        }
+
+        $commerce = $seller->resolveCommerce();
+
+        if (!$commerce) {
+            return null;
+        }
+
+        return [
+            'name'    => $seller->subsidiary_id ? $seller->manager_name : $commerce->name,
+            'type'    => $seller->subsidiary_id ? 'subsidiary' : 'commerce',
+            'commerce_name' => $commerce->name,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Comisiones especiales configuradas por sala (sellers_room_limits)
+    // -------------------------------------------------------------------------
+
+    private function buildRoomCommissions(?Seller $seller): array
+    {
+        if (!$seller) {
+            return [];
+        }
+
+        return SellerRoomLimits::where('seller_id', $seller->id)
+            ->with('room:id,uuid_code')
+            ->latest('created_at')
+            ->limit(10)
+            ->get(['id', 'room_id', 'commission'])
+            ->map(fn (SellerRoomLimits $limit) => [
+                'room_id'    => (string) $limit->room_id,
+                'room_name'  => $limit->room?->uuid_code ?? ('…' . substr((string) $limit->room_id, -6)),
+                'commission' => (float) $limit->commission,
+            ])
+            ->values()
+            ->all();
     }
 
     // -------------------------------------------------------------------------

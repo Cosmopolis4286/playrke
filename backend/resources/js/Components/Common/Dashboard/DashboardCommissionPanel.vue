@@ -3,6 +3,8 @@
 
   defineProps<{
     commission?: number | string | null
+    /** A quién reporta el vendedor (Commerce directo o Agencia/Subsidiary) — opcional, solo aplica a Seller. */
+    reportsTo?: { name: string; type: 'commerce' | 'subsidiary'; commerce_name: string } | null
   }>()
 </script>
 
@@ -15,6 +17,11 @@
     <p class="dcp-hint">
       <i class="fas fa-info-circle me-1"></i>
       Tu comisión se calcula sobre el total de cartones vendidos cada período.
+    </p>
+    <p v-if="reportsTo" class="dcp-reports-to">
+      <i :class="reportsTo.type === 'subsidiary' ? 'fas fa-code-branch' : 'fas fa-building'" class="me-1"></i>
+      Reportas a <strong>{{ reportsTo.name }}</strong>
+      <template v-if="reportsTo.type === 'subsidiary'"> (agencia de {{ reportsTo.commerce_name }})</template>
     </p>
   </div>
   <DashboardEmptyState
@@ -72,4 +79,12 @@
   border-radius: 6px;
   border-left: 3px solid #0dcaf0;
 }
+
+.dcp-reports-to {
+  font-size: 0.78rem;
+  color: var(--ds-text-2);
+  margin: 0;
+  text-align: center;
+}
+.dcp-reports-to strong { color: var(--ds-text); }
 </style>
