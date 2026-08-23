@@ -37,8 +37,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('scheduled_commands', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('frequency_updated_by');
-            $table->dropColumn(['cron_expression', 'min_interval_seconds', 'frequency_updated_at']);
+            $table->dropForeign(['frequency_updated_by']);
+            $table->dropColumn(['cron_expression', 'min_interval_seconds', 'frequency_updated_by', 'frequency_updated_at']);
         });
     }
 };

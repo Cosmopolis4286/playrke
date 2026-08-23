@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggle: [command: ScheduledCommand, enabled: boolean]
   'view-history': [command: ScheduledCommand]
+  'edit-frequency': [command: ScheduledCommand]
 }>()
 
 const searchQuery = ref('')
@@ -87,7 +88,13 @@ const filteredCommands = computed(() => {
               <span class="sct-label">{{ cmd.label ?? cmd.command }}</span>
               <span class="sct-command">{{ cmd.command }}</span>
             </td>
-            <td class="sct-frequency">{{ cmd.frequency }}</td>
+            <td class="sct-frequency">
+              <button class="sct-frequency-btn" title="Editar frecuencia" @click="$emit('edit-frequency', cmd)">
+                {{ cmd.frequency }}
+                <i class="fas fa-pen sct-frequency-edit-icon"></i>
+              </button>
+              <span v-if="!cmd.is_default_frequency" class="sct-frequency-custom-badge">Personalizado</span>
+            </td>
             <td>
               <template v-if="cmd.last_execution">
                 <button class="sct-exec-status" :class="`sct-exec-status--${cmd.last_execution.status}`" @click="$emit('view-history', cmd)">
@@ -196,7 +203,31 @@ const filteredCommands = computed(() => {
 
 .sct-label { display: block; font-weight: 600; color: var(--ds-text); }
 .sct-command { display: block; font-family: monospace; font-size: 0.74rem; color: var(--ds-text-muted); margin-top: 0.1rem; }
-.sct-frequency { white-space: nowrap; color: var(--ds-text-2); }
+.sct-frequency { white-space: nowrap; }
+.sct-frequency-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  margin: -0.15rem -0.3rem;
+  border-radius: 6px;
+  color: var(--ds-text-2);
+  font-size: 0.83rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sct-frequency-btn:hover { background: var(--ds-surface-2); color: #667eea; }
+.sct-frequency-edit-icon { font-size: 0.65rem; opacity: 0.5; }
+.sct-frequency-btn:hover .sct-frequency-edit-icon { opacity: 1; }
+.sct-frequency-custom-badge {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-top: 0.15rem;
+}
 
 .sct-exec-status {
   display: inline-flex;

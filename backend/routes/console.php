@@ -1,109 +1,51 @@
 <?php
 
 use App\Support\Scheduling\ScheduledCommandGate;
+use Illuminate\Console\Scheduling\Event;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('check:expired-bingo-rooms')
-    ->when(fn () => ScheduledCommandGate::isEnabled('check:expired-bingo-rooms'))
-    ->timezone('UTC')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
+/**
+ * Registra un comando programado aplicando, en orden de prioridad:
+ *   1. cron_expression editado desde el panel Jobs/Scheduler (BD), si existe.
+ *   2. $fallback (método fijo original: ->everyMinute(), ->hourly(), etc.).
+ *
+ * $fallback recibe el Event y debe devolverlo, para poder encadenar el
+ * método de frecuencia igual que antes cuando no hay override.
+ *
+ * function_exists() evita "Cannot redeclare function schedule_dynamic()":
+ * `php artisan test` puede bootstrapear el kernel de consola más de una vez
+ * en el mismo proceso PHP (confirmado reproducible con test-docker.sh,
+ * incluso en suites sin relación a este archivo) — sin la guardia, ese
+ * segundo require de routes/console.php mata la suite completa con un
+ * fatal error antes de imprimir un solo resultado.
+ */
+if (!function_exists('schedule_dynamic')) {
+    function schedule_dynamic(string $command, callable $fallback): Event
+    {
+        $event = Schedule::command($command)
+            ->when(fn () => ScheduledCommandGate::isEnabled($command))
+            ->timezone('UTC')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/schedule.log'));
 
-Schedule::command('bingo:start-pending-draws')
-    ->when(fn () => ScheduledCommandGate::isEnabled('bingo:start-pending-draws'))
-    ->timezone('UTC')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
+        $cron = ScheduledCommandGate::cronFor($command);
 
-Schedule::command('validate:transactions')
-    ->when(fn () => ScheduledCommandGate::isEnabled('validate:transactions'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->everyFiveMinutes()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
+        return $cron ? $event->cron($cron) : $fallback($event);
+    }
+}
 
-Schedule::command('bingo:retry-failed-prize-payouts')
-    ->when(fn () => ScheduledCommandGate::isEnabled('bingo:retry-failed-prize-payouts'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->everyFiveMinutes()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('bingo:retry-failed-refunds')
-    ->when(fn () => ScheduledCommandGate::isEnabled('bingo:retry-failed-refunds'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->everyFiveMinutes()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('generate:bingo-rooms')
-    ->when(fn () => ScheduledCommandGate::isEnabled('generate:bingo-rooms'))
-    ->timezone('UTC')
-    ->hourly()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('handle:exchange-rates')
-    ->when(fn () => ScheduledCommandGate::isEnabled('handle:exchange-rates'))
-    ->timezone('UTC')
-    ->hourly()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('trivia:start-scheduled-rooms')
-    ->when(fn () => ScheduledCommandGate::isEnabled('trivia:start-scheduled-rooms'))
-    ->timezone('UTC')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('trivia:auto-finish-stale-games')
-    ->when(fn () => ScheduledCommandGate::isEnabled('trivia:auto-finish-stale-games'))
-    ->timezone('UTC')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('trivia:retry-failed-prize-payouts')
-    ->when(fn () => ScheduledCommandGate::isEnabled('trivia:retry-failed-prize-payouts'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->everyFiveMinutes()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('audit:prune')
-    ->when(fn () => ScheduledCommandGate::isEnabled('audit:prune'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->daily()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('logs:prune')
-    ->when(fn () => ScheduledCommandGate::isEnabled('logs:prune'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->daily()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('logs:alert-threshold')
-    ->when(fn () => ScheduledCommandGate::isEnabled('logs:alert-threshold'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->everyFifteenMinutes()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('permissions:expire-specific-grants')
-    ->when(fn () => ScheduledCommandGate::isEnabled('permissions:expire-specific-grants'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->everyFiveMinutes()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
-Schedule::command('permissions:notify-expiring-specific-grants')
-    ->when(fn () => ScheduledCommandGate::isEnabled('permissions:notify-expiring-specific-grants'))
-    ->timezone('UTC')
-    ->withoutOverlapping()
-    ->dailyAt('08:00')
-    ->appendOutputTo(storage_path('logs/schedule.log'));
+schedule_dynamic('check:expired-bingo-rooms', fn (Event $e) => $e->everyMinute());
+schedule_dynamic('bingo:start-pending-draws', fn (Event $e) => $e->everyMinute());
+schedule_dynamic('validate:transactions', fn (Event $e) => $e->everyFiveMinutes());
+schedule_dynamic('bingo:retry-failed-prize-payouts', fn (Event $e) => $e->everyFiveMinutes());
+schedule_dynamic('bingo:retry-failed-refunds', fn (Event $e) => $e->everyFiveMinutes());
+schedule_dynamic('generate:bingo-rooms', fn (Event $e) => $e->hourly());
+schedule_dynamic('handle:exchange-rates', fn (Event $e) => $e->hourly());
+schedule_dynamic('trivia:start-scheduled-rooms', fn (Event $e) => $e->everyMinute());
+schedule_dynamic('trivia:auto-finish-stale-games', fn (Event $e) => $e->everyMinute());
+schedule_dynamic('trivia:retry-failed-prize-payouts', fn (Event $e) => $e->everyFiveMinutes());
+schedule_dynamic('audit:prune', fn (Event $e) => $e->daily());
+schedule_dynamic('logs:prune', fn (Event $e) => $e->daily());
+schedule_dynamic('logs:alert-threshold', fn (Event $e) => $e->everyFifteenMinutes());
+schedule_dynamic('permissions:expire-specific-grants', fn (Event $e) => $e->everyFiveMinutes());
+schedule_dynamic('permissions:notify-expiring-specific-grants', fn (Event $e) => $e->dailyAt('08:00'));

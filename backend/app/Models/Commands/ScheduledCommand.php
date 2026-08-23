@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Registro de control por comando programado (routes/console.php) — is_enabled
  * gobierna únicamente si el scheduler automático lo corre (ver
- * App\Support\Scheduling\ScheduledCommandGate), no bloquea invocación manual
- * ni afecta la cadencia, que sigue definida en código.
+ * App\Support\Scheduling\ScheduledCommandGate), no bloquea invocación manual.
+ *
+ * cron_expression es la cadencia real, leída en runtime por
+ * ScheduledCommandGate::cronFor() — cuando es NULL, console.php usa el
+ * método fijo original (->everyMinute(), ->hourly(), etc.) como fallback.
  */
 class ScheduledCommand extends Model
 {
@@ -28,16 +31,27 @@ class ScheduledCommand extends Model
         'is_enabled',
         'disabled_at',
         'disabled_by',
+        'cron_expression',
+        'min_interval_seconds',
+        'frequency_updated_by',
+        'frequency_updated_at',
     ];
 
     protected $casts = [
-        'is_enabled'  => 'boolean',
-        'disabled_at' => 'datetime',
+        'is_enabled'            => 'boolean',
+        'disabled_at'           => 'datetime',
+        'min_interval_seconds'  => 'integer',
+        'frequency_updated_at'  => 'datetime',
     ];
 
     public function disabledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'disabled_by');
+    }
+
+    public function frequencyUpdatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'frequency_updated_by');
     }
 
     public function scopeEnabled($query)

@@ -12,19 +12,22 @@
   import PendingQueuesSummary from '@/js/Components/System/Jobs/PendingQueuesSummary.vue'
   import FailedJobsPanel from '@/js/Components/System/Jobs/FailedJobsPanel.vue'
   import ScheduledCommandHistoryModal from '@/js/Components/System/Jobs/ScheduledCommandHistoryModal.vue'
+  import FrequencyEditorModal from '@/js/Components/System/Jobs/FrequencyEditorModal.vue'
 
   import { useScheduledCommands } from '@/js/composables/system/jobs/useScheduledCommands'
   import { usePendingJobs } from '@/js/composables/system/jobs/usePendingJobs'
   import { useFailedJobs } from '@/js/composables/roles/superadmin/dashboard/useFailedJobs'
   import { useScheduledCommandHistory } from '@/js/composables/system/jobs/useScheduledCommandHistory'
+  import { showToast } from '@/js/utils/toastNotify'
 
   import type { JobsCenterPageProps, ScheduledCommand } from '@/js/types/system/jobs'
 
   const props = defineProps<JobsCenterPageProps>()
 
   const {
-    commands, loading: schedulerLoading, togglingId,
+    commands, loading: schedulerLoading, togglingId, updatingFrequencyId,
     setInitial: setInitialCommands, fetchList: refetchCommands, toggle,
+    updateFrequency, resetFrequency, previewFrequency,
   } = useScheduledCommands()
   setInitialCommands(props.scheduledCommands)
 
@@ -36,10 +39,6 @@
     loadJobs: refetchFailedJobs, retryJob, retryAll: retryAllFailedJobs, forgetJob,
   } = useFailedJobs('/system/jobs/failed')
   failedJobsList.value = props.failedJobs
-
-  function handleToggle(command: ScheduledCommand, enabled: boolean): void {
-    toggle(command, enabled)
-  }
 
   // Historial de un comando (modal)
   const showHistoryModal = ref(false)
@@ -60,15 +59,55 @@
     }
   }
 
+  // Edición de frecuencia (modal)
+  const showFrequencyModal = ref(false)
+  const frequencyCommand = ref<ScheduledCommand | null>(null)
+
+  function openFrequencyEditor(command: ScheduledCommand): void {
+    frequencyCommand.value = command
+    showFrequencyModal.value = true
+  }
+
+  async function handleSaveFrequency(cronExpression: string): Promise<void> {
+    if (!frequencyCommand.value) return
+    try {
+      await updateFrequency(frequencyCommand.value, cronExpression)
+      showFrequencyModal.value = false
+    } catch (error: any) {
+      console.error(error)
+      const firstError = error?.response?.data?.errors?.cron_expression?.[0]
+      showToast(firstError ?? 'No se pudo actualizar la frecuencia.', 'error')
+    }
+  }
+
+  async function handleResetFrequency(): Promise<void> {
+    if (!frequencyCommand.value) return
+    try {
+      await resetFrequency(frequencyCommand.value)
+      showFrequencyModal.value = false
+    } catch (error) {
+      console.error(error)
+      showToast('No se pudo restablecer la frecuencia.', 'error')
+    }
+  }
+
   // Auto-refresh cada 30s — los datos son operativos (scheduler corre cada
   // minuto como mínimo), sin esto la página queda desactualizada apenas se
   // deja abierta un rato. No se usa WebSocket: no hay evento backend dedicado
   // para estos 3 dominios, y polling cada 30s es más que suficiente dado que
   // nada aquí cambia más rápido que 1 vez por minuto.
+  //
+  // Los 3 composables (useScheduledCommands, usePendingJobs, useFailedJobs)
+  // ya capturan sus propios errores de red y muestran un toast, así que
+  // Promise.all() aquí nunca rechaza. document.hidden evita refrescos (y
+  // sus toasts de error, si la red falla) mientras la pestaña está en
+  // background — sin esto, dejar la pestaña abierta y minimizada seguía
+  // generando tráfico y notificaciones que nadie ve.
   const lastRefreshedAt = ref(new Date())
   let refreshTimer: ReturnType<typeof setInterval> | null = null
 
   async function refreshAll(): Promise<void> {
+    if (document.hidden) return
     await Promise.all([refetchCommands(), refetchQueues(), refetchFailedJobs()])
     lastRefreshedAt.value = new Date()
   }
@@ -105,8 +144,9 @@
         :commands="commands"
         :loading="schedulerLoading"
         :toggling-id="togglingId"
-        @toggle="handleToggle"
+        @toggle="toggle"
         @view-history="openHistory"
+        @edit-frequency="openFrequencyEditor"
       />
     </div>
 
@@ -128,6 +168,15 @@
       :entries="historyEntries"
       :loading="historyLoading"
       @update:model-value="closeHistory"
+    />
+
+    <FrequencyEditorModal
+      v-model="showFrequencyModal"
+      :command="frequencyCommand"
+      :saving="frequencyCommand ? updatingFrequencyId === frequencyCommand.id : false"
+      :fetch-preview="previewFrequency"
+      @save="handleSaveFrequency"
+      @reset="handleResetFrequency"
     />
   </div>
 </template>

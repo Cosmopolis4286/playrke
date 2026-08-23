@@ -21,6 +21,7 @@ use Throwable;
 final class ScheduledCommandGate
 {
     private const CACHE_KEY = 'scheduled_commands.flags';
+    private const CRON_CACHE_KEY = 'scheduled_commands.cron';
     private const CACHE_TTL = 60;
 
     public static function isEnabled(string $command): bool
@@ -46,12 +47,39 @@ final class ScheduledCommandGate
     }
 
     /**
-     * Invalidar el cache tras un toggle desde la UI — el próximo tick del
-     * scheduler (máximo 1 minuto, por cómo corre schedule:run) refleja el
-     * cambio sin esperar el TTL completo.
+     * Cron expression editada desde la UI para este comando, o null si el
+     * comando no tiene override (routes/console.php debe usar su método fijo
+     * original, ej. ->everyMinute(), como fallback). Fail-open igual que
+     * isEnabled(): un error aquí nunca debe tumbar el schedule completo.
+     */
+    public static function cronFor(string $command): ?string
+    {
+        try {
+            $overrides = Cache::remember(
+                self::CRON_CACHE_KEY,
+                self::CACHE_TTL,
+                fn () => ScheduledCommand::query()->whereNotNull('cron_expression')->pluck('cron_expression', 'command')
+            );
+
+            return $overrides[$command] ?? null;
+        } catch (Throwable $e) {
+            Log::warning('ScheduledCommandGate: no se pudo resolver cron_expression, se usa el default de código.', [
+                'command' => $command,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Invalidar el cache tras un toggle/edición desde la UI — el próximo
+     * tick del scheduler (máximo 1 minuto, por cómo corre schedule:run)
+     * refleja el cambio sin esperar el TTL completo.
      */
     public static function flushCache(): void
     {
         Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::CRON_CACHE_KEY);
     }
 }

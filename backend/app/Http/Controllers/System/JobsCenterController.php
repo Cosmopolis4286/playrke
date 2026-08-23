@@ -4,9 +4,11 @@ namespace App\Http\Controllers\System;
 
 use App\Http\Controllers\Controller;
 use App\Policies\System\JobsCenterPolicy;
+use App\Rules\CronExpressionRule;
 use App\Services\Roles\SuperAdmin\Dashboard\FailedJobService;
 use App\Services\System\Jobs\PendingJobsService;
 use App\Services\System\Scheduler\ScheduledCommandService;
+use Cron\CronExpression;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -62,6 +64,79 @@ final class JobsCenterController extends Controller
             'success' => true,
             'message' => $updated->is_enabled ? 'Comando activado correctamente.' : 'Comando desactivado correctamente.',
         ]);
+    }
+
+    public function updateScheduledCommandFrequency(Request $request, string $id): JsonResponse
+    {
+        $this->authorize('manage', JobsCenterPolicy::class);
+
+        [$scheduled, $cronExpression] = $this->validateFrequencyInput($request, $id);
+
+        $updated = $this->scheduler->updateFrequency($scheduled, $cronExpression, $request->user());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Frecuencia actualizada correctamente.',
+            'data'    => ['frequency' => ScheduledCommandService::describeCron($updated->cron_expression)],
+        ]);
+    }
+
+    /**
+     * Preview en vivo de las próximas ejecuciones para una expresión cron
+     * que el usuario aún está escribiendo — permite validar sintaxis y "ver"
+     * la cadencia real antes de guardar, sin duplicar la lógica de parseo
+     * cron en el frontend (dragonmantank/cron-expression ya es dependencia
+     * de Laravel, no hace falta agregar una librería cron nueva en JS).
+     */
+    public function previewScheduledCommandFrequency(Request $request, string $id): JsonResponse
+    {
+        $this->authorize('manage', JobsCenterPolicy::class);
+
+        [, $cronExpression] = $this->validateFrequencyInput($request, $id);
+
+        $cron = new CronExpression($cronExpression);
+        $nextRuns = collect(range(0, 4))
+            ->map(fn (int $nth) => $cron->getNextRunDate('now', $nth, false)->format('d/m/Y H:i:s'))
+            ->all();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'frequency' => ScheduledCommandService::describeCron($cronExpression),
+                'next_runs' => $nextRuns,
+            ],
+        ]);
+    }
+
+    /**
+     * @return array{0: \App\Models\Commands\ScheduledCommand, 1: string}
+     */
+    private function validateFrequencyInput(Request $request, string $id): array
+    {
+        $scheduled = $this->scheduler->find($id);
+
+        // Validación manual (no FormRequest type-hinted): min_interval_seconds
+        // del comando solo se conoce tras cargar $scheduled, y la regla de
+        // cadencia mínima de CronExpressionRule lo necesita en construcción —
+        // un FormRequest inyectado por type-hint valida antes de que este
+        // controller pueda proveer ese contexto.
+        $request->validate([
+            'cron_expression' => ['required', 'string', 'max:100', new CronExpressionRule($scheduled->min_interval_seconds)],
+        ], [
+            'cron_expression.required' => 'La expresión cron es obligatoria.',
+            'cron_expression.max'      => 'La expresión cron no puede exceder 100 caracteres.',
+        ]);
+
+        return [$scheduled, trim((string) $request->string('cron_expression'))];
+    }
+
+    public function resetScheduledCommandFrequency(Request $request, string $id): JsonResponse
+    {
+        $this->authorize('manage', JobsCenterPolicy::class);
+
+        $this->scheduler->resetFrequency($id, $request->user());
+
+        return response()->json(['success' => true, 'message' => 'Frecuencia restablecida al valor por defecto.']);
     }
 
     public function scheduledCommandHistory(string $command): JsonResponse
