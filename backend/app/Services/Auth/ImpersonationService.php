@@ -22,6 +22,10 @@ use Illuminate\Support\Facades\Log;
 final class ImpersonationService
 {
     private const SESSION_KEY = 'impersonator_id';
+    private const STARTED_AT_SESSION_KEY = 'impersonation_started_at';
+
+    /** Duración máxima de una sesión de soporte antes de restaurarse sola. */
+    public const TIMEOUT_MINUTES = 30;
 
     /**
      * Inicia la impersonación: registra quién impersona a quién (auditoría +
@@ -38,6 +42,7 @@ final class ImpersonationService
         }
 
         request()->session()->put(self::SESSION_KEY, (string) $admin->id);
+        request()->session()->put(self::STARTED_AT_SESSION_KEY, now()->toISOString());
 
         Auth::login($target);
         request()->session()->regenerate();
@@ -82,6 +87,7 @@ final class ImpersonationService
         $admin = User::findOrFail($adminId);
 
         $request->session()->forget(self::SESSION_KEY);
+        $request->session()->forget(self::STARTED_AT_SESSION_KEY);
         Auth::login($admin);
         $request->session()->regenerate();
 
@@ -109,6 +115,30 @@ final class ImpersonationService
     public function isImpersonating(Request $request): bool
     {
         return $request->session()->has(self::SESSION_KEY);
+    }
+
+    /**
+     * Si la sesión de soporte activa superó TIMEOUT_MINUTES, la termina sola
+     * (mismo camino que stop(), auditoría incluida) y devuelve true. Se
+     * evalúa en cada request vía EnforceImpersonationTimeout — no hay forma
+     * de que un proceso externo (comando scheduled) cierre la sesión HTTP de
+     * otro request, así que el chequeo vive del lado del propio request.
+     */
+    public function checkExpiry(Request $request): bool
+    {
+        if (!$this->isImpersonating($request)) {
+            return false;
+        }
+
+        $startedAt = $request->session()->get(self::STARTED_AT_SESSION_KEY);
+
+        if (!$startedAt || now()->diffInMinutes(\Carbon\Carbon::parse($startedAt)) < self::TIMEOUT_MINUTES) {
+            return false;
+        }
+
+        $this->stop($request);
+
+        return true;
     }
 
     /**
