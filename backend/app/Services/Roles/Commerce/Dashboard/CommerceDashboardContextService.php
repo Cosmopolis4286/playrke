@@ -3,6 +3,7 @@
 namespace App\Services\Roles\Commerce\Dashboard;
 
 use App\DTOs\Roles\Commerce\Dashboard\CommerceDashboardContextDTO;
+use App\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
@@ -13,6 +14,7 @@ use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Contexto del dashboard de Commerce (comercializadora) — dueño de las
@@ -23,6 +25,10 @@ final class CommerceDashboardContextService
 {
     use BuildsSalesTrend;
     use BuildsWeeklyTrend;
+
+    public function __construct(
+        private readonly WalletRepositoryInterface $walletRepository,
+    ) {}
 
     public function dashboardContext(): CommerceDashboardContextDTO
     {
@@ -35,10 +41,13 @@ final class CommerceDashboardContextService
 
         return new CommerceDashboardContextDTO(
             userName:           $user?->first_name ?? $user?->username ?? 'Comercio',
-            stats:              $this->buildStats($userId, $now),
+            stats:              $this->buildStats($userId, $commerce, $now),
             recentActivity:     $this->buildRecentActivity($userId),
             entityCounts:       $this->buildEntityCounts($commerce),
             salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q->where('creator_user_id', $userId)),
+            salesBySeller:      $this->buildSalesBySeller($userId, $now),
+            wallets:            $this->buildWallets($userId),
+            configuration:      $this->buildConfiguration($commerce),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
             period:             $period,
         );
@@ -48,7 +57,7 @@ final class CommerceDashboardContextService
     // Stats principales
     // -------------------------------------------------------------------------
 
-    private function buildStats(string $userId, Carbon $now): array
+    private function buildStats(string $userId, ?Commerce $commerce, Carbon $now): array
     {
         $startOfMonth = $now->copy()->startOfMonth();
         $startOfDay   = $now->copy()->startOfDay();
@@ -93,6 +102,90 @@ final class CommerceDashboardContextService
                 'variant' => 'warning',
                 'href'    => '/wallet-movements',
             ],
+            'commission' => [
+                'label'       => 'Mi comisión',
+                'value'       => $commerce ? number_format((float) $commerce->commission, 2) . '%' : '—',
+                'icon'        => 'fas fa-percentage',
+                'variant'     => 'secondary',
+                'description' => 'Tasa configurada',
+            ],
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Ventas agrupadas por vendedor (top 10, este mes)
+    // -------------------------------------------------------------------------
+
+    private function buildSalesBySeller(string $userId, Carbon $now): array
+    {
+        $startOfMonth = $now->copy()->startOfMonth();
+
+        return BingoCardLot::query()
+            ->where('user_id', $userId)
+            ->where('created_at', '>=', $startOfMonth)
+            ->select([
+                'seller_user_id',
+                DB::raw('SUM(sale_amount) as total_sales'),
+                DB::raw('SUM(card_count) as total_cards'),
+            ])
+            ->groupBy('seller_user_id')
+            ->orderByDesc(DB::raw('SUM(sale_amount)'))
+            ->limit(10)
+            ->with('seller:id,first_name,last_name,username')
+            ->get()
+            ->map(function (BingoCardLot $row) {
+                $sellerName = $row->seller
+                    ? trim("{$row->seller->first_name} {$row->seller->last_name}") ?: $row->seller->username
+                    : 'Venta directa';
+
+                return [
+                    'seller_user_id' => $row->seller_user_id ? (string) $row->seller_user_id : null,
+                    'seller_name'    => $sellerName,
+                    'total_sales'    => round((float) $row->total_sales, 2),
+                    'total_cards'    => (int) $row->total_cards,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    // -------------------------------------------------------------------------
+    // Billeteras propias (saldo por moneda)
+    // -------------------------------------------------------------------------
+
+    private function buildWallets(string $userId): array
+    {
+        return $this->walletRepository->getActiveWalletsByUser($userId, ['id', 'currency_id', 'balance', 'bonus_balance'])
+            ->load('currency:id,iso_code,symbol')
+            ->map(fn ($wallet) => [
+                'currency_code' => $wallet->currency?->iso_code ?? '—',
+                'symbol'        => $wallet->currency?->symbol ?? '',
+                'balance'       => (float) $wallet->balance,
+                'bonus_balance' => (float) $wallet->bonus_balance,
+            ])
+            ->values()
+            ->all();
+    }
+
+    // -------------------------------------------------------------------------
+    // Monedas y juegos habilitados
+    // -------------------------------------------------------------------------
+
+    private function buildConfiguration(?Commerce $commerce): array
+    {
+        if (!$commerce) {
+            return ['currencies' => [], 'games' => []];
+        }
+
+        return [
+            'currencies' => $commerce->currenciesActive()->get(['currencies.id', 'iso_code', 'symbol'])
+                ->map(fn ($c) => ['code' => $c->iso_code, 'symbol' => $c->symbol])
+                ->values()
+                ->all(),
+            'games' => $commerce->gamesActive()->get(['games.id', 'name'])
+                ->pluck('name')
+                ->values()
+                ->all(),
         ];
     }
 

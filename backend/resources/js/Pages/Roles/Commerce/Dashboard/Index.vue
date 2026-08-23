@@ -3,33 +3,36 @@
    * Página Dashboard → Comercio
    */
 
-  import { computed } from 'vue'
-
   // ==========================================================================
   // Componentes
   // ==========================================================================
 
-  import DashboardWelcomeBanner from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
-  import DashboardStatCard      from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
-  import DashboardSection       from '@/js/Components/Common/Dashboard/DashboardSection.vue'
-  import DashboardActivityFeed  from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
-  import DashboardQuickLinks    from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
-  import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardWelcomeBanner       from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
+  import DashboardStatCard            from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+  import DashboardSection             from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+  import DashboardActivityFeed        from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
+  import DashboardQuickLinks          from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardEntityList          from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
+  import DashboardTrendChart          from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
+  import DashboardSellerSalesList     from '@/js/Components/Common/Dashboard/DashboardSellerSalesList.vue'
+  import DashboardWalletBalances      from '@/js/Components/Common/Dashboard/DashboardWalletBalances.vue'
+  import DashboardConfigSummary       from '@/js/Components/Common/Dashboard/DashboardConfigSummary.vue'
+  import type { QuickLink }           from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
   // Composables
   // ==========================================================================
 
-  import { useDashboard }            from '@/js/composables/common/dashboard/useDashboard'
-  import { useCreatorSalesRealtime } from '@/js/composables/common/dashboard/useCreatorSalesRealtime'
+  import { useCommerceDashboard }     from '@/js/composables/roles/commerce/dashboard/useCommerceDashboard'
+  import { useCreatorSalesRealtime }  from '@/js/composables/common/dashboard/useCreatorSalesRealtime'
   import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
+  import { useDashboardFormatters }   from '@/js/composables/common/dashboard/useDashboardFormatters'
 
   // ==========================================================================
   // Types
   // ==========================================================================
 
   import type { DashboardCommercePageProps } from '@/js/types/roles/commerce/dashboard/dashboard-commerce'
-  import type { StatCardData }               from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
   // Props (Inertia)
@@ -41,30 +44,14 @@
   // Composable
   // ==========================================================================
 
-  const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity)
+  const {
+    statCards, sortedActivity, entityCounts, salesTrend,
+    salesBySeller, wallets, configuration, prependActivity,
+  } = useCommerceDashboard(props)
+
   const { isLive, cardsSoldToday, amountSoldToday } = useCreatorSalesRealtime(prependActivity)
   const { loading: sectionsLoading } = useDashboardMountLoading()
-
-  // ==========================================================================
-  // Stats: si no vienen del backend, muestra placeholders vacíos
-  // ==========================================================================
-
-  const DEFAULT_STATS: StatCardData[] = [
-    { label: 'Total ventas',     value: '—', icon: 'fas fa-shopping-cart', variant: 'primary' },
-    { label: 'Ingresos',         value: '—', icon: 'fas fa-dollar-sign',   variant: 'success' },
-    { label: 'Juegos activos',   value: '—', icon: 'fas fa-gamepad',       variant: 'info'    },
-    { label: 'Pagos pendientes', value: '—', icon: 'fas fa-clock',         variant: 'warning' },
-  ]
-
-  const statCards = computed<StatCardData[]>(() => {
-    if (!props.stats) return DEFAULT_STATS
-    return [
-      props.stats.totalSales,
-      props.stats.totalRevenue,
-      props.stats.activeGames,
-      props.stats.pendingPayouts,
-    ]
-  })
+  const { formatUsd } = useDashboardFormatters()
 
   // ==========================================================================
   // Accesos rápidos
@@ -113,22 +100,22 @@
         <template #highlights>
           <div class="wb-stat">
             <span class="wb-stat__label">
-              Ingresos
+              Ventas del mes
               <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
             </span>
-            <span class="wb-stat__value wb-stat__value--accent">{{ statCards[1]?.value ?? '—' }}</span>
+            <span class="wb-stat__value wb-stat__value--accent">{{ statCards[0]?.value ?? '—' }}</span>
           </div>
           <div class="wb-stat" v-if="cardsSoldToday > 0">
             <span class="wb-stat__label">Ventas (sesión)</span>
             <span class="wb-stat__value wb-stat__value--accent">{{ cardsSoldToday }} · ${{ amountSoldToday.toFixed(2) }}</span>
           </div>
           <div class="wb-stat">
-            <span class="wb-stat__label">Juegos activos</span>
+            <span class="wb-stat__label">Salas activas</span>
             <span class="wb-stat__value">{{ statCards[2]?.value ?? '—' }}</span>
           </div>
           <div class="wb-stat">
-            <span class="wb-stat__label">Pagos pendientes</span>
-            <span class="wb-stat__value">{{ statCards[3]?.value ?? '—' }}</span>
+            <span class="wb-stat__label">Mi comisión</span>
+            <span class="wb-stat__value">{{ statCards[4]?.value ?? '—' }}</span>
           </div>
         </template>
       </DashboardWelcomeBanner>
@@ -155,15 +142,83 @@
         <DashboardQuickLinks :links="quickLinks" :columns="3" />
       </DashboardSection>
 
-      <!-- Actividad reciente -->
+      <!-- Tendencia + Entidades -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Tendencia de ventas"
+            icon="fas fa-chart-area"
+            subtitle="Cartones vendidos · últimos 14 días"
+            :loading="sectionsLoading"
+            skeleton-variant="chart"
+          >
+            <DashboardTrendChart :data="salesTrend" label="Cartones vendidos" />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Mi red de vendedores"
+            icon="fas fa-layer-group"
+            subtitle="Vendedores directos y en agencias"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardEntityList :items="entityCounts" />
+          </DashboardSection>
+        </div>
+      </div>
+
+      <!-- Fila inferior -->
+      <div class="row g-3">
+
+        <!-- Actividad reciente -->
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Actividad reciente"
+            icon="fas fa-history"
+            subtitle="Últimas acciones en tu cuenta"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
+          </DashboardSection>
+        </div>
+
+        <!-- Billeteras propias -->
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Mi billetera"
+            icon="fas fa-wallet"
+            subtitle="Saldo por moneda"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardWalletBalances :wallets="wallets" />
+          </DashboardSection>
+        </div>
+
+      </div>
+
+      <!-- Ventas por vendedor -->
       <DashboardSection
-        title="Actividad reciente"
-        icon="fas fa-history"
-        subtitle="Últimas acciones en tu cuenta"
+        title="Ventas por vendedor"
+        icon="fas fa-user-tie"
+        subtitle="Top 10 este mes"
         :loading="sectionsLoading"
         skeleton-variant="list"
       >
-        <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
+        <DashboardSellerSalesList :rows="salesBySeller" :format-usd="formatUsd" />
+      </DashboardSection>
+
+      <!-- Configuración activa -->
+      <DashboardSection
+        title="Configuración activa"
+        icon="fas fa-sliders-h"
+        subtitle="Monedas y juegos habilitados"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
+      >
+        <DashboardConfigSummary :configuration="configuration" />
       </DashboardSection>
 
     </div>

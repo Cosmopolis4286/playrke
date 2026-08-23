@@ -17,6 +17,12 @@ final class CommerceDashboardContextDTO implements ContextDTO
         public readonly array $entityCounts,
         /** Serie diaria de cartones vendidos (últimos 14 días) */
         public readonly array $salesTrend,
+        /** Ventas agrupadas por vendedor (top 10, este mes) */
+        public readonly array $salesBySeller,
+        /** Billeteras propias del comercio (saldo por moneda) */
+        public readonly array $wallets,
+        /** Monedas y juegos habilitados para el comercio */
+        public readonly array $configuration,
         /** Movimientos de billetera propios pendientes de aprobación */
         public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
@@ -31,6 +37,9 @@ final class CommerceDashboardContextDTO implements ContextDTO
             'recentActivity'     => $this->recentActivity,
             'entityCounts'       => $this->entityCounts,
             'salesTrend'         => $this->salesTrend,
+            'salesBySeller'      => $this->salesBySeller,
+            'wallets'            => $this->wallets,
+            'configuration'      => $this->configuration,
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
         ];
