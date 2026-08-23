@@ -130,20 +130,10 @@
 
 .wb__body {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem 0.75rem;
   padding: 0.65rem 1rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.wb__body::-webkit-scrollbar { display: none; }
-
-@media (max-width: 768px) {
-  .wb__body {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
 }
 
 /* ── Avatar ── */
@@ -197,19 +187,13 @@
 }
 
 /* ── Texto ── */
-.wb__text { flex-shrink: 0; min-width: 0; }
+.wb__text { flex: 1 1 auto; min-width: 0; }
 
 .wb__greeting-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .wb__text { flex: 1 1 auto; }
-  .wb__greeting-row { flex-wrap: wrap; }
+  flex-wrap: wrap;
 }
 
 .wb__greeting {
@@ -218,7 +202,6 @@
   font-weight: 500;
   color: var(--ds-text);
   line-height: 1.2;
-  white-space: nowrap;
 }
 .wb__greeting strong { font-weight: 700; }
 
@@ -242,42 +225,49 @@
   color: var(--ds-text-2);
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.25rem;
-  white-space: nowrap;
+  row-gap: 2px;
 }
 .wb__sub-icon { font-size: 0.62rem; color: var(--ds-text-muted); }
-.wb__date { text-transform: capitalize; }
+.wb__date { text-transform: capitalize; white-space: nowrap; }
 .wb__sep { color: var(--ds-border-2); }
 
-@media (max-width: 768px) {
-  .wb__sub { flex-wrap: wrap; white-space: normal; }
-}
-
-/* ── Highlights contextuales ── */
+/* ── Highlights contextuales ──
+   flex-basis 100% por defecto: si no caben junto al texto en la misma
+   fila, pasan a ocupar su propia línea completa (wrap del contenedor
+   padre) en vez de comprimirse/recortarse compitiendo por el espacio
+   restante — evita el corte/solapamiento con el saludo y las acciones. */
 .wb__highlights {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-shrink: 0;
-  padding: 0 0.85rem;
-  border-left: 1px solid var(--ds-border);
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  flex: 1 1 100%;
+  padding: 0.5rem 0 0;
+  margin: 0;
+  border-top: 1px solid var(--ds-border);
 }
 
-@media (max-width: 768px) {
+/* Desde md hacia arriba, si hay espacio libre en la fila del saludo,
+   los highlights se acoplan ahí (columna auxiliar con separador) en vez
+   de forzar su propia línea siempre. */
+@media (min-width: 992px) {
   .wb__highlights {
-    flex: 1 1 auto;
-    order: 3;
-    min-width: 0;
-    padding: 0.6rem 0 0;
+    flex: 0 1 auto;
+    width: auto;
+    padding: 0 0.85rem;
     margin: 0;
-    border-left: none;
-    border-top: 1px solid var(--ds-border);
-    /* Fila horizontal con scroll en vez de apilar en varias líneas:
-       evita que cada stat consuma su propia fila vertical en móvil. */
+    border-top: none;
+    border-left: 1px solid var(--ds-border);
+  }
+}
+
+/* Móvil angosto: fila horizontal con scroll en vez de apilar cada stat
+   en su propia línea vertical — más compacto en pantallas chicas. */
+@media (max-width: 480px) {
+  .wb__highlights {
     flex-wrap: nowrap;
-    white-space: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
     gap: 1.1rem;
@@ -287,35 +277,26 @@
   .wb__highlights > :deep(*) { flex-shrink: 0; }
 }
 
-/* ── Acciones ── */
+/* ── Acciones ──
+   Mismo criterio que .wb__highlights: en pantallas angostas ocupan su
+   propia línea completa (flex-basis 100%) en vez de competir por espacio
+   y cortarse; desde lg, si caben, se acoplan a la derecha de la fila. */
 .wb__actions {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.4rem;
-  margin-left: auto;
-  flex-shrink: 0;
-  white-space: nowrap;
+  flex: 1 1 100%;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ds-border);
 }
 
-@media (max-width: 768px) {
+@media (min-width: 992px) {
   .wb__actions {
-    order: 3;
-    margin-left: 0.75rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--ds-border);
-  }
-}
-
-@media (max-width: 480px) {
-  /* Muy angosto: highlights y acciones ya no entran en una sola fila
-     junto al texto — acciones pasan a su propia fila compacta debajo. */
-  .wb__highlights { flex: 1 1 100%; }
-  .wb__actions {
-    flex: 1 1 100%;
-    order: 4;
-    margin-left: 0;
-    border-top: none;
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: auto;
     padding-top: 0;
+    border-top: none;
   }
 }
 
