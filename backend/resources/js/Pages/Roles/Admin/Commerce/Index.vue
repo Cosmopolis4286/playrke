@@ -3,7 +3,7 @@
    * Página Admin → Comercializadoras
    */
 
-  import { computed, onMounted } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -12,6 +12,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
+  import CommerceDetailModal from '@/js/Components/Roles/Admin/Commerce/CommerceDetailModal.vue'
 
   // ==========================================================================
   // Composables
@@ -20,6 +21,7 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminCommerce } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
+  import { useCommerceDetail } from '@/js/composables/roles/admin/commerce/useCommerceDetail'
 
   // ==========================================================================
   // Types
@@ -28,6 +30,7 @@
   import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
   // ==========================================================================
   // Props (Inertia)
@@ -42,16 +45,20 @@
   const {
     commerceData,
     commerces,
+    pagination,
+    loading,
+    lastQuery,
     setInitialCommerces,
     create,
     edit,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
-    submit
+    submit,
+    onQueryChange,
   } = useAdminCommerce()
 
-  setInitialCommerces(props.commerces.rows)
+  setInitialCommerces(props.commerces.rows, props.commerces_pagination)
 
   // ==========================================================================
   // Modal + Form handler
@@ -73,6 +80,30 @@
     const ok = await edit(props.openId)
     if (ok) showModalForm.value = true
   })
+
+  // ==========================================================================
+  // Ficha de detalle (solo lectura — comisión, código único, monedas/juegos, vendedores)
+  // ==========================================================================
+
+  const showDetailModal = ref(false)
+  const {
+    loading: commerceDetailLoading,
+    detail: commerceDetail,
+    error: commerceDetailError,
+    fetchDetail: fetchCommerceDetail,
+    retryFetchDetail: retryCommerceDetail,
+    clearDetail: clearCommerceDetail,
+  } = useCommerceDetail()
+
+  async function openCommerceDetail(rowId: string) {
+    showDetailModal.value = true
+    await fetchCommerceDetail(rowId)
+  }
+
+  function handleDetailVisibility(open: boolean) {
+    showDetailModal.value = open
+    if (!open) clearCommerceDetail()
+  }
 
   // ==========================================================================
   // CRUD global (eventos tabla)
@@ -109,6 +140,18 @@
   })
 
   // ==========================================================================
+  // Export CSV
+  // ==========================================================================
+
+  function handleExport(): void {
+    const params = new URLSearchParams()
+    if (lastQuery.value.search) params.set('search', lastQuery.value.search)
+    if (lastQuery.value.filters.country_name) params.set('country_name', lastQuery.value.filters.country_name)
+    if (lastQuery.value.filters.status) params.set('status', lastQuery.value.filters.status)
+    window.location.href = `/admin/commerce/export?${params.toString()}`
+  }
+
+  // ==========================================================================
   // Filtros
   // ==========================================================================
 
@@ -133,6 +176,7 @@
       options: [
         { value: 'ACTIVE', label: 'Activo' },
         { value: 'INACTIVE', label: 'Inactivo' },
+        { value: 'BLOCKED', label: 'Bloqueado' },
         { value: 'DELETED', label: 'Eliminado' }
       ]
     }
@@ -172,6 +216,17 @@
 
   const extraButtons: ExtraButton[] = [
     {
+      icon: 'fas fa-id-card',
+      class: 'btn-outline-secondary',
+      title: 'Ver ficha de la comercializadora',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          openCommerceDetail(ids[0])
+        }
+      }
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
@@ -186,6 +241,10 @@
       disabledReason: getResetPasswordDisabledReason
     }
   ]
+
+  async function handleQueryChange(query: ServerQuery): Promise<void> {
+    await onQueryChange(query)
+  }
 </script>
 
 <template>
@@ -196,11 +255,21 @@
     :rows="commerces"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
+    :loading="loading"
+    server-side
+    :server-total-pages="pagination?.last_page ?? 1"
     showCreateButton
     showEditButton
     showDeleteButton
     :extra-buttons="extraButtons"
-  />
+    @query-change="handleQueryChange"
+  >
+    <template #action-buttons>
+      <button class="btn btn-sm btn-outline-secondary" title="Exportar comercializadoras filtradas a CSV" @click="handleExport">
+        <i class="fas fa-file-csv me-1"></i>Exportar
+      </button>
+    </template>
+  </TableWithFilterBridge>
 
   <Modal
     v-model="showModalForm"
@@ -219,4 +288,13 @@
       :games="props.games"
     />
   </Modal>
+
+  <CommerceDetailModal
+    :model-value="showDetailModal"
+    :loading="commerceDetailLoading"
+    :detail="commerceDetail"
+    :error="commerceDetailError"
+    @update:model-value="handleDetailVisibility"
+    @retry="retryCommerceDetail"
+  />
 </template>

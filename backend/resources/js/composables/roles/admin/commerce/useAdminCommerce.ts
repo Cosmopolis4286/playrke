@@ -1,56 +1,35 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
 import { showPasswordModal } from '@/js/helpers/user/password'
+import { buildBulkItemListHtml, reportBulkResult, type BulkResult } from '@/js/composables/common/table/useBulkTableActions'
+import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import type { Pagination } from '@/js/types/common/table/pagination'
+import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
 /**
  * Contrato público del composable useAdminCommerce
  */
 interface UseAdminCommerceReturn {
-    /** Datos del comercio (para crear o editar) */
     commerceData: Ref<Partial<Commerce>>
-
-    /** Lista reactiva de comercializadoras */
     commerces: Ref<Commerce[]>
-
-    /** Inicializa la lista local */
-    setInitialCommerces: (initialCommerces: Commerce[]) => void
-
-    /** Envío del formulario */
+    pagination: Ref<Pagination | null>
+    loading: Ref<boolean>
+    lastQuery: Ref<ServerQuery>
+    setInitialCommerces: (initial: Commerce[], initialPagination?: Pagination | null) => void
     submit: () => Promise<boolean>
-
-    /** Modo creación */
     create: () => void
-
-    /** Modo edición */
     edit: (id: string | number) => Promise<boolean>
-
-    /** Reset del formulario */
     reset: () => void
-
-    /** Cambio de estado (individual) */
     toggleStatus: (id: string | number) => Promise<boolean>
-
-    /** Cambio de estado masivo */
     toggleStatusBulk: (ids: (string | number)[]) => Promise<boolean>
-
-    /** Reset de contraseña */
     resetPassword: (id: string | number) => Promise<boolean>
-
-    /** Eliminación (individual) */
     remove: (id: string | number) => Promise<boolean>
-
-    /** Eliminación masiva */
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
-
-    /** Fetch desde backend */
     fetchCommerces: () => Promise<boolean>
+    onQueryChange: (query: ServerQuery) => Promise<void>
 }
 
-/**
- * Factory para un comercio vacío
- */
 const emptyCommerce = (): Partial<Commerce> =>
     Object.freeze({
         name: '',
@@ -66,62 +45,46 @@ const emptyCommerce = (): Partial<Commerce> =>
     })
 
 /**
- * Composable para manejar comercializadoras
- *
- * Responsabilidades:
- * - Control del estado del formulario (create / edit / reset)
- * - Envío de datos (POST / PUT)
- * - Gestión local de la lista
- *
- * ⚠️ No controla UI directamente
+ * Composable para manejar comercializadoras — server-side real (búsqueda/
+ * filtros/paginación contra el catálogo completo, no solo la página
+ * cargada), mismo patrón que useAdminPlayer.ts.
  */
-export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
-    /** Estado de carga global */
+export function useAdminCommerce(): UseAdminCommerceReturn {
     const loading = ref(false)
-
-    /** Estado único del formulario */
     const commerceData = ref<Partial<Commerce>>(emptyCommerce())
-
-    /** Lista reactiva local */
     const commerces = ref<Commerce[]>([])
+    const pagination = ref<Pagination | null>(null)
 
-    /**
-     * Inicializa la lista local
-     */
-    function setInitialCommerces(initialCommerces: Commerce[]) {
-        commerces.value = [...initialCommerces]
+    const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: null }, page: 1 })
+
+    function setInitialCommerces(initial: Commerce[], initialPagination: Pagination | null = null) {
+        commerces.value = [...initial]
+        pagination.value = initialPagination
     }
 
-    /**
-    * Reset del formulario
-    */
     function reset(): void {
         commerceData.value = { ...emptyCommerce() }
     }
 
-    /**
-    * Modo creación
-    */
-    const create = (): void => {
-        reset()
-    }
+    const create = (): void => { reset() }
 
-    /**
-     * Obtiene la lista desde backend
-     */
     async function fetchCommerces(): Promise<boolean> {
         try {
             loading.value = true
-
-            const response = await backendClient.get<{ data: Commerce[] }>(
-                '/admin/commerce/fetch-list',
-                { params: { token: tokenId } }
-            )
-
+            const response = await backendClient.get<{ data: Commerce[]; meta: Pagination }>('/admin/commerce/fetch-list', {
+                params: {
+                    page: lastQuery.value.page,
+                    search: lastQuery.value.search || undefined,
+                    country_name: lastQuery.value.filters.country_name || undefined,
+                    status: lastQuery.value.filters.status || undefined,
+                },
+            })
             if (Array.isArray(response.data?.data)) {
                 commerces.value = response.data.data
             }
-
+            if (response.data?.meta) {
+                pagination.value = response.data.meta
+            }
             return true
         } catch (error) {
             console.error(error)
@@ -132,9 +95,12 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Transforma el payload del frontend al formato esperado por el backend
-     */
+    /** Adapta el evento query-change de TableWithFilterBridge (server-side) al fetch. */
+    async function onQueryChange(query: ServerQuery): Promise<void> {
+        lastQuery.value = query
+        await fetchCommerces()
+    }
+
     function buildPayload(): Record<string, unknown> {
         const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
 
@@ -146,28 +112,18 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Envío del formulario (create / update)
-     */
     async function submit(): Promise<boolean> {
         if (loading.value) return false
 
         try {
             loading.value = true
-
             const payload = buildPayload()
 
             if (commerceData.value.id) {
-                await backendClient.put(
-                    `/admin/commerce/${commerceData.value.id}/update`,
-                    payload
-                )
+                await backendClient.put(`/admin/commerce/${commerceData.value.id}/update`, payload)
                 showToast('Actualización exitosa', 'success')
             } else {
-                const { data } = await backendClient.post(
-                    '/admin/commerce',
-                    payload
-                )
+                const { data } = await backendClient.post('/admin/commerce', payload)
                 showToast('Registro exitoso', 'success')
                 await showPasswordModal(data.password)
             }
@@ -177,29 +133,19 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             return true
         } catch (error: any) {
             console.error(error)
-            showToast(
-                error?.response?.data?.message ?? 'Error al guardar la comercializadora',
-                'error'
-            )
+            showToast(error?.response?.data?.message ?? 'Error al guardar la comercializadora', 'error')
             return false
         } finally {
             loading.value = false
         }
     }
 
-    /**
-     * Modo edición
-     */
     async function edit(id: string | number): Promise<boolean> {
         if (loading.value) return false
 
         try {
             loading.value = true
-
-            const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/admin/commerce/${id}/show`
-            )
-
+            const { data } = await backendClient.get<{ data: Record<string, any> }>(`/admin/commerce/${id}/show`)
             const commerce = data.data
 
             commerceData.value = {
@@ -207,13 +153,10 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
                 name: commerce.name,
                 phone: commerce.phone,
                 commission: commerce.commission ?? '',
-                // Datos del usuario anidado
                 username: commerce.user?.username,
                 email: commerce.user?.email,
                 time_zone_id: commerce.user?.time_zone_id,
-                // Country viene como objeto {id, name}
                 country_id: commerce.country?.id,
-                // Currency viene como string (id)
                 currency_id: commerce.currency,
                 other_currencies: commerce.other_currencies ?? [],
                 allowed_games: commerce.allowed_games ?? []
@@ -229,9 +172,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) del comercio.
-     */
     async function toggleStatus(id: string | number): Promise<boolean> {
         const commerce = commerces.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
@@ -241,7 +181,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
-
         if (!confirm) return false
 
         try {
@@ -255,9 +194,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Resetea la contraseña de una comercializadora
-     */
     async function resetPassword(id: string | number): Promise<boolean> {
         const commerce = commerces.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
@@ -272,17 +208,12 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             icon: 'warning',
             confirmButtonText: 'Sí, resetear'
         })
-
         if (!confirm) return false
 
         try {
-            const { data } = await backendClient.put(
-                `/admin/commerce/${id}/reset-password`
-            )
-
+            const { data } = await backendClient.put(`/admin/commerce/${id}/reset-password`)
             showToast(data.message ?? 'Contraseña reseteada', 'success')
             await showPasswordModal(data.password)
-
             return true
         } catch (error) {
             console.error(error)
@@ -291,9 +222,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Eliminación (soft delete)
-     */
     async function remove(id: string | number): Promise<boolean> {
         const commerce = commerces.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
@@ -303,7 +231,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
-
         if (!confirm) return false
 
         try {
@@ -317,50 +244,34 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Genera HTML con lista de nombres para mostrar en el modal de confirmación
-     */
     function buildItemListHtml(ids: (string | number)[]): string {
-        const items = ids
+        const names = ids
             .map(id => commerces.value.find(c => c.id === id))
             .filter(Boolean)
             .map(c => c!.name)
 
-        return `
-            <div style="max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                <ul style="margin: 0; padding-left: 20px;">
-                    ${items.map(name => `<li style="padding: 4px 0;">${name}</li>`).join('')}
-                </ul>
-            </div>
-        `
+        return buildBulkItemListHtml(names)
     }
 
     /**
-     * Alternar estado (masivo)
+     * Una sola request transaccional al backend (antes hacía un loop
+     * secuencial de N requests, sin atomicidad ni reporte de omitidos) —
+     * mismo patrón que useAdminPlayer.ts.
      */
     async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
-
-        // Si es solo uno, usar el flujo individual
-        if (ids.length === 1) {
-            return toggleStatus(ids[0])
-        }
-
-        const itemListHtml = buildItemListHtml(ids)
+        if (ids.length === 1) return toggleStatus(ids[0])
 
         const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Quieres cambiar el estado de estas ${ids.length} comercializadoras?${buildItemListHtml(ids)}`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
-
         if (!confirm) return false
 
         try {
-            for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/status`)
-            }
-            showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
+            const { data } = await backendClient.put<BulkResult>('/admin/commerce/bulk/status', { ids })
+            await reportBulkResult(data, 'comercializadora(s)', 'actualizadas')
             await fetchCommerces()
             return true
         } catch {
@@ -369,32 +280,20 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
-    /**
-     * Eliminación masiva (soft delete)
-     */
     async function removeBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
-
-        // Si es solo uno, usar el flujo individual
-        if (ids.length === 1) {
-            return remove(ids[0])
-        }
-
-        const itemListHtml = buildItemListHtml(ids)
+        if (ids.length === 1) return remove(ids[0])
 
         const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Estás seguro que deseas eliminar estas ${ids.length} comercializadoras?${buildItemListHtml(ids)}`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
-
         if (!confirm) return false
 
         try {
-            for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/delete`)
-            }
-            showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
+            const { data } = await backendClient.put<BulkResult>('/admin/commerce/bulk/delete', { ids })
+            await reportBulkResult(data, 'comercializadora(s)', 'eliminadas')
             await fetchCommerces()
             return true
         } catch {
@@ -406,6 +305,9 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     return {
         commerceData,
         commerces,
+        pagination,
+        loading,
+        lastQuery,
         setInitialCommerces,
         submit,
         create,
@@ -416,6 +318,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         resetPassword,
         remove,
         removeBulk,
-        fetchCommerces
+        fetchCommerces,
+        onQueryChange,
     }
 }

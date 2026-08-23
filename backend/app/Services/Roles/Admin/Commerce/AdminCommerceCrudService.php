@@ -107,7 +107,8 @@ final class AdminCommerceCrudService
             'user.timeZone:id,name',
             'currenciesActive:id,symbol,description',
             'gamesActive:id,name',
-        ]);
+            'uniqueCode:id,rke_code',
+        ])->loadCount('sellers');
 
         return new AdminCommerceResource($commerce);
     }
@@ -318,6 +319,68 @@ final class AdminCommerceCrudService
             relationsToDetach: [],
             userRelation: 'user'
         );
+    }
+
+    /**
+     * Alternar estado ACTIVE/INACTIVE de varios comercios en una sola
+     * transacción — mismo patrón que AdminPlayerCrudService::toggleStatusBulk():
+     * un comercio inválido (ej. ya eliminado) no aborta el lote completo, se
+     * omite y se reporta en 'skipped'.
+     *
+     * @param array<int, string> $commerceIds
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function toggleStatusBulk(array $commerceIds): array
+    {
+        return DB::transaction(function () use ($commerceIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (Commerce::whereIn('id', $commerceIds)->get() as $commerce) {
+                try {
+                    $this->toggleStatus($commerce);
+                    $updated++;
+                } catch (AdminCommerceException $e) {
+                    $skipped[] = [
+                        'id'     => (string) $commerce->id,
+                        'name'   => $commerce->name,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
+     * Eliminación lógica (soft delete) de varios comercios en una sola
+     * transacción. Mismo criterio de omisión que toggleStatusBulk().
+     *
+     * @param array<int, string> $commerceIds
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function deleteBulk(array $commerceIds): array
+    {
+        return DB::transaction(function () use ($commerceIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (Commerce::whereIn('id', $commerceIds)->get() as $commerce) {
+                try {
+                    $this->delete($commerce);
+                    $updated++;
+                } catch (AdminCommerceException $e) {
+                    $skipped[] = [
+                        'id'     => (string) $commerce->id,
+                        'name'   => $commerce->name,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
     }
 
     /**

@@ -13,6 +13,10 @@ class AdminCommerceResource extends JsonResource
             'name' => $this->name,
             'phone' => $this->phone,
             'commission' => $this->commission,
+            'status' => $this->status,
+            'status_badge' => $this->status_badge,
+            'unique_code' => $this->uniqueCode?->rke_code,
+            'sellers_count' => $this->sellers_count,
 
             'country' => [
                 'id' => $this->country->id,
@@ -43,6 +47,24 @@ class AdminCommerceResource extends JsonResource
                     ->pluck('id')
                     ->values()
                     ->all();
+            }),
+
+            // Detalle con nombre/símbolo para la ficha de solo lectura — el
+            // form de edición usa 'currency'/'other_currencies'/'allowed_games'
+            // (solo IDs) arriba, esto es para mostrar, no para el <select>.
+            'currencies_detail' => $this->whenLoaded('currenciesActive', function () {
+                return $this->currenciesActive->map(fn ($c) => [
+                    'id' => $c->id,
+                    'symbol' => $c->symbol,
+                    'description' => $c->description,
+                    'level' => (int) $c->pivot->level,
+                ])->values()->all();
+            }),
+            'games_detail' => $this->whenLoaded('gamesActive', function () {
+                return $this->gamesActive->map(fn ($g) => [
+                    'id' => $g->id,
+                    'name' => $g->name,
+                ])->values()->all();
             }),
         ];
     }

@@ -28,13 +28,43 @@ final class AdminCommerceService
     ) {}
 
     /**
-     * Obtener todos los comercios.
+     * Listado paginado y filtrado de comercios. $filters acepta: search,
+     * country_name, status — ver AdminCommerceContextService::buildFilteredQuery().
      *
-     * @return array
+     * @return array{rows: array, pagination: array|null}
      */
-    public function fetchList(): array
+    public function fetchList(array $filters = [], int $page = 1): array
     {
-        return $this->contex->resolveCommerces()['commerces']['rows'] ?? [];
+        $data = $this->contex->resolveCommerces($filters, $page);
+
+        return [
+            'rows'       => $data['commerces']['rows'] ?? [],
+            'pagination' => $data['pagination'],
+        ];
+    }
+
+    /**
+     * Cursor de todos los comercios que coincidan con los filtros, para CSV.
+     */
+    public function exportForCsv(array $filters = []): \Illuminate\Support\LazyCollection
+    {
+        return $this->contex->exportForCsv($filters);
+    }
+
+    /**
+     * Alternar estado de varios comercios en una sola transacción.
+     */
+    public function toggleStatusBulk(array $commerceIds): array
+    {
+        return $this->crud->toggleStatusBulk($commerceIds);
+    }
+
+    /**
+     * Eliminación lógica de varios comercios en una sola transacción.
+     */
+    public function deleteBulk(array $commerceIds): array
+    {
+        return $this->crud->deleteBulk($commerceIds);
     }
 
     /**
