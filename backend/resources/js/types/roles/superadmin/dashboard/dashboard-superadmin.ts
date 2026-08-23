@@ -11,6 +11,7 @@ export interface SuperAdminStats {
     totalAdmins:        StatCardData
     activeRooms:        StatCardData
     totalPermissions:   StatCardData
+    pendingKyc:         StatCardData
 }
 
 // --------------------------------------------------------------------------

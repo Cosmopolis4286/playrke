@@ -4,6 +4,7 @@ namespace App\Services\Roles\SuperAdmin\Dashboard;
 
 use App\DTOs\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\KycDocument;
 use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
@@ -75,6 +76,7 @@ final class SuperAdminDashboardContextService
         $totalUsers       = User::excludeSystemAccounts()->count();
         $totalAdmins      = Admin::count();
         $totalPermissions = Permission::count();
+        $pendingKyc       = KycDocument::where('status', KycDocument::STATUS_PENDING)->count();
 
         return [
             'totalUsers' => array_merge([
@@ -105,6 +107,14 @@ final class SuperAdminDashboardContextService
                 'icon'    => 'fas fa-key',
                 'variant' => 'warning',
                 'href'    => '/permissions',
+            ],
+            'pendingKyc' => [
+                'label'       => 'KYC pendientes',
+                'value'       => $pendingKyc,
+                'icon'        => 'fas fa-id-card',
+                'variant'     => $pendingKyc > 0 ? 'warning' : 'success',
+                'description' => $pendingKyc > 0 ? 'Esperando revisión' : 'Sin pendientes',
+                'href'        => '/admin/kyc',
             ],
         ];
     }
@@ -191,6 +201,12 @@ final class SuperAdminDashboardContextService
 
         if ($activeRooms === 0) {
             $issues[] = ['code' => 'no_active_rooms', 'label' => 'Sin salas de Bingo activas', 'count' => 1];
+        }
+
+        // Salas con premio ganado pero aún no pagado (paid_prizes = 'N' y prize_pool > 0)
+        $pendingPrizesCount = BingoRoom::withPendingPrizes()->count();
+        if ($pendingPrizesCount > 0) {
+            $issues[] = ['code' => 'pending_prizes', 'label' => 'Salas con premios pendientes de pago', 'count' => $pendingPrizesCount];
         }
 
         // Admins sin login reciente (más de 30 días)

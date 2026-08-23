@@ -8,6 +8,7 @@ const DEFAULT_STATS: StatCardData[] = [
     { label: 'Administradores',         value: '—', icon: 'fas fa-user-shield',  variant: 'danger' },
     { label: 'Salas de Bingo activas',  value: '—', icon: 'fas fa-dice',         variant: 'info'    },
     { label: 'Permisos totales',        value: '—', icon: 'fas fa-key',          variant: 'warning' },
+    { label: 'KYC pendientes',          value: '—', icon: 'fas fa-id-card',      variant: 'secondary' },
 ]
 
 const DEFAULT_HEALTH: SystemHealth = {
@@ -27,7 +28,7 @@ export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {
     const statCards = computed<StatCardData[]>(() => {
         if (!props.stats) return DEFAULT_STATS
         const s = props.stats as SuperAdminStats
-        return [s.totalUsers, s.totalAdmins, s.activeRooms, s.totalPermissions]
+        return [s.totalUsers, s.totalAdmins, s.activeRooms, s.totalPermissions, s.pendingKyc]
     })
 
     const entityCounts = computed<EntityCount[]>(() => props.entityCounts ?? [])

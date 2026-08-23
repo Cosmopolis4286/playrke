@@ -21,6 +21,9 @@
   import PlatformWalletPanel          from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
   import PlatformCashModal            from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
   import RkeCommissionsSection        from '@/js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
+  import TriviaSummarySection         from '@/js/Components/Roles/SuperAdmin/Dashboard/TriviaSummarySection.vue'
+  import CommerceHierarchySection     from '@/js/Components/Roles/SuperAdmin/Dashboard/CommerceHierarchySection.vue'
+  import ExchangeRateSection          from '@/js/Components/Roles/SuperAdmin/Dashboard/ExchangeRateSection.vue'
   import FailedJobsModal              from '@/js/Components/Roles/SuperAdmin/Dashboard/FailedJobsModal.vue'
 
   // ==========================================================================
@@ -39,6 +42,9 @@
   import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
   import { useRkeSummary }          from '@/js/composables/roles/superadmin/dashboard/useRkeSummary'
+  import { useTriviaSummary }       from '@/js/composables/roles/superadmin/dashboard/useTriviaSummary'
+  import { useCommerceHierarchy }   from '@/js/composables/roles/superadmin/dashboard/useCommerceHierarchy'
+  import { useExchangeRateSummary } from '@/js/composables/roles/superadmin/dashboard/useExchangeRateSummary'
   import { usePlatformWallet }      from '@/js/composables/roles/superadmin/dashboard/usePlatformWallet'
   import { usePlatformCashModal }   from '@/js/composables/roles/superadmin/dashboard/usePlatformCashModal'
   import { useFailedJobs }          from '@/js/composables/roles/superadmin/dashboard/useFailedJobs'
@@ -92,6 +98,9 @@
     useWalletMovementsRealtime(pendingWalletCount.value, prependMovement)
 
   const { rkeSummary, rkeLoading, rkeError, loadRkeSummary } = useRkeSummary()
+  const { triviaSummary, triviaLoading, triviaError, loadTriviaSummary } = useTriviaSummary()
+  const { hierarchy: commerceHierarchy, loading: hierarchyLoading, error: hierarchyError, loadHierarchy } = useCommerceHierarchy()
+  const { exchangeRates, loading: exchangeRatesLoading, error: exchangeRatesError, loadExchangeRates } = useExchangeRateSummary()
 
   const {
     platformWallets, activePlatformWallet,
@@ -122,6 +131,9 @@
 
   onMounted(() => {
     loadRkeSummary()
+    loadTriviaSummary()
+    loadHierarchy()
+    loadExchangeRates()
     loadPlatformWallets()
     fetchMovementTypes()
   })
@@ -380,6 +392,32 @@
         :format-usd="formatUsd"
         :format-date="formatDate"
         @refresh="loadRkeSummary"
+      />
+
+      <!-- ══ COMERCIOS Y SU RED ══════════════════════════════════════════ -->
+      <CommerceHierarchySection
+        :hierarchy="commerceHierarchy"
+        :loading="hierarchyLoading"
+        :error="hierarchyError"
+        @refresh="loadHierarchy"
+      />
+
+      <!-- ══ ACTIVIDAD TRIVIA ════════════════════════════════════════════ -->
+      <TriviaSummarySection
+        :summary="triviaSummary"
+        :loading="triviaLoading"
+        :error="triviaError"
+        :format-usd="formatUsd"
+        @refresh="loadTriviaSummary"
+      />
+
+      <!-- ══ TASAS DE CAMBIO ═════════════════════════════════════════════ -->
+      <ExchangeRateSection
+        :summary="exchangeRates"
+        :loading="exchangeRatesLoading"
+        :error="exchangeRatesError"
+        :format-date="formatDate"
+        @refresh="loadExchangeRates"
       />
     </div>
   </div>
