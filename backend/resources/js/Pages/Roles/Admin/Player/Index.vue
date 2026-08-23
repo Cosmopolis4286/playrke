@@ -4,7 +4,8 @@
    */
 
   import { computed, onMounted, ref } from 'vue'
-  import { router } from '@inertiajs/vue3'
+  import { router, usePage } from '@inertiajs/vue3'
+  import Swal from 'sweetalert2'
 
   // ==========================================================================
   // Componentes
@@ -131,6 +132,18 @@
     clearDetail: clearPlayerDetail,
     loadingMoreAudits: playerDetailLoadingMoreAudits,
     loadMoreAudits: loadMorePlayerDetailAudits,
+    loadingMoreWalletMovements: playerDetailLoadingMoreWalletMovements,
+    loadMoreWalletMovements: loadMorePlayerDetailWalletMovements,
+    resolvingSuspension: playerDetailResolvingSuspension,
+    resolveSuspension: resolvePlayerDetailSuspension,
+    suspendingManually: playerDetailSuspendingManually,
+    suspendManually: suspendPlayerDetailManually,
+    flags: playerDetailFlags,
+    loadingFlags: playerDetailLoadingFlags,
+    flagsLoaded: playerDetailFlagsLoaded,
+    hasMoreFlags: playerDetailHasMoreFlags,
+    loadFlags: loadPlayerDetailFlags,
+    loadMoreFlags: loadMorePlayerDetailFlags,
   } = useAdminUserDetail()
 
   async function openPlayerDetail(rowId: string) {
@@ -152,6 +165,48 @@
     router.visit('/audit', {
       data: { entity: 'App\\Models\\User', auditable_id: String(userRealId) },
     })
+  }
+
+  // ==========================================================================
+  // Impersonación (solo SuperAdmin — ver ImpersonationService)
+  // ==========================================================================
+
+  const page = usePage()
+  const isSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
+  )
+
+  async function handleImpersonate(rowId: string) {
+    const player = players.value.find(p => p.id === rowId)
+    const name = player ? `${player.first_name} ${player.last_name}` : 'este jugador'
+
+    const confirmed = await Swal.fire({
+      title: '¿Iniciar sesión de soporte?',
+      html: `Vas a ver la plataforma como <b>${name}</b>. Se registrará en auditoría y no podrás retirar fondos ni cambiar la contraseña mientras dure la sesión.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, impersonar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d97706',
+      reverseButtons: true,
+    })
+    if (!confirmed.isConfirmed) return
+
+    // POST tradicional (no Inertia/AJAX): el controlador responde con
+    // redirect() a '/' como el propio jugador, que Inertia no puede navegar
+    // como una respuesta JSON — un submit real deja que el navegador siga
+    // la redirección y cargue la sesión ya autenticada como el jugador.
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = `/admin/impersonation/${rowId}/start`
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
+    const csrfInput = document.createElement('input')
+    csrfInput.type = 'hidden'
+    csrfInput.name = '_token'
+    csrfInput.value = csrfToken
+    form.appendChild(csrfInput)
+    document.body.appendChild(form)
+    form.submit()
   }
 
   // ==========================================================================
@@ -191,6 +246,8 @@
       options: [
         { value: 'ACTIVE', label: 'Activo' },
         { value: 'INACTIVE', label: 'Inactivo' },
+        { value: 'SUSPENDED', label: 'Suspendido' },
+        { value: 'PENDING_VERIFICATION', label: 'Pendiente' },
         { value: 'DELETED', label: 'Eliminado' }
       ]
     }
@@ -226,6 +283,20 @@
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
           openPlayerDetail(ids[0])
+        }
+      }
+    },
+    {
+      icon: 'fas fa-user-secret',
+      class: 'btn-warning text-white',
+      title: 'Impersonar (sesión de soporte)',
+      // Solo SuperAdmin (mismo criterio que el backend, role:superadmin en
+      // admin/impersonation) y solo jugadores activos — impersonar una
+      // cuenta suspendida/eliminada no tiene caso de uso de soporte real.
+      show: (ids: string[]) => isSuperadmin.value && ids.length === 1 && players.value.find(p => p.id === ids[0])?.status === 'ACTIVE',
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          handleImpersonate(ids[0])
         }
       }
     },
@@ -290,16 +361,28 @@
     />
   </Modal>
 
-  <!-- Ficha de detalle del jugador (datos básicos + wallet + nivel + stats de juego + actividad reciente) -->
+  <!-- Ficha de detalle del jugador (datos básicos + wallet + nivel + stats de juego + KYC + seguridad + actividad reciente) -->
   <UserDetailModal
     :model-value="showPlayerDetailModal"
     :loading="playerDetailLoading"
     :detail="playerDetail"
     :error="playerDetailError"
     :loading-more-audits="playerDetailLoadingMoreAudits"
+    :loading-more-wallet-movements="playerDetailLoadingMoreWalletMovements"
+    :resolving-suspension="playerDetailResolvingSuspension"
+    :suspending-manually="playerDetailSuspendingManually"
+    :flags="playerDetailFlags"
+    :loading-flags="playerDetailLoadingFlags"
+    :flags-loaded="playerDetailFlagsLoaded"
+    :has-more-flags="playerDetailHasMoreFlags"
     @update:model-value="handlePlayerDetailVisibility"
     @view-full-history="handleViewFullHistory"
     @retry="retryPlayerDetail"
     @load-more-audits="loadMorePlayerDetailAudits"
+    @load-more-wallet-movements="loadMorePlayerDetailWalletMovements"
+    @resolve-suspension="resolvePlayerDetailSuspension"
+    @suspend-manually="suspendPlayerDetailManually"
+    @load-flags="loadPlayerDetailFlags"
+    @load-more-flags="loadMorePlayerDetailFlags"
   />
 </template>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import Swal from 'sweetalert2'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import RoleBadge from '@/js/Components/Roles/Admin/RoleBadge.vue'
-import type { AdminUserDetail } from '@/js/types/roles/admin/admin-user'
+import type { AdminUserDetail, AdminUserDetailFlag } from '@/js/types/roles/admin/admin-user'
 
 const props = defineProps<{
   modelValue: boolean
@@ -12,6 +13,11 @@ const props = defineProps<{
   loadingMoreAudits?: boolean
   loadingMoreWalletMovements?: boolean
   resolvingSuspension?: boolean
+  suspendingManually?: boolean
+  flags?: AdminUserDetailFlag[]
+  loadingFlags?: boolean
+  flagsLoaded?: boolean
+  hasMoreFlags?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +28,9 @@ const emit = defineEmits<{
   'load-more-audits': []
   'load-more-wallet-movements': []
   'resolve-suspension': [suspensionId: string, notes: string]
+  'suspend-manually': [userId: string, reason: string]
+  'load-flags': []
+  'load-more-flags': []
 }>()
 
 async function handleResolveSuspension(suspensionId: string) {
@@ -40,6 +49,35 @@ async function handleResolveSuspension(suspensionId: string) {
 
   if (!result.isConfirmed || !result.value) return
   emit('resolve-suspension', suspensionId, result.value.trim())
+}
+
+async function handleSuspendManually() {
+  if (!props.detail) return
+
+  const result = await Swal.fire({
+    title: 'Suspender jugador',
+    input: 'textarea',
+    inputLabel: 'Motivo de la suspensión',
+    inputPlaceholder: 'Motivo por el que se suspende al jugador...',
+    inputValidator: (value) => (!value || !value.trim() ? 'El motivo es obligatorio' : undefined),
+    showCancelButton: true,
+    confirmButtonText: 'Suspender',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc2626',
+    reverseButtons: true,
+  })
+
+  if (!result.isConfirmed || !result.value) return
+  emit('suspend-manually', props.detail.id, result.value.trim())
+}
+
+const showFlagsDetail = ref(false)
+
+function toggleFlagsDetail() {
+  showFlagsDetail.value = !showFlagsDetail.value
+  if (showFlagsDetail.value && !props.flagsLoaded) {
+    emit('load-flags')
+  }
 }
 
 const walletMovementTypeLabel: Record<string, string> = {
@@ -327,11 +365,52 @@ function formatEventLabel(event: string): string {
             <template v-else><i class="fas fa-unlock mr-1"></i>Resolver suspensión</template>
           </button>
         </div>
-        <p v-else class="text-muted small mb-0">Sin suspensiones activas.</p>
+        <div v-else class="ud-suspend-manual">
+          <p class="text-muted small mb-0">Sin suspensiones activas.</p>
+          <button
+            class="btn btn-sm btn-outline-danger"
+            :disabled="suspendingManually"
+            @click="handleSuspendManually"
+          >
+            <span v-if="suspendingManually" class="spinner-border spinner-border-sm me-1"></span>
+            <template v-else><i class="fas fa-ban mr-1"></i>Suspender manualmente</template>
+          </button>
+        </div>
 
-        <p v-if="detail.security.recent_flags_count > 0" class="ud-flags-count">
-          <i class="fas fa-flag mr-1"></i>{{ detail.security.recent_flags_count }} señal{{ detail.security.recent_flags_count === 1 ? '' : 'es' }} anti-cheat reciente{{ detail.security.recent_flags_count === 1 ? '' : 's' }}
-        </p>
+        <div v-if="detail.security.recent_flags_count > 0" class="ud-flags">
+          <button class="ud-flags-toggle" @click="toggleFlagsDetail">
+            <i class="fas fa-flag mr-1"></i>{{ detail.security.recent_flags_count }} señal{{ detail.security.recent_flags_count === 1 ? '' : 'es' }} anti-cheat reciente{{ detail.security.recent_flags_count === 1 ? '' : 's' }}
+            <i class="fas ml-1" :class="showFlagsDetail ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+
+          <div v-if="showFlagsDetail" class="ud-flags-detail">
+            <div v-if="loadingFlags && !flags?.length" class="ud-flags-loading">
+              <div class="spinner-border spinner-border-sm me-2"></div>Cargando señales...
+            </div>
+            <ul v-else-if="flags?.length" class="ud-movement-list">
+              <li v-for="flag in flags" :key="flag.id" class="ud-movement-item">
+                <span class="ud-movement-body">
+                  <span class="ud-movement-type">
+                    {{ flag.signal_type_label }}
+                    <span v-if="flag.triggered_suspension" class="ud-flag-triggered">disparó suspensión</span>
+                  </span>
+                  <span class="ud-movement-meta">{{ flag.game_slug }} · {{ flag.created_at }}</span>
+                </span>
+                <span class="ud-flag-severity">Sev. {{ flag.severity }}</span>
+              </li>
+            </ul>
+            <p v-else class="text-muted small mb-0">Sin señales registradas.</p>
+            <button
+              v-if="hasMoreFlags"
+              class="btn btn-sm btn-link ud-audit-more"
+              :disabled="loadingFlags"
+              @click="$emit('load-more-flags')"
+            >
+              <span v-if="loadingFlags" class="spinner-border spinner-border-sm me-1"></span>
+              <template v-else>Cargar más</template>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Actividad reciente -->
@@ -612,9 +691,33 @@ function formatEventLabel(event: string): string {
 }
 .ud-suspension-reason { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--ds-text); }
 .ud-suspension-meta { margin: 0.25rem 0 0; font-size: 0.76rem; color: var(--ds-text-muted); }
-.ud-flags-count {
-  margin: 0.75rem 0 0;
+
+.ud-suspend-manual { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+
+.ud-flags { margin-top: 0.85rem; }
+.ud-flags-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
   font-size: 0.8rem;
+  font-weight: 600;
   color: #fbbf24;
+  cursor: pointer;
 }
+.ud-flags-toggle:hover { text-decoration: underline; }
+.ud-flags-detail { margin-top: 0.5rem; }
+.ud-flags-loading { display: flex; align-items: center; padding: 0.75rem 0; color: var(--ds-text-muted); font-size: 0.82rem; }
+.ud-flag-triggered {
+  margin-left: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #f87171;
+  background: rgba(220,38,38,.15);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+.ud-flag-severity { font-weight: 700; color: var(--ds-text-muted); font-size: 0.78rem; white-space: nowrap; }
 </style>

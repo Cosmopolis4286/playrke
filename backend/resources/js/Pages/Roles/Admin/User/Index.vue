@@ -352,6 +352,18 @@
     clearDetail: clearUserDetail,
     loadingMoreAudits: userDetailLoadingMoreAudits,
     loadMoreAudits: loadMoreUserDetailAudits,
+    loadingMoreWalletMovements: userDetailLoadingMoreWalletMovements,
+    loadMoreWalletMovements: loadMoreUserDetailWalletMovements,
+    resolvingSuspension: userDetailResolvingSuspension,
+    resolveSuspension: resolveUserDetailSuspension,
+    suspendingManually: userDetailSuspendingManually,
+    suspendManually: suspendUserDetailManually,
+    flags: userDetailFlags,
+    loadingFlags: userDetailLoadingFlags,
+    flagsLoaded: userDetailFlagsLoaded,
+    hasMoreFlags: userDetailHasMoreFlags,
+    loadFlags: loadUserDetailFlags,
+    loadMoreFlags: loadMoreUserDetailFlags,
   } = useAdminUserDetail()
 
   async function openUserDetail(rowId: string) {
@@ -904,11 +916,23 @@
     :detail="userDetail"
     :error="userDetailError"
     :loading-more-audits="userDetailLoadingMoreAudits"
+    :loading-more-wallet-movements="userDetailLoadingMoreWalletMovements"
+    :resolving-suspension="userDetailResolvingSuspension"
+    :suspending-manually="userDetailSuspendingManually"
+    :flags="userDetailFlags"
+    :loading-flags="userDetailLoadingFlags"
+    :flags-loaded="userDetailFlagsLoaded"
+    :has-more-flags="userDetailHasMoreFlags"
     @update:model-value="handleUserDetailVisibility"
     @view-full-history="handleViewFullHistory"
     @view-permissions="handleViewPermissionsFromDetail"
     @retry="retryFetchDetail"
     @load-more-audits="loadMoreUserDetailAudits"
+    @load-more-wallet-movements="loadMoreUserDetailWalletMovements"
+    @resolve-suspension="resolveUserDetailSuspension"
+    @suspend-manually="suspendUserDetailManually"
+    @load-flags="loadUserDetailFlags"
+    @load-more-flags="loadMoreUserDetailFlags"
   />
 
   <!-- Loader bloqueante mientras se redirige desde "Ver más" (UserEditForm.vue) -->

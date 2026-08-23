@@ -107,6 +107,16 @@ export interface AdminUserDetailSuspension {
     readonly suspended_by: string | null
 }
 
+export interface AdminUserDetailFlag {
+    readonly id: string
+    readonly game_slug: string
+    readonly signal_type: string
+    readonly signal_type_label: string
+    readonly severity: number
+    readonly triggered_suspension: boolean
+    readonly created_at: string | null
+}
+
 export interface AdminUserDetailSecurity {
     readonly active_suspension: AdminUserDetailSuspension | null
     readonly recent_flags_count: number

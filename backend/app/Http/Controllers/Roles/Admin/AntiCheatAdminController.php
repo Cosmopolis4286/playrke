@@ -35,12 +35,13 @@ final class AntiCheatAdminController extends Controller
             return [
                 'data' => [
                     'rows' => $paginator->getCollection()->map(fn (AntiCheatFlag $flag) => [
-                        'id'          => (string) $flag->id,
-                        'game_slug'   => $flag->game_slug,
-                        'signal_type' => $flag->signal_type->value,
-                        'severity'    => $flag->severity,
+                        'id'                => (string) $flag->id,
+                        'game_slug'         => $flag->game_slug,
+                        'signal_type'       => $flag->signal_type->value,
+                        'signal_type_label' => $flag->signal_type->label(),
+                        'severity'          => $flag->severity,
                         'triggered_suspension' => $flag->triggered_suspension,
-                        'created_at'  => $flag->created_at?->format('d/m/Y H:i:s'),
+                        'created_at'        => $flag->created_at?->format('d/m/Y H:i:s'),
                     ])->values(),
                     'has_more'     => $paginator->hasMorePages(),
                     'current_page' => $paginator->currentPage(),

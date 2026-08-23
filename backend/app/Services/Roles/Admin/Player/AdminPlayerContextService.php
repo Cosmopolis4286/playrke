@@ -121,10 +121,12 @@ final class AdminPlayerContextService
     private function statusBadge(string $status): string
     {
         return match ($status) {
-            'ACTIVE'   => '<span class="badge badge-success">Activo</span>',
-            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
-            'DELETED'  => '<span class="badge badge-dark">Eliminado</span>',
-            default    => '<span class="badge badge-warning">Desconocido</span>',
+            'ACTIVE'               => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE'             => '<span class="badge badge-secondary">Inactivo</span>',
+            'DELETED'              => '<span class="badge badge-dark">Eliminado</span>',
+            'SUSPENDED'            => '<span class="badge badge-danger">Suspendido</span>',
+            'PENDING_VERIFICATION' => '<span class="badge badge-warning">Pendiente</span>',
+            default                => '<span class="badge badge-warning">Desconocido</span>',
         };
     }
 }

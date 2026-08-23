@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
-import type { AdminUserDetail, AdminUserDetailAudit, AdminUserDetailWalletMovement } from '@/js/types/roles/admin/admin-user'
+import type { AdminUserDetail, AdminUserDetailAudit, AdminUserDetailFlag, AdminUserDetailWalletMovement } from '@/js/types/roles/admin/admin-user'
 
 interface AuditHistoryResponse {
     success: boolean
@@ -15,6 +15,15 @@ interface WalletHistoryResponse {
     rows: AdminUserDetailWalletMovement[]
     has_more: boolean
     current_page: number
+}
+
+interface FlagsResponse {
+    success: boolean
+    data: {
+        rows: AdminUserDetailFlag[]
+        has_more: boolean
+        current_page: number
+    }
 }
 
 /**
@@ -35,6 +44,13 @@ export function useAdminUserDetail() {
     const walletMovementPage = ref(1)
 
     const resolvingSuspension = ref(false)
+    const suspendingManually = ref(false)
+
+    const flags = ref<AdminUserDetailFlag[]>([])
+    const loadingFlags = ref(false)
+    const flagsLoaded = ref(false)
+    const hasMoreFlags = ref(false)
+    const flagsPage = ref(1)
 
     async function fetchDetail(userId: string | number): Promise<void> {
         loading.value = true
@@ -43,6 +59,10 @@ export function useAdminUserDetail() {
         lastUserId.value = userId
         auditPage.value = 1
         walletMovementPage.value = 1
+        flags.value = []
+        flagsLoaded.value = false
+        hasMoreFlags.value = false
+        flagsPage.value = 1
         try {
             const { data } = await backendClient.get<{ success: boolean } & AdminUserDetail>(`/admin/user/${userId}/show`)
             const { success, ...rest } = data
@@ -140,12 +160,88 @@ export function useAdminUserDetail() {
         }
     }
 
+    /**
+     * Trae la primera página de flags anti-cheat del jugador — on-demand
+     * (no se precarga en fetchDetail) porque el detalle completo por señal
+     * no es necesario en la mayoría de las visitas a la ficha, solo el
+     * conteo que ya viene en detail.security.recent_flags_count.
+     */
+    async function loadFlags(): Promise<void> {
+        if (lastUserId.value === null || loadingFlags.value) return
+
+        loadingFlags.value = true
+        try {
+            const { data } = await backendClient.get<FlagsResponse>(
+                `/admin/anticheat/users/${lastUserId.value}/flags`
+            )
+            flags.value = data.data.rows
+            hasMoreFlags.value = data.data.has_more
+            flagsPage.value = data.data.current_page
+            flagsLoaded.value = true
+        } catch (err) {
+            console.error(err)
+            showToast('No se pudieron cargar las señales anti-cheat', 'error')
+        } finally {
+            loadingFlags.value = false
+        }
+    }
+
+    /**
+     * Trae la siguiente página de flags y la anexa — mismo patrón que
+     * loadMoreAudits()/loadMoreWalletMovements().
+     */
+    async function loadMoreFlags(): Promise<void> {
+        if (lastUserId.value === null || loadingFlags.value || !hasMoreFlags.value) return
+
+        loadingFlags.value = true
+        try {
+            const nextPage = flagsPage.value + 1
+            const { data } = await backendClient.get<FlagsResponse>(
+                `/admin/anticheat/users/${lastUserId.value}/flags`,
+                { params: { page: nextPage } }
+            )
+            flags.value = [...flags.value, ...data.data.rows]
+            hasMoreFlags.value = data.data.has_more
+            flagsPage.value = data.data.current_page
+        } catch (err) {
+            console.error(err)
+            showToast('No se pudieron cargar más señales', 'error')
+        } finally {
+            loadingFlags.value = false
+        }
+    }
+
+    /**
+     * Suspende manualmente al jugador (fuera del flujo automático de
+     * anti-cheat) y refresca la ficha completa — mismo patrón que
+     * resolveSuspension().
+     */
+    async function suspendManually(userId: string | number, reason: string): Promise<boolean> {
+        suspendingManually.value = true
+        try {
+            await backendClient.post(`/admin/anticheat/users/${userId}/suspend`, { reason })
+            showToast('Jugador suspendido', 'success')
+            if (lastUserId.value !== null) await fetchDetail(lastUserId.value)
+            return true
+        } catch (err: any) {
+            console.error(err)
+            showToast(err?.response?.data?.message ?? 'No se pudo suspender al jugador', 'error')
+            return false
+        } finally {
+            suspendingManually.value = false
+        }
+    }
+
     function clearDetail() {
         detail.value = null
         error.value = null
         lastUserId.value = null
         auditPage.value = 1
         walletMovementPage.value = 1
+        flags.value = []
+        flagsLoaded.value = false
+        hasMoreFlags.value = false
+        flagsPage.value = 1
     }
 
     return {
@@ -161,5 +257,13 @@ export function useAdminUserDetail() {
         loadMoreWalletMovements,
         resolvingSuspension,
         resolveSuspension,
+        suspendingManually,
+        suspendManually,
+        flags,
+        loadingFlags,
+        flagsLoaded,
+        hasMoreFlags,
+        loadFlags,
+        loadMoreFlags,
     }
 }
