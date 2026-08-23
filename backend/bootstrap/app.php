@@ -50,6 +50,7 @@ return Application::configure(
 
         /** Habiltar Middleware de Inetia*/
         $middleware->web(append: [
+            \App\Http\Middleware\EnforceImpersonationTimeout::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\ShareNotifications::class,
             \App\Http\Middleware\SetUserTimezone::class,
