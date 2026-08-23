@@ -140,10 +140,13 @@ class AchievementService
             ->pluck('total', 'category')
             ->toArray();
 
+        // $user->achievements() (BelongsToMany) ya hace JOIN sobre
+        // `achievements` internamente para resolver la relación — un
+        // ->join('achievements', ...) adicional aquí duplicaba el alias y
+        // rompía la query (SQLSTATE 42000: Not unique table/alias).
         $unlockedByCategory = $user->achievements()
-            ->selectRaw('category, COUNT(*) as unlocked')
-            ->join('achievements', 'achievements.id', '=', 'user_achievements.achievement_id')
-            ->groupBy('category')
+            ->selectRaw('achievements.category, COUNT(*) as unlocked')
+            ->groupBy('achievements.category')
             ->pluck('unlocked', 'category')
             ->toArray();
 

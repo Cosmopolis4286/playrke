@@ -15,6 +15,10 @@
   import DashboardSection       from '@/js/Components/Common/Dashboard/DashboardSection.vue'
   import DashboardActivityFeed  from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
   import DashboardQuickLinks    from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardPrizesList    from '@/js/Components/Common/Dashboard/DashboardPrizesList.vue'
+  import DashboardTriviaActivityList from '@/js/Components/Common/Dashboard/DashboardTriviaActivityList.vue'
+  import DashboardKycStatusPanel from '@/js/Components/Common/Dashboard/DashboardKycStatusPanel.vue'
+  import DashboardGamificationPanel from '@/js/Components/Common/Dashboard/DashboardGamificationPanel.vue'
   import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -24,6 +28,9 @@
   import { usePlayerDashboard }          from '@/js/composables/roles/player/dashboard/usePlayerDashboard'
   import { usePlayerDashboardRealtime }  from '@/js/composables/roles/player/dashboard/usePlayerDashboardRealtime'
   import { useDashboardMountLoading }    from '@/js/composables/common/dashboard/useDashboardMountLoading'
+  import { useDashboardFormatters }      from '@/js/composables/common/dashboard/useDashboardFormatters'
+  import { useGamification }             from '@/js/composables/roles/player/dashboard/useGamification'
+  import { onMounted }                   from 'vue'
 
   // ==========================================================================
   // Types
@@ -41,9 +48,13 @@
   // Composable
   // ==========================================================================
 
-  const { statCards, sortedActivity } = usePlayerDashboard(props)
+  const { statCards, sortedActivity, prizesWon, triviaActivity, kycStatus } = usePlayerDashboard(props)
   const { liveBalance, isLive } = usePlayerDashboardRealtime(props.stats?.walletBalance.value ?? '—')
   const { loading: sectionsLoading } = useDashboardMountLoading()
+  const { formatUsd } = useDashboardFormatters()
+
+  const { levelInfo, achievementStats, loading: gamificationLoading, error: gamificationError, loadGamification } = useGamification()
+  onMounted(() => loadGamification())
 
   // ==========================================================================
   // Accesos rápidos
@@ -146,6 +157,62 @@
         skeleton-variant="list"
       >
         <DashboardActivityFeed :items="sortedActivity" :maxItems="8" :columns="2" />
+      </DashboardSection>
+
+      <!-- Fila inferior -->
+      <div class="row g-3">
+
+        <!-- Premios ganados -->
+        <div class="col-12 col-lg-6">
+          <DashboardSection
+            title="Premios ganados"
+            icon="fas fa-trophy"
+            subtitle="Detalle de tus victorias"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardPrizesList :prizes="prizesWon" :format-usd="formatUsd" />
+          </DashboardSection>
+        </div>
+
+        <!-- Estado de verificación -->
+        <div class="col-12 col-lg-6">
+          <DashboardSection
+            title="Verificación de identidad"
+            icon="fas fa-id-card"
+            subtitle="Estado de tu cuenta"
+            :loading="sectionsLoading"
+            skeleton-variant="stat"
+          >
+            <DashboardKycStatusPanel :status="kycStatus" />
+          </DashboardSection>
+        </div>
+
+      </div>
+
+      <!-- Nivel y logros -->
+      <DashboardSection
+        title="Mi progreso"
+        icon="fas fa-star"
+        subtitle="Nivel y logros desbloqueados"
+      >
+        <DashboardGamificationPanel
+          :level-info="levelInfo"
+          :achievement-stats="achievementStats"
+          :loading="gamificationLoading"
+          :error="gamificationError"
+        />
+      </DashboardSection>
+
+      <!-- Actividad Trivia -->
+      <DashboardSection
+        title="Mi actividad en Trivia"
+        icon="fas fa-brain"
+        subtitle="Últimas participaciones"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
+      >
+        <DashboardTriviaActivityList :rows="triviaActivity" />
       </DashboardSection>
 
     </div>

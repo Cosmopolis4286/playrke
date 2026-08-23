@@ -13,6 +13,12 @@ final class PlayerDashboardContextDTO implements ContextDTO
         public readonly array $stats,
         /** Actividad reciente (cartones comprados) */
         public readonly array $recentActivity,
+        /** Premios ganados con detalle (monto, patrón, sala) */
+        public readonly array $prizesWon,
+        /** Participaciones recientes en Trivia */
+        public readonly array $triviaActivity,
+        /** Estado del documento KYC propio (null si nunca se envió) */
+        public readonly ?array $kycStatus,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
     ) {}
@@ -23,6 +29,9 @@ final class PlayerDashboardContextDTO implements ContextDTO
             'userName'       => $this->userName,
             'stats'          => $this->stats,
             'recentActivity' => $this->recentActivity,
+            'prizesWon'      => $this->prizesWon,
+            'triviaActivity' => $this->triviaActivity,
+            'kycStatus'      => $this->kycStatus,
             'period'         => $this->period,
         ];
     }
