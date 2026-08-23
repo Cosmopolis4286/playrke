@@ -17,6 +17,8 @@ final class AdminDashboardContextDTO implements ContextDTO
         public readonly array $entityCounts,
         /** Serie diaria de cartones vendidos (últimos 14 días) */
         public readonly array $salesTrend,
+        /** Totales de comisiones RKE cobradas (resumen, sin desglose por sala — ver SuperAdmin para el detalle completo) */
+        public readonly array $rkeTotals,
         /** Movimientos de billetera pendientes de aprobación */
         public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
@@ -31,6 +33,7 @@ final class AdminDashboardContextDTO implements ContextDTO
             'recentActivity'     => $this->recentActivity,
             'entityCounts'       => $this->entityCounts,
             'salesTrend'         => $this->salesTrend,
+            'rkeTotals'          => $this->rkeTotals,
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
         ];

@@ -23,6 +23,16 @@ export interface SalesTrendPoint {
 }
 
 // --------------------------------------------------------------------------
+// Totales de comisiones RKE (resumen, sin desglose por sala)
+// --------------------------------------------------------------------------
+
+export interface RkeTotals {
+    total_rke:   number
+    total_sales: number
+    room_count:  number
+}
+
+// --------------------------------------------------------------------------
 // Inertia page props
 // --------------------------------------------------------------------------
 
@@ -37,6 +47,8 @@ export interface DashboardAdminPageProps {
     entityCounts?:        EntityCount[]
     /** Serie diaria de cartones vendidos (últimos 14 días) */
     salesTrend?:          SalesTrendPoint[]
+    /** Totales de comisiones RKE cobradas */
+    rkeTotals?:           RkeTotals
     /** Movimientos de billetera pendientes de aprobación */
     pendingWalletCount?:  number
     /** Período activo (e.g. "Marzo 2026") */

@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin\Dashboard;
 use App\DTOs\Roles\Admin\Dashboard\AdminDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
@@ -14,6 +15,7 @@ use App\Services\Menu\SidebarMenuService;
 use App\Services\Roles\Dashboard\Concerns\BuildsRecentActivity;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
+use App\Services\Roles\SuperAdmin\Rke\RkeSummaryService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -28,6 +30,7 @@ final class AdminDashboardContextService
 
     public function __construct(
         private readonly SidebarMenuService $sidebarMenu,
+        private readonly RkeSummaryService $rkeSummary,
     ) {}
 
     public function dashboardContext(): AdminDashboardContextDTO
@@ -42,6 +45,7 @@ final class AdminDashboardContextService
                 'recentActivity' => $this->buildRecentActivity(),
                 'entityCounts'   => $this->buildEntityCounts(),
                 'salesTrend'     => $this->buildSalesTrend(),
+                'rkeTotals'      => $this->rkeSummary->getSummary()['totals'],
             ];
         });
 
@@ -51,6 +55,7 @@ final class AdminDashboardContextService
             recentActivity:     $cached['recentActivity'],
             entityCounts:       $cached['entityCounts'],
             salesTrend:         $cached['salesTrend'],
+            rkeTotals:          $cached['rkeTotals'],
             pendingWalletCount: $this->sidebarMenu->pendingWalletMovementsCount(),
             period:             $period,
         );
@@ -114,6 +119,10 @@ final class AdminDashboardContextService
     {
         return [
             array_merge([
+                'label' => 'Administradores', 'value' => Admin::count(), 'icon' => 'fas fa-user-shield',
+                'variant' => 'danger', 'href' => '/admins',
+            ], $this->buildWeeklyTrend(Admin::query())),
+            array_merge([
                 'label' => 'Comercios', 'value' => Commerce::count(), 'icon' => 'fas fa-building',
                 'variant' => 'primary', 'href' => '/admin/commerces',
             ], $this->buildWeeklyTrend(Commerce::query())),
@@ -125,6 +134,10 @@ final class AdminDashboardContextService
                 'label' => 'Clientes', 'value' => Customer::count(), 'icon' => 'fas fa-handshake',
                 'variant' => 'info', 'href' => '/admin/customers',
             ], $this->buildWeeklyTrend(Customer::query())),
+            array_merge([
+                'label' => 'Jugadores', 'value' => User::role('player')->count(), 'icon' => 'fas fa-gamepad',
+                'variant' => 'secondary', 'href' => '/admin/players',
+            ], $this->buildWeeklyTrend(User::role('player'))),
             array_merge([
                 'label' => 'Tesoreros', 'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',
                 'variant' => 'warning', 'href' => '/admin/treasurers',

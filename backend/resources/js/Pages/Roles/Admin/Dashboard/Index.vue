@@ -18,6 +18,7 @@
   import DashboardEntityList          from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
   import DashboardTrendChart          from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
   import DashboardPendingWalletWidget from '@/js/Components/Common/Dashboard/DashboardPendingWalletWidget.vue'
+  import DashboardRkeTotalsWidget     from '@/js/Components/Common/Dashboard/DashboardRkeTotalsWidget.vue'
 
   // ==========================================================================
   // Composables
@@ -31,6 +32,7 @@
   import { useDashboardQuickLinks }      from '@/js/composables/common/dashboard/useDashboardQuickLinks'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
   import { useDashboardMountLoading }    from '@/js/composables/common/dashboard/useDashboardMountLoading'
+  import { useDashboardFormatters }      from '@/js/composables/common/dashboard/useDashboardFormatters'
   import type { ActivityItem }           from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
@@ -49,9 +51,11 @@
   // Composable
   // ==========================================================================
 
-  const { statCards, sortedActivity, entityCounts, salesTrend, pendingWalletCount, prependActivity } = useAdminDashboard(props)
+  const { statCards, sortedActivity, entityCounts, salesTrend, rkeTotals, pendingWalletCount, prependActivity } = useAdminDashboard(props)
 
   const { loading: sectionsLoading } = useDashboardMountLoading()
+
+  const { formatUsd } = useDashboardFormatters()
 
   const { noteRealtimeItem } = useActivityLogReconciliation(
     (items) => items.forEach((item) => prependActivity(item)),
@@ -204,6 +208,19 @@
             skeleton-variant="list"
           >
             <DashboardEntityList :items="entityCounts" />
+          </DashboardSection>
+        </div>
+
+        <!-- Comisiones RKE (resumen) -->
+        <div class="col-12">
+          <DashboardSection
+            title="Comisiones RKE"
+            icon="fas fa-percentage"
+            subtitle="Cobrado en la venta de cartones — ver detalle completo en el panel de SuperAdmin"
+            :loading="sectionsLoading"
+            skeleton-variant="stat"
+          >
+            <DashboardRkeTotalsWidget :totals="rkeTotals" :format-usd="formatUsd" />
           </DashboardSection>
         </div>
 
