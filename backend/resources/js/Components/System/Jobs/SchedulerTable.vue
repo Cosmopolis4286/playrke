@@ -108,23 +108,29 @@ const filteredCommands = computed(() => {
               <span v-else class="text-muted small">Sin ejecuciones registradas</span>
             </td>
             <td>
-              <span v-if="!cmd.is_enabled" class="sct-disabled-info">
-                Desactivado{{ cmd.disabled_by ? ` por ${cmd.disabled_by}` : '' }}{{ cmd.disabled_at ? ` · ${cmd.disabled_at}` : '' }}
+              <span class="sct-status-badge" :class="cmd.is_enabled ? 'sct-status-badge--active' : 'sct-status-badge--disabled'">
+                <span class="sct-status-dot"></span>
+                {{ cmd.is_enabled ? 'Activo' : 'Desactivado' }}
+              </span>
+              <span v-if="!cmd.is_enabled && (cmd.disabled_by || cmd.disabled_at)" class="sct-disabled-meta">
+                {{ cmd.disabled_by ? `por ${cmd.disabled_by}` : '' }}{{ cmd.disabled_by && cmd.disabled_at ? ' · ' : '' }}{{ cmd.disabled_at ?? '' }}
               </span>
             </td>
             <td class="sct-actions-cell">
-              <button class="sct-history-btn" title="Ver historial completo" @click="$emit('view-history', cmd)">
-                <i class="fas fa-clock-rotate-left"></i>
-              </button>
-              <label class="sct-switch">
-                <input
-                  type="checkbox"
-                  :checked="cmd.is_enabled"
-                  :disabled="togglingId === cmd.id"
-                  @change="$emit('toggle', cmd, ($event.target as HTMLInputElement).checked)"
-                />
-                <span class="sct-switch-slider"></span>
-              </label>
+              <div class="sct-actions-inner">
+                <button class="sct-history-btn" title="Ver historial completo" @click="$emit('view-history', cmd)">
+                  <i class="fas fa-clock-rotate-left"></i>
+                </button>
+                <label class="sct-switch" :title="cmd.is_enabled ? 'Desactivar ejecución automática' : 'Activar ejecución automática'">
+                  <input
+                    type="checkbox"
+                    :checked="cmd.is_enabled"
+                    :disabled="togglingId === cmd.id"
+                    @change="$emit('toggle', cmd, ($event.target as HTMLInputElement).checked)"
+                  />
+                  <span class="sct-switch-slider"></span>
+                </label>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -138,11 +144,11 @@ const filteredCommands = computed(() => {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
   border-radius: 12px;
-  padding: 1.1rem 1.3rem;
+  padding: 1.25rem 1.3rem;
 }
-.sct-header { margin-bottom: 0.9rem; }
-.sct-title { font-size: 0.95rem; font-weight: 700; color: var(--ds-text); margin: 0; }
-.sct-subtitle { font-size: 0.78rem; color: var(--ds-text-muted); margin: 0.2rem 0 0; }
+.sct-header { margin-bottom: 1rem; }
+.sct-title { display: flex; align-items: center; font-size: 0.98rem; font-weight: 700; color: var(--ds-text); margin: 0; }
+.sct-subtitle { font-size: 0.78rem; color: var(--ds-text-muted); margin: 0.3rem 0 0; line-height: 1.5; max-width: 640px; }
 
 .sct-filters { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
 .sct-search {
@@ -181,25 +187,27 @@ const filteredCommands = computed(() => {
 }
 .sct-empty-icon { font-size: 1.6rem; opacity: 0.5; }
 
-.sct-table-wrap { overflow-x: auto; }
+.sct-table-wrap { overflow-x: auto; margin: 0 -0.2rem; }
 .sct-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
 .sct-table th {
   text-align: left;
-  padding: 0.5rem 0.6rem;
-  font-size: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: var(--ds-text-muted);
   border-bottom: 1px solid var(--ds-border);
   white-space: nowrap;
 }
 .sct-table td {
-  padding: 0.6rem;
+  padding: 0.85rem 0.7rem;
   border-bottom: 1px solid var(--ds-border);
-  vertical-align: top;
+  vertical-align: middle;
 }
-.sct-table tr:last-child td { border-bottom: none; }
+.sct-table tbody tr:last-child td { border-bottom: none; }
+.sct-table tbody tr { transition: background 0.12s; }
+.sct-table tbody tr:hover { background: var(--ds-surface-2); }
 
 .sct-label { display: block; font-weight: 600; color: var(--ds-text); }
 .sct-command { display: block; font-family: monospace; font-size: 0.74rem; color: var(--ds-text-muted); margin-top: 0.1rem; }
@@ -254,18 +262,41 @@ const filteredCommands = computed(() => {
   white-space: nowrap;
 }
 
-.sct-disabled-info { font-size: 0.74rem; color: #fbbf24; white-space: nowrap; }
+.sct-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.sct-status-badge--active { color: #34d399; background: rgba(52, 211, 153, 0.12); }
+.sct-status-badge--active .sct-status-dot { background: #34d399; }
+.sct-status-badge--disabled { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+.sct-status-badge--disabled .sct-status-dot { background: #fbbf24; }
+.sct-status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sct-disabled-meta { display: block; font-size: 0.7rem; color: var(--ds-text-muted); margin-top: 0.3rem; }
 
-.sct-actions-cell { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 0.6rem; }
+.sct-actions-cell { width: 1%; }
+.sct-actions-inner { display: flex; align-items: center; justify-content: flex-end; gap: 0.7rem; }
 .sct-history-btn {
   background: none;
   border: none;
   color: var(--ds-text-muted);
   cursor: pointer;
   font-size: 0.85rem;
-  padding: 0.2rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
-.sct-history-btn:hover { color: #667eea; }
+.sct-history-btn:hover { color: #667eea; background: rgba(102, 126, 234, 0.1); }
 
 .sct-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
 .sct-switch input { opacity: 0; width: 0; height: 0; }

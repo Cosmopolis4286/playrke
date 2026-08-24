@@ -7,7 +7,7 @@
    */
 
   import { onMounted, onUnmounted, ref } from 'vue'
-  import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import SchedulerTable from '@/js/Components/System/Jobs/SchedulerTable.vue'
   import PendingQueuesSummary from '@/js/Components/System/Jobs/PendingQueuesSummary.vue'
   import FailedJobsPanel from '@/js/Components/System/Jobs/FailedJobsPanel.vue'
@@ -122,18 +122,23 @@
 
 <template>
   <div class="jc-page">
-    <Breadcrumb :items="[{ label: 'Sistema' }, { label: 'Jobs y Scheduler' }]" />
-
-    <div class="jc-title-row">
-      <div>
-        <h2 class="jc-title"><i class="fas fa-gears mr-2"></i>Jobs y Scheduler</h2>
-        <p class="jc-subtitle">Comandos programados, colas de trabajo y jobs fallidos del sistema.</p>
-      </div>
-      <div class="jc-refresh-info">
-        <i class="fas fa-rotate"></i>
-        Actualizado {{ lastRefreshedAt.toLocaleTimeString('es-VE') }}
-      </div>
-    </div>
+    <PageHeader
+      icon="fa-gears"
+      title="Jobs y Scheduler"
+      subtitle="Comandos programados, colas de trabajo y jobs fallidos del sistema."
+      :breadcrumb-items="[
+        { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+        { label: 'Sistema', icon: 'fas fa-cogs' },
+        { label: 'Jobs y Scheduler' },
+      ]"
+    >
+      <template #actions>
+        <div class="jc-refresh-info">
+          <i class="fas fa-rotate"></i>
+          Actualizado {{ lastRefreshedAt.toLocaleTimeString('es-VE') }}
+        </div>
+      </template>
+    </PageHeader>
 
     <div class="jc-section">
       <PendingQueuesSummary :queues="queues" :refreshing="queuesLoading" />
@@ -183,9 +188,17 @@
 
 <style scoped>
 .jc-page { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-.jc-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 1.5rem; }
-.jc-title { font-size: 1.25rem; font-weight: 700; color: var(--ds-text); margin: 0 0 0.2rem; }
-.jc-subtitle { font-size: 0.85rem; color: var(--ds-text-muted); margin: 0; }
-.jc-refresh-info { font-size: 0.76rem; color: var(--ds-text-muted); white-space: nowrap; }
+.jc-refresh-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--ds-text-muted);
+  white-space: nowrap;
+  padding: 0.35rem 0.7rem;
+  background: var(--ds-surface-2);
+  border-radius: 20px;
+}
 .jc-section { margin-bottom: 1.25rem; }
 </style>
