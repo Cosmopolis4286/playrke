@@ -9,6 +9,8 @@ use App\Services\Roles\SuperAdmin\Dashboard\CommerceHierarchyService;
 use App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService;
 use App\Services\Roles\SuperAdmin\Dashboard\TriviaSummaryService;
 use App\Services\Roles\SuperAdmin\Dashboard\ExchangeRateSummaryService;
+use App\Services\Roles\SuperAdmin\Dashboard\EconomySummaryService;
+use App\Services\Roles\SuperAdmin\Dashboard\PlayerActivitySummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,11 +33,31 @@ class SuperAdminController extends Controller
         protected TriviaSummaryService $triviaSummary,
         protected ExchangeRateSummaryService $exchangeRateSummary,
         protected SuperAdminDashboardContextService $dashboardContext,
+        protected EconomySummaryService $economySummary,
+        protected PlayerActivitySummaryService $playerActivitySummary,
     ) {}
 
     /**
      * Resumen de comisiones RKE por sala (JSON para el dashboard superadmin)
      */
+    /**
+     * Resumen económico consolidado cross-juego: dinero ingresado por
+     * juego/moneda/comercializadora (JSON para el dashboard superadmin)
+     */
+    public function economySummary(): JsonResponse
+    {
+        return response()->json($this->economySummary->getSummary());
+    }
+
+    /**
+     * Jugadores activos por ventana + clientes recurrentes por vendedor
+     * (JSON para el dashboard superadmin)
+     */
+    public function playerActivitySummary(): JsonResponse
+    {
+        return response()->json($this->playerActivitySummary->getSummary());
+    }
+
     public function rkeSummary(): JsonResponse
     {
         return response()->json($this->rkeSummaryService->getSummary());

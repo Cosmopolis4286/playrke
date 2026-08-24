@@ -22,6 +22,8 @@
   import PlatformCashModal            from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
   import RkeCommissionsSection        from '@/js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
   import TriviaSummarySection         from '@/js/Components/Roles/SuperAdmin/Dashboard/TriviaSummarySection.vue'
+  import EconomySummarySection        from '@/js/Components/Roles/SuperAdmin/Dashboard/EconomySummarySection.vue'
+  import PlayerActivitySummarySection from '@/js/Components/Roles/SuperAdmin/Dashboard/PlayerActivitySummarySection.vue'
   import CommerceHierarchySection     from '@/js/Components/Roles/SuperAdmin/Dashboard/CommerceHierarchySection.vue'
   import ExchangeRateSection          from '@/js/Components/Roles/SuperAdmin/Dashboard/ExchangeRateSection.vue'
   import FailedJobsModal              from '@/js/Components/Roles/SuperAdmin/Dashboard/FailedJobsModal.vue'
@@ -42,6 +44,8 @@
   import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
   import { useRkeSummary }          from '@/js/composables/roles/superadmin/dashboard/useRkeSummary'
+  import { useEconomySummary }      from '@/js/composables/roles/superadmin/dashboard/useEconomySummary'
+  import { usePlayerActivitySummary } from '@/js/composables/roles/superadmin/dashboard/usePlayerActivitySummary'
   import { useTriviaSummary }       from '@/js/composables/roles/superadmin/dashboard/useTriviaSummary'
   import { useCommerceHierarchy }   from '@/js/composables/roles/superadmin/dashboard/useCommerceHierarchy'
   import { useExchangeRateSummary } from '@/js/composables/roles/superadmin/dashboard/useExchangeRateSummary'
@@ -105,6 +109,8 @@
     useWalletMovementsRealtime(pendingWalletCount.value, prependMovement)
 
   const { rkeSummary, rkeLoading, rkeError, loadRkeSummary } = useRkeSummary()
+  const { economySummary, economyLoading, economyError, loadEconomySummary } = useEconomySummary()
+  const { activitySummary, activityLoading, activityError, loadActivitySummary } = usePlayerActivitySummary()
   const { triviaSummary, triviaLoading, triviaError, loadTriviaSummary } = useTriviaSummary()
   const { hierarchy: commerceHierarchy, loading: hierarchyLoading, error: hierarchyError, loadHierarchy } = useCommerceHierarchy()
   const { exchangeRates, loading: exchangeRatesLoading, error: exchangeRatesError, loadExchangeRates } = useExchangeRateSummary()
@@ -139,6 +145,8 @@
   onMounted(() => {
     loadRkeSummary()
     loadTriviaSummary()
+    loadEconomySummary()
+    loadActivitySummary()
     loadHierarchy()
     loadExchangeRates()
     loadPlatformWallets()
@@ -495,6 +503,23 @@
         :format-usd="formatUsd"
         @close="closeCashModal"
         @submit="submitCash"
+      />
+
+      <!-- ══ RESUMEN ECONÓMICO CONSOLIDADO ═══════════════════════════════ -->
+      <EconomySummarySection
+        :summary="economySummary"
+        :loading="economyLoading"
+        :error="economyError"
+        :format-usd="formatUsd"
+        @refresh="loadEconomySummary"
+      />
+
+      <!-- ══ ACTIVIDAD DE JUGADORES ══════════════════════════════════════ -->
+      <PlayerActivitySummarySection
+        :summary="activitySummary"
+        :loading="activityLoading"
+        :error="activityError"
+        @refresh="loadActivitySummary"
       />
 
       <!-- ══ COMISIONES RKE POR SALA ════════════════════════════════════ -->
