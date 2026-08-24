@@ -343,6 +343,7 @@ Route::middleware('auth')->group(function () {
     role_protected_routes(['multiPermission:kyc.view,kyc.manage'], 'admin/kyc', KycAdminController::class, [
         'index'     => ['method' => 'get', 'uri' => '',                 'action' => 'index'],
         'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',       'action' => 'fetchList'],
+        'export'    => ['method' => 'get', 'uri' => 'export',          'action' => 'export'],
         'show'      => ['method' => 'get', 'uri' => '{document}/show',  'action' => 'show'],
         'image'     => ['method' => 'get', 'uri' => '{document}/image/{type}', 'action' => 'image'],
     ], 'document');

@@ -3,6 +3,7 @@ import type { Column } from '../../common/table/column-row'
 export interface KycDocumentRow {
     readonly id: string
     readonly document_type: string
+    readonly kyc_level: number | null
     readonly status: string
     readonly player_name: string
     readonly player_username: string
@@ -19,6 +20,15 @@ export interface KycTableData {
     last_page?: number
 }
 
+export interface KycHistoryEntry {
+    readonly id: string
+    readonly document_type: string
+    readonly status: string
+    readonly rejection_reason: string | null
+    readonly created_at: string | null
+    readonly reviewed_at: string | null
+}
+
 export interface KycDocumentDetail {
     readonly id: string
     readonly document_type: string
@@ -26,6 +36,7 @@ export interface KycDocumentDetail {
     readonly status: string
     readonly rejection_reason: string | null
     readonly reviewed_at: string | null
+    readonly reviewed_by: string | null
     readonly created_at: string | null
     readonly has_front: boolean
     readonly has_back: boolean
@@ -38,8 +49,17 @@ export interface KycDocumentDetail {
         kyc_level: number
         kyc_status: string
     }
+    readonly history: KycHistoryEntry[]
+}
+
+export interface KycStats {
+    readonly pending: number
+    readonly approved_today: number
+    readonly rejected_today: number
+    readonly rejection_rate: number
 }
 
 export interface KycPageProps {
     documents: KycTableData
+    stats: KycStats
 }

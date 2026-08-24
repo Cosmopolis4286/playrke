@@ -1,10 +1,17 @@
 import { ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
-import type { KycTableData, KycDocumentDetail } from '@/js/types/roles/admin/kyc'
+import type { KycTableData, KycDocumentDetail, KycStats } from '@/js/types/roles/admin/kyc'
 import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
 const emptyTableData = (): KycTableData => ({ columns: [], rows: [] })
+const emptyStats = (): KycStats => ({ pending: 0, approved_today: 0, rejected_today: 0, rejection_rate: 0 })
+
+interface KycFilters {
+    status?: string
+    document_type?: string
+    search?: string
+}
 
 /**
  * Cola de revisión de documentos KYC — mismo patrón server-side que
@@ -13,6 +20,7 @@ const emptyTableData = (): KycTableData => ({ columns: [], rows: [] })
 export function useAdminKyc() {
     const loading = ref(false)
     const documents = ref<KycTableData>(emptyTableData())
+    const stats = ref<KycStats>(emptyStats())
     const detail = ref<KycDocumentDetail | null>(null)
     const detailLoading = ref(false)
     const approving = ref(false)
@@ -31,13 +39,23 @@ export function useAdminKyc() {
         }
     }
 
-    async function fetchDocuments(filters: { status?: string } = {}, page: number = 1): Promise<boolean> {
+    function setInitialStats(data: KycStats): void {
+        stats.value = data ?? emptyStats()
+    }
+
+    async function fetchDocuments(filters: KycFilters = {}, page: number = 1): Promise<boolean> {
         try {
             loading.value = true
-            const { data } = await backendClient.get<{ data: KycTableData }>('/admin/kyc/fetch-list', {
-                params: { page, status: filters.status || undefined },
+            const { data } = await backendClient.get<{ data: KycTableData, stats: KycStats }>('/admin/kyc/fetch-list', {
+                params: {
+                    page,
+                    status:        filters.status || undefined,
+                    document_type: filters.document_type || undefined,
+                    search:        filters.search || undefined,
+                },
             })
             if (data?.data) setInitialDocuments(data.data)
+            if (data?.stats) setInitialStats(data.stats)
             return true
         } catch (error) {
             console.error(error)
@@ -50,7 +68,7 @@ export function useAdminKyc() {
 
     async function onQueryChange(query: ServerQuery): Promise<void> {
         lastQuery.value = query
-        await fetchDocuments({ status: query.filters.status }, query.page)
+        await fetchDocuments({ status: query.filters.status, document_type: query.filters.document_type, search: query.search }, query.page)
     }
 
     async function fetchDetail(id: string): Promise<boolean> {
@@ -77,7 +95,7 @@ export function useAdminKyc() {
             approving.value = true
             const { data } = await backendClient.post(`/admin/kyc/${id}/approve`)
             showToast(data.message ?? 'Documento aprobado', 'success')
-            await fetchDocuments({ status: lastQuery.value.filters.status }, lastQuery.value.page)
+            await fetchDocuments({ status: lastQuery.value.filters.status, document_type: lastQuery.value.filters.document_type, search: lastQuery.value.search }, lastQuery.value.page)
             return true
         } catch (error: any) {
             console.error(error)
@@ -93,7 +111,7 @@ export function useAdminKyc() {
             rejecting.value = true
             const { data } = await backendClient.post(`/admin/kyc/${id}/reject`, { reason })
             showToast(data.message ?? 'Documento rechazado', 'success')
-            await fetchDocuments({ status: lastQuery.value.filters.status }, lastQuery.value.page)
+            await fetchDocuments({ status: lastQuery.value.filters.status, document_type: lastQuery.value.filters.document_type, search: lastQuery.value.search }, lastQuery.value.page)
             return true
         } catch (error: any) {
             console.error(error)
@@ -107,12 +125,14 @@ export function useAdminKyc() {
     return {
         loading,
         documents,
+        stats,
         detail,
         detailLoading,
         approving,
         rejecting,
         lastQuery,
         setInitialDocuments,
+        setInitialStats,
         fetchDocuments,
         onQueryChange,
         fetchDetail,

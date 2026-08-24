@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Cola de revisión de documentos KYC enviados por jugadores.
@@ -29,10 +30,11 @@ final class KycAdminController extends Controller
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(function () use ($request) {
-            $filters = $request->only(['status']);
+            $filters = $request->only(['status', 'document_type', 'search']);
 
             return Inertia::render('Roles/Admin/Kyc/Index', [
                 'documents' => $this->service->fetchList($filters),
+                'stats'     => $this->service->stats(),
             ]);
         });
     }
@@ -40,11 +42,46 @@ final class KycAdminController extends Controller
     public function fetchList(Request $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['status']);
+            $filters = $request->only(['status', 'document_type', 'search']);
             $page    = (int) $request->get('page', 1);
 
-            return ['data' => $this->service->fetchList($filters, $page)];
+            return [
+                'data'  => $this->service->fetchList($filters, $page),
+                'stats' => $this->service->stats(),
+            ];
         });
+    }
+
+    /**
+     * Exporta a CSV todos los documentos que coincidan con los filtros
+     * actuales (sin límite de paginación) — mismo patrón que
+     * AdminPlayerController::export().
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $filters = $request->only(['status', 'document_type', 'search']);
+
+        return response()->streamDownload(function () use ($filters) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Jugador', 'Username', 'Email', 'Tipo documento', 'Número documento', 'Estado', 'Enviado', 'Revisado']);
+
+            foreach ($this->service->exportForCsv($filters) as $document) {
+                fputcsv($handle, [
+                    trim("{$document->user?->first_name} {$document->user?->last_name}"),
+                    $document->user?->username,
+                    $document->user?->email,
+                    $document->document_type,
+                    $document->document_number,
+                    $document->status,
+                    $document->created_at?->format('Y-m-d H:i:s'),
+                    $document->reviewed_at?->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($handle);
+        }, 'kyc-documentos-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function show(KycDocument $document): JsonResponse
