@@ -9,7 +9,9 @@ use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Exceptions\Wallet\WalletUnavailableException;
 use App\Services\Commands\CommandService;
+use App\Services\NotificationService;
 use App\Services\WalletService;
+use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +19,8 @@ use Throwable;
 
 class RetryFailedBingoRefundsCommand extends Command
 {
+    use ResolvesSuperadminIds;
+
     protected $signature   = 'bingo:retry-failed-refunds';
     protected $description = 'Reintenta acreditar reembolsos de salas canceladas que fallaron en el primer intento';
 
@@ -143,6 +147,13 @@ class RetryFailedBingoRefundsCommand extends Command
                                 'error'      => $e->getMessage(),
                             ]);
                         }
+
+                        // Dedupe natural: el update a ABANDONED de arriba saca esta
+                        // fila del scope pending(), así que esta notificación solo
+                        // se dispara una vez por reembolso — no hace falta columna
+                        // de dedupe adicional (mismo criterio que el resto del
+                        // proyecto usa el propio cambio de estado como marca).
+                        $this->notifyAbandonedRefund($failure, $currentAttempts, $e->getMessage());
                     }
                 }
             }
@@ -165,6 +176,36 @@ class RetryFailedBingoRefundsCommand extends Command
 
         if ($status === 'SUCCESS') {
             $this->info($output);
+        }
+    }
+
+    /**
+     * Reembolso agotó reintentos y quedó ABANDONED — antes esto solo
+     * quedaba visible en auditoría (BingoRoomAuditLogger), invisible hasta
+     * que un admin revisara manualmente. Dinero real de un jugador sin
+     * devolver: se notifica a superadmins con los mismos datos que ya se
+     * pasan al audit logger, sin queries adicionales.
+     */
+    private function notifyAbandonedRefund(BingoLotRefundFailure $failure, int $attempts, string $lastError): void
+    {
+        $notificationService = app(NotificationService::class);
+
+        foreach ($this->superadminIds() as $superadminId) {
+            $notificationService->create(
+                userId: $superadminId,
+                type: 'SYSTEM',
+                title: '💸 Reembolso de Bingo abandonado',
+                message: "El reembolso #{$failure->id} (sala #{$failure->room_id}, monto {$failure->amount}) se abandonó tras {$attempts} intentos y requiere acreditación manual.",
+                data: [
+                    'failure_id' => (string) $failure->id,
+                    'room_id'    => (string) $failure->room_id,
+                    'user_id'    => (string) $failure->user_id,
+                    'amount'     => (float) $failure->amount,
+                    'attempts'   => $attempts,
+                    'last_error' => $lastError,
+                    'url'        => '/bingo/game-rooms',
+                ],
+            );
         }
     }
 }

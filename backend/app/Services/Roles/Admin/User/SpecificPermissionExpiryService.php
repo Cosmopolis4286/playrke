@@ -7,6 +7,7 @@ use App\Models\Audit;
 use App\Models\User;
 use App\Models\UserSpecificPermissionGrant;
 use App\Services\NotificationService;
+use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Mail;
  */
 final class SpecificPermissionExpiryService
 {
+    use ResolvesSuperadminIds;
+
     public function __construct(
         private readonly NotificationService $notificationService,
     ) {}
@@ -116,18 +119,6 @@ final class SpecificPermissionExpiryService
                 expiresAt: $grant->expires_at?->format('d/m/Y H:i'),
             );
         }
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function superadminIds(): array
-    {
-        return User::role('superadmin')
-            ->where('status', 'ACTIVE')
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
     }
 
     /**

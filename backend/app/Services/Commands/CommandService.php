@@ -5,11 +5,14 @@ namespace App\Services\Commands;
 use App\Models\Commands\CommandLog;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class CommandService
 {
+    use ResolvesSuperadminIds;
+
     public function __construct(
         private readonly NotificationService $notificationService,
     ) {}
@@ -106,15 +109,4 @@ class CommandService
         }
     }
 
-    /**
-     * @return array<int, string>
-     */
-    private function superadminIds(): array
-    {
-        return User::role('superadmin')
-            ->where('status', 'ACTIVE')
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
-    }
 }

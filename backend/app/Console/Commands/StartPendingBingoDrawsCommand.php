@@ -6,7 +6,10 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
+use App\Services\NotificationService;
+use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,8 +24,19 @@ use Throwable;
  */
 class StartPendingBingoDrawsCommand extends Command
 {
+    use ResolvesSuperadminIds;
+
     protected $signature   = 'bingo:start-pending-draws';
     protected $description = 'Inicia automáticamente el sorteo de salas de bingo listas (hora cumplida + jugadores) sin depender de clientes conectados';
+
+    /**
+     * Ventana entre reintentos de recuperación de una misma sala atascada —
+     * evita redespachar StartBingoDrawJob en cada corrida del minuto si el
+     * primer reintento no resolvió el problema (ej. GameStatus FINISHED
+     * faltante en config, algo que un segundo intento inmediato tampoco
+     * arreglaría). Tras esta ventana, si sigue atascada, se notifica.
+     */
+    private const STUCK_ROOM_RETRY_WINDOW_MINUTES = 5;
 
     public function handle(): void
     {
@@ -76,16 +90,19 @@ class StartPendingBingoDrawsCommand extends Command
                     continue;
                 }
 
-                // Sorteo ya completo (todas las fichas de la secuencia fueron cantadas) — nada que hacer.
-                // Si la sala sigue ACTIVE/IN_PROGRESS con el sorteo completo, es probable que
-                // closeRoomIfFinalRound() haya fallado — alertar para revisión manual.
+                // Sorteo ya completo (todas las fichas de la secuencia fueron cantadas) pero
+                // la sala sigue ACTIVE/IN_PROGRESS sin ronda FINISHED: closeRoomIfFinalRound()
+                // probablemente falló la primera vez. BingoDrawService::runDraw() ya tiene una
+                // ruta de recuperación para este estado exacto (rama $allDone, no re-declara
+                // premio si ya existe) — redespachar el job es seguro y reusa esa ruta en vez
+                // de duplicar lógica de cierre aquí.
                 if ($room->sequence_count > 0 && $room->drawn_count >= $room->sequence_count) {
                     if ($room->active_round_count === 0 && $room->finished_round_count === 0) {
-                        Log::critical('[StartPendingBingoDrawsCommand] Sala atascada: sorteo completo pero sin rondas FINISHED ni cierre de sala', [
-                            'room_id'      => $room->id,
-                            'drawn'        => $room->drawn_count,
-                            'sequence'     => $room->sequence_count,
-                        ]);
+                        $this->recoverStuckRoom(
+                            $room,
+                            reason: 'sorteo completo pero sin rondas FINISHED ni cierre de sala',
+                            canRetryViaJob: true,
+                        );
                     }
                     continue;
                 }
@@ -94,7 +111,15 @@ class StartPendingBingoDrawsCommand extends Command
                 // ya se resolvió (con o sin ganador). Si sigue ACTIVE/IN_PROGRESS es porque
                 // closeRoomIfFinalRound() no pudo cerrarla — no debe volver a sortearse cada
                 // minuto (eso generaba un BingoCardPrize y un pago nuevos en cada corrida).
+                // A diferencia del caso anterior, redespachar el job NO ayuda aquí:
+                // BingoRoomHealthCheckService::assertNotAlreadyFinished() lo bloquearía
+                // (finished_round_count >= totalRounds) — solo se alerta, sin auto-recuperación.
                 if ($room->active_round_count === 0 && $room->finished_round_count > 0) {
+                    $this->recoverStuckRoom(
+                        $room,
+                        reason: 'ronda FINISHED existente pero sala sigue ACTIVE/IN_PROGRESS sin cerrar',
+                        canRetryViaJob: false,
+                    );
                     continue;
                 }
 
@@ -132,6 +157,61 @@ class StartPendingBingoDrawsCommand extends Command
 
         if ($status === 'SUCCESS') {
             $this->info($output);
+        }
+    }
+
+    /**
+     * Sala detectada en estado atascado (ver los dos casos en handle()).
+     * Primer intento: redespachar el job de sorteo si es seguro hacerlo
+     * (canRetryViaJob) — no en cada corrida del minuto, sino respetando
+     * STUCK_ROOM_RETRY_WINDOW_MINUTES para no inundar la cola si el
+     * problema de fondo no se resuelve solo con un reintento. Si la
+     * ventana ya se usó (o el caso no admite reintento vía job), notifica
+     * a superadmins en vez de solo loguear silenciosamente cada minuto.
+     */
+    private function recoverStuckRoom(BingoRoom $room, string $reason, bool $canRetryViaJob): void
+    {
+        $cacheKey = "bingo:room:{$room->id}:stuck-retry";
+
+        Log::critical("[StartPendingBingoDrawsCommand] Sala atascada: {$reason}", [
+            'room_id'  => $room->id,
+            'drawn'    => $room->drawn_count,
+            'sequence' => $room->sequence_count,
+        ]);
+
+        if (Cache::has($cacheKey)) {
+            // Ya se intentó recuperar/notificar recientemente — no repetir
+            // en cada corrida del minuto mientras dure la ventana.
+            return;
+        }
+
+        Cache::put($cacheKey, true, now()->addMinutes(self::STUCK_ROOM_RETRY_WINDOW_MINUTES));
+
+        if ($canRetryViaJob) {
+            StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
+            $this->warn("Sala #{$room->id} atascada — redespachado sorteo para recuperación automática.");
+            return;
+        }
+
+        $this->notifyStuckRoom($room, $reason);
+    }
+
+    private function notifyStuckRoom(BingoRoom $room, string $reason): void
+    {
+        $notificationService = app(NotificationService::class);
+
+        foreach ($this->superadminIds() as $superadminId) {
+            $notificationService->create(
+                userId: $superadminId,
+                type: 'SYSTEM',
+                title: '🚨 Sala de Bingo atascada',
+                message: "La sala #{$room->id} quedó atascada ({$reason}) y requiere revisión manual.",
+                data: [
+                    'room_id' => (string) $room->id,
+                    'reason'  => $reason,
+                    'url'     => '/bingo/game-rooms',
+                ],
+            );
         }
     }
 }
