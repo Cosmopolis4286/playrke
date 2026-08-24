@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modelo para las wallets de usuarios
@@ -106,6 +107,16 @@ class Wallet extends Model
     }
 
     /**
+     * Relación con las reservas de saldo (holds) de esta wallet.
+     *
+     * @return HasMany<WalletHold, Wallet>
+     */
+    public function holds(): HasMany
+    {
+        return $this->hasMany(WalletHold::class, 'wallet_id');
+    }
+
+    /**
      * Obtener la descripción del estado de la wallet
      *
      * @return string
@@ -174,6 +185,30 @@ class Wallet extends Model
     public function hasSufficientPlayableBalance(float $amount): bool
     {
         return $this->getPlayableBalance() >= $amount;
+    }
+
+    /**
+     * Saldo jugable (bono + retirable) menos las reservas (WalletHold) activas.
+     * Usar esta cifra para validar si el usuario puede entrar a una NUEVA
+     * partida/reserva — evita que un saldo ya comprometido en otra partida en
+     * curso se cuente dos veces. No confundir con getPlayableBalance(), que
+     * ignora holds y sirve para operaciones que capturan/liberan un hold ya
+     * existente sobre esta misma wallet.
+     */
+    public function getAvailableBalance(): float
+    {
+        $activeHolds = (float) $this->holds()->active()->sum('amount');
+
+        return $this->getPlayableBalance() - $activeHolds;
+    }
+
+    /**
+     * Verifica si la wallet tiene saldo disponible suficiente (jugable menos
+     * holds activos) para una nueva reserva de $amount.
+     */
+    public function hasSufficientAvailableBalance(float $amount): bool
+    {
+        return $this->getAvailableBalance() >= $amount;
     }
 
     /**

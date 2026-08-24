@@ -21,6 +21,31 @@ use App\Services\WalletLimitService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Orquestador central de wallet: depósitos, retiros, entradas y premios de
+ * cualquier juego.
+ *
+ * REGLA DE ARQUITECTURA — cruce MySQL (wallets/wallet_movements) ↔ Postgres
+ * (pgsql_trivia, y cualquier conexión de juego futura que viva en otra BD):
+ * NUNCA envolver una escritura contra 'pgsql_trivia' (u otra conexión
+ * distinta a la default) dentro del mismo DB::transaction() que escribe
+ * wallet_movements. DB::transaction() de Laravel solo es atómico dentro de
+ * una única conexión — no existe two-phase commit entre MySQL y Postgres
+ * aquí, así que un rollback en una base NO revierte lo ya escrito en la otra.
+ *
+ * El patrón ya usado en este archivo (ver recordTriviaEntry()/recordPrize())
+ * es el estándar a seguir para cualquier juego nuevo que cruce conexiones:
+ *   1. Escribir primero en la base "dueña" del evento de origen.
+ *   2. Aplicar el efecto en wallet_movements con una idempotency key
+ *      determinística (ej. "trivia_prize:{room_id}:{user_id}"), para que un
+ *      retry tras fallo parcial no acredite/debite dos veces.
+ *   3. Si el efecto se aplica vía Job en cola (no inline), dejar que el
+ *      mecanismo de failed_jobs ya monitoreado (panel Jobs/Scheduler) sea la
+ *      red de reintento — no construir un outbox propio por juego.
+ *   4. Cualquier discrepancia detectada entre ambas bases se resuelve con un
+ *      comando de reconciliación de solo-lectura/alerta, nunca con
+ *      auto-corrección silenciosa de saldo.
+ */
 final class WalletService
 {
     public function __construct(
@@ -563,6 +588,60 @@ final class WalletService
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PURCHASE, $amount, $movementId);
 
         return ['wallet' => $wallet, 'bonus_spent' => $split['bonus_spent'], 'balance_spent' => $split['balance_spent']];
+    }
+
+    /**
+     * Captura un WalletHold como gasto real: descuenta el saldo (bono
+     * primero, igual que cualquier otro débito de juego) y registra el
+     * WalletMovement correspondiente. Llamado por
+     * WalletReservationService::capture() — este método NO gestiona el
+     * ciclo de vida del hold en sí (eso vive en WalletReservationService),
+     * solo el efecto sobre la wallet.
+     */
+    public function recordHoldCapture(Wallet $wallet, float $amount, string $movementType, ?string $description, string $holdId): WalletMovement
+    {
+        $movementId = null;
+
+        $wallet = DB::transaction(function () use ($wallet, $amount, $movementType, $description, $holdId, &$movementId) {
+            $locked = Wallet::lockForUpdate()->findOrFail($wallet->id);
+
+            if (! $locked->hasSufficientPlayableBalance($amount)) {
+                throw new \DomainException('Saldo insuficiente para capturar la reserva.');
+            }
+
+            $walletId            = (string) $locked->id;
+            $balanceBefore       = (float) $locked->balance;
+            $bonusBalanceBefore  = (float) $locked->bonus_balance;
+
+            $split = $this->walletRepository->consumeBonusFirst($walletId, $amount);
+            $locked->refresh();
+
+            $movement = $this->movementRepository->record([
+                'wallet_id'      => $walletId,
+                'user_id'        => (string) $locked->user_id,
+                'type'           => $movementType,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $locked->balance,
+                'description'    => $description,
+                'reference_id'   => $holdId,
+                'metadata'       => [
+                    'bonus_amount'         => $split['bonus_spent'],
+                    'balance_amount'       => $split['balance_spent'],
+                    'bonus_balance_before' => $bonusBalanceBefore,
+                    'bonus_balance_after'  => (float) $locked->bonus_balance,
+                    'wallet_hold_id'       => $holdId,
+                ],
+            ]);
+            $movementId = (string) $movement->id;
+
+            return $locked;
+        });
+
+        $this->broadcastWalletUpdated($wallet, $movementType, $amount, $movementId, $description);
+
+        return WalletMovement::findOrFail($movementId);
     }
 
     /**
