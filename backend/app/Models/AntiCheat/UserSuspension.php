@@ -64,6 +64,18 @@ class UserSuspension extends Model
         return $query->whereNotNull('resolved_at');
     }
 
+    /**
+     * Suspensiones activas cuyo plazo temporal ya venció — candidatas a
+     * auto-reactivación por ExpireUserSuspensionsCommand. Las suspensiones
+     * sin expires_at (indefinidas) nunca caen aquí: solo se resuelven a mano.
+     */
+    public function scopeExpired($query)
+    {
+        return $query->whereNull('resolved_at')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now());
+    }
+
     public function isActive(): bool
     {
         return $this->resolved_at === null;
@@ -73,11 +85,15 @@ class UserSuspension extends Model
      * Resuelve la suspensión: registra quién y por qué, y reactiva al usuario
      * (revierte User::status a ACTIVE). No revierte si el usuario tiene otra
      * suspensión activa distinta a esta.
+     *
+     * $admin es null cuando la resolución es automática (ver
+     * ExpireUserSuspensionsCommand) — resolved_by_user_id queda null, el
+     * frontend debe mostrar "Automático (expiración)" en ese caso.
      */
-    public function resolve(User $admin, string $notes): bool
+    public function resolve(?User $admin, string $notes): bool
     {
         $this->resolved_at         = now();
-        $this->resolved_by_user_id = $admin->id;
+        $this->resolved_by_user_id = $admin?->id;
         $this->resolution_notes    = $notes;
         $saved = $this->save();
 
