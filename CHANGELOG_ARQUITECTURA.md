@@ -61,6 +61,35 @@ No se creó ningún Job ni comando nuevo para esto — sería duplicar infraestr
 
 ---
 
+## 2026-08-24 — Fase 3: Eventos (cerrada, sin código de infraestructura nuevo)
+
+**Antes de proponer un `GameLifecycleEvent`/tabla `game_events`** (el diseño original de esta fase), se investigó si ya existía algo equivalente — mismo criterio que Fase 2. Resultado: **ya existen cuatro sistemas cross-juego maduros y en producción**, todos con el mismo patrón de diseño (servicio único, llamado explícitamente por cada juego en su punto de interés, sin bus de eventos ni `EventServiceProvider`):
+
+1. **`GameCompletionService`** (Fase 2/xp-logros-plan.md) — resultado final de partida + XP + logros.
+2. **`GamePrizeService`/`GamePrizeContract`** (documentado en Fase 1) — pago de premios con FSM e idempotencia.
+3. **`WinEventService`/`WinEvent`/`WinEventBroadcasted`** (`app/Domains/Platform/WinEvent/`, no se conocía antes de esta fase) — fuente única para el feed de ganancias en tiempo real de toda la plataforma (tabla `platform_win_events`, canal público `platform.win-events`), con `game_slug` ya en el payload. Bingo y Trivia ya reportan aquí (`PrizeDistributionService::announceTopWinner()`, visto en Fase 1).
+4. **`AntiCheatService`/`AntiCheatFlag`** (`app/Services/Games/AntiCheatService.php`, no se conocía antes de esta fase) — señales sospechosas cross-juego con severidad acumulada y auto-suspensión, agregando por usuario sin importar el juego a propósito.
+
+También existe `App\Enums\Games\Common\GameSlug` (`BINGO`/`TRIVIA`), el identificador games-agnostic estándar que ya usan `AntiCheatService` y `GamePrizeService`.
+
+**Conclusión**: no hay ningún log genérico de "todo evento de ciclo de vida" (join/leave/started sin premio ni flag) — pero tampoco evidencia de que algún consumidor lo necesite hoy. Construirlo ahora sería la sobre-arquitectura que el usuario pidió evitar explícitamente. **No se creó ninguna infraestructura nueva de eventos.**
+
+**Único cambio real de esta fase**: se agregó `GameSlug::CARGAS = 'cargas'` (+ su `label()`) al enum ya existente — preparación de bajo riesgo para que el futuro juego tenga un identificador consistente con el resto de servicios cross-juego desde el día en que se empiece a diseñar, sin crear ninguna tabla ni fila de catálogo nueva (el juego en sí sigue sin diseñarse).
+
+**Fase 3: CERRADA.**
+
+---
+
+## 2026-08-24 — Fase 5: WebSocket (cerrada, sin código nuevo)
+
+Investigado antes de proponer cambios: la infraestructura de canales ya es completamente genérica. `useEchoChannel.ts` (`resources/js/composables/realtime/`, frontend) acepta cualquier nombre de canal/evento como parámetro — no hay nada hardcodeado a Bingo/Trivia. Del lado backend, `Broadcast::channel()` (Laravel) tiene el mismo comportamiento. No hace falta ningún código nuevo para que un juego futuro tenga sus propios canales.
+
+Lo único que no existía era una *convención* de nombres para cuando `GameSession` (Fase 2) tenga un consumidor real — se documentó como sugerencia en `progreso/game-engine-plan.md` (sección "Nota para cuando exista un consumidor real"), sin crear ningún canal ni código, para no especular sobre un juego que todavía no está diseñado.
+
+**Fase 5: CERRADA.**
+
+---
+
 ## Cómo usar este archivo
 
 Cada entrada nueva va arriba (orden cronológico descendente), agrupada por fecha y fase. Registrar solo lo que cambió realmente en el código — no repetir el diseño ya descrito en el plan de arquitectura, solo qué se implementó, qué se descartó, y por qué si difiere de lo planeado.

@@ -38,7 +38,13 @@ Existe un sistema de experiencia y niveles, pero es **global por usuario** — n
 
 ## Tiempo real / eventos
 
-La plataforma ya usa WebSocket en producción (Laravel Reverb) para notificar en vivo: números cantados en Bingo, cambios de sala, resultados de Trivia, movimientos de wallet pendientes de aprobación, actividad administrativa, usuarios en línea. Cada juego implementó sus propios eventos de forma independiente — no hay todavía una convención única compartida entre juegos, aunque el patrón es consistente (mismo mecanismo de broadcasting).
+La plataforma ya usa WebSocket en producción (Laravel Reverb) para notificar en vivo: números cantados en Bingo, cambios de sala, resultados de Trivia, movimientos de wallet pendientes de aprobación, actividad administrativa, usuarios en línea. Cada juego implementa sus propios eventos de tiempo real de forma independiente para lo específico de su mecánica (ej. "se cantó el número 42"), pero **ya existen varios servicios centrales cross-juego** para los aspectos que sí se comparten:
+
+- Un feed público de "ganancias en vivo" de toda la plataforma, sin importar el juego ni si el premio es dinero, un objeto o un servicio.
+- Un registro central de señales sospechosas/anti-fraude, que acumula severidad por usuario sumando entre todos los juegos (para que hacer trampa en dos juegos distintos sume, no resetee).
+- El registro de resultado final de partida (mencionado arriba) y el pago de premios también son servicios centrales, no algo que cada juego reimplemente.
+
+Todos siguen el mismo patrón de diseño: un servicio único que cada juego llama explícitamente en su punto de interés (cuando termina una partida, cuando se paga un premio, cuando se detecta algo sospechoso) — no hay un "bus de eventos" con listeners automáticos, es una decisión de diseño deliberada del equipo.
 
 ## Hacia dónde va la plataforma
 

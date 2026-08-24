@@ -166,6 +166,30 @@ fase no existe más que como nota de que se consideró y se descartó a propósi
 - Agregar `entry_fee`/`prize_pool` a `game_sessions` sin un consumidor real (ver
   Fase 3) — evitar campos especulativos sin caso de uso.
 
+## Nota para cuando exista un consumidor real (WebSocket)
+
+La infraestructura de canales ya es completamente genérica y no requiere ningún
+cambio de código para soportar un juego nuevo: `Broadcast::channel()` (Laravel) y
+`useEchoChannel.ts` (frontend, `resources/js/composables/realtime/`) aceptan
+cualquier nombre de canal como parámetro — no hay nada hardcodeado a Bingo/Trivia
+que bloquee agregar canales de un juego futuro.
+
+Lo único que no existe es una *convención* de nombres. Cuando el juego que consuma
+`GameSession` (Fase 3) se diseñe, se sugiere seguir el mismo estilo que ya usan
+Bingo/Trivia (`{juego}.{recurso}.{id}`, ver `routes/channels.php`) aplicado a la
+sesión genérica, por ejemplo:
+
+```
+game.{gameSlug}.session.{sessionId}            (según el juego, público o privado)
+game.{gameSlug}.session.{sessionId}.presence   (si el juego necesita presence)
+player.{userId}.sessions                        (privado — eventos de TODAS las
+                                                  sesiones activas del jugador,
+                                                  cualquier juego)
+```
+
+Esto es solo una sugerencia de naming a aplicar cuando haga falta — no se crea
+ningún canal ni código nuevo hoy, sería especular sobre un consumidor que no existe.
+
 ## Progreso
 
 | Fase | Estado | Notas |

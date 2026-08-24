@@ -10,12 +10,14 @@ enum GameSlug: string
 {
     case BINGO  = 'bingo';
     case TRIVIA = 'trivia';
+    case CARGAS = 'cargas';
 
     public function label(): string
     {
         return match ($this) {
             self::BINGO  => 'Bingo',
             self::TRIVIA => 'Trivia',
+            self::CARGAS => 'Cargas',
         };
     }
 }
