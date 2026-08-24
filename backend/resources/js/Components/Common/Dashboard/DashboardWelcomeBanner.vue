@@ -132,8 +132,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem 0.75rem;
-  padding: 0.65rem 1rem;
+  gap: 0.5rem 0.65rem;
+  padding: 0.55rem 0.85rem;
 }
 
 /* ── Avatar ── */
@@ -146,15 +146,15 @@
 }
 
 .wb__avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--ds-surface);
   color: var(--ds-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: .02em;
   user-select: none;
@@ -164,10 +164,10 @@
 /* El avatar se reduce en pantallas angostas para ceder espacio al texto
    y evitar que el saludo/badge salten de línea antes de lo necesario. */
 @media (max-width: 576px) {
-  .wb__avatar { width: 30px; height: 30px; font-size: 0.65rem; }
+  .wb__avatar { width: 28px; height: 28px; font-size: 0.62rem; }
 }
 @media (max-width: 400px) {
-  .wb__avatar { width: 26px; height: 26px; font-size: 0.58rem; }
+  .wb__avatar { width: 24px; height: 24px; font-size: 0.56rem; }
 }
 
 .wb__avatar--img {
@@ -198,7 +198,7 @@
 
 .wb__greeting {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--ds-text);
   line-height: 1.2;
@@ -207,11 +207,11 @@
 
 .wb__badge {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 1px 7px;
   border-radius: 20px;
   background: var(--ds-badge-bg);
   color: var(--ds-badge-color);
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -221,7 +221,7 @@
 
 .wb__sub {
   margin: 1px 0 0;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--ds-text-2);
   display: flex;
   align-items: center;
@@ -229,7 +229,7 @@
   gap: 0.25rem;
   row-gap: 2px;
 }
-.wb__sub-icon { font-size: 0.62rem; color: var(--ds-text-muted); }
+.wb__sub-icon { font-size: 0.6rem; color: var(--ds-text-muted); }
 .wb__date { text-transform: capitalize; white-space: nowrap; }
 .wb__sep { color: var(--ds-border-2); }
 
@@ -242,9 +242,9 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.6rem 1rem;
+  gap: 0.5rem 0.85rem;
   flex: 1 1 100%;
-  padding: 0.5rem 0 0;
+  padding: 0.45rem 0 0;
   margin: 0;
   border-top: 1px solid var(--ds-border);
 }
@@ -252,11 +252,11 @@
 /* Desde md hacia arriba, si hay espacio libre en la fila del saludo,
    los highlights se acoplan ahí (columna auxiliar con separador) en vez
    de forzar su propia línea siempre. */
-@media (min-width: 992px) {
+@media (min-width: 768px) {
   .wb__highlights {
     flex: 0 1 auto;
     width: auto;
-    padding: 0 0.85rem;
+    padding: 0 0.75rem;
     margin: 0;
     border-top: none;
     border-left: 1px solid var(--ds-border);
@@ -284,9 +284,9 @@
 .wb__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
   flex: 1 1 100%;
-  padding-top: 0.5rem;
+  padding-top: 0.45rem;
   border-top: 1px solid var(--ds-border);
 }
 
@@ -304,9 +304,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 11px;
+  padding: 4px 10px;
   border-radius: 7px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
@@ -343,10 +343,10 @@
 .wb__action--outline-secondary:hover{ background: var(--ds-surface-2); }
 
 @media (max-width: 576px) {
-  .wb__body { padding: 0.6rem 0.85rem; gap: 0.5rem; }
+  .wb__body { padding: 0.5rem 0.7rem; gap: 0.4rem; }
 
-  .wb__badge { font-size: 0.56rem; padding: 1px 6px; }
+  .wb__badge { font-size: 0.54rem; padding: 1px 6px; }
 
-  .wb__action { padding: 4px 9px; font-size: 0.68rem; }
+  .wb__action { padding: 4px 8px; font-size: 0.66rem; }
 }
 </style>
