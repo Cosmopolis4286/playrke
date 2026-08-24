@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Roles\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\KycDocument;
+use App\Policies\Roles\Admin\KycPolicy;
 use App\Services\Roles\Admin\AdminKycService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * La lógica de dominio (aprobar/rechazar, subir cambia kyc_level/kyc_status
  * del User) vive en App\Services\KycService — este controlador solo cubre
  * lo que faltaba: listado/detalle/streaming de imágenes para el panel admin.
+ *
+ * KycPolicy es una capa de defensa independiente del middleware
+ * `multiPermission:kyc.view,kyc.manage` de la ruta (mismo criterio que
+ * JobsCenterController) — si el middleware de ruta cambia algún día, la
+ * autorización real sigue exigida aquí.
  */
 final class KycAdminController extends Controller
 {
@@ -29,6 +35,8 @@ final class KycAdminController extends Controller
 
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', KycPolicy::class);
+
         return $this->handleServiceInertia(function () use ($request) {
             $filters = $request->only(['status', 'document_type', 'search']);
 
@@ -41,6 +49,8 @@ final class KycAdminController extends Controller
 
     public function fetchList(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', KycPolicy::class);
+
         return $this->handleServiceJson(function () use ($request) {
             $filters = $request->only(['status', 'document_type', 'search']);
             $page    = (int) $request->get('page', 1);
@@ -59,6 +69,8 @@ final class KycAdminController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
+        $this->authorize('viewAny', KycPolicy::class);
+
         $filters = $request->only(['status', 'document_type', 'search']);
 
         return response()->streamDownload(function () use ($filters) {
@@ -86,6 +98,8 @@ final class KycAdminController extends Controller
 
     public function show(KycDocument $document): JsonResponse
     {
+        $this->authorize('view', KycPolicy::class);
+
         return $this->handleServiceJson(
             fn() => ['data' => $this->service->show($document)]
         );
@@ -100,6 +114,8 @@ final class KycAdminController extends Controller
      */
     public function image(KycDocument $document, string $type): BinaryFileResponse
     {
+        $this->authorize('view', KycPolicy::class);
+
         abort_unless(in_array($type, self::ALLOWED_IMAGE_TYPES, true), 404);
 
         $column = "{$type}_path";
@@ -116,6 +132,8 @@ final class KycAdminController extends Controller
 
     public function approve(KycDocument $document): JsonResponse
     {
+        $this->authorize('manage', KycPolicy::class);
+
         return $this->handleServiceJson(function () use ($document) {
             $this->service->approve($document);
 
@@ -125,6 +143,8 @@ final class KycAdminController extends Controller
 
     public function reject(KycDocument $document, Request $request): JsonResponse
     {
+        $this->authorize('manage', KycPolicy::class);
+
         $request->validate(['reason' => 'required|string|max:500']);
 
         return $this->handleServiceJson(function () use ($document, $request) {

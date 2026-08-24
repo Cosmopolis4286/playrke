@@ -39,6 +39,9 @@ class AuthServiceProvider extends ServiceProvider
         // sobre scheduled_commands + jobs + failed_jobs) — se registra contra
         // su propia clase para poder usar $this->authorize('manage', JobsCenterPolicy::class).
         \App\Policies\System\JobsCenterPolicy::class          => \App\Policies\System\JobsCenterPolicy::class,
+        // KycPolicy: mismo criterio (vista compuesta sobre KycDocument, no
+        // un Model único por acción) — registrada contra su propia clase.
+        \App\Policies\Roles\Admin\KycPolicy::class            => \App\Policies\Roles\Admin\KycPolicy::class,
     ];
 
     /**
