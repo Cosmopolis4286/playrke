@@ -6,6 +6,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import CurrencyForm from '@/js/Components/Currency/CurrencyForm.vue'
 
@@ -147,6 +148,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-coins"
+    title="Monedas"
+    subtitle="Gestión de monedas del sistema."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Monedas' },
+    ]"
+  />
+
   <TableWithFilterBridge
     table-id="currency-table"
     title="Monedas"

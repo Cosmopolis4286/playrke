@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
 import MovementDetailModal from '@js/Components/Wallet/Admin/MovementDetailModal.vue'
 import { useWalletMovementsList } from '@js/composables/wallet/admin/useWalletMovementsList'
 import { useWalletMovementDetail } from '@js/composables/wallet/admin/useWalletMovementDetail'
@@ -65,6 +66,16 @@ const {
 
 <template>
   <Head :title="title" />
+
+  <PageHeader
+    icon="fa-money-bill-transfer"
+    title="Movimientos de Billetera"
+    subtitle="Historial de depósitos, retiros y compras — se actualiza en tiempo real."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Movimientos de Billetera' },
+    ]"
+  />
 
   <div class="container-fluid">
     <TableWithFilterBridge

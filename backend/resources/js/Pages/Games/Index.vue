@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
 
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import GamesTab from '@/js/Components/games/GamesTab.vue'
   import GameModesTab from '@/js/Components/games/GameModesTab.vue'
   import RoomTypesTab from '@/js/Components/games/RoomTypesTab.vue'
@@ -37,18 +38,15 @@
 </script>
 
 <template>
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-12">
-          <h1 class="m-0 font-weight-bold">Catálogo de Juegos</h1>
-          <p class="text-muted mb-0 mt-1">
-            Juegos, modos de juego, tipos de sala, tipos de bote y jackpots de la plataforma
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+  <PageHeader
+    icon="fa-gamepad"
+    title="Catálogo de Juegos"
+    subtitle="Juegos, modos de juego, tipos de sala, tipos de bote y jackpots de la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Catálogo de Juegos' },
+    ]"
+  />
 
   <section class="content">
     <div class="container-fluid">

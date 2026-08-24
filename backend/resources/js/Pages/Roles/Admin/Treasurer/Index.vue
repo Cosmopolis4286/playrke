@@ -10,6 +10,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminTreasurerForm from '@/js/Components/Roles/Admin/Treasurer/AdminTreasurerForm.vue'
 
@@ -196,6 +197,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-vault"
+    title="Tesoreros"
+    subtitle="Administra las cuentas de tesorería de la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Tesoreros' },
+    ]"
+  />
+
   <TableWithFilterBridge
     tableId="treasurer-table"
     title="Tesoreros"

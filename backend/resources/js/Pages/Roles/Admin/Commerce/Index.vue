@@ -10,6 +10,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
   import CommerceDetailModal from '@/js/Components/Roles/Admin/Commerce/CommerceDetailModal.vue'
@@ -248,6 +249,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-building"
+    title="Comercializadoras"
+    subtitle="Administra las empresas comercializadoras y sus datos de contacto."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Comercializadoras' },
+    ]"
+  />
+
   <TableWithFilterBridge
     tableId="commerce-table"
     title="Comercializadoras"

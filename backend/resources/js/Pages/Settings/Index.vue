@@ -5,6 +5,7 @@
   // Componentes
   // ==========================================================================
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader  from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal       from '@/js/Components/Common/Modal/Modal.vue'
   import SettingForm from '@/js/Components/Settings/SettingForm.vue'
 
@@ -104,6 +105,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-sliders"
+    title="Configuración del Sistema"
+    subtitle="Parámetros globales de configuración de la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Configuración' },
+    ]"
+  />
+
   <TableWithFilterBridge
     table-id="settings-table"
     title="Configuración del Sistema"

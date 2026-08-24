@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { ref } from 'vue'
 
-  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import ActionButtons from '@/js/Components/Common/Button/ActionButtons.vue'
   import BingoConfigForm from '@/js/Components/games/bingo/Config/BingoConfigForm.vue'
   import BingoRulesModal from './Rules/BingoRulesModal.vue'
@@ -31,9 +31,18 @@
 </script>
 
 <template>
-  <div class="card">
-    <CardHeader title="Configuración Bingo" />
+  <PageHeader
+    icon="fa-th"
+    title="Configuración Bingo"
+    subtitle="Reglas, cartones y parámetros del juego de Bingo."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Bingo' },
+      { label: 'Configuración' },
+    ]"
+  />
 
+  <div class="card">
     <div class="card-body">
       <!-- Acciones de cabecera -->
       <ActionButtons

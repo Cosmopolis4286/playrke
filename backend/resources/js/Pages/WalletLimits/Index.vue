@@ -6,6 +6,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import WalletLimitForm from '@/js/Components/WalletLimit/WalletLimitForm.vue'
 
@@ -150,6 +151,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-scale-balanced"
+    title="Límites de Billetera"
+    subtitle="Montos mínimos y máximos de depósito y retiro, por moneda y nivel de verificación KYC."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Límites de Billetera' },
+    ]"
+  />
+
   <TableWithFilterBridge
     table-id="wallet-limit-table"
     title="Límites de Billetera"

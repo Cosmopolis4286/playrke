@@ -10,6 +10,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import PrizeForm from '@/js/Components/Prizes/PrizeForm.vue'
 
@@ -151,6 +152,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-trophy"
+    title="Premios"
+    subtitle="Catálogo de premios disponibles en la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Premios' },
+    ]"
+  />
+
   <TableWithFilterBridge
     tableId="prizes-table"
     title="Premios"

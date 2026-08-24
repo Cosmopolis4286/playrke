@@ -10,6 +10,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCustomerForm from '@/js/Components/Roles/Admin/Customer/AdminCustomerForm.vue'
 
@@ -196,6 +197,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-user-tie"
+    title="Clientes"
+    subtitle="Administra las cuentas de clientes de la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Clientes' },
+    ]"
+  />
+
   <TableWithFilterBridge
     tableId="customer-table"
     title="Clientes"

@@ -2,6 +2,7 @@
   import { ref, computed, watch } from 'vue'
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
   import AsyncSelect from '@/js/Components/Common/Form/AsyncSelect.vue'
@@ -290,6 +291,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-clipboard-list"
+    title="Auditoría"
+    subtitle="Registro de actividad del sistema."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Auditoría' },
+    ]"
+  />
+
   <!-- Stat tiles -->
   <div class="audit-stats mb-3">
     <StatTile label="Registros totales" :value="stats.total" icon="fa-list" />

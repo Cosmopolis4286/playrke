@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
 import type { Column } from '@/js/types/common/table/column-row'
 
 interface WinEventRow {
@@ -121,6 +122,16 @@ onMounted(fetchList)
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-gift"
+    title="Eventos de Ganancia"
+    subtitle="Registra premios físicos, objetos o servicios entregados fuera de la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Eventos de Ganancia' },
+    ]"
+  />
+
   <div class="container-fluid py-4">
     <div class="row g-4">
       <!-- ── Formulario de registro manual ── -->

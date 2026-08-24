@@ -6,6 +6,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import MovementTypeForm from '@/js/Components/MovementType/MovementTypeForm.vue'
 
@@ -133,6 +134,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-right-left"
+    title="Tipos de Movimiento"
+    subtitle="Catálogo de tipos de movimiento de billetera."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Tipos de Movimiento' },
+    ]"
+  />
+
   <TableWithFilterBridge
     table-id="movement-type-table"
     title="Tipos de Movimiento"

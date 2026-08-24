@@ -2,6 +2,7 @@
   import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
   import LogLevelBadge from '@/js/Components/Common/Badge/LogLevelBadge.vue'
@@ -167,6 +168,17 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-server"
+    title="Logs del Sistema"
+    subtitle="Registro de errores y advertencias capturados por el sistema."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Sistema', icon: 'fas fa-cogs' },
+      { label: 'Logs' },
+    ]"
+  />
+
   <!-- Banner: logs nuevos detectados por el polling en background -->
   <div v-if="newLogsCount > 0" class="alert alert-warning d-flex align-items-center justify-content-between py-2 px-3 mb-3">
     <span>

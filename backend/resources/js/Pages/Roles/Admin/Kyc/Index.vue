@@ -3,6 +3,7 @@
   import Swal from 'sweetalert2'
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
   import { useAdminKyc } from '@/js/composables/roles/admin/kyc/useAdminKyc'
@@ -122,6 +123,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-id-card-clip"
+    title="Verificación de identidad (KYC)"
+    subtitle="Cola de documentos enviados por jugadores para verificación."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'KYC' },
+    ]"
+  />
+
   <TableWithFilterBridge
     table-id="kyc-table"
     title="Verificación de identidad (KYC)"

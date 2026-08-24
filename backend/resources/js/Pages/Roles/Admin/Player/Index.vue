@@ -12,6 +12,7 @@
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminPlayerForm from '@/js/Components/Roles/Admin/Player/AdminPlayerForm.vue'
   import UserDetailModal from '@/js/Components/Roles/Admin/User/UserDetailModal.vue'
@@ -322,6 +323,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-dice"
+    title="Jugadores"
+    subtitle="Administra las cuentas de jugadores de la plataforma."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Jugadores' },
+    ]"
+  />
+
   <TableWithFilterBridge
     tableId="player-table"
     title="Jugadores"

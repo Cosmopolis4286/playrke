@@ -6,6 +6,7 @@
   import { ref, computed, watch } from 'vue'
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoPatternForm from '@/js/Components/games/bingo/Pattern/BingoPatternForm.vue'
 
@@ -174,6 +175,17 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-th-large"
+    title="Patrones de Bingo"
+    subtitle="Figuras ganadoras disponibles para configurar salas de Bingo."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Bingo' },
+      { label: 'Patrones' },
+    ]"
+  />
+
   <TableWithFilterBridge
     tableId="bingo-patterns-table"
     title="Patrones de Bingo"

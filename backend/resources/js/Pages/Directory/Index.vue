@@ -7,6 +7,7 @@
 
   // UI
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
   import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
   import TableFilter from '@/js/Components/Common/Table/TableFilter.vue'
@@ -218,6 +219,16 @@
 </script>
 
 <template>
+  <PageHeader
+    icon="fa-address-book"
+    title="Directorio de Pagos"
+    subtitle="Datos bancarios y de pago disponibles por país."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Directorio' },
+    ]"
+  />
+
   <div class="card">
     <CardHeader :title="title" :subtitle="subtitle" />
 

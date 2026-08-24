@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue'
 
-  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
@@ -209,9 +209,17 @@
 
 </script>
 <template>
-  <div class="card">
-    <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
+  <PageHeader
+    icon="fa-money-bill-trend-up"
+    title="Tasas de Cambio"
+    subtitle="Valores en base a Un Dólar (1 USD)."
+    :breadcrumb-items="[
+      { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+      { label: 'Tasas de Cambio' },
+    ]"
+  />
 
+  <div class="card">
     <div class="card-body">
       <!-- Switch de actualización automática: solo visible si hay tasas registradas -->
       <div v-if="exchangeRates.length > 0" class="row">
