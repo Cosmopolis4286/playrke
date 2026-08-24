@@ -62,6 +62,11 @@ class WalletHold extends Model
         return $this->belongsTo(Wallet::class, 'wallet_id');
     }
 
+    public function gameSession(): BelongsTo
+    {
+        return $this->belongsTo(GameSession::class, 'game_session_id');
+    }
+
     public function isActive(): bool
     {
         return $this->status === self::STATUS_HELD;
