@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Platform\PlatformWalletService;
 use App\Services\Roles\SuperAdmin\Rke\RkeSummaryService;
 use App\Services\Roles\SuperAdmin\Dashboard\CommerceHierarchyService;
+use App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService;
 use App\Services\Roles\SuperAdmin\Dashboard\TriviaSummaryService;
 use App\Services\Roles\SuperAdmin\Dashboard\ExchangeRateSummaryService;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,7 @@ class SuperAdminController extends Controller
         protected CommerceHierarchyService $commerceHierarchy,
         protected TriviaSummaryService $triviaSummary,
         protected ExchangeRateSummaryService $exchangeRateSummary,
+        protected SuperAdminDashboardContextService $dashboardContext,
     ) {}
 
     /**
@@ -61,6 +63,21 @@ class SuperAdminController extends Controller
     public function exchangeRateSummary(): JsonResponse
     {
         return response()->json($this->exchangeRateSummary->getSummary());
+    }
+
+    /**
+     * Salud del sistema (JSON para el widget "Salud del sistema" del
+     * dashboard superadmin) — endpoint dedicado para el polling del
+     * frontend, sin repintar todo dashboardContext() en cada refresco.
+     * Cacheado 20s server-side (ver systemHealthForPolling()), así que
+     * varios admins con el dashboard abierto no duplican el cálculo.
+     */
+    public function systemHealth(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            ...$this->dashboardContext->systemHealthForPolling(),
+        ]);
     }
 
     /**

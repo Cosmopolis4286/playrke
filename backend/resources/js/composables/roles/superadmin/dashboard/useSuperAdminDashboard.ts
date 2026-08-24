@@ -20,6 +20,8 @@ const DEFAULT_HEALTH: SystemHealth = {
     pendingJobsCount: 0,
     inactiveAdminsCount: 0,
     broadcastLive: false,
+    failedCommandsCount: 0,
+    activeSessionsCount: 0,
 }
 
 export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {

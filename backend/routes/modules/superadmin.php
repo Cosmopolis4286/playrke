@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
             Route::get('exchange-rate-summary', 'exchangeRateSummary')->name('exchange-rate-summary');
             Route::get('platform-wallets', 'platformWallets')->name('platform-wallets');
             Route::get('platform-movements', 'platformMovements')->name('platform-movements');
+            Route::get('system-health', 'systemHealth')->name('system-health');
 
             Route::middleware('permission:platform.wallet.manage')->group(function () {
                 Route::post('platform-deposit', 'platformDeposit')->name('platform-deposit');

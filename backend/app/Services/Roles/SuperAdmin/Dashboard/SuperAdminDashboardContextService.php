@@ -4,6 +4,7 @@ namespace App\Services\Roles\SuperAdmin\Dashboard;
 
 use App\DTOs\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\Commands\CommandLog;
 use App\Models\KycDocument;
 use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
@@ -188,6 +189,23 @@ final class SuperAdminDashboardContextService
     // -------------------------------------------------------------------------
 
     /**
+     * Versión standalone de buildSystemHealth() para el endpoint de polling
+     * (GET superadmin/system-health) — cacheada aparte con TTL corto (20s),
+     * mismo criterio que checkReverbHealth(): no tiene sentido recalcular
+     * jobs fallidos/sesiones activas/etc. en cada tick del polling (cada
+     * 30s desde el frontend) si dos admins con el dashboard abierto a la
+     * vez duplicarían el trabajo sin este caché.
+     */
+    public function systemHealthForPolling(): array
+    {
+        return Cache::remember(
+            'dashboard:superadmin:system-health-poll',
+            20,
+            fn () => $this->buildSystemHealth(BingoRoom::active()->count())
+        );
+    }
+
+    /**
      * Cada issue queda como {code, label, count} para que el frontend pueda
      * mostrar el desglose real en vez de solo un número — antes sumaba
      * inactiveAdmins/failedJobsCount al mismo contador sin decir cuál era
@@ -233,6 +251,26 @@ final class SuperAdminDashboardContextService
             $issues[] = ['code' => 'reverb_down', 'label' => 'Servidor de WebSockets (Reverb) no responde', 'count' => 1];
         }
 
+        // Comandos programados cuya última ejecución fue un error — un
+        // comando puede seguir "programado" (Schedule::command en
+        // routes/console.php) pero fallar silenciosamente corrida tras
+        // corrida si nadie mira /system/jobs; esto lo sube al dashboard.
+        $failedCommandsCount = CommandLog::query()
+            ->whereIn('id', function ($q) {
+                $q->selectRaw('MAX(id)')
+                    ->from('command_logs')
+                    ->groupBy('command');
+            })
+            ->errors()
+            ->count();
+        if ($failedCommandsCount > 0) {
+            $issues[] = ['code' => 'command_failed', 'label' => 'Comandos programados con última ejecución fallida', 'count' => $failedCommandsCount];
+        }
+
+        $activeSessionsCount = DB::table('sessions')
+            ->where('last_activity', '>', Carbon::now()->subMinutes(15)->timestamp)
+            ->count();
+
         $totalIssues = array_sum(array_column($issues, 'count'));
 
         $status = 'healthy';
@@ -254,6 +292,9 @@ final class SuperAdminDashboardContextService
             'pendingJobsCount'    => $pendingJobsCount,
             'inactiveAdminsCount' => $inactiveAdminsCount,
             'broadcastLive'       => $reverbHealthy,
+            'failedCommandsCount' => $failedCommandsCount,
+            'activeSessionsCount' => $activeSessionsCount,
+            'checkedAt'           => Carbon::now()->toIso8601String(),
         ];
     }
 
@@ -288,13 +329,23 @@ final class SuperAdminDashboardContextService
     }
 
     /**
-     * Jobs pendientes (no fallidos) en la cola default de Redis —
-     * complementa failedJobsCount con "cuánto trabajo hay esperando",
-     * señal de un worker caído o saturado que failed_jobs por sí solo no
-     * muestra (un job atascado no cuenta como fallido hasta agotar reintentos).
+     * Jobs pendientes (no fallidos) en la cola default — complementa
+     * failedJobsCount con "cuánto trabajo hay esperando", señal de un
+     * worker caído o saturado que failed_jobs por sí solo no muestra (un
+     * job atascado no cuenta como fallido hasta agotar reintentos).
+     *
+     * Soporta ambos drivers reales de este proyecto: Redis (si algún
+     * entorno lo activa) y database (QUEUE_CONNECTION=database en el .env
+     * de este repo) — antes solo contemplaba Redis, así que con la config
+     * real esto siempre devolvía 0 sin importar cuántos jobs hubiera
+     * realmente en la tabla `jobs`.
      */
     private function queuePendingCount(): int
     {
+        if (config('queue.default') === 'database') {
+            return (int) DB::table('jobs')->count();
+        }
+
         if (config('queue.default') !== 'redis') {
             return 0;
         }

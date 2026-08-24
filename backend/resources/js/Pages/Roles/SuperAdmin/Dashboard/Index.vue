@@ -30,7 +30,7 @@
   // Composables
   // ==========================================================================
 
-  import { onMounted, ref }           from 'vue'
+  import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
   import { Link }                     from '@inertiajs/vue3'
   import { useSuperAdminDashboard }   from '@/js/composables/roles/superadmin/dashboard/useSuperAdminDashboard'
   import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
@@ -48,6 +48,7 @@
   import { usePlatformWallet }      from '@/js/composables/roles/superadmin/dashboard/usePlatformWallet'
   import { usePlatformCashModal }   from '@/js/composables/roles/superadmin/dashboard/usePlatformCashModal'
   import { useFailedJobs }          from '@/js/composables/roles/superadmin/dashboard/useFailedJobs'
+  import { useSystemHealthPolling } from '@/js/composables/roles/superadmin/dashboard/useSystemHealthPolling'
   import type { ActivityItem }      from '@/js/types/common/dashboard/dashboard'
 
   // ==========================================================================
@@ -66,7 +67,13 @@
   // Composables de dominio
   // ==========================================================================
 
-  const { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
+  const { statCards, sortedActivity, entityCounts, systemHealth: initialSystemHealth, adminActivity, salesTrend, pendingWalletCount, prependActivity } = useSuperAdminDashboard(props)
+
+  // Widget "Salud del sistema": arranca con el snapshot ya traído por
+  // Inertia (initialSystemHealth) y se refresca solo cada 30s (GET
+  // /superadmin/system-health) mientras la pestaña esté visible.
+  const { health: systemHealth, refreshing: systemHealthRefreshing, lastCheckedAt: systemHealthCheckedAt, startPolling: startSystemHealthPolling, stopPolling: stopSystemHealthPolling } =
+    useSystemHealthPolling(initialSystemHealth.value)
 
   const { loading: sectionsLoading } = useDashboardMountLoading()
 
@@ -79,7 +86,7 @@
     noteRealtimeItem(item)
   }
 
-  const { isLive, newUsersToday, cardsSoldToday, winnersToday } = useAdminActivityRealtime(onLiveActivity, 'superadmin')
+  const { isLive } = useAdminActivityRealtime(onLiveActivity, 'superadmin')
 
   const recentMovements = ref<ActivityItem[]>([])
 
@@ -136,6 +143,7 @@
     loadExchangeRates()
     loadPlatformWallets()
     fetchMovementTypes()
+    startSystemHealthPolling()
   })
 
   // ==========================================================================
@@ -149,6 +157,76 @@
   // ==========================================================================
 
   const quickLinkGroups = useDashboardQuickLinks('superadmin', entityCounts)
+
+  // ==========================================================================
+  // Salud del sistema — acciones por issue, severidad e indicador de refresco
+  // ==========================================================================
+
+  /**
+   * Acción disponible por código de issue (ver
+   * SuperAdminDashboardContextService::buildSystemHealth()) — issues sin
+   * entrada acá caen a texto plano en el template (ej. no_active_rooms,
+   * reverb_down: no hay una pantalla admin razonable a la que enlazar).
+   * Un mapa de config en vez de ramificar con v-if por cada code nuevo.
+   */
+  interface SystemHealthIssueAction {
+    label: string
+    href?: string
+    onClick?: () => void
+  }
+
+  const systemHealthIssueActions: Record<string, (count: number) => SystemHealthIssueAction> = {
+    inactive_admins: () => ({
+      label: 'Ver administradores',
+      href: `/admin/users?last_login_before=${encodeURIComponent(new Date(Date.now() - 30 * 86400000).toISOString())}`,
+    }),
+    failed_jobs: () => ({
+      label: 'Ver jobs fallidos',
+      onClick: openFailedJobsModal,
+    }),
+    command_failed: () => ({
+      label: 'Ver comandos programados',
+      href: '/system/jobs',
+    }),
+  }
+
+  function systemHealthIssueAction(code: string, count: number): SystemHealthIssueAction | null {
+    return systemHealthIssueActions[code]?.(count) ?? null
+  }
+
+  /** Severidad visual por code — colorea el icono del issue en el template. */
+  const criticalIssueCodes = new Set(['reverb_down', 'failed_jobs', 'command_failed'])
+
+  function systemHealthIssueSeverity(code: string): 'critical' | 'warning' {
+    return criticalIssueCodes.has(code) ? 'critical' : 'warning'
+  }
+
+  /**
+   * "hace Xs" / "hace Xm" para el indicador de último refresco del polling.
+   * nowTick fuerza el recálculo cada segundo — sin esto el texto se
+   * quedaría congelado en el valor del último poll hasta el siguiente
+   * refresh real (cada 30s), en vez de avanzar visualmente segundo a segundo.
+   */
+  const nowTick = ref(Date.now())
+  let nowTickTimer: ReturnType<typeof setInterval> | null = null
+
+  const systemHealthCheckedAgo = computed<string>(() => {
+    if (!systemHealthCheckedAt.value) return ''
+    void nowTick.value
+    const seconds = Math.max(0, Math.floor((Date.now() - new Date(systemHealthCheckedAt.value).getTime()) / 1000))
+    if (seconds < 5) return 'hace un momento'
+    if (seconds < 60) return `hace ${seconds}s`
+    return `hace ${Math.floor(seconds / 60)}m`
+  })
+
+  onMounted(() => {
+    nowTickTimer = setInterval(() => { nowTick.value = Date.now() }, 1000)
+  })
+
+  onBeforeUnmount(() => {
+    stopSystemHealthPolling()
+    if (nowTickTimer !== null) clearInterval(nowTickTimer)
+  })
 </script>
 
 <template>
@@ -174,20 +252,16 @@
             </span>
             <span class="wb-stat__value wb-stat__value--success">{{ onlineCount }}</span>
           </div>
-          <div class="wb-stat">
-            <span class="wb-stat__label">
-              Nuevos hoy
-              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
-            </span>
-            <span class="wb-stat__value wb-stat__value--accent">{{ newUsersToday }}</span>
-          </div>
-          <div class="wb-stat" v-if="rkeSummary">
-            <span class="wb-stat__label">RKE acumulado</span>
-            <span class="wb-stat__value wb-stat__value--accent">$ {{ formatUsd(rkeSummary.totals.total_rke) }}</span>
-          </div>
           <div class="wb-stat" v-if="activePlatformWallet">
             <span class="wb-stat__label">Caja plataforma</span>
             <span class="wb-stat__value wb-stat__value--success">{{ activePlatformWallet.currency_symbol }} {{ formatUsd(activePlatformWallet.balance) }}</span>
+          </div>
+          <div class="wb-stat" v-if="livePendingCount > 0">
+            <span class="wb-stat__label">
+              Por aprobar
+              <span v-if="isWalletLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+            </span>
+            <span class="wb-stat__value wb-stat__value--warning">{{ livePendingCount }}</span>
           </div>
         </template>
       </DashboardWelcomeBanner>
@@ -283,6 +357,10 @@
         :loading="sectionsLoading"
       >
         <template #actions>
+          <span v-if="systemHealthCheckedAgo" class="sh-checked-ago">
+            <i class="fas fa-rotate sh-checked-ago__icon" :class="{ 'sh-checked-ago__icon--spinning': systemHealthRefreshing }"></i>
+            Actualizado {{ systemHealthCheckedAgo }}
+          </span>
           <button
             v-if="systemHealth.failedJobsCount > 0"
             class="sh-detail-btn"
@@ -293,13 +371,13 @@
         </template>
 
         <div class="row g-3">
-          <div class="col-12 col-sm-3">
+          <div class="col-6 col-sm-4 col-lg-2">
             <div class="sh-item">
               <span class="sh-item__label">Estado general</span>
               <span class="sh-item__value" :class="`sh-item__value--${systemHealth.status}`">{{ systemHealth.label }}</span>
             </div>
           </div>
-          <div class="col-12 col-sm-3">
+          <div class="col-6 col-sm-4 col-lg-2">
             <div class="sh-item">
               <span class="sh-item__label">Jobs fallidos</span>
               <button
@@ -312,7 +390,7 @@
               <span v-else class="sh-item__value">0</span>
             </div>
           </div>
-          <div class="col-12 col-sm-3">
+          <div class="col-6 col-sm-4 col-lg-2">
             <div class="sh-item">
               <span class="sh-item__label">Jobs en cola</span>
               <span class="sh-item__value" :class="{ 'sh-item__value--warning': systemHealth.pendingJobsCount > 20 }">
@@ -320,7 +398,7 @@
               </span>
             </div>
           </div>
-          <div class="col-12 col-sm-3">
+          <div class="col-6 col-sm-4 col-lg-2">
             <div class="sh-item">
               <span class="sh-item__label">Broadcast (Reverb)</span>
               <span class="sh-item__value" :class="systemHealth.broadcastLive ? 'sh-item__value--healthy' : 'sh-item__value--warning'">
@@ -328,18 +406,53 @@
               </span>
             </div>
           </div>
+          <div class="col-6 col-sm-4 col-lg-2">
+            <div class="sh-item">
+              <span class="sh-item__label">Comandos fallidos</span>
+              <Link
+                v-if="systemHealth.failedCommandsCount > 0"
+                href="/system/jobs"
+                class="sh-item__link sh-item__value--warning"
+              >
+                {{ systemHealth.failedCommandsCount }} <i class="fas fa-arrow-up-right-from-square ml-1"></i>
+              </Link>
+              <span v-else class="sh-item__value sh-item__value--healthy">0</span>
+            </div>
+          </div>
+          <div class="col-6 col-sm-4 col-lg-2">
+            <div class="sh-item">
+              <span class="sh-item__label">Sesiones activas</span>
+              <span class="sh-item__value">{{ systemHealth.activeSessionsCount }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Desglose de advertencias -->
         <ul v-if="systemHealth.issueDetails.length" class="sh-issues">
-          <li v-for="issue in systemHealth.issueDetails" :key="issue.code" class="sh-issue">
+          <li
+            v-for="issue in systemHealth.issueDetails"
+            :key="issue.code"
+            class="sh-issue"
+            :class="`sh-issue--${systemHealthIssueSeverity(issue.code)}`"
+          >
             <i class="fas fa-circle-exclamation sh-issue__icon"></i>
-            <span v-if="issue.code === 'inactive_admins'">
-              <Link :href="`/admin/users?last_login_before=${encodeURIComponent(new Date(Date.now() - 30*86400000).toISOString())}`" class="sh-issue__link">
-                {{ issue.label }} ({{ issue.count }})
+            <span class="sh-issue__label">{{ issue.label }} ({{ issue.count }})</span>
+            <template v-for="action in [systemHealthIssueAction(issue.code, issue.count)]" :key="issue.code">
+              <Link
+                v-if="action?.href"
+                :href="action.href"
+                class="sh-issue__link"
+              >
+                {{ action.label }} <i class="fas fa-arrow-right ml-1"></i>
               </Link>
-            </span>
-            <span v-else>{{ issue.label }} ({{ issue.count }})</span>
+              <button
+                v-else-if="action?.onClick"
+                class="sh-issue__link sh-issue__link--btn"
+                @click="action.onClick"
+              >
+                {{ action.label }} <i class="fas fa-arrow-right ml-1"></i>
+              </button>
+            </template>
           </li>
         </ul>
       </DashboardSection>
@@ -426,10 +539,11 @@
 <style scoped>
 /* Highlights del welcome banner */
 .wb-stat { display: flex; flex-direction: column; gap: 1px; }
-.wb-stat__label { font-size: 0.68rem; color: var(--ds-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.wb-stat__value { font-size: 0.8rem; font-weight: 700; color: var(--ds-text); transition: color 0.2s; }
+.wb-stat__label { font-size: 0.64rem; color: var(--ds-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.wb-stat__value { font-size: 0.78rem; font-weight: 700; color: var(--ds-text); transition: color 0.2s; }
 .wb-stat__value--accent  { color: #a78bfa; }
 .wb-stat__value--success { color: #34d399; }
+.wb-stat__value--warning { color: #f59e0b; }
 
 .wb-live-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -494,6 +608,19 @@
 }
 .sh-detail-btn:hover { text-decoration: underline; }
 
+/* Indicador de último refresco del polling — junto a las acciones del header */
+.sh-checked-ago {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--ds-text-muted);
+  margin-right: 0.75rem;
+}
+.sh-checked-ago__icon { font-size: 0.68rem; transition: opacity 0.2s; }
+.sh-checked-ago__icon--spinning { animation: sh-spin 0.8s linear infinite; }
+@keyframes sh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 .sh-issues { list-style: none; margin: 0.85rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 .sh-issue {
   display: flex;
@@ -503,6 +630,18 @@
   color: var(--ds-text-2);
 }
 .sh-issue__icon { color: #f59e0b; font-size: 0.72rem; }
-.sh-issue__link { color: #667eea; text-decoration: none; }
+/* Severidad: critical (rojo) para issues que afectan operación en curso
+   (jobs fallidos, comandos fallidos, Reverb caído); warning (ámbar, color
+   por defecto) para el resto (informativo/preventivo). */
+.sh-issue--critical .sh-issue__icon { color: #ef4444; }
+.sh-issue__label { flex: 1; min-width: 0; }
+.sh-issue__link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .sh-issue__link:hover { text-decoration: underline; }
+.sh-issue__link--btn { background: none; border: none; padding: 0; cursor: pointer; font-size: inherit; font-family: inherit; }
 </style>

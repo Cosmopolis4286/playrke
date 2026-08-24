@@ -33,6 +33,12 @@ export interface SystemHealth {
     pendingJobsCount:      number
     inactiveAdminsCount:   number
     broadcastLive:         boolean
+    /** Comandos programados cuya última ejecución fue un error (command_logs). */
+    failedCommandsCount:   number
+    /** Sesiones con actividad en los últimos 15 minutos (tabla sessions). */
+    activeSessionsCount:   number
+    /** ISO 8601 — momento en que se calculó este snapshot (server-side). */
+    checkedAt?:             string
 }
 
 // --------------------------------------------------------------------------
