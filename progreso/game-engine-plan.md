@@ -196,7 +196,7 @@ ningún canal ni código nuevo hoy, sería especular sobre un consumidor que no 
 |---|---|---|
 | Fase 1 — `game_sessions` mínima | ✅ Hecho | |
 | Fase 2 — Puente opcional a `game_participations` | Pendiente | |
-| Fase 3 — Adopción por un juego real | Bloqueada | Depende de diseño de dominio de un juego concreto (ej. Cargas), no iniciar especulativamente |
+| Fase 3 — Adopción por un juego real | Parcial | `entry_fee`/`prize_pool`/`max_participants`/`min_level` se agregaron antes de tiempo, a pedido explícito del usuario, como consumidor de `MatchmakingService` (ver `progreso/matchmaking-plan.md`) — no por la adopción de un juego de dominio real como se planeaba originalmente aquí. Participantes de sesión también se construyeron (`game_session_participants`), pero como pieza de matchmaking, no de reglas de juego. |
 | Fase 4 — Bingo/Trivia adoptan `GameSession` | Descartada | Sin problema real que lo justifique hoy; requiere aprobación explícita si se reconsidera |
 
 ## Changelog

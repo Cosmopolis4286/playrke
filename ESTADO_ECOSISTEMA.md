@@ -17,7 +17,9 @@ Bases de datos: **MySQL** es la conexión principal (usuarios, roles, wallet, Bi
 - **Trivia**: arquitectura de dominio equivalente (`app/Domains/Games/Trivia/`), pero vive en la base Postgres separada. Soporta salas con premio fijo o acumulado (pool), equipos, y el mismo tipo de máquina de estados de pago de premio que Bingo.
 - **Stop y Hangman**: mencionados en la visión de producto, pero **no tienen código implementado todavía** — son planes, no funcionalidad existente.
 
-No hay "matchmaking" automático hoy: cada juego resuelve manualmente cómo se arma una sala/partida.
+Bingo y Trivia siguen resolviendo manualmente cómo se arma una sala/partida (sin cambios). Sí se construyó un servicio de matchmaking genérico para la sesión mínima mencionada arriba, con filtrado por rango de entrada, moneda, nivel mínimo, cupo y reputación — pensado para un juego futuro de duración variable, no conectado a Bingo/Trivia.
+
+También se construyó, como parte de esto, un primer sistema de **reputación de jugador** (score 0-100), calculado exclusivamente a partir de señales que ya existían: historial de señales anti-fraude, si tiene una suspensión activa, y volumen de partidas jugadas sin incidentes. No introduce ningún dato nuevo pedido al jugador ni un sistema de puntuación arbitrario — es un resumen de comportamiento ya registrado.
 
 ## Wallet y economía
 

@@ -90,6 +90,25 @@ Lo único que no existía era una *convención* de nombres para cuando `GameSess
 
 ---
 
+## 2026-08-24 — Fase 6: Matchmaking (construido robusto, a pedido explícito)
+
+A diferencia de las fases anteriores, esta sí era un gap real sin trabajo previo: no existía ningún matchmaking en el proyecto (Bingo/Trivia resuelven "unirse a sala" con lógica simple propia). Por defecto habría quedado bloqueada por falta de consumidor real (mismo criterio que Fase 3/4 de `progreso/game-engine-plan.md`), pero el usuario pidió explícitamente construirlo "robusto y fuerte, todo lo necesario". Documentado en detalle en `progreso/matchmaking-plan.md` (nuevo). Resumen:
+
+- **`game_sessions`** ganó columnas reales indexables para matchmaking: `entry_fee`, `currency_id`, `prize_pool`, `max_participants`, `min_level` (migración de alteración — la migración original de `game_sessions` ya estaba commiteada por otra sesión, no se editó directamente).
+- **`game_session_participants`** (tabla + modelo nuevo): participación EN CURSO en una sesión, `JOINED`/`LEFT` — deliberadamente distinta de `game_participations` (que sigue siendo el registro de resultado final ya usado por Bingo/Trivia). Necesaria porque matchmaking debe saber el cupo ocupado *ahora*, algo que `game_participations` no puede responder.
+- **`user_reputations` + `ReputationService`** (nuevo): score 0-100 derivado **exclusivamente de señales que ya existen** — severidad acumulada de `anti_cheat_flags`, suspensión activa, volumen de partidas limpias en `game_participations`. Decisión consultada con el usuario: score simple cacheado, sin ledger de historial de cada cambio (se consideró y se descartó por complejidad sin caso de uso todavía).
+- **`MatchmakingService`** (nuevo): `findCandidateSessions()` (filtra en SQL por rango de entrada/moneda, luego por elegibilidad real del jugador), `isEligible()` (nivel, reputación mínima vía `metadata`, cupo, no duplicar participación), `join()`/`leave()`.
+
+**Corrección durante la implementación**: se detectó trabajo concurrente de otra sesión en el mismo repositorio (commits `feat(wallet/holds)`, `feat(games/game-session)`, `docs: bitácora...` ya en el historial sin que esta sesión los hubiera creado) — confirmado con el usuario como esperado, no se tomó ninguna acción correctiva más allá de verificar que el working tree local seguía consistente antes de seguir escribiendo migraciones.
+
+**Validado end-to-end vía `artisan tinker`**: filtrado por rango de entrada, cupo lleno bloquea nuevos joins, cupo se libera al salir, doble-join lanza excepción, filtrado por reputación mínima funciona. Datos de prueba eliminados de la BD tras validar.
+
+**Fase 6: CERRADA.**
+
+Con esto, todas las fases del roadmap original (0 a 6) quedan cerradas — restan solo el prototipo de Cargas y los roles avanzados, explícitamente fuera de alcance de esta preparación de infraestructura desde el inicio.
+
+---
+
 ## Cómo usar este archivo
 
 Cada entrada nueva va arriba (orden cronológico descendente), agrupada por fecha y fase. Registrar solo lo que cambió realmente en el código — no repetir el diseño ya descrito en el plan de arquitectura, solo qué se implementó, qué se descartó, y por qué si difiere de lo planeado.
