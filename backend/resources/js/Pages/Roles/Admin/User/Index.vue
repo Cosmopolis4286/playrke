@@ -18,7 +18,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
-  import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Button from '@/js/Components/Common/Button/Button.vue'
   import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
   import BlockingLoader from '@/js/Components/Common/Loader/BlockingLoader.vue'
@@ -678,32 +678,23 @@
 </script>
 
 <template>
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">Usuarios</h1>
-          <p class="text-muted mb-0 mt-1">
-            <i class="fas fa-users text-primary mr-1"></i>
-            Administra las cuentas del sistema: rol, estado, saldo y permisos individuales.
-          </p>
-        </div>
-        <div class="col-sm-6 d-flex flex-column align-items-sm-end">
-          <Breadcrumb :items="breadcrumbItems" />
-          <Button
-            v-if="canManageRoles"
-            class="mt-2"
-            variant="primary"
-            outline
-            icon="fa-user-shield"
-            @click="showRoleManager = true"
-          >
-            Gestionar roles
-          </Button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <PageHeader
+    icon="fa-users"
+    title="Usuarios"
+    subtitle="Administra las cuentas del sistema: rol, estado, saldo y permisos individuales."
+    :breadcrumb-items="breadcrumbItems"
+  >
+    <template v-if="canManageRoles" #actions>
+      <Button
+        variant="primary"
+        outline
+        icon="fa-user-shield"
+        @click="showRoleManager = true"
+      >
+        Gestionar roles
+      </Button>
+    </template>
+  </PageHeader>
 
   <section class="content">
     <div class="container-fluid">

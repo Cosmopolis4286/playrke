@@ -17,7 +17,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
-  import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
+  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
   import AdministratorCreateForm from '@/js/Components/Roles/Admin/Administrator/AdministratorCreateForm.vue'
   import AdministratorEditForm from '@/js/Components/Roles/Admin/Administrator/AdministratorEditForm.vue'
@@ -255,22 +255,12 @@
 </script>
 
 <template>
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">Administradores</h1>
-          <p class="text-muted mb-0 mt-1">
-            <i class="fas fa-user-shield text-primary mr-1"></i>
-            Gestiona las cuentas con acceso al panel de administración.
-          </p>
-        </div>
-        <div class="col-sm-6 d-flex flex-column align-items-sm-end">
-          <Breadcrumb :items="breadcrumbItems" />
-        </div>
-      </div>
-    </div>
-  </div>
+  <PageHeader
+    icon="fa-user-shield"
+    title="Administradores"
+    subtitle="Gestiona las cuentas con acceso al panel de administración."
+    :breadcrumb-items="breadcrumbItems"
+  />
 
   <section class="content">
     <div class="container-fluid">
