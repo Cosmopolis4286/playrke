@@ -40,7 +40,9 @@ class ScheduledCommand extends Model
     protected $casts = [
         'is_enabled'            => 'boolean',
         'disabled_at'           => 'datetime',
+        'disabled_by'           => 'string',
         'min_interval_seconds'  => 'integer',
+        'frequency_updated_by'  => 'string',
         'frequency_updated_at'  => 'datetime',
     ];
 
