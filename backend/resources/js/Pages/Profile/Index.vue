@@ -7,6 +7,7 @@ import ProfileHeader       from '@js/Components/Profile/ProfileHeader.vue'
 import ProfileTabs         from '@js/Components/Profile/ProfileTabs.vue'
 import PersonalInfoTab     from '@js/Components/Profile/PersonalInfoTab.vue'
 import GameStatsTab        from '@js/Components/Profile/GameStatsTab.vue'
+import ReferralsTab        from '@js/Components/Profile/ReferralsTab.vue'
 import PreferencesTab      from '@js/Components/Profile/PreferencesTab.vue'
 import SecurityTab         from '@js/Components/Profile/SecurityTab.vue'
 import PasswordModal       from '@js/Components/Profile/PasswordModal.vue'
@@ -31,10 +32,11 @@ const {
     profileForm, prefsForm, savingPrefsKey,
     kycState, sessions, sessionsLoading, errorMsg,
     achievements, achievementsLoading,
+    referrals, referralLink, totalReferrals, referralsLoading, referralsLoaded,
     selectedCountryName, isBirthDateEditable,
     toggleEdit, cancelEdit, saveProfile, savePreferences,
     onAvatarUpdated, onPasswordChanged, onKycUpdated,
-    loadSessions, revokeSession, revokeAllSessions, loadAchievements,
+    loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals,
     formatDate, formatCurrency, formatUnixDate,
 } = useProfile(props.user, props.preferences, props.countries, props.kyc)
 
@@ -66,6 +68,7 @@ async function handleKycSubmit(form: Parameters<typeof submitDocument>[0]) {
 watch(activeTab, (tab) => {
     if (tab === 'security' && !sessions.value.length) loadSessions()
     if (tab === 'stats' && !achievements.value.length) loadAchievements()
+    if (tab === 'referrals' && !referralsLoaded.value) loadReferrals()
 })
 onMounted(() => {
     if (props.tos.needs_acceptance) tosModalOpen.value = true
@@ -120,6 +123,15 @@ export default { name: 'ProfileIndex' }
               :stats="stats"
               :achievements="achievements"
               :achievements-loading="achievementsLoading"
+            />
+
+            <ReferralsTab
+              v-else-if="activeTab === 'referrals'"
+              key="referrals"
+              :referral-link="referralLink"
+              :referrals="referrals"
+              :total-referrals="totalReferrals"
+              :loading="referralsLoading"
             />
 
             <PreferencesTab

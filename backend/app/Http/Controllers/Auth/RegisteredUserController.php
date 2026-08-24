@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Repositories\CountryRepository;
 use App\Repositories\UserRepository;
+use App\Services\User\UserLevelService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,13 +78,28 @@ class RegisteredUserController extends Controller
         DB::beginTransaction();
 
         try {
+            $userRepository = app(UserRepository::class);
+
+            // Código de referido: cookie 'referral' (seteada por
+            // ReferralController::link() al visitar /referrals/r/{code}) o
+            // campo 'referral_code' enviado directo en el form. Un código
+            // inválido/inexistente no bloquea el registro — solo no vincula
+            // referente.
+            $referredByUserId = null;
+            $referralCode = $request->cookie('referral') ?? $request->input('referral_code');
+            if ($referralCode) {
+                $referrer = $userRepository->findByReferralCode($referralCode, ['id']);
+                $referredByUserId = $referrer?->id;
+            }
+
             // Código para crear el usuario y otras operaciones
             $user = User::create([
                 'email' => $request->email,
                 'username' => $request->username,
                 'country_id' => $request->country,
                 'password' => Hash::make($request->password),
-                'referral_code' => app(UserRepository::class)->generateUniqueReferralCode(),
+                'referral_code' => $userRepository->generateUniqueReferralCode(),
+                'referred_by_user_id' => $referredByUserId,
                 'status' => 'ACTIVE',
             ]);
 
@@ -101,6 +117,26 @@ class RegisteredUserController extends Controller
             ]);
 
             DB::commit();
+
+            // XP al referente FUERA de la transacción del registro: si el
+            // otorgamiento de XP fallara, no debe revertir el registro del
+            // nuevo usuario — mismo criterio que GameCompletionService, que
+            // envuelve la evaluación de logros en try/catch para no revertir
+            // resultado ya guardado.
+            if ($referredByUserId) {
+                try {
+                    $referrer = User::find($referredByUserId);
+                    if ($referrer) {
+                        $xp = app(UserLevelService::class)->calculateXpReward('referral_signup');
+                        app(UserLevelService::class)->addXpToUser($referrer, $xp, "Referido registrado: {$user->username}");
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('[RegisteredUserController] No se pudo otorgar XP de referido: ' . $e->getMessage(), [
+                        'referrer_id' => $referredByUserId,
+                        'new_user_id' => (string) $user->id,
+                    ]);
+                }
+            }
 
             event(new Registered($user));
 

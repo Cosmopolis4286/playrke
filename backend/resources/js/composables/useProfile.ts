@@ -66,6 +66,13 @@ export interface ProfileAchievement {
     is_seen: boolean
 }
 
+export interface ProfileReferral {
+    id: string
+    username: string
+    full_name: string
+    joined_at: string | null
+}
+
 // ─── Sync con navbar Blade ──────────────────────────────────────────────────────
 // El navbar vive fuera del árbol de Vue (Blade); se notifica vía evento custom
 // en vez de que este composable conozca su estructura DOM directamente.
@@ -84,7 +91,7 @@ export function useProfile(
     // ── State ──────────────────────────────────────────────────────────────
     const saving        = ref(false)
     const editMode      = ref(false)
-    const activeTab     = ref<'personal' | 'stats' | 'preferences' | 'security'>('personal')
+    const activeTab     = ref<'personal' | 'stats' | 'referrals' | 'preferences' | 'security'>('personal')
     const showPassword  = ref(false)
     const showAvatar    = ref(false)
     const showKycModal  = ref(false)
@@ -94,6 +101,11 @@ export function useProfile(
     const sessionsLoading = ref(false)
     const achievements  = ref<ProfileAchievement[]>([])
     const achievementsLoading = ref(false)
+    const referrals        = ref<ProfileReferral[]>([])
+    const referralLink     = ref('')
+    const totalReferrals   = ref(0)
+    const referralsLoading = ref(false)
+    const referralsLoaded  = ref(false)
     const errorMsg      = ref<string | null>(null)
     const savingPrefsKey = ref<string | null>(null)
 
@@ -247,6 +259,24 @@ export function useProfile(
         }
     }
 
+    // ── Referrals ──────────────────────────────────────────────────────────
+    async function loadReferrals() {
+        referralsLoading.value = true
+        try {
+            const { data } = await backendClient.get('/profile/referrals')
+            if (data.success) {
+                referrals.value      = data.referrals
+                referralLink.value   = data.referral_link
+                totalReferrals.value = data.total_referrals
+                referralsLoaded.value = true
+            }
+        } catch {
+            // silencioso
+        } finally {
+            referralsLoading.value = false
+        }
+    }
+
     // ── Sessions ───────────────────────────────────────────────────────────
     async function loadSessions() {
         sessionsLoading.value = true
@@ -314,11 +344,12 @@ export function useProfile(
         user, editMode, activeTab, showPassword, showAvatar, showKycModal,
         profileForm, prefsForm, kycState, sessions, sessionsLoading, errorMsg,
         achievements, achievementsLoading,
+        referrals, referralLink, totalReferrals, referralsLoading, referralsLoaded,
         saving, savingPrefsKey,
         selectedCountryName, isBirthDateEditable, kycLevelLabel,
         toggleEdit, cancelEdit, saveProfile, savePreferences,
         onAvatarUpdated, onPasswordChanged, onKycUpdated,
-        loadSessions, revokeSession, revokeAllSessions, loadAchievements,
+        loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals,
         formatDate, formatCurrency, formatUnixDate,
     }
 }

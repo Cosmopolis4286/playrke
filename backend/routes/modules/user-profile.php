@@ -47,10 +47,11 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
 });
 
 // ── Referidos ──────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'web'])->prefix('referrals')->group(function () {
-    Route::get('/{referralCode}',   [ReferralController::class, 'dashboard'])->name('referral.dashboard');
-    Route::get('/r/{referralCode}', [ReferralController::class, 'link'])     ->name('referral.link');
-});
+// summary() requiere sesión (datos propios del usuario); link() NO — un
+// visitante sin cuenta debe poder abrir el enlace de invitación antes de
+// registrarse.
+Route::middleware(['auth', 'web'])->get('/profile/referrals', [ReferralController::class, 'summary'])->name('referral.summary');
+Route::middleware('web')->get('/referrals/r/{referralCode}', [ReferralController::class, 'link'])->name('referral.link');
 
 // ── Búsqueda de usuarios (selectores async, ej. anfitrión de sala privada) ──
 Route::get('/users/search', [UserSearchController::class, 'search'])
