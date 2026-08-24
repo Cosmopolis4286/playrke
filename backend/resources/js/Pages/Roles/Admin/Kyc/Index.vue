@@ -206,8 +206,8 @@
 
   <TableWithFilterBridge
     table-id="kyc-table"
-    title="Verificación de identidad (KYC)"
-    subtitle="Cola de documentos enviados por jugadores"
+    title="Cola de revisión"
+    subtitle="Ordenada por fecha de envío, la más reciente primero"
     search-placeholder="Buscar por nombre, username o email..."
     :columns="documents.columns"
     :rows="rows"

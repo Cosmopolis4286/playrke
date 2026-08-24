@@ -219,6 +219,12 @@ class SidebarMenuService
                     'permission' => 'audit.view',
                     'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
+                'kyc' => [
+                    'title' => 'Verificación KYC',
+                    'route' => 'admin.kyc.index',
+                    'permission' => 'kyc.view',
+                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+                ],
                 'logs' => [
                     'title' => 'Logs del Sistema',
                     'route' => 'logs.index',
