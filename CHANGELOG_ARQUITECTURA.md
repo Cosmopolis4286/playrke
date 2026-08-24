@@ -4,6 +4,8 @@ Bitácora de progreso de la iniciativa "preparar la plataforma para que Bingo y 
 
 Roadmap por fases: **0.Estabilidad → 1.Wallet → 2.Game Engine → 3.Eventos → 4.XP/Rewards → 5.WebSocket → 6.Matchmaking → 7.Consolidación Bingo/Trivia → 8.Prototipo Cargas → 9.Roles avanzados → 10.Mercado**.
 
+Con las fases 0-6 cerradas (ver abajo), el trabajo pasó de "preparar infraestructura" a "usar la infraestructura para crecer el negocio" — ver `progreso/estrategia-producto-plan.md` (bitácora separada, de producto/negocio, no de arquitectura técnica) y su análisis de referencia `progreso/estrategia-producto-analisis.md`.
+
 ---
 
 ## 2026-08-24 — Fase 0: Estabilidad

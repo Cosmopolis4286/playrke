@@ -2,6 +2,8 @@
 
 Documento de contexto para compartir con otra sesión/herramienta de IA (p. ej. ChatGPT) que no tiene acceso a este repositorio. Describe qué existe hoy en la plataforma, en lenguaje neutro, sin asumir que el lector vio ninguna conversación previa. Se actualiza a medida que avanza la iniciativa de arquitectura común (wallet/game engine/eventos) — ver `CHANGELOG_ARQUITECTURA.md` para el detalle cronológico.
 
+Con la arquitectura de plataforma ya resuelta, el trabajo activo se movió a la capa de producto/negocio: `progreso/estrategia-producto-plan.md` es el plan vivo (adquisición, retención, economía, y qué preparar para el futuro juego de Cargas), con su análisis de referencia en `progreso/estrategia-producto-analisis.md`. Ver también `ALCANCE_JUEGOS_Y_COMERCIO.md` para el detalle funcional de Bingo/Trivia y la jerarquía comercial de ventas.
+
 ## Qué es playrke
 
 Plataforma de minijuegos con dinero real/virtual. Monorepo pnpm con dos paquetes:
