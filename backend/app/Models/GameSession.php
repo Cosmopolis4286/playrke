@@ -18,6 +18,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $id
  * @property string $game
  * @property string $status WAITING | RUNNING | FINISHED | CANCELLED
+ * @property float|null $entry_fee
+ * @property string|null $currency_id
+ * @property float|null $prize_pool
+ * @property int|null $max_participants
+ * @property int|null $min_level
  * @property string|null $initiator_user_id
  * @property \Carbon\Carbon|null $started_at
  * @property \Carbon\Carbon|null $finished_at
@@ -40,6 +45,11 @@ class GameSession extends Model
     protected $fillable = [
         'game',
         'status',
+        'entry_fee',
+        'currency_id',
+        'prize_pool',
+        'max_participants',
+        'min_level',
         'initiator_user_id',
         'started_at',
         'finished_at',
@@ -47,11 +57,15 @@ class GameSession extends Model
     ];
 
     protected $casts = [
-        'metadata'    => 'array',
-        'started_at'  => 'datetime',
-        'finished_at' => 'datetime',
-        'created_at'  => 'datetime',
-        'updated_at'  => 'datetime',
+        'entry_fee'        => 'float',
+        'prize_pool'       => 'float',
+        'max_participants' => 'integer',
+        'min_level'        => 'integer',
+        'metadata'         => 'array',
+        'started_at'       => 'datetime',
+        'finished_at'      => 'datetime',
+        'created_at'       => 'datetime',
+        'updated_at'       => 'datetime',
     ];
 
     public function initiator(): BelongsTo
@@ -59,9 +73,37 @@ class GameSession extends Model
         return $this->belongsTo(User::class, 'initiator_user_id');
     }
 
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
     public function holds(): HasMany
     {
         return $this->hasMany(WalletHold::class, 'game_session_id');
+    }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(GameSessionParticipant::class, 'game_session_id');
+    }
+
+    public function activeParticipants(): HasMany
+    {
+        return $this->participants()->active();
+    }
+
+    /**
+     * ¿Tiene cupo para un participante más? true si max_participants es
+     * null (sin límite) o si el conteo activo todavía no lo alcanza.
+     */
+    public function hasAvailableSlot(): bool
+    {
+        if ($this->max_participants === null) {
+            return true;
+        }
+
+        return $this->activeParticipants()->count() < $this->max_participants;
     }
 
     public function isActive(): bool
