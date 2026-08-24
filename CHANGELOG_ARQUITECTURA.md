@@ -1,0 +1,66 @@
+# Changelog — Arquitectura de plataforma (Wallet / Game Engine / Eventos)
+
+Bitácora de progreso de la iniciativa "preparar la plataforma para que Bingo y Trivia compartan infraestructura común (wallet, XP, eventos, matchmaking), antes de construir el futuro juego Transportistas vs Cazadores". El plan completo de arquitectura vive en `C:\Users\Eisker\.claude\plans\claro-te-preparo-un-crispy-seal.md` (fuera del repo, referencia local de la sesión que lo generó).
+
+Roadmap por fases: **0.Estabilidad → 1.Wallet → 2.Game Engine → 3.Eventos → 4.XP/Rewards → 5.WebSocket → 6.Matchmaking → 7.Consolidación Bingo/Trivia → 8.Prototipo Cargas → 9.Roles avanzados → 10.Mercado**.
+
+---
+
+## 2026-08-24 — Fase 0: Estabilidad
+
+- **Bug `entry_fee`/`entry_fee_usd` en Trivia**: ya resuelto por el propio equipo (migración `2026_08_22_211001_add_legacy_entry_fee_columns_to_trivia_rooms_table.php`, endurecida con checks `hasColumn()`/`hasIndex()` por columna para tolerar reintentos parciales). `TriviaSummaryService` seguía documentando el bug como "fuera de alcance" — queda desactualizado, revisar si conviene actualizar ese comentario cuando se toque ese archivo de nuevo.
+- **Regla de arquitectura MySQL↔Postgres documentada**: se agregó un bloque de documentación a nivel de clase en `backend/app/Services/WalletService.php` explicitando que `DB::transaction()` nunca es atómico entre la conexión default (MySQL) y `pgsql_trivia`, y fijando el patrón estándar (escribir en la base dueña → aplicar efecto con idempotency key determinística → dejar que `failed_jobs`/panel de Jobs sea la red de reintento → reconciliación de solo-alerta, nunca auto-corrección). Este patrón ya existía de facto en `recordPrize()`/`recordTriviaEntry()`; ahora está declarado como regla explícita para que cualquier juego futuro (incluyendo Cargas) lo siga sin tener que redescubrirlo.
+
+**Pendiente de Fase 0**: ninguno más — se pasa a Fase 1 (Wallet: `WalletHold`, `getAvailableBalance()`, historial de wallet en ficha admin, outbox formalizado).
+
+---
+
+## 2026-08-24 — Fase 1: Wallet (en curso)
+
+- **`WalletHold`** (reserva de saldo comprometido en una partida en curso, sin tocar `balance`/`bonus_balance` mientras está activa): modelo nuevo `app/Models/WalletHold.php` + migración `2026_08_24_120000_create_wallet_holds_table.php` (tabla `wallet_holds`, CHECK `amount > 0`, sin FK física a `game_sessions` todavía porque esa tabla no existe hasta Fase 2 — se agrega cuando exista). Estados: `HELD → CAPTURED | RELEASED`.
+- **`Wallet::getAvailableBalance()` / `hasSufficientAvailableBalance()`**: saldo jugable (bono + retirable) menos holds activos. No reemplaza `getPlayableBalance()` — se usa para decidir si se puede *abrir* una nueva reserva, mientras que `getPlayableBalance()` sigue siendo correcto para operaciones que resuelven un hold ya existente sobre esa misma wallet.
+- **`WalletService::recordHoldCapture()`** (nuevo método): aplica el débito real al capturar un hold, reutilizando el mismo patrón que `recordCardPurchase`/`recordTriviaEntry` (lock, `consumeBonusFirst`, `WalletMovement`, broadcast fuera de la transacción). Se agregó como método de `WalletService` (no reimplementado en `WalletReservationService`) para no duplicar la lógica de negocio de débito que ya vive ahí.
+- **`WalletReservationService`** (nuevo, `app/Services/WalletReservationService.php`): orquesta `hold()`/`capture()`/`release()`. `capture()` delega el efecto de wallet a `WalletService::recordHoldCapture()` y solo gestiona el ciclo de vida del `WalletHold` en sí (evita que dos servicios reimplementen el mismo débito con reglas divergentes).
+- **Validado contra la base de desarrollo real** (no hay entorno de test separado corriendo): flujo hold→release y hold→capture probados de punta a punta vía `artisan tinker` — saldo disponible se descuenta/restaura correctamente, `WalletMovement` se genera con `reference_id`/`metadata.wallet_hold_id` apuntando al hold, doble-resolución de un hold ya resuelto lanza `DomainException` como se espera. Datos de prueba limpiados de la BD tras validar.
+- **Nota para quien use holds en un juego nuevo** (ej. futuro Cargas): `capture()` requiere un código de `MovementType` ya sembrado en el catálogo (`movement_types.code`, FK real) — un juego nuevo necesita su propio código de movimiento antes de poder capturar holds con un `type` propio, no hay un tipo genérico "HOLD_CAPTURE".
+
+**Corrección al plan original — el outbox de Trivia ya existía**: al buscar el punto de integración para "formalizar" el outbox, se encontró que **ya está completamente construido y en producción**, con más madurez de la que el plan de arquitectura asumía:
+- `App\Services\Games\GamePrizeService` + `GamePrizeContract` — FSM `waiting→processing→claimed` e idempotencia, usado tanto por Bingo (`BingoCardPrize`) como por Trivia (`TriviaParticipant` vía `PrizeDistributionService`). Es, en efecto, el `GameRewardService` que la Fase 2 de este plan proponía crear — ya existe con otro nombre.
+- `PrizeDistributionService::payoutOne()` documenta explícitamente por qué no envuelve el pago en una transacción conjunta (motores de BD distintos) — la misma regla que se documentó en `WalletService` en Fase 0, ya aplicada aquí de antes.
+- `RetryFailedTriviaPrizePayoutsCommand` / `RetryFailedBingoPrizePayoutsCommand` (`trivia:retry-failed-prize-payouts`, `bingo:retry-failed-prize-payouts`) — programados cada 5 minutos (`routes/console.php`), registran su ejecución vía `CommandService::logCommandExecution()` (visible en el panel Jobs/Scheduler ya existente). Es el mecanismo de reintento/reconciliación que el plan proponía construir.
+
+No se creó ningún Job ni comando nuevo para esto — sería duplicar infraestructura ya validada en producción. **Acción tomada**: ninguna, más allá de documentar el hallazgo aquí y en `ESTADO_ECOSISTEMA.md`, para que la Fase 2 (Game Engine) diseñe `GameReward` como una capa que delegue en `GamePrizeService` en vez de reemplazarlo.
+
+**Segunda corrección al plan original — el historial de wallet en ficha admin tampoco era un gap real**: la exploración inicial marcó esto como pendiente mirando solo `AdminPlayerContextService.php` (que es el listado paginado, no tiene ficha de detalle). Al buscar dónde vive realmente la "ficha" de un jugador se encontró que **ya existe y ya incluye historial de wallet**: `UserDetailModal.vue` + `useAdminUserDetail.ts` (compartidos con la ficha de `AdminUser`) ya renderizan balance, `recent_movements` con "Cargar más" paginado (`GET /admin/user/{userId}/wallet-history`), nivel/XP, logros y seguridad/anti-cheat. `Pages/Roles/Admin/Player/Index.vue` ya importa y usa ese mismo modal — confirmado en el código, no hace falta construir nada.
+
+**Fase 1: CERRADA.** Las tres piezas planeadas (`WalletHold`, outbox de Trivia, historial de wallet en ficha admin) quedaron resueltas: la primera con código nuevo, las otras dos porque ya existían con más madurez de la que el plan original asumía. Dos de tres correcciones de este tipo en una sola fase es una señal a tener en cuenta para las fases siguientes: antes de construir algo en Fase 2+, buscar primero si ya existe.
+
+---
+
+## 2026-08-24 — Fase 2: Game Engine (rediseñada y cerrada)
+
+**Hallazgo mayor antes de escribir código**: existe `progreso/xp-logros-plan.md` en la raíz del repo — una iniciativa previa, **ya completada** el 2026-07-21 (7 fases, con su propio changelog), que resolvió gran parte de lo que esta Fase 2 planeaba desde cero:
+- `GameCompletionService` (`app/Services/Games/`) ya es el punto único donde Bingo y Trivia reportan resultado final de partida, ya otorga XP/logros, ya está enganchado en producción en `BingoDrawService::claimCardWin()`/`reportGamesPlayed()` y `GameEngineService::finishGame()` (Trivia).
+- `game_participations` (tabla + modelo) ya es el registro cross-game de resultado — el `GameParticipant` que el plan original de Fase 2 proponía crear.
+- `GamePrizeService`/`GamePrizeContract` (documentados en la corrección de Fase 1 arriba) ya es el `GameReward` que se planeaba crear.
+- Sistema de XP/nivel global, logros, notificaciones de level-up en tiempo real, racha de login — todo ya construido y probado end-to-end.
+
+**Decisión**: en vez de proceder con el diseño original (`GameSession`/`GameParticipant`/`GameReward` completos, migración de Bingo/Trivia), se pausó, se lanzó un agente de planificación con este contexto completo, y se produjo un plan reducido: `progreso/game-engine-plan.md` (mismo formato que `xp-logros-plan.md`, para que ambos documentos de planificación del proyecto sean consistentes entre sí).
+
+**Alcance final de Fase 2** (ver `progreso/game-engine-plan.md` para el detalle completo): el único gap real era que `WalletHold.game_session_id` (creado en Fase 1) es una referencia blanda sin tabla detrás. Se construyó únicamente:
+- Migración `game_sessions` (mínima: `id`, `game`, `status` enum propio `WAITING/RUNNING/FINISHED/CANCELLED` — no reutiliza el catálogo `game_status` de Bingo, que está acoplado a su UI —, `initiator_user_id`, `started_at`/`finished_at`, `metadata` json). Sin `entry_fee`/`prize_pool`, sin tabla de participantes — se agregan solo cuando exista un juego real que los necesite (Fase 3 de ese plan, bloqueada a propósito).
+- FK física `wallet_holds.game_session_id → game_sessions.id` (`nullOnDelete`), cerrando la nota pendiente de Fase 1.
+- Modelo `GameSession` + `GameSessionService` (`start/run/finish/cancel`, sin caller todavía — mismo criterio que Fase 1 de `xp-logros-plan.md`, cimientos antes que enganche).
+- **Bingo y Trivia NO se tocan ni se migran** — decisión explícita, documentada como "Fase 4: Descartada" en `game-engine-plan.md`.
+
+**Bug encontrado y corregido en el camino**: la migración de `wallet_holds` (Fase 1) había declarado `game_session_id`/`captured_movement_id` como `string(32)`, pero los IDs snowflake reales del proyecto son `unsignedBigInteger` — la FK habría fallado por mismatch de tipo. Corregido antes de comitear (rollback + re-migrate en dev, sin pérdida de datos).
+
+**Validado end-to-end vía tinker**: ciclo `start→run→finish`, transición inválida lanza `DomainException`, relación `WalletHold ↔ GameSession` funciona en ambas direcciones, `nullOnDelete()` se comporta como se documentó.
+
+**Fase 2: CERRADA**, con alcance muy por debajo del plan original — la lección de Fase 1 ("buscar antes de construir") se confirmó de nuevo, esta vez a mayor escala.
+
+---
+
+## Cómo usar este archivo
+
+Cada entrada nueva va arriba (orden cronológico descendente), agrupada por fecha y fase. Registrar solo lo que cambió realmente en el código — no repetir el diseño ya descrito en el plan de arquitectura, solo qué se implementó, qué se descartó, y por qué si difiere de lo planeado.
