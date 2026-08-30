@@ -12,7 +12,7 @@
 
 <body class="hold-transition sidebar-mini layout-fixed">
     {{-- Inicializar --sidebar-w antes de pintar cualquier elemento --}}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function(){
         var b = document.body;
         var SK = 'lte.pushmenu.remember';

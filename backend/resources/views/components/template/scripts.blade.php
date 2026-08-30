@@ -49,7 +49,7 @@
 
 {{-- 🔔 Mensajes de sesión --}}
 @if ($message)
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         window.Session = @json(
             ['message' => $message, 'type' => Session::pull('type', 'success')],
             JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -57,7 +57,7 @@
 @endif
 
 @if (!empty($laravelErrors) || !empty($loadDataTables))
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         @if (!empty($laravelErrors))
             window.LaravelErrors = @json($laravelErrors, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
         @endif
@@ -71,7 +71,7 @@
 @yield('scripts')
 
 {{-- Cerrar sidebar al tocar/hacer click fuera en dispositivos móviles --}}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     document.addEventListener('click', function (e) {
         var body = document.body;
