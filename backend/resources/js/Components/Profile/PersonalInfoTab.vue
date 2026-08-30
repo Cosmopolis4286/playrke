@@ -175,8 +175,13 @@
         <h4 class="info-card-title"><i class="fas fa-id-card me-2" />Información de Cuenta</h4>
         <dl class="info-list">
           <div class="info-row">
-            <dt>ID</dt>
-            <dd class="font-mono text-xs">{{ user.id }}</dd>
+            <dt>ID de cuenta</dt>
+            <dd>
+              <button type="button" class="id-copy-btn" :title="idCopied ? 'Copiado' : 'Copiar ID completo'" @click="copyId">
+                <span class="font-mono">...{{ user.id.slice(-8) }}</span>
+                <i class="fas" :class="idCopied ? 'fa-check' : 'fa-copy'" />
+              </button>
+            </dd>
           </div>
           <div class="info-row">
             <dt>Miembro desde</dt>
@@ -260,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { ProfileUser, CountryOption } from '@js/composables/useProfile'
 
 const props = defineProps<{
@@ -276,6 +281,25 @@ const props = defineProps<{
 }>()
 
 defineEmits<{ submit: []; cancel: []; 'open-kyc': [] }>()
+
+// ── Copiar ID de cuenta ────────────────────────────────────────
+const idCopied = ref(false)
+async function copyId() {
+    try {
+        await navigator.clipboard.writeText(props.user.id)
+    } catch {
+        const el = document.createElement('textarea')
+        el.value = props.user.id
+        el.style.position = 'fixed'
+        el.style.opacity = '0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+    }
+    idCopied.value = true
+    setTimeout(() => (idCopied.value = false), 2000)
+}
 
 const kycLevels = ['Sin verificar', 'Básico', 'Completo']
 
@@ -446,12 +470,24 @@ const kycDescription = computed(() => ({
 .info-card       { background: var(--ds-surface-2); border-radius: 12px; padding: 1.1rem 1.2rem; border: 1px solid var(--ds-border); }
 .info-card-title { font-size: 0.82rem; font-weight: 700; color: var(--ds-text-2); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .info-list       { margin: 0; }
-.info-row { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 6px 0; border-bottom: 1px solid var(--ds-border); align-items: center; }
+/* Etiqueta y valor apilados (no en 2 columnas forzadas) — con la sidebar a
+   280px, "auto 1fr" dejaba muy poco ancho real para el valor y una fecha
+   larga como "24 de agosto de 2026" terminaba partiéndose a mitad de año. */
+.info-row { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--ds-border); }
 .info-row:last-child { border-bottom: none; }
-.info-row dt { font-size: 0.72rem; color: var(--ds-text-muted); font-weight: 600; white-space: nowrap; }
-.info-row dd { font-size: 0.82rem; color: var(--ds-text); margin: 0; word-break: break-all; }
+.info-row dt { font-size: 0.68rem; color: var(--ds-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.info-row dd { font-size: 0.85rem; color: var(--ds-text); margin: 0; }
 .font-mono { font-family: monospace; }
-.text-xs   { font-size: 0.72rem; }
+
+.id-copy-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--ds-surface); border: 1px solid var(--ds-border-2);
+    border-radius: 6px; padding: 3px 8px; margin-top: 1px;
+    font-size: 0.78rem; color: var(--ds-text-2); cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.id-copy-btn:hover { background: var(--ds-surface-2); color: var(--ds-text); }
+.id-copy-btn i { font-size: 0.68rem; opacity: 0.7; }
 
 .status-badge { display: inline-flex; align-items: center; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
 .status-badge--success { background: #d4edda; color: #155724; }

@@ -343,11 +343,15 @@ function downloadData() {
 .sec-card-title { font-size: 0.78rem; font-weight: 700; color: var(--ds-text-2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.85rem; }
 
 .sec-info-list { margin: 0; }
-.sec-info-row  { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 6px 0; border-bottom: 1px solid var(--ds-border); align-items: center; }
+/* Apilado (no 2 columnas forzadas) — mismo fix que PersonalInfoTab.vue:
+   "auto 1fr" en una sidebar angosta dejaba muy poco ancho real para valores
+   largos como "30 de agosto de 2026 a las 02:40 p.m.", partiéndolos en
+   varias líneas cortas en vez de una sola línea legible. */
+.sec-info-row  { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--ds-border); }
 .sec-info-row:last-child { border-bottom: none; }
-.sec-info-row dt { font-size: 0.7rem; color: var(--ds-text-muted); font-weight: 600; }
-.sec-info-row dd { margin: 0; font-size: 0.78rem; color: var(--ds-text); }
-.text-sm { font-size: 0.75rem; }
+.sec-info-row dt { font-size: 0.66rem; color: var(--ds-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.sec-info-row dd { margin: 0; font-size: 0.82rem; color: var(--ds-text); }
+.text-sm { font-size: 0.78rem; white-space: nowrap; }
 
 .status-badge  { display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
 .status-badge--success { background: #d4edda; color: #155724; }
