@@ -1,4 +1,5 @@
-import { useToast, type ToastOptions } from 'vue-toastification'
+import { useToast } from 'vue-toastification'
+import type { ToastOptions } from 'vue-toastification/dist/types/types'
 import ToastDetail from '@/js/Components/Common/Toast/ToastDetail.vue'
 
 export type ToastIcon = 'success' | 'error' | 'warning' | 'info'
