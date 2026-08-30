@@ -1,4 +1,4 @@
-import { useToast } from 'vue-toastification'
+import { useToast, type ToastOptions } from 'vue-toastification'
 
 export type ToastIcon = 'success' | 'error' | 'warning' | 'info'
 
