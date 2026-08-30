@@ -10,7 +10,7 @@
       <i :class="['tab-icon fas', tab.icon]"></i>
       <span class="tab-label">{{ tab.label }}</span>
       <span class="tab-label-short">{{ tab.short }}</span>
-      <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
+      <span v-if="tab.badge" class="tab-badge" :class="{ 'tab-badge--info': tab.id === 'missions' }">{{ tab.badge }}</span>
     </button>
   </nav>
 </template>
@@ -22,6 +22,7 @@ import type { ProfileUser } from '@js/composables/useProfile'
 const props = defineProps<{
     modelValue: string
     user: ProfileUser
+    missionsPending?: number
 }>()
 defineEmits<{ 'update:modelValue': [value: string] }>()
 
@@ -35,10 +36,13 @@ const needsAttention = computed(() =>
     !props.user.tos_accepted_at || !props.user.is_verified || props.user.kyc_status === 'REJECTED'
 )
 
+// Orden por frecuencia de uso real: Personal (identidad) y Misiones (se
+// revisa a diario) primero, Estadísticas/Referidos/Preferencias después
+// (consulta ocasional), Seguridad al final (solo cuando hace falta actuar).
 const ALL_TABS = [
     { id: 'personal',    icon: 'fa-user',        label: 'Información Personal', short: 'Perfil',  roles: null },
+    { id: 'missions',    icon: 'fa-bullseye',    label: 'Misiones',             short: 'Misiones',roles: ['player', 'vip_player'], badgeFn: () => (props.missionsPending ?? 0) > 0 ? String(props.missionsPending) : null },
     { id: 'stats',       icon: 'fa-chart-bar',   label: 'Estadísticas',         short: 'Stats',   roles: ['player', 'vip_player'] },
-    { id: 'missions',    icon: 'fa-bullseye',    label: 'Misiones',             short: 'Misiones',roles: ['player', 'vip_player'] },
     { id: 'referrals',   icon: 'fa-user-friends',label: 'Referidos',            short: 'Refs',    roles: null },
     { id: 'preferences', icon: 'fa-sliders-h',   label: 'Preferencias',         short: 'Prefs',   roles: null },
     { id: 'security',    icon: 'fa-shield-alt',  label: 'Seguridad',            short: 'Seg',     roles: null, badgeFn: (u: ProfileUser) => (!u.tos_accepted_at || !u.is_verified) ? '!' : null },
@@ -106,6 +110,7 @@ const visibleTabs = computed(() =>
     background: #ef4444; color: #fff; font-size: 9px; font-weight: 700;
     padding: 0 4px; line-height: 1;
 }
+.tab-badge--info { background: #f59e0b; }
 
 @media (max-width: 600px) {
     .tab-label       { display: none; }

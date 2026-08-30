@@ -141,6 +141,8 @@ const props = defineProps<{
     stats: Record<string, any>
     editMode: boolean
     formatCurrency: (amount: number | null, currency: unknown) => string
+    missionsPending?: number
+    missionsTotal?: number
 }>()
 
 defineEmits<{
@@ -150,12 +152,27 @@ defineEmits<{
     'open-kyc': []
 }>()
 
-const quickStats = computed(() => [
-    { label: 'Partidas',  value: props.stats.games_played       ?? 0 },
-    { label: 'Victorias', value: props.stats.games_won          ?? 0 },
-    { label: 'Nivel',     value: props.stats.level              ?? 1 },
-    { label: 'Logros',    value: props.stats.achievements_count ?? 0 },
-])
+// Racha y misiones agregadas al resumen ya existente (Partidas/Victorias/
+// Nivel/Logros) — antes había que entrar al tab "Estadísticas" para ver el
+// nivel, y no había ningún vistazo de racha/misiones sin navegar.
+const quickStats = computed(() => {
+    const stats = [
+        { label: 'Partidas',  value: props.stats.games_played       ?? 0 },
+        { label: 'Victorias', value: props.stats.games_won          ?? 0 },
+        { label: 'Nivel',     value: props.stats.level              ?? 1 },
+        { label: 'Logros',    value: props.stats.achievements_count ?? 0 },
+    ]
+
+    const streak = props.stats.current_streak ?? 0
+    stats.push({ label: 'Racha', value: streak > 0 ? `🔥 ${streak}` : '0' })
+
+    if (props.missionsTotal) {
+        const done = props.missionsTotal - (props.missionsPending ?? 0)
+        stats.push({ label: 'Misiones', value: `${done}/${props.missionsTotal}` })
+    }
+
+    return stats
+})
 
 // ── Rol principal ──────────────────────────────────────────────
 const primaryRole = computed(() => getRoleMeta(props.user.roles?.[0]?.name))

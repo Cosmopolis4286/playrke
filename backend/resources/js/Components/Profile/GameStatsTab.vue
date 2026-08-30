@@ -100,6 +100,12 @@
               </div>
             </div>
           </div>
+          <p v-if="(stats.current_streak || 0) > 0" class="streak-hint">
+            🔥 Llevas {{ stats.current_streak }} día{{ stats.current_streak === 1 ? '' : 's' }} seguido{{ stats.current_streak === 1 ? '' : 's' }}. ¡Entra mañana para no perderla!
+          </p>
+          <p v-else class="streak-hint streak-hint--muted">
+            Entra hoy para empezar una racha.
+          </p>
         </div>
 
         <!-- Logros -->
@@ -443,6 +449,16 @@ function formatDate(dateString: string | undefined): string {
 .streak-best-icon   { font-size: 1.8rem; color: #f5a623; }
 .streak-val { font-size: 1.5rem; font-weight: 700; color: var(--ds-text); line-height: 1; }
 .streak-lbl { font-size: .76rem; color: var(--ds-text-2); margin-top: 2px; }
+.streak-hint {
+  margin: .85rem 0 0;
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  background: rgba(247,151,30,.1);
+  color: #f7971e;
+  font-size: .78rem;
+  font-weight: 500;
+}
+.streak-hint--muted { background: var(--ds-surface-2); color: var(--ds-text-2); }
 
 /* ── Achievements ────────────────────────────────────────────────────────── */
 .badge-count {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useProfile, type ProfileUser, type ProfilePreferences, type CountryOption } from '@js/composables/useProfile'
 import { useTos }          from '@js/composables/useTos'
 import { useKyc }          from '@js/composables/useKyc'
@@ -71,8 +71,15 @@ watch(activeTab, (tab) => {
     if (tab === 'security' && !sessions.value.length) loadSessions()
     if (tab === 'stats' && !achievements.value.length) loadAchievements()
     if (tab === 'referrals' && !referralsLoaded.value) loadReferrals()
-    if (tab === 'missions' && !dailyMissionsLoaded.value) loadDailyMissions()
+    // missions NO es lazy como el resto: se carga en onMounted (abajo) para
+    // que el badge de pendientes en ProfileTabs tenga dato real desde el
+    // primer render, sin esperar a que el usuario abra el tab.
 })
+
+const missionsPending = computed(() =>
+    dailyMissions.value.filter(m => !m.completed).length
+)
+const missionsTotal = computed(() => dailyMissions.value.length)
 // Tabs válidos que un link externo puede pedir vía #hash (ej. notificaciones
 // de nivel/logro/misión: /profile#stats, /profile#missions — antes el hash
 // quedaba inerte, la página siempre abría en 'personal' sin importar el link).
@@ -85,6 +92,8 @@ onMounted(() => {
     }
 
     if (props.tos.needs_acceptance) tosModalOpen.value = true
+
+    loadDailyMissions()
 })
 </script>
 
@@ -101,6 +110,8 @@ export default { name: 'ProfileIndex' }
         :stats="stats"
         :edit-mode="editMode"
         :format-currency="formatCurrency"
+        :missions-pending="missionsPending"
+        :missions-total="missionsTotal"
         @toggle-edit="toggleEdit"
         @open-password="showPassword = true"
         @open-avatar="showAvatar = true"
@@ -108,7 +119,7 @@ export default { name: 'ProfileIndex' }
       />
 
       <div class="profile-card">
-        <ProfileTabs v-model="activeTab" :user="user" />
+        <ProfileTabs v-model="activeTab" :user="user" :missions-pending="missionsPending" />
 
         <div class="tab-content">
           <Transition name="tab-fade" mode="out-in">
