@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
-import { showToast } from '@/js/utils/toastNotify'
+import { showDetailedToast } from '@/js/utils/toastNotify'
 import type { ScheduledCommand } from '@/js/types/system/jobs'
 
 /**
@@ -26,7 +26,7 @@ export function useScheduledCommands() {
             commands.value = data.data ?? []
         } catch (error) {
             console.error(error)
-            showToast('No se pudo cargar la lista de comandos programados', 'error')
+            showDetailedToast('No se pudo cargar la lista de comandos', 'Verifica tu conexión e intenta de nuevo.', 'error')
         } finally {
             loading.value = false
         }
@@ -37,14 +37,19 @@ export function useScheduledCommands() {
         const previous = command.is_enabled
         command.is_enabled = enabled
         togglingId.value = command.id
+        const label = command.label ?? command.command
 
         try {
-            const { data } = await axios.put(`/system/jobs/scheduler/${command.id}/toggle`, { enabled })
-            showToast(data.message, 'success')
+            await axios.put(`/system/jobs/scheduler/${command.id}/toggle`, { enabled })
+            showDetailedToast(
+                enabled ? `"${label}" activado` : `"${label}" desactivado`,
+                enabled ? 'Volverá a ejecutarse automáticamente según su frecuencia.' : 'No se ejecutará automáticamente hasta que se reactive.',
+                enabled ? 'success' : 'warning'
+            )
         } catch (error) {
             command.is_enabled = previous
             console.error(error)
-            showToast('No se pudo actualizar el estado del comando', 'error')
+            showDetailedToast(`No se pudo actualizar "${label}"`, 'El estado no cambió — intenta de nuevo.', 'error')
         } finally {
             togglingId.value = null
         }
@@ -59,12 +64,13 @@ export function useScheduledCommands() {
      */
     async function updateFrequency(command: ScheduledCommand, cronExpression: string): Promise<void> {
         updatingFrequencyId.value = command.id
+        const label = command.label ?? command.command
         try {
             const { data } = await axios.put(`/system/jobs/scheduler/${command.id}/frequency`, { cron_expression: cronExpression })
             command.cron_expression = cronExpression
             command.frequency = data.data?.frequency ?? command.frequency
             command.is_default_frequency = false
-            showToast(data.message, 'success')
+            showDetailedToast(`Frecuencia de "${label}" actualizada`, `Ahora corre: ${command.frequency}`, 'success')
         } finally {
             updatingFrequencyId.value = null
         }
@@ -72,9 +78,10 @@ export function useScheduledCommands() {
 
     async function resetFrequency(command: ScheduledCommand): Promise<void> {
         updatingFrequencyId.value = command.id
+        const label = command.label ?? command.command
         try {
-            const { data } = await axios.delete(`/system/jobs/scheduler/${command.id}/frequency`)
-            showToast(data.message, 'success')
+            await axios.delete(`/system/jobs/scheduler/${command.id}/frequency`)
+            showDetailedToast(`Frecuencia de "${label}" restablecida`, 'Vuelve a usar la cadencia por defecto del sistema.', 'success')
             await fetchList()
         } finally {
             updatingFrequencyId.value = null
@@ -99,13 +106,20 @@ export function useScheduledCommands() {
      */
     async function runNow(command: ScheduledCommand): Promise<void> {
         runningId.value = command.id
+        const label = command.label ?? command.command
         try {
             const { data } = await axios.post(`/system/jobs/scheduler/${command.id}/run`)
-            showToast(data.message, data.success ? 'success' : 'error')
+            const output: string | null = data.data?.output?.trim() || null
+            showDetailedToast(
+                data.success ? `"${label}" ejecutado correctamente` : `"${label}" finalizó con error`,
+                output,
+                data.success ? 'success' : 'error'
+            )
             await fetchList()
         } catch (error) {
             console.error(error)
-            showToast('No se pudo ejecutar el comando.', 'error')
+            const backendMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? null
+            showDetailedToast(`No se pudo ejecutar "${label}"`, backendMessage, 'error')
         } finally {
             runningId.value = null
         }

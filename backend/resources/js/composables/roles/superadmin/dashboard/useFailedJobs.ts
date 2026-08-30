@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
-import { showToast } from '@/js/utils/toastNotify'
+import { showDetailedToast } from '@/js/utils/toastNotify'
 
 export interface FailedJob {
     uuid:               string
@@ -33,7 +33,7 @@ export function useFailedJobs(baseUrl: string = '/superadmin/failed-jobs') {
             jobs.value = data.data ?? []
         } catch (error) {
             console.error(error)
-            showToast('No se pudo cargar la lista de jobs fallidos', 'error')
+            showDetailedToast('No se pudo cargar los jobs fallidos', 'Verifica tu conexión e intenta de nuevo.', 'error')
         } finally {
             loading.value = false
         }
@@ -41,13 +41,18 @@ export function useFailedJobs(baseUrl: string = '/superadmin/failed-jobs') {
 
     async function retryJob(uuid: string): Promise<void> {
         retryingUuid.value = uuid
+        const job = jobs.value.find(j => j.uuid === uuid)
         try {
             const { data } = await axios.post(`${baseUrl}/${uuid}/retry`)
-            showToast(data.message, data.success ? 'success' : 'error')
+            showDetailedToast(
+                data.success ? 'Job reencolado' : 'No se pudo reencolar',
+                job ? `${job.job_name} · ${job.queue}` : null,
+                data.success ? 'success' : 'warning'
+            )
             if (data.success) jobs.value = jobs.value.filter(j => j.uuid !== uuid)
         } catch (error) {
             console.error(error)
-            showToast('Error al reencolar el job', 'error')
+            showDetailedToast('Error al reencolar el job', job ? job.job_name : null, 'error')
         } finally {
             retryingUuid.value = null
         }
@@ -55,26 +60,32 @@ export function useFailedJobs(baseUrl: string = '/superadmin/failed-jobs') {
 
     async function retryAll(): Promise<void> {
         retryingAll.value = true
+        const count = jobs.value.length
         try {
-            const { data } = await axios.post(`${baseUrl}/retry-all`)
-            showToast(data.message, 'success')
+            await axios.post(`${baseUrl}/retry-all`)
+            showDetailedToast('Jobs reencolados', `${count} job(s) fallido(s) volvieron a la cola.`, 'success')
             jobs.value = []
         } catch (error) {
             console.error(error)
-            showToast('Error al reencolar los jobs', 'error')
+            showDetailedToast('Error al reencolar los jobs', 'Ninguno se movió de la lista de fallidos.', 'error')
         } finally {
             retryingAll.value = false
         }
     }
 
     async function forgetJob(uuid: string): Promise<void> {
+        const job = jobs.value.find(j => j.uuid === uuid)
         try {
             const { data } = await axios.delete(`${baseUrl}/${uuid}`)
-            showToast(data.message, data.success ? 'success' : 'error')
+            showDetailedToast(
+                data.success ? 'Job descartado' : 'No se pudo descartar',
+                job ? `${job.job_name} · ${job.queue}` : null,
+                data.success ? 'warning' : 'error'
+            )
             if (data.success) jobs.value = jobs.value.filter(j => j.uuid !== uuid)
         } catch (error) {
             console.error(error)
-            showToast('Error al descartar el job', 'error')
+            showDetailedToast('Error al descartar el job', job ? job.job_name : null, 'error')
         }
     }
 

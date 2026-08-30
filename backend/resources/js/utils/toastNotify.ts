@@ -1,5 +1,12 @@
 import Swal, { SweetAlertIcon, SweetAlertOptions } from 'sweetalert2';
-import { showToast as showToastificationToast } from '@/js/utils/toast';
+import { showToast as showToastificationToast, showDetailedToast as showToastificationDetailedToast } from '@/js/utils/toast';
+
+/**
+ * Reexportado tal cual desde utils/toast.ts — ver su docblock para el
+ * detalle de por qué existe (toasts con título + subtexto en vez de una
+ * sola frase genérica).
+ */
+export const showDetailedToast = showToastificationDetailedToast;
 
 /**
  * Re-exportado desde utils/toast.ts (vue-toastification) — fuente de verdad
