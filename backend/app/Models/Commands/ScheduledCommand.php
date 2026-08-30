@@ -3,6 +3,7 @@
 namespace App\Models\Commands;
 
 use App\Models\User;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,10 +15,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * cron_expression es la cadencia real, leída en runtime por
  * ScheduledCommandGate::cronFor() — cuando es NULL, console.php usa el
  * método fijo original (->everyMinute(), ->hourly(), etc.) como fallback.
+ *
+ * Auditable: toggle()/updateFrequency()/resetFrequency() en
+ * ScheduledCommandService ya hacen $model->update(...), así que quedan
+ * auditados automáticamente (tabla audits, visible en /audit) sin tocar el
+ * servicio. No se marca 'updated' en $auditAlertEvents (no dispara
+ * Log::critical hacia /logs) porque incluiría cambios de frecuencia
+ * rutinarios junto con el toggle real — demasiado ruidoso para una alerta.
  */
 class ScheduledCommand extends Model
 {
     use \App\Traits\SnowflakeId;
+    use Auditable;
 
     protected $table = 'scheduled_commands';
     protected $primaryKey = 'id';

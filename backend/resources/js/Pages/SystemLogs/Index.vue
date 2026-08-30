@@ -8,8 +8,10 @@
   import LogLevelBadge from '@/js/Components/Common/Badge/LogLevelBadge.vue'
 
   import { useSystemLogs } from '@/js/composables/audit/useSystemLogs'
+  import { useLocalDateTime } from '@/js/composables/common/useLocalDateTime'
   import { formatLevelName } from '@/js/utils/logs/logLevelDisplay'
   import { showToast } from '@/js/utils/toastNotify'
+  import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
 
   import type { SystemLogPageProps } from '@/js/types/audit/system-log'
   import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
@@ -136,6 +138,12 @@
   async function handleToggleReviewed(): Promise<void> {
     if (!detail.value) return
     const wasReviewed = !!detail.value.reviewed_at
+
+    const confirmed = wasReviewed
+      ? await showToastConfirmAction('Este log volverá a marcarse como sin revisar.', 'question', 'Sí, marcar como no revisado')
+      : await showToastConfirmAction('Este log se marcará como revisado.', 'question', 'Sí, marcar como revisado')
+    if (!confirmed) return
+
     const ok = await toggleReviewed(detail.value.id)
     if (ok) {
       showToast(wasReviewed ? 'Log marcado como no revisado' : 'Log marcado como revisado', 'success')
@@ -165,6 +173,27 @@
     const value = detail.value?.meta?.user_id
     return typeof value === 'string' || typeof value === 'number' ? String(value) : null
   })
+
+  /* -------------------------------------------------------------------------- */
+  /* Zona horaria: "Primera vez" / "Última vez" en hora local del navegador,    */
+  /* con subinfo comparando contra la zona horaria del servidor.                */
+  /* -------------------------------------------------------------------------- */
+
+  const { describe: describeDateTime } = useLocalDateTime()
+
+  const firstSeenInfo = computed(() =>
+    describeDateTime(detail.value?.date, detail.value?.server_timezone ?? null)
+  )
+  const lastSeenInfo = computed(() =>
+    describeDateTime(detail.value?.last_seen_at ?? detail.value?.date, detail.value?.server_timezone ?? null)
+  )
+  const reviewedInfo = computed(() =>
+    describeDateTime(detail.value?.reviewed_at, detail.value?.server_timezone ?? null)
+  )
+
+  function rowDateInfo(row: Record<string, any>) {
+    return describeDateTime(row.date, row.server_timezone ?? null)
+  }
 </script>
 
 <template>
@@ -258,26 +287,41 @@
       </button>
     </template>
 
-    <!-- Columna: Nivel (badge de color) -->
-    <template #cell-level="{ value }">
-      <LogLevelBadge :level="value" />
+    <!-- Columna: Última vez, en hora local del navegador (tooltip con la hora
+         del servidor si difiere) — misma conversión que el modal de detalle. -->
+    <template #cell-date="{ row }">
+      <div
+        v-if="rowDateInfo(row)"
+        class="log-row-date"
+        :title="rowDateInfo(row)!.differsFromServer ? `Servidor (${rowDateInfo(row)!.serverTimezone}): ${rowDateInfo(row)!.server}` : `Hora local (${rowDateInfo(row)!.localTimezone})`"
+      >
+        <span class="log-row-date-date">{{ rowDateInfo(row)!.localDate }}</span>
+        <span class="log-row-date-time">{{ rowDateInfo(row)!.localTime }}</span>
+      </div>
+      <span v-else class="text-muted">—</span>
     </template>
 
-    <!-- Columna: Mensaje (truncado) -->
-    <template #cell-message="{ value }">
-      <span class="text-truncate d-inline-block" style="max-width: 420px" :title="value">{{ value }}</span>
+    <!-- Columna: Nivel (badge de color + indicador de revisado adosado) -->
+    <template #cell-level="{ row, value }">
+      <div class="d-flex align-items-center gap-2">
+        <LogLevelBadge :level="value" />
+        <i
+          :class="['fas', row.reviewed ? 'fa-check-circle text-success' : 'fa-circle text-muted']"
+          :style="!row.reviewed ? 'font-size: 0.5rem' : undefined"
+          :title="row.reviewed ? 'Revisado' : 'Sin revisar'"
+        ></i>
+      </div>
     </template>
 
-    <!-- Columna: Ocurrencias (agrupación de errores repetidos) -->
-    <template #cell-occurrences="{ value }">
-      <span v-if="value > 1" class="badge bg-secondary">×{{ value }}</span>
-      <span v-else class="text-muted small">—</span>
-    </template>
-
-    <!-- Columna: Revisado -->
-    <template #cell-reviewed="{ value }">
-      <i v-if="value" class="fas fa-check-circle text-success" title="Revisado"></i>
-      <i v-else class="fas fa-circle text-muted" style="font-size: 0.5rem" title="Sin revisar"></i>
+    <!-- Columna: Mensaje (truncado, con contexto + ocurrencias como metadata secundaria) -->
+    <template #cell-message="{ row, value }">
+      <div class="log-message-cell">
+        <span class="text-truncate d-inline-block" style="max-width: 420px" :title="value">{{ value }}</span>
+        <small class="text-muted log-message-meta">
+          <span class="font-monospace">{{ row.context }}</span>
+          <span v-if="row.occurrences > 1" class="badge bg-secondary ms-1">×{{ row.occurrences }}</span>
+        </small>
+      </div>
     </template>
 
     <!-- Columna: Acciones -->
@@ -310,11 +354,23 @@
       <div class="row g-3">
         <div class="col-md-6">
           <small class="text-muted d-block">Primera vez</small>
-          <span>{{ detail.date }}</span>
+          <template v-if="firstSeenInfo">
+            <span>{{ firstSeenInfo.local }} <span class="text-muted small">({{ firstSeenInfo.localAbbrev }})</span></span>
+            <small v-if="firstSeenInfo.differsFromServer" class="text-muted d-block log-tz-subinfo">
+              <i class="fas fa-globe-americas me-1"></i>Servidor ({{ firstSeenInfo.serverTimezone }}): {{ firstSeenInfo.server }}
+            </small>
+          </template>
+          <span v-else>—</span>
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Última vez</small>
-          <span>{{ detail.last_seen_at ?? detail.date }}</span>
+          <template v-if="lastSeenInfo">
+            <span>{{ lastSeenInfo.local }} <span class="text-muted small">({{ lastSeenInfo.localAbbrev }})</span></span>
+            <small v-if="lastSeenInfo.differsFromServer" class="text-muted d-block log-tz-subinfo">
+              <i class="fas fa-globe-americas me-1"></i>Servidor ({{ lastSeenInfo.serverTimezone }}): {{ lastSeenInfo.server }}
+            </small>
+          </template>
+          <span v-else>—</span>
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Nivel</small>
@@ -336,8 +392,8 @@
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Revisado</small>
-          <span v-if="detail.reviewed_at" class="text-success small">
-            <i class="fas fa-check-circle me-1"></i>{{ detail.reviewed_at }}{{ detail.reviewed_by ? ` — ${detail.reviewed_by}` : '' }}
+          <span v-if="reviewedInfo" class="text-success small">
+            <i class="fas fa-check-circle me-1"></i>{{ reviewedInfo.local }}{{ detail.reviewed_by ? ` — ${detail.reviewed_by}` : '' }}
           </span>
           <span v-else class="text-muted small">Sin revisar</span>
         </div>
@@ -392,5 +448,36 @@
   font-weight: 700;
   display: inline-block;
   width: 100%;
+}
+
+.log-tz-subinfo {
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.log-row-date {
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.log-row-date-date {
+  font-size: 0.82rem;
+}
+
+.log-row-date-time {
+  font-size: 0.72rem;
+  color: var(--ds-text-muted, #6c757d);
+}
+
+.log-message-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-message-meta {
+  font-size: 0.72rem;
 }
 </style>

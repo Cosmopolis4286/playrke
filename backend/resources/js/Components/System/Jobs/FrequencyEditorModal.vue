@@ -10,14 +10,17 @@
 import { computed, ref, watch } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import type { CronPreset, ScheduledCommand } from '@/js/types/system/jobs'
+import { useLocalDateTime } from '@/js/composables/common/useLocalDateTime'
 
 const props = defineProps<{
   modelValue: boolean
   command: ScheduledCommand | null
   saving: boolean
   /** Inyectado por el padre (usa el composable useScheduledCommands) — evita llamadas HTTP directas dentro de un componente de presentación. */
-  fetchPreview: (command: ScheduledCommand, cronExpression: string) => Promise<{ frequency: string, next_runs: string[] }>
+  fetchPreview: (command: ScheduledCommand, cronExpression: string) => Promise<{ frequency: string, next_runs: string[], server_timezone: string }>
 }>()
+
+const { describe: describeDateTime, browserTimezone } = useLocalDateTime()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -42,6 +45,14 @@ const previewLoading = ref(false)
 const previewError = ref<string | null>(null)
 const previewFrequency = ref<string | null>(null)
 const nextRuns = ref<string[]>([])
+const nextRunsServerTimezone = ref<string | null>(null)
+
+const nextRunsLocal = computed(() =>
+  nextRuns.value.map(iso => {
+    const info = describeDateTime(iso, nextRunsServerTimezone.value)
+    return info ? `${info.local} (${info.localAbbrev})` : iso
+  })
+)
 
 const availablePresets = computed(() => {
   const floor = props.command?.min_interval_seconds
@@ -64,6 +75,7 @@ function resetLocalState(): void {
   previewError.value = null
   previewFrequency.value = null
   nextRuns.value = []
+  nextRunsServerTimezone.value = null
 }
 
 watch(() => props.modelValue, (open) => {
@@ -100,6 +112,7 @@ async function runPreview(expression: string): Promise<void> {
     if (requestId !== previewRequestId) return
     previewFrequency.value = result.frequency
     nextRuns.value = result.next_runs
+    nextRunsServerTimezone.value = result.server_timezone
   } catch (error: any) {
     if (requestId !== previewRequestId) return
     const firstError = error?.response?.data?.errors?.cron_expression?.[0]
@@ -193,9 +206,9 @@ function handleReset(): void {
         <p class="fem-preview-frequency">
           <i class="fas fa-circle-check mr-1"></i>{{ previewFrequency }}
         </p>
-        <p class="fem-preview-label">Próximas ejecuciones (UTC):</p>
+        <p class="fem-preview-label">Próximas ejecuciones (tu hora local, {{ browserTimezone }}):</p>
         <ul class="fem-next-runs">
-          <li v-for="(run, idx) in nextRuns" :key="idx">{{ run }}</li>
+          <li v-for="(run, idx) in nextRunsLocal" :key="idx">{{ run }}</li>
         </ul>
       </div>
     </div>

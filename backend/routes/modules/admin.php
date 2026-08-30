@@ -418,6 +418,7 @@ Route::middleware('auth')->group(function () {
         'index'                  => ['method' => 'get',    'uri' => '',                            'action' => 'index'],
         'scheduledCommands'      => ['method' => 'get',    'uri' => 'scheduler',                   'action' => 'scheduledCommands'],
         'toggleScheduledCommand' => ['method' => 'put',    'uri' => 'scheduler/{id}/toggle',        'action' => 'toggleScheduledCommand'],
+        'runScheduledCommand'    => ['method' => 'post',   'uri' => 'scheduler/{id}/run',           'action' => 'runScheduledCommand'],
         'updateScheduledCommandFrequency' => ['method' => 'put', 'uri' => 'scheduler/{id}/frequency', 'action' => 'updateScheduledCommandFrequency'],
         'resetScheduledCommandFrequency'  => ['method' => 'delete', 'uri' => 'scheduler/{id}/frequency', 'action' => 'resetScheduledCommandFrequency'],
         'previewScheduledCommandFrequency'=> ['method' => 'post', 'uri' => 'scheduler/{id}/frequency/preview', 'action' => 'previewScheduledCommandFrequency'],

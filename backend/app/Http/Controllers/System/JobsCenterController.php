@@ -96,14 +96,17 @@ final class JobsCenterController extends Controller
 
         $cron = new CronExpression($cronExpression);
         $nextRuns = collect(range(0, 4))
-            ->map(fn (int $nth) => $cron->getNextRunDate('now', $nth, false)->format('d/m/Y H:i:s'))
+            // ISO 8601 (zona del servidor, que es también la del scheduler
+            // real) — el frontend lo convierte a hora local del navegador.
+            ->map(fn (int $nth) => $cron->getNextRunDate('now', $nth, false)->format('c'))
             ->all();
 
         return response()->json([
             'success' => true,
             'data'    => [
-                'frequency' => ScheduledCommandService::describeCron($cronExpression),
-                'next_runs' => $nextRuns,
+                'frequency'       => ScheduledCommandService::describeCron($cronExpression),
+                'next_runs'       => $nextRuns,
+                'server_timezone' => config('app.timezone'),
             ],
         ]);
     }
@@ -128,6 +131,27 @@ final class JobsCenterController extends Controller
         ]);
 
         return [$scheduled, trim((string) $request->string('cron_expression'))];
+    }
+
+    /**
+     * "Ejecutar ahora" — corre inmediatamente el comando ya catalogado en
+     * scheduled_commands (no acepta texto libre: $id resuelve a un registro
+     * existente en ScheduledCommandService::runNow(), que es quien toma su
+     * columna `command` para Artisan::call()).
+     */
+    public function runScheduledCommand(Request $request, string $id): JsonResponse
+    {
+        $this->authorize('manage', JobsCenterPolicy::class);
+
+        $result = $this->scheduler->runNow($id, $request->user());
+
+        return response()->json([
+            'success' => $result['exit_code'] === 0,
+            'message' => $result['exit_code'] === 0
+                ? 'Comando ejecutado correctamente.'
+                : "El comando finalizó con código de salida {$result['exit_code']}.",
+            'data'    => ['output' => $result['output']],
+        ]);
     }
 
     public function resetScheduledCommandFrequency(Request $request, string $id): JsonResponse

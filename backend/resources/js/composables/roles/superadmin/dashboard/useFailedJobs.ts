@@ -9,6 +9,7 @@ export interface FailedJob {
     job_name:           string
     exception_summary:  string
     failed_at:          string
+    server_timezone:    string
 }
 
 /**

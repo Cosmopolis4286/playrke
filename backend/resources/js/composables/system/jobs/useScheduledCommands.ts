@@ -13,6 +13,7 @@ export function useScheduledCommands() {
     const loading = ref(false)
     const togglingId = ref<string | null>(null)
     const updatingFrequencyId = ref<string | null>(null)
+    const runningId = ref<string | null>(null)
 
     function setInitial(initial: ScheduledCommand[]): void {
         commands.value = initial
@@ -86,10 +87,29 @@ export function useScheduledCommands() {
      * errores de validación (cron inválido a medio escribir) son esperados
      * y se propagan como excepción para que el llamador los muestre inline.
      */
-    async function previewFrequency(command: ScheduledCommand, cronExpression: string): Promise<{ frequency: string, next_runs: string[] }> {
+    async function previewFrequency(command: ScheduledCommand, cronExpression: string): Promise<{ frequency: string, next_runs: string[], server_timezone: string }> {
         const { data } = await axios.post(`/system/jobs/scheduler/${command.id}/frequency/preview`, { cron_expression: cronExpression })
         return data.data
     }
 
-    return { commands, loading, togglingId, updatingFrequencyId, setInitial, fetchList, toggle, updateFrequency, resetFrequency, previewFrequency }
+    /**
+     * "Ejecutar ahora" — dispara inmediatamente el comando ya catalogado (no
+     * acepta texto libre, ver JobsCenterController::runScheduledCommand). El
+     * caller es responsable de pedir confirmación antes de invocar esto.
+     */
+    async function runNow(command: ScheduledCommand): Promise<void> {
+        runningId.value = command.id
+        try {
+            const { data } = await axios.post(`/system/jobs/scheduler/${command.id}/run`)
+            showToast(data.message, data.success ? 'success' : 'error')
+            await fetchList()
+        } catch (error) {
+            console.error(error)
+            showToast('No se pudo ejecutar el comando.', 'error')
+        } finally {
+            runningId.value = null
+        }
+    }
+
+    return { commands, loading, togglingId, updatingFrequencyId, runningId, setInitial, fetchList, toggle, updateFrequency, resetFrequency, previewFrequency, runNow }
 }

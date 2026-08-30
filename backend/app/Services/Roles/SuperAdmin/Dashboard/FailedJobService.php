@@ -2,6 +2,7 @@
 
 namespace App\Services\Roles\SuperAdmin\Dashboard;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 final class FailedJobService
 {
     /**
-     * @return array<int, array{uuid: string, connection: string, queue: string, exception_summary: string, failed_at: string}>
+     * @return array<int, array{uuid: string, connection: string, queue: string, exception_summary: string, failed_at: string, server_timezone: string}>
      */
     public function list(int $limit = 50): array
     {
@@ -32,7 +33,14 @@ final class FailedJobService
                 'queue'               => $row->queue,
                 'job_name'           => $this->extractJobName($row->payload),
                 'exception_summary'  => $this->summarizeException($row->exception),
-                'failed_at'          => $row->failed_at,
+                // failed_jobs.failed_at se inserta vía Date::now() (Carbon) en
+                // el propio proceso PHP del worker — ya está en la zona
+                // horaria de la app (config('app.timezone')), no en la de la
+                // sesión MySQL (que puede ser distinta, ej. SYSTEM/UTC acá).
+                // Se parsea explícitamente en esa zona antes de exportar ISO
+                // para que el frontend la convierta a hora local del navegador.
+                'failed_at'          => Carbon::parse($row->failed_at, config('app.timezone'))->toIso8601String(),
+                'server_timezone'    => config('app.timezone'),
             ])
             ->all();
     }

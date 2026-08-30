@@ -3,9 +3,10 @@ import axios from 'axios'
 import { showToast } from '@/js/utils/toastNotify'
 
 export interface ScheduledCommandHistoryEntry {
-    status:       'success' | 'error'
-    executed_at:  string
-    output:       string | null
+    status:           'success' | 'error'
+    executed_at:      string
+    output:           string | null
+    server_timezone:  string
 }
 
 /** Historial completo (sin truncar) de ejecuciones de un comando programado. */

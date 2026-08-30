@@ -2,10 +2,13 @@
 
 namespace App\Services\System\Scheduler;
 
+use App\Models\Audit;
 use App\Models\Commands\CommandLog;
 use App\Models\Commands\ScheduledCommand;
 use App\Models\User;
 use App\Support\Scheduling\ScheduledCommandGate;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Gestión de comandos programados desde el panel "Jobs y Scheduler" —
@@ -48,7 +51,7 @@ final class ScheduledCommandService
     ];
 
     /**
-     * @return array<int, array{id: string, command: string, label: ?string, description: ?string, frequency: string, cron_expression: string, is_default_frequency: bool, min_interval_seconds: ?int, is_enabled: bool, disabled_at: ?string, disabled_by: ?string, frequency_updated_at: ?string, frequency_updated_by: ?string, last_execution: ?array}>
+     * @return array<int, array{id: string, command: string, label: ?string, description: ?string, frequency: string, cron_expression: string, is_default_frequency: bool, min_interval_seconds: ?int, is_enabled: bool, disabled_at: ?string, disabled_by: ?string, frequency_updated_at: ?string, frequency_updated_by: ?string, last_execution: ?array, server_timezone: string}>
      */
     public function list(): array
     {
@@ -79,19 +82,23 @@ final class ScheduledCommandService
                     'is_default_frequency'  => $scheduled->cron_expression === null,
                     'min_interval_seconds'  => $scheduled->min_interval_seconds,
                     'is_enabled'            => $scheduled->is_enabled,
-                    'disabled_at'           => $scheduled->disabled_at?->format('d/m/Y H:i:s'),
+                    // ISO 8601 con offset (no un string ya formateado en la
+                    // zona del servidor) — el frontend lo convierte a la zona
+                    // horaria local del navegador, ver useLocalDateTime.ts.
+                    'disabled_at'           => $scheduled->disabled_at?->toIso8601String(),
                     'disabled_by'           => $scheduled->disabledBy
                         ? trim("{$scheduled->disabledBy->first_name} {$scheduled->disabledBy->last_name}") ?: $scheduled->disabledBy->username
                         : null,
-                    'frequency_updated_at'  => $scheduled->frequency_updated_at?->format('d/m/Y H:i:s'),
+                    'frequency_updated_at'  => $scheduled->frequency_updated_at?->toIso8601String(),
                     'frequency_updated_by'  => $scheduled->frequencyUpdatedBy
                         ? trim("{$scheduled->frequencyUpdatedBy->first_name} {$scheduled->frequencyUpdatedBy->last_name}") ?: $scheduled->frequencyUpdatedBy->username
                         : null,
                     'last_execution' => $lastLog ? [
                         'status'      => $lastLog->status,
-                        'executed_at' => $lastLog->executed_at->format('d/m/Y H:i:s'),
+                        'executed_at' => $lastLog->executed_at->toIso8601String(),
                         'output'      => $lastLog->truncated_output,
                     ] : null,
+                    'server_timezone' => config('app.timezone'),
                 ];
             })
             ->values()
@@ -121,7 +128,7 @@ final class ScheduledCommandService
     }
 
     /**
-     * @return array<int, array{status: string, executed_at: string, output: ?string}>
+     * @return array<int, array{status: string, executed_at: string, output: ?string, server_timezone: string}>
      */
     public function history(string $command, int $limit = 50): array
     {
@@ -130,9 +137,10 @@ final class ScheduledCommandService
             ->limit($limit)
             ->get()
             ->map(fn (CommandLog $log) => [
-                'status'      => $log->status,
-                'executed_at' => $log->executed_at->format('d/m/Y H:i:s'),
-                'output'      => $log->output,
+                'status'          => $log->status,
+                'executed_at'     => $log->executed_at->toIso8601String(),
+                'output'          => $log->output,
+                'server_timezone' => config('app.timezone'),
             ])
             ->all();
     }
@@ -199,5 +207,47 @@ final class ScheduledCommandService
     public function defaultCronFor(string $command): ?string
     {
         return self::DEFAULT_CRON[$command] ?? null;
+    }
+
+    /**
+     * Ejecuta AHORA un comando ya catalogado en scheduled_commands (nunca
+     * texto libre del cliente — $id resuelve a un ScheduledCommand existente,
+     * y es su columna `command` la que se pasa a Artisan::call(), no un valor
+     * enviado directamente por el request). El comando individual (su propio
+     * handle()) ya se encarga de registrar el CommandLog y, si falla, de
+     * Log::error() hacia system_logs — ver App\Services\Commands\CommandService.
+     *
+     * Se registra además un evento de auditoría explícito aquí (no solo el
+     * CommandLog "resultado") porque "un admin decidió disparar esto fuera de
+     * su horario programado" es información distinta de "el comando corrió y
+     * esto fue lo que devolvió" — y, a diferencia de toggle/updateFrequency,
+     * esta acción no pasa por $model->update() por lo que Auditable no la
+     * capturaría sola.
+     *
+     * @return array{exit_code: int, output: string}
+     */
+    public function runNow(string $id, User $actor): array
+    {
+        $scheduled = ScheduledCommand::findOrFail($id);
+
+        $exitCode = Artisan::call($scheduled->command);
+        $output    = Artisan::output();
+
+        Audit::create([
+            'user_id'        => $actor->id,
+            'actor_type'     => 'user',
+            'auditable_type' => ScheduledCommand::class,
+            'auditable_id'   => $scheduled->id,
+            'event'          => 'run_now',
+            'old_values'     => null,
+            'new_values'     => ['command' => $scheduled->command, 'exit_code' => $exitCode],
+        ]);
+
+        // Ejecución manual disparada por un admin fuera del horario programado
+        // — visibilidad explícita en /logs sea cual sea el resultado, no solo
+        // cuando falla (a diferencia del log automático del propio comando).
+        Log::info("[run-now] {$scheduled->command} ejecutado manualmente por {$actor->id} (exit={$exitCode})");
+
+        return ['exit_code' => $exitCode, 'output' => $output];
     }
 }

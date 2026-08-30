@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import type { FailedJob } from '@/js/composables/roles/superadmin/dashboard/useFailedJobs'
+import { useLocalDateTime } from '@/js/composables/common/useLocalDateTime'
+import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
   jobs: FailedJob[]
   loading: boolean
@@ -16,6 +18,31 @@ const emit = defineEmits<{
   'retry-all': []
   forget: [uuid: string]
 }>()
+
+const { describe: describeDateTime } = useLocalDateTime()
+
+function failedAtLabel(job: FailedJob): string {
+  const info = describeDateTime(job.failed_at, job.server_timezone)
+  return info ? `${info.local} (${info.localAbbrev})` : job.failed_at
+}
+
+async function confirmForget(uuid: string): Promise<void> {
+  const ok = await showToastConfirmAction(
+    'Esta acción descarta el job fallido de forma permanente. No podrá reintentarse después.',
+    'warning',
+    'Sí, descartar'
+  )
+  if (ok) emit('forget', uuid)
+}
+
+async function confirmRetryAll(): Promise<void> {
+  const ok = await showToastConfirmAction(
+    `Se reintentarán ${props.jobs.length} job(s) fallido(s).`,
+    'question',
+    'Sí, reintentar todos'
+  )
+  if (ok) emit('retry-all')
+}
 </script>
 
 <template>
@@ -40,7 +67,7 @@ const emit = defineEmits<{
       <div v-for="job in jobs" :key="job.uuid" class="fj-item">
         <div class="fj-item-main">
           <span class="fj-item-name">{{ job.job_name }}</span>
-          <span class="fj-item-meta">{{ job.connection }} · {{ job.queue }} · {{ new Date(job.failed_at).toLocaleString('es-VE') }}</span>
+          <span class="fj-item-meta">{{ job.connection }} · {{ job.queue }} · {{ failedAtLabel(job) }}</span>
           <p class="fj-item-exception">{{ job.exception_summary }}</p>
         </div>
         <div class="fj-item-actions">
@@ -52,7 +79,7 @@ const emit = defineEmits<{
             <i class="fas fa-rotate-right" :class="{ 'fa-spin': retryingUuid === job.uuid }"></i>
             Reintentar
           </button>
-          <button class="fj-btn fj-btn--forget" @click="$emit('forget', job.uuid)">
+          <button class="fj-btn fj-btn--forget" title="Descartar job" @click="confirmForget(job.uuid)">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -66,7 +93,7 @@ const emit = defineEmits<{
         type="button"
         class="fj-modal-btn fj-modal-btn--primary"
         :disabled="retryingAll"
-        @click="$emit('retry-all')"
+        @click="confirmRetryAll"
       >
         <i class="fas fa-rotate-right mr-1" :class="{ 'fa-spin': retryingAll }"></i>
         Reintentar todos ({{ jobs.length }})

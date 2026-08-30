@@ -25,9 +25,9 @@
   const props = defineProps<JobsCenterPageProps>()
 
   const {
-    commands, loading: schedulerLoading, togglingId, updatingFrequencyId,
+    commands, loading: schedulerLoading, togglingId, updatingFrequencyId, runningId,
     setInitial: setInitialCommands, fetchList: refetchCommands, toggle,
-    updateFrequency, resetFrequency, previewFrequency,
+    updateFrequency, resetFrequency, previewFrequency, runNow,
   } = useScheduledCommands()
   setInitialCommands(props.scheduledCommands)
 
@@ -149,9 +149,11 @@
         :commands="commands"
         :loading="schedulerLoading"
         :toggling-id="togglingId"
+        :running-id="runningId"
         @toggle="toggle"
         @view-history="openHistory"
         @edit-frequency="openFrequencyEditor"
+        @run-now="runNow"
       />
     </div>
 

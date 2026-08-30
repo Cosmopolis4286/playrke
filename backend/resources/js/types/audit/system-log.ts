@@ -42,4 +42,5 @@ export interface SystemLogDetail {
     occurrences: number
     reviewed_at: string | null
     reviewed_by: string | null
+    server_timezone: string | null
 }

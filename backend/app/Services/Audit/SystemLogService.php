@@ -19,16 +19,21 @@ class SystemLogService
      */
     private const SORTABLE_COLUMNS = ['id', 'date', 'level', 'occurrences'];
 
+    /**
+     * Tabla compacta: 'level' incluye el indicador de revisado adosado, y
+     * 'message' incluye contexto + ocurrencias como metadata secundaria —
+     * ver #cell-level y #cell-message en SystemLogs/Index.vue. Las claves
+     * 'context'/'occurrences'/'reviewed' siguen viajando en cada fila
+     * (toRow()) para esos slots, solo dejan de ser columnas con su propio
+     * encabezado.
+     */
     private function columns(): array
     {
         return [
-            ['key' => 'id',          'label' => '#',           'sortable' => true],
-            ['key' => 'date',        'label' => 'Última vez',  'sortable' => true],
-            ['key' => 'level',       'label' => 'Nivel',       'sortable' => true],
-            ['key' => 'message',     'label' => 'Mensaje',     'sortable' => false],
-            ['key' => 'context',     'label' => 'Contexto',    'sortable' => false],
-            ['key' => 'occurrences', 'label' => 'Ocurrencias', 'sortable' => true],
-            ['key' => 'reviewed',    'label' => 'Revisado',    'sortable' => false],
+            ['key' => 'id',      'label' => '#',          'sortable' => true],
+            ['key' => 'date',    'label' => 'Última vez', 'sortable' => true],
+            ['key' => 'level',   'label' => 'Nivel',      'sortable' => true],
+            ['key' => 'message', 'label' => 'Mensaje',    'sortable' => false],
         ];
     }
 
@@ -207,30 +212,38 @@ class SystemLogService
     private function toRow(SystemLog $log): array
     {
         return [
-            'id'          => (string) $log->id,
-            'date'        => ($log->last_seen_at ?? $log->created_at)?->format('d/m/Y H:i:s') ?? '—',
-            'level'       => $log->level,
-            'message'     => $log->message,
-            'context'     => $log->context ?? '—',
-            'occurrences' => $log->occurrences,
-            'reviewed'    => (bool) $log->reviewed_at,
+            'id'              => (string) $log->id,
+            // ISO 8601 con offset (no un string ya formateado en la zona del
+            // servidor) para que la tabla lo convierta a la zona horaria
+            // local del navegador — ver useLocalDateTime.ts.
+            'date'            => ($log->last_seen_at ?? $log->created_at)?->toIso8601String(),
+            'level'           => $log->level,
+            'message'         => $log->message,
+            'context'         => $log->context ?? '—',
+            'occurrences'     => $log->occurrences,
+            'reviewed'        => (bool) $log->reviewed_at,
+            'server_timezone' => config('app.timezone'),
         ];
     }
 
     private function toDetail(SystemLog $log): array
     {
         return [
-            'id'           => $log->id,
-            'date'         => $log->created_at?->format('d/m/Y H:i:s'),
-            'last_seen_at' => $log->last_seen_at?->format('d/m/Y H:i:s'),
-            'level'        => $log->level,
-            'message'      => $log->message,
-            'context'      => $log->context,
-            'stack'        => $log->stack,
-            'meta'         => $log->meta,
-            'occurrences'  => $log->occurrences,
-            'reviewed_at'  => $log->reviewed_at?->format('d/m/Y H:i:s'),
-            'reviewed_by'  => $log->reviewedBy?->full_name,
+            'id'              => $log->id,
+            // ISO 8601 con offset (no un string ya formateado en la zona del
+            // servidor) para que el frontend pueda convertirlo a la zona
+            // horaria local del navegador del usuario y mostrar ambas.
+            'date'            => $log->created_at?->toIso8601String(),
+            'last_seen_at'    => $log->last_seen_at?->toIso8601String(),
+            'level'           => $log->level,
+            'message'         => $log->message,
+            'context'         => $log->context,
+            'stack'           => $log->stack,
+            'meta'            => $log->meta,
+            'occurrences'     => $log->occurrences,
+            'reviewed_at'     => $log->reviewed_at?->toIso8601String(),
+            'reviewed_by'     => $log->reviewedBy?->full_name,
+            'server_timezone' => config('app.timezone'),
         ];
     }
 }

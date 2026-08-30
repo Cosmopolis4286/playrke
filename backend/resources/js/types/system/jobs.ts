@@ -19,6 +19,7 @@ export interface ScheduledCommand {
     frequency_updated_at:   string | null
     frequency_updated_by:   string | null
     last_execution:         ScheduledCommandLastExecution | null
+    server_timezone:        string
 }
 
 export interface CronPreset {
@@ -38,6 +39,7 @@ export interface FailedJob {
     job_name:           string
     exception_summary:  string
     failed_at:          string
+    server_timezone:    string
 }
 
 export interface JobsCenterPageProps {

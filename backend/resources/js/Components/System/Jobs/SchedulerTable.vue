@@ -1,21 +1,68 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { ScheduledCommand } from '@/js/types/system/jobs'
+import { useLocalDateTime } from '@/js/composables/common/useLocalDateTime'
+import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
 
 const props = defineProps<{
   commands: ScheduledCommand[]
   loading: boolean
   togglingId: string | null
+  runningId: string | null
 }>()
 
 const emit = defineEmits<{
   toggle: [command: ScheduledCommand, enabled: boolean]
   'view-history': [command: ScheduledCommand]
   'edit-frequency': [command: ScheduledCommand]
+  'run-now': [command: ScheduledCommand]
 }>()
 
 const searchQuery = ref('')
 const statusFilter = ref<'all' | 'enabled' | 'disabled' | 'error'>('all')
+
+const { describe: describeDateTime } = useLocalDateTime()
+
+function localLabel(iso: string | null, serverTimezone: string): string {
+  const info = describeDateTime(iso, serverTimezone)
+  return info ? `${info.local} (${info.localAbbrev})` : '—'
+}
+
+async function handleToggle(cmd: ScheduledCommand, event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const checked = input.checked
+
+  const ok = checked
+    ? await showToastConfirmAction(
+        `"${cmd.label ?? cmd.command}" volverá a ejecutarse automáticamente según su frecuencia.`,
+        'question',
+        'Sí, activar'
+      )
+    : await showToastConfirmAction(
+        `"${cmd.label ?? cmd.command}" dejará de ejecutarse automáticamente hasta que se reactive.`,
+        'warning',
+        'Sí, desactivar'
+      )
+
+  if (ok) {
+    emit('toggle', cmd, checked)
+  } else {
+    // El navegador ya cambió el checkbox (evento @change nativo) antes de
+    // que este handler corriera — al cancelar, se revierte el DOM sin emitir
+    // 'toggle' (que dispararía un PUT real solo para deshacer un cambio que
+    // nunca se confirmó).
+    input.checked = !checked
+  }
+}
+
+async function handleRunNow(cmd: ScheduledCommand): Promise<void> {
+  const ok = await showToastConfirmAction(
+    `Se ejecutará "${cmd.label ?? cmd.command}" inmediatamente, fuera de su horario programado.`,
+    'question',
+    'Sí, ejecutar ahora'
+  )
+  if (ok) emit('run-now', cmd)
+}
 
 const filteredCommands = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -99,7 +146,7 @@ const filteredCommands = computed(() => {
               <template v-if="cmd.last_execution">
                 <button class="sct-exec-status" :class="`sct-exec-status--${cmd.last_execution.status}`" @click="$emit('view-history', cmd)">
                   <i class="fas" :class="cmd.last_execution.status === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
-                  {{ cmd.last_execution.executed_at }}
+                  {{ localLabel(cmd.last_execution.executed_at, cmd.server_timezone) }}
                 </button>
                 <p v-if="cmd.last_execution.status === 'error'" class="sct-exec-output" :title="cmd.last_execution.output ?? ''">
                   {{ cmd.last_execution.output }}
@@ -113,11 +160,19 @@ const filteredCommands = computed(() => {
                 {{ cmd.is_enabled ? 'Activo' : 'Desactivado' }}
               </span>
               <span v-if="!cmd.is_enabled && (cmd.disabled_by || cmd.disabled_at)" class="sct-disabled-meta">
-                {{ cmd.disabled_by ? `por ${cmd.disabled_by}` : '' }}{{ cmd.disabled_by && cmd.disabled_at ? ' · ' : '' }}{{ cmd.disabled_at ?? '' }}
+                {{ cmd.disabled_by ? `por ${cmd.disabled_by}` : '' }}{{ cmd.disabled_by && cmd.disabled_at ? ' · ' : '' }}{{ cmd.disabled_at ? localLabel(cmd.disabled_at, cmd.server_timezone) : '' }}
               </span>
             </td>
             <td class="sct-actions-cell">
               <div class="sct-actions-inner">
+                <button
+                  class="sct-run-btn"
+                  title="Ejecutar ahora"
+                  :disabled="runningId === cmd.id"
+                  @click="handleRunNow(cmd)"
+                >
+                  <i class="fas" :class="runningId === cmd.id ? 'fa-spinner fa-spin' : 'fa-play'"></i>
+                </button>
                 <button class="sct-history-btn" title="Ver historial completo" @click="$emit('view-history', cmd)">
                   <i class="fas fa-clock-rotate-left"></i>
                 </button>
@@ -126,7 +181,7 @@ const filteredCommands = computed(() => {
                     type="checkbox"
                     :checked="cmd.is_enabled"
                     :disabled="togglingId === cmd.id"
-                    @change="$emit('toggle', cmd, ($event.target as HTMLInputElement).checked)"
+                    @change="handleToggle(cmd, $event)"
                   />
                   <span class="sct-switch-slider"></span>
                 </label>
@@ -297,6 +352,24 @@ const filteredCommands = computed(() => {
   transition: background 0.15s, color 0.15s;
 }
 .sct-history-btn:hover { color: #667eea; background: rgba(102, 126, 234, 0.1); }
+
+.sct-run-btn {
+  background: none;
+  border: none;
+  color: var(--ds-text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.sct-run-btn:hover { color: #34d399; background: rgba(52, 211, 153, 0.1); }
+.sct-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .sct-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
 .sct-switch input { opacity: 0; width: 0; height: 0; }

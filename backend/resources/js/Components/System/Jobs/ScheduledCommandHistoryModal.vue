@@ -2,6 +2,7 @@
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import type { ScheduledCommandHistoryEntry } from '@/js/composables/system/jobs/useScheduledCommandHistory'
 import type { ScheduledCommand } from '@/js/types/system/jobs'
+import { useLocalDateTime } from '@/js/composables/common/useLocalDateTime'
 
 defineProps<{
   modelValue: boolean
@@ -13,6 +14,13 @@ defineProps<{
 defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
+
+const { describe: describeDateTime } = useLocalDateTime()
+
+function executedAtLabel(entry: ScheduledCommandHistoryEntry): string {
+  const info = describeDateTime(entry.executed_at, entry.server_timezone)
+  return info ? `${info.local} (${info.localAbbrev})` : entry.executed_at
+}
 </script>
 
 <template>
@@ -42,7 +50,7 @@ defineEmits<{
             <i class="fas" :class="entry.status === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
             {{ entry.status === 'success' ? 'Éxito' : 'Error' }}
           </span>
-          <span class="schm-item-date">{{ entry.executed_at }}</span>
+          <span class="schm-item-date">{{ executedAtLabel(entry) }}</span>
         </div>
         <pre v-if="entry.output" class="schm-item-output" :class="{ 'schm-item-output--error': entry.status === 'error' }">{{ entry.output }}</pre>
       </li>
