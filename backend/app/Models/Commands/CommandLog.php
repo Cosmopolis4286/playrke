@@ -2,7 +2,9 @@
 
 namespace App\Models\Commands;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modelo CommandLog refactorizado
@@ -35,15 +37,23 @@ class CommandLog extends Model
         'output',
         'status',
         'executed_at',
+        'triggered_by',
+        'triggered_by_user_id',
     ];
 
     // ========================
     // Casting de tipos
     // ========================
     protected $casts = [
-        'executed_at' => 'datetime',
-        'status' => 'string',
+        'executed_at'  => 'datetime',
+        'status'       => 'string',
+        'triggered_by' => 'string',
     ];
+
+    public function triggeredByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'triggered_by_user_id');
+    }
 
     // ========================
     // Accessors

@@ -3,10 +3,16 @@ import axios from 'axios'
 import { showToast } from '@/js/utils/toastNotify'
 
 export interface ScheduledCommandHistoryEntry {
-    status:           'success' | 'error'
-    executed_at:      string
-    output:           string | null
+    type:             'execution' | 'toggle' | 'frequency_change' | 'other_change'
+    occurred_at:      string
     server_timezone:  string
+    actor:            string | null
+    /** Solo en entradas type: 'execution'. */
+    status?:          'success' | 'error'
+    output?:          string | null
+    triggered_by?:    'scheduler' | 'manual'
+    /** Solo en entradas type: 'toggle' | 'frequency_change' | 'other_change'. */
+    detail?:          string
 }
 
 /** Historial completo (sin truncar) de ejecuciones de un comando programado. */

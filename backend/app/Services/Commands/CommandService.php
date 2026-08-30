@@ -6,6 +6,7 @@ use App\Models\Commands\CommandLog;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Traits\ResolvesSuperadminIds;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -29,14 +30,25 @@ class CommandService
      * transitorio de conexión), el comando pierde la notificación pero NUNCA
      * el registro del log, que es lo que ya causó una vez la pérdida
      * silenciosa de un log real (incidente 2026-08-18).
+     *
+     * $triggeredByUserId: null para ejecuciones del scheduler automático
+     * (el caso normal, los 15 comandos programados no pasan este argumento).
+     * Cuando viene con valor, es porque ScheduledCommandService::runNow()
+     * invocó el comando manualmente desde /system/jobs — el historial
+     * (/system/jobs, ver ScheduledCommandHistoryModal) distingue origen y
+     * actor a partir de estas dos columnas.
      */
-    public function logCommandExecution(string $signature, string $output, string $status): void
+    public function logCommandExecution(string $signature, string $output, string $status, ?string $triggeredByUserId = null): void
     {
+        $triggeredByUserId ??= Context::get('command.triggered_by_user_id');
+
         CommandLog::create([
-            'command' => $signature,
-            'output' => $output,
-            'status' => $status,
-            'executed_at' => now(),
+            'command'              => $signature,
+            'output'               => $output,
+            'status'               => $status,
+            'executed_at'          => now(),
+            'triggered_by'         => $triggeredByUserId ? 'manual' : 'scheduler',
+            'triggered_by_user_id' => $triggeredByUserId,
         ]);
 
         if ($status !== 'error') {

@@ -17,9 +17,32 @@ defineEmits<{
 
 const { describe: describeDateTime } = useLocalDateTime()
 
-function executedAtLabel(entry: ScheduledCommandHistoryEntry): string {
-  const info = describeDateTime(entry.executed_at, entry.server_timezone)
-  return info ? `${info.local} (${info.localAbbrev})` : entry.executed_at
+function occurredAtLabel(entry: ScheduledCommandHistoryEntry): string {
+  const info = describeDateTime(entry.occurred_at, entry.server_timezone)
+  return info ? `${info.local} (${info.localAbbrev})` : entry.occurred_at
+}
+
+const TYPE_ICON: Record<ScheduledCommandHistoryEntry['type'], string> = {
+  execution:         'fa-play',
+  toggle:            'fa-power-off',
+  frequency_change:  'fa-clock',
+  other_change:      'fa-pen',
+}
+
+function typeLabel(entry: ScheduledCommandHistoryEntry): string {
+  if (entry.type === 'execution') {
+    return entry.status === 'success' ? 'Éxito' : 'Error'
+  }
+  return entry.detail ?? 'Cambio de configuración'
+}
+
+function originLabel(entry: ScheduledCommandHistoryEntry): string {
+  if (entry.type === 'execution') {
+    return entry.triggered_by === 'manual'
+      ? `Ejecución manual${entry.actor ? ` — ${entry.actor}` : ''}`
+      : 'Ejecución programada'
+  }
+  return entry.actor ? `Por ${entry.actor}` : ''
 }
 </script>
 
@@ -40,18 +63,22 @@ function executedAtLabel(entry: ScheduledCommandHistoryEntry): string {
 
     <div v-else-if="entries.length === 0" class="schm-empty">
       <i class="fas fa-inbox schm-empty-icon"></i>
-      <p class="mb-0">Sin ejecuciones registradas.</p>
+      <p class="mb-0">Sin eventos registrados.</p>
     </div>
 
     <ul v-else class="schm-list">
-      <li v-for="(entry, idx) in entries" :key="idx" class="schm-item">
+      <li v-for="(entry, idx) in entries" :key="idx" class="schm-item" :class="{ 'schm-item--state': entry.type !== 'execution' }">
         <div class="schm-item-header">
-          <span class="schm-item-status" :class="`schm-item-status--${entry.status}`">
-            <i class="fas" :class="entry.status === 'success' ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
-            {{ entry.status === 'success' ? 'Éxito' : 'Error' }}
+          <span
+            class="schm-item-status"
+            :class="entry.type === 'execution' ? `schm-item-status--${entry.status}` : 'schm-item-status--state'"
+          >
+            <i class="fas" :class="entry.type === 'execution' ? (entry.status === 'success' ? 'fa-circle-check' : 'fa-circle-xmark') : TYPE_ICON[entry.type]"></i>
+            {{ typeLabel(entry) }}
           </span>
-          <span class="schm-item-date">{{ executedAtLabel(entry) }}</span>
+          <span class="schm-item-date">{{ occurredAtLabel(entry) }}</span>
         </div>
+        <p v-if="originLabel(entry)" class="schm-item-origin">{{ originLabel(entry) }}</p>
         <pre v-if="entry.output" class="schm-item-output" :class="{ 'schm-item-output--error': entry.status === 'error' }">{{ entry.output }}</pre>
       </li>
     </ul>
@@ -83,7 +110,10 @@ function executedAtLabel(entry: ScheduledCommandHistoryEntry): string {
 .schm-item-status { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 600; }
 .schm-item-status--success { color: #34d399; }
 .schm-item-status--error { color: #f87171; }
+.schm-item-status--state { color: #a78bfa; }
 .schm-item-date { font-size: 0.76rem; color: var(--ds-text-muted); }
+.schm-item-origin { font-size: 0.72rem; color: var(--ds-text-muted); margin: 0.3rem 0 0; }
+.schm-item--state { background: rgba(167, 139, 250, 0.07); }
 .schm-item-output {
   font-family: monospace;
   font-size: 0.74rem;

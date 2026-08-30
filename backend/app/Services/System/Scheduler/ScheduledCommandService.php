@@ -8,6 +8,7 @@ use App\Models\Commands\ScheduledCommand;
 use App\Models\User;
 use App\Support\Scheduling\ScheduledCommandGate;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -128,21 +129,97 @@ final class ScheduledCommandService
     }
 
     /**
-     * @return array<int, array{status: string, executed_at: string, output: ?string, server_timezone: string}>
+     * Historial unificado de un comando: ejecuciones (CommandLog, con origen
+     * scheduler/manual y el actor cuando aplica) + cambios de estado
+     * (Audit — toggle activar/desactivar, cambio/reset de frecuencia),
+     * intercalados y ordenados por fecha descendente. Antes solo mostraba
+     * ejecuciones; "quién activó/desactivó esto y cuándo" solo vivía en las
+     * columnas simples disabled_by/disabled_at del propio ScheduledCommand
+     * (sobrescribibles, sin histórico), invisible desde este modal.
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function history(string $command, int $limit = 50): array
     {
-        return CommandLog::byCommand($command)
+        $executions = CommandLog::byCommand($command)
             ->orderedByExecution()
             ->limit($limit)
             ->get()
             ->map(fn (CommandLog $log) => [
-                'status'          => $log->status,
-                'executed_at'     => $log->executed_at->toIso8601String(),
-                'output'          => $log->output,
+                'type'            => 'execution',
+                'occurred_at'     => $log->executed_at->toIso8601String(),
                 'server_timezone' => config('app.timezone'),
-            ])
+                'status'          => $log->status,
+                'output'          => $log->output,
+                'triggered_by'    => $log->triggered_by,
+                'actor'           => $log->triggeredByUser
+                    ? trim("{$log->triggeredByUser->first_name} {$log->triggeredByUser->last_name}") ?: $log->triggeredByUser->username
+                    : null,
+            ]);
+
+        $scheduled = ScheduledCommand::query()->byCommand($command)->first();
+        $stateChanges = $scheduled
+            ? Audit::query()
+                ->ofAuditable(ScheduledCommand::class, $scheduled->id)
+                ->with('user:id,first_name,last_name,username')
+                ->latest('id')
+                ->limit($limit)
+                ->get()
+                ->map(fn (Audit $audit) => [
+                    'type'            => $this->describeAuditEvent($audit),
+                    'occurred_at'     => $audit->created_at->toIso8601String(),
+                    'server_timezone' => config('app.timezone'),
+                    'actor'           => $audit->user
+                        ? trim("{$audit->user->first_name} {$audit->user->last_name}") ?: $audit->user->username
+                        : null,
+                    'detail'          => $this->describeAuditDetail($audit),
+                ])
+            : collect();
+
+        return $executions
+            ->concat($stateChanges)
+            ->sortByDesc('occurred_at')
+            ->values()
+            ->take($limit)
             ->all();
+    }
+
+    /**
+     * Clasifica un Audit('updated') de ScheduledCommand según qué campos
+     * realmente cambiaron — el trait Auditable no distingue esto por sí
+     * solo, siempre registra el evento genérico 'updated'.
+     */
+    private function describeAuditEvent(Audit $audit): string
+    {
+        $changed = array_keys($audit->new_values ?? []);
+
+        if (in_array('is_enabled', $changed, true)) {
+            return 'toggle';
+        }
+
+        if (in_array('cron_expression', $changed, true)) {
+            return 'frequency_change';
+        }
+
+        return 'other_change';
+    }
+
+    private function describeAuditDetail(Audit $audit): string
+    {
+        $new = $audit->new_values ?? [];
+        $old = $audit->old_values ?? [];
+
+        if (array_key_exists('is_enabled', $new)) {
+            return $new['is_enabled'] ? 'Comando activado' : 'Comando desactivado';
+        }
+
+        if (array_key_exists('cron_expression', $new)) {
+            return $new['cron_expression'] === null
+                ? 'Frecuencia restablecida al valor por defecto'
+                : sprintf('Frecuencia cambiada de "%s" a "%s"', $old['cron_expression'] ?? '—', $new['cron_expression']);
+        }
+
+        return 'Cambio de configuración';
     }
 
     public function toggle(string $id, bool $enabled, User $actor): ScheduledCommand
@@ -217,12 +294,21 @@ final class ScheduledCommandService
      * handle()) ya se encarga de registrar el CommandLog y, si falla, de
      * Log::error() hacia system_logs — ver App\Services\Commands\CommandService.
      *
-     * Se registra además un evento de auditoría explícito aquí (no solo el
-     * CommandLog "resultado") porque "un admin decidió disparar esto fuera de
-     * su horario programado" es información distinta de "el comando corrió y
-     * esto fue lo que devolvió" — y, a diferencia de toggle/updateFrequency,
-     * esta acción no pasa por $model->update() por lo que Auditable no la
-     * capturaría sola.
+     * Context::add('command.triggered_by_user_id', ...) es cómo este actor
+     * llega hasta CommandService::logCommandExecution() dentro del handle()
+     * del comando invocado por Artisan::call() — ninguno de los 15 comandos
+     * programados conoce ni necesita conocer que puede ejecutarse
+     * manualmente; logCommandExecution() lee este valor como fallback solo
+     * si no se le pasa explícito. Context es scoped al proceso/request
+     * actual, así que no hay riesgo de que el valor "se filtre" a una
+     * ejecución posterior no relacionada.
+     *
+     * No se registra un Audit adicional aquí: el propio CommandLog que el
+     * comando crea en su handle() ya queda con triggered_by='manual' +
+     * triggered_by_user_id=$actor->id (vía el Context seteado abajo), que es
+     * exactamente "quién disparó esto y cuándo" — duplicarlo como Audit solo
+     * generaba una segunda entrada idéntica en el historial unificado
+     * (history()) sin aportar nada nuevo.
      *
      * @return array{exit_code: int, output: string}
      */
@@ -230,18 +316,13 @@ final class ScheduledCommandService
     {
         $scheduled = ScheduledCommand::findOrFail($id);
 
-        $exitCode = Artisan::call($scheduled->command);
-        $output    = Artisan::output();
-
-        Audit::create([
-            'user_id'        => $actor->id,
-            'actor_type'     => 'user',
-            'auditable_type' => ScheduledCommand::class,
-            'auditable_id'   => $scheduled->id,
-            'event'          => 'run_now',
-            'old_values'     => null,
-            'new_values'     => ['command' => $scheduled->command, 'exit_code' => $exitCode],
-        ]);
+        Context::add('command.triggered_by_user_id', (string) $actor->id);
+        try {
+            $exitCode = Artisan::call($scheduled->command);
+        } finally {
+            Context::forget('command.triggered_by_user_id');
+        }
+        $output = Artisan::output();
 
         // Ejecución manual disparada por un admin fuera del horario programado
         // — visibilidad explícita en /logs sea cual sea el resultado, no solo

@@ -148,7 +148,9 @@ services:
       - "8082:8080"
     volumes:
       - ./app:/var/www/app
+      - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
+      - ./database:/var/www/database
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
@@ -175,7 +177,9 @@ services:
     env_file: .env.dev
     volumes:
       - ./app:/var/www/app
+      - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
+      - ./database:/var/www/database
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
@@ -198,7 +202,9 @@ services:
     env_file: .env.dev
     volumes:
       - ./app:/var/www/app
+      - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
+      - ./database:/var/www/database
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
