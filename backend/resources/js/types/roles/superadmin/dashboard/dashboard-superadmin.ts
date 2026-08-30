@@ -6,12 +6,18 @@ export type { EntityCount }
 // Stats específicos del SuperAdmin
 // --------------------------------------------------------------------------
 
+/**
+ * Claves parciales/opcionales: el backend filtra cada stat por permiso y
+ * por visibilidad configurable (ver DashboardWidgetVisibilityService), así
+ * que un usuario puede recibir solo un subconjunto de estas claves — nunca
+ * asumir que las 5 siempre están presentes.
+ */
 export interface SuperAdminStats {
-    totalUsers:         StatCardData
-    totalAdmins:        StatCardData
-    activeRooms:        StatCardData
-    totalPermissions:   StatCardData
-    pendingKyc:         StatCardData
+    totalUsers?:         StatCardData
+    totalAdmins?:        StatCardData
+    activeRooms?:        StatCardData
+    totalPermissions?:   StatCardData
+    pendingKyc?:         StatCardData
 }
 
 // --------------------------------------------------------------------------
@@ -73,4 +79,6 @@ export interface DashboardSuperAdminPageProps {
     pendingWalletCount?:  number
     /** Período activo (e.g. "Marzo 2026") */
     period?:              string
+    /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
+    allowedQuickLinks?:   string[]
 }

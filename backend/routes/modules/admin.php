@@ -16,6 +16,7 @@ use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
 use App\Http\Controllers\Roles\ModuleController;
 use App\Http\Controllers\Roles\SidebarMenuVisibilityController;
+use App\Http\Controllers\Roles\DashboardWidgetVisibilityController;
 use App\Http\Controllers\Roles\RoleController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 use App\Http\Controllers\Audit\AuditController;
@@ -286,6 +287,17 @@ Route::middleware('auth')->group(function () {
         'fetchList'   => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
         'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges'],
     ], 'sidebar-menu');
+
+    /**
+     * =========================================================
+     * VISIBILIDAD DE WIDGETS DEL DASHBOARD POR ROL (Solo SuperAdmin)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin'], 'dashboard-widgets', DashboardWidgetVisibilityController::class, [
+        'index'       => ['method' => 'get',  'uri' => '',           'action' => 'index'],
+        'fetchList'   => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
+        'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges'],
+    ], 'dashboard-widgets');
 
     /**
      * =========================================================

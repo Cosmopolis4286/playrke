@@ -13,10 +13,16 @@ const DEFAULT_STATS: StatCardData[] = [
 export function useAdminDashboard(props: DashboardAdminPageProps) {
     const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity as ActivityItem[])
 
+    // Orden fijo de presentación cuando la clave está presente — el backend
+    // filtra por permiso/visibilidad y puede omitir cualquier subconjunto,
+    // así que se deriva de las claves realmente recibidas en vez de asumir
+    // que las 4 siempre llegan (ver AdminStats).
+    const STAT_ORDER: (keyof AdminStats)[] = ['totalUsers', 'newUsersThisMonth', 'cardsToday', 'activeRooms']
+
     const statCards = computed<StatCardData[]>(() => {
         if (!props.stats) return DEFAULT_STATS
         const s = props.stats as AdminStats
-        return [s.totalUsers, s.newUsersThisMonth, s.cardsToday, s.activeRooms]
+        return STAT_ORDER.map((key) => s[key]).filter((stat): stat is StatCardData => stat !== undefined)
     })
 
     const entityCounts = computed<EntityCount[]>(() => props.entityCounts ?? [])

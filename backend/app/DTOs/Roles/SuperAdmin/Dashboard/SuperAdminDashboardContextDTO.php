@@ -25,6 +25,8 @@ final class SuperAdminDashboardContextDTO implements ContextDTO
         public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
+        /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
+        public readonly array $allowedQuickLinks,
     ) {}
 
     public function toView(): array
@@ -39,6 +41,7 @@ final class SuperAdminDashboardContextDTO implements ContextDTO
             'salesTrend'         => $this->salesTrend,
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
+            'allowedQuickLinks'  => $this->allowedQuickLinks,
         ];
     }
 }

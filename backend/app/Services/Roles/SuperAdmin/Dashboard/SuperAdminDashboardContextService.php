@@ -12,6 +12,8 @@ use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Treasurer;
 use App\Models\User;
+use App\Services\Dashboard\DashboardWidgetFilter;
+use App\Services\Dashboard\DashboardWidgetVisibilityService;
 use App\Services\Menu\SidebarMenuService;
 use App\Services\Roles\Dashboard\Concerns\BuildsRecentActivity;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
@@ -34,6 +36,7 @@ final class SuperAdminDashboardContextService
 
     public function __construct(
         private readonly SidebarMenuService $sidebarMenu,
+        private readonly DashboardWidgetVisibilityService $widgetVisibility,
     ) {}
 
     public function dashboardContext(): SuperAdminDashboardContextDTO
@@ -42,6 +45,9 @@ final class SuperAdminDashboardContextService
         $now    = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
+        // Los agregados crudos se comparten entre todos los superadmins vía
+        // cache — el filtrado por permiso/visibilidad ocurre DESPUÉS, fuera
+        // del bloque cacheado (mismo criterio que AdminDashboardContextService).
         $cached = Cache::remember('dashboard:superadmin:aggregates', self::CACHE_TTL_SECONDS, function () {
             $activeRooms = BingoRoom::active()->count();
 
@@ -55,17 +61,69 @@ final class SuperAdminDashboardContextService
             ];
         });
 
+        $filter = $this->widgetVisibility->filterFor($user);
+
         return new SuperAdminDashboardContextDTO(
             userName:           $user?->first_name ?? $user?->username ?? 'SuperAdmin',
-            stats:              $cached['stats'],
+            stats:              $this->filterStats($cached['stats'], $filter),
             recentActivity:     $cached['recentActivity'],
             adminActivity:      $cached['adminActivity'],
-            entityCounts:       $cached['entityCounts'],
+            entityCounts:       $this->filterEntityCounts($cached['entityCounts'], $filter),
             systemHealth:       $cached['systemHealth'],
             salesTrend:         $cached['salesTrend'],
             pendingWalletCount: $this->sidebarMenu->pendingWalletMovementsCount(),
             period:             $period,
+            allowedQuickLinks:  $this->allowedQuickLinks($filter),
         );
+    }
+
+    /**
+     * Labels de accesos rápidos que el usuario puede ver — mismo criterio
+     * que AdminDashboardContextService::allowedQuickLinks().
+     *
+     * @return string[]
+     */
+    private function allowedQuickLinks(DashboardWidgetFilter $filter): array
+    {
+        return collect($this->widgetVisibility->getCatalog())
+            ->filter(fn ($w) => $w['dashboard'] === 'superadmin' && $w['type'] === 'quicklink')
+            ->filter(fn ($w) => $filter->isVisible($w['key'], $w['permission']))
+            ->map(fn ($w) => str_replace('superadmin.quicklink.', '', $w['key']))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Claves de $stats coinciden 1:1 con el sufijo de item_key en
+     * DashboardWidgetVisibilityService::CATALOG ('superadmin.stat.{clave}').
+     */
+    private function filterStats(array $stats, DashboardWidgetFilter $filter): array
+    {
+        $permissions = [
+            'totalUsers'       => null,
+            'totalAdmins'      => null,
+            'activeRooms'      => 'games.bingo',
+            'totalPermissions' => 'superadmin.access',
+            'pendingKyc'       => 'kyc.view',
+        ];
+
+        return collect($stats)
+            ->filter(fn ($_, $key) => $filter->isVisible("superadmin.stat.{$key}", $permissions[$key] ?? null))
+            ->all();
+    }
+
+    /**
+     * $entityCounts es una lista indexada — cada entrada trae su propio
+     * 'label', usado como sufijo del item_key ('superadmin.entity.{label}').
+     * Sin permisos adicionales (superadmin ya tiene acceso total), la capa
+     * de visibilidad configurable sigue aplicando igual.
+     */
+    private function filterEntityCounts(array $entityCounts, DashboardWidgetFilter $filter): array
+    {
+        return collect($entityCounts)
+            ->filter(fn ($entity) => $filter->isVisible("superadmin.entity.{$entity['label']}", null))
+            ->values()
+            ->all();
     }
 
     // -------------------------------------------------------------------------

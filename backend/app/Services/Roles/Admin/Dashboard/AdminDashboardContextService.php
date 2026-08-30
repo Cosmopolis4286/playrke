@@ -11,6 +11,8 @@ use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Treasurer;
 use App\Models\User;
+use App\Services\Dashboard\DashboardWidgetFilter;
+use App\Services\Dashboard\DashboardWidgetVisibilityService;
 use App\Services\Menu\SidebarMenuService;
 use App\Services\Roles\Dashboard\Concerns\BuildsRecentActivity;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
@@ -31,6 +33,7 @@ final class AdminDashboardContextService
     public function __construct(
         private readonly SidebarMenuService $sidebarMenu,
         private readonly RkeSummaryService $rkeSummary,
+        private readonly DashboardWidgetVisibilityService $widgetVisibility,
     ) {}
 
     public function dashboardContext(): AdminDashboardContextDTO
@@ -39,6 +42,12 @@ final class AdminDashboardContextService
         $now    = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
+        // Los agregados crudos (conteos, tendencias) SÍ se comparten entre
+        // todos los admins vía cache — son datos objetivos, no dependen de
+        // quién mira. El filtrado por permiso/visibilidad ocurre DESPUÉS,
+        // fuera del bloque cacheado: cachear ya-filtrado "congelaría" el
+        // primer usuario que cargue el dashboard para todos los demás,
+        // aunque tengan permisos distintos.
         $cached = Cache::remember('dashboard:admin:aggregates', self::CACHE_TTL_SECONDS, function () use ($now) {
             return [
                 'stats'          => $this->buildStats($now),
@@ -49,16 +58,79 @@ final class AdminDashboardContextService
             ];
         });
 
+        $filter = $this->widgetVisibility->filterFor($user);
+
         return new AdminDashboardContextDTO(
             userName:           $user?->first_name ?? $user?->username ?? 'Admin',
-            stats:              $cached['stats'],
+            stats:              $this->filterStats($cached['stats'], $filter),
             recentActivity:     $cached['recentActivity'],
-            entityCounts:       $cached['entityCounts'],
+            entityCounts:       $this->filterEntityCounts($cached['entityCounts'], $filter),
             salesTrend:         $cached['salesTrend'],
             rkeTotals:          $cached['rkeTotals'],
             pendingWalletCount: $this->sidebarMenu->pendingWalletMovementsCount(),
             period:             $period,
+            allowedQuickLinks:  $this->allowedQuickLinks($filter),
         );
+    }
+
+    /**
+     * Labels de accesos rápidos que el usuario puede ver — el catálogo de
+     * links en sí (href/icon/description) sigue viviendo en
+     * useDashboardQuickLinks.ts; esto solo dice cuáles mostrar. No se
+     * comparten permisos crudos al frontend (superficie de ataque
+     * innecesaria) — el backend ya resolvió la decisión de autorización.
+     *
+     * @return string[]
+     */
+    private function allowedQuickLinks(DashboardWidgetFilter $filter): array
+    {
+        return collect($this->widgetVisibility->getCatalog())
+            ->filter(fn ($w) => $w['dashboard'] === 'admin' && $w['type'] === 'quicklink')
+            ->filter(fn ($w) => $filter->isVisible($w['key'], $w['permission']))
+            ->map(fn ($w) => str_replace('admin.quicklink.', '', $w['key']))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Claves de $stats coinciden 1:1 con el sufijo de item_key en
+     * DashboardWidgetVisibilityService::CATALOG ('admin.stat.{clave}').
+     */
+    private function filterStats(array $stats, DashboardWidgetFilter $filter): array
+    {
+        $permissions = [
+            'totalUsers'        => null,
+            'newUsersThisMonth' => null,
+            'cardsToday'        => 'games.bingo',
+            'activeRooms'       => 'games.bingo',
+        ];
+
+        return collect($stats)
+            ->filter(fn ($_, $key) => $filter->isVisible("admin.stat.{$key}", $permissions[$key] ?? null))
+            ->all();
+    }
+
+    /**
+     * $entityCounts es una lista indexada (no asociativa) — cada entrada
+     * trae su propio 'label', usado como sufijo del item_key
+     * ('admin.entity.{label}'), igual que ya se usa como countsFrom en
+     * useDashboardQuickLinks.ts.
+     */
+    private function filterEntityCounts(array $entityCounts, DashboardWidgetFilter $filter): array
+    {
+        $permissions = [
+            'Administradores' => null,
+            'Comercios'       => 'commerces.view',
+            'Vendedores'      => 'sellers.view',
+            'Clientes'        => 'customers.view',
+            'Jugadores'       => null,
+            'Tesoreros'       => 'treasury.view',
+        ];
+
+        return collect($entityCounts)
+            ->filter(fn ($entity) => $filter->isVisible("admin.entity.{$entity['label']}", $permissions[$entity['label']] ?? null))
+            ->values()
+            ->all();
     }
 
     // -------------------------------------------------------------------------

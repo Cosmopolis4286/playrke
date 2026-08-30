@@ -23,6 +23,8 @@ final class AdminDashboardContextDTO implements ContextDTO
         public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
+        /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
+        public readonly array $allowedQuickLinks,
     ) {}
 
     public function toView(): array
@@ -36,6 +38,7 @@ final class AdminDashboardContextDTO implements ContextDTO
             'rkeTotals'          => $this->rkeTotals,
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
+            'allowedQuickLinks'  => $this->allowedQuickLinks,
         ];
     }
 }

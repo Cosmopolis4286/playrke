@@ -6,11 +6,17 @@ export type { EntityCount }
 // Stats específicos del Admin
 // --------------------------------------------------------------------------
 
+/**
+ * Claves parciales/opcionales: el backend filtra cada stat por permiso y
+ * por visibilidad configurable (ver DashboardWidgetVisibilityService), así
+ * que un usuario puede recibir solo un subconjunto de estas claves — nunca
+ * asumir que las 4 siempre están presentes.
+ */
 export interface AdminStats {
-    totalUsers:         StatCardData
-    newUsersThisMonth:  StatCardData
-    cardsToday:         StatCardData
-    activeRooms:        StatCardData
+    totalUsers?:         StatCardData
+    newUsersThisMonth?:  StatCardData
+    cardsToday?:         StatCardData
+    activeRooms?:        StatCardData
 }
 
 // --------------------------------------------------------------------------
@@ -53,4 +59,6 @@ export interface DashboardAdminPageProps {
     pendingWalletCount?:  number
     /** Período activo (e.g. "Marzo 2026") */
     period?:              string
+    /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
+    allowedQuickLinks?:   string[]
 }

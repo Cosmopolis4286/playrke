@@ -51,21 +51,38 @@ function resolveLinks(defs: QuickLinkDef[], entityCounts: EntityCount[]): QuickL
  * ambos roles). El conteo real de cada entidad (si `entityCounts` lo trae)
  * reemplaza la descripción genérica, convirtiendo el acceso en un mini-KPI
  * navegable.
+ *
+ * `allowedQuickLinks` (labels) viene resuelto por el backend
+ * (*DashboardContextService::allowedQuickLinks(), filtrado por permiso
+ * Spatie real del usuario + DashboardWidgetVisibility configurable) — no se
+ * repite ese chequeo aquí, solo se usa como whitelist final. Sin esa lista
+ * (undefined, dashboards que aún no la envían), todos los links pasan —
+ * fail-open, mismo criterio que el resto de la app.
  */
 export function useDashboardQuickLinks(
   role: 'admin' | 'superadmin',
   entityCounts: ComputedRef<EntityCount[]> | EntityCount[] = [],
+  allowedQuickLinks?: ComputedRef<string[] | undefined> | string[],
 ) {
   const counts = computed(() => Array.isArray(entityCounts) ? entityCounts : entityCounts.value)
+  const allowed = computed(() => Array.isArray(allowedQuickLinks) ? allowedQuickLinks : allowedQuickLinks?.value)
+
+  function filterAllowed(links: QuickLink[]): QuickLink[] {
+    if (!allowed.value) return links
+    const allowedSet = new Set(allowed.value)
+    return links.filter((link) => allowedSet.has(link.label))
+  }
 
   return computed<QuickLinkGroup[]>(() => {
     const groups: QuickLinkGroup[] = []
 
     if (role === 'superadmin') {
-      groups.push({ key: 'system', title: 'Sistema', links: resolveLinks(SYSTEM_LINKS, counts.value) })
+      const links = filterAllowed(resolveLinks(SYSTEM_LINKS, counts.value))
+      if (links.length > 0) groups.push({ key: 'system', title: 'Sistema', links })
     }
 
-    groups.push({ key: 'entities', title: 'Entidades', links: resolveLinks(ENTITY_LINKS, counts.value) })
+    const entityLinks = filterAllowed(resolveLinks(ENTITY_LINKS, counts.value))
+    if (entityLinks.length > 0) groups.push({ key: 'entities', title: 'Entidades', links: entityLinks })
 
     return groups
   })

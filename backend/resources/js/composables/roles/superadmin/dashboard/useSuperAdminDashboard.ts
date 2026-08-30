@@ -27,10 +27,16 @@ const DEFAULT_HEALTH: SystemHealth = {
 export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {
     const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity as ActivityItem[])
 
+    // Orden fijo de presentación cuando la clave está presente — el backend
+    // filtra por permiso/visibilidad y puede omitir cualquier subconjunto,
+    // así que se deriva de las claves realmente recibidas en vez de asumir
+    // que las 5 siempre llegan (ver SuperAdminStats).
+    const STAT_ORDER: (keyof SuperAdminStats)[] = ['totalUsers', 'totalAdmins', 'activeRooms', 'totalPermissions', 'pendingKyc']
+
     const statCards = computed<StatCardData[]>(() => {
         if (!props.stats) return DEFAULT_STATS
         const s = props.stats as SuperAdminStats
-        return [s.totalUsers, s.totalAdmins, s.activeRooms, s.totalPermissions, s.pendingKyc]
+        return STAT_ORDER.map((key) => s[key]).filter((stat): stat is StatCardData => stat !== undefined)
     })
 
     const entityCounts = computed<EntityCount[]>(() => props.entityCounts ?? [])

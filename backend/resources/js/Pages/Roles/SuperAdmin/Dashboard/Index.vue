@@ -164,7 +164,7 @@
   // Accesos rápidos
   // ==========================================================================
 
-  const quickLinkGroups = useDashboardQuickLinks('superadmin', entityCounts)
+  const quickLinkGroups = useDashboardQuickLinks('superadmin', entityCounts, props.allowedQuickLinks)
 
   // ==========================================================================
   // Salud del sistema — acciones por issue, severidad e indicador de refresco

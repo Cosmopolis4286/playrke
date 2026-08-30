@@ -88,7 +88,7 @@
   // Accesos rápidos
   // ==========================================================================
 
-  const quickLinkGroups = useDashboardQuickLinks('admin', entityCounts)
+  const quickLinkGroups = useDashboardQuickLinks('admin', entityCounts, props.allowedQuickLinks)
 </script>
 
 <template>

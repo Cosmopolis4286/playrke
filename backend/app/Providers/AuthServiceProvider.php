@@ -32,6 +32,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Permission::class                         => \App\Policies\Roles\Admin\PermissionPolicy::class,
         \App\Models\Module::class                             => \App\Policies\Roles\Admin\ModulePolicy::class,
         \App\Models\SidebarMenuVisibility::class               => \App\Policies\Roles\Admin\SidebarMenuVisibilityPolicy::class,
+        \App\Models\DashboardWidgetVisibility::class           => \App\Policies\Roles\Admin\DashboardWidgetVisibilityPolicy::class,
         \App\Models\Role::class                                => \App\Policies\Roles\Admin\RolePolicy::class,
         \App\Models\Roles\Player\External\ExternalPlayer::class => \App\Policies\Roles\Admin\ExternalPlayerPolicy::class,
         \App\Models\User::class                               => \App\Policies\UserPolicy::class,
