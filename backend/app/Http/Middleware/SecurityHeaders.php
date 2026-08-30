@@ -91,14 +91,14 @@ class SecurityHeaders
 
     private function reverbConnectSrc(): string
     {
-        $host = config('broadcasting.connections.reverb.options.host')
-            ?? parse_url(config('app.url'), PHP_URL_HOST)
-            ?? 'localhost';
+        // OJO: REVERB_BROADCAST_HOST (broadcasting.connections.reverb.options.host)
+        // es el host INTERNO que Laravel usa server-side para hablar con
+        // Reverb dentro de la red Docker (ver .env.dev: 'reverb', el nombre
+        // del contenedor) — el navegador nunca lo toca. env('REVERB_HOST')
+        // es el que realmente usa el cliente (resources/js/plugins/echo.ts),
+        // y por tanto el correcto para esta CSP.
+        $host = env('REVERB_HOST') ?? parse_url(config('app.url'), PHP_URL_HOST) ?? 'localhost';
 
-        // Producción sirve Reverb en el subdominio ws.<dominio> (ver
-        // docker-compose.prod.yml, label traefik.http.routers.reverb.rule).
-        $wsHost = app()->environment('production') ? "ws.{$host}" : $host;
-
-        return "wss://{$wsHost} ws://{$wsHost}";
+        return "wss://{$host} ws://{$host}";
     }
 }
