@@ -7,6 +7,7 @@ import ProfileHeader       from '@js/Components/Profile/ProfileHeader.vue'
 import ProfileTabs         from '@js/Components/Profile/ProfileTabs.vue'
 import PersonalInfoTab     from '@js/Components/Profile/PersonalInfoTab.vue'
 import GameStatsTab        from '@js/Components/Profile/GameStatsTab.vue'
+import DailyMissionsTab    from '@js/Components/Profile/DailyMissionsTab.vue'
 import ReferralsTab        from '@js/Components/Profile/ReferralsTab.vue'
 import PreferencesTab      from '@js/Components/Profile/PreferencesTab.vue'
 import SecurityTab         from '@js/Components/Profile/SecurityTab.vue'
@@ -33,10 +34,11 @@ const {
     kycState, sessions, sessionsLoading, errorMsg,
     achievements, achievementsLoading,
     referrals, referralLink, totalReferrals, referralsLoading, referralsLoaded,
+    dailyMissions, dailyMissionsLoading, dailyMissionsLoaded,
     selectedCountryName, isBirthDateEditable,
     toggleEdit, cancelEdit, saveProfile, savePreferences,
     onAvatarUpdated, onPasswordChanged, onKycUpdated,
-    loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals,
+    loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals, loadDailyMissions,
     formatDate, formatCurrency, formatUnixDate,
 } = useProfile(props.user, props.preferences, props.countries, props.kyc)
 
@@ -69,6 +71,7 @@ watch(activeTab, (tab) => {
     if (tab === 'security' && !sessions.value.length) loadSessions()
     if (tab === 'stats' && !achievements.value.length) loadAchievements()
     if (tab === 'referrals' && !referralsLoaded.value) loadReferrals()
+    if (tab === 'missions' && !dailyMissionsLoaded.value) loadDailyMissions()
 })
 onMounted(() => {
     if (props.tos.needs_acceptance) tosModalOpen.value = true
@@ -123,6 +126,13 @@ export default { name: 'ProfileIndex' }
               :stats="stats"
               :achievements="achievements"
               :achievements-loading="achievementsLoading"
+            />
+
+            <DailyMissionsTab
+              v-else-if="activeTab === 'missions'"
+              key="missions"
+              :missions="dailyMissions"
+              :loading="dailyMissionsLoading"
             />
 
             <ReferralsTab

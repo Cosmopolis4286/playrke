@@ -3,6 +3,7 @@
 use App\Http\Controllers\Users\{ProfileController, ReferralController, UserSearchController};
 use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\Api\AchievementController;
+use App\Http\Controllers\Api\DailyMissionController;
 use Illuminate\Support\Facades\Route;
 
 // NOTA: el desbloqueo automático de logros ocurre normalmente desde
@@ -44,6 +45,9 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     Route::post('/achievements/mark-all-seen',[AchievementController::class, 'markAllAsSeen'])     ->name('profile.api.achievements.mark-all-seen');
     Route::get('/achievements/stats',     [AchievementController::class, 'getStats'])              ->name('profile.api.achievements.stats');
     Route::post('/achievements/check',    [AchievementController::class, 'checkAndUnlock'])        ->name('profile.api.achievements.check')->middleware('throttle:profile-achievements-check');
+
+    // ── Misiones diarias ───────────────────────────────────────────────────
+    Route::get('/daily-missions',         [DailyMissionController::class, 'today'])                ->name('profile.api.daily-missions');
 });
 
 // ── Referidos ──────────────────────────────────────────────────────────────

@@ -73,6 +73,16 @@ export interface ProfileReferral {
     joined_at: string | null
 }
 
+export interface ProfileDailyMission {
+    code: string
+    name: string
+    description: string | null
+    progress: number
+    target: number
+    xp_reward: number
+    completed: boolean
+}
+
 // ─── Sync con navbar Blade ──────────────────────────────────────────────────────
 // El navbar vive fuera del árbol de Vue (Blade); se notifica vía evento custom
 // en vez de que este composable conozca su estructura DOM directamente.
@@ -91,7 +101,7 @@ export function useProfile(
     // ── State ──────────────────────────────────────────────────────────────
     const saving        = ref(false)
     const editMode      = ref(false)
-    const activeTab     = ref<'personal' | 'stats' | 'referrals' | 'preferences' | 'security'>('personal')
+    const activeTab     = ref<'personal' | 'stats' | 'missions' | 'referrals' | 'preferences' | 'security'>('personal')
     const showPassword  = ref(false)
     const showAvatar    = ref(false)
     const showKycModal  = ref(false)
@@ -106,6 +116,9 @@ export function useProfile(
     const totalReferrals   = ref(0)
     const referralsLoading = ref(false)
     const referralsLoaded  = ref(false)
+    const dailyMissions       = ref<ProfileDailyMission[]>([])
+    const dailyMissionsLoading = ref(false)
+    const dailyMissionsLoaded  = ref(false)
     const errorMsg      = ref<string | null>(null)
     const savingPrefsKey = ref<string | null>(null)
 
@@ -277,6 +290,22 @@ export function useProfile(
         }
     }
 
+    // ── Misiones diarias ───────────────────────────────────────────────────
+    async function loadDailyMissions() {
+        dailyMissionsLoading.value = true
+        try {
+            const { data } = await backendClient.get('/profile/daily-missions')
+            if (data.success) {
+                dailyMissions.value = data.data
+                dailyMissionsLoaded.value = true
+            }
+        } catch {
+            // silencioso
+        } finally {
+            dailyMissionsLoading.value = false
+        }
+    }
+
     // ── Sessions ───────────────────────────────────────────────────────────
     async function loadSessions() {
         sessionsLoading.value = true
@@ -345,11 +374,12 @@ export function useProfile(
         profileForm, prefsForm, kycState, sessions, sessionsLoading, errorMsg,
         achievements, achievementsLoading,
         referrals, referralLink, totalReferrals, referralsLoading, referralsLoaded,
+        dailyMissions, dailyMissionsLoading, dailyMissionsLoaded,
         saving, savingPrefsKey,
         selectedCountryName, isBirthDateEditable, kycLevelLabel,
         toggleEdit, cancelEdit, saveProfile, savePreferences,
         onAvatarUpdated, onPasswordChanged, onKycUpdated,
-        loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals,
+        loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals, loadDailyMissions,
         formatDate, formatCurrency, formatUnixDate,
     }
 }

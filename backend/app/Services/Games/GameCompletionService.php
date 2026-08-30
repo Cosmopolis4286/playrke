@@ -27,6 +27,7 @@ final class GameCompletionService
     public function __construct(
         private readonly UserLevelService $userLevelService,
         private readonly AchievementService $achievementService,
+        private readonly DailyMissionService $dailyMissionService,
     ) {}
 
     /**
@@ -76,6 +77,16 @@ final class GameCompletionService
             // evaluación de logros falle no debe revertir eso ni tumbar la
             // respuesta del juego.
             Log::warning('GameCompletionService: fallo al evaluar logros.', [
+                'user_id' => $user->id,
+                'game'    => $game,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $this->dailyMissionService->recordParticipation($user, $won);
+        } catch (\Throwable $e) {
+            Log::warning('GameCompletionService: fallo al registrar misión diaria.', [
                 'user_id' => $user->id,
                 'game'    => $game,
                 'error'   => $e->getMessage(),
