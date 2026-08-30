@@ -22,13 +22,16 @@ export function useForgotPassword() {
     try {
       await getCsrfCookie()
       await backendClient.post('/forgot-password', { email: form.email })
-      toast.success('Te enviamos el link de recuperación. Revisa tu bandeja de entrada.')
+      // Mensaje siempre genérico, sin importar si el email existe — el
+      // backend deliberadamente no distingue (evita enumeración de cuentas
+      // registradas), así que el frontend tampoco debe hacerlo.
+      toast.success('Si el correo está registrado, te enviamos un link de recuperación.')
       form.email = ''
     } catch (error: any) {
       const status = error?.response?.status
 
       if (status === 422) {
-        toast.error('No encontramos una cuenta con ese correo.')
+        toast.error('Ingresa un correo electrónico válido.')
       } else if (status === 429) {
         toast.warning('Demasiadas solicitudes. Espera unos minutos.')
       } else {

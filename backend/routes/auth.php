@@ -20,23 +20,33 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('guest')->group(function () {
-    // Registro de usuario
+    // Registro de usuario. throttle:5,1 en el POST — antes sin límite: un
+    // POST /register sin protección permite creación masiva de cuentas y
+    // enumeración de emails/usernames ya en uso vía el mensaje de validación
+    // "unique" (mismo criterio que login, que ya tenía RateLimiter propio).
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register')->defaults('inertiaOnly', true);
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:5,1');
 
-    // Login de usuario
+    // Login de usuario. throttle:20,1 (más alto que register/reset — un
+    // usuario legítimo puede reintentar varias veces por typo de contraseña)
+    // como defensa en profundidad además del RateLimiter propio de
+    // LoginRequest::authenticate() (5 intentos por login+IP): ese limiter
+    // no frena un ataque de credential-stuffing que prueba muchos "login"
+    // distintos desde la misma IP, porque su clave incluye el login.
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login')->defaults('inertiaOnly', true);
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:20,1');
 
-    // Olvidé mi contraseña (formulario para solicitar reset link)
+    // Olvidé mi contraseña. throttle:5,1 — antes sin límite: permitía
+    // enumerar emails registrados (respuesta distinta según exista o no) y
+    // bombardear de correos de reset a un email ajeno.
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request')->defaults('inertiaOnly', true);
-    // Enviar email con link de recuperación
-    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email')->middleware('throttle:5,1');
 
     // Reset de contraseña (pantalla que recibe el token del correo)
     Route::get('resetPassword/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
-    // Guardar nueva contraseña en base de datos
-    Route::post('resetPassword', [NewPasswordController::class, 'store'])->name('password.store');
+    // Guardar nueva contraseña. throttle:5,1 — limita fuerza bruta contra el
+    // token de un solo uso enviado por correo.
+    Route::post('resetPassword', [NewPasswordController::class, 'store'])->name('password.store')->middleware('throttle:5,1');
 });
 
 /*
