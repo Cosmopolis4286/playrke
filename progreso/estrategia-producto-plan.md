@@ -321,9 +321,36 @@ sintéticos — mismo bloqueo que Fases 2/3/6 (FK real a `bingo_rooms`, vacía e
 validada por revisión de código, reutiliza el patrón ya en producción de
 `SellerDashboardContextService::buildStats()`.
 
-### Fase 8 — Puente XP Bingo → Trivia 🔴
-1. Incentivo de XP al primer intento de Trivia tras haber jugado Bingo — banner o
-   notificación, sin cambiar reglas de ningún juego.
+### Fase 8 — Puente XP Bingo → Trivia 🔴 ✅ Hecho
+Trivia era hasta ahora un producto aislado sin ningún incentivo que empujara a un
+jugador que descubrió la plataforma por Bingo a probarlo.
+
+**Implementado**:
+1. `CrossGameBridgeService` (`app/Services/Games/`) — `qualifiesForFirstTriviaBonus()`
+   evalúa "el jugador nunca jugó Trivia Y ya jugó Bingo al menos una vez" contra
+   `game_participations` (misma tabla que ya alimenta logros y misiones diarias, sin
+   tabla nueva). `awardFirstTriviaBonus()` otorga 150 XP
+   (`UserLevelService::calculateXpReward('first_trivia_after_bingo')`, valor nuevo en
+   el catálogo existente).
+2. `GameCompletionService::reportParticipation()` evalúa el flag `$qualifiesForBridgeBonus`
+   **antes** de la transacción que inserta la `GameParticipation` de la partida en
+   curso — de lo contrario "primera vez en Trivia" siempre encontraría al menos 1 fila
+   (la que se está a punto de insertar) y el bonus nunca se otorgaría. El otorgamiento
+   ocurre después, envuelto en try/catch que solo loguea (mismo patrón ya usado para
+   logros y misiones diarias en este servicio — un fallo aquí no debe revertir el XP
+   normal de la partida ni la respuesta del juego).
+3. Banner visible en el dashboard del jugador (no notificación push — consistente con
+   la decisión ya tomada en la extensión de Fase 6 de preferir indicadores discretos
+   sobre notificaciones intrusivas para este tipo de incentivo). `PlayerDashboardContextService`
+   expone `showCrossGameBridge` (mismo criterio exacto que el service de XP, evaluado
+   server-side para no duplicar la condición en el frontend); dismissable con
+   `localStorage` para no repetirlo tras cerrarlo.
+
+**Validado end-to-end vía `artisan tinker`**: secuencia sin partidas → Bingo → Trivia
+confirma que `qualifiesForFirstTriviaBonus()` y `buildShowCrossGameBridge()` devuelven
+`false → true → false` exactamente como se espera, para un usuario real de la base de
+datos (no sintético, evitando el bloqueo de FK de fases anteriores). `php -l` y
+`vue-tsc --noEmit` limpios.
 
 ### Fase 9 — Simulación económica de Cargas 🟡
 Fuera del repo de producción (hoja de cálculo o script standalone, no Laravel).
@@ -339,9 +366,54 @@ Fuera del repo de producción (hoja de cálculo o script standalone, no Laravel)
 4. No bloquea ninguna fase anterior — puede correr en paralelo desde que empiece
    Fase 5.
 
-### Fase 10 — Comisión progresiva de vendedores 🟢
-Bloqueada explícitamente hasta calibrar con datos reales del ranking (Fase 7) — construirla
-antes es fijar un incentivo económico a ciegas.
+### Fase 10 — Comisión progresiva de vendedores 🟢 ✅ Hecho (umbrales a calibrar)
+Bloqueada explícitamente en el plan original hasta calibrar con datos reales del
+ranking (Fase 7) — construirla antes es fijar un incentivo económico a ciegas. El
+usuario, consultado explícitamente sobre este bloqueo, decidió: **construir el
+mecanismo ahora, con umbrales de ejemplo marcados como "a calibrar"**, sin bloquear
+el código ni esperar más tiempo — la calibración real queda pendiente de datos, no
+la implementación.
+
+**Implementado**:
+1. `config/sellers.php` (nuevo) — `progressive_commission_enabled` (default `false`,
+   vía `SELLER_PROGRESSIVE_COMMISSION_ENABLED`) y `progressive_commission_tiers`
+   (array de tramos `min_volume`/`bonus_percent`, los 4 valores de ejemplo
+   explícitamente comentados `// a calibrar` — no salen de ningún dato real).
+2. `SellerCommissionTierService` (`app/Services/Roles/Seller/`) —
+   `bonusPercentForVolume()` resuelve el bonus porcentual acumulativo por tramo;
+   `monthlyVolumeForSeller()` reutiliza el mismo cálculo de `sale_amount` mensual que
+   ya usa `SellerRankingService` (sin pasar por su caché de 90s, porque este camino
+   se ejecuta en cada venta); `tierProgress()` da tramo actual + siguiente +
+   "cuánto falta", para mostrar visibilidad sin endpoint nuevo.
+3. `CommissionCalculationService::calculateSellerCommission()` (Bingo, punto real
+   donde se calcula el pago de cada venta) — el bonus se **suma** a la tasa base ya
+   resuelta (`SellerRoomLimits` por sala o `Seller.commission` general), nunca la
+   reemplaza. Mientras el flag esté en `false` (default), `progressiveBonusPercent()`
+   devuelve `0.0` sin tocar `Seller`/`SellerRoomLimits` — cero cambio de
+   comportamiento en pagos reales hasta activarlo a propósito.
+4. `SellerRankingService::getSellerStanding()` expone `commission_tier` (tramo
+   actual/siguiente) solo cuando el flag está activo — sin filas nuevas en el
+   ranking general, solo en la vista individual del propio vendedor.
+
+**Decisión de diseño deliberada**: el bonus es *aditivo* sobre la comisión existente,
+no un reemplazo de tasa. Esto evita que activar el flag el día de mañana reduzca la
+comisión de ningún vendedor por accidente — en el peor caso (volumen bajo el primer
+tramo), el bonus es `0` y el resultado es idéntico al actual.
+
+**Validado end-to-end vía `artisan tinker`** contra un vendedor real de la base de
+datos: (a) con el flag apagado, `calculateSellerCommission()` da exactamente el mismo
+resultado que antes de esta fase (`100 × 3% = 3`, sin cambio); (b) los 4 tramos de
+ejemplo devuelven el bonus acumulativo correcto en cada borde (`0/250→0`, `500/1000→1`,
+`1500/2999→2.5`, `3000/10000→4`); (c) con el flag encendido y un tramo forzado del
+`2.5%`, el resultado final es la suma correcta (`1000 × (3%+2.5%) = 55`).
+**Hallazgo colateral (fuera de alcance de esta fase, corregido después)**: `SellerRoomLimits::getGameRoomValueBySeller()`
+tenía un `TypeError` preexistente si se le pasaba `$roomId = null` (el parámetro no era
+nullable pero `CommissionCalculationService` puede recibir `null`) — silenciado por el
+`try/catch` genérico del método, devolviendo comisión `0` en producción para ventas sin
+sala asociada. Corregido: `$roomId` ahora es `?string` y el método retorna `null`
+directamente sin consultar `sellers_room_limits` (columna `room_id` NOT NULL en esa
+tabla), cayendo al fallback de `Seller.commission` general — comportamiento ya previsto
+por el `??` en `calculateSellerCommission()`.
 
 ### Fase 11 — Prototipo de Cargas con moneda ficticia 🟢
 Bloqueada hasta validar la simulación (Fase 9). MVP: 1 Transportista + N Cazadores +
@@ -375,9 +447,9 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
 | Fase 5 — Funnel externo→registrado | 🔴 | ✅ Hecho | Auto-vinculación por teléfono + XP; corregido bug crítico de registro/reset roto en el camino |
 | Fase 6 — Misiones simples | 🔴 | ✅ Hecho | daily_missions/user_daily_mission_progress nuevo (Achievement no reutilizable) |
 | Fase 7 — Ranking de vendedores | 🔴 | ✅ Hecho | SellerRankingService; visible en dashboard SuperAdmin y en el propio dashboard del vendedor |
-| Fase 8 — Puente XP Bingo→Trivia | 🔴 | Pendiente | |
+| Fase 8 — Puente XP Bingo→Trivia | 🔴 | ✅ Hecho | CrossGameBridgeService + banner dismissable en dashboard del jugador; 150 XP en primer intento de Trivia tras Bingo |
 | Fase 9 — Simulación económica Cargas | 🟡 | Pendiente | En paralelo, no bloquea |
-| Fase 10 — Comisión progresiva vendedores | 🟢 | Bloqueada | Depende de Fase 7 |
+| Fase 10 — Comisión progresiva vendedores | 🟢 | ✅ Hecho (umbrales a calibrar) | Desbloqueada por decisión explícita del usuario: mecanismo construido con tramos placeholder documentados como no calibrados |
 | Fase 11 — Prototipo Cargas | 🟢 | Bloqueada | Depende de Fase 9 |
 | Fase 12 — Roles avanzados Cargas | 🟢 | Bloqueada | Depende de Fase 11 |
 
