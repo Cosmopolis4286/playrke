@@ -66,7 +66,7 @@ interface Props {
    * ExternalPlayerLinkService::resolveGameUrl(). Cambia el prefijo de API
    * usado por los composables (apiBase) y desactiva WS/HTTP que requieren
    * un userId real. */
-  externalPlayer?: { link: string; first_name: string | null; last_name: string | null } | null
+  externalPlayer?: { link: string; first_name: string | null; last_name: string | null; phone: string | null; country_id: string | null } | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -499,6 +499,12 @@ onUnmounted(() => {
       <div v-if="externalPlayer" class="ig-external-player-banner">
         <i class="fas fa-user-check" aria-hidden="true"></i>
         <span>Hola{{ externalPlayer.first_name ? `, ${externalPlayer.first_name}` : '' }} — estás viendo tus cartones como invitado.</span>
+        <a
+          :href="`/register?phone=${encodeURIComponent(externalPlayer.phone ?? '')}&country=${encodeURIComponent(externalPlayer.country_id ?? '')}`"
+          class="ig-external-player-banner__cta"
+        >
+          Regístrate y no pierdas tu premio
+        </a>
       </div>
 
       <GameHeader
@@ -671,6 +677,7 @@ onUnmounted(() => {
 .ig-external-player-banner {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.6rem 0.9rem;
   border-radius: 10px;
@@ -680,6 +687,18 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 .ig-external-player-banner i { opacity: 0.85; }
+.ig-external-player-banner__cta {
+  margin-left: auto;
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ig-external-player-banner__cta:hover { opacity: 0.9; }
 </style>
 
 <!-- ig-fade es usado por DrawnBoard y NearWinBanner vía <Transition>. Debe ser global. -->

@@ -66,6 +66,12 @@ final class ExternalPlayerGameController extends Controller
             'link'       => $player->link,
             'first_name' => $player->first_name,
             'last_name'  => $player->last_name,
+            // Usados solo para precargar el formulario de registro (CTA del
+            // banner de invitado) — permite que RegisteredUserController::
+            // linkExternalPlayerHistory() encuentre coincidencia exacta al
+            // registrarse. No se usan para nada más en esta pantalla.
+            'phone'      => $player->phone,
+            'country_id' => (string) $player->country_id,
         ];
 
         return Inertia::render('Games/Bingo/Game/Index', $response);

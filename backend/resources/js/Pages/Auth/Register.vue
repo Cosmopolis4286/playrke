@@ -9,7 +9,18 @@
   interface Country { id: number; name: string }
   const props = defineProps<{ countries: Country[] }>()
 
-  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } = useRegisterForm()
+  // Precarga de teléfono/país cuando se llega desde el CTA de "regístrate"
+  // del banner de jugador externo (ver Pages/Games/Bingo/Game/Index.vue) —
+  // permite que el registro se auto-vincule al historial de ExternalPlayer
+  // (ver RegisteredUserController::linkExternalPlayerHistory()).
+  const initialParams = new URLSearchParams(window.location.search)
+  const prefillPhone = initialParams.get('phone') ?? ''
+  const prefillCountry = initialParams.get('country') ?? ''
+
+  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } = useRegisterForm({
+    phone: prefillPhone,
+    country: prefillCountry,
+  })
   const { showPassword, togglePassword } = usePasswordToggle()
 
   const registerSlides: CarouselSlide[] = [
