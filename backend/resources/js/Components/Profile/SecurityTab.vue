@@ -199,7 +199,7 @@
           </div>
           <div class="sec-info-row">
             <dt>Último acceso</dt>
-            <dd class="text-sm text-nowrap last-access-value">{{ formatDate(user.last_active, true) }}</dd>
+            <dd class="text-sm last-access-value">{{ lastActiveCompact }}</dd>
           </div>
         </dl>
       </div>
@@ -249,6 +249,14 @@ defineEmits<{
 }>()
 
 const otherSessions = computed(() => props.sessions.filter(s => !s.is_current))
+
+const lastActiveCompact = computed(() => {
+    if (!props.user.last_active) return 'No disponible'
+    return new Date(props.user.last_active).toLocaleDateString('es-VE', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+    }).replace(/\.?,/, '')
+})
 
 const kycIcon = computed(() => ({
     VERIFIED: 'fas fa-shield-check',
@@ -350,9 +358,8 @@ function downloadData() {
 .sec-info-row  { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--ds-border); }
 .sec-info-row:last-child { border-bottom: none; }
 .sec-info-row dt { font-size: 0.66rem; color: var(--ds-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
-.sec-info-row dd { margin: 0; font-size: 0.82rem; color: var(--ds-text); }
+.sec-info-row dd { margin: 0; font-size: 0.82rem; color: var(--ds-text); overflow-wrap: break-word; }
 .text-sm { font-size: 0.78rem; }
-.text-nowrap { white-space: nowrap; }
 .last-access-value { font-size: 0.72rem; }
 
 .status-badge  { display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
