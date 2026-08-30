@@ -147,15 +147,53 @@ probar con pagos sintéticos completos — `bingo_card_payments.card_lot_id`/`ro
 son `NOT NULL` con FK real, y no hay salas de Bingo en la BD de dev (mismo bloqueo ya
 documentado en Fase 2) — validado por revisión de código en su lugar.
 
-### Fase 4 — Lobby / Opportunity Feed unificado 🔴
-Bingo y Trivia tienen lobbies separados (`Games/Bingo/Lobby/Index.vue`,
-`Games/Trivia/Lobby.vue`). No existe ninguna vista que muestre ambos como
-oportunidades comparables.
+### Fase 4 — Lobby / Opportunity Feed unificado 🔴 ✅ Hecho
+Bingo y Trivia tienen lobbies separados (`Games/Bingo/Room/GameRooms.vue` es el
+listado real de salas, no `Games/Bingo/Lobby/Index.vue` que es la pantalla de UNA
+sala; `Games/Trivia/Lobby.vue`). No existía ninguna vista que muestre ambos como
+oportunidades comparables, ni ningún componente de tarjeta compartido entre los dos
+juegos (confirmado por investigación: implementaciones visuales completamente
+distintas, sin nada reutilizable a nivel de componente — solo a nivel de datos).
 
-1. Vista nueva que liste sesiones/salas activas de ambos juegos con entrada, premio y
-   tiempo de inicio — sin tocar la lógica de ninguno de los dos juegos.
-2. Exponer también el perfil global (XP/nivel) de forma visible en ambos lobbies
-   (dato que ya existe, solo falta visibilidad).
+**Implementado**:
+1. `OpportunityFeedService` (`app/Services/Games/`) — combina ambos juegos sin tocar
+   su lógica:
+   - Bingo: reutiliza `BingoRoomContextService::context('game-rooms', $userId)`, el
+     mismo contexto que ya usa `GameRooms.vue` (filtrado por rol ya resuelto ahí).
+   - Trivia: reutiliza `TriviaRoom::scopeJoinable()` — un scope que **ya existía en
+     el modelo pero ningún controlador lo usaba** (`TriviaGameController::lobby()`
+     construye su propia query aparte). Resuelve símbolo de moneda con una query
+     separada a `Currency` (MySQL) porque `TriviaRoom` vive en la conexión
+     `pgsql_trivia` — no se puede hacer una relación Eloquent cross-connection.
+   - Es una vista de **descubrimiento**, no de compra: no resuelve precio de cartón
+     por jugador/moneda (lógica más compleja, ya resuelta por la pantalla de sala al
+     entrar) — solo expone lo que ya está disponible sin cálculo adicional.
+2. `OpportunityFeedController` + rutas `GET /opportunities` (Inertia) y
+   `GET /opportunities/fetch` (JSON, para refrescar sin recargar).
+3. Frontend nuevo: `Pages/Games/Opportunities/Index.vue`,
+   `Components/games/Opportunities/OpportunityCard.vue` (tarjeta unificada nueva,
+   normaliza el shape de datos de ambos juegos), `useOpportunityFeed.ts`,
+   `types/games/opportunity.ts`. Acceso rápido nuevo agregado al dashboard del
+   jugador (`DashboardQuickLinks`, primero de la lista).
+2. No se tocó el "perfil global visible en ambos lobbies" (punto 2 original) — quedó
+   fuera de esta implementación, es una mejora menor sobre los lobbies existentes en
+   sí, no parte del feed nuevo.
+
+**Incidente durante la implementación (reportado de inmediato al usuario)**: al
+limpiar una carpeta creada con casing incorrecto (`Components/Games`, con G
+mayúscula, duplicando la carpeta real `Components/games`), un `rm -rf` sobre esa
+ruta borró la carpeta real completa en Windows (filesystem case-insensitive — ambas
+rutas apuntan al mismo directorio físico), eliminando 117 componentes reales de
+Bingo/Trivia. Detectado de inmediato por errores de `vue-tsc --noEmit`. Recuperado
+sin pérdida de datos con `git checkout -- backend/resources/js/Components/games/`
+(todo estaba trackeado); el único archivo nuevo perdido (`OpportunityCard.vue`, no
+trackeado aún) se recreó desde cero. Verificado: 117 archivos `.vue` de vuelta,
+`git status` sin diferencias, typecheck limpio.
+
+**Validado**: `vue-tsc --noEmit` sin errores en todo el frontend; rutas confirmadas
+con `route:list`; `OpportunityFeedService::getFeed()` probado end-to-end vía
+`artisan tinker` con un usuario real (`player1`) — devuelve `[]` correctamente
+(confirmado que no hay salas de Bingo ni Trivia en la BD de dev, no es un bug).
 
 ### Fase 5 — Instrumentar funnel jugador externo → registrado 🔴
 El flujo ya existe (`ExternalPlayer` → link temporal → `convertToUser()`). Falta
@@ -230,7 +268,7 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
 | Fase 1 — Referidos | 🔴 | ✅ Hecho | Controller reescrito, ruta rota eliminada, XP conectado, tab de perfil nuevo |
 | Fase 2 — Dashboard económico | 🔴 | ✅ Hecho | EconomySummaryService + vista SuperAdmin, cross-juego/moneda/comercializadora |
 | Fase 3 — Jugadores activos/recurrentes | 🔴 | ✅ Hecho | PlayerActivitySummaryService; corregido a usar bingo_card_payments, no bingo_creator_sales |
-| Fase 4 — Lobby/Opportunity Feed | 🔴 | Pendiente | |
+| Fase 4 — Lobby/Opportunity Feed | 🔴 | ✅ Hecho | Página nueva /opportunities, OpportunityFeedService combina Bingo+Trivia |
 | Fase 5 — Funnel externo→registrado | 🔴 | Pendiente | Depende de Fase 2 |
 | Fase 6 — Misiones simples | 🔴 | Pendiente | |
 | Fase 7 — Ranking de vendedores | 🔴 | Pendiente | Depende de Fase 2 |
@@ -277,3 +315,13 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
   sala) — se corrigió a `bingo_card_payments`, que sí tiene la identidad del
   comprador por pago. `PlayerActivitySummaryService` nuevo, sección nueva en el
   dashboard SuperAdmin.
+
+- **2026-08-24**: Fase 4 (Lobby/Opportunity Feed unificado) implementada y validada.
+  Ver detalle completo en la sección de la fase arriba. Reutiliza
+  `BingoRoomContextService` (Bingo) y activa `TriviaRoom::scopeJoinable()` (Trivia —
+  existía sin usar) sin tocar la lógica de ningún juego. Página nueva `/opportunities`
+  con tarjeta unificada nueva (no había ninguna compartida entre los dos juegos).
+  **Incidente reportado y resuelto en el momento**: un `rm -rf` sobre una carpeta con
+  casing incorrecto borró por accidente la carpeta real de componentes de Bingo/Trivia
+  (Windows es case-insensitive) — recuperado sin pérdida vía `git checkout`, ver
+  detalle completo en la sección de la fase.
