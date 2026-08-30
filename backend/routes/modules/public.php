@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\Api\UserLevelController;
+use App\Http\Controllers\Platform\BingoCardVerifyController;
 use App\Http\Controllers\Platform\WinEventController;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,11 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 Route::get('/', [PublicController::class, 'root'])->name('root')->defaults('inertiaOnly', true);
 Route::get('getInfo/{page}', [PublicController::class, 'info'])->name('info');
+
+/**
+ * Página pública "Verificar mi cartón" — sin sesión, como un ticket físico.
+ */
+Route::get('/verify-card', [PublicController::class, 'verifyCard'])->name('verify-card');
 
 /**
  * Health check para monitoreo externo (uptime monitors, load balancers).
@@ -64,6 +70,11 @@ Route::prefix('api')->group(function () {
 
     // Feed de ganancias en vivo (seed inicial para el ticker, cualquier juego/premio)
     Route::get('/win-events/recent', [WinEventController::class, 'recent'])->name('api.win-events.recent');
+
+    // Verificación pública de un cartón de Bingo por serial + últimos 4 del teléfono
+    Route::post('/bingo/verify-card', [BingoCardVerifyController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('api.bingo.verify-card');
 });
 
 // API externa para integraciones (POS físico, proveedores externos) — requiere token con scope 'win-events.report'

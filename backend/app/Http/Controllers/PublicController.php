@@ -35,6 +35,15 @@ class PublicController extends Controller
     }
 
     /**
+     * Página pública "Verificar mi cartón" — buscador por serial + teléfono,
+     * sin sesión (ver App\Http\Controllers\Platform\BingoCardVerifyController).
+     */
+    public function verifyCard(): Response
+    {
+        return Inertia::render('Public/VerifyCard');
+    }
+
+    /**
      * Páginas de información estática (terms, about, privacy)
      */
     public function info(string $page): Response
