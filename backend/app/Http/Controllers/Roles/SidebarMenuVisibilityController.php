@@ -56,7 +56,7 @@ final class SidebarMenuVisibilityController extends Controller
      */
     public function saveChanges(Request $request): JsonResponse
     {
-        $this->authorize('update', SidebarMenuVisibility::class);
+        $this->authorize('manage', SidebarMenuVisibility::class);
 
         $validated = $request->validate([
             'changes'                 => 'required|array',

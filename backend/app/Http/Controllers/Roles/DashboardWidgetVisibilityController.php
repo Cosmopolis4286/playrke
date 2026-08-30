@@ -48,7 +48,7 @@ final class DashboardWidgetVisibilityController extends Controller
 
     public function saveChanges(Request $request): JsonResponse
     {
-        $this->authorize('update', DashboardWidgetVisibility::class);
+        $this->authorize('manage', DashboardWidgetVisibility::class);
 
         $validated = $request->validate([
             'changes'                 => 'required|array',
