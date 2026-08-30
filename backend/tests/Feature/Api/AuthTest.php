@@ -12,8 +12,11 @@ use Tests\TestCase;
 /**
  * Cobertura del flujo real de autenticación (routes/auth.php), reescrita
  * tras confirmar que /api/auth/* (routes/api.php) nunca se activó — esa
- * capa era para un frontend Nuxt que no está en uso. El registro real es
- * un flujo Inertia (redirect), login/logout devuelven JSON.
+ * capa era para un frontend Nuxt que no está en uso. Registro, login y
+ * logout devuelven JSON (el formulario real hace POST por axios, ver
+ * RegisteredUserController::store()) — errores de validación siguen
+ * viajando por sesión/withErrors() porque estos tests no envían
+ * Accept: application/json, igual que el resto de peticiones de test.
  */
 class AuthTest extends TestCase
 {
@@ -62,7 +65,8 @@ class AuthTest extends TestCase
             'terms' => true,
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('users', [
             'username' => 'testuser',

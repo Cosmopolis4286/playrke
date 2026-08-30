@@ -14,8 +14,8 @@ use Tests\TestCase;
 /**
  * Cobertura de RegisteredUserController::store() enfocada en los datos
  * persistidos (Tests\Feature\Api\AuthTest ya cubre el flujo HTTP general:
- * redirect, validación, email duplicado) — en particular los dos bugs
- * corregidos ahí: country_id (antes escribía a la columna inexistente
+ * respuesta JSON, validación, email duplicado) — en particular los dos
+ * bugs corregidos ahí: country_id (antes escribía a la columna inexistente
  * 'country') y assignRole('player') (antes faltaba por completo).
  */
 class RegistrationTest extends TestCase
