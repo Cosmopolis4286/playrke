@@ -63,4 +63,6 @@ export interface DashboardPlayerPageProps {
   kycStatus?: KycStatus | null
   /** Período activo (e.g. "Marzo 2026") */
   period?: string
+  /** true si el jugador ya jugó Bingo pero nunca Trivia — dispara el banner de puente cross-game */
+  showCrossGameBridge?: boolean
 }

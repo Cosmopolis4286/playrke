@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Games\Trivia\TriviaParticipant;
+use App\Models\GameParticipation;
 use App\Models\KycDocument;
 use App\Models\Wallet;
 use Carbon\Carbon;
@@ -30,7 +31,30 @@ final class PlayerDashboardContextService
             triviaActivity: $this->buildTriviaActivity($userId),
             kycStatus:      $this->buildKycStatus($userId),
             period:         $period,
+            showCrossGameBridge: $this->buildShowCrossGameBridge($userId),
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Puente cross-game Bingo → Trivia (Fase 8) — misma condición que
+    // CrossGameBridgeService::qualifiesForFirstTriviaBonus(), pero evaluada
+    // fuera del flujo de otorgamiento de XP, solo para decidir si se muestra
+    // el banner de invitación en el dashboard.
+    // -------------------------------------------------------------------------
+
+    private function buildShowCrossGameBridge(string $userId): bool
+    {
+        $alreadyPlayedTrivia = GameParticipation::where('user_id', $userId)
+            ->where('game', GameParticipation::GAME_TRIVIA)
+            ->exists();
+
+        if ($alreadyPlayedTrivia) {
+            return false;
+        }
+
+        return GameParticipation::where('user_id', $userId)
+            ->where('game', GameParticipation::GAME_BINGO)
+            ->exists();
     }
 
     // -------------------------------------------------------------------------

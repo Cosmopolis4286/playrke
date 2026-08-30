@@ -21,18 +21,21 @@ final class PlayerDashboardContextDTO implements ContextDTO
         public readonly ?array $kycStatus,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
+        /** true si el jugador ya jugó Bingo pero nunca Trivia — dispara el banner de puente cross-game (Fase 8) */
+        public readonly bool $showCrossGameBridge = false,
     ) {}
 
     public function toView(): array
     {
         return [
-            'userName'       => $this->userName,
-            'stats'          => $this->stats,
-            'recentActivity' => $this->recentActivity,
-            'prizesWon'      => $this->prizesWon,
-            'triviaActivity' => $this->triviaActivity,
-            'kycStatus'      => $this->kycStatus,
-            'period'         => $this->period,
+            'userName'           => $this->userName,
+            'stats'              => $this->stats,
+            'recentActivity'     => $this->recentActivity,
+            'prizesWon'          => $this->prizesWon,
+            'triviaActivity'     => $this->triviaActivity,
+            'kycStatus'          => $this->kycStatus,
+            'period'             => $this->period,
+            'showCrossGameBridge' => $this->showCrossGameBridge,
         ];
     }
 }

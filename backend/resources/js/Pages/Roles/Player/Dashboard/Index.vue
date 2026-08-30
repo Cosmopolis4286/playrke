@@ -50,7 +50,10 @@
   // Composable
   // ==========================================================================
 
-  const { statCards, sortedActivity, prizesWon, triviaActivity, kycStatus } = usePlayerDashboard(props)
+  const {
+    statCards, sortedActivity, prizesWon, triviaActivity, kycStatus,
+    showCrossGameBridge, dismissCrossGameBridge,
+  } = usePlayerDashboard(props)
   const { liveBalance, isLive } = usePlayerDashboardRealtime(props.stats?.walletBalance.value ?? '—')
   const { loading: sectionsLoading } = useDashboardMountLoading()
   const { formatUsd } = useDashboardFormatters()
@@ -147,6 +150,25 @@
           class="col-12 col-sm-6 col-xl-4"
         >
           <DashboardStatCard v-bind="stat" />
+        </div>
+      </div>
+
+      <!-- Puente cross-game: invitación a Trivia tras jugar Bingo -->
+      <div v-if="showCrossGameBridge" class="cgb-banner">
+        <div class="cgb-banner__icon">
+          <i class="fas fa-brain"></i>
+        </div>
+        <div class="cgb-banner__body">
+          <p class="cgb-banner__title">¿Ya probaste Trivia?</p>
+          <p class="cgb-banner__text">Gana <strong>150 XP extra</strong> en tu primera partida — es gratis probar.</p>
+        </div>
+        <div class="cgb-banner__actions">
+          <a href="/opportunities" class="cgb-banner__cta">
+            Jugar Trivia <i class="fas fa-arrow-right"></i>
+          </a>
+          <button type="button" class="cgb-banner__dismiss" title="Cerrar" @click="dismissCrossGameBridge">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </div>
 
@@ -256,6 +278,42 @@
 @keyframes wbLivePulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+.cgb-banner {
+  display: flex; align-items: center; gap: 0.9rem;
+  padding: 0.85rem 1.1rem; border-radius: 14px;
+  background: linear-gradient(135deg, #ede9fe, #f5f3ff);
+  border: 1px solid #ddd6fe;
+  margin-top: 0.75rem;
+}
+.cgb-banner__icon {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff; font-size: 1.1rem;
+}
+.cgb-banner__body { flex: 1; min-width: 0; }
+.cgb-banner__title { margin: 0; font-size: 0.9rem; font-weight: 700; color: #1a202c; }
+.cgb-banner__text { margin: 2px 0 0; font-size: 0.78rem; color: #5b21b6; }
+.cgb-banner__actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.cgb-banner__cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 10px; font-size: 0.8rem; font-weight: 700;
+  background: #7c3aed; color: #fff; text-decoration: none; white-space: nowrap;
+  transition: background 0.15s;
+}
+.cgb-banner__cta:hover { background: #6d28d9; color: #fff; }
+.cgb-banner__dismiss {
+  border: none; background: transparent; color: #8a94a6; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.cgb-banner__dismiss:hover { background: rgba(0,0,0,0.06); }
+
+@media (max-width: 576px) {
+  .cgb-banner { flex-wrap: wrap; }
+  .cgb-banner__actions { width: 100%; justify-content: space-between; margin-top: 4px; }
 }
 
 </style>

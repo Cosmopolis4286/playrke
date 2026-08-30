@@ -1,9 +1,11 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useDashboard } from '@/js/composables/common/dashboard/useDashboard'
 import type {
   DashboardPlayerPageProps, PlayerStats, PrizeWonRow, TriviaActivityRow, KycStatus,
 } from '@/js/types/roles/player/dashboard/dashboard-player'
 import type { StatCardData, ActivityItem } from '@/js/types/common/dashboard/dashboard'
+
+const CROSS_GAME_BRIDGE_DISMISS_KEY = 'playrke.dashboard.crossGameBridgeDismissed'
 
 const DEFAULT_STATS: StatCardData[] = [
   { label: 'Saldo disponible',  value: '—', icon: 'fas fa-wallet',      variant: 'primary' },
@@ -28,5 +30,26 @@ export function usePlayerDashboard(props: DashboardPlayerPageProps) {
 
   const kycStatus = computed<KycStatus | null>(() => props.kycStatus ?? null)
 
-  return { statCards, sortedActivity, prizesWon, triviaActivity, kycStatus }
+  const bridgeDismissed = ref(false)
+  try {
+    bridgeDismissed.value = localStorage.getItem(CROSS_GAME_BRIDGE_DISMISS_KEY) === '1'
+  } catch {
+    // localStorage puede no estar disponible (modo privado, etc.) — el banner simplemente no se recuerda cerrado
+  }
+
+  const showCrossGameBridge = computed(() => !!props.showCrossGameBridge && !bridgeDismissed.value)
+
+  function dismissCrossGameBridge() {
+    bridgeDismissed.value = true
+    try {
+      localStorage.setItem(CROSS_GAME_BRIDGE_DISMISS_KEY, '1')
+    } catch {
+      // no crítico si no se puede persistir
+    }
+  }
+
+  return {
+    statCards, sortedActivity, prizesWon, triviaActivity, kycStatus,
+    showCrossGameBridge, dismissCrossGameBridge,
+  }
 }
