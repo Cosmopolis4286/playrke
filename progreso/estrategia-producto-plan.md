@@ -195,22 +195,100 @@ con `route:list`; `OpportunityFeedService::getFeed()` probado end-to-end vía
 `artisan tinker` con un usuario real (`player1`) — devuelve `[]` correctamente
 (confirmado que no hay salas de Bingo ni Trivia en la BD de dev, no es un bug).
 
-### Fase 5 — Instrumentar funnel jugador externo → registrado 🔴
-El flujo ya existe (`ExternalPlayer` → link temporal → `convertToUser()`). Falta
-medirlo y agregar el incentivo en el punto correcto (tras una victoria, no antes de
-jugar).
+### Fase 5 — Instrumentar funnel jugador externo → registrado 🔴 ✅ Hecho
+El flujo original (`ExternalPlayer` → link temporal → `convertToUser()`) resultó ser
+**100% manual de admin** — sin ningún self-service. Se amplió el alcance con
+aprobación explícita del usuario: construir auto-vinculación real por teléfono, no
+solo medir/incentivar el flujo manual existente.
 
-1. Depende de Fase 2 (dashboard) para tener baseline antes de cambiar el incentivo.
-2. Incentivo de registro post-victoria (a definir: XP, no dinero — evitar afectar
-   economía).
+**Bug crítico bloqueante encontrado y corregido primero** (no relacionado al alcance
+original de la fase, pero descubierto en el camino y arreglado antes de seguir):
+`Auth/Register.vue` enviaba su formulario a `POST /api/auth/register`, ruta
+**inexistente** — cualquier registro público producía 404 en silencio (axios seguía
+el 404 sin lanzarlo como error visible en algunos casos, y el `RegisteredUserController::store()`
+real devolvía `RedirectResponse` en vez de JSON, incompatible con el patrón axios del
+formulario). **Nadie podía registrarse en la plataforma.** Mismo patrón de bug se
+encontró y corrigió también en `PasswordResetLinkController::store()` (forgot-password)
+y `NewPasswordController::store()` (reset final) — los tres devolvían `RedirectResponse`
+donde el frontend esperaba JSON.
 
-### Fase 6 — Misiones simples 🔴
-No existe hoy ningún sistema de misiones con progreso y ventana de tiempo (solo
-logros estáticos + racha de login).
+**Corregido**:
+1. Los 3 controladores (`RegisteredUserController`, `PasswordResetLinkController`,
+   `NewPasswordController`) ahora devuelven `JsonResponse`, mismo patrón ya usado y
+   validado en `AuthenticatedSessionController` (login).
+2. `PasswordResetLinkController` ya no distingue en su respuesta si el email existe o
+   no (mismo mensaje siempre) — cierra una enumeración de cuentas registradas que el
+   bug anterior de hecho ocultaba sin querer (nunca se veía el mensaje distinto), pero
+   que quedaba activa en el código.
+3. Rate limiting agregado a `POST /register` (`throttle:5,1`), `POST /forgot-password`
+   (`throttle:5,1`), `POST /resetPassword` (`throttle:5,1`) y `POST /login`
+   (`throttle:20,1`, defensa en profundidad adicional al `RateLimiter` ya existente en
+   `LoginRequest`, que no cubre credential-stuffing con distintos `login` desde la
+   misma IP) — ninguna de las 4 rutas tenía límite de intentos antes.
+4. Campo `politicas` (nombre inconsistente con el resto del stack en inglés) renombrado
+   a `terms` en backend y frontend, a pedido explícito del usuario.
 
-1. Misión mínima tipo "juega N partidas hoy" sobre `game_participations`/`Achievement`
-   ya existentes — sin nueva infraestructura de recompensas, reutilizar
-   `GameCompletionService`/`AchievementService`.
+**Auto-vinculación por teléfono** (ampliación de alcance):
+1. Campo `phone` opcional agregado al formulario de registro público — si coincide con
+   uno o más `ExternalPlayer.phone`+`country_id` sin convertir, se vinculan
+   automáticamente todos (`RegisteredUserController::linkExternalPlayerHistory()`),
+   replicando `ExternalPlayerAdminService::convertToUser()` pero disparado por el
+   propio jugador, sin generar contraseña temporal.
+2. Incentivo de conversión: 300 XP al usuario nuevo cuando la auto-vinculación tiene
+   éxito (`UserLevelService::calculateXpReward('external_player_conversion')`) — XP,
+   no dinero, tal como pedía el diseño original de esta fase.
+3. CTA "Regístrate y no pierdas tu premio" agregado al banner ya existente en
+   `Games/Bingo/Game/Index.vue` (pantalla real que ve el jugador externo mientras
+   juega) — enlaza a `/register?phone=...&country=...` para precargar el formulario.
+   `ExternalPlayerGameController::game()` extendido para exponer `phone`/`country_id`
+   del jugador externo (antes solo `link`/`first_name`/`last_name`).
+4. Métrica de conversión agregada a `PlayerActivitySummaryService` (Fase 3, ya
+   existente): `external_player_conversion` (total de jugadores externos, cuántos se
+   convirtieron, tasa) — no distingue si la conversión fue manual (admin) o
+   automática (auto-vinculación), mide el resultado. Sección nueva en el dashboard
+   SuperAdmin.
+
+**Validado**: `vue-tsc --noEmit` sin errores; los 3 controladores corregidos probados
+end-to-end vía `artisan tinker` (registro con `terms`, rechazo sin aceptar términos,
+forgot-password sin enumeración — misma respuesta exacta para email real vs
+inexistente —, reset con token inválido rechazado sin tocar la contraseña, reset con
+token válido cambiando la contraseña de verdad). Rutas con throttle confirmadas con
+`route:list`. Métrica de conversión probada contra datos reales de dev (4 jugadores
+externos existentes, 0 convertidos).
+
+### Fase 6 — Misiones simples 🔴 ✅ Hecho
+No existía ningún sistema de misiones con progreso y ventana de tiempo (solo logros
+estáticos + racha de login).
+
+**Corrección de diseño encontrada durante la implementación**: no se pudo reutilizar
+`Achievement`/`AchievementService` tal cual, como sugería el plan original —
+`AchievementService::checkAndUnlockAchievements()` usa `whereDoesntHave('users', ...)`,
+es decir, un logro se desbloquea **una sola vez para siempre** por usuario. Es
+incompatible con algo que debe reiniciarse cada día. Se construyó una tabla/servicio
+paralelo mínimo en vez de forzar ese sistema a hacer algo para lo que no fue diseñado.
+
+**Implementado**:
+1. `daily_missions` (catálogo: código, nombre, `requirement_type` cerrado a
+   `games_played`/`games_won`, `target`, `xp_reward`) + `user_daily_mission_progress`
+   (progreso por usuario+misión+día calendario UTC — una fila nueva por día es el
+   "reinicio", no hay job de reset).
+2. `DailyMissionService::recordParticipation()` — llamado desde
+   `GameCompletionService::reportParticipation()` (mismo punto de enganche que ya usan
+   Bingo/Trivia, dentro de un try/catch que no revierte XP/resultado ya guardado si
+   falla, mismo criterio que la evaluación de logros).
+3. Reutiliza `UserLevelService::addXpToUser()` para el reward — sin ledger nuevo.
+4. Endpoint `GET /profile/daily-missions`, tab nuevo "Misiones" en el perfil del
+   jugador (mismo patrón de tabs con carga lazy que Fase 1/Referidos).
+5. `DailyMissionSeeder` con 2 misiones mínimas: "Juega 3 partidas hoy" (75 XP),
+   "Gana una partida hoy" (150 XP).
+
+**Validado end-to-end vía `artisan tinker`**: progreso incremental correcto (2/3 →
+3/3), ambas misiones completándose en el momento correcto, XP otorgado exactamente
+una vez por misión por día (75+150=225, confirmado con delta real de XP), sin
+doble-otorgamiento en partidas adicionales tras completar, progreso topado
+correctamente en el target (no sigue subiendo más allá de 3/3). Endpoint HTTP real
+probado con status 200 y payload correcto. `vue-tsc --noEmit` sin errores. Datos de
+prueba limpiados de la BD tras validar.
 
 ### Fase 7 — Ranking de vendedores + meta simple 🔴
 `Seller.commission` es hoy un decimal fijo, sin ranking ni meta.
@@ -269,8 +347,8 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
 | Fase 2 — Dashboard económico | 🔴 | ✅ Hecho | EconomySummaryService + vista SuperAdmin, cross-juego/moneda/comercializadora |
 | Fase 3 — Jugadores activos/recurrentes | 🔴 | ✅ Hecho | PlayerActivitySummaryService; corregido a usar bingo_card_payments, no bingo_creator_sales |
 | Fase 4 — Lobby/Opportunity Feed | 🔴 | ✅ Hecho | Página nueva /opportunities, OpportunityFeedService combina Bingo+Trivia |
-| Fase 5 — Funnel externo→registrado | 🔴 | Pendiente | Depende de Fase 2 |
-| Fase 6 — Misiones simples | 🔴 | Pendiente | |
+| Fase 5 — Funnel externo→registrado | 🔴 | ✅ Hecho | Auto-vinculación por teléfono + XP; corregido bug crítico de registro/reset roto en el camino |
+| Fase 6 — Misiones simples | 🔴 | ✅ Hecho | daily_missions/user_daily_mission_progress nuevo (Achievement no reutilizable) |
 | Fase 7 — Ranking de vendedores | 🔴 | Pendiente | Depende de Fase 2 |
 | Fase 8 — Puente XP Bingo→Trivia | 🔴 | Pendiente | |
 | Fase 9 — Simulación económica Cargas | 🟡 | Pendiente | En paralelo, no bloquea |
@@ -325,3 +403,30 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
   casing incorrecto borró por accidente la carpeta real de componentes de Bingo/Trivia
   (Windows es case-insensitive) — recuperado sin pérdida vía `git checkout`, ver
   detalle completo en la sección de la fase.
+
+- **2026-08-30**: Fase 5 (Funnel jugador externo → registrado) implementada y
+  validada, con alcance ampliado a pedido explícito del usuario (auto-vinculación
+  real por teléfono, no solo instrumentación del flujo manual). **Bug crítico
+  encontrado y corregido en el camino**: el registro público estaba completamente
+  roto en producción (`POST /api/auth/register` no existía) — nadie podía crear
+  cuenta. Mismo patrón de bug (`RedirectResponse` donde el frontend esperaba JSON
+  vía axios) también afectaba a forgot-password y reset-password; los tres
+  controladores se corrigieron con el mismo patrón JSON que ya usaba el login.
+  Aprovechando la revisión, se agregó rate limiting a las 4 rutas de auth que no lo
+  tenían (`register`, `forgot-password`, `resetPassword`, `login`) y se cerró una
+  enumeración de cuentas en forgot-password. Campo `politicas` renombrado a `terms`
+  (consistencia con el resto del stack en inglés, a pedido del usuario). Construida
+  la auto-vinculación por teléfono con incentivo de XP (300, no dinero) y un CTA
+  nuevo en la pantalla real de juego del invitado. Métrica de conversión agregada a
+  `PlayerActivitySummaryService` (Fase 3).
+
+- **2026-08-30**: Fase 6 (Misiones simples) implementada y validada. Hallazgo
+  relevante: `Achievement`/`AchievementService` (sugerido en el plan original como
+  base a reutilizar) resultó incompatible — es un sistema de desbloqueo único para
+  siempre, no de progreso con ventana de tiempo. Se construyó `daily_missions` +
+  `user_daily_mission_progress` (tablas nuevas, mínimas) enganchado al mismo punto
+  que ya usan Bingo/Trivia (`GameCompletionService::reportParticipation()`),
+  reutilizando `UserLevelService` para el XP sin ledger nuevo. 2 misiones sembradas,
+  tab nuevo en el perfil del jugador. Probado end-to-end con múltiples partidas
+  simuladas, confirmando progreso, completado, no-doble-otorgamiento de XP, y tope
+  correcto en el target.
