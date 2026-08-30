@@ -48,6 +48,18 @@ export interface SalesTrendPoint {
     count: number
 }
 
+export interface SellerRankingStanding {
+    rank:               number
+    seller_user_id:     string
+    seller_name:        string
+    cards_sold:         number
+    sale_amount:        number
+    commission_amount:  number
+    goal_reached:       boolean
+    total_sellers:      number
+    goal:               number
+}
+
 // --------------------------------------------------------------------------
 // Inertia page props
 // --------------------------------------------------------------------------
@@ -69,4 +81,6 @@ export interface DashboardSellerPageProps {
     salesTrend?: SalesTrendPoint[]
     /** Período activo (e.g. "Marzo 2026") */
     period?: string
+    /** Posición del vendedor en el ranking mensual — null si no vendió nada este mes */
+    ranking?: SellerRankingStanding | null
 }

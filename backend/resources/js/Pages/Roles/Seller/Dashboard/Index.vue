@@ -220,6 +220,29 @@
           >
             <DashboardCommissionPanel :commission="commission" :reports-to="reportsTo" />
           </DashboardSection>
+
+          <!-- Ranking mensual -->
+          <DashboardSection
+            title="Ranking del mes"
+            icon="fas fa-ranking-star"
+            subtitle="Tu posición entre todos los vendedores"
+            :loading="sectionsLoading"
+            skeleton-variant="stat"
+          >
+            <div v-if="ranking" class="ranking-panel">
+              <div class="ranking-panel__rank">
+                <span class="ranking-panel__rank-num">#{{ ranking.rank }}</span>
+                <span class="ranking-panel__rank-total">de {{ ranking.total_sellers }}</span>
+              </div>
+              <div class="ranking-panel__body">
+                <p class="ranking-panel__commission">$ {{ ranking.commission_amount.toFixed(2) }} <small>este mes</small></p>
+                <span class="ranking-panel__goal" :class="{ 'ranking-panel__goal--reached': ranking.goal_reached }">
+                  {{ ranking.goal_reached ? `✓ Meta de $${ranking.goal} alcanzada` : `Meta: $${ranking.goal}` }}
+                </span>
+              </div>
+            </div>
+            <p v-else class="ranking-panel__empty">Aún no registras ventas este mes — vende un cartón para entrar al ranking.</p>
+          </DashboardSection>
         </div>
       </div>
 
@@ -274,4 +297,24 @@
   50%       { opacity: 0.5; transform: scale(0.8); }
 }
 
+.ranking-panel { display: flex; align-items: center; gap: 1rem; padding: 0.25rem 0; }
+.ranking-panel__rank {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+.ranking-panel__rank-num { font-size: 1.1rem; font-weight: 800; color: #fff; line-height: 1; }
+.ranking-panel__rank-total { font-size: 0.6rem; color: rgba(255,255,255,.85); }
+
+.ranking-panel__body { display: flex; flex-direction: column; gap: 0.3rem; }
+.ranking-panel__commission { font-size: 1.05rem; font-weight: 700; color: #1a202c; margin: 0; }
+.ranking-panel__commission small { font-size: 0.7rem; font-weight: 500; color: #8a94a6; }
+.ranking-panel__goal {
+  display: inline-block; align-self: flex-start;
+  font-size: 0.72rem; font-weight: 600; padding: 2px 9px; border-radius: 20px;
+  background: #f1f5f9; color: #64748b;
+}
+.ranking-panel__goal--reached { background: rgba(16,185,129,.15); color: #059669; }
+
+.ranking-panel__empty { font-size: 0.82rem; color: #8a94a6; margin: 0; }
 </style>

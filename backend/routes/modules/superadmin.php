@@ -25,6 +25,7 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
         ->group(function () {
             Route::get('economy-summary', 'economySummary')->name('economy-summary');
             Route::get('player-activity-summary', 'playerActivitySummary')->name('player-activity-summary');
+            Route::get('seller-ranking', 'sellerRanking')->name('seller-ranking');
             Route::get('rke-summary', 'rkeSummary')->name('rke-summary');
             Route::get('commerce-hierarchy', 'commerceHierarchy')->name('commerce-hierarchy');
             Route::get('trivia-summary', 'triviaSummary')->name('trivia-summary');

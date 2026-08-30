@@ -23,6 +23,8 @@ final class SellerDashboardContextDTO implements ContextDTO
         public readonly array $salesTrend,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
+        /** Posición del vendedor en el ranking mensual — null si no vendió nada este mes */
+        public readonly ?array $ranking = null,
     ) {}
 
     public function toView(): array
@@ -36,6 +38,7 @@ final class SellerDashboardContextDTO implements ContextDTO
             'roomCommissions' => $this->roomCommissions,
             'salesTrend'      => $this->salesTrend,
             'period'          => $this->period,
+            'ranking'         => $this->ranking,
         ];
     }
 }

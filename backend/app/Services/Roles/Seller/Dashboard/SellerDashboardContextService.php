@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\Roles\Seller;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
+use App\Services\Roles\Seller\SellerRankingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,6 +20,11 @@ use Illuminate\Support\Facades\Auth;
 final class SellerDashboardContextService
 {
     use BuildsSalesTrend;
+
+    public function __construct(
+        private readonly SellerRankingService $sellerRanking,
+    ) {
+    }
 
     public function dashboardContext(): SellerDashboardContextDTO
     {
@@ -38,6 +44,7 @@ final class SellerDashboardContextService
             roomCommissions: $this->buildRoomCommissions($seller),
             salesTrend:      $this->buildSalesTrend(scope: fn ($q) => $q->where('seller_user_id', $userId)),
             period:          $period,
+            ranking:         $this->sellerRanking->getSellerStanding($userId),
         );
     }
 

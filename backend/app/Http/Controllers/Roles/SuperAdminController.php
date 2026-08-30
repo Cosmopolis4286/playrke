@@ -11,6 +11,7 @@ use App\Services\Roles\SuperAdmin\Dashboard\TriviaSummaryService;
 use App\Services\Roles\SuperAdmin\Dashboard\ExchangeRateSummaryService;
 use App\Services\Roles\SuperAdmin\Dashboard\EconomySummaryService;
 use App\Services\Roles\SuperAdmin\Dashboard\PlayerActivitySummaryService;
+use App\Services\Roles\Seller\SellerRankingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,7 @@ class SuperAdminController extends Controller
         protected SuperAdminDashboardContextService $dashboardContext,
         protected EconomySummaryService $economySummary,
         protected PlayerActivitySummaryService $playerActivitySummary,
+        protected SellerRankingService $sellerRanking,
     ) {}
 
     /**
@@ -56,6 +58,15 @@ class SuperAdminController extends Controller
     public function playerActivitySummary(): JsonResponse
     {
         return response()->json($this->playerActivitySummary->getSummary());
+    }
+
+    /**
+     * Ranking mensual de vendedores por comisión generada (JSON para el
+     * dashboard superadmin)
+     */
+    public function sellerRanking(): JsonResponse
+    {
+        return response()->json($this->sellerRanking->getMonthlyRanking());
     }
 
     public function rkeSummary(): JsonResponse
