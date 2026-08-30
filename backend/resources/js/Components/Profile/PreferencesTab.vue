@@ -41,6 +41,25 @@
               <i class="fas fa-chevron-down field-select-arrow"></i>
             </div>
           </div>
+
+          <!-- Tema: mismo mecanismo que el toggle del navbar (localStorage
+               'playrke-theme' + data-theme en <html>, ver useTheme.ts) — un
+               atajo aquí evita que el usuario tenga que abrir el menú del
+               avatar para encontrarlo. Aplica al instante, como el original. -->
+          <div class="toggle-row" @click="toggleTheme">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--purple">
+                <i class="fas" :class="theme === 'light' ? 'fa-sun' : 'fa-moon'"></i>
+              </span>
+              <div class="toggle-text">
+                <span class="toggle-label">Tema {{ theme === 'light' ? 'claro' : 'oscuro' }}</span>
+                <span class="toggle-hint">Cambia la apariencia de toda la plataforma</span>
+              </div>
+            </div>
+            <div :class="['toggle-switch', { 'toggle-switch--on': theme === 'light' }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
         </div>
         <div class="prefs-card-footer">
           <button
@@ -54,7 +73,8 @@
         </div>
       </div>
 
-      <!-- Notificaciones -->
+      <!-- Notificaciones — autoguardado: cada switch se persiste al instante,
+           sin botón "Guardar" propio (ver toggleAutosave()). -->
       <div class="prefs-card">
         <div class="prefs-card-head">
           <span class="prefs-card-icon-wrap prefs-card-icon-wrap--amber">
@@ -63,7 +83,7 @@
           <span class="prefs-card-title">Notificaciones</span>
         </div>
         <div class="prefs-card-body">
-          <div class="toggle-row" @click="prefsForm.notifications.email = !prefsForm.notifications.email">
+          <div class="toggle-row" @click="toggleAutosave('notifications', 'email')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--blue"><i class="fas fa-envelope"></i></span>
               <div class="toggle-text">
@@ -71,11 +91,12 @@
                 <span class="toggle-hint">Actualizaciones importantes en tu correo</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('notifications', 'email')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.notifications.email }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.notifications.push = !prefsForm.notifications.push">
+          <div class="toggle-row" @click="toggleAutosave('notifications', 'push')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--purple"><i class="fas fa-mobile-alt"></i></span>
               <div class="toggle-text">
@@ -83,11 +104,12 @@
                 <span class="toggle-hint">Alertas en tiempo real en tu dispositivo</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('notifications', 'push')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.notifications.push }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.notifications.sms = !prefsForm.notifications.sms">
+          <div class="toggle-row" @click="toggleAutosave('notifications', 'sms')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--green"><i class="fas fa-sms"></i></span>
               <div class="toggle-text">
@@ -95,24 +117,15 @@
                 <span class="toggle-hint">Alertas críticas por mensaje de texto</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('notifications', 'sms')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.notifications.sms }]">
               <div class="toggle-knob" />
             </div>
           </div>
         </div>
-        <div class="prefs-card-footer">
-          <button
-            class="save-btn"
-            :disabled="savingKey === 'notifications'"
-            @click="$emit('save', { notifications: prefsForm.notifications })"
-          >
-            <i :class="['fas me-1', savingKey === 'notifications' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
-            {{ savingKey === 'notifications' ? 'Guardando...' : 'Guardar' }}
-          </button>
-        </div>
       </div>
 
-      <!-- Privacidad -->
+      <!-- Privacidad — autoguardado -->
       <div class="prefs-card">
         <div class="prefs-card-head">
           <span class="prefs-card-icon-wrap prefs-card-icon-wrap--red">
@@ -121,7 +134,7 @@
           <span class="prefs-card-title">Privacidad</span>
         </div>
         <div class="prefs-card-body">
-          <div class="toggle-row" @click="prefsForm.privacy.profile_visible = !prefsForm.privacy.profile_visible">
+          <div class="toggle-row" @click="toggleAutosave('privacy', 'profile_visible')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--blue"><i class="fas fa-eye"></i></span>
               <div class="toggle-text">
@@ -129,11 +142,12 @@
                 <span class="toggle-hint">Otros usuarios pueden ver tu perfil</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('privacy', 'profile_visible')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.privacy.profile_visible }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.privacy.show_email = !prefsForm.privacy.show_email">
+          <div class="toggle-row" @click="toggleAutosave('privacy', 'show_email')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--amber"><i class="fas fa-envelope-open"></i></span>
               <div class="toggle-text">
@@ -141,11 +155,12 @@
                 <span class="toggle-hint">Tu correo aparece en tu perfil público</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('privacy', 'show_email')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.privacy.show_email }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.privacy.show_phone = !prefsForm.privacy.show_phone">
+          <div class="toggle-row" @click="toggleAutosave('privacy', 'show_phone')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--green"><i class="fas fa-phone"></i></span>
               <div class="toggle-text">
@@ -153,24 +168,15 @@
                 <span class="toggle-hint">Tu número aparece en tu perfil público</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('privacy', 'show_phone')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.privacy.show_phone }]">
               <div class="toggle-knob" />
             </div>
           </div>
         </div>
-        <div class="prefs-card-footer">
-          <button
-            class="save-btn"
-            :disabled="savingKey === 'privacy'"
-            @click="$emit('save', { privacy: prefsForm.privacy })"
-          >
-            <i :class="['fas me-1', savingKey === 'privacy' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
-            {{ savingKey === 'privacy' ? 'Guardando...' : 'Guardar' }}
-          </button>
-        </div>
       </div>
 
-      <!-- Juego -->
+      <!-- Juego — autoguardado -->
       <div class="prefs-card">
         <div class="prefs-card-head">
           <span class="prefs-card-icon-wrap prefs-card-icon-wrap--purple">
@@ -179,7 +185,7 @@
           <span class="prefs-card-title">Configuración de Juego</span>
         </div>
         <div class="prefs-card-body">
-          <div class="toggle-row" @click="prefsForm.game_settings.sound_enabled = !prefsForm.game_settings.sound_enabled">
+          <div class="toggle-row" @click="toggleAutosave('game_settings', 'sound_enabled')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--amber"><i class="fas fa-volume-up"></i></span>
               <div class="toggle-text">
@@ -187,11 +193,12 @@
                 <span class="toggle-hint">Efectos de sonido durante el juego</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('game_settings', 'sound_enabled')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.sound_enabled }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.game_settings.music_enabled = !prefsForm.game_settings.music_enabled">
+          <div class="toggle-row" @click="toggleAutosave('game_settings', 'music_enabled')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--purple"><i class="fas fa-music"></i></span>
               <div class="toggle-text">
@@ -199,11 +206,12 @@
                 <span class="toggle-hint">Música de fondo durante el juego</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('game_settings', 'music_enabled')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.music_enabled }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.game_settings.auto_dauber = !prefsForm.game_settings.auto_dauber">
+          <div class="toggle-row" @click="toggleAutosave('game_settings', 'auto_dauber')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--blue"><i class="fas fa-magic"></i></span>
               <div class="toggle-text">
@@ -211,11 +219,12 @@
                 <span class="toggle-hint">Marca automáticamente los números en tus cartones</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('game_settings', 'auto_dauber')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.auto_dauber }]">
               <div class="toggle-knob" />
             </div>
           </div>
-          <div class="toggle-row" @click="prefsForm.game_settings.card_animation = !prefsForm.game_settings.card_animation">
+          <div class="toggle-row" @click="toggleAutosave('game_settings', 'card_animation')">
             <div class="toggle-left">
               <span class="toggle-icon-wrap toggle-icon-wrap--green"><i class="fas fa-film"></i></span>
               <div class="toggle-text">
@@ -223,20 +232,11 @@
                 <span class="toggle-hint">Efectos visuales en los cartones de bingo</span>
               </div>
             </div>
+            <AutosaveIndicator :saving="isSaving('game_settings', 'card_animation')" />
             <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.card_animation }]">
               <div class="toggle-knob" />
             </div>
           </div>
-        </div>
-        <div class="prefs-card-footer">
-          <button
-            class="save-btn"
-            :disabled="savingKey === 'game_settings'"
-            @click="$emit('save', { game_settings: prefsForm.game_settings })"
-          >
-            <i :class="['fas me-1', savingKey === 'game_settings' ? 'fa-spinner fa-spin' : 'fa-check']"></i>
-            {{ savingKey === 'game_settings' ? 'Guardando...' : 'Guardar' }}
-          </button>
         </div>
       </div>
 
@@ -245,8 +245,47 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ prefsForm: any; savingKey?: string | null }>()
+import { reactive } from 'vue'
+import { useTheme } from '@js/composables/common/useTheme'
+import AutosaveIndicator from '@js/Components/Profile/AutosaveIndicator.vue'
+
+const props = defineProps<{
+    prefsForm: any
+    savingKey?: string | null
+    /** savePreferences() de useProfile.ts — pasada como prop función (no
+        evento) para poder hacer `await` del guardado real en toggleAutosave()
+        y quitar el spinner exactamente cuando la respuesta llega, sin un
+        setTimeout artificial simulando cuánto tarda. */
+    onSave: (patch: Record<string, any>) => Promise<void>
+}>()
 defineEmits<{ save: [patch: Record<string, any>] }>()
+
+const { theme, toggleTheme } = useTheme()
+
+// ── Autoguardado por switch individual ──────────────────────────
+// pendingSaves rastrea CADA campo por separado ('notifications.email',
+// 'privacy.show_email', ...) — no solo la sección — para que el spinner
+// aparezca únicamente junto al switch que el usuario acaba de tocar, no en
+// toda la tarjeta (varios campos de la misma sección pueden guardarse en
+// paralelo si el usuario clickea rápido).
+const pendingSaves = reactive<Record<string, boolean>>({})
+
+function isSaving(section: string, field: string): boolean {
+    return !!pendingSaves[`${section}.${field}`]
+}
+
+async function toggleAutosave(section: 'notifications' | 'privacy' | 'game_settings', field: string): Promise<void> {
+    const current = (props.prefsForm[section] as Record<string, boolean>)[field]
+    props.prefsForm[section][field] = !current
+
+    const key = `${section}.${field}`
+    pendingSaves[key] = true
+    try {
+        await props.onSave({ [section]: props.prefsForm[section] })
+    } finally {
+        delete pendingSaves[key]
+    }
+}
 </script>
 
 <style scoped>

@@ -170,6 +170,7 @@ export default { name: 'ProfileIndex' }
               key="preferences"
               :prefs-form="prefsForm"
               :saving-key="savingPrefsKey"
+              :on-save="savePreferences"
               @save="savePreferences"
             />
 
