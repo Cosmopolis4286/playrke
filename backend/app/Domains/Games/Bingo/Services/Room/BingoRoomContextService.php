@@ -681,6 +681,49 @@ final class BingoRoomContextService
     }
 
     /**
+     * Vitrina pública de salas (sin sesión, ver PublicController::gameRoomsShowcase())
+     * — mismo DTO que el lobby autenticado (misma barra de venta/pozo, mismo
+     * preview de jugadores), pero sin cardPrices (no hay moneda de jugador
+     * que resolver sin cuenta) y sin players_room (no hay "mis cartones" para
+     * un visitante anónimo). El botón de compra en esta vista lleva a
+     * login/registro — ver decisión de no abrir compra sin cuenta.
+     */
+    public function publicShowcase(): BingoGameRoomsDTO
+    {
+        $rooms = $this->bingoRooms->getActivePublicRoomsForShowcase();
+
+        $timestamp = now()->valueOf();
+
+        $dateTimeRooms = [
+            'timestamp' => $timestamp,
+            'rooms'     => $rooms->map(fn ($room) => [
+                'id'           => (string) $room->id,
+                'config'       => [
+                    'unix_date' => $room->config?->unix_date,
+                    'room_type' => $room->config?->roomType?->code ?? 'PUBLIC',
+                ],
+                'players_room' => null,
+            ])->values()->all(),
+        ];
+
+        // bingoRules/imageBingoRules son configurables por creador de sala
+        // (getBingoRules(int $userId)) — sin sesión no hay un "dueño" único
+        // que resolver cuando la vitrina mezcla salas de varios creadores,
+        // así que se omiten aquí (el reglamento completo no es crítico para
+        // una vista que solo invita a registrarse, no a jugar).
+        return new BingoGameRoomsDTO(
+            rooms: $rooms,
+            exchangeRate: 1.0,
+            currencySym: 'USD',
+            userToken: null,
+            dateTimeRooms: $dateTimeRooms,
+            cardPrices: null,
+            bingoRules: '',
+            imageBingoRules: '',
+        );
+    }
+
+    /**
      * Top 10 compradores de una sala por cantidad de cartones ("Top de
      * Compras" del lobby de salas) — bajo demanda, no se carga junto con el
      * listado completo de salas para no agregar una query pesada por sala.

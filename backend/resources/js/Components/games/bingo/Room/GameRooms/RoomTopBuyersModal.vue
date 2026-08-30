@@ -3,10 +3,16 @@ import { ref, watch } from 'vue'
 import backendClient from '@js/plugins/axios'
 import type { BingoGameRoomTopBuyer } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   roomId: string | null
   roomLabel?: string | null
-}>()
+  /** Prefijo del endpoint — distinto según se use desde el lobby autenticado
+   * (bingo/game-rooms) o la vitrina pública sin sesión (game-rooms, ver
+   * PublicController::gameRoomsShowcase y routes/modules/public.php). */
+  endpointBase?: string
+}>(), {
+  endpointBase: '/bingo/game-rooms',
+})
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
@@ -26,7 +32,7 @@ watch(() => props.roomId, async (roomId) => {
   buyers.value = []
 
   try {
-    const { data } = await backendClient.get(`/bingo/game-rooms/${roomId}/top-buyers`)
+    const { data } = await backendClient.get(`${props.endpointBase}/${roomId}/top-buyers`)
     buyers.value = data.buyers ?? []
   } catch {
     error.value = 'No se pudo cargar el ranking de esta sala.'

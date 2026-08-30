@@ -23,8 +23,25 @@ Route::get('getInfo/{page}', [PublicController::class, 'info'])->name('info');
 
 /**
  * Página pública "Verificar mi cartón" — sin sesión, como un ticket físico.
+ * inertiaOnly=true: usa components.layouts.inertia (sin sidebar/navbar de
+ * AdminLTE, pensados para usuario logueado — ver HandleInertiaRequests::rootView()).
  */
-Route::get('/verify-card', [PublicController::class, 'verifyCard'])->name('verify-card');
+Route::get('/verify-card', [PublicController::class, 'verifyCard'])->name('verify-card')->defaults('inertiaOnly', true);
+
+/**
+ * Vitrina pública de salas de Bingo — sin sesión, catálogo + métricas en
+ * vivo (venta, pozo, top de compras), sin compra real (CTA a login/registro).
+ */
+Route::get('/game-rooms', [PublicController::class, 'gameRoomsShowcase'])->name('game-rooms.showcase')->defaults('inertiaOnly', true);
+
+/**
+ * Top de compradores de una sala, para la vitrina pública — mismo dato que
+ * bingo-game-rooms.top-buyers (autenticado), sin datos sensibles (solo
+ * nombre/avatar/cantidad de cartones), por eso se expone también sin sesión.
+ */
+Route::get('/game-rooms/{room}/top-buyers', [\App\Http\Controllers\Games\Bingo\Room\BingoRoomController::class, 'topBuyers'])
+    ->middleware('throttle:30,1')
+    ->name('game-rooms.showcase.top-buyers');
 
 /**
  * Health check para monitoreo externo (uptime monitors, load balancers).

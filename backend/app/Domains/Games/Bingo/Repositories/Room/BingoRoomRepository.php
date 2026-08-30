@@ -392,6 +392,43 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     }
 
     /**
+     * Salas PUBLIC activas para la vitrina pública (sin sesión, ver
+     * BingoRoomContextService::publicShowcase()) — mismo criterio de
+     * visibilidad que un player autenticado (buildActiveRoomsQuery con
+     * $isPlayer=true), pero sin `players` (no hay usuario real cuyos
+     * cartones cargar) y con una ventana de fecha fija (hoy → +7 días,
+     * mismo rango que getActiveRoomsForViewWithRoleFilter) ya que no hay
+     * timezone de usuario que resolver para un visitante anónimo.
+     */
+    public function getActivePublicRoomsForShowcase(): Collection
+    {
+        $from = now()->subDay()->toDateString();
+        $to   = now()->addDays(7)->toDateString();
+
+        return $this->model
+            ->with([
+                'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,connection_type_id,min_cards_to_start,max_cards_to_start,max_players,min_players,game_variant',
+                'config.prizePoolType:id,code,label',
+                'config.roomType:id,code,label',
+                'config.connectionType:id,code,label',
+                'status:id,code',
+                'playersPreview' => fn ($q) => $q->select(['id', 'room_id', 'user_id']),
+                'playersPreview.user:id,username,first_name',
+            ])
+            ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
+            ->whereHas('config.roomType', fn ($q) => $q->where('code', 'PUBLIC'))
+            ->whereHas('config', fn ($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: true))
+            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id', 'created_at'])
+            ->withCount('rounds')
+            ->orderBy(
+                BingoRoomConfig::select('time')
+                    ->whereColumn('room_id', 'bingo_rooms.id')
+                    ->limit(1)
+            )
+            ->get();
+    }
+
+    /**
      * Top compradores de una sala por cantidad de cartones — ver docblock en
      * BingoRoomRepositoryInterface. Agregación directa sobre bingo_cards
      * (groupBy creator_user_id), no vía relación Eloquent: no hay forma

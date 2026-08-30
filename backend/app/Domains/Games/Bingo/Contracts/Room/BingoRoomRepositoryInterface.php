@@ -114,6 +114,12 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     ): LengthAwarePaginator;
 
     /**
+     * Salas PUBLIC activas para la vitrina pública (sin sesión) — ver
+     * BingoRoomRepository::getActivePublicRoomsForShowcase().
+     */
+    public function getActivePublicRoomsForShowcase(): Collection;
+
+    /**
      * Top compradores de una sala por cantidad de cartones (prueba social,
      * "Top de Compras" — ver GameRooms.vue). Agrega bingo_cards.creator_user_id,
      * solo cartones con dueño real (creator_user_id no nulo — excluye lotes

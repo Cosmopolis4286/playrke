@@ -44,6 +44,19 @@ class PublicController extends Controller
     }
 
     /**
+     * Vitrina pública de salas de Bingo (sin sesión) — mismo catálogo/métricas
+     * que el lobby autenticado (venta, pozo, top de compras) pero sin botón
+     * de compra real: el CTA lleva a login/registro. Decisión de producto:
+     * no exponer compra sin cuenta (KYC/fraude, ver análisis de riesgo).
+     */
+    public function gameRoomsShowcase(\App\Domains\Games\Bingo\Services\Room\BingoRoomContextService $contextService): Response
+    {
+        $dto = $contextService->publicShowcase();
+
+        return Inertia::render('Public/GameRoomsShowcase', $dto->toView());
+    }
+
+    /**
      * Páginas de información estática (terms, about, privacy)
      */
     public function info(string $page): Response
