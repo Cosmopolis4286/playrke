@@ -5,6 +5,7 @@ use App\Http\Controllers\Games\Common\GameModeController;
 use App\Http\Controllers\Games\Common\RoomTypeController;
 use App\Http\Controllers\Games\Common\PrizePoolTypeController;
 use App\Http\Controllers\Games\Common\JackpotTypeController;
+use App\Http\Controllers\Games\OpportunityFeedController;
 use Illuminate\Support\Facades\Route;
 
 // ====================================
@@ -63,4 +64,14 @@ Route::middleware(['auth', 'role:superadmin,admin'])->group(function () {
     Route::put('jackpot-types/{id}',         [JackpotTypeController::class, 'update'])       ->name('jackpot-types.update');
     Route::put('jackpot-types/{id}/delete',  [JackpotTypeController::class, 'delete'])       ->name('jackpot-types.delete');
     Route::put('jackpot-types/{id}/status',  [JackpotTypeController::class, 'toggleStatus']) ->name('jackpot-types.status');
+});
+
+// ====================================
+// OPPORTUNITY FEED — salas activas de Bingo y Trivia combinadas, para
+// cualquier usuario autenticado (no solo player: mismo criterio de rol que
+// ya resuelve BingoRoomContextService por dentro).
+// ====================================
+Route::middleware(['auth'])->prefix('opportunities')->group(function () {
+    Route::get('', [OpportunityFeedController::class, 'index'])->name('opportunities.index');
+    Route::get('fetch', [OpportunityFeedController::class, 'fetch'])->name('opportunities.fetch');
 });
