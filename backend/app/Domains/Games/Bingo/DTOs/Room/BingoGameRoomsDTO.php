@@ -79,6 +79,31 @@ final class BingoGameRoomsDTO implements ContextDTO
                 $roomData['config']['prize_pool_type'] = $room->config?->prizePoolType?->code;
             }
 
+            // Progreso de venta + pozo en vivo ("queda un X%" / barra de pozo
+            // creciente) — ambos se derivan de campos ya cargados (total_cards,
+            // prize_pool, max_cards_to_start), sin queries adicionales. max_cards_to_start
+            // es opcional en la config (salas sin tope de venta): sin él no hay
+            // base para proyectar ningún porcentaje.
+            $maxCards = $room->config?->max_cards_to_start;
+            if ($maxCards && $maxCards > 0) {
+                $totalCards = (int) ($room->total_cards ?? 0);
+                $prizePool  = (float) ($room->prize_pool ?? 0);
+
+                $roomData['cards_sold_pct'] = round(min(100, ($totalCards / $maxCards) * 100), 2);
+
+                // Proyección lineal: si el pozo actual corresponde a $totalCards
+                // cartones vendidos, al 100% (max_cards_to_start) sería
+                // proporcionalmente mayor — mismo criterio que la barra "Progreso
+                // del pozo" de Bingo Tocuyo, no una meta fija independiente.
+                if ($totalCards > 0) {
+                    $roomData['prize_pool_projected'] = round($prizePool * ($maxCards / $totalCards), 2);
+                    $roomData['prize_pool_pct'] = round(min(100, ($prizePool / $roomData['prize_pool_projected']) * 100), 2);
+                } else {
+                    $roomData['prize_pool_projected'] = 0.0;
+                    $roomData['prize_pool_pct'] = 0.0;
+                }
+            }
+
             return $roomData;
         })->values()->all();
 

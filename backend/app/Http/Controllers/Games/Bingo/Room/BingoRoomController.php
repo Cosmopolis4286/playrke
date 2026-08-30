@@ -440,4 +440,17 @@ final class BingoRoomController extends Controller
             fn() => $this->generateService->getPlayerCardPrice($room->id, $userId)
         );
     }
+
+    /**
+     * Top 10 compradores de la sala por cantidad de cartones — "Ver Top de
+     * Compras" en la card del lobby de salas.
+     *
+     * @param BingoRoom $room Sala de bingo (model binding por {room}).
+     */
+    public function topBuyers(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['buyers' => $this->service->topBuyers((string) $room->id)]
+        );
+    }
 }

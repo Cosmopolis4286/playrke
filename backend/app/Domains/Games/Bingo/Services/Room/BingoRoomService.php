@@ -223,4 +223,15 @@ final class BingoRoomService
         $userId = $this->userContext->resolveUserId();
         return $this->contextService->gameRoomsDataForRefetch($userId, $page, $perPage, $filters);
     }
+
+    /**
+     * Top 10 compradores de una sala por cantidad de cartones — ver
+     * BingoRoomContextService::topBuyers().
+     *
+     * @return array<int, array{user_id: string, name: string, avatar_url: ?string, cards_count: int}>
+     */
+    public function topBuyers(string $roomId): array
+    {
+        return $this->contextService->topBuyers($roomId);
+    }
 }

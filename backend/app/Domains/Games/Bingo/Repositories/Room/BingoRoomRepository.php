@@ -390,4 +390,31 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         return $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
     }
+
+    /**
+     * Top compradores de una sala por cantidad de cartones — ver docblock en
+     * BingoRoomRepositoryInterface. Agregación directa sobre bingo_cards
+     * (groupBy creator_user_id), no vía relación Eloquent: no hay forma
+     * limpia de pedir "top N por grupo con datos del usuario" con hasMany.
+     */
+    public function getTopBuyers(string $roomId, int $limit = 10): \Illuminate\Support\Collection
+    {
+        return \App\Domains\Games\Bingo\Models\Card\BingoCard::query()
+            ->selectRaw('creator_user_id, COUNT(*) as cards_count')
+            ->where('room_id', $roomId)
+            ->whereNotNull('creator_user_id')
+            ->groupBy('creator_user_id')
+            ->orderByDesc('cards_count')
+            ->limit($limit)
+            ->with(['creatorUser:id,first_name,username,profile_photo_url'])
+            ->get()
+            ->map(fn ($row) => [
+                'user_id'     => (string) $row->creator_user_id,
+                'first_name'  => $row->creatorUser?->first_name,
+                'username'    => $row->creatorUser?->username,
+                'avatar_url'  => $row->creatorUser?->profile_photo_url,
+                'cards_count' => (int) $row->cards_count,
+            ])
+            ->values();
+    }
 }

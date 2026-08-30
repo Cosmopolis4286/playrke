@@ -11,6 +11,12 @@ const props = defineProps<{
   minCardsToStart: number | null
   maxCardsToStart?: number | null
   cardsProgressPct: number
+  /** % de venta sobre el TOPE de la sala (max_cards_to_start) — distinto de
+   * cardsProgressPct, que mide contra el MÍNIMO para iniciar. Solo se
+   * muestra cuando la sala define un tope (ver BingoGameRoomsDTO). */
+  cardsSoldPct?: number | null
+  /** % del pozo actual sobre su proyección al 100% de venta del tope */
+  prizePoolPct?: number | null
 }>()
 
 const progressTooltip = () => {
@@ -19,6 +25,8 @@ const progressTooltip = () => {
     ? `Ya se alcanzó el mínimo de cartones — el sorteo puede iniciar${cap}`
     : `Faltan ${props.cardsRemaining} cartón${props.cardsRemaining !== 1 ? 'es' : ''} vendido${props.cardsRemaining !== 1 ? 's' : ''} para que la sala pueda iniciar${cap}`
 }
+
+const cardsSoldRemainingPct = () => Math.max(0, 100 - (props.cardsSoldPct ?? 0)).toFixed(2)
 </script>
 
 <template>
@@ -63,6 +71,36 @@ const progressTooltip = () => {
     </div>
     <div class="rc__progress__track">
       <div class="rc__progress__fill" :style="{ width: cardsProgressPct + '%' }" />
+    </div>
+  </div>
+
+  <!-- Barra de venta hacia el tope de la sala ("Queda un X%") — solo si la
+       sala define max_cards_to_start (ver BingoGameRoomsDTO::cards_sold_pct) -->
+  <div
+    v-if="cardsSoldPct != null"
+    v-tooltip="`${cardsSoldPct}% de los cartones de esta sala ya se vendieron`"
+    class="rc__sold"
+  >
+    <div class="rc__progress__header">
+      <span class="rc__progress__label"><i class="fas fa-ticket" />Queda un {{ cardsSoldRemainingPct() }}%</span>
+    </div>
+    <div class="rc__progress__track">
+      <div class="rc__sold__fill" :style="{ width: cardsSoldPct + '%' }" />
+    </div>
+  </div>
+
+  <!-- Barra de progreso del pozo hacia su proyección al 100% de venta -->
+  <div
+    v-if="prizePoolPct != null"
+    v-tooltip="'Así van los premios: el pozo crece con cada cartón vendido'"
+    class="rc__pool"
+  >
+    <div class="rc__progress__header">
+      <span class="rc__progress__label"><i class="fas fa-coins" />Progreso del pozo</span>
+      <span class="rc__progress__count">{{ prizePoolPct }}%</span>
+    </div>
+    <div class="rc__progress__track">
+      <div class="rc__pool__fill" :style="{ width: prizePoolPct + '%' }" />
     </div>
   </div>
 </template>
@@ -185,5 +223,24 @@ const progressTooltip = () => {
 @keyframes cpPulse {
   0%,100% { box-shadow: 0 0 6px rgba(42,245,152,.3); }
   50%     { box-shadow: 0 0 11px rgba(42,245,152,.55); }
+}
+
+/* ── Venta hacia el tope de la sala ("Queda un X%") — violeta, distinto del
+   verde de "cartones para iniciar" para no confundir ambas barras ── */
+.rc__sold { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.rc__sold__fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #7b4fff 0%, #b98cff 100%);
+  box-shadow: 0 0 7px rgba(123,79,255,.3);
+  transition: width .6s cubic-bezier(.22,.68,0,1);
+}
+
+/* ── Progreso del pozo — dorado, coherente con el color del premio arriba ── */
+.rc__pool { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.rc__pool__fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #e0a020 0%, #ffe566 100%);
+  box-shadow: 0 0 7px rgba(255,187,32,.3);
+  transition: width .6s cubic-bezier(.22,.68,0,1);
 }
 </style>

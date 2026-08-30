@@ -23,7 +23,10 @@ const props = defineProps<{
   index?: number
 }>()
 
-const emit = defineEmits<{ (e: 'select', roomId: string): void }>()
+const emit = defineEmits<{
+  (e: 'select', roomId: string): void
+  (e: 'show-top-buyers', roomId: string): void
+}>()
 
 const isAvailable  = computed(() => props.room.status_code === 'ACTIVE')
 const isInProgress = computed(() => props.room.status_code === 'IN_PROGRESS')
@@ -192,7 +195,18 @@ function handleClick(event: MouseEvent) {
           :min-cards-to-start="minCardsToStart"
           :max-cards-to-start="maxCardsToStart"
           :cards-progress-pct="cardsProgressPct"
+          :cards-sold-pct="room.cards_sold_pct"
+          :prize-pool-pct="room.prize_pool_pct"
         />
+
+        <button
+          type="button"
+          class="rc__top-buyers-btn"
+          v-tooltip="'Ver el ranking de compradores de esta sala'"
+          @click.stop="emit('show-top-buyers', room.id)"
+        >
+          <i class="fas fa-ranking-star" /> Ver Top de Compras
+        </button>
 
         <RoomCardFooter
           :variant-label="variantLabel"
@@ -393,6 +407,28 @@ function handleClick(event: MouseEvent) {
   backdrop-filter: blur(4px);
 }
 .rc__closed-label i { font-size: 9px; opacity: .7; }
+
+/* Botón "Ver Top de Compras" — discreto, no compite con el CTA principal
+   (comprar cartones = click en la card). stop-propagation en el handler
+   evita que abra el modal de compra al mismo tiempo. */
+.rc__top-buyers-btn {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  margin-top: 2px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: #8ea0c4;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .2px;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+.rc__top-buyers-btn i { font-size: 9px; color: #e0a020; }
+.rc__top-buyers-btn:hover {
+  background: rgba(255,187,32,.08);
+  border-color: rgba(255,187,32,.22);
+  color: #e0d0a0;
+}
 
 /* Ripple de feedback al hacer click — confirma la interacción antes de navegar */
 .rc__ripple {

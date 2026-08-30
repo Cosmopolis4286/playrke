@@ -112,4 +112,14 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
         array $relations,
         array $fields
     ): LengthAwarePaginator;
+
+    /**
+     * Top compradores de una sala por cantidad de cartones (prueba social,
+     * "Top de Compras" — ver GameRooms.vue). Agrega bingo_cards.creator_user_id,
+     * solo cartones con dueño real (creator_user_id no nulo — excluye lotes
+     * generados por el sistema/casa).
+     *
+     * @return \Illuminate\Support\Collection<int, array{user_id: string, first_name: ?string, username: ?string, avatar_url: ?string, cards_count: int}>
+     */
+    public function getTopBuyers(string $roomId, int $limit = 10): \Illuminate\Support\Collection;
 }

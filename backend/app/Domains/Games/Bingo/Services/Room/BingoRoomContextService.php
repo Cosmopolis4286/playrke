@@ -679,4 +679,24 @@ final class BingoRoomContextService
             return null;
         }
     }
+
+    /**
+     * Top 10 compradores de una sala por cantidad de cartones ("Top de
+     * Compras" del lobby de salas) — bajo demanda, no se carga junto con el
+     * listado completo de salas para no agregar una query pesada por sala.
+     *
+     * @return array<int, array{user_id: string, name: string, avatar_url: ?string, cards_count: int}>
+     */
+    public function topBuyers(string $roomId): array
+    {
+        return $this->bingoRooms->getTopBuyers($roomId)
+            ->map(fn (array $row) => [
+                'user_id'     => $row['user_id'],
+                'name'        => $row['first_name'] ?: ($row['username'] ?? 'Jugador'),
+                'avatar_url'  => $row['avatar_url'],
+                'cards_count' => $row['cards_count'],
+            ])
+            ->values()
+            ->all();
+    }
 }

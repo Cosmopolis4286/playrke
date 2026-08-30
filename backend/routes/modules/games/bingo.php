@@ -150,6 +150,7 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
     'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms', 'middleware' => ['throttle:bingo-player-buy']],
     'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],
     'player-card-price' => ['method' => 'get', 'uri' => '{room}/player-card-price', 'action' => 'playerCardPrice'],
+    'top-buyers'       => ['method' => 'get', 'uri' => '{room}/top-buyers', 'action' => 'topBuyers'],
     'verify-access'    => ['method' => 'post', 'uri' => '{room}/verify-access', 'action' => 'verifyAccess', 'middleware' => ['throttle:bingo-verify-access']],
 ]);
 

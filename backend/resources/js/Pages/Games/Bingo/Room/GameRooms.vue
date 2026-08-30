@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import "@/css/games/bingo/bingo-game-rooms.css";
 
+import { ref, computed } from "vue";
 import BingoGameRoomCard  from "@js/Components/games/bingo/Room/GameRooms/BingoGameRoomCard.vue";
 import BingoPurchaseModalWrapper from "@js/Components/games/bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue";
 import BingoRoomInfoModal from "@js/Components/games/bingo/Room/GameRooms/BingoRoomInfoModal.vue";
+import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTopBuyersModal.vue";
 import BingoRulesModal    from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
 import GameRoomsJoinByCodeModal from "@js/Components/games/bingo/Room/GameRooms/GameRoomsJoinByCodeModal.vue";
 import GameRoomsKpiHeader from "@js/Components/games/bingo/Room/GameRooms/GameRoomsKpiHeader.vue";
@@ -41,6 +43,19 @@ const {
   nextRoomUnixDate,
   totalActiveRooms,
 } = useGameRooms(props);
+
+// ── Modal "Ver Top de Compras" ──
+const topBuyersRoomId = ref<string | null>(null);
+const topBuyersRoomLabel = computed(() => {
+  const room = filteredRooms.value.find((r) => r.id === topBuyersRoomId.value);
+  return room?.uuid_code ?? null;
+});
+function openTopBuyers(roomId: string) {
+  topBuyersRoomId.value = roomId;
+}
+function closeTopBuyers() {
+  topBuyersRoomId.value = null;
+}
 </script>
 
 <template>
@@ -124,6 +139,7 @@ const {
             :countdown="getCountdown(room.id)"
             :index="index"
             @select="openRoomInfo"
+            @show-top-buyers="openTopBuyers"
           />
         </div>
       </div>
@@ -194,6 +210,13 @@ const {
     :redirecting="joinByCode.redirecting.value"
     @submit="joinByCode.submit"
     @close="joinByCode.close"
+  />
+
+  <!-- ══ Modal "Ver Top de Compras" ══ -->
+  <RoomTopBuyersModal
+    :room-id="topBuyersRoomId"
+    :room-label="topBuyersRoomLabel"
+    @close="closeTopBuyers"
   />
 </template>
 

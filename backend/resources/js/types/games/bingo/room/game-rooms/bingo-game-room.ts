@@ -98,6 +98,23 @@ export interface BingoGameRoom {
   readonly total_cards?: number
   /** Timestamp Unix (segundos) de creación de la sala — fallback de "abierta hace X" cuando no hay fecha/hora programada */
   readonly unix_created_at?: number | null
+  /** % de cartones vendidos sobre config.max_cards_to_start (solo si la sala tiene tope configurado) */
+  readonly cards_sold_pct?: number | null
+  /** Proyección del pozo si se vendieran todos los cartones (max_cards_to_start) al ritmo actual */
+  readonly prize_pool_projected?: number | null
+  /** % del pozo actual sobre la proyección al 100% de venta */
+  readonly prize_pool_pct?: number | null
+}
+
+/**
+ * Un comprador en el ranking "Top de Compras" de una sala — ver
+ * GET /bingo/game-rooms/{room}/top-buyers.
+ */
+export interface BingoGameRoomTopBuyer {
+  readonly user_id: string
+  readonly name: string
+  readonly avatar_url: string | null
+  readonly cards_count: number
 }
 
 /**
