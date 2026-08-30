@@ -57,6 +57,12 @@ return Application::configure(
         ]);
 
         /**
+         * Cabeceras de seguridad HTTP (X-Frame-Options, HSTS, etc.) en TODAS
+         * las respuestas, web y api — ver App\Http\Middleware\SecurityHeaders.
+         */
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
+        /**
          * Habilitar credenciales en CORS para permitir cookies cross-origin
          */
         $middleware->validateCsrfTokens(except: [

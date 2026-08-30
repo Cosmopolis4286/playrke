@@ -27,10 +27,20 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
+
+        // Turnstile solo entra en juego tras intentos fallidos previos (misma
+        // key que el lockout de abajo) — no se exige en el primer login
+        // legítimo, evita fricción para el caso común y solo protege contra
+        // fuerza bruta sostenida / credential stuffing.
+        if (RateLimiter::attempts($this->throttleKey()) >= 2) {
+            $rules['cf-turnstile-response'] = ['required', new \App\Rules\CloudflareTurnstile($this->ip())];
+        }
+
+        return $rules;
     }
 
     /**

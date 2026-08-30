@@ -14,7 +14,13 @@ export function useLogin() {
   const loading = ref(false)
   const isBusy = computed(() => loading.value)
 
-  const submit = async (): Promise<void> => {
+  // Turnstile solo se exige tras intentos fallidos previos (ver
+  // App\Http\Requests\Auth\LoginRequest::rules()) — este flag se activa
+  // cuando el backend responde 422 pidiendo 'cf-turnstile-response', y la
+  // vista reacciona mostrando el widget para el siguiente intento.
+  const requiresTurnstile = ref(false)
+
+  const submit = async (turnstileToken?: string): Promise<void> => {
     if (isBusy.value) return
 
     if (!form.login || !form.password) {
@@ -22,15 +28,29 @@ export function useLogin() {
       return
     }
 
+    if (requiresTurnstile.value && !turnstileToken) {
+      toast.warning('Completa la verificación de seguridad.')
+      return
+    }
+
     loading.value = true
 
     try {
       await getCsrfCookie()
-      await backendClient.post('login', { login: form.login, password: form.password })
+      await backendClient.post('login', {
+        login: form.login,
+        password: form.password,
+        ...(turnstileToken ? { 'cf-turnstile-response': turnstileToken } : {}),
+      })
       toast.success('¡Bienvenido! Redirigiendo...')
       window.location.replace('/dashboard')
     } catch (error: any) {
       const status = error?.response?.status
+      const errors = error?.response?.data?.errors
+
+      if (errors?.['cf-turnstile-response']) {
+        requiresTurnstile.value = true
+      }
 
       if (status === 422) {
         toast.error('Credenciales incorrectas. Verifica tu usuario y contraseña.')
@@ -44,5 +64,5 @@ export function useLogin() {
     }
   }
 
-  return { form, loading, isBusy, submit }
+  return { form, loading, isBusy, requiresTurnstile, submit }
 }

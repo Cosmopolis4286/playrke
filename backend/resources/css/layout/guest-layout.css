@@ -458,6 +458,15 @@ button { border: none; background: none; cursor: pointer; }
 }
 
 /* ======================================================
+   TURNSTILE — contenedor del widget de Cloudflare
+====================================================== */
+.auth-form__turnstile {
+    margin: 10px 0;
+    display: flex;
+    justify-content: center;
+}
+
+/* ======================================================
    SUBMIT — con shimmer al hover
 ====================================================== */
 .auth-form__submit {

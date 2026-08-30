@@ -1,15 +1,31 @@
 <script setup lang="ts">
+  import { ref, watch, nextTick } from 'vue'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
   import { useLogin } from '@js/composables/auth/useLogin'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
+  import { useTurnstile } from '@js/composables/common/useTurnstile'
   import DemoCredentials from '@js/Components/auth/DemoCredentials.vue'
   import LoadingOverlay from '@js/Components/games/Trivia/Shared/LoadingOverlay.vue'
 
   const props = defineProps<{ register: Boolean }>()
 
-  const { form, loading, isBusy, submit } = useLogin()
+  const { form, loading, isBusy, requiresTurnstile, submit } = useLogin()
   const { showPassword, togglePassword } = usePasswordToggle()
+  const { siteKey, token: turnstileToken, render: renderTurnstile, reset: resetTurnstile } = useTurnstile()
+
+  const turnstileContainer = ref<HTMLElement | null>(null)
+
+  watch(requiresTurnstile, async (needed) => {
+    if (needed) {
+      await nextTick()
+      if (turnstileContainer.value) renderTurnstile(turnstileContainer.value)
+    }
+  })
+
+  const onSubmit = () => submit(turnstileToken.value || undefined).finally(() => {
+    if (requiresTurnstile.value) resetTurnstile()
+  })
 
   const fillFromDemo = ({ login, password }: { login: string; password: string }) => {
     form.login    = login
@@ -22,7 +38,7 @@
     <template #tagline>Bienvenido de vuelta</template>
 
     <template #form-content>
-      <form novalidate @submit.prevent="submit">
+      <form novalidate @submit.prevent="onSubmit">
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-user" aria-hidden="true"></i>
           <input
@@ -58,7 +74,9 @@
           </button>
         </fieldset>
 
-        <button type="submit" class="auth-form__submit" :disabled="isBusy">
+        <div v-if="requiresTurnstile && siteKey" ref="turnstileContainer" class="auth-form__turnstile"></div>
+
+        <button type="submit" class="auth-form__submit" :disabled="isBusy || (requiresTurnstile && !turnstileToken)">
           <span class="auth-form__submit-text">Iniciar Sesión</span>
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>

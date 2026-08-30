@@ -57,6 +57,8 @@ class EnvValidator
     private static array $productionOnly = [
         'SESSION_SECURE_COOKIE' => ['required', 'in:true,false'],
         'LOG_LEVEL'             => ['required', 'in:debug,info,notice,warning,error,critical,alert,emergency'],
+        'TURNSTILE_SITE_KEY'    => ['required'],
+        'TURNSTILE_SECRET_KEY'  => ['required'],
     ];
 
     /**

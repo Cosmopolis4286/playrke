@@ -1,10 +1,12 @@
 <script setup lang="ts">
+  import { ref, onMounted, nextTick } from 'vue'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
   import AuthDropdown from '@js/Components/auth/AuthDropdown.vue'
   import { useRegisterForm } from '@js/composables/auth/useRegister'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
+  import { useTurnstile } from '@js/composables/common/useTurnstile'
 
   interface Country { id: number; name: string }
   const props = defineProps<{ countries: Country[] }>()
@@ -17,11 +19,20 @@
   const prefillPhone = initialParams.get('phone') ?? ''
   const prefillCountry = initialParams.get('country') ?? ''
 
-  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } = useRegisterForm({
+  const { form, errors, loading, isBusy, submit: submitForm, touched, submitted, markTouched } = useRegisterForm({
     phone: prefillPhone,
     country: prefillCountry,
   })
   const { showPassword, togglePassword } = usePasswordToggle()
+  const { siteKey, token: turnstileToken, render: renderTurnstile } = useTurnstile()
+
+  const turnstileContainer = ref<HTMLElement | null>(null)
+  const submit = () => submitForm(turnstileToken.value || undefined)
+
+  onMounted(async () => {
+    await nextTick()
+    if (turnstileContainer.value) renderTurnstile(turnstileContainer.value)
+  })
 
   const registerSlides: CarouselSlide[] = [
     {
@@ -195,7 +206,9 @@
           {{ errors.terms }}
         </p>
 
-        <button type="submit" class="auth-form__submit" :disabled="isBusy">
+        <div v-if="siteKey" ref="turnstileContainer" class="auth-form__turnstile"></div>
+
+        <button type="submit" class="auth-form__submit" :disabled="isBusy || (!!siteKey && !turnstileToken)">
           <span class="auth-form__submit-text">Registrarse</span>
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>

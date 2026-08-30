@@ -75,6 +75,7 @@ class RegisteredUserController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'terms' => ['accepted'],
+            'cf-turnstile-response' => ['required', new \App\Rules\CloudflareTurnstile($request->ip())],
         ]);
 
         $user = DB::transaction(function () use ($request) {

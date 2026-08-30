@@ -38,7 +38,7 @@ export function useRegisterForm(initialValues?: Partial<RegisterForm>) {
     touched[field] = true
   }
 
-  const submit = async () => {
+  const submit = async (turnstileToken?: string) => {
     submitted.value = true
     if (isBusy.value) return
 
@@ -48,10 +48,15 @@ export function useRegisterForm(initialValues?: Partial<RegisterForm>) {
       return
     }
 
+    if (!turnstileToken) {
+      toast.warning('Completa la verificación de seguridad.')
+      return
+    }
+
     loading.value = true
     try {
       await getCsrfCookie()
-      await backendClient.post('register', form)
+      await backendClient.post('register', { ...form, 'cf-turnstile-response': turnstileToken })
       toast.success('¡Cuenta creada! Redirigiendo...')
       window.location.replace('/dashboard')
     } catch (error: any) {
