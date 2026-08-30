@@ -59,6 +59,16 @@ defineEmits<{
             <p class="activity-kpi__value">{{ summary.active_players.monthly }}</p>
           </div>
         </div>
+        <div class="activity-kpi activity-kpi--conversion">
+          <div class="activity-kpi__icon"><i class="fas fa-user-plus"></i></div>
+          <div>
+            <p class="activity-kpi__label">Invitados → registrados</p>
+            <p class="activity-kpi__value">
+              {{ summary.external_player_conversion.converted }}/{{ summary.external_player_conversion.total_external_players }}
+              <small>({{ summary.external_player_conversion.conversion_rate }}%)</small>
+            </p>
+          </div>
+        </div>
       </div>
 
       <div class="activity-block">
@@ -136,22 +146,26 @@ defineEmits<{
 .activity-section__refresh--spin i { animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.activity-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
-@media (max-width: 600px) { .activity-kpis { grid-template-columns: 1fr; } }
+.activity-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+@media (max-width: 800px) { .activity-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .activity-kpis { grid-template-columns: 1fr; } }
 
 .activity-kpi { display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 1rem; border-radius: 10px; }
-.activity-kpi--daily   { background: rgba(37,99,235,.1); }
-.activity-kpi--weekly  { background: rgba(16,185,129,.1); }
-.activity-kpi--monthly { background: rgba(124,58,237,.1); }
+.activity-kpi--daily      { background: rgba(37,99,235,.1); }
+.activity-kpi--weekly     { background: rgba(16,185,129,.1); }
+.activity-kpi--monthly    { background: rgba(124,58,237,.1); }
+.activity-kpi--conversion { background: rgba(247,151,30,.1); }
 
 .activity-kpi__icon {
   width: 38px; height: 38px; border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.9rem; flex-shrink: 0;
 }
-.activity-kpi--daily   .activity-kpi__icon { background: rgba(37,99,235,.2);  color: #60a5fa; }
-.activity-kpi--weekly  .activity-kpi__icon { background: rgba(16,185,129,.2); color: #34d399; }
-.activity-kpi--monthly .activity-kpi__icon { background: rgba(124,58,237,.2); color: #a78bfa; }
+.activity-kpi--daily      .activity-kpi__icon { background: rgba(37,99,235,.2);  color: #60a5fa; }
+.activity-kpi--weekly     .activity-kpi__icon { background: rgba(16,185,129,.2); color: #34d399; }
+.activity-kpi--monthly    .activity-kpi__icon { background: rgba(124,58,237,.2); color: #a78bfa; }
+.activity-kpi--conversion .activity-kpi__icon { background: rgba(247,151,30,.2); color: #fbbf24; }
+.activity-kpi--conversion .activity-kpi__value small { font-size: 0.68rem; font-weight: 500; color: var(--ds-text-2); }
 
 .activity-kpi__label { font-size: 0.73rem; color: var(--ds-text-2); margin: 0 0 2px; font-weight: 500; }
 .activity-kpi__value { font-size: 1.05rem; font-weight: 700; color: var(--ds-text); margin: 0; }

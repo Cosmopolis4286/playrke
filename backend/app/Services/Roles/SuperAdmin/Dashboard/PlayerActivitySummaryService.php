@@ -4,6 +4,7 @@ namespace App\Services\Roles\SuperAdmin\Dashboard;
 
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\GameParticipation;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,27 @@ final class PlayerActivitySummaryService
         return [
             'active_players'          => $this->activePlayers(),
             'recurring_by_seller'     => $this->recurringBySeller(),
+            'external_player_conversion' => $this->externalPlayerConversion(),
+        ];
+    }
+
+    /**
+     * Funnel jugador externo (comprador sin cuenta) → registrado (ver
+     * progreso/estrategia-producto-plan.md, Fase 5). converted_user_id no
+     * nulo = ya se convirtió, sea por auto-vinculación al registrarse
+     * (RegisteredUserController::linkExternalPlayerHistory()) o por acción
+     * manual de un admin (ExternalPlayerAdminService::convertToUser()) —
+     * esta métrica no distingue el origen, solo mide el resultado.
+     */
+    private function externalPlayerConversion(): array
+    {
+        $total = ExternalPlayer::count();
+        $converted = ExternalPlayer::whereNotNull('converted_user_id')->count();
+
+        return [
+            'total_external_players' => $total,
+            'converted'              => $converted,
+            'conversion_rate'        => $total > 0 ? round(($converted / $total) * 100, 1) : 0.0,
         ];
     }
 

@@ -190,6 +190,7 @@ class UserLevelService
             'game_played' => 25,
             'game_won' => 100,
             'referral_signup' => 500,
+            'external_player_conversion' => 300,
             'profile_completed' => 50,
             'first_game' => 100,
             'streak_7_days' => 200,

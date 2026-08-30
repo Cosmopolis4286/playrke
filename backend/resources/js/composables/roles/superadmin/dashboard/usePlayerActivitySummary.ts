@@ -15,9 +15,16 @@ export interface RecurringBySeller {
   recurring_rate: number
 }
 
+export interface ExternalPlayerConversion {
+  total_external_players: number
+  converted: number
+  conversion_rate: number
+}
+
 export interface PlayerActivitySummary {
   active_players: ActivePlayers
   recurring_by_seller: RecurringBySeller[]
+  external_player_conversion: ExternalPlayerConversion
 }
 
 /**

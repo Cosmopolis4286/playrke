@@ -187,6 +187,12 @@ class RegisteredUserController extends Controller
                 $externalPlayer->update(['converted_user_id' => $user->id]);
             }
 
+            // Incentivo de conversión del funnel jugador externo → registrado
+            // (progreso/estrategia-producto-plan.md, Fase 5): XP al propio
+            // usuario nuevo, no dinero — evita afectar la economía real.
+            $xp = app(UserLevelService::class)->calculateXpReward('external_player_conversion');
+            app(UserLevelService::class)->addXpToUser($user, $xp, 'Historial de invitado vinculado al registrarte');
+
             Log::info('[RegisteredUserController] Historial de jugador externo vinculado al registrarse.', [
                 'user_id' => (string) $user->id,
                 'external_player_ids' => $matches->pluck('id')->map(fn ($id) => (string) $id)->all(),
