@@ -64,12 +64,16 @@ class SellerRoomLimits extends Pivot
      *
      * @param string $game Nombre del juego
      * @param string $sellerId ID del vendedor
-     * @param string $roomId ID de la sala
+     * @param string|null $roomId ID de la sala (sin sala, no hay límite específico que buscar)
      * @param string $field Campo a obtener
      * @return mixed
      */
-    public static function getGameRoomValueBySeller(string $game, string $sellerId, string $roomId, string $field)
+    public static function getGameRoomValueBySeller(string $game, string $sellerId, ?string $roomId, string $field)
     {
+        if (!$roomId) {
+            return null;
+        }
+
         return static::where('game_id', $game)
             ->where('seller_id', $sellerId)
             ->where('room_id', $roomId)
