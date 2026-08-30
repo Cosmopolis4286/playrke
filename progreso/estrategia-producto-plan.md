@@ -290,11 +290,36 @@ correctamente en el target (no sigue subiendo más allá de 3/3). Endpoint HTTP 
 probado con status 200 y payload correcto. `vue-tsc --noEmit` sin errores. Datos de
 prueba limpiados de la BD tras validar.
 
-### Fase 7 — Ranking de vendedores + meta simple 🔴
-`Seller.commission` es hoy un decimal fijo, sin ranking ni meta.
+### Fase 7 — Ranking de vendedores + meta simple 🔴 ✅ Hecho
+`Seller.commission` era hasta ahora un decimal fijo, sin ranking ni meta — no existía
+ningún mecanismo de visibilidad de desempeño entre vendedores.
 
-1. Vista de ranking (volumen mensual) sobre datos ya agregados en Fase 2.
-2. Meta simple, sin comisión progresiva todavía (eso es Fase 10, bloqueada).
+**Implementado**:
+1. `SellerRankingService` (`app/Services/Roles/Seller/`) — ranking mensual por
+   comisión generada, misma fuente de datos que ya usa `SellerDashboardContextService`
+   en producción (`BingoCardLot` agrupado por `seller_user_id`, sin filtrar por
+   `status` para que el número coincida con el que cada vendedor ya ve en su propio
+   dashboard). Meta fija simple (`$50` de comisión mensual, constante — no
+   configurable por vendedor todavía, eso requeriría datos reales para calibrar).
+2. `getMonthlyRanking()` (lista completa, cacheada 90s) para el dashboard SuperAdmin;
+   `getSellerStanding($userId)` (solo la posición propia) para que el vendedor vea
+   "cómo voy" sin exponerle la lista completa de los demás.
+3. Endpoint `GET /superadmin/seller-ranking` + sección nueva en el dashboard
+   SuperAdmin (tabla con medallas 🥇🥈🥉 para el top 3).
+4. `SellerDashboardContextDTO`/`SellerDashboardContextService` extendidos con el
+   campo `ranking` — el propio vendedor ve su posición directamente en su dashboard
+   ya existente (panel nuevo "Ranking del mes", sin endpoint HTTP adicional, viene en
+   la carga inicial de Inertia como el resto del contexto).
+
+**Validado end-to-end vía `artisan tinker`** (tras un par de reintentos por
+indisponibilidad intermitente de MySQL, misma contención con la sesión concurrente ya
+documentada antes): `SellerDashboardContextService::dashboardContext()` resuelve
+completo con el campo `ranking` nuevo (`null` correctamente para un vendedor sin
+ventas este mes); endpoint `sellerRanking()` responde 200 con el shape esperado. La
+agregación en sí (`SUM()`/`groupBy` sobre `BingoCardLot`) no se pudo probar con datos
+sintéticos — mismo bloqueo que Fases 2/3/6 (FK real a `bingo_rooms`, vacía en dev) —
+validada por revisión de código, reutiliza el patrón ya en producción de
+`SellerDashboardContextService::buildStats()`.
 
 ### Fase 8 — Puente XP Bingo → Trivia 🔴
 1. Incentivo de XP al primer intento de Trivia tras haber jugado Bingo — banner o
@@ -349,7 +374,7 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
 | Fase 4 — Lobby/Opportunity Feed | 🔴 | ✅ Hecho | Página nueva /opportunities, OpportunityFeedService combina Bingo+Trivia |
 | Fase 5 — Funnel externo→registrado | 🔴 | ✅ Hecho | Auto-vinculación por teléfono + XP; corregido bug crítico de registro/reset roto en el camino |
 | Fase 6 — Misiones simples | 🔴 | ✅ Hecho | daily_missions/user_daily_mission_progress nuevo (Achievement no reutilizable) |
-| Fase 7 — Ranking de vendedores | 🔴 | Pendiente | Depende de Fase 2 |
+| Fase 7 — Ranking de vendedores | 🔴 | ✅ Hecho | SellerRankingService; visible en dashboard SuperAdmin y en el propio dashboard del vendedor |
 | Fase 8 — Puente XP Bingo→Trivia | 🔴 | Pendiente | |
 | Fase 9 — Simulación económica Cargas | 🟡 | Pendiente | En paralelo, no bloquea |
 | Fase 10 — Comisión progresiva vendedores | 🟢 | Bloqueada | Depende de Fase 7 |
@@ -430,3 +455,55 @@ Bloqueada hasta tener el MVP de Fase 11 probado con usuarios reales.
   tab nuevo en el perfil del jugador. Probado end-to-end con múltiples partidas
   simuladas, confirmando progreso, completado, no-doble-otorgamiento de XP, y tope
   correcto en el target.
+
+- **2026-08-30**: extensión de Fase 6 a pedido explícito del usuario — visibilidad de
+  misiones fuera del tab dedicado, y mejoras generales a `/profile`.
+  - **Notificaciones**: tipo `MISSION_COMPLETED` agregado al catálogo de
+    `Notification` (color/ícono propios) + `NotificationService::createMissionCompletedNotification()`,
+    llamado desde `DailyMissionService` (fuera de la transacción de progreso/XP,
+    mismo criterio que el resto del proyecto — un fallo notificando no revierte lo ya
+    guardado). `useLevelUpNotifications.ts` extendido para reaccionar también a
+    `MISSION_COMPLETED` (mismo canal privado ya usado para nivel/logros, sin canal
+    nuevo).
+  - **Dashboard del jugador**: sección nueva "Misiones de hoy" reutilizando
+    `DailyMissionsTab.vue` (ya existía, componente autocontenido) +
+    `useDailyMissions.ts` nuevo, mismo patrón que `useGamification`.
+  - **Indicador discreto en vez de notificación push diaria** (decisión explícita,
+    consultada con el usuario): las misiones se resetean cada día, así que empujar
+    una notificación de "misiones nuevas disponibles" se volvería ruido rápido. Se
+    optó por un badge de conteo en el menú de usuario (`NavbarComposer` extendido con
+    `navMissionsPending`, calculado con `DailyMissionService::todayStatus()`) —
+    visible siempre, sin interrumpir.
+  - **Mejoras a `/profile` en general** (3 aprobadas explícitamente de una lista de
+    candidatas):
+    1. Reordenados los tabs por frecuencia de uso real (Personal → Misiones →
+       Estadísticas → Referidos → Preferencias → Seguridad; antes Misiones estaba
+       después de Estadísticas). Badge de conteo de misiones pendientes en el tab
+       (color ámbar, distinto del rojo de "atención requerida" que ya usa Seguridad).
+    2. Resumen visual ampliado en `ProfileHeader.vue` (ya mostraba
+       Partidas/Victorias/Nivel/Logros sin tener que entrar a ningún tab): se
+       agregaron Racha (con 🔥 si hay racha activa) y Misiones (completadas/total)
+       a esa misma fila.
+    3. Racha de login destacada con mensaje motivacional condicional en
+       `GameStatsTab.vue` ("Llevas N días seguidos, ¡entra mañana para no
+       perderla!" / "Entra hoy para empezar una racha").
+    4. Lectura de `#hash` de URL al montar `/profile` (antes los links a
+       `/profile#stats`/`#missions` que ya generaban las notificaciones de
+       nivel/logro/misión quedaban inertes — la página siempre abría en el tab
+       "Personal" sin importar el link).
+  - **Validado**: `vue-tsc --noEmit` sin errores (dos corridas, tras cada ronda de
+    cambios). MySQL estuvo intermitentemente inaccesible por contención con la sesión
+    concurrente trabajando en el mismo repositorio; **confirmado end-to-end contra BD
+    real apenas la conexión se estabilizó**: `NotificationService::createMissionCompletedNotification()`
+    crea la notificación con tipo/color/ícono correctos, y el cálculo de
+    `navMissionsPending` (badge del navbar) devuelve el conteo real esperado.
+
+- **2026-08-30**: Fase 7 (Ranking de vendedores + meta simple) implementada y
+  validada. `SellerRankingService` nuevo, reutilizando exactamente la misma fuente de
+  datos que el dashboard individual del vendedor ya en producción
+  (`SellerDashboardContextService`), para que ambos números siempre coincidan. Visible
+  en dos lugares con el mismo servicio: ranking completo en el dashboard SuperAdmin
+  (endpoint nuevo), y "mi posición" directamente en el dashboard propio del vendedor
+  (sin endpoint adicional, extendiendo el DTO ya existente). Meta mensual fija ($50 de
+  comisión) — deliberadamente no configurable por vendedor todavía, para no fijar un
+  umbral sin datos reales que lo respalden.
