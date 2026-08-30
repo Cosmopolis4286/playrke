@@ -7,9 +7,11 @@ namespace App\Services\Games;
 use App\Models\DailyMission;
 use App\Models\User;
 use App\Models\UserDailyMissionProgress;
+use App\Services\NotificationService;
 use App\Services\User\UserLevelService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Misiones diarias — ver progreso/estrategia-producto-plan.md, Fase 6.
@@ -24,6 +26,7 @@ final class DailyMissionService
 {
     public function __construct(
         private readonly UserLevelService $userLevelService,
+        private readonly NotificationService $notificationService,
     ) {
     }
 
@@ -55,7 +58,7 @@ final class DailyMissionService
 
     private function incrementMission(User $user, DailyMission $mission, string $today): void
     {
-        DB::transaction(function () use ($user, $mission, $today) {
+        $justCompleted = DB::transaction(function () use ($user, $mission, $today) {
             $progressRow = UserDailyMissionProgress::where('user_id', $user->id)
                 ->where('daily_mission_id', $mission->id)
                 ->where('date', $today)
@@ -72,7 +75,7 @@ final class DailyMissionService
             }
 
             if ($progressRow->isCompleted()) {
-                return; // ya se completó hoy, no sigue sumando
+                return false; // ya se completó hoy, no sigue sumando
             }
 
             $newProgress = $progressRow->progress + 1;
@@ -90,7 +93,29 @@ final class DailyMissionService
                     "Misión diaria completada: {$mission->name}",
                 );
             }
+
+            return $justCompleted;
         });
+
+        // Notificación FUERA de la transacción (mismo criterio que
+        // RegisteredUserController): un fallo notificando no debe revertir
+        // el progreso/XP ya guardado.
+        if ($justCompleted) {
+            try {
+                $this->notificationService->createMissionCompletedNotification(
+                    (string) $user->id,
+                    $mission->code,
+                    $mission->name,
+                    $mission->xp_reward,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('DailyMissionService: fallo al notificar misión completada.', [
+                    'user_id'      => $user->id,
+                    'mission_code' => $mission->code,
+                    'error'        => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

@@ -202,6 +202,13 @@
                         <span class="nb-menu-icon nb-icon-profile"><i class="fas fa-user"></i></span>
                         <span>Mi Perfil</span>
                     </a>
+                    <a href="{{ route('profile.index') }}#missions" class="nb-menu-item">
+                        <span class="nb-menu-icon nb-icon-missions"><i class="fas fa-bullseye"></i></span>
+                        <span>Misiones</span>
+                        @if(($navMissionsPending ?? 0) > 0)
+                            <span class="nb-menu-inline-badge">{{ $navMissionsPending }}</span>
+                        @endif
+                    </a>
                     <a href="{{ route('wallet.index') }}" class="nb-menu-item">
                         <span class="nb-menu-icon nb-icon-wallet"><i class="fas fa-wallet"></i></span>
                         <span>Mi Billetera</span>

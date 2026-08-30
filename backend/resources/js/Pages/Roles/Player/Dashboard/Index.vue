@@ -19,6 +19,7 @@
   import DashboardTriviaActivityList from '@/js/Components/Common/Dashboard/DashboardTriviaActivityList.vue'
   import DashboardKycStatusPanel from '@/js/Components/Common/Dashboard/DashboardKycStatusPanel.vue'
   import DashboardGamificationPanel from '@/js/Components/Common/Dashboard/DashboardGamificationPanel.vue'
+  import DailyMissionsTab       from '@/js/Components/Profile/DailyMissionsTab.vue'
   import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -30,6 +31,7 @@
   import { useDashboardMountLoading }    from '@/js/composables/common/dashboard/useDashboardMountLoading'
   import { useDashboardFormatters }      from '@/js/composables/common/dashboard/useDashboardFormatters'
   import { useGamification }             from '@/js/composables/roles/player/dashboard/useGamification'
+  import { useDailyMissions }            from '@/js/composables/roles/player/dashboard/useDailyMissions'
   import { onMounted }                   from 'vue'
 
   // ==========================================================================
@@ -54,7 +56,11 @@
   const { formatUsd } = useDashboardFormatters()
 
   const { levelInfo, achievementStats, loading: gamificationLoading, error: gamificationError, loadGamification } = useGamification()
-  onMounted(() => loadGamification())
+  const { missions: dailyMissions, loading: dailyMissionsLoading, loadDailyMissions } = useDailyMissions()
+  onMounted(() => {
+    loadGamification()
+    loadDailyMissions()
+  })
 
   // ==========================================================================
   // Accesos rápidos
@@ -209,6 +215,15 @@
           :loading="gamificationLoading"
           :error="gamificationError"
         />
+      </DashboardSection>
+
+      <!-- Misiones diarias -->
+      <DashboardSection
+        title="Misiones de hoy"
+        icon="fas fa-bullseye"
+        subtitle="Complétalas antes de medianoche para ganar XP"
+      >
+        <DailyMissionsTab :missions="dailyMissions" :loading="dailyMissionsLoading" />
       </DashboardSection>
 
       <!-- Actividad Trivia -->

@@ -230,6 +230,31 @@ final class NotificationService
     }
 
     /**
+     * Crear notificación de misión diaria completada.
+     */
+    public function createMissionCompletedNotification(
+        string $userId,
+        string $missionCode,
+        string $missionName,
+        int $xpReward,
+    ): Notification {
+        return $this->create(
+            userId: $userId,
+            type: 'MISSION_COMPLETED',
+            title: '🎯 ¡Misión Completada!',
+            message: $xpReward > 0
+                ? "Completaste \"{$missionName}\" (+{$xpReward} XP)."
+                : "Completaste \"{$missionName}\".",
+            data: [
+                'mission_code' => $missionCode,
+                'mission_name' => $missionName,
+                'xp_reward'    => $xpReward,
+                'url'          => '/profile#missions',
+            ]
+        );
+    }
+
+    /**
      * Obtener notificaciones del usuario autenticado
      *
      * @param array $filters

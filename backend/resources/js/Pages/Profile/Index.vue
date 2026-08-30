@@ -73,7 +73,17 @@ watch(activeTab, (tab) => {
     if (tab === 'referrals' && !referralsLoaded.value) loadReferrals()
     if (tab === 'missions' && !dailyMissionsLoaded.value) loadDailyMissions()
 })
+// Tabs válidos que un link externo puede pedir vía #hash (ej. notificaciones
+// de nivel/logro/misión: /profile#stats, /profile#missions — antes el hash
+// quedaba inerte, la página siempre abría en 'personal' sin importar el link).
+const VALID_TABS = ['personal', 'stats', 'missions', 'referrals', 'preferences', 'security'] as const
+
 onMounted(() => {
+    const hashTab = window.location.hash.replace('#', '')
+    if ((VALID_TABS as readonly string[]).includes(hashTab)) {
+        activeTab.value = hashTab as typeof activeTab.value
+    }
+
     if (props.tos.needs_acceptance) tosModalOpen.value = true
 })
 </script>

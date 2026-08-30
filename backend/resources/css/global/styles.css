@@ -1318,9 +1318,27 @@ button.nb-icon-btn {
   font-size: 12px;
   flex-shrink: 0;
 }
-.nb-icon-profile { background: rgba(102,126,234,.12); color: #667eea; }
-.nb-icon-wallet  { background: rgba(16,185,129,.12);  color: #10b981; }
-.nb-icon-theme   { background: rgba(245,158,11,.12);  color: #f59e0b; }
+.nb-icon-profile  { background: rgba(102,126,234,.12); color: #667eea; }
+.nb-icon-missions { background: rgba(17,153,142,.12);  color: #11998e; }
+.nb-icon-wallet   { background: rgba(16,185,129,.12);  color: #10b981; }
+.nb-icon-theme    { background: rgba(245,158,11,.12);  color: #f59e0b; }
+
+/* ── Navbar: badge inline en item de menú (misiones pendientes) ─── */
+.nb-menu-inline-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+}
 /* Botón de tema: reset de estilos de <button> para verse igual a los <a> */
 .nb-menu-item--btn {
   border: none;

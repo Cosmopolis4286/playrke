@@ -64,6 +64,7 @@ class Notification extends Model
         'PROMOTION'             => 'Promoción',
         'LEVEL_UP'              => 'Subida de Nivel',
         'ACHIEVEMENT_UNLOCKED'  => 'Logro Desbloqueado',
+        'MISSION_COMPLETED'     => 'Misión Diaria Completada',
     ];
 
     /**
@@ -193,6 +194,7 @@ class Notification extends Model
             'PROMOTION' => '#6f42c1', // púrpura
             'LEVEL_UP' => '#667eea', // azul-violeta
             'ACHIEVEMENT_UNLOCKED' => '#f59e0b', // dorado
+            'MISSION_COMPLETED' => '#11998e', // verde-azulado
             default => '#6c757d', // gris
         };
     }
@@ -212,6 +214,7 @@ class Notification extends Model
             'PROMOTION' => '🎁',
             'LEVEL_UP' => '⬆️',
             'ACHIEVEMENT_UNLOCKED' => '🏆',
+            'MISSION_COMPLETED' => '🎯',
             default => '📢',
         };
     }
