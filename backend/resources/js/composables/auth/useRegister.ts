@@ -7,9 +7,10 @@ interface RegisterForm {
   email: string
   username: string
   country: string | number
+  phone: string
   password: string
   password_confirmation: string
-  politics: boolean
+  terms: boolean
 }
 
 export function useRegisterForm(initialValues?: Partial<RegisterForm>) {
@@ -19,9 +20,10 @@ export function useRegisterForm(initialValues?: Partial<RegisterForm>) {
     email: '',
     username: '',
     country: '',
+    phone: '',
     password: '',
     password_confirmation: '',
-    politics: false,
+    terms: false,
     ...initialValues,
   })
 
@@ -49,7 +51,7 @@ export function useRegisterForm(initialValues?: Partial<RegisterForm>) {
     loading.value = true
     try {
       await getCsrfCookie()
-      await backendClient.post('/api/auth/register', form)
+      await backendClient.post('register', form)
       toast.success('¡Cuenta creada! Redirigiendo...')
       window.location.replace('/dashboard')
     } catch (error: any) {

@@ -70,7 +70,7 @@ class RegistrationTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'country' => $this->country->id,
-            'politicas' => true,
+            'terms' => true,
         ]);
 
         $user = User::where('email', 'test@example.com')->firstOrFail();
@@ -87,7 +87,7 @@ class RegistrationTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'country' => $this->country->id,
-            'politicas' => true,
+            'terms' => true,
         ]);
 
         $user = User::where('email', 'test@example.com')->firstOrFail();
@@ -103,7 +103,7 @@ class RegistrationTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'country' => $this->country->id,
-            'politicas' => true,
+            'terms' => true,
         ]);
 
         $user = User::where('email', 'test@example.com')->firstOrFail();

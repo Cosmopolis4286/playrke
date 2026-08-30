@@ -59,7 +59,7 @@ class AuthTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'country' => $this->country->id,
-            'politicas' => true,
+            'terms' => true,
         ]);
 
         $response->assertRedirect(route('dashboard'));
@@ -85,7 +85,7 @@ class AuthTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'country' => $this->country->id,
-            'politicas' => true,
+            'terms' => true,
         ]);
 
         $response->assertSessionHasErrors(['email']);
@@ -176,7 +176,7 @@ class AuthTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'differentpassword',
             'country' => $this->country->id,
-            'politicas' => true,
+            'terms' => true,
         ]);
 
         $response->assertSessionHasErrors(['password']);

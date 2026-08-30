@@ -6,19 +6,21 @@ use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\SettingRepositoryInterface;
 use App\Events\Admin\UserRegistered as UserRegisteredBroadcast;
 use App\Http\Controllers\Controller;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Repositories\CountryRepository;
 use App\Repositories\UserRepository;
 use App\Services\User\UserLevelService;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,29 +57,27 @@ class RegisteredUserController extends Controller
     /**
      * Handle an incoming registration request.
      *
+     * Responde JSON (no redirect) — el formulario real (Auth/Register.vue vía
+     * useRegisterForm) hace un POST por axios y espera JSON, mismo patrón que
+     * AuthenticatedSessionController::store() (login). Un RedirectResponse
+     * aquí rompía el registro en silencio: axios seguía el redirect y
+     * recibía HTML donde esperaba JSON — bug crítico bloqueante corregido
+     * como parte de progreso/estrategia-producto-plan.md, Fase 5.
+     *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse
     {
-        try {
-            $request->validate([
-                'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-                'username' => ['required', 'string', 'max:255', 'unique:users,username'],
-                'country' => ['required', 'numeric', 'exists:countries,id'],
-                'password' => ['required', 'confirmed', Rules\Password::defaults()],
-                'politicas' => ['accepted']
-            ]);
-        } catch (ValidationException $e) {
-            // Obtener todos los errores de validación
-            $errors = $e->errors();
+        $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'country' => ['required', 'numeric', 'exists:countries,id'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'terms' => ['accepted'],
+        ]);
 
-            // O puedes redirigir de vuelta con errores
-            return back()->withErrors($errors)->withInput();
-        }
-
-        DB::beginTransaction();
-
-        try {
+        $user = DB::transaction(function () use ($request) {
             $userRepository = app(UserRepository::class);
 
             // Código de referido: cookie 'referral' (seteada por
@@ -92,11 +92,11 @@ class RegisteredUserController extends Controller
                 $referredByUserId = $referrer?->id;
             }
 
-            // Código para crear el usuario y otras operaciones
             $user = User::create([
                 'email' => $request->email,
                 'username' => $request->username,
                 'country_id' => $request->country,
+                'phone_number' => $request->phone,
                 'password' => Hash::make($request->password),
                 'referral_code' => $userRepository->generateUniqueReferralCode(),
                 'referred_by_user_id' => $referredByUserId,
@@ -116,46 +116,85 @@ class RegisteredUserController extends Controller
                 'status' => 'ACTIVE',
             ]);
 
-            DB::commit();
+            return $user;
+        });
 
-            // XP al referente FUERA de la transacción del registro: si el
-            // otorgamiento de XP fallara, no debe revertir el registro del
-            // nuevo usuario — mismo criterio que GameCompletionService, que
-            // envuelve la evaluación de logros en try/catch para no revertir
-            // resultado ya guardado.
-            if ($referredByUserId) {
-                try {
-                    $referrer = User::find($referredByUserId);
-                    if ($referrer) {
-                        $xp = app(UserLevelService::class)->calculateXpReward('referral_signup');
-                        app(UserLevelService::class)->addXpToUser($referrer, $xp, "Referido registrado: {$user->username}");
-                    }
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('[RegisteredUserController] No se pudo otorgar XP de referido: ' . $e->getMessage(), [
-                        'referrer_id' => $referredByUserId,
-                        'new_user_id' => (string) $user->id,
-                    ]);
+        // XP al referente y vinculación de ExternalPlayer FUERA de la
+        // transacción del registro: si cualquiera de los dos fallara, no
+        // debe revertir el registro del usuario ya creado — mismo criterio
+        // que GameCompletionService (evaluar logros en try/catch sin
+        // revertir el resultado ya guardado).
+        $referredByUserId = $user->referred_by_user_id;
+        if ($referredByUserId) {
+            try {
+                $referrer = User::find($referredByUserId);
+                if ($referrer) {
+                    $xp = app(UserLevelService::class)->calculateXpReward('referral_signup');
+                    app(UserLevelService::class)->addXpToUser($referrer, $xp, "Referido registrado: {$user->username}");
                 }
+            } catch (\Throwable $e) {
+                Log::warning('[RegisteredUserController] No se pudo otorgar XP de referido: ' . $e->getMessage(), [
+                    'referrer_id' => $referredByUserId,
+                    'new_user_id' => (string) $user->id,
+                ]);
+            }
+        }
+
+        if ($request->filled('phone')) {
+            $this->linkExternalPlayerHistory($user, $request->phone, $request->country);
+        }
+
+        event(new Registered($user));
+
+        broadcast(new UserRegisteredBroadcast(
+            userId: (string) $user->id,
+            username: $user->username,
+            email: $user->email,
+            roleName: 'player',
+            createdAt: $user->created_at->toISOString(),
+        ));
+
+        Auth::login($user);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Vincula automáticamente el historial de ExternalPlayer (comprador sin
+     * cuenta, captado por un vendedor — ver
+     * App\Models\Roles\Player\External\ExternalPlayer) al usuario recién
+     * registrado, cuando el teléfono+país coincide con uno o más registros
+     * sin convertir todavía. Un mismo jugador puede tener varias filas
+     * ExternalPlayer (una por sala/vendedor donde jugó como invitado) — se
+     * vinculan todas las que compartan teléfono+país, replicando lo que
+     * hace ExternalPlayerAdminService::convertToUser() pero disparado por
+     * el propio jugador en vez de un admin, y sin generar contraseña
+     * temporal (el usuario ya se registró con la suya).
+     */
+    private function linkExternalPlayerHistory(User $user, string $phone, string $countryId): void
+    {
+        try {
+            $matches = ExternalPlayer::where('phone', $phone)
+                ->where('country_id', $countryId)
+                ->whereNull('converted_user_id')
+                ->get();
+
+            if ($matches->isEmpty()) {
+                return;
             }
 
-            event(new Registered($user));
+            foreach ($matches as $externalPlayer) {
+                $externalPlayer->update(['converted_user_id' => $user->id]);
+            }
 
-            broadcast(new UserRegisteredBroadcast(
-                userId: (string) $user->id,
-                username: $user->username,
-                email: $user->email,
-                roleName: 'player',
-                createdAt: $user->created_at->toISOString(),
-            ));
-
-            Auth::login($user);
-
-            return redirect()->intended(route('dashboard'));
-        } catch (\Exception $e) {
-            // Revertir la transacción en caso de error
-            DB::rollBack();
-            // Lanzar nuevamente la excepción para manejarla a nivel superior si es necesario
-            throw $e;
+            Log::info('[RegisteredUserController] Historial de jugador externo vinculado al registrarse.', [
+                'user_id' => (string) $user->id,
+                'external_player_ids' => $matches->pluck('id')->map(fn ($id) => (string) $id)->all(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[RegisteredUserController] No se pudo vincular historial de jugador externo: ' . $e->getMessage(), [
+                'user_id' => (string) $user->id,
+            ]);
         }
     }
 }

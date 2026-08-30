@@ -96,6 +96,21 @@
           {{ errors.country }}
         </p>
 
+        <!-- Teléfono (opcional) -->
+        <fieldset class="auth-form__field">
+          <i class="auth-form__icon fa-solid fa-phone" aria-hidden="true"></i>
+          <input
+            v-model.trim="form.phone"
+            type="tel"
+            class="auth-form__input"
+            placeholder="Teléfono (opcional)"
+            aria-label="Teléfono, opcional"
+            maxlength="20"
+            :disabled="isBusy"
+            @input="markTouched('phone')"
+          />
+        </fieldset>
+
         <!-- Contraseña -->
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
@@ -151,22 +166,22 @@
         <!-- Términos -->
         <div class="auth-form__checkbox">
           <input
-            id="politics"
+            id="terms"
             type="checkbox"
-            v-model="form.politics"
+            v-model="form.terms"
             required
             :disabled="isBusy"
-            @change="markTouched('politics')"
+            @change="markTouched('terms')"
           />
-          <label for="politics" class="auth-form__checkbox-text">
+          <label for="terms" class="auth-form__checkbox-text">
             Acepto los
             <a href="/info/terms" target="_blank" class="auth-form__link">Términos y Condiciones</a>
             y la
             <a href="/info/privacy" target="_blank" class="auth-form__link">Política de Privacidad</a>
           </label>
         </div>
-        <p v-if="errors.politics && (submitted || touched.politics)" class="auth-form__error">
-          {{ errors.politics }}
+        <p v-if="errors.terms && (submitted || touched.terms)" class="auth-form__error">
+          {{ errors.terms }}
         </p>
 
         <button type="submit" class="auth-form__submit" :disabled="isBusy">

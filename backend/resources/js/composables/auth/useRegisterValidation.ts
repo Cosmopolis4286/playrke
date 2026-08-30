@@ -20,6 +20,7 @@ export function useRegisterValidation(form: Record<string, any>) {
       .required('El nombre de usuario es obligatorio')
       .min(3, 'Debe tener al menos 3 caracteres'),
     country: yup.string().required('Debe seleccionar un país'),
+    phone: yup.string().optional(),
     password: yup
       .string()
       .required('La contraseña es obligatoria')
@@ -32,7 +33,7 @@ export function useRegisterValidation(form: Record<string, any>) {
       .string()
       .required('Debe repetir la contraseña')
       .oneOf([yup.ref('password')], 'Las contraseñas no coinciden'),
-    politics: yup.bool().oneOf([true], 'Debe aceptar los términos y condiciones')
+    terms: yup.bool().oneOf([true], 'Debe aceptar los términos y condiciones')
   })
 
   /**
