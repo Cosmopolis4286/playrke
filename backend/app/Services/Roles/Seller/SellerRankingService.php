@@ -38,6 +38,10 @@ final class SellerRankingService
      */
     private const MONTHLY_GOAL_COMMISSION = 50.0;
 
+    public function __construct(
+        private readonly SellerCommissionTierService $commissionTierService = new SellerCommissionTierService(),
+    ) {}
+
     public function getMonthlyRanking(): array
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => $this->buildRanking());
@@ -58,7 +62,12 @@ final class SellerRankingService
             return null;
         }
 
-        return array_merge($row, [
+        $tierData = [];
+        if ($this->commissionTierService->isEnabled()) {
+            $tierData = ['commission_tier' => $this->commissionTierService->tierProgress((float) $row['sale_amount'])];
+        }
+
+        return array_merge($row, $tierData, [
             'total_sellers' => $ranking['total_sellers'],
             'goal'          => self::MONTHLY_GOAL_COMMISSION,
         ]);
