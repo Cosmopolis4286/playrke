@@ -40,6 +40,11 @@ final class ScheduledCommandService
         'logs:alert-threshold'                          => '*/15 * * * *',
         'permissions:expire-specific-grants'            => '*/5 * * * *',
         'permissions:notify-expiring-specific-grants'   => '0 8 * * *',
+        'suspensions:expire-temporary'                  => '*/5 * * * *',
+        'trivia:cancel-stale-rooms'                      => '*/5 * * * *',
+        'kyc:notify-pending'                             => '0 8 * * *',
+        'wallet:notify-stale-movements'                 => '*/15 * * * *',
+        'notifications:prune'                            => '0 0 * * *',
     ];
 
     /**

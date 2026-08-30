@@ -36,6 +36,11 @@ class ScheduledCommandSeeder extends Seeder
             ['command' => 'logs:alert-threshold', 'label' => 'Alertar por umbral de logs', 'description' => 'Revisa si la tasa de errores en logs supera el umbral configurado.', 'min_interval_seconds' => 300],
             ['command' => 'permissions:expire-specific-grants', 'label' => 'Expirar permisos individuales vencidos', 'description' => 'Revoca permisos individuales de usuario cuya fecha de expiración ya pasó, y notifica.', 'min_interval_seconds' => 60],
             ['command' => 'permissions:notify-expiring-specific-grants', 'label' => 'Avisar permisos individuales por vencer', 'description' => 'Notifica a superadmins los permisos individuales que expirarán pronto.', 'min_interval_seconds' => 3600],
+            ['command' => 'suspensions:expire-temporary', 'label' => 'Reactivar suspensiones temporales vencidas', 'description' => 'Reactiva usuarios cuya suspensión temporal ya venció, sin esperar acción manual de un admin.', 'min_interval_seconds' => 60],
+            ['command' => 'trivia:cancel-stale-rooms', 'label' => 'Cancelar salas de trivia abandonadas', 'description' => 'Cancela salas de trivia "waiting" abandonadas y reembolsa a los participantes confirmados.', 'min_interval_seconds' => 60],
+            ['command' => 'kyc:notify-pending', 'label' => 'Avisar documentos KYC atrasados', 'description' => 'Notifica a superadmins los documentos KYC pendientes con más de 48h sin revisar.', 'min_interval_seconds' => 3600],
+            ['command' => 'wallet:notify-stale-movements', 'label' => 'Avisar movimientos de billetera atrasados', 'description' => 'Notifica a tesorería los depósitos/retiros pendientes de aprobación con antigüedad excesiva.', 'min_interval_seconds' => 300],
+            ['command' => 'notifications:prune', 'label' => 'Purgar notificaciones antiguas', 'description' => 'Elimina notificaciones in-app ya leídas más antiguas que la retención configurada.', 'min_interval_seconds' => 3600],
         ];
 
         foreach ($commands as $data) {
