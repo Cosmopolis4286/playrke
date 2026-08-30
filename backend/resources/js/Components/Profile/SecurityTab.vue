@@ -199,7 +199,7 @@
           </div>
           <div class="sec-info-row">
             <dt>Último acceso</dt>
-            <dd class="text-sm">{{ formatDate(user.last_active, true) }}</dd>
+            <dd class="text-sm text-nowrap last-access-value">{{ formatDate(user.last_active, true) }}</dd>
           </div>
         </dl>
       </div>
@@ -289,7 +289,7 @@ function downloadData() {
 .sec-section { margin-bottom: 0.25rem; }
 .sec-section-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 1rem; }
 .sec-section-title { font-size: 0.9rem; font-weight: 700; color: var(--ds-text); margin: 0 0 2px; }
-.sec-section-desc  { font-size: 0.78rem; color: var(--ds-text-muted); margin: 0; flex: 1; }
+.sec-section-desc  { font-size: 0.78rem; color: var(--ds-text-muted); margin: 0; flex: 1; overflow-wrap: break-word; }
 
 .sec-icon-wrap { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
 .sec-icon-wrap--warning { background: #fff3cd; color: #856404; }
@@ -339,7 +339,7 @@ function downloadData() {
 .session-revoke { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #f5c6cb; background: #fff5f5; color: #dc3545; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
 .session-revoke:hover { background: #dc3545; color: #fff; }
 
-.sec-card       { background: var(--ds-surface-2); border: 1px solid var(--ds-border); border-radius: 12px; padding: 1rem 1.1rem; }
+.sec-card       { background: var(--ds-surface-2); border: 1px solid var(--ds-border); border-radius: 12px; padding: 1rem 1.1rem; overflow-wrap: break-word; }
 .sec-card-title { font-size: 0.78rem; font-weight: 700; color: var(--ds-text-2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.85rem; }
 
 .sec-info-list { margin: 0; }
@@ -351,7 +351,9 @@ function downloadData() {
 .sec-info-row:last-child { border-bottom: none; }
 .sec-info-row dt { font-size: 0.66rem; color: var(--ds-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .sec-info-row dd { margin: 0; font-size: 0.82rem; color: var(--ds-text); }
-.text-sm { font-size: 0.78rem; white-space: nowrap; }
+.text-sm { font-size: 0.78rem; }
+.text-nowrap { white-space: nowrap; }
+.last-access-value { font-size: 0.72rem; }
 
 .status-badge  { display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
 .status-badge--success { background: #d4edda; color: #155724; }
