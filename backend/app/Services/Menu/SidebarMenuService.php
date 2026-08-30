@@ -242,6 +242,11 @@ class SidebarMenuService
                     'route' => 'sidebar-menu.index',
                     'permission' => 'superadmin.access',
                 ],
+                'dashboard_widgets' => [
+                    'title' => 'Widgets del Dashboard',
+                    'route' => 'dashboard-widgets.index',
+                    'permission' => 'superadmin.access',
+                ],
             ],
         ],
         /*
