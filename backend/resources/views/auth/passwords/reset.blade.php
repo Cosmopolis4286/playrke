@@ -42,7 +42,7 @@
     </div>
 @endsection
 @section('script')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         $("#change_pass").click(function(e) {
             if ($("#email").val() == '' || $("#password").val() == '' || $("#password-confirm").val() == '') {
                 alert('Toda la información es requerida');

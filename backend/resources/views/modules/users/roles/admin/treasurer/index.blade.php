@@ -81,7 +81,7 @@
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         if (@json(Session::has('pawss'))) {
             const newPassw = {!! json_encode(Session::get('pawss')) !!};
             $("#info-to-copy").val(newPassw);

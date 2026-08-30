@@ -58,7 +58,7 @@
 @endsection
 @section('scripts')
     <script src="{{ asset('js/select2.min.js') }}"></script>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const name = '{{ $moduleId }}';
         const accountTypes = @json($accountTypes);
 

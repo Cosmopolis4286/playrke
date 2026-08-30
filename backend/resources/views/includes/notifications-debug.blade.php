@@ -1,6 +1,6 @@
 <!-- Debug de notificaciones -->
 @if(auth()->check())
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Debug: Verificar que los datos estén disponibles
         document.addEventListener('DOMContentLoaded', function() {
             console.log('=== DEBUG NOTIFICATIONS ===');

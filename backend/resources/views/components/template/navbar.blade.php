@@ -254,7 +254,7 @@
 
 {{-- ── Notificaciones + WebSocket (todos los usuarios autenticados) ── --}}
 @auth
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     'use strict';
 
@@ -590,7 +590,7 @@
 @endauth
 
 {{-- ── Reloj del servidor (navbar centro) ── --}}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var el = document.getElementById('nb-server-clock');
     if (!el) return;

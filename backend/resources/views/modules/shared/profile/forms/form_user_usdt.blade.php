@@ -117,7 +117,7 @@
         </div>
     @endsection
     @section('scripts')
-        <script>
+        <script nonce="{{ csp_nonce() }}">
             $(document).ready(function() {
                 $("#name").on('input', function(evt) {
                     $(this).val($(this).val().replace(/[^a-zA-Z\s]+/g, ""));

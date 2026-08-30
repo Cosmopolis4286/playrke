@@ -81,7 +81,7 @@
     </div>
 </form>
 @section('scripts')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         $("#save_inf_ves").click(function() {
             if ($("#van_img").val() == 0) {
                 if ($("#name").val() == undefined || $("#last_name").val() == undefined ||

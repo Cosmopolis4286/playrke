@@ -33,7 +33,7 @@
     </div>
 @endsection
 @section('scripts')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         $(document).on("click", "#btn-forgot-passw", function() {
             if (!$("#email").val()) {
                 alert('Ingresa tu correo asociado');

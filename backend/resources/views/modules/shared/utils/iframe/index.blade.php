@@ -55,7 +55,7 @@
     </div>
 @endsection
 @section('scripts')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const userToken = $('#user-token');
         const containerMessage = $('#container-message');
 

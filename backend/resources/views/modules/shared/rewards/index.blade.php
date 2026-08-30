@@ -65,7 +65,7 @@
     ])
 @endsection
 @section('scripts')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         const name = '{{ $moduleId }}';
         const rewardTypes = @json($rewardTypes);
 

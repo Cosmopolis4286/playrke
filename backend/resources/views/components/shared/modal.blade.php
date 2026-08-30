@@ -38,7 +38,7 @@
 
 @once
     @push('stack-scripts')
-        <script>
+        <script nonce="{{ csp_nonce() }}">
             // Fix para aria-hidden warning en modales de Bootstrap
             document.addEventListener('DOMContentLoaded', function() {
                 // Escuchar todos los eventos hide.bs.modal

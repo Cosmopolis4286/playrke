@@ -96,7 +96,7 @@
         </div>
     </div>
     @section('scripts')
-        <script>
+        <script nonce="{{ csp_nonce() }}">
             $('.carousel').carousel()
         </script>
     @endsection

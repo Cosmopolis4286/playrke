@@ -22,7 +22,7 @@
     </div>
 @endsection
 @section('scripts')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         $(document).on("click", "#btn-verification", function() {
             $("#form-verification").submit();
         });
