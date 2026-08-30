@@ -193,6 +193,7 @@ class UserLevelService
             'external_player_conversion' => 300,
             'profile_completed' => 50,
             'first_game' => 100,
+            'first_trivia_after_bingo' => 150,
             'streak_7_days' => 200,
             'streak_30_days' => 1000,
         ];

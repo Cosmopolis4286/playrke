@@ -28,6 +28,7 @@ final class GameCompletionService
         private readonly UserLevelService $userLevelService,
         private readonly AchievementService $achievementService,
         private readonly DailyMissionService $dailyMissionService,
+        private readonly CrossGameBridgeService $crossGameBridge,
     ) {}
 
     /**
@@ -51,6 +52,11 @@ final class GameCompletionService
         ?string $roomId = null,
         array $customContext = [],
     ): void {
+        // Debe evaluarse ANTES de crear la fila de esta partida (más abajo)
+        // — de lo contrario "primera vez en Trivia" siempre encontraría al
+        // menos 1 fila (la que se está a punto de insertar).
+        $qualifiesForBridgeBonus = $this->crossGameBridge->qualifiesForFirstTriviaBonus($user, $game);
+
         DB::transaction(function () use ($user, $game, $won, $xp, $roomId) {
             GameParticipation::create([
                 'user_id'    => $user->id,
@@ -91,6 +97,18 @@ final class GameCompletionService
                 'game'    => $game,
                 'error'   => $e->getMessage(),
             ]);
+        }
+
+        if ($qualifiesForBridgeBonus) {
+            try {
+                $this->crossGameBridge->awardFirstTriviaBonus($user);
+            } catch (\Throwable $e) {
+                Log::warning('GameCompletionService: fallo al otorgar bonus cross-game.', [
+                    'user_id' => $user->id,
+                    'game'    => $game,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
         }
     }
 }
