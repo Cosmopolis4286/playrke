@@ -62,6 +62,13 @@
 
   const quickLinks: QuickLink[] = [
     {
+      label:       'Oportunidades',
+      description: 'Salas de Bingo y Trivia activas ahora',
+      icon:        'fas fa-fire',
+      href:        '/opportunities',
+      variant:     'warning',
+    },
+    {
       label:       'Billetera',
       description: 'Ver saldo y realizar operaciones',
       icon:        'fas fa-wallet',
