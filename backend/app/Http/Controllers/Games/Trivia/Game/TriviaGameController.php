@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Http\Controllers\Controller;
-use App\Traits\Users\UserTrait;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Services\RoomService;
 use App\Domains\Games\Trivia\Actions\JoinRoomAction;
@@ -26,38 +25,6 @@ use RuntimeException;
  */
 final class TriviaGameController extends Controller
 {
-    use UserTrait;
-
-    /**
-     * Display available trivia rooms for players.
-     */
-    public function rooms($coinSym): Response
-    {
-        $user = $this->user(['id']);
-        $wallet = $this->wallet($user->id);
-
-        $coin = DB::table('coins')->where('name', $coinSym)->first();
-        if (!$coin) {
-            abort(404, 'Moneda no encontrada');
-        }
-
-        $trivMulti = TriviaMulti::with(['Coin'])
-            ->where('coin', $coin->id)
-            ->whereIn('status', [1, 2, 3])
-            ->get();
-
-        $date = now()->toDateTimeString();
-
-        return Inertia::render('Modules/User/Trivia/Rooms', [
-            'user' => $user,
-            'wallet' => $wallet,
-            'date' => $date,
-            'coin' => $coinSym,
-            'trivMulti' => $trivMulti,
-            'coinRoom' => $coin
-        ]);
-    }
-
     /**
      * Unirse a una sala de trivia.
      * POST /trivia-game/room/{id}/join
@@ -138,163 +105,6 @@ final class TriviaGameController extends Controller
                 ])
                 : redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
-    }
-
-    /** @deprecated Alias para compatibilidad — usar join() */
-    public function room(Request $request, $id)
-    {
-        return $this->join($request, (string) $id);
-    }
-
-    /**
-     * Display the game interface. (Legacy — sistema deprecated)
-     */
-    public function inGame($id): Response
-    {
-        $user = $this->user(['id']);
-        $wallet = $this->wallet($user->id);
-        $game = \App\Models\Games::find(2);
-
-        $room = \App\Models\Games\Trivia\TriviaMulti::findOrFail($id);
-        $cupsQuest = \App\Models\Games\Trivia\TriviaMultiCups::where('room', $id)->get();
-        $extrasUser = \App\Models\ExtrasUser::where('user', $user->id)->get();
-
-        $infoGame = [
-            'game' => $game,
-            'room' => $room,
-            'user_in_room' => DB::table('triv_multi_user')
-                ->where('room', $id)
-                ->where('user', $user->id)
-                ->first()
-        ];
-
-        $sounds = \App\Models\GameSounds::whereIn('id_game', [2, 0])->get();
-
-        return Inertia::render('Modules/User/Trivia/RmMulti', [
-            'wallet' => $wallet,
-            'game' => $game,
-            'cupsQuest' => $cupsQuest,
-            'extrasUser' => $extrasUser,
-            'infoGame' => $infoGame,
-            'sounds' => $sounds
-        ]);
-    }
-
-    /**
-     * Get timer information for a room. (Legacy — sistema deprecated)
-     */
-    public function timer($id)
-    {
-        return \App\Models\Games\Trivia\TriviaMulti::select('id', 'status', 'fecha', 'hora')
-            ->where('id', $id)->whereIn('status', [2, 3])->get();
-    }
-
-    /**
-     * Display individual trivia games.
-     */
-    public function individual($id): Response
-    {
-        $user = $this->user(['id']);
-        $wallet = $this->wallet($user->id);
-
-        $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)
-            ->orderBy('id', 'desc')->first();
-
-        if ($cdin == null || $cdin->start == 2) {
-            return redirect()->route('trivia.index');
-        }
-
-        $quest = $this->rand_quest($cdin->id);
-        if ($cdin->start == 0) {
-            DB::table('triv_indv_cdin')->where('id', $cdin->id)->update(['start' => 1]);
-        }
-
-        return Inertia::render('Modules/User/Trivia/Individual', [
-            'wallet' => $wallet,
-            'cdin' => $cdin,
-            'quest' => $quest
-        ]);
-    }
-
-    /**
-     * Check individual trivia answer.
-     */
-    public function checkIndividual(Request $request)
-    {
-        $user = auth()->user()->id;
-        $answer = $request->input('answer');
-        $questionId = $request->input('question_id');
-
-        // Lógica para verificar la respuesta
-        $correctAnswer = DB::table('triv_indv_quest')
-            ->where('id', $questionId)
-            ->value('answer');
-
-        $isCorrect = strtolower($answer) === strtolower($correctAnswer);
-
-        return response()->json([
-            'correct' => $isCorrect,
-            'message' => $isCorrect ? '¡Correcto!' : 'Incorrecto, intenta de nuevo.'
-        ]);
-    }
-
-    /**
-     * Get room information for AJAX requests. (Legacy — sistema deprecated)
-     */
-    public function roomInfo($id)
-    {
-        $room = \App\Models\Games\Trivia\TriviaMulti::with(['Coin', 'Questions'])
-            ->findOrFail($id);
-
-        $players = DB::table('triv_multi_user')
-            ->join('users', 'users.id', 'triv_multi_user.user')
-            ->where('triv_multi_user.room', $id)
-            ->select('users.name', 'users.email', 'triv_multi_user.*')
-            ->get();
-
-        return response()->json([
-            'room' => $room,
-            'players' => $players
-        ]);
-    }
-
-    /**
-     * Leave a trivia room.
-     */
-    public function leaveRoom($id)
-    {
-        $user = auth()->user()->id;
-
-        DB::table('triv_multi_user')
-            ->where('room', $id)
-            ->where('user', $user)
-            ->update([
-                'lose_win' => 6, // Abandonó
-                'finished_at' => now()
-            ]);
-
-        return redirect()->route('trivia-games.rooms', ['coin' => 'rke']);
-    }
-
-    /**
-     * Get random question for individual trivia.
-     */
-    private function rand_quest($id)
-    {
-        $user = auth()->user()->id;
-        $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)->where('id', $id)->first();
-
-        // Lógica para obtener pregunta aleatoria
-        $question = DB::table('triv_indv_quest')
-            ->whereNotIn('id', function($query) use ($id) {
-                $query->select('id_quest')
-                    ->from('triv_indv_user')
-                    ->where('id_triv', $id);
-            })
-            ->inRandomOrder()
-            ->first();
-
-        return $question;
     }
 
     /**
@@ -405,14 +215,14 @@ final class TriviaGameController extends Controller
             $feeCurrencyIds = [(string) $room->entry_currency_id];
         }
 
-        // Cargar monedas y wallets del usuario en una sola pasada
-        $currencies = [];
+        // Cargar símbolos de moneda (cacheados 5 min, ver Currency::symbolsByIds)
+        // y wallets del usuario en una sola pasada.
+        $currencySymbols = [];
         $walletsByCurrency = [];
         if (!empty($feeCurrencyIds)) {
             $feeCurrencyIds = array_map('strval', $feeCurrencyIds);
 
-            $currencies = \App\Models\Currency::whereIn('id', $feeCurrencyIds)
-                ->get()->keyBy('id');
+            $currencySymbols = \App\Models\Currency::symbolsByIds($feeCurrencyIds);
 
             $userWallets = $user->wallets()
                 ->whereIn('currency_id', $feeCurrencyIds)
@@ -427,7 +237,7 @@ final class TriviaGameController extends Controller
         // Construir entryCurrencySymbol (primera moneda o la única)
         if (!empty($feeCurrencyIds)) {
             $firstId = $feeCurrencyIds[0];
-            $entryCurrencySymbol = $currencies[$firstId]?->symbol
+            $entryCurrencySymbol = $currencySymbols[$firstId]
                 ?? $walletsByCurrency[$firstId]?->currency?->symbol
                 ?? null;
         }
@@ -446,20 +256,20 @@ final class TriviaGameController extends Controller
                 }
             }
 
-            $entryCurrencySymbol = $currencies[$feeCurrencyIds[0]]?->symbol ?? $entryCurrencySymbol;
+            $entryCurrencySymbol = $currencySymbols[$feeCurrencyIds[0]] ?? $entryCurrencySymbol;
 
             $userWallet = [
                 'balance'    => $matchedWallet ? (float) $matchedWallet->balance : 0.0,
                 'symbol'     => $matchedWallet?->currency?->symbol
-                                ?? $currencies[$matchedCurrency ?? $feeCurrencyIds[0]]?->symbol
+                                ?? $currencySymbols[$matchedCurrency ?? $feeCurrencyIds[0]]
                                 ?? '',
                 'currencyId' => $matchedCurrency ?? $feeCurrencyIds[0],
                 'found'      => $matchedWallet !== null,
                 // Wallets por moneda para que el frontend muestre el balance correcto
                 // cuando la sala acepta múltiples monedas.
-                'byCurrency' => collect($feeCurrencyIds)->mapWithKeys(function ($cid) use ($walletsByCurrency, $currencies, $feeByCurrency, $room) {
+                'byCurrency' => collect($feeCurrencyIds)->mapWithKeys(function ($cid) use ($walletsByCurrency, $currencySymbols, $feeByCurrency, $room) {
                     $w    = $walletsByCurrency[$cid] ?? null;
-                    $sym  = $w?->currency?->symbol ?? $currencies[$cid]?->symbol ?? '';
+                    $sym  = $w?->currency?->symbol ?? $currencySymbols[$cid] ?? '';
                     $fee  = $feeByCurrency ? (float) ($feeByCurrency[$cid] ?? 0) : (float) ($room->entry_fee ?? 0);
                     return [$cid => [
                         'balance' => $w ? (float) $w->balance : 0.0,
@@ -610,20 +420,14 @@ final class TriviaGameController extends Controller
                 ->all();
         }
 
-        // ── Resolver símbolos de moneda (MySQL currencies) ────────────────────
+        // ── Resolver símbolos de moneda (cacheados 5 min, ver Currency::symbolsByIds) ──
         $currencyIds = collect($rooms)
             ->flatMap(fn($r) => array_filter([$r->entry_currency_id, $r->prize_currency_id]))
             ->unique()
             ->values()
             ->all();
 
-        $currencySymbols = [];
-        if (!empty($currencyIds)) {
-            $currencySymbols = DB::table('currencies')
-                ->whereIn('id', $currencyIds)
-                ->pluck('symbol', 'id')
-                ->all();
-        }
+        $currencySymbols = \App\Models\Currency::symbolsByIds($currencyIds);
 
         $rooms = $rooms->map(function ($room) use ($currencySymbols, $participantCounts) {
             return array_merge((array) $room, [
