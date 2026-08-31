@@ -196,14 +196,226 @@ usa `$this->authorize('start', $room)` en vez de la comparación manual.
 - `backend/app/Providers/AuthServiceProvider.php`
 - `backend/app/Http/Controllers/Games/Trivia/Game/TriviaStartController.php`
 
-## 🔴 Crítico — pendiente
+## 🔴 Crítico
 
-- `canStart()` compara `status === 'active'` pero las partidas se crean con
-  `'playing'` — la guarda nunca dispara, permite doble inicio de partida.
-- Falta lock en `StartGameAction` contra inicio concurrente.
-- `forceClose()`/`destroy()` del admin no reembolsan entry fee ya cobrado.
-- Guard idempotente faltante en `JoinRoomAction` contra doble cobro.
-- Manejo de doble respuesta no implementado en `SubmitAnswerAction`.
-- Empates en el ranking final no se detectan como empates reales.
+### ✅ `canStart()` roto + falta de lock contra doble inicio de partida
 
-*(Esta sección se actualiza a medida que avanza la remediación en esta misma sesión.)*
+**Hallazgo:** `TriviaRoom::canStart()` filtraba `games()->where('status',
+'active')`, pero `GameEngineService::startGame()` siempre crea partidas con
+`status = 'playing'` — la comparación exacta contra `'active'` nunca
+coincidía, así que esta guarda jamás bloqueaba iniciar una segunda partida
+sobre una sala que ya tenía una `playing` en curso. Además,
+`GameEngineService::startGame()` leía `$room->canStart()` sin ningún lock:
+incluso corregido el string, dos requests concurrentes (doble clic del
+host, o el cron `StartScheduledTriviaRoomsCommand` corriendo justo cuando
+el host también inicia manualmente) podían leer ambas `canStart() === true`
+antes de que cualquiera creara el `TriviaGame`, resultando en dos partidas
+`'playing'` para la misma sala y — más grave — en
+`PrizeDistributionService::distribute()` ejecutándose dos veces al
+finalizar cada una (doble pago de premios).
+
+**Fix:**
+1. `TriviaRoom::canStart()` ahora usa `$this->games()->active()` (el scope
+   `TriviaGame::scopeActive()`, que ya cubría correctamente
+   `whereIn(['playing','active'])`) en vez de comparar el string a mano.
+2. `GameEngineService::startGame()` envuelve la validación + creación del
+   `TriviaGame` + actualización de `TriviaRoom.status` en una única
+   transacción con `TriviaRoom::lockForUpdate()`. Esto serializa dos
+   llamadas concurrentes: la segunda espera a que la primera confirme, y
+   entonces `canStart()` ve la partida recién creada y lanza la excepción
+   `RuntimeException` esperada (mismo contrato de error que antes, sin
+   cambios de comportamiento para el caso no concurrente).
+
+- `backend/app/Domains/Games/Trivia/Models/TriviaRoom.php`
+- `backend/app/Domains/Games/Trivia/Services/GameEngineService.php`
+
+**Verificación:** revisado por lectura contra `GameEngineServiceTest.php`
+(usa modelos Eloquent reales, no mocks, contra `RefreshDatabase` con
+`connectionsToTransact = ['mysql', 'pgsql_trivia']` — el `lockForUpdate()`
+anidado en la misma conexión transaccional de test es válido en
+PostgreSQL) — el test `test_cannot_start_game_in_non_waiting_room` sigue
+pasando el mismo contrato de excepción. **No se pudo ejecutar el test
+suite en esta sesión**: el contenedor `playrke_php` no tenía conectividad
+de red hacia el contenedor de Postgres (`postgres-hybrid`, en una red
+Docker distinta a `backend_playrke_network`) — problema de infraestructura
+local preexistente, ajeno a este cambio de código. **Pendiente: correr
+`bash test-docker.sh --filter=GameEngineServiceTest` en un entorno con
+red resuelta antes de dar este fix por completamente verificado.**
+
+---
+
+### ✅ `forceClose()`/`destroy()` del admin no reembolsaban entry fee ya cobrado
+
+**Hallazgo:** a diferencia de `CancelStaleTriviaRoomsCommand` (que sí
+reembolsa), `TriviaRoomAdminController::forceClose()` y `destroy()` solo
+actualizaban el `status` de la sala y limpiaban Redis. Un admin cerrando una
+sala `waiting` o `playing` con jugadores que ya pagaron su entrada dejaba
+ese dinero cobrado sin partida jugada y sin ningún mecanismo de
+recuperación — ni siquiera manual (no existía endpoint de "reembolsar sala
+cerrada por admin").
+
+**Fix:** se extrajo la lógica de reembolso de
+`CancelStaleTriviaRoomsCommand` a un servicio compartido
+`TriviaRoomRefundService::refundConfirmedParticipants()` (mismo
+comportamiento: transacción por participante, respeta el split de
+`bonus_amount`, notifica al usuario). `CancelStaleTriviaRoomsCommand` ahora
+consume este servicio en vez de duplicar la lógica. `forceClose()` y
+`destroy()` reembolsan a los participantes confirmados antes de cerrar la
+sala, y el mensaje de éxito informa cuántas entradas se reembolsaron.
+
+- `backend/app/Domains/Games/Trivia/Services/TriviaRoomRefundService.php` (nuevo)
+- `backend/app/Console/Commands/CancelStaleTriviaRoomsCommand.php` (refactor, sin cambio de comportamiento)
+- `backend/app/Http/Controllers/Games/Trivia/Room/TriviaRoomAdminController.php`
+
+**Verificación:** sin tests existentes para este controller ni para el
+comando (confirmado por grep en `tests/`) — cambio revisado solo por
+lectura. Mismo bloqueo de infraestructura de red Docker que el fix
+anterior impidió correr una verificación de integración en esta sesión.
+
+---
+
+### ✅ Doble cobro en `JoinRoomAction` + `paid_amount` desincronizado del monto real cobrado
+
+**Hallazgo 1 (doble cobro):** `chargeEntryFee()` (débito de wallet, ya
+confirmado) se ejecutaba antes de `registerParticipantInDatabase()` (INSERT
+protegido por `unique(room_id,user_id)`), y `isPlayerAlreadyJoined()` se
+verificaba una sola vez, sin lock, antes de ambos pasos. Dos requests
+concurrentes del mismo usuario (doble clic, reintento de red) podían pasar
+esa verificación como `false` ambas, cobrar la wallet dos veces, y solo una
+lograba insertar el registro — la otra caía en el `catch (\Throwable $e)`
+genérico de `TriviaGameController::join()`, que respondía como éxito con un
+warning genérico, ocultando el cobro de más.
+
+**Hallazgo 2 (bug adicional encontrado al implementar el fix, no listado en
+la auditoría original):** `registerParticipantInDatabase()` persistía
+siempre `$room->entry_fee` como `paid_amount` — el campo *legado* de una
+sola moneda — en vez del monto realmente cobrado por `chargeEntryFee()`.
+Cuando la sala usa `fee_by_currency` (multidivisa) o
+`chargeEntryFeeWithConversion()` (conversión de tasa de cambio), el monto
+cobrado puede ser distinto (o `entry_fee` puede ser `0` si la sala no usa
+el campo legado). Esto desincroniza `trivia_participants.paid_amount` del
+monto real cobrado en `WalletMovement` — y como
+`TriviaRoomRefundService`/`CancelStaleTriviaRoomsCommand` leen
+`paid_amount` para calcular el reembolso, una sala multidivisa cancelada
+podía reembolsar de más, de menos, o nada, según el desfase entre ambos
+valores.
+
+**Fix:**
+1. La re-verificación de `isPlayerAlreadyJoined()` ahora se repite DENTRO
+   de una transacción con `lockForUpdate()` sobre la fila de `trivia_rooms`
+   — esto serializa el join del mismo jugador: la segunda request espera a
+   que la primera confirme, y entonces ve al jugador ya inscrito y devuelve
+   la respuesta de "ya estás registrado" sin cobrar de nuevo. El chequeo
+   rápido inicial (sin lock) se mantiene para no pagar el costo de una
+   transacción en el camino feliz de "ya unido".
+2. `chargeEntryFee()`/`chargeEntryFeeWithConversion()` ahora devuelven
+   `[float $amount, ?string $currencyId]` con lo REALMENTE cobrado, y
+   `registerParticipantInDatabase()` los recibe como parámetros explícitos
+   en vez de leer `$room->entry_fee` de nuevo.
+3. Se extrajo la respuesta duplicada de "ya está registrado" a un método
+   `alreadyJoinedResponse()` (antes se repetía inline en dos lugares).
+
+- `backend/app/Domains/Games/Trivia/Actions/JoinRoomAction.php`
+
+**Nota:** el `catch (\Throwable $e)` genérico en
+`TriviaGameController::join()` que ocultaba el error de unique constraint
+sigue existiendo — con el lock, la carrera ya no debería alcanzar ese
+catch en el camino normal, pero no se auditó cada ruta posible que
+llegue ahí. Queda fuera del alcance de este fix puntual.
+
+**Verificación:** sin tests existentes para `JoinRoomAction` (confirmado
+por grep en `tests/`) — revisado por lectura, confirmando que la firma
+pública `execute()` no cambió (único caller externo:
+`TriviaGameController::join()`) y que los métodos privados modificados no
+tienen otros consumidores. Mismo bloqueo de infraestructura Docker que los
+fixes anteriores impidió una verificación de integración.
+
+---
+
+### ✅ Doble respuesta sin manejo en `GameEngineService::submitAnswer()` — reevaluado: no es el código real en producción
+
+**Hallazgo original de la auditoría:** `SubmitAnswerAction`/
+`GameEngineService::submitAnswer()` tenían el chequeo de doble respuesta
+literalmente sin implementar (comentario "implementar según necesidad de
+negocio"), y `updateScore()` se ejecutaba antes del `INSERT` en
+`trivia_answers` (protegido por `unique(game_id,player_id,question_id)`) —
+un reintento de red duplicando la respuesta incrementaría el score en Redis
+y luego fallaría el INSERT sin rollback del score.
+
+**Reevaluación al implementar el fix:** revisando quién llama a
+`GameEngineService::submitAnswer()` se confirmó que su único consumidor es
+`SubmitAnswerAction`, y el único consumidor de `SubmitAnswerAction` era
+`Api\Trivia\GameController::submitAnswer()` — el controller del sistema
+legacy **ya eliminado** al inicio de esta sesión (ver primera entrada de
+este changelog). **El flujo real en producción no pasa por aquí**: la ruta
+activa `POST /trivia-game/game/{gameId}/answer` usa
+`TriviaAnswerController::store()`, que persiste directamente vía Query
+Builder y **ya tenía** el chequeo de doble respuesta implementado
+correctamente — `$alreadyAnswered` se verifica (líneas 88-97) antes de
+tocar el score o insertar la respuesta (líneas 135-151). El hallazgo de la
+auditoría apuntaba a código real pero no ejecutado en producción.
+
+**Fix aplicado de todos modos:** se agregó la misma guarda a
+`GameEngineService::submitAnswer()` (verificación explícita de
+`trivia_answers` antes de calcular o aplicar cualquier score), porque sigue
+siendo el "motor" de dominio con tests propios
+(`SubmitAnswerActionTest`, `GameEngineServiceTest`) y puede volver a tener
+un consumidor real en el futuro — dejarlo con un bug conocido sería deuda
+técnica silenciosa. No es una mitigación de un riesgo activo en
+producción, es cerrar el mismo hueco en el código que sí podría ejecutarse
+si algo vuelve a invocar este motor directamente.
+
+- `backend/app/Domains/Games/Trivia/Services/GameEngineService.php`
+
+**Verificación:** revisado por lectura contra los 5 tests de
+`SubmitAnswerActionTest` y los 2 de `GameEngineServiceTest` que ejercitan
+`submitAnswer` — ninguno responde dos veces a la misma pregunta con el
+mismo jugador, por lo que el nuevo chequeo no debería romperlos. Mismo
+bloqueo de infraestructura Docker impidió correrlos en esta sesión.
+
+---
+
+### ✅ Empates en el ranking final repartían premio de forma no determinística
+
+**Hallazgo:** `buildFinalLeaderboard()` ordena por respuestas correctas →
+tiempo promedio → racha máxima, pero asignaba `position` estrictamente por
+índice del array ordenado (`$index + 1`), sin comparar si dos filas eran
+idénticas en los 3 criterios. `PrizeDistributionService::distribute()` paga
+por posición de array (`$finalRanks[$payout['rank'] - 1]`) — con pocas
+preguntas, un empate real en los 3 criterios es plausible, y `usort()` no
+garantiza un orden estable entre ejecuciones de PHP para elementos que su
+comparador trata como iguales. Esto contradice el propio comentario del
+servicio de premios ("el ranking se determina... nunca por azar"): el
+premio de 2°/3° lugar podía terminar repartido arbitrariamente entre
+jugadores con métricas idénticas.
+
+**Decisión de producto (consultada al usuario):** en vez de dividir el
+monto del premio entre los empatados (cambio de reglas de reparto), se
+agregó un cuarto criterio de desempate determinístico:
+`registered_at` (quién se inscribió primero a la sala) como último
+desempate, ascendente. Es un dato ya existente en `trivia_participants`,
+no depende de azar, y en la práctica deja el orden totalmente determinado
+casi siempre (dos jugadores no suelen registrarse en el mismo microsegundo).
+
+**Fix:** `buildFinalLeaderboard()` ahora recibe también `$roomId` (antes
+solo `$gameId` + `$defaultTotalQuestions`), consulta `registered_at` de
+`trivia_participants` por jugador, y lo usa como cuarto criterio de
+`usort()`. El campo se descarta del array final (`unset($rank['registeredAt'])`)
+antes de devolver el ranking — no cambia el contrato de datos que consume
+`PrizeDistributionService`/`TriviaScore`.
+
+- `backend/app/Domains/Games/Trivia/Services/GameEngineService.php`
+
+**Verificación:** único caller de `buildFinalLeaderboard()` (privado) es
+`finishGame()`, actualizado para pasar `$state->roomId`. Sin tests
+existentes que ejerciten `finishGame()`/`buildFinalLeaderboard()`
+directamente (confirmado por grep en `tests/`). Mismo bloqueo de
+infraestructura Docker impidió una verificación end-to-end en esta sesión.
+
+---
+
+*(Todos los hallazgos 🔴 críticos de la auditoría original quedaron
+atendidos en esta sesión. Ningún cambio de esta sección pudo ejecutarse
+contra el test suite real por el bloqueo de red Docker documentado en la
+primera entrada crítica — se recomienda correr
+`bash test-docker.sh --filter=Trivia` completo antes de desplegar.)*

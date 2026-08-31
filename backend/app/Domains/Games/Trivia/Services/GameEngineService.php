@@ -276,9 +276,30 @@ class GameEngineService implements GameEngineInterface
 
         // Obtener pregunta actual
         $questionDto = $this->getCurrentQuestion($gameId);
-        
+
         if (!$questionDto) {
             throw new RuntimeException('No hay pregunta activa');
+        }
+
+        // Rechazar respuesta duplicada ANTES de tocar cualquier estado
+        // (Redis o Postgres). Antes de este chequeo, updateScore() (línea
+        // más abajo) se ejecutaba primero y el INSERT en trivia_answers
+        // (protegido por unique(game_id,player_id,question_id)) después —
+        // un reintento de red o doble tap incrementaba el score en Redis y
+        // luego fallaba en el INSERT con una excepción de BD sin capturar
+        // específicamente, dejando el score con el incremento fantasma sin
+        // rollback. Verificar aquí, antes de mutar nada, es más seguro que
+        // revertir después de un fallo a mitad de camino.
+        $alreadyAnswered = DB::connection('pgsql_trivia')
+            ->table('trivia_answers')
+            ->where('game_id', $gameId)
+            ->where('player_id', $playerId)
+            ->where('question_id', $questionDto->questionId)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($alreadyAnswered) {
+            throw new RuntimeException('Ya respondiste esta pregunta');
         }
 
         // Validar respuesta
@@ -354,13 +375,21 @@ class GameEngineService implements GameEngineInterface
      * (trivia_scores + trivia_answers), ya que el gameplay real
      * (TriviaAnswerController) persiste ahí y no en el leaderboard de Redis.
      *
-     * Orden anti-fraude: respuestas correctas desc → tiempo promedio asc → racha máxima desc.
+     * Orden anti-fraude: respuestas correctas desc → tiempo promedio asc →
+     * racha máxima desc → inscripción más temprana asc (desempate final).
+     * El último criterio existe solo para hacer el orden determinístico
+     * cuando los tres primeros coinciden exactamente (posible con pocas
+     * preguntas) — sin él, `usort()` no garantiza el mismo orden entre
+     * ejecuciones para elementos "iguales", y PrizeDistributionService
+     * paga por posición de array (`$finalRanks[$payout['rank'] - 1]`), así
+     * que un orden no determinístico podía repartir el premio de 2°/3°
+     * lugar de forma arbitraria entre jugadores con métricas idénticas.
      *
      * @return array<int, array{playerId: string, position: int, totalScore: int,
      *   correctAnswers: int, wrongAnswers: int, avgTimeMs: float, totalQuestions: int,
      *   totalResponseTimeMs: int, maxStreak: int}>
      */
-    private function buildFinalLeaderboard(string $gameId, int $defaultTotalQuestions): array
+    private function buildFinalLeaderboard(string $gameId, string $roomId, int $defaultTotalQuestions): array
     {
         $scores = DB::connection('pgsql_trivia')
             ->table('trivia_scores')
@@ -393,7 +422,13 @@ class GameEngineService implements GameEngineInterface
             $maxStreaks[$playerId] = $max;
         }
 
-        $ranked = $scores->map(function ($row) use ($maxStreaks, $defaultTotalQuestions) {
+        // registered_at por jugador — único criterio de desempate final.
+        $registeredAt = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->pluck('registered_at', 'user_id');
+
+        $ranked = $scores->map(function ($row) use ($maxStreaks, $registeredAt, $defaultTotalQuestions) {
             $correctAnswers = (int) $row->correct_answers;
             $wrongAnswers   = (int) $row->wrong_answers;
             $totalAnswered  = $correctAnswers + $wrongAnswers;
@@ -407,6 +442,7 @@ class GameEngineService implements GameEngineInterface
                 'totalQuestions'      => $totalAnswered > 0 ? $totalAnswered : $defaultTotalQuestions,
                 'totalResponseTimeMs' => (int) round($row->average_response_time_ms * max(1, $totalAnswered)),
                 'maxStreak'           => $maxStreaks[$row->player_id] ?? (int) $row->max_streak,
+                'registeredAt'        => $registeredAt[$row->player_id] ?? null,
             ];
         })->all();
 
@@ -417,10 +453,16 @@ class GameEngineService implements GameEngineInterface
             if ($a['avgTimeMs'] !== $b['avgTimeMs']) {
                 return $a['avgTimeMs'] <=> $b['avgTimeMs'];
             }
-            return $b['maxStreak'] <=> $a['maxStreak'];
+            if ($b['maxStreak'] !== $a['maxStreak']) {
+                return $b['maxStreak'] <=> $a['maxStreak'];
+            }
+            // Empate real en los 3 criterios de habilidad: desempata quien
+            // se inscribió primero (dato ya disponible, no depende de azar).
+            return ($a['registeredAt'] ?? '') <=> ($b['registeredAt'] ?? '');
         });
 
         return array_map(function ($rank, $index) {
+            unset($rank['registeredAt']);
             $rank['position'] = $index + 1;
             return $rank;
         }, $ranked, array_keys($ranked));
@@ -450,7 +492,7 @@ class GameEngineService implements GameEngineInterface
         $room = TriviaRoom::findOrFail($state->roomId);
 
         // ── 1. Construir leaderboard final desde PostgreSQL (trivia_scores + trivia_answers) ──
-        $finalRanks = $this->buildFinalLeaderboard($gameId, $state->totalQuestions);
+        $finalRanks = $this->buildFinalLeaderboard($gameId, $state->roomId, $state->totalQuestions);
 
         // ── 2. Persistir scores finales en BD ───────────────────────────────
         $game->finish($finalRanks);
