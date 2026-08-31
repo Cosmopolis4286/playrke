@@ -119,22 +119,22 @@ class RoomMetricsService implements RoomMetricsInterface
 
             // Actualizar total de cartones
             if (isset($saleData['cardCount']) && $saleData['cardCount'] > 0) {
-                $success &= $this->updateTotalCards($room, $saleData['cardCount']);
+                $success = $this->updateTotalCards($room, $saleData['cardCount']) && $success;
             }
 
             // Actualizar total de ventas
             if (isset($saleData['saleAmount']) && $saleData['saleAmount'] > 0) {
-                $success &= $this->updateTotalSales($room, $saleData['saleAmount']);
+                $success = $this->updateTotalSales($room, $saleData['saleAmount']) && $success;
             }
 
             // Actualizar pozo de premios
             if (isset($saleData['prizePoolAmount']) && $saleData['prizePoolAmount'] > 0) {
-                $success &= $this->updatePrizePool($room, $saleData['prizePoolAmount']);
+                $success = $this->updatePrizePool($room, $saleData['prizePoolAmount']) && $success;
             }
 
             // Actualizar contador de jugadores (solo para nuevos usuarios)
             if (isset($saleData['isNewUser']) && $saleData['isNewUser']) {
-                $success &= $this->updatePlayerCount($room);
+                $success = $this->updatePlayerCount($room) && $success;
             }
 
             return $success;
@@ -196,6 +196,15 @@ class RoomMetricsService implements RoomMetricsInterface
     public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0): bool
     {
         try {
+            // Releer la fila con lockForUpdate() DENTRO de la transacción ya abierta por
+            // el caller (BingoCardGenerationService::generateCards(), siempre envuelto en
+            // DB::transaction()). Sin este lock, dos compras concurrentes en la misma sala
+            // leen el mismo snapshot de total_cards/total_sales/prize_pool/comisiones y la
+            // segunda en comitear pisa el incremento de la primera (lost update) -- el
+            // jugador paga bien (su wallet sí tiene lock propio en WalletService), pero el
+            // pozo de premios y las comisiones de la casa quedan subestimados.
+            $room = BingoRoom::where('id', $room->id)->lockForUpdate()->firstOrFail();
+
             // Persistir métricas monetarias de bingo_rooms en USD.
             // Los lotes/pagos pueden conservar moneda local; este agregado siempre queda normalizado.
             $exchangeRate = $saleData['exchangeRate'] ?? 1;

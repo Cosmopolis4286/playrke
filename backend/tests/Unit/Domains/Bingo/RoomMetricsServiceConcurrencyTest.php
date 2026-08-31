@@ -1,0 +1,126 @@
+<?php
+
+namespace Tests\Unit\Domains\Bingo;
+
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Models\Country;
+use App\Models\Currency;
+use App\Models\Games\Common\ConnectionType\ConnectionType;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
+use App\Models\Games\Common\Room\RoomType;
+use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+/**
+ * Cubre el hallazgo crítico de la auditoría de Bingo (2026-08-31): antes del
+ * fix, updateRoomMetricsWithCommissions() calculaba los nuevos totales a
+ * partir de los atributos del objeto $room recibido por parámetro, sin
+ * releerlos con lockForUpdate(). Dos compras concurrentes en la misma sala
+ * -- cada una con su propia instancia de $room cargada ANTES de que la otra
+ * hiciera commit -- perdían silenciosamente el incremento financiero de una
+ * de ellas (lost update): el jugador paga bien (su wallet tiene lock propio
+ * en WalletService), pero total_cards/total_sales/prize_pool/comisiones de
+ * la sala quedan subestimados.
+ *
+ * No es un test de concurrencia real (no hay dos procesos/hilos ni dos
+ * conexiones DB paralelas) -- reproduce la condición exacta que causaba el
+ * bug: dos llamadas al servicio, cada una con una instancia de BingoRoom
+ * distinta que aún ve los contadores en su valor ANTERIOR al primer update.
+ * Sin el lockForUpdate() + relectura dentro del método, la segunda llamada
+ * sobreescribiría con su propio cálculo parcial en vez de sumar sobre lo que
+ * la primera ya persistió.
+ */
+class RoomMetricsServiceConcurrencyTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function makeRoom(): BingoRoom
+    {
+        $country = Country::firstOrCreate(
+            ['iso_code_2' => 'TC'],
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
+        );
+
+        $user = User::factory()->create(['country_id' => $country->id]);
+
+        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
+        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        // is_accumulative=false / code != cualquier cosa que el test compare como "2" --
+        // RoomMetricsService compara $prizePoolType != 2 (id numérico) para decidir si
+        // acumula comisiones; usamos un id real distinto de 2 (Snowflake, jamás "2").
+        $prizePoolType = PrizePoolType::firstOrCreate(['code' => 'STANDARD'], ['label' => 'Estándar', 'is_accumulative' => false]);
+        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
+
+        $room = BingoRoom::create([
+            'uuid_code'       => (string) Str::uuid(),
+            'status_id'       => $status->id,
+            'creator_user_id' => $user->id,
+            'total_cards'     => 0,
+            'total_sales'     => 0,
+            'prize_pool'      => 0,
+            'rke_commission'  => 0,
+            'room_commission' => 0,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id'            => $room->id,
+            'room_type_id'       => $roomType->id,
+            'creator_user_id'    => $user->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'rke_commission'     => 5,
+            'room_commission'    => 10,
+        ]);
+
+        $this->currencyId = $currency->id;
+
+        return $room;
+    }
+
+    private int|string $currencyId;
+
+    /** @test */
+    public function two_concurrent_purchases_do_not_lose_either_increment()
+    {
+        $room = $this->makeRoom();
+        $service = app(RoomMetricsService::class);
+
+        // Dos instancias independientes de la MISMA fila, cargadas ANTES de que
+        // cualquiera de las dos compras haga su update -- exactamente lo que
+        // ocurriría con dos requests HTTP concurrentes, cada uno resolviendo su
+        // propio $room al inicio de BingoCardGenerationService::generateCards().
+        $roomSnapshotA = BingoRoom::find($room->id);
+        $roomSnapshotB = BingoRoom::find($room->id);
+
+        $saleDataA = ['cardCount' => 2, 'currency' => $this->currencyId];
+        $saleDataB = ['cardCount' => 3, 'currency' => $this->currencyId];
+
+        // Compra A: 2 cartones x $10 = $20
+        $resultA = $service->updateRoomMetricsWithCommissions($roomSnapshotA, $saleDataA, 20.0);
+        $this->assertTrue($resultA);
+
+        // Compra B: 3 cartones x $10 = $30 -- su $roomSnapshotB todavía tiene
+        // total_cards=0/total_sales=0 en memoria, igual que antes de la compra A.
+        $resultB = $service->updateRoomMetricsWithCommissions($roomSnapshotB, $saleDataB, 30.0);
+        $this->assertTrue($resultB);
+
+        $fresh = $room->fresh();
+
+        // Sin el fix: total_cards/total_sales de B pisarían a los de A (quedarían
+        // en 3/30 en vez de 2+3=5 / 20+30=50). Con el fix (relectura con
+        // lockForUpdate() dentro del método), ambos incrementos se acumulan.
+        $this->assertEquals(5, $fresh->total_cards, 'total_cards debe acumular ambas compras, no perder la primera.');
+        $this->assertEquals(50.0, (float) $fresh->total_sales, 'total_sales debe acumular ambas compras, no perder la primera.');
+
+        // rke_commission (5%) y room_commission (10%) también deben acumularse
+        // sobre el total real ($50), no solo sobre la última venta procesada ($30).
+        $this->assertEqualsWithDelta(2.5, (float) $fresh->rke_commission, 0.01, 'rke_commission debe acumular ambas ventas.');
+        $this->assertEqualsWithDelta(5.0, (float) $fresh->room_commission, 0.01, 'room_commission debe acumular ambas ventas.');
+    }
+}
