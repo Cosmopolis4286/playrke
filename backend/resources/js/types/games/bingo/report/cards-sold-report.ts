@@ -1,6 +1,7 @@
 /**
  * Types for Bingo Cards Sold Report
  */
+import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface CardsSoldColumn {
   key: string
@@ -32,6 +33,8 @@ export interface Currency {
 export interface CardsSoldPageProps {
   title: string
   cards: CardsSoldData
+  /** Paginación server-side de la página actual (ver BingoReportController::cardsSold). */
+  cards_pagination: Pagination
   currencies: Currency[]
   selectedCurrency?: string | null
   dateFilter?: string | null

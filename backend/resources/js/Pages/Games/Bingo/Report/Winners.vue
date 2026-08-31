@@ -3,6 +3,7 @@
    * Página Reporte de Ganadores del Bingo
    */
   import { computed, ref } from 'vue'
+  import backendClient from '@js/plugins/axios'
 
   // ==========================================================================
   // Componentes
@@ -14,6 +15,8 @@
   // ==========================================================================
   import type { WinnersPageProps } from '@/js/types/games/bingo/report/winners-report'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
+  import type { Pagination } from '@/js/types/common/table/pagination'
 
   // ==========================================================================
   // Props (Inertia)
@@ -30,6 +33,47 @@
 
   const forceTableRefresh = () => {
     tableKey.value++
+  }
+
+  // ==========================================================================
+  // Paginación server-side
+  // ==========================================================================
+  // El backend solo pagina 15 ganadores por vez (BingoReportController::
+  // winners) — antes se truncaba silenciosamente en el límite fijo de 500.
+  const loading = ref(false)
+  const pagination = ref<Pagination>(props.winners_pagination)
+
+  /** Traduce la key de columna/filtro del frontend a query param del backend. */
+  const FILTER_KEY_TO_PARAM: Record<string, string> = {
+    currency: 'currency',
+    prize_type: 'type',
+  }
+
+  async function fetchWinnersPage(query: ServerQuery) {
+    loading.value = true
+    try {
+      const params: Record<string, string | number> = {
+        page: query.page,
+        per_page: pagination.value.per_page,
+      }
+
+      if (query.search) params.search = query.search
+
+      for (const [filterKey, value] of Object.entries(query.filters)) {
+        if (!value) continue
+        const param = FILTER_KEY_TO_PARAM[filterKey]
+        if (param) params[param] = value
+      }
+
+      const { data } = await backendClient.get('/bingo/winners-data', { params })
+
+      winnersData.value = data.winners?.rows ?? []
+      if (data.pagination) pagination.value = data.pagination
+    } catch {
+      // silencioso — la tabla conserva la última página cargada correctamente
+    } finally {
+      loading.value = false
+    }
   }
 
   /**
@@ -55,6 +99,9 @@
   // ==========================================================================
   // Filtros
   // ==========================================================================
+  // 'status' no está en FILTER_KEY_TO_PARAM: es una columna calculada en PHP
+  // (no una columna SQL real de bingo_card_prizes) — filtra solo dentro de la
+  // página ya cargada, no contra el dataset completo del servidor.
 
   const filters = computed<readonly TableFilterInterface[]>(() => [
     {
@@ -104,5 +151,9 @@
     :showEditButton="false"
     :showDeleteButton="false"
     :extra-buttons="extraButtons"
+    :loading="loading"
+    server-side
+    :server-total-pages="pagination.last_page"
+    @query-change="fetchWinnersPage"
   />
 </template>

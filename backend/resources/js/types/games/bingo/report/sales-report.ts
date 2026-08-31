@@ -1,6 +1,7 @@
 /**
  * Types for Bingo Sales Report
  */
+import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface SalesColumn {
   key: string
@@ -53,6 +54,11 @@ export interface RoomType {
 export interface SalesPageProps {
   title: string
   sales: SalesData
+  /**
+   * Paginación server-side sobre SALAS (no sobre las filas expandidas por
+   * moneda) — ver BingoReportController::salesReportRoomsQuery.
+   */
+  sales_pagination: Pagination
   currencies: Currency[]
   roomTypes: RoomType[]
   selectedCurrency?: string | null

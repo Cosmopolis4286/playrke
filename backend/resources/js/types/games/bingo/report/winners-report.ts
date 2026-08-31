@@ -1,6 +1,7 @@
 /**
  * Types for Bingo Winners Report
  */
+import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface WinnersColumn {
   key: string
@@ -37,6 +38,8 @@ export interface PrizeType {
 export interface WinnersPageProps {
   title: string
   winners: WinnersData
+  /** Paginación server-side de la página actual (ver BingoReportController::winners). */
+  winners_pagination: Pagination
   currencies: Currency[]
   prizeTypes: PrizeType[]
   selectedType?: string | null

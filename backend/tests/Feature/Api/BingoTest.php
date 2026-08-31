@@ -43,8 +43,11 @@ use Tests\TestCase;
  * Funcionalidad removida del dominio (documentada en el reporte, no aquí):
  * - No existe verificación de ganador POR CARTÓN individual; check-bingo evalúa
  *   todos los cartones del usuario autenticado en la sala.
- * - No existe "insufficient balance" como código 422 específico; el servicio
- *   lanza DomainException con mensaje libre, mapeado por handleServiceJson.
+ *
+ * "Insufficient balance" y el resto de errores de BingoCardGenerateService ya no
+ * lanzan \DomainException global (mapeada a 500) -- ahora usan
+ * BingoCardGenerateException (App\Exceptions\Domain\DomainException real), resuelta
+ * por Handler::renderDomainException() a un status HTTP semántico (422/404/403/400).
  */
 class BingoTest extends TestCase
 {
@@ -365,13 +368,11 @@ class BingoTest extends TestCase
                 'card_count' => 1,
             ]);
 
-        // playerBuyFromGameRooms() lanza el \DomainException GLOBAL de PHP (no
-        // App\Exceptions\Domain\DomainException) -- el Handler solo mapea el segundo a
-        // JSON con status_code resuelto; el global cae al branch genérico "expectsJson"
-        // (Handler::render()), que siempre responde 500 salvo excepciones conocidas
-        // (Auth/Validation/ModelNotFound). No hay código 422 específico para saldo
-        // insuficiente en este dominio.
-        $response->assertStatus(500);
+        // playerBuyFromGameRooms() lanza BingoCardGenerateException::insufficientBalance(),
+        // una App\Exceptions\Domain\DomainException real -- el Handler la mapea a JSON vía
+        // renderDomainException()/resolveStatusCode(). El mensaje libre (sin código
+        // SCREAMING_SNAKE_CASE registrado) cae al fallback HTTP_BAD_REQUEST (400).
+        $response->assertStatus(400);
         $this->assertStringContainsString('Saldo insuficiente', $response->json('message') ?? '');
     }
 

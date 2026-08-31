@@ -3,6 +3,7 @@
    * Página Reporte de Ventas por Sala del Bingo
    */
   import { computed, ref } from 'vue'
+  import backendClient from '@js/plugins/axios'
 
   // ==========================================================================
   // Componentes
@@ -12,8 +13,10 @@
   // ==========================================================================
   // Types
   // ==========================================================================
-  import type { SalesByRoomPageProps } from '@/js/types/games/bingo/report/sales-by-room-report'
+  import type { SalesByRoomPageProps, RoomInfo } from '@/js/types/games/bingo/report/sales-by-room-report'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
+  import type { Pagination } from '@/js/types/common/table/pagination'
 
   // ==========================================================================
   // Props (Inertia)
@@ -24,13 +27,64 @@
   // Datos de la tabla
   // ==========================================================================
   const roomSalesData = ref(props.roomSales.rows)
-  const roomInfo = computed(() => props.roomSales.room_info)
+  // room_info se reemplaza en cada refetch porque el backend lo recalcula
+  // sobre TODOS los cartones de la sala (agregación SQL), no solo la página
+  // visible — ver BingoReportController::salesByRoomInfo.
+  const roomInfo = ref<RoomInfo>(props.roomSales.room_info)
 
   // Key forzar re-render de la tabla
   const tableKey = ref(0)
 
   const forceTableRefresh = () => {
     tableKey.value++
+  }
+
+  // ==========================================================================
+  // Paginación server-side
+  // ==========================================================================
+  // El backend solo pagina 15 cartones por vez (BingoReportController::
+  // salesReportByRoom) — antes se truncaba silenciosamente en el límite fijo
+  // de 500.
+  const loading = ref(false)
+  const pagination = ref<Pagination>(props.room_sales_pagination)
+
+  /**
+   * Traduce la key de columna/filtro del frontend a query param del backend.
+   * 'payment_method' y 'status' no están mapeados: son datos resueltos desde
+   * la relación cardLot.payments en PHP, no una columna SQL directa filtrable
+   * con where() simple sobre bingo_cards — filtran solo dentro de la página
+   * ya cargada, no contra el dataset completo del servidor.
+   */
+  const FILTER_KEY_TO_PARAM: Record<string, string> = {
+    currency: 'currency',
+  }
+
+  async function fetchRoomSalesPage(query: ServerQuery) {
+    loading.value = true
+    try {
+      const params: Record<string, string | number> = {
+        page: query.page,
+        per_page: pagination.value.per_page,
+      }
+
+      if (query.search) params.search = query.search
+
+      for (const [filterKey, value] of Object.entries(query.filters)) {
+        if (!value) continue
+        const param = FILTER_KEY_TO_PARAM[filterKey]
+        if (param) params[param] = value
+      }
+
+      const { data } = await backendClient.get(`/bingo/sales-report-room-data/${props.roomId}`, { params })
+
+      roomSalesData.value = data.roomSales?.rows ?? []
+      if (data.roomSales?.room_info) roomInfo.value = data.roomSales.room_info
+      if (data.pagination) pagination.value = data.pagination
+    } catch {
+      // silencioso — la tabla conserva la última página cargada correctamente
+    } finally {
+      loading.value = false
+    }
   }
 
   /**
@@ -159,6 +213,10 @@
       :showEditButton="false"
       :showDeleteButton="false"
       :extra-buttons="extraButtons"
+      :loading="loading"
+      server-side
+      :server-total-pages="pagination.last_page"
+      @query-change="fetchRoomSalesPage"
     />
   </div>
 </template>

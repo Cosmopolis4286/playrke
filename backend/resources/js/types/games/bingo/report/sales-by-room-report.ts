@@ -1,6 +1,7 @@
 /**
  * Types for Bingo Sales by Room Report
  */
+import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface SalesByRoomColumn {
   key: string
@@ -49,6 +50,8 @@ export interface PaymentMethod {
 export interface SalesByRoomPageProps {
   title: string
   roomSales: SalesByRoomData
+  /** Paginación server-side de la página actual (ver BingoReportController::salesReportByRoom). */
+  room_sales_pagination: Pagination
   currencies: Currency[]
   paymentMethods: PaymentMethod[]
   selectedCurrency?: string | null

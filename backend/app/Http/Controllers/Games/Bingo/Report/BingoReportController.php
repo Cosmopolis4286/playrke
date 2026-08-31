@@ -8,6 +8,10 @@ use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,12 +48,45 @@ final class BingoReportController extends Controller
     }
 
     /**
-     * Display the cards sold report page.
+     * Etiquetas de estado de BingoCard, compartidas entre el render Inertia
+     * (primera página) y el endpoint de paginación (cardsSoldData).
+     *
+     * @return array<int, string>
      */
-    public function cardsSold(?string $currency = null, ?string $dateFilter = null): Response
+    private function cardStatusLabels(): array
     {
-        abort_if($this->userContext->userHasRole('player'), 403);
+        return [
+            BingoCard::STATUS_ACTIVE    => 'Active',
+            BingoCard::STATUS_INACTIVE  => 'Used',
+            BingoCard::STATUS_WINNER    => 'Winner',
+            BingoCard::STATUS_CANCELLED => 'Refunded',
+        ];
+    }
 
+    /**
+     * Columnas de la tabla de Cartones Vendidos — compartidas entre el render
+     * inicial y el refetch paginado para que ambos formatos coincidan siempre.
+     */
+    private function cardsSoldColumns(): array
+    {
+        return [
+            ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+            ['key' => 'card_number', 'label' => 'Número de Cartón', 'sortable' => true],
+            ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
+            ['key' => 'player_name', 'label' => 'Jugador', 'sortable' => true],
+            ['key' => 'sale_date', 'label' => 'Fecha de Venta', 'sortable' => true],
+            ['key' => 'amount', 'label' => 'Monto', 'sortable' => true],
+            ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
+            ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
+        ];
+    }
+
+    /**
+     * Query base del reporte de Cartones Vendidos, con los mismos filtros
+     * aplicados tanto en el render Inertia como en el refetch server-side.
+     */
+    private function cardsSoldQuery(?string $currency, ?string $dateFilter): \Illuminate\Database\Eloquent\Builder
+    {
         $query = BingoCard::query()
             ->with(['room', 'roomUser.user', 'currency', 'cardLot'])
             ->orderByDesc('created_at');
@@ -62,14 +99,19 @@ final class BingoReportController extends Controller
             $query->whereDate('created_at', $dateFilter);
         }
 
-        $cardStatusToLabel = [
-            BingoCard::STATUS_ACTIVE    => 'Active',
-            BingoCard::STATUS_INACTIVE  => 'Used',
-            BingoCard::STATUS_WINNER    => 'Winner',
-            BingoCard::STATUS_CANCELLED => 'Refunded',
-        ];
+        return $query;
+    }
 
-        $rows = $query->limit(500)->get()->map(function (BingoCard $card) use ($cardStatusToLabel) {
+    /**
+     * Mapea una página de BingoCard al shape de fila del reporte.
+     *
+     * @param Collection<int, BingoCard> $cards
+     */
+    private function mapCardsSoldRows(Collection $cards): array
+    {
+        $cardStatusToLabel = $this->cardStatusLabels();
+
+        return $cards->map(function (BingoCard $card) use ($cardStatusToLabel) {
             return [
                 'id'          => (string) $card->id,
                 'card_number' => $card->serial_number,
@@ -81,19 +123,40 @@ final class BingoReportController extends Controller
                 'status'      => $cardStatusToLabel[(int) $card->status] ?? (string) $card->status,
             ];
         })->all();
+    }
+
+    /**
+     * Shape estándar {total, per_page, current_page, last_page, from, to} —
+     * mismo formato usado por BingoRoomContextService::resolveSummaryGameRooms
+     * para que el frontend comparta un único tipo Pagination.
+     */
+    private function paginationMeta(LengthAwarePaginator $paginator): array
+    {
+        return [
+            'total'        => $paginator->total(),
+            'per_page'     => $paginator->perPage(),
+            'current_page' => $paginator->currentPage(),
+            'last_page'    => $paginator->lastPage(),
+            'from'         => $paginator->firstItem(),
+            'to'           => $paginator->lastItem(),
+        ];
+    }
+
+    /**
+     * Display the cards sold report page.
+     */
+    public function cardsSold(?string $currency = null, ?string $dateFilter = null): Response
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        // Antes traía hasta 500 filas resueltas en un solo request (truncando
+        // silenciosamente ventas por encima de ese límite) — ahora solo la
+        // primera página, igual que el refetch de cardsSoldData().
+        $paginator = $this->cardsSoldQuery($currency, $dateFilter)->paginate(15);
 
         $cardsData = [
-            'columns' => [
-                ['key' => 'id', 'label' => 'ID', 'sortable' => true],
-                ['key' => 'card_number', 'label' => 'Número de Cartón', 'sortable' => true],
-                ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
-                ['key' => 'player_name', 'label' => 'Jugador', 'sortable' => true],
-                ['key' => 'sale_date', 'label' => 'Fecha de Venta', 'sortable' => true],
-                ['key' => 'amount', 'label' => 'Monto', 'sortable' => true],
-                ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
-                ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
-            ],
-            'rows' => $rows,
+            'columns' => $this->cardsSoldColumns(),
+            'rows'    => $this->mapCardsSoldRows($paginator->getCollection()),
         ];
 
         $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code']);
@@ -101,6 +164,7 @@ final class BingoReportController extends Controller
         return Inertia::render('Games/Bingo/Report/CardsSold', [
             'title' => 'Reporte de Cartones Vendidos',
             'cards' => $cardsData,
+            'cards_pagination' => $this->paginationMeta($paginator),
             'currencies' => $currencies,
             'selectedCurrency' => $currency,
             'dateFilter' => $dateFilter
@@ -108,12 +172,71 @@ final class BingoReportController extends Controller
     }
 
     /**
-     * Display the winners report page.
+     * Refetch paginado/filtrado del reporte de Cartones Vendidos, usado por
+     * la tabla en modo server-side tras la carga inicial de la página —
+     * mismo patrón que BingoRoomController::summaryData().
      */
-    public function winners(?string $type = null, ?string $dateFilter = null, ?string $currency = null): Response
+    public function cardsSoldData(Request $request): JsonResponse
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
+        $currency   = $request->query('currency');
+        $dateFilter = $request->query('dateFilter');
+        $perPage    = (int) $request->query('per_page', 15);
+        $page       = (int) $request->query('page', 1);
+
+        $paginator = $this->cardsSoldQuery($currency, $dateFilter)->paginate($perPage, ['*'], 'page', $page);
+
+        return $this->handleServiceJson(fn () => [
+            'cards' => [
+                'columns' => $this->cardsSoldColumns(),
+                'rows'    => $this->mapCardsSoldRows($paginator->getCollection()),
+            ],
+            'pagination' => $this->paginationMeta($paginator),
+        ]);
+    }
+
+    /**
+     * Etiquetas de estado de BingoCardPrize — compartidas entre el render
+     * Inertia y el refetch paginado.
+     *
+     * @return array<string, string>
+     */
+    private function prizeStatusLabels(): array
+    {
+        return [
+            'waiting'    => 'Pending',
+            'processing' => 'Processing',
+            'claimed'    => 'Paid',
+            'cancelled'  => 'Cancelled',
+            'suspended'  => 'Suspended',
+        ];
+    }
+
+    /**
+     * Columnas de la tabla de Ganadores — compartidas entre el render inicial
+     * y el refetch paginado.
+     */
+    private function winnersColumns(): array
+    {
+        return [
+            ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+            ['key' => 'winner_name', 'label' => 'Ganador', 'sortable' => true],
+            ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
+            ['key' => 'prize_type', 'label' => 'Tipo de Premio', 'sortable' => true],
+            ['key' => 'prize_amount', 'label' => 'Monto del Premio', 'sortable' => true],
+            ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
+            ['key' => 'win_date', 'label' => 'Fecha de Ganancia', 'sortable' => true],
+            ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
+        ];
+    }
+
+    /**
+     * Query base del reporte de Ganadores, con los mismos filtros aplicados
+     * tanto en el render Inertia como en el refetch server-side.
+     */
+    private function winnersQuery(?string $type, ?string $currency, ?string $dateFilter): \Illuminate\Database\Eloquent\Builder
+    {
         $query = BingoCardPrize::query()
             ->with(['room', 'creatorUser', 'currency'])
             ->orderByDesc('created_at');
@@ -130,15 +253,19 @@ final class BingoReportController extends Controller
             $query->whereDate('created_at', $dateFilter);
         }
 
-        $prizeStatusToLabel = [
-            'waiting'    => 'Pending',
-            'processing' => 'Processing',
-            'claimed'    => 'Paid',
-            'cancelled'  => 'Cancelled',
-            'suspended'  => 'Suspended',
-        ];
+        return $query;
+    }
 
-        $rows = $query->limit(500)->get()->map(function (BingoCardPrize $prize) use ($prizeStatusToLabel) {
+    /**
+     * Mapea una página de BingoCardPrize al shape de fila del reporte.
+     *
+     * @param Collection<int, BingoCardPrize> $prizes
+     */
+    private function mapWinnersRows(Collection $prizes): array
+    {
+        $prizeStatusToLabel = $this->prizeStatusLabels();
+
+        return $prizes->map(function (BingoCardPrize $prize) use ($prizeStatusToLabel) {
             return [
                 'id'           => (string) $prize->id,
                 'winner_name'  => $prize->creatorUser?->name ?? '—',
@@ -150,19 +277,22 @@ final class BingoReportController extends Controller
                 'status'       => $prizeStatusToLabel[$prize->prize_status] ?? $prize->prize_status,
             ];
         })->all();
+    }
+
+    /**
+     * Display the winners report page.
+     */
+    public function winners(?string $type = null, ?string $dateFilter = null, ?string $currency = null): Response
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        // Igual que cardsSold(): primera página en vez de limit(500), que
+        // truncaba silenciosamente ganadores por encima del límite.
+        $paginator = $this->winnersQuery($type, $currency, $dateFilter)->paginate(15);
 
         $winnersData = [
-            'columns' => [
-                ['key' => 'id', 'label' => 'ID', 'sortable' => true],
-                ['key' => 'winner_name', 'label' => 'Ganador', 'sortable' => true],
-                ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
-                ['key' => 'prize_type', 'label' => 'Tipo de Premio', 'sortable' => true],
-                ['key' => 'prize_amount', 'label' => 'Monto del Premio', 'sortable' => true],
-                ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
-                ['key' => 'win_date', 'label' => 'Fecha de Ganancia', 'sortable' => true],
-                ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
-            ],
-            'rows' => $rows,
+            'columns' => $this->winnersColumns(),
+            'rows'    => $this->mapWinnersRows($paginator->getCollection()),
         ];
 
         $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code']);
@@ -175,6 +305,7 @@ final class BingoReportController extends Controller
         return Inertia::render('Games/Bingo/Report/Winners', [
             'title' => 'Reporte de Ganadores',
             'winners' => $winnersData,
+            'winners_pagination' => $this->paginationMeta($paginator),
             'currencies' => $currencies,
             'prizeTypes' => $prizeTypes,
             'selectedType' => $type,
@@ -184,12 +315,59 @@ final class BingoReportController extends Controller
     }
 
     /**
-     * Display the sales report page.
+     * Refetch paginado/filtrado del reporte de Ganadores, usado por la tabla
+     * en modo server-side tras la carga inicial de la página.
      */
-    public function salesReport(?string $currency = null, ?string $dateFilter = null): Response
+    public function winnersData(Request $request): JsonResponse
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
+        $type       = $request->query('type');
+        $currency   = $request->query('currency');
+        $dateFilter = $request->query('dateFilter');
+        $perPage    = (int) $request->query('per_page', 15);
+        $page       = (int) $request->query('page', 1);
+
+        $paginator = $this->winnersQuery($type, $currency, $dateFilter)->paginate($perPage, ['*'], 'page', $page);
+
+        return $this->handleServiceJson(fn () => [
+            'winners' => [
+                'columns' => $this->winnersColumns(),
+                'rows'    => $this->mapWinnersRows($paginator->getCollection()),
+            ],
+            'pagination' => $this->paginationMeta($paginator),
+        ]);
+    }
+
+    /**
+     * Columnas de la tabla de Ventas — compartidas entre el render inicial y
+     * el refetch paginado.
+     */
+    private function salesReportColumns(): array
+    {
+        return [
+            ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+            ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
+            ['key' => 'room_type', 'label' => 'Tipo de Sala', 'sortable' => true],
+            ['key' => 'total_cards_sold', 'label' => 'Cartones Vendidos', 'sortable' => true],
+            ['key' => 'total_amount', 'label' => 'Monto Total', 'sortable' => true],
+            ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
+            ['key' => 'commission', 'label' => 'Comisión', 'sortable' => true],
+            ['key' => 'net_amount', 'label' => 'Monto Neto', 'sortable' => true],
+            ['key' => 'sale_date', 'label' => 'Fecha', 'sortable' => true],
+            ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
+        ];
+    }
+
+    /**
+     * Query base del reporte de Ventas — se pagina sobre SALAS (no sobre las
+     * filas expandidas por moneda): metrics_by_currency es un array JSON por
+     * sala (ver RoomMetricsService::registerSale), así que paginar después de
+     * expandir dejaría el conteo de páginas dependiendo de cuántas monedas
+     * vendió cada sala, en vez de cuántas salas hay.
+     */
+    private function salesReportRoomsQuery(?string $dateFilter): \Illuminate\Database\Eloquent\Builder
+    {
         $query = BingoRoom::query()
             ->with(['config.roomType', 'status'])
             ->orderByDesc('created_at');
@@ -198,29 +376,31 @@ final class BingoReportController extends Controller
             $query->whereDate('created_at', $dateFilter);
         }
 
-        $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
+        return $query;
+    }
 
+    /**
+     * Expande una página de salas en filas por moneda (una fila por cada
+     * entrada de metrics_by_currency), aplicando el filtro de moneda si
+     * corresponde. No calcula totales — eso lo hace salesReportSummary()
+     * sobre el dataset COMPLETO, no solo la página visible.
+     *
+     * @param Collection<int, BingoRoom> $rooms
+     */
+    private function mapSalesReportRows(Collection $rooms, ?string $currency, Collection $currenciesById): array
+    {
         $rows = [];
-        $totalsByCurrency = [];
-        $totalCardsSold = 0;
 
-        foreach ($query->get() as $room) {
+        foreach ($rooms as $room) {
             /** @var BingoRoom $room */
-            // Cada sala puede vender en varias monedas — metrics_by_currency
-            // (ver RoomMetricsService::registerSale) ya trae el desglose por
-            // currency_id sin necesitar reagregar bingo_cards en cada request.
             $metricsByCurrency = (array) ($room->metrics_by_currency ?? []);
-
-            if (empty($metricsByCurrency)) {
-                continue;
-            }
 
             foreach ($metricsByCurrency as $currencyId => $metrics) {
                 if ($currency && (string) $currencyId !== (string) $currency) {
                     continue;
                 }
 
-                $isoCode = $currencies->get($currencyId)?->iso_code ?? '—';
+                $isoCode = $currenciesById->get($currencyId)?->iso_code ?? '—';
                 $totalSales = (float) ($metrics['total_sales'] ?? 0);
                 $commission = (float) ($metrics['rke_commission'] ?? 0) + (float) ($metrics['room_commission'] ?? 0);
                 $cardsSold = (int) ($metrics['total_cards'] ?? 0);
@@ -237,34 +417,95 @@ final class BingoReportController extends Controller
                     'sale_date'        => optional($room->created_at)->format('Y-m-d'),
                     'status'           => $room->status?->code ?? '—',
                 ];
-
-                $totalsByCurrency[$isoCode] ??= ['amount' => 0.0, 'commission' => 0.0];
-                $totalsByCurrency[$isoCode]['amount'] += $totalSales;
-                $totalsByCurrency[$isoCode]['commission'] += $commission;
-                $totalCardsSold += $cardsSold;
             }
         }
 
+        return $rows;
+    }
+
+    /**
+     * Totales reales del reporte de Ventas, agregados sobre TODAS las salas
+     * que matchean los filtros (no solo la página visible) — sin esto, el
+     * "Resumen de Ventas" mostraría solo un subconjunto arbitrario según qué
+     * página esté abierta. Solo trae la columna metrics_by_currency (JSON
+     * pequeño por fila) en vez de repetir el with() de relaciones de
+     * salesReportRoomsQuery(), que sería innecesariamente pesado para un
+     * simple sumatorio.
+     */
+    private function salesReportSummary(?string $dateFilter, ?string $currency, Collection $currenciesById): array
+    {
+        $query = BingoRoom::query()->select(['id', 'metrics_by_currency']);
+
+        if ($dateFilter) {
+            $query->whereDate('created_at', $dateFilter);
+        }
+
+        $totalsByCurrency = [];
+        $totalCardsSold = 0;
+        $roomsWithSales = 0;
+
+        // chunkById evita cargar todas las salas en memoria a la vez cuando el
+        // histórico crece — cada chunk solo trae id + metrics_by_currency.
+        $query->orderBy('id')->chunkById(500, function (\Illuminate\Support\Collection $rooms) use (
+            &$totalsByCurrency, &$totalCardsSold, &$roomsWithSales, $currency, $currenciesById
+        ) {
+            foreach ($rooms as $room) {
+                /** @var BingoRoom $room */
+                $metricsByCurrency = (array) ($room->metrics_by_currency ?? []);
+
+                if (empty($metricsByCurrency)) {
+                    continue;
+                }
+
+                $roomHasMatchingSale = false;
+
+                foreach ($metricsByCurrency as $currencyId => $metrics) {
+                    if ($currency && (string) $currencyId !== (string) $currency) {
+                        continue;
+                    }
+
+                    $isoCode = $currenciesById->get($currencyId)?->iso_code ?? '—';
+                    $totalSales = (float) ($metrics['total_sales'] ?? 0);
+                    $commission = (float) ($metrics['rke_commission'] ?? 0) + (float) ($metrics['room_commission'] ?? 0);
+
+                    $totalsByCurrency[$isoCode] ??= ['amount' => 0.0, 'commission' => 0.0];
+                    $totalsByCurrency[$isoCode]['amount'] += $totalSales;
+                    $totalsByCurrency[$isoCode]['commission'] += $commission;
+                    $totalCardsSold += (int) ($metrics['total_cards'] ?? 0);
+                    $roomHasMatchingSale = true;
+                }
+
+                if ($roomHasMatchingSale) {
+                    $roomsWithSales++;
+                }
+            }
+        });
+
+        return [
+            'total_rooms'      => $roomsWithSales,
+            'total_cards_sold' => $totalCardsSold,
+            'by_currency'      => $totalsByCurrency,
+            'total_commission' => array_sum(array_column($totalsByCurrency, 'commission')),
+        ];
+    }
+
+    /**
+     * Display the sales report page.
+     */
+    public function salesReport(?string $currency = null, ?string $dateFilter = null): Response
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
+
+        // Se pagina sobre salas (15 por página); metrics_by_currency de cada
+        // sala se expande después, solo para las salas de esta página.
+        $paginator = $this->salesReportRoomsQuery($dateFilter)->paginate(15);
+
         $salesData = [
-            'columns' => [
-                ['key' => 'id', 'label' => 'ID', 'sortable' => true],
-                ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
-                ['key' => 'room_type', 'label' => 'Tipo de Sala', 'sortable' => true],
-                ['key' => 'total_cards_sold', 'label' => 'Cartones Vendidos', 'sortable' => true],
-                ['key' => 'total_amount', 'label' => 'Monto Total', 'sortable' => true],
-                ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
-                ['key' => 'commission', 'label' => 'Comisión', 'sortable' => true],
-                ['key' => 'net_amount', 'label' => 'Monto Neto', 'sortable' => true],
-                ['key' => 'sale_date', 'label' => 'Fecha', 'sortable' => true],
-                ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
-            ],
-            'rows' => $rows,
-            'summary' => [
-                'total_rooms'      => count(array_unique(array_map(fn (array $r) => explode(':', $r['id'])[0], $rows))),
-                'total_cards_sold' => $totalCardsSold,
-                'by_currency'      => $totalsByCurrency,
-                'total_commission' => array_sum(array_column($totalsByCurrency, 'commission')),
-            ],
+            'columns' => $this->salesReportColumns(),
+            'rows'    => $this->mapSalesReportRows($paginator->getCollection(), $currency, $currenciesById),
+            'summary' => $this->salesReportSummary($dateFilter, $currency, $currenciesById),
         ];
 
         $roomTypes = \App\Models\Games\Common\Room\RoomType::query()
@@ -275,7 +516,8 @@ final class BingoReportController extends Controller
         return Inertia::render('Games/Bingo/Report/Sales', [
             'title' => 'Reporte de Ventas',
             'sales' => $salesData,
-            'currencies' => $currencies->values(),
+            'sales_pagination' => $this->paginationMeta($paginator),
+            'currencies' => $currenciesById->values(),
             'roomTypes' => $roomTypes,
             'selectedCurrency' => $currency,
             'dateFilter' => $dateFilter
@@ -283,14 +525,74 @@ final class BingoReportController extends Controller
     }
 
     /**
-     * Display the sales report for a specific room.
+     * Refetch paginado/filtrado del reporte de Ventas, usado por la tabla en
+     * modo server-side tras la carga inicial de la página. El summary se
+     * recalcula sobre el dataset completo en cada refetch (misma lógica que
+     * el render Inertia) para reflejar siempre los filtros activos, no solo
+     * la página visible.
      */
-    public function salesReportByRoom(BingoRoom $room, ?string $currency = null): Response
+    public function salesReportData(Request $request): JsonResponse
     {
         abort_if($this->userContext->userHasRole('player'), 403);
 
-        $room->load(['config.roomType']);
+        $currency   = $request->query('currency');
+        $dateFilter = $request->query('dateFilter');
+        $perPage    = (int) $request->query('per_page', 15);
+        $page       = (int) $request->query('page', 1);
 
+        $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
+
+        $paginator = $this->salesReportRoomsQuery($dateFilter)->paginate($perPage, ['*'], 'page', $page);
+
+        return $this->handleServiceJson(fn () => [
+            'sales' => [
+                'columns' => $this->salesReportColumns(),
+                'rows'    => $this->mapSalesReportRows($paginator->getCollection(), $currency, $currenciesById),
+                'summary' => $this->salesReportSummary($dateFilter, $currency, $currenciesById),
+            ],
+            'pagination' => $this->paginationMeta($paginator),
+        ]);
+    }
+
+    /**
+     * Etiquetas de estado de pago (BingoCardPayment) — compartidas entre el
+     * render Inertia y el refetch paginado.
+     *
+     * @return array<string, string>
+     */
+    private function paymentStatusLabels(): array
+    {
+        return [
+            'PENDING'   => 'Pending',
+            'COMPLETED' => 'Paid',
+            'FAILED'    => 'Cancelled',
+        ];
+    }
+
+    /**
+     * Columnas de la tabla de Ventas por Sala — compartidas entre el render
+     * inicial y el refetch paginado.
+     */
+    private function salesByRoomColumns(): array
+    {
+        return [
+            ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+            ['key' => 'card_number', 'label' => 'Número de Cartón', 'sortable' => true],
+            ['key' => 'player_name', 'label' => 'Jugador', 'sortable' => true],
+            ['key' => 'card_price', 'label' => 'Precio Cartón', 'sortable' => true],
+            ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
+            ['key' => 'sale_date', 'label' => 'Fecha de Venta', 'sortable' => true],
+            ['key' => 'payment_method', 'label' => 'Método de Pago', 'sortable' => true],
+            ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
+        ];
+    }
+
+    /**
+     * Query base del reporte de Ventas por Sala, con los mismos filtros
+     * aplicados tanto en el render Inertia como en el refetch server-side.
+     */
+    private function salesByRoomQuery(BingoRoom $room, ?string $currency): \Illuminate\Database\Eloquent\Builder
+    {
         $query = BingoCard::query()
             ->where('room_id', $room->id)
             ->with(['roomUser.user', 'currency', 'cardLot.payments'])
@@ -300,15 +602,19 @@ final class BingoReportController extends Controller
             $query->where('currency_id', $currency);
         }
 
-        $paymentStatusToLabel = [
-            'PENDING'   => 'Pending',
-            'COMPLETED' => 'Paid',
-            'FAILED'    => 'Cancelled',
-        ];
+        return $query;
+    }
 
-        $cards = $query->limit(500)->get();
+    /**
+     * Mapea una página de BingoCard al shape de fila del reporte por sala.
+     *
+     * @param Collection<int, BingoCard> $cards
+     */
+    private function mapSalesByRoomRows(Collection $cards): array
+    {
+        $paymentStatusToLabel = $this->paymentStatusLabels();
 
-        $rows = $cards->map(function (BingoCard $card) use ($paymentStatusToLabel) {
+        return $cards->map(function (BingoCard $card) use ($paymentStatusToLabel) {
             $payment = $card->cardLot?->payments?->first();
 
             return [
@@ -322,33 +628,64 @@ final class BingoReportController extends Controller
                 'status'         => $paymentStatusToLabel[$payment?->payment_status] ?? ($payment?->payment_status ?? 'Pending'),
             ];
         })->all();
+    }
 
-        $totalAmount = (float) $cards->sum(fn (BingoCard $card) => (float) ($card->cardLot?->card_price ?? 0));
-        $primaryCurrency = $cards->first()?->currency?->iso_code ?? '—';
+    /**
+     * Totales de la sala (room_info), agregados con una query de agregación
+     * SQL sobre TODOS los cartones de la sala que matchean el filtro de
+     * moneda — no solo la página visible, igual criterio que
+     * salesReportSummary(). primaryCurrency se resuelve por separado porque
+     * es un dato de la fila más reciente, no algo agregable.
+     */
+    private function salesByRoomInfo(BingoRoom $room, ?string $currency): array
+    {
+        $totalsQuery = BingoCard::query()
+            ->where('room_id', $room->id)
+            ->when($currency, fn ($q) => $q->where('currency_id', $currency))
+            ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id');
+
+        $totals = (clone $totalsQuery)
+            ->selectRaw('COUNT(bingo_cards.id) as cards_count, COALESCE(SUM(bingo_card_lots.card_price), 0) as total_amount')
+            ->first();
+
+        $primaryCurrency = BingoCard::query()
+            ->where('room_id', $room->id)
+            ->when($currency, fn ($q) => $q->where('currency_id', $currency))
+            ->with('currency')
+            ->orderByDesc('created_at')
+            ->first()
+            ?->currency?->iso_code ?? '—';
+
+        $totalAmount = (float) ($totals?->total_amount ?? 0);
         $commission = (float) ($room->room_commission ?? 0) + (float) ($room->rke_commission ?? 0);
 
+        return [
+            'id'               => (string) $room->id,
+            'name'             => $this->roomLabel($room),
+            'type'             => $room->config?->roomType?->code ?? 'PUBLIC',
+            'total_cards_sold' => (int) ($totals?->cards_count ?? 0),
+            'total_amount'     => $totalAmount,
+            'currency'         => $primaryCurrency,
+            'commission'       => $commission,
+            'net_amount'       => $totalAmount - $commission,
+        ];
+    }
+
+    /**
+     * Display the sales report for a specific room.
+     */
+    public function salesReportByRoom(BingoRoom $room, ?string $currency = null): Response
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $room->load(['config.roomType']);
+
+        $paginator = $this->salesByRoomQuery($room, $currency)->paginate(15);
+
         $roomSalesData = [
-            'columns' => [
-                ['key' => 'id', 'label' => 'ID', 'sortable' => true],
-                ['key' => 'card_number', 'label' => 'Número de Cartón', 'sortable' => true],
-                ['key' => 'player_name', 'label' => 'Jugador', 'sortable' => true],
-                ['key' => 'card_price', 'label' => 'Precio Cartón', 'sortable' => true],
-                ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
-                ['key' => 'sale_date', 'label' => 'Fecha de Venta', 'sortable' => true],
-                ['key' => 'payment_method', 'label' => 'Método de Pago', 'sortable' => true],
-                ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
-            ],
-            'rows' => $rows,
-            'room_info' => [
-                'id'               => (string) $room->id,
-                'name'             => $this->roomLabel($room),
-                'type'             => $room->config?->roomType?->code ?? 'PUBLIC',
-                'total_cards_sold' => $cards->count(),
-                'total_amount'     => $totalAmount,
-                'currency'         => $primaryCurrency,
-                'commission'       => $commission,
-                'net_amount'       => $totalAmount - $commission,
-            ]
+            'columns'   => $this->salesByRoomColumns(),
+            'rows'      => $this->mapSalesByRoomRows($paginator->getCollection()),
+            'room_info' => $this->salesByRoomInfo($room, $currency),
         ];
 
         $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code']);
@@ -364,10 +701,37 @@ final class BingoReportController extends Controller
         return Inertia::render('Games/Bingo/Report/SalesByRoom', [
             'title' => "Reporte de Ventas - {$roomSalesData['room_info']['name']}",
             'roomSales' => $roomSalesData,
+            'room_sales_pagination' => $this->paginationMeta($paginator),
             'currencies' => $currencies,
             'paymentMethods' => $paymentMethods,
             'selectedCurrency' => $currency,
             'roomId' => (string) $room->id
+        ]);
+    }
+
+    /**
+     * Refetch paginado/filtrado del reporte de Ventas por Sala, usado por la
+     * tabla en modo server-side tras la carga inicial de la página.
+     */
+    public function salesReportByRoomData(BingoRoom $room, Request $request): JsonResponse
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $currency = $request->query('currency');
+        $perPage  = (int) $request->query('per_page', 15);
+        $page     = (int) $request->query('page', 1);
+
+        $room->load(['config.roomType']);
+
+        $paginator = $this->salesByRoomQuery($room, $currency)->paginate($perPage, ['*'], 'page', $page);
+
+        return $this->handleServiceJson(fn () => [
+            'roomSales' => [
+                'columns'   => $this->salesByRoomColumns(),
+                'rows'      => $this->mapSalesByRoomRows($paginator->getCollection()),
+                'room_info' => $this->salesByRoomInfo($room, $currency),
+            ],
+            'pagination' => $this->paginationMeta($paginator),
         ]);
     }
 }
