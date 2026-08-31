@@ -415,7 +415,48 @@ infraestructura Docker impidió una verificación end-to-end en esta sesión.
 ---
 
 *(Todos los hallazgos 🔴 críticos de la auditoría original quedaron
-atendidos en esta sesión. Ningún cambio de esta sección pudo ejecutarse
-contra el test suite real por el bloqueo de red Docker documentado en la
-primera entrada crítica — se recomienda correr
-`bash test-docker.sh --filter=Trivia` completo antes de desplegar.)*
+atendidos en esta sesión.)*
+
+## Verificación por test suite — estado final
+
+Tras resolver el bloqueo inicial de red Docker (`playrke_php` sin conectividad
+a Postgres), se reconstruyó `playrke_testing` (estaba con migraciones a medio
+aplicar, tablas duplicadas — no causado por esta sesión) y se corrieron los
+tests directamente afectados por los cambios:
+
+- **`GameEngineServiceTest` (6/6 ✓)** — cubre `canStart()`/lock de
+  `startGame()` (fix crítico #1) y la guarda de doble respuesta en
+  `submitAnswer()` (fix crítico #4).
+- **`SubmitAnswerActionTest` (5/5 ✓)** — cubre el mismo motor de dominio,
+  anti-cheat de tiempos de respuesta.
+
+Ambas suites pasaron limpiamente en una corrida aislada contra la BD
+reconstruida, **antes** de que el entorno Docker local entrara en un estado
+inestable (deadlocks de MySQL en el drop masivo de tablas, más tarde dos
+procesos `php artisan test` idénticos quedando huérfanos y compitiendo por
+la misma BD — se identificaron y mataron manualmente más de una vez). Ese
+segundo problema es de orquestación del entorno de test local — no
+relacionado al código de esta sesión — y quedó sin resolver de forma
+duradera: **no se logró una corrida limpia del test suite completo de
+Trivia** (`RoomServiceTest`, `ScoreServiceTest`,
+`RetryFailedTriviaPrizePayoutsCommandTest`) al cierre de esta sesión.
+
+Hallazgos adicionales de infraestructura, no de código, detectados durante
+la verificación:
+- `trivia_testing` (Postgres) tiene un esquema desactualizado —
+  `trivia_rooms.game_mode` no existe ahí, aunque sí en el modelo/migraciones
+  actuales. Afecta `RetryFailedTriviaPrizePayoutsCommandTest` (4 fallos).
+  Requiere migrar `trivia_testing` aparte de `playrke_testing`.
+- Los procesos `php artisan test` lanzados manualmente pueden quedar
+  huérfanos dentro de `playrke_php` si el proceso que los invocó se
+  interrumpe (timeout del lado del orquestador) sin que el hijo reciba la
+  señal — vale la pena revisar si esto también ocurre en CI.
+
+**Recomendación:** antes de desplegar, correr en un entorno estable:
+```
+bash test-docker.sh tests/Unit/Domains/Trivia
+bash test-docker.sh --filter=RetryFailedTriviaPrizePayoutsCommandTest
+```
+tras migrar `trivia_testing` al esquema actual (`php artisan migrate
+--database=pgsql_trivia --path=database/migrations/trivia --force` con
+`.env.testing` exportado).
