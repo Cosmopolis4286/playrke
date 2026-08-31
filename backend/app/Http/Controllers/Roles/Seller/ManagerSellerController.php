@@ -117,11 +117,18 @@ final class ManagerSellerController extends Controller
     /**
      * Eliminar un vendedor (soft delete).
      *
+     * 'delete' no es una acción resource estándar (index/show/store/update/
+     * destroy) — authorizeResource() del constructor NO la autoriza
+     * automáticamente, a diferencia de show/update/destroy. Requiere
+     * $this->authorize() explícito, igual que toggleStatus()/resetPassword().
+     *
      * @param Seller $seller
      * @return JsonResponse
      */
     public function delete(Seller $seller): JsonResponse
     {
+        $this->authorize('update', $seller);
+
         return $this->handleServiceJson(
             fn() => $this->service->delete($seller)
         );
@@ -148,6 +155,8 @@ final class ManagerSellerController extends Controller
      */
     public function toggleStatus(Seller $seller): JsonResponse
     {
+        $this->authorize('toggleStatus', $seller);
+
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($seller)
         );
@@ -156,11 +165,18 @@ final class ManagerSellerController extends Controller
     /**
      * Generar una nueva contraseña para un vendedor.
      *
+     * Antes sin ningún $this->authorize() — cualquier commerce/subsidiary/
+     * customer autenticado podía resetear la contraseña de un Seller de
+     * OTRO comercio/agencia con solo cambiar el {seller} de la URL
+     * (account takeover). Ver ManagerSellerPolicy::resetPassword()/ownsSeller().
+     *
      * @param Seller $seller
      * @return JsonResponse
      */
     public function resetPassword(Seller $seller): JsonResponse
     {
+        $this->authorize('resetPassword', $seller);
+
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->resetPassword($seller),

@@ -3,8 +3,10 @@
 namespace App\Policies\Roles\Seller\Manager;
 
 use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Policy de autorización para el dominio Seller Manager.
@@ -12,6 +14,7 @@ use App\Policies\Roles\BaseRolePolicy;
  * Reglas:
  * - Solo usuarios con roles permitidos pueden operar
  * - Vendedores en estados DELETED o BLOCKED no pueden mutar
+ * - Solo sobre vendedores que pertenecen al árbol del manager autenticado
  * - Compatible con authorizeResource()
  */
 class ManagerSellerPolicy extends BaseRolePolicy
@@ -37,12 +40,63 @@ class ManagerSellerPolicy extends BaseRolePolicy
     }
 
     /**
+     * true si $seller pertenece al árbol de negocio del $user autenticado.
+     *
+     * Antes ningún método de esta policy comparaba el vendedor objetivo
+     * contra el usuario autenticado — solo el rol y el status del modelo.
+     * Cualquier commerce/subsidiary/customer podía operar sobre un Seller
+     * de OTRO comercio/agencia con solo cambiar el {seller} de la URL,
+     * incluyendo resetPassword() (account takeover del vendedor ajeno).
+     *
+     * - commerce: dueño si Seller::resolveCommerce() (cubre tanto
+     *   manager_user_id directo como vía Subsidiary) resuelve a este user.
+     * - subsidiary: dueño si el seller cuelga de una Subsidiary cuyo
+     *   user_id es este user.
+     * - customer: rama independiente sin sellers propios (ver docblock de
+     *   Customer) — nunca es dueño de ningún Seller.
+     */
+    private function ownsSeller(User $user, Seller $seller): bool
+    {
+        if ($user->hasRole('commerce')) {
+            return (string) $seller->resolveCommerce()?->user_id === (string) $user->id;
+        }
+
+        if ($user->hasRole('subsidiary')) {
+            if (!$seller->subsidiary_id) {
+                return false;
+            }
+
+            return Subsidiary::where('id', $seller->subsidiary_id)
+                ->where('user_id', $user->id)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    public function view(User $user, Model $model): bool
+    {
+        return $this->hasAccess($user) && $this->ownsSeller($user, $model);
+    }
+
+    public function update(User $user, Model $model): bool
+    {
+        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsSeller($user, $model);
+    }
+
+    public function forceDelete(User $user, Model $model): bool
+    {
+        return $this->hasAccess($user) && $this->ownsSeller($user, $model);
+    }
+
+    /**
      * Alternar estado del vendedor.
      */
     public function toggleStatus(User $user, Seller $seller): bool
     {
         return $this->hasAccess($user)
-            && $this->canMutate($seller);
+            && $this->canMutate($seller)
+            && $this->ownsSeller($user, $seller);
     }
 
     /**
@@ -51,6 +105,7 @@ class ManagerSellerPolicy extends BaseRolePolicy
     public function resetPassword(User $user, Seller $seller): bool
     {
         return $this->hasAccess($user)
-            && $this->canMutate($seller);
+            && $this->canMutate($seller)
+            && $this->ownsSeller($user, $seller);
     }
 }
