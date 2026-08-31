@@ -31,7 +31,7 @@ const VALID_ICONS: ToastIcon[] = ['success', 'error', 'warning', 'info']
  */
 export function showToast(text: string, icon: ToastIcon | 'question' = 'info', options?: ToastOptions): void {
     const type: ToastIcon = VALID_ICONS.includes(icon as ToastIcon) ? (icon as ToastIcon) : 'info'
-    toast[type](text, options)
+    callToast(type, text, options)
 }
 
 /**
@@ -50,10 +50,22 @@ export function showToast(text: string, icon: ToastIcon | 'question' = 'info', o
 export function showDetailedToast(title: string, detail: string | null, icon: ToastIcon, timeoutMs?: number): void {
     const truncated = detail ? (detail.length > 180 ? `${detail.slice(0, 180)}…` : detail) : null
 
-    toast[icon](
+    callToast(
+        icon,
         { component: ToastDetail, props: { title, detail: truncated } },
         { timeout: timeoutMs ?? (icon === 'error' ? 7000 : 5000) }
     )
+}
+
+/**
+ * `toast[type](content, options)` con `type` dinámico no tipa bien contra
+ * las sobrecargas de vue-toastification (cada método success/error/... tiene
+ * su propia firma restringida por TYPE) — este wrapper centraliza el único
+ * `as never` necesario para el dispatch dinámico, en vez de repetirlo en
+ * cada función pública de este módulo.
+ */
+function callToast(icon: ToastIcon, content: Parameters<typeof toast.info>[0], options?: ToastOptions): void {
+    toast[icon](content as never, options as never)
 }
 
 /**
