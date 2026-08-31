@@ -1,0 +1,124 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Domains\Trivia\Services;
+
+use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
+use App\Models\Games\Trivia\TriviaParticipant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Str;
+use RuntimeException;
+use Tests\TestCase;
+
+class TriviaPowerUpServiceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    // trivia_rooms/trivia_participants viven en pgsql_trivia — mismo patrón
+    // que el resto de tests de este dominio (ver GameEngineServiceTest).
+    protected $connectionsToTransact = ['mysql', 'pgsql_trivia'];
+
+    private TriviaPowerUpService $service;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->service = new TriviaPowerUpService();
+        Redis::flushall();
+    }
+
+    private function createRoomAndParticipant(string $userId = 'user-1'): array
+    {
+        $room = TriviaRoom::create([
+            'code' => 'PWR001',
+            'title' => 'Sala Power-ups',
+            'host_id' => '1',
+            'status' => 'waiting',
+            'max_players' => 10,
+            'question_count' => 3,
+            'settings' => ['allow_powerups' => true],
+        ]);
+
+        $participant = TriviaParticipant::create([
+            'id' => (string) Str::ulid(),
+            'room_id' => (string) $room->id,
+            'user_id' => $userId,
+            'status' => 'confirmed',
+            'registered_at' => now(),
+            'confirmed_at' => now(),
+            'power_ups' => TriviaPowerUpType::defaultAllowance(),
+        ]);
+
+        return [$room, $participant];
+    }
+
+    public function test_consume_decrements_available_uses(): void
+    {
+        [$room, $participant] = $this->createRoomAndParticipant();
+
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::FIFTY_FIFTY);
+
+        $participant->refresh();
+        $this->assertSame(0, $participant->getAvailablePowerUp(TriviaPowerUpType::FIFTY_FIFTY->value));
+        // Los demás tipos no se ven afectados.
+        $this->assertSame(1, $participant->getAvailablePowerUp(TriviaPowerUpType::SKIP->value));
+    }
+
+    public function test_consume_throws_when_no_uses_left(): void
+    {
+        [$room, $participant] = $this->createRoomAndParticipant();
+
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::SKIP);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Ya no tienes usos disponibles');
+
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::SKIP);
+    }
+
+    public function test_consume_throws_when_player_not_in_room(): void
+    {
+        [$room] = $this->createRoomAndParticipant();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No estás inscrito');
+
+        $this->service->consume((string) $room->id, 'unknown-user', TriviaPowerUpType::FIFTY_FIFTY);
+    }
+
+    public function test_resolve_fifty_fifty_never_hides_the_correct_answer(): void
+    {
+        foreach (range(0, 3) as $correctIndex) {
+            $hidden = $this->service->resolveFiftyFifty($correctIndex, 4);
+
+            $this->assertCount(2, $hidden);
+            $this->assertNotContains($correctIndex, $hidden);
+            $this->assertSame(count($hidden), count(array_unique($hidden)));
+        }
+    }
+
+    public function test_double_points_flag_is_consumed_only_once(): void
+    {
+        $this->service->activateDoublePoints('game-1', 'user-1', 'question-1');
+
+        $this->assertTrue($this->service->consumeDoublePointsFlag('game-1', 'user-1', 'question-1'));
+        // Segunda lectura: ya se consumió, no debe seguir activo.
+        $this->assertFalse($this->service->consumeDoublePointsFlag('game-1', 'user-1', 'question-1'));
+    }
+
+    public function test_extra_time_bonus_is_zero_when_not_activated(): void
+    {
+        $this->assertSame(0, $this->service->extraTimeBonusMs('game-1', 'user-1', 'question-1'));
+
+        $this->service->activateExtraTime('game-1', 'user-1', 'question-1');
+
+        $this->assertSame(
+            TriviaPowerUpService::EXTRA_TIME_BONUS_MS,
+            $this->service->extraTimeBonusMs('game-1', 'user-1', 'question-1'),
+        );
+    }
+}
