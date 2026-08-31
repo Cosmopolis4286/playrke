@@ -151,11 +151,17 @@ class TriviaRoom extends BaseModel
 
     /**
      * Verificar si la sala puede iniciarse.
+     *
+     * Usa TriviaGame::scopeActive() (status IN ['playing','active']) en vez
+     * de comparar contra el string 'active' directamente: GameEngineService
+     * crea las partidas con status 'playing', así que la comparación
+     * exacta contra 'active' nunca coincidía y esta guarda jamás bloqueaba
+     * un segundo inicio sobre una sala con partida ya en curso.
      */
     public function canStart(): bool
     {
         return $this->status === 'waiting' &&
-               $this->games()->where('status', 'active')->doesntExist();
+               $this->games()->active()->doesntExist();
     }
 
     /**

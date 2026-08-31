@@ -59,26 +59,40 @@ class GameEngineService implements GameEngineInterface
      */
     public function startGame(string $roomId, array $playerIds): GameStateDTO
     {
-        // Validar sala
-        $room = TriviaRoom::findOrFail($roomId);
-        
-        if (!$room->canStart()) {
-            throw new RuntimeException('La sala no puede iniciar un juego en este momento');
-        }
+        // lockForUpdate() serializa dos StartGameAction concurrentes sobre la
+        // misma sala (doble clic del host, o el cron de scheduled_at
+        // corriendo justo cuando el host también inicia manualmente): sin el
+        // lock, ambas leían canStart()=true antes de que cualquiera creara
+        // el TriviaGame, resultando en dos partidas 'playing' para la misma
+        // sala y, más grave, en PrizeDistributionService::distribute()
+        // ejecutándose dos veces al finalizar cada una.
+        [$room, $game] = DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $playerIds) {
+            $room = TriviaRoom::lockForUpdate()->findOrFail($roomId);
 
-        // total_questions desde la configuración de la sala (banco global, sin room_id)
-        $totalQuestions = max(1, (int) $room->question_count);
+            if (!$room->canStart()) {
+                throw new RuntimeException('La sala no puede iniciar un juego en este momento');
+            }
 
-        // Crear juego en base de datos
-        $game = TriviaGame::create([
-            'room_id'         => $roomId,
-            'game_code'       => strtoupper(Str::random(6)),
-            'status'          => 'playing',
-            'total_questions' => $totalQuestions,
-            'time_per_question'=> $room->time_per_question,
-            'player_count'    => count($playerIds),
-            'started_at'      => now(),
-        ]);
+            // total_questions desde la configuración de la sala (banco global, sin room_id)
+            $totalQuestions = max(1, (int) $room->question_count);
+
+            // Crear juego en base de datos
+            $game = TriviaGame::create([
+                'room_id'         => $roomId,
+                'game_code'       => strtoupper(Str::random(6)),
+                'status'          => 'playing',
+                'total_questions' => $totalQuestions,
+                'time_per_question'=> $room->time_per_question,
+                'player_count'    => count($playerIds),
+                'started_at'      => now(),
+            ]);
+
+            // Actualizar sala dentro de la misma transacción/lock — evita que
+            // otra request vea 'waiting' entre el commit del juego y este update.
+            $room->update(['status' => 'playing', 'started_at' => now()]);
+
+            return [$room, $game];
+        });
 
         // Crear estado inicial en Redis
         $gameState = new GameStateDTO(
@@ -104,9 +118,6 @@ class GameEngineService implements GameEngineInterface
         foreach ($playerIds as $playerId) {
             $this->scoreService->updateScore($gameState->gameId, $playerId, 0);
         }
-
-        // Actualizar sala
-        $room->update(['status' => 'playing', 'started_at' => now()]);
 
         // Emitir evento de dominio
         event(new GameStarted($gameState));
