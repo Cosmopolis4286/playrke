@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Room;
 use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Trivia\UpdateRoomRequest;
 use App\Models\Game;
@@ -26,6 +27,7 @@ final class TriviaRoomAdminController extends Controller
     public function __construct(
         private readonly RoomServiceInterface $roomService,
         private readonly GameModeRepositoryInterface $gameModes,
+        private readonly TriviaRoomRefundService $refundService,
     ) {}
 
     /**
@@ -370,15 +372,31 @@ final class TriviaRoomAdminController extends Controller
 
     /**
      * Eliminar/Cerrar sala.
+     *
+     * Reembolsa el entry fee de cada participante confirmado antes de
+     * cerrar: sin esto, un admin podía cerrar una sala con jugadores que ya
+     * pagaron su entrada y ese dinero quedaba cobrado sin partida jugada y
+     * sin ningún mecanismo de recuperación (ver TriviaRoomRefundService).
      */
     public function destroy(string $id)
     {
         try {
+            $room = TriviaRoom::findOrFail($id);
+
+            $refunded = $this->refundService->refundConfirmedParticipants(
+                $room,
+                "La sala '{$room->title}' ({$room->code}) fue cerrada por un administrador. Se te reembolsó tu entrada.",
+            );
+
             $this->roomService->closeRoom($id, 'deleted_by_admin');
+
+            $message = $refunded > 0
+                ? "Sala cerrada exitosamente. Se reembolsaron {$refunded} entrada(s)."
+                : 'Sala cerrada exitosamente.';
 
             return redirect()
                 ->route('trivia-rooms-admin.index')
-                ->with('success', 'Sala cerrada exitosamente.');
+                ->with('success', $message);
         } catch (\Exception $e) {
             return redirect()
                 ->back()
@@ -388,19 +406,32 @@ final class TriviaRoomAdminController extends Controller
 
     /**
      * Forzar cierre de sala (para salas playing o waiting).
+     *
+     * Reembolsa el entry fee de cada participante confirmado antes de
+     * cerrar — ver docblock de destroy() para el porqué.
      */
     public function forceClose(string $id)
     {
         try {
             $room = TriviaRoom::findOrFail($id);
+
+            $refunded = $this->refundService->refundConfirmedParticipants(
+                $room,
+                "La sala '{$room->title}' ({$room->code}) fue cerrada por un administrador. Se te reembolsó tu entrada.",
+            );
+
             $room->update(['status' => 'closed', 'ended_at' => now()]);
 
             // Limpiar Redis
             $this->roomService->closeRoom($id, 'force_closed_by_admin');
 
+            $message = $refunded > 0
+                ? "Sala forzada a cerrar exitosamente. Se reembolsaron {$refunded} entrada(s)."
+                : 'Sala forzada a cerrar exitosamente.';
+
             return redirect()
                 ->route('trivia-rooms-admin.index')
-                ->with('success', 'Sala forzada a cerrar exitosamente.');
+                ->with('success', $message);
         } catch (\Exception $e) {
             return redirect()
                 ->back()

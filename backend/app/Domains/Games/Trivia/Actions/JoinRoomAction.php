@@ -51,25 +51,12 @@ class JoinRoomAction
             throw new RuntimeException('El nickname debe tener entre 2 y 30 caracteres');
         }
 
-        // Verificar si ya está registrado
-        $alreadyJoined = $this->isPlayerAlreadyJoined($roomId, $playerId);
-
-        // Si ya está registrado, solo retornar info sin hacer nada más
-        if ($alreadyJoined) {
-            $room = $this->roomService->getRoom($roomId);
-            $players = $this->roomService->listPlayers($roomId);
-
-            return [
-                'player' => [
-                    'id' => $playerId,
-                    'name' => $nickname,
-                    'roomId' => $roomId,
-                ],
-                'room' => $room,
-                'players' => $players,
-                'already_joined' => true,
-                'message' => 'Ya estás registrado en esta sala',
-            ];
+        // Verificar si ya está registrado (chequeo rápido, sin lock — evita
+        // pagar el costo de una transacción en el camino feliz de "ya unido").
+        // La verificación que realmente importa contra condiciones de carrera
+        // es la que se repite DENTRO del lock más abajo.
+        if ($this->isPlayerAlreadyJoined($roomId, $playerId)) {
+            return $this->alreadyJoinedResponse($roomId, $playerId, $nickname);
         }
 
         // Validar equipo si el modo lo requiere
@@ -77,11 +64,40 @@ class JoinRoomAction
             $this->validateTeamSelection($roomId, $teamId);
         }
 
-        // Descontar tarifa de entrada
-        $this->chargeEntryFee($roomId, $playerId);
+        // lockForUpdate() sobre la sala serializa dos joins concurrentes del
+        // mismo jugador (doble clic, reintento de red): sin el lock, ambas
+        // requests podían leer isPlayerAlreadyJoined()=false, cobrar la
+        // wallet dos veces, y solo una lograba insertar en
+        // trivia_participants (protegido por unique(room_id,user_id)) — la
+        // otra fallaba con una excepción de BD no capturada específicamente,
+        // dejando al jugador cobrado de más sin inscripción ni reembolso.
+        // Re-chequear isPlayerAlreadyJoined() DENTRO del lock (no solo antes)
+        // es lo que realmente cierra la ventana de carrera.
+        $alreadyJoinedInRace = false;
 
-        // Insertar en trivia_participants (PostgreSQL)
-        $this->registerParticipantInDatabase($roomId, $playerId, $nickname, $teamId);
+        DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $playerId, $nickname, $teamId, &$alreadyJoinedInRace) {
+            DB::connection('pgsql_trivia')->table('trivia_rooms')->where('id', $roomId)->lockForUpdate()->first();
+
+            if ($this->isPlayerAlreadyJoined($roomId, $playerId)) {
+                $alreadyJoinedInRace = true;
+                return;
+            }
+
+            // Descontar tarifa de entrada — devuelve lo realmente cobrado
+            // (monto + moneda), que puede diferir de entry_fee/entry_currency_id
+            // (legado) cuando la sala usa fee_by_currency o conversión.
+            [$chargeAmount, $chargeCurrencyId] = $this->chargeEntryFee($roomId, $playerId);
+
+            // Insertar en trivia_participants con el monto/moneda REALES
+            // cobrados — antes se persistía siempre $room->entry_fee, que
+            // podía no coincidir con lo cobrado (multidivisa/conversión),
+            // desincronizando el monto a reembolsar en caso de cancelación.
+            $this->registerParticipantInDatabase($roomId, $playerId, $nickname, $teamId, $chargeAmount, $chargeCurrencyId);
+        });
+
+        if ($alreadyJoinedInRace) {
+            return $this->alreadyJoinedResponse($roomId, $playerId, $nickname);
+        }
 
         // Unir a sala en Redis (tiempo real)
         $playerData['nickname'] = $nickname;
@@ -102,6 +118,29 @@ class JoinRoomAction
             'already_joined' => false,
             'message' => 'Te has unido a la sala exitosamente',
             'team_id' => $teamId,
+        ];
+    }
+
+    /**
+     * Respuesta estándar cuando el jugador ya está inscrito — usada tanto en
+     * el chequeo rápido inicial como cuando la re-verificación dentro del
+     * lock detecta que otra request concurrente ya lo inscribió primero.
+     */
+    private function alreadyJoinedResponse(string $roomId, string $playerId, string $nickname): array
+    {
+        $room = $this->roomService->getRoom($roomId);
+        $players = $this->roomService->listPlayers($roomId);
+
+        return [
+            'player' => [
+                'id' => $playerId,
+                'name' => $nickname,
+                'roomId' => $roomId,
+            ],
+            'room' => $room,
+            'players' => $players,
+            'already_joined' => true,
+            'message' => 'Ya estás registrado en esta sala',
         ];
     }
 
@@ -165,14 +204,21 @@ class JoinRoomAction
     /**
      * Descuenta la tarifa de entrada de la wallet del jugador.
      * Soporta fee_by_currency (multidivisa) y entry_fee/entry_currency_id (legado).
-     * Si no hay tarifa configurada, no hace nada.
+     * Si no hay tarifa configurada, no cobra nada y devuelve [0.0, null].
+     *
+     * @return array{0: float, 1: ?string} Monto y moneda REALMENTE cobrados
+     *         — deben persistirse tal cual en trivia_participants.paid_amount/
+     *         paid_currency_id (antes se persistía siempre $room->entry_fee,
+     *         que no coincide con lo cobrado cuando la sala usa
+     *         fee_by_currency o conversión, desincronizando el monto a
+     *         reembolsar en caso de cancelación).
      */
-    private function chargeEntryFee(string $roomId, string $playerId): void
+    private function chargeEntryFee(string $roomId, string $playerId): array
     {
         $room = TriviaRoom::find($roomId);
 
         if (! $room) {
-            return;
+            return [0.0, null];
         }
 
         // ── Resolver monedas disponibles ────────────────────────────────────
@@ -197,10 +243,10 @@ class JoinRoomAction
             $baseFee = (float) ($room->entry_fee_usd ?: $room->entry_fee ?? 0);
 
             if ($baseFee > 0) {
-                $this->chargeEntryFeeWithConversion($room, $playerId, $baseFee);
+                return $this->chargeEntryFeeWithConversion($room, $playerId, $baseFee);
             }
 
-            return;
+            return [0.0, null];
         }
 
         // ── Buscar la primera wallet del usuario que coincida con una moneda aceptada
@@ -244,14 +290,18 @@ class JoinRoomAction
             roomId:      (string) $room->id,
             roomName:    $room->title,
         );
+
+        return [$chargeAmount, $chargeCurrencyId];
     }
 
     /**
      * Cobra la entrada cuando la sala no define una moneda específica:
      * convierte el costo base (USD) a la moneda de la wallet activa del
      * jugador usando la tasa de cambio global, igual que en Bingo.
+     *
+     * @return array{0: float, 1: ?string} Monto y moneda realmente cobrados.
      */
-    private function chargeEntryFeeWithConversion(TriviaRoom $room, string $playerId, float $baseFeeUsd): void
+    private function chargeEntryFeeWithConversion(TriviaRoom $room, string $playerId, float $baseFeeUsd): array
     {
         $user   = User::findOrFail($playerId);
         $wallet = $user->wallets()
@@ -279,6 +329,8 @@ class JoinRoomAction
             roomId:      (string) $room->id,
             roomName:    $room->title,
         );
+
+        return [$chargeAmount, (string) $wallet->currency_id];
     }
 
     /**
@@ -296,14 +348,20 @@ class JoinRoomAction
 
     /**
      * Registra al participante en la tabla trivia_participants.
+     *
+     * @param float $paidAmount Monto REALMENTE cobrado (ver chargeEntryFee) —
+     *        no $room->entry_fee, que puede no coincidir cuando la sala usa
+     *        fee_by_currency o conversión.
+     * @param string|null $paidCurrencyId Moneda REALMENTE cobrada.
      */
-    private function registerParticipantInDatabase(string $roomId, string $playerId, string $nickname, ?string $teamId = null): void
-    {
-        $room = TriviaRoom::find($roomId);
-        if (!$room) {
-            return;
-        }
-
+    private function registerParticipantInDatabase(
+        string $roomId,
+        string $playerId,
+        string $nickname,
+        ?string $teamId,
+        float $paidAmount,
+        ?string $paidCurrencyId,
+    ): void {
         DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
             'id' => (string) Str::ulid(),
             'room_id' => $roomId,
@@ -312,8 +370,8 @@ class JoinRoomAction
             'status' => 'confirmed',
             'registered_at' => now(),
             'confirmed_at' => now(),
-            'paid_amount' => $room->entry_fee ?? 0,
-            'paid_currency_id' => $room->entry_currency_id,
+            'paid_amount' => $paidAmount,
+            'paid_currency_id' => $paidCurrencyId,
             'metadata' => json_encode(['nickname' => $nickname]),
             'created_at' => now(),
             'updated_at' => now(),
