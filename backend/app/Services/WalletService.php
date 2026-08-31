@@ -391,7 +391,7 @@ final class WalletService
     ): Wallet {
         $movementId = null;
 
-        $result = DB::transaction(function () use ($wallet, $amount, $description, &$movementId) {
+        $result = DB::transaction(function () use ($wallet, $amount, $description, $roomId, &$movementId) {
             $walletId = (string) $wallet->id;
 
             // La wallet llega SIN lock desde el controller/caller (resuelta vía
@@ -425,6 +425,7 @@ final class WalletService
                     'balance_amount'       => $split['balance_spent'],
                     'bonus_balance_before' => $bonusBalanceBefore,
                     'bonus_balance_after'  => (float) $locked->bonus_balance,
+                    'room_id'              => $roomId,
                 ],
             ]);
             $movementId = (string) $movement->id;

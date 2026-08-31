@@ -135,9 +135,16 @@ class CancelStaleTriviaRoomsCommand extends Command
                 // metadata.bonus_amount (ver WalletService::recordTriviaEntry())
                 // — se devuelve esa misma proporción a bonus_balance para no
                 // convertir bono en saldo retirable al cancelar.
+                //
+                // Filtrar también por metadata->room_id (no solo user_id+amount):
+                // si el mismo usuario pagó la misma entrada exacta en dos salas
+                // de trivia distintas y ambas quedan abandonadas, sin este filtro
+                // se podía recuperar el movimiento de la sala equivocada y aplicar
+                // una proporción de bono incorrecta en el reembolso.
                 $originalEntry = WalletMovement::where('user_id', $participant->user_id)
                     ->where('type', WalletMovement::TYPE_TRIVIA_ENTRY)
                     ->where('amount', $participant->paid_amount)
+                    ->where('metadata->room_id', (string) $room->id)
                     ->latest('created_at')
                     ->first();
 
