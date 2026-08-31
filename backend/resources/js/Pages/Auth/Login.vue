@@ -1,18 +1,21 @@
 <script setup lang="ts">
-  import { ref, watch, nextTick } from 'vue'
+  import { ref, computed, watch, nextTick } from 'vue'
+  import { usePage } from '@inertiajs/vue3'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
   import { useLogin } from '@js/composables/auth/useLogin'
-  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
   import { useTurnstile } from '@js/composables/common/useTurnstile'
+  import AuthFormField from '@js/Components/auth/AuthFormField.vue'
   import DemoCredentials from '@js/Components/auth/DemoCredentials.vue'
   import LoadingOverlay from '@js/Components/games/Trivia/Shared/LoadingOverlay.vue'
 
   const props = defineProps<{ register: Boolean }>()
 
-  const { form, loading, isBusy, requiresTurnstile, submit } = useLogin()
-  const { showPassword, togglePassword } = usePasswordToggle()
+  const { form, errors, loading, isBusy, requiresTurnstile, submit } = useLogin()
   const { siteKey, token: turnstileToken, render: renderTurnstile, reset: resetTurnstile } = useTurnstile()
+
+  const page = usePage<{ app?: { env?: string } }>()
+  const isDev = computed(() => ['local', 'testing'].includes(page.props.app?.env ?? ''))
 
   const turnstileContainer = ref<HTMLElement | null>(null)
 
@@ -39,40 +42,30 @@
 
     <template #form-content>
       <form novalidate @submit.prevent="onSubmit">
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-user" aria-hidden="true"></i>
-          <input
-            v-model.trim="form.login"
-            type="text"
-            class="auth-form__input"
-            placeholder="Email o Usuario"
-            aria-label="Email o Usuario"
-            maxlength="40"
-            required
-            :disabled="isBusy"
-          />
-        </fieldset>
+        <AuthFormField
+          v-model="form.login"
+          icon="fa-user"
+          placeholder="Email o Usuario"
+          maxlength="40"
+          required
+          :disabled="isBusy"
+          :error="errors.login"
+        />
 
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-lock"></i>
-          <input
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            class="auth-form__input"
-            placeholder="Contraseña"
-            aria-label="Contraseña"
-            required
-            :disabled="isBusy"
-          />
-          <button
-            type="button"
-            class="auth-form__toggle-password"
-            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            @click="togglePassword"
-          >
-            <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
-          </button>
-        </fieldset>
+        <AuthFormField
+          v-model="form.password"
+          type="password"
+          icon="fa-lock"
+          placeholder="Contraseña"
+          required
+          :disabled="isBusy"
+          :error="errors.password"
+        />
+
+        <div class="auth-form__checkbox">
+          <input id="remember" v-model="form.remember" type="checkbox" :disabled="isBusy" />
+          <label for="remember" class="auth-form__checkbox-text">Recordarme</label>
+        </div>
 
         <div v-if="requiresTurnstile && siteKey" ref="turnstileContainer" class="auth-form__turnstile"></div>
 
@@ -95,7 +88,7 @@
     </template>
   </GuestLayout>
 
-  <DemoCredentials @fill-credentials="fillFromDemo" />
+  <DemoCredentials v-if="isDev" @fill-credentials="fillFromDemo" />
 
   <Teleport to="body">
     <LoadingOverlay v-if="loading" message="Iniciando sesión..." />

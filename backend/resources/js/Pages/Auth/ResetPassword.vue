@@ -2,17 +2,16 @@
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
+  import AuthFormField from '@js/Components/auth/AuthFormField.vue'
+  import PasswordStrengthMeter from '@js/Components/auth/PasswordStrengthMeter.vue'
   import { useResetPassword } from '@js/composables/auth/useResetPassword'
-  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
 
   const props = defineProps<{
     token: string
     email: string
   }>()
 
-  const { form, loading, isBusy, submit } = useResetPassword(props.token, props.email)
-  const { showPassword, togglePassword } = usePasswordToggle()
-  const { showPassword: showConfirm, togglePassword: toggleConfirm } = usePasswordToggle()
+  const { form, errors, loading, isBusy, submit } = useResetPassword(props.token, props.email)
 
   const resetSlides: CarouselSlide[] = [
     {
@@ -39,60 +38,35 @@
 
     <template #form-content>
       <form novalidate @submit.prevent="submit">
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-envelope" aria-hidden="true"></i>
-          <input
-            :value="form.email"
-            type="email"
-            class="auth-form__input"
-            placeholder="Correo electrónico"
-            aria-label="Correo electrónico"
-            readonly
-            disabled
-          />
-        </fieldset>
+        <AuthFormField
+          :model-value="form.email"
+          type="email"
+          icon="fa-envelope"
+          placeholder="Correo electrónico"
+          readonly
+          disabled
+        />
 
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
-          <input
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            class="auth-form__input"
-            placeholder="Nueva contraseña"
-            aria-label="Nueva contraseña"
-            required
-            :disabled="isBusy"
-          />
-          <button
-            type="button"
-            class="auth-form__toggle-password"
-            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            @click="togglePassword"
-          >
-            <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
-          </button>
-        </fieldset>
+        <AuthFormField
+          v-model="form.password"
+          type="password"
+          icon="fa-lock"
+          placeholder="Nueva contraseña"
+          required
+          :disabled="isBusy"
+          :error="errors.password"
+        />
+        <PasswordStrengthMeter v-if="form.password" :password="form.password" />
 
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
-          <input
-            v-model="form.password_confirmation"
-            :type="showConfirm ? 'text' : 'password'"
-            class="auth-form__input"
-            placeholder="Confirmar contraseña"
-            aria-label="Confirmar contraseña"
-            required
-            :disabled="isBusy"
-          />
-          <button
-            type="button"
-            class="auth-form__toggle-password"
-            :aria-label="showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            @click="toggleConfirm"
-          >
-            <i :class="showConfirm ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
-          </button>
-        </fieldset>
+        <AuthFormField
+          v-model="form.password_confirmation"
+          type="password"
+          icon="fa-lock"
+          placeholder="Confirmar contraseña"
+          required
+          :disabled="isBusy"
+          :error="errors.password_confirmation"
+        />
 
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
           <span class="auth-form__submit-text">Restablecer contraseña</span>

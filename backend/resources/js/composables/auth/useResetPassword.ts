@@ -1,6 +1,7 @@
 import { reactive, ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
+import { resetPasswordSchema } from './resetPasswordSchema'
 
 interface ResetPasswordPayload {
   token: string
@@ -25,17 +26,28 @@ export function useResetPassword(token: string, email: string) {
   })
   const loading = ref(false)
   const isBusy = computed(() => loading.value)
+  const errors = reactive<Record<string, string>>({})
+
+  function validate(): boolean {
+    Object.keys(errors).forEach(key => delete errors[key])
+
+    const result = resetPasswordSchema.safeParse(form)
+    if (result.success) return true
+
+    for (const issue of result.error.issues) {
+      const path = issue.path[0]
+      if (typeof path === 'string' && !errors[path]) {
+        errors[path] = issue.message
+      }
+    }
+    return false
+  }
 
   const submit = async (): Promise<void> => {
     if (isBusy.value) return
 
-    if (!form.password || !form.password_confirmation) {
-      toast.warning('Completa todos los campos antes de continuar.')
-      return
-    }
-
-    if (form.password !== form.password_confirmation) {
-      toast.warning('Las contraseñas no coinciden.')
+    if (!validate()) {
+      toast.warning('Revisa los campos marcados antes de continuar.')
       return
     }
 
@@ -61,5 +73,5 @@ export function useResetPassword(token: string, email: string) {
     }
   }
 
-  return { form, loading, isBusy, submit }
+  return { form, errors, loading, isBusy, submit }
 }

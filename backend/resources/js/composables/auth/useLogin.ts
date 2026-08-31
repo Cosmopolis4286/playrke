@@ -1,18 +1,21 @@
 import { reactive, ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
+import { loginSchema } from './loginSchema'
 
 interface LoginPayload {
   login: string
   password: string
+  remember: boolean
 }
 
 export function useLogin() {
   const toast = useToast()
 
-  const form = reactive<LoginPayload>({ login: '', password: '' })
+  const form = reactive<LoginPayload>({ login: '', password: '', remember: false })
   const loading = ref(false)
   const isBusy = computed(() => loading.value)
+  const errors = reactive<Record<string, string>>({})
 
   // Turnstile solo se exige tras intentos fallidos previos (ver
   // App\Http\Requests\Auth\LoginRequest::rules()) — este flag se activa
@@ -20,10 +23,25 @@ export function useLogin() {
   // vista reacciona mostrando el widget para el siguiente intento.
   const requiresTurnstile = ref(false)
 
+  function validate(): boolean {
+    Object.keys(errors).forEach(key => delete errors[key])
+
+    const result = loginSchema.safeParse(form)
+    if (result.success) return true
+
+    for (const issue of result.error.issues) {
+      const path = issue.path[0]
+      if (typeof path === 'string' && !errors[path]) {
+        errors[path] = issue.message
+      }
+    }
+    return false
+  }
+
   const submit = async (turnstileToken?: string): Promise<void> => {
     if (isBusy.value) return
 
-    if (!form.login || !form.password) {
+    if (!validate()) {
       toast.warning('Completa todos los campos antes de continuar.')
       return
     }
@@ -40,15 +58,16 @@ export function useLogin() {
       await backendClient.post('login', {
         login: form.login,
         password: form.password,
+        remember: form.remember,
         ...(turnstileToken ? { 'cf-turnstile-response': turnstileToken } : {}),
       })
       toast.success('¡Bienvenido! Redirigiendo...')
       window.location.replace('/dashboard')
     } catch (error: any) {
       const status = error?.response?.status
-      const errors = error?.response?.data?.errors
+      const serverErrors = error?.response?.data?.errors
 
-      if (errors?.['cf-turnstile-response']) {
+      if (serverErrors?.['cf-turnstile-response']) {
         requiresTurnstile.value = true
       }
 
@@ -64,5 +83,5 @@ export function useLogin() {
     }
   }
 
-  return { form, loading, isBusy, requiresTurnstile, submit }
+  return { form, errors, loading, isBusy, requiresTurnstile, submit }
 }

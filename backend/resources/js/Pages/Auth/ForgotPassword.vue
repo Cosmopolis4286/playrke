@@ -2,9 +2,10 @@
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
+  import AuthFormField from '@js/Components/auth/AuthFormField.vue'
   import { useForgotPassword } from '@js/composables/auth/useForgotPassword'
 
-  const { form, loading, isBusy, submit } = useForgotPassword()
+  const { form, errors, loading, isBusy, submit } = useForgotPassword()
 
   const forgotSlides: CarouselSlide[] = [
     {
@@ -36,19 +37,16 @@
 
     <template #form-content>
       <form novalidate @submit.prevent="submit">
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-envelope" aria-hidden="true"></i>
-          <input
-            v-model.trim="form.email"
-            type="email"
-            class="auth-form__input"
-            placeholder="Correo electrónico"
-            aria-label="Correo electrónico"
-            maxlength="60"
-            required
-            :disabled="isBusy"
-          />
-        </fieldset>
+        <AuthFormField
+          v-model="form.email"
+          type="email"
+          icon="fa-envelope"
+          placeholder="Correo electrónico"
+          maxlength="60"
+          required
+          :disabled="isBusy"
+          :error="errors.email"
+        />
 
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
           <span class="auth-form__submit-text">Enviar link de recuperación</span>

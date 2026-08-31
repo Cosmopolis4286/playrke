@@ -6,6 +6,7 @@ use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\SettingRepositoryInterface;
 use App\Events\Admin\UserRegistered as UserRegisteredBroadcast;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
 use App\Models\Wallet;
@@ -15,12 +16,10 @@ use App\Services\User\UserLevelService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,7 +39,7 @@ class RegisteredUserController extends Controller
     public function create(): Response|RedirectResponse
     {
         // Obtener países activos con solo id y name
-        $countries = app(CountryRepository::class)->getActive()->all(['id', 'name']);
+        $countries = app(CountryRepository::class)->getActive(['id', 'name', 'iso_code_2'])->all();
         $register = $this->settings->getParameterStatus('REGISTER');
 
         if (!$register) {
@@ -66,18 +65,8 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): JsonResponse
+    public function store(RegisterRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
-            'country' => ['required', 'numeric', 'exists:countries,id'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'terms' => ['accepted'],
-            'cf-turnstile-response' => ['required', new \App\Rules\CloudflareTurnstile($request->ip())],
-        ]);
-
         $user = DB::transaction(function () use ($request) {
             $userRepository = app(UserRepository::class);
 

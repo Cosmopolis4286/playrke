@@ -1,14 +1,16 @@
 <script setup lang="ts">
-  import { ref, onMounted, nextTick } from 'vue'
+  import { ref, computed, watch, onMounted, nextTick } from 'vue'
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
   import AuthDropdown from '@js/Components/auth/AuthDropdown.vue'
+  import AuthFormField from '@js/Components/auth/AuthFormField.vue'
+  import PasswordStrengthMeter from '@js/Components/auth/PasswordStrengthMeter.vue'
   import { useRegisterForm } from '@js/composables/auth/useRegister'
-  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
+  import { usePhoneField } from '@js/composables/form/usePhoneField'
   import { useTurnstile } from '@js/composables/common/useTurnstile'
+  import type { Country } from '@js/types/country'
 
-  interface Country { id: number; name: string }
   const props = defineProps<{ countries: Country[] }>()
 
   // Precarga de teléfono/país cuando se llega desde el CTA de "regístrate"
@@ -19,15 +21,32 @@
   const prefillPhone = initialParams.get('phone') ?? ''
   const prefillCountry = initialParams.get('country') ?? ''
 
-  const { form, errors, loading, isBusy, submit: submitForm, touched, submitted, markTouched } = useRegisterForm({
-    phone: prefillPhone,
-    country: prefillCountry,
-  })
-  const { showPassword, togglePassword } = usePasswordToggle()
+  const { form, errors, loading, isBusy, submit: submitForm, touched, submitted, markTouched, selectedIso2 } =
+    useRegisterForm(props.countries, {
+      phone: prefillPhone,
+      country: prefillCountry,
+    })
   const { siteKey, token: turnstileToken, render: renderTurnstile } = useTurnstile()
 
   const turnstileContainer = ref<HTMLElement | null>(null)
   const submit = () => submitForm(turnstileToken.value || undefined)
+
+  // Teléfono — mismo composable reutilizable que el resto de formularios
+  // (ver AdminPlayerForm.vue, AdminCustomerForm.vue, etc.)
+  const phoneRef = ref(form.phone)
+  watch(() => form.phone, v => { if (v !== phoneRef.value) phoneRef.value = v })
+  watch(phoneRef, v => { if (v !== form.phone) form.phone = v })
+
+  const { phoneMask, phonePlaceholder, phoneDialPrefix } =
+    usePhoneField(selectedIso2, phoneRef, v => { phoneRef.value = v })
+
+  watch(selectedIso2, (iso, prevIso) => {
+    if (iso && iso !== prevIso) {
+      nextTick(() => {
+        if (!phoneRef.value?.trim()) phoneRef.value = phoneDialPrefix.value
+      })
+    }
+  })
 
   onMounted(async () => {
     await nextTick()
@@ -66,42 +85,29 @@
       <form novalidate @submit.prevent="submit" class="auth-form">
 
         <!-- Email -->
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-envelope" aria-hidden="true"></i>
-          <input
-            v-model.trim="form.email"
-            type="email"
-            class="auth-form__input"
-            placeholder="Correo electrónico"
-            aria-label="Correo electrónico"
-            maxlength="80"
-            required
-            :disabled="isBusy"
-            @input="markTouched('email')"
-          />
-        </fieldset>
-        <p v-if="errors.email && (submitted || touched.email)" class="auth-form__error">
-          {{ errors.email }}
-        </p>
+        <AuthFormField
+          v-model="form.email"
+          type="email"
+          icon="fa-envelope"
+          placeholder="Correo electrónico"
+          maxlength="80"
+          required
+          :disabled="isBusy"
+          :error="(submitted || touched.email) ? errors.email : null"
+          @input="markTouched('email')"
+        />
 
         <!-- Username -->
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-user" aria-hidden="true"></i>
-          <input
-            v-model.trim="form.username"
-            type="text"
-            class="auth-form__input"
-            placeholder="Nombre de usuario"
-            aria-label="Nombre de usuario"
-            maxlength="30"
-            required
-            :disabled="isBusy"
-            @input="markTouched('username')"
-          />
-        </fieldset>
-        <p v-if="errors.username && (submitted || touched.username)" class="auth-form__error">
-          {{ errors.username }}
-        </p>
+        <AuthFormField
+          v-model="form.username"
+          icon="fa-user"
+          placeholder="Nombre de usuario"
+          maxlength="30"
+          required
+          :disabled="isBusy"
+          :error="(submitted || touched.username) ? errors.username : null"
+          @input="markTouched('username')"
+        />
 
         <!-- País -->
         <fieldset class="auth-form__field">
@@ -118,72 +124,42 @@
           {{ errors.country }}
         </p>
 
-        <!-- Teléfono (opcional) -->
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-phone" aria-hidden="true"></i>
-          <input
-            v-model.trim="form.phone"
-            type="tel"
-            class="auth-form__input"
-            placeholder="Teléfono (opcional)"
-            aria-label="Teléfono, opcional"
-            maxlength="20"
-            :disabled="isBusy"
-            @input="markTouched('phone')"
-          />
-        </fieldset>
+        <!-- Teléfono (opcional) — usePhoneField: máscara y patrón según país -->
+        <AuthFormField
+          v-model="phoneRef"
+          type="tel"
+          icon="fa-phone"
+          :placeholder="phonePlaceholder"
+          :mask="phoneMask ?? undefined"
+          :disabled="isBusy"
+          :error="(submitted || touched.phone) ? errors.phone : null"
+          @input="markTouched('phone')"
+        />
 
         <!-- Contraseña -->
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
-          <input
-            v-model="form.password"
-            :type="showPassword ? 'text' : 'password'"
-            class="auth-form__input"
-            placeholder="Contraseña"
-            aria-label="Contraseña"
-            required
-            :disabled="isBusy"
-            @input="markTouched('password')"
-          />
-          <button
-            type="button"
-            class="auth-form__toggle-password"
-            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            @click="togglePassword"
-          >
-            <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
-          </button>
-        </fieldset>
-        <p v-if="errors.password && (submitted || touched.password)" class="auth-form__error">
-          {{ errors.password }}
-        </p>
+        <AuthFormField
+          v-model="form.password"
+          type="password"
+          icon="fa-lock"
+          placeholder="Contraseña"
+          required
+          :disabled="isBusy"
+          :error="(submitted || touched.password) ? errors.password : null"
+          @input="markTouched('password')"
+        />
+        <PasswordStrengthMeter v-if="form.password" :password="form.password" />
 
         <!-- Confirmar contraseña -->
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-unlock" aria-hidden="true"></i>
-          <input
-            v-model="form.password_confirmation"
-            :type="showPassword ? 'text' : 'password'"
-            class="auth-form__input"
-            placeholder="Repetir contraseña"
-            aria-label="Repetir contraseña"
-            required
-            :disabled="isBusy"
-            @input="markTouched('password_confirmation')"
-          />
-          <button
-            type="button"
-            class="auth-form__toggle-password"
-            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-            @click="togglePassword"
-          >
-            <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
-          </button>
-        </fieldset>
-        <p v-if="errors.password_confirmation && (submitted || touched.password_confirmation)" class="auth-form__error">
-          {{ errors.password_confirmation }}
-        </p>
+        <AuthFormField
+          v-model="form.password_confirmation"
+          type="password"
+          icon="fa-unlock"
+          placeholder="Repetir contraseña"
+          required
+          :disabled="isBusy"
+          :error="(submitted || touched.password_confirmation) ? errors.password_confirmation : null"
+          @input="markTouched('password_confirmation')"
+        />
 
         <!-- Términos -->
         <div class="auth-form__checkbox">
