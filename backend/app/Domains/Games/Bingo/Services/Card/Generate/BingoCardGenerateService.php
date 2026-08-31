@@ -15,7 +15,7 @@ use App\Domains\Games\Bingo\Services\Card\BingoCardPriceCalculator;
 use App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService;
 use App\Services\WalletService;
 use App\Services\Roles\Player\External\ExternalPlayerLinkService;
-use DomainException;
+use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -56,8 +56,6 @@ final class BingoCardGenerateService
      *
      * @param int $userId ID del usuario
      * @return BingoCardGenerateContexDTO
-     *
-     * @throws DomainException Si no se puede resolver el contexto
      */
     public function viewContext(int $userId): BingoCardGenerateContexDTO
     {
@@ -168,7 +166,7 @@ final class BingoCardGenerateService
      * @param string $userId ID del usuario autenticado (puede ser commerce o seller)
      * @return array{countries: \Illuminate\Database\Eloquent\Collection} Países disponibles con id, name e iso_code_2
      *
-     * @throws DomainException Si el rol no tiene soporte de monedas
+     * @throws BingoCardGenerateException Si el rol no tiene soporte de monedas
      */
     public function getAvailableCountries(string $roomId, string $userId): array
     {
@@ -240,7 +238,7 @@ final class BingoCardGenerateService
      * @param string $role     Prefijo de rol ('commerce' | 'seller')
      * @return array<int, string> Array de IDs de monedas activas
      *
-     * @throws DomainException Si el rol no tiene soporte de monedas implementado
+     * @throws BingoCardGenerateException Si el rol no tiene soporte de monedas implementado
      */
     private function resolveEntityCurrencies(string $entityId, string $role): array
     {
@@ -253,7 +251,7 @@ final class BingoCardGenerateService
             // monedas de su Commerce padre (la agencia hereda el catálogo
             // de la comercializadora que la administra).
             'subsidiary' => $this->resolveSubsidiaryCurrencies($entityId),
-            default      => throw new DomainException('Rol sin soporte de monedas: ' . $role),
+            default      => throw BingoCardGenerateException::unsupportedCurrencyRole($role),
         };
     }
 
@@ -296,7 +294,7 @@ final class BingoCardGenerateService
      *     seller_commission: float
      * }
      *
-     * @throws DomainException Si la moneda, el commerce o la tasa no se encuentran.
+     * @throws BingoCardGenerateException Si la moneda, el commerce o la tasa no se encuentran.
      */
     public function getCardPrice(string $roomId, string $userId, string $countryId): array
     {
@@ -326,7 +324,7 @@ final class BingoCardGenerateService
         $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
 
         if (!$currencyId) {
-            throw new DomainException('No se encontró moneda para el país seleccionado.');
+            throw BingoCardGenerateException::currencyNotAvailable();
         }
 
         // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
@@ -378,7 +376,7 @@ final class BingoCardGenerateService
      *
      * @return array{0: string, 1: string} [commerce_id, creator_user_id]
      *
-     * @throws DomainException Si el commerce no existe.
+     * @throws BingoCardGenerateException Si el commerce no existe.
      */
     private function resolveCommerceContext(string $userId, string $role): array
     {
@@ -392,12 +390,12 @@ final class BingoCardGenerateService
                 $commerce = $seller?->resolveCommerce();
 
                 if (!$commerce) {
-                    throw new DomainException('Comercio asociado al vendedor no encontrado.');
+                    throw BingoCardGenerateException::commerceNotFound();
                 }
 
                 return [$commerce->id, $commerce->user_id];
             })(),
-            default => throw new DomainException("Rol sin soporte de commerce: {$role}"),
+            default => throw BingoCardGenerateException::unsupportedCommerceRole($role),
         };
     }
 
@@ -412,7 +410,7 @@ final class BingoCardGenerateService
      *
      * @return float Porcentaje de comisión (ej: 5.00 = 5%).
      *
-     * @throws DomainException Si el rol no tiene soporte de comisión.
+     * @throws BingoCardGenerateException Si el rol no tiene soporte de comisión.
      */
     private function resolveEntityCommission(string $userId, string $role): float
     {
@@ -420,7 +418,7 @@ final class BingoCardGenerateService
             'commerce'              => $this->commerceRepository->getValueByUserId($userId, 'commission'),
             'seller'                => $this->sellerRepository->getValueByUserId($userId, 'commission'),
             'superadmin', 'admin'   => 0,
-            default                 => throw new DomainException("Rol sin soporte de comisión: {$role}"),
+            default                 => throw BingoCardGenerateException::unsupportedCommissionRole($role),
         };
 
         return (float) ($commission ?? 0);
@@ -431,7 +429,7 @@ final class BingoCardGenerateService
      *
      * @param BingoCardGenerateDTO $dto
      * @return array{type: string, message: string, playerLink: string}
-     * @throws DomainException
+     * @throws BingoCardGenerateException
      */
     public function generate(BingoCardGenerateDTO $dto): array
     {
@@ -447,13 +445,13 @@ final class BingoCardGenerateService
             ->first();
 
         if (!$seller) {
-            throw new DomainException('Vendedor no encontrado.');
+            throw BingoCardGenerateException::sellerNotFound();
         }
 
         $commerceModel = $seller->resolveCommerce();
 
         if (!$commerceModel) {
-            throw new DomainException('Comercio asociado no encontrado.');
+            throw BingoCardGenerateException::commerceNotFound();
         }
 
         $creatorUser = $commerceModel->user_id;
@@ -466,14 +464,14 @@ final class BingoCardGenerateService
             ->first();
 
         if (!$room) {
-            throw new DomainException('Sala no encontrada o no disponible.');
+            throw BingoCardGenerateException::roomNotAvailable();
         }
 
         // 3. Obtener moneda por país
         $currency = $this->currencies->getValueByCountry($dto->countryId, 'id');
 
         if (!$currency) {
-            throw new DomainException('Moneda no disponible para el país seleccionado.');
+            throw BingoCardGenerateException::currencyNotAvailable();
         }
 
         // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
@@ -547,7 +545,7 @@ final class BingoCardGenerateService
             $roomUser = $this->cardGenerationService->generateCards($cardOrder);
 
             if (!$roomUser) {
-                throw new DomainException('Error al generar cartones');
+                throw BingoCardGenerateException::cardGenerationFailed();
             }
 
             $this->externalPlayerLink->updateRoomUser($cardOrder['externalPlayerId'], $roomUser['room_user_id']);
@@ -576,7 +574,7 @@ final class BingoCardGenerateService
      *
      * @param \App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto
      * @return array{type: string, message: string, prize_pool?: float, card_count?: int}
-     * @throws DomainException
+     * @throws BingoCardGenerateException
      */
     public function buyFromGameRooms(\App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto): array
     {
@@ -594,7 +592,7 @@ final class BingoCardGenerateService
             ->first();
 
         if (!$room) {
-            throw new DomainException('Sala no encontrada o no disponible.');
+            throw BingoCardGenerateException::roomNotAvailable();
         }
 
         // Defensa en profundidad: si la sala es privada, exige haber verificado
@@ -605,7 +603,7 @@ final class BingoCardGenerateService
         $currencyId = $this->currencies->getValueByCountry($dto->countryId, 'id');
 
         if (!$currencyId) {
-            throw new DomainException('Moneda no disponible para el país seleccionado.');
+            throw BingoCardGenerateException::currencyNotAvailable();
         }
 
         // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
@@ -656,7 +654,7 @@ final class BingoCardGenerateService
             $roomUser = $this->cardGenerationService->generateCards($cardOrder);
 
             if (!$roomUser) {
-                throw new DomainException('Error al generar cartones');
+                throw BingoCardGenerateException::cardGenerationFailed();
             }
 
             $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
@@ -769,7 +767,7 @@ final class BingoCardGenerateService
             'commerce', 'customer' => $userId,
             'seller' => $this->sellerRepository
                 ->getValueByUserId($userId, 'manager_user_id'),
-            default => throw new DomainException('Rol inválido'),
+            default => throw BingoCardGenerateException::invalidManagerRole(),
         };
     }
 
@@ -790,14 +788,14 @@ final class BingoCardGenerateService
             ->find($roomId);
 
         if (!$room) {
-            throw new DomainException("Sala no encontrada con ID: {$roomId}");
+            throw BingoCardGenerateException::roomNotAvailable();
         }
 
         // Obtener la billetera activa del jugador
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
 
         if ($activeWallets->isEmpty()) {
-            throw new DomainException('El jugador no tiene billeteras activas configuradas');
+            throw BingoCardGenerateException::noActiveWallet();
         }
 
         // Usar la primera billetera activa (podría haber lógica para seleccionar una específica)
@@ -1064,7 +1062,7 @@ final class BingoCardGenerateService
         $userId = $this->userContext->resolveUserId();
 
         if (!$this->userContext->userHasRole('player')) {
-            throw new DomainException('Acceso no autorizado para esta operación');
+            throw BingoCardGenerateException::unauthorized();
         }
 
         $room = BingoRoom::with('config')->findOrFail($roomId);
@@ -1080,20 +1078,18 @@ final class BingoCardGenerateService
 
         if ($customCount > 0) {
             if (!$room->config?->allow_custom_card) {
-                throw new DomainException('Esta sala no permite cartones personalizados.');
+                throw BingoCardGenerateException::customCardsNotAllowed();
             }
 
             if ($customCount > $cardCount) {
-                throw new DomainException('El número de matrices personalizadas no puede superar card_count.');
+                throw BingoCardGenerateException::customCardsExceedCount();
             }
 
             if ($room->config->custom_card_mode === 'every_x') {
                 $everyX = (int) ($room->config->custom_card_every_x ?? 0);
                 $maxAllowed = $this->maxCustomCardsAllowed($everyX, $cardCount);
                 if ($customCount > $maxAllowed) {
-                    throw new DomainException(
-                        "Con esta cantidad de cartones solo puedes personalizar {$maxAllowed}."
-                    );
+                    throw BingoCardGenerateException::customCardsExceedEveryXLimit($maxAllowed);
                 }
             }
 
@@ -1103,7 +1099,7 @@ final class BingoCardGenerateService
             foreach ($customMatrices as $i => $matrix) {
                 $error = BingoVariant::validateCustomMatrix($variant, $matrix, $allowMoveFreeSpace);
                 if ($error !== null) {
-                    throw new DomainException("Cartón #" . ($i + 1) . ": {$error}");
+                    throw BingoCardGenerateException::customCardMatrixInvalid($i + 1, $error);
                 }
             }
 
@@ -1135,7 +1131,7 @@ final class BingoCardGenerateService
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
 
         if ($activeWallets->isEmpty()) {
-            throw new DomainException('El jugador no tiene billeteras activas configuradas');
+            throw BingoCardGenerateException::noActiveWallet();
         }
 
         $playerWallet = $activeWallets->first();
@@ -1147,7 +1143,7 @@ final class BingoCardGenerateService
         // consume primero el bono.
         if (! $playerWallet->hasSufficientPlayableBalance($totalAmount)) {
             $currentBalance = (float) $playerWallet->getPlayableBalance();
-            throw new DomainException('Saldo insuficiente en la billetera. Saldo actual: ' . $currentBalance . ', Monto requerido: ' . $totalAmount);
+            throw BingoCardGenerateException::insufficientBalance($currentBalance, $totalAmount);
         }
 
         // Preparar array para cartonStore. El descuento de billetera no ocurre en
@@ -1239,7 +1235,7 @@ final class BingoCardGenerateService
     private function toUsdAmount(float $amount, float $exchangeRate): float
     {
         if ($exchangeRate <= 0) {
-            throw new DomainException('Tasa de cambio inválida para convertir el monto a USD.');
+            throw BingoCardGenerateException::invalidExchangeRate();
         }
 
         return round($amount / $exchangeRate, 3);

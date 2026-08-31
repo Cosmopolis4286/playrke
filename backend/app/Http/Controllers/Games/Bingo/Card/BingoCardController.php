@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Games\Bingo\Card;
 use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
-use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -143,68 +142,6 @@ final class BingoCardController extends Controller
 
         return $this->handleServiceJson(
             fn() => $this->generateService->getPlayerCardPrice($room->id, $userId)
-        );
-    }
-
-    /**
-     * Comprar cartones para un jugador desde la vista de salas de juego.
-     *
-     * @param BingoRoom                $room    Sala de bingo (model binding por {room}).
-     * @param BingoRoomPlayerBuyRequest $request Datos de la compra.
-     * @return JsonResponse
-     */
-    public function purchaseCards(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
-    {
-        // Validate room state
-        if ($room->status_code !== 'ACTIVE') {
-            return response()->json([
-                'message' => 'No se pueden comprar cartones en este momento. La sala debe estar abierta.'
-            ], 400);
-        }
-
-        if ($room->is_closed) {
-            return response()->json([
-                'message' => 'La sala está cerrada para nuevas compras.'
-            ], 400);
-        }
-
-        return $this->handleServiceJson(
-            function () use ($room, $request) {
-                $result = $this->generateService->playerBuyFromGameRooms(
-                    $room->id,
-                    (int) $request->validated()['card_count']
-                );
-
-                return [
-                    'message' => 'Cartones comprados exitosamente',
-                    'data' => $result,
-                    'user_cards_count' => count($result['cards'] ?? [])
-                ];
-            },
-            'Error al procesar la compra de cartones.'
-        );
-    }
-
-    /**
-     * Obtener los cartones del jugador actual en una sala específica.
-     *
-     * @param BingoRoom $room Sala de bingo (model binding por {room}).
-     * @return JsonResponse
-     */
-    public function getPlayerCards(BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            function () use ($room) {
-                $userId = $this->userContext->resolveUserId();
-
-                // This would need to be implemented in the service
-                // For now, return empty array
-                return [
-                    'cards' => [],
-                    'count' => 0
-                ];
-            },
-            'Error al obtener los cartones del jugador.'
         );
     }
 }
