@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 use App\Domains\Games\Trivia\Actions\StartGameAction;
 use App\Domains\Games\Trivia\Services\RoomService;
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,9 +34,10 @@ final class TriviaStartController extends Controller
         $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
         $roomId = (string) $room->id;
 
-        // ── Autorización: solo el host o admin/superadmin ──────────────────
-        $isAdmin = $user->hasRole(['admin', 'superadmin']);
-        if ((string) $room->host_id !== $userId && ! $isAdmin) {
+        // ── Autorización: solo el host o admin/superadmin (TriviaRoomPolicy::start) ──
+        try {
+            $this->authorize('start', $room);
+        } catch (AuthorizationException) {
             return response()->json([
                 'success' => false,
                 'message' => 'Solo el anfitrión puede iniciar la partida.',
