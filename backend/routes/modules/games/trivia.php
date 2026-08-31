@@ -13,6 +13,7 @@ use App\Http\Controllers\Games\Trivia\Report\TriviaReportController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaAnswerController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGameController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGamesController;
+use App\Http\Controllers\Games\Trivia\Game\TriviaPowerUpController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaStartController;
 use App\Http\Controllers\Games\Trivia\Question\TriviaQuestionController;
 use Illuminate\Support\Facades\Route;
@@ -49,8 +50,10 @@ Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth'
 
 // ====================================
 // RUTAS DE JUEGO (USUARIOS — solo rol player)
+// 'verified': unirse a sala cobra la entrada (ver JoinRoomAction) — un
+// email sin verificar no debe poder mover dinero real.
 // ====================================
-Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:player'])->group(function () {
+Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'verified', 'role:player'])->group(function () {
     // Unirse a sala (nuevo sistema — solo players)
     Route::post('/room/{id}/join', [TriviaGameController::class, 'join'])->name('join');
 
@@ -59,6 +62,9 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:p
 
     // Enviar respuesta durante una partida activa
     Route::post('/game/{gameId}/answer', [TriviaAnswerController::class, 'store'])->name('game.answer');
+
+    // Consumir un power-up durante una partida activa
+    Route::post('/game/{gameId}/power-up', [TriviaPowerUpController::class, 'store'])->name('game.power-up');
 });
 
 // ====================================

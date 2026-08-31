@@ -7,6 +7,7 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use App\Domains\Games\Trivia\DTOs\RoomDTO;
+use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Models\ExchangeRate;
 use App\Models\User;
@@ -362,6 +363,9 @@ class JoinRoomAction
         float $paidAmount,
         ?string $paidCurrencyId,
     ): void {
+        $room = TriviaRoom::find($roomId);
+        $allowPowerups = (bool) (($room?->settings ?? [])['allow_powerups'] ?? false);
+
         DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
             'id' => (string) Str::ulid(),
             'room_id' => $roomId,
@@ -372,6 +376,11 @@ class JoinRoomAction
             'confirmed_at' => now(),
             'paid_amount' => $paidAmount,
             'paid_currency_id' => $paidCurrencyId,
+            // 1 uso de cada tipo por partida — solo si la sala los habilita
+            // (settings.allow_powerups, toggle ya existente en RoomsCreate.vue).
+            'power_ups' => $allowPowerups
+                ? json_encode(TriviaPowerUpType::defaultAllowance())
+                : null,
             'metadata' => json_encode(['nickname' => $nickname]),
             'created_at' => now(),
             'updated_at' => now(),

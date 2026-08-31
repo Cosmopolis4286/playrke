@@ -101,11 +101,17 @@ return [
     |--------------------------------------------------------------------------
     | Feature Flags
     |--------------------------------------------------------------------------
+    |
+    | 'chat' y 'spectator_mode' se retiraron el 2026-08-31 — no tenían
+    | ningún código consumidor ni especificación de reglas de negocio (ver
+    | CHANGELOG_AUDIT_2026_08.md en app/Domains/Games/Trivia/). Revisitar si
+    | hay un diseño concreto que implementar.
     */
     'features' => [
-        'powerups' => false, // Power-ups (50/50, doble puntos, etc.)
-        'chat' => false, // Chat en sala
-        'spectator_mode' => false, // Modo espectador
+        // Power-ups implementados (fifty_fifty, double_points, skip,
+        // extra_time) — pero el on/off real es por sala, vía
+        // TriviaRoom.settings.allow_powerups, no este flag global.
+        'powerups' => false,
         'anonymous_play' => true, // Permitir juego sin login
     ],
 ];

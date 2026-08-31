@@ -3,12 +3,14 @@ defineProps<{
   allowLateJoin: boolean
   showLeaderboard: boolean
   publicRoom: boolean
+  allowPowerups: boolean
 }>()
 
 defineEmits<{
   'update:allowLateJoin': [value: boolean]
   'update:showLeaderboard': [value: boolean]
   'update:publicRoom': [value: boolean]
+  'update:allowPowerups': [value: boolean]
 }>()
 </script>
 
@@ -52,6 +54,18 @@ defineEmits<{
         />
         <span class="ml-2 text-sm ass-text-secondary">
           Sala pública (visible en el lobby)
+        </span>
+      </label>
+
+      <label class="flex items-center">
+        <input
+          :checked="allowPowerups"
+          type="checkbox"
+          class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          @change="$emit('update:allowPowerups', ($event.target as HTMLInputElement).checked)"
+        />
+        <span class="ml-2 text-sm ass-text-secondary">
+          Habilitar power-ups (50/50, doble puntos, saltar, tiempo extra — 1 uso de cada uno por jugador)
         </span>
       </label>
     </div>

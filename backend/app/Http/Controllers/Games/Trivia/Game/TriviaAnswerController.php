@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
+use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
 use App\Enums\Games\Common\AntiCheatSignalType;
 use App\Enums\Games\Common\GameSlug;
 use App\Http\Controllers\Controller;
@@ -37,6 +38,7 @@ final class TriviaAnswerController extends Controller
         private readonly GameStateRepositoryInterface $stateRepository,
         private readonly GameEngineInterface          $gameEngine,
         private readonly AntiCheatService              $antiCheat,
+        private readonly TriviaPowerUpService          $powerUps,
     ) {}
 
     public function store(Request $request, string $gameId): JsonResponse
@@ -100,12 +102,19 @@ final class TriviaAnswerController extends Controller
         $correctOptionIndex   = (int) ($questionData['correct_answer'] ?? $questionData['correct_option_index'] ?? 0);
         $timeLimitMs          = (int) ($questionData['time_limit_seconds'] ?? 20) * 1000;
 
+        // Power-up "tiempo extra": bonus individual, solo para ESTE jugador
+        // en esta pregunta — no afecta el timer visual de los demás ni el
+        // job de avance automático (ver TriviaPowerUpService::activateExtraTime).
+        $effectiveTimeLimitMs = $timeLimitMs + $this->powerUps->extraTimeBonusMs($gameId, $userId, $questionId);
+
         // Tiempo real server-side: ya NO se confía en response_time_ms enviado
         // por el cliente (podía mentir libremente). Fuente de verdad:
         // server_timestamp_ms persistido por GameEngineService::sendNextQuestion.
+        // Se limita a $effectiveTimeLimitMs (no $timeLimitMs) para no rechazar
+        // por "tiempo excedido" a un jugador con tiempo extra activo.
         $serverTimestampMs = (float) ($questionData['server_timestamp_ms'] ?? 0);
         $responseTimeMs    = $serverTimestampMs > 0
-            ? (int) max(0, min((microtime(true) * 1000) - $serverTimestampMs, $timeLimitMs))
+            ? (int) max(0, min((microtime(true) * 1000) - $serverTimestampMs, $effectiveTimeLimitMs))
             : $timeLimitMs; // fail-closed: sin dato server-side, se trata como respuesta al límite del tiempo
 
         // Bot gate: ningún humano responde en menos del mínimo configurado.
@@ -125,10 +134,20 @@ final class TriviaAnswerController extends Controller
         $isCorrect = ! $isLate && $selectedOptionIndex === $correctOptionIndex;
 
         // ── 5. Calcular puntos ────────────────────────────────────────────────
+        // consumeDoublePointsFlag() se llama siempre (no solo si isCorrect)
+        // para limpiar el flag de Redis tras esta pregunta pase lo que pase
+        // — de un solo uso, el jugador ya pagó el uso al activarlo aunque
+        // termine respondiendo mal (no hay puntos que duplicar en ese caso).
+        $doublePointsActive = $this->powerUps->consumeDoublePointsFlag($gameId, $userId, $questionId);
+
         $points = 0;
         if ($isCorrect) {
             $speedFactor = max(0.0, 1.0 - ($responseTimeMs / max(1, $timeLimitMs)));
             $points      = (int) round(self::POINTS_BASE + self::POINTS_SPEED_BONUS * $speedFactor);
+
+            if ($doublePointsActive) {
+                $points *= 2;
+            }
         }
 
         // ── 6. Persistir respuesta ────────────────────────────────────────────
