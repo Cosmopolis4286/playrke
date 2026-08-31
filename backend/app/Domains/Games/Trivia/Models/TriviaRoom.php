@@ -27,7 +27,6 @@ class TriviaRoom extends BaseModel
         'category',
         'host_id',
         'status', // 'waiting', 'playing', 'closed', 'cancelled'
-        'game_mode', // legacy — se mantiene en BD, ya no es la fuente de verdad (ver game_mode_id)
         'game_mode_id', // referencia blanda a game_modes.id (MySQL) — sin FK física, cross-database
         'teams_config',       // jsonb
         'max_players',
@@ -55,6 +54,13 @@ class TriviaRoom extends BaseModel
         'sponsor_prize',
         'pool_accumulated',
     ];
+
+    /**
+     * game_mode ya no es columna de BD (ver gameModeCode()/getGameModeAttribute
+     * más abajo) — se mantiene como atributo serializado para no romper el
+     * contrato que el frontend (Lobby.vue, RoomsIndex.vue) ya espera.
+     */
+    protected $appends = ['game_mode'];
 
     protected $casts = [
         'settings'           => 'array',
@@ -107,7 +113,24 @@ class TriviaRoom extends BaseModel
      */
     public function gameMode(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(GameMode::class, 'game_mode_id');
+        // setConnection('mysql') explícito sobre la instancia relacionada, y
+        // BelongsTo construido a mano (no vía $this->belongsTo(), que ignora
+        // la conexión ya fijada en el Builder pasado): sin esto la relación
+        // hereda la conexión pgsql_trivia de TriviaRoom (confirmado con
+        // tinker) y la query termina corriendo contra Postgres, donde
+        // game_modes no existe ("relation game_modes does not exist") —
+        // GameMode no fija su propia conexión (usa el default), lo cual
+        // normalmente basta, pero no evita la herencia en esta relación
+        // cross-database.
+        $relatedGameMode = (new GameMode())->setConnection('mysql');
+
+        return new \Illuminate\Database\Eloquent\Relations\BelongsTo(
+            $relatedGameMode->newQuery(),
+            $this,
+            'game_mode_id',
+            'id',
+            'gameMode'
+        );
     }
 
     /**
@@ -128,13 +151,28 @@ class TriviaRoom extends BaseModel
 
     /**
      * Código del modo de juego actual, resuelto vía game_mode_id.
-     * Cae al string legacy `game_mode` (uppercased) si el modo no está
-     * asignado — cubre datos previos al backfill o filas creadas por código
-     * que todavía no haya migrado a enviar game_mode_id.
+     *
+     * Llama gameMode() (el método de relación) explícitamente, no $this->gameMode
+     * — el accessor getGameModeAttribute() de abajo también resuelve al nombre
+     * mágico "gameMode" en Eloquent, y acceder vía propiedad aquí crea un
+     * conflicto de resolución entre accessor y relación (ErrorException
+     * "Undefined property").
      */
     public function gameModeCode(): ?string
     {
-        return $this->gameMode?->code ?? ($this->game_mode ? strtoupper($this->game_mode) : null);
+        return $this->gameMode()->first()?->code;
+    }
+
+    /**
+     * Accessor: expone game_mode como código legible en minúsculas
+     * ('free_for_all', 'teams', 'duel', ...) para el frontend — ver
+     * comentario en $appends.
+     */
+    public function getGameModeAttribute(): ?string
+    {
+        $code = $this->gameModeCode();
+
+        return $code === null ? null : strtolower($code);
     }
 
     /**

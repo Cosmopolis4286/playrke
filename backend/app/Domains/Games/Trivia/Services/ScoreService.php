@@ -254,20 +254,27 @@ class ScoreService implements ScoreServiceInterface
         // nunca encuentra nada aunque las claves existan.
         $prefix = (string) config('database.redis.options.prefix');
         $keys   = [];
-        $cursor = 0;
 
+        // Bug confirmado en Laravel\Redis\Connections\PhpRedisConnection::scan():
+        // llama $this->client->scan($cursor, ...) SIN pasar $cursor por
+        // referencia, pero el cliente nativo phpredis requiere &$cursor para
+        // poder actualizarlo entre iteraciones — sin eso el cursor nunca
+        // avanza y el wrapper de Laravel siempre devuelve false, aunque las
+        // claves sí existan (confirmado con tinker: Redis::keys() las
+        // encuentra, Redis::scan() no). Se evita el wrapper roto y se llama
+        // al cliente phpredis nativo directamente, que sí respeta la
+        // referencia del cursor.
+        $client = Redis::connection()->client();
+        $client->setOption(\Redis::OPT_SCAN, \Redis::SCAN_RETRY);
+
+        $cursor = null;
         do {
-            $result = Redis::scan($cursor, ['match' => $prefix . $pattern, 'count' => 100]);
+            $found = $client->scan($cursor, $prefix . $pattern, 100);
 
-            // scan() devuelve false cuando no hay más resultados (cursor 0 y
-            // vacío) — ver PhpRedisConnection::scan().
-            if ($result === false) {
-                break;
+            if ($found !== false) {
+                $keys = array_merge($keys, $found);
             }
-
-            [$cursor, $found] = $result;
-            $keys = array_merge($keys, $found);
-        } while ((int) $cursor !== 0);
+        } while ($cursor !== 0);
 
         // Quitar el prefijo: los comandos posteriores (HGET, DEL) que Laravel
         // ejecuta sobre estas claves ya lo antepondrán ellos mismos.

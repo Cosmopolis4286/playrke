@@ -233,7 +233,10 @@ class RoomServiceTest extends TestCase
             'id' => $room->roomId,
             'status' => 'closed',
         ], 'pgsql_trivia');
-        $this->assertNull(Redis::hget('trivia:room:' . $room->roomId, 'data'));
+        // phpredis (vía Illuminate\Redis\Connections\PhpRedisConnection::__call)
+        // devuelve `false` para HGET sobre una clave inexistente, no `null`
+        // — confirmado también manualmente contra Redis real.
+        $this->assertFalse(Redis::hget('trivia:room:' . $room->roomId, 'data'));
     }
 
     #[Test]

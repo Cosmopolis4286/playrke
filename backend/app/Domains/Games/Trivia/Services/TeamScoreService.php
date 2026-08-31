@@ -150,8 +150,8 @@ class TeamScoreService
             return [];
         }
 
-        // Si es free_for_all, solo retornar leaderboard individual
-        if ($room->game_mode === 'free_for_all') {
+        // Sin modo de equipos asignado, o asignado explícitamente a FREE_FOR_ALL: leaderboard individual
+        if (in_array($room->gameModeCode(), [null, 'FREE_FOR_ALL'], true)) {
             $scoreService = app(ScoreService::class);
             $leaderboard = $scoreService->getLeaderboard($gameId);
             return [
@@ -181,7 +181,7 @@ class TeamScoreService
         }
 
         return [
-            'mode' => $room->game_mode,
+            'mode' => $room->gameModeCode(),
             'teams' => array_map(fn($t) => array_merge($t, [
                 'players' => $playersByTeam[$t['team_id']] ?? [],
             ]), $teamScores),

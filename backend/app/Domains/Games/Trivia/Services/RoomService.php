@@ -37,7 +37,6 @@ class RoomService implements RoomServiceInterface
      */
     public function createRoom(array $config): RoomDTO
     {
-        $gameMode = $config['game_mode'] ?? 'free_for_all';
         $gameModeId = $config['game_mode_id'] ?? null;
         $teamsConfig = $config['teams_config'] ?? null;
 
@@ -49,7 +48,6 @@ class RoomService implements RoomServiceInterface
             'category'           => $config['category'] ?? null,
             'host_id'            => $config['host_id'] ?? null,
             'status'             => 'waiting',
-            'game_mode'          => $gameMode,
             'game_mode_id'       => $gameModeId,
             'teams_config'       => $teamsConfig,
             'max_players'        => $config['max_players'] ?? 100,
@@ -89,7 +87,6 @@ class RoomService implements RoomServiceInterface
             hostId: $room->host_id,
             playerIds: [],
             settings: array_merge($room->settings ?? [], [
-                'game_mode' => $room->game_mode,
                 'game_mode_id' => $room->game_mode_id,
                 'teams' => $room->teams->map(fn($t) => [
                     'id' => $t->id,
@@ -355,16 +352,13 @@ class RoomService implements RoomServiceInterface
         if (array_key_exists('category', $config)) {
             $updateData['category'] = $config['category'];
         }
-        if (isset($config['game_mode'])) {
-            $updateData['game_mode'] = $config['game_mode'];
-        }
         if (isset($config['game_mode_id'])) {
             $updateData['game_mode_id'] = $config['game_mode_id'];
         }
         if (isset($config['teams_config'])) {
             $updateData['teams_config'] = $config['teams_config'];
             // Recrear equipos si cambió la config
-            if ($room->usesTeams() || in_array(strtolower($config['game_mode'] ?? ''), ['teams', 'duel'])) {
+            if ($room->usesTeams()) {
                 $room->teams()->delete();
                 $this->createTeamsForRoom($room, $config['teams_config']);
             }
@@ -444,7 +438,7 @@ class RoomService implements RoomServiceInterface
      */
     private function createTeamsForRoom(TriviaRoom $room, array $config): void
     {
-        $mode = $room->game_mode;
+        $mode = strtolower($room->gameModeCode() ?? '');
         $teamCount = $config['team_count'] ?? 2;
         $teamSize = $config['team_size'] ?? null;
         $teamNames = $config['team_names'] ?? null;
