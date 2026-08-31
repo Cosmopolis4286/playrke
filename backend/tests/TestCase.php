@@ -22,6 +22,24 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUp(): void
     {
+        // afterApplicationCreated corre apenas la app de test bootea, pero
+        // ANTES de que RefreshDatabase (setUp de un trait, se dispara dentro
+        // de parent::setUp()) migre/dropee el schema. Es el único punto donde
+        // el facade DB ya tiene root Y el drop/migrate todavía no corrió.
+        //
+        // Por qué hace falta: RefreshDatabase migra (y en la primera migración
+        // de la suite, dropea) el schema completo. Con las FK activas,
+        // "drop table t1, t2, ..., t90" (una sola sentencia — ver
+        // MySqlGrammar::compileDropAllTables, Laravel no la envuelve en FK
+        // checks) deadlockea de forma reproducible en este schema por el
+        // volumen de FKs cruzadas entre ~90 tablas (SQLSTATE 40001).
+        // Desactivar FK checks a nivel de sesión evita que InnoDB tenga que
+        // resolver el orden de locks de metadata entre tablas relacionadas
+        // durante el drop masivo.
+        $this->afterApplicationCreated(function () {
+            \Illuminate\Support\Facades\DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=0');
+        });
+
         parent::setUp();
 
         $this->guardAgainstNonTestDatabase();

@@ -51,11 +51,17 @@ docker cp tests/TestCase.php "${CONTAINER}:/var/www/tests/TestCase.php"
 
 # Verificación de seguridad ANTES de correr nada: confirma que, exportando
 # .env.testing al entorno del proceso, la BD resuelta es la de test.
+#
+# -d display_errors=0 evita que deprecation warnings de PHP (que van a stdout,
+# no stderr, así que "2>/dev/null" no los filtra) contaminen la línea que
+# tail -1 toma como nombre de BD — sin esto, un warning puede hacer que el
+# guard aborte con un falso positivo (o, peor, que "RESOLVED_DB" resuelva
+# a texto que por casualidad coincida con 'playrke_testing').
 RESOLVED_DB=$(docker exec "${CONTAINER}" sh -c '
     set -a
     . /var/www/.env.testing
     set +a
-    php artisan tinker --execute="echo config(\"database.connections.mysql.database\");"
+    php -d display_errors=0 artisan tinker --execute="echo config(\"database.connections.mysql.database\");"
 ' 2>/dev/null | tail -1)
 
 if [ "$RESOLVED_DB" != "playrke_testing" ]; then
