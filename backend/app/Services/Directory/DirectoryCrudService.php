@@ -118,12 +118,19 @@ final class DirectoryCrudService
     /**
      * Actualiza un registro de pago móvil existente.
      *
+     * Antes NO recibía $userId ni validaba propiedad — cualquier usuario
+     * autenticado podía hacer PATCH /directory/{id-de-otro-usuario}/update y
+     * sobrescribir el teléfono/banco/cédula de Pago Móvil ajeno (destino de
+     * sus retiros). Mismo criterio que show()/delete() (que sí validan) y
+     * que PixKeyCrudService::update() (Brasil), que ya lo hacía bien.
+     *
      * @param PagoMovilDTO $dto DTO con los datos actualizados
+     * @param string       $userId ID del usuario (para validación de propiedad)
      * @return bool True si se actualizó correctamente
      *
-     * @throws DomainException Si el registro no existe o hay duplicados
+     * @throws DomainException Si el registro no existe, no pertenece al usuario, o hay duplicados
      */
-    public function update(PagoMovilDTO $dto): bool
+    public function update(PagoMovilDTO $dto, string $userId): bool
     {
         if (!$dto->id) {
             throw new DomainException('ID del registro es requerido para actualizar.');
@@ -131,7 +138,7 @@ final class DirectoryCrudService
 
         $existing = $this->repository->find($dto->id);
 
-        if (!$existing) {
+        if (!$existing || (string) $existing->user_id !== $userId) {
             throw new DomainException('Registro de pago móvil no encontrado.');
         }
 
@@ -218,17 +225,26 @@ final class DirectoryCrudService
      * Alternar estado del directorio (ACTIVE / INACTIVE).
      * También sincroniza el estado del usuario asociado.
      *
+     * Antes no validaba propiedad — el caller (DirectoryService::toggleStatus)
+     * resolvía el PagoMovil directo por findOrFail($id) sin comparar user_id,
+     * permitiendo que cualquier usuario desactivara la cuenta bancaria de
+     * otro. Mismo criterio que PixKeyCrudService::toggleStatus() (Brasil).
+     *
      * @param PagoMovil $pagoMovil Registro de directorio a actualizar
+     * @param string    $userId    ID del usuario (para validación de propiedad)
      * @return bool True si el cambio fue exitoso
      *
-     * @throws RuntimeException Si el directorio está eliminado
+     * @throws DomainException Si el registro no pertenece al usuario o está eliminado
      */
-    public function toggleStatus(PagoMovil $pagoMovil): bool
+    public function toggleStatus(PagoMovil $pagoMovil, string $userId): bool
     {
+        if ((string) $pagoMovil->user_id !== $userId) {
+            throw new DomainException('Registro de pago móvil no encontrado.');
+        }
+
         if ($pagoMovil->status === 'DELETED') {
             throw new DomainException('No se puede cambiar el estado de un registro eliminado.');
         }
-
 
         return $this->repository->toggleStatus($pagoMovil);
     }

@@ -118,7 +118,9 @@ final class DirectoryService
      */
     public function update(PagoMovilDTO $dto): bool
     {
-        return $this->crud->update($dto);
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->crud->update($dto, (string) $userId);
     }
 
     /**
@@ -203,9 +205,10 @@ final class DirectoryService
      */
     public function toggleStatus(string $id): bool
     {
+        $userId = $this->userContext->resolveUserId();
         $pagoMovil = PagoMovil::findOrFail($id);
 
-        return $this->crud->toggleStatus($pagoMovil);
+        return $this->crud->toggleStatus($pagoMovil, (string) $userId);
     }
 
     /**
