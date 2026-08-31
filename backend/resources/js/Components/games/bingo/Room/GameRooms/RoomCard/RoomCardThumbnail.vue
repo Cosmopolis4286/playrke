@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { hideAllPoppers } from 'floating-vue'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import type { TimerLevel } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
-import { BINGO_ROOM_IMG, formatCountdown } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import { BINGO_ROOM_IMG, formatCountdown, shortRoomCode as formatShortRoomCode } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 
 const props = defineProps<{
   isAvailable: boolean
@@ -14,12 +15,19 @@ const props = defineProps<{
   roomType?: string | null
 }>()
 
-// Código corto de sala — solo los últimos 6 caracteres, igual criterio que en BingoRoomInfoModal.vue
-const shortRoomCode = computed(() => {
-  const code = props.uuidCode
-  if (!code) return null
-  return code.length > 6 ? code.slice(-6).toUpperCase() : code.toUpperCase()
-})
+const emit = defineEmits<{ (e: 'show-top-buyers'): void }>()
+
+const shortRoomCode = computed(() => formatShortRoomCode(props.uuidCode))
+
+/** El tooltip flotante (z-index 10000) queda por encima del backdrop del
+ * modal (9999) porque abrir el modal no dispara un mouseleave real sobre
+ * este botón — el mouse no se mueve, solo aparece contenido encima. Cerrar
+ * todos los poppers activos antes de emitir evita el tooltip "fantasma"
+ * superpuesto al modal recién abierto. */
+function openTopBuyers(): void {
+  hideAllPoppers()
+  emit('show-top-buyers')
+}
 </script>
 
 <template>
@@ -72,6 +80,18 @@ const shortRoomCode = computed(() => {
         >
           <i class="fas fa-lock" />
         </span>
+
+        <!-- Ranking de compradores — a la derecha del badge de estado/timer,
+             mismo patrón circular que el candado de sala privada.
+             stop-propagation evita disparar la navegación de compra de la card. -->
+        <button
+          type="button"
+          class="rc__rank-icon"
+          v-tooltip="'Ver el ranking de compradores de esta sala'"
+          @click.stop="openTopBuyers"
+        >
+          <i class="fas fa-ranking-star" />
+        </button>
       </div>
     </div>
   </div>
@@ -162,6 +182,24 @@ const shortRoomCode = computed(() => {
   width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
   background: rgba(42,32,6,.75); border: 1px solid rgba(255,194,0,.4);
   color: #ffc200; font-size: 7px;
+}
+
+/* Ícono "Ver Top de Compras" — mismo patrón circular que .rc__private-icon,
+   tono dorado (mismo acento que el bloque de premio) para distinguirlo del
+   ámbar de privacidad. Ligeramente más grande que el candado: es un botón
+   real (clickeable), no solo un indicador informativo. */
+.rc__rank-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(42,32,6,.75); border: 1px solid rgba(255,215,90,.4);
+  color: #ffd75a; font-size: 8px;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+.rc__rank-icon:hover {
+  background: rgba(255,187,32,.18);
+  border-color: rgba(255,215,90,.65);
+  transform: scale(1.1);
 }
 
 /* badge único — ya no centrado absoluto, vive en el flujo de .rc__top-row-right;

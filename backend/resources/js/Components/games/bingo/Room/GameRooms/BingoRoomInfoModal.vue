@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
-import { formatCountdown, isLive, getTimerLevel } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import { formatCountdown, isLive, getTimerLevel, shortRoomCode as formatShortRoomCode } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 
 const props = defineProps<{
@@ -50,13 +50,7 @@ const gameVariant  = computed(() => props.room.config?.game_variant ?? 'BINGO_75
 const variantBalls = computed(() => getBingoVariantDef(gameVariant.value).totalChips)
 const roundsCount   = computed(() => props.room.rounds_count ?? 1)
 
-// Código corto de sala — solo los últimos 6 caracteres, suficiente para identificar/soporte
-// sin exponer el UUID completo como ruido visual en el banner.
-const shortRoomCode = computed(() => {
-  const code = props.room.uuid_code
-  if (!code) return null
-  return code.length > 6 ? code.slice(-6).toUpperCase() : code.toUpperCase()
-})
+const shortRoomCode = computed(() => formatShortRoomCode(props.room.uuid_code))
 
 // ── Progreso de cartones mínimos para iniciar (realtime, igual que la card/lobby) ──
 const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)

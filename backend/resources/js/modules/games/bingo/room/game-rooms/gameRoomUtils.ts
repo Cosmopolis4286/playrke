@@ -62,6 +62,18 @@ export function formatOpenSince(unixCreatedAt: number | null | undefined): strin
   return `Abierta hace ${days}d`
 }
 
+/**
+ * Código corto de sala para mostrar en UI — últimos 6 caracteres del
+ * uuid_code, en mayúsculas. Antes duplicado (con la misma lógica repetida
+ * en cada componente que lo necesitaba: RoomCardThumbnail, BingoRoomInfoModal),
+ * lo que dejó el modal de Top de Compras sin truncar por accidente al
+ * añadirse sin reutilizar este criterio.
+ */
+export function shortRoomCode(uuidCode: string | null | undefined): string | null {
+  if (!uuidCode) return null
+  return uuidCode.length > 6 ? uuidCode.slice(-6).toUpperCase() : uuidCode.toUpperCase()
+}
+
 export type TimerLevel = 'ok' | 'warning' | 'urgent'
 
 /**

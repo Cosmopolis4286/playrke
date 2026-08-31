@@ -144,6 +144,7 @@ function handleClick(event: MouseEvent) {
         :countdown="countdown"
         :uuid-code="room.uuid_code"
         :room-type="room.room_type"
+        @show-top-buyers="emit('show-top-buyers', room.id)"
       />
 
       <!-- ── Body ── -->
@@ -398,25 +399,6 @@ function handleClick(event: MouseEvent) {
   backdrop-filter: blur(4px);
 }
 .rc__closed-label i { font-size: 9px; opacity: .7; }
-
-/* Ícono "Ver Top de Compras" — flota en la esquina superior derecha de toda
-   la card, fuera del flujo del body. z-index por encima de .rc__inner (2)
-   para quedar sobre la thumbnail. */
-.rc__top-buyers-icon {
-  position: absolute; top: 8px; right: 8px; z-index: 4;
-  width: 24px; height: 24px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(6,10,24,.55); backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,215,90,.3);
-  color: #ffd75a; font-size: 10.5px;
-  cursor: pointer;
-  transition: background .2s ease, border-color .2s ease, transform .2s ease;
-}
-.rc__top-buyers-icon:hover {
-  background: rgba(255,187,32,.14);
-  border-color: rgba(255,215,90,.55);
-  transform: scale(1.08);
-}
 
 /* Ripple de feedback al hacer click — confirma la interacción antes de navegar */
 .rc__ripple {

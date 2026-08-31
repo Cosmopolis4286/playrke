@@ -46,7 +46,7 @@ const {
 
 // ── Modal "Ver Top de Compras" ──
 const topBuyersRoomId = ref<string | null>(null);
-const topBuyersRoomLabel = computed(() => {
+const topBuyersRoomUuidCode = computed(() => {
   const room = filteredRooms.value.find((r) => r.id === topBuyersRoomId.value);
   return room?.uuid_code ?? null;
 });
@@ -215,7 +215,7 @@ function closeTopBuyers() {
   <!-- ══ Modal "Ver Top de Compras" ══ -->
   <RoomTopBuyersModal
     :room-id="topBuyersRoomId"
-    :room-label="topBuyersRoomLabel"
+    :room-uuid-code="topBuyersRoomUuidCode"
     @close="closeTopBuyers"
   />
 </template>
