@@ -93,6 +93,11 @@
 
   const activeModal = ref<ModalKey | null>(null)
   const openModal   = (key: ModalKey) => { activeModal.value = key }
+
+  // Expuesto para que páginas que usan este layout (ej. Auth/Register.vue,
+  // checkbox de términos) puedan abrir los mismos modales sin duplicar
+  // InfoModal ni navegar a /info/terms fuera de la SPA.
+  defineExpose({ openModal })
 </script>
 
 <template>

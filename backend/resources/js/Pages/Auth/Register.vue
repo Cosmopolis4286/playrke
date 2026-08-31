@@ -31,6 +31,10 @@
   const turnstileContainer = ref<HTMLElement | null>(null)
   const submit = () => submitForm(turnstileToken.value || undefined)
 
+  const guestLayoutRef = ref<InstanceType<typeof GuestLayout> | null>(null)
+  const openTerms = () => guestLayoutRef.value?.openModal('terms')
+  const openPrivacy = () => guestLayoutRef.value?.openModal('privacy')
+
   // Teléfono — mismo composable reutilizable que el resto de formularios
   // (ver AdminPlayerForm.vue, AdminCustomerForm.vue, etc.)
   const phoneRef = ref(form.phone)
@@ -78,7 +82,7 @@
 </script>
 
 <template>
-  <GuestLayout title="Registrarse" :slides="registerSlides">
+  <GuestLayout ref="guestLayoutRef" title="Registrarse" :slides="registerSlides">
     <template #tagline>Únete a la élite</template>
 
     <template #form-content>
@@ -124,14 +128,16 @@
           {{ errors.country }}
         </p>
 
-        <!-- Teléfono (opcional) — usePhoneField: máscara y patrón según país -->
+        <!-- Teléfono (opcional) — usePhoneField: máscara y patrón según país.
+             Deshabilitado hasta elegir país porque sin ISO-2 no hay máscara
+             ni patrón que aplicar (ver phoneMask/phonePlaceholder). -->
         <AuthFormField
           v-model="phoneRef"
           type="tel"
           icon="fa-phone"
           :placeholder="phonePlaceholder"
           :mask="phoneMask ?? undefined"
-          :disabled="isBusy"
+          :disabled="isBusy || !selectedIso2"
           :error="(submitted || touched.phone) ? errors.phone : null"
           @input="markTouched('phone')"
         />
@@ -173,9 +179,9 @@
           />
           <label for="terms" class="auth-form__checkbox-text">
             Acepto los
-            <a href="/info/terms" target="_blank" class="auth-form__link">Términos y Condiciones</a>
+            <button type="button" class="auth-form__link" @click="openTerms">Términos y Condiciones</button>
             y la
-            <a href="/info/privacy" target="_blank" class="auth-form__link">Política de Privacidad</a>
+            <button type="button" class="auth-form__link" @click="openPrivacy">Política de Privacidad</button>
           </label>
         </div>
         <p v-if="errors.terms && (submitted || touched.terms)" class="auth-form__error">

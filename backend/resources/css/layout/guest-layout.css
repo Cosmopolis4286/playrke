@@ -538,7 +538,12 @@ button { border: none; background: none; cursor: pointer; }
     margin: 6px 0 2px;
 }
 .auth-form__checkbox input[type="checkbox"] { accent-color: var(--cyan-dim); cursor: pointer; }
-.auth-form__link { color: var(--cyan-dim); }
+.auth-form__link {
+    font: inherit;
+    color: var(--cyan-dim);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
 .auth-form__link:hover { color: var(--cyan); }
 
 /* ======================================================
