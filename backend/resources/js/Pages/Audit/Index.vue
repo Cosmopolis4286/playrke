@@ -10,6 +10,7 @@
   import backendClient from '@/js/plugins/axios'
   import { useAudit } from '@/js/composables/audit/useAudit'
   import { searchUsers } from '@/js/composables/users/useUserSearch'
+  import { useLocalDateTime } from '@/js/composables/common/useLocalDateTime'
 
   import type { AuditPageProps } from '@/js/types/audit/audit'
   import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
@@ -69,6 +70,25 @@
     const entityLabel = props.filterOptions.entities.find(e => e.value === subjectFilter.value.entity)?.label
     return `${entityLabel ?? 'Entidad'} #${subjectFilter.value.auditable_id}`
   })
+
+  /* -------------------------------------------------------------------------- */
+  /* Zona horaria: "Fecha" en hora local del navegador, con tooltip mostrando   */
+  /* la hora del servidor cuando difiere — mismo patrón que /logs.              */
+  /* -------------------------------------------------------------------------- */
+
+  const { describe: describeDateTime } = useLocalDateTime()
+
+  function rowDateLabel(row: Record<string, any>): string {
+    const info = describeDateTime(row.date, row.server_timezone ?? null)
+    return info ? info.local : '—'
+  }
+
+  function rowDateTitle(row: Record<string, any>): string | undefined {
+    const info = describeDateTime(row.date, row.server_timezone ?? null)
+    return info?.differsFromServer ? `Servidor (${info.serverTimezone}): ${info.server}` : undefined
+  }
+
+  const detailDateInfo = computed(() => describeDateTime(detail.value?.date, detail.value?.server_timezone ?? null))
 
   /**
    * Filtros que TableWithFilterBridge no conoce (no son columnas de la
@@ -395,6 +415,12 @@
       </button>
     </template>
 
+    <!-- Columna: Fecha, en hora local del navegador (tooltip con la hora del
+         servidor si difiere) — mismo tratamiento que /logs. -->
+    <template #cell-date="{ row }">
+      <span class="small" :title="rowDateTitle(row)">{{ rowDateLabel(row) }}</span>
+    </template>
+
     <!-- Columna: Actor (ícono según tipo) -->
     <template #cell-actor_type="{ value }">
       <span class="text-muted small">
@@ -470,7 +496,13 @@
       <div class="row g-3">
         <div class="col-md-6">
           <small class="text-muted d-block">Fecha</small>
-          <span>{{ detail.date }}</span>
+          <template v-if="detailDateInfo">
+            <span>{{ detailDateInfo.local }} <span class="text-muted small">({{ detailDateInfo.localAbbrev }})</span></span>
+            <small v-if="detailDateInfo.differsFromServer" class="text-muted d-block audit-tz-subinfo">
+              <i class="fas fa-globe-americas me-1"></i>Servidor ({{ detailDateInfo.serverTimezone }}): {{ detailDateInfo.server }}
+            </small>
+          </template>
+          <span v-else>—</span>
         </div>
         <div class="col-md-6">
           <small class="text-muted d-block">Actor</small>
@@ -576,4 +608,8 @@
   display: none;
 }
 
+.audit-tz-subinfo {
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
 </style>

@@ -118,18 +118,22 @@ class AuditService
         $audit = Audit::with('user')->findOrFail($id);
 
         return [
-            'id'             => $audit->id,
-            'date'           => $audit->created_at?->format('d/m/Y H:i:s'),
-            'actor'          => $audit->user?->full_name ?? 'Sistema',
-            'actor_type'     => $audit->actor_type,
-            'event'          => $audit->event,
-            'entity'         => $audit->auditable_name,
-            'entity_id'      => $audit->auditable_id,
-            'old_values'     => $audit->old_values,
-            'new_values'     => $audit->new_values,
-            'url'            => $audit->url,
-            'ip_address'     => $audit->ip_address,
-            'user_agent'     => $audit->user_agent,
+            'id'              => $audit->id,
+            // ISO 8601 con offset (no un string ya formateado en la zona del
+            // servidor) — el frontend lo convierte a la zona horaria local
+            // del navegador, ver useLocalDateTime.ts.
+            'date'            => $audit->created_at?->toIso8601String(),
+            'actor'           => $audit->user?->full_name ?? 'Sistema',
+            'actor_type'      => $audit->actor_type,
+            'event'           => $audit->event,
+            'entity'          => $audit->auditable_name,
+            'entity_id'       => $audit->auditable_id,
+            'old_values'      => $audit->old_values,
+            'new_values'      => $audit->new_values,
+            'url'             => $audit->url,
+            'ip_address'      => $audit->ip_address,
+            'user_agent'      => $audit->user_agent,
+            'server_timezone' => config('app.timezone'),
         ];
     }
 
@@ -317,7 +321,8 @@ class AuditService
              * detalle al hacer click en cualquier celda de la fila.
              */
             'id'               => (string) $audit->id,
-            'date'             => $audit->created_at?->format('d/m/Y H:i:s') ?? '—',
+            // ISO 8601 con offset — ver el mismo comentario en show().
+            'date'             => $audit->created_at?->toIso8601String(),
             'actor'            => $audit->user?->full_name ?? 'Sistema',
             'actor_type'       => $audit->actor_type,
             'event'            => $audit->event,
@@ -326,6 +331,7 @@ class AuditService
             'entity_label'     => $entityId !== '' ? "{$audit->auditable_name} #{$entityId}" : $audit->auditable_name,
             'changes_summary'  => $this->summarizeChanges($audit),
             'ip_address'       => $audit->ip_address ?? '—',
+            'server_timezone'  => config('app.timezone'),
         ];
     }
 

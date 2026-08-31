@@ -54,4 +54,5 @@ export interface AuditDetail {
     url: string | null
     ip_address: string | null
     user_agent: string | null
+    server_timezone: string | null
 }
