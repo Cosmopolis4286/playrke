@@ -16,8 +16,10 @@ use Illuminate\Support\Facades\Route;
 
 // ====================================
 // BILLETERA DEL JUGADOR
+// 'verified': toda la wallet (ver saldo, depositar, retirar) mueve o
+// expone dinero real — un email sin verificar no debe tener acceso.
 // ====================================
-Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
+Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
     Route::get('wallet',                        [WalletController::class, 'index'])            ->name('wallet.index');
     Route::get('wallet/movements',              [WalletController::class, 'movements'])        ->name('wallet.movements');
     Route::get('wallet/movements/{id}',         [WalletController::class, 'showMovement'])     ->name('wallet.movements.show');

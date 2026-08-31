@@ -114,9 +114,11 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPe
 /**
  * ====================================
  * OPERACIONES CARTONES (PARA JUGADORES)
+ * 'verified': generar/comprar cartones cobra dinero real — un email sin
+ * verificar no debe poder mover fondos.
  * ====================================
  */
-route_group('bingo-card', 'bingo-card.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoCardController::class, [
+route_group('bingo-card', 'bingo-card.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoCardController::class, [
     'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
     'generate-card-store' => ['method' => 'post', 'uri' => '{room}/generate', 'action' => 'generateCardStore'],
     'fetch-room' => ['method' => 'get', 'uri' => 'fetch-room', 'action' => 'fetchRoom'],
@@ -140,9 +142,11 @@ Route::get('bingo/my-games/{roomId}/detail', [PlayerGameHistoryController::class
 /**
  * ====================================
  * SALAS DE JUEGO
+ * 'verified': buy/player-buy/join-by-code cobran dinero real — un email
+ * sin verificar no debe poder mover fondos.
  * ====================================
  */
-route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoRoomController::class, [
+route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoRoomController::class, [
     'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'join-by-code'     => ['method' => 'post', 'uri' => 'join-by-code', 'action' => 'joinByCode', 'middleware' => ['throttle:bingo-join-by-code']],
     'filter-data'      => ['method' => 'get',  'uri' => 'filter-data', 'action' => 'filterData'],
@@ -166,7 +170,9 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
 // módulo, no pertenencia a la sala. Cada action llama explícitamente
 // $this->authorize('viewGame', $room) (BingoRoomPolicy::viewGame), que exige
 // que el jugador tenga cartones comprados en ESA sala específica.
-route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoGameController::class, [
+// 'verified': check-bingo acredita el premio en dinero real — un email
+// sin verificar no debe poder cobrar.
+route_group('bingo', 'bingo.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoGameController::class, [
     'lobby'         => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
     'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],
     'game'          => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
