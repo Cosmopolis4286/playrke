@@ -119,6 +119,30 @@ class Currency extends Model
         });
     }
 
+    /**
+     * Símbolos de moneda por ID, cacheados 5 min (igual TTL que
+     * CurrencyExchangeRateService — los símbolos cambian aún menos que la
+     * tasa de cambio). Evita resolver `currencies` por request en pantallas
+     * de alto tráfico/polling (p. ej. lobby y sala de espera de Trivia).
+     *
+     * @param array<int, string> $ids
+     * @return array<string, string> id => symbol
+     */
+    public static function symbolsByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_map('strval', $ids)));
+        if (empty($ids)) {
+            return [];
+        }
+
+        sort($ids);
+        $cacheKey = 'currency_symbols_by_ids:' . md5(implode(',', $ids));
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($ids) {
+            return static::whereIn('id', $ids)->pluck('symbol', 'id')->all();
+        });
+    }
+
     // ========================
     // Accessors
     // ========================
