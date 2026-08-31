@@ -199,15 +199,6 @@ function handleClick(event: MouseEvent) {
           :prize-pool-pct="room.prize_pool_pct"
         />
 
-        <button
-          type="button"
-          class="rc__top-buyers-btn"
-          v-tooltip="'Ver el ranking de compradores de esta sala'"
-          @click.stop="emit('show-top-buyers', room.id)"
-        >
-          <i class="fas fa-ranking-star" /> Ver Top de Compras
-        </button>
-
         <RoomCardFooter
           :variant-label="variantLabel"
           :variant-balls="variantBalls"
@@ -408,26 +399,23 @@ function handleClick(event: MouseEvent) {
 }
 .rc__closed-label i { font-size: 9px; opacity: .7; }
 
-/* Botón "Ver Top de Compras" — discreto, no compite con el CTA principal
-   (comprar cartones = click en la card). stop-propagation en el handler
-   evita que abra el modal de compra al mismo tiempo. */
-.rc__top-buyers-btn {
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  margin-top: 2px;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
-  color: #8ea0c4;
-  font-size: 9.5px; font-weight: 700; letter-spacing: .2px;
+/* Ícono "Ver Top de Compras" — flota en la esquina superior derecha de toda
+   la card, fuera del flujo del body. z-index por encima de .rc__inner (2)
+   para quedar sobre la thumbnail. */
+.rc__top-buyers-icon {
+  position: absolute; top: 8px; right: 8px; z-index: 4;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6,10,24,.55); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,215,90,.3);
+  color: #ffd75a; font-size: 10.5px;
   cursor: pointer;
-  transition: background .2s ease, border-color .2s ease, color .2s ease;
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
 }
-.rc__top-buyers-btn i { font-size: 9px; color: #e0a020; }
-.rc__top-buyers-btn:hover {
-  background: rgba(255,187,32,.08);
-  border-color: rgba(255,187,32,.22);
-  color: #e0d0a0;
+.rc__top-buyers-icon:hover {
+  background: rgba(255,187,32,.14);
+  border-color: rgba(255,215,90,.55);
+  transform: scale(1.08);
 }
 
 /* Ripple de feedback al hacer click — confirma la interacción antes de navegar */

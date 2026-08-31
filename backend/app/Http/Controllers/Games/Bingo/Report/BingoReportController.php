@@ -14,6 +14,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador de administración del juego de Bingo.
@@ -103,6 +104,25 @@ final class BingoReportController extends Controller
     }
 
     /**
+     * Mapea un único BingoCard al shape de fila del reporte — usado tanto por
+     * mapCardsSoldRows() (páginas ya cargadas en memoria) como por
+     * cardsSoldExport() (cursor, una fila a la vez, sin paginar).
+     */
+    private function mapCardsSoldRow(BingoCard $card, array $cardStatusToLabel): array
+    {
+        return [
+            'id'          => (string) $card->id,
+            'card_number' => $card->serial_number,
+            'room_name'   => $this->roomLabel($card->room),
+            'player_name' => $card->roomUser?->user?->name ?? '—',
+            'sale_date'   => optional($card->created_at)->format('Y-m-d H:i:s'),
+            'amount'      => (float) ($card->cardLot?->card_price ?? 0),
+            'currency'    => $card->currency?->iso_code ?? '—',
+            'status'      => $cardStatusToLabel[(int) $card->status] ?? (string) $card->status,
+        ];
+    }
+
+    /**
      * Mapea una página de BingoCard al shape de fila del reporte.
      *
      * @param Collection<int, BingoCard> $cards
@@ -111,18 +131,9 @@ final class BingoReportController extends Controller
     {
         $cardStatusToLabel = $this->cardStatusLabels();
 
-        return $cards->map(function (BingoCard $card) use ($cardStatusToLabel) {
-            return [
-                'id'          => (string) $card->id,
-                'card_number' => $card->serial_number,
-                'room_name'   => $this->roomLabel($card->room),
-                'player_name' => $card->roomUser?->user?->name ?? '—',
-                'sale_date'   => optional($card->created_at)->format('Y-m-d H:i:s'),
-                'amount'      => (float) ($card->cardLot?->card_price ?? 0),
-                'currency'    => $card->currency?->iso_code ?? '—',
-                'status'      => $cardStatusToLabel[(int) $card->status] ?? (string) $card->status,
-            ];
-        })->all();
+        return $cards
+            ->map(fn (BingoCard $card) => $this->mapCardsSoldRow($card, $cardStatusToLabel))
+            ->all();
     }
 
     /**
@@ -197,6 +208,34 @@ final class BingoReportController extends Controller
     }
 
     /**
+     * Exporta el reporte completo de Cartones Vendidos a CSV, con los mismos
+     * filtros que la vista — usa cursor() para no materializar en memoria el
+     * dataset completo (a diferencia de cardsSold()/cardsSoldData(), que solo
+     * traen una página).
+     */
+    public function cardsSoldExport(Request $request): StreamedResponse
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $currency   = $request->query('currency');
+        $dateFilter = $request->query('dateFilter');
+        $cardStatusToLabel = $this->cardStatusLabels();
+
+        return response()->streamDownload(function () use ($currency, $dateFilter, $cardStatusToLabel) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Número de Cartón', 'Sala', 'Jugador', 'Fecha de Venta', 'Monto', 'Moneda', 'Estado']);
+
+            foreach ($this->cardsSoldQuery($currency, $dateFilter)->cursor() as $card) {
+                fputcsv($handle, array_values($this->mapCardsSoldRow($card, $cardStatusToLabel)));
+            }
+
+            fclose($handle);
+        }, 'bingo-cartones-vendidos-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
      * Etiquetas de estado de BingoCardPrize — compartidas entre el render
      * Inertia y el refetch paginado.
      *
@@ -257,6 +296,24 @@ final class BingoReportController extends Controller
     }
 
     /**
+     * Mapea un único BingoCardPrize al shape de fila del reporte — usado
+     * tanto por mapWinnersRows() como por winnersExport() (cursor).
+     */
+    private function mapWinnersRow(BingoCardPrize $prize, array $prizeStatusToLabel): array
+    {
+        return [
+            'id'           => (string) $prize->id,
+            'winner_name'  => $prize->creatorUser?->name ?? '—',
+            'room_name'    => $this->roomLabel($prize->room),
+            'prize_type'   => $prize->prize_type_description,
+            'prize_amount' => (float) $prize->local_amount,
+            'currency'     => $prize->currency?->iso_code ?? '—',
+            'win_date'     => optional($prize->claimed_at ?? $prize->created_at)->format('Y-m-d H:i:s'),
+            'status'       => $prizeStatusToLabel[$prize->prize_status] ?? $prize->prize_status,
+        ];
+    }
+
+    /**
      * Mapea una página de BingoCardPrize al shape de fila del reporte.
      *
      * @param Collection<int, BingoCardPrize> $prizes
@@ -265,18 +322,9 @@ final class BingoReportController extends Controller
     {
         $prizeStatusToLabel = $this->prizeStatusLabels();
 
-        return $prizes->map(function (BingoCardPrize $prize) use ($prizeStatusToLabel) {
-            return [
-                'id'           => (string) $prize->id,
-                'winner_name'  => $prize->creatorUser?->name ?? '—',
-                'room_name'    => $this->roomLabel($prize->room),
-                'prize_type'   => $prize->prize_type_description,
-                'prize_amount' => (float) $prize->local_amount,
-                'currency'     => $prize->currency?->iso_code ?? '—',
-                'win_date'     => optional($prize->claimed_at ?? $prize->created_at)->format('Y-m-d H:i:s'),
-                'status'       => $prizeStatusToLabel[$prize->prize_status] ?? $prize->prize_status,
-            ];
-        })->all();
+        return $prizes
+            ->map(fn (BingoCardPrize $prize) => $this->mapWinnersRow($prize, $prizeStatusToLabel))
+            ->all();
     }
 
     /**
@@ -336,6 +384,33 @@ final class BingoReportController extends Controller
                 'rows'    => $this->mapWinnersRows($paginator->getCollection()),
             ],
             'pagination' => $this->paginationMeta($paginator),
+        ]);
+    }
+
+    /**
+     * Exporta el reporte completo de Ganadores a CSV, con los mismos filtros
+     * que la vista — usa cursor() para no materializar el dataset completo.
+     */
+    public function winnersExport(Request $request): StreamedResponse
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $type       = $request->query('type');
+        $currency   = $request->query('currency');
+        $dateFilter = $request->query('dateFilter');
+        $prizeStatusToLabel = $this->prizeStatusLabels();
+
+        return response()->streamDownload(function () use ($type, $currency, $dateFilter, $prizeStatusToLabel) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Ganador', 'Sala', 'Tipo de Premio', 'Monto del Premio', 'Moneda', 'Fecha de Ganancia', 'Estado']);
+
+            foreach ($this->winnersQuery($type, $currency, $dateFilter)->cursor() as $prize) {
+                fputcsv($handle, array_values($this->mapWinnersRow($prize, $prizeStatusToLabel)));
+            }
+
+            fclose($handle);
+        }, 'bingo-ganadores-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
         ]);
     }
 
@@ -555,6 +630,35 @@ final class BingoReportController extends Controller
     }
 
     /**
+     * Exporta el reporte completo de Ventas a CSV, con los mismos filtros que
+     * la vista — una fila por sala+moneda, igual que mapSalesReportRows(),
+     * pero recorriendo TODAS las salas vía cursor() en vez de una página.
+     */
+    public function salesReportExport(Request $request): StreamedResponse
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $currency   = $request->query('currency');
+        $dateFilter = $request->query('dateFilter');
+        $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
+
+        return response()->streamDownload(function () use ($currency, $dateFilter, $currenciesById) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Sala', 'Tipo de Sala', 'Cartones Vendidos', 'Monto Total', 'Moneda', 'Comisión', 'Monto Neto', 'Fecha', 'Estado']);
+
+            foreach ($this->salesReportRoomsQuery($dateFilter)->cursor() as $room) {
+                foreach ($this->mapSalesReportRows(collect([$room]), $currency, $currenciesById) as $row) {
+                    fputcsv($handle, array_values($row));
+                }
+            }
+
+            fclose($handle);
+        }, 'bingo-ventas-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
      * Etiquetas de estado de pago (BingoCardPayment) — compartidas entre el
      * render Inertia y el refetch paginado.
      *
@@ -606,6 +710,26 @@ final class BingoReportController extends Controller
     }
 
     /**
+     * Mapea un único BingoCard al shape de fila del reporte por sala — usado
+     * tanto por mapSalesByRoomRows() como por salesReportByRoomExport() (cursor).
+     */
+    private function mapSalesByRoomRow(BingoCard $card, array $paymentStatusToLabel): array
+    {
+        $payment = $card->cardLot?->payments?->first();
+
+        return [
+            'id'             => (string) $card->id,
+            'card_number'    => $card->serial_number,
+            'player_name'    => $card->roomUser?->user?->name ?? '—',
+            'card_price'     => (float) ($card->cardLot?->card_price ?? 0),
+            'currency'       => $card->currency?->iso_code ?? '—',
+            'sale_date'      => optional($card->created_at)->format('Y-m-d H:i:s'),
+            'payment_method' => $payment?->payment_method ?? '—',
+            'status'         => $paymentStatusToLabel[$payment?->payment_status] ?? ($payment?->payment_status ?? 'Pending'),
+        ];
+    }
+
+    /**
      * Mapea una página de BingoCard al shape de fila del reporte por sala.
      *
      * @param Collection<int, BingoCard> $cards
@@ -614,20 +738,9 @@ final class BingoReportController extends Controller
     {
         $paymentStatusToLabel = $this->paymentStatusLabels();
 
-        return $cards->map(function (BingoCard $card) use ($paymentStatusToLabel) {
-            $payment = $card->cardLot?->payments?->first();
-
-            return [
-                'id'             => (string) $card->id,
-                'card_number'    => $card->serial_number,
-                'player_name'    => $card->roomUser?->user?->name ?? '—',
-                'card_price'     => (float) ($card->cardLot?->card_price ?? 0),
-                'currency'       => $card->currency?->iso_code ?? '—',
-                'sale_date'      => optional($card->created_at)->format('Y-m-d H:i:s'),
-                'payment_method' => $payment?->payment_method ?? '—',
-                'status'         => $paymentStatusToLabel[$payment?->payment_status] ?? ($payment?->payment_status ?? 'Pending'),
-            ];
-        })->all();
+        return $cards
+            ->map(fn (BingoCard $card) => $this->mapSalesByRoomRow($card, $paymentStatusToLabel))
+            ->all();
     }
 
     /**
@@ -732,6 +845,33 @@ final class BingoReportController extends Controller
                 'room_info' => $this->salesByRoomInfo($room, $currency),
             ],
             'pagination' => $this->paginationMeta($paginator),
+        ]);
+    }
+
+    /**
+     * Exporta el reporte completo de Ventas de una sala a CSV, con los mismos
+     * filtros que la vista — usa cursor() para no materializar el dataset
+     * completo (a diferencia de salesReportByRoom()/salesReportByRoomData(),
+     * que solo traen una página).
+     */
+    public function salesReportByRoomExport(BingoRoom $room, Request $request): StreamedResponse
+    {
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $currency = $request->query('currency');
+        $paymentStatusToLabel = $this->paymentStatusLabels();
+
+        return response()->streamDownload(function () use ($room, $currency, $paymentStatusToLabel) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Número de Cartón', 'Jugador', 'Precio Cartón', 'Moneda', 'Fecha de Venta', 'Método de Pago', 'Estado']);
+
+            foreach ($this->salesByRoomQuery($room, $currency)->cursor() as $card) {
+                fputcsv($handle, array_values($this->mapSalesByRoomRow($card, $paymentStatusToLabel)));
+            }
+
+            fclose($handle);
+        }, 'bingo-ventas-sala-' . $room->uuid_code . '-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
         ]);
     }
 }

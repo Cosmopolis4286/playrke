@@ -49,7 +49,11 @@
     prize_type: 'type',
   }
 
+  /** Última query aplicada — reutilizada por handleExport() para exportar con los mismos filtros visibles en la tabla. */
+  const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: 'asc' }, page: 1 })
+
   async function fetchWinnersPage(query: ServerQuery) {
+    lastQuery.value = query
     loading.value = true
     try {
       const params: Record<string, string | number> = {
@@ -74,6 +78,14 @@
     } finally {
       loading.value = false
     }
+  }
+
+  /** Exporta a CSV el reporte completo (sin paginar) con los mismos filtros activos en la tabla. */
+  function handleExport() {
+    const params = new URLSearchParams()
+    if (lastQuery.value.filters.currency) params.set('currency', lastQuery.value.filters.currency)
+    if (lastQuery.value.filters.prize_type) params.set('type', lastQuery.value.filters.prize_type)
+    window.location.href = `/bingo/winners-export?${params.toString()}`
   }
 
   /**
@@ -155,5 +167,11 @@
     server-side
     :server-total-pages="pagination.last_page"
     @query-change="fetchWinnersPage"
-  />
+  >
+    <template #action-buttons>
+      <button class="btn btn-sm btn-outline-secondary" title="Exportar ganadores filtrados a CSV" @click="handleExport">
+        <i class="fas fa-file-csv mr-1"></i>Exportar
+      </button>
+    </template>
+  </TableWithFilterBridge>
 </template>

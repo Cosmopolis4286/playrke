@@ -195,12 +195,16 @@ if (app()->environment('local')) {
 route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoReportController::class, [
     'cards-sold'             => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold'],
     'cards-sold-data'        => ['method' => 'get', 'uri' => 'cards-sold-data', 'action' => 'cardsSoldData'],
+    'cards-sold-export'      => ['method' => 'get', 'uri' => 'cards-sold-export', 'action' => 'cardsSoldExport'],
     'sales-report'           => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport'],
     'sales-report-data'      => ['method' => 'get', 'uri' => 'sales-report-data', 'action' => 'salesReportData'],
+    'sales-report-export'    => ['method' => 'get', 'uri' => 'sales-report-export', 'action' => 'salesReportExport'],
     'sales-report-room'      => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom'],
     'sales-report-room-data' => ['method' => 'get', 'uri' => 'sales-report-room-data/{room}', 'action' => 'salesReportByRoomData'],
+    'sales-report-room-export' => ['method' => 'get', 'uri' => 'sales-report-room-export/{room}', 'action' => 'salesReportByRoomExport'],
     'winners'                => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners'],
     'winners-data'           => ['method' => 'get', 'uri' => 'winners-data', 'action' => 'winnersData'],
+    'winners-export'         => ['method' => 'get', 'uri' => 'winners-export', 'action' => 'winnersExport'],
 ]);
 
  // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],

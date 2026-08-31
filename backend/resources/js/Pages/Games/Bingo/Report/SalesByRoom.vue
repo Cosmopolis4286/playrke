@@ -59,7 +59,11 @@
     currency: 'currency',
   }
 
+  /** Última query aplicada — reutilizada por handleExport() para exportar con los mismos filtros visibles en la tabla. */
+  const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: 'asc' }, page: 1 })
+
   async function fetchRoomSalesPage(query: ServerQuery) {
+    lastQuery.value = query
     loading.value = true
     try {
       const params: Record<string, string | number> = {
@@ -144,6 +148,13 @@
   const extraButtons: any[] = []
 
   const subtitle = `<a title="Volver a reporte general" href="/bingo/sales-report" class="text-primary font-weight-bold">← Volver a Reporte General</a>`
+
+  /** Exporta a CSV el reporte completo de esta sala (sin paginar) con los mismos filtros activos en la tabla. */
+  function handleExport() {
+    const params = new URLSearchParams()
+    if (lastQuery.value.filters.currency) params.set('currency', lastQuery.value.filters.currency)
+    window.location.href = `/bingo/sales-report-room-export/${props.roomId}?${params.toString()}`
+  }
 </script>
 
 <template>
@@ -217,6 +228,12 @@
       server-side
       :server-total-pages="pagination.last_page"
       @query-change="fetchRoomSalesPage"
-    />
+    >
+      <template #action-buttons>
+        <button class="btn btn-sm btn-outline-secondary" title="Exportar ventas de la sala filtradas a CSV" @click="handleExport">
+          <i class="fas fa-file-csv mr-1"></i>Exportar
+        </button>
+      </template>
+    </TableWithFilterBridge>
   </div>
 </template>

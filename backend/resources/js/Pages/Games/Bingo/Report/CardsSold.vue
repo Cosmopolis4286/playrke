@@ -49,7 +49,11 @@
     currency: 'currency',
   }
 
+  /** Última query aplicada — reutilizada por handleExport() para exportar con los mismos filtros visibles en la tabla. */
+  const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: 'asc' }, page: 1 })
+
   async function fetchCardsSoldPage(query: ServerQuery) {
+    lastQuery.value = query
     loading.value = true
     try {
       const params: Record<string, string | number> = {
@@ -74,6 +78,13 @@
     } finally {
       loading.value = false
     }
+  }
+
+  /** Exporta a CSV el reporte completo (sin paginar) con los mismos filtros activos en la tabla. */
+  function handleExport() {
+    const params = new URLSearchParams()
+    if (lastQuery.value.filters.currency) params.set('currency', lastQuery.value.filters.currency)
+    window.location.href = `/bingo/cards-sold-export?${params.toString()}`
   }
 
   /**
@@ -140,5 +151,11 @@
     server-side
     :server-total-pages="pagination.last_page"
     @query-change="fetchCardsSoldPage"
-  />
+  >
+    <template #action-buttons>
+      <button class="btn btn-sm btn-outline-secondary" title="Exportar cartones filtrados a CSV" @click="handleExport">
+        <i class="fas fa-file-csv mr-1"></i>Exportar
+      </button>
+    </template>
+  </TableWithFilterBridge>
 </template>
