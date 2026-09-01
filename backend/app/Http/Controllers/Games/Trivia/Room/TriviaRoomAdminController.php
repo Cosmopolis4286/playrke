@@ -225,15 +225,12 @@ final class TriviaRoomAdminController extends Controller
             $validated['entry_fee']         = array_values($feeByCurrency)[0];
         }
 
-        $selectedMode = $this->gameModes->find($validated['game_mode']);
-
         try {
             $roomDto = $this->roomService->createRoom([
                 'host_id'           => (string) auth()->id(),
                 'title'             => $validated['title'],
                 'description'       => $validated['description'] ?? null,
                 'category'          => $validated['category'] ?? null,
-                'game_mode'         => $selectedMode ? strtolower($selectedMode->code) : null,
                 'game_mode_id'      => $validated['game_mode'],
                 'teams_config'      => $validated['teams_config'] ?? null,
                 'max_players'       => $validated['max_players'],
