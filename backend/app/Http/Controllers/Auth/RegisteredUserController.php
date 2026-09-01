@@ -109,26 +109,12 @@ class RegisteredUserController extends Controller
             return $user;
         });
 
-        // XP al referente y vinculación de ExternalPlayer FUERA de la
-        // transacción del registro: si cualquiera de los dos fallara, no
-        // debe revertir el registro del usuario ya creado — mismo criterio
-        // que GameCompletionService (evaluar logros en try/catch sin
-        // revertir el resultado ya guardado).
-        $referredByUserId = $user->referred_by_user_id;
-        if ($referredByUserId) {
-            try {
-                $referrer = User::find($referredByUserId);
-                if ($referrer) {
-                    $xp = app(UserLevelService::class)->calculateXpReward('referral_signup');
-                    app(UserLevelService::class)->addXpToUser($referrer, $xp, "Referido registrado: {$user->username}");
-                }
-            } catch (\Throwable $e) {
-                Log::warning('[RegisteredUserController] No se pudo otorgar XP de referido: ' . $e->getMessage(), [
-                    'referrer_id' => $referredByUserId,
-                    'new_user_id' => (string) $user->id,
-                ]);
-            }
-        }
+        // XP al referente: ya NO se otorga aquí — se movió a
+        // AwardReferralXpOnVerifiedListener (dispara con el evento Verified,
+        // más abajo) para exigir que el referido verifique su email antes de
+        // contar como referido válido. Otorgarlo en el registro mismo
+        // permitía "sybil farming": automatizar cuentas falsas con el propio
+        // código de referido para acumular XP ilimitado.
 
         if ($request->filled('phone')) {
             $this->linkExternalPlayerHistory($user, $request->phone, $request->country);
