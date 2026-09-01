@@ -151,10 +151,13 @@ class TriviaPauseServiceTest extends TestCase
         $this->createQuestions();
         $gameState = $this->engine->startGame((string) $room->id, ['player-1', 'player-2']);
 
+        // sendNextQuestion() llama maybeAutoPause() internamente al final —
+        // se necesitan 2 llamadas para que used_question_ids alcance la
+        // ventana de INACTIVITY_QUESTIONS_WINDOW (2); con 0 respuestas de
+        // ambos jugadores tras esas 2 preguntas (100% inactivos > 40%),
+        // la segunda llamada debe disparar la pausa automática.
         $this->engine->sendNextQuestion($gameState->gameId);
-        // sendNextQuestion ya llama maybeAutoPause() internamente — con
-        // threshold 40% y 0 respuestas tras 2 preguntas (100% inactivos),
-        // debe haber pausado ya en este punto.
+        $this->engine->sendNextQuestion($gameState->gameId);
 
         $this->assertSame('paused', TriviaGame::find($gameState->gameId)->status);
     }
@@ -165,6 +168,7 @@ class TriviaPauseServiceTest extends TestCase
         $this->createQuestions();
         $gameState = $this->engine->startGame((string) $room->id, ['player-1', 'player-2']);
 
+        $this->engine->sendNextQuestion($gameState->gameId);
         $this->engine->sendNextQuestion($gameState->gameId);
 
         $this->assertSame('playing', TriviaGame::find($gameState->gameId)->status);

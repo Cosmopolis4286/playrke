@@ -171,12 +171,97 @@ completo contra la BD reconstruida. `GameEngineServiceTest` (6) y
 `TriviaAnswerController`. `pnpm run typecheck` sin errores sobre todos los
 archivos Vue/TS tocados.
 
+### ✅ Estado `paused` implementado — pausa manual + automática por desconexión masiva
+
+**Hallazgo original:** `TriviaGame.status` documentaba `'paused'` en su
+`$fillable` pero ninguna transición lo producía ni consumía.
+
+**Decisión de producto (consultada al usuario, varias rondas):**
+- Disparador: híbrido — pausa manual del host/admin, y automática si un
+  umbral configurable de jugadores parece desconectado.
+- Detección de "desconectado": se descartó depender de presence channels de
+  Reverb tras encontrar que el canal de presencia ya existente
+  (`bingo.room.{roomId}.presence`) es solo-frontend — Reverb no notifica al
+  backend de joins/leaves sin webhooks que hoy no existen en el proyecto.
+  Se usa en su lugar inactividad de respuestas: un jugador cuenta como
+  desconectado si no respondió (ni siquiera tarde) ninguna de las últimas 2
+  preguntas — dato que ya se persiste en `trivia_answers`, sin
+  infraestructura nueva de broadcasting.
+- Umbral: configurable por sala (`settings.pause_disconnect_threshold_percent`,
+  0 = desactivado), no fijo.
+- Reanudación: híbrida — el host puede reanudar manualmente en cualquier
+  momento; el cron `trivia:auto-finish-stale-games` (ya existente, corre
+  cada minuto) también reintenta reanudar automáticamente si el % de
+  inactivos vuelve a bajar del umbral, pero SOLO si la pausa fue automática
+  (una pausa manual del host nunca se reanuda sola).
+
+**Implementación:**
+- `TriviaPauseService` (nuevo) — `pause()`/`resume()` actualizan el status
+  en Redis (`GameStateDTO`) y Postgres (`TriviaGame`) de forma consistente;
+  `inactivePlayerPercent()` calcula el % sobre la ventana de 2 preguntas;
+  `maybeAutoPause()`/`maybeAutoResume()` encapsulan la lógica automática.
+  Al reanudar, `server_timestamp_ms` de la pregunta activa en Redis se
+  corre hacia adelante exactamente por la duración de la pausa — esto
+  evita tocar el cálculo de `responseTimeMs` en `TriviaAnswerController`,
+  que sigue confiando ciegamente en ese timestamp. También re-despacha
+  `AdvanceTriviaQuestion` con el tiempo restante correcto (el job
+  original, despachado antes de pausar, ya no sirve — su guarda
+  `!$state->isActive()` lo neutraliza al ejecutarse, pero en el momento
+  equivocado).
+- `GameEngineService::sendNextQuestion()` — llama `maybeAutoPause()` tras
+  cada avance de pregunta (después de registrar `used_question_ids`, así
+  que no afecta la primera pregunta de la partida, que nunca acumula
+  suficiente historial).
+- `AutoFinishStaleTriviaGamesCommand` — ahora también itera partidas
+  `'paused'` (fuera de `TriviaGame::active()` a propósito, para no
+  auto-finalizar mientras están en pausa) e intenta `maybeAutoResume()`.
+- `TriviaGamePaused`/`TriviaGameResumed` (eventos de broadcast nuevos,
+  mismo patrón que `TriviaGameCancelled`).
+- `TriviaPauseController` (nuevo) — `POST /trivia-game/game/{gameId}/pause`
+  y `/resume`, reutilizando `TriviaRoomPolicy::start()` (misma regla que
+  iniciar la partida: host o admin/superadmin).
+- `TriviaGameController::play()` — incluye `'paused'` en los status
+  aceptados (antes un jugador recargando durante una pausa recibía 404),
+  expone `game.isPaused` e `isHost` al frontend.
+- Frontend: `Play.vue` con pantalla de pausa, botón de pausar (visible solo
+  al host mientras la partida corre) y botón de reanudar (visible solo al
+  host mientras está pausada); listeners de
+  `trivia.game.paused`/`trivia.game.resumed` que recalculan el timer local
+  con `remaining_seconds` del servidor al reanudar. Toggle
+  `pause_disconnect_threshold_percent` (0-100, input numérico) en
+  `AdvancedSettingsSection.vue`/`RoomsCreate.vue`.
+
+- `backend/app/Domains/Games/Trivia/Services/TriviaPauseService.php` (nuevo)
+- `backend/app/Domains/Games/Trivia/Services/GameEngineService.php`
+- `backend/app/Console/Commands/AutoFinishStaleTriviaGamesCommand.php`
+- `backend/app/Events/Games/Trivia/TriviaGamePaused.php` (nuevo)
+- `backend/app/Events/Games/Trivia/TriviaGameResumed.php` (nuevo)
+- `backend/app/Http/Controllers/Games/Trivia/Game/TriviaPauseController.php` (nuevo)
+- `backend/app/Http/Controllers/Games/Trivia/Game/TriviaGameController.php`
+- `backend/app/Http/Requests/Trivia/UpdateRoomRequest.php`
+- `backend/routes/modules/games/trivia.php`
+- `backend/resources/js/Pages/Games/Trivia/Play.vue`
+- `backend/resources/js/Pages/Games/Trivia/Admin/RoomsCreate.vue`
+- `backend/resources/js/Components/games/Trivia/Admin/RoomForm/AdvancedSettingsSection.vue`
+- `backend/resources/js/types/trivia.ts`, `routes/triviaRoutes.ts`
+
+**No incluido en este alcance:** presence channels reales (descartados por
+alcance, ver arriba); UI de `pause_disconnect_threshold_percent` en
+`RoomsEdit.vue` (mismo motivo que `allow_powerups` — la pantalla de
+edición no expone ningún toggle de `settings`).
+
+**Verificación:** `TriviaPauseServiceTest` (8 tests, nuevo) pasa completo:
+pausa/reanudación de status, avance de `server_timestamp_ms`, detección de
+inactividad con y sin historial suficiente, auto-pausa con umbral
+superado/desactivado. Re-verificados sin regresiones:
+`GameEngineServiceTest` (6), `SubmitAnswerActionTest` (5),
+`AutoFinishStaleTriviaGamesCommandTest` (5, incluida la firma nueva de
+`handle()` con `TriviaPauseService` inyectado), `TriviaPowerUpServiceTest`
+(6) — 22 tests, todos verdes en una sola corrida. `pnpm run typecheck` sin
+errores.
+
 ### Pendiente
 
-- Estado `paused` de `TriviaGame` documentado en `$fillable` pero nunca
-  producido ni consumido por ninguna transición. No se implementó una
-  función de pausa (por ejemplo, ante desconexión masiva) porque no hay
-  especificación de comportamiento esperado — requiere decisión de producto.
 - No existe mecanismo de disputa/reversión de un premio ya pagado
   (`prize_status = claimed`). Requiere decisión de producto sobre el
   proceso de disputa, no solo código.
