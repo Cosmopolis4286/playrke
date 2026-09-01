@@ -99,6 +99,20 @@ export interface AnswerResult {
   current_score: number
 }
 
+// ── Power-ups ─────────────────────────────────────────────────────────────────
+export type PowerUpType = 'fifty_fifty' | 'double_points' | 'skip' | 'extra_time'
+
+/** Usos restantes por tipo (0 si ya se usó, ausente el tipo si la sala no lo habilita). */
+export type PowerUpsAvailable = Partial<Record<PowerUpType, number>>
+
+export interface PowerUpResponse {
+  success: boolean
+  message?: string
+  type?: PowerUpType
+  hidden_indexes?: number[]  // solo fifty_fifty
+  bonus_ms?: number          // solo extra_time
+}
+
 // ── Score ─────────────────────────────────────────────────────────────────────
 export interface Score {
   id: string

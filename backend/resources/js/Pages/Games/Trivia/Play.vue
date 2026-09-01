@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import { getEchoInstance } from '@js/plugins/echo'
 import { getRoute } from '@js/routes/triviaRoutes'
-import type { WsQuestionSent, WsAnswerResult, WsGameFinished, WsGameCancelled, Question, AnswerResult } from '@js/types/trivia'
+import type { WsQuestionSent, WsAnswerResult, WsGameFinished, WsGameCancelled, Question, AnswerResult, PowerUpsAvailable, PowerUpType, PowerUpResponse } from '@js/types/trivia'
 
 interface Props {
   room: {
@@ -25,6 +25,7 @@ interface Props {
     name: string
     avatar?: string
   }
+  powerUps: PowerUpsAvailable | null
 }
 
 const props = defineProps<Props>()
@@ -45,6 +46,66 @@ const cancelledReason  = ref<string | null>(null)
 let   timerInterval:   ReturnType<typeof setInterval> | null = null
 let   questionStart:   number = 0
 let   betweenTimeout:  ReturnType<typeof setTimeout> | null = null
+
+// ── Power-ups ─────────────────────────────────────────────────────────────────
+const powerUpsLeft      = ref<PowerUpsAvailable>({ ...(props.powerUps ?? {}) })
+const hiddenOptionIndexes = ref<number[]>([])
+const doublePointsActive  = ref(false)
+const isUsingPowerUp      = ref<PowerUpType | null>(null)
+
+function hasPowerUp(type: PowerUpType): boolean {
+  return (powerUpsLeft.value[type] ?? 0) > 0
+}
+
+async function usePowerUp(type: PowerUpType) {
+  if (hasAnswered.value || gameStatus.value !== 'playing' || isUsingPowerUp.value || !hasPowerUp(type) || !currentQuestion.value) return
+  isUsingPowerUp.value = type
+
+  const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+
+  try {
+    const res = await fetch(getRoute('gamePowerUp', { gameId: props.game.id }), {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'Accept':           'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN':     csrf,
+      },
+      body: JSON.stringify({ type }),
+    })
+
+    const data: PowerUpResponse = await res.json().catch(() => ({ success: false }))
+
+    if (!res.ok || !data.success) {
+      console.warn('[Play] power-up rechazado:', data.message)
+      return
+    }
+
+    // Descuenta el uso localmente — el backend ya lo descontó en Postgres.
+    powerUpsLeft.value = { ...powerUpsLeft.value, [type]: 0 }
+
+    if (type === 'fifty_fifty' && data.hidden_indexes) {
+      hiddenOptionIndexes.value = data.hidden_indexes
+    } else if (type === 'double_points') {
+      doublePointsActive.value = true
+    } else if (type === 'extra_time' && data.bonus_ms) {
+      timeLeft.value += Math.round(data.bonus_ms / 1000)
+    } else if (type === 'skip') {
+      // El backend ya avanzó (o avanzará) la pregunta si todos respondieron/saltaron.
+      // Se marca localmente como "respondida" para bloquear la UI hasta la siguiente pregunta.
+      hasAnswered.value = true
+      gameStatus.value  = 'answered'
+      betweenTimeout = setTimeout(() => {
+        if (gameStatus.value === 'answered') gameStatus.value = 'between'
+      }, 1500)
+    }
+  } catch (err) {
+    console.warn('[Play] usePowerUp error:', err)
+  } finally {
+    isUsingPowerUp.value = null
+  }
+}
 
 // ── Echo ──────────────────────────────────────────────────────────────────────
 const echo        = getEchoInstance()
@@ -155,6 +216,10 @@ function loadQuestion(q: Question, index: number, total: number, lagMs = 0) {
   hasAnswered.value     = false
   answerResult.value    = null
   gameStatus.value      = 'playing'
+  // Power-ups activos son por-pregunta — se resetean al cargar la siguiente
+  // (los usos consumidos en powerUpsLeft NO se resetean: son por partida).
+  hiddenOptionIndexes.value = []
+  doublePointsActive.value  = false
   // Compensar latencia de red: descontar milisegundos transcurridos
   const effectiveLimit = Math.max(1, q.timeLimit - Math.floor(lagMs / 1000))
   startTimer(effectiveLimit, q.timeLimit)
@@ -365,10 +430,35 @@ const formatCurrency = (amount: number) =>
           </div>
         </div>
 
+        <!-- Barra de power-ups -->
+        <div v-if="powerUps" class="flex justify-center gap-2 mb-4">
+          <button
+            v-for="pu in ([
+              { type: 'fifty_fifty' as const,   icon: '➗', label: '50/50' },
+              { type: 'double_points' as const, icon: '✖️2', label: 'x2' },
+              { type: 'skip' as const,          icon: '⏭️', label: 'Saltar' },
+              { type: 'extra_time' as const,    icon: '⏱️', label: '+5s' },
+            ])"
+            :key="pu.type"
+            @click="usePowerUp(pu.type)"
+            :disabled="hasAnswered || isSubmitting || !hasPowerUp(pu.type) || isUsingPowerUp !== null || (pu.type === 'double_points' && doublePointsActive)"
+            class="flex flex-col items-center justify-center w-14 h-14 rounded-xl border-2 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            :class="hasPowerUp(pu.type) && !(pu.type === 'double_points' && doublePointsActive)
+              ? 'border-yellow-500/60 bg-yellow-500/10 hover:bg-yellow-500/20'
+              : 'border-gray-600/40 bg-gray-800/30'"
+            :title="pu.label"
+          >
+            <span class="text-lg leading-none">{{ pu.icon }}</span>
+            <span class="text-[9px] text-yellow-300 font-bold mt-0.5">{{ pu.label }}</span>
+          </button>
+        </div>
+        <p v-if="doublePointsActive" class="text-center text-yellow-400 text-xs font-bold mb-2">⚡ Doble puntos activado para esta pregunta</p>
+
         <!-- Opciones -->
         <div class="space-y-3">
           <button
             v-for="(option, index) in currentQuestion.options"
+            v-show="!hiddenOptionIndexes.includes(index)"
             :key="index"
             @click="selectAnswer(index)"
             :disabled="hasAnswered || isSubmitting"

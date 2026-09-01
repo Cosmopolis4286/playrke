@@ -357,7 +357,7 @@ final class TriviaGameController extends Controller
                 'updatedAt'            => $room->updated_at->toISOString(),
             ],
             'teams' => $teams,
-            'gameMode' => $room->game_mode,
+            'gameMode' => strtolower($room->gameModeCode() ?? 'free_for_all'),
             'initialPlayers' => $initialPlayers,
             'alreadyJoined'  => $alreadyJoined,
             'currentUserId'  => (string) $user->id,
@@ -398,7 +398,7 @@ final class TriviaGameController extends Controller
 
         $rooms = $query->select(
             'id', 'code', 'title', 'description', 'category',
-            'status', 'game_mode', 'max_players',
+            'status', 'game_mode_id', 'max_players',
             'question_count', 'time_per_question', 'created_at',
             'entry_fee', 'entry_currency_id',
             'prize_amount', 'prize_type', 'prize_currency_id'
@@ -429,7 +429,19 @@ final class TriviaGameController extends Controller
 
         $currencySymbols = \App\Models\Currency::symbolsByIds($currencyIds);
 
-        $rooms = $rooms->map(function ($room) use ($currencySymbols, $participantCounts) {
+        // El frontend (Lobby.vue) espera 'game_mode' como código legible en
+        // minúsculas ('free_for_all'|'teams'|'duel'), no el game_mode_id crudo
+        // — se resuelve vía el catálogo (MySQL, cross-conexión con trivia_rooms
+        // en Postgres, igual patrón que TriviaRoom::gameModeCode()).
+        $gameModeIds = collect($rooms)->pluck('game_mode_id')->filter()->unique()->values()->all();
+        $gameModeCodes = empty($gameModeIds)
+            ? []
+            : \App\Models\Games\Common\GameMode\GameMode::whereIn('id', $gameModeIds)
+                ->pluck('code', 'id')
+                ->map(fn ($code) => strtolower($code))
+                ->all();
+
+        $rooms = $rooms->map(function ($room) use ($currencySymbols, $participantCounts, $gameModeCodes) {
             return array_merge((array) $room, [
                 'current_players'       => (int) ($participantCounts[$room->id] ?? 0),
                 'entry_currency_symbol' => $room->entry_currency_id
@@ -438,6 +450,7 @@ final class TriviaGameController extends Controller
                 'prize_currency_symbol' => $room->prize_currency_id
                     ? ($currencySymbols[$room->prize_currency_id] ?? null)
                     : null,
+                'game_mode' => $gameModeCodes[$room->game_mode_id] ?? 'free_for_all',
             ]);
         });
 
@@ -520,6 +533,22 @@ final class TriviaGameController extends Controller
         $currentQuestionIndex = $gameState?->currentQuestionIndex ?? ($game->current_question_index ?? 0);
         $totalQuestions       = $gameState?->totalQuestions ?? ($room->question_count ?? 10);
 
+        // ── Power-ups disponibles del jugador (null si la sala no los habilita) ──
+        $participant = $pgsql->table('trivia_participants')
+            ->where('room_id', $room->id)
+            ->where('user_id', (string) $user->id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        $powerUps = null;
+        if ($participant && $participant->power_ups) {
+            $total = json_decode($participant->power_ups, true) ?? [];
+            $used  = json_decode($participant->power_ups_used ?? '[]', true) ?? [];
+            $powerUps = collect($total)->mapWithKeys(fn ($count, $type) => [
+                $type => max(0, (int) $count - (int) ($used[$type] ?? 0)),
+            ])->all();
+        }
+
         return Inertia::render('Games/Trivia/Play', [
             'room' => [
                 'id'             => (string) $room->id,
@@ -540,6 +569,7 @@ final class TriviaGameController extends Controller
                 'name'   => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
                 'avatar' => $user->avatar ?? null,
             ],
+            'powerUps' => $powerUps,
         ]);
     }
 
