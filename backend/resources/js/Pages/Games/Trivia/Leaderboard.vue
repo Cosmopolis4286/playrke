@@ -9,7 +9,6 @@ interface Player {
   rank: number
   player_id: string
   name: string
-  email: string | null
   games_played: number
   total_score: number
   total_correct: number
@@ -245,7 +244,6 @@ const tableRows = computed(() => props.players.map(p => ({ ...p, id: p.player_id
                 </div>
                 <div class="min-w-0">
                   <p class="text-sm font-medium lb-text truncate mb-0">{{ p.name }}</p>
-                  <p v-if="p.email" class="text-xs lb-text-faint truncate d-none d-sm-block mb-0">{{ p.email }}</p>
                 </div>
               </div>
             </template>

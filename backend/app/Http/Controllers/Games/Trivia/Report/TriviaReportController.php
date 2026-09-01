@@ -83,9 +83,11 @@ final class TriviaReportController extends Controller
         // ── Obtener datos de usuarios desde MySQL ─────────────────────────────
         $playerIds = $scores->pluck('player_id')->all();
 
+        // Sin 'email' — leaderboard visible para cualquier usuario autenticado
+        // (no solo admins), no debe exponer el correo de otros jugadores.
         $users = DB::table('users')
             ->whereIn('id', $playerIds)
-            ->select('id', 'email', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+            ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
             ->get()
             ->keyBy('id');
 
@@ -116,7 +118,6 @@ final class TriviaReportController extends Controller
                 'rank'            => $index + 1,
                 'player_id'       => $row->player_id,
                 'name'            => ($user?->display_name ?: null) ?? 'Jugador #' . substr($row->player_id, 0, 6),
-                'email'           => $user?->email ?? null,
                 'games_played'    => (int)$row->games_played,
                 'total_score'     => (int)$row->total_score,
                 'total_correct'   => (int)$row->total_correct,
