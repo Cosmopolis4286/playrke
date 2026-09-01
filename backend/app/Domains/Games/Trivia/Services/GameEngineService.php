@@ -52,6 +52,7 @@ class GameEngineService implements GameEngineInterface
         private readonly SkillRatingService          $skillRatingService,
         private readonly GameCompletionService       $gameCompletionService,
         private readonly UserLevelService            $userLevelService,
+        private readonly TriviaPauseService          $pauseService,
     ) {}
 
     /**
@@ -255,6 +256,12 @@ class GameEngineService implements GameEngineInterface
         $delaySeconds = $questionDto->timeLimitSeconds + 2;
         AdvanceTriviaQuestion::dispatch($gameId, $questionDto->questionId)
             ->delay(now()->addSeconds($delaySeconds));
+
+        // Detección de desconexión masiva: se evalúa DESPUÉS de registrar el
+        // avance (used_question_ids ya incluye la pregunta que se acaba de
+        // enviar) — no tiene efecto en la primera pregunta de la partida,
+        // que nunca acumula suficiente historial para juzgar inactividad.
+        $this->pauseService->maybeAutoPause($gameId, $state->roomId);
 
         return $questionDto;
     }
