@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Http\Controllers\Controller;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Services\Auth\RoleAuthorizationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -165,6 +167,14 @@ final class TriviaGamesController extends Controller
             ->orderBy('position')
             ->orderByDesc('final_score')
             ->get();
+
+        // Solo admin/superadmin o un jugador que participó en ESTA partida —
+        // antes cualquier usuario autenticado veía el scoreboard completo
+        // (nombres de todos los jugadores) y las preguntas jugadas con
+        // correct_option_index expuesto, de partidas ajenas.
+        $isElevated = app(RoleAuthorizationService::class)->hasAnyRole(Auth::user(), ['admin', 'superadmin']);
+        $participated = $scores->contains('player_id', (string) Auth::id());
+        abort_unless($isElevated || $participated, 403, 'No participaste en esta partida.');
 
         $playerIds = $scores->pluck('player_id')->unique()->all();
         $users = DB::table('users')

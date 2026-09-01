@@ -133,9 +133,16 @@ final class PrizeController extends Controller
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) del premio.
+     *
+     * 'toggleStatus' no es una acción resource estándar — authorizeResource()
+     * del constructor no la cubre automáticamente. Sin este authorize()
+     * explícito, el fix de ownership en PrizePolicy::toggleStatus() nunca se
+     * ejecutaría para este endpoint.
      */
     public function toggleStatus(Prize $prize): JsonResponse
     {
+        $this->authorize('toggleStatus', $prize);
+
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($prize)
         );
