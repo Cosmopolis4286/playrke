@@ -146,7 +146,21 @@ class SellerController extends Controller
     {
         switch ($request->game) {
             case 'BINGO':
-                $room = BingoRoom::select('id')->find($request->room);
+                // Scope por comercio: antes cualquier seller autenticado
+                // podía consultar datos de contacto de un jugador captado
+                // por OTRO vendedor con solo conocer/adivinar el room_id de
+                // una sala ajena — mismo patrón de fuga ya corregido en
+                // BingoReportController (accessibleBy + resolveCommerce()).
+                $seller = $this->seller(['id', 'manager_user_id', 'subsidiary_id']);
+                $commerceUserId = $seller?->resolveCommerce()?->user_id;
+
+                if (!$commerceUserId) {
+                    return response()->json(['response' => false]);
+                }
+
+                $room = BingoRoom::select('id')
+                    ->accessibleBy((int) $commerceUserId)
+                    ->find($request->room);
 
                 if (!$room) {
                     return response()->json(['response' => false]);

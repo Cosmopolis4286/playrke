@@ -44,7 +44,11 @@ multi_middleware_routes('seller', 'seller.', [
             // player-cartons y sales-report-player: sin implementación en el controlador
             // (funcionalidad nunca desarrollada, no un bug de nomenclatura — quedan sin action).
             'player-cartons' => ['method' => 'get', 'uri' => 'bingo/player/cartons/{playerLink}/{room}'],
-            'get-player' => ['method' => 'post', 'uri' => 'bingo/player/search', 'action' => 'getPlayer'],
+            // throttle:20,1 — antes sin límite, permitía a un seller iterar
+            // teléfonos/rooms buscando jugadores de otros vendedores más
+            // rápido que a mano (ver también el scope agregado en
+            // SellerController::getPlayer()).
+            'get-player' => ['method' => 'post', 'uri' => 'bingo/player/search', 'action' => 'getPlayer', 'middleware' => ['throttle:20,1']],
             'payment-details' => ['method' => 'get', 'uri' => 'payment-details/{currency}', 'action' => 'getPaymentCommerceDetails'],
             'sales-report-player' => ['method' => 'get', 'uri' => 'bingo/sales-report/{room}/player/{playerLink}'],
         ]
