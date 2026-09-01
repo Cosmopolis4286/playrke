@@ -5,6 +5,8 @@ use App\Http\Controllers\MovementTypeController;
 use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WalletLimitController;
+use App\Models\WalletMovement;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,13 +42,22 @@ Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.depos
 });
 
 // ====================================
-// COMPROBANTES (autenticado — evita exposición pública)
+// COMPROBANTES (autenticado + dueño del movimiento — evita exposición pública
+// y fuga entre usuarios: antes solo exigía 'auth', así que cualquier usuario
+// logueado que conociera/adivinara el nombre de archivo UUID de OTRO usuario
+// podía ver su comprobante de depósito, con datos bancarios y monto).
 // ====================================
 Route::middleware('auth')->get('wallet/receipt/{filename}', function (string $filename) {
     // Solo letras, números, guiones y extensión — sin path traversal
     if (! preg_match('/^[\w\-]+\.(jpg|jpeg|png|pdf|webp)$/i', $filename)) {
         abort(404);
     }
+
+    $movement = WalletMovement::where('receipt_path', 'wallet/receipts/' . $filename)->first();
+    $isOwner  = $movement && (string) $movement->user_id === (string) Auth::id();
+    $canManage = Auth::user()?->can('wallet.movements.view') || Auth::user()?->can('wallet.movements.manage');
+    abort_unless($isOwner || $canManage, 403);
+
     $path = storage_path('app/public/wallet/receipts/' . $filename);
     if (! file_exists($path)) {
         abort(404);
@@ -115,9 +126,11 @@ Route::middleware(['auth', 'multiPermission:wallet-limits.manage'])->group(funct
 
 // ====================================
 // BINANCE (CRIPTOMONEDAS)
+// throttle:10,1 — antes sin límite pese a gestionar direcciones destino de
+// retiro en cripto; mismo criterio que directory (payments.php).
 // ====================================
-crud_routes('binance', BinanceController::class, ['auth'], ['index', 'destroy']);
-Route::middleware('auth')->group(function () {
+crud_routes('binance', BinanceController::class, ['auth', 'throttle:10,1'], ['index', 'destroy']);
+Route::middleware(['auth', 'throttle:10,1'])->group(function () {
     Route::delete('binance/{id}', [BinanceController::class, 'destroy'])->name('binance.destroy');
     Route::get('binance/{id}/info', [BinanceController::class, 'show'])->name('binance.show');
 });
