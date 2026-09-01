@@ -43,6 +43,8 @@ export const triviaRoutes = {
     startRoom:  '/trivia-game/room/{id}/start',
     gameAnswer: '/trivia-game/game/{gameId}/answer',
     gamePowerUp: '/trivia-game/game/{gameId}/power-up',
+    gamePause:  '/trivia-game/game/{gameId}/pause',
+    gameResume: '/trivia-game/game/{gameId}/resume',
 } as const;
 
 /**

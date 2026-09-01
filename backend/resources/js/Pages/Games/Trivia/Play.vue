@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import { getEchoInstance } from '@js/plugins/echo'
 import { getRoute } from '@js/routes/triviaRoutes'
-import type { WsQuestionSent, WsAnswerResult, WsGameFinished, WsGameCancelled, Question, AnswerResult, PowerUpsAvailable, PowerUpType, PowerUpResponse } from '@js/types/trivia'
+import type { WsQuestionSent, WsAnswerResult, WsGameFinished, WsGameCancelled, WsGamePaused, WsGameResumed, Question, AnswerResult, PowerUpsAvailable, PowerUpType, PowerUpResponse } from '@js/types/trivia'
 
 interface Props {
   room: {
@@ -18,6 +18,7 @@ interface Props {
     id: string
     currentQuestion: number
     totalQuestions: number
+    isPaused: boolean
   }
   question: Question | null
   player: {
@@ -26,6 +27,7 @@ interface Props {
     avatar?: string
   }
   powerUps: PowerUpsAvailable | null
+  isHost: boolean
 }
 
 const props = defineProps<Props>()
@@ -38,14 +40,43 @@ const selectedAnswer   = ref<number | null>(null)
 const hasAnswered      = ref(false)
 const timeLeft         = ref(0)
 const totalTime        = ref(0)
-const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'between' | 'finished' | 'cancelled'>('waiting')
+const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'between' | 'finished' | 'cancelled' | 'paused'>(props.game.isPaused ? 'paused' : 'waiting')
+const statusBeforePause: { value: typeof gameStatus.value } = { value: gameStatus.value }
 const currentScore     = ref(0)
 const answerResult     = ref<AnswerResult | null>(null)
 const isSubmitting     = ref(false)
 const cancelledReason  = ref<string | null>(null)
+const isTogglingPause  = ref(false)
 let   timerInterval:   ReturnType<typeof setInterval> | null = null
 let   questionStart:   number = 0
 let   betweenTimeout:  ReturnType<typeof setTimeout> | null = null
+
+// ── Pausa (manual host, o automática por desconexión masiva) ──────────────────
+async function togglePause() {
+  if (isTogglingPause.value) return
+  isTogglingPause.value = true
+
+  const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+  const action = gameStatus.value === 'paused' ? 'resume' : 'pause'
+
+  try {
+    await fetch(getRoute(action === 'pause' ? 'gamePause' : 'gameResume', { gameId: props.game.id }), {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'Accept':           'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN':     csrf,
+      },
+    })
+    // El cambio real de UI llega por broadcast (trivia.game.paused/resumed) —
+    // esto solo dispara la acción, no asume que tuvo éxito.
+  } catch (err) {
+    console.warn('[Play] togglePause error:', err)
+  } finally {
+    isTogglingPause.value = false
+  }
+}
 
 // ── Power-ups ─────────────────────────────────────────────────────────────────
 const powerUpsLeft      = ref<PowerUpsAvailable>({ ...(props.powerUps ?? {}) })
@@ -143,6 +174,19 @@ function setupEcho() {
         stopTimer()
         gameStatus.value    = 'cancelled'
         cancelledReason.value = data.reason
+      })
+      .listen('.trivia.game.paused', (data: WsGamePaused) => {
+        if (gameStatus.value === 'paused' || gameStatus.value === 'cancelled' || gameStatus.value === 'finished') return
+        statusBeforePause.value = gameStatus.value
+        stopTimer()
+        gameStatus.value = 'paused'
+      })
+      .listen('.trivia.game.resumed', (data: WsGameResumed) => {
+        if (gameStatus.value !== 'paused') return
+        gameStatus.value = statusBeforePause.value === 'paused' ? 'playing' : statusBeforePause.value
+        if (currentQuestion.value && data.remaining_seconds > 0) {
+          startTimer(data.remaining_seconds, totalTime.value || data.remaining_seconds)
+        }
       })
 
     playerCh = echo.private(playerChannel)
@@ -336,6 +380,17 @@ const formatCurrency = (amount: number) =>
         <p class="text-[10px] tracking-[0.3em] text-blue-300 uppercase mt-1">Donde solo los mejores ganan</p>
       </div>
 
+      <!-- Control de host: pausar partida -->
+      <div v-if="isHost && !['paused', 'cancelled', 'finished'].includes(gameStatus)" class="flex justify-center mb-2">
+        <button
+          @click="togglePause"
+          :disabled="isTogglingPause"
+          class="text-xs px-3 py-1 rounded-full border border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 transition-colors"
+        >
+          ⏸️ Pausar partida
+        </button>
+      </div>
+
       <!-- Stats Bar -->
       <div class="max-w-4xl mx-auto grid grid-cols-2 gap-3 mt-4">
         <div class="bg-gradient-to-r from-green-900/50 to-green-800/30 border border-green-500/50 rounded-lg p-2">
@@ -374,8 +429,25 @@ const formatCurrency = (amount: number) =>
     <!-- Área de pregunta -->
     <main class="max-w-2xl mx-auto px-4 pb-8">
 
+      <!-- Partida pausada -->
+      <div v-if="gameStatus === 'paused'" class="text-center py-16 space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center">
+          <span class="text-3xl">⏸️</span>
+        </div>
+        <p class="text-amber-300 font-semibold text-lg">Partida en pausa</p>
+        <p class="text-gray-400 text-sm">La partida se reanudará en breve. Tu progreso está a salvo.</p>
+        <button
+          v-if="isHost"
+          @click="togglePause"
+          :disabled="isTogglingPause"
+          class="inline-block mt-4 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-lg text-sm font-bold transition-colors"
+        >
+          ▶️ Reanudar partida
+        </button>
+      </div>
+
       <!-- Partida cancelada -->
-      <div v-if="gameStatus === 'cancelled'" class="text-center py-16 space-y-4">
+      <div v-else-if="gameStatus === 'cancelled'" class="text-center py-16 space-y-4">
         <div class="w-16 h-16 mx-auto rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center">
           <span class="text-3xl">⚠️</span>
         </div>

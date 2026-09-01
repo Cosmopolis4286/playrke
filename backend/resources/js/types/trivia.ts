@@ -185,6 +185,16 @@ export interface WsGameCancelled {
   reason: string
 }
 
+export interface WsGamePaused {
+  game_id: string
+  reason: string
+}
+
+export interface WsGameResumed {
+  game_id: string
+  remaining_seconds: number
+}
+
 // ── API response helpers ──────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   data: T
