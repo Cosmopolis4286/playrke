@@ -99,6 +99,8 @@ final class AdminCustomerController extends Controller
      */
     public function delete(Customer $customer): JsonResponse
     {
+        $this->authorize('update', $customer);
+
         return $this->handleServiceJson(
             fn() => $this->service->delete($customer)
         );
@@ -125,6 +127,8 @@ final class AdminCustomerController extends Controller
      */
     public function toggleStatus(Customer $customer): JsonResponse
     {
+        $this->authorize('toggleStatus', $customer);
+
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($customer)
         );
@@ -138,6 +142,8 @@ final class AdminCustomerController extends Controller
      */
     public function resetPassword(Customer $customer): JsonResponse
     {
+        $this->authorize('resetPassword', $customer);
+
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->resetPassword($customer),
@@ -155,8 +161,16 @@ final class AdminCustomerController extends Controller
     public function generateKey(\Illuminate\Http\Request $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
-            $id  = $request->input('id');
-            $key = $this->service->generateKey($id ? Customer::findOrFail($id) : null);
+            $id = $request->input('id');
+            $customer = $id ? Customer::findOrFail($id) : null;
+
+            if ($customer) {
+                $this->authorize('update', $customer);
+            } else {
+                $this->authorize('create', Customer::class);
+            }
+
+            $key = $this->service->generateKey($customer);
             return ['key' => $key];
         });
     }

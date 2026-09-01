@@ -37,13 +37,19 @@ class AdminCustomerPolicy extends BaseRolePolicy
     /**
      * Cambiar estado del comercio.
      *
-     * Acción de dominio (no CRUD estándar).
+     * Acción de dominio (no CRUD estándar) — antes se llamaba changeStatus(),
+     * un nombre que no coincidía con AdminCustomerController::toggleStatus()
+     * y por lo tanto nunca se invocaba (ni este método, ni resetPassword() ni
+     * generateKey(), que no tenían ningún $this->authorize() en el
+     * controller): un admin podía cambiar estado/contraseña/key de un
+     * Customer sin pasar por canMutate(), es decir, incluso si estaba
+     * DELETED/BLOCKED.
      *
      * @param User $user
      * @param Customer $commerce
      * @return bool
      */
-    public function changeStatus(User $user, Customer $commerce): bool
+    public function toggleStatus(User $user, Customer $commerce): bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($commerce);
