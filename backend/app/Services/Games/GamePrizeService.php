@@ -87,7 +87,7 @@ final class GamePrizeService
                 return $row;
             }
 
-            // 'claimed', 'cancelled', 'suspended' — nada que hacer.
+            // 'claimed', 'cancelled', 'suspended', 'disputed' — nada que hacer.
             return null;
         });
 
@@ -194,5 +194,57 @@ final class GamePrizeService
     ): void {
         $attrs = $prize->buildPaymentAttributes($movementId, $status, $reason);
         $prize->createPayment($attrs);
+    }
+
+    /**
+     * Disputa un premio ya pagado ('claimed') y revierte el débito de la
+     * wallet del ganador. Disparador manual únicamente (2026-08-31): un
+     * admin/superadmin decide esto desde el panel tras revisar un caso —
+     * no hay señal automática de anti-fraude conectada todavía.
+     *
+     * Deliberadamente NO exige saldo suficiente: el jugador puede haber
+     * gastado el premio en otra sala/juego antes de que se detecte el
+     * fraude, y la wallet debe poder quedar en negativo (ver
+     * WalletService::recordPrizeReversal()).
+     *
+     * @throws \RuntimeException Si el premio no está en estado 'claimed' o
+     *         el ganador ya no tiene wallet activa en la moneda del premio.
+     */
+    public function disputeAndReverse(GamePrizeContract $prizeRecord, string $reason): void
+    {
+        $locked = DB::transaction(function () use ($prizeRecord): GamePrizeContract {
+            /** @var GamePrizeContract $row */
+            $row = $prizeRecord::where('id', $prizeRecord->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (! $row || ! $row->isClaimed()) {
+                throw new \RuntimeException('Solo se puede disputar un premio en estado "claimed".');
+            }
+
+            $row->markAsDisputed();
+            return $row;
+        });
+
+        $wallet = $this->walletService->findActiveWallet($locked->getUserId(), $locked->getCurrencyId());
+        if (! $wallet) {
+            throw new \RuntimeException('El ganador no tiene una billetera activa en la moneda del premio — revertir requiere intervención manual directa en la wallet.');
+        }
+
+        $this->walletService->recordPrizeReversal(
+            wallet:         $wallet,
+            amount:         $locked->getLocalAmount(),
+            gameId:         $locked->getGameId(),
+            description:    "Reversión de premio en disputa — {$locked->getGameSlug()} #{$locked->getKey()}: {$reason}",
+            idempotencyKey: sprintf('%s_prize_reversal:%s', $locked->getGameSlug(), $locked->getKey()),
+        );
+
+        Log::warning('[GamePrizeService] Premio revertido por disputa', [
+            'game'     => $locked->getGameSlug(),
+            'prize_id' => $locked->getKey(),
+            'user_id'  => $locked->getUserId(),
+            'amount'   => $locked->getLocalAmount(),
+            'reason'   => $reason,
+        ]);
     }
 }

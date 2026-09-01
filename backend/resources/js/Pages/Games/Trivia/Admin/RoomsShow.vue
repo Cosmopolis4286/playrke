@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 interface RoomShowPlayer {
   player_id: string
@@ -10,12 +10,47 @@ interface RoomShowPlayer {
   joined_at: number | null
 }
 
+interface RoomWinner {
+  id: string
+  userId: string
+  name: string
+  finalRank: number
+  prizeWon: number
+  prizeStatus: string
+}
+
 const props = defineProps<{
   room: Record<string, any>
   roomState: Record<string, any>
   players: RoomShowPlayer[]
   playerCount: number
+  winners: RoomWinner[]
 }>()
+
+const disputeForm = useForm({ reason: '' })
+const disputingWinnerId = ref<string | null>(null)
+
+function openDispute(winnerId: string) {
+  disputingWinnerId.value = winnerId
+  disputeForm.reset()
+}
+
+function submitDispute(winnerId: string) {
+  disputeForm.post(getRoute('participantsDispute', { roomId: props.room.id, participantId: winnerId }), {
+    preserveScroll: true,
+    onSuccess: () => { disputingWinnerId.value = null },
+  })
+}
+
+const prizeStatusLabel: Record<string, string> = {
+  waiting: 'Esperando', processing: 'Procesando', claimed: 'Reclamado',
+  cancelled: 'Cancelado', suspended: 'Suspendido', disputed: 'En disputa',
+}
+const prizeStatusColor: Record<string, string> = {
+  waiting: 'bg-gray-100 text-gray-800', processing: 'bg-blue-100 text-blue-800',
+  claimed: 'bg-green-100 text-green-800', cancelled: 'bg-gray-100 text-gray-800',
+  suspended: 'bg-orange-100 text-orange-800', disputed: 'bg-red-100 text-red-800',
+}
 
 // Auto-refresh cada 5 segundos para ver jugadores en tiempo real
 let refreshInterval: ReturnType<typeof setInterval> | null = null
@@ -181,6 +216,72 @@ const formatTime = (timestamp: number | null) => {
               <div v-if="players.length === 0" class="px-6 py-12 text-center rs-text-muted">
                 <p class="text-4xl mb-2">👻</p>
                 <p>No hay jugadores conectados</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ganadores / Premios -->
+          <div v-if="winners.length > 0" class="rs-card shadow-sm rounded-lg overflow-hidden mt-6">
+            <div class="rs-header-border px-6 py-4 border-b">
+              <h2 class="text-lg font-medium rs-text">
+                🏆 Ganadores y Premios
+              </h2>
+            </div>
+
+            <div class="rs-divide">
+              <div v-for="winner in winners" :key="winner.id" class="rs-row-hover px-6 py-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <span class="text-lg font-bold rs-text">#{{ winner.finalRank }}</span>
+                    <div>
+                      <p class="text-sm font-medium rs-text">{{ winner.name }}</p>
+                      <p class="text-xs rs-text-muted">Premio: {{ winner.prizeWon.toFixed(2) }}</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span :class="['px-2 py-1 rounded-full text-xs', prizeStatusColor[winner.prizeStatus] || 'bg-gray-100 text-gray-800']">
+                      {{ prizeStatusLabel[winner.prizeStatus] || winner.prizeStatus }}
+                    </span>
+                    <button
+                      v-if="winner.prizeStatus === 'claimed'"
+                      @click="openDispute(winner.id)"
+                      class="px-3 py-1 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700"
+                    >
+                      Disputar
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Formulario de disputa (inline, solo para el ganador seleccionado) -->
+                <div v-if="disputingWinnerId === winner.id" class="mt-3 p-3 rs-code rounded-md">
+                  <label class="block text-xs font-medium rs-text-muted mb-1">
+                    Motivo de la disputa (obligatorio, visible en el registro del movimiento)
+                  </label>
+                  <textarea
+                    v-model="disputeForm.reason"
+                    rows="2"
+                    minlength="10"
+                    maxlength="500"
+                    class="w-full text-sm rounded-md border-gray-300"
+                    placeholder="Ej: Anti-cheat detectó respuestas con tiempo imposible tras revisión manual del log de partida."
+                  />
+                  <p v-if="disputeForm.errors.reason" class="text-xs text-red-600 mt-1">{{ disputeForm.errors.reason }}</p>
+                  <div class="flex justify-end gap-2 mt-2">
+                    <button
+                      @click="disputingWinnerId = null"
+                      class="px-3 py-1 text-xs font-medium rs-text-muted hover:opacity-75"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      @click="submitDispute(winner.id)"
+                      :disabled="disputeForm.processing || disputeForm.reason.length < 10"
+                      class="px-3 py-1 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 disabled:opacity-50"
+                    >
+                      Confirmar reversión del premio
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

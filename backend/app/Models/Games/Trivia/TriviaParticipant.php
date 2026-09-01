@@ -19,6 +19,7 @@ class TriviaParticipant extends BaseModel implements GamePrizeContract
         'claimed'    => 'Reclamado',
         'cancelled'  => 'Cancelado',
         'suspended'  => 'Suspendido',
+        'disputed'   => 'En disputa',
     ];
 
     protected $fillable = [
@@ -153,6 +154,13 @@ class TriviaParticipant extends BaseModel implements GamePrizeContract
     public function isClaimed(): bool    { return $this->prize_status === 'claimed'; }
     public function isCancelled(): bool  { return $this->prize_status === 'cancelled'; }
     public function isSuspended(): bool  { return $this->prize_status === 'suspended'; }
+    public function isDisputed(): bool   { return $this->prize_status === 'disputed'; }
+
+    public function markAsDisputed(): bool
+    {
+        $this->prize_status = 'disputed';
+        return $this->save();
+    }
 
     public function markAsProcessing(): bool
     {

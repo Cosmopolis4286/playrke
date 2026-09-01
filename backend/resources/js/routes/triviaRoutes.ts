@@ -12,6 +12,7 @@ export const triviaRoutes = {
     roomsEdit:    '/trivia-rooms/{id}/edit',
     roomsUpdate:  '/trivia-rooms/{id}',
     roomsDestroy: '/trivia-rooms/{id}',
+    participantsDispute: '/trivia-rooms/{roomId}/participants/{participantId}/dispute',
 
     // ── Admin: Banco de Preguntas ────────────────────────
     questionsIndex:        '/trivia-questions/room/{roomId}',

@@ -40,6 +40,7 @@ interface GamePrizeContract
 
     public function isWaiting(): bool;
     public function isProcessing(): bool;
+    public function isClaimed(): bool;
     // bool (no void): BingoCardPrize::markAsProcessing()/markAsClaimed() ya
     // devuelven el bool de éxito de Model::save() — declarar void aquí forzaría
     // a la implementación a descartar ese valor o incumplir el contrato con un
@@ -47,6 +48,15 @@ interface GamePrizeContract
     // GamePrizeService no usa el valor de retorno, así que bool no le cuesta nada.
     public function markAsProcessing(): bool;
     public function markAsClaimed(): bool;
+
+    /**
+     * Disputa post-pago (2026-08-31): un premio ya 'claimed' pasa a
+     * 'disputed' cuando un admin revierte el pago manualmente (ver
+     * GamePrizeService::disputeAndReverse()). Disparador manual únicamente
+     * por ahora — no hay señal automática de anti-fraude conectada todavía.
+     */
+    public function isDisputed(): bool;
+    public function markAsDisputed(): bool;
 
     /**
      * ¿Ya existe un pago con payment_status='completed' vinculado a este premio?

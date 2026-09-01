@@ -77,7 +77,12 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
                         ->where('user_id', $score->player_id)
                         ->first();
 
-                    if (! $participant || $participant->isClaimed() || $participant->isCancelled()) {
+                    // isDisputed() excluido a propósito: un premio revertido por
+                    // disputa (ver GamePrizeService::disputeAndReverse()) NUNCA
+                    // debe volver a pagarse automáticamente — sin este chequeo,
+                    // este comando (cron cada 5 min) re-acreditaría un premio que
+                    // un admin acaba de revertir manualmente por fraude detectado.
+                    if (! $participant || $participant->isClaimed() || $participant->isCancelled() || $participant->isDisputed()) {
                         continue;
                     }
 

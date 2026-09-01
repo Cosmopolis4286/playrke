@@ -538,6 +538,109 @@ final class WalletService
     }
 
     /**
+     * Revierte un premio ya acreditado (disputa post-pago, ver
+     * GamePrizeService::disputeAndReverse()). El débito se TOPA al balance
+     * disponible — la BD tiene un CHECK CONSTRAINT real
+     * (chk_wallets_balance_nonneg) que impide balance negativo, y es una
+     * garantía global del sistema que esta feature no debe romper. Si el
+     * jugador ya gastó el premio en otra sala/juego, la diferencia no
+     * cobrada queda registrada en wallets.pending_debt — settlePendingDebt()
+     * la descuenta automáticamente del próximo crédito a esa wallet (ver
+     * ese método para dónde se invoca).
+     *
+     * Solo afecta `balance` (retirable); si el premio se había acreditado
+     * como bono (BONUS_PRIZE), revertir ese caso queda fuera de este método
+     * hasta que haya un caso de uso real.
+     *
+     * idempotencyKey seguro: mismo patrón que recordPrize()
+     * (constraint único en wallet_movements.idempotency_key) — dos llamadas
+     * con la misma clave nunca revierten el mismo premio dos veces.
+     */
+    public function recordPrizeReversal(
+        Wallet $wallet,
+        float $amount,
+        string $gameId,
+        string $description,
+        string $idempotencyKey,
+    ): WalletMovement {
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        try {
+            $movement = DB::transaction(function () use ($wallet, $amount, $gameId, $description, $idempotencyKey) {
+                $walletId      = (string) $wallet->id;
+                $balanceBefore = (float) $wallet->balance;
+
+                // Topar al saldo disponible: chk_wallets_balance_nonneg no
+                // permite decrementar por debajo de 0. El resto pasa a deuda.
+                $debitFromBalance = min($amount, $balanceBefore);
+                $debtPortion      = round($amount - $debitFromBalance, 2);
+
+                if ($debitFromBalance > 0) {
+                    $this->walletRepository->decrementBalance($walletId, $debitFromBalance);
+                }
+                if ($debtPortion > 0) {
+                    $wallet->increment('pending_debt', $debtPortion);
+                }
+                $wallet->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id'       => $walletId,
+                    'user_id'         => (string) $wallet->user_id,
+                    'type'            => WalletMovement::TYPE_PRIZE_REVERSAL,
+                    'status'          => WalletMovement::STATUS_COMPLETED,
+                    'amount'          => $amount,
+                    'balance_before'  => $balanceBefore,
+                    'balance_after'   => (float) $wallet->balance,
+                    'description'     => $description,
+                    'idempotency_key' => $idempotencyKey,
+                    'metadata'        => [
+                        'game_id'            => $gameId,
+                        'debited_from_balance' => $debitFromBalance,
+                        'added_to_pending_debt' => $debtPortion,
+                    ],
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'idempotency_key')) {
+                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existingMovement) {
+                    return $existingMovement;
+                }
+            }
+            throw $e;
+        }
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE_REVERSAL, $amount, (string) $movement->id);
+
+        return $movement;
+    }
+
+    /**
+     * Descuenta pending_debt del monto de un crédito entrante ANTES de
+     * incrementar balance — así el jugador nunca "ve" el saldo nuevo sin
+     * que la deuda de una reversión de premio anterior ya se haya cobrado.
+     *
+     * @return float Monto neto a acreditar tras descontar la deuda (puede
+     *         ser menor que $creditAmount, o 0 si la deuda lo consume todo).
+     */
+    private function settlePendingDebt(Wallet $wallet, float $creditAmount): float
+    {
+        $debt = (float) $wallet->pending_debt;
+        if ($debt <= 0) {
+            return $creditAmount;
+        }
+
+        $settled = min($debt, $creditAmount);
+        $wallet->decrement('pending_debt', $settled);
+        $wallet->refresh();
+
+        return round($creditAmount - $settled, 2);
+    }
+
+    /**
      * Registra la compra de cartones, consumiendo bonus_balance antes que
      * balance real. Devuelve el desglose de cuánto salió de cada columna para
      * que el caller (ej. BingoCardGenerateService) pueda propagarlo al lote de
@@ -670,6 +773,13 @@ final class WalletService
             $bonusPortion   = min($bonusPortion, $amount);
             $balancePortion = round($amount - $bonusPortion, 2);
 
+            // pending_debt (reversión de premio en disputa) se cobra de
+            // CUALQUIER crédito entrante, incluido este reembolso — decisión
+            // de producto explícita (2026-08-31): la deuda se salda contra el
+            // primer dinero que vuelva a entrar a la wallet, sea cual sea su
+            // origen. Solo se aplica a la porción "balance", no a la de bono.
+            $balancePortion = $this->settlePendingDebt($wallet, $balancePortion);
+
             if ($bonusPortion > 0) {
                 $this->walletRepository->incrementBonusBalance($walletId, $bonusPortion);
             }
@@ -729,7 +839,13 @@ final class WalletService
             $walletId      = (string) $locked->id;
             $balanceBefore = (float) $locked->balance;
 
-            $this->walletRepository->incrementBalance($walletId, $amount);
+            // pending_debt se cobra de cualquier crédito entrante, incluida
+            // una carga administrativa — ver recordRefund() para el porqué.
+            $netAmount = $this->settlePendingDebt($locked, $amount);
+
+            if ($netAmount > 0) {
+                $this->walletRepository->incrementBalance($walletId, $netAmount);
+            }
             $locked->refresh();
 
             $movement = $this->movementRepository->record([
@@ -741,6 +857,7 @@ final class WalletService
                 'balance_before' => $balanceBefore,
                 'balance_after'  => (float) $locked->balance,
                 'description'    => $description,
+                'metadata'       => $netAmount !== $amount ? ['pending_debt_settled' => round($amount - $netAmount, 2)] : null,
             ]);
             $movementId = (string) $movement->id;
 
@@ -773,7 +890,12 @@ final class WalletService
         }
 
         $updated = DB::transaction(function () use ($movement, $adminNotes) {
-            $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+            // pending_debt se cobra de cualquier crédito entrante, incluida
+            // la aprobación de un depósito — ver recordRefund() para el porqué.
+            $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
+            if ($netAmount > 0) {
+                $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
+            }
             $movement->wallet->refresh();
 
             $movement->update([
@@ -860,7 +982,13 @@ final class WalletService
         }
 
         $updated = DB::transaction(function () use ($movement, $adminNotes) {
-            $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+            // pending_debt se cobra de cualquier crédito entrante, incluido
+            // el reintegro de un retiro rechazado — ver recordRefund() para
+            // el porqué.
+            $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
+            if ($netAmount > 0) {
+                $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
+            }
             $movement->wallet->refresh();
 
             $movement->update([
@@ -896,7 +1024,12 @@ final class WalletService
 
         $updated = DB::transaction(function () use ($movement, $adminNotes, $isCredit) {
             if ($isCredit) {
-                $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+                // pending_debt se cobra de cualquier crédito entrante — ver
+                // recordRefund() para el porqué.
+                $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
+                }
                 $movement->wallet->refresh();
             }
 

@@ -8,6 +8,7 @@
 | Organizadas por responsabilidades siguiendo el patrón de Bingo
 */
 
+use App\Http\Controllers\Games\Trivia\Room\TriviaPrizeDisputeController;
 use App\Http\Controllers\Games\Trivia\Room\TriviaRoomAdminController;
 use App\Http\Controllers\Games\Trivia\Report\TriviaReportController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaAnswerController;
@@ -32,6 +33,10 @@ Route::prefix('trivia-rooms')->name('trivia-rooms-admin.')->middleware(['auth', 
     Route::put('/{id}', [TriviaRoomAdminController::class, 'update'])->name('update');
     Route::delete('/{id}', [TriviaRoomAdminController::class, 'destroy'])->name('destroy');
     Route::post('/{id}/force-close', [TriviaRoomAdminController::class, 'forceClose'])->name('force-close');
+
+    // Disputar/revertir un premio ya pagado (prize_status=claimed → disputed)
+    Route::post('/{roomId}/participants/{participantId}/dispute', [TriviaPrizeDisputeController::class, 'store'])
+        ->name('participants.dispute');
 });
 
 // ====================================
@@ -83,7 +88,7 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player,admin
     Route::get('/room/{code}/state', [TriviaGameController::class, 'roomState'])->name('room.state');
 });
 
-// ── Todos los usuarios autenticados: estadísticas, partidas, leaderboard ──────
+// ── Todos los usuarios autenticados: estadísticas, leaderboard ────────────────
 Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
     // Alias para rooms (compatibility con sidebar)
     Route::get('/rooms', function () {
@@ -95,15 +100,21 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
         return redirect()->route('trivia-questions.index', ['roomId' => 'all']);
     })->name('questions.index');
 
-    // Partidas — historial y detalle
-    Route::get('/games',      [TriviaGamesController::class, 'index'])->name('games.index');
-    Route::get('/games/{id}', [TriviaGamesController::class, 'show'])->name('games.show');
-
     // Leaderboard / Clasificación
     Route::get('/leaderboard', [TriviaReportController::class, 'leaderboard'])->name('leaderboard');
 
     // Estadísticas
     Route::get('/stats', [TriviaReportController::class, 'stats'])->name('stats');
+});
+
+// ── Partidas — historial y detalle: solo player/admin/superadmin (no
+// 'auth' suelto como el grupo de arriba). show() además exige haber
+// participado en la partida (o ser admin/superadmin) — antes cualquier
+// usuario autenticado podía ver el scoreboard y las preguntas con
+// respuesta correcta de una partida ajena con solo cambiar el {id}. ──────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player,admin,superadmin'])->group(function () {
+    Route::get('/games',      [TriviaGamesController::class, 'index'])->name('games.index');
+    Route::get('/games/{id}', [TriviaGamesController::class, 'show'])->name('games.show');
 });
 
 // ── Nuevas rutas para el juego "El Poder del Saber" ───────────────────────────

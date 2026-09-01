@@ -281,7 +281,45 @@ final class TriviaRoomAdminController extends Controller
             'roomState' => $roomDto?->toArray(),
             'players' => array_map(fn($p) => $p->toArray(), $players),
             'playerCount' => count($players),
+            'winners' => $this->roomWinners($id),
         ]);
+    }
+
+    /**
+     * Ganadores de la sala (final_rank asignado) con su estado de premio —
+     * fuente: trivia_participants (Postgres, persiste al finalizar la
+     * partida), no Redis. Incluye nombre desde MySQL users. Usado por la UI
+     * de disputa de premios (TriviaPrizeDisputeController).
+     */
+    private function roomWinners(string $roomId): array
+    {
+        $winners = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->whereNotNull('final_rank')
+            ->orderBy('final_rank')
+            ->select('id', 'user_id', 'final_rank', 'prize_won', 'prize_status')
+            ->get();
+
+        if ($winners->isEmpty()) {
+            return [];
+        }
+
+        $userIds = $winners->pluck('user_id')->unique()->all();
+        $names = DB::table('users')
+            ->whereIn('id', $userIds)
+            ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+            ->get()
+            ->pluck('display_name', 'id');
+
+        return $winners->map(fn ($w) => [
+            'id'           => $w->id,
+            'userId'       => (string) $w->user_id,
+            'name'         => $names[$w->user_id] ?? 'Jugador',
+            'finalRank'    => (int) $w->final_rank,
+            'prizeWon'     => (float) $w->prize_won,
+            'prizeStatus'  => $w->prize_status,
+        ])->values()->all();
     }
 
     /**

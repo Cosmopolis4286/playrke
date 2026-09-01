@@ -73,6 +73,7 @@ class Wallet extends Model
         'currency_id',
         'balance',
         'bonus_balance',
+        'pending_debt',
         'status',
     ];
 
@@ -82,6 +83,7 @@ class Wallet extends Model
     protected $casts = [
         'balance' => 'float',
         'bonus_balance' => 'float',
+        'pending_debt' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

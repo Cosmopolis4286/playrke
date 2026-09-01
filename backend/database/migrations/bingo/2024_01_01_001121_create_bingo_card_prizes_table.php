@@ -87,9 +87,9 @@ return new class extends Migration
                 ->unsigned()
                 ->comment('Monto en moneda local');
 
-            $table->enum('prize_status', ['waiting', 'processing', 'claimed', 'cancelled', 'suspended'])
+            $table->enum('prize_status', ['waiting', 'processing', 'claimed', 'cancelled', 'suspended', 'disputed'])
                 ->default('waiting')
-                ->comment('Estado del premio: waiting = esperando, processing = procesando, claimed = reclamado, cancelled = cancelado, suspended = suspendido');
+                ->comment('Estado del premio: waiting = esperando, processing = procesando, claimed = reclamado, cancelled = cancelado, suspended = suspendido, disputed = en disputa (revertido tras detección de fraude posterior al pago)');
 
             // Campos de auditoría
             $table->timestamp('claimed_at')

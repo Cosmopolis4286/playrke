@@ -30,6 +30,7 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
         'claimed'    => 'Reclamado',
         'cancelled'  => 'Cancelado',
         'suspended'  => 'Suspendido',
+        'disputed'   => 'En disputa',
     ];
 
     protected $fillable = [
@@ -82,6 +83,13 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
     public function isActive(): bool { return $this->status === 'ACTIVE'; }
     public function isCancelled(): bool { return $this->prize_status === 'cancelled'; }
     public function isSuspended(): bool { return $this->prize_status === 'suspended'; }
+    public function isDisputed(): bool { return $this->prize_status === 'disputed'; }
+
+    public function markAsDisputed(): bool
+    {
+        $this->prize_status = 'disputed';
+        return $this->save();
+    }
 
     /**
      * Reserva el premio para pago: 'waiting' → 'processing'. Debe llamarse

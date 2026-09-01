@@ -39,6 +39,13 @@ return new class extends Migration
             $table->decimal('bonus_balance', 15, 2)->default(0.00)
                 ->comment('Saldo no retirable, solo usable dentro de la app (premios de juegos)');
 
+            // Deuda pendiente de cobro — ver WalletService::settlePendingDebt()
+            // y migración 2026_08_31_000100_add_pending_debt_to_wallets_table
+            // para el porqué (reversión de premio en disputa que excedió el
+            // saldo disponible al momento de revertir).
+            $table->decimal('pending_debt', 15, 2)->default(0.00)
+                ->comment('Deuda pendiente de cobro — se descuenta automáticamente del próximo crédito a la wallet');
+
             // Estado de la wallet
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
                 ->default('ACTIVE');
@@ -54,6 +61,7 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_balance_nonneg CHECK (balance >= 0)');
             DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_bonus_balance_nonneg CHECK (bonus_balance >= 0)');
+            DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_pending_debt_nonneg CHECK (pending_debt >= 0)');
         }
     }
 

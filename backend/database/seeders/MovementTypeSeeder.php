@@ -21,6 +21,7 @@ class MovementTypeSeeder extends Seeder
             ['code' => 'TRIVIA_ENTRY',   'label' => 'Entrada Trivia',     'icon' => 'fas fa-brain',      'color' => '#7c3aed', 'is_credit' => false, 'requires_approval' => false, 'game_group' => 'TRIVIA', 'sort_order' => 50, 'visible_roles' => null],
             ['code' => 'RKE_COMMISSION', 'label' => 'Comisión RKE',       'icon' => 'fas fa-percent',    'color' => '#667eea', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null,     'sort_order' => 60, 'visible_roles' => ['admin', 'superadmin', 'commerce', 'customer']],
             ['code' => 'REFUND',         'label' => 'Reembolso',          'icon' => 'fas fa-undo',       'color' => '#0891b2', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null,     'sort_order' => 70, 'visible_roles' => null],
+            ['code' => 'PRIZE_REVERSAL', 'label' => 'Reversión de premio (disputa)', 'icon' => 'fas fa-gavel', 'color' => '#b91c1c', 'is_credit' => false, 'requires_approval' => false, 'game_group' => null, 'sort_order' => 80, 'visible_roles' => ['admin', 'superadmin']],
         ];
 
         foreach ($types as $type) {
