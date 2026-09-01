@@ -58,6 +58,8 @@ Route::middleware(['auth', 'web'])->get('/profile/referrals', [ReferralControlle
 Route::middleware('web')->get('/referrals/r/{referralCode}', [ReferralController::class, 'link'])->name('referral.link');
 
 // ── Búsqueda de usuarios (selectores async, ej. anfitrión de sala privada) ──
+// throttle:30,1 — antes sin límite, permitía golpear la DB repetidamente
+// desde una sesión autenticada válida.
 Route::get('/users/search', [UserSearchController::class, 'search'])
-    ->middleware(['auth', 'web'])
+    ->middleware(['auth', 'web', 'throttle:30,1'])
     ->name('users.search');
