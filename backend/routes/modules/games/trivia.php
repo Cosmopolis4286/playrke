@@ -13,6 +13,7 @@ use App\Http\Controllers\Games\Trivia\Report\TriviaReportController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaAnswerController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGameController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGamesController;
+use App\Http\Controllers\Games\Trivia\Game\TriviaPauseController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaPowerUpController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaStartController;
 use App\Http\Controllers\Games\Trivia\Question\TriviaQuestionController;
