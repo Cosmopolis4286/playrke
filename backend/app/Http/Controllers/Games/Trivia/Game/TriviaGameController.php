@@ -493,7 +493,7 @@ final class TriviaGameController extends Controller
 
         $game = $pgsql->table('trivia_games')
             ->where('id', $gameId)
-            ->whereIn('status', ['playing', 'active'])
+            ->whereIn('status', ['playing', 'active', 'paused'])
             ->first();
 
         if (! $game) {
@@ -562,6 +562,7 @@ final class TriviaGameController extends Controller
                 'id'              => $gameId,
                 'currentQuestion' => $currentQuestionIndex,
                 'totalQuestions'  => $totalQuestions,
+                'isPaused'        => $game->status === 'paused',
             ],
             'question' => $question,
             'player'   => [
@@ -570,6 +571,13 @@ final class TriviaGameController extends Controller
                 'avatar' => $user->avatar ?? null,
             ],
             'powerUps' => $powerUps,
+            // El host puede pausar/reanudar manualmente (TriviaRoomPolicy::start,
+            // misma regla que iniciar la partida) — admins también cuentan aunque
+            // no sean el host_id exacto. $room aquí es un stdClass (query builder
+            // crudo), no el modelo Eloquent que la Policy espera, así que se
+            // recarga como TriviaRoom en vez de forzar Gate sobre un stdClass.
+            'isHost'   => app(\App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class)
+                ->start($user, \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($room->id)),
         ]);
     }
 
