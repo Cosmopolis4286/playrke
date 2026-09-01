@@ -8,10 +8,13 @@ use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
+use App\Models\Roles\Seller;
+use App\Services\Roles\RoleUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -30,8 +33,76 @@ final class BingoReportController extends Controller
 {
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
+        private readonly RoleUserService $roleUserService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
+    }
+
+    /**
+     * Resuelve el user_id de "dueño" cuyas salas puede ver el usuario actual
+     * en estos reportes, o null si no hay restricción (ve todas las salas).
+     *
+     * Antes estos endpoints solo bloqueaban 'player' (abort_if de cada
+     * método público) y las 4 queries base traían TODAS las salas sin
+     * filtrar — cualquier 'seller' (tiene el permiso games.bingo requerido
+     * por la ruta) podía ver y exportar en CSV las ventas, comisiones y
+     * ganadores de TODOS los vendedores/comercios de la plataforma, no solo
+     * los propios. Mismo criterio de scope que ya usa
+     * BingoRoom::scopeAccessibleBy() (creator_user_id de la sala), pero
+     * resolviendo el manager real vía Seller::resolveCommerce() — a
+     * diferencia de BingoCardGenerateService::resolveCreatorOrManagerUserId(),
+     * esto sí cubre correctamente un seller que reporta a través de una
+     * Subsidiary (ver comentario en Seller::managerCommerce()).
+     */
+    private function resolveReportScope(): ?string
+    {
+        $userId = (int) Auth::id();
+        $role   = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        return match ($role) {
+            'superadmin', 'admin' => null,
+            'commerce', 'subsidiary', 'customer' => (string) $userId,
+            'seller' => (string) (Seller::where('user_id', $userId)->first()?->resolveCommerce()?->user_id),
+            default => (string) $userId,
+        };
+    }
+
+    /**
+     * Aplica el scope de dueño de sala a un query builder sobre BingoRoom
+     * (o cualquier relación con belongsTo hacia BingoRoom vía $relation).
+     */
+    private function applyRoomScope(\Illuminate\Database\Eloquent\Builder $query, ?string $relation = null): \Illuminate\Database\Eloquent\Builder
+    {
+        $scopeUserId = $this->resolveReportScope();
+
+        if ($scopeUserId === null) {
+            return $query;
+        }
+
+        if ($relation === null) {
+            return $query->accessibleBy((int) $scopeUserId);
+        }
+
+        return $query->whereHas($relation, fn ($q) => $q->accessibleBy((int) $scopeUserId));
+    }
+
+    /**
+     * Aborta con 403 si la sala pedida (route-model-binding directo, ej.
+     * salesReportByRoom) no está dentro del scope del usuario — mismo
+     * criterio que applyRoomScope() pero para el caso de una sala puntual en
+     * vez de una lista filtrada.
+     */
+    private function assertRoomInScope(BingoRoom $room): void
+    {
+        $scopeUserId = $this->resolveReportScope();
+
+        if ($scopeUserId === null) {
+            return;
+        }
+
+        $isPublic = $room->config?->roomType?->code === 'PUBLIC';
+
+        abort_if((string) $room->creator_user_id !== $scopeUserId && !$isPublic, 403);
     }
 
     /**
@@ -91,6 +162,8 @@ final class BingoReportController extends Controller
         $query = BingoCard::query()
             ->with(['room', 'roomUser.user', 'currency', 'cardLot'])
             ->orderByDesc('created_at');
+
+        $this->applyRoomScope($query, 'room');
 
         if ($currency) {
             $query->where('currency_id', $currency);
@@ -280,6 +353,8 @@ final class BingoReportController extends Controller
             ->with(['room', 'creatorUser', 'currency'])
             ->orderByDesc('created_at');
 
+        $this->applyRoomScope($query, 'room');
+
         if ($type) {
             $query->where('prize_type', $type);
         }
@@ -447,6 +522,8 @@ final class BingoReportController extends Controller
             ->with(['config.roomType', 'status'])
             ->orderByDesc('created_at');
 
+        $this->applyRoomScope($query);
+
         if ($dateFilter) {
             $query->whereDate('created_at', $dateFilter);
         }
@@ -510,6 +587,8 @@ final class BingoReportController extends Controller
     private function salesReportSummary(?string $dateFilter, ?string $currency, Collection $currenciesById): array
     {
         $query = BingoRoom::query()->select(['id', 'metrics_by_currency']);
+
+        $this->applyRoomScope($query);
 
         if ($dateFilter) {
             $query->whereDate('created_at', $dateFilter);
@@ -792,6 +871,7 @@ final class BingoReportController extends Controller
         abort_if($this->userContext->userHasRole('player'), 403);
 
         $room->load(['config.roomType']);
+        $this->assertRoomInScope($room);
 
         $paginator = $this->salesByRoomQuery($room, $currency)->paginate(15);
 
@@ -835,6 +915,7 @@ final class BingoReportController extends Controller
         $page     = (int) $request->query('page', 1);
 
         $room->load(['config.roomType']);
+        $this->assertRoomInScope($room);
 
         $paginator = $this->salesByRoomQuery($room, $currency)->paginate($perPage, ['*'], 'page', $page);
 
@@ -857,6 +938,9 @@ final class BingoReportController extends Controller
     public function salesReportByRoomExport(BingoRoom $room, Request $request): StreamedResponse
     {
         abort_if($this->userContext->userHasRole('player'), 403);
+
+        $room->load(['config.roomType']);
+        $this->assertRoomInScope($room);
 
         $currency = $request->query('currency');
         $paymentStatusToLabel = $this->paymentStatusLabels();
