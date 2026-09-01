@@ -489,7 +489,17 @@ final class WalletService
                 $metadata = ['game_id' => $gameId, 'prize_type' => $prizeType, 'withdrawable' => $withdrawable];
 
                 if ($withdrawable) {
-                    $this->walletRepository->incrementBalance($walletId, $amount);
+                    // pending_debt se cobra de cualquier crédito entrante,
+                    // incluido un premio ganado — ver recordRefund() para el
+                    // porqué. Solo aplica a la porción "balance" (retirable);
+                    // premios de bono (withdrawable=false) no se tocan.
+                    $netAmount = $this->settlePendingDebt($wallet, $amount);
+                    if ($netAmount > 0) {
+                        $this->walletRepository->incrementBalance($walletId, $netAmount);
+                    }
+                    if ($netAmount !== $amount) {
+                        $metadata['pending_debt_settled'] = round($amount - $netAmount, 2);
+                    }
                 } else {
                     $this->walletRepository->incrementBonusBalance($walletId, $amount);
                 }
@@ -1064,7 +1074,12 @@ final class WalletService
 
         $updated = DB::transaction(function () use ($movement, $adminNotes, $isCredit) {
             if (! $isCredit) {
-                $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+                // pending_debt se cobra de cualquier crédito entrante, incluido
+                // el reintegro de un débito rechazado — ver recordRefund().
+                $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
+                }
                 $movement->wallet->refresh();
             }
 
