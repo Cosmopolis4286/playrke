@@ -39,6 +39,7 @@ class UpdateRoomRequest extends FormRequest
             'settings'           => ['nullable', 'array'],
             'settings.allow_powerups'   => ['nullable', 'boolean'],
             'settings.show_leaderboard' => ['nullable', 'boolean'],
+            'settings.pause_disconnect_threshold_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
         ];
     }
 

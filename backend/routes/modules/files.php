@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Utils\FileController;
 use App\Http\Controllers\Utils\IframeController;
 
 /*
@@ -9,14 +8,6 @@ use App\Http\Controllers\Utils\IframeController;
 |--------------------------------------------------------------------------
 | Gestión de archivos protegidos, imágenes e iframes.
 */
-
-// ====================================
-// IMÁGENES PROTEGIDAS
-// ====================================
-route_group('image', 'image.', ['auth'], FileController::class, [
-    'payment-prizes' => ['method' => 'get', 'uri' => 'payments/prizes/{filename}', 'action' => 'showImagePaymentPrizeCards'],
-    'payments' => ['method' => 'get', 'uri' => 'payments/{filename}', 'action' => 'showImagePaymentCards'],
-]);
 
 // ====================================
 // IFRAMES PROTEGIDOS

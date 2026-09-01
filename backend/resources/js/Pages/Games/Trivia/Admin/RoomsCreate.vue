@@ -55,6 +55,7 @@ const form = useForm({
     show_leaderboard: true,
     public_room: true,
     allow_powerups: false,
+    pause_disconnect_threshold_percent: 0,
   },
   fee_by_currency: {} as Record<string, number>,
   prize_payouts: null as PrizePayout[] | null,
@@ -297,10 +298,12 @@ const submit = () => {
             :show-leaderboard="form.settings.show_leaderboard"
             :public-room="form.settings.public_room"
             :allow-powerups="form.settings.allow_powerups"
+            :pause-disconnect-threshold-percent="form.settings.pause_disconnect_threshold_percent"
             @update:allow-late-join="form.settings.allow_late_join = $event"
             @update:show-leaderboard="form.settings.show_leaderboard = $event"
             @update:public-room="form.settings.public_room = $event"
             @update:allow-powerups="form.settings.allow_powerups = $event"
+            @update:pause-disconnect-threshold-percent="form.settings.pause_disconnect_threshold_percent = $event"
           />
         </div>
 

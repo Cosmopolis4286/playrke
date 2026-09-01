@@ -210,7 +210,22 @@ class SellerController extends Controller
 
     public function getPlayerInfo($playerLink) // Obtención de la información jugador
     {
+        // Scope por comercio — mismo criterio que getPlayer(): el link es un
+        // Str::random(28) no enumerable por fuerza bruta, pero si un seller
+        // llega a conocer el link de un jugador captado por OTRO vendedor
+        // (reenvío, logs compartidos, etc.) no debe poder consultar su
+        // identificación/teléfono sin pertenecer al mismo comercio.
+        $seller = $this->seller(['id', 'manager_user_id', 'subsidiary_id']);
+        $commerceUserId = $seller?->resolveCommerce()?->user_id;
+
+        if (!$commerceUserId) {
+            return json_encode(null);
+        }
+
+        $accessibleRoomIds = BingoRoom::accessibleBy((int) $commerceUserId)->pluck('id');
+
         $player = ExternalPlayer::where('link', $playerLink)
+            ->whereIn('room_id', $accessibleRoomIds)
             ->select(['identification', 'phone'])->first();
         if ($player) return json_encode($player);
     }
