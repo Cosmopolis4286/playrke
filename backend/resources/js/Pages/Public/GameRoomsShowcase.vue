@@ -35,7 +35,7 @@ onMounted(() => {
 
 // ── Modal "Ver Top de Compras" ──
 const topBuyersRoomId = ref<string | null>(null);
-const topBuyersRoomLabel = computed(() => {
+const topBuyersRoomUuidCode = computed(() => {
   const room = props.rooms.find((r) => r.id === topBuyersRoomId.value);
   return room?.uuid_code ?? null;
 });
@@ -94,7 +94,7 @@ function goToRegister() {
   <!-- ══ Modal "Ver Top de Compras" ══ -->
   <RoomTopBuyersModal
     :room-id="topBuyersRoomId"
-    :room-label="topBuyersRoomLabel"
+    :room-uuid-code="topBuyersRoomUuidCode"
     endpoint-base="/game-rooms"
     @close="closeTopBuyers"
   />

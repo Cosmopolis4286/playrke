@@ -18,6 +18,12 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 // RUTAS PÚBLICAS
 // ====================================
+
+/**
+ * Landing pública — puerta de entrada del sitio (sin sesión). Muestra
+ * salas destacadas, ganancias recientes y acceso al verificador de cartón;
+ * login/registro viven en sus propias rutas. Ver PublicController::root().
+ */
 Route::get('/', [PublicController::class, 'root'])->name('root')->defaults('inertiaOnly', true);
 Route::get('getInfo/{page}', [PublicController::class, 'info'])->name('info');
 

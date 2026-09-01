@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\SettingRepositoryInterface;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomContextService;
+use App\Domains\Platform\WinEvent\Models\WinEvent;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\View;
@@ -10,10 +12,14 @@ use Illuminate\Support\Facades\View;
 /**
  * Controlador de páginas públicas
  *
- * Maneja la página de login y páginas de información estática.
+ * Maneja la landing pública, login y páginas de información estática.
  */
 class PublicController extends Controller
 {
+    private const LANDING_ROOMS_LIMIT = 3;
+    private const LANDING_WINS_WINDOW_MINUTES = 5;
+    private const LANDING_WINS_LIMIT = 6;
+
     /**
      * Inyecta el repositorio en el constructor
      */
@@ -22,16 +28,44 @@ class PublicController extends Controller
     ) {}
 
     /**
-     * Página de inicio / login con estado de registro
+     * Landing pública — punto de entrada del sitio para visitantes sin
+     * sesión. No hay "producto" que vender fuera del juego mismo, así que
+     * la landing muestra directamente salas destacadas (mismo DTO que
+     * gameRoomsShowcase), el feed de ganancias recientes (mismo query que
+     * WinEventController::recent()) y el acceso al verificador de cartón.
+     * El login/registro tienen sus propias rutas (/login, /register).
      */
-    public function root(): Response
+    public function root(BingoRoomContextService $contextService): Response
     {
         $register = $this->settings->getParameterStatus('REGISTER');
 
-        return Inertia::render('Auth/Login', [
+        $showcase = $contextService->publicShowcase()->toView();
+        $showcase['rooms'] = collect($showcase['rooms'])->take(self::LANDING_ROOMS_LIMIT)->values()->all();
+
+        $wins = WinEvent::query()
+            ->with(['user:id,first_name,last_name,username', 'currency:id,iso_code,symbol,decimal_places'])
+            ->recent(self::LANDING_WINS_WINDOW_MINUTES)
+            ->latest('created_at')
+            ->limit(self::LANDING_WINS_LIMIT)
+            ->get()
+            ->map(fn (WinEvent $e) => [
+                'id'              => (string) $e->id,
+                'game'            => $e->game_name,
+                'game_slug'       => $e->game_slug,
+                'winner_name'     => $e->resolveWinnerName(),
+                'prize_kind'      => $e->prize_kind,
+                'prize_label'     => $e->prize_label,
+                'amount'          => $e->amount_usd !== null ? (float) $e->amount_usd : null,
+                'currency_symbol' => $e->currency?->symbol ?? '$',
+                'timestamp'       => $e->created_at?->toISOString(),
+            ])
+            ->values();
+
+        return Inertia::render('Public/Landing', array_merge($showcase, [
             'inertiaOnly' => true,
             'register' => (bool) $register,
-        ]);
+            'initialWins' => $wins,
+        ]));
     }
 
     /**

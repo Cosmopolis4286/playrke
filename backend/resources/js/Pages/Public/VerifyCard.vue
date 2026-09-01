@@ -37,6 +37,15 @@ const { siteKey, token: turnstileToken, render: renderTurnstile, reset: resetTur
 const turnstileContainer = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
+  // Precarga desde la landing pública (Public/Landing.vue construye
+  // /verify-card?serial=X&phone=Y) — sin esto los campos quedaban siempre
+  // vacíos aunque el usuario ya hubiera ingresado los valores ahí.
+  const params = new URLSearchParams(window.location.search)
+  const serialParam = params.get('serial')
+  const phoneParam = params.get('phone')
+  if (serialParam) serialNumber.value = serialParam
+  if (phoneParam) phoneLast4.value = phoneParam
+
   await nextTick()
   if (turnstileContainer.value) renderTurnstile(turnstileContainer.value)
 })

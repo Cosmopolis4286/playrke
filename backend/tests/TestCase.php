@@ -20,29 +20,47 @@ abstract class TestCase extends BaseTestCase
         'pgsql_trivia' => 'trivia_testing',
     ];
 
+    /**
+     * "drop table t1, t2, ..., t90" en una sola sentencia (RefreshDatabase,
+     * primera vez que migra/dropea en el proceso — ver
+     * MySqlGrammar::compileDropAllTables) puede deadlockear en este schema
+     * por el volumen de FKs cruzadas entre ~90 tablas (SQLSTATE 40001).
+     * Desactivar FK checks (ver refreshApplication() abajo) reduce la
+     * incidencia pero NO la elimina del todo — en MySQL 8 el drop multi-tabla
+     * también toma metadata locks (MDL) independientes de foreign_key_checks.
+     *
+     * PENDIENTE (2026-08-31): un reintento automático aquí (capturar
+     * QueryException 40001 y reintentar parent::setUp()) se probó y se
+     * descartó — parent::setUp() deja conexiones/estado a medio construir
+     * tras un drop fallido, y reintentar sin cerrarlas primero introdujo una
+     * condición de carrera nueva (la BD quedaba con un subconjunto distinto
+     * de tablas en cada corrida). El fix real probablemente requiere:
+     * cerrar explícitamente todas las conexiones del proceso antes de
+     * reintentar, o reemplazar el drop multi-tabla de Laravel por drops
+     * individuales dentro de un loop con reintento por tabla. No se aplicó
+     * hoy — si un test falla con SQLSTATE 40001, reintentar la corrida
+     * (bash test-docker.sh) suele bastar mientras tanto.
+     */
     protected function setUp(): void
     {
-        // afterApplicationCreated corre apenas la app de test bootea, pero
-        // ANTES de que RefreshDatabase (setUp de un trait, se dispara dentro
-        // de parent::setUp()) migre/dropee el schema. Es el único punto donde
-        // el facade DB ya tiene root Y el drop/migrate todavía no corrió.
-        //
-        // Por qué hace falta: RefreshDatabase migra (y en la primera migración
-        // de la suite, dropea) el schema completo. Con las FK activas,
-        // "drop table t1, t2, ..., t90" (una sola sentencia — ver
-        // MySqlGrammar::compileDropAllTables, Laravel no la envuelve en FK
-        // checks) deadlockea de forma reproducible en este schema por el
-        // volumen de FKs cruzadas entre ~90 tablas (SQLSTATE 40001).
-        // Desactivar FK checks a nivel de sesión evita que InnoDB tenga que
-        // resolver el orden de locks de metadata entre tablas relacionadas
-        // durante el drop masivo.
-        $this->afterApplicationCreated(function () {
-            \Illuminate\Support\Facades\DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=0');
-        });
-
         parent::setUp();
 
         $this->guardAgainstNonTestDatabase();
+    }
+
+    /**
+     * setUpTraits() (dispara RefreshDatabase::setUp(), que migra/dropea el
+     * schema) corre ANTES que afterApplicationCreatedCallbacks dentro de
+     * setUpTheTestEnvironment() — así que enganchar el fix vía
+     * afterApplicationCreated() llega demasiado tarde, después del drop.
+     * refreshApplication() es el único punto que corre antes de setUpTraits()
+     * y ya deja $this->app listo para resolver el facade DB.
+     */
+    protected function refreshApplication()
+    {
+        parent::refreshApplication();
+
+        \Illuminate\Support\Facades\DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=0');
     }
 
     private function guardAgainstNonTestDatabase(): void
