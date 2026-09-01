@@ -30,8 +30,7 @@ require __DIR__ . '/modules/superadmin.php';
 require __DIR__ . '/modules/admin.php';          
 // require __DIR__ . '/modules/customer.php';      
 require __DIR__ . '/modules/commerce.php';       
-require __DIR__ . '/modules/seller.php';         
-// require __DIR__ . '/modules/treasurer.php';      
+require __DIR__ . '/modules/seller.php';
 
 // ====================================
 // RUTAS DE NEGOCIO ESPECÍFICAS
