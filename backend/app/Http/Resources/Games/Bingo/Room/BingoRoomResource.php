@@ -29,7 +29,12 @@ class BingoRoomResource extends JsonResource
             'metrics_by_currency' => $this->metrics_by_currency ?? [],
             'created_at'         => $this->created_at?->toISOString(),
             'updated_at'         => $this->updated_at?->toISOString(),
+            'created_by'         => $this->whenLoaded('creator', fn() => $this->creator ? [
+                'user_id'  => (string) $this->creator_user_id,
+                'username' => $this->creator->username,
+            ] : null),
             'last_updated_by'    => $this->resolveLastUpdatedBy(),
+            'edit_count'         => $this->resolveEditCount(),
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
 
@@ -194,5 +199,16 @@ class BingoRoomResource extends JsonResource
             'username' => $audit->user->username,
             'at'       => $audit->created_at?->toISOString(),
         ];
+    }
+
+    /**
+     * Cantidad de ediciones registradas (evento 'updated' en `audits`) para esta
+     * sala. Da contexto de cuánto se ha tocado la configuración desde su creación.
+     */
+    private function resolveEditCount(): int
+    {
+        return Audit::ofAuditable(BingoRoom::class, $this->id)
+            ->ofEvent('updated')
+            ->count();
     }
 }

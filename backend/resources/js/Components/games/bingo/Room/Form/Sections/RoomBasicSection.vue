@@ -417,23 +417,8 @@ import { SelectOption } from '@/js/types/common/form/form'
       </template>
     </FormInput>
 
-    <!-- %Jackpot -->
-    <FormInput
-      label="%Jackpot"
-      name="jackpot_pct"
-      id="jackpot-pct"
-      hint="% del bote destinado al jackpot (opcional)."
-      type="number"
-      :step="0.5"
-      :min="percentageLimits.jackpotPct.min"
-      :max="percentageLimits.jackpotPct.max"
-      placeholder="Opcional"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="jackpotPct"
-      @update:modelValue="emit('update:jackpotPct', $event)"
-    />
-
-    <!-- Jackpot: a cuál pozo va el %Jackpot configurado arriba -->
+    <!-- Jackpot: a cuál pozo va el %Jackpot configurado abajo. Va primero
+         porque %Jackpot depende de que este tenga un valor seleccionado. -->
     <FormSelect
       label="Jackpot"
       name="jackpot_type"
@@ -444,7 +429,28 @@ import { SelectOption } from '@/js/types/common/form/form'
       optionLabel="label"
       col="col-sm-6 col-md-4 col-lg-3"
       :modelValue="(modelValue as any).jackpotType ?? null"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, jackpotType: $event } as any)"
+      @update:modelValue="
+        emit('update:modelValue', { ...modelValue, jackpotType: $event } as any);
+        if (!$event) emit('update:jackpotPct', '')
+      "
+    />
+
+    <!-- %Jackpot: deshabilitado hasta elegir un tipo de jackpot arriba, ya que
+         el % no tiene sentido sin saber a qué pozo se destina. -->
+    <FormInput
+      label="%Jackpot"
+      name="jackpot_pct"
+      id="jackpot-pct"
+      :hint="(modelValue as any).jackpotType ? '% del bote destinado al jackpot (opcional).' : 'Elige primero un tipo de Jackpot para poder configurar el %.'"
+      type="number"
+      :disabled="!(modelValue as any).jackpotType"
+      :step="0.5"
+      :min="percentageLimits.jackpotPct.min"
+      :max="percentageLimits.jackpotPct.max"
+      placeholder="Opcional"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="jackpotPct"
+      @update:modelValue="emit('update:jackpotPct', $event)"
     />
 
     <!-- Días de Anticipación de Ventas (solo salas automáticas) -->

@@ -1,6 +1,6 @@
 <script setup lang="ts" name="BingoRoomReviewStep">
 import { computed, reactive, watch } from 'vue'
-import type { BingoRoomFormData, BingoRoomLastUpdatedBy } from '@/js/types/games/bingo/room/bingo-room'
+import type { BingoRoomFormData, BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
 import type { SelectOption } from '@/js/types/common/form/form'
 import { STEP_LABELS, STEP_ERROR_KEYS, getStepStatus, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
 import { getCurrencyLabel } from '../Composables/useRoomCurrency'
@@ -19,7 +19,7 @@ const props = defineProps<{
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
   lockActivateRoom?: boolean
   /** Metadatos de solo lectura de la sala en edición (null en modo creación). */
-  roomMeta?: { created_at?: string | null; updated_at?: string | null; last_updated_by?: BingoRoomLastUpdatedBy | null } | null
+  roomMeta?: Partial<Pick<BingoRoom, 'created_at' | 'updated_at' | 'created_by' | 'last_updated_by' | 'edit_count'>> | null
 }>()
 
 const emit = defineEmits<{
@@ -149,10 +149,41 @@ function formatDateTime(iso: string | null | undefined): string | null {
   return parsed.toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+/** "hace X minutos/horas/días", redondeado a la unidad más relevante — apoyo rápido junto a la fecha exacta. */
+function formatRelativeTime(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const parsed = new Date(iso)
+  if (isNaN(parsed.getTime())) return null
+
+  const diffMs = Date.now() - parsed.getTime()
+  const diffSec = Math.round(diffMs / 1000)
+  if (diffSec < 60) return 'hace instantes'
+
+  const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+    ['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60],
+  ]
+  const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
+  for (const [unit, secondsInUnit] of UNITS) {
+    const value = Math.floor(diffSec / secondsInUnit)
+    if (value >= 1) return rtf.format(-value, unit)
+  }
+  return 'hace instantes'
+}
+
 const createdAtLabel = computed(() => formatDateTime(props.roomMeta?.created_at))
+const createdAtRelative = computed(() => formatRelativeTime(props.roomMeta?.created_at))
 const updatedAtLabel = computed(() => formatDateTime(props.roomMeta?.updated_at))
+const updatedAtRelative = computed(() => formatRelativeTime(props.roomMeta?.updated_at))
+const creator = computed(() => props.roomMeta?.created_by ?? null)
+const creatorLabel = computed(() => creator.value?.username ?? '—')
 const lastEditor = computed(() => props.roomMeta?.last_updated_by ?? null)
 const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin ediciones registradas')
+const editCount = computed(() => props.roomMeta?.edit_count ?? 0)
+const editCountLabel = computed(() => {
+  const n = editCount.value
+  if (n === 0) return 'Sin ediciones desde su creación'
+  return n === 1 ? '1 edición registrada' : `${n} ediciones registradas`
+})
 
 /** Resuelve el label legible de un id contra una lista de opciones (roomType/connectionType/gameMode/prizePoolType viajan como ids). */
 function optionLabel(id: string | number | null | undefined, options?: SelectOption[]): string | null {
@@ -240,15 +271,26 @@ const scheduleLabel = computed(() => {
         <h4 class="bingo-review-step__section-title">
           <i class="fa-solid fa-clock-rotate-left bingo-review-step__section-icon"></i>
           Metadatos
+          <span class="bingo-review-step__meta-count">{{ editCountLabel }}</span>
         </h4>
-        <dl class="bingo-review-step__dl">
+        <dl class="bingo-review-step__dl bingo-review-step__dl--meta">
           <template v-if="createdAtLabel">
-            <dt>Creada el</dt>
-            <dd>{{ createdAtLabel }}</dd>
+            <dt><i class="fa-solid fa-plus bingo-review-step__meta-icon"></i> Creada el</dt>
+            <dd>
+              {{ createdAtLabel }}
+              <span v-if="createdAtRelative" class="bingo-review-step__meta-relative">({{ createdAtRelative }})</span>
+            </dd>
           </template>
-          <dt>Última actualización</dt>
-          <dd>{{ updatedAtLabel ?? '—' }}</dd>
-          <dt>Editado por</dt>
+          <template v-if="creator">
+            <dt><i class="fa-solid fa-user bingo-review-step__meta-icon"></i> Creada por</dt>
+            <dd>{{ creatorLabel }}</dd>
+          </template>
+          <dt><i class="fa-solid fa-pen-to-square bingo-review-step__meta-icon"></i> Última actualización</dt>
+          <dd>
+            {{ updatedAtLabel ?? '—' }}
+            <span v-if="updatedAtRelative" class="bingo-review-step__meta-relative">({{ updatedAtRelative }})</span>
+          </dd>
+          <dt><i class="fa-solid fa-user-pen bingo-review-step__meta-icon"></i> Editado por</dt>
           <dd>{{ lastEditorLabel }}</dd>
         </dl>
       </section>
@@ -571,5 +613,24 @@ const scheduleLabel = computed(() => {
 }
 .bingo-review-step__section--meta {
   background: color-mix(in srgb, var(--bs-secondary, #6c757d) 5%, transparent);
+}
+.bingo-review-step__meta-count {
+  margin-left: auto;
+  font-size: .7rem;
+  font-weight: 500;
+  color: var(--bs-secondary, #6c757d);
+  font-style: italic;
+}
+.bingo-review-step__dl--meta dt { display: flex; align-items: center; gap: .35rem; }
+.bingo-review-step__meta-icon {
+  font-size: .7rem;
+  color: var(--bs-primary, #4a6fff);
+  opacity: .75;
+  width: .9rem;
+  text-align: center;
+}
+.bingo-review-step__meta-relative {
+  color: var(--bs-secondary, #6c757d);
+  font-size: .76rem;
 }
 </style>

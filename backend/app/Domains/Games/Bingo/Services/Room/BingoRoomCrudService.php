@@ -71,6 +71,7 @@ class BingoRoomCrudService
             'config.hostUser:id,username', 'status', 'cardPrices',
             'rounds.prizes', 'rounds.prizes.prize',
             'cardPrizes.creatorUser', 'cardPrizes.winningCard', 'cardPrizes.round',
+            'creator:id,username',
         ]);
 
         return new BingoRoomResource($room);

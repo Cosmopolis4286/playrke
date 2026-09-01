@@ -1,5 +1,5 @@
 <script setup lang="ts" name="FormSelect">
-  import { computed, useSlots } from 'vue'
+  import { computed, useSlots, useTemplateRef, onMounted, onBeforeUnmount, watch } from 'vue'
   import Multiselect from '@vueform/multiselect'
   import type { PropType } from 'vue'
 
@@ -99,6 +99,43 @@
     get: () => props.modelValue,
     set: v => emit('update:modelValue', v)
   })
+
+  /**
+   * append-to-body teleporta el dropdown a <body> y lo posiciona con Popper,
+   * pero @vueform/multiselect solo recalcula esa posición al abrir (evento
+   * "open"). En modo "tags" (multiple), seleccionar la primera opción hace
+   * crecer el input (aparece el tag), y como ese crecimiento no dispara
+   * scroll ni resize de window, Popper nunca se entera y el dropdown queda
+   * flotando en la posición vieja, separado del input. Un ResizeObserver
+   * sobre el wrapper del multiselect fuerza el recálculo (updatePopper, que
+   * ambas instancias exponen vía el composable interno useDropdown) cada vez
+   * que su tamaño cambia mientras el dropdown sigue abierto.
+   */
+  const msInputGroupRef = useTemplateRef<any>('msInputGroup')
+  const msSimpleRef = useTemplateRef<any>('msSimple')
+  let resizeObserver: ResizeObserver | null = null
+
+  onMounted(() => {
+    resizeObserver = new ResizeObserver(() => {
+      const instance = msInputGroupRef.value ?? msSimpleRef.value
+      if (instance?.isOpen) instance.updatePopper()
+    })
+    watch(
+      [msInputGroupRef, msSimpleRef],
+      ([inputGroupInstance, simpleInstance], _new, onCleanup) => {
+        const el = (inputGroupInstance ?? simpleInstance)?.$el as HTMLElement | undefined
+        if (!el || !resizeObserver) return
+        resizeObserver.observe(el)
+        onCleanup(() => resizeObserver?.unobserve(el))
+      },
+      { immediate: true }
+    )
+  })
+
+  onBeforeUnmount(() => {
+    resizeObserver?.disconnect()
+    resizeObserver = null
+  })
 </script>
 
 <template>
@@ -127,6 +164,7 @@
 
       <div style="flex: 1; min-width: 0; position: relative">
         <Multiselect
+          ref="msInputGroup"
           v-model="value"
           :id="inputId"
           :options="options"
@@ -157,6 +195,7 @@
     <!-- MULTISELECT SIMPLE -->
     <Multiselect
       v-else
+      ref="msSimple"
       v-model="value"
       :id="inputId"
       :options="options"

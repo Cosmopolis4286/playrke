@@ -55,6 +55,14 @@ export interface BingoRoomLastUpdatedBy {
 }
 
 /**
+ * Usuario creador de una sala.
+ */
+export interface BingoRoomCreatedBy {
+    user_id: string
+    username: string | null
+}
+
+/**
  * Desglose por moneda de las métricas monetarias de una sala (en moneda local).
  * Claves = currency_id.
  */
@@ -103,9 +111,15 @@ export interface BingoRoom {
     // Resuelto en el resource: si el usuario autenticado puede activar manualmente esta sala
     readonly can_activate_now?: boolean
 
+    // Usuario que creó la sala (relación creator() sobre creator_user_id).
+    readonly created_by?: BingoRoomCreatedBy | null
+
     // Último usuario que editó la sala (derivado de la tabla audits, evento 'updated').
     // Null si la sala nunca se editó vía HTTP autenticado (solo creación).
     readonly last_updated_by?: BingoRoomLastUpdatedBy | null
+
+    // Cantidad de ediciones registradas (evento 'updated' en audits) desde la creación.
+    readonly edit_count?: number
 
     // Campo meta: modo de inicio (MANUAL | SCHEDULED), expuesto en el listado
     readonly start_mode?: 'MANUAL' | 'SCHEDULED' | null
