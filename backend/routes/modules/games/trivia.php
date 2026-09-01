@@ -66,6 +66,10 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'verifi
 
     // Consumir un power-up durante una partida activa
     Route::post('/game/{gameId}/power-up', [TriviaPowerUpController::class, 'store'])->name('game.power-up');
+
+    // Pausar/reanudar partida manualmente (solo host o admin, ver TriviaRoomPolicy::start)
+    Route::post('/game/{gameId}/pause',  [TriviaPauseController::class, 'pause'])->name('game.pause');
+    Route::post('/game/{gameId}/resume', [TriviaPauseController::class, 'resume'])->name('game.resume');
 });
 
 // ====================================
