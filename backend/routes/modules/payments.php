@@ -15,17 +15,20 @@ use App\Http\Controllers\DirectoryController;
 // 'verified': registra las cuentas bancarias/PIX destino de retiros de
 // dinero real — un email sin verificar no debe poder configurarlas.
 // ====================================
+// throttle:10,1 en las operaciones de escritura — antes sin límite pese a
+// tocar la cuenta bancaria destino de retiros de dinero real (mismo criterio
+// que wallet/deposit|withdraw, que ya lo tenían).
 route_group('directory', 'directory.', ['auth', 'verified', 'role:admin,superadmin,commerce,customer,seller,player,treasurer,subsidiary'], DirectoryController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
-    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
+    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store', 'middleware' => ['throttle:10,1']],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
     'fetch-context' => ['method' => 'get', 'uri' => 'fetch-context', 'action' => 'fetchContext'],
     'fetch-brazil-banks' => ['method' => 'get', 'uri' => 'fetch-brazil-banks', 'action' => 'fetchBrazilBanks'],
     'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
-    'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
-    'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
-    'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
-    'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
+    'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update', 'middleware' => ['throttle:10,1']],
+    'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete', 'middleware' => ['throttle:10,1']],
+    'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy', 'middleware' => ['throttle:10,1']],
+    'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus', 'middleware' => ['throttle:10,1']],
 ]);
 
 // ====================================
