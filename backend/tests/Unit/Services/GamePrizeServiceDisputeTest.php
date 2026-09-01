@@ -127,18 +127,38 @@ class GamePrizeServiceDisputeTest extends TestCase
         app(GamePrizeService::class)->disputeAndReverse($participant, 'Fraude detectado');
 
         $wallet->refresh();
-        $this->assertSame('50.00', (string) $wallet->balance);
+        $this->assertEqualsWithDelta(50.0, (float) $wallet->balance, 0.001);
+        $this->assertSame(0.0, (float) $wallet->pending_debt);
     }
 
-    public function test_dispute_allows_negative_balance_when_prize_already_spent(): void
+    public function test_dispute_caps_the_debit_at_available_balance_and_registers_the_rest_as_debt(): void
     {
-        // El jugador ya gastó el premio en otra sala/juego antes de la disputa.
+        // chk_wallets_balance_nonneg (CHECK CONSTRAINT real en MySQL) impide
+        // que balance quede negativo — decisión de producto: el jugador ya
+        // gastó el premio en otra sala/juego, así que el débito se topa al
+        // saldo disponible y la diferencia queda en pending_debt para
+        // cobrarse del próximo crédito (ver WalletService::settlePendingDebt()).
         [$participant, $wallet] = $this->makeClaimedParticipant(amount: 50.0, walletBalance: 10.0);
 
         app(GamePrizeService::class)->disputeAndReverse($participant, 'Fraude detectado');
 
         $wallet->refresh();
-        $this->assertSame('-40.00', (string) $wallet->balance);
+        $this->assertEqualsWithDelta(0.0, (float) $wallet->balance, 0.001);
+        $this->assertEqualsWithDelta(40.0, (float) $wallet->pending_debt, 0.001);
+    }
+
+    public function test_pending_debt_is_settled_from_the_next_credit(): void
+    {
+        [$participant, $wallet, $user] = $this->makeClaimedParticipant(amount: 50.0, walletBalance: 10.0);
+        app(GamePrizeService::class)->disputeAndReverse($participant, 'Fraude detectado');
+
+        // balance=0, pending_debt=40 tras la disputa. Un depósito de 100
+        // debe descontar la deuda antes de que el usuario vea el saldo nuevo.
+        app(\App\Services\WalletService::class)->recordAdminDeposit($user, 100.0, 'Carga de prueba');
+
+        $wallet->refresh();
+        $this->assertEqualsWithDelta(60.0, (float) $wallet->balance, 0.001, 'Solo 60 (100 - 40 de deuda) debe acreditarse.');
+        $this->assertEqualsWithDelta(0.0, (float) $wallet->pending_debt, 0.001);
     }
 
     public function test_dispute_records_a_prize_reversal_movement(): void
@@ -177,7 +197,7 @@ class GamePrizeServiceDisputeTest extends TestCase
         app(GamePrizeService::class)->disputeAndReverse($participant->fresh(), 'segundo intento');
 
         $wallet->refresh();
-        $this->assertSame('50.00', (string) $wallet->balance);
+        $this->assertEqualsWithDelta(50.0, (float) $wallet->balance, 0.001);
     }
 
     public function test_retry_failed_prize_payouts_command_never_repays_a_disputed_prize(): void
@@ -212,7 +232,7 @@ class GamePrizeServiceDisputeTest extends TestCase
         $this->artisan('trivia:retry-failed-prize-payouts');
 
         $wallet->refresh();
-        $this->assertSame('50.00', (string) $wallet->balance, 'El premio disputado no debe volver a acreditarse.');
+        $this->assertEqualsWithDelta(50.0, (float) $wallet->balance, 0.001, 'El premio disputado no debe volver a acreditarse.');
         $this->assertTrue($participant->fresh()->isDisputed());
     }
 }
