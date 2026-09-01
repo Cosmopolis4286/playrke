@@ -98,13 +98,81 @@ divergir silenciosamente de la implementación.
 
 ---
 
-## 🔵 Por implementar/anexar — pendiente
+## 🔵 Por implementar/anexar
 
-- Feature flags `powerups`/`chat`/`spectator_mode` en `config/trivia.php`
-  están en `false` sin ningún código que los consuma; columnas
-  `power_ups`/`power_ups_used` en `trivia_participants` sin lógica asociada.
-  No se tocó: es una decisión de producto (¿se implementa o se retira el
-  esquema?), no un bug.
+### ✅ Power-ups implementados (fifty_fifty, double_points, skip, extra_time)
+
+**Hallazgo original:** `config/trivia.php` tenía `powerups`/`chat`/
+`spectator_mode` en `false` sin ningún código que los consumiera, y las
+columnas `power_ups`/`power_ups_used` en `trivia_participants` sin lógica
+asociada — aunque al investigar para decidir qué hacer se encontró más
+terreno construido de lo que la auditoría original detectó:
+`TriviaParticipant::getAvailablePowerUp()`/`usePowerUp()` ya existían y
+funcionaban, y `settings.allow_powerups` ya era un toggle validado en
+`UpdateRoomRequest` (aunque sin UI para activarlo).
+
+**Decisión de producto (consultada al usuario):** implementar power-ups
+ahora (era la única de las 3 con terreno real construido); retirar
+`chat`/`spectator_mode` de la config por falta de diseño de reglas de
+negocio (moderación de contenido, alcance de espectador). 4 tipos, 1 uso de
+cada uno por jugador por partida, habilitado por sala vía
+`settings.allow_powerups`.
+
+**Implementación:**
+- `TriviaPowerUpType` (enum nuevo) — los 4 tipos + `defaultAllowance()`.
+- `TriviaPowerUpService` (nuevo) — consume usos del participante
+  (Postgres), resuelve 50/50 server-side (nunca en el cliente, para no
+  filtrar la respuesta correcta inspeccionando la red), y gestiona los
+  flags de `double_points`/`extra_time` activos por pregunta en Redis
+  (mismo patrón que el resto del estado en vivo del juego).
+- `TriviaPowerUpController` (nuevo) — `POST
+  /trivia-game/game/{gameId}/power-up`. `fifty_fifty` responde de
+  inmediato con los índices a ocultar; `double_points`/`extra_time` activan
+  un flag; `skip` persiste una respuesta neutra (0 puntos, no cuenta como
+  correcta/incorrecta) y dispara el mismo avance automático que una
+  respuesta real.
+- `TriviaAnswerController::store()` — consume los flags de
+  `double_points` (duplica puntos si la respuesta fue correcta; se
+  consume siempre, no solo si acierta, para no dejarlo activo por accidente
+  en la siguiente pregunta) y `extra_time` (extiende el límite de tiempo
+  SOLO para ese jugador — el timer visual de los demás y el job de avance
+  automático `AdvanceTriviaQuestion` no se ven afectados; decisión
+  consultada al usuario, dado que el timer del juego es global por diseño).
+- `JoinRoomAction::registerParticipantInDatabase()` — asigna
+  `power_ups: TriviaPowerUpType::defaultAllowance()` al inscribirse si la
+  sala tiene `settings.allow_powerups = true`.
+- `TriviaGameController::play()` — expone los usos restantes al frontend.
+- Frontend: `Play.vue` con la barra de 4 botones (deshabilitados sin usos o
+  tras responder), `AdvancedSettingsSection.vue` con el toggle
+  `allow_powerups` en el formulario de creación de sala (antes no existía
+  ninguna UI para activarlo pese a estar validado en el backend).
+
+- `backend/app/Domains/Games/Trivia/Enums/TriviaPowerUpType.php` (nuevo)
+- `backend/app/Domains/Games/Trivia/Services/TriviaPowerUpService.php` (nuevo)
+- `backend/app/Http/Controllers/Games/Trivia/Game/TriviaPowerUpController.php` (nuevo)
+- `backend/app/Http/Controllers/Games/Trivia/Game/TriviaAnswerController.php`
+- `backend/app/Http/Controllers/Games/Trivia/Game/TriviaGameController.php`
+- `backend/app/Domains/Games/Trivia/Actions/JoinRoomAction.php`
+- `backend/routes/modules/games/trivia.php`
+- `backend/resources/js/Pages/Games/Trivia/Play.vue`
+- `backend/resources/js/Pages/Games/Trivia/Admin/RoomsCreate.vue`
+- `backend/resources/js/Components/games/Trivia/Admin/RoomForm/AdvancedSettingsSection.vue`
+- `backend/resources/js/types/trivia.ts`, `routes/triviaRoutes.ts`
+- `backend/config/trivia.php` — retirados `chat`/`spectator_mode`
+
+**No incluido en este alcance:** UI para activar `allow_powerups` en
+`RoomsEdit.vue` (la pantalla de edición no expone ningún toggle de
+`settings`, ni siquiera los preexistentes `allow_late_join`/`public_room`/
+`show_leaderboard` — limitación previa, no introducida aquí).
+
+**Verificación:** `TriviaPowerUpServiceTest` (6 tests, nuevo) pasa
+completo contra la BD reconstruida. `GameEngineServiceTest` (6) y
+`SubmitAnswerActionTest` (5) siguen pasando tras la integración en
+`TriviaAnswerController`. `pnpm run typecheck` sin errores sobre todos los
+archivos Vue/TS tocados.
+
+### Pendiente
+
 - Estado `paused` de `TriviaGame` documentado en `$fillable` pero nunca
   producido ni consumido por ninguna transición. No se implementó una
   función de pausa (por ejemplo, ante desconexión masiva) porque no hay
