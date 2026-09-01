@@ -55,7 +55,11 @@ class EnvValidator
      * Variables que solo se validan en entornos de producción.
      */
     private static array $productionOnly = [
-        'SESSION_SECURE_COOKIE' => ['required', 'in:true,false'],
+        // 'in:true' (no 'true,false'): en producción la cookie de sesión
+        // debe viajar solo por HTTPS — aceptar "false" aquí dejaría pasar
+        // un error de configuración que expondría la cookie de sesión por
+        // HTTP plano si el edge/proxy no fuerza HTTPS de forma independiente.
+        'SESSION_SECURE_COOKIE' => ['required', 'in:true'],
         'LOG_LEVEL'             => ['required', 'in:debug,info,notice,warning,error,critical,alert,emergency'],
         'TURNSTILE_SITE_KEY'    => ['required'],
         'TURNSTILE_SECRET_KEY'  => ['required'],

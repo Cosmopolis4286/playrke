@@ -146,6 +146,12 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
+        // Regenerar la sesión tras autenticar — mismo criterio que
+        // AuthenticatedSessionController::store() (login normal), evita que
+        // un ID de sesión fijado antes del registro (ej. cookie de invitado
+        // ya asignada) quede autenticado como el usuario recién creado.
+        $request->session()->regenerate();
+
         return response()->json(['success' => true]);
     }
 

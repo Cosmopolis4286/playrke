@@ -46,6 +46,15 @@ class LoginRequest extends FormRequest
     /**
      * Attempt to authenticate the request's credentials.
      *
+     * La contraseña se valida ANTES de revelar cualquier cosa sobre el
+     * estado de la cuenta (existe/no existe, activa/suspendida/pendiente):
+     * antes, un 'login' que coincidía con un email/username real recibía un
+     * mensaje distinto a uno inexistente sin haber probado ninguna
+     * contraseña — enumeración de cuentas explotable con solo una lista de
+     * emails, sin necesidad de contraseñas válidas. Ahora Auth::attempt()
+     * decide primero; el estado de la cuenta solo se expone al dueño real
+     * (quien ya demostró conocer la contraseña correcta).
+     *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function authenticate(): void
@@ -55,35 +64,31 @@ class LoginRequest extends FormRequest
         $login = $this->input('login');
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        // Verificar si el usuario existe y está activo antes de intentar autenticar
-        $user = User::where($field, $login)->first();
-
-        if ($user && $user->is_system_account) {
-            throw ValidationException::withMessages([
-                'login' => 'Esta cuenta no puede iniciar sesión.',
-            ]);
-        }
-
-        if ($user && !$user->isActive()) {
-            RateLimiter::hit($this->throttleKey());
-
-            $message = match ($user->status) {
-                'INACTIVE' => trans('auth.inactive'),
-                'SUSPENDED' => trans('auth.suspended'),
-                'PENDING_VERIFICATION' => trans('auth.pending_verification'),
-                default => trans('auth.account_disabled'),
-            };
-
-            throw ValidationException::withMessages([
-                'login' => $message,
-            ]);
-        }
-
         if (!Auth::attempt([$field => $login, 'password' => $this->input('password')], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'login' => trans('auth.failed'),
+            ]);
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($user->is_system_account || !$user->isActive()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            $message = match (true) {
+                $user->is_system_account => 'Esta cuenta no puede iniciar sesión.',
+                $user->status === 'INACTIVE' => trans('auth.inactive'),
+                $user->status === 'SUSPENDED' => trans('auth.suspended'),
+                $user->status === 'PENDING_VERIFICATION' => trans('auth.pending_verification'),
+                default => trans('auth.account_disabled'),
+            };
+
+            throw ValidationException::withMessages([
+                'login' => $message,
             ]);
         }
 
