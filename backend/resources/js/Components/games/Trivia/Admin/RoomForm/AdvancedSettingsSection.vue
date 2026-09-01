@@ -4,6 +4,7 @@ defineProps<{
   showLeaderboard: boolean
   publicRoom: boolean
   allowPowerups: boolean
+  pauseDisconnectThresholdPercent: number
 }>()
 
 defineEmits<{
@@ -11,6 +12,7 @@ defineEmits<{
   'update:showLeaderboard': [value: boolean]
   'update:publicRoom': [value: boolean]
   'update:allowPowerups': [value: boolean]
+  'update:pauseDisconnectThresholdPercent': [value: number]
 }>()
 </script>
 
@@ -68,6 +70,27 @@ defineEmits<{
           Habilitar power-ups (50/50, doble puntos, saltar, tiempo extra — 1 uso de cada uno por jugador)
         </span>
       </label>
+
+      <div>
+        <label class="flex items-center gap-2">
+          <span class="text-sm ass-text-secondary">
+            Pausar automáticamente si se desconecta el
+          </span>
+          <input
+            :value="pauseDisconnectThresholdPercent"
+            type="number"
+            min="0"
+            max="100"
+            step="5"
+            class="w-20 rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+            @input="$emit('update:pauseDisconnectThresholdPercent', Number(($event.target as HTMLInputElement).value))"
+          />
+          <span class="text-sm ass-text-secondary">% o más de los jugadores</span>
+        </label>
+        <p class="text-xs ass-text-secondary mt-1 ml-0.5">
+          0 = desactivado. Se evalúa tras cada pregunta sin respuesta de un jugador durante 2 rondas seguidas.
+        </p>
+      </div>
     </div>
   </div>
 </template>

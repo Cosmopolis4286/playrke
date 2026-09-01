@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class FileController extends Controller
@@ -25,24 +24,6 @@ class FileController extends Controller
             self::$imageManager = new ImageManager(new GdDriver());
         }
         return self::$imageManager;
-    }
-
-    public function showImagePaymentCards($filename)
-    {
-        return $this->showImage("private/game/bingo/payments/all-cards/{$filename}");
-    }
-
-    public function showImagePaymentPrizeCards($filename)
-    {
-        return $this->showImage("private/game/bingo/payments/prize-cards/{$filename}");
-    }
-
-    private function showImage($filePath)
-    {
-        abort_unless(Auth::check(), 403, 'Unauthorized action.');
-        abort_if(!Storage::disk('local')->exists($filePath), 404, 'File not found.');
-
-        return response()->file(storage_path("app/{$filePath}"));
     }
 
     private static function resizeImage(string $filePath)
