@@ -8,6 +8,7 @@
   import PageHeader       from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal             from '@/js/Components/Common/Modal/Modal.vue'
   import AppParameterForm  from '@/js/Components/AppParameters/AppParameterForm.vue'
+  import StatTile          from '@/js/Components/Common/StatTile/StatTile.vue'
 
   // ==========================================================================
   // Composables
@@ -35,6 +36,7 @@
   const isPrivileged = computed(() => ['superadmin', 'admin'].includes(props.roleUser?.toLowerCase()))
 
   const {
+    loading,
     parameterData,
     parameters,
     setInitialParameters,
@@ -57,6 +59,18 @@
   const parameterRows = computed(() =>
     parameters.value.map(p => ({ ...p, category: getParamMeta(p.param).category }))
   )
+
+  // ==========================================================================
+  // Stats — sobre el catálogo completo (esta página no pagina server-side,
+  // parameters.value ya trae todos los parámetros), no una muestra parcial
+  // como en Admin/User/Index.vue.
+  // ==========================================================================
+  const stats = computed(() => ({
+    total:    parameters.value.length,
+    active:   parameters.value.filter(p => p.status === 'ACTIVE').length,
+    inactive: parameters.value.filter(p => p.status === 'INACTIVE').length,
+    critical: parameters.value.filter(p => props.critical_params.includes(p.param)).length,
+  }))
 
   // ==========================================================================
   // Parámetros críticos — no se pueden seleccionar para eliminar/desactivar
@@ -150,6 +164,13 @@
     ]"
   />
 
+  <div class="app-parameters-stats">
+    <StatTile label="Parámetros totales" :value="stats.total" icon="fa-sliders" />
+    <StatTile label="Activos" :value="stats.active" icon="fa-circle-check" variant="success" />
+    <StatTile label="Inactivos" :value="stats.inactive" icon="fa-circle-pause" />
+    <StatTile label="Críticos del sistema" :value="stats.critical" icon="fa-shield-halved" variant="warning" />
+  </div>
+
   <TableWithFilterBridge
     table-id="app-parameters-table"
     title="Configuración del Sistema"
@@ -157,11 +178,12 @@
     :columns="columns"
     :rows="parameterRows"
     :filters="filters"
+    :loading="loading"
     search-placeholder="Buscar por parámetro o valor..."
     :show-create-button="isPrivileged"
     show-edit-button
     show-delete-button
-    empty-message="No hay parámetros de configuración"
+    empty-message="No hay parámetros de configuración. Crea el primero con el botón de arriba."
     :disabled-row-ids="disabledRowIds"
     disabled-row-reason="Este es un parámetro crítico del sistema — no se puede eliminar ni desactivar desde aquí."
   >
@@ -198,3 +220,12 @@
     />
   </Modal>
 </template>
+
+<style scoped>
+.app-parameters-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+</style>

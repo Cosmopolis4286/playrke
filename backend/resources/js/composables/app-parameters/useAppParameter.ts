@@ -4,6 +4,7 @@ import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import type { AppParameter } from '@/js/types/app-parameter'
 
 interface UseAppParameterReturn {
+    loading: Ref<boolean>
     parameterData: Ref<Partial<AppParameter>>
     parameters: Ref<AppParameter[]>
     setInitialParameters: (initial: AppParameter[]) => void
@@ -93,13 +94,16 @@ export function useAppParameter(): UseAppParameterReturn {
         if (!confirm) return false
 
         try {
+            loading.value = true
             const { data } = await backendClient.put(`/app-parameters/${id}/status`)
             showToast(data.message, 'success')
             await fetchParameters()
             return true
-        } catch {
-            showToast('Error al actualizar el estado', 'error')
+        } catch (error: any) {
+            showToast(error?.response?.data?.message ?? 'Error al actualizar el estado', 'error')
             return false
+        } finally {
+            loading.value = false
         }
     }
 
@@ -107,22 +111,25 @@ export function useAppParameter(): UseAppParameterReturn {
         const p = parameters.value.find(x => x.id === id)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Deseas eliminar el parámetro <b>${p?.param ?? ''}</b>?`,
+            html: `¿Deseas eliminar el parámetro <b>${p?.param ?? ''}</b>? Esta acción no se puede deshacer.`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar',
         })
         if (!confirm) return false
 
         try {
+            loading.value = true
             await backendClient.put(`/app-parameters/${id}/delete`)
-            showToast('Parámetro eliminado exitosamente', 'success')
+            showToast(`Parámetro "${p?.param ?? id}" eliminado exitosamente`, 'success')
             await fetchParameters()
             return true
         } catch (error: any) {
             showToast(error?.response?.data?.message ?? 'Error al eliminar el parámetro', 'error')
             return false
+        } finally {
+            loading.value = false
         }
     }
 
-    return { parameterData, parameters, setInitialParameters, submit, create, edit, remove, toggleStatus, fetchParameters }
+    return { loading, parameterData, parameters, setInitialParameters, submit, create, edit, remove, toggleStatus, fetchParameters }
 }

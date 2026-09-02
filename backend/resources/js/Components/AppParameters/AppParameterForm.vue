@@ -56,14 +56,13 @@
         :required="true"
         placeholder="Ej: app_name"
         :maxlength="50"
+        :hint="isEditMode ? undefined : 'Snake_case, letras minúsculas y números'"
         :error="errors.param"
         :modelValue="form.param"
         :disabled="isEditMode"
         @update:modelValue="handleParam($event as string)"
         @blur="validate"
-      >
-        <template #hint>Snake_case, letras minúsculas y números</template>
-      </FormInput>
+      />
 
       <!-- Estado -->
       <FormSelect
@@ -79,6 +78,13 @@
         :modelValue="form.status"
         @update:modelValue="form.status = $event"
       />
+
+      <!-- Parámetro conocido: contexto de qué representa y en qué categoría cae, para no adivinar solo por el nombre técnico -->
+      <div v-if="meta.category !== 'Otros'" class="col-12 mb-2">
+        <span class="badge badge-info">
+          <i class="fa-solid fa-circle-info mr-1"></i>{{ meta.label }} · {{ meta.category }}
+        </span>
+      </div>
 
       <!-- Valor: input según el tipo conocido del parámetro (ver appParameterCatalog.ts) -->
       <div v-if="meta.type === 'boolean'" class="form-group col-12">
@@ -105,12 +111,11 @@
         type="number"
         :step="meta.type === 'decimal' ? 0.01 : 1"
         placeholder="Valor del parámetro"
+        :hint="`Opcional · ${meta.type === 'decimal' ? 'número decimal' : 'número entero'}`"
         :error="errors.value"
         :modelValue="form.value ?? ''"
         @update:modelValue="form.value = ($event === '' ? null : String($event))"
-      >
-        <template #hint>Opcional</template>
-      </FormInput>
+      />
 
       <FormInput
         v-else
@@ -119,12 +124,11 @@
         col="col-12"
         placeholder="Valor del parámetro"
         :maxlength="100"
+        hint="Opcional, máximo 100 caracteres"
         :error="errors.value"
         :modelValue="form.value ?? ''"
         @update:modelValue="form.value = ($event as string) || null"
-      >
-        <template #hint>Opcional, máximo 100 caracteres</template>
-      </FormInput>
+      />
     </div>
   </form>
 </template>
