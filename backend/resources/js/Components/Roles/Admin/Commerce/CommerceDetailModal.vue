@@ -19,6 +19,7 @@ defineProps<{
 defineEmits<{
   'update:modelValue': [value: boolean]
   retry: []
+  'set-default': []
 }>()
 </script>
 
@@ -53,6 +54,9 @@ defineEmits<{
           <h3 class="cd-name">{{ detail.name }}</h3>
           <p class="cd-username">@{{ detail.user.username }}</p>
         </div>
+        <span v-if="detail.is_default_commerce" class="badge cd-default-badge">
+          <i class="fas fa-star mr-1"></i>Principal
+        </span>
         <span class="badge cd-status" v-html="detail.status_badge"></span>
       </div>
 
@@ -117,6 +121,14 @@ defineEmits<{
     </div>
 
     <template #footer>
+      <button
+        v-if="detail && !detail.is_default_commerce && detail.status === 'ACTIVE'"
+        type="button"
+        class="cd-default-btn"
+        @click="$emit('set-default')"
+      >
+        <i class="fas fa-star mr-1"></i>Marcar como principal
+      </button>
       <button type="button" class="cd-close-btn" @click="$emit('update:modelValue', false)">Cerrar</button>
     </template>
   </Modal>
@@ -145,6 +157,36 @@ defineEmits<{
   line-height: 1.4;
 }
 .cd-close-btn:hover { background: var(--ds-surface-2); }
+
+.cd-default-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, #f5a623, #e08e0b);
+  transition: all 0.15s;
+  line-height: 1.4;
+  margin-right: auto;
+}
+.cd-default-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+.cd-default-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #f5a623, #e08e0b);
+}
 
 .cd-loading { display: flex; align-items: center; justify-content: center; padding: 2.5rem 0; color: var(--ds-text-muted); font-size: 0.88rem; }
 

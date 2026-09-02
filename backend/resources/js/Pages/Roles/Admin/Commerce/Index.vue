@@ -55,11 +55,41 @@
     toggleStatusBulk,
     resetPassword,
     removeBulk,
+    setAsDefault,
     submit,
     onQueryChange,
   } = useAdminCommerce()
 
   setInitialCommerces(props.commerces.rows, props.commerces_pagination)
+
+  // ==========================================================================
+  // Comercio principal — estado local inicializado desde la prop de Inertia
+  // y mutado optimistamente tras marcar uno nuevo (evita depender de un
+  // router.reload solo para refrescar este dato).
+  // ==========================================================================
+
+  const defaultCommerceId = ref<string | null>(props.default_commerce_id)
+
+  /** Id de fila (hasheado, el que usa BaseTable para selección) del comercio principal, si está en la página actual. */
+  const defaultCommerceRowId = computed(() =>
+    commerces.value.find(c => c.real_id === defaultCommerceId.value)?.id
+  )
+  const disabledRowIds = computed(() => (defaultCommerceRowId.value ? [defaultCommerceRowId.value] : []))
+
+  async function handleSetDefault(): Promise<void> {
+    if (!commerceDetail.value?.id) return
+    const hashedId = commerceDetail.value.id
+    const ok = await setAsDefault(hashedId)
+    if (!ok) return
+
+    // CommerceDetail no expone real_id (solo el id hasheado) — se resuelve
+    // contra la fila de tabla ya cargada, que sí lo trae (ver
+    // AdminCommerceContextService::resolveCommerces()). Si el comercio no
+    // está en la página actual, fetchCommerces() lo trae vía onQueryChange
+    // más abajo tras refrescar la ficha.
+    await fetchCommerceDetail(hashedId)
+    defaultCommerceId.value = commerces.value.find(c => c.id === hashedId)?.real_id ?? defaultCommerceId.value
+  }
 
   // ==========================================================================
   // Modal + Form handler
@@ -273,12 +303,20 @@
     showEditButton
     showDeleteButton
     :extra-buttons="extraButtons"
+    :disabled-row-ids="disabledRowIds"
+    disabled-row-reason="Esta comercializadora es la principal de la plataforma — reasigna la marca antes de modificarla."
     @query-change="handleQueryChange"
   >
     <template #action-buttons>
       <button class="btn btn-sm btn-outline-secondary" title="Exportar comercializadoras filtradas a CSV" @click="handleExport">
         <i class="fas fa-file-csv me-1"></i>Exportar
       </button>
+    </template>
+    <template #cell-name="{ row, value }">
+      <span v-if="row.real_id && row.real_id === defaultCommerceId" title="Comercializadora principal de la plataforma">
+        <i class="fas fa-star text-warning me-1"></i>{{ value }}
+      </span>
+      <span v-else>{{ value }}</span>
     </template>
   </TableWithFilterBridge>
 
@@ -307,5 +345,6 @@
     :error="commerceDetailError"
     @update:model-value="handleDetailVisibility"
     @retry="retryCommerceDetail"
+    @set-default="handleSetDefault"
   />
 </template>

@@ -4,6 +4,7 @@ namespace App\Services\Roles\Admin\Commerce;
 
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO;
 use App\Models\Roles\Commerce;
+use App\Services\Platform\PlatformConfigService;
 use App\Traits\HashedTableDataTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\LazyCollection;
@@ -16,7 +17,8 @@ final class AdminCommerceContextService
         private readonly \App\Contracts\CountryRepositoryInterface $countries,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\GameRepositoryInterface $games,
-        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones
+        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
+        private readonly PlatformConfigService $platformConfig,
     ) {}
 
     /**
@@ -34,7 +36,8 @@ final class AdminCommerceContextService
             countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id'])
+            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
+            defaultCommerceId: $this->platformConfig->getDefaultCommerceId()
         );
     }
 

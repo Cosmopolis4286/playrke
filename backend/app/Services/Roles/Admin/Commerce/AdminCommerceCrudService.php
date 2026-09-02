@@ -11,6 +11,7 @@ use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Game;
 use App\Models\User;
 use App\Models\Roles\Commerce;
+use App\Services\Platform\PlatformConfigService;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,7 @@ final class AdminCommerceCrudService
         private readonly UserService $userService,
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly PlatformConfigService $platformConfig,
     ) {}
 
     /**
@@ -110,7 +112,9 @@ final class AdminCommerceCrudService
             'uniqueCode:id,rke_code',
         ])->loadCount('sellers');
 
-        return new AdminCommerceResource($commerce);
+        return (new AdminCommerceResource($commerce))->additional([
+            'is_default_commerce' => $this->platformConfig->isDefaultCommerce((string) $commerce->id),
+        ]);
     }
 
     /**
@@ -291,6 +295,10 @@ final class AdminCommerceCrudService
             throw AdminCommerceException::invalidStatusChange();
         }
 
+        if ($commerce->status === 'ACTIVE' && $this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::isDefaultCommerce();
+        }
+
         // Usa changeStatus con userRelation para sincronizar Commerce y User
         $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
@@ -310,6 +318,10 @@ final class AdminCommerceCrudService
     {
         if ($commerce->status === 'DELETED') {
             throw AdminCommerceException::alreadyDeleted();
+        }
+
+        if ($this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::isDefaultCommerce();
         }
 
         // Usa softDelete con userRelation para sincronizar Commerce y User
@@ -392,6 +404,10 @@ final class AdminCommerceCrudService
      */
     public function destroy(Commerce $commerce): void
     {
+        if ($this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::isDefaultCommerce();
+        }
+
         DB::transaction(function () use ($commerce) {
 
             $commerce->loadMissing(['currencies', 'games', 'user']);

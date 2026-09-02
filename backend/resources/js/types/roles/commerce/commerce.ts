@@ -44,4 +44,6 @@ export interface CommerceDetail {
     readonly user: { username: string; email: string; time_zone_id: string | null }
     readonly currencies_detail: CommerceCurrencyDetail[]
     readonly games_detail: CommerceGameDetail[]
+    /** true si este comercio es el principal/vinculado a la app (platform_config.default_commerce_id). */
+    readonly is_default_commerce: boolean
 }

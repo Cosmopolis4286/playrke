@@ -18,4 +18,6 @@ export interface AdminCommercePageProps {
     timeZones: TimeZone[],
     /** Id de la comercializadora a abrir automáticamente (llegada desde el botón "Ver más" de Admin > Usuarios). */
     openId?: string | number | null
+    /** ID real (sin hashear) del comercio marcado como principal/vinculado a la app. Null si ninguno lo está. */
+    default_commerce_id: string | null
 }

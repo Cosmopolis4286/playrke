@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin\Commerce;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Roles\Commerce;
+use App\Services\Platform\PlatformConfigService;
 use App\Services\User\UserPasswordService;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
 
@@ -24,7 +25,8 @@ final class AdminCommerceService
     public function __construct(
         private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService $contex,
         private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceCrudService $crud,
-        private readonly UserPasswordService $userPasswordService
+        private readonly UserPasswordService $userPasswordService,
+        private readonly PlatformConfigService $platformConfig,
     ) {}
 
     /**
@@ -157,5 +159,21 @@ final class AdminCommerceService
     public function destroy(Commerce $commerce): void
     {
         $this->crud->destroy($commerce);
+    }
+
+    /**
+     * Marcar el comercio como principal/vinculado a la app.
+     *
+     * @param Commerce $commerce Model
+     *
+     * @throws AdminCommerceException Si el comercio no está activo
+     */
+    public function setAsDefault(Commerce $commerce): void
+    {
+        if ($commerce->status !== 'ACTIVE') {
+            throw AdminCommerceException::invalidStatusChange();
+        }
+
+        $this->platformConfig->setDefaultCommerce($commerce);
     }
 }

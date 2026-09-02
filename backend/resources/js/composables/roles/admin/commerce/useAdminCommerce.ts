@@ -26,6 +26,7 @@ interface UseAdminCommerceReturn {
     resetPassword: (id: string | number) => Promise<boolean>
     remove: (id: string | number) => Promise<boolean>
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
+    setAsDefault: (id: string | number) => Promise<boolean>
     fetchCommerces: () => Promise<boolean>
     onQueryChange: (query: ServerQuery) => Promise<void>
 }
@@ -244,6 +245,24 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
         }
     }
 
+    async function setAsDefault(id: string | number): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            html: '¿Marcar esta comercializadora como principal de la plataforma?',
+            icon: 'question',
+            confirmButtonText: 'Sí, marcar como principal'
+        })
+        if (!confirm) return false
+
+        try {
+            await backendClient.put(`/admin/commerce/${id}/set-as-default`)
+            showToast('Comercializadora marcada como principal', 'success')
+            return true
+        } catch (error: any) {
+            showToast(error?.response?.data?.message ?? 'Error al marcar como principal', 'error')
+            return false
+        }
+    }
+
     function buildItemListHtml(ids: (string | number)[]): string {
         const names = ids
             .map(id => commerces.value.find(c => c.id === id))
@@ -318,6 +337,7 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
         resetPassword,
         remove,
         removeBulk,
+        setAsDefault,
         fetchCommerces,
         onQueryChange,
     }

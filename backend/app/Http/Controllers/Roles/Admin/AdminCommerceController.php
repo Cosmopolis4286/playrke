@@ -216,4 +216,17 @@ final class AdminCommerceController extends Controller
             ]
         );
     }
+
+    /**
+     * Marcar el comercio como principal/vinculado a la app.
+     *
+     * @param Commerce $commerce
+     * @return JsonResponse
+     */
+    public function setAsDefault(Commerce $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->setAsDefault($commerce)
+        );
+    }
 }

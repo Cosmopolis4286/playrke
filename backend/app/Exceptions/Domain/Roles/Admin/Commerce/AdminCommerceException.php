@@ -87,4 +87,13 @@ final class AdminCommerceException extends DomainException
     {
         return new self('ADMIN_COMMERCE_DESTROY_NOT_ALLOWED');
     }
+
+    /**
+     * El comercio está marcado como principal/vinculado a la app — debe
+     * reasignarse la marca a otro comercio antes de bloquearlo o eliminarlo.
+     */
+    public static function isDefaultCommerce(): self
+    {
+        return new self('ADMIN_COMMERCE_IS_DEFAULT');
+    }
 }
