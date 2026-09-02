@@ -70,7 +70,32 @@ class TestUserSeeder extends Seeder
                     'role'        => 'commerce',
                     'description' => 'Comercio de prueba',
                 ],
-                // Seller (gestionado por el commerce)
+                // Commerce #2 — segundo comercio de prueba, independiente del
+                // primero (útil para probar escenarios con más de un árbol
+                // Comercio→Sucursal→Vendedor, ej. filtros/reasignación en
+                // /admin/sellers).
+                [
+                    'email'       => 'commerce2@playrke.com',
+                    'username'    => 'commerce_demo_2',
+                    'first_name'  => 'Comercio',
+                    'last_name'   => 'Demo Dos',
+                    'password'    => 'password123',
+                    'role'        => 'commerce',
+                    'description' => 'Segundo comercio de prueba',
+                ],
+                // Subsidiary — agencia de Comercio Demo (jerarquía real
+                // Comercio → Sucursal → Vendedor, ver DemoRoleDataSeeder).
+                [
+                    'email'       => 'subsidiary@playrke.com',
+                    'username'    => 'subsidiary_demo',
+                    'first_name'  => 'Sucursal',
+                    'last_name'   => 'Demo',
+                    'password'    => 'password123',
+                    'role'        => 'subsidiary',
+                    'description' => 'Agencia/sucursal de prueba',
+                ],
+                // Seller (gestionado por la Sucursal Demo, que a su vez
+                // pertenece a Comercio Demo — cadena completa de jerarquía)
                 [
                     'email'       => 'seller@playrke.com',
                     'username'    => 'seller_demo',
@@ -78,7 +103,7 @@ class TestUserSeeder extends Seeder
                     'last_name'   => 'Demo',
                     'password'    => 'password123',
                     'role'        => 'seller',
-                    'description' => 'Vendedor asociado al comercio demo',
+                    'description' => 'Vendedor asociado a la sucursal demo',
                 ],
                 // Customer (API guard)
                 [

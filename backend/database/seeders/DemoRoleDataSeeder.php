@@ -6,6 +6,7 @@ use App\Contracts\Roles\Admin\AdminRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
+use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Models\Country;
 use App\Models\Currency;
@@ -20,14 +21,22 @@ use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Crea los registros de entidad para los usuarios demo
- * de roles admin, commerce, seller y customer.
+ * de roles admin, commerce, subsidiary, seller y customer.
+ *
+ * Jerarquía real de negocio (ver Seller::resolveCommerce()): Comercio →
+ * Sucursal (opcional) → Vendedor. El vendedor demo se cuelga de la
+ * Sucursal Demo, que a su vez pertenece a Comercio Demo, para que la ficha
+ * de detalle y el organigrama muestren la cadena completa con un solo
+ * conjunto de cuentas demo.
  *
  * Depende de: RoleSeeder, TestUserSeeder, CountrySeeder, CurrencySeeder, GameSeeder
  */
@@ -37,6 +46,7 @@ class DemoRoleDataSeeder extends Seeder
         private readonly UserService $userService,
         private readonly AdminRepositoryInterface $adminRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly SellerRepositoryInterface $sellerRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly WalletRepositoryInterface $walletRepository,
@@ -146,10 +156,70 @@ class DemoRoleDataSeeder extends Seeder
             }
 
             // ──────────────────────────────────────────────────────────
-            // 2. SELLER (manager = commerce user)
+            // 1b. COMMERCE #2 (segundo comercio de prueba, independiente)
             // ──────────────────────────────────────────────────────────
-            $sellerUser   = User::where('email', 'seller@playrke.com')->first();
-            $commerceUser = $commerceUser ?? User::where('email', 'commerce@playrke.com')->first();
+            $commerce2User = User::where('email', 'commerce2@playrke.com')->first();
+
+            if ($commerce2User && ! Commerce::where('user_id', $commerce2User->id)->exists()) {
+                $uniqueCode2 = $this->userService->createUniqueCode((string) $commerce2User->id);
+
+                $commerce2 = $this->commerceRepository->create([
+                    'name'           => 'Comercio Demo Dos',
+                    'phone'          => '+58 412 0000004',
+                    'commission'     => 5.00,
+                    'country_id'     => $venezuela->id,
+                    'user_id'        => $commerce2User->id,
+                    'unique_code_id' => $uniqueCode2->id,
+                    'status'         => 'ACTIVE',
+                ]);
+
+                $this->syncCurrencyCommerce($commerce2, $ves->id);
+                if ($firstGame) $this->syncGameCommerce($commerce2, $firstGame->id);
+
+                $this->ensureWallet($commerce2User->id, $ves->id);
+                $this->command->info("✔ Commerce entity (2) creada para {$commerce2User->email}");
+            }
+
+            // ──────────────────────────────────────────────────────────
+            // 2. SUBSIDIARY (agencia de Comercio Demo — jerarquía real
+            //    Comercio → Sucursal → Vendedor)
+            // ──────────────────────────────────────────────────────────
+            $subsidiaryUser = User::where('email', 'subsidiary@playrke.com')->first();
+            $commerceUser   = $commerceUser ?? User::where('email', 'commerce@playrke.com')->first();
+            $commerce       = $commerce ?? ($commerceUser ? Commerce::where('user_id', $commerceUser->id)->first() : null);
+
+            if ($subsidiaryUser && $commerce && ! Subsidiary::where('user_id', $subsidiaryUser->id)->exists()) {
+                $subsidiary = $this->subsidiaryRepository->create([
+                    'name'         => 'Sucursal Demo',
+                    // subsidiaries.phone es varchar(14) — sin espacios, a
+                    // diferencia de commerces.phone (más ancha), donde el
+                    // formato con espacios sí entra.
+                    'phone'        => '+584120000005',
+                    'commission'   => 4.00,
+                    'commerce_id'  => $commerce->id,
+                    'user_id'      => $subsidiaryUser->id,
+                    'country_id'   => $venezuela->id,
+                    'currency_id'  => $ves->id,
+                    // NOT NULL sin default en BD (uso interno/integración,
+                    // no capturados desde ningún formulario) — mismo criterio
+                    // que AdminSubsidiaryCrudService::create().
+                    'token'        => Str::random(40),
+                    'security_key' => Str::random(40),
+                    'status'       => 'ACTIVE',
+                ]);
+
+                $this->ensureWallet($subsidiaryUser->id, $ves->id);
+                $this->command->info("✔ Subsidiary entity creada para {$subsidiaryUser->email}");
+            }
+
+            // ──────────────────────────────────────────────────────────
+            // 3. SELLER (reporta a través de la Sucursal Demo, que a su vez
+            //    pertenece a Comercio Demo — cadena completa de jerarquía;
+            //    manager_user_id sigue siendo el Commerce raíz, nunca el
+            //    user_id de la Subsidiary, ver Seller::resolveCommerce())
+            // ──────────────────────────────────────────────────────────
+            $sellerUser = User::where('email', 'seller@playrke.com')->first();
+            $subsidiary = $subsidiary ?? ($subsidiaryUser ? Subsidiary::where('user_id', $subsidiaryUser->id)->first() : null);
 
             if ($sellerUser && $commerceUser && ! Seller::where('user_id', $sellerUser->id)->exists()) {
                 $seller = $this->sellerRepository->create([
@@ -159,6 +229,7 @@ class DemoRoleDataSeeder extends Seeder
                     'country_id'      => $venezuela->id,
                     'user_id'         => $sellerUser->id,
                     'manager_user_id' => $commerceUser->id,
+                    'subsidiary_id'   => $subsidiary?->id,
                     'status'          => 'ACTIVE',
                 ]);
 
@@ -167,6 +238,18 @@ class DemoRoleDataSeeder extends Seeder
 
                 $this->ensureWallet($sellerUser->id, $ves->id);
                 $this->command->info("✔ Seller entity creada para {$sellerUser->email}");
+            } elseif ($sellerUser && $subsidiary) {
+                // Migración de datos demo preexistentes: el seller demo ya
+                // existía de una corrida anterior a que se agregara la
+                // Sucursal Demo (reportaba directo a Comercio Demo). Se
+                // reasigna una sola vez para que la cadena de jerarquía
+                // completa quede visible en las cuentas demo.
+                $existingSeller = Seller::where('user_id', $sellerUser->id)->first();
+
+                if ($existingSeller && $existingSeller->subsidiary_id !== $subsidiary->id) {
+                    $existingSeller->update(['subsidiary_id' => $subsidiary->id]);
+                    $this->command->info("✔ Seller demo reasignado a Sucursal Demo ({$sellerUser->email})");
+                }
             }
 
             // ──────────────────────────────────────────────────────────

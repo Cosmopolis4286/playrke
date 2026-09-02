@@ -204,6 +204,12 @@ final class ManagerSellerService
         if ($dto->managerUserId !== null) {
             $actor = Auth::user();
             $actorRole = $actor ? $this->roleUserService->getActiveUserRolePrefix((int) $actor->id) : null;
+            // Mismo criterio que ManagerSellerContextService::resolve():
+            // superadmin siempre tiene el mismo alcance que admin en esta
+            // pantalla (reasignar cualquier seller a cualquier árbol).
+            if ($actorRole === 'superadmin') {
+                $actorRole = 'admin';
+            }
 
             if ($actorRole === 'admin') {
                 [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);

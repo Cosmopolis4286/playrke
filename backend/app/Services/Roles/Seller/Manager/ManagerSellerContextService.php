@@ -127,8 +127,22 @@ class ManagerSellerContextService
         // Resolver ID del usuario Manager si no corresponde
         if (!$managerUserId) $managerUserId = $this->userContext->resolveUserId();
 
-        // Resolver rol del usuario manager
+        // Resolver rol del usuario manager. 'superadmin' se normaliza a
+        // 'admin' aquí mismo (único punto de entrada de este contexto) — para
+        // toda esta pantalla ambos deben comportarse igual (ven TODOS los
+        // sellers del sistema, con columnas de jerarquía y el select de
+        // reasignación completo). Sin esto, un superadmin real recibía
+        // roleUser: 'superadmin', que no calzaba con ningún chequeo
+        // === 'admin' (backend o frontend), y terminaba viendo la vista
+        // restringida de un commerce/subsidiary sin serlo — sin manager
+        // select, sin columnas de jerarquía, sin la sección de resetPassword
+        // habilitada. RoleAuthorizationService::isSuperadmin() ya trata a
+        // superadmin como con acceso total en toda la app; este es el mismo
+        // criterio aplicado aquí.
         $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
 
         $result = $this->resolveSellers($role, $managerUserId);
 
