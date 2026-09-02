@@ -3,7 +3,7 @@
    * Página Manager → Vendedores
    */
 
-  import { computed, onMounted, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -12,6 +12,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import ManagerSellerForm from '@/js/Components/Roles/Seller/Manager/ManagerSellerForm.vue'
+  import ManagerSellerDetailModal from '@/js/Components/Roles/Seller/Manager/ManagerSellerDetailModal.vue'
 
   // ==========================================================================
   // Composables
@@ -20,6 +21,7 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useManagerSeller } from '@/js/composables/roles/seller/manager/useManagerSeller'
+  import { useManagerSellerDetail } from '@/js/composables/roles/seller/manager/useManagerSellerDetail'
 
   // ==========================================================================
   // Types
@@ -80,6 +82,30 @@
     const ok = await edit(props.openId)
     if (ok) showModalForm.value = true
   })
+
+  // ==========================================================================
+  // Ficha de detalle (solo lectura) — mismo patrón que CommerceDetailModal.vue
+  // ==========================================================================
+
+  const showDetailModal = ref(false)
+  const {
+    loading: sellerDetailLoading,
+    detail: sellerDetail,
+    error: sellerDetailError,
+    fetchDetail: fetchSellerDetail,
+    retryFetchDetail: retrySellerDetail,
+    clearDetail: clearSellerDetail,
+  } = useManagerSellerDetail()
+
+  async function openSellerDetail(rowId: string) {
+    showDetailModal.value = true
+    await fetchSellerDetail(rowId)
+  }
+
+  function handleDetailVisibility(open: boolean) {
+    showDetailModal.value = open
+    if (!open) clearSellerDetail()
+  }
 
   // ==========================================================================
   // CRUD global (eventos tabla)
@@ -195,6 +221,17 @@
 
   const extraButtons: ExtraButton[] = [
     {
+      icon: 'fas fa-id-card',
+      class: 'btn-outline-secondary',
+      title: 'Ver ficha del vendedor',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          openSellerDetail(ids[0])
+        }
+      }
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
@@ -243,4 +280,13 @@
       :role-user="props.roleUser"
     />
   </Modal>
+
+  <ManagerSellerDetailModal
+    :model-value="showDetailModal"
+    :loading="sellerDetailLoading"
+    :detail="sellerDetail"
+    :error="sellerDetailError"
+    @update:model-value="handleDetailVisibility"
+    @retry="retrySellerDetail"
+  />
 </template>

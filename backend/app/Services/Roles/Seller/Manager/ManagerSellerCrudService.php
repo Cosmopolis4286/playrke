@@ -4,6 +4,7 @@ namespace App\Services\Roles\Seller\Manager;
 
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
@@ -13,6 +14,7 @@ use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
 use App\Models\Roles\Seller;
 use App\Services\UserService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -91,7 +93,7 @@ final class ManagerSellerCrudService
     }
 
     /**
-     * Obtener comercio para visualización.
+     * Obtener vendedor para visualización.
      *
      * @param Seller $seller
      * @return ManagerSellerResource
@@ -104,8 +106,51 @@ final class ManagerSellerCrudService
             'user.timeZone:id,name',
             'currenciesActive:id,symbol,description',
             'gamesActive:id,name',
-            'subsidiary:id,user_id',
+            // Jerarquía hacia arriba (Vendedor → Agencia → Comercio) — inversa
+            // del enriquecimiento ya aplicado a AdminCommerceCrudService::show()
+            // (que muestra hacia abajo: Comercio → Agencia → Vendedores). Un
+            // Seller es la hoja del árbol, no tiene subordinados propios.
+            'subsidiary:id,user_id,name,status,commerce_id',
+            'subsidiary.commerce:id,name,status',
+            'managerCommerce:id,user_id,name,status',
         ]);
+
+        // Ficha de solo lectura: atributos dinámicos (no persistidos) que
+        // ManagerSellerResource expone como campos normales — mismo patrón
+        // que AdminCommerceCrudService::show() (is_default_commerce,
+        // directory_accounts), necesario porque este resource se anida
+        // manualmente dentro de response()->json() en el controller.
+        $seller->wallet_balances = $this->walletRepository
+            ->getActiveWalletsByUser((string) $seller->user_id, ['id', 'balance', 'bonus_balance', 'currency_id'])
+            ->load('currency:id,symbol,iso_code')
+            ->map(fn ($wallet) => [
+                'balance'       => (float) $wallet->balance,
+                'bonus_balance' => (float) $wallet->bonus_balance,
+                'currency'      => [
+                    'symbol'   => $wallet->currency?->symbol,
+                    'iso_code' => $wallet->currency?->iso_code,
+                ],
+            ])
+            ->values();
+
+        // Actividad de ventas del mes en curso — BingoCardLot::scopeBySeller()
+        // ya existe y se usa en CommerceDashboardContextService, mismo
+        // criterio aquí a nivel de un único vendedor. Cifras planas (no
+        // separadas por moneda): el objetivo es un vistazo rápido en la
+        // ficha, no un reporte financiero — para eso ya existe /admin/reports.
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $salesThisMonth = BingoCardLot::bySeller((string) $seller->user_id)
+            ->active()
+            ->where('created_at', '>=', $startOfMonth)
+            ->selectRaw('COUNT(*) as lots_count, COALESCE(SUM(card_count), 0) as cards_sold, COALESCE(SUM(sale_amount), 0) as sale_amount, COALESCE(SUM(commission_amount), 0) as commission_amount')
+            ->first();
+
+        $seller->activity = [
+            'lots_count'        => (int) ($salesThisMonth->lots_count ?? 0),
+            'cards_sold'        => (int) ($salesThisMonth->cards_sold ?? 0),
+            'sale_amount'       => (float) ($salesThisMonth->sale_amount ?? 0),
+            'commission_amount' => (float) ($salesThisMonth->commission_amount ?? 0),
+        ];
 
         return new ManagerSellerResource($seller);
     }

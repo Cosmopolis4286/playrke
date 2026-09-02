@@ -21,3 +21,52 @@ export interface Seller {
     /** Solo presente en filas de la vista admin (columna "Rol") — badge HTML "Sucursal"/"Commerce". */
     readonly manager_role_badge?: string
 }
+
+export interface SellerCurrencyDetail {
+    readonly id: string
+    readonly symbol: string
+    readonly description: string
+    readonly level: number
+}
+
+export interface SellerGameDetail {
+    readonly id: string
+    readonly name: string
+}
+
+/** A quién reporta este vendedor — jerarquía Comercio → (Agencia opcional) → Vendedor. */
+export interface SellerReportsTo {
+    readonly commerce: { id: string; name: string; status: SellerStatus } | null
+    readonly subsidiary: { id: string; name: string; status: SellerStatus } | null
+}
+
+export interface SellerWalletBalance {
+    readonly balance: number
+    readonly bonus_balance: number
+    readonly currency: { symbol: string | null; iso_code: string | null }
+}
+
+/** Ventas del mes en curso — vistazo rápido, no reporte financiero. */
+export interface SellerActivity {
+    readonly lots_count: number
+    readonly cards_sold: number
+    readonly sale_amount: number
+    readonly commission_amount: number
+}
+
+/** Ficha de detalle de solo lectura (GET /sellers/{id}/show). */
+export interface SellerDetail {
+    readonly id: string
+    readonly name: string
+    readonly phone: string
+    readonly commission: string
+    readonly status: SellerStatus
+    readonly status_badge: string
+    readonly country: { id: string; name: string }
+    readonly user: { username: string; email: string; time_zone_id: string | null }
+    readonly currencies_detail: SellerCurrencyDetail[]
+    readonly games_detail: SellerGameDetail[]
+    readonly reports_to: SellerReportsTo
+    readonly wallet_balances: SellerWalletBalance[]
+    readonly activity: SellerActivity
+}

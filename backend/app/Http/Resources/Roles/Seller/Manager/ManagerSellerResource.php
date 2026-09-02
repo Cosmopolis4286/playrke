@@ -13,6 +13,8 @@ class ManagerSellerResource extends JsonResource
             'name' => $this->name,
             'phone' => $this->phone,
             'commission' => $this->commission,
+            'status' => $this->status,
+            'status_badge' => $this->status_badge,
 
             'country' => [
                 'id' => $this->country->id,
@@ -45,6 +47,25 @@ class ManagerSellerResource extends JsonResource
                     ->all();
             }),
 
+            // Detalle con nombre/símbolo para la ficha de solo lectura — el
+            // form de edición usa 'currency'/'other_currencies'/'allowed_games'
+            // (solo IDs) arriba, esto es para mostrar, no para el <select>.
+            // Mismo patrón que AdminCommerceResource::currencies_detail/games_detail.
+            'currencies_detail' => $this->whenLoaded('currenciesActive', function () {
+                return $this->currenciesActive->map(fn ($c) => [
+                    'id' => $c->id,
+                    'symbol' => $c->symbol,
+                    'description' => $c->description,
+                    'level' => (int) $c->pivot->level,
+                ])->values()->all();
+            }),
+            'games_detail' => $this->whenLoaded('gamesActive', function () {
+                return $this->gamesActive->map(fn ($g) => [
+                    'id' => $g->id,
+                    'name' => $g->name,
+                ])->values()->all();
+            }),
+
             // Manager actual (Commerce o Subsidiary) — precarga el select
             // "Manager" del formulario en modo edición (solo lo usa admin,
             // ver ManagerSellerForm.vue). manager_user_id ya es siempre el
@@ -53,6 +74,39 @@ class ManagerSellerResource extends JsonResource
             // para que el select preseleccione la opción "(Agencia)" real, no
             // el Commerce raíz.
             'manager_user_id' => $this->subsidiary?->user_id ?? $this->manager_user_id,
+
+            // Jerarquía hacia arriba (a quién reporta este vendedor) — inversa
+            // de AdminCommerceResource::hierarchy (que muestra hacia abajo).
+            // Un Seller siempre tiene un Commerce raíz (resolveCommerce()),
+            // opcionalmente vía una Subsidiary intermedia.
+            'reports_to' => [
+                'commerce' => $this->subsidiary
+                    ? ($this->subsidiary->commerce ? [
+                        'id' => (string) $this->subsidiary->commerce->id,
+                        'name' => $this->subsidiary->commerce->name,
+                        'status' => $this->subsidiary->commerce->status,
+                    ] : null)
+                    : ($this->managerCommerce ? [
+                        'id' => (string) $this->managerCommerce->id,
+                        'name' => $this->managerCommerce->name,
+                        'status' => $this->managerCommerce->status,
+                    ] : null),
+                'subsidiary' => $this->subsidiary ? [
+                    'id' => (string) $this->subsidiary->id,
+                    'name' => $this->subsidiary->name,
+                    'status' => $this->subsidiary->status,
+                ] : null,
+            ],
+
+            // Saldos de wallet — atributo dinámico seteado por
+            // ManagerSellerCrudService::show() antes de construir el
+            // resource, mismo patrón que is_default_commerce en Commerce.
+            'wallet_balances' => $this->wallet_balances ?? [],
+
+            // Actividad de ventas del mes en curso — idem, atributo dinámico.
+            'activity' => $this->activity ?? [
+                'lots_count' => 0, 'cards_sold' => 0, 'sale_amount' => 0, 'commission_amount' => 0,
+            ],
         ];
     }
 }
