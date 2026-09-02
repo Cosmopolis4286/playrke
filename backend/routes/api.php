@@ -1,8 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\UserLevelController;
-use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes - PlayRKE
@@ -10,21 +7,16 @@ use Illuminate\Support\Facades\Route;
 | Autenticación real de la app: rutas web (routes/auth.php,
 | AuthenticatedSessionController) y sesión de Laravel — no este archivo.
 | Este archivo solo expone endpoints puramente API (sanctum/sin sesión).
+|
+| Las rutas de user-level (self-service add-xp/remove-xp/reset/leaderboard)
+| se eliminaron: permitían a cualquier usuario autenticado (sin
+| restricción de rol, sin comparar contra progreso de juego real, y en
+| su mayoría sin throttle) auto-otorgarse XP arbitrario, inflando el
+| leaderboard y los logros de nivel. Sin consumidor real en el frontend
+| (useUserLevel.ts nunca se importaba en ningún componente). Otorgar XP
+| ahora vive exclusivamente en AdminUserService::grantXp() (exige rol
+| player + auditoría) y en los flujos automáticos de juego
+| (BingoDrawService, GameEngineService, GameCompletionService, etc.).
+|
+| Nota: las rutas API de Trivia (trivia.php) son cargadas por TriviaServiceProvider
 */
-
-//
-// USER LEVEL ROUTES
-//
-Route::middleware('auth:sanctum')->prefix('user-level')->group(function () {
-    Route::get('/', [UserLevelController::class, 'getUserLevel'])->name('api.user-level.get');
-    Route::post('/add-xp', [UserLevelController::class, 'addXp'])->name('api.user-level.add-xp');
-    Route::post('/remove-xp', [UserLevelController::class, 'removeXp'])->name('api.user-level.remove-xp');
-    Route::post('/reset', [UserLevelController::class, 'resetLevel'])->name('api.user-level.reset');
-});
-
-Route::prefix('user-level')->group(function () {
-    Route::get('/leaderboard', [UserLevelController::class, 'getLeaderboard'])->name('api.user-level.leaderboard');
-    Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.user-level.calculate-reward');
-});
-
-// Nota: las rutas API de Trivia (trivia.php) son cargadas por TriviaServiceProvider

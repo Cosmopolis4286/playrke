@@ -20,6 +20,17 @@ use Illuminate\Support\Facades\Request;
 
 final class AdminUserService
 {
+    /**
+     * Tope superior para un otorgamiento manual de XP en una sola acción —
+     * mismo límite que tenía el endpoint self-service ya eliminado
+     * (UserLevelController::addXp, ver routes/api.php), preservado aquí
+     * como referencia razonable aunque este flujo sí exige rol player,
+     * autenticación admin y queda auditado (logAdminAction). Sin tope, un
+     * error de tipeo en el campo del formulario podría otorgar un monto
+     * absurdamente grande sin ninguna validación.
+     */
+    private const MAX_XP_GRANT_AMOUNT = 10000;
+
     public function __construct(
         private readonly AdminUserContextService $context,
         private readonly UserPasswordService     $userPasswordService,
@@ -305,7 +316,7 @@ final class AdminUserService
             throw AdminUserException::xpGrantRequiresPlayerRole();
         }
 
-        if ($amount <= 0) {
+        if ($amount <= 0 || $amount > self::MAX_XP_GRANT_AMOUNT) {
             throw AdminUserException::invalidXpAmount();
         }
 

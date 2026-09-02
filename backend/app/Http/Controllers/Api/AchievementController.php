@@ -126,7 +126,18 @@ class AchievementController extends Controller
     }
 
     /**
-     * Verificar y desbloquear logros automáticamente
+     * Verificar y desbloquear logros automáticamente.
+     *
+     * Sin gate de rol a propósito: todos los requisitos evaluados en
+     * AchievementService::shouldUnlockAchievement() comparan contra columnas/
+     * relaciones reales del usuario (games_played_count, total_winnings,
+     * login_streak_days, getCurrentLevel(), referrals()->count()) — el
+     * $context recibido aquí no puede satisfacer ninguno de los casos
+     * 'custom' (early_bird/night_owl exigen $context['at'] instanceof
+     * Carbon, que un array validado desde HTTP nunca produce; solo llega
+     * así cuando GameCompletionService dispara el chequeo internamente
+     * tras una partida real). Un usuario no-player que llame este endpoint
+     * simplemente no desbloqueará nada — no hay vector de abuso.
      */
     public function checkAndUnlock(Request $request): JsonResponse
     {

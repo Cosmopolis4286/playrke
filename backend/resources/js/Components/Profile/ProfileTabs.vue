@@ -26,12 +26,6 @@ const props = defineProps<{
 }>()
 defineEmits<{ 'update:modelValue': [value: string] }>()
 
-const ADMIN_ROLES = ['superadmin', 'admin', 'treasurer', 'seller', 'customer']
-
-const isAdmin = computed(() =>
-    props.user.roles?.some(r => ADMIN_ROLES.includes(r.name)) ?? false
-)
-
 const needsAttention = computed(() =>
     !props.user.tos_accepted_at || !props.user.is_verified || props.user.kyc_status === 'REJECTED'
 )
@@ -39,10 +33,18 @@ const needsAttention = computed(() =>
 // Orden por frecuencia de uso real: Personal (identidad) y Misiones (se
 // revisa a diario) primero, Estadísticas/Referidos/Preferencias después
 // (consulta ocasional), Seguridad al final (solo cuando hace falta actuar).
+//
+// Misiones/Estadísticas (logros) restringidos a 'player': ambos sistemas
+// están construidos exclusivamente sobre datos de jugador (games_played_count,
+// games_won_count, total_winnings, wallet de jugador) — un admin/commerce/
+// treasurer/subsidiary/seller/customer nunca genera esos datos, así que sin
+// este filtro esos roles verían tabs permanentemente vacíos (0 XP, 0/N
+// logros) sin ningún sentido de negocio. 'vip_player' no es un rol real del
+// sistema (ver RoleSeeder.php) — se quitó, quedaba como código muerto.
 const ALL_TABS = [
     { id: 'personal',    icon: 'fa-user',        label: 'Información Personal', short: 'Perfil',  roles: null },
-    { id: 'missions',    icon: 'fa-bullseye',    label: 'Misiones',             short: 'Misiones',roles: ['player', 'vip_player'], badgeFn: () => (props.missionsPending ?? 0) > 0 ? String(props.missionsPending) : null },
-    { id: 'stats',       icon: 'fa-chart-bar',   label: 'Estadísticas',         short: 'Stats',   roles: ['player', 'vip_player'] },
+    { id: 'missions',    icon: 'fa-bullseye',    label: 'Misiones',             short: 'Misiones',roles: ['player'], badgeFn: () => (props.missionsPending ?? 0) > 0 ? String(props.missionsPending) : null },
+    { id: 'stats',       icon: 'fa-chart-bar',   label: 'Estadísticas',         short: 'Stats',   roles: ['player'] },
     { id: 'referrals',   icon: 'fa-user-friends',label: 'Referidos',            short: 'Refs',    roles: null },
     { id: 'preferences', icon: 'fa-sliders-h',   label: 'Preferencias',         short: 'Prefs',   roles: null },
     { id: 'security',    icon: 'fa-shield-alt',  label: 'Seguridad',            short: 'Seg',     roles: null, badgeFn: (u: ProfileUser) => (!u.tos_accepted_at || !u.is_verified) ? '!' : null },

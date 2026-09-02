@@ -39,12 +39,17 @@
 
   const quickAmounts = [25, 50, 100, 250, 500, 1000]
 
+  /** Mismo tope que AdminUserService::MAX_XP_GRANT_AMOUNT — feedback inmediato en vez de un 422 tras enviar. */
+  const MAX_XP_AMOUNT = 10000
+
   function selectQuickAmount(value: number) {
     form.value = { ...form.value, amount: value.toString() }
   }
 
   const parsedAmount = computed(() => parseInt(form.value.amount, 10))
-  const isValid = computed(() => !!form.value.amount && !isNaN(parsedAmount.value) && parsedAmount.value > 0)
+  const isValid = computed(() =>
+    !!form.value.amount && !isNaN(parsedAmount.value) && parsedAmount.value > 0 && parsedAmount.value <= MAX_XP_AMOUNT
+  )
 
   /* ==========================================================================
    * Submit
@@ -76,8 +81,12 @@
         placeholder="0"
         step="1"
         min="1"
+        :max="MAX_XP_AMOUNT"
         autofocus
       />
+      <small v-if="parsedAmount > MAX_XP_AMOUNT" class="text-danger d-block mt-1">
+        Máximo {{ MAX_XP_AMOUNT.toLocaleString() }} XP por otorgamiento.
+      </small>
     </div>
 
     <div class="form-group">

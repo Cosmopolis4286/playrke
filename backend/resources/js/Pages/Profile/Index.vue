@@ -80,20 +80,30 @@ const missionsPending = computed(() =>
     dailyMissions.value.filter(m => !m.completed).length
 )
 const missionsTotal = computed(() => dailyMissions.value.length)
-// Tabs válidos que un link externo puede pedir vía #hash (ej. notificaciones
-// de nivel/logro/misión: /profile#stats, /profile#missions — antes el hash
-// quedaba inerte, la página siempre abría en 'personal' sin importar el link).
-const VALID_TABS = ['personal', 'stats', 'missions', 'referrals', 'preferences', 'security'] as const
+
+// Misiones/Estadísticas (logros) son exclusivas de 'player' — ver
+// ProfileTabs.vue para el detalle de por qué (ambos sistemas están
+// construidos sobre datos que solo un jugador genera). ProfileTabs ya
+// oculta esos botones para otros roles, pero el hash de la URL puede
+// forzar activeTab a un tab oculto igual (ej. un link viejo /profile#stats
+// abierto por un admin) — se filtra acá también para que el contenido
+// activo siempre sea consistente con lo que la barra de tabs ofrece.
+const isPlayer = computed(() => user.value.roles?.some(r => r.name === 'player') ?? false)
+const VALID_TABS = computed(() => {
+    const tabs = ['personal', 'referrals', 'preferences', 'security']
+    if (isPlayer.value) tabs.push('stats', 'missions')
+    return tabs
+})
 
 onMounted(() => {
     const hashTab = window.location.hash.replace('#', '')
-    if ((VALID_TABS as readonly string[]).includes(hashTab)) {
+    if (VALID_TABS.value.includes(hashTab)) {
         activeTab.value = hashTab as typeof activeTab.value
     }
 
     if (props.tos.needs_acceptance) tosModalOpen.value = true
 
-    loadDailyMissions()
+    if (isPlayer.value) loadDailyMissions()
 })
 </script>
 

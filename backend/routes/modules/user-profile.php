@@ -35,8 +35,11 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     Route::delete('/sessions',     [ProfileController::class, 'revokeAllSessions'])->name('profile.api.sessions.revoke-all')->middleware('block-during-impersonation');
 
     // ── Niveles ────────────────────────────────────────────────────────────
+    // Solo lectura: otorgar XP es exclusivo de AdminUserService::grantXp()
+    // (rol player + auditoría) y de los flujos automáticos de juego — ver
+    // routes/api.php para la nota completa sobre por qué se eliminó el
+    // endpoint self-service que vivía aquí (add-xp).
     Route::get('/level',           [UserLevelController::class, 'getUserLevel'])   ->name('profile.api.level');
-    Route::post('/level/add-xp',   [UserLevelController::class, 'addXp'])          ->name('profile.api.level.add-xp')->middleware('throttle:profile-add-xp');
 
     // ── Logros ─────────────────────────────────────────────────────────────
     Route::get('/achievements',           [AchievementController::class, 'getUserAchievements'])   ->name('profile.api.achievements');
