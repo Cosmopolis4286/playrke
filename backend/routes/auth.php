@@ -24,8 +24,11 @@ Route::middleware('guest')->group(function () {
     // POST /register sin protección permite creación masiva de cuentas y
     // enumeración de emails/usernames ya en uso vía el mensaje de validación
     // "unique" (mismo criterio que login, que ya tenía RateLimiter propio).
+    // register-by-ip (perDay) se apila encima: throttle:5,1 no frena un
+    // ataque que espacia los intentos por debajo de 5/min — ver
+    // AppServiceProvider::boot() para el detalle del límite diario.
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register')->defaults('inertiaOnly', true);
-    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:5,1');
+    Route::post('register', [RegisteredUserController::class, 'store'])->middleware(['throttle:5,1', 'throttle:register-by-ip']);
 
     // Login de usuario. throttle:20,1 (más alto que register/reset — un
     // usuario legítimo puede reintentar varias veces por typo de contraseña)

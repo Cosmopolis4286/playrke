@@ -183,6 +183,23 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: registro de cuentas nuevas por IP — 20 por día. Ya
+        // existe throttle:5,1 (por minuto) en routes/auth.php, pero un
+        // ataque de sybil farming (crear muchas cuentas para acumular XP de
+        // referido, ver AwardReferralXpOnVerifiedListener) se ejecuta
+        // fácilmente por debajo de un límite por minuto con solo espaciar
+        // los intentos. Un límite diario acota el volumen total sin afectar
+        // el caso legítimo (una IP compartida — NAT, oficina, red móvil —
+        // registrando un puñado de cuentas reales por día).
+        //
+        // NOTA: sin TrustProxies configurado en bootstrap/app.php,
+        // $request->ip() puede no ser la IP real del cliente si el
+        // despliegue queda detrás de un proxy/CDN — mismo caveat que ya
+        // aplica a los demás limiters ->by($request->ip()) de este archivo.
+        RateLimiter::for('register-by-ip', function (Request $request) {
+            return Limit::perDay(20)->by($request->ip());
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

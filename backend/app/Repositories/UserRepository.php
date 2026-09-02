@@ -56,33 +56,42 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ->get();
     }
 
+    /**
+     * Credenciales demo para el selector del login (DemoCredentials.vue).
+     *
+     * Antes traía ícono/color/orden/descripción de un mapa hardcodeado local
+     * (duplicado en 3 lugares del frontend: DemoCredentials.vue,
+     * useDemoCredentialsHelpers.ts, y este propio mapa) que no incluía
+     * 'superadmin' ni 'subsidiary' — ambos caían al fallback genérico
+     * ("Jugador de prueba" para un superadmin). Ahora expone icon/color/
+     * sort_order/description directo de Role (misma fuente que "Gestionar
+     * roles" y el Organigrama), y ordena por sort_order para que la lista
+     * refleje la jerarquía real del sistema en cualquier momento sin volver
+     * a tocar este archivo cuando cambie un rol.
+     */
     public function getDemoUsersForFrontend(): SupportCollection
     {
-        $roleDescriptions = [
-            'superadmin' => 'Super Administrador del sistema',
-            'admin'    => 'Administrador del sistema',
-            'commerce' => 'Comercio de prueba',
-            'seller'   => 'Vendedor asociado al comercio demo',
-            'customer' => 'Cliente de prueba',
-            'player'   => 'Jugador de prueba',
-        ];
-
         return $this->model
-            ->with('roles')
+            ->with(['roles' => fn ($q) => $q->select('roles.id', 'roles.name', 'roles.description', 'roles.icon', 'roles.color', 'roles.sort_order')])
             ->where('is_demo_user', true)
             ->get()
-            ->map(function (User $user) use ($roleDescriptions) {
-                $roleName = $user->roles->first()?->name ?? 'player';
+            ->map(function (User $user) {
+                $role = $user->roles->first();
 
                 return [
                     'id'          => (string) $user->id,
                     'email'       => $user->email,
                     'password'    => $user->demo_password ?? 'password123',
                     'label'       => $user->first_name . ' ' . $user->last_name,
-                    'role'        => $roleName,
-                    'description' => $roleDescriptions[$roleName] ?? 'Usuario de prueba',
+                    'role'        => $role?->name ?? 'player',
+                    'description' => $role?->description ?? 'Usuario de prueba',
+                    'icon'        => $role?->icon,
+                    'color'       => $role?->color,
+                    'sort_order'  => $role?->sort_order ?? 999,
                 ];
-            });
+            })
+            ->sortBy('sort_order')
+            ->values();
     }
 
     /* -----------------------------------------------------------------

@@ -1,28 +1,13 @@
 import type { DemoRole } from '@js/types/demo-credentials'
 
-export const ROLE_COLORS: Record<string, string> = {
-  admin:    'from-blue-500 to-blue-700',
-  commerce: 'from-orange-400 to-amber-500',
-  seller:   'from-teal-500 to-cyan-600',
-  customer: 'from-violet-500 to-purple-700',
-  player:   'from-gray-400 to-gray-600',
-}
-
-export const ROLE_BADGE: Record<string, string> = {
-  admin:    'bg-blue-100 text-blue-700',
-  commerce: 'bg-orange-100 text-orange-700',
-  seller:   'bg-teal-100 text-teal-700',
-  customer: 'bg-violet-100 text-violet-700',
-  player:   'bg-gray-100 text-gray-600',
-}
-
-export const ROLE_LABELS: Record<string, string> = {
-  admin:    'Admin',
-  commerce: 'Comercio',
-  seller:   'Vendedor',
-  customer: 'Cliente',
-  player:   'Jugador',
-}
+/**
+ * ROLE_COLORS/ROLE_BADGE/ROLE_LABELS hardcodeados eliminados — no cubrían
+ * 'superadmin' ni 'subsidiary' (caían al fallback de 'player'), y
+ * duplicaban en 3 lugares distintos lo que ya vive en Role.icon/color/
+ * description (BD). DemoCredentials.vue ahora usa formatRoleName()/el color
+ * real del rol directo del payload (UserRepository::getDemoUsersForFrontend()),
+ * mismo criterio que UserCreateRoleForm.vue.
+ */
 
 /** Ruta del dashboard según rol */
 export const getDashboardRouteByRole = (role?: string): string => {

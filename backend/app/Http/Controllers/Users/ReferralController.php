@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Users;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Repositories\UserRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,11 +47,19 @@ class ReferralController extends Controller
      * vincular referred_by_user_id — igual que antes, pero sin requerir
      * sesión iniciada (esta ruta debe ser accesible por un visitante nuevo,
      * no solo por un usuario ya autenticado).
+     *
+     * Un código inexistente no deja cookie — RegisteredUserController::store()
+     * ya tolera un código inválido (no bloquea el registro), pero sin este
+     * guard cualquier string en la URL quedaba 15 días en la cookie del
+     * visitante sin propósito.
      */
     public function link(Request $request, string $referralCode): RedirectResponse
     {
         if (! $request->hasCookie('referral')) {
-            return redirect('/register')->withCookie(cookie('referral', $referralCode, 60 * 24 * 15));
+            $exists = app(UserRepository::class)->existsByReferralCode($referralCode);
+            if ($exists) {
+                return redirect('/register')->withCookie(cookie('referral', $referralCode, 60 * 24 * 15));
+            }
         }
 
         return redirect('/register');

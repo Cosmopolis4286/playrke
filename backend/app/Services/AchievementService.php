@@ -246,7 +246,10 @@ class AchievementService
                 return $user->getCurrentLevel() >= $target;
 
             case 'referrals':
-                return $user->referrals()->count() >= $target;
+                // Solo referidos verificados — mismo criterio que el XP
+                // (AwardReferralXpOnVerifiedListener), evita que el logro se
+                // desbloquee con cuentas creadas pero nunca confirmadas.
+                return $user->referrals()->whereNotNull('email_verified_at')->count() >= $target;
 
             case 'first_game':
                 return $user->games_played_count >= 1;

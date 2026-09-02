@@ -78,8 +78,13 @@ class RegisteredUserController extends Controller
             $referredByUserId = null;
             $referralCode = $request->cookie('referral') ?? $request->input('referral_code');
             if ($referralCode) {
-                $referrer = $userRepository->findByReferralCode($referralCode, ['id']);
-                $referredByUserId = $referrer?->id;
+                $referrer = $userRepository->findByReferralCode($referralCode, ['id', 'status']);
+                // Un referente inactivo/suspendido/eliminado no vincula —
+                // evita construir una cadena de referidos sobre una cuenta
+                // que ya no debería operar en la plataforma.
+                if ($referrer && $referrer->isActive()) {
+                    $referredByUserId = $referrer->id;
+                }
             }
 
             $user = User::create([
@@ -90,6 +95,7 @@ class RegisteredUserController extends Controller
                 'password' => Hash::make($request->password),
                 'referral_code' => $userRepository->generateUniqueReferralCode(),
                 'referred_by_user_id' => $referredByUserId,
+                'registration_ip' => $request->ip(),
                 'status' => 'ACTIVE',
             ]);
 

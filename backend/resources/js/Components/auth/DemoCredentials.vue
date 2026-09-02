@@ -101,18 +101,18 @@
                       <div class="flex items-center gap-3 min-w-0">
                         <div
                           class="w-9 h-9 rounded-xl flex items-center justify-center shadow flex-shrink-0"
-                          :style="getGradientStyle(cred.role)"
+                          :style="getIconStyle(cred.color)"
                         >
-                          <i class="fa-solid fa-user text-white text-sm" />
+                          <i class="fa-solid text-white text-sm" :class="cred.icon || 'fa-user'" />
                         </div>
                         <div class="min-w-0">
                           <div class="flex items-center gap-2 flex-wrap">
                             <span class="font-semibold text-sm text-gray-900">{{ cred.label }}</span>
                             <span
                               class="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                              :style="getBadgeStyle(cred.role)"
+                              :style="getBadgeStyle(cred.color)"
                             >
-                              {{ ROLE_LABELS[cred.role?.toLowerCase()] ?? cred.role }}
+                              {{ formatRoleName(cred.role) }}
                             </span>
                           </div>
                           <div class="text-xs text-gray-500 truncate">{{ cred.email }}</div>
@@ -179,7 +179,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useDemoCredentials, type DemoCredential } from '@js/composables/auth/useDemoCredentials'
-import { ROLE_COLORS, ROLE_BADGE, ROLE_LABELS } from '@js/composables/auth/useDemoCredentialsHelpers'
+import { formatRoleName } from '@js/utils/roles/roleDisplay'
 
 const emit = defineEmits<{
   fillCredentials: [{ login: string; password: string }]
@@ -218,33 +218,23 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
-const getGradientStyle = (role: string) => {
-  const gradients: Record<string, string> = {
-    admin: 'linear-gradient(to bottom right, #3b82f6, #1d4ed8)',
-    commerce: 'linear-gradient(to bottom right, #fb923c, #f59e0b)',
-    seller: 'linear-gradient(to bottom right, #14b8a6, #06b6d4)',
-    customer: 'linear-gradient(to bottom right, #8b5cf6, #7c3aed)',
-    player: 'linear-gradient(to bottom right, #9ca3af, #4b5563)',
-  }
-  return {
-    background: gradients[role?.toLowerCase()] || gradients.player
-  }
-}
+/**
+ * Antes: mapas de gradientes/colores hardcodeados por rol, sin entradas
+ * para 'superadmin' ni 'subsidiary' (caían al gris de 'player'). Ahora usan
+ * el color real del rol (Role.color en BD, mismo dato que "Gestionar
+ * roles"/Organigrama/UserCreateRoleForm.vue) vía color-mix(), así que
+ * cualquier rol nuevo o recoloreado se refleja aquí sin tocar este archivo.
+ */
+const FALLBACK_ROLE_COLOR = '#764ba2'
 
-const getBadgeStyle = (role: string) => {
-  const badges: Record<string, { bg: string; color: string }> = {
-    admin: { bg: '#dbeafe', color: '#1d4ed8' },
-    commerce: { bg: '#fed7aa', color: '#ea580c' },
-    seller: { bg: '#ccfbf1', color: '#0d9488' },
-    customer: { bg: '#ede9fe', color: '#6d28d9' },
-    player: { bg: '#f3f4f6', color: '#4b5563' },
-  }
-  const badge = badges[role?.toLowerCase()] || badges.player
-  return {
-    backgroundColor: badge.bg,
-    color: badge.color
-  }
-}
+const getIconStyle = (color: string | null) => ({
+  background: `linear-gradient(to bottom right, ${color || FALLBACK_ROLE_COLOR}, color-mix(in srgb, ${color || FALLBACK_ROLE_COLOR} 70%, black))`
+})
+
+const getBadgeStyle = (color: string | null) => ({
+  backgroundColor: `color-mix(in srgb, ${color || FALLBACK_ROLE_COLOR} 18%, white)`,
+  color: `color-mix(in srgb, ${color || FALLBACK_ROLE_COLOR} 80%, black)`
+})
 
 onMounted(() => document.addEventListener('keydown', handleKeydown))
 onUnmounted(() => document.removeEventListener('keydown', handleKeydown))

@@ -143,7 +143,10 @@ class Achievement extends Model
                 $current = $user->getCurrentLevel();
                 break;
             case 'referrals':
-                $current = $user->referrals()->count();
+                // Solo referidos verificados — mismo criterio que el XP
+                // (AwardReferralXpOnVerifiedListener), evita que el logro se
+                // desbloquee con cuentas creadas pero nunca confirmadas.
+                $current = $user->referrals()->whereNotNull('email_verified_at')->count();
                 break;
             case 'custom':
                 $current = $progressData['current'] ?? 0;
