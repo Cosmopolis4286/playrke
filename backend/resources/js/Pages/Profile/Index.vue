@@ -123,7 +123,6 @@ export default { name: 'ProfileIndex' }
         :missions-pending="missionsPending"
         :missions-total="missionsTotal"
         :is-player="isPlayer"
-        :is-player="isPlayer"
         @toggle-edit="toggleEdit"
         @open-password="showPassword = true"
         @open-avatar="showAvatar = true"

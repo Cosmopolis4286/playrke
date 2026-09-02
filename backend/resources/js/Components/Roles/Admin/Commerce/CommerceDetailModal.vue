@@ -6,6 +6,7 @@
  * mismo criterio visual que UserDetailModal.vue pero sin sus secciones
  * específicas de jugador.
  */
+import { ref } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import type { CommerceDetail } from '@/js/types/roles/commerce/commerce'
 
@@ -14,13 +15,20 @@ defineProps<{
   loading: boolean
   detail: CommerceDetail | null
   error?: string | null
+  /** true si el usuario actual puede marcar/desmarcar el comercio principal (permiso commerces.set-default, exclusivo de superadmin). */
+  canManageDefaultCommerce?: boolean
 }>()
 
 defineEmits<{
   'update:modelValue': [value: boolean]
   retry: []
   'set-default': []
+  'unset-default': []
 }>()
+
+/** Colapsables — jerarquía y directorio no aportan valor de un vistazo como el resto de la ficha, arrancan cerrados. */
+const showHierarchy = ref(false)
+const showDirectory = ref(false)
 </script>
 
 <template>
@@ -118,16 +126,113 @@ defineEmits<{
         </ul>
         <p v-else class="text-muted small mb-0">Sin juegos habilitados.</p>
       </div>
+
+      <!-- Jerarquía: agencias/sucursales y vendedores (directos + bajo agencia) -->
+      <div class="cd-section">
+        <h4 class="cd-section-title cd-section-title--toggle" @click="showHierarchy = !showHierarchy">
+          <i class="fas fa-sitemap mr-2"></i>Jerarquía
+          <span class="cd-section-summary">
+            {{ detail.hierarchy.subsidiaries_count }} agencia{{ detail.hierarchy.subsidiaries_count === 1 ? '' : 's' }} ·
+            {{ detail.hierarchy.total_sellers_count }} vendedor{{ detail.hierarchy.total_sellers_count === 1 ? '' : 'es' }}
+          </span>
+          <i class="fas cd-chevron" :class="showHierarchy ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </h4>
+
+        <div v-if="showHierarchy" class="cd-hierarchy">
+          <p v-if="detail.hierarchy.direct_sellers_count === 0 && detail.hierarchy.subsidiaries_count === 0" class="text-muted small mb-0">
+            Sin agencias ni vendedores registrados.
+          </p>
+
+          <template v-else>
+            <!-- Vendedores directos (reportan al comercio sin agencia intermedia) -->
+            <div v-if="detail.hierarchy.direct_sellers.length" class="cd-hierarchy-block">
+              <p class="cd-hierarchy-label"><i class="fas fa-user-tie mr-1"></i>Vendedores directos</p>
+              <ul class="cd-hierarchy-list">
+                <li v-for="seller in detail.hierarchy.direct_sellers" :key="seller.id" class="cd-hierarchy-item">
+                  <span>{{ seller.name }}</span>
+                  <span class="badge" v-html="seller.status_badge"></span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Agencias, cada una con sus propios vendedores -->
+            <div v-for="subsidiary in detail.hierarchy.subsidiaries" :key="subsidiary.id" class="cd-hierarchy-block">
+              <p class="cd-hierarchy-label">
+                <i class="fas fa-code-branch mr-1"></i>{{ subsidiary.name }}
+                <span class="badge" v-html="subsidiary.status_badge"></span>
+              </p>
+              <ul v-if="subsidiary.sellers.length" class="cd-hierarchy-list cd-hierarchy-list--nested">
+                <li v-for="seller in subsidiary.sellers" :key="seller.id" class="cd-hierarchy-item">
+                  <span>{{ seller.name }}</span>
+                  <span class="badge" v-html="seller.status_badge"></span>
+                </li>
+              </ul>
+              <p v-else class="text-muted small mb-0 cd-hierarchy-list--nested">Sin vendedores en esta agencia.</p>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Directorio: cuentas de cobro (Pago Móvil VE / PIX BR) del usuario dueño del comercio -->
+      <div class="cd-section">
+        <h4 class="cd-section-title cd-section-title--toggle" @click="showDirectory = !showDirectory">
+          <i class="fas fa-address-book mr-2"></i>Directorio afiliado
+          <span class="cd-section-summary">
+            {{ detail.directory_accounts.pago_movil.length + detail.directory_accounts.pix_keys.length }} cuenta{{ (detail.directory_accounts.pago_movil.length + detail.directory_accounts.pix_keys.length) === 1 ? '' : 's' }}
+          </span>
+          <i class="fas cd-chevron" :class="showDirectory ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </h4>
+
+        <div v-if="showDirectory" class="cd-hierarchy">
+          <p v-if="!detail.directory_accounts.pago_movil.length && !detail.directory_accounts.pix_keys.length" class="text-muted small mb-0">
+            Sin cuentas de cobro registradas para este usuario.
+          </p>
+
+          <template v-else>
+            <div v-if="detail.directory_accounts.pago_movil.length" class="cd-hierarchy-block">
+              <p class="cd-hierarchy-label"><i class="fas fa-mobile-screen mr-1"></i>Pago Móvil (Venezuela)</p>
+              <ul class="cd-hierarchy-list">
+                <li v-for="account in detail.directory_accounts.pago_movil" :key="account.id" class="cd-hierarchy-item">
+                  <span>{{ account.holder_name }} — {{ account.bank_name ?? 'Banco' }} · {{ account.phone }}</span>
+                  <span class="badge" :class="account.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'">
+                    {{ account.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            <div v-if="detail.directory_accounts.pix_keys.length" class="cd-hierarchy-block">
+              <p class="cd-hierarchy-label"><i class="fas fa-qrcode mr-1"></i>PIX (Brasil)</p>
+              <ul class="cd-hierarchy-list">
+                <li v-for="account in detail.directory_accounts.pix_keys" :key="account.id" class="cd-hierarchy-item">
+                  <span>{{ account.holder_name }} — {{ account.bank_name ?? 'Banco' }} · {{ account.pix_key_type }}: {{ account.pix_key_value }}</span>
+                  <span class="badge" :class="account.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'">
+                    {{ account.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
 
     <template #footer>
       <button
-        v-if="detail && !detail.is_default_commerce && detail.status === 'ACTIVE'"
+        v-if="detail && canManageDefaultCommerce && !detail.is_default_commerce && detail.status === 'ACTIVE'"
         type="button"
         class="cd-default-btn"
         @click="$emit('set-default')"
       >
         <i class="fas fa-star mr-1"></i>Marcar como principal
+      </button>
+      <button
+        v-else-if="detail && canManageDefaultCommerce && detail.is_default_commerce"
+        type="button"
+        class="cd-default-btn cd-default-btn--unset"
+        @click="$emit('unset-default')"
+      >
+        <i class="fas fa-star-half-stroke mr-1"></i>Desactivar marca de principal
       </button>
       <button type="button" class="cd-close-btn" @click="$emit('update:modelValue', false)">Cerrar</button>
     </template>
@@ -176,6 +281,13 @@ defineEmits<{
   margin-right: auto;
 }
 .cd-default-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+.cd-default-btn--unset {
+  background: transparent;
+  color: var(--ds-text-2);
+  border: 1.5px solid var(--ds-border-2);
+}
+.cd-default-btn--unset:hover { background: var(--ds-surface-2); filter: none; }
 
 .cd-default-badge {
   display: inline-flex;
@@ -244,4 +356,47 @@ defineEmits<{
 }
 .cd-chip--primary { border-color: #667eea; color: #667eea; }
 .cd-chip-tag { margin-left: 0.35rem; font-size: 0.65rem; opacity: 0.75; text-transform: uppercase; }
+
+.cd-section-title--toggle { cursor: pointer; user-select: none; }
+.cd-section-summary {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ds-text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.cd-chevron { font-size: 0.7rem; opacity: 0.6; }
+
+.cd-hierarchy { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.cd-hierarchy-block { display: flex; flex-direction: column; gap: 0.3rem; }
+.cd-hierarchy-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ds-text);
+  margin: 0;
+}
+.cd-hierarchy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.cd-hierarchy-list--nested { margin-left: 1.4rem; }
+.cd-hierarchy-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--ds-text-2);
+  padding: 0.25rem 0.5rem;
+  background: var(--ds-surface-2);
+  border-radius: 0.35rem;
+}
 </style>
