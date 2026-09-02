@@ -26,7 +26,11 @@ class ManagerSellerPolicy extends BaseRolePolicy
      */
     protected function requiredRole(): string|array
     {
-        return ['commerce', 'subsidiary', 'customer'];
+        // 'admin' agregado: gestiona el árbol completo de vendedores desde
+        // /admin/sellers — antes solo pasaba hasAccess() un commerce/
+        // subsidiary/customer, y un admin (no superadmin) recibía 403 en
+        // cualquier acción CRUD real pese a poder ver el listado.
+        return ['commerce', 'subsidiary', 'customer', 'admin'];
     }
 
     /**
@@ -48,6 +52,10 @@ class ManagerSellerPolicy extends BaseRolePolicy
      * de OTRO comercio/agencia con solo cambiar el {seller} de la URL,
      * incluyendo resetPassword() (account takeover del vendedor ajeno).
      *
+     * - admin: gestiona el árbol completo, no un subárbol propio — siempre
+     *   "dueño" de cualquier Seller (mismo criterio que superadmin, que ya
+     *   tiene bypass total vía RoleAuthorizationService::isSuperadmin() antes
+     *   de llegar aquí).
      * - commerce: dueño si Seller::resolveCommerce() (cubre tanto
      *   manager_user_id directo como vía Subsidiary) resuelve a este user.
      * - subsidiary: dueño si el seller cuelga de una Subsidiary cuyo
@@ -57,6 +65,10 @@ class ManagerSellerPolicy extends BaseRolePolicy
      */
     private function ownsSeller(User $user, Seller $seller): bool
     {
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
         if ($user->hasRole('commerce')) {
             return (string) $seller->resolveCommerce()?->user_id === (string) $user->id;
         }

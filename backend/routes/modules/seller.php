@@ -15,7 +15,13 @@ use App\Http\Controllers\Roles\SellerController;
 // ====================================
 multi_middleware_routes('sellers', 'manager-seller.', [
     [
-        'middleware' => ['auth', 'role:commerce,subsidiary,customer'],
+        // 'admin'/'superadmin' agregados: /admin/sellers (AdminController::sellers())
+        // ya mostraba el listado con middleware role:admin,superadmin, pero el
+        // CRUD real vive aquí bajo /sellers — sin 'admin' en este middleware,
+        // un admin (no superadmin, que sí tiene bypass total vía
+        // RoleAuthorizationService::isSuperadmin()) veía la tabla pero recibía
+        // 403 al crear/editar/eliminar/resetear contraseña de un vendedor.
+        'middleware' => ['auth', 'role:commerce,subsidiary,customer,admin,superadmin'],
         'controller' => ManagerSellerController::class,
         'routes' => [
             'index' => ['method' => 'get', 'uri' => ''],

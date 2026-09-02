@@ -23,8 +23,12 @@ class ManagerSellerRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        // Solo permite usuarios con prefix "admin" o "commerce"
-        return PermissionService::checkPrefix(['admin', 'commerce']);
+        // Mismo set de roles que routes/modules/seller.php (middleware de la
+        // ruta) y ManagerSellerPolicy::requiredRole() — antes solo admitía
+        // 'admin'/'commerce', así que un usuario 'subsidiary' o 'customer'
+        // (ambos permitidos por la ruta y la policy) recibía 403 aquí mismo,
+        // antes de llegar a la lógica de negocio.
+        return PermissionService::checkPrefix(['admin', 'commerce', 'subsidiary', 'customer']);
     }
 
     /**
@@ -52,7 +56,29 @@ class ManagerSellerRequest extends BaseRequest
             'other_currencies.*' => ['string', 'exists:currencies,id'],
             'allowed_games'      => ['required', 'array'],
             'allowed_games.*'    => ['string', 'exists:games,id'],
-            'manager_user_id'    => ['sometimes', 'nullable', 'string', 'exists:users,id'],
+            // Solo lo usa admin (ver ManagerSellerForm.vue) para elegir a qué
+            // Commerce/Subsidiary asignar el seller. Antes solo validaba
+            // 'exists:users,id' — cualquier user_id válido pasaba (ej. un
+            // treasurer o un seller), y ManagerSellerService::
+            // resolveManagerForUser() lo aceptaba igual salvo que el rol
+            // fuera 'subsidiary' sin commerce_id, dejando sellers con
+            // manager_user_id apuntando a un usuario sin rol de negocio real.
+            'manager_user_id'    => [
+                'sometimes', 'nullable', 'string', 'exists:users,id',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if ($value === null) {
+                        return;
+                    }
+                    $hasValidRole = \Illuminate\Support\Facades\DB::table('model_has_roles')
+                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                        ->where('model_has_roles.model_id', $value)
+                        ->whereIn('roles.name', ['commerce', 'subsidiary'])
+                        ->exists();
+                    if (!$hasValidRole) {
+                        $fail('El usuario seleccionado debe tener rol Comercio o Sucursal.');
+                    }
+                },
+            ],
         ];
 
         // Regla unique para phone (excluye el vendedor actual en update)
