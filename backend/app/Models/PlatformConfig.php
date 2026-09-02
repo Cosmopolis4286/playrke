@@ -11,8 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Configuración global de la plataforma — tabla singleton (siempre existe
  * exactamente 1 fila, sembrada en la migración de creación).
  *
- * Distinta de Setting (tabla `settings`, key-value genérica de parámetros
- * sueltos sin FK tipada) — PlatformConfig es para configuración
+ * Distinta de AppParameter (tabla `app_parameters`, key-value genérica de
+ * parámetros sueltos sin FK tipada) — PlatformConfig es para configuración
  * estructurada que necesita apuntar de forma confiable a otros registros
  * reales (ver defaultCommerce()).
  *

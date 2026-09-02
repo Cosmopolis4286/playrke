@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
             PrizePoolTypeSeeder::class,
             JackpotTypeSeeder::class,
             BingoPatternSeeder::class,
-            SettingSeeder::class,
+            AppParameterSeeder::class,
             ModuleSeeder::class,
             TosVersionSeeder::class,
             WalletLimitSeeder::class,

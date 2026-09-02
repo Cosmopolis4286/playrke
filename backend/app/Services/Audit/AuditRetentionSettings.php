@@ -2,11 +2,11 @@
 
 namespace App\Services\Audit;
 
-use App\Models\Setting;
+use App\Models\AppParameter;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Lectura del setting 'audit_retention_days' (ver SettingSeeder) — días que
+ * Lectura del parámetro 'audit_retention_days' (ver AppParameterSeeder) — días que
  * se conservan los registros de `audits` antes de ser purgados por
  * AuditPruneCommand. Antes no existía política de retención: la tabla
  * crecía sin límite.
@@ -22,7 +22,7 @@ final class AuditRetentionSettings
         $days = Cache::remember(
             self::CACHE_KEY,
             self::CACHE_TTL_SECONDS,
-            fn () => Setting::active()->byParam('audit_retention_days')->value('value'),
+            fn () => AppParameter::active()->byParam('audit_retention_days')->value('value'),
         );
 
         return $days !== null && (int) $days > 0 ? (int) $days : self::DEFAULT_DAYS;

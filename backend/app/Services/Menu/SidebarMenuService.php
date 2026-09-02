@@ -207,10 +207,10 @@ class SidebarMenuService
                     'route' => 'games.index',
                     'permission' => 'games.manage',
                 ],
-                'settings' => [
+                'app-parameters' => [
                     'title' => 'Configuración',
-                    'route' => 'settings.index',
-                    'permission' => 'settings.manage',
+                    'route' => 'app-parameters.index',
+                    'permission' => 'app-parameters.manage',
                     'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
                 'audit' => [

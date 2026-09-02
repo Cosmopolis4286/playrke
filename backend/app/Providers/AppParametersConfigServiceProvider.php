@@ -3,10 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Repositories\SettingRepository;
+use App\Repositories\AppParameterRepository;
 use Illuminate\Support\Facades\Log;
 
-class SettingsConfigServiceProvider extends ServiceProvider
+class AppParametersConfigServiceProvider extends ServiceProvider
 {
     /**
      * Registrar servicios
@@ -23,23 +23,23 @@ class SettingsConfigServiceProvider extends ServiceProvider
     {
         try {
             // Inyectamos el repositorio
-            $settingRepo = app(SettingRepository::class);
+            $parameterRepo = app(AppParameterRepository::class);
 
-            // Obtenemos todos los settings activos
-            $allSettings = $settingRepo->getActiveSetting();
+            // Obtenemos todos los parámetros activos
+            $allParameters = $parameterRepo->getActiveSetting();
 
-            foreach ($allSettings as $setting) {
+            foreach ($allParameters as $parameter) {
                 // Convertimos el parámetro a minúsculas y snake_case
-                $param = strtolower($setting->param);
+                $param = strtolower($parameter->param);
 
                 // Solo seteamos si no existe en config
                 if (!config()->has("app.{$param}")) {
-                    config()->set("app.{$param}", $setting->getFormattedValue());
+                    config()->set("app.{$param}", $parameter->getFormattedValue());
                 }
             }
         } catch (\Throwable $e) {
             // Opcional: log del error para debugging
-            Log::error('Error al cargar SettingsConfig: ' . $e->getMessage());
+            Log::error('Error al cargar AppParametersConfig: ' . $e->getMessage());
         }
 
         // Valores de fallback desde .env

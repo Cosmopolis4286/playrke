@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 
-use App\Contracts\SettingRepositoryInterface;
+use App\Contracts\AppParameterRepositoryInterface;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\User\LoginStreakService;
 use Illuminate\Http\{Request, JsonResponse};
@@ -18,7 +18,7 @@ class AuthenticatedSessionController extends Controller
      * Inyecta el repositorio en el constructor
      */
     public function __construct(
-        protected SettingRepositoryInterface $settings,
+        protected AppParameterRepositoryInterface $settings,
         protected LoginStreakService $loginStreakService,
     ) {}
 

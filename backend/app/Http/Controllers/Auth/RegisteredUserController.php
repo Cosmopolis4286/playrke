@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Contracts\CurrencyRepositoryInterface;
-use App\Contracts\SettingRepositoryInterface;
+use App\Contracts\AppParameterRepositoryInterface;
 use App\Events\Admin\UserRegistered as UserRegisteredBroadcast;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
      * Inyecta el repositorio en el constructor
      */
     public function __construct(
-        protected SettingRepositoryInterface $settings,
+        protected AppParameterRepositoryInterface $settings,
         protected CurrencyRepositoryInterface $currencies,
     ) {}
 

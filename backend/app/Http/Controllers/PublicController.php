@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\SettingRepositoryInterface;
+use App\Contracts\AppParameterRepositoryInterface;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomContextService;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
 use Inertia\Inertia;
@@ -24,7 +24,7 @@ class PublicController extends Controller
      * Inyecta el repositorio en el constructor
      */
     public function __construct(
-        protected SettingRepositoryInterface $settings
+        protected AppParameterRepositoryInterface $settings
     ) {}
 
     /**

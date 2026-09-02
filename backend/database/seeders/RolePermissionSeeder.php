@@ -48,7 +48,7 @@ class RolePermissionSeeder extends Seeder
                 'kyc.view', 'kyc.manage',
                 'anticheat.view', 'anticheat.manage',
                 'win-events.manage',
-                'settings.manage', // Configuración general de la plataforma
+                'app-parameters.manage', // Configuración general de la plataforma
                 // Opciones independientes
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',

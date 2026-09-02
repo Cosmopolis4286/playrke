@@ -8,6 +8,6 @@ return [
     App\Providers\FortifyServiceProvider::class,
     App\Providers\MarketplaceServiceProvider::class,
     App\Providers\RepositoryServiceProvider::class,
-    App\Providers\SettingsConfigServiceProvider::class,
+    App\Providers\AppParametersConfigServiceProvider::class,
     App\Providers\TriviaServiceProvider::class,
 ];

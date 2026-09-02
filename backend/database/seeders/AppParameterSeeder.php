@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Models\Setting;
+use App\Models\AppParameter;
 use Illuminate\Database\Seeder;
 
-class SettingSeeder extends Seeder
+class AppParameterSeeder extends Seeder
 {
     public function run(): void
     {
-        $settings = [
+        $parameters = [
 
             // ─────────────────────────────────────────────
             // AUTENTICACIÓN
@@ -121,13 +121,13 @@ class SettingSeeder extends Seeder
 
         ];
 
-        foreach ($settings as $data) {
-            Setting::updateOrCreate(
+        foreach ($parameters as $data) {
+            AppParameter::updateOrCreate(
                 ['param' => $data['param']],
                 ['value' => $data['value'], 'status' => $data['status']]
             );
         }
 
-        $this->command->info('✔ SettingSeeder: ' . count($settings) . ' parámetros procesados.');
+        $this->command->info('✔ AppParameterSeeder: ' . count($parameters) . ' parámetros procesados.');
     }
 }

@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'settings'.
+     * Ejecutar la migración: crear tabla 'app_parameters'.
      */
     public function up(): void
     {
-        Schema::create('settings', function (Blueprint $table) {
+        Schema::create('app_parameters', function (Blueprint $table) {
             // ID Snowflake con el paquete bradietilley/laravel-snowflake
             $table->snowflake('id')->primary()->comment('ID único del parámetro');
 
@@ -33,10 +33,10 @@ return new class extends Migration
     }
 
     /**
-     * Revertir la migración: eliminar tabla 'settings'.
+     * Revertir la migración: eliminar tabla 'app_parameters'.
      */
     public function down(): void
     {
-        Schema::dropIfExists('settings');
+        Schema::dropIfExists('app_parameters');
     }
 };

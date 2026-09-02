@@ -342,8 +342,8 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryInt
         $inUsers = DB::table('users')->where('time_zone_id', $timeZoneId)->exists();
 
         // Verificar otras tablas que puedan usar time_zone_id
-        $inSettings = DB::table('settings')
-            ->where('key', 'default_timezone')
+        $inSettings = DB::table('app_parameters')
+            ->where('param', 'default_timezone')
             ->where('value', $timeZoneId)
             ->exists();
 

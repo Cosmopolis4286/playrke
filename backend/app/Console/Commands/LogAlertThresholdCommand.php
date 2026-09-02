@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Setting;
+use App\Models\AppParameter;
 use App\Models\SystemLog;
 use App\Services\Audit\LogAlertSettings;
 use App\Services\Commands\CommandService;
@@ -99,7 +99,7 @@ class LogAlertThresholdCommand extends Command
         // mínima garantizada aunque el correo falle o no esté configurado.
         Log::critical('[logs:alert-threshold] ' . $message);
 
-        $recipient = Setting::active()->byParam('support_email')->value('value');
+        $recipient = AppParameter::active()->byParam('support_email')->value('value');
 
         if ($recipient) {
             Mail::raw($message, function ($mail) use ($recipient) {

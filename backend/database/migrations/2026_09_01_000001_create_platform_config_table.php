@@ -13,7 +13,7 @@ return new class extends Migration
      * configuración global de la plataforma, con columnas tipadas y FKs
      * reales) y sembrar su única fila.
      *
-     * Distinta de 'settings' (tabla existente, key-value genérica de
+     * Distinta de 'app_parameters' (tabla existente, key-value genérica de
      * parámetros sueltos sin FK tipada) — platform_config es para
      * configuración estructurada que necesita apuntar de forma confiable a
      * otros registros reales (ver PlatformConfig::defaultCommerce()).

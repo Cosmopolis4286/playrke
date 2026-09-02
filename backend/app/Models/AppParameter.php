@@ -7,34 +7,34 @@ use Illuminate\Database\Eloquent\Builder;
 use BradieTilley\Snowflake\Snowflake;
 
 /**
- * Modelo para configuraciones del sistema
+ * Modelo para parámetros de configuración de la aplicación
  *
  * Representa parámetros de configuración del sistema con sus valores y estados.
  *
  * @package App\Models
  *
- * @property string $id ID único de la configuración
+ * @property string $id ID único del parámetro
  * @property string $param Nombre del parámetro de configuración
  * @property string|null $value Valor del parámetro
- * @property string $status Estado de la configuración
+ * @property string $status Estado del parámetro
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  *
- * @method static Builder|Setting active()
- * @method static Builder|Setting inactive()
- * @method static Builder|Setting byParam(string $param)
- * @method static Builder|Setting byValue(string $value)
- * @method static Builder|Setting criticalSystem()
+ * @method static Builder|AppParameter active()
+ * @method static Builder|AppParameter inactive()
+ * @method static Builder|AppParameter byParam(string $param)
+ * @method static Builder|AppParameter byValue(string $value)
+ * @method static Builder|AppParameter criticalSystem()
  */
-class Setting extends Model
+class AppParameter extends Model
 {
     /**
      * Nombre de la tabla en la base de datos
      */
-    protected $table = 'settings';
+    protected $table = 'app_parameters';
 
     /**
-     * Estados disponibles para configuraciones
+     * Estados disponibles para parámetros
      */
     public const STATUS_ACTIVE   = 'ACTIVE';
     public const STATUS_INACTIVE = 'INACTIVE';
@@ -85,9 +85,9 @@ class Setting extends Model
      */
     protected static function booted(): void
     {
-        static::creating(function (Setting $setting) {
-            if (!$setting->id) {
-                $setting->id = (new Snowflake())->id();
+        static::creating(function (AppParameter $parameter) {
+            if (!$parameter->id) {
+                $parameter->id = (new Snowflake())->id();
             }
         });
     }
@@ -101,7 +101,7 @@ class Setting extends Model
     }
 
     /**
-     * Verifica si la configuración está activa
+     * Verifica si el parámetro está activo
      */
     public function isActive(): bool
     {
@@ -109,7 +109,7 @@ class Setting extends Model
     }
 
     /**
-     * Verifica si la configuración está inactiva
+     * Verifica si el parámetro está inactivo
      */
     public function isInactive(): bool
     {
@@ -117,7 +117,7 @@ class Setting extends Model
     }
 
     /**
-     * Obtiene el valor formateado de la configuración
+     * Obtiene el valor formateado del parámetro
      */
     public function getFormattedValue(): string
     {
@@ -133,7 +133,7 @@ class Setting extends Model
     }
 
     /**
-     * Scope para obtener solo configuraciones activas
+     * Scope para obtener solo parámetros activos
      *
      * @param Builder $query
      */
@@ -143,7 +143,7 @@ class Setting extends Model
     }
 
     /**
-     * Scope para obtener solo configuraciones inactivas
+     * Scope para obtener solo parámetros inactivos
      *
      * @param Builder $query
      */
@@ -175,7 +175,7 @@ class Setting extends Model
     }
 
     /**
-     * Scope para configuraciones críticas del sistema
+     * Scope para parámetros críticos del sistema
      *
      * @param Builder $query
      */

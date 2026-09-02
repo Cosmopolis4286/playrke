@@ -1,15 +1,15 @@
 <?php
 
-use App\Http\Controllers\SettingController;
+use App\Http\Controllers\AppParameterController;
 
 // ====================================
-// CONFIGURACIONES (SETTINGS)
+// PARÁMETROS DE CONFIGURACIÓN (APP PARAMETERS)
 // ====================================
 route_group(
-    'settings',
-    'settings.',
+    'app-parameters',
+    'app-parameters.',
     ['auth'],
-    SettingController::class,
+    AppParameterController::class,
     [
         'index'        => ['method' => 'get', 'uri' => ''],
         'store'        => ['method' => 'post', 'uri' => ''],

@@ -2,13 +2,13 @@
 
 namespace App\Contracts;
 
-use App\Models\Setting;
+use App\Models\AppParameter;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
- * Contrato para el repositorio de configuraciones del sistema
+ * Contrato para el repositorio de parámetros de configuración de la app
  *
  * Define los métodos disponibles para gestionar parámetros de configuración,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
@@ -16,7 +16,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  * @package App\Contracts
  * @version 1.2
  */
-interface SettingRepositoryInterface extends BaseRepositoryInterface
+interface AppParameterRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene el valor de un parámetro específico
@@ -43,7 +43,7 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     /**
      * Obtiene todos los parámetros activos
      *
-     * @return Collection<Setting> Configuraciones activas
+     * @return Collection<AppParameter> Parámetros activos
      *
      * @example
      * $activeSetting = $repository->getActiveSetting();
@@ -53,7 +53,7 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     /**
      * Obtiene todos los parámetros inactivos
      *
-     * @return Collection<Setting> Configuraciones inactivas
+     * @return Collection<AppParameter> Parámetros inactivos
      *
      * @example
      * $inactiveSetting = $repository->getInactiveSetting();
@@ -61,10 +61,10 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     public function getInactiveSetting(): Collection;
 
     /**
-     * Obtiene configuraciones por estado
+     * Obtiene parámetros por estado
      *
      * @param string $status Estado ('ACTIVE', 'INACTIVE')
-     * @return Collection<Setting> Configuraciones con el estado especificado
+     * @return Collection<AppParameter> Parámetros con el estado especificado
      *
      * @example
      * $settings = $repository->getSettingByStatus('ACTIVE');
@@ -76,7 +76,7 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $searchTerm Término de búsqueda
      * @param array $filters Filtros adicionales
-     * @return Collection<Setting> Configuraciones que coinciden
+     * @return Collection<AppParameter> Parámetros que coinciden
      *
      * @example
      * $settings = $repository->searchSettingByParam('mail', ['status' => 'ACTIVE']);
@@ -89,7 +89,7 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
      * @param string $param Nombre del parámetro
      * @param string $value Valor del parámetro
      * @param string $status Estado del parámetro
-     * @return Setting Configuración actualizada o creada
+     * @return AppParameter Parámetro actualizado o creado
      *
      * @example
      * $setting = $repository->updateOrCreateSetting('theme', 'dark');
@@ -97,8 +97,8 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     public function updateOrCreateSetting(
         string $param,
         string $value,
-        string $status = Setting::STATUS_ACTIVE
-    ): Setting;
+        string $status = AppParameter::STATUS_ACTIVE
+    ): AppParameter;
 
     /**
      * Actualiza el estado de un parámetro
@@ -158,12 +158,12 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     public function isSettingActive(string $param): bool;
 
     /**
-     * Obtiene configuraciones por rango de fechas de creación
+     * Obtiene parámetros por rango de fechas de creación
      *
      * @param string $startDate Fecha de inicio
      * @param string $endDate Fecha de fin
      * @param array $filters Filtros adicionales
-     * @return Collection<Setting> Configuraciones en el rango
+     * @return Collection<AppParameter> Parámetros en el rango
      *
      * @example
      * $settings = $repository->getSettingByDateRange('2024-01-01', '2024-01-31');
@@ -175,7 +175,7 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     ): Collection;
 
     /**
-     * Cuenta configuraciones por estado
+     * Cuenta parámetros por estado
      *
      * @return array<string,int> Conteo por estado
      *
@@ -186,7 +186,7 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     public function countSettingByStatus(): array;
 
     /**
-     * Obtiene estadísticas generales de configuraciones
+     * Obtiene estadísticas generales de parámetros
      *
      * @return array<string,int> Estadísticas generales
      *
@@ -196,11 +196,11 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     public function getGeneralSettingStats(): array;
 
     /**
-     * Obtiene todas las configuraciones con paginación
+     * Obtiene todos los parámetros con paginación
      *
      * @param int $perPage Elementos por página
      * @param array $filters Filtros adicionales
-     * @return LengthAwarePaginator Configuraciones paginadas
+     * @return LengthAwarePaginator Parámetros paginados
      *
      * @example
      * $paginatedSetting = $repository->getPaginatedSetting(20, ['status' => 'ACTIVE']);
@@ -211,10 +211,10 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     ): LengthAwarePaginator;
 
     /**
-     * Actualiza múltiples configuraciones en lote
+     * Actualiza múltiples parámetros en lote
      *
-     * @param array $settings Array de configuraciones [param => [value, status]]
-     * @return int Número de configuraciones actualizadas
+     * @param array $settings Array de parámetros [param => [value, status]]
+     * @return int Número de parámetros actualizados
      *
      * @example
      * $updated = $repository->bulkUpdateSetting([
@@ -225,9 +225,9 @@ interface SettingRepositoryInterface extends BaseRepositoryInterface
     public function bulkUpdateSetting(array $settings): int;
 
     /**
-     * Obtiene configuraciones de sistema críticas
+     * Obtiene parámetros de sistema críticos
      *
-     * @return Collection<Setting> Configuraciones críticas del sistema
+     * @return Collection<AppParameter> Parámetros críticos del sistema
      *
      * @example
      * $criticalSettings = $repository->getCriticalSystemSetting();

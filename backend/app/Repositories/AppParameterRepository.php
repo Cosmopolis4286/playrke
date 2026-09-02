@@ -2,15 +2,15 @@
 
 namespace App\Repositories;
 
-use App\Models\Setting;
+use App\Models\AppParameter;
 use App\Repositories\BaseRepository;
-use App\Contracts\SettingRepositoryInterface;
+use App\Contracts\AppParameterRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Repositorio para la gestión de configuraciones del sistema
+ * Repositorio para la gestión de parámetros de configuración de la app
  *
  * Implementa todas las operaciones de base de datos relacionadas con
  * los parámetros de configuración del sistema.
@@ -18,9 +18,9 @@ use Illuminate\Support\Facades\DB;
  * @package App\Repositories
  * @version 1.2
  */
-class SettingRepository extends BaseRepository implements SettingRepositoryInterface
+class AppParameterRepository extends BaseRepository implements AppParameterRepositoryInterface
 {
-    public function __construct(Setting $model)
+    public function __construct(AppParameter $model)
     {
         $this->model = $model;
     }
@@ -55,7 +55,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     public function getActiveSetting(): Collection
     {
         return $this->model
-            ->where('status', Setting::STATUS_ACTIVE)
+            ->where('status', AppParameter::STATUS_ACTIVE)
             ->orderBy('param')
             ->get();
     }
@@ -66,13 +66,13 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     public function getInactiveSetting(): Collection
     {
         return $this->model
-            ->where('status', Setting::STATUS_INACTIVE)
+            ->where('status', AppParameter::STATUS_INACTIVE)
             ->orderBy('param')
             ->get();
     }
 
     /**
-     * Obtiene configuraciones por estado
+     * Obtiene parámetros por estado
      */
     public function getSettingByStatus(string $status): Collection
     {
@@ -103,8 +103,8 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     public function updateOrCreateSetting(
         string $param,
         string $value,
-        string $status = Setting::STATUS_ACTIVE
-    ): Setting {
+        string $status = AppParameter::STATUS_ACTIVE
+    ): AppParameter {
         return $this->model->updateOrCreate(
             ['param' => $param],
             [
@@ -161,12 +161,12 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     {
         return $this->model
             ->where('param', $param)
-            ->where('status', Setting::STATUS_ACTIVE)
+            ->where('status', AppParameter::STATUS_ACTIVE)
             ->exists();
     }
 
     /**
-     * Obtiene configuraciones por rango de fechas de creación
+     * Obtiene parámetros por rango de fechas de creación
      */
     public function getSettingByDateRange(
         string $startDate,
@@ -186,7 +186,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Cuenta configuraciones por estado
+     * Cuenta parámetros por estado
      */
     public function countSettingByStatus(): array
     {
@@ -196,7 +196,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
             ->pluck('total', 'status')
             ->toArray();
 
-        foreach ([Setting::STATUS_ACTIVE, Setting::STATUS_INACTIVE] as $status) {
+        foreach ([AppParameter::STATUS_ACTIVE, AppParameter::STATUS_INACTIVE] as $status) {
             $counts[$status] = $counts[$status] ?? 0;
         }
 
@@ -204,7 +204,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Obtiene estadísticas generales de configuraciones
+     * Obtiene estadísticas generales de parámetros
      */
     public function getGeneralSettingStats(): array
     {
@@ -213,7 +213,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
                 'COUNT(*) as total,
                  SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as active,
                  SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as inactive',
-                [Setting::STATUS_ACTIVE, Setting::STATUS_INACTIVE]
+                [AppParameter::STATUS_ACTIVE, AppParameter::STATUS_INACTIVE]
             )
             ->first();
 
@@ -225,7 +225,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Obtiene todas las configuraciones con paginación
+     * Obtiene todos los parámetros con paginación
      */
     public function getPaginatedSetting(
         int $perPage = 15,
@@ -247,7 +247,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Actualiza múltiples configuraciones en lote
+     * Actualiza múltiples parámetros en lote
      */
     public function bulkUpdateSetting(array $settings): int
     {
@@ -256,7 +256,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
         DB::transaction(function () use ($settings, &$updatedCount) {
             foreach ($settings as $param => $config) {
                 $value  = $config[0] ?? null;
-                $status = $config[1] ?? Setting::STATUS_ACTIVE;
+                $status = $config[1] ?? AppParameter::STATUS_ACTIVE;
 
                 if ($value === null) {
                     continue;
@@ -280,19 +280,19 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Obtiene configuraciones de sistema críticas
+     * Obtiene parámetros de sistema críticos
      */
     public function getCriticalSystemSetting(): Collection
     {
         return $this->model
-            ->whereIn('param', Setting::CRITICAL_PARAMS)
-            ->where('status', Setting::STATUS_ACTIVE)
+            ->whereIn('param', AppParameter::CRITICAL_PARAMS)
+            ->where('status', AppParameter::STATUS_ACTIVE)
             ->orderBy('param')
             ->get();
     }
 
     /**
-     * Obtiene configuraciones más recientes
+     * Obtiene parámetros más recientes
      */
     public function getRecentSetting(
         int $limit = 10,
@@ -311,7 +311,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Busca configuraciones por valor
+     * Busca parámetros por valor
      */
     public function searchSettingByValue(string $searchTerm, array $filters = []): Collection
     {
@@ -328,7 +328,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Obtiene configuraciones duplicadas por valor
+     * Obtiene parámetros duplicados por valor
      */
     public function getDuplicatedValueSetting(): Collection
     {
@@ -345,7 +345,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Backup de configuraciones críticas
+     * Backup de parámetros críticos
      */
     public function backupCriticalSetting(): array
     {
@@ -355,7 +355,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
     }
 
     /**
-     * Restaura configuraciones desde backup
+     * Restaura parámetros desde backup
      */
     public function restoreSettingFromBackup(array $backup): int
     {

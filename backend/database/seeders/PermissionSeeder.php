@@ -135,7 +135,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'system.logs', 'guard_name' => 'web', 'description' => 'Ver logs del sistema'],
             ['name' => 'system.backup', 'guard_name' => 'web', 'description' => 'Gestionar backups'],
             ['name' => 'system.jobs', 'guard_name' => 'web', 'description' => 'Ver y gestionar jobs, colas y scheduler del sistema'],
-            ['name' => 'settings.manage', 'guard_name' => 'web', 'description' => 'Gestionar configuración general de la plataforma'],
+            ['name' => 'app-parameters.manage', 'guard_name' => 'web', 'description' => 'Gestionar configuración general de la plataforma'],
 
             // Auditoría
             ['name' => 'audit.view', 'guard_name' => 'web', 'description' => 'Ver auditoría'],

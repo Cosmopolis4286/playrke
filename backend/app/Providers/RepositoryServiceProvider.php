@@ -5,9 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Filesystem\Filesystem;
 use ReflectionClass;
-use App\Contracts\SettingRepositoryInterface;
-use App\Repositories\SettingRepository;
-use App\Models\Setting;
+use App\Contracts\AppParameterRepositoryInterface;
+use App\Repositories\AppParameterRepository;
+use App\Models\AppParameter;
 use App\Contracts\RoleEntityRepositoryInterface;
 use App\Contracts\GameCatalogRepositoryInterface;
 
@@ -30,8 +30,8 @@ class RepositoryServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Repositorio crítico con dependencias explícitas
-        $this->app->singleton(SettingRepositoryInterface::class, function ($app) {
-            return new SettingRepository($app->make(Setting::class));
+        $this->app->singleton(AppParameterRepositoryInterface::class, function ($app) {
+            return new AppParameterRepository($app->make(AppParameter::class));
         });
 
         // Registro automático de repositories
@@ -70,7 +70,7 @@ class RepositoryServiceProvider extends ServiceProvider
                 }
 
                 // Evitar doble binding explícito
-                if ($interface->getName() === SettingRepositoryInterface::class) {
+                if ($interface->getName() === AppParameterRepositoryInterface::class) {
                     continue;
                 }
 
