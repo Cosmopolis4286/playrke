@@ -73,7 +73,7 @@ class InventoryServiceTest extends TestCase
         $user = User::factory()->create();
         $asset = $this->service->grant($definition, (string) $user->id, 5, 'ADMIN_GRANT');
 
-        $locked = $this->service->lock($asset, 'escrow-1', 2);
+        $locked = $this->service->lock($asset, '1000000000000000001', 2);
 
         $this->assertSame(PlayerAsset::STATUS_LOCKED, $locked->status);
         $this->assertSame(2, $locked->quantity);
@@ -87,7 +87,7 @@ class InventoryServiceTest extends TestCase
         $user = User::factory()->create();
         $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
 
-        $locked = $this->service->lock($asset, 'escrow-1', 1);
+        $locked = $this->service->lock($asset, '1000000000000000001', 1);
 
         $this->assertSame($asset->id, $locked->id);
         $this->assertSame(PlayerAsset::STATUS_LOCKED, $locked->fresh()->status);
@@ -100,7 +100,7 @@ class InventoryServiceTest extends TestCase
         $asset = $this->service->grant($definition, (string) $user->id, 2, 'ADMIN_GRANT');
 
         $this->expectException(InsufficientAssetQuantityException::class);
-        $this->service->lock($asset, 'escrow-1', 5);
+        $this->service->lock($asset, '1000000000000000001', 5);
     }
 
     public function test_lock_already_locked_asset_throws(): void
@@ -108,10 +108,10 @@ class InventoryServiceTest extends TestCase
         $definition = $this->makeNonStackableDefinition();
         $user = User::factory()->create();
         $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
-        $this->service->lock($asset, 'escrow-1', 1);
+        $this->service->lock($asset, '1000000000000000001', 1);
 
         $this->expectException(AssetNotAvailableException::class);
-        $this->service->lock($asset->fresh(), 'escrow-2', 1);
+        $this->service->lock($asset->fresh(), '1000000000000000002', 1);
     }
 
     public function test_unlock_reverts_to_available_and_merges_with_sibling(): void
@@ -119,7 +119,7 @@ class InventoryServiceTest extends TestCase
         $definition = $this->makeStackableDefinition();
         $user = User::factory()->create();
         $asset = $this->service->grant($definition, (string) $user->id, 5, 'ADMIN_GRANT');
-        $locked = $this->service->lock($asset, 'escrow-1', 2);
+        $locked = $this->service->lock($asset, '1000000000000000001', 2);
 
         $this->service->unlock($locked);
 
@@ -136,8 +136,8 @@ class InventoryServiceTest extends TestCase
         $sellerAsset = $this->service->grant($definition, (string) $seller->id, 5, 'ADMIN_GRANT');
         $buyerAsset = $this->service->grant($definition, (string) $buyer->id, 3, 'ADMIN_GRANT');
 
-        $locked = $this->service->lock($sellerAsset->fresh(), 'escrow-1', 2);
-        $transferred = $this->service->transfer($locked, (string) $buyer->id, 'escrow-1');
+        $locked = $this->service->lock($sellerAsset->fresh(), '1000000000000000001', 2);
+        $transferred = $this->service->transfer($locked, (string) $buyer->id, '1000000000000000001');
 
         $this->assertSame($buyerAsset->id, $transferred->id);
         $this->assertSame(5, $transferred->fresh()->quantity);
@@ -151,8 +151,8 @@ class InventoryServiceTest extends TestCase
         $buyer = User::factory()->create();
 
         $asset = $this->service->grant($definition, (string) $seller->id, 1, 'ADMIN_GRANT');
-        $locked = $this->service->lock($asset, 'escrow-1', 1);
-        $transferred = $this->service->transfer($locked, (string) $buyer->id, 'escrow-1');
+        $locked = $this->service->lock($asset, '1000000000000000001', 1);
+        $transferred = $this->service->transfer($locked, (string) $buyer->id, '1000000000000000001');
 
         $this->assertSame((string) $buyer->id, $transferred->owner_id);
         $this->assertSame(PlayerAsset::STATUS_AVAILABLE, $transferred->status);

@@ -12,6 +12,7 @@ use App\Domains\Marketplace\Models\Listing;
 use App\Domains\Marketplace\Models\Order;
 use App\Domains\Marketplace\Services\ListingService;
 use App\Domains\Marketplace\Services\OrderService;
+use App\Models\Country;
 use App\Models\Currency;
 use App\Models\MovementType;
 use App\Models\User;
@@ -42,6 +43,13 @@ class EscrowServiceTest extends TestCase
         // wallet_movements.type para los tipos MARKETPLACE_* nuevos.
         (new MovementTypeSeeder())->run();
         MovementType::forgetCatalogCache();
+
+        // PlatformWalletService::resolvePlatformUser() (código ya existente,
+        // no de esta fase) crea el usuario sistema playrke_platform con
+        // country_id resuelto por iso_code_2='VE' — sin este país, el
+        // primer creditMarketplaceFee() del test falla con country_id NULL.
+        // Mismo patrón que AuthTest/RegistrationTest.
+        Country::factory()->create(['iso_code_2' => 'VE']);
 
         $this->inventory = app(InventoryService::class);
         $this->listingService = app(ListingService::class);
