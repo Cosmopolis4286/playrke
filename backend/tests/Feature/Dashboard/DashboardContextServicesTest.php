@@ -168,7 +168,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(SuperAdminDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'adminActivity', 'entityCounts', 'systemHealth', 'salesTrend', 'pendingWalletCount', 'period'],
+            ['userName', 'stats', 'recentActivity', 'adminActivity', 'entityCounts', 'systemHealth', 'salesTrend', 'pendingWalletCount', 'allowedQuickLinks', 'period'],
             array_keys($view)
         );
     }
@@ -184,7 +184,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(AdminDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'rkeTotals', 'pendingWalletCount', 'period'],
+            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'rkeTotals', 'pendingWalletCount', 'allowedQuickLinks', 'period'],
             array_keys($view)
         );
     }
