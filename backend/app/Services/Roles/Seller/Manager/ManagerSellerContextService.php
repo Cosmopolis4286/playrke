@@ -6,6 +6,7 @@ use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\GameRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
+use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerContextDTO;
 use App\Services\Roles\RoleUserService;
@@ -24,17 +25,28 @@ class ManagerSellerContextService
         private readonly SellerRepositoryInterface $sellerRepository,
         private readonly TimeZoneRepositoryInterface $timeZones,
         private readonly RoleUserService $roleUserService,
-        private readonly UserContextService $userContext
+        private readonly UserContextService $userContext,
+        private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
     ) {}
+
+    /**
+     * Resuelve el id de la Subsidiary propia de un usuario con rol
+     * 'subsidiary' — necesario porque sus sellers se filtran por
+     * subsidiary_id, no por manager_user_id (ver resolveSellers()).
+     */
+    private function resolveSubsidiaryId(int $managerUserId): ?string
+    {
+        return $this->subsidiaryRepository->getByUserId($managerUserId, ['id'])?->id;
+    }
 
     /**
      * Resolver listado de vendedores del manager.
      *
-     * @param int|null $managerUserId
      * @param string   $role
+     * @param int|null $managerUserId
      * @return array{sellers: array, pagination: ?array}
      */
-    private function resolveSellers(?int $managerUserId = null, string $role): array
+    private function resolveSellers(string $role, ?int $managerUserId = null): array
     {
         $isAdmin = $role === 'admin';
 
@@ -46,10 +58,19 @@ class ManagerSellerContextService
             ? ['manager_role_badge', 'manager_name', 'name', 'country.name', 'phone', 'User.email', 'status_badge']
             : ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
-        // Admin ve todos los sellers; commerce/customer solo los suyos
-        $conditions = !$isAdmin && $managerUserId
-            ? ['manager_user_id' => $managerUserId]
-            : [];
+        // Admin ve todos los sellers; commerce/customer solo los suyos.
+        // 'subsidiary' es un caso aparte: ManagerSellerService::
+        // resolveManagerForUser() siempre normaliza manager_user_id al
+        // user_id del Commerce raíz (nunca al de la Subsidiary), así que un
+        // usuario 'subsidiary' filtrando por manager_user_id=su propio id
+        // nunca encontraba nada — sus sellers reales tienen subsidiary_id =
+        // su propio id, no manager_user_id.
+        $conditions = match (true) {
+            $isAdmin => [],
+            $role === 'subsidiary' && $managerUserId => ['subsidiary_id' => $this->resolveSubsidiaryId($managerUserId)],
+            (bool) $managerUserId => ['manager_user_id' => $managerUserId],
+            default => [],
+        };
 
         $relations = $isAdmin
             ? ['country:id,name', 'user:id,email', 'managerCommerce:id,user_id,name', 'subsidiary:id,name']
@@ -102,7 +123,7 @@ class ManagerSellerContextService
         // Resolver rol del usuario manager
         $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
 
-        $result = $this->resolveSellers($managerUserId, $role);
+        $result = $this->resolveSellers($role, $managerUserId);
 
         return new ManagerSellerContextDTO(
             sellers: $result['sellers'],
@@ -125,6 +146,6 @@ class ManagerSellerContextService
     {
         // Resolver rol del usuario manager
         $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
-        return $this->resolveSellers($managerUserId, $role)['sellers']['rows'] ?? [];
+        return $this->resolveSellers($role, $managerUserId)['sellers']['rows'] ?? [];
     }
 }

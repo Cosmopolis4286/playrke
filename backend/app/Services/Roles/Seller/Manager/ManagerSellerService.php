@@ -139,6 +139,15 @@ final class ManagerSellerService
     /**
      * Actualizar un vendedor.
      *
+     * Reasignación de padre (Commerce/Subsidiary): solo si el DTO trae
+     * manager_user_id (únicamente lo envía admin — ver
+     * ManagerSellerForm.vue, el select "Manager" solo se muestra para
+     * roleUser === 'admin'). Un commerce/subsidiary editando SU PROPIO
+     * seller (ownership ya validado por ManagerSellerPolicy::ownsSeller())
+     * nunca reasigna: mover un seller a otro árbol de negocio es una
+     * decisión administrativa, no algo que el dueño actual deba poder hacer
+     * sobre sí mismo.
+     *
      * @param Seller $seller Model
      * @param ManagerSellerDTO $dto DTO con datos actualizados
      *
@@ -146,7 +155,14 @@ final class ManagerSellerService
      */
     public function update(Seller $seller, ManagerSellerDTO $dto): void
     {
-        $this->crud->update($seller, $dto);
+        $managerUserId = null;
+        $subsidiaryId = null;
+
+        if ($dto->managerUserId !== null) {
+            [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);
+        }
+
+        $this->crud->update($seller, $dto, $managerUserId, $subsidiaryId);
     }
 
     /**
