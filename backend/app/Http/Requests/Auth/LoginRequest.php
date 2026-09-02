@@ -37,7 +37,13 @@ class LoginRequest extends FormRequest
         // legítimo, evita fricción para el caso común y solo protege contra
         // fuerza bruta sostenida / credential stuffing.
         if (RateLimiter::attempts($this->throttleKey()) >= 2) {
-            $rules['cf-turnstile-response'] = ['required', new \App\Rules\CloudflareTurnstile($this->ip())];
+            // 'required' solo si hay secret key configurada — mismo criterio
+            // que RegisterRequest (CloudflareTurnstile ya falla abierto sin
+            // ella, pero 'required' bloqueaba el campo vacío igual).
+            $rules['cf-turnstile-response'] = [
+                config('services.turnstile.secret_key') ? 'required' : 'nullable',
+                new \App\Rules\CloudflareTurnstile($this->ip()),
+            ];
         }
 
         return $rules;

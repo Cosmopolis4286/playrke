@@ -48,6 +48,17 @@
   setInitialParameters(props.parameters)
 
   // ==========================================================================
+  // Filas enriquecidas con la categoría del catálogo (ver appParameterCatalog.ts).
+  // Necesario como campo REAL del objeto de fila (no solo en el slot visual
+  // #cell-category) porque el filtro por columna de TableWithFilter resuelve
+  // el valor a filtrar vía getNestedValue(row, 'category') — sin este campo
+  // en la fila, el filtro de categoría nunca haría match.
+  // ==========================================================================
+  const parameterRows = computed(() =>
+    parameters.value.map(p => ({ ...p, category: getParamMeta(p.param).category }))
+  )
+
+  // ==========================================================================
   // Parámetros críticos — no se pueden seleccionar para eliminar/desactivar
   // (el backend ya lo protege en delete(); esto evita el viaje de red y el
   // toast de error para el caso esperado, mismo mecanismo disabledRowIds/
@@ -144,7 +155,7 @@
     title="Configuración del Sistema"
     subtitle="Gestión de parámetros de configuración"
     :columns="columns"
-    :rows="parameters"
+    :rows="parameterRows"
     :filters="filters"
     search-placeholder="Buscar por parámetro o valor..."
     :show-create-button="isPrivileged"
@@ -155,8 +166,8 @@
     disabled-row-reason="Este es un parámetro crítico del sistema — no se puede eliminar ni desactivar desde aquí."
   >
     <!-- Categoría -->
-    <template #cell-category="{ row }">
-      <span class="text-muted text-sm">{{ getParamMeta(row.param).category }}</span>
+    <template #cell-category="{ value }">
+      <span class="text-muted text-sm">{{ value }}</span>
     </template>
 
     <!-- Valor -->
