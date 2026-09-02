@@ -104,6 +104,7 @@ final class ManagerSellerCrudService
             'user.timeZone:id,name',
             'currenciesActive:id,symbol,description',
             'gamesActive:id,name',
+            'subsidiary:id,user_id',
         ]);
 
         return new ManagerSellerResource($seller);
@@ -114,22 +115,34 @@ final class ManagerSellerCrudService
      *
      * @param Seller $seller
      * @param ManagerSellerDTO $dto
+     * @param int|null $managerUserId Nuevo Commerce padre (ya resuelto por
+     *   ManagerSellerService::update()) — null si no se reasigna.
+     * @param string|null $subsidiaryId Nueva Subsidiary padre — solo
+     *   relevante cuando $managerUserId también se pasa; puede ser null
+     *   explícito para "mover a reporte directo del Commerce, sin agencia".
      *
      * @throws ManagerSellerException
      */
-    public function update(Seller $seller, ManagerSellerDTO $dto): void
+    public function update(Seller $seller, ManagerSellerDTO $dto, ?int $managerUserId = null, ?string $subsidiaryId = null): void
     {
-        DB::transaction(function () use ($seller, $dto) {
+        DB::transaction(function () use ($seller, $dto, $managerUserId, $subsidiaryId) {
 
-            $this->sellerRepository->update(
-                $seller->id,
-                array_filter([
-                    'name'       => $dto->name,
-                    'phone'      => $dto->phone,
-                    'commission' => $dto->commission,
-                    'country_id' => $dto->country,
-                ])
-            );
+            $attributes = array_filter([
+                'name'       => $dto->name,
+                'phone'      => $dto->phone,
+                'commission' => $dto->commission,
+                'country_id' => $dto->country,
+            ]);
+
+            if ($managerUserId !== null) {
+                $attributes['manager_user_id'] = $managerUserId;
+                // subsidiary_id se asigna directo (sin array_filter, que
+                // descartaría un null explícito) — reasignar a un Commerce
+                // sin agencia intermedia es un valor válido, no "sin cambios".
+                $attributes['subsidiary_id'] = $subsidiaryId;
+            }
+
+            $this->sellerRepository->update($seller->id, $attributes);
 
             $this->syncCurrencies($seller, $dto->currency, $dto->otherCurrencies);
             $this->syncGames($seller, $dto->allowedGames);

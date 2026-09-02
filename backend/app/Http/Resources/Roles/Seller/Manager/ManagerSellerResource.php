@@ -44,6 +44,15 @@ class ManagerSellerResource extends JsonResource
                     ->values()
                     ->all();
             }),
+
+            // Manager actual (Commerce o Subsidiary) — precarga el select
+            // "Manager" del formulario en modo edición (solo lo usa admin,
+            // ver ManagerSellerForm.vue). manager_user_id ya es siempre el
+            // user_id de un Commerce (Seller::resolveCommerce()); cuando hay
+            // Subsidiary intermedia, se expone su propio user_id en su lugar
+            // para que el select preseleccione la opción "(Agencia)" real, no
+            // el Commerce raíz.
+            'manager_user_id' => $this->subsidiary?->user_id ?? $this->manager_user_id,
         ];
     }
 }
