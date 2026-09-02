@@ -54,7 +54,14 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         // is_accumulative=false / code != cualquier cosa que el test compare como "2" --
         // RoomMetricsService compara $prizePoolType != 2 (id numérico) para decidir si
         // acumula comisiones; usamos un id real distinto de 2 (Snowflake, jamás "2").
-        $prizePoolType = PrizePoolType::firstOrCreate(['code' => 'STANDARD'], ['label' => 'Estándar', 'is_accumulative' => false]);
+        // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder) —
+        // sin este Game::firstOrCreate() previo, el insert falla con
+        // "Field 'game_id' doesn't have a default value".
+        $game = \App\Models\Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
 
         $room = BingoRoom::create([

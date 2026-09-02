@@ -14,6 +14,7 @@ use App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Models\Country;
 use App\Models\Currency;
+use App\Models\Game;
 use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
@@ -51,7 +52,12 @@ class BingoWinnerDetectionServiceTest extends TestCase
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
         $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
         $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        $prizePoolType = PrizePoolType::firstOrCreate(['code' => 'STANDARD'], ['label' => 'Estándar', 'is_accumulative' => false]);
+        // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder).
+        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
 
         $room = BingoRoom::create([
