@@ -26,6 +26,47 @@ class AdminCommerceResource extends JsonResource
             // vez de vía additional().
             'is_default_commerce' => (bool) $this->is_default_commerce,
 
+            // Jerarquía real Comercializadora → Agencia → Vendedor — mismo
+            // criterio de campos que CommerceHierarchyService (dashboard
+            // SuperAdmin), aplicado a este único comercio.
+            'hierarchy' => $this->whenLoaded('subsidiaries', function () {
+                $directSellers = $this->sellers->whereNull('subsidiary_id')->values();
+                $subsidiarySellersCount = $this->subsidiaries->sum(fn ($s) => $s->sellers->count());
+
+                return [
+                    'direct_sellers' => $directSellers->map(fn ($s) => [
+                        'id' => (string) $s->id,
+                        'name' => $s->name,
+                        'phone' => $s->phone,
+                        'status' => $s->status,
+                        'status_badge' => $s->status_badge,
+                    ])->values(),
+                    'subsidiaries' => $this->subsidiaries->map(fn ($sub) => [
+                        'id' => (string) $sub->id,
+                        'name' => $sub->name,
+                        'status' => $sub->status,
+                        'status_badge' => $sub->status_badge,
+                        'sellers' => $sub->sellers->map(fn ($s) => [
+                            'id' => (string) $s->id,
+                            'name' => $s->name,
+                            'phone' => $s->phone,
+                            'status' => $s->status,
+                            'status_badge' => $s->status_badge,
+                        ])->values(),
+                    ])->values(),
+                    'direct_sellers_count' => $directSellers->count(),
+                    'subsidiaries_count' => $this->subsidiaries->count(),
+                    'subsidiary_sellers_count' => $subsidiarySellersCount,
+                    'total_sellers_count' => $directSellers->count() + $subsidiarySellersCount,
+                ];
+            }),
+
+            // Cuentas de cobro (Pago Móvil VE / PIX BR) del usuario dueño
+            // del comercio — atributo dinámico seteado por
+            // AdminCommerceCrudService::show(), mismo patrón que
+            // is_default_commerce.
+            'directory_accounts' => $this->directory_accounts ?? ['pago_movil' => [], 'pix_keys' => []],
+
             'country' => [
                 'id' => $this->country->id,
                 'name' => $this->country->name,

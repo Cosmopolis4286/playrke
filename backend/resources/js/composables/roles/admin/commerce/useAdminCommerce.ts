@@ -27,6 +27,7 @@ interface UseAdminCommerceReturn {
     remove: (id: string | number) => Promise<boolean>
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
     setAsDefault: (id: string | number) => Promise<boolean>
+    unsetAsDefault: (id: string | number) => Promise<boolean>
     fetchCommerces: () => Promise<boolean>
     onQueryChange: (query: ServerQuery) => Promise<void>
 }
@@ -56,6 +57,15 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
     const commerces = ref<Commerce[]>([])
     const pagination = ref<Pagination | null>(null)
 
+    /**
+     * Valor de is_default_commerce tal como vino del backend al abrir el
+     * form en edición — necesario para saber si el checkbox del form
+     * CAMBIÓ (marcar/desmarcar) durante esta sesión de edición, ya que
+     * commerceData.value.is_default_commerce refleja el estado actual del
+     * checkbox, no el original.
+     */
+    const originalIsDefaultCommerce = ref(false)
+
     const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: null }, page: 1 })
 
     function setInitialCommerces(initial: Commerce[], initialPagination: Pagination | null = null) {
@@ -65,6 +75,7 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
 
     function reset(): void {
         commerceData.value = { ...emptyCommerce() }
+        originalIsDefaultCommerce.value = false
     }
 
     const create = (): void => { reset() }
@@ -123,11 +134,15 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
             loading.value = true
             const payload = buildPayload()
             const isUpdate = !!commerceData.value.id
-            // Detecta si el checkbox "Marcar como principal" del form se
-            // activó durante esta edición — nunca aplica al crear (un
-            // comercio nuevo no puede ser el principal antes de existir,
-            // el checkbox ni se muestra en modo creación).
-            const shouldSetAsDefault = isUpdate && commerceData.value.is_default_commerce === true
+            // Detecta si el checkbox "Marcar como principal" del form
+            // cambió durante esta edición (contra el valor original con el
+            // que se abrió el form, no el estado actual del checkbox) —
+            // nunca aplica al crear (un comercio nuevo no puede ser el
+            // principal antes de existir, el checkbox ni se muestra en modo
+            // creación).
+            const isNowDefault = commerceData.value.is_default_commerce === true
+            const shouldSetAsDefault = isUpdate && isNowDefault && !originalIsDefaultCommerce.value
+            const shouldUnsetAsDefault = isUpdate && !isNowDefault && originalIsDefaultCommerce.value
 
             if (isUpdate) {
                 await backendClient.put(`/admin/commerce/${commerceData.value.id}/update`, payload)
@@ -141,6 +156,9 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
             if (shouldSetAsDefault) {
                 await backendClient.put(`/admin/commerce/${commerceData.value.id}/set-as-default`)
                 showToast('Comercializadora marcada como principal', 'success')
+            } else if (shouldUnsetAsDefault) {
+                await backendClient.put(`/admin/commerce/${commerceData.value.id}/unset-as-default`)
+                showToast('Marca de comercio principal desactivada', 'success')
             }
 
             await fetchCommerces()
@@ -177,6 +195,7 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
                 allowed_games: commerce.allowed_games ?? [],
                 is_default_commerce: commerce.is_default_commerce ?? false
             }
+            originalIsDefaultCommerce.value = commerce.is_default_commerce ?? false
 
             return true
         } catch (error) {
@@ -278,6 +297,30 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
         }
     }
 
+    /**
+     * Quita la marca de comercio principal sin reasignarla a otro — la
+     * plataforma queda sin comercio principal hasta que se marque uno
+     * nuevo. Requiere el permiso exclusivo de superadmin commerces.set-default
+     * (mismo que setAsDefault).
+     */
+    async function unsetAsDefault(id: string | number): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            html: '¿Desactivar la marca de comercio principal? La plataforma quedará sin comercializadora principal hasta que marques otra.',
+            icon: 'warning',
+            confirmButtonText: 'Sí, desactivar'
+        })
+        if (!confirm) return false
+
+        try {
+            await backendClient.put(`/admin/commerce/${id}/unset-as-default`)
+            showToast('Marca de comercio principal desactivada', 'success')
+            return true
+        } catch (error: any) {
+            showToast(error?.response?.data?.message ?? 'Error al desactivar la marca de principal', 'error')
+            return false
+        }
+    }
+
     function buildItemListHtml(ids: (string | number)[]): string {
         const names = ids
             .map(id => commerces.value.find(c => c.id === id))
@@ -353,6 +396,7 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
         remove,
         removeBulk,
         setAsDefault,
+        unsetAsDefault,
         fetchCommerces,
         onQueryChange,
     }

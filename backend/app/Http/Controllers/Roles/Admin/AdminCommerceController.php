@@ -229,4 +229,18 @@ final class AdminCommerceController extends Controller
             fn() => $this->service->setAsDefault($commerce)
         );
     }
+
+    /**
+     * Quitar la marca de comercio principal/vinculado a la app, sin
+     * reasignarla a otro comercio.
+     *
+     * @param Commerce $commerce
+     * @return JsonResponse
+     */
+    public function unsetAsDefault(Commerce $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->unsetAsDefault($commerce)
+        );
+    }
 }

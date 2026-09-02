@@ -96,4 +96,13 @@ final class AdminCommerceException extends DomainException
     {
         return new self('ADMIN_COMMERCE_IS_DEFAULT');
     }
+
+    /**
+     * Intento de desmarcar como principal un comercio que no es el
+     * marcado actualmente (la marca cambió mientras tanto).
+     */
+    public static function notDefaultCommerce(): self
+    {
+        return new self('ADMIN_COMMERCE_NOT_DEFAULT');
+    }
 }

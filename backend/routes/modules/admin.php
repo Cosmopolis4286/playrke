@@ -161,7 +161,12 @@ Route::middleware('auth')->group(function () {
         'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:commerces.view'],
         'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.edit']],
         'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.delete']],
-        'setAsDefault'     => ['method' => 'put',  'uri' => '{id}/set-as-default', 'action' => 'setAsDefault', 'middleware' => 'multiPermission:commerces.edit'],
+        // commerces.set-default es exclusivo de superadmin (declarado en
+        // PermissionSeeder, deliberadamente NO asignado a admin en
+        // RolePermissionSeeder) — marcar/desmarcar el comercio vinculado a
+        // toda la app es más sensible que una edición normal de comercio.
+        'setAsDefault'     => ['method' => 'put',  'uri' => '{id}/set-as-default', 'action' => 'setAsDefault', 'middleware' => 'multiPermission:commerces.set-default'],
+        'unsetAsDefault'   => ['method' => 'put',  'uri' => '{id}/unset-as-default', 'action' => 'unsetAsDefault', 'middleware' => 'multiPermission:commerces.set-default'],
     ];
 
     // Rol vacío ([]): role_protected_routes ya antepone 'auth' siempre, y

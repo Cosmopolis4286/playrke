@@ -65,7 +65,7 @@ class PermissionControllerTest extends TestCase
     public function test_system_permission_cannot_be_updated_even_by_superadmin(): void
     {
         $superadmin = $this->makeSuperadmin();
-        $sysPerm    = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
+        $sysPerm    = Permission::firstOrCreate(['name' => 'roles.view', 'guard_name' => 'web'], ['is_system' => true]);
 
         $response = $this->actingAs($superadmin)->patchJson("/permissions/{$sysPerm->id}", [
             'name'       => 'roles.view.renamed',
@@ -79,7 +79,7 @@ class PermissionControllerTest extends TestCase
     public function test_system_permission_cannot_be_deleted_even_by_superadmin(): void
     {
         $superadmin = $this->makeSuperadmin();
-        $sysPerm    = Permission::create(['name' => 'system.backup', 'guard_name' => 'web', 'is_system' => true]);
+        $sysPerm    = Permission::firstOrCreate(['name' => 'system.backup', 'guard_name' => 'web'], ['is_system' => true]);
 
         $response = $this->actingAs($superadmin)->deleteJson("/permissions/{$sysPerm->id}");
 
@@ -90,7 +90,7 @@ class PermissionControllerTest extends TestCase
     public function test_normal_permission_can_be_updated_and_deleted_by_superadmin(): void
     {
         $superadmin = $this->makeSuperadmin();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web', 'is_system' => false]);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web'], ['is_system' => false]);
 
         $update = $this->actingAs($superadmin)->patchJson("/permissions/{$perm->id}", [
             'name'       => 'reports.view.renamed',
@@ -109,7 +109,7 @@ class PermissionControllerTest extends TestCase
     public function test_non_superadmin_cannot_access_permissions_routes(): void
     {
         $player = $this->makePlayer();
-        $perm   = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm   = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $this->actingAs($player)->getJson('/permissions/fetch-list')->assertStatus(403);
         $this->actingAs($player)->postJson('/permissions', ['name' => 'x.y', 'guard_name' => 'web'])->assertStatus(403);
@@ -128,7 +128,7 @@ class PermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $this->assertFalse($player->fresh()->hasPermissionTo('reports.view'));
 
@@ -149,7 +149,7 @@ class PermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-        $sysPerm    = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
+        $sysPerm    = Permission::firstOrCreate(['name' => 'roles.view', 'guard_name' => 'web'], ['is_system' => true]);
 
         $assign = $this->actingAs($superadmin)->postJson("/permissions/roles/{$player->id}/assign", [
             'permission_ids' => [$sysPerm->id],
@@ -171,19 +171,26 @@ class PermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
 
+        // Nombre garantizado inexistente en el catálogo real (PermissionSeeder,
+        // sembrado por $seeder en TestCase) — a diferencia del resto de este
+        // archivo, este test necesita crear un permiso GENUINAMENTE nuevo para
+        // probar el flujo de creación vía endpoint, así que no puede reusar
+        // 'reports.view' (ya sembrado) como el resto de los tests.
+        $newPermissionName = 'test.brand_new_permission_' . uniqid();
+
         $this->actingAs($superadmin)->postJson('/permissions', [
-            'name'       => 'reports.view',
+            'name'       => $newPermissionName,
             'guard_name' => 'web',
         ])->assertOk();
 
-        $this->assertTrue($superadmin->fresh()->hasPermissionTo('reports.view'));
+        $this->assertTrue($superadmin->fresh()->hasPermissionTo($newPermissionName));
     }
 
     public function test_superadmin_permissions_cannot_be_revoked(): void
     {
         $superadmin = $this->makeSuperadmin();
         $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
-        $perm = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
         $superadminRole->givePermissionTo($perm);
 
         $response = $this->actingAs($superadmin)->postJson("/permissions/roles/{$superadminRole->id}/revoke", [
@@ -197,7 +204,7 @@ class PermissionControllerTest extends TestCase
     public function test_assign_permissions_to_nonexistent_role_returns_404(): void
     {
         $superadmin = $this->makeSuperadmin();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $response = $this->actingAs($superadmin)->postJson('/permissions/roles/999999999999999999/assign', [
             'permission_ids' => [$perm->id],
@@ -212,8 +219,8 @@ class PermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-        $permA      = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
-        $permB      = Permission::create(['name' => 'reports.export', 'guard_name' => 'web']);
+        $permA      = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
+        $permB      = Permission::firstOrCreate(['name' => 'reports.export', 'guard_name' => 'web']);
 
         $player->givePermissionTo($permB);
 
@@ -234,8 +241,8 @@ class PermissionControllerTest extends TestCase
         $superadmin     = $this->makeSuperadmin();
         $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
         $player         = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-        $sysPerm        = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
-        $normalPerm     = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $sysPerm        = Permission::firstOrCreate(['name' => 'roles.view', 'guard_name' => 'web'], ['is_system' => true]);
+        $normalPerm     = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $superadminRole->givePermissionTo($normalPerm);
 
@@ -271,10 +278,10 @@ class PermissionControllerTest extends TestCase
         $superadmin = $this->makeSuperadmin();
         $source     = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
         $target     = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-        $permA      = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
-        $permB      = Permission::create(['name' => 'reports.export', 'guard_name' => 'web']);
-        $sysPerm    = Permission::create(['name' => 'roles.view', 'guard_name' => 'web', 'is_system' => true]);
-        $existing   = Permission::create(['name' => 'reports.print', 'guard_name' => 'web']);
+        $permA      = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
+        $permB      = Permission::firstOrCreate(['name' => 'reports.export', 'guard_name' => 'web']);
+        $sysPerm    = Permission::firstOrCreate(['name' => 'roles.view', 'guard_name' => 'web'], ['is_system' => true]);
+        $existing   = Permission::firstOrCreate(['name' => 'reports.print', 'guard_name' => 'web']);
 
         $source->givePermissionTo([$permA, $permB, $sysPerm]);
         $target->givePermissionTo($existing);

@@ -86,7 +86,7 @@ class UserPermissionControllerTest extends TestCase
         // Decisión de producto: sin restricción por rol del usuario objetivo.
         $superadmin  = $this->makeSuperadmin();
         $targetAdmin = $this->makeAdmin();
-        $perm        = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm        = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $response = $this->actingAs($superadmin)->putJson("/admin/user/{$targetAdmin->hashed_id}/permissions", [
             'permissions' => [['name' => $perm->name, 'expires_at' => null]],
@@ -121,7 +121,7 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $this->assertFalse($player->fresh()->can('reports.view'));
 
@@ -137,7 +137,7 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $player->giveSpecificPermission('reports.view');
         $this->assertTrue($player->fresh()->can('reports.view'));
@@ -154,8 +154,8 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        $rolePerm   = Permission::create(['name' => 'games.bingo', 'guard_name' => 'web']);
-        $specific   = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $rolePerm   = Permission::firstOrCreate(['name' => 'games.bingo', 'guard_name' => 'web']);
+        $specific   = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         Role::where('name', 'player')->firstOrFail()->givePermissionTo($rolePerm);
         $player->giveSpecificPermission('reports.view');
@@ -173,8 +173,8 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        $rolePerm   = Permission::create(['name' => 'games.bingo', 'guard_name' => 'web']);
-        $specific   = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $rolePerm   = Permission::firstOrCreate(['name' => 'games.bingo', 'guard_name' => 'web']);
+        $specific   = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         Role::where('name', 'player')->firstOrFail()->givePermissionTo($rolePerm);
         $player->giveSpecificPermission('reports.view');
@@ -193,7 +193,7 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $response = $this->actingAs($superadmin)->putJson("/admin/user/{$player->hashed_id}/permissions", [
             'permissions' => [['name' => $perm->name, 'expires_at' => now()->addDays(3)->toISOString()]],
@@ -213,7 +213,7 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        $perm       = Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        $perm       = Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $response = $this->actingAs($superadmin)->putJson("/admin/user/{$player->hashed_id}/permissions", [
             'permissions' => [['name' => $perm->name, 'expires_at' => now()->subDay()->toISOString()]],
@@ -225,7 +225,7 @@ class UserPermissionControllerTest extends TestCase
     public function test_expired_grant_no_longer_grants_access(): void
     {
         $player = $this->makePlayer();
-        Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         \App\Models\UserSpecificPermissionGrant::create([
             'user_id'         => $player->id,
@@ -240,7 +240,7 @@ class UserPermissionControllerTest extends TestCase
     {
         $superadmin = $this->makeSuperadmin();
         $player     = $this->makePlayer();
-        Permission::create(['name' => 'reports.view', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
 
         $grant = \App\Models\UserSpecificPermissionGrant::create([
             'user_id'         => $player->id,

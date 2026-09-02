@@ -45,6 +45,7 @@ return [
     'ADMIN_COMMERCE_PASSWORD_RESET_FAILED' => 'No se pudo resetear la contraseña del comercio.',
     'ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Solo se puede resetear la contraseña de comercios activos.',
     'ADMIN_COMMERCE_IS_DEFAULT' => 'Este comercio está marcado como principal. Reasigna la marca a otro comercio antes de bloquearlo o eliminarlo.',
+    'ADMIN_COMMERCE_NOT_DEFAULT' => 'Este comercio ya no está marcado como principal — vuelve a cargar la página.',
 
     // Clientes (admin/customer)
     'ADMIN_CUSTOMER_NOT_FOUND' => 'Cliente no encontrado.',

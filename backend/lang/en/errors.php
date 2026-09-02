@@ -43,6 +43,7 @@ return [
     'ADMIN_COMMERCE_PASSWORD_RESET_FAILED' => 'The commerce\'s password could not be reset.',
     'ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Only active commerces can have their password reset.',
     'ADMIN_COMMERCE_IS_DEFAULT' => 'This commerce is marked as the main one. Reassign the mark to another commerce before blocking or deleting it.',
+    'ADMIN_COMMERCE_NOT_DEFAULT' => 'This commerce is no longer marked as the main one — please reload the page.',
 
     // Customers (admin/customer)
     'ADMIN_CUSTOMER_NOT_FOUND' => 'Customer not found.',

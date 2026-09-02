@@ -25,6 +25,7 @@ class PermissionSeeder extends Seeder
         'system.logs',
         'system.backup',
         'system.jobs',
+        'commerces.set-default',
     ];
 
     public function run(): void
@@ -54,6 +55,11 @@ class PermissionSeeder extends Seeder
             ['name' => 'commerces.edit', 'guard_name' => 'web', 'description' => 'Editar comercios'],
             ['name' => 'commerces.delete', 'guard_name' => 'web', 'description' => 'Eliminar comercios'],
             ['name' => 'commerces.approve', 'guard_name' => 'web', 'description' => 'Aprobar comercios'],
+            // Exclusivo de superadmin: NO se agrega a $adminPermissions en
+            // RolePermissionSeeder — mismo patrón que system.logs/system.jobs.
+            // Superadmin lo recibe automáticamente (todos los permisos guard
+            // 'web'), y además tiene el bypass de RoleAuthorizationService.
+            ['name' => 'commerces.set-default', 'guard_name' => 'web', 'description' => 'Marcar/desmarcar el comercio principal de la plataforma'],
 
             // Gestión de vendedores
             ['name' => 'sellers.view', 'guard_name' => 'web', 'description' => 'Ver vendedores'],

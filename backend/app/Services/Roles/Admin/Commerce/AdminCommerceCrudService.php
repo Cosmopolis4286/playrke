@@ -8,6 +8,8 @@ use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
 use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
+use App\Models\Directories\Fiat\Brazil\PixKey;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Game;
 use App\Models\User;
 use App\Models\Roles\Commerce;
@@ -110,6 +112,12 @@ final class AdminCommerceCrudService
             'currenciesActive:id,symbol,description',
             'gamesActive:id,name',
             'uniqueCode:id,rke_code',
+            // Jerarquía real Comercializadora → Agencia → Vendedor (mismo
+            // patrón que CommerceHierarchyService, aplicado a un único
+            // comercio en vez del top-20 agregado del dashboard SuperAdmin).
+            'sellers:id,name,phone,status,manager_user_id,subsidiary_id',
+            'subsidiaries:id,name,status,commerce_id',
+            'subsidiaries.sellers:id,name,phone,status,subsidiary_id',
         ])->loadCount('sellers');
 
         // Atributo dinámico (no persistido) para que AdminCommerceResource lo
@@ -118,6 +126,35 @@ final class AdminCommerceCrudService
         // response()->json() en el controller, en vez de devolverse como
         // respuesta HTTP directa (único caso en que Laravel aplica additional()).
         $commerce->is_default_commerce = $this->platformConfig->isDefaultCommerce((string) $commerce->id);
+
+        // Cuentas de cobro (Directorio) del usuario dueño del comercio — no
+        // de sus vendedores/agencias, que son usuarios distintos. Ambos
+        // modelos (VE/BR) conviven porque commerces.country no restringe qué
+        // país de directorio pudo haber registrado el usuario en el pasado;
+        // se listan las que existan, sin asumir un único país.
+        $commerce->directory_accounts = [
+            'pago_movil' => PagoMovil::byUser((string) $commerce->user_id)
+                ->with('bank:id,name')
+                ->get(['id', 'holder_name', 'phone', 'bank_id', 'status'])
+                ->map(fn (PagoMovil $p) => [
+                    'id' => (string) $p->id,
+                    'holder_name' => $p->holder_name,
+                    'phone' => $p->phone,
+                    'bank_name' => $p->bank?->name,
+                    'status' => $p->status,
+                ])->values(),
+            'pix_keys' => PixKey::byUser((string) $commerce->user_id)
+                ->with('bank:id,name')
+                ->get(['id', 'holder_name', 'pix_key_type', 'pix_key_value', 'bank_id', 'status'])
+                ->map(fn (PixKey $p) => [
+                    'id' => (string) $p->id,
+                    'holder_name' => $p->holder_name,
+                    'pix_key_type' => $p->pix_key_type,
+                    'pix_key_value' => $p->pix_key_value,
+                    'bank_name' => $p->bank?->name,
+                    'status' => $p->status,
+                ])->values(),
+        ];
 
         return new AdminCommerceResource($commerce);
     }

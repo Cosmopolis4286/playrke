@@ -44,4 +44,15 @@ final class PlatformConfigService
     {
         $this->config()->update(['default_commerce_id' => $commerce->id]);
     }
+
+    /**
+     * Quita la marca de comercio principal sin reasignarla a otro — la
+     * plataforma queda temporalmente sin comercio principal hasta que un
+     * superadmin marque uno nuevo. La columna es nullable justo para
+     * permitir esto (ver migración de creación de platform_config).
+     */
+    public function clearDefaultCommerce(): void
+    {
+        $this->config()->update(['default_commerce_id' => null]);
+    }
 }

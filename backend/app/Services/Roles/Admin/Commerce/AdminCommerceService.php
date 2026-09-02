@@ -176,4 +176,25 @@ final class AdminCommerceService
 
         $this->platformConfig->setDefaultCommerce($commerce);
     }
+
+    /**
+     * Quitar la marca de comercio principal/vinculado a la app — la
+     * plataforma queda sin comercio principal hasta que se marque otro. Solo
+     * tiene efecto si $commerce es efectivamente el comercio marcado hoy;
+     * si no lo es, no hace nada (evita desmarcar por error el comercio
+     * equivocado si la marca cambió entre que se cargó la pantalla y se
+     * confirmó la acción).
+     *
+     * @param Commerce $commerce Model
+     *
+     * @throws AdminCommerceException Si $commerce no es el comercio principal actual
+     */
+    public function unsetAsDefault(Commerce $commerce): void
+    {
+        if (!$this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::notDefaultCommerce();
+        }
+
+        $this->platformConfig->clearDefaultCommerce();
+    }
 }

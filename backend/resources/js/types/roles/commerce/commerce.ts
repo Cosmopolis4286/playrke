@@ -32,6 +32,55 @@ export interface CommerceGameDetail {
     readonly name: string
 }
 
+export interface CommerceSellerSummary {
+    readonly id: string
+    readonly name: string
+    readonly phone: string
+    readonly status: CommerceStatus
+    readonly status_badge: string
+}
+
+export interface CommerceSubsidiarySummary {
+    readonly id: string
+    readonly name: string
+    readonly status: CommerceStatus
+    readonly status_badge: string
+    readonly sellers: CommerceSellerSummary[]
+}
+
+/** Jerarquía real Comercializadora → Agencia → Vendedor de este comercio. */
+export interface CommerceHierarchy {
+    readonly direct_sellers: CommerceSellerSummary[]
+    readonly subsidiaries: CommerceSubsidiarySummary[]
+    readonly direct_sellers_count: number
+    readonly subsidiaries_count: number
+    readonly subsidiary_sellers_count: number
+    readonly total_sellers_count: number
+}
+
+export interface CommercePagoMovilAccount {
+    readonly id: string
+    readonly holder_name: string
+    readonly phone: string
+    readonly bank_name: string | null
+    readonly status: string
+}
+
+export interface CommercePixKeyAccount {
+    readonly id: string
+    readonly holder_name: string
+    readonly pix_key_type: string
+    readonly pix_key_value: string
+    readonly bank_name: string | null
+    readonly status: string
+}
+
+/** Cuentas de cobro (Directorio) del usuario dueño del comercio. */
+export interface CommerceDirectoryAccounts {
+    readonly pago_movil: CommercePagoMovilAccount[]
+    readonly pix_keys: CommercePixKeyAccount[]
+}
+
 /** Ficha de detalle de solo lectura (GET /admin/commerce/{id}/show). */
 export interface CommerceDetail {
     readonly id: string
@@ -48,4 +97,6 @@ export interface CommerceDetail {
     readonly games_detail: CommerceGameDetail[]
     /** true si este comercio es el principal/vinculado a la app (platform_config.default_commerce_id). */
     readonly is_default_commerce: boolean
+    readonly hierarchy: CommerceHierarchy
+    readonly directory_accounts: CommerceDirectoryAccounts
 }
