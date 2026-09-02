@@ -34,8 +34,6 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('Código único asociado');
 
-            $table->uuid('uuid_code')->unique()->comment('Identificador único universal');
-
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
                 ->default('ACTIVE')
                 ->index();

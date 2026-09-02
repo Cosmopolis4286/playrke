@@ -22,6 +22,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Roles\Commerce::class => \App\Policies\Roles\Admin\AdminCommercePolicy::class,
         \App\Models\Roles\Customer::class => \App\Policies\Roles\Admin\AdminCustomerPolicy::class,
         \App\Models\Roles\Treasurer::class => \App\Policies\Roles\Admin\AdminTreasurerPolicy::class,
+        \App\Models\Roles\Subsidiary::class => \App\Policies\Roles\Admin\AdminSubsidiaryPolicy::class,
         \App\Models\Roles\Seller::class => \App\Policies\Roles\Seller\Manager\ManagerSellerPolicy::class,
         \App\Models\Prize::class => \App\Policies\Prizes\PrizePolicy::class,
         \App\Models\Game::class                                    => \App\Policies\Games\GamePolicy::class,
@@ -59,6 +60,7 @@ class AuthServiceProvider extends ServiceProvider
             $this->defineRoleGate('admin');
             $this->defineRoleGate('commerce', ['commerce', 'admin']);
             $this->defineRoleGate('treasurer', ['treasurer', 'admin']);
+            $this->defineRoleGate('subsidiary', ['subsidiary', 'admin']);
             $this->defineRoleGate('seller', ['seller', 'admin']);
             $this->defineRoleGate('customer');
             $this->defineRoleGate('player');
