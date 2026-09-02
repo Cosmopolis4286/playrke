@@ -80,6 +80,66 @@ final class PlatformWalletService
         Cache::forget($this->cacheKey($currencyId));
     }
 
+    /**
+     * Acredita una comisión de marketplace a la wallet de plataforma, de
+     * forma idempotente — a diferencia de creditRke() (llamada inline desde
+     * una única venta de cartones, sin reintentos), el settlement de un
+     * Escrow (ver App\Domains\Marketplace\Escrow\Services\EscrowService)
+     * puede reintentarse tras un fallo parcial, así que necesita el mismo
+     * patrón idempotency_key que WalletService::recordPrize().
+     */
+    public function creditMarketplaceFee(string $currencyId, float $amount, string $idempotencyKey, string $description = 'Comisión de marketplace'): ?WalletMovement
+    {
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $wallet = $this->ensureWallet($currencyId);
+        if (! $wallet) {
+            return null;
+        }
+
+        try {
+            $movement = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey) {
+                $balanceBefore = (float) $wallet->balance;
+
+                $this->walletRepository->incrementBalance((string) $wallet->id, $amount);
+                $wallet->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id'       => (string) $wallet->id,
+                    'user_id'         => (string) $wallet->user_id,
+                    'type'            => WalletMovement::TYPE_MARKETPLACE_FEE,
+                    'status'          => WalletMovement::STATUS_COMPLETED,
+                    'amount'          => $amount,
+                    'balance_before'  => $balanceBefore,
+                    'balance_after'   => (float) $wallet->balance,
+                    'description'     => $description,
+                    'idempotency_key' => $idempotencyKey,
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Misma carrera que WalletService::recordPrize(): otro proceso ya
+            // acreditó esta clave entre el SELECT de arriba y este INSERT.
+            if (str_contains($e->getMessage(), 'idempotency_key')) {
+                $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existing) {
+                    return $existing;
+                }
+            }
+            throw $e;
+        }
+
+        Cache::forget($this->cacheKey($currencyId));
+
+        return $movement;
+    }
+
     // -------------------------------------------------------------------------
     // Gestión de wallets (depósito / retiro / auto-creación)
     // -------------------------------------------------------------------------

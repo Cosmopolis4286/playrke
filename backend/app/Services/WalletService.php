@@ -548,6 +548,69 @@ final class WalletService
     }
 
     /**
+     * Acredita al vendedor el neto de una venta del Marketplace P2P (precio
+     * menos comisión de plataforma, ya calculado por el caller —
+     * EscrowService::release()). Mismo patrón de idempotencia que
+     * recordPrize(): idempotencyKey determinística
+     * ("marketplace_escrow:{escrowId}:seller_credit") protege contra doble
+     * acreditación si el settlement del escrow se reintenta tras un fallo
+     * parcial. No es un "premio" — se modela con su propio tipo
+     * (MARKETPLACE_SALE, is_credit=true en el catálogo MovementType) para
+     * que el ledger distinga claramente ingresos de juego de ingresos de
+     * marketplace en reportes/auditoría.
+     */
+    public function recordMarketplaceCredit(
+        Wallet $wallet,
+        float $amount,
+        string $description,
+        string $idempotencyKey,
+    ): WalletMovement {
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        try {
+            $movement = DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey) {
+                $walletId      = (string) $wallet->id;
+                $balanceBefore = (float) $wallet->balance;
+
+                // pending_debt se cobra de cualquier crédito entrante, incluida
+                // una venta del marketplace — ver recordRefund() para el porqué.
+                $netAmount = $this->settlePendingDebt($wallet, $amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance($walletId, $netAmount);
+                }
+                $wallet->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id'       => $walletId,
+                    'user_id'         => (string) $wallet->user_id,
+                    'type'            => WalletMovement::TYPE_MARKETPLACE_SALE,
+                    'status'          => WalletMovement::STATUS_COMPLETED,
+                    'amount'          => $amount,
+                    'balance_before'  => $balanceBefore,
+                    'balance_after'   => (float) $wallet->balance,
+                    'description'     => $description,
+                    'idempotency_key' => $idempotencyKey,
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'idempotency_key')) {
+                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existingMovement) {
+                    return $existingMovement;
+                }
+            }
+            throw $e;
+        }
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_MARKETPLACE_SALE, $amount, (string) $movement->id);
+
+        return $movement;
+    }
+
+    /**
      * Revierte un premio ya acreditado (disputa post-pago, ver
      * GamePrizeService::disputeAndReverse()). El débito se TOPA al balance
      * disponible — la BD tiene un CHECK CONSTRAINT real
