@@ -34,7 +34,13 @@ class RegisterRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'terms' => ['accepted'],
-            'cf-turnstile-response' => ['required', new CloudflareTurnstile($this->ip())],
+            // 'required' solo si hay secret key configurada — CloudflareTurnstile
+            // ya falla abierto sin ella (dev/test sin cuenta Cloudflare), pero
+            // 'required' bloqueaba el campo vacío igual, anulando ese fail-open.
+            'cf-turnstile-response' => [
+                config('services.turnstile.secret_key') ? 'required' : 'nullable',
+                new CloudflareTurnstile($this->ip()),
+            ],
         ];
     }
 }
