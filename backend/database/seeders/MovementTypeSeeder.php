@@ -22,6 +22,9 @@ class MovementTypeSeeder extends Seeder
             ['code' => 'RKE_COMMISSION', 'label' => 'Comisión RKE',       'icon' => 'fas fa-percent',    'color' => '#667eea', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null,     'sort_order' => 60, 'visible_roles' => ['admin', 'superadmin', 'commerce', 'customer']],
             ['code' => 'REFUND',         'label' => 'Reembolso',          'icon' => 'fas fa-undo',       'color' => '#0891b2', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null,     'sort_order' => 70, 'visible_roles' => null],
             ['code' => 'PRIZE_REVERSAL', 'label' => 'Reversión de premio (disputa)', 'icon' => 'fas fa-gavel', 'color' => '#b91c1c', 'is_credit' => false, 'requires_approval' => false, 'game_group' => null, 'sort_order' => 80, 'visible_roles' => ['admin', 'superadmin']],
+            ['code' => 'MARKETPLACE_PURCHASE', 'label' => 'Compra en marketplace', 'icon' => 'fas fa-cart-shopping', 'color' => '#e11d48', 'is_credit' => false, 'requires_approval' => false, 'game_group' => null, 'sort_order' => 90, 'visible_roles' => null],
+            ['code' => 'MARKETPLACE_SALE',     'label' => 'Venta en marketplace',  'icon' => 'fas fa-store',         'color' => '#059669', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null, 'sort_order' => 100, 'visible_roles' => null],
+            ['code' => 'MARKETPLACE_FEE',      'label' => 'Comisión de marketplace', 'icon' => 'fas fa-percent',    'color' => '#667eea', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null, 'sort_order' => 110, 'visible_roles' => ['admin', 'superadmin']],
         ];
 
         foreach ($types as $type) {

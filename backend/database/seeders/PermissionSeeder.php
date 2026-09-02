@@ -191,6 +191,14 @@ class PermissionSeeder extends Seeder
             ['name' => 'platform.wallet.view', 'guard_name' => 'web', 'description' => 'Ver billetera de plataforma'],
             ['name' => 'platform.wallet.manage', 'guard_name' => 'web', 'description' => 'Depositar/retirar en la billetera de plataforma'],
 
+            // Marketplace P2P (inventario, listings, órdenes, escrow)
+            ['name' => 'inventory.view', 'guard_name' => 'web', 'description' => 'Ver el propio inventario de activos'],
+            ['name' => 'marketplace.listings.view', 'guard_name' => 'web', 'description' => 'Ver listings del marketplace'],
+            ['name' => 'marketplace.listings.create', 'guard_name' => 'web', 'description' => 'Publicar activos propios en el marketplace'],
+            ['name' => 'marketplace.orders.create', 'guard_name' => 'web', 'description' => 'Comprar activos listados en el marketplace'],
+            ['name' => 'marketplace.orders.view', 'guard_name' => 'web', 'description' => 'Ver las propias órdenes de compra/venta'],
+            ['name' => 'marketplace.manage', 'guard_name' => 'web', 'description' => 'Moderar el marketplace (suspender listings, resolver disputas)'],
+
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],
         ];

@@ -48,6 +48,9 @@ class WalletMovement extends Model
     public const TYPE_TRIVIA_ENTRY   = 'TRIVIA_ENTRY';
     public const TYPE_RKE_COMMISSION = 'RKE_COMMISSION';
     public const TYPE_PRIZE_REVERSAL = 'PRIZE_REVERSAL';
+    public const TYPE_MARKETPLACE_PURCHASE = 'MARKETPLACE_PURCHASE';
+    public const TYPE_MARKETPLACE_SALE     = 'MARKETPLACE_SALE';
+    public const TYPE_MARKETPLACE_FEE      = 'MARKETPLACE_FEE';
 
     public const STATUS_PENDING    = 'PENDING';
     public const STATUS_COMPLETED  = 'COMPLETED';

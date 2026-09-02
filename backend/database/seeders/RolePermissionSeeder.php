@@ -56,6 +56,7 @@ class RolePermissionSeeder extends Seeder
                 'movement-types.view', 'movement-types.manage', // Catálogo de tipos de movimiento
                 'wallet-limits.view', 'wallet-limits.manage', // Límites de depósito/retiro de billetera
                 'external-players.view', 'external-players.create', 'external-players.manage', 'external-players.block', 'external-players.export',
+                'marketplace.listings.view', 'marketplace.orders.view', 'marketplace.manage', // Moderación de marketplace
                 // Trivia - Gestión completa (admin gestiona salas/preguntas pero NO juega como player)
                 'games.trivia.view',
                 'games.trivia.rooms.view', 'games.trivia.rooms.create', 'games.trivia.rooms.edit', 'games.trivia.rooms.delete', 'games.trivia.rooms.manage',
@@ -175,6 +176,8 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.game_rooms', // Acceso a salas de bingo
                 'wallet.view', // Acceso a ver billetera
+                'inventory.view', 'marketplace.listings.view', 'marketplace.listings.create',
+                'marketplace.orders.create', 'marketplace.orders.view', // Marketplace P2P
                 // Trivia - Principal rol para jugar
                 'games.trivia.view',
                 'games.trivia.play',          // Lobby + unirse a salas (role:player en backend)
