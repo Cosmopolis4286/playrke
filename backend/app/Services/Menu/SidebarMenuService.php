@@ -175,6 +175,27 @@ class SidebarMenuService
             ],
         ],
 
+        // Marketplace P2P: inventario y compra/venta de activos digitales
+        // entre jugadores. Ver MARKETPLACE_ARCHITECTURE_AUDIT.md — grupo
+        // separado de "wallet" porque no mueve dinero directamente (eso lo
+        // hace el escrow internamente), es un dominio de activos/comercio.
+        'marketplace' => [
+            'title' => 'Marketplace',
+            'icon' => 'fas fa-store',
+            'submenu' => [
+                'browse' => [
+                    'title' => 'Explorar',
+                    'route' => 'marketplace.index',
+                    'permission' => 'marketplace.listings.view',
+                ],
+                'my_inventory' => [
+                    'title' => 'Mi Inventario',
+                    'route' => 'inventory.index',
+                    'permission' => 'inventory.view',
+                ],
+            ],
+        ],
+
         // ── Administración del sistema ──────────────────────────────────
         'users' => [
             'title' => 'Usuarios',
