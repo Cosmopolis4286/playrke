@@ -33,7 +33,7 @@ class RolePermissionSeeder extends Seeder
         // Admin: Casi todos los permisos excepto los de SuperAdmin
         if ($admin) {
             $adminPermissions = [
-                'users.view', 'users.create', 'users.edit', 'users.manage',
+                'users.view', 'users.create', 'users.edit', 'users.delete', 'users.manage',
                 // 'roles.view', 'roles.assign', // Solo superadmin gestiona roles
                 'commerces.view', 'commerces.create', 'commerces.edit', 'commerces.delete', 'commerces.approve',
                 'sellers.view', 'sellers.create', 'sellers.edit',

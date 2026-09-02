@@ -48,6 +48,8 @@ export interface AdminRole {
     readonly prefix: string | null
     readonly description: string | null
     readonly icon: string | null
+    /** Color de acento del rol (hex, ej. '#2563eb') — mismo campo que usa el Organigrama de Roles y "Gestionar roles". */
+    readonly color: string | null
     readonly sort_order: number
 }
 

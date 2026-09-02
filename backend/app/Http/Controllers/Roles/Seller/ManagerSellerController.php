@@ -83,6 +83,25 @@ final class ManagerSellerController extends Controller
     }
 
     /**
+     * Opciones de "Manager" (sí mismo + sus subsidiaries) para el select de
+     * reasignación en ManagerSellerForm.vue — solo usuarios 'commerce'
+     * (viewAny ya cubre commerce/subsidiary/customer/admin, pero un usuario
+     * 'subsidiary'/'customer' llamando esto simplemente recibe self=null,
+     * subsidiaries=[] al no tener Commerce propio, sin necesidad de una
+     * autorización explícita por rol adicional aquí).
+     *
+     * @return JsonResponse
+     */
+    public function managerOptions(): JsonResponse
+    {
+        $this->authorize('viewAny', Seller::class);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->managerOptions()
+        );
+    }
+
+    /**
      * Mostrar detalle de un vendedor.
      *
      * @param Seller $seller

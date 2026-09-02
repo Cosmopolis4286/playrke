@@ -23,7 +23,7 @@ final class AdminUserContextService
             users:      $data['users'],
             pagination: $data['pagination'],
             countries:  $this->countries->getActive(['id', 'name', 'iso_code_2']),
-            roles:      Role::active()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'prefix', 'description', 'icon', 'sort_order']),
+            roles:      Role::active()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'prefix', 'description', 'icon', 'color', 'sort_order']),
         );
     }
 

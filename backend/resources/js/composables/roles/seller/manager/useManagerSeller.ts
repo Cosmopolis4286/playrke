@@ -212,7 +212,12 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
                 // Currency viene como string (id)
                 currency_id: seller.currency,
                 other_currencies: seller.other_currencies ?? [],
-                allowed_games: seller.allowed_games ?? []
+                allowed_games: seller.allowed_games ?? [],
+                // Precarga el select "Manager" en modo edición (solo admin
+                // lo muestra/envía, ver ManagerSellerForm.vue) — antes
+                // quedaba vacío al editar, dando la impresión de que había
+                // que re-seleccionar un manager para no perder el actual.
+                manager_user_id: seller.manager_user_id ?? null
             }
 
             return true

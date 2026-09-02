@@ -27,6 +27,7 @@ multi_middleware_routes('sellers', 'manager-seller.', [
             'index' => ['method' => 'get', 'uri' => ''],
             'store' => ['method' => 'post', 'uri' => ''],
             'fetchList' => ['method' => 'get', 'uri' => 'fetch-list'],
+            'managerOptions' => ['method' => 'get', 'uri' => 'manager-options', 'action' => 'managerOptions'],
             'show' => ['method' => 'get', 'uri' => '{seller}/show'],
             'update' => ['method' => 'put', 'uri' => '{seller}/update'],
             'delete' => ['method' => 'put', 'uri' => '{seller}/delete'],

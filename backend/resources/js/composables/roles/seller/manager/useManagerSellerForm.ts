@@ -42,12 +42,13 @@ export function useManagerSellerForm(
         const e: Record<string, string> = {}
         const isAdmin = roleUserGetter() === 'admin'
 
+        // admin: manager obligatorio (sistema completo, sin manager
+        // implícito posible). commerce: opcional — omitirlo mantiene el
+        // comportamiento actual (reporta directo a sí mismo), el select solo
+        // existe para permitir mover el seller hacia una de sus propias
+        // subsidiaries. subsidiary: nunca ve el select (no puede reasignar).
         if (isAdmin && !form.value.manager_user_id) {
             e.manager_user_id = 'El manager es requerido.'
-        }
-
-        // Si es admin y aún no seleccionó manager, no validar el resto del form
-        if (isAdmin && !form.value.manager_user_id) {
             return e
         }
 

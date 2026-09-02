@@ -30,13 +30,20 @@ class ManagerSellerContextService
     ) {}
 
     /**
-     * Resuelve el id de la Subsidiary propia de un usuario con rol
-     * 'subsidiary' — necesario porque sus sellers se filtran por
-     * subsidiary_id, no por manager_user_id (ver resolveSellers()).
+     * Condición de filtro para un usuario 'subsidiary' — sus sellers se
+     * filtran por subsidiary_id, no por manager_user_id (ver
+     * resolveSellers()). Si por alguna inconsistencia de datos no se
+     * encuentra la Subsidiary propia, NO se debe caer a
+     * ['subsidiary_id' => null]: Eloquent traduce eso a
+     * `WHERE subsidiary_id IS NULL`, que expondría TODOS los sellers sin
+     * agencia (reportando directo a cualquier Commerce) en vez de una lista
+     * vacía — un id inexistente fuerza cero resultados de forma segura.
      */
-    private function resolveSubsidiaryId(int $managerUserId): ?string
+    private function subsidiaryScopeCondition(int $managerUserId): array
     {
-        return $this->subsidiaryRepository->getByUserId($managerUserId, ['id'])?->id;
+        $subsidiaryId = $this->subsidiaryRepository->getByUserId($managerUserId, ['id'])?->id;
+
+        return ['subsidiary_id' => $subsidiaryId ?? '0'];
     }
 
     /**
@@ -67,7 +74,7 @@ class ManagerSellerContextService
         // su propio id, no manager_user_id.
         $conditions = match (true) {
             $isAdmin => [],
-            $role === 'subsidiary' && $managerUserId => ['subsidiary_id' => $this->resolveSubsidiaryId($managerUserId)],
+            $role === 'subsidiary' && $managerUserId => $this->subsidiaryScopeCondition($managerUserId),
             (bool) $managerUserId => ['manager_user_id' => $managerUserId],
             default => [],
         };

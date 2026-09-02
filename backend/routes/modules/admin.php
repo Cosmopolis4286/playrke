@@ -189,26 +189,34 @@ Route::middleware('auth')->group(function () {
     ];
     role_protected_routes(['role:admin'], 'admin/player', AdminPlayerController::class, $playerRoutes, 'player');
 
-    // Rutas de usuarios (sin store/show — la creación se delega al flujo del rol)
+    // Rutas de usuarios (sin store/show — la creación se delega al flujo del rol).
+    // Protegidas por multiPermission:users.* por acción (no role:admin plano) —
+    // mismo patrón ya usado por Commerce/KYC/external-players. users.view/create/
+    // edit/delete/manage ya estaban sembrados en PermissionSeeder pero nunca se
+    // usaban como middleware real.
     $userRoutes = [
-        'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index'],
-        'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
-        'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export'],
-        'show'          => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show'],
-        'auditHistory'  => ['method' => 'get',    'uri' => '{user}/audit-history', 'action' => 'auditHistory'],
-        'walletHistory' => ['method' => 'get',    'uri' => '{user}/wallet-history', 'action' => 'walletHistory'],
-        'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update'],
-        'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
-        'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
-        'deleteBulk'    => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
-        'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete'],
-        'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],
-        'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],
-        'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance','action' => 'loadWalletBalance'],
-        'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance'],
-        'grantXp'       => ['method' => 'put',    'uri' => '{user}/grant-xp', 'action' => 'grantXp', 'middleware' => 'throttle:admin-grant-xp'],
+        'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index', 'middleware' => 'multiPermission:users.view'],
+        'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList', 'middleware' => 'multiPermission:users.view'],
+        'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export', 'middleware' => 'multiPermission:users.view'],
+        'show'          => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show', 'middleware' => 'multiPermission:users.view'],
+        'auditHistory'  => ['method' => 'get',    'uri' => '{user}/audit-history', 'action' => 'auditHistory', 'middleware' => 'multiPermission:users.view'],
+        'walletHistory' => ['method' => 'get',    'uri' => '{user}/wallet-history', 'action' => 'walletHistory', 'middleware' => 'multiPermission:users.view'],
+        'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update', 'middleware' => 'multiPermission:users.edit'],
+        'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus', 'middleware' => 'multiPermission:users.edit'],
+        'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:users.edit']],
+        'deleteBulk'    => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:users.delete']],
+        'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete', 'middleware' => 'multiPermission:users.delete'],
+        'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy', 'middleware' => 'multiPermission:users.delete'],
+        'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword', 'middleware' => 'multiPermission:users.edit'],
+        'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance','action' => 'loadWalletBalance', 'middleware' => 'multiPermission:users.edit'],
+        'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance', 'middleware' => 'multiPermission:users.view'],
+        'grantXp'       => ['method' => 'put',    'uri' => '{user}/grant-xp', 'action' => 'grantXp', 'middleware' => ['throttle:admin-grant-xp', 'multiPermission:users.edit']],
     ];
-    role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
+    // Rol vacío ([]): role_protected_routes ya antepone 'auth' siempre, y cada
+    // entrada de $userRoutes ya trae su propio multiPermission — un permiso a
+    // nivel de grupo lo apilaría sobre el de cada acción (ej. update exigiría
+    // view Y edit a la vez), redundante.
+    role_protected_routes([], 'admin/user', AdminUserController::class, $userRoutes, 'user');
 
     /**
      * =========================================================
@@ -237,9 +245,10 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      * PERMISOS ESPECÍFICOS POR USUARIO (SOLO SUPERADMIN)
      * =========================================================
-     * Distinto del grupo admin/user de arriba (role:admin): otorgar/revocar
-     * permisos directos a una persona es más sensible que las operaciones
-     * CRUD normales de usuario, así que exige superadmin explícitamente.
+     * Distinto del grupo admin/user de arriba (multiPermission:users.*):
+     * otorgar/revocar permisos directos a una persona es más sensible que
+     * las operaciones CRUD normales de usuario, así que exige superadmin
+     * explícitamente.
      */
     role_protected_routes(['role:superadmin'], 'admin/user', UserPermissionController::class, [
         // Nombres de ruta distintos a los de $userRoutes (arriba, mismo

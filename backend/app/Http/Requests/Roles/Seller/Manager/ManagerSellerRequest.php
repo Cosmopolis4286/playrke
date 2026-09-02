@@ -69,9 +69,14 @@ class ManagerSellerRequest extends BaseRequest
                     if ($value === null) {
                         return;
                     }
-                    $hasValidRole = \Illuminate\Support\Facades\DB::table('model_has_roles')
-                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                        ->where('model_has_roles.model_id', $value)
+                    // role_user (pivot propio del proyecto), no Spatie
+                    // model_has_roles — este proyecto asigna roles vía
+                    // User::roles() -> belongsToMany(Role::class, 'role_user'),
+                    // confirmado contra el pivot real (model_has_roles está
+                    // vacío, es infraestructura de Spatie sin usar aquí).
+                    $hasValidRole = \Illuminate\Support\Facades\DB::table('role_user')
+                        ->join('roles', 'roles.id', '=', 'role_user.role_id')
+                        ->where('role_user.user_id', $value)
                         ->whereIn('roles.name', ['commerce', 'subsidiary'])
                         ->exists();
                     if (!$hasValidRole) {

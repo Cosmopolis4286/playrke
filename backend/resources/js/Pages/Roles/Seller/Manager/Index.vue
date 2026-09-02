@@ -126,7 +126,23 @@
     }))
   )
 
+  // Solo la vista admin trae manager_name (comercio/agencia padre) en cada
+  // fila (ver ManagerSellerContextService::resolveSellers()) — derivado de
+  // los rows ya cargados, mismo criterio "filtro client-side sobre datos
+  // precargados" que el resto de filtros de esta tabla, sin fetch aparte.
+  const managerOptions = computed<TableFilterOption[]>(() => {
+    if (props.roleUser !== 'admin') return []
+    const names = new Set(sellers.value.map(s => s.manager_name).filter((n): n is string => !!n))
+    return [...names].sort().map(name => ({ value: name, label: name }))
+  })
+
   const filters = computed<readonly TableFilterInterface[]>(() => [
+    ...(props.roleUser === 'admin' ? [{
+      key: 'manager_name',
+      label: 'Comercio/Agencia',
+      placeholder: 'Filtrar por comercio o agencia',
+      options: managerOptions.value
+    }] : []),
     {
       key: 'country_name',
       label: 'País',

@@ -62,33 +62,61 @@
   }
 
   /* ==========================================================================
-   * Admin — lista de managers (comercializadoras + agencias activas)
+   * Manager (Commerce/Subsidiary padre) — visibilidad y opciones por rol
    *
    * Jerarquía real: Comercializadora (commerce) → Agencia (subsidiary) →
-   * Taquilla (seller). Un admin puede asignar el vendedor nuevo directo a
-   * una comercializadora o a una agencia específica — antes solo listaba
-   * commerces, sin forma de crear un seller ya vinculado a una Subsidiary.
+   * Taquilla (seller).
+   * - admin: ve TODOS los commerces/subsidiaries activos del sistema,
+   *   select obligatorio (sin manager implícito posible).
+   * - commerce: ve solo A SÍ MISMO + SUS PROPIAS subsidiaries — puede mover
+   *   su seller entre reportar directo o vía una de sus agencias. Select
+   *   opcional (omitirlo = reporta directo, comportamiento previo).
+   * - subsidiary: nunca ve el select — "una sucursal no puede mover un
+   *   vendedor por encima" (ni subir al Commerce padre ni a otra agencia).
+   *   Backend (ManagerSellerService::update()) ya lo refuerza aunque el
+   *   campo llegara igual.
    * ========================================================================== */
+
+  const showManagerSelect = computed(() => props.roleUser === 'admin' || props.roleUser === 'commerce')
 
   const managers = ref<ManagerOption[]>([])
   const loadingManagers = ref(false)
 
   async function fetchManagers(): Promise<void> {
-    if (props.roleUser !== 'admin') return
     try {
       loadingManagers.value = true
       const { default: backendClient } = await import('@/js/plugins/axios')
-      const [commercesRes, subsidiariesRes] = await Promise.all([
-        backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/commerce'),
-        backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/subsidiary'),
-      ])
-      const commerceOptions = Array.isArray(commercesRes.data)
-        ? commercesRes.data.map(m => ({ id: m.user_id, name: `${m.name} (Comercializadora)` }))
-        : []
-      const subsidiaryOptions = Array.isArray(subsidiariesRes.data)
-        ? subsidiariesRes.data.map(m => ({ id: m.user_id, name: `${m.name} (Agencia)` }))
-        : []
-      managers.value = [...commerceOptions, ...subsidiaryOptions]
+
+      if (props.roleUser === 'admin') {
+        const [commercesRes, subsidiariesRes] = await Promise.all([
+          backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/commerce'),
+          backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/subsidiary'),
+        ])
+        const commerceOptions = Array.isArray(commercesRes.data)
+          ? commercesRes.data.map(m => ({ id: m.user_id, name: `${m.name} (Comercializadora)` }))
+          : []
+        const subsidiaryOptions = Array.isArray(subsidiariesRes.data)
+          ? subsidiariesRes.data.map(m => ({ id: m.user_id, name: `${m.name} (Agencia)` }))
+          : []
+        managers.value = [...commerceOptions, ...subsidiaryOptions]
+        return
+      }
+
+      if (props.roleUser === 'commerce') {
+        // Propio comercio + sus subsidiaries — endpoint dedicado, acotado
+        // server-side (no reutiliza /admin/get-user-info, que lista TODO el
+        // sistema y expondría comercios/agencias ajenas).
+        const { data } = await backendClient.get<{
+          self: { user_id: number | string; name: string }
+          subsidiaries: Array<{ user_id: number | string; name: string }>
+        }>('/sellers/manager-options')
+
+        const selfOption = data.self ? [{ id: data.self.user_id, name: `${data.self.name} (Yo mismo)` }] : []
+        const subsidiaryOptions = Array.isArray(data.subsidiaries)
+          ? data.subsidiaries.map(m => ({ id: m.user_id, name: `${m.name} (Mi agencia)` }))
+          : []
+        managers.value = [...selfOption, ...subsidiaryOptions]
+      }
     } catch {
       managers.value = []
     } finally {
@@ -96,14 +124,17 @@
     }
   }
 
-  if (props.roleUser === 'admin') {
+  if (showManagerSelect.value) {
     fetchManagers()
   }
 
   /* ==========================================================================
    * Visibilidad del formulario del seller
-   * Para admin: solo mostrar si ya seleccionó un manager
-   * Para otros roles: siempre mostrar
+   * Para admin: solo mostrar si ya seleccionó un manager (sin manager
+   * implícito posible en un sistema completo).
+   * Para commerce: siempre mostrar — el select es opcional (omitirlo =
+   * reporta directo a sí mismo, igual que antes de tener el select).
+   * Para el resto: siempre mostrar (no hay select).
    * ========================================================================== */
 
   const showSellerForm = computed<boolean>(() => {
@@ -238,17 +269,18 @@
 
 <template>
   <form id="seller-form" novalidate @submit.prevent="submit">
-    <div v-if="roleUser === 'admin'" class="row mb-3">
+    <div v-if="showManagerSelect" class="row mb-3">
       <FormSelect
-        label="Manager (Comercializadora o Agencia)"
+        :label="roleUser === 'admin' ? 'Manager (Comercializadora o Agencia)' : 'Reporta a'"
         name="manager_user_id"
-        required
-        placeholder="Seleccionar manager"
+        :required="roleUser === 'admin'"
+        :placeholder="roleUser === 'admin' ? 'Seleccionar manager' : 'Yo mismo (por defecto)'"
         :options="managers"
         optionValue="id"
         optionLabel="name"
         col="col-sm-12"
         :error="errors.manager_user_id"
+        :hint="roleUser === 'commerce' ? 'Elige una de tus agencias para que el vendedor reporte a través de ella, o déjalo vacío para que reporte directo a ti.' : undefined"
         :disabled="loadingManagers"
         v-model="form.manager_user_id"
       />

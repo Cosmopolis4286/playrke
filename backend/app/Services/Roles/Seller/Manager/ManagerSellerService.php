@@ -2,6 +2,7 @@
 
 namespace App\Services\Roles\Seller\Manager;
 
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
@@ -11,6 +12,7 @@ use App\Services\User\UserPasswordService;
 use App\Services\Roles\Seller\Manager\ManagerSellerCrudService;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
 use App\Services\Security\UserContextService;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Servicio de aplicación para exponer
@@ -32,6 +34,7 @@ final class ManagerSellerService
         private readonly UserPasswordService $userPasswordService,
         private readonly RoleUserService $roleUserService,
         private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
+        private readonly CommerceRepositoryInterface $commerceRepository,
     ) {}
 
     /**
@@ -124,6 +127,41 @@ final class ManagerSellerService
     }
 
     /**
+     * Opciones de "Manager" para el select de reasignación de un usuario
+     * 'commerce' — acotadas server-side a sí mismo + sus propias
+     * subsidiaries (nunca expone comercios/agencias ajenas, a diferencia de
+     * /admin/get-user-info, que lista todo el sistema y solo admin debe
+     * poder consultar).
+     *
+     * @param string|null $publicToken Token público de API
+     * @return array{self: array{user_id: string, name: string}|null, subsidiaries: array<int, array{user_id: string, name: string}>}
+     */
+    public function managerOptions(?string $publicToken = null): array
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        $commerce = $this->commerceRepository->getByUserId($userId, ['id', 'user_id', 'name']);
+
+        if (!$commerce) {
+            return ['self' => null, 'subsidiaries' => []];
+        }
+
+        $subsidiaries = $this->subsidiaryRepository->getByCommerce($commerce->id)
+            ->load('user:id')
+            ->map(fn ($subsidiary) => [
+                'user_id' => (string) $subsidiary->user_id,
+                'name'    => $subsidiary->name,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'self' => ['user_id' => (string) $commerce->user_id, 'name' => $commerce->name],
+            'subsidiaries' => $subsidiaries,
+        ];
+    }
+
+    /**
      * Obtener un vendedor para visualización.
      *
      * @param Seller $seller Model
@@ -139,19 +177,24 @@ final class ManagerSellerService
     /**
      * Actualizar un vendedor.
      *
-     * Reasignación de padre (Commerce/Subsidiary): solo si el DTO trae
-     * manager_user_id (únicamente lo envía admin — ver
-     * ManagerSellerForm.vue, el select "Manager" solo se muestra para
-     * roleUser === 'admin'). Un commerce/subsidiary editando SU PROPIO
-     * seller (ownership ya validado por ManagerSellerPolicy::ownsSeller())
-     * nunca reasigna: mover un seller a otro árbol de negocio es una
-     * decisión administrativa, no algo que el dueño actual deba poder hacer
-     * sobre sí mismo.
+     * Reasignación de padre (Commerce/Subsidiary), si el DTO trae
+     * manager_user_id (ver ManagerSellerForm.vue):
+     * - admin: puede apuntar a cualquier Commerce o Subsidiary del sistema.
+     * - commerce: solo puede mover SU PROPIO seller entre reportar directo a
+     *   sí mismo o a cualquiera de SUS PROPIAS subsidiaries (jerarquía
+     *   Commerce → Subsidiary → Seller) — nunca a otro comercio ajeno.
+     * - subsidiary: no reasigna en absoluto — "una sucursal no puede mover
+     *   un vendedor por encima" (no puede subir el seller a su Commerce
+     *   padre ni moverlo a otra agencia). Cualquier manager_user_id que
+     *   llegue de un subsidiary se ignora.
+     * Ownership del seller ACTUAL ya lo valida ManagerSellerPolicy::
+     * ownsSeller() vía authorizeResource() antes de llegar aquí — esto valida
+     * el DESTINO de la reasignación, que la Policy no cubre.
      *
      * @param Seller $seller Model
      * @param ManagerSellerDTO $dto DTO con datos actualizados
      *
-     * @throws ManagerSellerException Si falla la actualización
+     * @throws ManagerSellerException Si falla la actualización o el destino no es válido
      */
     public function update(Seller $seller, ManagerSellerDTO $dto): void
     {
@@ -159,7 +202,30 @@ final class ManagerSellerService
         $subsidiaryId = null;
 
         if ($dto->managerUserId !== null) {
-            [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);
+            $actor = Auth::user();
+            $actorRole = $actor ? $this->roleUserService->getActiveUserRolePrefix((int) $actor->id) : null;
+
+            if ($actorRole === 'admin') {
+                [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);
+            } elseif ($actorRole === 'commerce') {
+                [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);
+
+                $ownCommerce = $this->commerceRepository->getByUserId((int) $actor->id, ['id', 'user_id']);
+
+                if (!$ownCommerce || (string) $managerUserId !== (string) $ownCommerce->user_id) {
+                    throw ManagerSellerException::creationFailed();
+                }
+
+                if ($subsidiaryId !== null) {
+                    $targetSubsidiary = $this->subsidiaryRepository->getByUserId((int) $dto->managerUserId, ['id', 'commerce_id']);
+
+                    if (!$targetSubsidiary || (string) $targetSubsidiary->commerce_id !== (string) $ownCommerce->id) {
+                        throw ManagerSellerException::creationFailed();
+                    }
+                }
+            }
+            // 'subsidiary' (y cualquier otro rol) — sin bloque: managerUserId
+            // queda null, manager_user_id/subsidiary_id del seller no cambian.
         }
 
         $this->crud->update($seller, $dto, $managerUserId, $subsidiaryId);

@@ -5,6 +5,7 @@ import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
 import type { AdminUser, AdminUserEditData } from '@/js/types/roles/admin/admin-user'
+import { ROLE_DETAIL_ROUTE_MAP } from '@/js/types/roles/admin/admin-user'
 import type { Pagination } from '@/js/types/common/table/pagination'
 import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
@@ -33,21 +34,6 @@ interface UseAdminUserReturn {
     loadWalletBalance: (id: string | number, amount: number, reason?: string) => Promise<boolean>
     getWalletBalance: (id: string | number) => Promise<{ balance: number, currency: any } | null>
     grantXp: (id: string | number, amount: number, reason?: string) => Promise<boolean>
-}
-
-/**
- * Mapa rol.name → ruta Inertia de creación. 'admin' no tiene una vista de
- * alta propia todavía (ver AdministratorController) — redirige al listado
- * de administradores existente, no a un formulario de registro.
- */
-const ROLE_ROUTES: Record<string, string> = {
-    admin:      '/admins',
-    commerce:   '/admin/commerces',
-    subsidiary: '/admin/subsidiaries',
-    customer:   '/admin/customers',
-    player:     '/admin/players',
-    seller:     '/admin/sellers',
-    treasurer:  '/admin/treasurers',
 }
 
 export function useAdminUser(): UseAdminUserReturn {
@@ -108,7 +94,7 @@ export function useAdminUser(): UseAdminUserReturn {
      * UserCreateRoleForm.vue tras seleccionar una tarjeta de rol.
      */
     function redirectToRoleCreation(roleName: string): void {
-        const route = ROLE_ROUTES[roleName.toLowerCase()]
+        const route = ROLE_DETAIL_ROUTE_MAP[roleName.toLowerCase()]
         if (route) {
             router.visit(route)
         }
