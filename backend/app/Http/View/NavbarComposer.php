@@ -40,19 +40,34 @@ class NavbarComposer
             ->first();
 
         $user = Auth::user();
-        $user->loadMissing('userLevel');
 
-        // Indicador discreto (badge de conteo, no notificación push) —
-        // las misiones se resetean cada día, así que empujar una
-        // notificación diaria de "misiones nuevas disponibles" se vuelve
-        // ruido rápido; el badge es visible siempre sin interrumpir.
-        $missionsToday = $this->dailyMissionService->todayStatus($user);
-        $missionsPending = $missionsToday->filter(fn (array $row) => ! $row['completed'])->count();
+        // Nivel/XP y misiones diarias son datos exclusivos de jugador
+        // (games_played_count, games_won_count, total_winnings, wallet de
+        // jugador) — el resto de roles (admin, commerce, treasurer,
+        // subsidiary, seller, customer, superadmin) nunca generan esos
+        // datos, así que sin este gate el navbar les mostraba "Nivel 1,
+        // 0/1000 XP" y un badge de "misiones pendientes" que nunca podrán
+        // completar por una vía legítima. Mismo criterio ya usado arriba
+        // para navPendingCount (ROLES_PENDING_MOVEMENTS). Se evita también
+        // la query de userLevel/todayStatus para quien no la necesita.
+        $isPlayer = $user->hasRole('player');
+
+        $missionsPending = 0;
+        if ($isPlayer) {
+            $user->loadMissing('userLevel');
+
+            // Indicador discreto (badge de conteo, no notificación push) —
+            // las misiones se resetean cada día, así que empujar una
+            // notificación diaria de "misiones nuevas disponibles" se vuelve
+            // ruido rápido; el badge es visible siempre sin interrumpir.
+            $missionsToday = $this->dailyMissionService->todayStatus($user);
+            $missionsPending = $missionsToday->filter(fn (array $row) => ! $row['completed'])->count();
+        }
 
         $view->with([
             'navWallet'          => $wallet,
             'navUser'            => $user,
-            'navUserLevel'       => $user->userLevel,
+            'navUserLevel'       => $isPlayer ? $user->userLevel : null,
             'navBreadcrumb'      => $this->menuService->getBreadcrumb(),
             'navPendingCount'    => $user->hasRole(self::ROLES_PENDING_MOVEMENTS)
                 ? $this->menuService->pendingWalletMovementsCount()

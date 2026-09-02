@@ -10,9 +10,15 @@
     </div>
 
     <div class="header-inner">
-      <ProfileIdentityCard :user="user" :level="stats.level ?? 1" @open-avatar="$emit('open-avatar')" />
+      <ProfileIdentityCard
+        :user="user"
+        :level="stats.level ?? 1"
+        :show-level="isPlayer"
+        @open-avatar="$emit('open-avatar')"
+      />
 
       <ProfileQuickStats
+        v-if="isPlayer"
         :stats="stats"
         :missions-pending="missionsPending"
         :missions-total="missionsTotal"
@@ -43,6 +49,8 @@ defineProps<{
     formatCurrency: (amount: number | null, currency: unknown) => string
     missionsPending?: number
     missionsTotal?: number
+    /** Gamificación (nivel/XP/partidas/logros/racha/misiones) es exclusiva de player — ver ProfileTabs.vue para el detalle de por qué. */
+    isPlayer?: boolean
 }>()
 
 defineEmits<{
@@ -78,7 +86,10 @@ defineEmits<{
 /* Grid de 3 zonas: identidad | stats | acciones — más predecible que flex
    puro con wrap para distribuir el espacio disponible sin que las 3 zonas
    compitan de forma impredecible en anchos intermedios (~900-1200px, el
-   rango donde el layout anterior se apretaba). */
+   rango donde el layout anterior se apretaba). Para roles sin stats de
+   gamificación (ver isPlayer en el script) ProfileQuickStats no se
+   renderiza — :has() reacomoda a 2 columnas para no dejar un hueco vacío
+   donde iban las stats. */
 .header-inner {
     display: grid;
     grid-template-columns: minmax(240px, 1.3fr) minmax(200px, 1fr) minmax(200px, 0.9fr);
@@ -86,6 +97,9 @@ defineEmits<{
     gap: 1.5rem;
     position: relative;
     z-index: 1;
+}
+.header-inner:not(:has(.quick-stats)) {
+    grid-template-columns: minmax(240px, 1.4fr) minmax(200px, 1fr);
 }
 
 /* Pantallas medianas: stats pasa a compartir fila con acciones, debajo de
