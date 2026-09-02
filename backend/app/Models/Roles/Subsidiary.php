@@ -53,6 +53,7 @@ class Subsidiary extends BaseModel
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',
             'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
             'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
+            'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
             default => '<span class="badge badge-warning">Desconocido</span>'
         };
     }

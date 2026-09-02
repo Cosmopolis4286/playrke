@@ -50,10 +50,13 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('Moneda utilizada');
 
-            // Estado de la sucursal
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+            // Estado de la sucursal — incluye DELETED: AdminSubsidiaryCrudService::delete()
+            // (soft delete admin, igual que Treasurer/Commerce) marca status='DELETED'
+            // antes de softDeletes(); sin este valor el ENUM trunca el update
+            // (SQLSTATE 01000 "Data truncated for column 'status'").
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
                 ->default('ACTIVE')
-                ->comment('Estado activo/inactivo');
+                ->comment('Estado activo/inactivo/bloqueado/eliminado');
 
             // Timestamps automáticos
             $table->timestamps();

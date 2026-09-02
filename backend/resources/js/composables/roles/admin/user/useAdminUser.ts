@@ -43,6 +43,7 @@ interface UseAdminUserReturn {
 const ROLE_ROUTES: Record<string, string> = {
     admin:      '/admins',
     commerce:   '/admin/commerces',
+    subsidiary: '/admin/subsidiaries',
     customer:   '/admin/customers',
     player:     '/admin/players',
     seller:     '/admin/sellers',

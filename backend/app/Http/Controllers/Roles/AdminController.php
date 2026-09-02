@@ -125,6 +125,26 @@ class AdminController extends Controller
     }
 
     /**
+     * Muestra el listado de sucursales usando Inertia.
+     *
+     * @return Response
+     */
+    public function subsidiaries(): Response
+    {
+        return $this->handleServiceInertia(
+            function () {
+                $response = $this->service->context('subsidiaries');
+
+                $response['title'] = 'Sucursales';
+                $response['openId'] = request('open');
+
+                return Inertia::render('Roles/Admin/Subsidiary/Index', $response);
+            },
+            'No se pudo cargar la lista de sucursales.'
+        );
+    }
+
+    /**
      * Muestra el listado de todos los usuarios usando Inertia.
      *
      * @return Response

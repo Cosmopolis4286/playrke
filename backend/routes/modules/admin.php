@@ -5,6 +5,7 @@ use App\Http\Controllers\Roles\AdminController;
 use App\Http\Controllers\Roles\Admin\AdminCommerceController;
 use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
+use App\Http\Controllers\Roles\Admin\AdminSubsidiaryController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\Admin\ExternalPlayerAdminController;
@@ -136,19 +137,42 @@ Route::middleware('auth')->group(function () {
     ];
 
     /**
-     * Commerce: array propio (copia de $adminCrudRoutes + export/bulk),
-     * mismo criterio que $playerRoutes más abajo — Customer/Treasurer siguen
-     * en el CRUD genérico hasta que se les aplique el mismo patrón.
+     * Commerce: array propio (copia de $adminCrudRoutes + export/bulk/
+     * setAsDefault), mismo criterio que $playerRoutes más abajo —
+     * Customer/Treasurer siguen en el CRUD genérico hasta que se les
+     * aplique el mismo patrón.
+     *
+     * Protegido por multiPermission:commerces.* por acción (no role:admin
+     * plano) — mismo patrón ya usado por KYC/external-players. Se usa
+     * array_replace_recursive() sobre $adminCrudRoutes en vez de agregarle
+     * 'middleware' directo a sus entradas, porque ese array es compartido
+     * con customer/treasurer (deben seguir bajo role:admin, sin tocar).
      */
-    $commerceRoutes = $adminCrudRoutes + [
-        'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export'],
-        'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
-        'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
+    $commerceRoutes = array_replace_recursive($adminCrudRoutes, [
+        'fetchList'     => ['middleware' => 'multiPermission:commerces.view'],
+        'show'          => ['middleware' => 'multiPermission:commerces.view'],
+        'store'         => ['middleware' => 'multiPermission:commerces.create'],
+        'update'        => ['middleware' => 'multiPermission:commerces.edit'],
+        'toggleStatus'  => ['middleware' => 'multiPermission:commerces.edit'],
+        'resetPassword' => ['middleware' => 'multiPermission:commerces.edit'],
+        'delete'        => ['middleware' => 'multiPermission:commerces.delete'],
+        'destroy'       => ['middleware' => 'multiPermission:commerces.delete'],
+    ]) + [
+        'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:commerces.view'],
+        'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.edit']],
+        'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.delete']],
+        'setAsDefault'     => ['method' => 'put',  'uri' => '{id}/set-as-default', 'action' => 'setAsDefault', 'middleware' => 'multiPermission:commerces.edit'],
     ];
-    role_protected_routes(['role:admin'], 'admin/commerce', AdminCommerceController::class, $commerceRoutes, 'commerce');
+
+    // Rol vacío ([]): role_protected_routes ya antepone 'auth' siempre, y
+    // cada entrada de $commerceRoutes ya trae su propio multiPermission —
+    // agregar un permiso a nivel de grupo lo apilaría sobre el de cada
+    // acción individual (ej. store exigiría view Y create a la vez).
+    role_protected_routes([], 'admin/commerce', AdminCommerceController::class, $commerceRoutes, 'commerce');
 
     role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'treasurer');
+    role_protected_routes(['role:admin'], 'admin/subsidiary', AdminSubsidiaryController::class, $adminCrudRoutes, 'subsidiary');
 
     /**
      * Rutas de jugadores: array propio (copia de $adminCrudRoutes + export/

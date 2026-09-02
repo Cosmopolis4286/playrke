@@ -9,6 +9,7 @@ use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use App\Models\Roles\Treasurer;
 use App\Models\User;
 use App\Services\Dashboard\DashboardWidgetFilter;
@@ -121,6 +122,7 @@ final class AdminDashboardContextService
         $permissions = [
             'Administradores' => null,
             'Comercios'       => 'commerces.view',
+            'Sucursales'      => 'commerces.view',
             'Vendedores'      => 'sellers.view',
             'Clientes'        => 'customers.view',
             'Jugadores'       => null,
@@ -198,6 +200,10 @@ final class AdminDashboardContextService
                 'label' => 'Comercios', 'value' => Commerce::count(), 'icon' => 'fas fa-building',
                 'variant' => 'primary', 'href' => '/admin/commerces',
             ], $this->buildWeeklyTrend(Commerce::query())),
+            array_merge([
+                'label' => 'Sucursales', 'value' => Subsidiary::count(), 'icon' => 'fas fa-code-branch',
+                'variant' => 'info', 'href' => '/admin/subsidiaries',
+            ], $this->buildWeeklyTrend(Subsidiary::query())),
             array_merge([
                 'label' => 'Vendedores', 'value' => Seller::count(), 'icon' => 'fas fa-user-tie',
                 'variant' => 'success', 'href' => '/admin/sellers',

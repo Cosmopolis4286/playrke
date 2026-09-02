@@ -46,6 +46,9 @@ export interface AdminRole {
     readonly id: string | number
     readonly name: string
     readonly prefix: string | null
+    readonly description: string | null
+    readonly icon: string | null
+    readonly sort_order: number
 }
 
 export interface AdminUserDetailAudit {
@@ -183,6 +186,7 @@ export interface AdminUserPageProps {
  */
 export const ROLE_ROUTE_MAP: Record<string, string> = {
     commerce:   '/admin/commerces',
+    subsidiary: '/admin/subsidiaries',
     customer:   '/admin/customers',
     player:     '/admin/players',
     seller:     '/admin/sellers',

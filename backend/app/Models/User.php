@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use App\Models\Roles\Treasurer;
 use App\Models\UserLevel;
 use App\Models\Wallet;
@@ -311,6 +312,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function treasurer(): HasOne
     {
         return $this->hasOne(Treasurer::class, 'user_id');
+    }
+
+    /**
+     * Sucursal asociada (si rol subsidiary)
+     *
+     * @return HasOne<Subsidiary>
+     */
+    public function subsidiary(): HasOne
+    {
+        return $this->hasOne(Subsidiary::class, 'user_id');
     }
 
     /**

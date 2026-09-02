@@ -398,7 +398,15 @@ abstract class BaseRepository implements BaseRepositoryInterface
                     }
                 }
 
-                if (!$userRelation) $this->softDeleteRelatedUser($model, $status);
+                // Bug corregido: antes solo llamaba a softDeleteRelatedUser()
+                // cuando $userRelation NO se pasaba (usando su default 'user'
+                // interno), y sin propagar el parámetro. Pasar userRelation
+                // explícitamente (ej. AdminTreasurerCrudService::delete(),
+                // AdminSubsidiaryCrudService::delete()) desactivaba por
+                // completo el soft-delete del User asociado, contradiciendo
+                // el docblock del método — el dominio quedaba DELETED pero su
+                // User seguía ACTIVE.
+                if ($userRelation) $this->softDeleteRelatedUser($model, $status, $userRelation);
 
                 $model->delete();
             });

@@ -24,6 +24,7 @@ final class ContextResolverService
         private readonly \App\Services\Roles\Admin\User\AdminUserContextService               $userContextService,
         private readonly \App\Services\Roles\Seller\Manager\ManagerSellerContextService       $sellerContextService,
         private readonly \App\Services\Roles\Admin\Treasurer\AdminTreasurerContextService     $treasurerContextService,
+        private readonly \App\Services\Roles\Admin\Subsidiary\AdminSubsidiaryContextService   $subsidiaryContextService,
         private readonly \App\Services\Roles\Player\Dashboard\PlayerDashboardContextService   $playerDashboardContextService,
         private readonly \App\Services\Roles\Commerce\Dashboard\CommerceDashboardContextService $commerceDashboardContextService,
         private readonly \App\Services\Roles\Seller\Dashboard\SellerDashboardContextService   $sellerDashboardContextService,
@@ -51,6 +52,7 @@ final class ContextResolverService
             'users'      => $this->userContextService->userContext(),
             'sellers'    => $this->sellerContextService->resolve(),
             'treasurers' => $this->treasurerContextService->treasurerContext(),
+            'subsidiaries' => $this->subsidiaryContextService->subsidiaryContext(),
             default      => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
         };
     }

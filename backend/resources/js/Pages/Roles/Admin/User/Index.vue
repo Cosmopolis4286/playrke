@@ -645,7 +645,7 @@
     }
   ]
 
-  const WALLET_LOAD_ELIGIBLE_ROLES = ['commerce', 'seller', 'player']
+  const WALLET_LOAD_ELIGIBLE_ROLES = ['commerce', 'subsidiary', 'seller', 'player']
 
   function isLoadWalletBalanceVisible(selectedIds: string[]): boolean {
     if (selectedIds.length !== 1) return false

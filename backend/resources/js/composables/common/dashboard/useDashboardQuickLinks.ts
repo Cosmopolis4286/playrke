@@ -26,6 +26,7 @@ const SYSTEM_LINKS: QuickLinkDef[] = [
 const ENTITY_LINKS: QuickLinkDef[] = [
   { label: 'Usuarios',   description: 'Gestionar todos los usuarios',  icon: 'fas fa-users',      href: '/admin/users',      variant: 'primary' },
   { label: 'Comercios',  description: 'Gestionar comercializadoras',   icon: 'fas fa-building',   href: '/admin/commerces',  variant: 'info',      countsFrom: 'Comercios' },
+  { label: 'Sucursales', description: 'Gestionar agencias/sucursales', icon: 'fas fa-code-branch', href: '/admin/subsidiaries', variant: 'info',   countsFrom: 'Sucursales' },
   { label: 'Vendedores', description: 'Gestionar vendedores',          icon: 'fas fa-user-tie',   href: '/admin/sellers',    variant: 'success',   countsFrom: 'Vendedores' },
   { label: 'Clientes',   description: 'Gestionar clientes',            icon: 'fas fa-handshake',  href: '/admin/customers',  variant: 'warning',   countsFrom: 'Clientes' },
   { label: 'Jugadores',  description: 'Gestionar jugadores',           icon: 'fas fa-gamepad',    href: '/admin/players',    variant: 'secondary', countsFrom: 'Jugadores' },

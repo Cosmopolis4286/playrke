@@ -251,7 +251,7 @@ final class AdminUserService
     /**
      * Roles que pueden recibir carga de saldo manual desde el panel admin.
      */
-    private const WALLET_LOAD_ALLOWED_ROLES = ['commerce', 'seller', 'player'];
+    private const WALLET_LOAD_ALLOWED_ROLES = ['commerce', 'subsidiary', 'seller', 'player'];
 
     /** Tope de eventos mostrados en "Actividad reciente" dentro de la ficha. */
     private const RECENT_AUDITS_LIMIT = 10;

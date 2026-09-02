@@ -35,7 +35,7 @@ class RolePermissionSeeder extends Seeder
             $adminPermissions = [
                 'users.view', 'users.create', 'users.edit', 'users.manage',
                 // 'roles.view', 'roles.assign', // Solo superadmin gestiona roles
-                'commerces.view', 'commerces.create', 'commerces.edit', 'commerces.approve',
+                'commerces.view', 'commerces.create', 'commerces.edit', 'commerces.delete', 'commerces.approve',
                 'sellers.view', 'sellers.create', 'sellers.edit',
                 'customers.view', 'customers.create', 'customers.edit',
                 'treasury.view', 'treasury.reports',

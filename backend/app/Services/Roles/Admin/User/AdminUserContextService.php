@@ -23,7 +23,7 @@ final class AdminUserContextService
             users:      $data['users'],
             pagination: $data['pagination'],
             countries:  $this->countries->getActive(['id', 'name', 'iso_code_2']),
-            roles:      Role::active()->orderBy('name')->get(['id', 'name', 'prefix']),
+            roles:      Role::active()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'prefix', 'description', 'icon', 'sort_order']),
         );
     }
 
@@ -42,6 +42,7 @@ final class AdminUserContextService
                 // Solo 'id' — necesario para resolver domain_id (botón "Ver
                 // más" -> página dedicada del rol), no se expone nada más.
                 'commerce:id,user_id',
+                'subsidiary:id,user_id',
                 'seller:id,user_id',
                 'customer:id,user_id',
                 'treasurer:id,user_id',
@@ -206,6 +207,7 @@ final class AdminUserContextService
             // dejando el botón "Ver más" sin aparecer para ese rol).
             $row['domain_id'] = match ($row['role_name']) {
                 'commerce'  => $user?->commerce?->hashed_id,
+                'subsidiary' => $user?->subsidiary?->hashed_id,
                 'seller'    => $user?->seller?->hashed_id,
                 'customer'  => $user?->customer?->id,
                 'treasurer' => $user?->treasurer?->hashed_id,

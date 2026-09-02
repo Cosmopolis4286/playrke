@@ -1,6 +1,7 @@
 <script setup lang="ts" name="UserCreateRoleForm">
   import { computed } from 'vue'
   import type { AdminRole } from '@/js/types/roles/admin/admin-user'
+  import { formatRoleName, sortByRoleHierarchy } from '@/js/utils/roles/roleDisplay'
 
   /* ==========================================================================
    * Props
@@ -21,27 +22,25 @@
   }>()
 
   /** Mapa rol.name (lowercase) → disponibilidad de vista de creación/gestión propia. */
-  const ROLE_ROUTES = ['admin', 'commerce', 'customer', 'player', 'seller', 'treasurer']
+  const ROLE_ROUTES = ['admin', 'commerce', 'subsidiary', 'customer', 'player', 'seller', 'treasurer']
 
-  const ROLE_META: Record<string, { icon: string; description: string }> = {
-    admin: { icon: 'fas fa-user-shield', description: 'Administra el panel con permisos amplios.' },
-    commerce: { icon: 'fas fa-store', description: 'Comercio afiliado que gestiona ventas y comisiones.' },
-    customer: { icon: 'fas fa-user', description: 'Cliente final que participa en los juegos.' },
-    player: { icon: 'fas fa-gamepad', description: 'Jugador registrado en la plataforma.' },
-    seller: { icon: 'fas fa-cash-register', description: 'Vendedor de cartones/tickets en punto físico.' },
-    treasurer: { icon: 'fas fa-hand-holding-usd', description: 'Gestiona movimientos y cierres de caja.' },
-  }
-
+  /**
+   * Mismo nombre, descripción, ícono y orden que "Gestionar roles" y el
+   * Organigrama de Roles (RoleHierarchyService::DOMAIN_TREE, Role.description/
+   * icon/sort_order en BD) — antes esta tarjeta tenía su propio texto
+   * hardcodeado (ROLE_META) que no coincidía con esas dos pantallas.
+   */
   const availableRoles = computed(() =>
-    props.roles
-      .filter(r => ROLE_ROUTES.includes(r.name.toLowerCase()))
-      .filter(r => r.name.toLowerCase() !== 'admin' || props.isSuperadmin)
-      .map(r => ({
-        key: r.name.toLowerCase(),
-        label: r.name.charAt(0).toUpperCase() + r.name.slice(1),
-        icon: ROLE_META[r.name.toLowerCase()]?.icon ?? 'fas fa-user-plus',
-        description: ROLE_META[r.name.toLowerCase()]?.description ?? '',
-      }))
+    sortByRoleHierarchy(
+      props.roles
+        .filter(r => ROLE_ROUTES.includes(r.name.toLowerCase()))
+        .filter(r => r.name.toLowerCase() !== 'admin' || props.isSuperadmin)
+    ).map(r => ({
+      key: r.name.toLowerCase(),
+      label: formatRoleName(r.name),
+      icon: r.icon ?? 'fas fa-user-plus',
+      description: r.description ?? '',
+    }))
   )
 
   /** Cada tarjeta redirige de inmediato — no hay paso de confirmación aparte. */

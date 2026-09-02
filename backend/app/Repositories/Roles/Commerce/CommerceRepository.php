@@ -86,14 +86,18 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
     }
 
     /**
-     * Obtiene comercios por moneda
+     * Obtiene comercios que manejan una moneda dada (relación many-to-many
+     * vía pivote commerces_currencies — no existe columna currency_id en
+     * commerces).
      *
      * @param mixed $currencyId ID de la moneda
      * @return Collection
      */
     public function getByCurrency($currencyId): Collection
     {
-        return $this->model->where('currency_id', $currencyId)->get();
+        return $this->model
+            ->whereHas('currencies', fn ($q) => $q->where('currencies.id', $currencyId))
+            ->get();
     }
 
     /**
