@@ -217,7 +217,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(SellerDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'period'],
+            ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'ranking', 'period'],
             array_keys($view)
         );
 
@@ -237,7 +237,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(PlayerDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'prizesWon', 'triviaActivity', 'kycStatus', 'period'],
+            ['userName', 'stats', 'recentActivity', 'prizesWon', 'triviaActivity', 'kycStatus', 'showCrossGameBridge', 'period'],
             array_keys($view)
         );
 

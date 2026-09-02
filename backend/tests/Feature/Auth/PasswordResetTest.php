@@ -63,9 +63,14 @@ class PasswordResetTest extends TestCase
                 'password_confirmation' => 'password',
             ]);
 
+            // NewPasswordController::store() responde JSON (no redirect) a
+            // propósito — ver su docblock: el formulario real hace POST por
+            // axios, y un RedirectResponse siempre devolvía 200 a axios
+            // incluso con token inválido, mostrando el toast de éxito sin
+            // haber cambiado la contraseña.
             $response
-                ->assertSessionHasNoErrors()
-                ->assertRedirect(route('login'));
+                ->assertOk()
+                ->assertJson(['success' => true]);
 
             return true;
         });

@@ -5,7 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Role;
-use App\Models\Setting;
+use App\Models\AppParameter;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,11 +47,11 @@ class RegistrationTest extends TestCase
             $role->save();
         }
 
-        // RegisteredUserController::create() redirige a /login si el setting
+        // RegisteredUserController::create() redirige a /login si el parámetro
         // REGISTER no está activo (registro deshabilitado por defecto).
-        Setting::updateOrCreate(
+        AppParameter::updateOrCreate(
             ['param' => 'REGISTER'],
-            ['value' => 'true', 'status' => Setting::STATUS_ACTIVE]
+            ['value' => 'true', 'status' => AppParameter::STATUS_ACTIVE]
         );
     }
 

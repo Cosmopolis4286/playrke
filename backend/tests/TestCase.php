@@ -7,6 +7,29 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     /**
+     * RefreshDatabase corre `migrate:fresh` UNA vez por proceso (ver
+     * RefreshDatabaseState::$migrated — no por clase de test), y ningún test
+     * declaraba $seed/$seeder, así que catálogos base como `permissions`
+     * (PermissionSeeder) quedaban vacíos toda la corrida. Cualquier test que
+     * dependiera de un permiso real (ej. DashboardWidgetFilter ->
+     * $user->hasPermissionTo('games.bingo')) fallaba con
+     * PermissionDoesNotExist, de forma no determinística según el orden de
+     * ejecución de la suite.
+     *
+     * $seed=true (DatabaseSeeder completo) se descartó: varios tests (ej.
+     * AuthTest::setUp()) crean su propia Country/Currency/Role fijas (ej.
+     * iso_code_2 'VE') asumiendo un catálogo vacío — DatabaseSeeder ya siembra
+     * países reales y colisiona con UniqueConstraintViolationException.
+     * $seeder apunta a un seeder específico en vez del genérico (soportado
+     * nativamente por CanConfigureMigrationCommands::migrateFreshUsing(),
+     * pasado como --seeder a migrate:fresh, corre ANTES de que empiece
+     * cualquier transacción de test): PermissionSeeder es aditivo por nombre
+     * único, no toca countries/currencies, y ningún test crea sus propios
+     * Permission sueltos.
+     */
+    protected $seeder = \Database\Seeders\PermissionSeeder::class;
+
+    /**
      * Nombres de BD esperados en entorno de testing. Si el proceso arrancó sin
      * exportar .env.testing (p.ej. `docker exec playrke_php php artisan test`
      * directo, saltándose test-docker.sh), env_file: .env.dev del compose ya
