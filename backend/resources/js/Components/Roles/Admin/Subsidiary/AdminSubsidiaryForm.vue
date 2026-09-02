@@ -46,6 +46,27 @@ const { form, errors, isValid } = useAdminSubsidiaryForm(
 );
 
 /* ==========================================================================
+ * Comercio único (usuario 'commerce' gestionando sus propias sucursales)
+ * — el backend ya acota props.commerces a un solo elemento en ese caso
+ * (ver AdminSubsidiaryContextService::subsidiaryContext()). Con una sola
+ * opción, mostrar el select igual fuerza al commerce a "elegirse a sí
+ * mismo" — se preselecciona y se oculta, mismo patrón que hasSingleCurrency
+ * ya usa más abajo para moneda.
+ * ========================================================================== */
+
+const hasSingleCommerce = computed(() => props.commerces.length === 1);
+
+watch(
+  () => props.commerces,
+  (list) => {
+    if (list.length === 1 && !form.value.commerce_id) {
+      form.value = { ...form.value, commerce_id: list[0].id };
+    }
+  },
+  { immediate: true }
+);
+
+/* ==========================================================================
  * Máscara comisión
  * ========================================================================== */
 
@@ -219,6 +240,7 @@ defineExpose({ submit, isValid });
       </div>
 
       <FormSelect
+        v-if="!hasSingleCommerce"
         label="Comercio (comercializadora)"
         name="commerce_id"
         required

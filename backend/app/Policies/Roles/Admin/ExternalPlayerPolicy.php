@@ -3,6 +3,7 @@
 namespace App\Policies\Roles\Admin;
 
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Services\Auth\RoleAuthorizationService;
 
@@ -23,6 +24,40 @@ class ExternalPlayerPolicy
         return app(RoleAuthorizationService::class)->hasAnyPermission($user, $permission);
     }
 
+    private function isAdminLike(User $user): bool
+    {
+        return $user->hasRole('admin') || $user->hasRole('superadmin');
+    }
+
+    /**
+     * true si $externalPlayer fue captado por un Seller del árbol de
+     * negocio del $user autenticado.
+     *
+     * Antes ningún método de esta policy comparaba el jugador objetivo
+     * contra el usuario autenticado — solo el permiso. Mismo riesgo que
+     * ManagerSellerPolicy::ownsSeller() ya documentó y corrigió para
+     * Seller: exponer esta ruta a Commerce sin este chequeo permitiría
+     * mutar (bloquear/reactivar/convertir) jugadores externos de
+     * CUALQUIER otro comercio con solo cambiar el {externalPlayer} de la URL.
+     *
+     * - admin/superadmin: sin restricción adicional.
+     * - commerce: dueño si el Seller que lo captó (seller_user_id) resuelve,
+     *   vía Seller::resolveCommerce(), al Commerce de este user.
+     */
+    private function ownsExternalPlayer(User $user, ExternalPlayer $externalPlayer): bool
+    {
+        if ($this->isAdminLike($user)) {
+            return true;
+        }
+
+        if ($user->hasRole('commerce') && $externalPlayer->seller_user_id) {
+            $seller = Seller::where('user_id', $externalPlayer->seller_user_id)->first();
+            return (string) $seller?->resolveCommerce()?->user_id === (string) $user->id;
+        }
+
+        return false;
+    }
+
     public function viewAny(User $user): bool
     {
         return $this->hasPermission($user, 'external-players.view');
@@ -30,7 +65,8 @@ class ExternalPlayerPolicy
 
     public function view(User $user, ExternalPlayer $externalPlayer): bool
     {
-        return $this->hasPermission($user, 'external-players.view');
+        return $this->hasPermission($user, 'external-players.view')
+            && $this->ownsExternalPlayer($user, $externalPlayer);
     }
 
     public function fetchList(User $user): bool
@@ -50,11 +86,13 @@ class ExternalPlayerPolicy
 
     public function update(User $user, ExternalPlayer $externalPlayer): bool
     {
-        return $this->hasPermission($user, 'external-players.manage');
+        return $this->hasPermission($user, 'external-players.manage')
+            && $this->ownsExternalPlayer($user, $externalPlayer);
     }
 
     public function toggleBlock(User $user, ExternalPlayer $externalPlayer): bool
     {
-        return $this->hasPermission($user, 'external-players.block');
+        return $this->hasPermission($user, 'external-players.block')
+            && $this->ownsExternalPlayer($user, $externalPlayer);
     }
 }

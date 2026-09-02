@@ -70,11 +70,6 @@ Route::middleware('auth')->group(function () {
                 'uri'    => 'treasurers',
                 'action' => 'treasurers',
             ],
-            'subsidiaries' => [
-                'method' => 'get',
-                'uri'    => 'subsidiaries',
-                'action' => 'subsidiaries',
-            ],
             'users' => [
                 'method' => 'get',
                 'uri'    => 'users',
@@ -177,7 +172,34 @@ Route::middleware('auth')->group(function () {
 
     role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'treasurer');
-    role_protected_routes(['role:admin'], 'admin/subsidiary', AdminSubsidiaryController::class, $adminCrudRoutes, 'subsidiary');
+
+    /**
+     * Subsidiary: mismo patrón que $commerceRoutes (multiPermission:
+     * subsidiaries.* por acción, no role:admin plano) — compartido entre
+     * admin y commerce, ya que un commerce debe poder gestionar SUS PROPIAS
+     * subsidiaries (scoping real en AdminSubsidiaryPolicy::ownsSubsidiary()
+     * + AdminSubsidiaryContextService).
+     */
+    $subsidiaryRoutes = array_replace_recursive($adminCrudRoutes, [
+        'fetchList'     => ['middleware' => 'multiPermission:subsidiaries.view'],
+        'show'          => ['middleware' => 'multiPermission:subsidiaries.view'],
+        'store'         => ['middleware' => 'multiPermission:subsidiaries.create'],
+        'update'        => ['middleware' => 'multiPermission:subsidiaries.edit'],
+        'toggleStatus'  => ['middleware' => 'multiPermission:subsidiaries.edit'],
+        'resetPassword' => ['middleware' => 'multiPermission:subsidiaries.edit'],
+        'delete'        => ['middleware' => 'multiPermission:subsidiaries.delete'],
+        'destroy'       => ['middleware' => 'multiPermission:subsidiaries.delete'],
+    ]);
+
+    role_protected_routes([], 'admin/subsidiary', AdminSubsidiaryController::class, $subsidiaryRoutes, 'subsidiary');
+
+    // Índice Inertia (listado de sucursales) — extraído del grupo genérico
+    // role:admin,superadmin de AdminController de arriba porque ahora debe
+    // ser accesible también a commerce (multiPermission:subsidiaries.view),
+    // mismo criterio que admin/external-players (línea de abajo).
+    Route::middleware('multiPermission:subsidiaries.view')
+        ->get('admin/subsidiaries', [AdminController::class, 'subsidiaries'])
+        ->name('admin.subsidiaries');
 
     /**
      * Rutas de jugadores: array propio (copia de $adminCrudRoutes + export/

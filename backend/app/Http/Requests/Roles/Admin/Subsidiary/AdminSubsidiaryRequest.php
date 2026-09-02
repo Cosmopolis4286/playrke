@@ -23,8 +23,12 @@ class AdminSubsidiaryRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        // Solo permite usuarios con prefix "admin"
-        return PermissionService::checkPrefix('admin');
+        // admin: gestiona el árbol completo. commerce: gestiona SUS PROPIAS
+        // sucursales — el scoping de propiedad real (que no sea de OTRO
+        // comercio) lo valida AdminSubsidiaryService::assertOwnCommerceOrAdmin()
+        // y AdminSubsidiaryPolicy::ownsSubsidiary(), no este Request (que
+        // solo valida forma/existencia).
+        return PermissionService::checkPrefix(['admin', 'commerce']);
     }
 
     /**

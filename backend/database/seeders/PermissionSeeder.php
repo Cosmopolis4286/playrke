@@ -61,6 +61,12 @@ class PermissionSeeder extends Seeder
             // 'web'), y además tiene el bypass de RoleAuthorizationService.
             ['name' => 'commerces.set-default', 'guard_name' => 'web', 'description' => 'Marcar/desmarcar el comercio principal de la plataforma'],
 
+            // Gestión de sucursales/agencias (jerarquía Commerce -> Subsidiary -> Seller)
+            ['name' => 'subsidiaries.view', 'guard_name' => 'web', 'description' => 'Ver sucursales'],
+            ['name' => 'subsidiaries.create', 'guard_name' => 'web', 'description' => 'Crear sucursales'],
+            ['name' => 'subsidiaries.edit', 'guard_name' => 'web', 'description' => 'Editar sucursales'],
+            ['name' => 'subsidiaries.delete', 'guard_name' => 'web', 'description' => 'Eliminar sucursales'],
+
             // Gestión de vendedores
             ['name' => 'sellers.view', 'guard_name' => 'web', 'description' => 'Ver vendedores'],
             ['name' => 'sellers.create', 'guard_name' => 'web', 'description' => 'Crear vendedores'],

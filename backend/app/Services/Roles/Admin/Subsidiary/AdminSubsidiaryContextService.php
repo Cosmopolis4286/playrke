@@ -3,6 +3,8 @@
 namespace App\Services\Roles\Admin\Subsidiary;
 
 use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryContextDTO;
+use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use App\Traits\HashedTableDataTrait;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -15,24 +17,77 @@ final class AdminSubsidiaryContextService
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
         private readonly \App\Contracts\CountryRepositoryInterface $countries,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
+        private readonly RoleUserService $roleUserService,
+        private readonly UserContextService $userContext,
     ) {}
+
+    /**
+     * Resuelve el rol activo y el user_id del actor autenticado —
+     * superadmin se normaliza a 'admin' (mismo criterio que
+     * ManagerSellerContextService::resolve()): ambos ven el árbol completo
+     * sin restricción.
+     *
+     * @return array{0: string, 1: int}
+     */
+    private function resolveActorRole(?int $actorUserId): array
+    {
+        $actorUserId ??= $this->userContext->resolveUserId();
+        $role = $this->roleUserService->getActiveUserRolePrefix($actorUserId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
+        return [$role, $actorUserId];
+    }
 
     /**
      * Resolver contexto para sucursales.
      *
+     * Sin $actorUserId explícito, resuelve el usuario autenticado (mismo
+     * patrón que ManagerSellerContextService::resolve()) — permite que
+     * ContextResolverService siga llamando subsidiaryContext() sin
+     * argumentos, igual que ya hace con sellerContextService->resolve().
+     *
+     * El rol/actor acota tanto el listado como el catálogo de comercios del
+     * formulario — un commerce solo ve/gestiona SUS PROPIAS subsidiaries, y
+     * su select "Comercio" solo ofrece su propio registro (sin esto, el
+     * propio formulario permitiría asignar la subsidiary a un comercio ajeno).
+     *
      * @return AdminSubsidiaryContextDTO
      */
-    public function subsidiaryContext(): AdminSubsidiaryContextDTO
+    public function subsidiaryContext(?int $actorUserId = null): AdminSubsidiaryContextDTO
     {
-        $subsidiaryData = $this->resolveSubsidiaries();
+        [$role, $actorUserId] = $this->resolveActorRole($actorUserId);
+
+        $subsidiaryData = $this->resolveSubsidiaries($role, $actorUserId);
+
+        $commerces = $role === 'commerce' && $actorUserId
+            ? collect([$this->commerces->getByUserId($actorUserId, ['id', 'name'])])->filter()->values()
+            : $this->commerces->getByStatus('ACTIVE', ['id', 'name']);
 
         return new AdminSubsidiaryContextDTO(
             subsidiaries: $subsidiaryData['subsidiaries'],
             pagination: $subsidiaryData['pagination'],
-            commerces: $this->commerces->getByStatus('ACTIVE', ['id', 'name']),
+            commerces: $commerces,
             countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
         );
+    }
+
+    /**
+     * Condición de filtro para un usuario 'commerce' — sus subsidiaries se
+     * filtran por commerce_id, no por user_id directo. Si por alguna
+     * inconsistencia de datos no se encuentra el Commerce propio, NO se debe
+     * caer a ['commerce_id' => null]: Eloquent lo traduce a
+     * `WHERE commerce_id IS NULL`, que expondría TODAS las subsidiaries
+     * huérfanas del sistema en vez de una lista vacía — un id inexistente
+     * fuerza cero resultados de forma segura. Mismo patrón que
+     * ManagerSellerContextService::subsidiaryScopeCondition().
+     */
+    private function commerceScopeCondition(int $actorUserId): array
+    {
+        $commerceId = $this->commerces->getByUserId($actorUserId, ['id'])?->id;
+
+        return ['commerce_id' => $commerceId ?? '0'];
     }
 
     /**
@@ -40,16 +95,22 @@ final class AdminSubsidiaryContextService
      *
      * @return array [subsidiaries, pagination]
      */
-    public function resolveSubsidiaries(): array
+    public function resolveSubsidiaries(string $role = 'admin', ?int $actorUserId = null): array
     {
         $labels  = ['Nombre', 'Comercio', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'commerce.name', 'country.name', 'phone', 'user.email', 'status_badge'];
+
+        $conditions = match (true) {
+            $role === 'admin' => [],
+            $role === 'commerce' && $actorUserId => $this->commerceScopeCondition($actorUserId),
+            default => ['id' => '0'],
+        };
 
         $source = $this->subsidiaries->paginateWithRelations(
             perPage: 15,
             page: 1,
             relations: ['commerce:id,name', 'country:id,name', 'user:id,email'],
-            conditions: [],
+            conditions: $conditions,
             fields: ['id', 'commerce_id', 'country_id', 'user_id', 'name', 'phone', 'status']
         );
 

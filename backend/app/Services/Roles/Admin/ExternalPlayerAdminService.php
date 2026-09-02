@@ -2,13 +2,18 @@
 
 namespace App\Services\Roles\Admin;
 
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
+use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Models\Game;
 use App\Models\Role;
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Services\Roles\Player\External\ExternalPlayerLinkSettings;
+use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -29,7 +34,62 @@ final class ExternalPlayerAdminService
     public function __construct(
         private readonly ExternalPlayerRepositoryInterface $repository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly RoleUserService $roleUserService,
+        private readonly UserContextService $userContext,
+        private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
     ) {}
+
+    /**
+     * Árbol de user_id de Sellers propios de un Commerce (directos vía
+     * manager_user_id + los que cuelgan de cualquiera de sus Subsidiaries) —
+     * ExternalPlayer no tiene FK directa a Commerce, solo a seller_user_id,
+     * así que hay que resolver el árbol completo para escopar por comercio.
+     *
+     * @return string[]
+     */
+    private function ownSellerUserIds(int $commerceUserId): array
+    {
+        $commerce = $this->commerceRepository->getByUserId($commerceUserId, ['id']);
+        if (!$commerce) {
+            return [];
+        }
+
+        $subsidiaryIds = $this->subsidiaryRepository->getByCommerce($commerce->id)->pluck('id');
+
+        return Seller::query()
+            ->where('manager_user_id', $commerceUserId)
+            ->orWhereIn('subsidiary_id', $subsidiaryIds)
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+    }
+
+    /**
+     * Si el actor autenticado es 'commerce', fuerza el filtro de
+     * seller_user_id al árbol de sellers propio — admin/superadmin no
+     * reciben restricción. Sin esto, exponer /admin/external-players a
+     * Commerce vía sidebar dejaría ver/gestionar jugadores externos de
+     * CUALQUIER otro comercio (ExternalPlayerAdminService no comparaba
+     * ownership antes de este cambio).
+     */
+    private function applyOwnershipFilter(array $filters): array
+    {
+        $userId = $this->userContext->resolveUserId();
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
+
+        if ($role !== 'commerce') {
+            return $filters;
+        }
+
+        $ownSellerIds = $this->ownSellerUserIds($userId);
+        $filters['seller_user_id_in'] = $ownSellerIds ?: ['0']; // fuerza cero resultados si no tiene sellers
+
+        return $filters;
+    }
 
     /**
      * Paginado real (antes: ->limit(200)->get() cargaba hasta 200 filas
@@ -39,7 +99,7 @@ final class ExternalPlayerAdminService
      */
     public function search(array $filters, int $perPage = 20): LengthAwarePaginator
     {
-        return $this->buildQuery($filters)
+        return $this->buildQuery($this->applyOwnershipFilter($filters))
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -64,6 +124,10 @@ final class ExternalPlayerAdminService
 
         if (!empty($filters['seller_user_id'])) {
             $query->where('seller_user_id', $filters['seller_user_id']);
+        }
+
+        if (!empty($filters['seller_user_id_in'])) {
+            $query->whereIn('seller_user_id', $filters['seller_user_id_in']);
         }
 
         /**
@@ -105,7 +169,7 @@ final class ExternalPlayerAdminService
      */
     public function searchForExport(array $filters): \Illuminate\Support\LazyCollection
     {
-        return $this->buildQuery($filters)->cursor();
+        return $this->buildQuery($this->applyOwnershipFilter($filters))->cursor();
     }
 
     /**

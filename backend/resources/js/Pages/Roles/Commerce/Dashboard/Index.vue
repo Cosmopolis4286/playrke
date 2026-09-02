@@ -79,6 +79,20 @@
       href:        '/directory',
       variant:     'info',
     },
+    {
+      label:       'Mis Vendedores',
+      description: 'Gestionar taquillas/vendedores',
+      icon:        'fas fa-user-tie',
+      href:        '/sellers',
+      variant:     'secondary',
+    },
+    {
+      label:       'Mis Sucursales',
+      description: 'Gestionar agencias/sucursales',
+      icon:        'fas fa-code-branch',
+      href:        '/admin/subsidiaries',
+      variant:     'secondary',
+    },
   ]
 </script>
 

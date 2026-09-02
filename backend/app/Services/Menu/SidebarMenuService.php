@@ -125,6 +125,21 @@ class SidebarMenuService
                     'permission' => 'sellers.view',
                     'exclude_roles' => ['superadmin', 'admin', 'subsidiary', 'seller', 'player'], // visible solo para commerce y customer
                 ],
+                'my_subsidiaries' => [
+                    'title' => 'Mis Sucursales',
+                    'route' => 'admin.subsidiaries',
+                    'permission' => 'subsidiaries.view',
+                    'exclude_roles' => ['superadmin', 'seller', 'player'],
+                ],
+                'my_external_players' => [
+                    'title' => 'Jugadores Externos',
+                    'route' => 'admin.external-players.index',
+                    'permission' => 'external-players.view',
+                    // admin excluido: ya tiene su propia entrada bajo
+                    // Usuarios > Jugadores Externos (permission users.manage) —
+                    // sin duplicar la pantalla en el sidebar.
+                    'exclude_roles' => ['superadmin', 'admin', 'player'],
+                ],
                 'prizes' => [
                     'title' => 'Gestión de Premios',
                     'route' => 'prizes.index',

@@ -2,9 +2,12 @@
 
 namespace App\Services\Roles\Admin\Subsidiary;
 
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryDTO;
 use App\Http\Resources\Roles\Admin\Subsidiary\AdminSubsidiaryResource;
 use App\Models\Roles\Subsidiary;
+use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use App\Services\User\UserPasswordService;
 use App\Exceptions\Domain\Roles\Admin\Subsidiary\AdminSubsidiaryException;
 
@@ -24,8 +27,29 @@ final class AdminSubsidiaryService
     public function __construct(
         private readonly AdminSubsidiaryContextService $contex,
         private readonly AdminSubsidiaryCrudService $crud,
-        private readonly UserPasswordService $userPasswordService
+        private readonly UserPasswordService $userPasswordService,
+        private readonly RoleUserService $roleUserService,
+        private readonly UserContextService $userContext,
+        private readonly CommerceRepositoryInterface $commerceRepository,
     ) {}
+
+    /**
+     * Resuelve el rol activo y el user_id del actor autenticado —
+     * superadmin se normaliza a 'admin' (mismo criterio que
+     * ManagerSellerContextService::resolve()): ambos ven el árbol completo
+     * sin restricción.
+     *
+     * @return array{0: string, 1: int}
+     */
+    private function resolveActorRole(): array
+    {
+        $userId = $this->userContext->resolveUserId();
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
+        return [$role, $userId];
+    }
 
     /**
      * Obtener todas las sucursales.
@@ -34,7 +58,34 @@ final class AdminSubsidiaryService
      */
     public function fetchList(): array
     {
-        return $this->contex->resolveSubsidiaries()['subsidiaries']['rows'] ?? [];
+        [$role, $userId] = $this->resolveActorRole();
+        return $this->contex->resolveSubsidiaries($role, $userId)['subsidiaries']['rows'] ?? [];
+    }
+
+    /**
+     * Asegura que, si el actor autenticado es 'commerce', el commerce_id
+     * enviado en el DTO sea el suyo propio — sin este guard, un commerce
+     * podría enviar el id de OTRO comercio en el body del form (el Request
+     * solo valida que el id EXISTA, no que sea el propio) y
+     * AdminSubsidiaryCrudService lo persistiría tal cual. admin/superadmin
+     * no tienen restricción (gestionan el árbol completo).
+     */
+    private function assertOwnCommerceOrAdmin(?string $commerceId): void
+    {
+        if ($commerceId === null) {
+            return;
+        }
+
+        [$role, $userId] = $this->resolveActorRole();
+        if ($role !== 'commerce') {
+            return;
+        }
+
+        $ownCommerce = $this->commerceRepository->getByUserId($userId, ['id']);
+
+        if (!$ownCommerce || (string) $ownCommerce->id !== (string) $commerceId) {
+            throw AdminSubsidiaryException::creationFailed();
+        }
     }
 
     /**
@@ -47,6 +98,8 @@ final class AdminSubsidiaryService
      */
     public function create(AdminSubsidiaryDTO $dto): string
     {
+        $this->assertOwnCommerceOrAdmin($dto->commerce);
+
         return $this->crud->create($dto);
     }
 
@@ -73,6 +126,10 @@ final class AdminSubsidiaryService
      */
     public function update(Subsidiary $subsidiary, AdminSubsidiaryDTO $dto): void
     {
+        if ($dto->commerce !== null) {
+            $this->assertOwnCommerceOrAdmin($dto->commerce);
+        }
+
         $this->crud->update($subsidiary, $dto);
     }
 

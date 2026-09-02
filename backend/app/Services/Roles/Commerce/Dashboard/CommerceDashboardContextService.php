@@ -217,7 +217,7 @@ final class CommerceDashboardContextService
             ], $this->buildWeeklyTrend(Seller::where('manager_user_id', $commerce->user_id))),
             [
                 'label' => 'Agencias/Sucursales', 'value' => $subsidiaries, 'icon' => 'fas fa-code-branch',
-                'variant' => 'info',
+                'variant' => 'info', 'href' => '/admin/subsidiaries',
             ],
             [
                 'label' => 'Vendedores en agencias', 'value' => $subsidiarySellers, 'icon' => 'fas fa-users',

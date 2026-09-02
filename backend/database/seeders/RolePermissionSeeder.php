@@ -36,6 +36,7 @@ class RolePermissionSeeder extends Seeder
                 'users.view', 'users.create', 'users.edit', 'users.delete', 'users.manage',
                 // 'roles.view', 'roles.assign', // Solo superadmin gestiona roles
                 'commerces.view', 'commerces.create', 'commerces.edit', 'commerces.delete', 'commerces.approve',
+                'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'sellers.view', 'sellers.create', 'sellers.edit',
                 'customers.view', 'customers.create', 'customers.edit',
                 'treasury.view', 'treasury.reports',
@@ -72,6 +73,7 @@ class RolePermissionSeeder extends Seeder
         if ($commerce) {
             $commercePermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
+                'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
