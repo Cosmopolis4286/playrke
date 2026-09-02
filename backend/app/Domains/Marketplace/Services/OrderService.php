@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domains\Marketplace\Services;
 
+use App\Domains\Marketplace\AntiFraud\MarketplaceFraudService;
 use App\Domains\Marketplace\Exceptions\InvalidListingException;
 use App\Domains\Marketplace\Exceptions\ListingNoLongerAvailableException;
 use App\Domains\Marketplace\Models\Listing;
 use App\Domains\Marketplace\Models\Order;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * OrderService::buy() es el único punto de entrada para comprar un listing.
@@ -26,20 +28,23 @@ final class OrderService
 {
     public function __construct(
         private readonly MarketplaceFeeService $feeService,
+        private readonly MarketplaceFraudService $fraudService,
     ) {
     }
 
     public function buy(Listing $listing, string $buyerId, int $quantity): Order
     {
-        if ((string) $listing->seller_id === (string) $buyerId) {
+        if ($this->fraudService->isSelfTrade($buyerId, (string) $listing->seller_id)) {
             throw new InvalidListingException('No puedes comprar tu propio listing.');
         }
+
+        $this->fraudService->checkDoubleSubmit($buyerId, (string) $listing->id);
 
         if ($quantity < 1 || $quantity > $listing->quantity) {
             throw new InvalidListingException('La cantidad solicitada excede la publicada.');
         }
 
-        return DB::transaction(function () use ($listing, $buyerId, $quantity) {
+        $order = DB::transaction(function () use ($listing, $buyerId, $quantity) {
             $affected = Listing::where('id', $listing->id)
                 ->where('status', Listing::STATUS_ACTIVE)
                 ->update(['status' => Listing::STATUS_RESERVED]);
@@ -61,6 +66,27 @@ final class OrderService
                 'status'      => Order::STATUS_PENDING,
             ]);
         });
+
+        // Señales de fraude: nunca bloquean la compra ya confirmada — solo
+        // se registran para revisión de admin (ver docblock de
+        // MarketplaceFraudService sobre bloqueo automático vs. señal).
+        if ($this->fraudService->detectCircularTrade($order->fresh(['listing.playerAsset']))) {
+            Log::warning('[MarketplaceFraudService] Posible operación circular detectada', [
+                'order_id' => $order->id,
+                'buyer_id' => $buyerId,
+                'seller_id' => $listing->seller_id,
+            ]);
+        }
+
+        if ($this->fraudService->isAnomalousPrice((string) $listing->playerAsset->asset_definition_id, (float) $order->price)) {
+            Log::warning('[MarketplaceFraudService] Precio anómalo detectado', [
+                'order_id' => $order->id,
+                'listing_id' => $listing->id,
+                'price' => $order->price,
+            ]);
+        }
+
+        return $order;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Marketplace\Services;
 
+use App\Domains\Marketplace\AntiFraud\MarketplaceFraudService;
 use App\Domains\Marketplace\Exceptions\InvalidListingException;
 use App\Domains\Marketplace\Exceptions\ListingNoLongerAvailableException;
 use App\Domains\Marketplace\Inventory\Models\PlayerAsset;
@@ -18,6 +19,11 @@ use Illuminate\Support\Facades\DB;
  */
 final class ListingService
 {
+    public function __construct(
+        private readonly MarketplaceFraudService $fraudService,
+    ) {
+    }
+
     /**
      * Crea un listing en estado ACTIVE directamente (sin paso DRAFT
      * intermedio en esta fase — el borrador solo tiene sentido cuando exista
@@ -25,6 +31,8 @@ final class ListingService
      */
     public function create(PlayerAsset $asset, string $sellerId, int $quantity, float $price, string $currencyId, ?\DateTimeInterface $expiresAt = null): Listing
     {
+        $this->fraudService->checkListingVelocity($sellerId);
+
         if ((string) $asset->owner_id !== (string) $sellerId) {
             throw new InvalidListingException('Solo el dueño del activo puede publicarlo.');
         }
