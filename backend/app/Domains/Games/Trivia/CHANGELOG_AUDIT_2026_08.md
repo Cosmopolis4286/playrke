@@ -260,11 +260,131 @@ superado/desactivado. Re-verificados sin regresiones:
 (6) — 22 tests, todos verdes en una sola corrida. `pnpm run typecheck` sin
 errores.
 
-### Pendiente
+### ✅ Mecanismo de disputa/reversión de premios pagados (compartido con Bingo)
 
-- No existe mecanismo de disputa/reversión de un premio ya pagado
-  (`prize_status = claimed`). Requiere decisión de producto sobre el
-  proceso de disputa, no solo código.
+**Hallazgo original:** no existía ningún mecanismo de disputa/reversión de
+un premio ya pagado (`prize_status = claimed`).
+
+**Decisión de producto (consultada al usuario, varias rondas):**
+- Disparador: manual únicamente por ahora, solo admin/superadmin. Sin señal
+  automática de anti-fraude conectada (no hay política definida de qué
+  flags califican como "lo bastante graves" para disputar sin intervención
+  humana — se dejó como pendiente futuro, no inventado aquí).
+- Alcance: generalizado en `GamePrizeContract`/`GamePrizeService`
+  (compartido con Bingo), no solo Trivia — impacto real: `bingo_card_prizes.
+  prize_status` es un ENUM de MySQL con datos reales ya persistidos, así
+  que requirió una migración de alteración de esquema (`trivia_participants.
+  prize_status` es string libre, sin ese costo).
+- Dinero: débito inmediato de la wallet, pero **topado al saldo disponible**
+  — se descubrió en la propia implementación que la BD tiene un CHECK
+  CONSTRAINT real (`chk_wallets_balance_nonneg`) que impide balance
+  negativo, garantía global del sistema que esta feature no debía romper.
+  La diferencia no cobrada (premio ya gastado) queda registrada en
+  `wallets.pending_debt` (columna nueva) y se descuenta automáticamente del
+  próximo crédito a esa wallet — decisión explícita del usuario de aplicar
+  este cobro automático a los 11 puntos de crédito existentes en
+  `WalletService` (depósitos, aprobación/rechazo de depósitos y retiros,
+  reembolsos, premios normales, movimientos custom del catálogo), no solo
+  a uno.
+
+**Implementación:**
+- `GamePrizeContract` — nuevos métodos `isClaimed()` (ya lo implementaban
+  ambos modelos, solo faltaba en el contrato), `isDisputed()`,
+  `markAsDisputed()`.
+- `TriviaParticipant`/`BingoCardPrize` — implementan los métodos nuevos;
+  `PRIZE_STATUSES` incluye `'disputed'`.
+- Migración `2026_08_31_000000_add_disputed_to_bingo_card_prizes_status_enum`
+  — `ALTER TABLE ... MODIFY COLUMN` vía SQL crudo (doctrine/dbal no está
+  instalado; Laravel no soporta bien alterar ENUMs sin él) para el ENUM
+  existente con datos reales — mismo patrón que
+  `2026_08_30_200343_add_triggered_by_to_command_logs_table`. El
+  `Schema::create` original de `bingo_card_prizes` también se actualizó
+  para que un entorno nuevo tenga `'disputed'` desde la creación.
+- Migración `2026_08_31_000100_add_pending_debt_to_wallets_table` —
+  columna nueva + su propio CHECK `>= 0`, mismo patrón de migración
+  incremental (la tabla `wallets` ya tiene datos reales). `Wallet` model
+  actualizado (`$fillable`, `$casts`).
+- `GamePrizeService::disputeAndReverse()` (nuevo) — bajo `lockForUpdate()`,
+  solo actúa si `isClaimed()`; marca `disputed` y delega el débito a
+  `WalletService::recordPrizeReversal()`.
+- `WalletService::recordPrizeReversal()` (nuevo) — topa el débito al
+  `balance` disponible, registra el resto en `pending_debt`,
+  `WalletMovement` tipo `PRIZE_REVERSAL` (constante + seed en
+  `MovementTypeSeeder` nuevos), con `idempotencyKey` (mismo patrón que
+  `recordPrize()` — dos llamadas con la misma clave nunca revierten el
+  mismo premio dos veces).
+- `WalletService::settlePendingDebt()` (nuevo, privado) — conectado a los
+  11 puntos de crédito de `WalletService`: `recordPrize()` (solo porción
+  balance, no bono), `recordRefund()` (solo porción balance),
+  `recordAdminDeposit()`, `approveDeposit()`, `rejectWithdrawal()`,
+  `approveGeneric()`/`rejectGeneric()` (rama `isCredit`). **No conectado**
+  a `deposit()` (`@deprecated`, acredita en estado PENDING antes de
+  aprobación — cobrar deuda ahí y luego que el depósito se rechace dejaría
+  la deuda cobrada sin el crédito real) ni a `requestDeposit()`/
+  `requestWithdraw()` (no acreditan nada, solo crean el registro PENDING).
+- **Bug encontrado y corregido en el mismo trabajo:**
+  `RetryFailedTriviaPrizePayoutsCommand` excluía `isClaimed()`/
+  `isCancelled()` pero NO `isDisputed()` — sin el fix, el cron (cada 5 min)
+  habría re-acreditado un premio que un admin acaba de revertir
+  manualmente, deshaciendo la disputa. `RetryFailedBingoPrizePayoutsCommand`
+  no tenía este bug (ya filtraba la query base por
+  `whereIn('prize_status', ['waiting', 'processing'])`, `disputed` nunca
+  entraba).
+- `TriviaPrizeDisputeController` (nuevo) — `POST /trivia-rooms/{roomId}/
+  participants/{participantId}/dispute`, protegido `role:admin,superadmin`.
+- `TriviaRoomAdminController::show()` — expone `winners` (ganadores desde
+  `trivia_participants`, no Redis) a la vista.
+- `RoomsShow.vue` — sección "Ganadores y Premios" con botón "Disputar"
+  (solo visible si `prizeStatus === 'claimed'`) y formulario inline de
+  motivo (obligatorio, 10-500 caracteres, queda en la descripción del
+  movimiento de wallet).
+
+- `backend/app/Services/Games/GamePrizeContract.php`
+- `backend/app/Services/Games/GamePrizeService.php`
+- `backend/app/Services/WalletService.php`
+- `backend/app/Models/WalletMovement.php`
+- `backend/app/Models/Wallet.php`
+- `backend/app/Models/Games/Trivia/TriviaParticipant.php`
+- `backend/app/Domains/Games/Bingo/Models/Card/CardPrize/BingoCardPrize.php`
+- `backend/app/Console/Commands/RetryFailedTriviaPrizePayoutsCommand.php`
+- `backend/database/seeders/MovementTypeSeeder.php`
+- `backend/database/migrations/2026_08_31_000000_add_disputed_to_bingo_card_prizes_status_enum.php` (nueva)
+- `backend/database/migrations/2026_08_31_000100_add_pending_debt_to_wallets_table.php` (nueva)
+- `backend/database/migrations/bingo/2024_01_01_001121_create_bingo_card_prizes_table.php`
+- `backend/database/migrations/2024_01_01_000202_create_wallets_table.php`
+- `backend/app/Http/Controllers/Games/Trivia/Room/TriviaPrizeDisputeController.php` (nuevo)
+- `backend/app/Http/Controllers/Games/Trivia/Room/TriviaRoomAdminController.php`
+- `backend/routes/modules/games/trivia.php`
+- `backend/resources/js/Pages/Games/Trivia/Admin/RoomsShow.vue`
+- `backend/resources/js/routes/triviaRoutes.ts`
+
+**No incluido en este alcance:** UI de disputa para Bingo (el pedido
+original era Trivia; el backend ya soporta ambos vía el contrato
+compartido, pero no se construyó una pantalla de Bingo); señal automática
+de anti-fraude (pendiente de definición de política); reversión del caso
+`BONUS_PRIZE` (premio acreditado como bono) — solo se revierte `balance`.
+
+**Verificación:** `GamePrizeServiceDisputeTest` (8 tests, nuevo) — marca
+disputa, débito completo cuando alcanza el saldo, tope + registro de deuda
+cuando no alcanza, cobro automático de la deuda en el siguiente crédito,
+registro del movimiento `PRIZE_REVERSAL`, rechazo si no está `claimed`,
+idempotencia (no se puede disputar dos veces), y la regresión específica
+del bug de `RetryFailedTriviaPrizePayoutsCommand`. Re-verificado sin
+regresiones: `WalletServiceTest` completo (11 tests preexistentes de
+premios/reembolsos/compras/retiros/bono — ninguno se rompió pese a tocar 6
+puntos de crédito de ese mismo servicio), más los 33 tests de fixes/features
+anteriores de esta sesión (`TriviaPauseServiceTest`,
+`TriviaPowerUpServiceTest`, `GameEngineServiceTest`,
+`SubmitAnswerActionTest`, `AutoFinishStaleTriviaGamesCommandTest`) — 49
+tests en total, todos verdes en una sola corrida. `pnpm run typecheck` sin
+errores.
+
+---
+
+*(Las 3 decisiones de producto originalmente pendientes — power-ups, pausa,
+disputa de premios — quedaron todas implementadas y verificadas en esta
+sesión. Ver el resto de este documento para el detalle completo de cada
+una y de los fixes de auditoría que las precedieron.)*
 
 ---
 
