@@ -26,6 +26,8 @@
     timeZones: TimeZone[]
     games: Game[]
     modelValue: Partial<Commerce>
+    /** true si el usuario actual puede marcar/desmarcar el comercio principal (permiso commerces.set-default, exclusivo de superadmin). */
+    canManageDefaultCommerce?: boolean
   }>()
 
   /** Modo edición: el checkbox "Marcar como principal" solo aplica a comercios que ya existen. */
@@ -328,10 +330,12 @@
         v-model="form.allowed_games"
       />
 
-      <!-- Marcar como principal: solo en edición y solo si aún no lo es
-           (ya marcada, se reasigna desde otro comercio, no desmarcando este). -->
-      <div v-if="isEditMode && !form.is_default_commerce" class="col-12">
-        <div class="custom-control custom-checkbox">
+      <!-- Comercio principal: toggle real (marcar Y desmarcar) solo para
+           quien tiene el permiso commerces.set-default (superadmin). Sin
+           ese permiso se muestra un badge de solo lectura del estado
+           actual — el backend igual rechazaría el cambio si se forzara. -->
+      <div v-if="isEditMode && canManageDefaultCommerce" class="col-12">
+        <div class="custom-control custom-switch">
           <input
             id="commerce-is-default"
             type="checkbox"
@@ -340,9 +344,14 @@
             @change="form.is_default_commerce = ($event.target as HTMLInputElement).checked"
           />
           <label class="custom-control-label" for="commerce-is-default">
-            <i class="fas fa-star text-warning mr-1"></i>Marcar como comercializadora principal de la plataforma
+            <i class="fas fa-star text-warning mr-1"></i>Comercializadora principal de la plataforma
           </label>
         </div>
+        <small class="text-muted d-block mt-1">
+          {{ form.is_default_commerce
+            ? 'Al guardar, se desactivará la marca de principal (la plataforma quedará sin comercio principal hasta marcar otro).'
+            : 'Al guardar, se marcará esta comercializadora como principal de la plataforma.' }}
+        </small>
       </div>
 
       <div v-else-if="isEditMode && form.is_default_commerce" class="col-12">

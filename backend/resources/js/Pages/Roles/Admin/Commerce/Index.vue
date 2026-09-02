@@ -4,6 +4,7 @@
    */
 
   import { computed, onMounted, ref } from 'vue'
+  import { usePage } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -41,6 +42,17 @@
   const props = defineProps<AdminCommercePageProps>()
 
   // ==========================================================================
+  // Permisos — commerces.set-default es exclusivo de superadmin (backend ya
+  // lo exige vía multiPermission, esto solo oculta la UI a quien de todos
+  // modos sería rechazado). Mismo patrón que Admin/User/Index.vue.
+  // ==========================================================================
+
+  const page = usePage()
+  const isSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
+  )
+
+  // ==========================================================================
   // Lógica de negocio
   // ==========================================================================
 
@@ -57,6 +69,7 @@
     resetPassword,
     removeBulk,
     setAsDefault,
+    unsetAsDefault,
     submit,
     onQueryChange,
   } = useAdminCommerce()
@@ -122,23 +135,35 @@
     defaultCommerceId.value = commerces.value.find(c => c.id === hashedId)?.real_id ?? defaultCommerceId.value
   }
 
+  async function handleUnsetDefault(): Promise<void> {
+    if (!commerceDetail.value?.id) return
+    const hashedId = commerceDetail.value.id
+    const ok = await unsetAsDefault(hashedId)
+    if (!ok) return
+
+    await fetchCommerceDetail(hashedId)
+    defaultCommerceId.value = null
+  }
+
   // ==========================================================================
   // Modal + Form handler
   // ==========================================================================
 
   /**
    * Envuelve submit() para reflejar en la tabla, sin recargar la página, el
-   * checkbox "Marcar como principal" del form si se activó durante esta
-   * edición — submit() ya resetea commerceData.value al terminar, así que el
-   * id/flag se capturan ANTES de delegar, no se pueden leer después.
+   * checkbox "Marcar/desmarcar como principal" del form si cambió durante
+   * esta edición — submit() ya resetea commerceData.value al terminar, así
+   * que el id/flag se capturan ANTES de delegar, no se pueden leer después.
    */
   async function submitAndSyncDefault(): Promise<boolean> {
     const hashedId = commerceData.value.id
-    const wasMarkedAsDefault = commerceData.value.is_default_commerce === true
+    const isNowDefault = commerceData.value.is_default_commerce === true
 
     const ok = await submit()
-    if (ok && wasMarkedAsDefault && hashedId) {
-      defaultCommerceId.value = commerces.value.find(c => c.id === hashedId)?.real_id ?? defaultCommerceId.value
+    if (ok && hashedId) {
+      defaultCommerceId.value = isNowDefault
+        ? (commerces.value.find(c => c.id === hashedId)?.real_id ?? defaultCommerceId.value)
+        : (defaultCommerceId.value === commerces.value.find(c => c.id === hashedId)?.real_id ? null : defaultCommerceId.value)
     }
     return ok
   }
@@ -389,6 +414,7 @@
       :currencies="props.currencies"
       :time-zones="props.timeZones"
       :games="props.games"
+      :can-manage-default-commerce="isSuperadmin"
     />
   </Modal>
 
@@ -397,9 +423,11 @@
     :loading="commerceDetailLoading"
     :detail="commerceDetail"
     :error="commerceDetailError"
+    :can-manage-default-commerce="isSuperadmin"
     @update:model-value="handleDetailVisibility"
     @retry="retryCommerceDetail"
     @set-default="handleSetDefault"
+    @unset-default="handleUnsetDefault"
   />
 </template>
 
