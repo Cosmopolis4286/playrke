@@ -1,7 +1,7 @@
 /**
- * Parámetro de configuración del sistema
+ * Parámetro de configuración de la aplicación
  */
-export interface Setting {
+export interface AppParameter {
     id: string                      // Snowflake ID
     param: string                   // Nombre del parámetro (snake_case, único)
     value: string | null            // Valor del parámetro
@@ -10,7 +10,9 @@ export interface Setting {
     updated_at?: string
 }
 
-export interface SettingPageProps {
-    settings: Setting[]
+export interface AppParameterPageProps {
+    parameters: AppParameter[]
     roleUser: string
+    /** Parámetros críticos del sistema (AppParameter::CRITICAL_PARAMS) — no se pueden eliminar. */
+    critical_params: string[]
 }

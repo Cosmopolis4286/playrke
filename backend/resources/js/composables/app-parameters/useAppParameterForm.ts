@@ -1,20 +1,24 @@
 import { ref, watch, computed } from 'vue'
-import type { Setting } from '@/js/types/setting'
+import type { AppParameter } from '@/js/types/app-parameter'
+import { getParamMeta } from './appParameterCatalog'
 
-export function useSettingForm(
-    modelValue: Partial<Setting>,
-    emit: (event: 'update:modelValue', value: Partial<Setting>) => void
+export function useAppParameterForm(
+    modelValue: Partial<AppParameter>,
+    emit: (event: 'update:modelValue', value: Partial<AppParameter>) => void
 ) {
-    const form = ref<Partial<Setting>>({
+    const form = ref<Partial<AppParameter>>({
         param:  '',
         value:  null,
         status: 'ACTIVE',
     })
 
-    const errors = ref<Partial<Record<keyof Setting, string>>>({})
+    const errors = ref<Partial<Record<keyof AppParameter, string>>>({})
+
+    const meta = computed(() => getParamMeta(form.value.param ?? ''))
 
     const isValid = computed(() =>
         !errors.value.param &&
+        !errors.value.value &&
         !!form.value.param?.trim() &&
         !!form.value.status
     )
@@ -28,8 +32,21 @@ export function useSettingForm(
             errors.value.param = 'Solo letras minúsculas, números y guiones bajos (máx. 50).'
         }
 
-        if (form.value.value && form.value.value.length > 100) {
+        const value = form.value.value
+
+        if (value && value.length > 100) {
             errors.value.value = 'Máximo 100 caracteres.'
+            return
+        }
+
+        // Validación adicional por tipo conocido (ver appParameterCatalog.ts) —
+        // no reemplaza la validación de longitud de arriba, se suma a ella.
+        if (value) {
+            if (meta.value.type === 'integer' && !/^-?\d+$/.test(value)) {
+                errors.value.value = 'Debe ser un número entero.'
+            } else if (meta.value.type === 'decimal' && !/^-?\d+(\.\d+)?$/.test(value)) {
+                errors.value.value = 'Debe ser un número (puede tener decimales).'
+            }
         }
     }
 
@@ -53,5 +70,5 @@ export function useSettingForm(
     // Validación reactiva
     watch(() => [form.value.param, form.value.value], validate, { immediate: true })
 
-    return { form, errors, isValid, validate }
+    return { form, errors, isValid, validate, meta }
 }

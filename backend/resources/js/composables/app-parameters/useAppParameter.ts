@@ -1,34 +1,34 @@
 import { ref, type Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Setting } from '@/js/types/setting'
+import type { AppParameter } from '@/js/types/app-parameter'
 
-interface UseSettingReturn {
-    settingData: Ref<Partial<Setting>>
-    settings: Ref<Setting[]>
-    setInitialSettings: (initial: Setting[]) => void
+interface UseAppParameterReturn {
+    parameterData: Ref<Partial<AppParameter>>
+    parameters: Ref<AppParameter[]>
+    setInitialParameters: (initial: AppParameter[]) => void
     submit: () => Promise<boolean>
     create: () => void
     edit: (id: string | number) => Promise<boolean>
     remove: (id: string | number) => Promise<boolean>
     toggleStatus: (id: string | number) => Promise<boolean>
-    fetchSettings: () => Promise<boolean>
+    fetchParameters: () => Promise<boolean>
 }
 
-export function useSetting(): UseSettingReturn {
-    const loading     = ref(false)
-    const settingData = ref<Partial<Setting>>({})
-    const settings    = ref<Setting[]>([])
+export function useAppParameter(): UseAppParameterReturn {
+    const loading       = ref(false)
+    const parameterData = ref<Partial<AppParameter>>({})
+    const parameters    = ref<AppParameter[]>([])
 
-    function setInitialSettings(initial: Setting[]) {
-        settings.value = [...initial]
+    function setInitialParameters(initial: AppParameter[]) {
+        parameters.value = [...initial]
     }
 
-    async function fetchSettings(): Promise<boolean> {
+    async function fetchParameters(): Promise<boolean> {
         try {
             loading.value = true
-            const { data } = await backendClient.get<{ success: boolean; data: Setting[] }>('/settings/fetch-list')
-            if (Array.isArray(data?.data)) settings.value = data.data
+            const { data } = await backendClient.get<{ success: boolean; data: AppParameter[] }>('/app-parameters/fetch-list')
+            if (Array.isArray(data?.data)) parameters.value = data.data
             return true
         } catch {
             showToast('Error al cargar la configuración', 'error')
@@ -42,14 +42,14 @@ export function useSetting(): UseSettingReturn {
         if (loading.value) return false
         try {
             loading.value = true
-            if (settingData.value.id) {
-                const { data } = await backendClient.put(`/settings/${settingData.value.id}`, settingData.value)
+            if (parameterData.value.id) {
+                const { data } = await backendClient.put(`/app-parameters/${parameterData.value.id}`, parameterData.value)
                 showToast(data.message, 'success')
             } else {
-                const { data } = await backendClient.post('/settings', settingData.value)
+                const { data } = await backendClient.post('/app-parameters', parameterData.value)
                 showToast(data.message, 'success')
             }
-            await fetchSettings()
+            await fetchParameters()
             return true
         } catch (error: any) {
             showToast(error?.response?.data?.message ?? 'Error al guardar el parámetro', 'error')
@@ -60,17 +60,17 @@ export function useSetting(): UseSettingReturn {
     }
 
     function create(): void {
-        settingData.value = { param: '', value: null, status: 'ACTIVE' }
+        parameterData.value = { param: '', value: null, status: 'ACTIVE' }
     }
 
     async function edit(id: string | number): Promise<boolean> {
         if (loading.value) return false
         try {
             loading.value = true
-            const { data } = await backendClient.get<{ success: boolean; data: Setting }>(`/settings/${id}`)
+            const { data } = await backendClient.get<{ success: boolean; data: AppParameter }>(`/app-parameters/${id}`)
             if (!data?.data) throw new Error('No encontrado')
-            const s = data.data
-            settingData.value = { id: s.id, param: s.param, value: s.value, status: s.status }
+            const p = data.data
+            parameterData.value = { id: p.id, param: p.param, value: p.value, status: p.status }
             return true
         } catch {
             showToast('Error al cargar el parámetro', 'error')
@@ -81,21 +81,21 @@ export function useSetting(): UseSettingReturn {
     }
 
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const s = settings.value.find(x => x.id === id)
-        const currentLabel = s?.status === 'ACTIVE' ? 'activo' : 'inactivo'
-        const nextLabel    = s?.status === 'ACTIVE' ? 'inactivo' : 'activo'
+        const p = parameters.value.find(x => x.id === id)
+        const currentLabel = p?.status === 'ACTIVE' ? 'activo' : 'inactivo'
+        const nextLabel    = p?.status === 'ACTIVE' ? 'inactivo' : 'activo'
 
         const confirm = await showToastConfirmAction({
-            html: `El parámetro <b>${s?.param ?? ''}</b> está actualmente <b>${currentLabel}</b>. ¿Deseas marcarlo como <b>${nextLabel}</b>?`,
+            html: `El parámetro <b>${p?.param ?? ''}</b> está actualmente <b>${currentLabel}</b>. ¿Deseas marcarlo como <b>${nextLabel}</b>?`,
             icon: 'question',
             confirmButtonText: 'Sí, alternar',
         })
         if (!confirm) return false
 
         try {
-            const { data } = await backendClient.put(`/settings/${id}/status`)
+            const { data } = await backendClient.put(`/app-parameters/${id}/status`)
             showToast(data.message, 'success')
-            await fetchSettings()
+            await fetchParameters()
             return true
         } catch {
             showToast('Error al actualizar el estado', 'error')
@@ -104,19 +104,19 @@ export function useSetting(): UseSettingReturn {
     }
 
     async function remove(id: string | number): Promise<boolean> {
-        const s = settings.value.find(x => x.id === id)
+        const p = parameters.value.find(x => x.id === id)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Deseas eliminar el parámetro <b>${s?.param ?? ''}</b>?`,
+            html: `¿Deseas eliminar el parámetro <b>${p?.param ?? ''}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar',
         })
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/settings/${id}/delete`)
+            await backendClient.put(`/app-parameters/${id}/delete`)
             showToast('Parámetro eliminado exitosamente', 'success')
-            await fetchSettings()
+            await fetchParameters()
             return true
         } catch (error: any) {
             showToast(error?.response?.data?.message ?? 'Error al eliminar el parámetro', 'error')
@@ -124,5 +124,5 @@ export function useSetting(): UseSettingReturn {
         }
     }
 
-    return { settingData, settings, setInitialSettings, submit, create, edit, remove, toggleStatus, fetchSettings }
+    return { parameterData, parameters, setInitialParameters, submit, create, edit, remove, toggleStatus, fetchParameters }
 }
