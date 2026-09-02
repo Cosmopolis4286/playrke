@@ -5,7 +5,7 @@
       <button class="avatar-btn" title="Cambiar foto" @click="$emit('open-avatar')">
         <i class="fas fa-camera" />
       </button>
-      <span class="avatar-level" :title="`Nivel ${level}`">{{ level }}</span>
+      <span v-if="showLevel" class="avatar-level" :title="`Nivel ${level}`">{{ level }}</span>
     </div>
 
     <div class="identity-info">
@@ -74,6 +74,8 @@ import { getRoleMeta } from '@js/composables/useRoleMeta'
 const props = defineProps<{
     user: ProfileUser
     level: number
+    /** Gamificación exclusiva de player — ver ProfileTabs.vue para el detalle de por qué. */
+    showLevel?: boolean
 }>()
 
 defineEmits<{
