@@ -112,9 +112,14 @@ final class AdminCommerceCrudService
             'uniqueCode:id,rke_code',
         ])->loadCount('sellers');
 
-        return (new AdminCommerceResource($commerce))->additional([
-            'is_default_commerce' => $this->platformConfig->isDefaultCommerce((string) $commerce->id),
-        ]);
+        // Atributo dinámico (no persistido) para que AdminCommerceResource lo
+        // exponga como campo normal — additional() no llega al JSON final
+        // porque este resource se anida manualmente dentro de
+        // response()->json() en el controller, en vez de devolverse como
+        // respuesta HTTP directa (único caso en que Laravel aplica additional()).
+        $commerce->is_default_commerce = $this->platformConfig->isDefaultCommerce((string) $commerce->id);
+
+        return new AdminCommerceResource($commerce);
     }
 
     /**

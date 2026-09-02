@@ -103,7 +103,10 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
     }
 
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
+        // is_default_commerce no es un campo del recurso Commerce (vive en
+        // platform_config) — se maneja aparte, vía setAsDefault(), no en
+        // este payload de update/store.
+        const { country_id, currency_id, time_zone_id, is_default_commerce, ...rest } = commerceData.value
 
         return {
             ...rest,
@@ -119,14 +122,25 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
         try {
             loading.value = true
             const payload = buildPayload()
+            const isUpdate = !!commerceData.value.id
+            // Detecta si el checkbox "Marcar como principal" del form se
+            // activó durante esta edición — nunca aplica al crear (un
+            // comercio nuevo no puede ser el principal antes de existir,
+            // el checkbox ni se muestra en modo creación).
+            const shouldSetAsDefault = isUpdate && commerceData.value.is_default_commerce === true
 
-            if (commerceData.value.id) {
+            if (isUpdate) {
                 await backendClient.put(`/admin/commerce/${commerceData.value.id}/update`, payload)
                 showToast('Actualización exitosa', 'success')
             } else {
                 const { data } = await backendClient.post('/admin/commerce', payload)
                 showToast('Registro exitoso', 'success')
                 await showPasswordModal(data.password)
+            }
+
+            if (shouldSetAsDefault) {
+                await backendClient.put(`/admin/commerce/${commerceData.value.id}/set-as-default`)
+                showToast('Comercializadora marcada como principal', 'success')
             }
 
             await fetchCommerces()
@@ -160,7 +174,8 @@ export function useAdminCommerce(): UseAdminCommerceReturn {
                 country_id: commerce.country?.id,
                 currency_id: commerce.currency,
                 other_currencies: commerce.other_currencies ?? [],
-                allowed_games: commerce.allowed_games ?? []
+                allowed_games: commerce.allowed_games ?? [],
+                is_default_commerce: commerce.is_default_commerce ?? false
             }
 
             return true

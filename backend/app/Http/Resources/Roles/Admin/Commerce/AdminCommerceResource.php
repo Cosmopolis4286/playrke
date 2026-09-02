@@ -18,6 +18,14 @@ class AdminCommerceResource extends JsonResource
             'unique_code' => $this->uniqueCode?->rke_code,
             'sellers_count' => $this->sellers_count,
 
+            // Atributo dinámico seteado por AdminCommerceCrudService::show()
+            // antes de construir el resource — no una columna real del
+            // modelo. Ver nota ahí: additional() no funciona cuando el
+            // resource se anida manualmente dentro de response()->json(),
+            // así que el dato se pasa como atributo normal del modelo en
+            // vez de vía additional().
+            'is_default_commerce' => (bool) $this->is_default_commerce,
+
             'country' => [
                 'id' => $this->country->id,
                 'name' => $this->country->name,

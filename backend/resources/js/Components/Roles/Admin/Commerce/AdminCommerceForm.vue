@@ -28,6 +28,9 @@
     modelValue: Partial<Commerce>
   }>()
 
+  /** Modo edición: el checkbox "Marcar como principal" solo aplica a comercios que ya existen. */
+  const isEditMode = computed(() => !!props.modelValue.id)
+
   /* ==========================================================================
    * Emits
    * ========================================================================== */
@@ -324,6 +327,29 @@
         :error="errors.allowed_games"
         v-model="form.allowed_games"
       />
+
+      <!-- Marcar como principal: solo en edición y solo si aún no lo es
+           (ya marcada, se reasigna desde otro comercio, no desmarcando este). -->
+      <div v-if="isEditMode && !form.is_default_commerce" class="col-12">
+        <div class="custom-control custom-checkbox">
+          <input
+            id="commerce-is-default"
+            type="checkbox"
+            class="custom-control-input"
+            :checked="form.is_default_commerce ?? false"
+            @change="form.is_default_commerce = ($event.target as HTMLInputElement).checked"
+          />
+          <label class="custom-control-label" for="commerce-is-default">
+            <i class="fas fa-star text-warning mr-1"></i>Marcar como comercializadora principal de la plataforma
+          </label>
+        </div>
+      </div>
+
+      <div v-else-if="isEditMode && form.is_default_commerce" class="col-12">
+        <span class="badge badge-warning">
+          <i class="fas fa-star mr-1"></i>Esta es la comercializadora principal de la plataforma
+        </span>
+      </div>
     </div>
   </form>
 </template>

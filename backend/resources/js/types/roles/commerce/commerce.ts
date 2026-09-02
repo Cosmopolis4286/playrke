@@ -16,6 +16,8 @@ export interface Commerce {
     readonly allowed_games?: string[]
     /** ID real (Snowflake sin hashear) — necesario para abrir la ficha de detalle. Null en filas sin real_id (ej. fuera del listado paginado). */
     readonly real_id?: string | null
+    /** true si este comercio es el principal/vinculado a la app. Solo viene poblado tras cargar el detalle completo (edit()/show()), no en las filas de la tabla. */
+    is_default_commerce?: boolean
 }
 
 export interface CommerceCurrencyDetail {

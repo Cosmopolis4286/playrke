@@ -14,6 +14,7 @@
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
   import CommerceDetailModal from '@/js/Components/Roles/Admin/Commerce/CommerceDetailModal.vue'
+  import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 
   // ==========================================================================
   // Composables
@@ -63,18 +64,48 @@
   setInitialCommerces(props.commerces.rows, props.commerces_pagination)
 
   // ==========================================================================
+  // Stats — "total" viene de pagination (todo el catálogo filtrado, server-
+  // side), no de commerces.value (solo la página cargada). El resto de
+  // métricas sí son "de esta página" — mismo criterio ya usado en
+  // Admin/User/Index.vue, documentado explícitamente en el label para no
+  // ser engañoso.
+  // ==========================================================================
+  const stats = computed(() => ({
+    total: pagination.value?.total ?? commerces.value.length,
+    active: commerces.value.filter(c => c.status === 'ACTIVE').length,
+    blocked: commerces.value.filter(c => c.status === 'BLOCKED').length,
+  }))
+
+  // ==========================================================================
   // Comercio principal — estado local inicializado desde la prop de Inertia
   // y mutado optimistamente tras marcar uno nuevo (evita depender de un
   // router.reload solo para refrescar este dato).
+  //
+  // Solo se bloquean Eliminar/Cambiar estado (el backend ya rechaza ambos
+  // para el comercio principal, ver AdminCommerceCrudService::delete()/
+  // toggleStatus()) — Editar queda siempre disponible, incluyendo poder
+  // gestionar la propia marca de "principal" desde el form. Antes esto se
+  // hacía con disabledRowIds, que deshabilita el checkbox de SELECCIÓN
+  // completo — eso también bloqueaba sin querer el botón Editar (que
+  // requiere 1 fila seleccionada).
   // ==========================================================================
 
   const defaultCommerceId = ref<string | null>(props.default_commerce_id)
 
-  /** Id de fila (hasheado, el que usa BaseTable para selección) del comercio principal, si está en la página actual. */
+  /** Id de fila (hasheado) del comercio principal, si está en la página actual. */
   const defaultCommerceRowId = computed(() =>
     commerces.value.find(c => c.real_id === defaultCommerceId.value)?.id
   )
-  const disabledRowIds = computed(() => (defaultCommerceRowId.value ? [defaultCommerceRowId.value] : []))
+
+  function isDeleteDisabled(selectedIds: string[]): boolean {
+    return !!defaultCommerceRowId.value && selectedIds.includes(defaultCommerceRowId.value)
+  }
+
+  function getDeleteDisabledReason(selectedIds: string[]): string {
+    return isDeleteDisabled(selectedIds)
+      ? 'Esta comercializadora es la principal de la plataforma — reasigna la marca antes de eliminarla.'
+      : ''
+  }
 
   async function handleSetDefault(): Promise<void> {
     if (!commerceDetail.value?.id) return
@@ -95,12 +126,29 @@
   // Modal + Form handler
   // ==========================================================================
 
+  /**
+   * Envuelve submit() para reflejar en la tabla, sin recargar la página, el
+   * checkbox "Marcar como principal" del form si se activó durante esta
+   * edición — submit() ya resetea commerceData.value al terminar, así que el
+   * id/flag se capturan ANTES de delegar, no se pueden leer después.
+   */
+  async function submitAndSyncDefault(): Promise<boolean> {
+    const hashedId = commerceData.value.id
+    const wasMarkedAsDefault = commerceData.value.is_default_commerce === true
+
+    const ok = await submit()
+    if (ok && wasMarkedAsDefault && hashedId) {
+      defaultCommerceId.value = commerces.value.find(c => c.id === hashedId)?.real_id ?? defaultCommerceId.value
+    }
+    return ok
+  }
+
   const {
     showModalForm,
     modalTitle,
     formRef: adminCommerceFormRef,
     handleSubmit
-  } = useModalForm(commerceData, submit, {
+  } = useModalForm(commerceData, submitAndSyncDefault, {
     defaultTitle: 'Comercializadora'
   })
 
@@ -289,6 +337,12 @@
     ]"
   />
 
+  <div class="admin-commerce-stats">
+    <StatTile label="Comercializadoras totales" :value="stats.total" icon="fa-building" />
+    <StatTile label="Activas (esta página)" :value="stats.active" icon="fa-circle-check" variant="success" />
+    <StatTile label="Bloqueadas (esta página)" :value="stats.blocked" icon="fa-ban" variant="danger" />
+  </div>
+
   <TableWithFilterBridge
     tableId="commerce-table"
     title="Comercializadoras"
@@ -303,8 +357,8 @@
     showEditButton
     showDeleteButton
     :extra-buttons="extraButtons"
-    :disabled-row-ids="disabledRowIds"
-    disabled-row-reason="Esta comercializadora es la principal de la plataforma — reasigna la marca antes de modificarla."
+    :disable-delete="isDeleteDisabled"
+    :disable-delete-reason="getDeleteDisabledReason"
     @query-change="handleQueryChange"
   >
     <template #action-buttons>
@@ -348,3 +402,12 @@
     @set-default="handleSetDefault"
   />
 </template>
+
+<style scoped>
+.admin-commerce-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+</style>
