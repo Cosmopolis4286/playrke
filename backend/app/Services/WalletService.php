@@ -837,8 +837,9 @@ final class WalletService
         string $gameId,
         string $description = 'Reembolso',
         float $bonusPortion = 0.0,
+        array $extraMetadata = [],
     ): WalletMovement {
-        $movement = DB::transaction(function () use ($wallet, $amount, $gameId, $description, $bonusPortion) {
+        $movement = DB::transaction(function () use ($wallet, $amount, $gameId, $description, $bonusPortion, $extraMetadata) {
             $walletId           = (string) $wallet->id;
             $balanceBefore      = (float) $wallet->balance;
             $bonusBalanceBefore = (float) $wallet->bonus_balance;
@@ -876,6 +877,7 @@ final class WalletService
                     'balance_amount'       => $balancePortion,
                     'bonus_balance_before' => $bonusBalanceBefore,
                     'bonus_balance_after'  => (float) $wallet->bonus_balance,
+                    ...$extraMetadata,
                 ],
             ]);
         });
