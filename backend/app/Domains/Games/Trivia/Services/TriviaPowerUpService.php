@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
+use App\Domains\Marketplace\Inventory\Exceptions\AssetNotAvailableException;
+use App\Domains\Marketplace\Inventory\Services\AssetConsumptionService;
 use App\Models\Games\Trivia\TriviaParticipant;
 use Illuminate\Support\Facades\Redis;
 use RuntimeException;
@@ -36,8 +38,26 @@ class TriviaPowerUpService
     public const EXTRA_TIME_BONUS_MS = 5000;
 
     /**
-     * Consume un power-up del participante. Lanza si no tiene usos
-     * disponibles — la Action/Controller que llama decide el código HTTP.
+     * Código de AssetDefinition consumido como fallback cuando se agota el
+     * uso gratis por partida — ver AssetDefinitionSeeder. Un solo ticket
+     * cubre cualquier tipo de power-up (no hay un ticket por tipo todavía;
+     * diferenciarlos es una decisión de balance de juego para cuando existan
+     * datos reales de uso, no algo a inventar ahora).
+     */
+    private const FALLBACK_ASSET_CODE = 'TRIVIA_HINT_TICKET';
+
+    public function __construct(
+        private readonly AssetConsumptionService $assetConsumption,
+    ) {
+    }
+
+    /**
+     * Consume un power-up del participante: primero el uso gratis por
+     * partida (power_ups_used, Postgres); si ya se agotó, intenta consumir
+     * un PlayerAsset del Marketplace (TRIVIA_HINT_TICKET) como fallback —
+     * ver MARKETPLACE_ARCHITECTURE_AUDIT.md sección 31. Lanza si ninguna de
+     * las dos fuentes tiene usos disponibles — la Action/Controller que
+     * llama decide el código HTTP.
      */
     public function consume(string $roomId, string $userId, TriviaPowerUpType $type): TriviaParticipant
     {
@@ -50,12 +70,23 @@ class TriviaPowerUpService
             throw new RuntimeException('No estás inscrito en esta sala.');
         }
 
-        if (! $participant->usePowerUp($type->value)) {
+        if ($participant->usePowerUp($type->value)) {
+            $participant->save();
+            return $participant;
+        }
+
+        try {
+            $this->assetConsumption->consumeByCode($userId, self::FALLBACK_ASSET_CODE, 1, 'TRIVIA');
+        } catch (AssetNotAvailableException) {
             throw new RuntimeException('Ya no tienes usos disponibles de este power-up.');
         }
 
-        $participant->save();
-
+        // El fallback consumió el activo, pero power_ups_used no se
+        // incrementa: ese contador es específico del uso "gratis" por
+        // partida (ver getAvailablePowerUp()) y seguir sumándolo ahí
+        // haría que un segundo uso gratis pareciera agotado sin haberlo
+        // usado. El PlayerAsset consumido ya es el registro de auditoría
+        // de este uso (ver InventoryService::consume()).
         return $participant;
     }
 
