@@ -8,6 +8,7 @@ use App\Domains\Marketplace\Inventory\Models\PlayerAsset;
 use App\Domains\Marketplace\Models\Listing;
 use App\Domains\Marketplace\Models\Order;
 use App\Models\Currency;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
@@ -28,7 +29,27 @@ class EscrowAdminControllerTest extends TestCase
         Permission::firstOrCreate(['name' => 'marketplace.manage', 'guard_name' => 'web']);
         $this->admin = User::factory()->create();
         $this->admin->givePermissionTo('marketplace.manage');
+        $this->makeRole('admin');
         $this->admin->assignRole('admin');
+    }
+
+    /**
+     * RefreshDatabase no siembra roles (solo $seeder=PermissionSeeder en
+     * TestCase) — Spatie\Role tampoco conoce SnowflakeId, así que id/prefix
+     * se asignan a mano. Mismo patrón que BingoTest::seedRolesAndPermissions().
+     * assignRole() recibe el NOMBRE (string), nunca el objeto Role — pasar
+     * la instancia dispara GuardDoesNotMatch con $givenGuard null en esta
+     * versión de spatie/permission.
+     */
+    private function makeRole(string $name): void
+    {
+        if (Role::where('name', $name)->where('guard_name', 'web')->exists()) {
+            return;
+        }
+
+        $role = new Role(['name' => $name, 'guard_name' => 'web', 'prefix' => strtoupper($name), 'type' => 'web']);
+        $role->id = Role::generateSnowflakeId();
+        $role->save();
     }
 
     private function makeDisputedEscrow(): Escrow
@@ -90,6 +111,7 @@ class EscrowAdminControllerTest extends TestCase
     public function test_non_admin_cannot_access(): void
     {
         $player = User::factory()->create();
+        $this->makeRole('player');
         $player->assignRole('player');
 
         $response = $this->actingAs($player)->getJson('/marketplace-escrows/fetch-list');
