@@ -52,6 +52,7 @@ class WalletMovement extends Model
     public const TYPE_MARKETPLACE_SALE     = 'MARKETPLACE_SALE';
     public const TYPE_MARKETPLACE_FEE      = 'MARKETPLACE_FEE';
     public const TYPE_CRYPTO_DEPOSIT       = 'CRYPTO_DEPOSIT';
+    public const TYPE_CRYPTO_WITHDRAWAL    = 'CRYPTO_WITHDRAWAL';
 
     public const STATUS_PENDING    = 'PENDING';
     public const STATUS_COMPLETED  = 'COMPLETED';

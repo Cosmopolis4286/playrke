@@ -26,6 +26,7 @@ class MovementTypeSeeder extends Seeder
             ['code' => 'MARKETPLACE_SALE',     'label' => 'Venta en marketplace',  'icon' => 'fas fa-store',         'color' => '#059669', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null, 'sort_order' => 100, 'visible_roles' => null],
             ['code' => 'MARKETPLACE_FEE',      'label' => 'Comisión de marketplace', 'icon' => 'fas fa-percent',    'color' => '#667eea', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null, 'sort_order' => 110, 'visible_roles' => ['admin', 'superadmin']],
             ['code' => 'CRYPTO_DEPOSIT',       'label' => 'Depósito cripto',         'icon' => 'fab fa-bitcoin',    'color' => '#f59e0b', 'is_credit' => true,  'requires_approval' => false, 'game_group' => null, 'sort_order' => 120, 'visible_roles' => null],
+            ['code' => 'CRYPTO_WITHDRAWAL',    'label' => 'Retiro cripto',           'icon' => 'fab fa-bitcoin',    'color' => '#dc2626', 'is_credit' => false, 'requires_approval' => false, 'game_group' => null, 'sort_order' => 130, 'visible_roles' => null],
         ];
 
         foreach ($types as $type) {

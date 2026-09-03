@@ -86,7 +86,13 @@ class TriviaPowerUpServiceTest extends TestCase
 
     public function test_consume_falls_back_to_inventory_ticket_when_free_use_exhausted(): void
     {
-        [$room, $participant] = $this->createRoomAndParticipant();
+        // player_assets.owner_id es un FK real a users (MySQL) — a
+        // diferencia de trivia_participants.user_id (Postgres, columna
+        // string libre, ver createRoomAndParticipant()), necesita un User
+        // real, no el 'user-1' ficticio que el resto de tests de esta clase
+        // usa para trivia_participants.
+        $user = \App\Models\User::factory()->create();
+        [$room, $participant] = $this->createRoomAndParticipant((string) $user->id);
 
         $definition = \App\Domains\Marketplace\Inventory\Models\AssetDefinition::firstOrCreate(
             ['code' => 'TRIVIA_HINT_TICKET'],
@@ -98,7 +104,7 @@ class TriviaPowerUpServiceTest extends TestCase
         );
         \App\Domains\Marketplace\Inventory\Models\AssetDefinition::forgetCatalogCache();
         \App\Domains\Marketplace\Inventory\Models\PlayerAsset::create([
-            'asset_definition_id' => $definition->id, 'owner_id' => $participant->user_id,
+            'asset_definition_id' => $definition->id, 'owner_id' => $user->id,
             'quantity' => 1, 'status' => 'AVAILABLE', 'acquired_via' => 'ADMIN_GRANT',
         ]);
 
@@ -111,7 +117,7 @@ class TriviaPowerUpServiceTest extends TestCase
 
         $this->assertSame(
             'CONSUMED',
-            \App\Domains\Marketplace\Inventory\Models\PlayerAsset::where('owner_id', $participant->user_id)
+            \App\Domains\Marketplace\Inventory\Models\PlayerAsset::where('owner_id', $user->id)
                 ->where('asset_definition_id', $definition->id)
                 ->value('status'),
         );
