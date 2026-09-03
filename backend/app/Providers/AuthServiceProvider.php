@@ -31,6 +31,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic::class => \App\Domains\Games\Bingo\Policies\BingoRoomAutomaticPolicy::class,
         \App\Domains\Games\Trivia\Models\TriviaRoom::class        => \App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class,
         \App\Models\WalletMovement::class                     => \App\Policies\Wallet\WalletMovementPolicy::class,
+        \App\Domains\Marketplace\Escrow\Models\Escrow::class   => \App\Policies\Marketplace\EscrowPolicy::class,
         \App\Models\Permission::class                         => \App\Policies\Roles\Admin\PermissionPolicy::class,
         \App\Models\Module::class                             => \App\Policies\Roles\Admin\ModulePolicy::class,
         \App\Models\SidebarMenuVisibility::class               => \App\Policies\Roles\Admin\SidebarMenuVisibilityPolicy::class,
