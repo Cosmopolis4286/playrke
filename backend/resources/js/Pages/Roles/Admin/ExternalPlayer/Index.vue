@@ -16,6 +16,7 @@
               :pagination="pagination"
               :loading="loading"
               :games="props.games"
+              :hierarchy="props.hierarchy"
               @search="handleSearch"
               @search-debounced="handleSearchDebounced"
               @page-change="goToPage"
@@ -37,7 +38,7 @@ import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
 import { useExternalPlayers } from '@/js/composables/roles/admin/external-player/useExternalPlayers'
 import { useToast } from 'vue-toastification'
 import { showPasswordModal } from '@/js/helpers/user/password'
-import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, GameOption, PaginatedResult } from '@/js/types/roles/admin/external-player'
+import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, GameOption, HierarchyOptions, PaginatedResult } from '@/js/types/roles/admin/external-player'
 
 const toast = useToast()
 
@@ -45,6 +46,7 @@ const props = defineProps<{
   players: PaginatedResult<ExternalPlayer>
   statistics: ExternalPlayerStatistics
   games: GameOption[]
+  hierarchy: HierarchyOptions
 }>()
 
 const breadcrumbItems = [

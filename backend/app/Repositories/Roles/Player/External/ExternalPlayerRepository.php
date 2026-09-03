@@ -180,12 +180,16 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
      * estado + el total) — mismo resultado, una sola vuelta a la base de
      * datos independientemente de cuántos estados existan.
      */
-    public function getPlayerStatistics(?string $gameId = null): array
+    public function getPlayerStatistics(?string $gameId = null, ?array $sellerUserIds = null): array
     {
         $query = $this->model->newQuery();
 
         if ($gameId) {
             $query->where('game_id', $gameId);
+        }
+
+        if ($sellerUserIds !== null) {
+            $query->whereIn('seller_user_id', $sellerUserIds);
         }
 
         $row = $query->selectRaw(

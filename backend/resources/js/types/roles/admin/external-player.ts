@@ -13,6 +13,10 @@ export interface ExternalPlayer {
   country?: { id: string; name: string } | null
   purchase_code?: { id: string; purchase_code: string } | null
   converted_user?: { id: string; username: string; email: string } | null
+  /** Comercializadora del vendedor que captó a este jugador (directa o vía agencia) — null si no se pudo resolver. */
+  commerce?: { id: string; name: string } | null
+  /** Agencia/sucursal del vendedor — null si reporta directo al comercio sin agencia intermedia. */
+  subsidiary?: { id: string; name: string } | null
 }
 
 export interface ExternalPlayerStatistics {
@@ -30,11 +34,21 @@ export interface ExternalPlayerFilters {
   seller_user_id?: string
   /** Búsqueda por nombre/email del vendedor — más práctico que exigir un ID exacto en la UI. */
   seller_search?: string
+  /** Comercializadora del vendedor que captó al jugador (jerarquía, no filtro de texto). */
+  commerce_id?: string
+  /** Agencia/sucursal del vendedor — se acota automáticamente al elegir un commerce_id. */
+  subsidiary_id?: string
 }
 
 export interface GameOption {
   id: string
   name: string
+}
+
+/** Catálogo de comercios/agencias para los selects de filtro por jerarquía — ya acotado por rol server-side. */
+export interface HierarchyOptions {
+  commerces: { id: string; name: string }[]
+  subsidiaries: { id: string; name: string; commerce_id: string }[]
 }
 
 export interface PaginatedResult<T> {

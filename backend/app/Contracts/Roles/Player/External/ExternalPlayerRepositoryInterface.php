@@ -65,5 +65,5 @@ interface ExternalPlayerRepositoryInterface extends BaseRepositoryInterface
 
     public function getPlayersWithPurchaseCode(string $purchaseCodeId): Collection;
 
-    public function getPlayerStatistics(?string $gameId = null): array;
+    public function getPlayerStatistics(?string $gameId = null, ?array $sellerUserIds = null): array;
 }

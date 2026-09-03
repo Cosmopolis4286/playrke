@@ -29,6 +29,15 @@ final class ExternalPlayerAdminService
         'country:id,name',
         'purchaseCode:id,purchase_code',
         'convertedUser:id,username,email',
+        // Jerarquía del vendedor (Seller → Subsidiary → Commerce, o Seller →
+        // Commerce directo) — ExternalPlayer no tiene FK directa a Commerce,
+        // se resuelve por esta cadena. Ver ExternalPlayer::getCommerceAttribute()/
+        // getSubsidiaryAttribute() para cómo se aplana a { commerce, subsidiary }
+        // en la respuesta serializada.
+        'seller:id,user_id,name,subsidiary_id,manager_user_id',
+        'seller.subsidiary:id,name,commerce_id',
+        'seller.subsidiary.commerce:id,name',
+        'seller.managerCommerce:id,user_id,name',
     ];
 
     public function __construct(
@@ -66,27 +75,84 @@ final class ExternalPlayerAdminService
     }
 
     /**
-     * Si el actor autenticado es 'commerce', fuerza el filtro de
-     * seller_user_id al árbol de sellers propio — admin/superadmin no
-     * reciben restricción. Sin esto, exponer /admin/external-players a
-     * Commerce vía sidebar dejaría ver/gestionar jugadores externos de
-     * CUALQUIER otro comercio (ExternalPlayerAdminService no comparaba
-     * ownership antes de este cambio).
+     * Resuelve el rol activo (superadmin normalizado a admin) y el user_id
+     * del actor autenticado — punto único usado por applyOwnershipFilter()
+     * y statistics() para que ambos apliquen el mismo criterio de scoping.
+     *
+     * @return array{0: string, 1: int}
      */
-    private function applyOwnershipFilter(array $filters): array
+    private function resolveActorRole(): array
     {
         $userId = $this->userContext->resolveUserId();
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
         if ($role === 'superadmin') {
             $role = 'admin';
         }
+        return [$role, $userId];
+    }
+
+    /**
+     * user_id de los Sellers propios de la Subsidiary indicada — usado por
+     * el filtro subsidiary_id (tanto para admin filtrando libremente como
+     * para un commerce acotando dentro de su propia agencia).
+     *
+     * @return string[]
+     */
+    private function subsidiarySellerUserIds(string $subsidiaryId): array
+    {
+        return Seller::query()
+            ->where('subsidiary_id', $subsidiaryId)
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+    }
+
+    /**
+     * Si el actor autenticado es 'commerce', fuerza el filtro de
+     * seller_user_id al árbol de sellers propio — admin/superadmin no
+     * reciben restricción. Sin esto, exponer /admin/external-players a
+     * Commerce vía sidebar dejaría ver/gestionar jugadores externos de
+     * CUALQUIER otro comercio (ExternalPlayerAdminService no comparaba
+     * ownership antes de este cambio).
+     *
+     * También traduce los filtros de jerarquía (commerce_id/subsidiary_id,
+     * ver ExternalPlayerSearchRequest::filters()) a la misma condición
+     * seller_user_id_in que ya entiende buildQuery() — un commerce que
+     * filtra por subsidiary_id además queda intersectado con su propio
+     * árbol (no puede filtrar por una agencia ajena).
+     */
+    private function applyOwnershipFilter(array $filters): array
+    {
+        [$role, $userId] = $this->resolveActorRole();
+
+        $sellerIdsFromHierarchyFilter = null;
+
+        if (!empty($filters['subsidiary_id'])) {
+            $sellerIdsFromHierarchyFilter = $this->subsidiarySellerUserIds($filters['subsidiary_id']);
+        } elseif (!empty($filters['commerce_id'])) {
+            $commerceUserId = $this->commerceRepository->getValueById($filters['commerce_id'], 'user_id');
+            $sellerIdsFromHierarchyFilter = $commerceUserId ? $this->ownSellerUserIds((int) $commerceUserId) : [];
+        }
+
+        unset($filters['commerce_id'], $filters['subsidiary_id']);
 
         if ($role !== 'commerce') {
+            if ($sellerIdsFromHierarchyFilter !== null) {
+                $filters['seller_user_id_in'] = $sellerIdsFromHierarchyFilter ?: ['0'];
+            }
             return $filters;
         }
 
         $ownSellerIds = $this->ownSellerUserIds($userId);
-        $filters['seller_user_id_in'] = $ownSellerIds ?: ['0']; // fuerza cero resultados si no tiene sellers
+
+        // Un commerce que además filtra por subsidiary_id/commerce_id queda
+        // intersectado con su propio árbol — nunca puede ampliar su alcance
+        // filtrando por la jerarquía de otro comercio.
+        $effectiveSellerIds = $sellerIdsFromHierarchyFilter !== null
+            ? array_values(array_intersect($ownSellerIds, $sellerIdsFromHierarchyFilter))
+            : $ownSellerIds;
+
+        $filters['seller_user_id_in'] = $effectiveSellerIds ?: ['0']; // fuerza cero resultados si no tiene sellers
 
         return $filters;
     }
@@ -187,10 +253,51 @@ final class ExternalPlayerAdminService
      * Antes: 4 (u 8, si se filtraba por juego) queries COUNT separadas —
      * una por cada estado más el total. Colapsado en una sola query con
      * SUM/CASE, delegado a ExternalPlayerRepository::getPlayerStatistics().
+     *
+     * $filters (opcional) acepta las mismas claves de jerarquía que
+     * search() (commerce_id/subsidiary_id) — sin pasar por
+     * applyOwnershipFilter() aquí, un commerce vería el conteo TOTAL del
+     * sistema en vez del suyo (bug real: las stats no aplicaban ningún
+     * scoping antes de este fix, pese a que search() sí lo hacía).
      */
-    public function statistics(?string $gameId = null): array
+    public function statistics(?string $gameId = null, array $filters = []): array
     {
-        return $this->repository->getPlayerStatistics($gameId);
+        $scopedFilters = $this->applyOwnershipFilter($filters);
+
+        return $this->repository->getPlayerStatistics($gameId, $scopedFilters['seller_user_id_in'] ?? null);
+    }
+
+    /**
+     * Catálogo de comercios/agencias para los selects de filtro por
+     * jerarquía — acotado por rol, mismo criterio que applyOwnershipFilter():
+     * admin ve todos los comercios y todas las agencias; commerce ve solo su
+     * propio comercio y SUS PROPIAS agencias (nunca las de otro comercio).
+     *
+     * @return array{commerces: array<int, array{id: string, name: string}>, subsidiaries: array<int, array{id: string, name: string, commerce_id: string}>}
+     */
+    public function hierarchyOptions(): array
+    {
+        [$role, $userId] = $this->resolveActorRole();
+
+        if ($role !== 'commerce') {
+            $commerces = \App\Models\Roles\Commerce::query()->orderBy('name')->get(['id', 'name']);
+            $subsidiaries = \App\Models\Roles\Subsidiary::query()->orderBy('name')->get(['id', 'name', 'commerce_id']);
+        } else {
+            $commerce = $this->commerceRepository->getByUserId($userId, ['id', 'name']);
+            $commerces = $commerce ? collect([$commerce]) : collect();
+            $subsidiaries = $commerce
+                ? $this->subsidiaryRepository->getByCommerce($commerce->id)->sortBy('name')->values()
+                : collect();
+        }
+
+        return [
+            'commerces' => $commerces->map(fn ($c) => ['id' => (string) $c->id, 'name' => $c->name])->values()->all(),
+            'subsidiaries' => $subsidiaries->map(fn ($s) => [
+                'id' => (string) $s->id,
+                'name' => $s->name,
+                'commerce_id' => (string) $s->commerce_id,
+            ])->values()->all(),
+        ];
     }
 
     /**

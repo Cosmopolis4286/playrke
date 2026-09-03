@@ -5,6 +5,7 @@
     <ExternalPlayerFilters
       :loading="loading"
       :games="games"
+      :hierarchy="hierarchy"
       @change="filters => $emit('search', filters)"
       @change-debounced="filters => $emit('search-debounced', filters)"
       @export="$emit('export')"
@@ -52,7 +53,7 @@ import ExternalPlayerStats from './ExternalPlayerStats.vue'
 import ExternalPlayerFilters from './ExternalPlayerFilters.vue'
 import ExternalPlayerRow from './ExternalPlayerRow.vue'
 import ExternalPlayerPagination from './ExternalPlayerPagination.vue'
-import type { ExternalPlayer, ExternalPlayerFilters as Filters, ExternalPlayerStatistics, GameOption } from '@/js/types/roles/admin/external-player'
+import type { ExternalPlayer, ExternalPlayerFilters as Filters, ExternalPlayerStatistics, GameOption, HierarchyOptions } from '@/js/types/roles/admin/external-player'
 
 defineProps<{
   players: ExternalPlayer[]
@@ -60,6 +61,7 @@ defineProps<{
   pagination: { currentPage: number; lastPage: number; perPage: number; total: number }
   loading: boolean
   games: GameOption[]
+  hierarchy: HierarchyOptions
 }>()
 
 const emit = defineEmits<{

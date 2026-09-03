@@ -27,10 +27,20 @@ final class ExternalPlayerAdminController extends Controller
     {
         $this->authorize('viewAny', ExternalPlayer::class);
 
+        $filters = $request->filters();
+
         return Inertia::render('Roles/Admin/ExternalPlayer/Index', [
-            'players'    => $this->service->search($request->filters(), $request->perPage()),
-            'statistics' => $this->service->statistics(),
+            'players'    => $this->service->search($filters, $request->perPage()),
+            // Sin filtros de estado/comercio/agencia: las tarjetas de
+            // resumen reflejan el universo completo accesible al actor
+            // (ya escopado por rol dentro de statistics()), no la búsqueda
+            // puntual — mismo criterio que ya tenía este índice.
+            'statistics' => $this->service->statistics($filters['game_id'] ?? null, [
+                'commerce_id' => $filters['commerce_id'] ?? null,
+                'subsidiary_id' => $filters['subsidiary_id'] ?? null,
+            ]),
             'games'      => $this->service->availableGames(),
+            'hierarchy'  => $this->service->hierarchyOptions(),
         ]);
     }
 
@@ -42,7 +52,10 @@ final class ExternalPlayerAdminController extends Controller
 
         return response()->json([
             'players'    => $this->service->search($filters, $request->perPage()),
-            'statistics' => $this->service->statistics($filters['game_id']),
+            'statistics' => $this->service->statistics($filters['game_id'] ?? null, [
+                'commerce_id' => $filters['commerce_id'] ?? null,
+                'subsidiary_id' => $filters['subsidiary_id'] ?? null,
+            ]),
         ]);
     }
 
@@ -59,7 +72,7 @@ final class ExternalPlayerAdminController extends Controller
 
         return response()->streamDownload(function () use ($filters) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nombre', 'Apellido', 'Teléfono', 'Identificación', 'Estado', 'Juego', 'País', 'Vendedor', 'Expira', 'Link', 'Código de compra']);
+            fputcsv($handle, ['Nombre', 'Apellido', 'Teléfono', 'Identificación', 'Estado', 'Juego', 'País', 'Vendedor', 'Agencia', 'Comercio', 'Expira', 'Link', 'Código de compra']);
 
             foreach ($this->service->searchForExport($filters) as $player) {
                 fputcsv($handle, [
@@ -71,6 +84,8 @@ final class ExternalPlayerAdminController extends Controller
                     $player->game?->name,
                     $player->country?->name,
                     $player->sellerUser ? "{$player->sellerUser->first_name} {$player->sellerUser->last_name}" : null,
+                    $player->subsidiary['name'] ?? null,
+                    $player->commerce['name'] ?? null,
                     $player->expiration_date?->format('Y-m-d'),
                     $player->link,
                     $player->purchaseCode?->purchase_code,

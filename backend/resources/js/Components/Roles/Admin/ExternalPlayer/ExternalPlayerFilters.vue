@@ -34,6 +34,20 @@
       @input="onSearchInput"
     />
 
+    <!-- Comercio/Agencia: solo si hay más de una opción disponible — un
+         commerce con un único comercio propio (el caso normal) no necesita
+         elegir entre opciones que ya sabe cuáles son; ver hierarchy, ya
+         acotada por rol server-side (ExternalPlayerAdminService::hierarchyOptions()). -->
+    <select v-if="hierarchy.commerces.length > 1" v-model="commerceId" class="form-control ep-filter" @change="onCommerceChange">
+      <option value="">Todos los comercios</option>
+      <option v-for="commerce in hierarchy.commerces" :key="commerce.id" :value="commerce.id">{{ commerce.name }}</option>
+    </select>
+
+    <select v-if="subsidiaryOptions.length" v-model="subsidiaryId" class="form-control ep-filter" @change="emitChange">
+      <option value="">Todas las agencias</option>
+      <option v-for="subsidiary in subsidiaryOptions" :key="subsidiary.id" :value="subsidiary.id">{{ subsidiary.name }}</option>
+    </select>
+
     <button v-if="hasActiveFilters" class="btn btn-outline-secondary" title="Limpiar filtros" @click="resetFilters">
       <i class="fas fa-filter-circle-xmark mr-2"></i>Limpiar
     </button>
@@ -50,11 +64,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ExternalPlayerFilters, GameOption } from '@/js/types/roles/admin/external-player'
+import type { ExternalPlayerFilters, GameOption, HierarchyOptions } from '@/js/types/roles/admin/external-player'
 
 const props = defineProps<{
   loading: boolean
   games: GameOption[]
+  hierarchy: HierarchyOptions
 }>()
 
 const emit = defineEmits<{
@@ -67,8 +82,29 @@ const search = ref('')
 const status = ref<ExternalPlayerFilters['status']>('')
 const gameId = ref('')
 const sellerSearch = ref('')
+// Con un solo comercio disponible (caso normal de un usuario 'commerce') el
+// select de comercio se oculta (ver template), pero igual se preselecciona
+// aquí para que el select de agencias pueda calcular sus opciones — sin
+// esto, un commerce nunca podría filtrar por su propia agencia.
+const commerceId = ref(props.hierarchy.commerces.length === 1 ? props.hierarchy.commerces[0].id : '')
+const subsidiaryId = ref('')
 
-const hasActiveFilters = computed(() => !!(search.value || status.value || gameId.value || sellerSearch.value))
+/** Agencias del comercio elegido — vacío si no se filtró por comercio (oculta el select por completo). */
+const subsidiaryOptions = computed(() => {
+  if (!commerceId.value) return []
+  return props.hierarchy.subsidiaries.filter(s => s.commerce_id === commerceId.value)
+})
+
+function onCommerceChange() {
+  // Cambiar de comercio invalida cualquier agencia elegida previamente
+  // (pertenecía al comercio anterior).
+  subsidiaryId.value = ''
+  emitChange()
+}
+
+const hasActiveFilters = computed(() =>
+  !!(search.value || status.value || gameId.value || sellerSearch.value || commerceId.value || subsidiaryId.value)
+)
 
 // Nombres de juego se guardan en mayúsculas (BINGO, TRIVIA) — formato legible.
 function formatGameName(name: string): string {
@@ -81,6 +117,8 @@ function currentFilters(): ExternalPlayerFilters {
     status: status.value || undefined,
     game_id: gameId.value || undefined,
     seller_search: sellerSearch.value || undefined,
+    commerce_id: commerceId.value || undefined,
+    subsidiary_id: subsidiaryId.value || undefined,
   }
 }
 
@@ -102,6 +140,8 @@ function resetFilters() {
   status.value = ''
   gameId.value = ''
   sellerSearch.value = ''
+  commerceId.value = ''
+  subsidiaryId.value = ''
   emitChange()
 }
 </script>

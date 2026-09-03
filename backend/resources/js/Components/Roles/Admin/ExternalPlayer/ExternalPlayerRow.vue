@@ -29,6 +29,13 @@
       </span>
       <span v-if="player.country" class="ep-tag"><i class="fas fa-globe-americas mr-1"></i>{{ player.country.name }}</span>
       <span
+        v-if="player.commerce"
+        v-tooltip="player.subsidiary ? `Vía agencia: ${player.subsidiary.name}` : 'Reporta directo al comercio'"
+        class="ep-tag"
+      >
+        <i class="fas" :class="player.subsidiary ? 'fa-code-branch' : 'fa-store'"></i>{{ player.commerce.name }}
+      </span>
+      <span
         v-if="player.expiration_date"
         v-tooltip="'Expira: ' + formatFullDate(player.expiration_date)"
         class="ep-tag"
@@ -101,6 +108,14 @@
           <span class="ep-detail-value">
             {{ player.seller_user ? `${player.seller_user.first_name} ${player.seller_user.last_name} (${player.seller_user.email})` : '—' }}
           </span>
+        </div>
+        <div class="ep-detail-item">
+          <span class="ep-detail-label">Agencia</span>
+          <span class="ep-detail-value">{{ player.subsidiary?.name ?? '— (reporta directo al comercio)' }}</span>
+        </div>
+        <div class="ep-detail-item">
+          <span class="ep-detail-label">Comercio</span>
+          <span class="ep-detail-value">{{ player.commerce?.name ?? '—' }}</span>
         </div>
         <div class="ep-detail-item">
           <span class="ep-detail-label">Link de acceso</span>
