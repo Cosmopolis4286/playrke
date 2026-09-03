@@ -110,6 +110,11 @@ class Escrow extends Model
         return $this->belongsTo(WalletHold::class, 'wallet_hold_id');
     }
 
+    public function resolvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
+    }
+
     public function isActive(): bool
     {
         return !in_array($this->status, [

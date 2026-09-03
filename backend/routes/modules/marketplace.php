@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Marketplace\Admin\EscrowAdminController;
 use App\Http\Controllers\Marketplace\InventoryController;
 use App\Http\Controllers\Marketplace\MarketplaceController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,13 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified', 'multiPermission:inventory.view'])->group(function () {
     Route::get('inventory',            [InventoryController::class, 'index'])     ->name('inventory.index');
     Route::get('inventory/fetch-list', [InventoryController::class, 'fetchList']) ->name('inventory.fetch-list');
+});
+
+// Consumir un activo durante una partida (cualquier juego) — throttle:20,1
+// porque un booster puede usarse varias veces en una sesión de juego, a
+// diferencia de listar/comprar que son acciones puntuales.
+Route::middleware(['auth', 'verified', 'multiPermission:inventory.view', 'throttle:20,1'])->group(function () {
+    Route::post('inventory/consume', [InventoryController::class, 'consume']) ->name('inventory.consume');
 });
 
 Route::middleware(['auth', 'verified', 'multiPermission:marketplace.listings.view'])->group(function () {
@@ -44,4 +52,19 @@ Route::middleware(['auth', 'verified', 'multiPermission:marketplace.listings.cre
 // ver MarketplaceController::buy()) — throttle:5,1 igual que wallet.deposit/withdraw.
 Route::middleware(['auth', 'verified', 'multiPermission:marketplace.orders.create', 'tos', 'throttle:5,1'])->group(function () {
     Route::post('marketplace/listings/{listing}/buy', [MarketplaceController::class, 'buy']) ->name('marketplace.listings.buy');
+});
+
+// ====================================
+// PANEL DE MODERACIÓN (ADMIN/SUPERADMIN)
+// Nombre de recurso distinto ("marketplace-escrows", no "marketplace/escrows")
+// para no competir con el wildcard marketplace/{listing} de arriba.
+// ====================================
+Route::middleware(['auth', 'multiPermission:marketplace.manage'])->group(function () {
+    Route::get('marketplace-escrows',                 [EscrowAdminController::class, 'index'])     ->name('marketplace-escrows.index');
+    Route::get('marketplace-escrows/fetch-list',       [EscrowAdminController::class, 'fetchList']) ->name('marketplace-escrows.fetch-list');
+    Route::get('marketplace-escrows/{escrow}',         [EscrowAdminController::class, 'show'])      ->name('marketplace-escrows.show');
+
+    Route::middleware('throttle:30,1')->group(function () {
+        Route::post('marketplace-escrows/{escrow}/resolve', [EscrowAdminController::class, 'resolve']) ->name('marketplace-escrows.resolve');
+    });
 });

@@ -208,6 +208,11 @@ class SidebarMenuService
                     'route' => 'inventory.index',
                     'permission' => 'inventory.view',
                 ],
+                'moderation' => [
+                    'title' => 'Moderación (Escrows)',
+                    'route' => 'marketplace-escrows.index',
+                    'permission' => 'marketplace.manage',
+                ],
             ],
         ],
 

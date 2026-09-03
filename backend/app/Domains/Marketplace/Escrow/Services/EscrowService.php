@@ -211,6 +211,16 @@ final class EscrowService
             Order::where('id', $locked->order_id)->update(['status' => Order::STATUS_COMPLETED]);
             Listing::where('id', $locked->order->listing_id)->update(['status' => Listing::STATUS_SOLD]);
 
+            Log::info('[EscrowService] Escrow liberado — settlement completo', [
+                'escrow_id'      => $locked->id,
+                'order_id'       => $locked->order_id,
+                'buyer_id'       => $locked->buyer_id,
+                'seller_id'      => $locked->seller_id,
+                'amount'         => $locked->amount,
+                'fee_amount'     => $locked->fee_amount,
+                'seller_amount'  => $locked->seller_amount,
+            ]);
+
             return $locked->fresh();
         });
 
