@@ -40,7 +40,7 @@ const emit = defineEmits<{
  * Form logic
  * ========================================================================== */
 
-const { form, errors, isValid } = useAdminSubsidiaryForm(
+const { form, errors, isValid, isEditMode } = useAdminSubsidiaryForm(
   () => props.modelValue,
   emit
 );
@@ -64,6 +64,21 @@ watch(
     }
   },
   { immediate: true }
+);
+
+/**
+ * Comercios no ACTIVE se marcan en el label — el admin ve TODOS los
+ * comercios (no solo activos, ver AdminSubsidiaryContextService::
+ * subsidiaryContext()) para que editar una sucursal cuyo comercio padre
+ * fue desactivado/bloqueado siga mostrando esa opción en el select en vez
+ * de dejarlo vacío. `status` solo viene presente en el catálogo de admin
+ * (rol commerce ya se ve solo a sí mismo, siempre ACTIVE por construcción).
+ */
+const commerceOptions = computed(() =>
+  props.commerces.map((c) => ({
+    ...c,
+    name: c.status && c.status !== "ACTIVE" ? `${c.name} (${c.status})` : c.name,
+  }))
 );
 
 /* ==========================================================================
@@ -213,7 +228,7 @@ defineExpose({ submit, isValid });
       <FormInput
         label="Username"
         name="username"
-        required
+        :required="!isEditMode"
         minlength="5"
         maxlength="20"
         col="col-sm-6"
@@ -225,7 +240,7 @@ defineExpose({ submit, isValid });
         label="Email"
         name="email"
         type="email"
-        required
+        :required="!isEditMode"
         col="col-12"
         :error="errors.email"
         v-model="form.email"
@@ -245,7 +260,7 @@ defineExpose({ submit, isValid });
         name="commerce_id"
         required
         placeholder="Seleccionar comercio"
-        :options="props.commerces"
+        :options="commerceOptions"
         optionValue="id"
         optionLabel="name"
         col="col-12"

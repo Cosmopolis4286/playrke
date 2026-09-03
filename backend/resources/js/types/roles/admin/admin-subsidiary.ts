@@ -8,6 +8,8 @@ import type { Pagination } from '../../common/table/pagination'
 export interface SubsidiaryCommerceOption {
     id: string
     name: string
+    /** Ausente cuando el actor es 'commerce' (solo se lista a sí mismo). Presente para admin, que ve todos los comercios sin filtrar por status. */
+    status?: string
 }
 
 export interface AdminSubsidiaryPageProps {

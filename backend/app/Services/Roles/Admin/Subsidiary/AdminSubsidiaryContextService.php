@@ -60,9 +60,15 @@ final class AdminSubsidiaryContextService
 
         $subsidiaryData = $this->resolveSubsidiaries($role, $actorUserId);
 
+        // Admin ve TODOS los comercios, sin filtrar por status — antes solo
+        // traía los ACTIVE, así que editar una subsidiary cuyo commerce_id
+        // apuntaba a un comercio ya INACTIVE/BLOCKED dejaba el select
+        // "Comercio" sin esa opción disponible (el FormSelect no puede
+        // mostrar un value que no está en su lista de options), viéndose
+        // vacío pese a que la sucursal sí tenía un comercio asignado.
         $commerces = $role === 'commerce' && $actorUserId
             ? collect([$this->commerces->getByUserId($actorUserId, ['id', 'name'])])->filter()->values()
-            : $this->commerces->getByStatus('ACTIVE', ['id', 'name']);
+            : $this->commerces->all(['id', 'name', 'status']);
 
         return new AdminSubsidiaryContextDTO(
             subsidiaries: $subsidiaryData['subsidiaries'],
