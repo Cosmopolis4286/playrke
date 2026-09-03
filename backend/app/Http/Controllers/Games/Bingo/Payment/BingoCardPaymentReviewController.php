@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Games\Bingo\Payment;
 
+use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
 use App\Http\Controllers\Controller;
@@ -46,10 +47,32 @@ final class BingoCardPaymentReviewController extends Controller
             'created_at'         => $p->created_at?->toIso8601String(),
         ])->values();
 
+        // Reembolsos con fallos — puramente informativo, complementa la
+        // notificación puntual que ya recibe superadmin al abandonar (ver
+        // RetryFailedBingoRefundsCommand::notifyAbandonedRefund()). No hay
+        // acción manual aquí: el comando programado (cada 5 min, ver
+        // routes/console.php) sigue siendo el único mecanismo de reintento.
+        $refundFailures = BingoLotRefundFailure::whereIn('status', ['PENDING', 'ABANDONED'])
+            ->with('room:id,uuid_code')
+            ->latest('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn (BingoLotRefundFailure $f) => [
+                'id'                => (string) $f->id,
+                'room_uuid_code'    => $f->room?->uuid_code,
+                'amount'            => (float) $f->amount,
+                'status'            => $f->status,
+                'attempts'          => $f->attempts,
+                'error_message'     => $f->error_message,
+                'last_attempted_at' => $f->last_attempted_at?->toIso8601String(),
+            ])
+            ->values();
+
         return Inertia::render('Roles/Admin/BingoCardPayments/Index', [
-            'title'    => 'Pagos de Bingo pendientes de revisión',
-            'payments' => $payments,
-            'meta'     => [
+            'title'          => 'Pagos de Bingo pendientes de revisión',
+            'payments'       => $payments,
+            'refundFailures' => $refundFailures,
+            'meta'           => [
                 'current_page' => $paginator->currentPage(),
                 'last_page'    => $paginator->lastPage(),
                 'total'        => $paginator->total(),

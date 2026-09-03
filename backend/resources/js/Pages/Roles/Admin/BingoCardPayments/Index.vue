@@ -26,9 +26,20 @@ interface Meta {
   total: number
 }
 
+interface RefundFailure {
+  id: string
+  room_uuid_code: string | null
+  amount: number
+  status: 'PENDING' | 'ABANDONED'
+  attempts: number
+  error_message: string | null
+  last_attempted_at: string | null
+}
+
 const props = defineProps<{
   title: string
   payments: PendingPayment[]
+  refundFailures: RefundFailure[]
   meta: Meta
 }>()
 
@@ -146,6 +157,47 @@ async function reject(payment: PendingPayment) {
     <p v-if="meta.total" class="bcp-meta">
       Página {{ meta.current_page }} de {{ meta.last_page }} — {{ meta.total }} pago(s) pendiente(s) en total.
     </p>
+
+    <!-- ── Reembolsos con fallos ──
+         Puramente informativo: el reintento automático (cada 5 min, ver
+         RetryFailedBingoRefundsCommand) sigue siendo el único mecanismo que
+         acredita estos reembolsos — no hay acción manual aquí. -->
+    <h2 class="bcp-title bcp-title--secondary">Reembolsos con fallos</h2>
+    <p class="bcp-subtitle">
+      PENDING se reintenta automáticamente cada 5 minutos. ABANDONED agotó los reintentos y
+      requiere acreditación manual (ya se notificó a superadmin).
+    </p>
+
+    <div v-if="!refundFailures.length" class="bcp-empty">
+      No hay reembolsos con fallos registrados.
+    </div>
+
+    <table v-else class="bcp-table">
+      <thead>
+        <tr>
+          <th>Sala</th>
+          <th>Monto</th>
+          <th>Estado</th>
+          <th>Intentos</th>
+          <th>Último error</th>
+          <th>Último intento</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="failure in refundFailures" :key="failure.id">
+          <td>{{ failure.room_uuid_code ?? '—' }}</td>
+          <td>{{ failure.amount.toFixed(2) }}</td>
+          <td>
+            <span :class="failure.status === 'ABANDONED' ? 'bcp-badge bcp-badge--danger' : 'bcp-badge bcp-badge--warning'">
+              {{ failure.status }}
+            </span>
+          </td>
+          <td>{{ failure.attempts }}</td>
+          <td class="bcp-error-cell">{{ failure.error_message ?? '—' }}</td>
+          <td>{{ failure.last_attempted_at ? new Date(failure.last_attempted_at).toLocaleString() : '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
@@ -188,4 +240,18 @@ async function reject(payment: PendingPayment) {
 .bcp-btn--reject { background: #ff5a5a; color: #fff; }
 
 .bcp-meta { margin-top: 14px; font-size: 12px; color: #6a86ac; }
+
+.bcp-title--secondary { margin-top: 36px; font-size: 16px; }
+
+.bcp-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.bcp-badge--warning { background: rgba(255,187,32,.15); color: #ffbb20; }
+.bcp-badge--danger { background: rgba(255,90,90,.15); color: #ff5a5a; }
+
+.bcp-error-cell { max-width: 260px; font-size: 11px; color: #ff8a8a; word-break: break-word; }
 </style>
