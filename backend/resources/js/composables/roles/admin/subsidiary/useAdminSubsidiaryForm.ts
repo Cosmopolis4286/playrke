@@ -40,15 +40,21 @@ export function useAdminSubsidiaryForm(
             e.name = 'El nombre de la sucursal es requerido.'
         }
 
+        // username/email: obligatorios solo al crear — en edición el backend
+        // los marca 'sometimes' (AdminSubsidiaryRequest::rules()), un admin
+        // puede editar solo comisión/país/etc. sin tocar la cuenta de acceso.
+        // Si se envían, igual deben cumplir formato/longitud.
         const username = form.value.username ?? ''
-        if (!username || username.length < 5) {
+        if (!isEditMode.value && !username) {
+            e.username = 'El username es requerido.'
+        } else if (username && username.length < 5) {
             e.username = 'El username debe tener al menos 5 caracteres.'
         }
 
         const email = form.value.email ?? ''
-        if (!email) {
+        if (!isEditMode.value && !email) {
             e.email = 'El email es requerido.'
-        } else if (!EMAIL_RE.test(email)) {
+        } else if (email && !EMAIL_RE.test(email)) {
             e.email = 'Ingresa un email válido.'
         }
 
@@ -92,3 +98,4 @@ export function useAdminSubsidiaryForm(
         isEditMode
     }
 }
+
