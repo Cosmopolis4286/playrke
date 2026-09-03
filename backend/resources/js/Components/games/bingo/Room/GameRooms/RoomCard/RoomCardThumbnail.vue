@@ -33,7 +33,7 @@ function openTopBuyers(): void {
 <template>
   <div class="rc__thumb">
     <div class="rc__stars" />
-    <img :src="BINGO_ROOM_IMG" alt="" class="rc__img" />
+    <img :src="BINGO_ROOM_IMG" alt="" class="rc__img" loading="lazy" />
     <div class="rc__img-veil" />
     <div class="rc__side-accent" />
 
