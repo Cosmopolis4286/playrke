@@ -94,4 +94,48 @@ return [
     'ALREADY_IMPERSONATING' => 'Ya hay una sesión de soporte activa. Debes finalizarla antes de iniciar otra.',
     'IMPERSONATION_TARGET_MUST_BE_PLAYER' => 'Solo se puede impersonar a usuarios con rol Jugador.',
     'NOT_IMPERSONATING' => 'No hay ninguna sesión de soporte activa para finalizar.',
+
+    // Sucursales (admin/subsidiary)
+    'ADMIN_SUBSIDIARY_NOT_FOUND' => 'Sucursal no encontrada.',
+    'ADMIN_SUBSIDIARY_ALREADY_DELETED' => 'La sucursal ya fue eliminada.',
+    'ADMIN_SUBSIDIARY_INVALID_STATUS_CHANGE' => 'No se puede cambiar el estado de esta sucursal.',
+    'ADMIN_SUBSIDIARY_DESTROY_NOT_ALLOWED' => 'No se puede eliminar definitivamente esta sucursal.',
+    'ADMIN_SUBSIDIARY_CREATION_FAILED' => 'No se pudo crear la sucursal.',
+    'ADMIN_SUBSIDIARY_UPDATE_FAILED' => 'No se pudo actualizar la sucursal.',
+    'ADMIN_SUBSIDIARY_DELETE_FAILED' => 'No se pudo eliminar la sucursal.',
+    'ADMIN_SUBSIDIARY_PASSWORD_RESET_FAILED' => 'No se pudo resetear la contraseña de la sucursal.',
+    'ADMIN_SUBSIDIARY_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Solo se puede resetear la contraseña de sucursales activas.',
+
+    // Salas de Bingo (games/bingo/room)
+    'BINGO_ROOM_NOT_FOUND' => 'La sala de bingo no existe.',
+    'BINGO_ROOM_ALREADY_DELETED' => 'La sala de bingo ya fue eliminada.',
+    'BINGO_ROOM_INVALID_STATUS_CHANGE' => 'No se puede cambiar el estado de esta sala.',
+    'BINGO_ROOM_DESTROY_NOT_ALLOWED' => 'No puedes eliminar físicamente una sala con historial de jugadores, ventas o premios.',
+    'BINGO_ROOM_CREATION_FAILED' => 'No se pudo crear la sala de bingo.',
+    'BINGO_ROOM_UPDATE_FAILED' => 'No se pudo actualizar la sala de bingo.',
+    'BINGO_ROOM_DELETE_FAILED' => 'No se pudo eliminar la sala de bingo.',
+    'BINGO_ROOM_PRIVATE_NOT_VERIFIED' => 'Debes verificar el código de acceso antes de comprar en esta sala privada.',
+    'BINGO_ROOM_INVALID_ROOM_TYPE' => 'El tipo de sala seleccionado no es válido.',
+    'BINGO_ROOM_INVALID_GAME_MODE' => 'El modo de juego seleccionado no es válido.',
+    'BINGO_ROOM_INVALID_PRIZE_POOL_TYPE' => 'El tipo de bote seleccionado no es válido.',
+
+    // Patrones de Bingo (games/bingo/pattern)
+    'BINGO_PATTERN_DUPLICATE_NAME' => 'Ya existe un patrón con ese nombre.',
+
+    // Cartones de Bingo (games/bingo/card)
+    'BINGO_CARD_SELLER_NOT_FOUND' => 'No se encontró el vendedor.',
+    'BINGO_CARD_COMMERCE_NOT_FOUND' => 'No se encontró el comercio.',
+    'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'Esta sala no está disponible para comprar cartones.',
+    'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'La moneda seleccionada no está disponible para esta sala.',
+    'BINGO_CARD_GENERATION_FAILED' => 'No se pudieron generar los cartones.',
+    'BINGO_CARD_UNAUTHORIZED_ROLE' => 'No tienes permiso para comprar cartones con este rol.',
+    'BINGO_CARD_UNSUPPORTED_CURRENCY_ROLE' => 'Tu rol no admite operar con esta moneda.',
+    'BINGO_CARD_UNSUPPORTED_COMMERCE_ROLE' => 'Tu rol no admite esta operación de comercio.',
+    'BINGO_CARD_UNSUPPORTED_COMMISSION_ROLE' => 'Tu rol no admite el cálculo de comisión solicitado.',
+    'BINGO_CARD_INVALID_MANAGER_ROLE' => 'El rol del gestor no es válido para esta operación.',
+    'BINGO_CARD_INVALID_EXCHANGE_RATE' => 'La tasa de cambio no es válida.',
+    'BINGO_CARD_UNAUTHORIZED' => 'No tienes permiso para realizar esta acción.',
+    'BINGO_CARD_CUSTOM_NOT_ALLOWED' => 'Esta sala no permite cartones personalizados.',
+    'BINGO_CARD_CUSTOM_EXCEEDS_COUNT' => 'La cantidad de cartones personalizados excede la cantidad total solicitada.',
+    'BINGO_CARD_NO_ACTIVE_WALLET' => 'No tienes una billetera activa para esta compra.',
 ];

@@ -21,6 +21,8 @@ return [
     'ADMIN_USER_DELETE_FAILED' => 'The user could not be deleted.',
     'ADMIN_USER_CANNOT_MODIFY_SELF' => 'You cannot perform this action on your own account.',
     'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN' => 'You do not have permission to modify a Super Administrator account.',
+    'ADMIN_USER_CANNOT_MODIFY_OTHER_ADMIN' => 'Only a Super Administrator can modify another Administrator\'s account.',
+    'ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE' => 'Only a Super Administrator can assign the Administrator role.',
 
     // Administrators (admin/administrator)
     'ADMINISTRATOR_NOT_FOUND' => 'Administrator not found.',
@@ -92,4 +94,48 @@ return [
     'ALREADY_IMPERSONATING' => 'There is already an active support session. End it before starting another.',
     'IMPERSONATION_TARGET_MUST_BE_PLAYER' => 'Only users with the Player role can be impersonated.',
     'NOT_IMPERSONATING' => 'There is no active support session to end.',
+
+    // Subsidiaries (admin/subsidiary)
+    'ADMIN_SUBSIDIARY_NOT_FOUND' => 'Subsidiary not found.',
+    'ADMIN_SUBSIDIARY_ALREADY_DELETED' => 'The subsidiary has already been deleted.',
+    'ADMIN_SUBSIDIARY_INVALID_STATUS_CHANGE' => 'This subsidiary\'s status cannot be changed.',
+    'ADMIN_SUBSIDIARY_DESTROY_NOT_ALLOWED' => 'This subsidiary cannot be permanently deleted.',
+    'ADMIN_SUBSIDIARY_CREATION_FAILED' => 'The subsidiary could not be created.',
+    'ADMIN_SUBSIDIARY_UPDATE_FAILED' => 'The subsidiary could not be updated.',
+    'ADMIN_SUBSIDIARY_DELETE_FAILED' => 'The subsidiary could not be deleted.',
+    'ADMIN_SUBSIDIARY_PASSWORD_RESET_FAILED' => 'The subsidiary\'s password could not be reset.',
+    'ADMIN_SUBSIDIARY_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS' => 'Only active subsidiaries can have their password reset.',
+
+    // Bingo rooms (games/bingo/room)
+    'BINGO_ROOM_NOT_FOUND' => 'The bingo room does not exist.',
+    'BINGO_ROOM_ALREADY_DELETED' => 'The bingo room has already been deleted.',
+    'BINGO_ROOM_INVALID_STATUS_CHANGE' => 'This room\'s status cannot be changed.',
+    'BINGO_ROOM_DESTROY_NOT_ALLOWED' => 'You cannot permanently delete a room with player, sale, or prize history.',
+    'BINGO_ROOM_CREATION_FAILED' => 'The bingo room could not be created.',
+    'BINGO_ROOM_UPDATE_FAILED' => 'The bingo room could not be updated.',
+    'BINGO_ROOM_DELETE_FAILED' => 'The bingo room could not be deleted.',
+    'BINGO_ROOM_PRIVATE_NOT_VERIFIED' => 'You must verify the access code before buying in this private room.',
+    'BINGO_ROOM_INVALID_ROOM_TYPE' => 'The selected room type is not valid.',
+    'BINGO_ROOM_INVALID_GAME_MODE' => 'The selected game mode is not valid.',
+    'BINGO_ROOM_INVALID_PRIZE_POOL_TYPE' => 'The selected prize pool type is not valid.',
+
+    // Bingo patterns (games/bingo/pattern)
+    'BINGO_PATTERN_DUPLICATE_NAME' => 'A pattern with that name already exists.',
+
+    // Bingo cards (games/bingo/card)
+    'BINGO_CARD_SELLER_NOT_FOUND' => 'Seller not found.',
+    'BINGO_CARD_COMMERCE_NOT_FOUND' => 'Commerce not found.',
+    'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'This room is not available for buying cards.',
+    'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'The selected currency is not available for this room.',
+    'BINGO_CARD_GENERATION_FAILED' => 'The cards could not be generated.',
+    'BINGO_CARD_UNAUTHORIZED_ROLE' => 'You do not have permission to buy cards with this role.',
+    'BINGO_CARD_UNSUPPORTED_CURRENCY_ROLE' => 'Your role does not support operating with this currency.',
+    'BINGO_CARD_UNSUPPORTED_COMMERCE_ROLE' => 'Your role does not support this commerce operation.',
+    'BINGO_CARD_UNSUPPORTED_COMMISSION_ROLE' => 'Your role does not support the requested commission calculation.',
+    'BINGO_CARD_INVALID_MANAGER_ROLE' => 'The manager\'s role is not valid for this operation.',
+    'BINGO_CARD_INVALID_EXCHANGE_RATE' => 'The exchange rate is not valid.',
+    'BINGO_CARD_UNAUTHORIZED' => 'You do not have permission to perform this action.',
+    'BINGO_CARD_CUSTOM_NOT_ALLOWED' => 'This room does not allow custom cards.',
+    'BINGO_CARD_CUSTOM_EXCEEDS_COUNT' => 'The number of custom cards exceeds the total requested count.',
+    'BINGO_CARD_NO_ACTIVE_WALLET' => 'You do not have an active wallet for this purchase.',
 ];

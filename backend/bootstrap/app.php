@@ -75,15 +75,25 @@ return Application::configure(
          *
          * DomainException (App\Exceptions\Domain\DomainException) se maneja
          * PRIMERO y aparte: su `message` es un ERROR CODE (ej.
-         * 'ADMINISTRATOR_NOT_FOUND'), no texto para el usuario — se resuelve
-         * a status HTTP + mensaje traducido vía App\Exceptions\Handler
-         * (resolveStatusCode()/resolveMessage()), reutilizado aquí en vez de
-         * duplicar el mapa de códigos. Antes de este fix, DomainException no
-         * estaba registrada en ningún lado de bootstrap/app.php (Laravel 11
-         * ya NO auto-registra app/Exceptions/Handler.php como hacían las
-         * versiones ≤10) y cualquier `throw AlgoException::...()` en
-         * cualquier service cayó siempre al 500 genérico de abajo, perdiendo
-         * el código HTTP real (403/404/409/422) y el mensaje traducido.
+         * 'ADMINISTRATOR_NOT_FOUND') o, en varias clases, texto humano
+         * directo — ambos casos se resuelven vía App\Exceptions\Handler::
+         * resolveMessage() (trans('errors.{code}') con fallback al propio
+         * string, que para texto humano ya es el mensaje correcto).
+         *
+         * El status HTTP YA NO se resuelve desde un mapa centralizado
+         * (Handler::resolveStatusCode(), un match plano que se desincronizó
+         * silenciosamente de las clases reales — 44 de ~65 códigos usados
+         * quedaron sin mapear y caían al 400 genérico sin que nada lo
+         * detectara). Cada excepción declara su propio status al construirse
+         * (ver DomainException::$httpStatus) — imposible que se desincronice
+         * porque vive junto al código que lo dispara.
+         *
+         * Antes de este fix, DomainException no estaba registrada en ningún
+         * lado de bootstrap/app.php (Laravel 11 ya NO auto-registra
+         * app/Exceptions/Handler.php como hacían las versiones ≤10) y
+         * cualquier `throw AlgoException::...()` cayó siempre al 500
+         * genérico de abajo, perdiendo el código HTTP real y el mensaje
+         * traducido.
          */
         $exceptions->dontReport(DomainException::class);
 
@@ -95,7 +105,7 @@ return Application::configure(
                 'success'    => false,
                 'error_code' => $errorCode,
                 'message'    => $handler->resolveMessage($errorCode),
-            ], $handler->resolveStatusCode($errorCode));
+            ], $e->httpStatus());
         });
 
         // Ejemplo: loguear todas las excepciones en un canal custom
@@ -120,6 +130,21 @@ return Application::configure(
                     $status = 422;
                 } elseif ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
                     $status = $e->getStatusCode();
+                } elseif (get_class($e) === \DomainException::class) {
+                    // \DomainException NATIVO de PHP (distinto de la clase
+                    // custom App\Exceptions\Domain\DomainException, manejada
+                    // arriba con su propio mapa de error-codes). Patrón usado
+                    // en ~17 archivos del proyecto (WalletService y otros)
+                    // para "regla de negocio violada" — el mensaje YA es
+                    // texto humano listo para mostrar (no un código a
+                    // traducir), así que va directo a la respuesta. Antes
+                    // caía al fallback 500 genérico, mostrando "Error
+                    // inesperado" en vez del motivo real (ej. "Saldo
+                    // insuficiente", "Este lote ya tiene premio pagado").
+                    // get_class() exacto (no instanceof) para no capturar
+                    // subclases de terceros que hereden de \DomainException
+                    // con otra semántica.
+                    $status = 422;
                 }
 
                 $response = [

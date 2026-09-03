@@ -21,7 +21,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function creationFailed(): self
     {
-        return new self('ADMIN_COMMERCE_CREATION_FAILED');
+        return new self('ADMIN_COMMERCE_CREATION_FAILED', 422);
     }
 
     /**
@@ -29,7 +29,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function updateFailed(): self
     {
-        return new self('ADMIN_COMMERCE_UPDATE_FAILED');
+        return new self('ADMIN_COMMERCE_UPDATE_FAILED', 422);
     }
 
     /**
@@ -37,7 +37,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function deleteFailed(): self
     {
-        return new self('ADMIN_COMMERCE_DELETE_FAILED');
+        return new self('ADMIN_COMMERCE_DELETE_FAILED', 422);
     }
 
     /**
@@ -45,7 +45,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function passwordResetFailed(): self
     {
-        return new self('ADMIN_COMMERCE_PASSWORD_RESET_FAILED');
+        return new self('ADMIN_COMMERCE_PASSWORD_RESET_FAILED', 422);
     }
 
     /**
@@ -53,7 +53,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function passwordResetRequiresActiveStatus(): self
     {
-        return new self('ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
+        return new self('ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
     }
 
     /**
@@ -61,7 +61,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function alreadyDeleted(): self
     {
-        return new self('ADMIN_COMMERCE_ALREADY_DELETED');
+        return new self('ADMIN_COMMERCE_ALREADY_DELETED', 409);
     }
 
     /**
@@ -69,7 +69,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function invalidStatusChange(): self
     {
-        return new self('ADMIN_COMMERCE_INVALID_STATUS_CHANGE');
+        return new self('ADMIN_COMMERCE_INVALID_STATUS_CHANGE', 409);
     }
 
     /**
@@ -77,7 +77,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function notFound(): self
     {
-        return new self('ADMIN_COMMERCE_NOT_FOUND');
+        return new self('ADMIN_COMMERCE_NOT_FOUND', 404);
     }
 
     /**
@@ -85,7 +85,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function destroyNotAllowed(): self
     {
-        return new self('ADMIN_COMMERCE_DESTROY_NOT_ALLOWED');
+        return new self('ADMIN_COMMERCE_DESTROY_NOT_ALLOWED', 409);
     }
 
     /**
@@ -94,7 +94,7 @@ final class AdminCommerceException extends DomainException
      */
     public static function isDefaultCommerce(): self
     {
-        return new self('ADMIN_COMMERCE_IS_DEFAULT');
+        return new self('ADMIN_COMMERCE_IS_DEFAULT', 409);
     }
 
     /**
@@ -103,6 +103,6 @@ final class AdminCommerceException extends DomainException
      */
     public static function notDefaultCommerce(): self
     {
-        return new self('ADMIN_COMMERCE_NOT_DEFAULT');
+        return new self('ADMIN_COMMERCE_NOT_DEFAULT', 409);
     }
 }

@@ -20,6 +20,6 @@ final class ExchangeRateException extends DomainException
      */
     public static function noActiveRate(string|int $currencyId): self
     {
-        return new self("No hay tasa de cambio activa registrada para la moneda #{$currencyId}.");
+        return new self("No hay tasa de cambio activa registrada para la moneda #{$currencyId}.", 422);
     }
 }

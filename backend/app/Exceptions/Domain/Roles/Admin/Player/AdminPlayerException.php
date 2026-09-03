@@ -11,41 +11,41 @@ final class AdminPlayerException extends DomainException
 {
     public static function creationFailed(): self
     {
-        return new self('ADMIN_PLAYER_CREATION_FAILED');
+        return new self('ADMIN_PLAYER_CREATION_FAILED', 422);
     }
 
     public static function updateFailed(): self
     {
-        return new self('ADMIN_PLAYER_UPDATE_FAILED');
+        return new self('ADMIN_PLAYER_UPDATE_FAILED', 422);
     }
 
     public static function deleteFailed(): self
     {
-        return new self('ADMIN_PLAYER_DELETE_FAILED');
+        return new self('ADMIN_PLAYER_DELETE_FAILED', 422);
     }
 
     public static function alreadyDeleted(): self
     {
-        return new self('ADMIN_PLAYER_ALREADY_DELETED');
+        return new self('ADMIN_PLAYER_ALREADY_DELETED', 409);
     }
 
     public static function invalidStatusChange(): self
     {
-        return new self('ADMIN_PLAYER_INVALID_STATUS_CHANGE');
+        return new self('ADMIN_PLAYER_INVALID_STATUS_CHANGE', 409);
     }
 
     public static function notFound(): self
     {
-        return new self('ADMIN_PLAYER_NOT_FOUND');
+        return new self('ADMIN_PLAYER_NOT_FOUND', 404);
     }
 
     public static function passwordResetFailed(): self
     {
-        return new self('ADMIN_PLAYER_PASSWORD_RESET_FAILED');
+        return new self('ADMIN_PLAYER_PASSWORD_RESET_FAILED', 422);
     }
 
     public static function passwordResetRequiresActiveStatus(): self
     {
-        return new self('ADMIN_PLAYER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
+        return new self('ADMIN_PLAYER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
     }
 }

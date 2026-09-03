@@ -11,16 +11,16 @@ final class ImpersonationException extends DomainException
 {
     public static function alreadyImpersonating(): self
     {
-        return new self('ALREADY_IMPERSONATING');
+        return new self('ALREADY_IMPERSONATING', 409);
     }
 
     public static function targetMustBePlayer(): self
     {
-        return new self('IMPERSONATION_TARGET_MUST_BE_PLAYER');
+        return new self('IMPERSONATION_TARGET_MUST_BE_PLAYER', 422);
     }
 
     public static function notImpersonating(): self
     {
-        return new self('NOT_IMPERSONATING');
+        return new self('NOT_IMPERSONATING', 409);
     }
 }

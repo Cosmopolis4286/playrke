@@ -21,7 +21,7 @@ final class BingoPatternException extends DomainException
      */
     public static function creationFailed(): self
     {
-        return new self('BINGO_ROOM_CREATION_FAILED');
+        return new self('BINGO_ROOM_CREATION_FAILED', 422);
     }
 
     /**
@@ -29,7 +29,7 @@ final class BingoPatternException extends DomainException
      */
     public static function updateFailed(): self
     {
-        return new self('BINGO_ROOM_UPDATE_FAILED');
+        return new self('BINGO_ROOM_UPDATE_FAILED', 422);
     }
 
     /**
@@ -37,7 +37,7 @@ final class BingoPatternException extends DomainException
      */
     public static function deleteFailed(): self
     {
-        return new self('BINGO_ROOM_DELETE_FAILED');
+        return new self('BINGO_ROOM_DELETE_FAILED', 422);
     }
 
     /**
@@ -45,7 +45,7 @@ final class BingoPatternException extends DomainException
      */
     public static function alreadyDeleted(): self
     {
-        return new self('BINGO_ROOM_ALREADY_DELETED');
+        return new self('BINGO_ROOM_ALREADY_DELETED', 409);
     }
 
     /**
@@ -53,7 +53,7 @@ final class BingoPatternException extends DomainException
      */
     public static function invalidStatusChange(): self
     {
-        return new self('BINGO_ROOM_INVALID_STATUS_CHANGE');
+        return new self('BINGO_ROOM_INVALID_STATUS_CHANGE', 409);
     }
 
     /**
@@ -61,7 +61,7 @@ final class BingoPatternException extends DomainException
      */
     public static function notFound(): self
     {
-        return new self('BINGO_ROOM_NOT_FOUND');
+        return new self('BINGO_ROOM_NOT_FOUND', 404);
     }
 
     /**
@@ -69,22 +69,22 @@ final class BingoPatternException extends DomainException
      */
     public static function destroyNotAllowed(): self
     {
-        return new self('BINGO_ROOM_DESTROY_NOT_ALLOWED');
+        return new self('BINGO_ROOM_DESTROY_NOT_ALLOWED', 409);
     }
 
     public static function invalidRoomType(): self
     {
-        return new self('BINGO_ROOM_INVALID_ROOM_TYPE');
+        return new self('BINGO_ROOM_INVALID_ROOM_TYPE', 422);
     }
 
     public static function invalidGameMode(): self
     {
-        return new self('BINGO_ROOM_INVALID_GAME_MODE');
+        return new self('BINGO_ROOM_INVALID_GAME_MODE', 422);
     }
 
     public static function invalidPrizePoolType(): self
     {
-        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE');
+        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE', 422);
     }
 
     /**
@@ -92,6 +92,6 @@ final class BingoPatternException extends DomainException
      */
     public static function duplicateName(): self
     {
-        return new self('BINGO_PATTERN_DUPLICATE_NAME');
+        return new self('BINGO_PATTERN_DUPLICATE_NAME', 409);
     }
 }

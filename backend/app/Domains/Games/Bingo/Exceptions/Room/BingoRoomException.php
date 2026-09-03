@@ -21,7 +21,7 @@ final class BingoRoomException extends DomainException
      */
     public static function creationFailed(): self
     {
-        return new self('BINGO_ROOM_CREATION_FAILED');
+        return new self('BINGO_ROOM_CREATION_FAILED', 422);
     }
 
     /**
@@ -29,7 +29,7 @@ final class BingoRoomException extends DomainException
      */
     public static function updateFailed(): self
     {
-        return new self('BINGO_ROOM_UPDATE_FAILED');
+        return new self('BINGO_ROOM_UPDATE_FAILED', 422);
     }
 
     /**
@@ -37,7 +37,7 @@ final class BingoRoomException extends DomainException
      */
     public static function deleteFailed(): self
     {
-        return new self('BINGO_ROOM_DELETE_FAILED');
+        return new self('BINGO_ROOM_DELETE_FAILED', 422);
     }
 
     /**
@@ -45,7 +45,7 @@ final class BingoRoomException extends DomainException
      */
     public static function alreadyDeleted(): self
     {
-        return new self('BINGO_ROOM_ALREADY_DELETED');
+        return new self('BINGO_ROOM_ALREADY_DELETED', 409);
     }
 
     /**
@@ -53,7 +53,7 @@ final class BingoRoomException extends DomainException
      */
     public static function invalidStatusChange(): self
     {
-        return new self('BINGO_ROOM_INVALID_STATUS_CHANGE');
+        return new self('BINGO_ROOM_INVALID_STATUS_CHANGE', 409);
     }
 
     /**
@@ -61,7 +61,7 @@ final class BingoRoomException extends DomainException
      */
     public static function notFound(): self
     {
-        return new self('BINGO_ROOM_NOT_FOUND');
+        return new self('BINGO_ROOM_NOT_FOUND', 404);
     }
 
     /**
@@ -70,7 +70,7 @@ final class BingoRoomException extends DomainException
      */
     public static function privateRoomNotVerified(): self
     {
-        return new self('BINGO_ROOM_PRIVATE_NOT_VERIFIED');
+        return new self('BINGO_ROOM_PRIVATE_NOT_VERIFIED', 403);
     }
 
     /**
@@ -81,32 +81,32 @@ final class BingoRoomException extends DomainException
      */
     public static function destroyNotAllowed(): self
     {
-        return new self('No puedes eliminar físicamente una sala con historial de jugadores, ventas o premios.');
+        return new self('No puedes eliminar físicamente una sala con historial de jugadores, ventas o premios.', 409);
     }
 
     public static function invalidRoomType(): self
     {
-        return new self('BINGO_ROOM_INVALID_ROOM_TYPE');
+        return new self('BINGO_ROOM_INVALID_ROOM_TYPE', 422);
     }
 
     public static function invalidGameMode(): self
     {
-        return new self('BINGO_ROOM_INVALID_GAME_MODE');
+        return new self('BINGO_ROOM_INVALID_GAME_MODE', 422);
     }
 
     public static function invalidPrizePoolType(): self
     {
-        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE');
+        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE', 422);
     }
 
     public static function expiredRoomStatusLocked(): self
     {
-        return new self('No puedes cambiar el estado de una sala cuya fecha/hora ya expiró.');
+        return new self('No puedes cambiar el estado de una sala cuya fecha/hora ya expiró.', 409);
     }
 
     public static function roomHasPlayers(): self
     {
-        return new self('No puedes eliminar una sala que ya tiene jugadores registrados.');
+        return new self('No puedes eliminar una sala que ya tiene jugadores registrados.', 409);
     }
 
     /**
@@ -114,7 +114,7 @@ final class BingoRoomException extends DomainException
      */
     public static function activationNotAllowed(): self
     {
-        return new self('Solo las salas sin horario programado pueden activarse manualmente.');
+        return new self('Solo las salas sin horario programado pueden activarse manualmente.', 422);
     }
 
     /**
@@ -122,7 +122,7 @@ final class BingoRoomException extends DomainException
      */
     public static function activationForbidden(): self
     {
-        return new self('No tienes permiso para activar esta sala.');
+        return new self('No tienes permiso para activar esta sala.', 403);
     }
 
     /**
@@ -130,7 +130,7 @@ final class BingoRoomException extends DomainException
      */
     public static function activationInvalidState(): self
     {
-        return new self('Solo se pueden activar manualmente salas en estado ACTIVE cuyo sorteo no haya iniciado.');
+        return new self('Solo se pueden activar manualmente salas en estado ACTIVE cuyo sorteo no haya iniciado.', 409);
     }
 
     /**
@@ -138,7 +138,7 @@ final class BingoRoomException extends DomainException
      */
     public static function scheduleStartInvalidDate(): self
     {
-        return new self('La fecha y hora de inicio deben ser al menos 10 minutos posteriores al momento actual.');
+        return new self('La fecha y hora de inicio deben ser al menos 10 minutos posteriores al momento actual.', 422);
     }
 
     /**
@@ -147,17 +147,17 @@ final class BingoRoomException extends DomainException
      */
     public static function minCardsNotReached(int $required, int $current): self
     {
-        return new self("La sala requiere al menos {$required} cartones vendidos para iniciar (actualmente tiene {$current}).");
+        return new self("La sala requiere al menos {$required} cartones vendidos para iniciar (actualmente tiene {$current}).", 422);
     }
 
     public static function minPlayersNotReached(int $required, int $current): self
     {
-        return new self("La sala requiere al menos {$required} jugadores para iniciar (actualmente tiene {$current}).");
+        return new self("La sala requiere al menos {$required} jugadores para iniciar (actualmente tiene {$current}).", 422);
     }
 
     public static function roomFull(): static
     {
-        return new static('La sala ha alcanzado el límite máximo de jugadores.');
+        return new static('La sala ha alcanzado el límite máximo de jugadores.', 409);
     }
 
     /**
@@ -169,7 +169,8 @@ final class BingoRoomException extends DomainException
         return new static(
             $remaining > 0
                 ? "Esta sala solo admite {$remaining} cartón(es) más (solicitaste {$requested})."
-                : 'Esta sala ya alcanzó su tope de cartones disponibles.'
+                : 'Esta sala ya alcanzó su tope de cartones disponibles.',
+            409,
         );
     }
 
@@ -179,7 +180,7 @@ final class BingoRoomException extends DomainException
      */
     public static function currencyRemovalWithSalesNotAllowed(string $currencyLabels): self
     {
-        return new self("No puedes quitar {$currencyLabels}: ya tiene cartones vendidos en esta sala.");
+        return new self("No puedes quitar {$currencyLabels}: ya tiene cartones vendidos en esta sala.", 409);
     }
 
     /**
@@ -189,6 +190,6 @@ final class BingoRoomException extends DomainException
      */
     public static function roomNotEditableStatus(): self
     {
-        return new self('Solo se puede editar una sala cuyo sorteo no ha iniciado ni finalizado.');
+        return new self('Solo se puede editar una sala cuyo sorteo no ha iniciado ni finalizado.', 409);
     }
 }
