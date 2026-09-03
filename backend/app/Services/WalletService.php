@@ -611,6 +611,63 @@ final class WalletService
     }
 
     /**
+     * Acredita un depósito cripto ya confirmado on-chain (ver
+     * DepositWatcher::process(), Fase 6). idempotencyKey determinística
+     * ("crypto_deposit:{tx_hash}") es la defensa a nivel de aplicación;
+     * crypto_transactions.tx_hash UNIQUE es la defensa real a nivel de BD
+     * contra re-procesar la misma transacción on-chain dos veces — mismo
+     * criterio de doble capa que el resto de idempotencia en este archivo.
+     */
+    public function recordCryptoDeposit(
+        Wallet $wallet,
+        float $amount,
+        string $description,
+        string $idempotencyKey,
+    ): WalletMovement {
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        try {
+            $movement = DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey) {
+                $walletId      = (string) $wallet->id;
+                $balanceBefore = (float) $wallet->balance;
+
+                $netAmount = $this->settlePendingDebt($wallet, $amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance($walletId, $netAmount);
+                }
+                $wallet->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id'       => $walletId,
+                    'user_id'         => (string) $wallet->user_id,
+                    'type'            => WalletMovement::TYPE_CRYPTO_DEPOSIT,
+                    'status'          => WalletMovement::STATUS_COMPLETED,
+                    'amount'          => $amount,
+                    'balance_before'  => $balanceBefore,
+                    'balance_after'   => (float) $wallet->balance,
+                    'description'     => $description,
+                    'idempotency_key' => $idempotencyKey,
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'idempotency_key')) {
+                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existingMovement) {
+                    return $existingMovement;
+                }
+            }
+            throw $e;
+        }
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_CRYPTO_DEPOSIT, $amount, (string) $movement->id);
+
+        return $movement;
+    }
+
+    /**
      * Revierte un premio ya acreditado (disputa post-pago, ver
      * GamePrizeService::disputeAndReverse()). El débito se TOPA al balance
      * disponible — la BD tiene un CHECK CONSTRAINT real
