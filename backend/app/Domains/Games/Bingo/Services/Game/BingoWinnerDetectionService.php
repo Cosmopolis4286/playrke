@@ -100,8 +100,18 @@ final class BingoWinnerDetectionService
             return null;
         }
 
+        // Mismo filtro que BingoGameService::getUserCartonsForExternalPlayer():
+        // un cartón con pago aún PENDING de revisión admin no puede reclamar
+        // premio — el comprador no debería poder ganar con algo que el sistema
+        // todavía no confirmó como pagado.
+        $pendingLotIds = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
+            ->where('external_player_id', $externalPlayerId)
+            ->where('payment_status', 'PENDING')
+            ->pluck('card_lot_id');
+
         $cards = BingoCard::whereIn('id', $cardIds)
             ->where('status', BingoCard::STATUS_ACTIVE)
+            ->when($pendingLotIds->isNotEmpty(), fn ($q) => $q->whereNotIn('card_lot_id', $pendingLotIds))
             ->get();
 
         return $this->checkWinnerForCards($room, $cards, antiCheatUserId: null);

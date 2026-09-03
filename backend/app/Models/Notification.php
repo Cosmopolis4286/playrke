@@ -195,6 +195,7 @@ class Notification extends Model
             'LEVEL_UP' => '#667eea', // azul-violeta
             'ACHIEVEMENT_UNLOCKED' => '#f59e0b', // dorado
             'MISSION_COMPLETED' => '#11998e', // verde-azulado
+            'BINGO_CARD_PURCHASE' => '#2af598', // verde bingo
             default => '#6c757d', // gris
         };
     }
@@ -215,6 +216,7 @@ class Notification extends Model
             'LEVEL_UP' => '⬆️',
             'ACHIEVEMENT_UNLOCKED' => '🏆',
             'MISSION_COMPLETED' => '🎯',
+            'BINGO_CARD_PURCHASE' => '🎟️',
             default => '📢',
         };
     }

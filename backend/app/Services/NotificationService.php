@@ -528,6 +528,38 @@ final class NotificationService
     }
 
     /**
+     * Notificación al jugador tras comprar cartones de bingo exitosamente.
+     * Antes de esto, una compra solo dejaba rastro en la respuesta HTTP
+     * síncrona y en WebSocket best-effort (ver
+     * BingoCardGenerateService::playerBuyFromGameRooms()) — si el jugador
+     * cerraba la pestaña o Reverb estaba caído, no quedaba ningún registro
+     * accesible después de "compré N cartones en tal sala a tal hora".
+     */
+    public function createCardPurchaseNotification(
+        string $userId,
+        string $roomUuidCode,
+        int    $cardCount,
+        float  $amount,
+        string $currencySymbol,
+        ?string $roomId = null,
+    ): Notification {
+        return $this->create(
+            userId:  $userId,
+            type:    'BINGO_CARD_PURCHASE',
+            title:   '🎟️ Compra confirmada',
+            message: "Compraste {$cardCount} cartón(es) en la sala #{$roomUuidCode} por {$currencySymbol}{$amount}.",
+            data:    [
+                'room_id'         => $roomId,
+                'room_uuid_code'  => $roomUuidCode,
+                'card_count'      => $cardCount,
+                'amount'          => $amount,
+                'currency_symbol' => $currencySymbol,
+                'url'             => $roomId ? "/bingo/my-games" : null,
+            ]
+        );
+    }
+
+    /**
      * Notificación genérica al usuario cuando un movimiento de tipo custom
      * (catálogo MovementType, fuera de DEPOSIT/WITHDRAWAL) es aprobado o
      * rechazado.

@@ -49,6 +49,7 @@ final class BingoCardGenerateService
         private readonly \App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService $bingoRoomCrud,
         private readonly ExternalPlayerLinkService $externalPlayerLink,
         private readonly \App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface $subsidiaryRepository,
+        private readonly \App\Services\NotificationService $notificationService,
     ) {}
 
     /**
@@ -1209,6 +1210,26 @@ final class BingoCardGenerateService
             quantity: $cardCount,
             amountUsd: (float) $cardOrder['saleAmountUsd'],
         ));
+
+        // Notificación persistente de la compra — no interrumpe la compra si
+        // falla (misma política que el resto de side-effects post-transacción
+        // en este método: broadcasts best-effort).
+        try {
+            $this->notificationService->createCardPurchaseNotification(
+                userId:         (string) $userId,
+                roomUuidCode:   (string) $room->uuid_code,
+                cardCount:      $cardCount,
+                amount:         $totalAmount,
+                currencySymbol: (string) $priceInfo['currency_symbol'],
+                roomId:         (string) $room->id,
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('No se pudo crear la notificación de compra de cartones', [
+                'user_id' => $userId,
+                'room_id' => $roomId,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         return [
             'message'        => 'Cartones generados exitosamente',

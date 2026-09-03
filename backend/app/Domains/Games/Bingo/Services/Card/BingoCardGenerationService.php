@@ -229,13 +229,25 @@ final class BingoCardGenerationService
     {
         try {
             $paymentProof = null;
-            
+
             // Si hay imagen de comprobante, guardarla y obtener la ruta
             if (isset($cardOrder['receiptImage']) && $cardOrder['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
                 $directory = 'receipts/bingo/' . date('Y/m');
                 $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $cardOrder['receiptImage']->getClientOriginalExtension();
                 $paymentProof = $cardOrder['receiptImage']->storeAs($directory, $fileName, 'public');
             }
+
+            // El pago de un ExternalPlayer (comprador sin cuenta, vía vendedor)
+            // nace PENDING — antes se marcaba COMPLETED automáticamente sin que
+            // nadie revisara el comprobante, tratando "el vendedor dice que
+            // cobró" como equivalente a un pago verificado. Mientras esté
+            // PENDING, BingoGameService::getUserCartonsForExternalPlayer()
+            // excluye estos cartones de "mis cartones" — el comprador no puede
+            // jugar hasta que un admin apruebe el pago (ver
+            // BingoCardPaymentReviewService::approve()/reject()). Un pago
+            // interno con comprobante (no ExternalPlayer) sigue naciendo
+            // COMPLETED: ese caso es informativo, no gate de acceso.
+            $isExternalPlayerPayment = !empty($cardOrder['externalPlayerId']);
 
             BingoCardPayment::create([
                 'payment_method' => 'seller_cash',
@@ -249,8 +261,8 @@ final class BingoCardGenerationService
                 'card_lot_id' => $lotID,
                 'payment_amount' => $cardOrder['cardPrice'] * $cardOrder['cardCount'],
                 'payment_proof' => $paymentProof,
-                'payment_status' => 'COMPLETED',
-                'processed_at' => now(),
+                'payment_status' => $isExternalPlayerPayment ? 'PENDING' : 'COMPLETED',
+                'processed_at' => $isExternalPlayerPayment ? null : now(),
                 'transaction_reference' => $cardOrder['receiptNumber'] ?? null,
             ]);
 

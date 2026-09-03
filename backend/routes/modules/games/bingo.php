@@ -213,6 +213,19 @@ route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bing
     'winners-export'         => ['method' => 'get', 'uri' => 'winners-export', 'action' => 'winnersExport'],
 ]);
 
+/**
+ * ====================================
+ * REVISIÓN DE PAGOS DE JUGADORES EXTERNOS
+ * ====================================
+ * Cola de aprobación/rechazo de pagos PENDING (ver
+ * BingoCardPaymentReviewService — antes se marcaban COMPLETED sin revisión).
+ */
+route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermission:games.manage,games.bingo'], \App\Http\Controllers\Games\Bingo\Payment\BingoCardPaymentReviewController::class, [
+    'index'   => ['method' => 'get',  'uri' => '',                'action' => 'index'],
+    'approve' => ['method' => 'post', 'uri' => '{payment}/approve', 'action' => 'approve'],
+    'reject'  => ['method' => 'post', 'uri' => '{payment}/reject',  'action' => 'reject'],
+]);
+
  // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
     // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],

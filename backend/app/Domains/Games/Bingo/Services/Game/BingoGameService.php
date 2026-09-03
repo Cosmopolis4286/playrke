@@ -240,9 +240,20 @@ final class BingoGameService
             ? [\App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE, \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_WINNER]
             : [\App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE];
 
+        // Lotes con pago aún PENDING de revisión admin quedan ocultos — ver
+        // BingoCardGenerationService::createCardPayment(). Solo se excluye el
+        // lote específico con pago pendiente, no toda la sesión del
+        // comprador: compras previas ya aprobadas siguen jugables con
+        // normalidad.
+        $pendingLotIds = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
+            ->where('external_player_id', $externalPlayerId)
+            ->where('payment_status', 'PENDING')
+            ->pluck('card_lot_id');
+
         return \App\Domains\Games\Bingo\Models\Card\BingoCard::query()
             ->whereIn('id', $cardIds)
             ->whereIn('status', $validStatuses)
+            ->when($pendingLotIds->isNotEmpty(), fn ($q) => $q->whereNotIn('card_lot_id', $pendingLotIds))
             ->with(['currency', 'cardLot', 'roomUser'])
             ->orderBy('serial_number')
             ->get()
