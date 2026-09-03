@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Directories\Crypto\BinanceController;
+use App\Http\Controllers\Marketplace\Crypto\DepositAddressController;
 use App\Http\Controllers\MovementTypeController;
 use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
@@ -28,6 +29,11 @@ Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.depos
     Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
     Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
     Route::get('wallet/limits',                 [WalletController::class, 'limits'])           ->name('wallet.limits');
+
+    // Fase 5 (esqueleto, ver MARKETPLACE_ARCHITECTURE_AUDIT.md sección 12):
+    // detrás de config('crypto.deposits_enabled'), false por defecto —
+    // TronUsdtProvider es un stub, la dirección devuelta nunca es real.
+    Route::get('wallet/deposit-address',        [DepositAddressController::class, 'show'])     ->name('wallet.deposit-address');
 
     // Operaciones financieras: requieren TOS + throttle antifraude
     // throttle:5,1 → máximo 5 intentos por minuto por usuario

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domains\Marketplace\Crypto\Contracts\CryptoGateway;
+use App\Domains\Marketplace\Crypto\Providers\TronUsdtProvider;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -15,13 +17,17 @@ use Illuminate\Support\ServiceProvider;
  * Fase 1 (Inventory) no tiene repositorios con interfaz propia todavía —
  * InventoryService opera directamente sobre los modelos Eloquent, igual que
  * WalletReservationService opera sobre WalletHold sin un repositorio
- * intermedio. Este provider queda listo para los bindings de Marketplace/
- * Escrow de las fases siguientes.
+ * intermedio.
+ *
+ * CryptoGateway -> TronUsdtProvider (STUB, Fase 5): reemplazar este binding
+ * por una implementación real es el ÚNICO cambio necesario para desbloquear
+ * custodia real (Fases 6-7) — ver docblock de TronUsdtProvider.
  */
 class MarketplaceServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(CryptoGateway::class, TronUsdtProvider::class);
     }
 
     public function boot(): void
