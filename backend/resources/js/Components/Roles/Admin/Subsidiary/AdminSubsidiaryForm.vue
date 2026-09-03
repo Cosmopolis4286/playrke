@@ -268,6 +268,17 @@ defineExpose({ submit, isValid });
         v-model="form.commerce_id"
       />
 
+      <!-- Con un solo comercio disponible (usuario 'commerce' gestionando
+           sus propias sucursales) el select de arriba no se muestra — sin
+           esto la sección "Jerarquía" quedaba como un encabezado sin
+           ningún campo debajo. Texto de solo lectura en su lugar. -->
+      <div v-else class="col-12">
+        <label class="form-label small text-muted mb-1">Comercio (comercializadora)</label>
+        <p class="mb-0 font-weight-bold">
+          <i class="fa-solid fa-store fa-fw mr-1 text-muted"></i>{{ props.commerces[0]?.name ?? '—' }}
+        </p>
+      </div>
+
       <!-- ── Configuración comercial ─────────────────────────────────────── -->
       <div class="col-12 mb-1 mt-2">
         <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
