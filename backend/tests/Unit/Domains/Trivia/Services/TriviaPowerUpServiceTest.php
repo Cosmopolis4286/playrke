@@ -27,7 +27,11 @@ class TriviaPowerUpServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new TriviaPowerUpService();
+        // Resuelto vía el container (no `new`): TriviaPowerUpService ahora
+        // depende de AssetConsumptionService (fallback a PlayerAsset cuando
+        // se agota el uso gratis por partida — ver
+        // MARKETPLACE_ARCHITECTURE_AUDIT.md sección 31).
+        $this->service = app(TriviaPowerUpService::class);
         Redis::flushall();
     }
 
@@ -78,6 +82,39 @@ class TriviaPowerUpServiceTest extends TestCase
         $this->expectExceptionMessage('Ya no tienes usos disponibles');
 
         $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::SKIP);
+    }
+
+    public function test_consume_falls_back_to_inventory_ticket_when_free_use_exhausted(): void
+    {
+        [$room, $participant] = $this->createRoomAndParticipant();
+
+        $definition = \App\Domains\Marketplace\Inventory\Models\AssetDefinition::firstOrCreate(
+            ['code' => 'TRIVIA_HINT_TICKET'],
+            [
+                'name' => 'Pista de Trivia', 'category' => 'TICKET', 'stackable' => true,
+                'tradable' => false, 'transferable' => false, 'consumable' => true,
+                'marketplace_enabled' => false, 'game_group' => 'TRIVIA', 'status' => 'ACTIVE',
+            ],
+        );
+        \App\Domains\Marketplace\Inventory\Models\AssetDefinition::forgetCatalogCache();
+        \App\Domains\Marketplace\Inventory\Models\PlayerAsset::create([
+            'asset_definition_id' => $definition->id, 'owner_id' => $participant->user_id,
+            'quantity' => 1, 'status' => 'AVAILABLE', 'acquired_via' => 'ADMIN_GRANT',
+        ]);
+
+        // Agota el uso gratis.
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::SKIP);
+
+        // Sin el ticket, esto lanzaría RuntimeException (ver test de arriba) —
+        // con el ticket disponible, el fallback lo consume y no lanza.
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::SKIP);
+
+        $this->assertSame(
+            'CONSUMED',
+            \App\Domains\Marketplace\Inventory\Models\PlayerAsset::where('owner_id', $participant->user_id)
+                ->where('asset_definition_id', $definition->id)
+                ->value('status'),
+        );
     }
 
     public function test_consume_throws_when_player_not_in_room(): void
