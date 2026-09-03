@@ -2,11 +2,14 @@
 declare(strict_types=1);
 namespace App\Domains\Games\Bingo\Jobs;
 
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Exceptions\Wallet\WalletUnavailableException;
+use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use App\Services\WalletService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -80,12 +83,32 @@ final class BingoCardLotRefundJob implements ShouldQueue
                     throw WalletUnavailableException::notFound((string) $lot->user_id, (string) $lot->currency_id);
                 }
 
+                // El comprador real de este lote puede ser un ExternalPlayer
+                // (sin cuenta, sin wallet propia — pagó en efectivo/fuera de
+                // banda vía el vendedor). lot->user_id en ese flujo es el
+                // Seller/Commerce que ejecutó la compra, NO el comprador
+                // final, así que el reembolso automático solo puede acreditar
+                // la wallet del vendedor — pero debe quedar marcado
+                // explícitamente como dinero de un tercero que el vendedor
+                // debe entregar, no como saldo propio ganado.
+                $externalBuyer = $this->resolveExternalBuyer($lot);
+
+                $description = $externalBuyer
+                    ? "Reembolso Bingo — Sala cancelada #{$room->id} (cartones de jugador externo {$externalBuyer->first_name} — ENTREGAR al comprador, no es saldo propio)"
+                    : "Reembolso Bingo — Sala cancelada #{$room->id}";
+
                 $walletService->recordRefund(
-                    wallet:       $wallet,
-                    amount:       $amount,
-                    gameId:       (string) $room->id,
-                    description:  "Reembolso Bingo — Sala cancelada #{$room->id}",
-                    bonusPortion: (float) $lot->bonus_amount,
+                    wallet:        $wallet,
+                    amount:        $amount,
+                    gameId:        (string) $room->id,
+                    description:   $description,
+                    bonusPortion:  (float) $lot->bonus_amount,
+                    extraMetadata: $externalBuyer ? [
+                        'is_external_player_refund' => true,
+                        'external_player_id'        => (string) $externalBuyer->id,
+                        'external_player_name'      => trim("{$externalBuyer->first_name} {$externalBuyer->last_name}"),
+                        'external_player_phone'     => $externalBuyer->phone,
+                    ] : [],
                 );
 
                 $lot->update(['status' => 'REFUNDED']);
@@ -128,6 +151,28 @@ final class BingoCardLotRefundJob implements ShouldQueue
 
             throw $e; // Re-throw para que la queue reintente (3 intentos).
         }
+    }
+
+    /**
+     * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
+     * Un lote vendedor→externo vincula CADA cartón individual a su
+     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
+     * que uno tenga participación basta para identificar al comprador, ya
+     * que todos los cartones de un mismo lote pertenecen al mismo comprador
+     * (una sola llamada a generateCards() por compra).
+     */
+    private function resolveExternalBuyer(BingoCardLot $lot): ?ExternalPlayer
+    {
+        $firstCardId = BingoCard::where('card_lot_id', $lot->id)->value('id');
+        if (!$firstCardId) {
+            return null;
+        }
+
+        $externalPlayerId = ExternalPlayerParticipation::ofParticipable(BingoCard::class)
+            ->where('participable_id', (string) $firstCardId)
+            ->value('external_player_id');
+
+        return $externalPlayerId ? ExternalPlayer::find($externalPlayerId) : null;
     }
 
     private function recordFailure(BingoCardLot $lot, BingoRoom $room, float $amount, string $reason): void
