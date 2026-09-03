@@ -43,8 +43,17 @@
         <div id="platform-win-ticker"></div>
 
         {{-- Sincroniza en tiempo real el badge de pendientes del navbar y del
-             sidebar (montado por Vue; ver PendingMovementsBadge.vue) --}}
-        <div id="pending-movements-badge" data-initial-pending-count="{{ $navPendingCount ?? 0 }}"></div>
+             sidebar (montado por Vue; ver PendingMovementsBadge.vue). Solo
+             para roles con permiso sobre el canal admins.wallet-movements
+             (ver routes/channels.php) — sin este gate, el div se montaba
+             para CUALQUIER usuario autenticado (ej. rol commerce) y Vue
+             intentaba suscribirse igual, resultando en un 403 ruidoso en
+             /broadcasting/auth para roles que nunca debieron intentarlo. --}}
+        @auth
+            @if(auth()->user()->hasRole(['superadmin', 'admin', 'treasurer']))
+                <div id="pending-movements-badge" data-initial-pending-count="{{ $navPendingCount ?? 0 }}"></div>
+            @endif
+        @endauth
 
         {{-- Banner de sesión de soporte activa (montado por Vue solo si hay
              impersonación en curso; ver ImpersonationService/ImpersonationBanner.vue) --}}
