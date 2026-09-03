@@ -161,6 +161,19 @@ final class BingoRoomException extends DomainException
     }
 
     /**
+     * La compra solicitada excedería el tope de cartones configurado para la
+     * sala (max_cards_to_start) — ver BingoRoomCardCapacityGuard.
+     */
+    public static function cardLimitExceeded(int $remaining, int $requested): static
+    {
+        return new static(
+            $remaining > 0
+                ? "Esta sala solo admite {$remaining} cartón(es) más (solicitaste {$requested})."
+                : 'Esta sala ya alcanzó su tope de cartones disponibles.'
+        );
+    }
+
+    /**
      * Intento de quitar de "monedas permitidas" una moneda que ya tiene
      * cartones vendidos en la sala (dejaría ventas existentes huérfanas).
      */

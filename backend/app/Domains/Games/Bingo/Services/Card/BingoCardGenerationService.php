@@ -8,6 +8,7 @@ use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCapacityGuard;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Domains\Games\Bingo\Services\Card\BingoCardManagementService;
 use Illuminate\Support\Facades\DB;
@@ -102,6 +103,12 @@ final class BingoCardGenerationService
             if ($creator['type'] === 'commerce_id' || $seller) {
                 $sellerSaleCommn = $this->commissionCalculation->calculateSellerCommission($saleAmount, $seller, $roomId);
             }
+
+            // Verificar tope de cartones ANTES de tocar total_cards — debe ir
+            // antes de updateRoomMetricsWithCommissions() (que ya incrementa
+            // total_cards) o el guard llegaría tarde: la venta ya habría
+            // quedado contabilizada aunque excediera el tope configurado.
+            BingoRoomCardCapacityGuard::assertHasCapacityFor($room, $cardCount);
 
             // Actualizar acumulado y comisiones de la sala
             $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $cardOrder, $saleAmountUsd, $sellerSaleCommn ?? 0);
