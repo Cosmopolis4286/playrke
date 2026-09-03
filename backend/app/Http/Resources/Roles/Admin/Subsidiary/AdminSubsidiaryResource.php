@@ -16,10 +16,15 @@ class AdminSubsidiaryResource extends JsonResource
             'brand' => $this->brand,
             'product' => $this->product,
             'link_route' => $this->link_route,
+            'status' => $this->status,
+            'status_badge' => $this->status_badge,
+            'sellers_count' => $this->sellers_count,
 
             'commerce' => $this->commerce ? [
                 'id' => $this->commerce->id,
                 'name' => $this->commerce->name,
+                'status' => $this->commerce->status,
+                'status_badge' => $this->commerce->status_badge,
             ] : null,
 
             'country' => [
@@ -33,6 +38,23 @@ class AdminSubsidiaryResource extends JsonResource
             ],
 
             'currency' => $this->currency_id,
+
+            // Jerarquía: hacia arriba (Commerce padre, ya en 'commerce' arriba)
+            // y hacia abajo (Sellers propios de esta Subsidiary) — mismo
+            // criterio de campos que AdminCommerceResource::hierarchy() y
+            // ManagerSellerResource (jerarquía inversa).
+            'hierarchy' => $this->whenLoaded('sellers', function () {
+                return [
+                    'sellers' => $this->sellers->map(fn ($s) => [
+                        'id' => (string) $s->id,
+                        'name' => $s->name,
+                        'phone' => $s->phone,
+                        'status' => $s->status,
+                        'status_badge' => $s->status_badge,
+                    ])->values(),
+                    'sellers_count' => $this->sellers->count(),
+                ];
+            }),
         ];
     }
 }

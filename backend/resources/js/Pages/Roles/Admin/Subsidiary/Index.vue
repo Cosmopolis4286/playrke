@@ -3,7 +3,7 @@
    * Página Admin → Sucursales
    */
 
-  import { computed, onMounted, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -13,6 +13,7 @@
   import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminSubsidiaryForm from '@/js/Components/Roles/Admin/Subsidiary/AdminSubsidiaryForm.vue'
+  import SubsidiaryDetailModal from '@/js/Components/Roles/Admin/Subsidiary/SubsidiaryDetailModal.vue'
 
   // ==========================================================================
   // Composables
@@ -21,6 +22,7 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminSubsidiary } from '@/js/composables/roles/admin/subsidiary/useAdminSubsidiary'
+  import { useSubsidiaryDetail } from '@/js/composables/roles/admin/subsidiary/useSubsidiaryDetail'
 
   // ==========================================================================
   // Types
@@ -81,6 +83,30 @@
     const ok = await edit(props.openId)
     if (ok) showModalForm.value = true
   })
+
+  // ==========================================================================
+  // Ficha de detalle (solo lectura — comisión, comercio padre, vendedores)
+  // ==========================================================================
+
+  const showDetailModal = ref(false)
+  const {
+    loading: subsidiaryDetailLoading,
+    detail: subsidiaryDetail,
+    error: subsidiaryDetailError,
+    fetchDetail: fetchSubsidiaryDetail,
+    retryFetchDetail: retrySubsidiaryDetail,
+    clearDetail: clearSubsidiaryDetail,
+  } = useSubsidiaryDetail()
+
+  async function openSubsidiaryDetail(rowId: string) {
+    showDetailModal.value = true
+    await fetchSubsidiaryDetail(rowId)
+  }
+
+  function handleDetailVisibility(open: boolean) {
+    showDetailModal.value = open
+    if (!open) clearSubsidiaryDetail()
+  }
 
   // ==========================================================================
   // CRUD global (eventos tabla)
@@ -193,6 +219,17 @@
 
   const extraButtons: ExtraButton[] = [
     {
+      icon: 'fas fa-id-card',
+      class: 'btn-outline-secondary',
+      title: 'Ver ficha de la sucursal',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          openSubsidiaryDetail(ids[0])
+        }
+      }
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
@@ -249,4 +286,13 @@
       :currencies="props.currencies"
     />
   </Modal>
+
+  <SubsidiaryDetailModal
+    :model-value="showDetailModal"
+    :loading="subsidiaryDetailLoading"
+    :detail="subsidiaryDetail"
+    :error="subsidiaryDetailError"
+    @update:model-value="handleDetailVisibility"
+    @retry="retrySubsidiaryDetail"
+  />
 </template>

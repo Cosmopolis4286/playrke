@@ -98,16 +98,23 @@ final class AdminSubsidiaryCrudService
     /**
      * Obtener sucursal para visualización.
      *
+     * Carga jerarquía completa (mismo criterio que AdminCommerceCrudService::
+     * show()/ManagerSellerCrudService::show()): hacia arriba (Commerce padre)
+     * y hacia abajo (Sellers propios de esta Subsidiary) — antes solo
+     * cargaba commerce:id,name (sin status), sin sellers, dejando la ficha
+     * sin datos de jerarquía para mostrar.
+     *
      * @param Subsidiary $subsidiary
      * @return AdminSubsidiaryResource
      */
     public function show(Subsidiary $subsidiary): AdminSubsidiaryResource
     {
         $subsidiary->load([
-            'commerce:id,name',
+            'commerce:id,name,status',
             'country:id,name',
             'user:id,username,email',
-        ]);
+            'sellers:id,name,phone,status,subsidiary_id',
+        ])->loadCount('sellers');
 
         return new AdminSubsidiaryResource($subsidiary);
     }
