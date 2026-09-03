@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Contracts\AppParameterRepositoryInterface;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomContextService;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
+use App\Domains\Platform\WinEvent\Services\WinEventLeaderboardService;
+use App\Services\Platform\PlatformStatsService;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\View;
@@ -35,8 +37,11 @@ class PublicController extends Controller
      * WinEventController::recent()) y el acceso al verificador de cartón.
      * El login/registro tienen sus propias rutas (/login, /register).
      */
-    public function root(BingoRoomContextService $contextService): Response
-    {
+    public function root(
+        BingoRoomContextService $contextService,
+        PlatformStatsService $platformStats,
+        WinEventLeaderboardService $leaderboardService,
+    ): Response {
         $register = $this->settings->getParameterStatus('REGISTER');
 
         $showcase = $contextService->publicShowcase()->toView();
@@ -52,7 +57,7 @@ class PublicController extends Controller
                 'id'              => (string) $e->id,
                 'game'            => $e->game_name,
                 'game_slug'       => $e->game_slug,
-                'winner_name'     => $e->resolveWinnerName(),
+                'winner_name'     => $e->maskedWinnerName(),
                 'prize_kind'      => $e->prize_kind,
                 'prize_label'     => $e->prize_label,
                 'amount'          => $e->amount_usd !== null ? (float) $e->amount_usd : null,
@@ -65,6 +70,8 @@ class PublicController extends Controller
             'inertiaOnly' => true,
             'register' => (bool) $register,
             'initialWins' => $wins,
+            'platformStats' => $platformStats->summary(),
+            'initialLeaderboard' => $leaderboardService->weeklyTopWinners(),
         ]));
     }
 

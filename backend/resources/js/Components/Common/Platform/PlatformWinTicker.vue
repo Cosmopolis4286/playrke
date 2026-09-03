@@ -35,7 +35,7 @@ function prizeIcon(kind: string): string {
   return PRIZE_KIND_ICONS[kind] ?? 'fas fa-trophy'
 }
 
-const { events, formatPrize, maskName } = usePlatformWinEvents()
+const { events, formatPrize } = usePlatformWinEvents()
 
 const collapsed = ref(localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1')
 const panelEl = ref<HTMLElement | null>(null)
@@ -97,7 +97,7 @@ function expand(): void {
           </div>
           <i :class="prizeIcon(e.prize_kind)" class="pwt__trophy"></i>
           <span class="pwt__text">
-            <strong>{{ maskName(e.winner_name) }}</strong> ganó
+            <strong>{{ e.winner_name }}</strong> ganó
             <strong class="pwt__amount">{{ formatPrize(e) }}</strong>
             en {{ e.game }}
           </span>
@@ -122,7 +122,7 @@ function expand(): void {
             </div>
             <i :class="prizeIcon(e.prize_kind)" class="pwt__trophy"></i>
             <span class="pwt__text">
-              <strong>{{ maskName(e.winner_name) }}</strong> ganó
+              <strong>{{ e.winner_name }}</strong> ganó
               <strong class="pwt__amount">{{ formatPrize(e) }}</strong>
               en {{ e.game }}
             </span>
@@ -156,8 +156,8 @@ function expand(): void {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(90deg, #181b50 0%, #0d0829 8%, #120a38 50%, #0d0829 100%);
-  border-bottom: 1px solid rgba(124, 92, 252, 0.18);
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
   padding: 6px 14px;
   overflow: hidden;
   width: 100%;
@@ -171,7 +171,7 @@ function expand(): void {
   gap: 6px;
   flex-shrink: 0;
   padding-right: 10px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid var(--ds-border);
 }
 
 .pwt__dot {
@@ -194,7 +194,7 @@ function expand(): void {
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.45);
+  color: var(--ds-text-2);
   white-space: nowrap;
 }
 
@@ -240,7 +240,7 @@ function expand(): void {
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.06);
+  background: var(--ds-surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -263,15 +263,17 @@ function expand(): void {
 
 .pwt__text {
   font-size: 12px;
-  color: rgba(255,255,255,0.55);
+  color: var(--ds-text-2);
 }
 .pwt__text strong {
-  color: rgba(255,255,255,0.85);
+  color: var(--ds-text);
   font-weight: 700;
 }
 .pwt__amount {
   color: #22c55e !important;
 }
+
+[data-theme="light"] .pwt__thumb-icon { color: #4c5fd6; }
 
 @media (max-width: 576px) {
   .pwt__label-text { display: none; }
@@ -288,15 +290,15 @@ function expand(): void {
   height: 22px;
   border: none;
   border-radius: 6px;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.45);
+  background: var(--ds-surface-2);
+  color: var(--ds-text-2);
   font-size: 11px;
   cursor: pointer;
   transition: background .15s, color .15s;
 }
 .pwt__close:hover {
-  background: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.85);
+  background: var(--ds-border-2);
+  color: var(--ds-text);
 }
 
 /* ── Pestaña para volver a mostrar el ticker ─────────────── */
@@ -308,10 +310,10 @@ function expand(): void {
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid rgba(124, 92, 252, 0.25);
+  border: 1px solid var(--ds-border);
   border-top: none;
   border-radius: 0 0 8px 8px;
-  background: linear-gradient(90deg, #0d0829 0%, #120a38 50%, #0d0829 100%);
+  background: var(--ds-surface);
   color: #fbbf24;
   font-size: 11px;
   padding: 4px 10px;

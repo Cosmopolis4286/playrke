@@ -6,6 +6,7 @@ import { useHead } from "@vueuse/head";
 import BingoGameRoomCard from "@js/Components/games/bingo/Room/GameRooms/BingoGameRoomCard.vue";
 import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTopBuyersModal.vue";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
+import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
 import { axios } from "@js/plugins/axios";
 
 import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
@@ -18,24 +19,32 @@ import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-ro
  * login/registro viven en sus propias rutas (/login, /register).
  */
 
-interface WinEvent {
-  readonly id: string;
-  readonly game: string;
-  readonly game_slug: string;
+interface LeaderboardEntry {
+  readonly rank: number;
   readonly winner_name: string;
-  readonly prize_kind: string;
-  readonly prize_label: string | null;
-  readonly amount: number | null;
-  readonly currency_symbol: string;
-  readonly timestamp: string | null;
+  readonly total_amount: number;
+  readonly wins_count: number;
+}
+
+interface PlatformStats {
+  readonly players_online: number;
+  readonly total_paid_usd: number;
+  readonly rooms_played_count: number;
 }
 
 const props = defineProps<
   BingoGameRoomsPageProps & {
     register?: boolean;
-    initialWins?: WinEvent[];
+    platformStats?: PlatformStats;
+    initialLeaderboard?: LeaderboardEntry[];
   }
 >();
+
+const SEO_DESCRIPTION =
+  "Salas de bingo con premios reales, en vivo. Verifica tu cartón sin cuenta y mira las ganancias del momento.";
+// Sin banner social dedicado (1200x630) en /public/img; se usa el logo de marca
+// como mejor alternativa disponible — reemplazar si se agrega un asset og:image real.
+const SEO_IMAGE = "https://www.playrke.com/img/logo.png";
 
 useHead({
   title: "PlayRKE — Juega en vivo, gana en serio",
@@ -43,14 +52,41 @@ useHead({
     { property: "og:type", content: "website" },
     { property: "og:url", content: "https://www.playrke.com/" },
     { property: "og:site_name", content: "PlayRKE" },
-    {
-      name: "description",
-      content: "Salas de bingo con premios reales, en vivo. Verifica tu cartón sin cuenta y mira las ganancias del momento.",
-    },
+    { property: "og:title", content: "PlayRKE — Juega en vivo, gana en serio" },
+    { property: "og:description", content: SEO_DESCRIPTION },
+    { property: "og:image", content: SEO_IMAGE },
+    { property: "og:locale", content: "es_VE" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: "PlayRKE — Juega en vivo, gana en serio" },
+    { name: "twitter:description", content: SEO_DESCRIPTION },
+    { name: "twitter:image", content: SEO_IMAGE },
+    { name: "description", content: SEO_DESCRIPTION },
   ],
   link: [
     { rel: "icon", type: "image/x-icon", href: "/img/fav.ico" },
     { rel: "shortcut icon", type: "image/x-icon", href: "/img/fav.ico" },
+    { rel: "canonical", href: "https://www.playrke.com/" },
+  ],
+  script: [
+    {
+      type: "application/ld+json",
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            name: "PlayRKE",
+            url: "https://www.playrke.com/",
+            logo: SEO_IMAGE,
+          },
+          {
+            "@type": "WebSite",
+            name: "PlayRKE",
+            url: "https://www.playrke.com/",
+          },
+        ],
+      }),
+    },
   ],
 });
 
@@ -82,38 +118,53 @@ function closeTopBuyers() {
   topBuyersRoomId.value = null;
 }
 
-// ── Ganancias en vivo — sembrado por el backend, refrescado por polling ligero.
-// Mismo endpoint que el lobby autenticado (GET /api/win-events/recent); sin
-// WebSocket aquí porque la landing es la puerta de entrada de un visitante
-// anónimo, no vale la pena abrir un canal Echo solo para esta vista.
-const wins = ref<WinEvent[]>(props.initialWins ?? []);
-let winsTimer: ReturnType<typeof setInterval> | null = null;
+// ── Ganancias en vivo — mismo composable/canal Echo que el ticker autenticado
+// (platform.win-events es público, sin auth: ver routes/channels.php), con
+// seed inicial vía GET /api/win-events/recent. El nombre del ganador ya llega
+// enmascarado desde el backend (WinEvent::maskedWinnerName()).
+const { events: wins, formatPrize } = usePlatformWinEvents();
 
-async function refreshWins() {
+// ── Leaderboard semanal — sembrado por el backend (WinEventLeaderboardService),
+// sin canal dedicado: no vale la pena un segundo WebSocket solo para un
+// ranking que cambia lentamente. Se refresca junto con las stats de plataforma.
+const leaderboard = ref<LeaderboardEntry[]>(props.initialLeaderboard ?? []);
+
+// ── Stats de plataforma — sembradas por el backend (PlatformStatsService,
+// cacheadas 60s), refrescadas junto al leaderboard cada pocos minutos.
+const platformStats = ref<PlatformStats | undefined>(props.platformStats);
+
+let statsTimer: ReturnType<typeof setInterval> | null = null;
+
+async function refreshStatsAndLeaderboard() {
   try {
-    // axios plano (no backendClient): endpoint público sin sesión, sin
-    // cookies/CSRF — evita el interceptor 401→/login de backendClient,
-    // que redirigiría a un visitante anónimo fuera de la landing.
-    const { data } = await axios.get("/api/win-events/recent");
-    if (Array.isArray(data?.wins)) wins.value = data.wins;
+    const [statsRes, leaderboardRes] = await Promise.all([
+      axios.get("/api/platform/stats"),
+      axios.get("/api/win-events/leaderboard"),
+    ]);
+    if (statsRes.data) platformStats.value = statsRes.data;
+    if (Array.isArray(leaderboardRes.data?.leaderboard)) {
+      leaderboard.value = leaderboardRes.data.leaderboard;
+    }
   } catch {
-    // Silencioso: el ticker sigue mostrando la última data buena conocida.
+    // Silencioso: se mantiene la última data buena conocida.
   }
 }
 
 onMounted(() => {
-  winsTimer = setInterval(refreshWins, 20_000);
+  statsTimer = setInterval(refreshStatsAndLeaderboard, 120_000);
 });
 onUnmounted(() => {
-  if (winsTimer) clearInterval(winsTimer);
+  if (statsTimer) clearInterval(statsTimer);
 });
 
-function formatAmount(win: WinEvent): string {
-  if (win.amount == null) return win.prize_label ?? "";
-  return `${win.currency_symbol}${win.amount.toFixed(2)}`;
-}
-
-const onlineCount = computed(() => props.rooms?.reduce((sum, r) => sum + (r.total_players ?? 0), 0) ?? 0);
+const onlineCount = computed(
+  () => platformStats.value?.players_online ?? props.rooms?.reduce((sum, r) => sum + (r.total_players ?? 0), 0) ?? 0
+);
+const totalPaidFormatted = computed(() => {
+  const total = platformStats.value?.total_paid_usd;
+  if (total == null) return null;
+  return total.toLocaleString("es", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+});
 
 // ── Verificador de cartón (inline, envía a /verify-card con los valores precargados) ──
 const cardSerial = ref("");
@@ -166,6 +217,10 @@ function submitVerify() {
             </button>
             <a class="btn btn--ghost btn--lg" href="#salas">Ver salas activas</a>
           </div>
+          <div v-if="totalPaidFormatted" class="landing__hero-stat">
+            <i class="fas fa-sack-dollar" />
+            <span><strong>${{ totalPaidFormatted }} USD</strong> repartidos en premios a la fecha</span>
+          </div>
           <div class="landing__hero-trust">
             <span>Retiros verificados</span>
             <span class="dot" />
@@ -193,7 +248,7 @@ function submitVerify() {
                 <div class="ticker-name">{{ win.winner_name }}</div>
                 <div class="ticker-game">{{ win.game }}</div>
               </div>
-              <div class="ticker-amount">+{{ formatAmount(win) }}</div>
+              <div class="ticker-amount">+{{ formatPrize(win) }}</div>
             </div>
           </div>
           <p v-else class="ticker-empty">Aún no hay ganancias recientes — ¡sé el primero!</p>
@@ -261,27 +316,26 @@ function submitVerify() {
       </div>
     </section>
 
-    <!-- ══ GANADORES (próximamente) ══ -->
+    <!-- ══ GANADORES ══ -->
     <section id="ganadores" class="band">
       <div class="leaderboard-grid">
         <div>
-          <span class="eyebrow">Próximamente</span>
-          <h2 class="verify-title">Un ranking de los mejores jugadores</h2>
+          <span class="eyebrow">Ranking de la semana</span>
+          <h2 class="verify-title">Los mejores jugadores de los últimos 7 días</h2>
           <p class="verify-sub">
-            Estamos construyendo un leaderboard público con las mayores ganancias de la
-            semana, alimentado por el mismo feed de eventos del ticker de arriba.
+            Suma de ganancias en dinero por jugador, actualizado cada pocos minutos.
+            Los nombres se muestran parcialmente por privacidad.
           </p>
         </div>
         <div class="lb-card">
-          <span class="lb-card__soon">Vista previa</span>
-          <div v-if="wins.length" class="lb-list">
-            <div v-for="(win, i) in wins.slice(0, 5)" :key="win.id" class="lb-row">
-              <span class="lb-rank">{{ String(i + 1).padStart(2, "0") }}</span>
-              <span class="lb-name">{{ win.winner_name }}</span>
-              <span class="lb-amt">+{{ formatAmount(win) }}</span>
+          <div v-if="leaderboard.length" class="lb-list">
+            <div v-for="entry in leaderboard" :key="entry.rank" class="lb-row">
+              <span class="lb-rank">{{ String(entry.rank).padStart(2, "0") }}</span>
+              <span class="lb-name">{{ entry.winner_name }}</span>
+              <span class="lb-amt">+${{ entry.total_amount.toFixed(2) }}</span>
             </div>
           </div>
-          <p v-else class="ticker-empty">Sin datos suficientes todavía</p>
+          <p v-else class="ticker-empty">Sin datos suficientes todavía esta semana</p>
         </div>
       </div>
     </section>
@@ -363,6 +417,18 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .btn--lg { padding: 14px 30px; font-size: 14.5px; }
 .btn--block { width: 100%; justify-content: center; }
 
+/* ── Foco accesible — el default del navegador desentona con el fondo oscuro ── */
+.btn:focus-visible,
+.landing__nav-links a:focus-visible,
+.landing__footer-legal a:focus-visible,
+.verify-form input:focus-visible {
+  outline: 2px solid #2af598;
+  outline-offset: 2px;
+}
+
+/* ── Anclas del nav sticky — sin esto el header tapa el título al saltar ── */
+#salas, #verificar, #ganadores { scroll-margin-top: 76px; }
+
 /* ── Nav ── */
 .landing__nav {
   position: sticky;
@@ -429,9 +495,19 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 .landing__hero-sub { font-size: 15px; line-height: 1.6; color: #7a96c8; max-width: 480px; margin: 0 0 24px; }
 .landing__hero-actions { display: flex; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
-.landing__hero-trust { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #4a6698; }
+.landing__hero-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #eef2ff;
+  margin-bottom: 16px;
+}
+.landing__hero-stat i { color: #2af598; font-size: 13px; }
+.landing__hero-stat strong { color: #2af598; font-weight: 800; }
+.landing__hero-trust { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #93a5c8; }
 .landing__hero-trust span { display: flex; align-items: center; gap: 6px; }
-.dot { width: 4px; height: 4px; border-radius: 50%; background: #4a6698; }
+.dot { width: 4px; height: 4px; border-radius: 50%; background: #93a5c8; }
 
 /* ── Ticker ── */
 .ticker-card {
@@ -556,14 +632,9 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 .verify-form input::placeholder { color: #4a6698; }
 
-/* ── Leaderboard preview ── */
+/* ── Leaderboard semanal ── */
 .leaderboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
 .lb-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 18px; position: relative; }
-.lb-card__soon {
-  position: absolute; top: 14px; right: 14px;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
-  color: #4a6698; border: 1px dashed rgba(255,255,255,.15); padding: 3px 8px; border-radius: 999px;
-}
 .lb-list { display: flex; flex-direction: column; }
 .lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
 .lb-row:last-child { border-bottom: none; }

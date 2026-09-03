@@ -79,11 +79,41 @@ class WinEvent extends Model
     /**
      * Nombre a mostrar: usuario real de la plataforma si existe, si no el
      * nombre libre indicado al registrar el evento (premios externos).
+     *
+     * Sin enmascarar — solo para consumo interno (panel admin, logs de
+     * actividad). Cualquier salida pública o por broadcast debe usar
+     * maskedWinnerName() en su lugar (ver WinEventService::broadcast(),
+     * WinEventController y PublicController::root()).
      */
     public function resolveWinnerName(): string
     {
         return $this->user?->full_name
             ?: ($this->user?->username
             ?: ($this->winner_name_override ?: 'Jugador'));
+    }
+
+    /**
+     * Nombre enmascarado para cualquier salida pública o en tiempo real
+     * (WebSocket, endpoints REST públicos): mismo criterio de privacidad
+     * que el resto de la plataforma, aplicado en el origen del dato para
+     * que ningún consumidor (autenticado o no) reciba el nombre completo.
+     * Regla idéntica a usePlatformWinEvents.ts::maskName() en el frontend.
+     */
+    public function maskedWinnerName(): string
+    {
+        $name = $this->resolveWinnerName();
+
+        if ($name === '') {
+            return '***';
+        }
+
+        if (mb_strlen($name) <= 3) {
+            return mb_substr($name, 0, 1) . '***';
+        }
+
+        $visible = mb_substr($name, 0, 3);
+        $maskLength = min(mb_strlen($name) - 3, 4);
+
+        return $visible . str_repeat('*', $maskLength);
     }
 }

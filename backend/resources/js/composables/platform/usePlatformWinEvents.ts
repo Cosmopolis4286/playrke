@@ -10,6 +10,7 @@ export interface PlatformWinEvent {
   id: string
   game: string
   game_slug: string
+  /** Ya enmascarado por el backend (WinEvent::maskedWinnerName()) — no re-enmascarar en el cliente. */
   winner_name: string
   prize_kind: 'money' | 'item' | 'service'
   prize_label: string
@@ -79,11 +80,5 @@ export function usePlatformWinEvents() {
     return `${e.currency_symbol}${local.toFixed(e.decimal_places)}`
   }
 
-  function maskName(name: string): string {
-    if (!name) return '***'
-    if (name.length <= 3) return `${name.slice(0, 1)}***`
-    return `${name.slice(0, 3)}${'*'.repeat(Math.min(name.length - 3, 4))}`
-  }
-
-  return { events, formatPrize, maskName }
+  return { events, formatPrize }
 }

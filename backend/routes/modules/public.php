@@ -3,6 +3,7 @@
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\Platform\BingoCardVerifyController;
+use App\Http\Controllers\Platform\PlatformStatsController;
 use App\Http\Controllers\Platform\WinEventController;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +94,16 @@ Route::prefix('api')->group(function () {
 
     // Feed de ganancias en vivo (seed inicial para el ticker, cualquier juego/premio)
     Route::get('/win-events/recent', [WinEventController::class, 'recent'])->name('api.win-events.recent');
+
+    // Ranking semanal de mayores ganadores en dinero (sección "Ganadores" de la landing)
+    Route::get('/win-events/leaderboard', [WinEventController::class, 'leaderboard'])
+        ->middleware('throttle:30,1')
+        ->name('api.win-events.leaderboard');
+
+    // Métricas públicas de la plataforma (prueba social del hero de la landing)
+    Route::get('/platform/stats', [PlatformStatsController::class, 'index'])
+        ->middleware('throttle:30,1')
+        ->name('api.platform.stats');
 
     // Verificación pública de un cartón de Bingo por serial + últimos 4 del teléfono
     Route::post('/bingo/verify-card', [BingoCardVerifyController::class, 'verify'])

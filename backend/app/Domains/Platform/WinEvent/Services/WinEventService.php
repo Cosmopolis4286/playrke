@@ -141,7 +141,7 @@ final class WinEventService
 
             broadcast(new WinEventBroadcasted(
                 winEvent:       $winEvent,
-                winnerName:     $winEvent->resolveWinnerName(),
+                winnerName:     $winEvent->maskedWinnerName(),
                 currencySymbol: $currency?->symbol ?? '$',
                 decimalPlaces:  $currency?->decimal_places ?? 2,
             ));

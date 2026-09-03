@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Domains\Platform\WinEvent\Models\WinEvent;
+use App\Domains\Platform\WinEvent\Services\WinEventLeaderboardService;
 use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\WinEvent\ReportExternalWinEventRequest;
@@ -18,7 +19,19 @@ class WinEventController extends Controller
 
     public function __construct(
         private readonly WinEventService $winEventService,
+        private readonly WinEventLeaderboardService $leaderboardService,
     ) {}
+
+    /**
+     * Ranking semanal de mayores ganadores en dinero, para la sección
+     * "Ganadores" de la landing pública.
+     */
+    public function leaderboard(): JsonResponse
+    {
+        return $this->handleServiceJson(fn () => [
+            'leaderboard' => $this->leaderboardService->weeklyTopWinners(),
+        ]);
+    }
 
     /**
      * Últimos eventos de ganancia, usados para sembrar el ticker antes de
@@ -87,7 +100,7 @@ class WinEventController extends Controller
             'id'              => (string) $e->id,
             'game'            => $e->game_name,
             'game_slug'       => $e->game_slug,
-            'winner_name'     => $e->resolveWinnerName(),
+            'winner_name'     => $e->maskedWinnerName(),
             'prize_kind'      => $e->prize_kind,
             'prize_label'     => $e->prize_label,
             'amount'          => $e->amount_usd !== null ? (float) $e->amount_usd : null,
