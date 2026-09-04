@@ -7,6 +7,7 @@ namespace App\Domains\Games\Trivia\Services;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use App\Domains\Games\Trivia\DTOs\RoomDTO;
+use App\Domains\Games\Trivia\Exceptions\Room\TriviaRoomException;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaTeam;
 use App\Events\Games\Trivia\TriviaPlayerJoined;
@@ -14,11 +15,11 @@ use App\Events\Games\Trivia\TriviaPlayerLeft;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
-use RuntimeException;
+use Throwable;
 
 /**
  * Servicio: Gestión de Salas de Trivia.
- * 
+ *
  * Maneja:
  * - Creación y configuración de salas
  * - Unión/salida de jugadores
@@ -30,42 +31,61 @@ class RoomService implements RoomServiceInterface
     private const KEY_PREFIX = 'trivia:room:';
     private const TTL = 7200; // 2 horas
 
-    public function __construct() {}
+    public function __construct()
+    {
+    }
+
+    /**
+     * Cerrar sala.
+     */
+    public function closeRoom(string $roomId, string $reason) : void
+    {
+        $room = TriviaRoom::findOrFail($roomId);
+        $room->update(['status' => 'closed', 'ended_at' => now()]);
+
+        // Limpiar Redis (opcional — no falla si Redis no está disponible)
+        try {
+            Redis::del(self::KEY_PREFIX . $roomId);
+            // "trivia:room:players:{roomId}" nunca fue escrita — se elimina solo la clave real.
+        } catch (Throwable) {
+            // Redis no disponible — ignorar limpieza
+        }
+    }
 
     /**
      * Crear nueva sala.
      */
-    public function createRoom(array $config): RoomDTO
+    public function createRoom(array $config) : RoomDTO
     {
         $gameModeId = $config['game_mode_id'] ?? null;
         $teamsConfig = $config['teams_config'] ?? null;
 
         // Crear en base de datos
         $room = TriviaRoom::create([
-            'code'               => $config['code'] ?? $this->generateRoomCode(),
-            'title'              => $config['title'] ?? 'Sala de Trivia',
-            'description'        => $config['description'] ?? null,
-            'category'           => $config['category'] ?? null,
-            'host_id'            => $config['host_id'] ?? null,
-            'status'             => 'waiting',
-            'game_mode_id'       => $gameModeId,
-            'teams_config'       => $teamsConfig,
-            'max_players'        => $config['max_players'] ?? 100,
-            'question_count'     => $config['question_count'] ?? 10,
-            'time_per_question'  => $config['time_per_question'] ?? 15,
-            'entry_fee'          => $config['entry_fee'] ?? 0,
-            'entry_currency_id'  => $config['entry_currency_id'] ?? null,
-            'fee_by_currency'    => $config['fee_by_currency'] ?? null,
-            'prize_type'         => $config['prize_type'] ?? 'accumulated',
-            'prize_amount'       => $config['prize_amount'] ?? 0,
-            'prize_currency_id'  => $config['prize_currency_id'] ?? null,
-            'prize_model'        => $config['prize_model'] ?? 'guaranteed',
-            'prize_payouts'      => $config['prize_payouts'] ?? null,
+            'code' => $config['code'] ?? $this->generateRoomCode(),
+            'title' => $config['title'] ?? 'Sala de Trivia',
+            'description' => $config['description'] ?? null,
+            'category' => $config['category'] ?? null,
+            'host_id' => $config['host_id'] ?? null,
+            'status' => 'waiting',
+            'game_mode_id' => $gameModeId,
+            'teams_config' => $teamsConfig,
+            'max_players' => $config['max_players'] ?? 100,
+            'question_count' => $config['question_count'] ?? 10,
+            'time_per_question' => $config['time_per_question'] ?? 15,
+            'entry_fee' => $config['entry_fee'] ?? 0,
+            'entry_currency_id' => $config['entry_currency_id'] ?? null,
+            'fee_by_currency' => $config['fee_by_currency'] ?? null,
+            'prize_type' => $config['prize_type'] ?? 'accumulated',
+            'prize_amount' => $config['prize_amount'] ?? 0,
+            'prize_currency_id' => $config['prize_currency_id'] ?? null,
+            'prize_model' => $config['prize_model'] ?? 'guaranteed',
+            'prize_payouts' => $config['prize_payouts'] ?? null,
             'platform_rake_percent' => $config['platform_rake_percent'] ?? 0,
-            'sponsor_prize'      => $config['sponsor_prize'] ?? 0,
-            'scheduled_at'       => $config['scheduled_at'] ?? null,
-            'settings'           => $config['settings'] ?? [],
-            'current_players'    => 0,
+            'sponsor_prize' => $config['sponsor_prize'] ?? 0,
+            'scheduled_at' => $config['scheduled_at'] ?? null,
+            'settings' => $config['settings'] ?? [],
+            'current_players' => 0,
         ]);
 
         // Crear equipos si el modo lo requiere
@@ -88,7 +108,7 @@ class RoomService implements RoomServiceInterface
             playerIds: [],
             settings: array_merge($room->settings ?? [], [
                 'game_mode_id' => $room->game_mode_id,
-                'teams' => $room->teams->map(fn($t) => [
+                'teams' => $room->teams->map(fn ($t) => [
                     'id' => $t->id,
                     'name' => $t->name,
                     'color' => $t->color,
@@ -97,7 +117,7 @@ class RoomService implements RoomServiceInterface
             ]),
             createdAt: $room->created_at->timestamp,
             startedAt: null,
-            endedAt: null
+            endedAt: null,
         );
 
         // Guardar en Redis
@@ -107,19 +127,76 @@ class RoomService implements RoomServiceInterface
     }
 
     /**
+     * Obtener información de sala.
+     * Redis es opcional — si no está disponible cae a base de datos.
+     */
+    public function getRoom(string $roomId) : RoomDTO
+    {
+        // Intentar desde Redis primero
+        try {
+            $redisData = Redis::hget(self::KEY_PREFIX . $roomId, 'data');
+
+            if ($redisData) {
+                $data = json_decode($redisData, true);
+                if ($data) {
+                    return RoomDTO::fromArray($data);
+                }
+            }
+        } catch (Throwable) {
+            // Redis no disponible — continuar con fallback a DB
+        }
+
+        // Fallback a base de datos
+        $room = TriviaRoom::findOrFail($roomId);
+
+        return new RoomDTO(
+            roomId: (string) $room->id,
+            code: $room->code,
+            title: $room->title,
+            status: $room->status,
+            maxPlayers: $room->max_players,
+            currentPlayers: $room->current_players ?? 0,
+            hostId: $room->host_id,
+            playerIds: [],
+            settings: $room->settings ?? [],
+            createdAt: $room->created_at->timestamp,
+            startedAt: $room->started_at?->timestamp,
+            endedAt: $room->ended_at?->timestamp,
+        );
+    }
+
+    /**
+     * Verificar si jugador está en sala.
+     */
+    public function isPlayerInRoom(string $roomId, string $playerId) : bool
+    {
+        $roomDto = $this->getRoom($roomId);
+
+        return in_array($playerId, $roomDto->playerIds, true);
+    }
+
+    /**
+     * Verificar si sala está llena.
+     */
+    public function isRoomFull(string $roomId) : bool
+    {
+        return $this->getRoom($roomId)->isFull();
+    }
+
+    /**
      * Unir jugador a sala.
      * Actualiza Redis y sincroniza current_players en BD.
      */
-    public function joinRoom(string $roomId, string $playerId, array $playerData): PlayerDTO
+    public function joinRoom(string $roomId, string $playerId, array $playerData) : PlayerDTO
     {
         $roomDto = $this->getRoom($roomId);
 
         if (! $roomDto->isJoinable()) {
-            throw new RuntimeException('No se puede unir a esta sala');
+            throw TriviaRoomException::notJoinable();
         }
 
         if ($roomDto->isFull()) {
-            throw new RuntimeException('La sala está llena');
+            throw TriviaRoomException::roomFull();
         }
 
         if (in_array($playerId, $roomDto->playerIds, true)) {
@@ -156,18 +233,20 @@ class RoomService implements RoomServiceInterface
         try {
             TriviaRoom::where('id', $roomId)
                 ->update(['current_players' => $updatedRoom->currentPlayers]);
-        } catch (\Throwable) {}
+        } catch (Throwable) {
+        }
 
         // Broadcast del nuevo evento (best-effort)
         try {
             broadcast(new TriviaPlayerJoined(
-                roomId:             $roomId,
-                playerId:           $playerId,
-                playerName:         $player->nickname,
+                roomId: $roomId,
+                playerId: $playerId,
+                playerName: $player->nickname,
                 currentPlayerCount: $updatedRoom->currentPlayers,
-                teamId:             $playerData['team_id'] ?? null,
+                teamId: $playerData['team_id'] ?? null,
             ));
-        } catch (\Throwable) {}
+        } catch (Throwable) {
+        }
 
         return $player;
     }
@@ -175,7 +254,7 @@ class RoomService implements RoomServiceInterface
     /**
      * Jugador abandona sala.
      */
-    public function leaveRoom(string $roomId, string $playerId): void
+    public function leaveRoom(string $roomId, string $playerId) : void
     {
         $roomDto = $this->getRoom($roomId);
 
@@ -191,62 +270,25 @@ class RoomService implements RoomServiceInterface
         try {
             TriviaRoom::where('id', $roomId)
                 ->update(['current_players' => $updatedRoom->currentPlayers]);
-        } catch (\Throwable) {}
+        } catch (Throwable) {
+        }
 
         try {
             broadcast(new TriviaPlayerLeft(
-                roomId:             $roomId,
-                playerId:           $playerId,
+                roomId: $roomId,
+                playerId: $playerId,
                 currentPlayerCount: $updatedRoom->currentPlayers,
-                reason:             'left',
+                reason: 'left',
             ));
-        } catch (\Throwable) {}
-    }
-
-    /**
-     * Obtener información de sala.
-     * Redis es opcional — si no está disponible cae a base de datos.
-     */
-    public function getRoom(string $roomId): RoomDTO
-    {
-        // Intentar desde Redis primero
-        try {
-            $redisData = Redis::hget(self::KEY_PREFIX . $roomId, 'data');
-
-            if ($redisData) {
-                $data = json_decode($redisData, true);
-                if ($data) {
-                    return RoomDTO::fromArray($data);
-                }
-            }
-        } catch (\Throwable) {
-            // Redis no disponible — continuar con fallback a DB
+        } catch (Throwable) {
         }
-
-        // Fallback a base de datos
-        $room = TriviaRoom::findOrFail($roomId);
-
-        return new RoomDTO(
-            roomId: (string) $room->id,
-            code: $room->code,
-            title: $room->title,
-            status: $room->status,
-            maxPlayers: $room->max_players,
-            currentPlayers: $room->current_players ?? 0,
-            hostId: $room->host_id,
-            playerIds: [],
-            settings: $room->settings ?? [],
-            createdAt: $room->created_at->timestamp,
-            startedAt: $room->started_at?->timestamp,
-            endedAt: $room->ended_at?->timestamp
-        );
     }
 
     /**
      * Listar jugadores en sala.
      * Intenta Redis primero; si no hay datos hace fallback a trivia_participants en BD.
      */
-    public function listPlayers(string $roomId): array
+    public function listPlayers(string $roomId) : array
     {
         $roomDto = $this->getRoom($roomId);
         $players = [];
@@ -258,7 +300,8 @@ class RoomService implements RoomServiceInterface
                 if ($raw) {
                     $players[] = PlayerDTO::fromArray(json_decode($raw, true));
                 }
-            } catch (\Throwable) {}
+            } catch (Throwable) {
+            }
         }
 
         // Si Redis no tenía datos, cargar desde BD
@@ -272,7 +315,7 @@ class RoomService implements RoomServiceInterface
                 ->get();
 
             $userIds = $participants->pluck('user_id')->all();
-            $names   = $userIds
+            $names = $userIds
                 ? DB::table('users')
                     ->whereIn('id', $userIds)
                     ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
@@ -281,14 +324,14 @@ class RoomService implements RoomServiceInterface
 
             foreach ($participants as $p) {
                 $players[] = new PlayerDTO(
-                    playerId:        $p->user_id,
-                    roomId:          $roomId,
-                    nickname:        $names[$p->user_id] ?? 'Jugador',
-                    status:          $p->status,
-                    avatar:          null,
-                    joinedAt:        $p->registered_at ? strtotime($p->registered_at) : time(),
-                    connectedAt:     null,
-                    disconnectedAt:  null,
+                    playerId: $p->user_id,
+                    roomId: $roomId,
+                    nickname: $names[$p->user_id] ?? 'Jugador',
+                    status: $p->status,
+                    avatar: null,
+                    joinedAt: $p->registered_at ? strtotime($p->registered_at) : time(),
+                    connectedAt: null,
+                    disconnectedAt: null,
                 );
             }
         }
@@ -297,49 +340,15 @@ class RoomService implements RoomServiceInterface
     }
 
     /**
-     * Verificar si sala está llena.
-     */
-    public function isRoomFull(string $roomId): bool
-    {
-        return $this->getRoom($roomId)->isFull();
-    }
-
-    /**
-     * Cerrar sala.
-     */
-    public function closeRoom(string $roomId, string $reason): void
-    {
-        $room = TriviaRoom::findOrFail($roomId);
-        $room->update(['status' => 'closed', 'ended_at' => now()]);
-
-        // Limpiar Redis (opcional — no falla si Redis no está disponible)
-        try {
-            Redis::del(self::KEY_PREFIX . $roomId);
-            // "trivia:room:players:{roomId}" nunca fue escrita — se elimina solo la clave real.
-        } catch (\Throwable) {
-            // Redis no disponible — ignorar limpieza
-        }
-    }
-
-    /**
-     * Verificar si jugador está en sala.
-     */
-    public function isPlayerInRoom(string $roomId, string $playerId): bool
-    {
-        $roomDto = $this->getRoom($roomId);
-        return in_array($playerId, $roomDto->playerIds, true);
-    }
-
-    /**
      * Actualizar configuración de sala.
      */
-    public function updateRoomConfig(string $roomId, array $config): RoomDTO
+    public function updateRoomConfig(string $roomId, array $config) : RoomDTO
     {
         $room = TriviaRoom::findOrFail($roomId);
-        
+
         // Solo permitir si está en espera
         if ($room->status !== 'waiting') {
-            throw new RuntimeException('No se puede modificar una sala activa');
+            throw TriviaRoomException::notEditableWhileActive();
         }
 
         $updateData = [];
@@ -411,7 +420,7 @@ class RoomService implements RoomServiceInterface
         // dejando la actualización invisible para cualquiera que lea vía Redis.
         try {
             Redis::del(self::KEY_PREFIX . $roomId);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Redis no disponible — getRoom() caerá al fallback de BD de todas formas.
         }
 
@@ -422,21 +431,9 @@ class RoomService implements RoomServiceInterface
     }
 
     /**
-     * Generar código único de sala.
-     */
-    private function generateRoomCode(): string
-    {
-        do {
-            $code = strtoupper(Str::random(6));
-        } while (TriviaRoom::where('code', $code)->exists());
-
-        return $code;
-    }
-
-    /**
      * Crear equipos para una sala según la configuración.
      */
-    private function createTeamsForRoom(TriviaRoom $room, array $config): void
+    private function createTeamsForRoom(TriviaRoom $room, array $config) : void
     {
         $mode = strtolower($room->gameModeCode() ?? '');
         $teamCount = $config['team_count'] ?? 2;
@@ -450,9 +447,9 @@ class RoomService implements RoomServiceInterface
         }
 
         // Nombres por defecto según el modo
-        $defaultNames = match($mode) {
+        $defaultNames = match ($mode) {
             'duel' => ['Equipo Rojo', 'Equipo Azul'],
-            default => array_map(fn($i) => "Equipo {$i}", range(1, $teamCount)),
+            default => array_map(fn ($i) => "Equipo {$i}", range(1, $teamCount)),
         };
 
         for ($i = 1; $i <= $teamCount; $i++) {
@@ -481,41 +478,53 @@ class RoomService implements RoomServiceInterface
     }
 
     /**
-     * Guardar sala en Redis (best-effort).
+     * Eliminar jugador de Redis (best-effort).
      */
-    private function saveRoomToRedis(RoomDTO $roomDto): void
+    private function deletePlayerFromRedis(string $playerId, string $roomId) : void
     {
         try {
-            $key = self::KEY_PREFIX . $roomDto->roomId;
-            Redis::hset($key, 'data', json_encode($roomDto->toArray()));
-            Redis::expire($key, self::TTL);
-        } catch (\Throwable) {
+            Redis::del(self::KEY_PREFIX . "player:{$roomId}:{$playerId}");
+        } catch (Throwable) {
             // Redis no disponible — ignorar
         }
+    }
+
+    /**
+     * Generar código único de sala.
+     */
+    private function generateRoomCode() : string
+    {
+        do {
+            $code = strtoupper(Str::random(6));
+        } while (TriviaRoom::where('code', $code)->exists());
+
+        return $code;
     }
 
     /**
      * Guardar jugador en Redis (best-effort).
      */
-    private function savePlayerToRedis(PlayerDTO $player): void
+    private function savePlayerToRedis(PlayerDTO $player) : void
     {
         try {
             $key = self::KEY_PREFIX . "player:{$player->roomId}:{$player->playerId}";
             Redis::hset($key, 'data', json_encode($player->toArray()));
             Redis::expire($key, self::TTL);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Redis no disponible — ignorar
         }
     }
 
     /**
-     * Eliminar jugador de Redis (best-effort).
+     * Guardar sala en Redis (best-effort).
      */
-    private function deletePlayerFromRedis(string $playerId, string $roomId): void
+    private function saveRoomToRedis(RoomDTO $roomDto) : void
     {
         try {
-            Redis::del(self::KEY_PREFIX . "player:{$roomId}:{$playerId}");
-        } catch (\Throwable) {
+            $key = self::KEY_PREFIX . $roomDto->roomId;
+            Redis::hset($key, 'data', json_encode($roomDto->toArray()));
+            Redis::expire($key, self::TTL);
+        } catch (Throwable) {
             // Redis no disponible — ignorar
         }
     }

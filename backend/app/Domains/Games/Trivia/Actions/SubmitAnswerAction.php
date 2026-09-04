@@ -8,10 +8,10 @@ use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\DTOs\AnswerResultDTO;
 use App\Domains\Games\Trivia\DTOs\QuestionDTO;
+use App\Domains\Games\Trivia\Exceptions\Game\TriviaGameException;
 use App\Enums\Games\Common\AntiCheatSignalType;
 use App\Enums\Games\Common\GameSlug;
 use App\Services\Games\AntiCheatService;
-use RuntimeException;
 
 /**
  * Action: Enviar Respuesta.
@@ -32,33 +32,35 @@ class SubmitAnswerAction
         private readonly GameEngineInterface $gameEngine,
         private readonly GameStateRepositoryInterface $stateRepository,
         private readonly AntiCheatService $antiCheat,
-    ) {}
+    ) {
+    }
 
     /**
      * Ejecutar la acción.
      *
-     * @param string $gameId ID del juego
-     * @param string $playerId ID del jugador
-     * @param string $answer Respuesta enviada
-     * @param float|null $clientTimestamp Timestamp del cliente — solo se usa como señal
-     *        secundaria de desfase de reloj, NUNCA como fuente del tiempo de respuesta real.
-     * @throws RuntimeException Si la respuesta no es válida
+     * @param string     $gameId          ID del juego
+     * @param string     $playerId        ID del jugador
+     * @param string     $answer          Respuesta enviada
+     * @param float|null $clientTimestamp timestamp del cliente — solo se usa como señal
+     *                                    secundaria de desfase de reloj, NUNCA como fuente del tiempo de respuesta real
+     *
+     * @throws TriviaGameException Si la respuesta no es válida
      */
     public function execute(
         string $gameId,
         string $playerId,
         string $answer,
-        ?float $clientTimestamp = null
-    ): AnswerResultDTO {
+        ?float $clientTimestamp = null,
+    ) : AnswerResultDTO {
         // Validar que el juego está activo
-        if (!$this->gameEngine->isGameActive($gameId)) {
-            throw new RuntimeException('El juego no está activo');
+        if (! $this->gameEngine->isGameActive($gameId)) {
+            throw TriviaGameException::gameNotActiveForAnswer();
         }
 
         // Validar que hay una pregunta activa
         $question = $this->gameEngine->getCurrentQuestion($gameId);
-        if (!$question) {
-            throw new RuntimeException('No hay pregunta activa en este momento');
+        if (! $question) {
+            throw TriviaGameException::noActiveQuestionForAnswer();
         }
 
         // Fuente de verdad: server_timestamp_ms persistido al enviar la pregunta.
@@ -67,7 +69,7 @@ class SubmitAnswerAction
 
         // Validar tiempo límite
         if ($responseTimeMs > ($question->timeLimitSeconds * 1000)) {
-            throw new RuntimeException('Tiempo de respuesta excedido');
+            throw TriviaGameException::responseTimeExceeded();
         }
 
         // Bot gate: ningún humano responde en menos de 300 ms. Se evalúa
@@ -81,19 +83,20 @@ class SubmitAnswerAction
                 signal: AntiCheatSignalType::INSTANT_RESPONSE,
                 gameId: $gameId,
                 metadata: [
-                    'question_id'       => $question->questionId,
-                    'response_time_ms'  => $responseTimeMs,
-                    'client_timestamp'  => $clientTimestamp,
+                    'question_id' => $question->questionId,
+                    'response_time_ms' => $responseTimeMs,
+                    'client_timestamp' => $clientTimestamp,
                 ],
             );
-            throw new RuntimeException('Respuesta inválida. Velocidad de respuesta sospechosa.');
+
+            throw TriviaGameException::suspiciousResponseSpeed();
         }
 
         // Señal secundaria (NO bloqueante): desfase entre cliente y servidor.
         // No rechaza la respuesta (evita falsos positivos por relojes de
         // cliente mal configurados legítimos), solo registra.
         if ($clientTimestamp !== null) {
-            $drift    = abs($clientTimestamp - (microtime(true) * 1000));
+            $drift = abs($clientTimestamp - (microtime(true) * 1000));
             $maxDrift = (float) config('anticheat.trivia.max_clock_drift_ms', 5000);
 
             if ($drift > $maxDrift) {
@@ -116,8 +119,8 @@ class SubmitAnswerAction
         }
 
         // Validar que la respuesta es una opción válida
-        if (!in_array($answer, $question->options, true)) {
-            throw new RuntimeException('Respuesta no válida');
+        if (! in_array($answer, $question->options, true)) {
+            throw TriviaGameException::invalidAnswerOption();
         }
 
         // Validar que el jugador no ha respondido ya esta pregunta
@@ -128,7 +131,7 @@ class SubmitAnswerAction
             gameId: $gameId,
             playerId: $playerId,
             answer: $answer,
-            responseTimeMs: $responseTimeMs
+            responseTimeMs: $responseTimeMs,
         );
 
         return $result;
@@ -143,7 +146,7 @@ class SubmitAnswerAction
      * Entero (no float): response_time_ms es una columna integer en
      * trivia_answers (pgsql_trivia) — un float causa error de tipo en el insert.
      */
-    private function calculateResponseTime(QuestionDTO $question): int
+    private function calculateResponseTime(QuestionDTO $question) : int
     {
         if ($question->serverTimestampMs === null) {
             return (self::MAX_RESPONSE_TIME * 1000) + 1;

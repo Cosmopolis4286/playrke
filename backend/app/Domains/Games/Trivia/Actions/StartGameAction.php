@@ -7,9 +7,9 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\Exceptions\Room\TriviaRoomException;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 /**
  * Action: Iniciar Juego.
@@ -21,28 +21,30 @@ use RuntimeException;
 class StartGameAction
 {
     public function __construct(
-        private readonly GameEngineInterface  $gameEngine,
+        private readonly GameEngineInterface $gameEngine,
         private readonly RoomServiceInterface $roomService,
-    ) {}
+    ) {
+    }
 
     /**
-     * @param  string        $roomId    ID de la sala
-     * @param  string|null   $hostId    ID del anfitrión. null = inicio automático (sin validar permisos)
-     * @param  string[]      $playerIds IDs de jugadores confirmados
-     * @throws RuntimeException
+     * @param string      $roomId    ID de la sala
+     * @param string|null $hostId    ID del anfitrión. null = inicio automático (sin validar permisos)
+     * @param string[]    $playerIds IDs de jugadores confirmados
+     *
+     * @throws TriviaRoomException
      */
-    public function execute(string $roomId, ?string $hostId, array $playerIds): GameStateDTO
+    public function execute(string $roomId, ?string $hostId, array $playerIds) : GameStateDTO
     {
         // ── 1. Cargar sala desde BD (fuente de verdad) ────────────────────────
         $room = TriviaRoom::findOrFail($roomId);
 
         if ($room->status !== 'waiting') {
-            throw new RuntimeException("La sala ya no está en espera (estado: {$room->status}).");
+            throw TriviaRoomException::notInWaitingState($room->status);
         }
 
         // ── 2. Validar permisos del host (solo en inicio manual) ──────────────
         if ($hostId !== null && (string) $room->host_id !== $hostId) {
-            throw new RuntimeException('Solo el anfitrión puede iniciar el juego.');
+            throw TriviaRoomException::startForbidden();
         }
 
         // ── 3. Validar jugadores desde BD si playerIds está vacío o Redis expiró
@@ -53,12 +55,12 @@ class StartGameAction
                 ->whereNull('deleted_at')
                 ->whereIn('status', ['confirmed', 'registered'])
                 ->pluck('user_id')
-                ->map(fn($id) => (string) $id)
+                ->map(fn ($id) => (string) $id)
                 ->all();
         }
 
         if (empty($playerIds)) {
-            throw new RuntimeException('No hay jugadores registrados en la sala.');
+            throw TriviaRoomException::noPlayersRegistered();
         }
 
         // ── 4. Iniciar juego y enviar primera pregunta ────────────────────────

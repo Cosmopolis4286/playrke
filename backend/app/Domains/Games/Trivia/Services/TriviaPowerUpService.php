@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
+use App\Domains\Games\Trivia\Exceptions\PowerUp\TriviaPowerUpException;
 use App\Domains\Marketplace\Inventory\Exceptions\AssetNotAvailableException;
 use App\Domains\Marketplace\Inventory\Services\AssetConsumptionService;
 use App\Models\Games\Trivia\TriviaParticipant;
 use Illuminate\Support\Facades\Redis;
-use RuntimeException;
 
 /**
  * Consume power-ups de un participante y aplica su efecto para la pregunta
@@ -27,8 +27,6 @@ use RuntimeException;
  */
 class TriviaPowerUpService
 {
-    private const REDIS_TTL_SECONDS = 120; // dura más que el tiempo máximo de una pregunta
-
     // Bonus fijo de tiempo extra. Individual: solo se suma al calcular si
     // ESE jugador respondió a tiempo — el timer visual de los demás y el
     // job de avance automático (AdvanceTriviaQuestion) no se ven afectados.
@@ -45,10 +43,29 @@ class TriviaPowerUpService
      * datos reales de uso, no algo a inventar ahora).
      */
     private const FALLBACK_ASSET_CODE = 'TRIVIA_HINT_TICKET';
+    private const REDIS_TTL_SECONDS = 120; // dura más que el tiempo máximo de una pregunta
 
     public function __construct(
         private readonly AssetConsumptionService $assetConsumption,
     ) {
+    }
+
+    /**
+     * Activa double_points para la próxima respuesta del jugador a esta
+     * pregunta específica. TriviaAnswerController::store() lo consulta y
+     * consume al calcular los puntos.
+     */
+    public function activateDoublePoints(string $gameId, string $userId, string $questionId) : void
+    {
+        Redis::setex($this->key($gameId, $userId, $questionId, 'double_points'), self::REDIS_TTL_SECONDS, '1');
+    }
+
+    /**
+     * Activa el bonus de tiempo extra para ESTE jugador en esta pregunta.
+     */
+    public function activateExtraTime(string $gameId, string $userId, string $questionId) : void
+    {
+        Redis::setex($this->key($gameId, $userId, $questionId, 'extra_time'), self::REDIS_TTL_SECONDS, '1');
     }
 
     /**
@@ -59,7 +76,7 @@ class TriviaPowerUpService
      * las dos fuentes tiene usos disponibles — la Action/Controller que
      * llama decide el código HTTP.
      */
-    public function consume(string $roomId, string $userId, TriviaPowerUpType $type): TriviaParticipant
+    public function consume(string $roomId, string $userId, TriviaPowerUpType $type) : TriviaParticipant
     {
         $participant = TriviaParticipant::where('room_id', $roomId)
             ->where('user_id', $userId)
@@ -67,18 +84,19 @@ class TriviaPowerUpService
             ->first();
 
         if (! $participant) {
-            throw new RuntimeException('No estás inscrito en esta sala.');
+            throw TriviaPowerUpException::notEnrolled();
         }
 
         if ($participant->usePowerUp($type->value)) {
             $participant->save();
+
             return $participant;
         }
 
         try {
             $this->assetConsumption->consumeByCode($userId, self::FALLBACK_ASSET_CODE, 1, 'TRIVIA');
         } catch (AssetNotAvailableException) {
-            throw new RuntimeException('Ya no tienes usos disponibles de este power-up.');
+            throw TriviaPowerUpException::noUsesAvailable();
         }
 
         // El fallback consumió el activo, pero power_ups_used no se
@@ -91,44 +109,11 @@ class TriviaPowerUpService
     }
 
     /**
-     * Resuelve el efecto de 50/50 para una pregunta: 2 índices de opciones
-     * INCORRECTAS a ocultar en el cliente. Se calcula aquí (server-side) y
-     * nunca en el frontend, para no exponer cuál es la respuesta correcta
-     * inspeccionando la red — igual criterio que el resto del anti-cheat
-     * de Trivia (tiempos de respuesta server-side).
-     *
-     * @param int $correctIndex Índice de la opción correcta (0-3).
-     * @param int $optionCount Cantidad total de opciones de la pregunta.
-     * @return int[] Hasta 2 índices de opciones incorrectas a ocultar.
-     */
-    public function resolveFiftyFifty(int $correctIndex, int $optionCount): array
-    {
-        $incorrectIndexes = array_values(array_filter(
-            range(0, $optionCount - 1),
-            fn (int $i) => $i !== $correctIndex,
-        ));
-
-        shuffle($incorrectIndexes);
-
-        return array_slice($incorrectIndexes, 0, min(2, count($incorrectIndexes)));
-    }
-
-    /**
-     * Activa double_points para la próxima respuesta del jugador a esta
-     * pregunta específica. TriviaAnswerController::store() lo consulta y
-     * consume al calcular los puntos.
-     */
-    public function activateDoublePoints(string $gameId, string $userId, string $questionId): void
-    {
-        Redis::setex($this->key($gameId, $userId, $questionId, 'double_points'), self::REDIS_TTL_SECONDS, '1');
-    }
-
-    /**
      * Verifica y CONSUME (borra) el flag de double_points activo para esta
      * pregunta — de un solo uso, no debe aplicar a preguntas futuras si por
      * algún motivo no se limpia solo (TTL como red de seguridad adicional).
      */
-    public function consumeDoublePointsFlag(string $gameId, string $userId, string $questionId): bool
+    public function consumeDoublePointsFlag(string $gameId, string $userId, string $questionId) : bool
     {
         $key = $this->key($gameId, $userId, $questionId, 'double_points');
         $active = (bool) Redis::get($key);
@@ -141,27 +126,43 @@ class TriviaPowerUpService
     }
 
     /**
-     * Activa el bonus de tiempo extra para ESTE jugador en esta pregunta.
-     */
-    public function activateExtraTime(string $gameId, string $userId, string $questionId): void
-    {
-        Redis::setex($this->key($gameId, $userId, $questionId, 'extra_time'), self::REDIS_TTL_SECONDS, '1');
-    }
-
-    /**
      * Bonus de milisegundos a sumar al límite de tiempo de ESTE jugador para
      * esta pregunta, si activó tiempo extra (0 si no). No se consume aquí —
      * TriviaAnswerController lo usa solo para el cálculo, no como flag de
      * un solo uso (el jugador ya pagó el uso al activarlo, ver consume()).
      */
-    public function extraTimeBonusMs(string $gameId, string $userId, string $questionId): int
+    public function extraTimeBonusMs(string $gameId, string $userId, string $questionId) : int
     {
         return Redis::exists($this->key($gameId, $userId, $questionId, 'extra_time'))
             ? self::EXTRA_TIME_BONUS_MS
             : 0;
     }
 
-    private function key(string $gameId, string $userId, string $questionId, string $type): string
+    /**
+     * Resuelve el efecto de 50/50 para una pregunta: 2 índices de opciones
+     * INCORRECTAS a ocultar en el cliente. Se calcula aquí (server-side) y
+     * nunca en el frontend, para no exponer cuál es la respuesta correcta
+     * inspeccionando la red — igual criterio que el resto del anti-cheat
+     * de Trivia (tiempos de respuesta server-side).
+     *
+     * @param int $correctIndex índice de la opción correcta (0-3)
+     * @param int $optionCount  cantidad total de opciones de la pregunta
+     *
+     * @return int[] hasta 2 índices de opciones incorrectas a ocultar
+     */
+    public function resolveFiftyFifty(int $correctIndex, int $optionCount) : array
+    {
+        $incorrectIndexes = array_values(array_filter(
+            range(0, $optionCount - 1),
+            fn (int $i) => $i !== $correctIndex,
+        ));
+
+        shuffle($incorrectIndexes);
+
+        return array_slice($incorrectIndexes, 0, min(2, count($incorrectIndexes)));
+    }
+
+    private function key(string $gameId, string $userId, string $questionId, string $type) : string
     {
         return "trivia:powerup:{$gameId}:{$userId}:{$questionId}:{$type}";
     }

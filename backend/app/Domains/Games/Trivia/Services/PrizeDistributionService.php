@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Trivia\Services;
 
+use App\Domains\Games\Trivia\Exceptions\Prize\TriviaPrizeException;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Models\ExchangeRate;
 use App\Models\Games\Trivia\TriviaParticipant;
 use App\Services\Games\GamePrizeService;
 use Illuminate\Support\Facades\Log;
-use RuntimeException;
 
 /**
  * Distribuye premios al finalizar una partida de Trivia.
@@ -45,16 +45,18 @@ final class PrizeDistributionService
     public function __construct(
         private readonly GamePrizeService $gamePrizeService,
         private readonly WinEventService $winEventService,
-    ) {}
+    ) {
+    }
 
     /**
      * Distribuye los premios de una sala finalizada.
      *
-     * @param  string  $roomId     ID de la sala (pgsql_trivia)
-     * @param  array   $finalRanks [{playerId: string, position: int, correctAnswers: int, avgTimeMs: float}]
-     * @return array   [{playerId, position, prizeAmount, currencyId, txId}]
+     * @param string $roomId     ID de la sala (pgsql_trivia)
+     * @param array  $finalRanks [{playerId: string, position: int, correctAnswers: int, avgTimeMs: float}]
+     *
+     * @return array [{playerId, position, prizeAmount, currencyId, txId}]
      */
-    public function distribute(string $roomId, array $finalRanks): array
+    public function distribute(string $roomId, array $finalRanks) : array
     {
         $room = TriviaRoom::findOrFail($roomId);
 
@@ -69,7 +71,7 @@ final class PrizeDistributionService
         }
 
         $currencyId = (string) $room->prize_currency_id;
-        $results    = [];
+        $results = [];
 
         // Cada payoutOne() delega la atomicidad del pago a GamePrizeService
         // (FSM waiting→processing→claimed + idempotencyKey) — no se envuelve
@@ -104,7 +106,7 @@ final class PrizeDistributionService
 
         Log::info('[PrizeDistribution] Premios distribuidos', [
             'room_id' => $roomId,
-            'model'   => $room->prize_model,
+            'model' => $room->prize_model,
             'payouts' => $results,
         ]);
 
@@ -123,7 +125,7 @@ final class PrizeDistributionService
      *
      * @return array{playerId: string, position: int, prizeAmount: float, currencyId: string, movementId: string}|null
      */
-    public function payoutOne(TriviaRoom $room, string $userId, int $rank, float $amount, string $currencyId): ?array
+    public function payoutOne(TriviaRoom $room, string $userId, int $rank, float $amount, string $currencyId) : ?array
     {
         $participant = TriviaParticipant::where('room_id', $room->id)
             ->where('user_id', $userId)
@@ -134,6 +136,7 @@ final class PrizeDistributionService
                 'room_id' => $room->id,
                 'user_id' => $userId,
             ]);
+
             return null;
         }
 
@@ -142,9 +145,9 @@ final class PrizeDistributionService
         // 'processing'/'claimed' si esto se llama dos veces sobre el mismo ganador).
         if ($participant->final_rank === null) {
             $participant->update([
-                'final_rank'   => $rank,
-                'prize_won'    => $amount,
-                'status'       => 'winner',
+                'final_rank' => $rank,
+                'prize_won' => $amount,
+                'status' => 'winner',
                 'prize_status' => 'waiting',
             ]);
         }
@@ -163,12 +166,29 @@ final class PrizeDistributionService
         $movementId = $participant->payments()->completed()->latest('created_at')->value('transaction_reference');
 
         return [
-            'playerId'    => $userId,
-            'position'    => $rank,
+            'playerId' => $userId,
+            'position' => $rank,
             'prizeAmount' => $amount,
-            'currencyId'  => $currencyId,
-            'movementId'  => (string) $movementId,
+            'currencyId' => $currencyId,
+            'movementId' => (string) $movementId,
         ];
+    }
+
+    /**
+     * Calcula los montos concretos a pagar por posición.
+     *
+     * @return array [{rank, amount, percent}]
+     */
+    public function resolvePrizePayouts(TriviaRoom $room, int $playerCount) : array
+    {
+        $model = $room->prize_model ?? 'guaranteed';
+        $rawSplit = $this->normalizedSplit($room);
+
+        return match ($model) {
+            'guaranteed' => $this->payoutsGuaranteed($room, $rawSplit),
+            'pool' => $this->payoutsPool($room, $rawSplit, $playerCount),
+            default => throw TriviaPrizeException::unknownPrizeModel($model),
+        };
     }
 
     /**
@@ -177,7 +197,7 @@ final class PrizeDistributionService
      * del premio (local); aquí se deriva el equivalente en USD con la tasa
      * activa de esa moneda — mismo patrón que BingoDrawService.
      */
-    private function announceTopWinner(TriviaRoom $room, array $results): void
+    private function announceTopWinner(TriviaRoom $room, array $results) : void
     {
         $topWin = collect($results)->firstWhere('position', 1);
         if (! $topWin) {
@@ -185,7 +205,7 @@ final class PrizeDistributionService
         }
 
         $localAmount = (float) $topWin['prizeAmount'];
-        $usdAmount   = $this->convertToUsd($localAmount, (string) $topWin['currencyId']);
+        $usdAmount = $this->convertToUsd($localAmount, (string) $topWin['currencyId']);
 
         $this->winEventService->reportMoney(
             userId: (string) $topWin['playerId'],
@@ -204,7 +224,7 @@ final class PrizeDistributionService
      * Convierte un monto en moneda local a USD usando la tasa de cambio activa
      * de esa moneda. Si no hay tasa o la moneda ya es USD, devuelve el mismo monto.
      */
-    private function convertToUsd(float $localAmount, string $currencyId): float
+    private function convertToUsd(float $localAmount, string $currencyId) : float
     {
         $rate = (float) ExchangeRate::where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
@@ -219,64 +239,22 @@ final class PrizeDistributionService
     }
 
     /**
-     * Calcula los montos concretos a pagar por posición.
-     *
-     * @return array [{rank, amount, percent}]
+     * Asegura al menos $min posiciones en el split repartiéndolas equitativamente.
      */
-    public function resolvePrizePayouts(TriviaRoom $room, int $playerCount): array
+    private function ensureMinPositions(array $split, int $min) : array
     {
-        $model    = $room->prize_model ?? 'guaranteed';
-        $rawSplit = $this->normalizedSplit($room);
-
-        return match ($model) {
-            'guaranteed' => $this->payoutsGuaranteed($room, $rawSplit),
-            'pool'       => $this->payoutsPool($room, $rawSplit, $playerCount),
-            default      => throw new RuntimeException("Modelo de premio desconocido: {$model}"),
-        };
-    }
-
-    // ── Modelo guaranteed ────────────────────────────────────────────────────
-
-    private function payoutsGuaranteed(TriviaRoom $room, array $split): array
-    {
-        $base        = (float) ($room->prize_amount ?? 0);
-        $sponsor     = (float) ($room->sponsor_prize ?? 0);
-        $totalPrize  = $base + $sponsor;
-
-        if ($totalPrize <= 0) {
-            return [];
+        if (count($split) >= $min) {
+            return $split;
         }
 
-        return array_map(fn($s) => [
-            'rank'    => $s['rank'],
-            'percent' => $s['percent'],
-            'amount'  => round($totalPrize * $s['percent'], 8),
-        ], $split);
-    }
-
-    // ── Modelo pool ──────────────────────────────────────────────────────────
-
-    private function payoutsPool(TriviaRoom $room, array $split, int $playerCount): array
-    {
-        $entryFee    = (float) ($room->entry_fee ?? 0);
-        $sponsor     = (float) ($room->sponsor_prize ?? 0);
-        $rake        = min((float) ($room->platform_rake_percent ?? 0), self::MAX_RAKE_PERCENT);
-
-        $grossPool   = ($entryFee * $playerCount) + $sponsor;
-        $netPool     = $grossPool * (1 - $rake / 100);
-
-        if ($netPool <= 0) {
-            return [];
+        // Redistribuir uniformemente entre $min posiciones
+        $perPosition = round(1.0 / $min, 8);
+        $positions = [];
+        for ($i = 1; $i <= $min; $i++) {
+            $positions[] = ['rank' => $i, 'percent' => $perPosition];
         }
 
-        // Garantizar mínimo 3 posiciones en modelo pool
-        $split = $this->ensureMinPositions($split, self::MIN_PAID_POSITIONS_POOL);
-
-        return array_map(fn($s) => [
-            'rank'    => $s['rank'],
-            'percent' => $s['percent'],
-            'amount'  => round($netPool * $s['percent'], 8),
-        ], $split);
+        return $positions;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -285,7 +263,7 @@ final class PrizeDistributionService
      * Lee prize_payouts del modelo o devuelve el split por defecto (60/25/15).
      * Normaliza percents para que sumen exactamente 1.0.
      */
-    private function normalizedSplit(TriviaRoom $room): array
+    private function normalizedSplit(TriviaRoom $room) : array
     {
         $raw = $room->prize_payouts;
 
@@ -304,18 +282,18 @@ final class PrizeDistributionService
         }
 
         // Normalizar a float y ordenar por rank
-        $parsed = array_map(fn($p) => [
-            'rank'    => (int) $p['rank'],
+        $parsed = array_map(fn ($p) => [
+            'rank' => (int) $p['rank'],
             'percent' => (float) $p['percent'],
         ], $raw);
 
-        usort($parsed, fn($a, $b) => $a['rank'] <=> $b['rank']);
+        usort($parsed, fn ($a, $b) => $a['rank'] <=> $b['rank']);
 
         // Si los percents no suman 1, escalarlos proporcionalmente
         $sum = array_sum(array_column($parsed, 'percent'));
         if ($sum > 0 && abs($sum - 1.0) > 0.001) {
-            $parsed = array_map(fn($p) => [
-                'rank'    => $p['rank'],
+            $parsed = array_map(fn ($p) => [
+                'rank' => $p['rank'],
                 'percent' => round($p['percent'] / $sum, 8),
             ], $parsed);
         }
@@ -323,22 +301,47 @@ final class PrizeDistributionService
         return $parsed;
     }
 
-    /**
-     * Asegura al menos $min posiciones en el split repartiéndolas equitativamente.
-     */
-    private function ensureMinPositions(array $split, int $min): array
+    // ── Modelo guaranteed ────────────────────────────────────────────────────
+
+    private function payoutsGuaranteed(TriviaRoom $room, array $split) : array
     {
-        if (count($split) >= $min) {
-            return $split;
+        $base = (float) ($room->prize_amount ?? 0);
+        $sponsor = (float) ($room->sponsor_prize ?? 0);
+        $totalPrize = $base + $sponsor;
+
+        if ($totalPrize <= 0) {
+            return [];
         }
 
-        // Redistribuir uniformemente entre $min posiciones
-        $perPosition = round(1.0 / $min, 8);
-        $positions   = [];
-        for ($i = 1; $i <= $min; $i++) {
-            $positions[] = ['rank' => $i, 'percent' => $perPosition];
+        return array_map(fn ($s) => [
+            'rank' => $s['rank'],
+            'percent' => $s['percent'],
+            'amount' => round($totalPrize * $s['percent'], 8),
+        ], $split);
+    }
+
+    // ── Modelo pool ──────────────────────────────────────────────────────────
+
+    private function payoutsPool(TriviaRoom $room, array $split, int $playerCount) : array
+    {
+        $entryFee = (float) ($room->entry_fee ?? 0);
+        $sponsor = (float) ($room->sponsor_prize ?? 0);
+        $rake = min((float) ($room->platform_rake_percent ?? 0), self::MAX_RAKE_PERCENT);
+
+        $grossPool = ($entryFee * $playerCount) + $sponsor;
+        $netPool = $grossPool * (1 - $rake / 100);
+
+        if ($netPool <= 0) {
+            return [];
         }
 
-        return $positions;
+        // Garantizar mínimo 3 posiciones en modelo pool
+        $split = $this->ensureMinPositions($split, self::MIN_PAID_POSITIONS_POOL);
+
+        return array_map(fn ($s) => [
+            'rank' => $s['rank'],
+            'percent' => $s['percent'],
+            'amount' => round($netPool * $s['percent'], 8),
+        ], $split);
     }
 }
