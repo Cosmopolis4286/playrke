@@ -24,7 +24,7 @@ final class PixKeyCrudService
         $pixKey = $this->repository->find($id);
 
         if (!$pixKey || (string) $pixKey->user_id !== $userId) {
-            throw DirectoryException::notFound('Clave PIX');
+            throw DirectoryException::notFound('Clave PIX no encontrada.');
         }
 
         $pixKey->loadMissing('bank');
@@ -80,7 +80,7 @@ final class PixKeyCrudService
         $existing = $this->repository->find($dto->id);
 
         if (!$existing || (string) $existing->user_id !== $userId) {
-            throw DirectoryException::notFound('Clave PIX');
+            throw DirectoryException::notFound('Clave PIX no encontrada.');
         }
 
         try {
@@ -110,7 +110,7 @@ final class PixKeyCrudService
         $existing = $this->repository->find($id);
 
         if (!$existing || (string) $existing->user_id !== $userId) {
-            throw DirectoryException::notFound('Clave PIX');
+            throw DirectoryException::notFound('Clave PIX no encontrada.');
         }
 
         try {
@@ -140,7 +140,7 @@ final class PixKeyCrudService
         $pixKey = $this->repository->find($id);
 
         if (!$pixKey || (string) $pixKey->user_id !== $userId) {
-            throw DirectoryException::notFound('Clave PIX');
+            throw DirectoryException::notFound('Clave PIX no encontrada.');
         }
 
         $newStatus = $pixKey->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';

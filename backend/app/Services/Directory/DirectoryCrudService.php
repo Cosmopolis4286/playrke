@@ -59,7 +59,7 @@ final class DirectoryCrudService
         $pagoMovil = $this->repository->find($id);
 
         if (!$pagoMovil || $pagoMovil->user_id != $userId) {
-            throw DirectoryException::notFound('Registro de pago móvil');
+            throw DirectoryException::notFound('Registro de pago móvil no encontrado.');
         }
 
         return new PagoMovilResource($pagoMovil);
@@ -137,7 +137,7 @@ final class DirectoryCrudService
         $existing = $this->repository->find($dto->id);
 
         if (!$existing || (string) $existing->user_id !== $userId) {
-            throw DirectoryException::notFound('Registro de pago móvil');
+            throw DirectoryException::notFound('Registro de pago móvil no encontrado.');
         }
 
         // Validación de duplicados (excluyendo el usuario actual)
@@ -189,7 +189,7 @@ final class DirectoryCrudService
         $existing = $this->repository->find($id);
 
         if (!$existing || $existing->user_id != $userId) {
-            throw DirectoryException::notFound('Registro de pago móvil');
+            throw DirectoryException::notFound('Registro de pago móvil no encontrado.');
         }
 
         try {
@@ -235,7 +235,7 @@ final class DirectoryCrudService
     public function toggleStatus(PagoMovil $pagoMovil, string $userId): bool
     {
         if ((string) $pagoMovil->user_id !== $userId) {
-            throw DirectoryException::notFound('Registro de pago móvil');
+            throw DirectoryException::notFound('Registro de pago móvil no encontrado.');
         }
 
         if ($pagoMovil->status === 'DELETED') {

@@ -52,12 +52,16 @@ final class DirectoryException extends DomainException
     /**
      * El registro no existe o no pertenece al usuario autenticado.
      *
-     * @param string $recordType Nombre humano del tipo de registro
-     *                           (ej. "Registro de pago móvil", "Clave PIX").
+     * @param string $message mensaje completo ya redactado — concordancia de
+     *                        género varía según el tipo de registro
+     *                        ("Registro de pago móvil no encontrado" vs.
+     *                        "Clave PIX no encontrada"), así que el caller
+     *                        redacta el mensaje completo en vez de que este
+     *                        método concatene una palabra fija.
      */
-    public static function notFound(string $recordType) : self
+    public static function notFound(string $message) : self
     {
-        return new self("{$recordType} no encontrado.", 404);
+        return new self($message, 404);
     }
 
     /**
