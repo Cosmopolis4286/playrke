@@ -7,19 +7,26 @@
 /.pnpm-store
 /pnpm-lock.yaml
 
+# Directorios scratch / de prueba sueltos (ej. scratch_bip32_check/)
+scratch_*/
+
 # ========================================
 # Laravel Backend
 # ========================================
 
 # PHP
 /backend/.phpunit.cache
+/backend/.phpunit.cache/
+/backend/.phpunit.result.cache
 /backend/vendor
 /backend/.phpactor.json
-/backend/.phpunit.result.cache
 /backend/auth.json
+/backend/.php-cs-fixer.cache
+/backend/.php_cs.cache
 
 # Backend node_modules (para Vite)
 /backend/node_modules
+/backend/.pnpm-store
 
 # IDE Helper files (auto-generated)
 /backend/_ide_helper.php
@@ -32,6 +39,20 @@
 /backend/public/storage
 /backend/storage/*.key
 /backend/bootstrap/cache/*
+!/backend/bootstrap/cache/.gitignore
+
+# Storage runtime (sesiones, vistas compiladas, cache de datos)
+/backend/storage/framework/cache/data/*
+!/backend/storage/framework/cache/data/.gitignore
+/backend/storage/framework/sessions/*
+!/backend/storage/framework/sessions/.gitignore
+/backend/storage/framework/views/*
+!/backend/storage/framework/views/.gitignore
+/backend/storage/framework/testing/disks/*
+/backend/storage/app/public/*
+!/backend/storage/app/public/.gitignore
+/backend/storage/logs/*
+!/backend/storage/logs/.gitignore
 
 # Homestead
 /backend/Homestead.json
@@ -61,6 +82,7 @@
 .env
 .env.*
 !.env.example
+!.env.docker.example
 
 # Backend
 /backend/.env
@@ -79,10 +101,10 @@
 # ========================================
 
 *.log
-npm-debug.log
-yarn-error.log
-pnpm-debug.log
-/backend/storage/logs/*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # ========================================
 # IDEs & Editors
@@ -92,10 +114,12 @@ pnpm-debug.log
 /.idea
 /.vscode
 /.claude
+*.iml
 
 # Vim
 *.swp
 *.swo
+*~
 
 # Sublime
 *.sublime-workspace
@@ -106,8 +130,14 @@ pnpm-debug.log
 # ========================================
 
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
 desktop.ini
+*.stackdump
 
 # ========================================
 # Testing & Coverage
@@ -116,6 +146,8 @@ desktop.ini
 /coverage
 /.nyc_output
 /frontend/coverage
+*.tsbuildinfo
+.eslintcache
 
 # ========================================
 # Temporary & Backup Files
@@ -124,7 +156,9 @@ desktop.ini
 *.tmp
 *.bak
 *.backup
-*.swp
+*.orig
+*.rej
+*.pid
 temp/
 tmp/
 
