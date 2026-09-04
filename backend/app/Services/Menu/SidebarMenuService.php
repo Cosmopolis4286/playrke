@@ -137,6 +137,18 @@ class SidebarMenuService
                     'permission' => 'subsidiaries.manage-own',
                     'exclude_roles' => ['superadmin', 'admin', 'commerce', 'seller', 'player'],
                 ],
+                'my_profile_commerce' => [
+                    'title' => 'Mi Comercio',
+                    'route' => 'commerce.profile.show',
+                    'permission' => 'commerces.manage-own',
+                    'exclude_roles' => ['superadmin', 'admin', 'subsidiary', 'seller', 'player'],
+                ],
+                'my_profile_seller' => [
+                    'title' => 'Mi Perfil',
+                    'route' => 'seller.profile.show',
+                    'permission' => 'sellers.manage-own',
+                    'exclude_roles' => ['superadmin', 'admin', 'commerce', 'subsidiary', 'player'],
+                ],
                 'my_external_players' => [
                     'title' => 'Jugadores Externos',
                     'route' => 'admin.external-players.index',

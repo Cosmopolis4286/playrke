@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Games\Bingo\BingoController;
 use App\Http\Controllers\Roles\Seller\ManagerSellerController;
+use App\Http\Controllers\Roles\Seller\SellerProfileController;
 use App\Http\Controllers\Roles\SellerController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,3 +63,15 @@ multi_middleware_routes('seller', 'seller.', [
         ]
     ],
 ]);
+
+// ====================================
+// AUTOGESTIÓN DE FICHA PROPIA (SELLER)
+// ====================================
+// Distinto de sellers/* (manager-seller.*, gestión por Commerce/Subsidiary,
+// multiPermission sellers.*) — aquí un usuario 'seller' opera EXCLUSIVAMENTE
+// sobre su propio registro, resuelto server-side por SellerProfileService,
+// nunca por un {id} de la URL.
+Route::middleware(['auth', 'multiPermission:sellers.manage-own'])->group(function () {
+    Route::get('seller/profile', [SellerProfileController::class, 'show'])->name('seller.profile.show');
+    Route::put('seller/profile', [SellerProfileController::class, 'update'])->name('seller.profile.update');
+});

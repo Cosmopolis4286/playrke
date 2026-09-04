@@ -72,6 +72,7 @@ class RolePermissionSeeder extends Seeder
         // Commerce: Gestión de su negocio
         if ($commerce) {
             $commercePermissions = [
+                'commerces.manage-own',
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'customers.view', 'customers.create', 'customers.edit',
@@ -116,6 +117,7 @@ class RolePermissionSeeder extends Seeder
         // Seller: Gestión de ventas
         if ($seller) {
             $sellerPermissions = [
+                'sellers.manage-own',
                 'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
                 'external-players.view', 'external-players.create',

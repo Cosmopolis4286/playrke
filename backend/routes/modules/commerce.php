@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Roles\CommerceController;
+use App\Http\Controllers\Roles\Commerce\CommerceProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,6 +10,18 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Funciones de comercios: gestión de vendedores, recompensas y operaciones.
 */
+
+// ====================================
+// AUTOGESTIÓN DE FICHA PROPIA (COMMERCE)
+// ====================================
+// Distinto de admin/commerce/* (gestión de terceros, multiPermission
+// commerces.*) — aquí un usuario 'commerce' opera EXCLUSIVAMENTE sobre su
+// propio registro, resuelto server-side por CommerceProfileService, nunca
+// por un {id} de la URL.
+Route::middleware(['auth', 'multiPermission:commerces.manage-own'])->group(function () {
+    Route::get('commerce/profile', [CommerceProfileController::class, 'show'])->name('commerce.profile.show');
+    Route::put('commerce/profile', [CommerceProfileController::class, 'update'])->name('commerce.profile.update');
+});
 
 // ====================================
 // GESTIÓN DE COMERCIOS (ADMIN + COMMERCE)

@@ -60,6 +60,10 @@ class PermissionSeeder extends Seeder
             // Superadmin lo recibe automáticamente (todos los permisos guard
             // 'web'), y además tiene el bypass de RoleAuthorizationService.
             ['name' => 'commerces.set-default', 'guard_name' => 'web', 'description' => 'Marcar/desmarcar el comercio principal de la plataforma'],
+            // Autogestión: ver/editar SOLO el propio registro (nombre, teléfono)
+            // — distinto de commerces.edit, que gestiona OTROS comercios. Nunca
+            // permite tocar comisión/monedas/juegos (ver CommerceProfileService::updateOwn()).
+            ['name' => 'commerces.manage-own', 'guard_name' => 'web', 'description' => 'Ver y editar los datos del propio comercio'],
 
             // Gestión de sucursales/agencias (jerarquía Commerce -> Subsidiary -> Seller)
             ['name' => 'subsidiaries.view', 'guard_name' => 'web', 'description' => 'Ver sucursales'],
@@ -78,6 +82,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'sellers.create', 'guard_name' => 'web', 'description' => 'Crear vendedores'],
             ['name' => 'sellers.edit', 'guard_name' => 'web', 'description' => 'Editar vendedores'],
             ['name' => 'sellers.delete', 'guard_name' => 'web', 'description' => 'Eliminar vendedores'],
+            // Autogestión: ver/editar SOLO el propio registro (nombre, teléfono)
+            // — distinto de sellers.edit, que gestiona OTROS vendedores. Nunca
+            // permite tocar comisión/manager/agencia (ver SellerProfileService::updateOwn()).
+            ['name' => 'sellers.manage-own', 'guard_name' => 'web', 'description' => 'Ver y editar los datos del propio vendedor'],
 
             // Gestión de clientes (API)
             ['name' => 'customers.view', 'guard_name' => 'web', 'description' => 'Ver clientes'],
