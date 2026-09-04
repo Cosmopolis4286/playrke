@@ -2,192 +2,33 @@
 
 namespace App\Exceptions;
 
-use App\Exceptions\Domain\DomainException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 /**
  * NOTA: Laravel 11 (bootstrap/app.php con Application::configure()) ya NO
  * auto-registra este Handler como hacían las versiones ≤10 — render()/
- * dontReport() de esta clase nunca se invocan por el framework. Se conserva
- * como contenedor de resolveStatusCode()/resolveMessage() (ambos public),
- * reutilizados directamente desde bootstrap/app.php's withExceptions(),
- * que es el punto real donde Laravel 11 resuelve excepciones.
+ * dontReport() de una subclase de ExceptionHandler nunca se invocan por el
+ * framework a menos que se conecten explícitamente. Toda la lógica real de
+ * manejo de excepciones vive en bootstrap/app.php's withExceptions(), que es
+ * el punto real donde Laravel 11 resuelve excepciones.
+ *
+ * Esta clase se conserva solo como contenedor de resolveMessage() (traduce
+ * un ERROR_CODE de dominio vía lang/{locale}/errors.php), invocado
+ * directamente desde bootstrap/app.php. El status HTTP de cada
+ * DomainException ya NO se resuelve aquí — cada excepción lo declara al
+ * construirse (ver App\Exceptions\Domain\DomainException::$httpStatus);
+ * antes vivía en un método resolveStatusCode() con un match plano que se
+ * desincronizaba silenciosamente de las clases reales (dominios completos
+ * quedaban sin mapear y caían al 400 genérico sin que nada lo detectara).
  */
 class Handler extends ExceptionHandler
 {
     /**
-     * Excepciones que no deben reportarse.
-     *
-     * @var array<int, class-string<Throwable>>
-     */
-    protected $dontReport = [
-        DomainException::class,
-    ];
-
-    /**
-     * Renderizado centralizado de excepciones.
-     */
-    public function render($request, Throwable $exception): Response
-    {
-        if ($exception instanceof DomainException) {
-            return $this->renderDomainException($request, $exception);
-        }
-
-        // Para requests AJAX/JSON, siempre responder con JSON
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => false,
-                'message' => $exception->getMessage() ?: 'Error interno del servidor.',
-            ], $this->getStatusCode($exception));
-        }
-
-        // Renderizar errores HTTP via Inertia para requests de navegación
-        $status = $this->getStatusCode($exception);
-
-        if (in_array($status, [403, 404, 500, 503], strict: true)) {
-            return Inertia::render('Errors/Error', [
-                'status'  => $status,
-                'message' => $exception->getMessage() ?: null,
-                'url'     => $request->fullUrl(),
-            ])->toResponse($request)->setStatusCode($status);
-        }
-
-        return parent::render($request, $exception);
-    }
-
-    /**
-     * Obtiene el HTTP status code apropiado para la excepción.
-     */
-    protected function getStatusCode(Throwable $exception): int
-    {
-        if (method_exists($exception, 'getStatusCode')) {
-            return $exception->getStatusCode();
-        }
-
-        return match (true) {
-            $exception instanceof \Illuminate\Auth\AuthenticationException => 401,
-            $exception instanceof \Illuminate\Auth\Access\AuthorizationException => 403,
-            $exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException => 404,
-            $exception instanceof \Illuminate\Validation\ValidationException => 422,
-            default => 500,
-        };
-    }
-
-    /**
-     * Renderiza excepciones de dominio.
-     *
-     * @param Request $request
-     * @param DomainException $exception
-     * @return JsonResponse
-     */
-    protected function renderDomainException(
-        Request $request,
-        DomainException $exception
-    ): JsonResponse {
-        $errorCode = $exception->getMessage();
-
-        return response()->json([
-            'success'    => false,
-            'error_code' => $errorCode,
-            'message'    => $this->resolveMessage($errorCode),
-        ], $this->resolveStatusCode($errorCode));
-    }
-
-    /**
-     * Mapea error codes de dominio a HTTP status codes.
-     *
-     * Public: invocado también desde bootstrap/app.php (withExceptions),
-     * que es el punto real donde Laravel 11 resuelve excepciones — este
-     * Handler ya no se auto-registra como en versiones ≤10, así que se
-     * reutiliza como fuente de verdad del mapa de códigos en vez de
-     * duplicarlo inline en bootstrap/app.php.
-     *
-     * @param string $errorCode
-     * @return int
-     */
-    public function resolveStatusCode(string $errorCode): int
-    {
-        return match ($errorCode) {
-            // Not Found
-            'ADMIN_COMMERCE_NOT_FOUND',
-            'ADMIN_USER_NOT_FOUND',
-            'ADMINISTRATOR_NOT_FOUND'
-            => Response::HTTP_NOT_FOUND,
-
-            // Forbidden / Authorization
-            'ADMIN_USER_CANNOT_MODIFY_SELF',
-            'ADMIN_USER_CANNOT_MODIFY_SUPERADMIN',
-            'ADMIN_USER_CANNOT_MODIFY_OTHER_ADMIN',
-            'ADMIN_USER_CANNOT_ASSIGN_ADMIN_ROLE',
-            'ADMINISTRATOR_NOT_ADMINISTRATOR',
-            'ADMINISTRATOR_CANNOT_MODIFY_SELF',
-            'BINGO_ROOM_PRIVATE_NOT_VERIFIED',
-            'IMPERSONATION_TARGET_MUST_BE_PLAYER',
-            'BINGO_CARD_UNAUTHORIZED',
-            'BINGO_CARD_CUSTOM_NOT_ALLOWED'
-            => Response::HTTP_FORBIDDEN,
-
-            // Not Found (cartones de bingo)
-            'BINGO_CARD_SELLER_NOT_FOUND',
-            'BINGO_CARD_COMMERCE_NOT_FOUND',
-            'BINGO_CARD_ROOM_NOT_AVAILABLE'
-            => Response::HTTP_NOT_FOUND,
-
-            // Conflicts / Invalid state
-            'ADMIN_COMMERCE_ALREADY_DELETED',
-            'ADMIN_COMMERCE_INVALID_STATUS_CHANGE',
-            'ADMIN_COMMERCE_DESTROY_NOT_ALLOWED',
-            'ADMIN_COMMERCE_IS_DEFAULT',
-            'ADMIN_COMMERCE_NOT_DEFAULT',
-            'ADMIN_USER_ALREADY_DELETED',
-            'ADMIN_USER_INVALID_STATUS_CHANGE',
-            'ADMINISTRATOR_ALREADY_DELETED',
-            'ADMINISTRATOR_INVALID_STATUS_CHANGE',
-            'ADMINISTRATOR_CANNOT_DELETE_LAST_SUPERADMIN',
-            'ADMINISTRATOR_CANNOT_REMOVE_LAST_ACTIVE',
-            'ALREADY_IMPERSONATING',
-            'NOT_IMPERSONATING'
-            => Response::HTTP_CONFLICT,
-
-            // Validation / Business rules
-            'ADMIN_COMMERCE_CREATION_FAILED',
-            'ADMIN_COMMERCE_UPDATE_FAILED',
-            'ADMIN_COMMERCE_DELETE_FAILED',
-            'ADMIN_COMMERCE_PASSWORD_RESET_FAILED',
-            'ADMIN_USER_DELETE_FAILED',
-            'ADMIN_USER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS',
-            'ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS',
-            'ADMIN_USER_INVALID_WALLET_AMOUNT',
-            'ADMIN_USER_INVALID_XP_AMOUNT',
-            'ADMIN_USER_XP_GRANT_REQUIRES_PLAYER_ROLE',
-            'ADMIN_USER_WALLET_LOAD_REQUIRES_ELIGIBLE_ROLE',
-            'ADMINISTRATOR_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS',
-            'BINGO_CARD_CURRENCY_NOT_AVAILABLE',
-            'BINGO_CARD_GENERATION_FAILED',
-            'BINGO_CARD_UNSUPPORTED_CURRENCY_ROLE',
-            'BINGO_CARD_UNSUPPORTED_COMMERCE_ROLE',
-            'BINGO_CARD_UNSUPPORTED_COMMISSION_ROLE',
-            'BINGO_CARD_INVALID_MANAGER_ROLE',
-            'BINGO_CARD_INVALID_EXCHANGE_RATE',
-            'BINGO_CARD_CUSTOM_EXCEEDS_COUNT',
-            'BINGO_CARD_NO_ACTIVE_WALLET'
-            => Response::HTTP_UNPROCESSABLE_ENTITY,
-
-            // Fallback
-            default => Response::HTTP_BAD_REQUEST,
-        };
-    }
-
-    /**
-     * Resuelve el mensaje traducido del error. Public: ver resolveStatusCode().
-     *
-     * @param string $errorCode
-     * @return string
+     * Resuelve el mensaje traducido del error. Si el "código" ya es texto
+     * humano directo (varias clases de dominio lo usan así en vez de un
+     * ERROR_CODE real), trans() simplemente no encuentra la clave y el
+     * fallback (?: $errorCode) devuelve ese mismo texto — comportamiento
+     * correcto en ambos casos.
      */
     public function resolveMessage(string $errorCode): string
     {

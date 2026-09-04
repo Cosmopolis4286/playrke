@@ -4,6 +4,8 @@ use App\Exceptions\Domain\DomainException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 return Application::configure(
     basePath: dirname(__DIR__)
@@ -73,83 +75,130 @@ return Application::configure(
         /**
          * Manejo global de excepciones.
          *
-         * DomainException (App\Exceptions\Domain\DomainException) se maneja
-         * PRIMERO y aparte: su `message` es un ERROR CODE (ej.
-         * 'ADMINISTRATOR_NOT_FOUND') o, en varias clases, texto humano
-         * directo — ambos casos se resuelven vía App\Exceptions\Handler::
-         * resolveMessage() (trans('errors.{code}') con fallback al propio
-         * string, que para texto humano ya es el mensaje correcto).
+         * Tres categorías, cada una con su propia rama, en orden de
+         * especificidad (Laravel prueba los render() en orden hasta que uno
+         * devuelve una respuesta):
          *
-         * El status HTTP YA NO se resuelve desde un mapa centralizado
-         * (Handler::resolveStatusCode(), un match plano que se desincronizó
-         * silenciosamente de las clases reales — 44 de ~65 códigos usados
-         * quedaron sin mapear y caían al 400 genérico sin que nada lo
-         * detectara). Cada excepción declara su propio status al construirse
-         * (ver DomainException::$httpStatus) — imposible que se desincronice
-         * porque vive junto al código que lo dispara.
+         *   1. DomainException custom (App\Exceptions\Domain\DomainException)
+         *      — regla de negocio con error-code + status propios.
+         *   2. \DomainException NATIVO de PHP — regla de negocio con mensaje
+         *      humano directo (~34 archivos, ej. WalletService), sin
+         *      error-code ni status propio: siempre 422.
+         *   3. Cualquier otro Throwable — código roto o fallo de
+         *      infraestructura (QueryException, TypeError, excepción de
+         *      librería de terceros...). Antes de este fix, exponía
+         *      $e->getMessage() crudo en producción sin ninguna
+         *      sanitización — para una QueryException real eso es el SQL
+         *      completo, los bindings, y el nombre de tabla/columna que
+         *      violó una constraint, servidos tal cual al cliente en el
+         *      JSON de respuesta. Ahora: se loguea completo (mensaje +
+         *      stack) y al cliente solo llega un mensaje genérico fijo en
+         *      producción; en dev/testing se sigue mostrando el mensaje real
+         *      para depurar.
          *
-         * Antes de este fix, DomainException no estaba registrada en ningún
-         * lado de bootstrap/app.php (Laravel 11 ya NO auto-registra
-         * app/Exceptions/Handler.php como hacían las versiones ≤10) y
-         * cualquier `throw AlgoException::...()` cayó siempre al 500
-         * genérico de abajo, perdiendo el código HTTP real y el mensaje
-         * traducido.
+         * Cada rama además bifurca por tipo de respuesta esperada
+         * (JSON para API/fetch, Inertia con la página Errors/Error para
+         * navegación normal) — antes, una DomainException disparada durante
+         * una navegación Inertia normal devolvía JSON puro sin el header
+         * X-Inertia que el cliente espera, rompiendo el layout SPA en vez de
+         * mostrar un error dentro de la app.
          */
         $exceptions->dontReport(DomainException::class);
 
-        $exceptions->render(function (DomainException $e, $request) {
+        $wantsJson = function ($request): bool {
+            return $request->is('api/*') || $request->expectsJson();
+        };
+
+        $renderInertiaError = function ($request, int $status, ?string $message) {
+            return Inertia::render('Errors/Error', [
+                'status'  => $status,
+                'message' => $message,
+                'url'     => $request->fullUrl(),
+            ])->toResponse($request)->setStatusCode($status);
+        };
+
+        // 1. DomainException custom — status + mensaje declarados por la
+        // propia excepción (ver DomainException::$httpStatus y
+        // App\Exceptions\Handler::resolveMessage()).
+        $exceptions->render(function (DomainException $e, $request) use ($wantsJson, $renderInertiaError) {
             $handler = app(\App\Exceptions\Handler::class);
             $errorCode = $e->getMessage();
+            $message = $handler->resolveMessage($errorCode);
+            $status = $e->httpStatus();
 
-            return response()->json([
-                'success'    => false,
-                'error_code' => $errorCode,
-                'message'    => $handler->resolveMessage($errorCode),
-            ], $e->httpStatus());
+            if ($wantsJson($request)) {
+                return response()->json([
+                    'success'    => false,
+                    'error_code' => $errorCode,
+                    'message'    => $message,
+                ], $status);
+            }
+
+            return $renderInertiaError($request, $status, $message);
         });
 
-        // Ejemplo: loguear todas las excepciones en un canal custom
-        $exceptions->report(function (Throwable $e) {
-            // Puedes usar Log::channel('slack')->error($e->getMessage());
-        });
+        // 2. \DomainException nativo de PHP — mismo status fijo (422) que ya
+        // usaba este patrón, mensaje humano directo (nunca es un error-code
+        // a traducir). get_class() exacto (no instanceof) para no capturar
+        // subclases de terceros que hereden de \DomainException con otra
+        // semántica.
+        $exceptions->render(function (Throwable $e, $request) use ($wantsJson, $renderInertiaError) {
+            if (get_class($e) !== \DomainException::class) {
+                return null;
+            }
 
-        // Respuesta JSON para APIs
-        $exceptions->render(function (Throwable $e, $request) {
-            // Para peticiones API, siempre devolver JSON
-            if ($request->is('api/*') || $request->expectsJson()) {
-                // Determinar el status code según el tipo de excepción
-                $status = 500;
-
-                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
-                    $status = 401;
-                } elseif ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
-                    $status = 403;
-                } elseif ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
-                    $status = 404;
-                } elseif ($e instanceof \Illuminate\Validation\ValidationException) {
-                    $status = 422;
-                } elseif ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
-                    $status = $e->getStatusCode();
-                } elseif (get_class($e) === \DomainException::class) {
-                    // \DomainException NATIVO de PHP (distinto de la clase
-                    // custom App\Exceptions\Domain\DomainException, manejada
-                    // arriba con su propio mapa de error-codes). Patrón usado
-                    // en ~17 archivos del proyecto (WalletService y otros)
-                    // para "regla de negocio violada" — el mensaje YA es
-                    // texto humano listo para mostrar (no un código a
-                    // traducir), así que va directo a la respuesta. Antes
-                    // caía al fallback 500 genérico, mostrando "Error
-                    // inesperado" en vez del motivo real (ej. "Saldo
-                    // insuficiente", "Este lote ya tiene premio pagado").
-                    // get_class() exacto (no instanceof) para no capturar
-                    // subclases de terceros que hereden de \DomainException
-                    // con otra semántica.
-                    $status = 422;
-                }
-
-                $response = [
+            if ($wantsJson($request)) {
+                return response()->json([
                     'success' => false,
                     'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return $renderInertiaError($request, 422, $e->getMessage());
+        });
+
+        // Loguea TODA excepción no capturada por las ramas de negocio
+        // (DomainException custom y nativo están en dontReport / ya
+        // manejadas arriba) con su mensaje y stack completos — esta es la
+        // única fuente de verdad para diagnosticar un bug real, ya que el
+        // cliente en producción ya no recibe el mensaje crudo (rama 3, abajo).
+        $exceptions->report(function (Throwable $e) {
+            Log::error('Excepción no capturada: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+                'trace'     => $e->getTraceAsString(),
+            ]);
+        });
+
+        // 3. Cualquier otra excepción — código roto o fallo de
+        // infraestructura, nunca una regla de negocio esperada.
+        $exceptions->render(function (Throwable $e, $request) use ($wantsJson, $renderInertiaError) {
+            $status = match (true) {
+                $e instanceof \Illuminate\Auth\AuthenticationException => 401,
+                $e instanceof \Illuminate\Auth\Access\AuthorizationException => 403,
+                $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException => 404,
+                $e instanceof \Illuminate\Validation\ValidationException => 422,
+                $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException => $e->getStatusCode(),
+                default => 500,
+            };
+
+            // Mensaje crudo SOLO fuera de producción (dev/testing) — en
+            // producción, cualquier status ≥500 (fallo real, no un rechazo
+            // HTTP legítimo tipo 401/403/404/422 que YA trae su propio
+            // mensaje seguro desde Laravel) se sustituye por un mensaje
+            // genérico fijo. El mensaje real siempre queda en el log (rama
+            // report() de arriba), nunca se pierde — solo deja de viajar al
+            // cliente.
+            $exposeRawMessage = !app()->environment('production') || $status < 500;
+            $message = $exposeRawMessage
+                ? ($e->getMessage() ?: 'Error interno del servidor.')
+                : 'Ocurrió un error inesperado. Por favor intenta nuevamente.';
+
+            if ($wantsJson($request)) {
+                $response = [
+                    'success' => false,
+                    'message' => $message,
                 ];
 
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
@@ -158,6 +207,12 @@ return Application::configure(
 
                 return response()->json($response, $status);
             }
+
+            if (in_array($status, [403, 404, 500, 503], strict: true)) {
+                return $renderInertiaError($request, $status, $message);
+            }
+
+            return null;
         });
     })
     ->create();

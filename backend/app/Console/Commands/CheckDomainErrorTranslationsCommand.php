@@ -41,14 +41,24 @@ class CheckDomainErrorTranslationsCommand extends Command
     {
         $locales = array_filter(array_map('trim', explode(',', (string) $this->option('locales'))));
 
-        $errorCodes = $this->extractErrorCodesFromDomainExceptions();
+        $allEntries = $this->extractErrorCodesFromDomainExceptions();
 
-        if (empty($errorCodes)) {
+        if (empty($allEntries)) {
             $this->warn('No se encontró ningún ERROR_CODE — revisa que las clases DomainException existan.');
             return self::SUCCESS;
         }
 
-        $this->info(sprintf('Encontrados %d error-codes en %d clases de dominio.', count($errorCodes), count(array_unique(array_column($errorCodes, 'class')))));
+        // Conteo de clases SOBRE $allEntries (antes de deduplicar códigos):
+        // varias clases comparten literalmente todos sus códigos con otra
+        // (ej. BingoPatternException/BingoRoomAutomaticException reusan los
+        // mismos BINGO_ROOM_* que BingoRoomException) — contar después del
+        // dedupe las hacía desaparecer del total aunque sus códigos sí se
+        // verifiquen igual (el dedupe solo evita listar el mismo código dos
+        // veces al reportar faltantes, no afecta qué se considera "cubierto").
+        $totalClasses = count(array_unique(array_column($allEntries, 'class')));
+        $errorCodes = $this->dedupeByCode($allEntries);
+
+        $this->info(sprintf('Encontrados %d error-codes únicos (%d declaraciones) en %d clases de dominio.', count($errorCodes), count($allEntries), $totalClasses));
 
         $hasMissing = false;
 
@@ -132,10 +142,24 @@ class CheckDomainErrorTranslationsCommand extends Command
             }
         }
 
-        // Dedupe por código — varias clases comparten el mismo ERROR_CODE
-        // (ej. BINGO_ROOM_NOT_FOUND en BingoRoomException/BingoPatternException).
+        return $results;
+    }
+
+    /**
+     * Dedupe por código — varias clases comparten el mismo ERROR_CODE (ej.
+     * BINGO_ROOM_NOT_FOUND en BingoRoomException/BingoPatternException).
+     * Separado de la extracción para que el conteo de clases (handle())
+     * pueda usar la lista completa sin deduplicar — de lo contrario una
+     * clase cuyos códigos son TODOS compartidos con otra desaparecía del
+     * conteo total pese a haber sido escaneada y verificada igual.
+     *
+     * @param array<int, array{code: string, class: string, method: string}> $entries
+     * @return array<int, array{code: string, class: string, method: string}>
+     */
+    private function dedupeByCode(array $entries): array
+    {
         $seen = [];
-        return array_values(array_filter($results, function ($entry) use (&$seen) {
+        return array_values(array_filter($entries, function ($entry) use (&$seen) {
             if (isset($seen[$entry['code']])) {
                 return false;
             }
