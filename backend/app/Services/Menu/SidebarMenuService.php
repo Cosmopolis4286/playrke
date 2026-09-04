@@ -131,6 +131,12 @@ class SidebarMenuService
                     'permission' => 'subsidiaries.view',
                     'exclude_roles' => ['superadmin', 'seller', 'player'],
                 ],
+                'my_profile_subsidiary' => [
+                    'title' => 'Mi Agencia',
+                    'route' => 'subsidiary.profile.show',
+                    'permission' => 'subsidiaries.manage-own',
+                    'exclude_roles' => ['superadmin', 'admin', 'commerce', 'seller', 'player'],
+                ],
                 'my_external_players' => [
                     'title' => 'Jugadores Externos',
                     'route' => 'admin.external-players.index',

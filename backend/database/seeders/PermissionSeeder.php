@@ -66,6 +66,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'subsidiaries.create', 'guard_name' => 'web', 'description' => 'Crear sucursales'],
             ['name' => 'subsidiaries.edit', 'guard_name' => 'web', 'description' => 'Editar sucursales'],
             ['name' => 'subsidiaries.delete', 'guard_name' => 'web', 'description' => 'Eliminar sucursales'],
+            // Autogestión: ver/editar SOLO el propio registro (nombre, teléfono,
+            // marca, producto) — distinto de subsidiaries.edit, que gestiona
+            // OTRAS sucursales. Un commerce/subsidiary con este permiso nunca
+            // puede tocar comisión/comercio padre/moneda de su propia ficha
+            // (ver SubsidiaryProfileService::updateOwn()).
+            ['name' => 'subsidiaries.manage-own', 'guard_name' => 'web', 'description' => 'Ver y editar los datos de la propia agencia'],
 
             // Gestión de vendedores
             ['name' => 'sellers.view', 'guard_name' => 'web', 'description' => 'Ver vendedores'],

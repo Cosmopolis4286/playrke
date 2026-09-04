@@ -29,7 +29,8 @@ require __DIR__ . '/modules/notifications.php';
 require __DIR__ . '/modules/superadmin.php';
 require __DIR__ . '/modules/admin.php';          
 // require __DIR__ . '/modules/customer.php';      
-require __DIR__ . '/modules/commerce.php';       
+require __DIR__ . '/modules/commerce.php';
+require __DIR__ . '/modules/subsidiary.php';
 require __DIR__ . '/modules/seller.php';
 
 // ====================================

@@ -95,6 +95,7 @@ class RolePermissionSeeder extends Seeder
         if ($subsidiary) {
             $subsidiaryPermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
+                'subsidiaries.manage-own',
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
