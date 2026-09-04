@@ -11,7 +11,6 @@ use App\Http\Resources\Roles\Admin\Subsidiary\AdminSubsidiaryResource;
 use App\Models\Roles\Subsidiary;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Servicio de dominio responsable de operaciones CRUD
@@ -55,15 +54,9 @@ final class AdminSubsidiaryCrudService
             );
             $user->assignRole('subsidiary');
 
-            // 2. Sucursal — token/security_key son NOT NULL sin default en BD,
-            // no se capturan desde el formulario (uso interno/integración).
+            // 2. Sucursal
             $subsidiary = $this->subsidiaryRepository->create([
                 'name'         => $dto->name,
-                'brand'        => $dto->brand,
-                'product'      => $dto->product,
-                'link_route'   => $dto->linkRoute,
-                'token'        => Str::random(40),
-                'security_key' => Str::random(40),
                 'commission'   => $dto->commission ?? 0,
                 'phone'        => $dto->phone,
                 'commerce_id'  => $dto->commerce,
@@ -140,9 +133,6 @@ final class AdminSubsidiaryCrudService
                     'commerce_id' => $dto->commerce,
                     'country_id'  => $dto->country,
                     'currency_id' => $dto->currency,
-                    'brand'       => $dto->brand,
-                    'product'     => $dto->product,
-                    'link_route'  => $dto->linkRoute,
                 ], static fn ($value) => $value !== null)
             );
 

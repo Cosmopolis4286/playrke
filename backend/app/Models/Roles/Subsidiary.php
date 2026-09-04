@@ -21,11 +21,6 @@ class Subsidiary extends BaseModel
 
     protected $fillable = [
         'name',
-        'brand',
-        'product',
-        'link_route',
-        'token',
-        'security_key',
         'commission',
         'phone',
         'commerce_id',

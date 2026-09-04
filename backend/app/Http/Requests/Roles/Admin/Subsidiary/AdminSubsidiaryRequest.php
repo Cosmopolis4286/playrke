@@ -47,14 +47,17 @@ class AdminSubsidiaryRequest extends BaseRequest
 
         $rules = [
             'name'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:30'],
-            'commerce'   => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:commerces,id'],
+            // status=ACTIVE: sin esto, se podía asignar una sucursal a un
+            // comercio ya BLOCKED/DELETED (exists solo valida que el id
+            // exista, no su estado), dejando una jerarquía inválida.
+            'commerce'   => [
+                $isUpdate ? 'sometimes' : 'required', 'string',
+                Rule::exists('commerces', 'id')->where('status', 'ACTIVE'),
+            ],
             'country'    => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
             'currency'   => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
             'phone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:14', new ValidPhoneForCountry($this->input('country'))],
             'commission' => ['sometimes', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
-            'brand'      => ['sometimes', 'nullable', 'string', 'max:20'],
-            'product'    => ['sometimes', 'nullable', 'string', 'max:30'],
-            'link_route' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
 
         // Regla unique para phone (excluye la sucursal actual en update)
@@ -93,7 +96,7 @@ class AdminSubsidiaryRequest extends BaseRequest
             'phone.unique'      => 'El número ya está registrado.',
             'name.required'     => 'El nombre de la sucursal es obligatorio.',
             'commerce.required' => 'El comercio al que pertenece la sucursal es obligatorio.',
-            'commerce.exists'   => 'El comercio seleccionado no es válido.',
+            'commerce.exists'   => 'El comercio seleccionado no existe o no está activo.',
             'country.required'  => 'El país es obligatorio.',
             'currency.required' => 'La moneda es obligatoria.',
             'commission.numeric' => 'La comisión debe ser un número.',

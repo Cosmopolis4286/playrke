@@ -21,9 +21,6 @@ final class AdminSubsidiaryDTO
         public readonly ?string $currency,
         public readonly ?string $phone,
         public readonly ?string $commission,
-        public readonly ?string $brand,
-        public readonly ?string $product,
-        public readonly ?string $linkRoute,
     ) {}
 
     public static function fromArray(array $data): self
@@ -37,9 +34,6 @@ final class AdminSubsidiaryDTO
             $data['currency'] ?? null,
             $data['phone'] ?? null,
             $data['commission'] ?? null,
-            $data['brand'] ?? null,
-            $data['product'] ?? null,
-            $data['link_route'] ?? null,
         );
     }
 
@@ -54,9 +48,6 @@ final class AdminSubsidiaryDTO
             'currency'    => $this->currency,
             'phone'       => $this->phone,
             'commission'  => $this->commission,
-            'brand'       => $this->brand,
-            'product'     => $this->product,
-            'link_route'  => $this->linkRoute,
         ], static function ($value) {
             if ($value === null) {
                 return false;

@@ -89,14 +89,6 @@ const showHierarchy = ref(false)
             <span class="sd-field-label"><i class="fas fa-user-tie"></i>Vendedores</span>
             <span class="sd-field-value">{{ detail.sellers_count }}</span>
           </div>
-          <div class="sd-field" v-if="detail.brand">
-            <span class="sd-field-label"><i class="fas fa-tag"></i>Marca</span>
-            <span class="sd-field-value">{{ detail.brand }}</span>
-          </div>
-          <div class="sd-field" v-if="detail.product">
-            <span class="sd-field-label"><i class="fas fa-box"></i>Producto</span>
-            <span class="sd-field-value">{{ detail.product }}</span>
-          </div>
         </div>
       </div>
 

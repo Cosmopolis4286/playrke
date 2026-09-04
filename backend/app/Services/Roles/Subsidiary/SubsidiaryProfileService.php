@@ -37,8 +37,6 @@ final class SubsidiaryProfileService
             'id'           => $subsidiary->hashed_id,
             'name'         => $subsidiary->name,
             'phone'        => $subsidiary->phone,
-            'brand'        => $subsidiary->brand,
-            'product'      => $subsidiary->product,
             'status'       => $subsidiary->status,
             'status_badge' => $subsidiary->status_badge,
             'commerce'     => $subsidiary->commerce ? ['name' => $subsidiary->commerce->name, 'status' => $subsidiary->commerce->status] : null,
@@ -49,15 +47,15 @@ final class SubsidiaryProfileService
     }
 
     /**
-     * Solo estos 4 campos son autogestionables — comisión/comercio padre/
+     * Solo estos 2 campos son autogestionables — comisión/comercio padre/
      * moneda/país nunca llegan aquí (array_intersect_key es defensa en
      * profundidad, aunque el Request ya filtre los campos aceptados).
      *
-     * @param array{name?: string, phone?: string, brand?: ?string, product?: ?string} $data
+     * @param array{name?: string, phone?: string} $data
      */
     public function updateOwn(array $data): void
     {
         $subsidiary = $this->ownSubsidiaryOrFail();
-        $subsidiary->update(array_intersect_key($data, array_flip(['name', 'phone', 'brand', 'product'])));
+        $subsidiary->update(array_intersect_key($data, array_flip(['name', 'phone'])));
     }
 }

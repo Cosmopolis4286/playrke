@@ -357,35 +357,6 @@ defineExpose({ submit, isValid });
         v-model="form.commission"
       />
 
-      <!-- ── Datos opcionales ─────────────────────────────────────────────── -->
-      <div class="col-12 mb-1 mt-2">
-        <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
-          <i class="fa-solid fa-tag fa-fw mr-1"></i>Datos adicionales (opcional)
-        </small>
-        <hr class="mt-1 mb-2" />
-      </div>
-
-      <FormInput
-        label="Marca"
-        name="brand"
-        col="col-sm-4"
-        v-model="form.brand"
-      />
-
-      <FormInput
-        label="Producto"
-        name="product"
-        col="col-sm-4"
-        v-model="form.product"
-      />
-
-      <FormInput
-        label="Link / Ruta"
-        name="link_route"
-        col="col-sm-4"
-        v-model="form.link_route"
-      />
-
     </div>
   </form>
 </template>

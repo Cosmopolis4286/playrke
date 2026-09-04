@@ -17,8 +17,6 @@ export function useSubsidiaryProfile(initial: SubsidiaryProfile) {
         return {
             name: subsidiary.value.name,
             phone: subsidiary.value.phone,
-            brand: subsidiary.value.brand ?? '',
-            product: subsidiary.value.product ?? '',
         }
     }
 
@@ -38,13 +36,7 @@ export function useSubsidiaryProfile(initial: SubsidiaryProfile) {
         saving.value = true
         try {
             await backendClient.put('/subsidiary/profile', form.value)
-            subsidiary.value = {
-                ...subsidiary.value,
-                name: form.value.name,
-                phone: form.value.phone,
-                brand: form.value.brand || null,
-                product: form.value.product || null,
-            }
+            subsidiary.value = { ...subsidiary.value, name: form.value.name, phone: form.value.phone }
             editMode.value = false
             showToast('Datos actualizados correctamente', 'success')
             return true

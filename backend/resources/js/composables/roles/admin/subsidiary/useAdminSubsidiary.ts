@@ -65,9 +65,6 @@ const emptySubsidiary = (): Partial<Subsidiary> =>
         country_id: null,
         phone: '',
         currency_id: null,
-        brand: '',
-        product: '',
-        link_route: ''
     })
 
 /**
@@ -192,9 +189,6 @@ export function useAdminSubsidiary(): UseAdminSubsidiaryReturn {
                 commerce_id: subsidiary.commerce?.id ?? null,
                 country_id: subsidiary.country?.id,
                 currency_id: subsidiary.currency,
-                brand: subsidiary.brand ?? '',
-                product: subsidiary.product ?? '',
-                link_route: subsidiary.link_route ?? ''
             }
 
             return true

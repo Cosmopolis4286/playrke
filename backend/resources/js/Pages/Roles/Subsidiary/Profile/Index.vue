@@ -2,9 +2,9 @@
 /**
  * Página de autogestión de la ficha propia de la agencia — a diferencia de
  * SubsidiaryDetailModal.vue (solo lectura, dentro del CRUD admin), esta
- * permite editar los campos de bajo riesgo (nombre, teléfono, marca,
- * producto). Comisión/comercio padre/país/moneda quedan siempre de solo
- * lectura — nunca editables por la propia agencia.
+ * permite editar los campos de bajo riesgo (nombre, teléfono). Comisión/
+ * comercio padre/país/moneda quedan siempre de solo lectura — nunca
+ * editables por la propia agencia.
  */
 import { computed } from 'vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
@@ -73,14 +73,6 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
                     <span class="sd-field-label"><i class="fas fa-phone"></i>Teléfono</span>
                     <span class="sd-field-value">{{ subsidiary.phone }}</span>
                   </div>
-                  <div class="sd-field" v-if="subsidiary.brand">
-                    <span class="sd-field-label"><i class="fas fa-tag"></i>Marca</span>
-                    <span class="sd-field-value">{{ subsidiary.brand }}</span>
-                  </div>
-                  <div class="sd-field" v-if="subsidiary.product">
-                    <span class="sd-field-label"><i class="fas fa-box"></i>Producto</span>
-                    <span class="sd-field-value">{{ subsidiary.product }}</span>
-                  </div>
                 </div>
                 <button type="button" class="sp-edit-btn" @click="toggleEdit">
                   <i class="fas fa-pen mr-1"></i>Editar
@@ -90,8 +82,6 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
               <form v-else class="row" novalidate @submit.prevent="save">
                 <FormInput label="Nombre" name="name" required col="col-sm-6" v-model="form.name" />
                 <FormInput label="Teléfono" name="phone" required col="col-sm-6" v-model="form.phone" />
-                <FormInput label="Marca" name="brand" col="col-sm-6" v-model="form.brand" />
-                <FormInput label="Producto" name="product" col="col-sm-6" v-model="form.product" />
 
                 <div class="col-12 sp-actions">
                   <button type="button" class="sp-cancel-btn" :disabled="saving" @click="toggleEdit">Cancelar</button>

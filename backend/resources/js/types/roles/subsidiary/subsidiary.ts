@@ -10,9 +10,6 @@ export interface Subsidiary {
     phone: string
     has_commission?: boolean
     commission: string
-    brand?: string | null
-    product?: string | null
-    link_route?: string | null
     status?: SubsidiaryStatus
     username: string
     email: string
@@ -38,9 +35,6 @@ export interface SubsidiaryDetail {
     readonly name: string
     readonly phone: string
     readonly commission: string
-    readonly brand: string | null
-    readonly product: string | null
-    readonly link_route: string | null
     readonly status: SubsidiaryStatus
     readonly status_badge: string
     readonly sellers_count: number
