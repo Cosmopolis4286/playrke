@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Contracts;
+namespace App\Domains\Wallet\Contracts;
 
-use App\Models\Wallet;
 use App\Contracts\BaseRepositoryInterface;
+use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

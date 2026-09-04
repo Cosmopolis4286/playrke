@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Domains\Wallet\Services;
 
-use App\Models\Wallet;
-use App\Models\WalletHold;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletHold;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Facades\DB;
 
 /**

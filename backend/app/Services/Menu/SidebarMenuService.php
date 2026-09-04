@@ -4,7 +4,7 @@ namespace App\Services\Menu;
 
 use App\Models\Module;
 use App\Models\SidebarMenuVisibility;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 

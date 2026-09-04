@@ -3,14 +3,14 @@
 namespace App\Services\Platform;
 
 use App\Contracts\UserRepositoryInterface;
-use App\Contracts\WalletMovementRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Models\Audit;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\User;
-use App\Models\Wallet;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletMovement;
 use Database\Seeders\PlatformUserSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;

@@ -3,7 +3,7 @@
 namespace App\Services\Roles\Admin\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;

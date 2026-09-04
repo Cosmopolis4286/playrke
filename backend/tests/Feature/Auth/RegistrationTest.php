@@ -7,7 +7,7 @@ use App\Models\Currency;
 use App\Models\Role;
 use App\Models\AppParameter;
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

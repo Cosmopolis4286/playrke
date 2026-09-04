@@ -12,11 +12,11 @@ use App\Domains\Marketplace\Models\Listing;
 use App\Domains\Marketplace\Models\Order;
 use App\Domains\Marketplace\Services\MarketplaceFeeService;
 use App\Models\User;
-use App\Models\WalletHold;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletHold;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Platform\PlatformWalletService;
-use App\Services\WalletReservationService;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletReservationService;
+use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

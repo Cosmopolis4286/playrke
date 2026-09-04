@@ -13,7 +13,7 @@ use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Services\Card\BingoCardPriceCalculator;
 use App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use App\Services\Roles\Player\External\ExternalPlayerLinkService;
 use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +41,7 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly BingoCardPriceCalculator $priceCalculator,
-        private readonly \App\Contracts\WalletRepositoryInterface $walletRepository,
+        private readonly \App\Domains\Wallet\Contracts\WalletRepositoryInterface $walletRepository,
         private readonly WalletService $walletService,
         private readonly \App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService $cardGenerationService,
         private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,

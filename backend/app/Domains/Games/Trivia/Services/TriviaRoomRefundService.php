@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Models\TriviaRoom;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\NotificationService;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

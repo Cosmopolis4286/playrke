@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Wallet\Models;
 
+use App\Models\MovementType;
+use App\Models\User;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

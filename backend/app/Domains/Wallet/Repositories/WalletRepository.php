@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Domains\Wallet\Repositories;
 
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Models\Wallet;
 use App\Repositories\BaseRepository;
-use App\Models\Wallet;
-use App\Contracts\WalletRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 

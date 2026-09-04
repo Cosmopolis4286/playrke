@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Policies\Wallet;
+namespace App\Domains\Wallet\Policies;
 
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Models\MovementType;
 use App\Models\User;
-use App\Models\WalletMovement;
 use App\Policies\Roles\BaseRolePolicy;
 
 /**

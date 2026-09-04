@@ -12,7 +12,7 @@ use App\Services\ExchangeRate\ExchangeRateDomainService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
 use App\Services\Utils\Snowflake\SnowflakeBatchService;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;

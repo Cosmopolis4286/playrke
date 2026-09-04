@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Games;
 
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

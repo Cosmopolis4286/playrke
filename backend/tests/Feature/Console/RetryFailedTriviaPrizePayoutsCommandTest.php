@@ -10,7 +10,7 @@ use App\Models\Currency;
 use App\Models\Games\Trivia\TriviaParticipant;
 use App\Models\MovementType;
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;

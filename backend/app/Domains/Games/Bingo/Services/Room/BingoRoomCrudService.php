@@ -23,7 +23,7 @@ use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
 use App\Services\Utils\Snowflake\SnowflakeBatchService;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

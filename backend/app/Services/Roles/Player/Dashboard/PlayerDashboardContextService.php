@@ -10,7 +10,7 @@ use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Games\Trivia\TriviaParticipant;
 use App\Models\GameParticipation;
 use App\Models\KycDocument;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 

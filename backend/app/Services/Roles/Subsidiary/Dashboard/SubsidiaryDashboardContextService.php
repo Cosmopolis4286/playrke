@@ -3,12 +3,12 @@
 namespace App\Services\Roles\Subsidiary\Dashboard;
 
 use App\DTOs\Roles\Subsidiary\Dashboard\SubsidiaryDashboardContextDTO;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use Carbon\Carbon;

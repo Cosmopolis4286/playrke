@@ -6,8 +6,8 @@ use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
 use App\Models\MovementType;
 use App\Services\Roles\RoleUserService;
-use App\Services\WalletService;
-use App\Services\WalletLimitService;
+use App\Domains\Wallet\Services\WalletService;
+use App\Domains\Wallet\Services\WalletLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -153,7 +153,7 @@ class WalletController extends Controller
             $wallet    = $this->walletService->findOwnedWalletByCurrency($currencyId);
             $paginator = $this->walletService->getMovements($wallet, $perPage);
 
-            $items = collect($paginator->items())->map(fn(\App\Models\WalletMovement $m) => [
+            $items = collect($paginator->items())->map(fn(\App\Domains\Wallet\Models\WalletMovement $m) => [
                 'id'             => (string) $m->id,
                 'wallet_id'      => (string) $m->wallet_id,
                 'user_id'        => (string) $m->user_id,
@@ -199,7 +199,7 @@ class WalletController extends Controller
     public function showMovement(string $id): JsonResponse
     {
         try {
-            $m = \App\Models\WalletMovement::where('id', $id)
+            $m = \App\Domains\Wallet\Models\WalletMovement::where('id', $id)
                 ->where('user_id', Auth::id())
                 ->firstOrFail();
 

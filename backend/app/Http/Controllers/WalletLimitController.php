@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Currency;
-use App\Models\WalletLimit;
+use App\Domains\Wallet\Models\WalletLimit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

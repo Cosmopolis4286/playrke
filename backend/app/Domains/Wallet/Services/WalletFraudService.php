@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Domains\Wallet\Services;
 
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;

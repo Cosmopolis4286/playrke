@@ -6,7 +6,7 @@ use App\Http\Controllers\MovementTypeController;
 use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WalletLimitController;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 

@@ -12,7 +12,7 @@ use App\Models\Roles\Seller;
 use App\Models\Roles\SellerCurrency;
 use App\Models\Roles\Treasurer\Treasurer;
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

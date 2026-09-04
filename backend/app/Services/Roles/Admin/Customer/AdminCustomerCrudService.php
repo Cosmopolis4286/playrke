@@ -3,7 +3,7 @@
 namespace App\Services\Roles\Admin\Customer;
 
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Customer\AdminCustomerDTO;
 use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Customer\AdminCustomerException;

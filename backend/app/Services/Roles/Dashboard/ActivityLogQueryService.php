@@ -5,7 +5,7 @@ namespace App\Services\Roles\Dashboard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
 use App\Models\User;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use Carbon\Carbon;
 
 /**

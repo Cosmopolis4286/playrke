@@ -8,7 +8,7 @@ use App\Domains\Marketplace\Inventory\Models\PlayerAsset;
 use App\Domains\Marketplace\Models\Order;
 use App\Models\Currency;
 use App\Models\User;
-use App\Models\WalletHold;
+use App\Domains\Wallet\Models\WalletHold;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

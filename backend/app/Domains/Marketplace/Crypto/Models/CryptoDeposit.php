@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Marketplace\Crypto\Models;
 
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

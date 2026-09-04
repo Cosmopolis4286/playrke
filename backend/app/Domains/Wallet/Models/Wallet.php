@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Wallet\Models;
 
 use App\Models\Currency;
 use App\Models\User;

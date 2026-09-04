@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Contracts;
+namespace App\Domains\Wallet\Contracts;
 
-use App\Models\WalletMovement;
+use App\Contracts\BaseRepositoryInterface;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 

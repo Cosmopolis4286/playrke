@@ -6,7 +6,7 @@ use App\Contracts\UserRepositoryInterface;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 

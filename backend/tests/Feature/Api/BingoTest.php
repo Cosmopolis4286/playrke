@@ -9,7 +9,7 @@ use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;

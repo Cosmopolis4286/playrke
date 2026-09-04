@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Commands\CommandService;
-use App\Services\Wallet\StaleWalletMovementAlertService;
+use App\Domains\Wallet\Services\StaleWalletMovementAlertService;
 use Illuminate\Console\Command;
 use Throwable;
 

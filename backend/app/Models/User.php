@@ -12,7 +12,7 @@ use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
 use App\Models\Roles\Treasurer;
 use App\Models\UserLevel;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Models\Achievement;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;

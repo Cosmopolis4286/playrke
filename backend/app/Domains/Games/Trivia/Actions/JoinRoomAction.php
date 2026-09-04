@@ -11,7 +11,7 @@ use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Models\ExchangeRate;
 use App\Models\User;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

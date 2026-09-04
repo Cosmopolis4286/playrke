@@ -3,7 +3,7 @@
 namespace App\Services\Users\Roles\Customer;
 
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Models\Roles\Customer;
 use App\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\DB;

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Wallet;
 
-use App\Contracts\WalletMovementRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Models\MovementType;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Menu\SidebarMenuService;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

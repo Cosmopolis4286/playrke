@@ -10,7 +10,7 @@ use App\Domains\Marketplace\Crypto\Models\CryptoDeposit;
 use App\Domains\Marketplace\Crypto\Models\CryptoTransaction;
 use App\Domains\Marketplace\Crypto\Models\DepositAddress;
 use App\Models\Currency;
-use App\Services\WalletService;
+use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

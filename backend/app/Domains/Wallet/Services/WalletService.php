@@ -1,23 +1,21 @@
 <?php
 
-namespace App\Services;
+namespace App\Domains\Wallet\Services;
 
-use App\Contracts\WalletMovementRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Events\WalletUpdated;
+use App\Domains\Wallet\Events\WalletMovementRequested;
+use App\Domains\Wallet\Jobs\DispatchWalletNotificationJob;
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Events\Games\Trivia\TriviaEntryPurchased;
-use App\Events\Wallet\WalletUpdated;
-use App\Events\Wallet\WalletMovementRequested;
 use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
-use App\Jobs\Wallet\DispatchWalletNotificationJob;
 use App\Models\Currency;
 use App\Models\User;
-use App\Models\Wallet;
-use App\Models\WalletMovement;
 use App\Services\NotificationService;
-use App\Services\WalletFraudService;
-use App\Services\WalletLimitService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -1285,7 +1283,7 @@ final class WalletService
         // actualicen su contador en tiempo real sin recargar la página.
         try {
             $pendingCount = WalletMovement::where('status', WalletMovement::STATUS_PENDING)->count();
-            broadcast(new \App\Events\Wallet\WalletMovementProcessed(
+            broadcast(new \App\Domains\Wallet\Events\WalletMovementProcessed(
                 movementId:   (string) $movement->id,
                 movementType: $movement->type,
                 status:       $status,

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Domains\Wallet\Services;
 
-use App\Models\Wallet;
-use App\Models\WalletLimit;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletLimit;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 

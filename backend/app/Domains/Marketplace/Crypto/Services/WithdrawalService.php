@@ -10,12 +10,12 @@ use App\Domains\Marketplace\Crypto\Exceptions\InvalidWithdrawalStateException;
 use App\Domains\Marketplace\Crypto\Models\CryptoTransaction;
 use App\Domains\Marketplace\Crypto\Models\CryptoWithdrawal;
 use App\Models\User;
-use App\Models\Wallet;
-use App\Models\WalletHold;
-use App\Models\WalletMovement;
-use App\Services\WalletFraudService;
-use App\Services\WalletLimitService;
-use App\Services\WalletReservationService;
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletHold;
+use App\Domains\Wallet\Models\WalletMovement;
+use App\Domains\Wallet\Services\WalletFraudService;
+use App\Domains\Wallet\Services\WalletLimitService;
+use App\Domains\Wallet\Services\WalletReservationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

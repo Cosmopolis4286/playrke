@@ -3,7 +3,7 @@
 namespace App\Services\Roles\Admin\Subsidiary;
 
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryDTO;
 use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Subsidiary\AdminSubsidiaryException;

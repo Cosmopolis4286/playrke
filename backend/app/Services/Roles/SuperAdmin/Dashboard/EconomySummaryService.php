@@ -6,7 +6,7 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Models\Currency;
 use App\Models\Roles\Seller;
 use App\Models\User;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 

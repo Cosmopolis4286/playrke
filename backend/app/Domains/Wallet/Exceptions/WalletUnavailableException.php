@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Exceptions\Wallet;
+namespace App\Domains\Wallet\Exceptions;
 
 use App\Exceptions\Domain\DomainException;
 

@@ -3,13 +3,13 @@
 namespace App\Services\Roles\Commerce\Dashboard;
 
 use App\DTOs\Roles\Commerce\Dashboard\CommerceDashboardContextDTO;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use Carbon\Carbon;

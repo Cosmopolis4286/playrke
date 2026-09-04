@@ -12,7 +12,7 @@ use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
 use App\Services\ExchangeRate\CurrencyExchangeRateService;
 use Illuminate\Support\Facades\Cache;

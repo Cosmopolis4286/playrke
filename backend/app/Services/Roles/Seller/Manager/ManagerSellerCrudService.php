@@ -3,7 +3,7 @@
 namespace App\Services\Roles\Seller\Manager;
 
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;

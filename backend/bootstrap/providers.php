@@ -10,4 +10,5 @@ return [
     App\Providers\RepositoryServiceProvider::class,
     App\Providers\AppParametersConfigServiceProvider::class,
     App\Providers\TriviaServiceProvider::class,
+    App\Providers\WalletServiceProvider::class,
 ];

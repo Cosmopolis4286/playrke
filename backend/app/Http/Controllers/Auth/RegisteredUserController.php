@@ -9,7 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Repositories\CountryRepository;
 use App\Repositories\UserRepository;
 use App\Services\User\UserLevelService;

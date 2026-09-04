@@ -2,7 +2,7 @@
 
 namespace App\Http\View;
 
-use App\Models\Wallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Services\Games\DailyMissionService;
 use App\Services\Menu\SidebarMenuService;
 use Illuminate\Support\Facades\Auth;

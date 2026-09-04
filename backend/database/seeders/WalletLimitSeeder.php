@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\WalletLimit;
+use App\Domains\Wallet\Models\WalletLimit;
 use Illuminate\Database\Seeder;
 
 class WalletLimitSeeder extends Seeder

@@ -7,7 +7,7 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Game;
@@ -287,7 +287,7 @@ class DemoRoleDataSeeder extends Seeder
 
     private function ensureWallet(string $userId, string $currencyId): void
     {
-        $exists = \App\Models\Wallet::where('user_id', $userId)
+        $exists = \App\Domains\Wallet\Models\Wallet::where('user_id', $userId)
             ->where('currency_id', $currencyId)
             ->exists();
 

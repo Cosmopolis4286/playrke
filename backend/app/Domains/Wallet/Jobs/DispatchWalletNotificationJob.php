@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Jobs\Wallet;
+namespace App\Domains\Wallet\Jobs;
 
 use App\Services\NotificationService;
 use Illuminate\Bus\Queueable;

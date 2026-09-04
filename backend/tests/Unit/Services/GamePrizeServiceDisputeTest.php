@@ -12,8 +12,8 @@ use App\Models\Currency;
 use App\Models\Games\Trivia\TriviaParticipant;
 use App\Models\MovementType;
 use App\Models\User;
-use App\Models\Wallet;
-use App\Models\WalletMovement;
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Games\GamePrizeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -154,7 +154,7 @@ class GamePrizeServiceDisputeTest extends TestCase
 
         // balance=0, pending_debt=40 tras la disputa. Un depósito de 100
         // debe descontar la deuda antes de que el usuario vea el saldo nuevo.
-        app(\App\Services\WalletService::class)->recordAdminDeposit($user, 100.0, 'Carga de prueba');
+        app(\App\Domains\Wallet\Services\WalletService::class)->recordAdminDeposit($user, 100.0, 'Carga de prueba');
 
         $wallet->refresh();
         $this->assertEqualsWithDelta(60.0, (float) $wallet->balance, 0.001, 'Solo 60 (100 - 40 de deuda) debe acreditarse.');

@@ -3,7 +3,7 @@
 namespace App\Services\Roles\Admin\Treasurer;
 
 use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Treasurer\AdminTreasurerDTO;
 use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Treasurer\AdminTreasurerException;

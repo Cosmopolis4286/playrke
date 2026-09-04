@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Events\Wallet;
+namespace App\Domains\Wallet\Events;
 
-use App\Models\WalletMovement;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Queue\SerializesModels;
