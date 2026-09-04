@@ -57,3 +57,4 @@ schedule_dynamic('notifications:prune', fn (Event $e) => $e->daily());
 schedule_dynamic('marketplace:reconcile-escrows', fn (Event $e) => $e->everyFiveMinutes());
 schedule_dynamic('marketplace:reconcile', fn (Event $e) => $e->everyFifteenMinutes());
 schedule_dynamic('marketplace:reconcile-crypto-deposits', fn (Event $e) => $e->everyFifteenMinutes());
+schedule_dynamic('payments:watch-orders', fn (Event $e) => $e->everyMinute());

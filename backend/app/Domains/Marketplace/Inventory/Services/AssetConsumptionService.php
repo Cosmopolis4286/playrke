@@ -91,16 +91,18 @@ final class AssetConsumptionService
     }
 
     /**
-     * Otorga una unidad (o $quantity) de un AssetDefinition a un jugador
-     * como recompensa de juego (ej. premio de evento, drop de partida). No
-     * reemplaza a GamePrizeService (dinero) — es el equivalente para
-     * activos no monetarios.
+     * Otorga una unidad (o $quantity) de un AssetDefinition a un jugador —
+     * como recompensa de juego (ej. premio de evento, drop de partida) o
+     * como entrega de una compra (ver PurchaseService). No reemplaza a
+     * GamePrizeService (dinero) — es el equivalente para activos no
+     * monetarios.
      */
     public function grantByCode(
         string $userId,
         string $assetDefinitionCode,
         int $quantity,
         string $acquiredReference,
+        string $acquiredVia = 'GAME_PRIZE',
     ): PlayerAsset {
         $definition = AssetDefinition::catalog()->get($assetDefinitionCode);
 
@@ -112,7 +114,7 @@ final class AssetConsumptionService
             definition: $definition,
             ownerId: $userId,
             quantity: $quantity,
-            acquiredVia: 'GAME_PRIZE',
+            acquiredVia: $acquiredVia,
             acquiredReference: $acquiredReference,
         );
     }
