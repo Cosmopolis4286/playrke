@@ -3,8 +3,8 @@
 namespace App\Services\Directory;
 
 use App\DTOs\Directories\Fiat\Brazil\PixKeyDTO;
+use App\Exceptions\Domain\Directory\DirectoryException;
 use App\Repositories\Directories\Fiat\Brazil\PixKeyRepository;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,14 +17,14 @@ final class PixKeyCrudService
     /**
      * Obtiene una clave PIX verificando que pertenece al usuario.
      *
-     * @throws DomainException Si no existe o no pertenece al usuario
+     * @throws DirectoryException Si no existe o no pertenece al usuario
      */
     public function show(string $id, string $userId): array
     {
         $pixKey = $this->repository->find($id);
 
         if (!$pixKey || (string) $pixKey->user_id !== $userId) {
-            throw new DomainException('Clave PIX no encontrada.');
+            throw DirectoryException::notFound('Clave PIX');
         }
 
         $pixKey->loadMissing('bank');
@@ -45,12 +45,12 @@ final class PixKeyCrudService
     /**
      * Crea una nueva clave PIX para el usuario.
      *
-     * @throws DomainException Si ya existe una clave PIX duplicada para el usuario
+     * @throws DirectoryException Si ya existe una clave PIX duplicada para el usuario
      */
     public function create(PixKeyDTO $dto, string $userId): bool
     {
         if ($this->repository->userHasPixKey($userId, $dto->pixKeyType, $dto->pixKeyValue)) {
-            throw new DomainException('Ya tienes registrada esta clave PIX.');
+            throw DirectoryException::duplicate('Ya tienes registrada esta clave PIX.');
         }
 
         try {
@@ -66,21 +66,21 @@ final class PixKeyCrudService
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Error al crear PixKey', ['user_id' => $userId, 'error' => $e->getMessage()]);
-            throw new DomainException('Error al guardar la clave PIX.');
+            throw DirectoryException::operationFailed('Error al guardar la clave PIX.');
         }
     }
 
     /**
      * Actualiza una clave PIX existente.
      *
-     * @throws DomainException Si el registro no existe o no pertenece al usuario
+     * @throws DirectoryException Si el registro no existe o no pertenece al usuario
      */
     public function update(PixKeyDTO $dto, string $userId): bool
     {
         $existing = $this->repository->find($dto->id);
 
         if (!$existing || (string) $existing->user_id !== $userId) {
-            throw new DomainException('Clave PIX no encontrada.');
+            throw DirectoryException::notFound('Clave PIX');
         }
 
         try {
@@ -96,21 +96,21 @@ final class PixKeyCrudService
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Error al actualizar PixKey', ['id' => $dto->id, 'error' => $e->getMessage()]);
-            throw new DomainException('Error al actualizar la clave PIX.');
+            throw DirectoryException::operationFailed('Error al actualizar la clave PIX.');
         }
     }
 
     /**
      * Elimina una clave PIX.
      *
-     * @throws DomainException Si el registro no existe o no pertenece al usuario
+     * @throws DirectoryException Si el registro no existe o no pertenece al usuario
      */
     public function delete(string $id, string $userId): bool
     {
         $existing = $this->repository->find($id);
 
         if (!$existing || (string) $existing->user_id !== $userId) {
-            throw new DomainException('Clave PIX no encontrada.');
+            throw DirectoryException::notFound('Clave PIX');
         }
 
         try {
@@ -126,21 +126,21 @@ final class PixKeyCrudService
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Error al eliminar PixKey', ['id' => $id, 'error' => $e->getMessage()]);
-            throw new DomainException('Error al eliminar la clave PIX.');
+            throw DirectoryException::operationFailed('Error al eliminar la clave PIX.');
         }
     }
 
     /**
      * Alterna el status ACTIVE/INACTIVE de una clave PIX.
      *
-     * @throws DomainException Si no existe o no pertenece al usuario
+     * @throws DirectoryException Si no existe o no pertenece al usuario
      */
     public function toggleStatus(string $id, string $userId): bool
     {
         $pixKey = $this->repository->find($id);
 
         if (!$pixKey || (string) $pixKey->user_id !== $userId) {
-            throw new DomainException('Clave PIX no encontrada.');
+            throw DirectoryException::notFound('Clave PIX');
         }
 
         $newStatus = $pixKey->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
@@ -158,7 +158,7 @@ final class PixKeyCrudService
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Error al cambiar status PixKey', ['id' => $id, 'error' => $e->getMessage()]);
-            throw new DomainException('Error al cambiar el estado de la clave PIX.');
+            throw DirectoryException::operationFailed('Error al cambiar el estado de la clave PIX.');
         }
     }
 }
