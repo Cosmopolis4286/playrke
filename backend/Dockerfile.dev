@@ -12,12 +12,13 @@ RUN apk add --no-cache \
     postgresql-dev postgresql-libs \
     mysql-client \
     libxml2-dev libxslt-dev readline-dev sqlite-dev \
-    nodejs npm linux-headers
+    nodejs npm linux-headers \
+    gmp-dev
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install \
     pdo_mysql pdo_pgsql mbstring exif pcntl bcmath \
-    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml
+    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml gmp
 
 RUN apk add --no-cache $PHPIZE_DEPS \
  && pecl install redis xdebug \

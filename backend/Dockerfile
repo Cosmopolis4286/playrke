@@ -29,7 +29,10 @@ RUN apk add --no-cache \
     # Herramientas del sistema
     bash htop nano \
     # Librerías para mejor rendimiento
-    libxml2-dev libxslt-dev readline-dev sqlite-dev
+    libxml2-dev libxslt-dev readline-dev sqlite-dev \
+    # gmp: aritmética de curva elíptica para derivación BIP32 de direcciones
+    # TRON en App\Domains\Payments (módulo de pagos USDT-TRC20)
+    gmp-dev
 
 # Configuración de extensiones PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -48,7 +51,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     xsl \
     xml \
     xmlwriter \
-    simplexml
+    simplexml \
+    gmp
 
 # Redis via PECL
 RUN apk add --no-cache $PHPIZE_DEPS \

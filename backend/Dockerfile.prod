@@ -7,12 +7,13 @@ RUN apk add --no-cache \
     freetype-dev libjpeg-turbo-dev libwebp-dev \
     postgresql-dev postgresql-libs \
     libxml2-dev libxslt-dev readline-dev sqlite-dev \
-    nodejs npm
+    nodejs npm \
+    gmp-dev
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install \
     pdo_mysql pdo_pgsql mbstring exif pcntl bcmath \
-    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml
+    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml gmp
 
 RUN apk add --no-cache $PHPIZE_DEPS \
  && pecl install redis \
@@ -44,22 +45,28 @@ ENV PHP_MEMORY_LIMIT=512M \
     PHP_MAX_EXECUTION_TIME=300
 
 # Librerías de runtime (sin -dev)
+# gmp: aritmética de curva elíptica para derivación BIP32 de direcciones
+# TRON en App\Domains\Payments (módulo de pagos USDT-TRC20) — a diferencia
+# de las libs -dev de abajo, la librería gmp en sí debe quedar instalada en
+# runtime (docker-php-ext-install la enlaza dinámicamente contra ella).
 RUN apk add --no-cache \
     curl bash supervisor \
     libpng libzip oniguruma icu-libs \
     freetype libjpeg-turbo libwebp \
     postgresql-libs \
-    libxml2 libxslt readline sqlite-libs
+    libxml2 libxslt readline sqlite-libs \
+    gmp
 
 RUN apk add --no-cache --virtual .build-deps \
     libpng-dev libzip-dev oniguruma-dev icu-dev \
     freetype-dev libjpeg-turbo-dev libwebp-dev \
     postgresql-dev \
     libxml2-dev libxslt-dev readline-dev sqlite-dev \
+    gmp-dev \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install \
     pdo_mysql pdo_pgsql mbstring exif pcntl bcmath \
-    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml \
+    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml gmp \
  && apk add --no-cache $PHPIZE_DEPS \
  && pecl install redis \
  && docker-php-ext-enable redis \
