@@ -14,6 +14,7 @@ class SidebarMenuVisibility extends Model
         'item_key',
         'role_id',
         'is_visible',
+        'sort_order',
     ];
 
     protected $casts = [

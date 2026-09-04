@@ -17,8 +17,16 @@ export interface SidebarMenuRole {
  */
 export type SidebarMenuVisibilityMatrix = Record<string, Record<string, boolean>>
 
+/**
+ * item_key => { role_id => sort_order }. Ausencia de entrada, o valor
+ * null, significa "orden natural de $menuStructure" (misma semántica de
+ * excepción que SidebarMenuVisibilityMatrix).
+ */
+export type SidebarMenuSortOrderMatrix = Record<string, Record<string, number | null>>
+
 export interface SidebarMenuPageProps {
     items: SidebarMenuItem[]
     roles: SidebarMenuRole[]
     visibility: SidebarMenuVisibilityMatrix
+    sortOrder: SidebarMenuSortOrderMatrix
 }

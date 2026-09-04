@@ -65,17 +65,38 @@ final class SidebarMenuVisibilityService
     }
 
     /**
-     * Aplica un lote de cambios de visibilidad.
+     * Orden actual: item_key => [role_id => int|null]. Ausencia de entrada,
+     * o valor null, significa "orden natural de $menuStructure" (misma
+     * semántica de excepción que getVisibilityMatrix()).
      *
-     * @param array<int, array{item_key: string, role_id: string, is_visible: bool}> $changes
+     * @return array<string, array<string, int|null>>
+     */
+    public function getSortOrderMatrix(): array
+    {
+        return SidebarMenuVisibility::query()
+            ->whereNotNull('sort_order')
+            ->get(['item_key', 'role_id', 'sort_order'])
+            ->groupBy('item_key')
+            ->map(fn ($rows) => $rows->pluck('sort_order', 'role_id')->toArray())
+            ->toArray();
+    }
+
+    /**
+     * Aplica un lote de cambios de visibilidad y/o orden. `sort_order`
+     * ausente en un change no toca la columna (updateOrCreate solo escribe
+     * las llaves presentes en el segundo array).
+     *
+     * @param array<int, array{item_key: string, role_id: string, is_visible?: bool, sort_order?: int|null}> $changes
      */
     public function applyChanges(array $changes): void
     {
         DB::transaction(function () use ($changes) {
             foreach ($changes as $change) {
+                $values = array_intersect_key($change, array_flip(['is_visible', 'sort_order']));
+
                 SidebarMenuVisibility::updateOrCreate(
                     ['item_key' => $change['item_key'], 'role_id' => $change['role_id']],
-                    ['is_visible' => $change['is_visible']]
+                    $values
                 );
             }
         });

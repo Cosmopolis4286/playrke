@@ -4,9 +4,10 @@ namespace App\Services\Menu;
 
 use App\Models\Module;
 use App\Models\SidebarMenuVisibility;
+use App\Models\User;
+use App\Models\UserSidebarFavorite;
 use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Collection;
-use Spatie\Permission\Models\Permission;
 
 class SidebarMenuService
 {
@@ -44,13 +45,11 @@ class SidebarMenuService
                     'title'         => 'Mis Partidas',
                     'route'         => 'bingo.my-games',
                     'permission'    => null,
-                    'exclude_roles' => ['superadmin', 'admin', 'seller', 'commerce', 'subsidiary', 'customer'],
                 ],
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
                     'route' => 'bingo.cards-sold',
                     'permission' => null,
-                    'exclude_roles' => ['player'],
                 ],
                 'bingo_winners' => [
                     'title' => 'Ganadores',
@@ -117,58 +116,46 @@ class SidebarMenuService
                     'title' => 'Tasa de Cambio',
                     'route' => 'exchange-rate.index',
                     'permission' => 'exchange.view',
-                    'exclude_roles' => ['player', 'seller'],
                 ],
                 'my_sellers' => [
                     'title' => 'Mis Vendedores',
                     'route' => 'manager-seller.index',
                     'permission' => 'sellers.view',
-                    'exclude_roles' => ['superadmin', 'admin', 'seller', 'player'], // visible para commerce, subsidiary y customer — subsidiary ya puede gestionar sus sellers vía manager-seller.* (routes/modules/seller.php), solo le faltaba el enlace visible
                 ],
                 'my_subsidiaries' => [
                     'title' => 'Mis Sucursales',
                     'route' => 'admin.subsidiaries',
                     'permission' => 'subsidiaries.view',
-                    'exclude_roles' => ['superadmin', 'seller', 'player'],
                 ],
                 'my_profile_subsidiary' => [
                     'title' => 'Mi Agencia',
                     'route' => 'subsidiary.profile.show',
                     'permission' => 'subsidiaries.manage-own',
-                    'exclude_roles' => ['superadmin', 'admin', 'commerce', 'seller', 'player'],
                 ],
                 'my_profile_commerce' => [
                     'title' => 'Mi Comercio',
                     'route' => 'commerce.profile.show',
                     'permission' => 'commerces.manage-own',
-                    'exclude_roles' => ['superadmin', 'admin', 'subsidiary', 'seller', 'player'],
                 ],
                 'my_profile_seller' => [
                     'title' => 'Mi Perfil',
                     'route' => 'seller.profile.show',
                     'permission' => 'sellers.manage-own',
-                    'exclude_roles' => ['superadmin', 'admin', 'commerce', 'subsidiary', 'player'],
                 ],
                 'my_external_players' => [
                     'title' => 'Jugadores Externos',
                     'route' => 'admin.external-players.index',
                     'permission' => 'external-players.view',
-                    // admin excluido: ya tiene su propia entrada bajo
-                    // Usuarios > Jugadores Externos (permission users.manage) —
-                    // sin duplicar la pantalla en el sidebar.
-                    'exclude_roles' => ['superadmin', 'admin', 'player'],
                 ],
                 'prizes' => [
                     'title' => 'Gestión de Premios',
                     'route' => 'prizes.index',
                     'permission' => 'prizes.view',
-                    'exclude_roles' => ['player', 'seller'],
                 ],
                 'win_events' => [
                     'title' => 'Eventos de Ganancia',
                     'route' => 'admin.win-event.index',
                     'permission' => 'win-events.manage',
-                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
             ],
         ],
@@ -194,6 +181,11 @@ class SidebarMenuService
                     'title' => 'Movimientos',
                     'route' => 'wallet-movements.index',
                     'permission' => 'wallet.movements.view',
+                    // Recalculado también en tiempo real por
+                    // PendingMovementsBadge.vue vía websocket (ver
+                    // sidebar-dynamic.blade.php) — este valor es solo el
+                    // conteo inicial al cargar la página.
+                    'badge_counter' => 'pendingWalletMovementsCount',
                 ],
                 'movement_types' => [
                     'title' => 'Tipos de Movimiento',
@@ -243,7 +235,7 @@ class SidebarMenuService
                 'permissions' => [
                     'title' => 'Permisos',
                     'route' => 'permissions.index',
-                    'permission' => 'superadmin.access', // ya restringe a superadmin, exclude_roles no es necesario aquí
+                    'permission' => 'superadmin.access',
                 ],
                 'all_users' => [
                     'title' => 'Listado',
@@ -270,31 +262,26 @@ class SidebarMenuService
                     'title' => 'Configuración',
                     'route' => 'app-parameters.index',
                     'permission' => 'app-parameters.manage',
-                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
                 'audit' => [
                     'title' => 'Auditoría',
                     'route' => 'audit.index',
                     'permission' => 'audit.view',
-                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
                 'kyc' => [
                     'title' => 'Verificación KYC',
                     'route' => 'admin.kyc.index',
                     'permission' => 'kyc.view',
-                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
                 'logs' => [
                     'title' => 'Logs del Sistema',
                     'route' => 'logs.index',
                     'permission' => 'system.logs',
-                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
                 'jobs' => [
                     'title' => 'Jobs y Scheduler',
                     'route' => 'system.jobs.index',
                     'permission' => 'system.jobs',
-                    'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
                 ],
                 'sidebar_menu' => [
                     'title' => 'Menú del Sidebar',
@@ -308,83 +295,6 @@ class SidebarMenuService
                 ],
             ],
         ],
-        /*
-        'treasury' => [
-            'title' => 'Tesorería',
-            'icon' => 'fas fa-coins',
-            'permission' => 'treasury.view',
-            'submenu' => [
-                'transactions' => [
-                    'title' => 'Transacciones',
-                    'route' => 'treasury.transactions',
-                    'permission' => 'treasury.manage',
-                ],
-                'approvals' => [
-                    'title' => 'Aprobaciones',
-                    'route' => 'treasury.approvals',
-                    'permission' => 'treasury.approve.transactions',
-                ],
-                'exchange_management' => [
-                    'title' => 'Gestión de Cambio',
-                    'route' => 'treasury.exchange',
-                    'permission' => 'exchange.manage',
-                ],
-            ],
-        ],
-        */
-        /*
-        'reports' => [
-            'title' => 'Reportes',
-            'icon' => 'fas fa-chart-bar',
-            'permission' => 'reports.view',
-            'submenu' => [
-                'index' => [
-                    'title' => 'Todos los Reportes',
-                    'route' => 'reports.index',
-                    'permission' => 'reports.view',
-                ],
-                'export' => [
-                    'title' => 'Exportar Reportes',
-                    'route' => 'reports.export',
-                    'permission' => 'reports.export',
-                ],
-            ],
-        ],
-        */
-        /*
-        'system' => [
-            'title' => 'Sistema',
-            'icon' => 'fas fa-cogs',
-            'permission' => 'system.settings',
-            'submenu' => [
-                'settings' => [
-                    'title' => 'Configuración',
-                    'route' => 'system.settings',
-                    'permission' => 'system.settings',
-                ],
-                'maintenance' => [
-                    'title' => 'Mantenimiento',
-                    'route' => 'system.maintenance',
-                    'permission' => 'system.maintenance',
-                ],
-                'logs' => [
-                    'title' => 'Logs del Sistema',
-                    'route' => 'system.logs',
-                    'permission' => 'system.logs',
-                ],
-                'backup' => [
-                    'title' => 'Respaldo',
-                    'route' => 'system.backup',
-                    'permission' => 'system.backup',
-                ],
-                'audit' => [
-                    'title' => 'Auditoría',
-                    'route' => 'system.audit',
-                    'permission' => 'audit.view',
-                ],
-            ],
-        ],
-        */
     ];
 
     /**
@@ -421,10 +331,18 @@ class SidebarMenuService
                             return empty($subitem['permission'])
                                 || in_array($subitem['permission'], $userPermissions);
                         })
-                        ->map(function ($subitem) {
-                            if ($subitem['route'] === 'wallet-movements.index') {
-                                $subitem['badge'] = $this->pendingWalletMovementsCount();
+                        ->map(function ($subitem, $subKey) use ($parentKey, $userRoles) {
+                            if (!empty($subitem['badge_counter'])) {
+                                $subitem['badge'] = $this->resolveBadgeCounter($subitem['badge_counter']);
                             }
+                            // sort_order editable por rol — null = orden
+                            // natural del array (ver sortOrderForRoles()).
+                            $subitem['_sortOrder'] = $this->sortOrderForRoles("{$parentKey}.{$subKey}", $userRoles);
+                            return $subitem;
+                        })
+                        ->sortBy(fn ($subitem) => $subitem['_sortOrder'] ?? PHP_INT_MAX)
+                        ->map(function ($subitem) {
+                            unset($subitem['_sortOrder']);
                             return $subitem;
                         })
                         ->values()
@@ -478,7 +396,11 @@ class SidebarMenuService
                 }
 
                 return true;
-            });
+            })
+            // sort_order editable por rol a nivel raíz — mismo criterio que
+            // el submenu, null = orden natural del array. sortBy() preserva
+            // las claves string (necesarias para el @foreach del Blade).
+            ->sortBy(fn ($item, $key) => $this->sortOrderForRoles($key, $userRoles) ?? PHP_INT_MAX);
     }
 
     /**
@@ -516,6 +438,16 @@ class SidebarMenuService
     private ?array $itemRoleVisibility = null;
 
     /**
+     * Set de "item_key:role_name" => sort_order, misma forma y mismo query
+     * que $itemRoleVisibility (comparten el resultado de una sola llamada a
+     * loadVisibilityAndOrder()) — null = sin override, usa el orden natural
+     * de $menuStructure.
+     *
+     * @var array<string, int|null>|null
+     */
+    private ?array $itemRoleSortOrder = null;
+
+    /**
      * Reemplaza el filtro `exclude_roles` (antes hardcodeado en
      * $menuStructure) por la fuente de verdad editable en BD
      * (SidebarMenuVisibility). Sin fila para (itemKey, roleName) => visible
@@ -535,14 +467,7 @@ class SidebarMenuService
      */
     private function isVisibleForRoles(string $itemKey, array $userRoles): bool
     {
-        if ($this->itemRoleVisibility === null) {
-            $this->itemRoleVisibility = SidebarMenuVisibility::query()
-                ->join('roles', 'roles.id', '=', 'sidebar_menu_visibilities.role_id')
-                ->select('sidebar_menu_visibilities.item_key', 'roles.name', 'sidebar_menu_visibilities.is_visible')
-                ->get()
-                ->mapWithKeys(fn ($row) => ["{$row->item_key}:{$row->name}" => (bool) $row->is_visible])
-                ->all();
-        }
+        $this->loadVisibilityAndOrder();
 
         foreach ($userRoles as $roleName) {
             if ($this->itemRoleVisibility["{$itemKey}:{$roleName}"] ?? true) {
@@ -551,6 +476,54 @@ class SidebarMenuService
         }
 
         return false;
+    }
+
+    /**
+     * Orden explícito de un item para el usuario actual, o null si ningún
+     * rol del usuario tiene override (queda en el orden natural del array).
+     * Con varios roles y varios overrides, se usa el menor (aparece antes)
+     * — mismo criterio "más permisivo gana" que isVisibleForRoles().
+     *
+     * @param string[] $userRoles
+     */
+    private function sortOrderForRoles(string $itemKey, array $userRoles): ?int
+    {
+        $this->loadVisibilityAndOrder();
+
+        $orders = [];
+        foreach ($userRoles as $roleName) {
+            $order = $this->itemRoleSortOrder["{$itemKey}:{$roleName}"] ?? null;
+            if ($order !== null) {
+                $orders[] = $order;
+            }
+        }
+
+        return $orders === [] ? null : min($orders);
+    }
+
+    private function loadVisibilityAndOrder(): void
+    {
+        if ($this->itemRoleVisibility !== null) {
+            return;
+        }
+
+        $rows = SidebarMenuVisibility::query()
+            ->join('roles', 'roles.id', '=', 'sidebar_menu_visibilities.role_id')
+            ->select(
+                'sidebar_menu_visibilities.item_key',
+                'roles.name',
+                'sidebar_menu_visibilities.is_visible',
+                'sidebar_menu_visibilities.sort_order'
+            )
+            ->get();
+
+        $this->itemRoleVisibility = $rows
+            ->mapWithKeys(fn ($row) => ["{$row->item_key}:{$row->name}" => (bool) $row->is_visible])
+            ->all();
+
+        $this->itemRoleSortOrder = $rows
+            ->mapWithKeys(fn ($row) => ["{$row->item_key}:{$row->name}" => $row->sort_order !== null ? (int) $row->sort_order : null])
+            ->all();
     }
 
     /**
@@ -644,33 +617,68 @@ class SidebarMenuService
     }
 
     /**
-     * Construye el rastro de breadcrumbs según la ruta activa.
+     * Métodos de este servicio invocables desde `badge_counter` en
+     * $menuStructure — declarar uno nuevo aquí es todo lo que hace falta
+     * para que un subitem muestre un badge dinámico (ver generateMenu()).
+     *
+     * @var array<string, string>
+     */
+    private const BADGE_COUNTERS = [
+        'pendingWalletMovementsCount' => 'pendingWalletMovementsCount',
+    ];
+
+    private function resolveBadgeCounter(string $counter): int
+    {
+        $method = self::BADGE_COUNTERS[$counter] ?? null;
+
+        return $method ? $this->{$method}() : 0;
+    }
+
+    /**
+     * Construye el rastro de breadcrumbs según la ruta activa. Recorre
+     * $menuStructure recursivamente (vía findActiveTrail()) en vez de
+     * asumir un máximo de 2 niveles fijos — soporta cualquier profundidad
+     * de 'submenu' anidado sin cambios si el árbol crece.
      */
     public function getBreadcrumb(): array
     {
-        $breadcrumb = [
-            ['title' => 'Tablero', 'route' => 'dashboard'],
-        ];
+        $trail = $this->findActiveTrail($this->menuStructure);
 
-        foreach ($this->menuStructure as $item) {
+        if ($trail === null) {
+            return [['title' => 'Tablero', 'route' => 'dashboard']];
+        }
+
+        return [
+            ['title' => 'Tablero', 'route' => 'dashboard'],
+            ...$trail,
+        ];
+    }
+
+    /**
+     * Busca la ruta activa dentro de un nivel de items (y sus 'submenu'
+     * anidados, si los hay) y devuelve el trail de breadcrumb desde ese
+     * nivel hasta el item activo, o null si ninguno está activo aquí.
+     *
+     * @param array<string, array> $items
+     * @return array<int, array{title: string, route: string|null}>|null
+     */
+    private function findActiveTrail(array $items): ?array
+    {
+        foreach ($items as $item) {
             if (isset($item['submenu'])) {
-                foreach ($item['submenu'] as $subitem) {
-                    if (!empty($subitem['route']) && $this->isActive($subitem['route'])) {
-                        $breadcrumb[] = ['title' => $item['title'], 'route' => null];
-                        $breadcrumb[] = ['title' => $subitem['title'], 'route' => $subitem['route']];
-                        return $breadcrumb;
-                    }
+                $childTrail = $this->findActiveTrail($item['submenu']);
+                if ($childTrail !== null) {
+                    return [['title' => $item['title'], 'route' => null], ...$childTrail];
                 }
                 continue;
             }
 
-            if (!empty($item['route']) && $this->isActive($item['route']) && $item['route'] !== 'dashboard') {
-                $breadcrumb[] = ['title' => $item['title'], 'route' => $item['route']];
-                return $breadcrumb;
+            if (!empty($item['route']) && $item['route'] !== 'dashboard' && $this->isActive($item['route'])) {
+                return [['title' => $item['title'], 'route' => $item['route']]];
             }
         }
 
-        return $breadcrumb;
+        return null;
     }
 
     /**
@@ -704,5 +712,52 @@ class SidebarMenuService
         }
 
         return $flat;
+    }
+
+    /**
+     * Accesos directos del usuario para la sección "Favoritos" del sidebar
+     * (ver sidebar-dynamic.blade.php). Resuelve cada item_key guardado
+     * contra el árbol YA FILTRADO de generateMenu() —no contra
+     * $menuStructure crudo— para que un favorito a un item que el usuario
+     * perdió por rol/permiso/módulo desactivado simplemente deje de
+     * aparecer, sin dejar una fila huérfana visible ni requerir limpieza
+     * de la tabla user_sidebar_favorites.
+     *
+     * @return array<int, array{item_key: string, title: string, url: string}>
+     */
+    public function getFavorites(User $user): array
+    {
+        $favoriteKeys = UserSidebarFavorite::query()
+            ->where('user_id', $user->id)
+            ->orderBy('sort_order')
+            ->pluck('item_key');
+
+        if ($favoriteKeys->isEmpty()) {
+            return [];
+        }
+
+        $visibleByKey = $this->generateMenu()
+            ->flatMap(function (array $item, string $parentKey) {
+                $rows = [];
+                if (!empty($item['route'])) {
+                    $rows[$parentKey] = ['title' => $item['title'], 'route' => $item['route']];
+                }
+                foreach ($item['submenu'] ?? [] as $subKey => $subitem) {
+                    if (!empty($subitem['route'])) {
+                        $rows["{$parentKey}.{$subKey}"] = ['title' => $subitem['title'], 'route' => $subitem['route']];
+                    }
+                }
+                return $rows;
+            });
+
+        return $favoriteKeys
+            ->filter(fn (string $key) => $visibleByKey->has($key))
+            ->map(fn (string $key) => [
+                'item_key' => $key,
+                'title'    => $visibleByKey[$key]['title'],
+                'url'      => route($visibleByKey[$key]['route']),
+            ])
+            ->values()
+            ->all();
     }
 }

@@ -103,6 +103,15 @@
                     @change="$emit('toggle-visibility', item.key, role.id)"
                   />
                 </div>
+                <input
+                  type="number"
+                  class="sort-order-input"
+                  :value="getSortOrder(item.key, role.id)"
+                  :disabled="saving"
+                  placeholder="—"
+                  :title="`Orden para ${formatRoleName(role.name)} (vacío = orden natural)`"
+                  @change="handleSortOrderChange($event, item.key, role.id)"
+                />
               </div>
             </template>
           </template>
@@ -136,6 +145,14 @@
                   @change="$emit('toggle-visibility', item.key, role.id)"
                 />
                 <RoleBadge :name="role.name" />
+                <input
+                  type="number"
+                  class="sort-order-input"
+                  :value="getSortOrder(item.key, role.id)"
+                  :disabled="saving"
+                  placeholder="orden"
+                  @change="handleSortOrderChange($event, item.key, role.id)"
+                />
               </label>
             </div>
           </div>
@@ -175,13 +192,20 @@ const props = defineProps<{
   hasChanges: boolean
   pendingChangeCount?: number
   isVisible: (itemKey: string, roleId: string) => boolean
+  getSortOrder: (itemKey: string, roleId: string) => number | null
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-visibility', itemKey: string, roleId: string): void
+  (e: 'set-sort-order', itemKey: string, roleId: string, value: number | null): void
   (e: 'reload'): void
   (e: 'save'): void
 }>()
+
+function handleSortOrderChange(event: Event, itemKey: string, roleId: string) {
+  const raw = (event.target as HTMLInputElement).value.trim()
+  emit('set-sort-order', itemKey, roleId, raw === '' ? null : Number(raw))
+}
 
 const saving = ref(false)
 const search = ref('')
@@ -447,10 +471,23 @@ async function handleSave() {
 .cell-module { color: var(--ds-text-muted); }
 .module-badge { font-weight: 500; font-family: monospace; font-size: 0.72rem; }
 
-.cell-role { justify-content: center; }
+.cell-role { justify-content: center; gap: 0.35rem; flex-direction: column; }
 
 .custom-checkbox-wrapper { display: flex; justify-content: center; align-items: center; }
 .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #34d399; }
+
+.sort-order-input {
+  width: 44px;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.72rem;
+  text-align: center;
+  border: 1px solid var(--ds-border);
+  border-radius: 6px;
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+.sort-order-input:disabled { cursor: not-allowed; opacity: 0.6; }
+.mobile-role-toggle .sort-order-input { width: 56px; margin-left: auto; }
 .custom-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
 
 .bulk-checkbox-wrapper { display: flex; align-items: center; cursor: pointer; }

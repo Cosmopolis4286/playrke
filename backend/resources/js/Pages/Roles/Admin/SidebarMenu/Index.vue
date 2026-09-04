@@ -29,7 +29,9 @@
               :has-changes="hasChanges"
               :pending-change-count="pendingChangeCount"
               :is-visible="isVisible"
+              :get-sort-order="getSortOrder"
               @toggle-visibility="toggleVisibility"
+              @set-sort-order="setSortOrder"
               @reload="reload"
               @save="handleSave"
             />
@@ -67,9 +69,16 @@ const {
   pendingChangeCount,
   isVisible,
   toggleVisibility,
+  getSortOrder,
+  setSortOrder,
   reload,
   saveChanges,
-} = useSidebarMenuVisibility({ items: props.items, roles: props.roles, visibility: props.visibility })
+} = useSidebarMenuVisibility({
+  items: props.items,
+  roles: props.roles,
+  visibility: props.visibility,
+  sortOrder: props.sortOrder,
+})
 
 const stats = computed(() => ({
   totalItems: items.value.length,

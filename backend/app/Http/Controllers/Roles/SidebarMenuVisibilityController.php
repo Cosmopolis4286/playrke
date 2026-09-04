@@ -34,6 +34,7 @@ final class SidebarMenuVisibilityController extends Controller
             'items'      => $this->service->getMenuItems(),
             'roles'      => $this->service->getRoles(),
             'visibility' => $this->service->getVisibilityMatrix(),
+            'sortOrder'  => $this->service->getSortOrderMatrix(),
         ]);
     }
 
@@ -48,11 +49,12 @@ final class SidebarMenuVisibilityController extends Controller
             'items'      => $this->service->getMenuItems(),
             'roles'      => $this->service->getRoles(),
             'visibility' => $this->service->getVisibilityMatrix(),
+            'sortOrder'  => $this->service->getSortOrderMatrix(),
         ]);
     }
 
     /**
-     * Guardar un lote de cambios de visibilidad.
+     * Guardar un lote de cambios de visibilidad y/o orden.
      */
     public function saveChanges(Request $request): JsonResponse
     {
@@ -62,7 +64,8 @@ final class SidebarMenuVisibilityController extends Controller
             'changes'                 => 'required|array',
             'changes.*.item_key'      => 'required|string',
             'changes.*.role_id'       => 'required|string|exists:roles,id',
-            'changes.*.is_visible'    => 'required|boolean',
+            'changes.*.is_visible'    => 'sometimes|boolean',
+            'changes.*.sort_order'    => 'sometimes|nullable|integer',
         ]);
 
         $this->service->applyChanges($validated['changes']);

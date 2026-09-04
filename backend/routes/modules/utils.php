@@ -4,6 +4,8 @@
 
 use App\Http\Controllers\Games\GameController;
 use App\Http\Controllers\Prizes\PrizeController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SidebarFavoriteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -12,6 +14,27 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Funciones auxiliares: cookies, juegos generales, recompensas.
 */
+
+// ====================================
+// BÚSQUEDA GLOBAL (navbar)
+// ====================================
+Route::get('/search', [SearchController::class, 'search'])
+    ->middleware(['auth', 'web', 'throttle:30,1'])
+    ->name('search');
+
+// ====================================
+// FAVORITOS DEL SIDEBAR
+// ====================================
+// {itemKey} incluye '.' (formato 'parent.child') — regex explícito porque
+// el patrón por defecto de Laravel excluye '/' pero no requiere permitir
+// '.', y RouteServiceProvider no declara un pattern global para esto.
+Route::middleware(['auth', 'web'])->group(function () {
+    Route::post('/sidebar/favorites', [SidebarFavoriteController::class, 'store'])
+        ->name('sidebar.favorites.store');
+    Route::delete('/sidebar/favorites/{itemKey}', [SidebarFavoriteController::class, 'destroy'])
+        ->where('itemKey', '[A-Za-z0-9_.-]+')
+        ->name('sidebar.favorites.destroy');
+});
 
 // ====================================
 // MANEJO DE COOKIES
