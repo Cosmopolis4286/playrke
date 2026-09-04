@@ -118,6 +118,19 @@ return [
     'BINGO_ROOM_INVALID_ROOM_TYPE' => 'The selected room type is not valid.',
     'BINGO_ROOM_INVALID_GAME_MODE' => 'The selected game mode is not valid.',
     'BINGO_ROOM_INVALID_PRIZE_POOL_TYPE' => 'The selected prize pool type is not valid.',
+    'BINGO_ROOM_EXPIRED_STATUS_LOCKED' => 'You cannot change the status of a room whose date/time has already expired.',
+    'BINGO_ROOM_HAS_PLAYERS' => 'You cannot delete a room that already has registered players.',
+    'BINGO_ROOM_ACTIVATION_NOT_ALLOWED' => 'Only rooms without a scheduled time can be activated manually.',
+    'BINGO_ROOM_ACTIVATION_FORBIDDEN' => 'You do not have permission to activate this room.',
+    'BINGO_ROOM_ACTIVATION_INVALID_STATE' => 'Only rooms in ACTIVE status whose draw has not started can be activated manually.',
+    'BINGO_ROOM_SCHEDULE_START_INVALID_DATE' => 'The start date and time must be at least 10 minutes after the current time.',
+    'BINGO_ROOM_MIN_CARDS_NOT_REACHED' => 'The room requires at least :required cards sold to start (currently has :current).',
+    'BINGO_ROOM_MIN_PLAYERS_NOT_REACHED' => 'The room requires at least :required players to start (currently has :current).',
+    'BINGO_ROOM_FULL' => 'The room has reached its maximum player limit.',
+    'BINGO_ROOM_CARD_LIMIT_PARTIAL' => 'This room only allows :remaining more card(s) (you requested :requested).',
+    'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'This room has already reached its available card limit.',
+    'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'You cannot remove :currencies: it already has cards sold in this room.',
+    'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'You can only edit a room whose draw has not started or finished.',
 
     // Bingo patterns (games/bingo/pattern)
     'BINGO_PATTERN_DUPLICATE_NAME' => 'A pattern with that name already exists.',
@@ -138,6 +151,9 @@ return [
     'BINGO_CARD_UNAUTHORIZED' => 'You do not have permission to perform this action.',
     'BINGO_CARD_CUSTOM_NOT_ALLOWED' => 'This room does not allow custom cards.',
     'BINGO_CARD_CUSTOM_EXCEEDS_COUNT' => 'The number of custom cards exceeds the total requested count.',
+    'BINGO_CARD_CUSTOM_EXCEED_EVERY_X_LIMIT' => 'With this number of cards you can only customize :max.',
+    'BINGO_CARD_CUSTOM_MATRIX_INVALID' => 'Card #:position: :error',
+    'BINGO_CARD_INSUFFICIENT_BALANCE' => 'Insufficient wallet balance. Current balance: :balance, Required amount: :required',
     'BINGO_CARD_NO_ACTIVE_WALLET' => 'You do not have an active wallet for this purchase.',
 
     // Wallet (generic, App\Domains\Wallet\Exceptions)

@@ -100,12 +100,17 @@ final class BingoCardGenerateException extends DomainException
 
     public static function customCardsExceedEveryXLimit(int $maxAllowed): self
     {
-        return new self("Con esta cantidad de cartones solo puedes personalizar {$maxAllowed}.", 422);
+        return new self('BINGO_CARD_CUSTOM_EXCEED_EVERY_X_LIMIT', 422, replacements: [
+            'max' => $maxAllowed,
+        ]);
     }
 
     public static function customCardMatrixInvalid(int $position, string $error): self
     {
-        return new self("Cartón #{$position}: {$error}", 422);
+        return new self('BINGO_CARD_CUSTOM_MATRIX_INVALID', 422, replacements: [
+            'position' => $position,
+            'error'    => $error,
+        ]);
     }
 
     public static function noActiveWallet(): self
@@ -115,9 +120,9 @@ final class BingoCardGenerateException extends DomainException
 
     public static function insufficientBalance(float $currentBalance, float $requiredAmount): self
     {
-        return new self(
-            "Saldo insuficiente en la billetera. Saldo actual: {$currentBalance}, Monto requerido: {$requiredAmount}",
-            422,
-        );
+        return new self('BINGO_CARD_INSUFFICIENT_BALANCE', 422, replacements: [
+            'balance'  => $currentBalance,
+            'required' => $requiredAmount,
+        ]);
     }
 }

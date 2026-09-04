@@ -118,6 +118,19 @@ return [
     'BINGO_ROOM_INVALID_ROOM_TYPE' => 'El tipo de sala seleccionado no es válido.',
     'BINGO_ROOM_INVALID_GAME_MODE' => 'El modo de juego seleccionado no es válido.',
     'BINGO_ROOM_INVALID_PRIZE_POOL_TYPE' => 'El tipo de bote seleccionado no es válido.',
+    'BINGO_ROOM_EXPIRED_STATUS_LOCKED' => 'No puedes cambiar el estado de una sala cuya fecha/hora ya expiró.',
+    'BINGO_ROOM_HAS_PLAYERS' => 'No puedes eliminar una sala que ya tiene jugadores registrados.',
+    'BINGO_ROOM_ACTIVATION_NOT_ALLOWED' => 'Solo las salas sin horario programado pueden activarse manualmente.',
+    'BINGO_ROOM_ACTIVATION_FORBIDDEN' => 'No tienes permiso para activar esta sala.',
+    'BINGO_ROOM_ACTIVATION_INVALID_STATE' => 'Solo se pueden activar manualmente salas en estado ACTIVE cuyo sorteo no haya iniciado.',
+    'BINGO_ROOM_SCHEDULE_START_INVALID_DATE' => 'La fecha y hora de inicio deben ser al menos 10 minutos posteriores al momento actual.',
+    'BINGO_ROOM_MIN_CARDS_NOT_REACHED' => 'La sala requiere al menos :required cartones vendidos para iniciar (actualmente tiene :current).',
+    'BINGO_ROOM_MIN_PLAYERS_NOT_REACHED' => 'La sala requiere al menos :required jugadores para iniciar (actualmente tiene :current).',
+    'BINGO_ROOM_FULL' => 'La sala ha alcanzado el límite máximo de jugadores.',
+    'BINGO_ROOM_CARD_LIMIT_PARTIAL' => 'Esta sala solo admite :remaining cartón(es) más (solicitaste :requested).',
+    'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'Esta sala ya alcanzó su tope de cartones disponibles.',
+    'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'No puedes quitar :currencies: ya tiene cartones vendidos en esta sala.',
+    'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'Solo se puede editar una sala cuyo sorteo no ha iniciado ni finalizado.',
 
     // Patrones de Bingo (games/bingo/pattern)
     'BINGO_PATTERN_DUPLICATE_NAME' => 'Ya existe un patrón con ese nombre.',
@@ -138,6 +151,9 @@ return [
     'BINGO_CARD_UNAUTHORIZED' => 'No tienes permiso para realizar esta acción.',
     'BINGO_CARD_CUSTOM_NOT_ALLOWED' => 'Esta sala no permite cartones personalizados.',
     'BINGO_CARD_CUSTOM_EXCEEDS_COUNT' => 'La cantidad de cartones personalizados excede la cantidad total solicitada.',
+    'BINGO_CARD_CUSTOM_EXCEED_EVERY_X_LIMIT' => 'Con esta cantidad de cartones solo puedes personalizar :max.',
+    'BINGO_CARD_CUSTOM_MATRIX_INVALID' => 'Cartón #:position: :error',
+    'BINGO_CARD_INSUFFICIENT_BALANCE' => 'Saldo insuficiente en la billetera. Saldo actual: :balance, Monto requerido: :required',
     'BINGO_CARD_NO_ACTIVE_WALLET' => 'No tienes una billetera activa para esta compra.',
 
     // Wallet (genérico, App\Domains\Wallet\Exceptions)

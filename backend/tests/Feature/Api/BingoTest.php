@@ -369,11 +369,15 @@ class BingoTest extends TestCase
             ]);
 
         // playerBuyFromGameRooms() lanza BingoCardGenerateException::insufficientBalance(),
-        // una App\Exceptions\Domain\DomainException real -- el Handler la mapea a JSON vía
-        // renderDomainException()/resolveStatusCode(). El mensaje libre (sin código
-        // SCREAMING_SNAKE_CASE registrado) cae al fallback HTTP_BAD_REQUEST (400).
-        $response->assertStatus(400);
-        $this->assertStringContainsString('Saldo insuficiente', $response->json('message') ?? '');
+        // que declara su propio status 422 (ver bootstrap/app.php rama 1 —
+        // DomainException custom usa httpStatus()/errorCode() propios, nunca
+        // un fallback centralizado). BINGO_CARD_INSUFFICIENT_BALANCE ahora es
+        // un error-code traducible (antes mensaje humano directo en español
+        // hardcodeado) — .env.testing fija APP_LOCALE=en, así que el mensaje
+        // real ahora sale en inglés vía lang/en/errors.php (placeholders
+        // :balance/:required), no en español.
+        $response->assertStatus(422);
+        $this->assertStringContainsString('Insufficient wallet balance', $response->json('message') ?? '');
     }
 
     /** @test */

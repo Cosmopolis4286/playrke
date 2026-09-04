@@ -36,15 +36,30 @@ abstract class DomainException extends RuntimeException
      */
     protected int $httpStatus;
 
+    /**
+     * Placeholders para trans() cuando $errorCode es un ERROR_CODE MAYUSC
+     * traducible con datos dinámicos (ej. 'BINGO_ROOM_MIN_CARDS_NOT_REACHED'
+     * con ['required' => 50, 'current' => 12], traducido a "La sala
+     * requiere al menos :required cartones..." vía lang/{locale}/errors.php).
+     * Vacío por defecto — la mayoría de error-codes no llevan datos
+     * dinámicos, y los mensajes humanos directos (sin traducción) los
+     * llevan ya interpolados en el propio string.
+     *
+     * @var array<string, mixed>
+     */
+    protected array $replacements;
+
     public function __construct(
         string $errorCode,
         int $httpStatus = 422,
-        ?Throwable $previous = null
+        ?Throwable $previous = null,
+        array $replacements = [],
     ) {
         parent::__construct($errorCode, 0, $previous);
 
         $this->errorCode = $errorCode;
         $this->httpStatus = $httpStatus;
+        $this->replacements = $replacements;
     }
 
     /**
@@ -61,5 +76,15 @@ abstract class DomainException extends RuntimeException
     public function httpStatus(): int
     {
         return $this->httpStatus;
+    }
+
+    /**
+     * Placeholders para resolver la traducción de errorCode() vía trans().
+     *
+     * @return array<string, mixed>
+     */
+    public function replacements(): array
+    {
+        return $this->replacements;
     }
 }

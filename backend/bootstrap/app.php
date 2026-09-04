@@ -123,7 +123,7 @@ return Application::configure(
         $exceptions->render(function (DomainException $e, $request) use ($wantsJson, $renderInertiaError) {
             $handler = app(\App\Exceptions\Handler::class);
             $errorCode = $e->getMessage();
-            $message = $handler->resolveMessage($errorCode);
+            $message = $handler->resolveMessage($errorCode, $e->replacements());
             $status = $e->httpStatus();
 
             if ($wantsJson($request)) {

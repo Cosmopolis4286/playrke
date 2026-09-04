@@ -38,13 +38,18 @@ class Handler extends ExceptionHandler
      * nunca se activaba, así que todo mensaje humano directo (sin traducción
      * en errors.php) le mostraba al usuario el string "errors.El mensaje
      * real aquí." en vez del mensaje real.
+     *
+     * @param array<string, mixed> $replacements Placeholders `:nombre` para
+     *        error-codes con datos dinámicos (ver DomainException::$replacements).
+     *        Ignorado si $errorCode no tiene traducción (mensaje humano directo
+     *        ya lleva sus datos interpolados en el propio string).
      */
-    public function resolveMessage(string $errorCode) : string
+    public function resolveMessage(string $errorCode, array $replacements = []) : string
     {
         $key = "errors.{$errorCode}";
 
         return Lang::has($key, app()->getLocale())
-            ? trans($key, [], app()->getLocale())
+            ? trans($key, $replacements, app()->getLocale())
             : $errorCode;
     }
 }
