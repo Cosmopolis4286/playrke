@@ -48,8 +48,10 @@ services:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
     volumes:
       - ./app:/var/www/app
+      - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
       - ./database:/var/www/database
+      - ./lang:/var/www/lang
       - ./resources:/var/www/resources
       - ./routes:/var/www/routes
       - ./tests:/var/www/tests
@@ -174,6 +176,7 @@ services:
       - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
       - ./database:/var/www/database
+      - ./lang:/var/www/lang
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
@@ -203,6 +206,7 @@ services:
       - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
       - ./database:/var/www/database
+      - ./lang:/var/www/lang
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
@@ -228,6 +232,7 @@ services:
       - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
       - ./database:/var/www/database
+      - ./lang:/var/www/lang
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage

@@ -49,9 +49,16 @@ class WalletLimit extends Model
     {
         $catalog = Cache::remember(self::CACHE_KEY, 3600, fn () => static::query()->where('is_active', true)->get());
 
+        // currency_id es un foreignId (unsignedBigInteger) sin cast declarado
+        // en $casts — PDO puede devolverlo como int o string según el driver/
+        // entorno (confirmado: difiere entre CLI local y el contenedor Docker
+        // de test). $currencyId (snowflake) llega siempre como string —
+        // comparar con === sin normalizar ambos lados a string hace que el
+        // match falle en silencio cuando el driver castea a int, y resolve()
+        // devuelve null pese a existir la fila.
         return $catalog
             ->where('kyc_level', $kycLevel)
-            ->filter(fn (self $limit) => $limit->currency_id === $currencyId || $limit->currency_id === null)
+            ->filter(fn (self $limit) => $limit->currency_id === null || (string) $limit->currency_id === $currencyId)
             ->sortBy(fn (self $limit) => $limit->currency_id === null ? 1 : 0) // específico primero
             ->first();
     }

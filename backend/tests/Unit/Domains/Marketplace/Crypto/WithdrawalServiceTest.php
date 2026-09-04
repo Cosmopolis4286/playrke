@@ -46,6 +46,7 @@ class WithdrawalServiceTest extends TestCase
                 'is_active' => true,
             ],
         );
+        WalletLimit::forgetCatalogCache();
 
         $this->user = User::factory()->create();
         $this->admin = User::factory()->create();
