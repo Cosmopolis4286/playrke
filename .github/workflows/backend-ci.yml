@@ -1,0 +1,194 @@
+name: Backend CI
+
+# Workflow real, acotado a lo que este proyecto realmente tiene — reemplaza
+# backend-ci.yml.backup (nunca activado: dependía de phpstan/rector/enlightn
+# no instalados y de secretos de deploy/Docker Hub que no existen en este
+# repo). Este corre lo que sí existe: el test suite PHP real (con los 3
+# servicios que realmente usa — MySQL, Postgres para Trivia, Redis — según
+# phpunit.xml/.env.example), el check de traducciones de error-codes
+# (check:domain-error-translations, nace de la auditoría de excepciones: sin
+# esto en CI, un dominio nuevo puede quedar sin traducción durante meses sin
+# que nadie lo note, como ya pasó una vez), Pint (el único linter PHP
+# realmente instalado), y lint/typecheck del frontend.
+
+on:
+  push:
+    branches: [master, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  PHP_VERSION: '8.4'
+  NODE_VERSION: '20'
+
+jobs:
+  backend-tests:
+    name: Backend tests (PHPUnit)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: playrke_testing
+          MYSQL_USER: playrke_user
+          MYSQL_PASSWORD: playrke_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s --health-timeout=5s --health-retries=6
+
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: trivia_testing
+          POSTGRES_USER: trivia
+          POSTGRES_PASSWORD: trivia
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U trivia"
+          --health-interval=10s --health-timeout=5s --health-retries=6
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s --health-timeout=5s --health-retries=6
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, pdo_pgsql, bcmath, intl, gd, redis
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      # backend/.env.testing está en .gitignore (no llega en el checkout) y,
+      # aun si llegara, sus hosts (mysql/postgres/redis) son nombres de
+      # servicio de docker-compose.dev.yml — en un runner de GitHub Actions
+      # los "services" de este workflow se exponen en 127.0.0.1, no por
+      # nombre de contenedor. Se genera aquí con los mismos valores reales
+      # del archivo de dev (ver ese archivo para el porqué de cada uno) pero
+      # apuntando a localhost. tests/bootstrap.php exige que este archivo
+      # exista y que DB_DATABASE/DB_TRIVIA_DATABASE contengan la palabra
+      # "testing" — ambos ya la tienen.
+      - name: Prepare .env.testing
+        working-directory: backend
+        run: |
+          cat > .env.testing << 'EOF'
+          APP_NAME="PlayRKE"
+          APP_ENV=testing
+          APP_KEY=base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
+          APP_DEBUG=true
+          APP_URL=http://localhost:8000
+          APP_TIMEZONE=America/Caracas
+          APP_LOCALE=en
+          APP_FALLBACK_LOCALE=en
+          APP_FAKER_LOCALE=en_US
+          SESSION_DRIVER=array
+          SESSION_LIFETIME=120
+          SESSION_ENCRYPT=false
+          SANCTUM_STATEFUL_DOMAINS=localhost,localhost:8000,127.0.0.1,127.0.0.1:8000
+          DB_CONNECTION=mysql
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=playrke_testing
+          DB_USERNAME=playrke_user
+          DB_PASSWORD=playrke_password
+          DB_TRIVIA_HOST=127.0.0.1
+          DB_TRIVIA_PORT=5432
+          DB_TRIVIA_DATABASE=trivia_testing
+          DB_TRIVIA_USERNAME=trivia
+          DB_TRIVIA_PASSWORD=trivia
+          DB_TRIVIA_SCHEMA=public
+          CACHE_STORE=array
+          QUEUE_CONNECTION=sync
+          BCRYPT_ROUNDS=4
+          LOG_CHANNEL=stack
+          LOG_STACK=single
+          LOG_LEVEL=debug
+          REDIS_CLIENT=phpredis
+          REDIS_HOST=127.0.0.1
+          REDIS_PASSWORD=null
+          REDIS_PORT=6379
+          FILESYSTEM_DISK=local
+          MAIL_MAILER=array
+          MAIL_FROM_ADDRESS="test@playrke.local"
+          MAIL_FROM_NAME="PlayRKE"
+          BROADCAST_DRIVER=log
+          TELESCOPE_ENABLED=false
+          EOF
+
+      - name: Run test suite
+        working-directory: backend
+        run: php artisan test
+
+      # Nace de la auditoría de excepciones: dominios completos (Bingo,
+      # AdminSubsidiary) quedaron sin ninguna traducción de error-code
+      # durante meses sin que nada lo detectara. Este check falla el build
+      # si vuelve a pasar.
+      - name: Check domain error translations
+        working-directory: backend
+        run: php artisan check:domain-error-translations
+
+      - name: Check code style (Pint)
+        working-directory: backend
+        run: ./vendor/bin/pint --test
+
+  frontend-checks:
+    name: Frontend checks (typecheck + lint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Monorepo pnpm (workspaces backend+frontend, ver pnpm-workspace.yaml
+      # en la raíz) — el lockfile vive en la raíz del repo, NO en backend/.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (vue-tsc)
+        working-directory: backend
+        run: pnpm run typecheck
+
+      # Sin --fix (el script "lint" de package.json sí lo usa para uso local
+      # de los devs) — en CI debe FALLAR si hay problemas, no modificar
+      # archivos silenciosamente en un runner efímero.
+      - name: Lint (ESLint)
+        working-directory: backend
+        run: pnpm exec eslint . --ext .vue,.ts,.js
