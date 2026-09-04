@@ -6,6 +6,8 @@ namespace App\Domains\Wallet\Models;
 
 use App\Models\Currency;
 use App\Models\User;
+use Database\Factories\WalletFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +38,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Wallet extends Model
 {
     use \App\Traits\SnowflakeId, HasFactory;
+
+    /**
+     * HasFactory resuelve por convención Database\Factories\{namespace tras
+     * App\}\{Modelo}Factory — para este modelo eso sería
+     * Database\Factories\Domains\Wallet\Models\WalletFactory, que no existe:
+     * la factory real vive en Database\Factories\WalletFactory (namespace
+     * plano, nunca actualizado al mover el modelo a app/Domains/Wallet/).
+     * Sobreescribir newFactory() evita depender de esa convención rota.
+     */
+    protected static function newFactory(): Factory
+    {
+        return WalletFactory::new();
+    }
 
     /**
      * Estados de wallet disponibles
