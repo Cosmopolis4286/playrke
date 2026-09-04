@@ -39,7 +39,7 @@
 
   /** Clave de rol normalizada para variar el acento de color del banner */
   const accentKey = computed<string>(() => {
-    const known = ['superadmin', 'admin', 'treasurer', 'seller', 'commerce', 'player']
+    const known = ['superadmin', 'admin', 'treasurer', 'seller', 'commerce', 'subsidiary', 'player']
     return known.includes(props.roleKey) ? props.roleKey : 'default'
   })
 </script>
@@ -125,6 +125,7 @@
 .wb--treasurer  { --wb-accent: linear-gradient(180deg, #10b981, #059669); }
 .wb--seller     { --wb-accent: linear-gradient(180deg, #ec4899, #db2777); }
 .wb--commerce   { --wb-accent: linear-gradient(180deg, #3b82f6, #2563eb); }
+.wb--subsidiary { --wb-accent: linear-gradient(180deg, #14b8a6, #0d9488); }
 .wb--player     { --wb-accent: linear-gradient(180deg, #8b5cf6, #6366f1); }
 .wb--default    { --wb-accent: #667eea; }
 

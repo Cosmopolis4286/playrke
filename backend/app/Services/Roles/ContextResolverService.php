@@ -28,6 +28,7 @@ final class ContextResolverService
         private readonly \App\Services\Roles\Player\Dashboard\PlayerDashboardContextService   $playerDashboardContextService,
         private readonly \App\Services\Roles\Commerce\Dashboard\CommerceDashboardContextService $commerceDashboardContextService,
         private readonly \App\Services\Roles\Seller\Dashboard\SellerDashboardContextService   $sellerDashboardContextService,
+        private readonly \App\Services\Roles\Subsidiary\Dashboard\SubsidiaryDashboardContextService $subsidiaryDashboardContextService,
     ) {}
 
     /**
@@ -46,6 +47,7 @@ final class ContextResolverService
             'player_dashboard'               => $this->playerDashboardContextService->dashboardContext(),
             'commerce_dashboard'             => $this->commerceDashboardContextService->dashboardContext(),
             'seller_dashboard'               => $this->sellerDashboardContextService->dashboardContext(),
+            'subsidiary_dashboard'           => $this->subsidiaryDashboardContextService->dashboardContext(),
             'commerces'  => $this->commerceContextService->commerceContext(),
             'customers'  => $this->customerContextService->customerContext(),
             'players'    => $this->playerContextService->playerContext(),

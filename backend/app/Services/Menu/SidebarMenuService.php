@@ -123,7 +123,7 @@ class SidebarMenuService
                     'title' => 'Mis Vendedores',
                     'route' => 'manager-seller.index',
                     'permission' => 'sellers.view',
-                    'exclude_roles' => ['superadmin', 'admin', 'subsidiary', 'seller', 'player'], // visible solo para commerce y customer
+                    'exclude_roles' => ['superadmin', 'admin', 'seller', 'player'], // visible para commerce, subsidiary y customer — subsidiary ya puede gestionar sus sellers vía manager-seller.* (routes/modules/seller.php), solo le faltaba el enlace visible
                 ],
                 'my_subsidiaries' => [
                     'title' => 'Mis Sucursales',
