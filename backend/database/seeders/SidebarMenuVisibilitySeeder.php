@@ -4,65 +4,73 @@ namespace Database\Seeders;
 
 use App\Models\Role;
 use App\Models\SidebarMenuVisibility;
-use App\Services\Menu\SidebarMenuService;
 use Illuminate\Database\Seeder;
 
 /**
- * Siembra el estado ACTUAL de `exclude_roles` (SidebarMenuService::$menuStructure)
- * como filas is_visible=false — reproduce exactamente el comportamiento vigente
- * mientras $menuStructure deja de usar exclude_roles como mecanismo de decisión.
- * No siembra filas para combinaciones sin exclude_roles (semántica "sin fila
- * = visible", igual que ModuleSeeder).
+ * Siembra el estado de visibilidad por rol vigente en producción — snapshot
+ * fijo capturado el 2026-09-04, cuando $menuStructure dejó de tener
+ * `exclude_roles` (las exclusiones ahora solo existen en esta tabla, ver
+ * SidebarMenuService::isVisibleForRoles()). Antes este seeder derivaba las
+ * filas leyendo `exclude_roles` de $menuStructure en tiempo de ejecución;
+ * ahora que esa clave no existe en el código, el snapshot es la única forma
+ * de reproducir el comportamiento vigente en una instalación nueva
+ * (`migrate:fresh --seed`, CI, testing).
+ *
+ * No siembra filas para combinaciones sin exclusión — semántica "sin fila =
+ * visible" (igual que ModuleSeeder). Es aditivo por (item_key, role_id) vía
+ * updateOrCreate: correrlo de nuevo sobre una BD que ya tiene overrides
+ * manuales del admin UI no los revierte.
  */
 class SidebarMenuVisibilitySeeder extends Seeder
 {
+    /**
+     * item_key => [role names excluidos].
+     *
+     * @var array<string, string[]>
+     */
+    private const EXCLUSIONS = [
+        'games_bingo.my_games'          => ['admin', 'commerce', 'customer', 'seller', 'subsidiary', 'superadmin'],
+        'games_bingo.bingo_cards_sold'  => ['player'],
+        'business.exchange_rates'       => ['player', 'seller'],
+        'business.my_sellers'           => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
+        'business.my_subsidiaries'      => ['player', 'seller', 'superadmin'],
+        'business.my_profile_subsidiary' => ['admin', 'commerce', 'player', 'seller', 'superadmin'],
+        'business.my_profile_commerce'  => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
+        'business.my_profile_seller'    => ['admin', 'commerce', 'player', 'subsidiary', 'superadmin'],
+        'business.my_external_players'  => ['admin', 'player', 'superadmin'],
+        'business.prizes'               => ['player', 'seller'],
+        'business.win_events'           => ['commerce', 'customer', 'player', 'seller'],
+        'system.app-parameters'         => ['commerce', 'customer', 'player', 'seller'],
+        'system.audit'                  => ['commerce', 'customer', 'player', 'seller'],
+        'system.kyc'                    => ['commerce', 'customer', 'player', 'seller'],
+        'system.logs'                   => ['commerce', 'customer', 'player', 'seller'],
+        'system.jobs'                   => ['commerce', 'customer', 'player', 'seller'],
+    ];
+
     public function run(): void
     {
-        $menuStructure = app(SidebarMenuService::class)->menuStructure;
-
         // name (normalizado a minúsculas por Role::setNameAttribute) => id.
-        // exclude_roles compara contra $user->getRoleNames(), que devuelve
-        // Role::name — NO Role::prefix (que en BD está en mayúsculas, ej.
-        // 'SUPERADMIN') — por eso se resuelve por name, no por prefix.
         $roleIdsByName = Role::pluck('id', 'name')->all();
 
         $rows = 0;
 
-        foreach ($menuStructure as $parentKey => $parentItem) {
-            $rows += $this->seedItem($parentKey, $parentItem, $roleIdsByName);
+        foreach (self::EXCLUSIONS as $itemKey => $excludedRoles) {
+            foreach ($excludedRoles as $roleName) {
+                $roleId = $roleIdsByName[$roleName] ?? null;
 
-            foreach ($parentItem['submenu'] ?? [] as $subKey => $subItem) {
-                $itemKey = "{$parentKey}.{$subKey}";
-                $rows += $this->seedItem($itemKey, $subItem, $roleIdsByName);
+                if ($roleId === null) {
+                    $this->command->warn("  ⚠ Rol '{$roleName}' no encontrado (item: {$itemKey})");
+                    continue;
+                }
+
+                SidebarMenuVisibility::updateOrCreate(
+                    ['item_key' => $itemKey, 'role_id' => $roleId],
+                    ['is_visible' => false]
+                );
+                $rows++;
             }
         }
 
-        $this->command->info("✔ SidebarMenuVisibilitySeeder: {$rows} filas de exclusión procesadas.");
-    }
-
-    /**
-     * @param array<string, string> $roleIdsByName
-     */
-    private function seedItem(string $itemKey, array $item, array $roleIdsByName): int
-    {
-        $excludeRoles = $item['exclude_roles'] ?? [];
-        $count = 0;
-
-        foreach ($excludeRoles as $roleName) {
-            $roleId = $roleIdsByName[$roleName] ?? null;
-
-            if ($roleId === null) {
-                $this->command->warn("  ⚠ Rol '{$roleName}' no encontrado (item: {$itemKey})");
-                continue;
-            }
-
-            SidebarMenuVisibility::updateOrCreate(
-                ['item_key' => $itemKey, 'role_id' => $roleId],
-                ['is_visible' => false]
-            );
-            $count++;
-        }
-
-        return $count;
+        $this->command->info("✔ SidebarMenuVisibilitySeeder: {$rows} filas de exclusión sembradas.");
     }
 }

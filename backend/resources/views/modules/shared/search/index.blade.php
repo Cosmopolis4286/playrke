@@ -1,6 +1,4 @@
-@extends('layouts.auth-layout')
-@section('title', 'Buscar')
-@section('content')
+<x-layouts.auth-layout title="Buscar">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -44,4 +42,4 @@
             </div>
         </div>
     </div>
-@endsection
+</x-layouts.auth-layout>
