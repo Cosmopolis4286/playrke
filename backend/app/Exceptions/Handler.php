@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Support\Facades\Lang;
 
 /**
  * NOTA: Laravel 11 (bootstrap/app.php con Application::configure()) ya NO
@@ -26,13 +29,22 @@ class Handler extends ExceptionHandler
     /**
      * Resuelve el mensaje traducido del error. Si el "código" ya es texto
      * humano directo (varias clases de dominio lo usan así en vez de un
-     * ERROR_CODE real), trans() simplemente no encuentra la clave y el
-     * fallback (?: $errorCode) devuelve ese mismo texto — comportamiento
-     * correcto en ambos casos.
+     * ERROR_CODE real), Lang::has() confirma que la clave NO existe y
+     * devolvemos $errorCode tal cual.
+     *
+     * No se puede usar `trans(...) ?: $errorCode` (versión anterior): trans()
+     * con una clave inexistente no devuelve '' ni null, devuelve la clave
+     * completa tal cual se le pasó ("errors.{$errorCode}") — el operador ?:
+     * nunca se activaba, así que todo mensaje humano directo (sin traducción
+     * en errors.php) le mostraba al usuario el string "errors.El mensaje
+     * real aquí." en vez del mensaje real.
      */
-    public function resolveMessage(string $errorCode): string
+    public function resolveMessage(string $errorCode) : string
     {
-        return trans("errors.{$errorCode}", [], app()->getLocale())
-            ?: $errorCode;
+        $key = "errors.{$errorCode}";
+
+        return Lang::has($key, app()->getLocale())
+            ? trans($key, [], app()->getLocale())
+            : $errorCode;
     }
 }
