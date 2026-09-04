@@ -94,12 +94,28 @@ final class ManagerSellerService
      * el subsidiary_id (si aplica) para un usuario dado, sin importar si ese
      * usuario es 'commerce' o 'subsidiary' (agencia).
      *
-     * manager_user_id se persiste NOT NULL con FK a users, y todo el código
-     * que resuelve el commerce de un seller (managerCommerce(), reportes,
+     * manager_user_id se persiste con FK a users, y todo el código que
+     * resuelve el commerce de un seller (managerCommerce(), reportes,
      * BingoCardGenerateService) asume que apunta al user_id de un Commerce
      * — nunca al de una Subsidiary directamente. Cuando el manager real es
      * una agencia, se guarda el Commerce padre en manager_user_id y la
      * agencia en subsidiary_id (ver Seller::resolveCommerce()).
+     *
+     * Whitelist explícita de roles válidos ('commerce'/'customer' reportan
+     * directo sin agencia intermedia, mismo criterio ya usado en
+     * ManagerSellerContextService::resolveSellers(); 'subsidiary' resuelve
+     * vía su Commerce padre más abajo), no blacklist — antes
+     * `if ($role !== 'subsidiary') return [$targetUserId, null]` asumía
+     * implícitamente que cualquier rol distinto de 'subsidiary' era válido,
+     * sin comprobarlo: un $targetUserId de un seller, player o admin se
+     * habría persistido igual como manager_user_id. La validación de
+     * entrada para el campo explícito manager_user_id del DTO vive en
+     * ManagerSellerRequest::rules() (verifica rol commerce/subsidiary
+     * contra role_user), pero ese Request NO cubre el caso implícito (un
+     * commerce/subsidiary/customer creando su propio seller sin pasar
+     * managerUserId, ver create() arriba) — este método es la única fuente
+     * de verdad del dominio para ambos casos y no debe depender
+     * exclusivamente de esa capa.
      *
      * @return array{0: int, 1: ?string} [managerUserId, subsidiaryId]
      */
@@ -107,8 +123,12 @@ final class ManagerSellerService
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($targetUserId);
 
-        if ($role !== 'subsidiary') {
+        if ($role === 'commerce' || $role === 'customer') {
             return [$targetUserId, null];
+        }
+
+        if ($role !== 'subsidiary') {
+            throw ManagerSellerException::creationFailed();
         }
 
         $subsidiary = $this->subsidiaryRepository->getByUserId($targetUserId, ['id', 'commerce_id']);

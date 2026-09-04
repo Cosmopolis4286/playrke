@@ -125,6 +125,7 @@ return [
     // Bingo cards (games/bingo/card)
     'BINGO_CARD_SELLER_NOT_FOUND' => 'Seller not found.',
     'BINGO_CARD_COMMERCE_NOT_FOUND' => 'Commerce not found.',
+    'BINGO_CARD_HIERARCHY_NOT_ACTIVE' => 'Your account, agency, or commerce is not active. Contact support for more information.',
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'This room is not available for buying cards.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'The selected currency is not available for this room.',
     'BINGO_CARD_GENERATION_FAILED' => 'The cards could not be generated.',

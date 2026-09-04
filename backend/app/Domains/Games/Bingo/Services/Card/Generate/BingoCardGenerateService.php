@@ -382,13 +382,30 @@ final class BingoCardGenerateService
     private function resolveCommerceContext(string $userId, string $role): array
     {
         return match ($role) {
-            'commerce' => [
-                $this->commerceRepository->getValueByUserId($userId, 'id'),
-                $userId,
-            ],
+            'commerce' => (function () use ($userId): array {
+                $commerceModel = Commerce::where('user_id', $userId)->first(['id', 'user_id', 'status']);
+
+                if (!$commerceModel) {
+                    throw BingoCardGenerateException::commerceNotFound();
+                }
+
+                // Un commerce BLOCKED/INACTIVE no debe poder comprar/vender
+                // para sí mismo — mismo criterio que la rama 'seller' aplica
+                // vía Seller::hasActiveHierarchy() más abajo.
+                if ($commerceModel->status !== 'ACTIVE') {
+                    throw BingoCardGenerateException::hierarchyNotActive();
+                }
+
+                return [$commerceModel->id, $userId];
+            })(),
             'seller' => (function () use ($userId): array {
-                $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id']);
-                $commerce = $seller?->resolveCommerce();
+                $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id', 'status']);
+
+                if (!$seller || !$seller->hasActiveHierarchy()) {
+                    throw BingoCardGenerateException::hierarchyNotActive();
+                }
+
+                $commerce = $seller->resolveCommerce();
 
                 if (!$commerce) {
                     throw BingoCardGenerateException::commerceNotFound();
@@ -441,7 +458,7 @@ final class BingoCardGenerateService
         // Seller::resolveCommerce(). Antes se asumía siempre manager_user_id
         // → Commerce directo, lanzando 'Comercio asociado no encontrado'
         // para cualquier seller de una Subsidiary.
-        $seller = Seller::select(['id', 'commission', 'manager_user_id', 'subsidiary_id'])
+        $seller = Seller::select(['id', 'commission', 'manager_user_id', 'subsidiary_id', 'status'])
             ->where('user_id', Auth::id())
             ->first();
 
@@ -453,6 +470,14 @@ final class BingoCardGenerateService
 
         if (!$commerceModel) {
             throw BingoCardGenerateException::commerceNotFound();
+        }
+
+        // Bloquear/desactivar el Commerce o la Subsidiary padre no
+        // desactivaba automáticamente a sus Sellers subordinados — sin esta
+        // validación, un seller ACTIVE seguía vendiendo con normalidad
+        // aunque su comercio/agencia estuviera BLOCKED/INACTIVE.
+        if (!$seller->hasActiveHierarchy()) {
+            throw BingoCardGenerateException::hierarchyNotActive();
         }
 
         $creatorUser = $commerceModel->user_id;

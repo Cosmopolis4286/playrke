@@ -125,6 +125,7 @@ return [
     // Cartones de Bingo (games/bingo/card)
     'BINGO_CARD_SELLER_NOT_FOUND' => 'No se encontró el vendedor.',
     'BINGO_CARD_COMMERCE_NOT_FOUND' => 'No se encontró el comercio.',
+    'BINGO_CARD_HIERARCHY_NOT_ACTIVE' => 'Tu cuenta, agencia o comercio no está activo. Contacta a soporte para más información.',
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'Esta sala no está disponible para comprar cartones.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'La moneda seleccionada no está disponible para esta sala.',
     'BINGO_CARD_GENERATION_FAILED' => 'No se pudieron generar los cartones.',

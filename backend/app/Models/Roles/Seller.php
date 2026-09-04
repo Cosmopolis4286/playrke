@@ -136,6 +136,33 @@ class Seller extends BaseModel
     }
 
     /**
+     * true si este Seller y toda su cadena de jerarquía (Subsidiary si
+     * aplica, y el Commerce resuelto por resolveCommerce()) están ACTIVE.
+     *
+     * Antes bloquear/desactivar un Commerce o Subsidiary no impedía que sus
+     * Sellers subordinados (con status ACTIVE propio) siguieran generando
+     * ventas con normalidad — BingoCardGenerateService solo validaba el
+     * status de la BingoRoom, nunca el de la cadena comercial. Este método
+     * centraliza esa validación (mismo criterio que resolveCommerce()
+     * centraliza la resolución) para que el punto de venta la use antes de
+     * generar cartones.
+     */
+    public function hasActiveHierarchy(): bool
+    {
+        if ($this->status !== 'ACTIVE') {
+            return false;
+        }
+
+        if ($this->subsidiary_id && $this->subsidiary?->status !== 'ACTIVE') {
+            return false;
+        }
+
+        $commerce = $this->resolveCommerce();
+
+        return $commerce !== null && $commerce->status === 'ACTIVE';
+    }
+
+    /**
      * Accessor: nombre del manager directo (agencia si existe, si no el
      * commerce).
      */

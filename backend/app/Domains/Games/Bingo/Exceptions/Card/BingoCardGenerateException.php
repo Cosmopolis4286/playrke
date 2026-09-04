@@ -28,6 +28,16 @@ final class BingoCardGenerateException extends DomainException
         return new self('BINGO_CARD_COMMERCE_NOT_FOUND', 404);
     }
 
+    /**
+     * El Seller, su Subsidiary (si aplica) o su Commerce no están ACTIVE —
+     * ver Seller::hasActiveHierarchy(). 409: no es "no encontrado" (404),
+     * es un conflicto de estado de negocio válido pero no operable ahora.
+     */
+    public static function hierarchyNotActive(): self
+    {
+        return new self('BINGO_CARD_HIERARCHY_NOT_ACTIVE', 409);
+    }
+
     public static function roomNotAvailable(): self
     {
         return new self('BINGO_CARD_ROOM_NOT_AVAILABLE', 404);
