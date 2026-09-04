@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Events;
 
 use Illuminate\Broadcasting\Channel;
@@ -21,33 +23,34 @@ class WalletMovementRequested implements ShouldBroadcastNow
         public readonly string $userId,
         public readonly string $userName,
         public readonly string $movementType,   // DEPOSIT | WITHDRAWAL
-        public readonly float  $amount,
+        public readonly float $amount,
         public readonly string $currencySymbol,
         public readonly string $currencyIso,
-    ) {}
+    ) {
+    }
 
-    public function broadcastOn(): Channel
+    public function broadcastAs() : string
+    {
+        return 'wallet.movement.requested';
+    }
+
+    public function broadcastOn() : Channel
     {
         // Canal privado compartido por todos los admins
         return new \Illuminate\Broadcasting\PrivateChannel('admins.wallet-movements');
     }
 
-    public function broadcastAs(): string
-    {
-        return 'wallet.movement.requested';
-    }
-
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
-            'movement_id'     => $this->movementId,
-            'user_id'         => $this->userId,
-            'user_name'       => $this->userName,
-            'movement_type'   => $this->movementType,
-            'amount'          => $this->amount,
+            'movement_id' => $this->movementId,
+            'user_id' => $this->userId,
+            'user_name' => $this->userName,
+            'movement_type' => $this->movementType,
+            'amount' => $this->amount,
             'currency_symbol' => $this->currencySymbol,
-            'currency_iso'    => $this->currencyIso,
-            'url'             => '/wallet-movements',
+            'currency_iso' => $this->currencyIso,
+            'url' => '/wallet-movements',
         ];
     }
 }

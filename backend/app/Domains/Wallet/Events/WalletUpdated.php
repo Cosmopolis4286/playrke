@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Events;
 
 use Illuminate\Broadcasting\PrivateChannel;
@@ -15,36 +17,37 @@ class WalletUpdated implements ShouldBroadcastNow
     use SerializesModels;
 
     public function __construct(
-        public readonly string  $userId,
-        public readonly string  $walletId,
-        public readonly float   $balance,
-        public readonly string  $currencySymbol,
-        public readonly string  $movementType,
-        public readonly float   $amount,
+        public readonly string $userId,
+        public readonly string $walletId,
+        public readonly float $balance,
+        public readonly string $currencySymbol,
+        public readonly string $movementType,
+        public readonly float $amount,
         public readonly ?string $movementStatus = null,
-        public readonly ?string $movementId     = null,
-    ) {}
-
-    public function broadcastOn(): PrivateChannel
-    {
-        return new PrivateChannel("App.Models.User.{$this->userId}");
+        public readonly ?string $movementId = null,
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'wallet.updated';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : PrivateChannel
+    {
+        return new PrivateChannel("App.Models.User.{$this->userId}");
+    }
+
+    public function broadcastWith() : array
     {
         return [
-            'wallet_id'       => $this->walletId,
-            'balance'         => $this->balance,
+            'wallet_id' => $this->walletId,
+            'balance' => $this->balance,
             'currency_symbol' => $this->currencySymbol,
-            'movement_type'   => $this->movementType,
-            'amount'          => $this->amount,
+            'movement_type' => $this->movementType,
+            'amount' => $this->amount,
             'movement_status' => $this->movementStatus,
-            'movement_id'     => $this->movementId,
+            'movement_id' => $this->movementId,
         ];
     }
 }

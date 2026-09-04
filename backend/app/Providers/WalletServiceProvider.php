@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
@@ -30,7 +32,7 @@ class WalletServiceProvider extends ServiceProvider
     /**
      * Register services.
      */
-    public function register(): void
+    public function register() : void
     {
         $this->app->singleton(WalletRepositoryInterface::class, WalletRepository::class);
         $this->app->singleton(WalletMovementRepositoryInterface::class, WalletMovementRepository::class);

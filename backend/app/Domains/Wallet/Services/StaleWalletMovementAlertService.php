@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Services;
 
 use App\Domains\Wallet\Models\WalletMovement;
@@ -14,13 +16,14 @@ use App\Services\NotificationService;
  */
 final class StaleWalletMovementAlertService
 {
+    private const STALE_DEPOSIT_HOURS = 6;
     /** Retiros: dinero saliendo, umbral más estricto que depósitos. */
     private const STALE_WITHDRAWAL_HOURS = 2;
-    private const STALE_DEPOSIT_HOURS    = 6;
 
     public function __construct(
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
 
     /**
      * Notifica a los usuarios con permiso wallet.movements.manage (mismo
@@ -30,9 +33,9 @@ final class StaleWalletMovementAlertService
      * mientras sigan pendientes — cadencia de 15 min, mismo criterio que
      * logs:alert-threshold.
      *
-     * @return int Cantidad de movimientos atrasados encontrados.
+     * @return int cantidad de movimientos atrasados encontrados
      */
-    public function notifyStalePending(): int
+    public function notifyStalePending() : int
     {
         $staleWithdrawals = WalletMovement::where('status', WalletMovement::STATUS_PENDING)
             ->where('type', WalletMovement::TYPE_WITHDRAWAL)
@@ -64,8 +67,8 @@ final class StaleWalletMovementAlertService
                 message: "{$staleWithdrawals} retiro(s) y {$staleDeposits} depósito(s) llevan más tiempo del esperado esperando aprobación.",
                 data: [
                     'stale_withdrawals' => $staleWithdrawals,
-                    'stale_deposits'    => $staleDeposits,
-                    'url'               => '/wallet-movements',
+                    'stale_deposits' => $staleDeposits,
+                    'url' => '/wallet-movements',
                 ],
             );
         }

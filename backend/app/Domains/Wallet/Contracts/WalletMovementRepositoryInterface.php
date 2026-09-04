@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
@@ -9,6 +11,35 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
 {
+    /**
+     * Devuelve todos los movimientos de un usuario paginados.
+     */
+    public function getByUser(string $userId, int $perPage = 20) : LengthAwarePaginator;
+
+    /**
+     * Devuelve los movimientos de una billetera paginados (más recientes primero).
+     */
+    public function getByWallet(string $walletId, int $perPage = 20) : LengthAwarePaginator;
+
+    /**
+     * Listado paginado y filtrable para el panel admin, con las relaciones
+     * (wallet.currency, user, processedBy) ya cargadas para el DTO de salida.
+     *
+     * @param array{type?: ?string, status?: ?string, search?: ?string} $filters
+     */
+    public function getForAdminPanel(array $filters, int $perPage = 20) : LengthAwarePaginator;
+
+    /**
+     * Últimos N movimientos de una billetera (sin paginar, para resumen).
+     */
+    public function getLatestByWallet(string $walletId, int $limit = 10) : Collection;
+
+    /**
+     * Carga un único movimiento con las mismas relaciones que getForAdminPanel,
+     * para el detalle/aprobación/rechazo del panel admin.
+     */
+    public function loadForAdminPanel(WalletMovement $movement) : WalletMovement;
+
     /**
      * Registra un nuevo movimiento de billetera.
      *
@@ -24,34 +55,5 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
      *   idempotency_key?: string|null,
      * } $data
      */
-    public function record(array $data): WalletMovement;
-
-    /**
-     * Devuelve los movimientos de una billetera paginados (más recientes primero).
-     */
-    public function getByWallet(string $walletId, int $perPage = 20): LengthAwarePaginator;
-
-    /**
-     * Devuelve todos los movimientos de un usuario paginados.
-     */
-    public function getByUser(string $userId, int $perPage = 20): LengthAwarePaginator;
-
-    /**
-     * Últimos N movimientos de una billetera (sin paginar, para resumen).
-     */
-    public function getLatestByWallet(string $walletId, int $limit = 10): Collection;
-
-    /**
-     * Listado paginado y filtrable para el panel admin, con las relaciones
-     * (wallet.currency, user, processedBy) ya cargadas para el DTO de salida.
-     *
-     * @param array{type?: ?string, status?: ?string, search?: ?string} $filters
-     */
-    public function getForAdminPanel(array $filters, int $perPage = 20): LengthAwarePaginator;
-
-    /**
-     * Carga un único movimiento con las mismas relaciones que getForAdminPanel,
-     * para el detalle/aprobación/rechazo del panel admin.
-     */
-    public function loadForAdminPanel(WalletMovement $movement): WalletMovement;
+    public function record(array $data) : WalletMovement;
 }

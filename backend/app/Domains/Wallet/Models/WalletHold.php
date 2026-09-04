@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Models;
 
 use App\Models\GameSession;
@@ -16,30 +18,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * No modifica wallets.balance/bonus_balance mientras está HELD — solo se
  * descuenta del saldo disponible calculado en Wallet::getAvailableBalance().
  *
- * @property string $id
- * @property string $wallet_id
- * @property string|null $game_session_id
- * @property float $amount
- * @property string $status HELD | CAPTURED | RELEASED
- * @property string|null $captured_movement_id
- * @property string|null $description
+ * @property string              $id
+ * @property string              $wallet_id
+ * @property string|null         $game_session_id
+ * @property float               $amount
+ * @property string              $status               HELD | CAPTURED | RELEASED
+ * @property string|null         $captured_movement_id
+ * @property string|null         $description
  * @property \Carbon\Carbon|null $resolved_at
- *
- * @property-read Wallet $wallet
+ * @property Wallet              $wallet
  */
 class WalletHold extends Model
 {
     use \App\Traits\SnowflakeId;
     use Auditable;
-
-    protected $table = 'wallet_holds';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_HELD     = 'HELD';
     public const STATUS_CAPTURED = 'CAPTURED';
+
+    public const STATUS_HELD = 'HELD';
     public const STATUS_RELEASED = 'RELEASED';
+    public $incrementing = false;
+
+    protected $casts = [
+        'amount' => 'float',
+        'resolved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'wallet_id',
@@ -50,25 +54,17 @@ class WalletHold extends Model
         'description',
         'resolved_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'amount'       => 'float',
-        'resolved_at'  => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-    ];
+    protected $table = 'wallet_holds';
 
-    public function wallet(): BelongsTo
-    {
-        return $this->belongsTo(Wallet::class, 'wallet_id');
-    }
-
-    public function gameSession(): BelongsTo
+    public function gameSession() : BelongsTo
     {
         return $this->belongsTo(GameSession::class, 'game_session_id');
     }
 
-    public function isActive(): bool
+    public function isActive() : bool
     {
         return $this->status === self::STATUS_HELD;
     }
@@ -81,5 +77,10 @@ class WalletHold extends Model
     public function scopeForWallet($query, string $walletId)
     {
         return $query->where('wallet_id', $walletId);
+    }
+
+    public function wallet() : BelongsTo
+    {
+        return $this->belongsTo(Wallet::class, 'wallet_id');
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Events;
 
 use Illuminate\Broadcasting\PrivateChannel;
@@ -22,25 +24,26 @@ class WalletMovementProcessed implements ShouldBroadcastNow
         public readonly string $movementId,
         public readonly string $movementType,
         public readonly string $status,         // COMPLETED | REJECTED
-        public readonly int    $pendingCount,   // nuevo total de pendientes tras el cambio
-    ) {}
-
-    public function broadcastOn(): PrivateChannel
-    {
-        return new PrivateChannel('admins.wallet-movements');
+        public readonly int $pendingCount,   // nuevo total de pendientes tras el cambio
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'wallet.movement.processed';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : PrivateChannel
+    {
+        return new PrivateChannel('admins.wallet-movements');
+    }
+
+    public function broadcastWith() : array
     {
         return [
-            'movement_id'   => $this->movementId,
+            'movement_id' => $this->movementId,
             'movement_type' => $this->movementType,
-            'status'        => $this->status,
+            'status' => $this->status,
             'pending_count' => $this->pendingCount,
         ];
     }

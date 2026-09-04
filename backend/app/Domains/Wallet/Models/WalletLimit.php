@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Models;
 
 use App\Models\Currency;
@@ -8,9 +10,18 @@ use Illuminate\Support\Facades\Cache;
 
 class WalletLimit extends Model
 {
-    protected $table = 'wallet_limits';
-
     private const CACHE_KEY = 'wallet_limits:catalog';
+
+    protected $casts = [
+        'min_deposit' => 'float',
+        'max_deposit' => 'float',
+        'min_per_transaction' => 'float',
+        'max_per_transaction' => 'float',
+        'max_daily' => 'float',
+        'max_weekly' => 'float',
+        'max_monthly' => 'float',
+        'is_active' => 'boolean',
+    ];
 
     protected $fillable = [
         'currency_id',
@@ -24,21 +35,11 @@ class WalletLimit extends Model
         'max_monthly',
         'is_active',
     ];
+    protected $table = 'wallet_limits';
 
-    protected $casts = [
-        'min_deposit'         => 'float',
-        'max_deposit'         => 'float',
-        'min_per_transaction' => 'float',
-        'max_per_transaction' => 'float',
-        'max_daily'           => 'float',
-        'max_weekly'          => 'float',
-        'max_monthly'         => 'float',
-        'is_active'           => 'boolean',
-    ];
-
-    public function currency(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public static function forgetCatalogCache() : void
     {
-        return $this->belongsTo(Currency::class, 'currency_id');
+        Cache::forget(self::CACHE_KEY);
     }
 
     /**
@@ -46,7 +47,7 @@ class WalletLimit extends Model
      * luego el fallback global (currency_id IS NULL). Cacheado 1h por ser
      * consultado en cada solicitud de depósito/retiro.
      */
-    public static function resolve(string $currencyId, int $kycLevel): ?self
+    public static function resolve(string $currencyId, int $kycLevel) : ?self
     {
         $catalog = Cache::remember(self::CACHE_KEY, 3600, fn () => static::query()->where('is_active', true)->get());
 
@@ -64,8 +65,8 @@ class WalletLimit extends Model
             ->first();
     }
 
-    public static function forgetCatalogCache(): void
+    public function currency() : \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        Cache::forget(self::CACHE_KEY);
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 }

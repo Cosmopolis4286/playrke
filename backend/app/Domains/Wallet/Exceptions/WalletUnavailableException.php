@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Domains\Wallet\Exceptions;
@@ -22,7 +23,7 @@ final class WalletUnavailableException extends DomainException
      * Se mantienen en la firma para que el sitio de lanzamiento documente qué wallet
      * faltó, aunque esta excepción no la exponga.
      */
-    public static function notFound(string $userId, string $currencyId): self
+    public static function notFound(string $userId, string $currencyId) : self
     {
         return new self('WALLET_UNAVAILABLE', 503);
     }

@@ -24,24 +24,25 @@ class DispatchWalletNotificationJob implements ShouldQueue
 
     public function __construct(
         private readonly string $userId,
-        private readonly float  $balance,
+        private readonly float $balance,
         private readonly string $currencySymbol,
         private readonly string $movementType,
-        private readonly float  $amount,
+        private readonly float $amount,
         private readonly ?string $movementId = null,
         private readonly ?string $reason = null,
-    ) {}
+    ) {
+    }
 
-    public function handle(NotificationService $notificationService): void
+    public function handle(NotificationService $notificationService) : void
     {
         $notificationService->createWalletNotification(
-            userId:         $this->userId,
-            balance:        $this->balance,
+            userId: $this->userId,
+            balance: $this->balance,
             currencySymbol: $this->currencySymbol,
-            movementType:   $this->movementType,
-            amount:         $this->amount,
-            movementId:     $this->movementId,
-            reason:         $this->reason,
+            movementType: $this->movementType,
+            amount: $this->amount,
+            movementId: $this->movementId,
+            reason: $this->reason,
         );
     }
 }

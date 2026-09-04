@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Services;
 
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletHold;
 use App\Domains\Wallet\Models\WalletMovement;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,33 +30,6 @@ final class WalletReservationService
     }
 
     /**
-     * Crea una reserva HELD sobre la wallet indicada. Lanza DomainException
-     * si el saldo disponible (jugable menos holds activos) es insuficiente.
-     */
-    public function hold(
-        Wallet $wallet,
-        float $amount,
-        ?string $gameSessionId = null,
-        ?string $description = null,
-    ): WalletHold {
-        return DB::transaction(function () use ($wallet, $amount, $gameSessionId, $description) {
-            $locked = Wallet::lockForUpdate()->findOrFail($wallet->id);
-
-            if (! $locked->hasSufficientAvailableBalance($amount)) {
-                throw new \DomainException('Saldo disponible insuficiente para esta reserva.');
-            }
-
-            return WalletHold::create([
-                'wallet_id'        => (string) $locked->id,
-                'game_session_id'  => $gameSessionId,
-                'amount'           => $amount,
-                'status'           => WalletHold::STATUS_HELD,
-                'description'      => $description,
-            ]);
-        });
-    }
-
-    /**
      * Convierte un hold HELD en un gasto real: genera un WalletMovement de
      * tipo $movementType y marca el hold como CAPTURED. El monto capturado
      * puede ser menor o igual al reservado (ej. penalización parcial de
@@ -65,15 +41,15 @@ final class WalletReservationService
         string $movementType,
         ?float $amount = null,
         ?string $description = null,
-    ): WalletMovement {
+    ) : WalletMovement {
         $amount ??= (float) $hold->amount;
 
         if ($amount > (float) $hold->amount) {
-            throw new \DomainException('No se puede capturar más de lo reservado en el hold.');
+            throw new DomainException('No se puede capturar más de lo reservado en el hold.');
         }
 
         if (! $hold->isActive()) {
-            throw new \DomainException('El hold ya fue resuelto (capturado o liberado).');
+            throw new DomainException('El hold ya fue resuelto (capturado o liberado).');
         }
 
         $wallet = Wallet::findOrFail($hold->wallet_id);
@@ -92,26 +68,53 @@ final class WalletReservationService
         );
 
         $hold->update([
-            'status'               => WalletHold::STATUS_CAPTURED,
+            'status' => WalletHold::STATUS_CAPTURED,
             'captured_movement_id' => (string) $movement->id,
-            'resolved_at'          => now(),
+            'resolved_at' => now(),
         ]);
 
         return $movement;
     }
 
     /**
+     * Crea una reserva HELD sobre la wallet indicada. Lanza DomainException
+     * si el saldo disponible (jugable menos holds activos) es insuficiente.
+     */
+    public function hold(
+        Wallet $wallet,
+        float $amount,
+        ?string $gameSessionId = null,
+        ?string $description = null,
+    ) : WalletHold {
+        return DB::transaction(function() use ($wallet, $amount, $gameSessionId, $description) {
+            $locked = Wallet::lockForUpdate()->findOrFail($wallet->id);
+
+            if (! $locked->hasSufficientAvailableBalance($amount)) {
+                throw new DomainException('Saldo disponible insuficiente para esta reserva.');
+            }
+
+            return WalletHold::create([
+                'wallet_id' => (string) $locked->id,
+                'game_session_id' => $gameSessionId,
+                'amount' => $amount,
+                'status' => WalletHold::STATUS_HELD,
+                'description' => $description,
+            ]);
+        });
+    }
+
+    /**
      * Libera un hold HELD sin generar ningún WalletMovement — el saldo
      * simplemente vuelve a estar disponible.
      */
-    public function release(WalletHold $hold): WalletHold
+    public function release(WalletHold $hold) : WalletHold
     {
         if (! $hold->isActive()) {
-            throw new \DomainException('El hold ya fue resuelto (capturado o liberado).');
+            throw new DomainException('El hold ya fue resuelto (capturado o liberado).');
         }
 
         $hold->update([
-            'status'      => WalletHold::STATUS_RELEASED,
+            'status' => WalletHold::STATUS_RELEASED,
             'resolved_at' => now(),
         ]);
 

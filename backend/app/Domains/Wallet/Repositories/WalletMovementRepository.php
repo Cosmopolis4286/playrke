@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Repositories;
 
 use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
@@ -10,41 +12,6 @@ use Illuminate\Database\Eloquent\Collection;
 
 class WalletMovementRepository extends BaseRepository implements WalletMovementRepositoryInterface
 {
-    public function __construct(WalletMovement $model)
-    {
-        $this->model = $model;
-    }
-
-    public function record(array $data): WalletMovement
-    {
-        return $this->model->create($data);
-    }
-
-    public function getByWallet(string $walletId, int $perPage = 20): LengthAwarePaginator
-    {
-        return $this->model
-            ->where('wallet_id', $walletId)
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
-    }
-
-    public function getByUser(string $userId, int $perPage = 20): LengthAwarePaginator
-    {
-        return $this->model
-            ->where('user_id', $userId)
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
-    }
-
-    public function getLatestByWallet(string $walletId, int $limit = 10): Collection
-    {
-        return $this->model
-            ->where('wallet_id', $walletId)
-            ->orderByDesc('created_at')
-            ->limit($limit)
-            ->get();
-    }
-
     private const ADMIN_PANEL_RELATIONS = [
         'wallet:id,currency_id',
         'wallet.currency:id,iso_code,symbol,decimal_places',
@@ -52,7 +19,28 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         'processedBy:id,first_name,last_name,email',
     ];
 
-    public function getForAdminPanel(array $filters, int $perPage = 20): LengthAwarePaginator
+    public function __construct(WalletMovement $model)
+    {
+        $this->model = $model;
+    }
+
+    public function getByUser(string $userId, int $perPage = 20) : LengthAwarePaginator
+    {
+        return $this->model
+            ->where('user_id', $userId)
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
+
+    public function getByWallet(string $walletId, int $perPage = 20) : LengthAwarePaginator
+    {
+        return $this->model
+            ->where('wallet_id', $walletId)
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
+
+    public function getForAdminPanel(array $filters, int $perPage = 20) : LengthAwarePaginator
     {
         $query = $this->model
             ->with(self::ADMIN_PANEL_RELATIONS)
@@ -78,8 +66,22 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         return $query->paginate($perPage);
     }
 
-    public function loadForAdminPanel(WalletMovement $movement): WalletMovement
+    public function getLatestByWallet(string $walletId, int $limit = 10) : Collection
+    {
+        return $this->model
+            ->where('wallet_id', $walletId)
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function loadForAdminPanel(WalletMovement $movement) : WalletMovement
     {
         return $movement->load(self::ADMIN_PANEL_RELATIONS);
+    }
+
+    public function record(array $data) : WalletMovement
+    {
+        return $this->model->create($data);
     }
 }

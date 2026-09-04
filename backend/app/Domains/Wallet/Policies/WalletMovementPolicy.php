@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Domains\Wallet\Policies;
 
 use App\Domains\Wallet\Models\WalletMovement;
@@ -14,22 +16,22 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class WalletMovementPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    public function approve(User $user, WalletMovement $movement) : bool
+    {
+        return $this->hasAccess($user)
+            && $movement->status === WalletMovement::STATUS_PENDING
+            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
+    }
+
+    public function reject(User $user, WalletMovement $movement) : bool
+    {
+        return $this->hasAccess($user)
+            && $movement->status === WalletMovement::STATUS_PENDING
+            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
+    }
+
+    protected function requiredRole() : string|array
     {
         return ['superadmin', 'admin'];
-    }
-
-    public function approve(User $user, WalletMovement $movement): bool
-    {
-        return $this->hasAccess($user)
-            && $movement->status === WalletMovement::STATUS_PENDING
-            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
-    }
-
-    public function reject(User $user, WalletMovement $movement): bool
-    {
-        return $this->hasAccess($user)
-            && $movement->status === WalletMovement::STATUS_PENDING
-            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
     }
 }
