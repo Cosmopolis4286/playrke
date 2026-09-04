@@ -2,13 +2,15 @@
   /**
    * Página Dashboard → Subsidiary (agencia/sucursal)
    *
-   * A diferencia de Commerce: sin useCreatorSalesRealtime (el canal
-   * creators.activity.{userId} solo notifica al creador de la sala —
-   * Subsidiary nunca crea salas, ver BingoCardSold::broadcastOn()), sin
-   * "Mi red de vendedores" (no tiene sub-agencias, solo sus propios
-   * vendedores, ya reflejados en el stat "Vendedores") y sin "Configuración
-   * activa" (monedas/juegos son propiedad del Commerce padre, no de la
-   * agencia).
+   * A diferencia de Commerce: usa useSubsidiaryActivityRealtime en vez de
+   * useCreatorSalesRealtime (el canal creators.activity.{userId} solo
+   * notifica al creador de la sala — Subsidiary nunca crea salas; en su
+   * lugar escucha subsidiary.activity.{userId}, alimentado por
+   * BingoCardGenerateService::buyFromGameRooms() cuando el vendedor
+   * pertenece a esta agencia). Sin "Mi red de vendedores" (no tiene
+   * sub-agencias, solo sus propios vendedores, ya reflejados en el stat
+   * "Vendedores") y sin "Configuración activa" (monedas/juegos son
+   * propiedad del Commerce padre, no de la agencia).
    */
 
   // ==========================================================================
@@ -30,6 +32,7 @@
   // ==========================================================================
 
   import { useSubsidiaryDashboard }   from '@/js/composables/roles/subsidiary/dashboard/useSubsidiaryDashboard'
+  import { useSubsidiaryActivityRealtime } from '@/js/composables/roles/subsidiary/dashboard/useSubsidiaryActivityRealtime'
   import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
   import { useDashboardFormatters }   from '@/js/composables/common/dashboard/useDashboardFormatters'
 
@@ -51,9 +54,10 @@
 
   const {
     statCards, sortedActivity, reportsTo, salesTrend,
-    salesBySeller, wallets,
+    salesBySeller, wallets, prependActivity,
   } = useSubsidiaryDashboard(props)
 
+  const { isLive, cardsSoldToday, amountSoldToday } = useSubsidiaryActivityRealtime(prependActivity)
   const { loading: sectionsLoading } = useDashboardMountLoading()
   const { formatUsd } = useDashboardFormatters()
 
@@ -110,8 +114,15 @@
       >
         <template #highlights>
           <div class="wb-stat">
-            <span class="wb-stat__label">Ventas del mes</span>
+            <span class="wb-stat__label">
+              Ventas del mes
+              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+            </span>
             <span class="wb-stat__value wb-stat__value--accent">{{ statCards[0]?.value ?? '—' }}</span>
+          </div>
+          <div class="wb-stat" v-if="cardsSoldToday > 0">
+            <span class="wb-stat__label">Ventas (sesión)</span>
+            <span class="wb-stat__value wb-stat__value--accent">{{ cardsSoldToday }} · ${{ amountSoldToday.toFixed(2) }}</span>
           </div>
           <div class="wb-stat">
             <span class="wb-stat__label">Cartones vendidos hoy</span>
@@ -216,4 +227,15 @@
 .wb-stat__label { font-size: 0.68rem; color: #8a94a6; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
 .wb-stat__value { font-size: 0.8rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
 .wb-stat__value--accent { color: #2563eb; }
+
+.wb-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 5px #22c55e;
+  animation: wbLivePulse 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes wbLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
 </style>

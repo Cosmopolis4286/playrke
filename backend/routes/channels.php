@@ -54,6 +54,15 @@ Broadcast::channel('creators.activity.{userId}', function ($user, $userId) {
     return (string) $user->id === (string) $userId || $user->hasRole(['admin', 'superadmin']);
 });
 
+// Canal privado de actividad propia de una Subsidiary (ventas de cartones
+// de sus vendedores) — distinto de creators.activity.{userId}, que solo
+// notifica a quien CREA la sala (Commerce); una Subsidiary nunca crea
+// salas, así que necesita su propio canal alimentado desde el mismo evento
+// BingoCardSold cuando el vendedor pertenece a su agencia.
+Broadcast::channel('subsidiary.activity.{userId}', function ($user, $userId) {
+    return (string) $user->id === (string) $userId || $user->hasRole(['admin', 'superadmin']);
+});
+
 // Canal privado de resultados individuales de Trivia (solo el propio jugador)
 Broadcast::channel('trivia.player.{userId}', function ($user, $userId) {
     return (string) $user->id === (string) $userId;

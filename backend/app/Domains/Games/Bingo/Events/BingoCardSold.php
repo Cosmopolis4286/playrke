@@ -11,8 +11,9 @@ use Illuminate\Queue\SerializesModels;
  * Broadcast cuando se vende un cartón de bingo (compra de seller/commerce o player).
  *
  * Canales:
- * - admins.activity                (privado, admin/superadmin)
- * - creators.activity.{userId}     (privado, solo el seller/commerce propietario de la sala)
+ * - admins.activity                 (privado, admin/superadmin)
+ * - creators.activity.{userId}      (privado, solo el seller/commerce propietario de la sala)
+ * - subsidiary.activity.{userId}    (privado, solo la Subsidiary dueña del Seller que vendió)
  *
  * Evento: .card.sold
  */
@@ -27,6 +28,8 @@ class BingoCardSold implements ShouldBroadcastNow
         public readonly float $amountUsd,
         /** user_id del seller/commerce dueño de la sala; null en compra directa del player */
         public readonly ?string $creatorUserId = null,
+        /** user_id de la Subsidiary dueña del Seller que vendió; null si el seller reporta directo al commerce, o no hay seller involucrado */
+        public readonly ?string $subsidiaryUserId = null,
     ) {}
 
     public function broadcastOn(): array
@@ -35,6 +38,10 @@ class BingoCardSold implements ShouldBroadcastNow
 
         if ($this->creatorUserId) {
             $channels[] = new PrivateChannel("creators.activity.{$this->creatorUserId}");
+        }
+
+        if ($this->subsidiaryUserId) {
+            $channels[] = new PrivateChannel("subsidiary.activity.{$this->subsidiaryUserId}");
         }
 
         return $channels;

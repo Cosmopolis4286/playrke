@@ -679,12 +679,27 @@ final class BingoCardGenerateService
         \Illuminate\Support\Facades\Cache::forget("bingo:policy:viewGame:{$userId}:{$room->id}");
 
         // Notificar la venta a dashboards de admin/superadmin y al vendedor/comercio propietario.
+        // Si quien vendió es un Seller que reporta a una agencia (subsidiary_id),
+        // también se notifica a esa agencia — antes solo se notificaba al
+        // creador de la sala (el Commerce), dejando a las agencias sin
+        // actividad en vivo pese a que nunca crean salas (ver
+        // SubsidiaryDashboardContextService, dashboard sin tiempo real hasta
+        // este fix).
+        $subsidiaryUserId = null;
+        if ($role === 'seller') {
+            $subsidiaryId = Seller::where('user_id', $userId)->value('subsidiary_id');
+            if ($subsidiaryId) {
+                $subsidiaryUserId = \App\Models\Roles\Subsidiary::where('id', $subsidiaryId)->value('user_id');
+            }
+        }
+
         broadcast(new BingoCardSold(
             roomId: (string) $room->id,
             roomName: (string) $room->uuid_code,
             quantity: (int) $cardOrder['cardCount'],
             amountUsd: (float) $cardOrder['saleAmountUsd'],
             creatorUserId: (string) $creatorUserId,
+            subsidiaryUserId: $subsidiaryUserId ? (string) $subsidiaryUserId : null,
         ));
 
         return array_merge($result, [

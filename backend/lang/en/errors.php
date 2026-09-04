@@ -138,4 +138,7 @@ return [
     'BINGO_CARD_CUSTOM_NOT_ALLOWED' => 'This room does not allow custom cards.',
     'BINGO_CARD_CUSTOM_EXCEEDS_COUNT' => 'The number of custom cards exceeds the total requested count.',
     'BINGO_CARD_NO_ACTIVE_WALLET' => 'You do not have an active wallet for this purchase.',
+
+    // Wallet (generic, App\Exceptions\Wallet)
+    'WALLET_UNAVAILABLE' => 'We could not reach the wallet right now. Please try again later.',
 ];

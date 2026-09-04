@@ -138,4 +138,7 @@ return [
     'BINGO_CARD_CUSTOM_NOT_ALLOWED' => 'Esta sala no permite cartones personalizados.',
     'BINGO_CARD_CUSTOM_EXCEEDS_COUNT' => 'La cantidad de cartones personalizados excede la cantidad total solicitada.',
     'BINGO_CARD_NO_ACTIVE_WALLET' => 'No tienes una billetera activa para esta compra.',
+
+    // Wallet (genérico, App\Exceptions\Wallet)
+    'WALLET_UNAVAILABLE' => 'No se pudo acceder a la billetera en este momento. Intenta más tarde.',
 ];
