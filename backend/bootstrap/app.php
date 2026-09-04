@@ -162,8 +162,13 @@ return Application::configure(
         // manejadas arriba) con su mensaje y stack completos — esta es la
         // única fuente de verdad para diagnosticar un bug real, ya que el
         // cliente en producción ya no recibe el mensaje crudo (rama 3, abajo).
+        // Log::critical (no ->error) a propósito: el canal slack de
+        // config/logging.php solo dispara desde 'critical' hacia arriba
+        // (LOG_SLACK_LEVEL) — si algo llega hasta aquí es código roto o
+        // infraestructura caída en producción, exactamente lo que amerita
+        // una alerta en tiempo real, no solo una línea en el log de archivo.
         $exceptions->report(function (Throwable $e) {
-            Log::error('Excepción no capturada: ' . $e->getMessage(), [
+            Log::critical('Excepción no capturada: ' . $e->getMessage(), [
                 'exception' => get_class($e),
                 'file'      => $e->getFile(),
                 'line'      => $e->getLine(),

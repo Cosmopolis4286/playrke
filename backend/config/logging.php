@@ -74,12 +74,20 @@ return [
             'replace_placeholders' => true,
         ],
 
+        /**
+         * Canal separado (no reutiliza LOG_LEVEL, que en .env.example vale
+         * "debug" para single/daily) — si tomara ese default, agregar
+         * "slack" a LOG_STACK inundaría el canal con cada línea debug/info
+         * en vez de solo alertas reales. LOG_SLACK_LEVEL tiene su propio
+         * default "critical" independiente de cuán verboso sea el resto del
+         * logging.
+         */
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
-            'username' => env('LOG_SLACK_USERNAME', 'Laravel Log'),
+            'username' => env('LOG_SLACK_USERNAME', 'PlayRKE Alerts'),
             'emoji' => env('LOG_SLACK_EMOJI', ':boom:'),
-            'level' => env('LOG_LEVEL', 'critical'),
+            'level' => env('LOG_SLACK_LEVEL', 'critical'),
             'replace_placeholders' => true,
         ],
 
