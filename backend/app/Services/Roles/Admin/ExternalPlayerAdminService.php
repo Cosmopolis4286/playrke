@@ -94,7 +94,8 @@ final class ExternalPlayerAdminService
     /**
      * user_id de los Sellers propios de la Subsidiary indicada — usado por
      * el filtro subsidiary_id (tanto para admin filtrando libremente como
-     * para un commerce acotando dentro de su propia agencia).
+     * para un commerce acotando dentro de su propia agencia), y también
+     * para escopar a un actor 'subsidiary' sobre SU PROPIA agencia.
      *
      * @return string[]
      */
@@ -108,18 +109,35 @@ final class ExternalPlayerAdminService
     }
 
     /**
-     * Si el actor autenticado es 'commerce', fuerza el filtro de
-     * seller_user_id al árbol de sellers propio — admin/superadmin no
-     * reciben restricción. Sin esto, exponer /admin/external-players a
-     * Commerce vía sidebar dejaría ver/gestionar jugadores externos de
-     * CUALQUIER otro comercio (ExternalPlayerAdminService no comparaba
-     * ownership antes de este cambio).
+     * Resuelve el id de la Subsidiary propia de un usuario 'subsidiary' —
+     * null si no tiene un registro Subsidiary asociado (inconsistencia de
+     * datos), en cuyo caso el caller debe tratarlo como "sin árbol propio"
+     * (cero resultados, nunca "todo").
+     */
+    private function ownSubsidiaryId(int $subsidiaryUserId): ?string
+    {
+        return $this->subsidiaryRepository->getByUserId($subsidiaryUserId, ['id'])?->id;
+    }
+
+    /**
+     * Escopa los filtros al árbol de negocio del actor autenticado —
+     * admin/superadmin (ya normalizados a 'admin' por resolveActorRole())
+     * son los ÚNICOS sin restricción; cualquier otro rol con el permiso
+     * `external-players.*` (commerce, subsidiary) queda SIEMPRE acotado a
+     * su propio árbol, nunca "todo por defecto".
+     *
+     * Antes el chequeo era `if ($role !== 'commerce')` — una exclusión de
+     * un solo rol, no una whitelist. Un actor 'subsidiary' (que ya tiene
+     * el permiso `external-players.view`, idéntico al de commerce salvo
+     * subsidiaries.*) caía en la rama "sin restricción" y veía TODOS los
+     * jugadores externos del sistema, de cualquier comercio/agencia — fuga
+     * de datos real, corregida aquí invirtiendo la lógica a whitelist.
      *
      * También traduce los filtros de jerarquía (commerce_id/subsidiary_id,
      * ver ExternalPlayerSearchRequest::filters()) a la misma condición
-     * seller_user_id_in que ya entiende buildQuery() — un commerce que
-     * filtra por subsidiary_id además queda intersectado con su propio
-     * árbol (no puede filtrar por una agencia ajena).
+     * seller_user_id_in que ya entiende buildQuery() — un commerce/subsidiary
+     * que además filtra por esos campos queda intersectado con su propio
+     * árbol (no puede ampliar su alcance filtrando por jerarquía ajena).
      */
     private function applyOwnershipFilter(array $filters): array
     {
@@ -136,18 +154,19 @@ final class ExternalPlayerAdminService
 
         unset($filters['commerce_id'], $filters['subsidiary_id']);
 
-        if ($role !== 'commerce') {
+        if ($role === 'admin') {
             if ($sellerIdsFromHierarchyFilter !== null) {
                 $filters['seller_user_id_in'] = $sellerIdsFromHierarchyFilter ?: ['0'];
             }
             return $filters;
         }
 
-        $ownSellerIds = $this->ownSellerUserIds($userId);
+        $ownSellerIds = match ($role) {
+            'commerce'   => $this->ownSellerUserIds($userId),
+            'subsidiary' => ($subsidiaryId = $this->ownSubsidiaryId($userId)) ? $this->subsidiarySellerUserIds($subsidiaryId) : [],
+            default      => [], // cualquier otro rol con el permiso pero sin jerarquía propia: cero resultados, nunca "todo"
+        };
 
-        // Un commerce que además filtra por subsidiary_id/commerce_id queda
-        // intersectado con su propio árbol — nunca puede ampliar su alcance
-        // filtrando por la jerarquía de otro comercio.
         $effectiveSellerIds = $sellerIdsFromHierarchyFilter !== null
             ? array_values(array_intersect($ownSellerIds, $sellerIdsFromHierarchyFilter))
             : $ownSellerIds;
@@ -271,7 +290,9 @@ final class ExternalPlayerAdminService
      * Catálogo de comercios/agencias para los selects de filtro por
      * jerarquía — acotado por rol, mismo criterio que applyOwnershipFilter():
      * admin ve todos los comercios y todas las agencias; commerce ve solo su
-     * propio comercio y SUS PROPIAS agencias (nunca las de otro comercio).
+     * propio comercio y SUS PROPIAS agencias (nunca las de otro comercio);
+     * subsidiary ve solo SU PROPIA agencia (sin comercios — no le sirve
+     * filtrar por comercio, ya está acotado a su propia agencia siempre).
      *
      * @return array{commerces: array<int, array{id: string, name: string}>, subsidiaries: array<int, array{id: string, name: string, commerce_id: string}>}
      */
@@ -279,9 +300,13 @@ final class ExternalPlayerAdminService
     {
         [$role, $userId] = $this->resolveActorRole();
 
-        if ($role !== 'commerce') {
+        if ($role === 'admin') {
             $commerces = \App\Models\Roles\Commerce::query()->orderBy('name')->get(['id', 'name']);
             $subsidiaries = \App\Models\Roles\Subsidiary::query()->orderBy('name')->get(['id', 'name', 'commerce_id']);
+        } elseif ($role === 'subsidiary') {
+            $subsidiary = \App\Models\Roles\Subsidiary::where('user_id', $userId)->first(['id', 'name', 'commerce_id']);
+            $commerces = collect();
+            $subsidiaries = $subsidiary ? collect([$subsidiary]) : collect();
         } else {
             $commerce = $this->commerceRepository->getByUserId($userId, ['id', 'name']);
             $commerces = $commerce ? collect([$commerce]) : collect();

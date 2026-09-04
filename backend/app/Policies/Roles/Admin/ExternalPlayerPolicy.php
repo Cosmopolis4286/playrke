@@ -36,13 +36,18 @@ class ExternalPlayerPolicy
      * Antes ningún método de esta policy comparaba el jugador objetivo
      * contra el usuario autenticado — solo el permiso. Mismo riesgo que
      * ManagerSellerPolicy::ownsSeller() ya documentó y corrigió para
-     * Seller: exponer esta ruta a Commerce sin este chequeo permitiría
-     * mutar (bloquear/reactivar/convertir) jugadores externos de
-     * CUALQUIER otro comercio con solo cambiar el {externalPlayer} de la URL.
+     * Seller: exponer esta ruta a Commerce/Subsidiary sin este chequeo
+     * permitiría mutar (bloquear/reactivar/convertir) jugadores externos
+     * de CUALQUIER otro comercio/agencia con solo cambiar el
+     * {externalPlayer} de la URL.
      *
      * - admin/superadmin: sin restricción adicional.
      * - commerce: dueño si el Seller que lo captó (seller_user_id) resuelve,
      *   vía Seller::resolveCommerce(), al Commerce de este user.
+     * - subsidiary: dueño si el Seller que lo captó cuelga (subsidiary_id)
+     *   de la Subsidiary de este user — un seller que reporta directo al
+     *   commerce (sin subsidiary_id) nunca es de una agencia, así que
+     *   ninguna subsidiary es "dueña" de esos jugadores.
      */
     private function ownsExternalPlayer(User $user, ExternalPlayer $externalPlayer): bool
     {
@@ -50,9 +55,23 @@ class ExternalPlayerPolicy
             return true;
         }
 
-        if ($user->hasRole('commerce') && $externalPlayer->seller_user_id) {
-            $seller = Seller::where('user_id', $externalPlayer->seller_user_id)->first();
+        if (!$externalPlayer->seller_user_id) {
+            return false;
+        }
+
+        $seller = Seller::where('user_id', $externalPlayer->seller_user_id)->first();
+
+        if ($user->hasRole('commerce')) {
             return (string) $seller?->resolveCommerce()?->user_id === (string) $user->id;
+        }
+
+        if ($user->hasRole('subsidiary')) {
+            if (!$seller?->subsidiary_id) {
+                return false;
+            }
+            return \App\Models\Roles\Subsidiary::where('id', $seller->subsidiary_id)
+                ->where('user_id', $user->id)
+                ->exists();
         }
 
         return false;
