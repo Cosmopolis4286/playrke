@@ -3,9 +3,9 @@
 namespace App\Services\Roles\Admin;
 
 use App\Contracts\Roles\Admin\AdminRepositoryInterface;
+use App\Exceptions\Domain\Roles\Admin\Administrator\AdministratorException;
 use App\Services\ExchangeRate\ExchangeRateService;
 use App\Services\Security\UserContextService;
-use DomainException;
 
 /**
  * Servicio de aplicación para administradores gestionar tasas de cambio
@@ -30,7 +30,7 @@ final class AdminExchangeRateService
         $admin = $this->adminRepository->getByUserId($userId);
         
         if (!$admin) {
-            throw new DomainException('Administrador no encontrado');
+            throw AdministratorException::notFound();
         }
 
         return $this->exchangeRateService->context();
@@ -48,7 +48,7 @@ final class AdminExchangeRateService
         $admin = $this->adminRepository->getByUserId($userId);
         
         if (!$admin) {
-            throw new DomainException('Administrador no encontrado');
+            throw AdministratorException::notFound();
         }
 
         return $this->exchangeRateService->getAll();
@@ -66,7 +66,7 @@ final class AdminExchangeRateService
         $admin = $this->adminRepository->getByUserId($userId);
         
         if (!$admin) {
-            throw new DomainException('Administrador no encontrado');
+            throw AdministratorException::notFound();
         }
 
         return $this->exchangeRateService->getRawRates();
@@ -85,7 +85,7 @@ final class AdminExchangeRateService
         $admin = $this->adminRepository->getByUserId($userId);
         
         if (!$admin) {
-            throw new DomainException('Administrador no encontrado');
+            throw AdministratorException::notFound();
         }
 
         return $this->exchangeRateService->updateRates($rates);
@@ -104,7 +104,7 @@ final class AdminExchangeRateService
         $admin = $this->adminRepository->getByUserId($userId);
         
         if (!$admin) {
-            throw new DomainException('Administrador no encontrado');
+            throw AdministratorException::notFound();
         }
 
         return $this->exchangeRateService->historicalContext($currencyId);

@@ -10,8 +10,8 @@ use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\DTOs\ContextDTO;
 use App\DTOs\Roles\Admin\Customer\AdminCustomerContextDTO;
+use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Traits\HashedTableDataTrait;
-use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class DashboardSellerContextService
@@ -32,7 +32,7 @@ class DashboardSellerContextService
         return match ($context) {
             'commerces' => $this->resolveCommerces(),
             'customers' => $this->resolveCustomers(),
-            default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
+            default => throw RoleResolutionException::contextNotFound(),
         };
     }
 

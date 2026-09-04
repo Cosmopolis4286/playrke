@@ -6,9 +6,9 @@ use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
+use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
-use DomainException;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -127,7 +127,7 @@ final class ExchangeRateUpdaterService
             'admin', 'superadmin' => $this->adminExchangeRateRepository,
             'commerce'            => $this->commerceExchangeRateRepository,
             'customer'            => $this->customerExchangeRateRepository,
-            default               => throw new DomainException("Rol inválido: {$role}"),
+            default               => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }

@@ -7,8 +7,8 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
+use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Services\Security\UserContextService;
-use DomainException;
 
 /**
  * Servicio de dominio encargado de resolver el identificador
@@ -41,7 +41,7 @@ final class RoleEntityResolver
      *
      * @return string ID de la entidad asociada al rol.
      *
-     * @throws DomainException Si el rol no es válido o no está soportado.
+     * @throws RoleResolutionException Si el rol no es válido o no está soportado.
      */
     public function resolveEntityId(?int $userId = null, ?string $role = null): string
     {
@@ -59,7 +59,7 @@ final class RoleEntityResolver
             'subsidiary'          => $this->subsidiaryRepository->getValueByUserId($userId, 'id'),
             'customer'            => $this->customerRepository->getValueByUserId($userId, 'id'),
             'seller'              => $this->sellerRepository->getValueByUserId($userId, 'id'),
-            default               => throw new DomainException("Rol inválido: {$role}"),
+            default               => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }

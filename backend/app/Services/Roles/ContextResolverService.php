@@ -3,8 +3,8 @@
 namespace App\Services\Roles;
 
 use App\DTOs\ContextDTO;
+use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Traits\HashedTableDataTrait;
-use DomainException;
 
 /**
  * Resuelve el ContextDTO correspondiente a un tipo de página/dashboard por rol.
@@ -37,7 +37,7 @@ final class ContextResolverService
      * @param string $context Tipo de contexto a resolver
      * @return ContextDTO
      *
-     * @throws DomainException Si el tipo de contexto es inválido
+     * @throws RoleResolutionException Si el tipo de contexto es inválido
      */
     public function resolve(string $context): ContextDTO
     {
@@ -55,7 +55,7 @@ final class ContextResolverService
             'sellers'    => $this->sellerContextService->resolve(),
             'treasurers' => $this->treasurerContextService->treasurerContext(),
             'subsidiaries' => $this->subsidiaryContextService->subsidiaryContext(),
-            default      => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
+            default      => throw RoleResolutionException::contextNotFound(),
         };
     }
 }

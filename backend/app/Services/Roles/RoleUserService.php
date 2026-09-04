@@ -3,7 +3,7 @@
 namespace App\Services\Roles;
 
 use App\Contracts\Roles\RoleUserRepositoryInterface;
-use DomainException;
+use App\Exceptions\Domain\Roles\RoleResolutionException;
 
 /**
  * Servicio de dominio encargado de resolver el rol activo de un usuario.
@@ -26,7 +26,7 @@ final class RoleUserService
      *
      * @return string Prefijo del rol activo en minúsculas.
      *
-     * @throws DomainException Si el usuario no tiene un rol activo válido
+     * @throws RoleResolutionException Si el usuario no tiene un rol activo válido
      *                         o el rol no define un prefijo.
      */
     public function getActiveUserRolePrefix(int $userId): string
@@ -38,7 +38,7 @@ final class RoleUserService
             ?->prefix;
 
         if (!$role) {
-            throw new DomainException('Rol inválido o no identificado.');
+            throw RoleResolutionException::invalidOrUnidentified();
         }
 
         return strtolower($role);

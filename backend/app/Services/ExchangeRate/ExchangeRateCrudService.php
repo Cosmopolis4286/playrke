@@ -6,12 +6,13 @@ use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
+use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -43,7 +44,7 @@ final class ExchangeRateCrudService
     /**
      * Crear una tasa de cambio para el rol activo.
      *
-     * @throws DomainException
+     * @throws RoleResolutionException
      */
     public function create(ExchangeRateDTO $dto, int $userId): bool
     {
@@ -82,7 +83,7 @@ final class ExchangeRateCrudService
     /**
      * Obtener una tasa de cambio para visualización.
      *
-     * @throws DomainException
+     * @throws ExchangeRateException
      */
     public function show(string $exchangeRateId, int $userId): ExchangeRateResource|AdminExchangeRateResource
     {
@@ -94,11 +95,9 @@ final class ExchangeRateCrudService
             ['id', 'currency_id', 'amount', 'status']
         );
 
-        throw_if(
-            !$exchangeRate,
-            DomainException::class,
-            "Tasa de cambio no encontrada: {$exchangeRateId}"
-        );
+        if (!$exchangeRate) {
+            throw ExchangeRateException::notFound($exchangeRateId);
+        }
 
         return new ExchangeRateResource($exchangeRate);
     }
@@ -106,11 +105,13 @@ final class ExchangeRateCrudService
     /**
      * Actualizar una tasa de cambio existente.
      *
-     * @throws DomainException
+     * @throws ExchangeRateException
      */
     public function update(ExchangeRateDTO $dto, int $userId): bool
     {
-        throw_if(!$dto->id, DomainException::class, 'ID requerido');
+        if (!$dto->id) {
+            throw ExchangeRateException::idRequired();
+        }
 
         [$repo, $role] = $this->resolveContext($userId);
 
@@ -118,11 +119,9 @@ final class ExchangeRateCrudService
             return DB::transaction(function () use ($repo, $dto, $userId) {
                 $oldAmount = $repo->getValueById($dto->id, 'amount');
 
-                throw_if(
-                    is_null($oldAmount),
-                    DomainException::class,
-                    "Tasa con ID {$dto->id} no encontrada"
-                );
+                if (is_null($oldAmount)) {
+                    throw ExchangeRateException::notFoundById((string) $dto->id);
+                }
 
                 // For admin, update the amount and user_id
                 $repo->update($dto->id, [
@@ -144,11 +143,9 @@ final class ExchangeRateCrudService
         return DB::transaction(function () use ($repo, $dto) {
             $oldAmount = $repo->getValueById($dto->id, 'amount');
 
-            throw_if(
-                is_null($oldAmount),
-                DomainException::class,
-                "Tasa con ID {$dto->id} no encontrada"
-            );
+            if (is_null($oldAmount)) {
+                throw ExchangeRateException::notFoundById((string) $dto->id);
+            }
 
             // Marcar tasa anterior como OLD
             $repo->update($dto->id, ['status' => 'OLD']);
@@ -175,17 +172,15 @@ final class ExchangeRateCrudService
     /**
      * Eliminar una tasa de cambio según rol.
      *
-     * @throws DomainException
+     * @throws ExchangeRateException
      */
     public function deleteByRole(string $id, int $userId): bool
     {
         [$repo] = $this->resolveContext($userId);
 
-        throw_if(
-            !$repo->exists($id),
-            DomainException::class,
-            "Tasa de cambio no encontrada: {$id}"
-        );
+        if (!$repo->exists($id)) {
+            throw ExchangeRateException::notFound($id);
+        }
 
         return $repo->delete($id);
     }
@@ -193,7 +188,7 @@ final class ExchangeRateCrudService
     /**
      * Alternar estado activo/inactivo.
      *
-     * @throws DomainException
+     * @throws RoleResolutionException
      */
     public function changeStatusByRole(string $id, int $userId): bool
     {
@@ -213,28 +208,24 @@ final class ExchangeRateCrudService
      *
      * @return array{0: mixed, 1: string, 2: int}
      *
-     * @throws DomainException
+     * @throws RoleResolutionException
      */
     private function resolveContext(int $userId): array
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        throw_if(
-            !$role,
-            DomainException::class,
-            "No se pudo resolver el rol del usuario {$userId}"
-        );
+        if (!$role) {
+            throw RoleResolutionException::unresolvedRoleForUser($userId);
+        }
 
         $entityId = null;
 
         if (!in_array($role, ['admin', 'superadmin'])) {
             $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
-            throw_if(
-                !$entityId,
-                DomainException::class,
-                "No se encontró entidad asociada al rol '{$role}'"
-            );
+            if (!$entityId) {
+                throw RoleResolutionException::entityNotFoundForRole($role);
+            }
         }
 
         return [$this->repo($role), $role, $entityId];
@@ -243,7 +234,7 @@ final class ExchangeRateCrudService
     /**
      * Retorna el repositorio correspondiente según el rol.
      *
-     * @throws DomainException
+     * @throws RoleResolutionException
      */
     private function repo(
         string $role
@@ -252,7 +243,7 @@ final class ExchangeRateCrudService
             'commerce'            => $this->commerce,
             'customer'            => $this->customer,
             'admin', 'superadmin' => $this->admin,
-            default               => throw new DomainException("Rol inválido: {$role}"),
+            default               => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }
