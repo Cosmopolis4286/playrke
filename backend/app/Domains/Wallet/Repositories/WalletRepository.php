@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Wallet\Repositories;
 
 use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Repositories\BaseRepository;
-use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -55,7 +55,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryInterfa
      *
      * @return array{bonus_spent: float, balance_spent: float}
      *
-     * @throws DomainException si bonus_balance + balance < $amount
+     * @throws WalletDomainException si bonus_balance + balance < $amount
      */
     public function consumeBonusFirst(string $walletId, float $amount) : array
     {
@@ -65,7 +65,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryInterfa
         $balanceAvailable = (float) $wallet->balance;
 
         if (($bonusAvailable + $balanceAvailable) < $amount) {
-            throw new DomainException('Saldo insuficiente (bono + real) para esta operación.');
+            throw WalletDomainException::insufficientCombinedBalance();
         }
 
         $bonusSpent = min($bonusAvailable, $amount);

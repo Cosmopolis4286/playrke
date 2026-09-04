@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domains\Wallet\Services;
 
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletLimit;
 use App\Domains\Wallet\Models\WalletMovement;
-use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -26,19 +26,15 @@ final class WalletLimitService
         $limit = WalletLimit::resolve((string) $wallet->currency_id, $kycLevel);
 
         if (! $limit) {
-            throw new DomainException('No hay límites de depósito configurados para esta moneda. Contacta soporte.');
+            throw WalletDomainException::depositLimitsNotConfigured();
         }
 
         if ($amount < $limit->min_deposit) {
-            throw new DomainException(
-                "El monto mínimo de depósito es {$limit->min_deposit}.",
-            );
+            throw WalletDomainException::depositBelowMinimum((float) $limit->min_deposit);
         }
 
         if ($amount > $limit->max_deposit) {
-            throw new DomainException(
-                "El monto máximo por depósito es {$limit->max_deposit}.",
-            );
+            throw WalletDomainException::depositAboveMaximum((float) $limit->max_deposit);
         }
     }
 
@@ -56,21 +52,17 @@ final class WalletLimitService
 
         if (! $limit) {
             // Sin configuración → bloquear por precaución
-            throw new DomainException('No hay límites de retiro configurados para esta moneda. Contacta soporte.');
+            throw WalletDomainException::withdrawalLimitsNotConfigured();
         }
 
         // ── Mínimo por transacción ────────────────────────────────────────────
         if ($amount < $limit->min_per_transaction) {
-            throw new DomainException(
-                "El monto mínimo de retiro es {$limit->min_per_transaction}.",
-            );
+            throw WalletDomainException::withdrawalBelowMinimum((float) $limit->min_per_transaction);
         }
 
         // ── Máximo por transacción ────────────────────────────────────────────
         if ($amount > $limit->max_per_transaction) {
-            throw new DomainException(
-                "El monto máximo por retiro es {$limit->max_per_transaction}.",
-            );
+            throw WalletDomainException::withdrawalAboveMaximum((float) $limit->max_per_transaction);
         }
 
         $walletId = (string) $wallet->id;
@@ -80,27 +72,21 @@ final class WalletLimitService
         if (($sums['daily'] + $amount) > $limit->max_daily) {
             $remaining = max(0, $limit->max_daily - $sums['daily']);
 
-            throw new DomainException(
-                "Límite diario de retiro alcanzado. Puedes retirar hasta {$remaining} hoy.",
-            );
+            throw WalletDomainException::dailyWithdrawalLimitReached((float) $remaining);
         }
 
         // ── Límite semanal ────────────────────────────────────────────────────
         if (($sums['weekly'] + $amount) > $limit->max_weekly) {
             $remaining = max(0, $limit->max_weekly - $sums['weekly']);
 
-            throw new DomainException(
-                "Límite semanal de retiro alcanzado. Puedes retirar hasta {$remaining} esta semana.",
-            );
+            throw WalletDomainException::weeklyWithdrawalLimitReached((float) $remaining);
         }
 
         // ── Límite mensual ────────────────────────────────────────────────────
         if (($sums['monthly'] + $amount) > $limit->max_monthly) {
             $remaining = max(0, $limit->max_monthly - $sums['monthly']);
 
-            throw new DomainException(
-                "Límite mensual de retiro alcanzado. Puedes retirar hasta {$remaining} este mes.",
-            );
+            throw WalletDomainException::monthlyWithdrawalLimitReached((float) $remaining);
         }
     }
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domains\Wallet\Services;
 
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletHold;
 use App\Domains\Wallet\Models\WalletMovement;
-use DomainException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -45,11 +45,11 @@ final class WalletReservationService
         $amount ??= (float) $hold->amount;
 
         if ($amount > (float) $hold->amount) {
-            throw new DomainException('No se puede capturar más de lo reservado en el hold.');
+            throw WalletDomainException::holdCaptureExceedsReservedAmount();
         }
 
         if (! $hold->isActive()) {
-            throw new DomainException('El hold ya fue resuelto (capturado o liberado).');
+            throw WalletDomainException::holdAlreadyResolved();
         }
 
         $wallet = Wallet::findOrFail($hold->wallet_id);
@@ -90,7 +90,7 @@ final class WalletReservationService
             $locked = Wallet::lockForUpdate()->findOrFail($wallet->id);
 
             if (! $locked->hasSufficientAvailableBalance($amount)) {
-                throw new DomainException('Saldo disponible insuficiente para esta reserva.');
+                throw WalletDomainException::insufficientAvailableBalanceForHold();
             }
 
             return WalletHold::create([
@@ -110,7 +110,7 @@ final class WalletReservationService
     public function release(WalletHold $hold) : WalletHold
     {
         if (! $hold->isActive()) {
-            throw new DomainException('El hold ya fue resuelto (capturado o liberado).');
+            throw WalletDomainException::holdAlreadyResolved();
         }
 
         $hold->update([

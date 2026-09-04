@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Models\Currency;
 use App\Models\MovementType;
 use App\Models\User;
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Domains\Wallet\Repositories\WalletRepository;
@@ -126,8 +127,8 @@ class WalletServiceTest extends TestCase
 
         try {
             $this->service->recordCardPurchase((string) $wallet->id, 100.0);
-            $this->fail('Expected DomainException was not thrown.');
-        } catch (\DomainException $e) {
+            $this->fail('Expected WalletDomainException was not thrown.');
+        } catch (WalletDomainException $e) {
             // esperado
         }
 
@@ -161,7 +162,7 @@ class WalletServiceTest extends TestCase
     {
         $wallet = $this->makeWallet(balance: 5.0, bonusBalance: 100.0);
 
-        $this->expectException(\DomainException::class);
+        $this->expectException(WalletDomainException::class);
 
         $this->service->requestWithdraw(
             wallet:        $wallet,
@@ -213,7 +214,7 @@ class WalletServiceTest extends TestCase
         $wallet = $this->makeWallet(balance: 5.0, bonusBalance: 5.0);
         $repo   = app(WalletRepository::class);
 
-        $this->expectException(\DomainException::class);
+        $this->expectException(WalletDomainException::class);
 
         $repo->consumeBonusFirst((string) $wallet->id, 11.0);
     }

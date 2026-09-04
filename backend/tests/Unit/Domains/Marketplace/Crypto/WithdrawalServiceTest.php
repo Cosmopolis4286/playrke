@@ -9,6 +9,7 @@ use App\Domains\Marketplace\Crypto\Services\WithdrawalService;
 use App\Models\Currency;
 use App\Models\MovementType;
 use App\Models\User;
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletHold;
 use App\Domains\Wallet\Models\WalletLimit;
@@ -67,7 +68,7 @@ class WithdrawalServiceTest extends TestCase
 
     public function test_request_throws_when_amount_exceeds_available_balance(): void
     {
-        $this->expectException(\DomainException::class);
+        $this->expectException(WalletDomainException::class);
         $this->service->request($this->user, $this->wallet, 500.0, 'TDEST');
     }
 

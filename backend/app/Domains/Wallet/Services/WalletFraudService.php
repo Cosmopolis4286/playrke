@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Wallet\Services;
 
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\WalletMovement;
-use DomainException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +40,7 @@ final class WalletFraudService
         if ($count >= self::MAX_DEPOSITS_PER_DAY) {
             Log::warning('[Fraud] Velocity depósito excedida', ['user_id' => $userId, 'count' => $count]);
 
-            throw new DomainException('Has alcanzado el límite de depósitos por hoy. Inténtalo mañana.');
+            throw WalletDomainException::depositVelocityExceeded();
         }
     }
 
@@ -58,7 +58,7 @@ final class WalletFraudService
                 'type' => $type,
             ]);
 
-            throw new DomainException('Solicitud duplicada. Espera unos segundos antes de reintentar.');
+            throw WalletDomainException::duplicateSubmission();
         }
 
         Cache::put($key, true, self::DOUBLE_SUBMIT_WINDOW_SECONDS);
@@ -81,7 +81,7 @@ final class WalletFraudService
         if ($exists) {
             Log::warning('[Fraud] Referencia duplicada', ['wallet_id' => $walletId, 'reference' => $reference]);
 
-            throw new DomainException('Este número de referencia ya fue utilizado recientemente. Verifica el comprobante.');
+            throw WalletDomainException::duplicateReference();
         }
     }
 
@@ -95,7 +95,7 @@ final class WalletFraudService
         if ($count >= self::MAX_WITHDRAWALS_PER_DAY) {
             Log::warning('[Fraud] Velocity retiro excedida', ['user_id' => $userId, 'count' => $count]);
 
-            throw new DomainException('Has alcanzado el límite de retiros por hoy. Inténtalo mañana.');
+            throw WalletDomainException::withdrawalVelocityExceeded();
         }
     }
 

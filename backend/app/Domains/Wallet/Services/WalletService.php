@@ -8,6 +8,7 @@ use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
 use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Domains\Wallet\Events\WalletMovementRequested;
 use App\Domains\Wallet\Events\WalletUpdated;
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Jobs\DispatchWalletNotificationJob;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletMovement;
@@ -18,7 +19,6 @@ use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\User;
 use App\Services\NotificationService;
-use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -65,10 +65,10 @@ final class WalletService
     public function approveDeposit(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
-            throw new DomainException('El movimiento no es un depósito.');
+            throw WalletDomainException::movementNotDeposit();
         }
         if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw new DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+            throw WalletDomainException::approvalRequiresPendingStatus();
         }
 
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
@@ -107,7 +107,7 @@ final class WalletService
     public function approveGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw new DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+            throw WalletDomainException::approvalRequiresPendingStatus();
         }
 
         $isCredit = $movement->isCredit();
@@ -145,10 +145,10 @@ final class WalletService
     public function approveWithdrawal(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
-            throw new DomainException('El movimiento no es un retiro.');
+            throw WalletDomainException::movementNotWithdrawal();
         }
         if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw new DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+            throw WalletDomainException::approvalRequiresPendingStatus();
         }
 
         $movement->update([
@@ -179,7 +179,7 @@ final class WalletService
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
-                throw new DomainException('La billetera está bloqueada.');
+                throw WalletDomainException::walletBlocked();
             }
 
             $balanceBefore = (float) $wallet->balance;
@@ -233,7 +233,7 @@ final class WalletService
             ->first();
 
         if (! $wallet) {
-            throw new DomainException('No tienes una billetera activa para esa moneda.');
+            throw WalletDomainException::noActiveWalletForCurrency();
         }
 
         return $wallet;
@@ -379,7 +379,7 @@ final class WalletService
             $wallet = $this->findOwnedWallet($walletId);
 
             if (! $wallet->hasSufficientPlayableBalance($amount)) {
-                throw new DomainException('Saldo insuficiente para realizar la compra de cartones.');
+                throw WalletDomainException::insufficientBalanceForCardPurchase();
             }
 
             $balanceBefore = (float) $wallet->balance;
@@ -489,7 +489,7 @@ final class WalletService
             $locked = Wallet::lockForUpdate()->findOrFail($wallet->id);
 
             if (! $locked->hasSufficientPlayableBalance($amount)) {
-                throw new DomainException('Saldo insuficiente para capturar la reserva.');
+                throw WalletDomainException::insufficientBalanceForHoldCapture();
             }
 
             $walletId = (string) $locked->id;
@@ -877,7 +877,7 @@ final class WalletService
             $locked = Wallet::lockForUpdate()->findOrFail($walletId);
 
             if (! $locked->hasSufficientPlayableBalance($amount)) {
-                throw new DomainException('Saldo insuficiente para unirte a esta sala.');
+                throw WalletDomainException::insufficientBalanceForRoomEntry();
             }
 
             $balanceBefore = (float) $locked->balance;
@@ -928,10 +928,10 @@ final class WalletService
     public function rejectDeposit(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
-            throw new DomainException('El movimiento no es un depósito.');
+            throw WalletDomainException::movementNotDeposit();
         }
         if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw new DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+            throw WalletDomainException::rejectionRequiresPendingStatus();
         }
 
         $movement->update([
@@ -957,7 +957,7 @@ final class WalletService
     public function rejectGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw new DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+            throw WalletDomainException::rejectionRequiresPendingStatus();
         }
 
         $isCredit = $movement->isCredit();
@@ -994,10 +994,10 @@ final class WalletService
     public function rejectWithdrawal(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
-            throw new DomainException('El movimiento no es un retiro.');
+            throw WalletDomainException::movementNotWithdrawal();
         }
         if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw new DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+            throw WalletDomainException::rejectionRequiresPendingStatus();
         }
 
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
@@ -1038,7 +1038,7 @@ final class WalletService
         ?string $notes = null,
     ) : Wallet {
         if ($wallet->isBlocked()) {
-            throw new DomainException('La billetera está bloqueada.');
+            throw WalletDomainException::walletBlocked();
         }
 
         $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
@@ -1052,7 +1052,7 @@ final class WalletService
         }
 
         if ($this->getPendingOperation((string) $wallet->id, WalletMovement::TYPE_DEPOSIT)) {
-            throw new DomainException('Ya tienes un depósito pendiente de confirmación. Espera a que sea procesado antes de hacer otro.');
+            throw WalletDomainException::depositAlreadyPending();
         }
 
         $movement = $this->movementRepository->record([
@@ -1103,15 +1103,15 @@ final class WalletService
             $walletId = (string) $wallet->id;
 
             if ($wallet->isBlocked()) {
-                throw new DomainException('La billetera está bloqueada.');
+                throw WalletDomainException::walletBlocked();
             }
 
             if ($this->getPendingOperation($walletId, WalletMovement::TYPE_WITHDRAWAL)) {
-                throw new DomainException('Ya tienes un retiro pendiente de procesamiento. Espera a que sea procesado antes de solicitar otro.');
+                throw WalletDomainException::withdrawalAlreadyPending();
             }
 
             if (! $wallet->hasSufficientBalance($amount)) {
-                throw new DomainException('Saldo insuficiente para realizar el retiro.');
+                throw WalletDomainException::insufficientBalanceForWithdrawal();
             }
 
             $balanceBefore = (float) $wallet->balance;
@@ -1154,11 +1154,11 @@ final class WalletService
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
-                throw new DomainException('La billetera está bloqueada.');
+                throw WalletDomainException::walletBlocked();
             }
 
             if (! $wallet->hasSufficientBalance($amount)) {
-                throw new DomainException('Saldo insuficiente para realizar el retiro.');
+                throw WalletDomainException::insufficientBalanceForWithdrawal();
             }
 
             $balanceBefore = (float) $wallet->balance;
