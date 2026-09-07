@@ -24,11 +24,18 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
     Route::get('wallet',                        [WalletController::class, 'index'])            ->name('wallet.index');
-    Route::get('wallet/movements',              [WalletController::class, 'movements'])        ->name('wallet.movements');
-    Route::get('wallet/movements/{id}',         [WalletController::class, 'showMovement'])     ->name('wallet.movements.show');
-    Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
-    Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
-    Route::get('wallet/limits',                 [WalletController::class, 'limits'])           ->name('wallet.limits');
+
+    // throttle:wallet-read (60/min por usuario) — sin esto, un usuario
+    // autenticado podía golpear estas 5 lecturas sin límite (scraping/DoS de
+    // bajo costo contra la BD); no aplica a wallet.index (render Inertia
+    // inicial de página, no un endpoint JSON consultable en loop).
+    Route::middleware('throttle:wallet-read')->group(function () {
+        Route::get('wallet/movements',              [WalletController::class, 'movements'])        ->name('wallet.movements');
+        Route::get('wallet/movements/{id}',         [WalletController::class, 'showMovement'])     ->name('wallet.movements.show');
+        Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
+        Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
+        Route::get('wallet/limits',                 [WalletController::class, 'limits'])           ->name('wallet.limits');
+    });
 
     // Fase 5 (esqueleto, ver MARKETPLACE_ARCHITECTURE_AUDIT.md sección 12):
     // detrás de config('crypto.deposits_enabled'), false por defecto —

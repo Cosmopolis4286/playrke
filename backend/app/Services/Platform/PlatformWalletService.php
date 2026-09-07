@@ -56,6 +56,19 @@ final class PlatformWalletService
      */
     public function creditRke(string $currencyId, float $amount, string $description = 'Comisión RKE'): void
     {
+        // amount == 0 es legítimo (sala con rke_commission configurada al
+        // 0%) y no debe interrumpir la venta ni generar ruido. amount < 0
+        // sí es anómalo (bug de cálculo de tasa/redondeo aguas arriba en
+        // RoomMetricsService) — antes ambos casos volvían en silencio sin
+        // distinción, perdiendo la señal de que algo calculó mal.
+        if ($amount < 0) {
+            \Illuminate\Support\Facades\Log::warning('[PlatformWalletService] creditRke() recibió un monto negativo — se ignora sin acreditar', [
+                'currency_id' => $currencyId,
+                'amount'      => $amount,
+                'description' => $description,
+            ]);
+        }
+
         if ($amount <= 0) {
             return;
         }

@@ -60,7 +60,11 @@ final class WalletFraudService
      */
     public function checkDoubleSubmit(string $walletId, float $amount, string $type) : void
     {
-        $key = "fraud:ds:{$walletId}:{$type}:" . (int) $amount;
+        // number_format a 2 decimales fijos (no (int) $amount, que truncaba
+        // la parte decimal — 10.10 y 10.90 compartían la misma key y un
+        // segundo depósito/retiro con monto distinto pero mismo entero-base
+        // se bloqueaba como "duplicado" sin serlo, un falso positivo).
+        $key = "fraud:ds:{$walletId}:{$type}:" . number_format($amount, 2, '.', '');
 
         if (Cache::has($key)) {
             Log::warning('[Fraud] Double-submit detectado', [

@@ -49,6 +49,66 @@ class WalletServiceTest extends TestCase
         ]);
     }
 
+    // ── assertPositiveAmount() — defensa de última línea en el núcleo ───────
+    // Ninguno de estos métodos validaba amount > 0 antes; un caller con un
+    // bug de cálculo podía colar un monto negativo/cero y generar un
+    // WalletMovement fantasma sin tocar el balance (rompiendo la cuadratura
+    // del ledger sin que nadie lo note).
+
+    public function test_record_prize_with_zero_amount_throws(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->recordPrize(wallet: $wallet, amount: 0.0, gameId: 'game-1');
+    }
+
+    public function test_record_prize_with_negative_amount_throws(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->recordPrize(wallet: $wallet, amount: -25.0, gameId: 'game-1');
+    }
+
+    public function test_record_card_purchase_with_zero_amount_throws(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->recordCardPurchase((string) $wallet->id, 0.0);
+    }
+
+    public function test_record_trivia_entry_with_negative_amount_throws(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->recordTriviaEntry(wallet: $wallet, amount: -5.0);
+    }
+
+    public function test_record_refund_with_zero_amount_throws(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->recordRefund(wallet: $wallet, amount: 0.0, gameId: 'game-1');
+    }
+
+    public function test_record_admin_deposit_with_negative_amount_throws(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->recordAdminDeposit($wallet->user, -20.0);
+    }
+
     // ── recordPrize() ───────────────────────────────────────────────────────
 
     public function test_record_prize_withdrawable_true_credits_balance_with_type_prize(): void

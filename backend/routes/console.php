@@ -53,6 +53,7 @@ schedule_dynamic('suspensions:expire-temporary', fn (Event $e) => $e->everyFiveM
 schedule_dynamic('trivia:cancel-stale-rooms', fn (Event $e) => $e->everyFiveMinutes());
 schedule_dynamic('kyc:notify-pending', fn (Event $e) => $e->dailyAt('08:00'));
 schedule_dynamic('wallet:notify-stale-movements', fn (Event $e) => $e->everyFifteenMinutes());
+schedule_dynamic('wallet:reconcile-balances', fn (Event $e) => $e->everyFifteenMinutes());
 schedule_dynamic('notifications:prune', fn (Event $e) => $e->daily());
 schedule_dynamic('marketplace:reconcile-escrows', fn (Event $e) => $e->everyFiveMinutes());
 schedule_dynamic('marketplace:reconcile', fn (Event $e) => $e->everyFifteenMinutes());

@@ -333,6 +333,8 @@ final class WalletService
      */
     public function recordAdminDeposit(User $user, float $amount, string $description = 'Carga de saldo por administrador') : Wallet
     {
+        $this->assertPositiveAmount($amount);
+
         $movementId = null;
 
         $wallet = DB::transaction(function() use ($user, $amount, $description, &$movementId) {
@@ -394,6 +396,8 @@ final class WalletService
      */
     public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones') : array
     {
+        $this->assertPositiveAmount($amount);
+
         $movementId = null;
         $split = ['bonus_spent' => 0.0, 'balance_spent' => 0.0];
 
@@ -451,6 +455,8 @@ final class WalletService
         string $description,
         string $idempotencyKey,
     ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
         $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
         if ($existing) {
             return $existing;
@@ -505,6 +511,8 @@ final class WalletService
      */
     public function recordHoldCapture(Wallet $wallet, float $amount, string $movementType, ?string $description, string $holdId) : WalletMovement
     {
+        $this->assertPositiveAmount($amount);
+
         $movementId = null;
 
         $wallet = DB::transaction(function() use ($wallet, $amount, $movementType, $description, $holdId, &$movementId) {
@@ -567,6 +575,8 @@ final class WalletService
         string $description,
         string $idempotencyKey,
     ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
         $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
         if ($existing) {
             return $existing;
@@ -639,6 +649,8 @@ final class WalletService
         ?string $idempotencyKey = null,
         bool $withdrawable = true,
     ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
         if ($idempotencyKey !== null) {
             $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
@@ -740,15 +752,29 @@ final class WalletService
         string $description,
         string $idempotencyKey,
     ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
         $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
         if ($existing) {
             return $existing;
         }
 
+        $lockedWallet = $wallet;
+
         try {
-            $movement = DB::transaction(function() use ($wallet, $amount, $gameId, $description, $idempotencyKey) {
-                $walletId = (string) $wallet->id;
-                $balanceBefore = (float) $wallet->balance;
+            $movement = DB::transaction(function() use ($wallet, $amount, $gameId, $description, $idempotencyKey, &$lockedWallet) {
+                // lockForUpdate() + relectura: sin esto, $wallet->balance es
+                // el snapshot que tenía el caller ANTES de abrir esta
+                // transacción — si el jugador gasta ese mismo saldo en
+                // paralelo (compra de cartones, que sí bloquea la wallet),
+                // $debitFromBalance/$debtPortion se calculan sobre un balance
+                // obsoleto, pudiendo violar chk_wallets_balance_nonneg (la
+                // reversión completa abortaría con una excepción SQL cruda
+                // en vez de repartir correctamente balance/pending_debt).
+                $locked = Wallet::lockForUpdate()->findOrFail($wallet->id);
+                $lockedWallet = $locked;
+                $walletId = (string) $locked->id;
+                $balanceBefore = (float) $locked->balance;
 
                 // Topar al saldo disponible: chk_wallets_balance_nonneg no
                 // permite decrementar por debajo de 0. El resto pasa a deuda.
@@ -759,18 +785,18 @@ final class WalletService
                     $this->walletRepository->decrementBalance($walletId, $debitFromBalance);
                 }
                 if ($debtPortion > 0) {
-                    $wallet->increment('pending_debt', $debtPortion);
+                    $locked->increment('pending_debt', $debtPortion);
                 }
-                $wallet->refresh();
+                $locked->refresh();
 
                 return $this->movementRepository->record([
                     'wallet_id' => $walletId,
-                    'user_id' => (string) $wallet->user_id,
+                    'user_id' => (string) $locked->user_id,
                     'type' => WalletMovement::TYPE_PRIZE_REVERSAL,
                     'status' => WalletMovement::STATUS_COMPLETED,
                     'amount' => $amount,
                     'balance_before' => $balanceBefore,
-                    'balance_after' => (float) $wallet->balance,
+                    'balance_after' => (float) $locked->balance,
                     'description' => $description,
                     'idempotency_key' => $idempotencyKey,
                     'metadata' => [
@@ -791,7 +817,7 @@ final class WalletService
             throw $e;
         }
 
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE_REVERSAL, $amount, (string) $movement->id);
+        $this->broadcastWalletUpdated($lockedWallet, WalletMovement::TYPE_PRIZE_REVERSAL, $amount, (string) $movement->id);
 
         return $movement;
     }
@@ -814,6 +840,8 @@ final class WalletService
         float $bonusPortion = 0.0,
         array $extraMetadata = [],
     ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
         $movement = DB::transaction(function() use ($wallet, $amount, $gameId, $description, $bonusPortion, $extraMetadata) {
             $walletId = (string) $wallet->id;
             $balanceBefore = (float) $wallet->balance;
@@ -886,6 +914,8 @@ final class WalletService
         ?string $roomId = null,
         ?string $roomName = null,
     ) : Wallet {
+        $this->assertPositiveAmount($amount);
+
         $movementId = null;
 
         $result = DB::transaction(function() use ($wallet, $amount, $description, $roomId, &$movementId) {
@@ -1491,6 +1521,25 @@ final class WalletService
      * (p.ej. dos compras de cartones a la vez) lean el mismo balance antes de que la
      * primera haga commit, lo que permitiría dejar el balance en negativo.
      */
+    /**
+     * Defensa de última línea en cada método de crédito/débito del núcleo
+     * (recordPrize, recordRefund, recordCryptoDeposit, recordMarketplaceCredit,
+     * recordCardPurchase, recordTriviaEntry, recordHoldCapture): ninguno de
+     * esos métodos validaba $amount > 0 por sí mismo, confiando en que el
+     * caller (un juego, marketplace, el watcher de cripto) siempre calcula
+     * bien el monto. Un monto negativo/cero coleado hasta aquí se registra
+     * igual como WalletMovement sin que nadie lo note (ej. recordPrize con
+     * amount negativo: settlePendingDebt() calcula netAmount<=0 y el
+     * incrementBalance() correspondiente simplemente no se ejecuta,
+     * dejando un movimiento fantasma que rompe la cuadratura del ledger).
+     */
+    private function assertPositiveAmount(float $amount) : void
+    {
+        if ($amount <= 0) {
+            throw WalletDomainException::invalidMovementAmount($amount);
+        }
+    }
+
     private function findOwnedWallet(string $walletId) : Wallet
     {
         $wallet = Wallet::with(['currency', 'user'])->lockForUpdate()->findOrFail($walletId);

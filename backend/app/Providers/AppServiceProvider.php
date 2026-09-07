@@ -152,6 +152,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: lecturas de wallet (movimientos, directorios, límites,
+        // operación pendiente) — antes sin ningún throttle de ruta, solo
+        // detrás de auth+permission. 60/min por usuario es generoso para uso
+        // normal (polling del frontend, paginación) pero cierra scraping/DoS
+        // de bajo costo contra la BD desde una sesión autenticada válida.
+        RateLimiter::for('wallet-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?? $request->ip());
+        });
+
         // Rate-limit: subida/eliminación de avatar — 10 por minuto por usuario.
         RateLimiter::for('profile-avatar', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());

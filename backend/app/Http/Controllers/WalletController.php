@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
 use App\Models\MovementType;
@@ -23,6 +24,21 @@ class WalletController extends Controller
         private readonly WalletLimitService $limitService,
         private readonly RoleUserService        $roleUserService,
     ) {}
+
+    /**
+     * Respuesta JSON de error para un \DomainException capturado en este
+     * controller. WalletDomainException::httpStatus() lleva el status HTTP
+     * real declarado por el factory method que la creó (ej. 429 en un
+     * lockout, 409 en un conflicto de estado) — antes cada catch devolvía
+     * 422 fijo sin importar la excepción, aplanando "espera antes de
+     * reintentar" y "corrige el formulario" al mismo código.
+     */
+    private function domainErrorResponse(\DomainException $e): JsonResponse
+    {
+        $status = $e instanceof WalletDomainException ? $e->httpStatus() : 422;
+
+        return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
+    }
 
     /**
      * Página de billetera del jugador.
@@ -102,7 +118,7 @@ class WalletController extends Controller
                 'balance' => (float) $wallet->balance,
             ]);
         } catch (\DomainException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@deposit] ' . $e->getMessage(), ['exception' => $e]);
             return response()->json(['success' => false, 'message' => 'Error interno. Intenta de nuevo.'], 500);
@@ -134,14 +150,8 @@ class WalletController extends Controller
                 'message' => 'Solicitud de retiro enviada. Un administrador procesará la transferencia.',
                 'balance' => (float) $wallet->balance,
             ]);
-        } catch (\App\Domains\Wallet\Exceptions\WalletDomainException $e) {
-            // httpStatus() real de la excepción (ej. 429 en el lockout del
-            // PIN de retiro) — antes este catch devolvía 422 fijo para
-            // cualquier DomainException, aplanando la distinción entre
-            // "error de validación" y "espera antes de reintentar".
-            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
         } catch (\DomainException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@withdraw] ' . $e->getMessage(), ['exception' => $e]);
             return response()->json(['success' => false, 'message' => 'Error interno. Intenta de nuevo.'], 500);
@@ -192,7 +202,7 @@ class WalletController extends Controller
                 ],
             ]);
         } catch (\DomainException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@movements] ' . $e->getMessage(), ['exception' => $e]);
             return response()->json(['success' => false, 'message' => 'Error interno.'], 500);
@@ -254,7 +264,7 @@ class WalletController extends Controller
 
             return response()->json(['success' => true, 'data' => $directories]);
         } catch (\DomainException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@userDirectories] ' . $e->getMessage(), ['exception' => $e]);
             return response()->json(['success' => true, 'data' => []]);
@@ -308,7 +318,7 @@ class WalletController extends Controller
 
             return response()->json(['success' => true, 'data' => $usage]);
         } catch (\DomainException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@limits] ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno.'], 500);

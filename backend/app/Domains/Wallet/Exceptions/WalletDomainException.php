@@ -145,6 +145,22 @@ final class WalletDomainException extends DomainException
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // Validación de monto (WalletService::assertPositiveAmount())
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * assertPositiveAmount(): un método de crédito/débito del núcleo
+     * (recordPrize, recordRefund, recordCryptoDeposit, etc.) recibió un
+     * monto <= 0. Defensa de última línea contra un bug de cálculo en el
+     * caller (juego, marketplace, cripto) — ninguno de esos métodos debe
+     * confiar ciegamente en que el monto ya viene validado.
+     */
+    public static function invalidMovementAmount(float $amount) : self
+    {
+        return new self("El monto del movimiento debe ser mayor a cero (recibido: {$amount}).", 422);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // Saldo insuficiente (WalletService)
     // ─────────────────────────────────────────────────────────────────
 
