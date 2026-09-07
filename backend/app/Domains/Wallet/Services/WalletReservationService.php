@@ -35,6 +35,13 @@ final class WalletReservationService
      * puede ser menor o igual al reservado (ej. penalización parcial de
      * retiro) — el remanente, si lo hay, queda simplemente liberado (nunca
      * se cobra más de lo reservado).
+     *
+     * lockForUpdate() sobre el propio hold (no solo sobre la wallet, que ya
+     * bloquea recordHoldCapture()): sin esto, dos llamadas concurrentes con
+     * el mismo $hold (doble clic, reintento de red) pueden ambas leer
+     * isActive()===true antes de que cualquiera actualice status, y ambas
+     * ejecutan recordHoldCapture() completo — doble débito real desde la
+     * misma reserva, ya que ese método no valida idempotencia por holdId.
      */
     public function capture(
         WalletHold $hold,
@@ -48,30 +55,37 @@ final class WalletReservationService
             throw WalletDomainException::holdCaptureExceedsReservedAmount();
         }
 
-        if (! $hold->isActive()) {
-            throw WalletDomainException::holdAlreadyResolved();
-        }
+        $movement = DB::transaction(function () use ($hold, $movementType, $amount, $description) {
+            $lockedHold = WalletHold::where('id', $hold->id)->lockForUpdate()->firstOrFail();
 
-        $wallet = Wallet::findOrFail($hold->wallet_id);
+            if (! $lockedHold->isActive()) {
+                throw WalletDomainException::holdAlreadyResolved();
+            }
 
-        // El débito real (lock, split bono/balance, WalletMovement, broadcast,
-        // notificación) lo hace WalletService::recordHoldCapture() — mismo
-        // patrón que cualquier otro gasto de juego (recordCardPurchase,
-        // recordTriviaEntry). Este servicio solo gestiona el ciclo de vida
-        // del hold en sí.
-        $movement = $this->walletService->recordHoldCapture(
-            wallet: $wallet,
-            amount: $amount,
-            movementType: $movementType,
-            description: $description,
-            holdId: (string) $hold->id,
-        );
+            $wallet = Wallet::findOrFail($lockedHold->wallet_id);
 
-        $hold->update([
-            'status' => WalletHold::STATUS_CAPTURED,
-            'captured_movement_id' => (string) $movement->id,
-            'resolved_at' => now(),
-        ]);
+            // El débito real (lock de wallet, split bono/balance,
+            // WalletMovement, broadcast, notificación) lo hace
+            // WalletService::recordHoldCapture() — mismo patrón que
+            // cualquier otro gasto de juego (recordCardPurchase,
+            // recordTriviaEntry). Este servicio solo gestiona el ciclo de
+            // vida del hold en sí.
+            $movement = $this->walletService->recordHoldCapture(
+                wallet: $wallet,
+                amount: $amount,
+                movementType: $movementType,
+                description: $description,
+                holdId: (string) $lockedHold->id,
+            );
+
+            $lockedHold->update([
+                'status' => WalletHold::STATUS_CAPTURED,
+                'captured_movement_id' => (string) $movement->id,
+                'resolved_at' => now(),
+            ]);
+
+            return $movement;
+        });
 
         return $movement;
     }
@@ -106,18 +120,27 @@ final class WalletReservationService
     /**
      * Libera un hold HELD sin generar ningún WalletMovement — el saldo
      * simplemente vuelve a estar disponible.
+     *
+     * lockForUpdate() por el mismo motivo que capture(): sin él, una
+     * liberación y una captura concurrentes sobre el mismo hold podrían
+     * ambas pasar isActive() y dejar el hold en un estado inconsistente
+     * (o liberar dos veces).
      */
     public function release(WalletHold $hold) : WalletHold
     {
-        if (! $hold->isActive()) {
-            throw WalletDomainException::holdAlreadyResolved();
-        }
+        return DB::transaction(function () use ($hold) {
+            $lockedHold = WalletHold::where('id', $hold->id)->lockForUpdate()->firstOrFail();
 
-        $hold->update([
-            'status' => WalletHold::STATUS_RELEASED,
-            'resolved_at' => now(),
-        ]);
+            if (! $lockedHold->isActive()) {
+                throw WalletDomainException::holdAlreadyResolved();
+            }
 
-        return $hold->fresh();
+            $lockedHold->update([
+                'status' => WalletHold::STATUS_RELEASED,
+                'resolved_at' => now(),
+            ]);
+
+            return $lockedHold->fresh();
+        });
     }
 }
