@@ -285,19 +285,6 @@ interface WalletRepositoryInterface extends BaseRepositoryInterface
     public function incrementBonusBalance(string $walletId, float $amount) : bool;
 
     /**
-     * Actualiza el balance de una wallet
-     *
-     * @param string $walletId   ID de la wallet
-     * @param float  $newBalance Nuevo balance
-     *
-     * @return bool True si se actualizó correctamente
-     *
-     * @example
-     * $updated = $repository->updateBalance('456', 150.75);
-     */
-    public function updateBalance(string $walletId, float $newBalance) : bool;
-
-    /**
      * Verifica si un usuario tiene una wallet para una moneda específica
      *
      * @param string $userId     ID del usuario

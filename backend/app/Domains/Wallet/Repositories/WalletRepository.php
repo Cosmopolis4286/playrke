@@ -438,15 +438,6 @@ class WalletRepository extends BaseRepository implements WalletRepositoryInterfa
     }
 
     /**
-     * Actualiza el balance de una wallet
-     */
-    public function updateBalance(string $walletId, float $newBalance) : bool
-    {
-        return $this->model->where('id', $walletId)
-            ->update(['balance' => $newBalance]) > 0;
-    }
-
-    /**
      * Verifica si un usuario tiene una wallet para una moneda específica
      */
     public function userHasWalletForCurrency(string $userId, string $currencyId) : bool

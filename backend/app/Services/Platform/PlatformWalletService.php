@@ -43,6 +43,13 @@ final class PlatformWalletService
      * Acredita una comisión RKE a la wallet de plataforma en la moneda indicada.
      * Se ejecuta dentro de la transacción de venta de cartones.
      *
+     * DB::transaction() propia: si el INSERT del movimiento fallara después del
+     * increment() (deadlock, columna truncada, etc.), sin esto el balance de la
+     * wallet RKE quedaría incrementado sin su WalletMovement — el caller
+     * (RoomMetricsService) envuelve esta llamada en try/catch para no
+     * interrumpir la venta, así que ese catch silenciaría justo el escenario
+     * que rompe la cuadratura contable (balance != suma de movimientos).
+     *
      * @param  string $currencyId  ID de la moneda de la venta
      * @param  float  $amount      Monto de la comisión en la moneda indicada por $currencyId
      * @param  string $description Referencia (ej: "RKE – Sala #abc123")
@@ -60,21 +67,23 @@ final class PlatformWalletService
             return;
         }
 
-        $balanceBefore = (float) $wallet->balance;
+        \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description) {
+            $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
+            $balanceBefore = (float) $locked->balance;
 
-        $this->walletRepository->incrementBalance((string) $wallet->id, $amount);
-        $wallet->refresh();
+            $this->walletRepository->incrementBalance((string) $locked->id, $amount);
 
-        $this->movementRepository->record([
-            'wallet_id'      => (string) $wallet->id,
-            'user_id'        => (string) $wallet->user_id,
-            'type'           => WalletMovement::TYPE_RKE_COMMISSION,
-            'status'         => WalletMovement::STATUS_COMPLETED,
-            'amount'         => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after'  => (float) $wallet->refresh()->balance,
-            'description'    => $description,
-        ]);
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $locked->id,
+                'user_id'        => (string) $locked->user_id,
+                'type'           => WalletMovement::TYPE_RKE_COMMISSION,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => $balanceBefore + $amount,
+                'description'    => $description,
+            ]);
+        });
 
         // Invalidar caché de saldo
         Cache::forget($this->cacheKey($currencyId));
@@ -182,29 +191,41 @@ final class PlatformWalletService
             throw new \RuntimeException("No se encontró wallet de plataforma para la moneda {$currencyId}.");
         }
 
-        $balanceBefore = (float) $wallet->balance;
+        [$balanceBefore, $balanceAfter] = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description) {
+            $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
+            $balanceBefore = (float) $locked->balance;
 
-        $this->walletRepository->incrementBalance((string) $wallet->id, $amount);
+            $this->walletRepository->incrementBalance((string) $locked->id, $amount);
+
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $locked->id,
+                'user_id'        => (string) $locked->user_id,
+                'type'           => WalletMovement::TYPE_DEPOSIT,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => $balanceBefore + $amount,
+                'description'    => $description,
+            ]);
+
+            return [$balanceBefore, $balanceBefore + $amount];
+        });
+
         $wallet->refresh();
-
-        $this->movementRepository->record([
-            'wallet_id'      => (string) $wallet->id,
-            'user_id'        => (string) $wallet->user_id,
-            'type'           => WalletMovement::TYPE_DEPOSIT,
-            'status'         => WalletMovement::STATUS_COMPLETED,
-            'amount'         => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after'  => (float) $wallet->balance,
-            'description'    => $description,
-        ]);
 
         Cache::forget($this->cacheKey($currencyId));
 
-        $this->logCashAudit('deposit', $wallet, $amount, $balanceBefore, (float) $wallet->balance, $description);
+        $this->logCashAudit('deposit', $wallet, $amount, $balanceBefore, $balanceAfter, $description);
     }
 
     /**
      * Registra un retiro manual de la wallet de plataforma (ej. extracción de fondos).
+     *
+     * Bajo lockForUpdate() + DB::transaction(): a diferencia de creditRke()/deposit()
+     * (que solo suman y nunca pueden dejar el balance negativo), un retiro sí necesita
+     * revalidar el saldo bajo lock — sin esto, dos retiros concurrentes podrían leer el
+     * mismo balance, pasar ambos la validación y dejar la wallet en negativo (el CHECK
+     * de BD lo evitaría, pero como una excepción SQL cruda en vez de un error de negocio).
      *
      * @throws \RuntimeException si la wallet no existe o fondos insuficientes
      */
@@ -220,13 +241,20 @@ final class PlatformWalletService
             throw new \RuntimeException("No se encontró wallet de plataforma para la moneda {$currencyId}.");
         }
 
-        if ((float) $wallet->balance < $amount) {
-            throw new \RuntimeException('Fondos insuficientes en la wallet de plataforma.');
-        }
+        [$balanceBefore, $balanceAfter] = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount) {
+            $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
 
-        $balanceBefore = (float) $wallet->balance;
+            if ((float) $locked->balance < $amount) {
+                throw new \RuntimeException('Fondos insuficientes en la wallet de plataforma.');
+            }
 
-        $this->walletRepository->decrementBalance((string) $wallet->id, $amount);
+            $balanceBefore = (float) $locked->balance;
+
+            $this->walletRepository->decrementBalance((string) $locked->id, $amount);
+
+            return [$balanceBefore, $balanceBefore - $amount];
+        });
+
         $wallet->refresh();
 
         $this->movementRepository->record([
@@ -236,13 +264,13 @@ final class PlatformWalletService
             'status'         => WalletMovement::STATUS_COMPLETED,
             'amount'         => $amount,
             'balance_before' => $balanceBefore,
-            'balance_after'  => (float) $wallet->balance,
+            'balance_after'  => $balanceAfter,
             'description'    => $description,
         ]);
 
         Cache::forget($this->cacheKey($currencyId));
 
-        $this->logCashAudit('withdraw', $wallet, $amount, $balanceBefore, (float) $wallet->balance, $description);
+        $this->logCashAudit('withdraw', $wallet, $amount, $balanceBefore, $balanceAfter, $description);
     }
 
     // -------------------------------------------------------------------------
