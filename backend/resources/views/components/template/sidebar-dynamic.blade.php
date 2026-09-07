@@ -163,11 +163,15 @@
 </aside>
 
 <style>
-    .sidebar-filter-input-group { position: relative; }
+    /* Tema oscuro (default del sidebar, degradado morado/negro — ver
+       aside.main-sidebar en styles.css): texto e íconos claros sobre fondo
+       oscuro. Sobreescrito abajo bajo [data-theme="light"], donde el sidebar
+       cambia a fondo claro (#f0f2fa) — ver esa misma regla en styles.css. */
     .sidebar-filter-icon {
         position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%);
         font-size: 0.75rem; color: rgba(255,255,255,0.4); pointer-events: none;
     }
+    .sidebar-filter-input-group { position: relative; }
     .sidebar-filter-input {
         width: 100%; padding: 0.35rem 0.6rem 0.35rem 1.85rem;
         font-size: 0.8rem; border-radius: 6px;
@@ -185,13 +189,28 @@
     .sidebar-favorite-toggle {
         position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
         background: none; border: none; padding: 0.25rem; line-height: 1;
-        color: rgba(255,255,255,0.2); font-size: 0.75rem; cursor: pointer;
+        color: rgba(255,255,255,0.25); font-size: 0.75rem; cursor: pointer;
         opacity: 0; transition: opacity .12s, color .12s;
     }
     .nav-sidebar .nav-item:hover .sidebar-favorite-toggle,
     .sidebar-favorite-toggle--active { opacity: 1; }
     .sidebar-favorite-toggle--active { color: #fbbf24; }
     .sidebar-favorite-toggle:hover { color: #fbbf24; }
+
+    /* Tema claro — mismo selector que usa styles.css para recolorear el
+       sidebar completo ([data-theme="light"] [class*='sidebar-dark-']). */
+    [data-theme="light"] .sidebar-filter-icon { color: #6a7a9a; }
+    [data-theme="light"] .sidebar-filter-input {
+        border-color: #c8cee0;
+        background: #ffffff;
+        color: #3a4a6a;
+    }
+    [data-theme="light"] .sidebar-filter-input::placeholder { color: #8a9ab5; }
+    [data-theme="light"] .sidebar-filter-empty { color: #8a9ab5; }
+    [data-theme="light"] .sidebar-favorites-divider { border-bottom-color: #d8dde8; }
+    [data-theme="light"] .sidebar-favorite-toggle { color: #b8c0d8; }
+    [data-theme="light"] .sidebar-favorite-toggle--active,
+    [data-theme="light"] .sidebar-favorite-toggle:hover { color: #d97706; }
 </style>
 
 <script nonce="{{ csp_nonce() }}">
