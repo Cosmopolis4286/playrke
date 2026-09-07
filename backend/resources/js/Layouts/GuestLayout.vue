@@ -41,6 +41,7 @@
     bgImg?: string
     logo?: string
     slides?: CarouselSlide[]
+    showStats?: boolean
   }>()
 
   useHead({
@@ -94,6 +95,21 @@
   const activeModal = ref<ModalKey | null>(null)
   const openModal   = (key: ModalKey) => { activeModal.value = key }
 
+  // Mini social-proof opcional (solo Login la activa vía showStats) — reusa
+  // el mismo endpoint público que Pages/Public/Landing.vue, sin backend nuevo.
+  const playersOnline = ref<number | null>(null)
+  if (props.showStats) {
+    onMounted(async () => {
+      try {
+        const { axios } = await import('@js/plugins/axios')
+        const { data } = await axios.get('/api/platform/stats')
+        playersOnline.value = data?.players_online ?? null
+      } catch {
+        // Silencioso: el panel simplemente no muestra el mini-stat.
+      }
+    })
+  }
+
   // Expuesto para que páginas que usan este layout (ej. Auth/Register.vue,
   // checkbox de términos) puedan abrir los mismos modales sin duplicar
   // InfoModal ni navegar a /info/terms fuera de la SPA.
@@ -123,8 +139,9 @@
       <!-- ── PANEL IZQUIERDO: carrusel ────────────── -->
       <aside class="guest-layout__panel guest-layout__panel--left">
 
-        <!-- orbe decorativo -->
+        <!-- orbes decorativos -->
         <div class="gl-orb" aria-hidden="true"></div>
+        <div class="gl-orb gl-orb--secondary" aria-hidden="true"></div>
 
         <!-- Branding -->
         <div class="gl-panel__brand">
@@ -155,6 +172,17 @@
             @click="goTo(i)"
           />
         </nav>
+
+        <!-- Barra de progreso — feedback visual del tiempo restante del slide -->
+        <div class="gl-carousel__progress" aria-hidden="true">
+          <span :key="current" class="gl-carousel__progress-bar"></span>
+        </div>
+
+        <!-- Mini social-proof opcional (solo si showStats está activo) -->
+        <p v-if="showStats && playersOnline !== null" class="gl-panel__stat">
+          <i class="fa-solid fa-circle" aria-hidden="true"></i>
+          {{ playersOnline }} jugadores en línea ahora
+        </p>
 
         <!-- Redes sociales -->
         <nav class="gl-panel__socials" aria-label="Social media">

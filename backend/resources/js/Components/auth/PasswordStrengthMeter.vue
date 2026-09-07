@@ -1,15 +1,10 @@
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { PASSWORD_RULES } from '@js/composables/auth/passwordRules'
 
   const props = defineProps<{ password: string }>()
 
-  const RULES = [
-    { test: (v: string) => v.length >= 8, label: 'Al menos 8 caracteres' },
-    { test: (v: string) => /[A-Z]/.test(v), label: 'Una letra mayúscula' },
-    { test: (v: string) => /[a-z]/.test(v), label: 'Una letra minúscula' },
-    { test: (v: string) => /\d/.test(v), label: 'Un número' },
-    { test: (v: string) => /[!@#$%^&*(),.?":{}|<>]/.test(v), label: 'Un carácter especial' },
-  ]
+  const RULES = PASSWORD_RULES
 
   const passed = computed(() => RULES.map(rule => rule.test(props.password)))
   const score = computed(() => passed.value.filter(Boolean).length)
@@ -73,7 +68,7 @@
 
 .password-strength--weak .password-strength__segment--filled { background: #f87171; }
 .password-strength--medium .password-strength__segment--filled { background: #fbbf24; }
-.password-strength--strong .password-strength__segment--filled { background: #34d399; }
+.password-strength--strong .password-strength__segment--filled { background: var(--mint, #2af598); }
 
 .password-strength__label {
   margin: 0 0 4px;
@@ -85,7 +80,7 @@
 
 .password-strength--weak .password-strength__label { color: #f87171; }
 .password-strength--medium .password-strength__label { color: #fbbf24; }
-.password-strength--strong .password-strength__label { color: #34d399; }
+.password-strength--strong .password-strength__label { color: var(--mint, #2af598); }
 
 .password-strength__rules {
   list-style: none;
@@ -114,6 +109,6 @@
 }
 
 .password-strength__rule--ok i {
-  color: #34d399;
+  color: var(--mint, #2af598);
 }
 </style>

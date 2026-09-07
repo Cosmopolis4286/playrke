@@ -2,6 +2,7 @@ import { reactive, ref, computed } from 'vue'
 import { useToast } from 'vue-toastification'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import { loginSchema } from './loginSchema'
+import { useRememberedLogin } from './useRememberedLogin'
 
 interface LoginPayload {
   login: string
@@ -12,7 +13,8 @@ interface LoginPayload {
 export function useLogin() {
   const toast = useToast()
 
-  const form = reactive<LoginPayload>({ login: '', password: '', remember: false })
+  const rememberedLogin = useRememberedLogin()
+  const form = reactive<LoginPayload>({ login: rememberedLogin.get(), password: '', remember: false })
   const loading = ref(false)
   const isBusy = computed(() => loading.value)
   const errors = reactive<Record<string, string>>({})
@@ -61,6 +63,7 @@ export function useLogin() {
         remember: form.remember,
         ...(turnstileToken ? { 'cf-turnstile-response': turnstileToken } : {}),
       })
+      rememberedLogin.set(form.login)
       toast.success('¡Bienvenido! Redirigiendo...')
       window.location.replace('/dashboard')
     } catch (error: any) {

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { PHONE_CONFIG } from '@js/composables/form/usePhoneField'
+import { PASSWORD_RULES } from './passwordRules'
 
 /**
  * Schema Zod del formulario de registro. El patrón de "phone" se resuelve en
@@ -33,11 +34,13 @@ export function buildRegisterSchema(isoCode2: string | null | undefined) {
       ),
     password: z
       .string({ error: 'La contraseña es obligatoria' })
-      .min(8, 'La contraseña debe tener al menos 8 caracteres')
-      .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
-      .regex(/[a-z]/, 'Debe contener al menos una letra minúscula')
-      .regex(/\d/, 'Debe contener al menos un número')
-      .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Debe contener al menos un carácter especial'),
+      .superRefine((value, ctx) => {
+        for (const rule of PASSWORD_RULES) {
+          if (!rule.test(value)) {
+            ctx.addIssue({ code: 'custom', message: rule.message })
+          }
+        }
+      }),
     password_confirmation: z.string({ error: 'Debe repetir la contraseña' }),
     terms: z.literal(true, { error: 'Debe aceptar los términos y condiciones' }),
   }).refine(data => data.password === data.password_confirmation, {

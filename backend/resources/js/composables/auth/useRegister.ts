@@ -83,6 +83,8 @@ export function useRegisterForm(countries: Country[], initialValues?: Partial<Re
         const first = Object.values(serverErrors)[0]
         if (first) toast.error(Array.isArray(first) ? first[0] : String(first))
         else toast.error('Los datos ingresados no son válidos.')
+      } else if (status === 429) {
+        toast.warning('Demasiados intentos. Espera un momento e inténtalo de nuevo.')
       } else {
         toast.error('Error inesperado. Por favor intenta nuevamente.')
       }

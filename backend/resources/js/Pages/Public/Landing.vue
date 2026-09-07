@@ -7,6 +7,7 @@ import BingoGameRoomCard from "@js/Components/games/bingo/Room/GameRooms/BingoGa
 import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTopBuyersModal.vue";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
+import { useRevealOnScroll } from "@js/composables/ui/useRevealOnScroll";
 import { axios } from "@js/plugins/axios";
 
 import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
@@ -177,6 +178,16 @@ function submitVerify() {
   const qs = params.toString();
   window.location.href = qs ? `/verify-card?${qs}` : "/verify-card";
 }
+
+// ── Animación de entrada al hacer scroll — el hero queda fuera a propósito
+// (contenido above-the-fold, no debe animarse para evitar CLS/LCP) ──
+const revealRefs = ref<HTMLElement[]>([]);
+function setRevealRef(el: Element | null) {
+  if (el instanceof HTMLElement && !revealRefs.value.includes(el)) {
+    revealRefs.value.push(el);
+  }
+}
+useRevealOnScroll(revealRefs);
 </script>
 
 <template>
@@ -258,7 +269,7 @@ function submitVerify() {
     </header>
 
     <!-- ══ SALAS DESTACADAS ══ -->
-    <section id="salas" class="band">
+    <section id="salas" class="band reveal" :ref="setRevealRef">
       <div class="band__head">
         <span class="eyebrow">Catálogo en vivo</span>
         <h2>Salas de Bingo activas</h2>
@@ -289,7 +300,7 @@ function submitVerify() {
     </section>
 
     <!-- ══ VERIFICAR CARTÓN ══ -->
-    <section id="verificar" class="band band--alt">
+    <section id="verificar" class="band band--alt reveal" :ref="setRevealRef">
       <div class="verify-grid">
         <div>
           <span class="eyebrow">Sin necesidad de cuenta</span>
@@ -317,7 +328,7 @@ function submitVerify() {
     </section>
 
     <!-- ══ GANADORES ══ -->
-    <section id="ganadores" class="band">
+    <section id="ganadores" class="band reveal" :ref="setRevealRef">
       <div class="leaderboard-grid">
         <div>
           <span class="eyebrow">Ranking de la semana</span>
@@ -341,7 +352,7 @@ function submitVerify() {
     </section>
 
     <!-- ══ CTA FINAL ══ -->
-    <section v-if="register !== false" class="final-cta">
+    <section v-if="register !== false" class="final-cta reveal" :ref="setRevealRef">
       <span class="eyebrow eyebrow--center">Empieza hoy</span>
       <h2>Tu primera sala te espera</h2>
       <p>Crear cuenta toma menos de un minuto. El pozo no espera.</p>
@@ -499,11 +510,11 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14.5px;
   color: #eef2ff;
   margin-bottom: 16px;
 }
-.landing__hero-stat i { color: #2af598; font-size: 13px; }
+.landing__hero-stat i { color: #2af598; font-size: 14.5px; }
 .landing__hero-stat strong { color: #2af598; font-weight: 800; }
 .landing__hero-trust { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #93a5c8; }
 .landing__hero-trust span { display: flex; align-items: center; gap: 6px; }
@@ -670,9 +681,37 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .landing__footer-legal a { text-decoration: none; color: inherit; }
 .landing__footer-legal a:hover { color: #c7d2f0; }
 
+/* ── Scroll-reveal — ver useRevealOnScroll.ts; oculto por defecto y
+   revelado al agregar .is-visible cuando la sección entra en viewport ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 1040px) {
+  .landing__hero-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+
 @media (max-width: 880px) {
   .landing__hero-grid, .verify-grid, .leaderboard-grid { grid-template-columns: 1fr; }
   .landing__nav-links { display: none; }
   .landing__footer { flex-direction: column; gap: 12px; text-align: center; }
+}
+
+@media (max-width: 640px) {
+  .landing__nav-cta { gap: 6px; }
+  .landing__nav-cta .btn { padding: 8px 13px; font-size: 12px; }
+  .rooms-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  .landing__hero-title { font-size: clamp(26px, 8vw, 50px); }
+  .verify-form, .lb-card { padding: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
 }
 </style>

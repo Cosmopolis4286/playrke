@@ -37,7 +37,7 @@
 </script>
 
 <template>
-  <GuestLayout title="Iniciar sesión">
+  <GuestLayout title="Iniciar sesión" show-stats>
     <template #tagline>Bienvenido de vuelta</template>
 
     <template #form-content>
