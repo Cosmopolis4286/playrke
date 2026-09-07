@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Audit;
 
 use App\Http\Controllers\Controller;
 use App\Services\Audit\AuditService;
+use App\Traits\StreamsCsvExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,6 +13,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuditController extends Controller
 {
+    use StreamsCsvExport;
+
     private const LIST_FILTER_KEYS = ['event', 'actor_type', 'entity', 'user_id', 'auditable_id', 'date_from', 'date_to', 'search'];
 
     public function __construct(
@@ -56,28 +59,22 @@ class AuditController extends Controller
     {
         $filters = $request->only(self::LIST_FILTER_KEYS);
 
-        return response()->streamDownload(function () use ($filters) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Fecha', 'Actor', 'Tipo Actor', 'Evento', 'Entidad', 'ID Entidad', 'IP', 'Valores anteriores', 'Valores nuevos']);
-
-            foreach ($this->service->exportCursor($filters) as $audit) {
-                fputcsv($handle, [
-                    $audit->created_at?->format('d/m/Y H:i:s'),
-                    $audit->user?->full_name ?? 'Sistema',
-                    $audit->actor_type,
-                    $audit->event,
-                    $audit->auditable_name,
-                    is_array($audit->auditable_id) ? implode(' / ', $audit->auditable_id) : $audit->auditable_id,
-                    $audit->ip_address,
-                    $audit->old_values ? json_encode($audit->old_values) : null,
-                    $audit->new_values ? json_encode($audit->new_values) : null,
-                ]);
-            }
-
-            fclose($handle);
-        }, 'auditoria-' . now()->format('Y-m-d-His') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
+        return $this->streamCsvExport(
+            'auditoria',
+            ['Fecha', 'Actor', 'Tipo Actor', 'Evento', 'Entidad', 'ID Entidad', 'IP', 'Valores anteriores', 'Valores nuevos'],
+            $this->service->exportCursor($filters),
+            fn ($audit) => [
+                $audit->created_at?->format('d/m/Y H:i:s'),
+                $audit->user?->full_name ?? 'Sistema',
+                $audit->actor_type,
+                $audit->event,
+                $audit->auditable_name,
+                is_array($audit->auditable_id) ? implode(' / ', $audit->auditable_id) : $audit->auditable_id,
+                $audit->ip_address,
+                $audit->old_values ? json_encode($audit->old_values) : null,
+                $audit->new_values ? json_encode($audit->new_values) : null,
+            ],
+        );
     }
 
     public function show(Request $request, string $id): JsonResponse

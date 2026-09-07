@@ -10,6 +10,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
 use App\Models\Roles\Seller;
 use App\Services\Roles\RoleUserService;
+use App\Traits\StreamsCsvExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -31,6 +32,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class BingoReportController extends Controller
 {
+    use StreamsCsvExport;
+
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly RoleUserService $roleUserService,
@@ -294,18 +297,12 @@ final class BingoReportController extends Controller
         $dateFilter = $request->query('dateFilter');
         $cardStatusToLabel = $this->cardStatusLabels();
 
-        return response()->streamDownload(function () use ($currency, $dateFilter, $cardStatusToLabel) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Número de Cartón', 'Sala', 'Jugador', 'Fecha de Venta', 'Monto', 'Moneda', 'Estado']);
-
-            foreach ($this->cardsSoldQuery($currency, $dateFilter)->cursor() as $card) {
-                fputcsv($handle, array_values($this->mapCardsSoldRow($card, $cardStatusToLabel)));
-            }
-
-            fclose($handle);
-        }, 'bingo-cartones-vendidos-' . now()->format('Y-m-d-His') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
+        return $this->streamCsvExport(
+            'bingo-cartones-vendidos',
+            ['ID', 'Número de Cartón', 'Sala', 'Jugador', 'Fecha de Venta', 'Monto', 'Moneda', 'Estado'],
+            $this->cardsSoldQuery($currency, $dateFilter)->cursor(),
+            fn ($card) => $this->mapCardsSoldRow($card, $cardStatusToLabel),
+        );
     }
 
     /**
@@ -475,18 +472,12 @@ final class BingoReportController extends Controller
         $dateFilter = $request->query('dateFilter');
         $prizeStatusToLabel = $this->prizeStatusLabels();
 
-        return response()->streamDownload(function () use ($type, $currency, $dateFilter, $prizeStatusToLabel) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Ganador', 'Sala', 'Tipo de Premio', 'Monto del Premio', 'Moneda', 'Fecha de Ganancia', 'Estado']);
-
-            foreach ($this->winnersQuery($type, $currency, $dateFilter)->cursor() as $prize) {
-                fputcsv($handle, array_values($this->mapWinnersRow($prize, $prizeStatusToLabel)));
-            }
-
-            fclose($handle);
-        }, 'bingo-ganadores-' . now()->format('Y-m-d-His') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
+        return $this->streamCsvExport(
+            'bingo-ganadores',
+            ['ID', 'Ganador', 'Sala', 'Tipo de Premio', 'Monto del Premio', 'Moneda', 'Fecha de Ganancia', 'Estado'],
+            $this->winnersQuery($type, $currency, $dateFilter)->cursor(),
+            fn ($prize) => $this->mapWinnersRow($prize, $prizeStatusToLabel),
+        );
     }
 
     /**
@@ -721,20 +712,20 @@ final class BingoReportController extends Controller
         $dateFilter = $request->query('dateFilter');
         $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
 
-        return response()->streamDownload(function () use ($currency, $dateFilter, $currenciesById) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Sala', 'Tipo de Sala', 'Cartones Vendidos', 'Monto Total', 'Moneda', 'Comisión', 'Monto Neto', 'Fecha', 'Estado']);
-
+        $rows = (function () use ($dateFilter, $currency, $currenciesById) {
             foreach ($this->salesReportRoomsQuery($dateFilter)->cursor() as $room) {
                 foreach ($this->mapSalesReportRows(collect([$room]), $currency, $currenciesById) as $row) {
-                    fputcsv($handle, array_values($row));
+                    yield $row;
                 }
             }
+        })();
 
-            fclose($handle);
-        }, 'bingo-ventas-' . now()->format('Y-m-d-His') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
+        return $this->streamCsvExport(
+            'bingo-ventas',
+            ['ID', 'Sala', 'Tipo de Sala', 'Cartones Vendidos', 'Monto Total', 'Moneda', 'Comisión', 'Monto Neto', 'Fecha', 'Estado'],
+            $rows,
+            fn (array $row) => $row,
+        );
     }
 
     /**
@@ -945,17 +936,11 @@ final class BingoReportController extends Controller
         $currency = $request->query('currency');
         $paymentStatusToLabel = $this->paymentStatusLabels();
 
-        return response()->streamDownload(function () use ($room, $currency, $paymentStatusToLabel) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Número de Cartón', 'Jugador', 'Precio Cartón', 'Moneda', 'Fecha de Venta', 'Método de Pago', 'Estado']);
-
-            foreach ($this->salesByRoomQuery($room, $currency)->cursor() as $card) {
-                fputcsv($handle, array_values($this->mapSalesByRoomRow($card, $paymentStatusToLabel)));
-            }
-
-            fclose($handle);
-        }, 'bingo-ventas-sala-' . $room->uuid_code . '-' . now()->format('Y-m-d-His') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
+        return $this->streamCsvExport(
+            'bingo-ventas-sala-' . $room->uuid_code,
+            ['ID', 'Número de Cartón', 'Jugador', 'Precio Cartón', 'Moneda', 'Fecha de Venta', 'Método de Pago', 'Estado'],
+            $this->salesByRoomQuery($room, $currency)->cursor(),
+            fn ($card) => $this->mapSalesByRoomRow($card, $paymentStatusToLabel),
+        );
     }
 }
