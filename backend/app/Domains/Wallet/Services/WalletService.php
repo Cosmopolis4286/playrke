@@ -1021,6 +1021,11 @@ final class WalletService
             return $movement->fresh(['wallet', 'wallet.currency']);
         });
 
+        // El retiro rechazado ya no cuenta como PENDING/COMPLETED — sin
+        // invalidar, withdrawalSums() lo sigue sumando hasta medianoche y
+        // bloquea al usuario contra un límite que ya no debería aplicar.
+        $this->walletLimitService->invalidateWithdrawalSums((string) $updated->wallet_id);
+
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
 
         return $updated;
@@ -1136,6 +1141,12 @@ final class WalletService
 
             return $wallet;
         });
+
+        // Fuera de la transacción (ya hizo commit): sin esto, un segundo
+        // retiro dentro de la misma ventana de caché de withdrawalSums()
+        // vería las sumas previas a este retiro y podría exceder los
+        // límites diario/semanal/mensual (ver invalidateWithdrawalSums()).
+        $this->walletLimitService->invalidateWithdrawalSums((string) $wallet->id);
 
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
         $this->broadcastAdminWalletMovement($withdrawalMovement, $wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);

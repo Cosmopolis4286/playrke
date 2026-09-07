@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;

@@ -91,6 +91,23 @@ final class WalletLimitService
     }
 
     /**
+     * Invalida la caché de sumas de retiro de una wallet. Debe llamarse
+     * justo después de registrar cualquier WalletMovement de tipo retiro —
+     * withdrawalSums() cachea hasta medianoche, así que sin esto un segundo
+     * retiro en la misma ventana de caché sigue viendo la suma anterior a la
+     * primera solicitud y assertWithinLimits() deja pasar retiros que en
+     * conjunto exceden max_daily/max_weekly/max_monthly.
+     */
+    public function invalidateWithdrawalSums(string $walletId) : void
+    {
+        $today = Carbon::today()->format('Y-m-d');
+        $week = Carbon::now()->format('Y-W');
+        $month = Carbon::now()->format('Y-m');
+
+        Cache::forget("wlimit:{$walletId}:sums:{$today}:{$week}:{$month}");
+    }
+
+    /**
      * Devuelve un resumen de uso de límites para el frontend/perfil.
      */
     public function usage(Wallet $wallet, int $kycLevel) : array
