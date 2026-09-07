@@ -32,6 +32,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Domains\Games\Trivia\Models\TriviaRoom::class        => \App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class,
         \App\Domains\Wallet\Models\WalletMovement::class       => \App\Domains\Wallet\Policies\WalletMovementPolicy::class,
         \App\Domains\Marketplace\Escrow\Models\Escrow::class   => \App\Policies\Marketplace\EscrowPolicy::class,
+        \App\Domains\Payments\Models\PaymentOrder::class       => \App\Policies\Payments\PaymentOrderPolicy::class,
         \App\Models\Permission::class                         => \App\Policies\Roles\Admin\PermissionPolicy::class,
         \App\Models\Module::class                             => \App\Policies\Roles\Admin\ModulePolicy::class,
         \App\Models\SidebarMenuVisibility::class               => \App\Policies\Roles\Admin\SidebarMenuVisibilityPolicy::class,

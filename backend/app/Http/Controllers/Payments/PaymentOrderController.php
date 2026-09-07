@@ -12,6 +12,8 @@ use App\Http\Resources\Payments\PaymentOrderResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 /**
  * Controller delgado — toda la lógica de negocio vive en PaymentOrderService/
@@ -29,6 +31,15 @@ class PaymentOrderController extends Controller
         private readonly PaymentOrderService $orderService,
         private readonly QrCodeService $qrCodeService,
     ) {
+    }
+
+    public function page(string $order): InertiaResponse
+    {
+        $order = $this->findOrFail($order);
+
+        return Inertia::render('Payments/Show', [
+            'order' => new PaymentOrderResource($order->load('paymentProduct')),
+        ]);
     }
 
     public function store(CreatePaymentOrderRequest $request): JsonResponse

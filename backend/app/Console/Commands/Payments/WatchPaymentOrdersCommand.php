@@ -8,9 +8,10 @@ use Illuminate\Console\Command;
 use Throwable;
 
 /**
- * Polling activo de todas las PaymentOrder activas contra TRON — mecanismo
- * primario de detección de pagos (ver PAYMENTS_USDT_TRC20_DESIGN.md sección
- * 5: sin webhook nativo confiable de TronGrid para este caso de uso).
+ * Ejecuta BlockchainWatcherService::watchAll() periódicamente — mecanismo
+ * primario de detección de pagos (polling activo, ver
+ * PAYMENTS_USDT_TRC20_DESIGN.md sección 5: sin webhook de terceros en este
+ * diseño). Registrado en routes/console.php vía schedule_dynamic().
  */
 class WatchPaymentOrdersCommand extends Command
 {
@@ -21,7 +22,7 @@ class WatchPaymentOrdersCommand extends Command
     public function handle(BlockchainWatcherService $watcher): void
     {
         $status = 'SUCCESS';
-        $output = 'Órdenes de pago evaluadas.';
+        $output = 'Órdenes de pago evaluadas correctamente.';
 
         try {
             $watcher->watchAll();

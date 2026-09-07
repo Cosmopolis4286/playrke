@@ -219,6 +219,9 @@ class PermissionSeeder extends Seeder
             ['name' => 'marketplace.orders.view', 'guard_name' => 'web', 'description' => 'Ver las propias órdenes de compra/venta'],
             ['name' => 'marketplace.manage', 'guard_name' => 'web', 'description' => 'Moderar el marketplace (suspender listings, resolver disputas)'],
 
+            // Pagos USDT-TRC20 (compra de packs/consumibles)
+            ['name' => 'payments.manage', 'guard_name' => 'web', 'description' => 'Ver y reevaluar órdenes de pago USDT-TRC20 (panel admin)'],
+
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],
         ];
