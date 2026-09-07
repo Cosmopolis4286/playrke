@@ -23,7 +23,6 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
         ->as('superadmin.')
         ->controller(SuperAdminController::class)
         ->group(function () {
-            Route::get('economy-summary', 'economySummary')->name('economy-summary');
             Route::get('player-activity-summary', 'playerActivitySummary')->name('player-activity-summary');
             Route::get('seller-ranking', 'sellerRanking')->name('seller-ranking');
             Route::get('rke-summary', 'rkeSummary')->name('rke-summary');
@@ -56,3 +55,19 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
         });
 
 });
+
+/**
+ * Reporte consolidado de flujo de caja cross-juego (Bingo + Trivia). Fuera del
+ * grupo role:superadmin porque treasurer también tiene reports.financial/
+ * treasury.reports y es precisamente el rol financiero al que este reporte
+ * está dirigido — antes solo superadmin podía verlo pese a tener el permiso.
+ * multiPermission siempre deja pasar a superadmin (ver
+ * RoleAuthorizationService::hasAnyPermission()), así que no pierde acceso.
+ */
+Route::middleware(['auth', 'multiPermission:reports.financial,treasury.reports'])
+    ->prefix('superadmin')
+    ->as('superadmin.')
+    ->controller(SuperAdminController::class)
+    ->group(function () {
+        Route::get('economy-summary', 'economySummary')->name('economy-summary');
+    });
