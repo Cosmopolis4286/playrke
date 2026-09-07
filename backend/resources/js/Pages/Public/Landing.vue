@@ -5,6 +5,7 @@ import { useHead } from "@vueuse/head";
 
 import BingoGameRoomCard from "@js/Components/games/bingo/Room/GameRooms/BingoGameRoomCard.vue";
 import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTopBuyersModal.vue";
+import InfoModal from "@js/Components/auth/InfoModal.vue";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
 import { useRevealOnScroll } from "@js/composables/ui/useRevealOnScroll";
@@ -102,6 +103,28 @@ onMounted(() => {
   initCountdown(props.rooms);
 });
 
+// La Landing es pública y siempre se ve oscura, sin importar el tema del
+// dashboard guardado en localStorage (head.blade.php pone data-theme="light"
+// en <html> ANTES de montar Vue, vía script anti-flash) — eso hacía que
+// --ds-bg/--ds-surface (usadas por Modal.vue y otros 50+ componentes
+// compartidos del dashboard) cayeran en su variante clara también aquí,
+// por ejemplo en InfoModal.vue al abrir Términos/Acerca de/Privacidad.
+// Se fuerza data-theme="dark" mientras la Landing está montada y se
+// restaura el valor previo al salir, para no alterar la preferencia
+// guardada del usuario si luego entra al dashboard real.
+const previousTheme = document.documentElement.getAttribute("data-theme");
+document.documentElement.setAttribute("data-theme", "dark");
+const previousBodyBg = document.body.style.backgroundColor;
+document.body.style.backgroundColor = "#060a18";
+onUnmounted(() => {
+  if (previousTheme) {
+    document.documentElement.setAttribute("data-theme", previousTheme);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  document.body.style.backgroundColor = previousBodyBg;
+});
+
 function goToRegister() {
   window.location.href = "/register";
 }
@@ -188,6 +211,13 @@ function setRevealRef(el: Element | null) {
   }
 }
 useRevealOnScroll(revealRefs);
+
+// ── Modales de Términos/Acerca de/Privacidad — mismo InfoModal reutilizado
+// por GuestLayout.vue (Auth), en vez de navegar a /info/{page} y salir de
+// la SPA como hacía antes el footer. ──
+type InfoModalKey = "terms" | "about" | "privacy";
+const activeInfoModal = ref<InfoModalKey | null>(null);
+const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
 </script>
 
 <template>
@@ -361,12 +391,36 @@ useRevealOnScroll(revealRefs);
 
     <!-- ══ FOOTER ══ -->
     <footer class="landing__footer">
-      <span>PlayRKE © {{ new Date().getFullYear() }}</span>
-      <nav class="landing__footer-legal">
-        <a href="/info/terms">Términos</a>
-        <a href="/info/about">Acerca de</a>
-        <a href="/info/privacy">Privacidad</a>
-      </nav>
+      <div class="landing__footer-inner">
+        <div class="landing__footer-brand">
+          <span class="landing__brand">PLAYRKE</span>
+          <p class="landing__footer-tagline">Bingo en vivo con premios reales. Ves el pozo, ves quién gana.</p>
+          <nav class="landing__footer-socials" aria-label="Redes sociales">
+            <a href="https://www.facebook.com/my.play.rke" target="_blank" rel="noopener" aria-label="Facebook" class="fab fa-facebook" />
+            <a href="https://www.instagram.com/my.play.rke" target="_blank" rel="noopener" aria-label="Instagram" class="fab fa-instagram" />
+            <a href="https://t.me/+rV3KWBuuKOtjYzkx" target="_blank" rel="noopener" aria-label="Telegram" class="fab fa-telegram" />
+          </nav>
+        </div>
+
+        <nav class="landing__footer-col" aria-label="Navegación">
+          <span class="landing__footer-col-title">Plataforma</span>
+          <a href="#salas">Salas en vivo</a>
+          <a href="#verificar">Verificar cartón</a>
+          <a href="#ganadores">Ganadores</a>
+        </nav>
+
+        <nav class="landing__footer-col" aria-label="Legal">
+          <span class="landing__footer-col-title">Legal</span>
+          <button type="button" class="landing__footer-link" @click="openInfoModal('terms')">Términos y condiciones</button>
+          <button type="button" class="landing__footer-link" @click="openInfoModal('about')">Acerca de nosotros</button>
+          <button type="button" class="landing__footer-link" @click="openInfoModal('privacy')">Política de privacidad</button>
+        </nav>
+      </div>
+
+      <div class="landing__footer-bottom">
+        <span>PlayRKE © {{ new Date().getFullYear() }}. Todos los derechos reservados.</span>
+        <span class="landing__footer-trust">Retiros verificados · Cartones auditables por serial</span>
+      </div>
     </footer>
 
     <!-- ══ Modal "Ver Top de Compras" ══ -->
@@ -376,15 +430,70 @@ useRevealOnScroll(revealRefs);
       endpoint-base="/game-rooms"
       @close="closeTopBuyers"
     />
+
+    <!-- ══ Modal Términos/Acerca de/Privacidad — mismo componente que Auth ══ -->
+    <InfoModal v-model="activeInfoModal" />
   </div>
 </template>
 
+<style>
+/* Sin scoped: html/body deben quedar oscuros mientras la Landing esté
+   montada, sin importar --ds-bg (tema claro/oscuro del dashboard guardado
+   en localStorage — ver head.blade.php) — la Landing es pública y siempre
+   se ve oscura. Sin esto, un visitante con tema claro guardado veía franjas
+   blancas del body en los bordes del viewport. */
+html:has(.landing), body:has(.landing) {
+  background-color: #060a18 !important;
+  overflow-x: hidden;
+}
+
+/* El layout Blade público (components/layouts/guest-layout.blade.php)
+   envuelve todo el slot de Inertia en <main class="container-fluid"> — esa
+   clase es de Bootstrap/AdminLTE (vendor CSS cargado global) y trae
+   padding-left/right propio (7.25px), pensado para las pantallas de
+   admin/dashboard. La Landing es full-bleed: debe ignorar ese padding, no
+   heredarlo, así que se anula puntualmente cuando esa clase envuelve la
+   Landing (sin tocar container-fluid en el resto del sitio). */
+main.container-fluid:has(.landing) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Scrollbar a tono con el resto del sitio, en vez del nativo del navegador —
+   el scroll real ocurre en el documento (html/body), no dentro de .landing,
+   que solo define min-height: 100vh sin su propio overflow. */
+html:has(.landing) {
+  scrollbar-width: thin;
+  scrollbar-color: #2af598 rgba(255, 255, 255, 0.06);
+}
+html:has(.landing)::-webkit-scrollbar { width: 10px; }
+html:has(.landing)::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
+html:has(.landing)::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2af598, #009efd);
+  border-radius: 6px;
+  border: 2px solid #060a18;
+}
+html:has(.landing)::-webkit-scrollbar-thumb:hover { background: #2af598; }
+</style>
+
 <style scoped>
+/* Sin este reset, width:100% + padding en inputs/cards se suma al ancho
+   (content-box, default del navegador) en vez de incluirse en él — causaba
+   que .verify-form input y otros elementos con padding se desbordaran de
+   su contenedor. */
+.landing,
+.landing *,
+.landing *::before,
+.landing *::after {
+  box-sizing: border-box;
+}
+
 .landing {
   min-height: 100vh;
   background: var(--bg-0, #060a18);
   color: #c7d2f0;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
 }
 
 h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #eef2ff; }
@@ -486,7 +595,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   max-width: 1180px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: 48px;
   align-items: center;
 }
@@ -595,7 +704,13 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 
 /* ── Verify strip ── */
-.verify-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; padding: 60px 20px; }
+.verify-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  padding: 60px 20px;
+}
 .verify-title { font-size: 25px; margin: 10px 0 14px; }
 .verify-sub { color: #7a96c8; font-size: 13.5px; line-height: 1.6; margin: 0 0 22px; max-width: 440px; }
 .verify-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
@@ -644,7 +759,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .verify-form input::placeholder { color: #4a6698; }
 
 /* ── Leaderboard semanal ── */
-.leaderboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.leaderboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
 .lb-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 18px; position: relative; }
 .lb-list { display: flex; flex-direction: column; }
 .lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
@@ -667,19 +782,93 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 
 /* ── Footer ── */
 .landing__footer {
+  position: relative;
   border-top: 1px solid rgba(255,255,255,.08);
-  padding: 26px 20px;
+  background: linear-gradient(180deg, rgba(123,79,255,0.05) 0%, transparent 40%), #050813;
+  padding: 56px 20px 28px;
+}
+/* Filete de marca sobre el borde superior — mismo lenguaje que el resto
+   del sitio (gradiente mint→azul→violeta) en vez de una línea neutra. */
+.landing__footer::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #2af598 20%, #7b4fff 50%, #009efd 80%, transparent);
+  opacity: 0.5;
+}
+
+.landing__footer-inner {
   max-width: 1180px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+}
+
+.landing__footer-brand { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.landing__footer-tagline { margin: 0; font-size: 13px; line-height: 1.6; color: #7a96c8; max-width: 320px; }
+.landing__footer-socials { display: flex; gap: 14px; }
+.landing__footer-socials a {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #7a96c8;
+  font-size: 14px;
+  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+}
+.landing__footer-socials a:hover {
+  color: #2af598;
+  border-color: rgba(42,245,152,0.35);
+  transform: translateY(-2px);
+}
+
+.landing__footer-col { display: flex; flex-direction: column; gap: 12px; }
+.landing__footer-col-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #eef2ff;
+  margin-bottom: 2px;
+}
+.landing__footer-col a,
+.landing__footer-link {
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  color: #7a96c8;
+  transition: color 0.2s;
+}
+/* .landing__footer-link es <button> (abre InfoModal) — reset de estilos
+   nativos de botón para que se vea idéntico a los <a> de la misma columna. */
+.landing__footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: inherit;
+  cursor: pointer;
+}
+.landing__footer-col a:hover,
+.landing__footer-link:hover { color: #2af598; }
+
+.landing__footer-bottom {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   font-size: 12px;
   color: #4a6698;
 }
-.landing__footer-legal { display: flex; gap: 20px; }
-.landing__footer-legal a { text-decoration: none; color: inherit; }
-.landing__footer-legal a:hover { color: #c7d2f0; }
+.landing__footer-trust { color: #4a6698; }
 
 /* ── Scroll-reveal — ver useRevealOnScroll.ts; oculto por defecto y
    revelado al agregar .is-visible cuando la sección entra en viewport ── */
@@ -694,13 +883,20 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 
 @media (max-width: 1040px) {
-  .landing__hero-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .landing__hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+  .verify-grid, .leaderboard-grid { gap: 28px; }
 }
 
 @media (max-width: 880px) {
-  .landing__hero-grid, .verify-grid, .leaderboard-grid { grid-template-columns: 1fr; }
+  .landing__hero-grid, .verify-grid, .leaderboard-grid { grid-template-columns: minmax(0, 1fr); }
   .landing__nav-links { display: none; }
-  .landing__footer { flex-direction: column; gap: 12px; text-align: center; }
+  .band { padding: 44px 20px; }
+  .verify-grid { padding: 40px 20px; gap: 32px; }
+  .verify-sub { max-width: none; }
+  .landing__footer-inner { grid-template-columns: 1fr 1fr; gap: 28px 24px; }
+  .landing__footer-brand { grid-column: 1 / -1; align-items: center; text-align: center; }
+  .landing__footer-tagline { max-width: none; }
+  .landing__footer-col { align-items: center; text-align: center; }
 }
 
 @media (max-width: 640px) {
@@ -709,6 +905,12 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   .rooms-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
   .landing__hero-title { font-size: clamp(26px, 8vw, 50px); }
   .verify-form, .lb-card { padding: 16px; }
+  .verify-grid { padding: 32px 16px; gap: 24px; }
+  .landing__footer { padding: 40px 16px 20px; }
+  .landing__footer-inner { grid-template-columns: 1fr; text-align: center; }
+  .landing__footer-bottom { flex-direction: column; text-align: center; }
+  .verify-title { font-size: clamp(19px, 6vw, 25px); }
+  .verify-form input { padding: 10px 12px; font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

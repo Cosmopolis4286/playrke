@@ -3,8 +3,7 @@
 /* ======================================================
    VARIABLES
    Paleta unificada con Pages/Public/Landing.vue (mint/
-   violeta/azul) — antes Auth usaba un azul-cyan propio,
-   ver progreso/rediseno-auth-landing para el mapeo.
+   violeta/azul) — antes Auth usaba un azul-cyan propio.
 ====================================================== */
 :root {
     --font-main:    'Inter', sans-serif;
