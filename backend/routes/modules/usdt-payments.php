@@ -21,12 +21,18 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('payments/orders/{order}', [PaymentOrderController::class, 'page'])
         ->name('payments.orders.page');
-    Route::get('payments/orders/{order}/show', [PaymentOrderController::class, 'show'])
-        ->name('payments.orders.show');
-    Route::get('payments/orders/{order}/status', [PaymentOrderController::class, 'status'])
-        ->name('payments.orders.status');
-    Route::get('payments/orders/{order}/qr', [PaymentOrderController::class, 'qr'])
-        ->name('payments.orders.qr');
+
+    // throttle:120,1 (2 req/s): cubre polling normal de usePaymentOrder.ts
+    // (cada 5s) con margen amplio, sin dejar status/show/qr abiertos a spam
+    // ilimitado por un usuario autenticado.
+    Route::middleware('throttle:120,1')->group(function () {
+        Route::get('payments/orders/{order}/show', [PaymentOrderController::class, 'show'])
+            ->name('payments.orders.show');
+        Route::get('payments/orders/{order}/status', [PaymentOrderController::class, 'status'])
+            ->name('payments.orders.status');
+        Route::get('payments/orders/{order}/qr', [PaymentOrderController::class, 'qr'])
+            ->name('payments.orders.qr');
+    });
 });
 
 Route::middleware(['auth', 'verified', 'tos', 'throttle:5,1'])->group(function () {
