@@ -23,6 +23,7 @@ const props = defineProps<WalletPageProps>()
 
 const page   = usePage()
 const userId = computed(() => (page.props.auth as any)?.user?.id as string | undefined)
+const hasWithdrawalPin = computed(() => (page.props.auth as any)?.user?.has_withdrawal_pin === true)
 
 // ─── KYC (declarado antes de useWallet para pasarle kycLimits) ───────────────
 const { state: kycState, limits: kycLimits, uploading: kycUploading,
@@ -42,7 +43,7 @@ const {
   modalOpen, operation, step,
   amount, selectedQuickAmount,
   receipt, reference, notes,
-  directories, directoriesLoading, selectedDirectory,
+  directories, directoriesLoading, selectedDirectory, withdrawalPin,
   pendingOperation, pendingLoading,
   loading, errorMsg, successMsg, tosRequired,
   resultToast,
@@ -52,7 +53,7 @@ const {
   goToStep1, goToStep2,
   selectWallet, loadMovements, loadMoreMovements,
   submit, dismissResultToast,
-} = useWallet(props.wallets, userId.value, kycLimits)
+} = useWallet(props.wallets, userId.value, kycLimits, hasWithdrawalPin)
 
 // ─── TOS ────────────────────────────────────────────────────────────────────
 const { status: tosStatus, accepting: tosAccepting, error: tosError,
@@ -317,6 +318,8 @@ function handleSelectWallet(wallet: Wallet) {
       :pending-operation="pendingOperation"
       :pending-loading="pendingLoading"
       :wallet-limits="kycLimits"
+      :has-withdrawal-pin="hasWithdrawalPin"
+      :withdrawal-pin="withdrawalPin"
       :loading="loading"
       :error-msg="errorMsg"
       :success-msg="successMsg"
@@ -329,6 +332,7 @@ function handleSelectWallet(wallet: Wallet) {
       @update:reference="reference = $event"
       @update:notes="notes = $event"
       @update:selected-directory="selectedDirectory = $event"
+      @update:withdrawalPin="withdrawalPin = $event"
       @select-quick-amount="selectQuickAmount"
       @clear-quick-amount="clearQuickAmount"
       @go-to-step1="goToStep1"

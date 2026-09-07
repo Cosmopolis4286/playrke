@@ -105,6 +105,7 @@ class HandleInertiaRequests extends Middleware
                     'avatar_url'          => $user->profile_photo_url ?: asset('img/fav.ico'),
                     'kyc_level'           => (int) ($user->kyc_level ?? 0),
                     'kyc_status'          => $user->kyc_status ?? 'NONE',
+                    'has_withdrawal_pin'  => $user->hasWithdrawalPin(),
                     'tos_needs_acceptance'=> $this->tosService->needsAcceptance($user),
                     'userRoles'           => $user->roles ? $user->roles->map(fn($role) => [
                         'role' => [

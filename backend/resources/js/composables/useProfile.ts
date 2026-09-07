@@ -20,6 +20,8 @@ export interface ProfileUser {
     bio: string | null
     is_verified: boolean
     is_two_factor_enabled: boolean
+    has_withdrawal_pin: boolean
+    withdrawal_pin_set_at: string | null
     kyc_level: 0 | 1 | 2
     kyc_status: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED'
     tos_accepted_at: string | null
@@ -103,6 +105,7 @@ export function useProfile(
     const editMode      = ref(false)
     const activeTab     = ref<'personal' | 'stats' | 'missions' | 'referrals' | 'preferences' | 'security'>('personal')
     const showPassword  = ref(false)
+    const showWithdrawalPin = ref(false)
     const showAvatar    = ref(false)
     const showKycModal  = ref(false)
     const user          = ref<ProfileUser>({ ...initialUser })
@@ -252,6 +255,15 @@ export function useProfile(
         showPassword.value = false
     }
 
+    function onWithdrawalPinChanged(success: boolean) {
+        if (success) {
+            showToast('PIN de retiro actualizado exitosamente', 'success')
+            user.value.has_withdrawal_pin = true
+            user.value.withdrawal_pin_set_at = new Date().toISOString()
+        }
+        showWithdrawalPin.value = false
+    }
+
     function onKycUpdated(newState: KycState) {
         kycState.value       = newState
         user.value.kyc_level  = newState.kyc_level
@@ -370,7 +382,7 @@ export function useProfile(
     }
 
     return {
-        user, editMode, activeTab, showPassword, showAvatar, showKycModal,
+        user, editMode, activeTab, showPassword, showWithdrawalPin, showAvatar, showKycModal,
         profileForm, prefsForm, kycState, sessions, sessionsLoading, errorMsg,
         achievements, achievementsLoading,
         referrals, referralLink, totalReferrals, referralsLoading, referralsLoaded,
@@ -378,7 +390,7 @@ export function useProfile(
         saving, savingPrefsKey,
         selectedCountryName, isBirthDateEditable, kycLevelLabel,
         toggleEdit, cancelEdit, saveProfile, savePreferences,
-        onAvatarUpdated, onPasswordChanged, onKycUpdated,
+        onAvatarUpdated, onPasswordChanged, onWithdrawalPinChanged, onKycUpdated,
         loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals, loadDailyMissions,
         formatDate, formatCurrency, formatUnixDate,
     }

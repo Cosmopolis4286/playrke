@@ -12,6 +12,7 @@ import ReferralsTab        from '@js/Components/Profile/ReferralsTab.vue'
 import PreferencesTab      from '@js/Components/Profile/PreferencesTab.vue'
 import SecurityTab         from '@js/Components/Profile/SecurityTab.vue'
 import PasswordModal       from '@js/Components/Profile/PasswordModal.vue'
+import WithdrawalPinModal  from '@js/Components/Profile/WithdrawalPinModal.vue'
 import AvatarUploadModal   from '@js/Components/Profile/AvatarUploadModal.vue'
 import TosModal            from '@js/Components/Common/TosModal.vue'
 import KycUploadModal      from '@js/Components/Common/KycUploadModal.vue'
@@ -29,7 +30,7 @@ const props = defineProps<{
 // ── Composable central del perfil ──────────────────────────────────────────
 const {
     user, editMode, activeTab,
-    showPassword, showAvatar, showKycModal,
+    showPassword, showWithdrawalPin, showAvatar, showKycModal,
     profileForm, prefsForm, savingPrefsKey,
     kycState, sessions, sessionsLoading, errorMsg,
     achievements, achievementsLoading,
@@ -37,7 +38,7 @@ const {
     dailyMissions, dailyMissionsLoading, dailyMissionsLoaded,
     selectedCountryName, isBirthDateEditable,
     toggleEdit, cancelEdit, saveProfile, savePreferences,
-    onAvatarUpdated, onPasswordChanged, onKycUpdated,
+    onAvatarUpdated, onPasswordChanged, onWithdrawalPinChanged, onKycUpdated,
     loadSessions, revokeSession, revokeAllSessions, loadAchievements, loadReferrals, loadDailyMissions,
     formatDate, formatCurrency, formatUnixDate,
 } = useProfile(props.user, props.preferences, props.countries, props.kyc)
@@ -194,6 +195,7 @@ export default { name: 'ProfileIndex' }
               :format-date="formatDate"
               :format-unix-date="formatUnixDate"
               @open-password="showPassword = true"
+              @open-withdrawal-pin="showWithdrawalPin = true"
               @open-tos="tosModalOpen = true"
               @open-kyc="showKycModal = true"
               @load-sessions="loadSessions"
@@ -212,6 +214,13 @@ export default { name: 'ProfileIndex' }
       v-if="showPassword"
       @close="showPassword = false"
       @password-changed="onPasswordChanged"
+    />
+
+    <WithdrawalPinModal
+      v-if="showWithdrawalPin"
+      :is-change="user.has_withdrawal_pin"
+      @close="showWithdrawalPin = false"
+      @withdrawal-pin-changed="onWithdrawalPinChanged"
     />
 
     <AvatarUploadModal
