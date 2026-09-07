@@ -88,22 +88,30 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player,admin
     Route::get('/room/{code}/state', [TriviaGameController::class, 'roomState'])->name('room.state');
 });
 
-// ── Todos los usuarios autenticados: estadísticas, leaderboard ────────────────
+// ── Todos los usuarios autenticados: alias de compatibilidad con el sidebar ────
 Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
-    // Alias para rooms (compatibility con sidebar)
+    // Alias para rooms (compatibility con sidebar) — redirige a ruta ya protegida por role:admin,superadmin
     Route::get('/rooms', function () {
         return redirect()->route('trivia-rooms-admin.index');
     })->name('rooms.index');
 
-    // Alias para questions (compatibility con sidebar)
+    // Alias para questions (compatibility con sidebar) — redirige a ruta ya protegida por role:admin,superadmin
     Route::get('/questions', function () {
         return redirect()->route('trivia-questions.index', ['roomId' => 'all']);
     })->name('questions.index');
+});
 
-    // Leaderboard / Clasificación
+// Leaderboard: permiso asignado a todos los roles relevantes en RolePermissionSeeder
+// (admin, treasurer, commerce, subsidiary, seller, customer, player).
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'multiPermission:games.trivia.leaderboard.view'])->group(function () {
     Route::get('/leaderboard', [TriviaReportController::class, 'leaderboard'])->name('leaderboard');
+});
 
-    // Estadísticas
+// Estadísticas globales (incluye total_prizes agregados — dato financiero): solo
+// admin/treasurer/player tienen games.trivia.stats.view en el seeder. Antes esta
+// ruta solo exigía 'auth', exponiendo montos de premios a cualquier rol autenticado
+// (commerce, subsidiary, seller, customer) sin ese permiso.
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'multiPermission:games.trivia.stats.view'])->group(function () {
     Route::get('/stats', [TriviaReportController::class, 'stats'])->name('stats');
 });
 
