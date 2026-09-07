@@ -101,18 +101,31 @@ final class WalletFraudService
 
     private function operationCountToday(string $userId, string $type) : int
     {
-        $cacheKey = "fraud:vel:{$userId}:{$type}:" . now()->format('Y-m-d');
-        // TTL al fin del día — la clave ya incluye la fecha, por lo que no hay
-        // riesgo de rollover: la del día siguiente tiene clave distinta.
-        $ttl = Carbon::now()->secondsUntilEndOfDay() + 1;
-
         return (int) Cache::remember(
-            $cacheKey,
-            $ttl,
+            $this->velocityCacheKey($userId, $type),
+            Carbon::now()->secondsUntilEndOfDay() + 1,
             fn () => WalletMovement::where('user_id', $userId)
                 ->where('type', $type)
                 ->where('created_at', '>=', Carbon::today())
                 ->count(),
         );
+    }
+
+    /**
+     * Invalida el contador de velocity del día tras registrar una operación
+     * nueva. Sin esto, Cache::remember() en operationCountToday() congela el
+     * conteo en el primer valor calculado en el día (a menudo 0, si el
+     * primer check ocurre antes de la primera operación) y checkDeposit/
+     * WithdrawalVelocity() nunca vuelve a bloquear pese a MAX_*_PER_DAY —
+     * el límite de velocity queda evadible el resto del día.
+     */
+    public function invalidateVelocity(string $userId, string $type) : void
+    {
+        Cache::forget($this->velocityCacheKey($userId, $type));
+    }
+
+    private function velocityCacheKey(string $userId, string $type) : string
+    {
+        return "fraud:vel:{$userId}:{$type}:" . now()->format('Y-m-d');
     }
 }

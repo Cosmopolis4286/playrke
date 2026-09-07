@@ -1073,6 +1073,10 @@ final class WalletService
             'receipt_path' => $receipt,
         ]);
 
+        // Sin esto, checkDepositVelocity() sigue viendo el conteo cacheado
+        // ANTES de este depósito el resto del día (ver invalidateVelocity()).
+        $this->fraudService->invalidateVelocity((string) $wallet->user_id, WalletMovement::TYPE_DEPOSIT);
+
         $this->broadcastAdminWalletMovement($movement, $wallet, WalletMovement::TYPE_DEPOSIT, $amount);
 
         return $wallet;
@@ -1147,6 +1151,7 @@ final class WalletService
         // vería las sumas previas a este retiro y podría exceder los
         // límites diario/semanal/mensual (ver invalidateWithdrawalSums()).
         $this->walletLimitService->invalidateWithdrawalSums((string) $wallet->id);
+        $this->fraudService->invalidateVelocity((string) $wallet->user_id, WalletMovement::TYPE_WITHDRAWAL);
 
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
         $this->broadcastAdminWalletMovement($withdrawalMovement, $wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
