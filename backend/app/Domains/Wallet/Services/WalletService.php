@@ -61,35 +61,45 @@ final class WalletService
 
     /**
      * Aprobar un depósito PENDING: acredita el monto al saldo y marca COMPLETED.
+     *
+     * El check de $movement->type se hace fuera de la transacción (no cambia
+     * con la concurrencia), pero el status PENDING se revalida DENTRO, bajo
+     * lockForUpdate() sobre el propio movimiento — antes se leía sin lock
+     * antes de abrir la transacción, así que dos admins aprobando el mismo
+     * depósito casi a la vez podían ambos pasar el check y ambos ejecutar
+     * incrementBalance(): doble acreditación real de un depósito.
      */
     public function approveDeposit(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
             throw WalletDomainException::movementNotDeposit();
         }
-        if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw WalletDomainException::approvalRequiresPendingStatus();
-        }
 
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
+            $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== WalletMovement::STATUS_PENDING) {
+                throw WalletDomainException::approvalRequiresPendingStatus();
+            }
+
             // pending_debt se cobra de cualquier crédito entrante, incluida
             // la aprobación de un depósito — ver recordRefund() para el porqué.
-            $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
+            $netAmount = $this->settlePendingDebt($locked->wallet, (float) $locked->amount);
             if ($netAmount > 0) {
-                $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
+                $this->walletRepository->incrementBalance((string) $locked->wallet_id, $netAmount);
             }
-            $movement->wallet->refresh();
+            $locked->wallet->refresh();
 
-            $movement->update([
+            $locked->update([
                 'status' => WalletMovement::STATUS_COMPLETED,
                 'description' => 'Depósito acreditado',
-                'balance_after' => (float) $movement->wallet->balance,
+                'balance_after' => (float) $locked->wallet->balance,
                 'admin_notes' => $adminNotes,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
             ]);
 
-            return $movement->fresh(['wallet', 'wallet.currency']);
+            return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
@@ -106,32 +116,32 @@ final class WalletService
      */
     public function approveGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
-        if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw WalletDomainException::approvalRequiresPendingStatus();
-        }
+        $updated = DB::transaction(function() use ($movement, $adminNotes) {
+            $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
-        $isCredit = $movement->isCredit();
-
-        $updated = DB::transaction(function() use ($movement, $adminNotes, $isCredit) {
-            if ($isCredit) {
-                // pending_debt se cobra de cualquier crédito entrante — ver
-                // recordRefund() para el porqué.
-                $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
-                if ($netAmount > 0) {
-                    $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
-                }
-                $movement->wallet->refresh();
+            if ($locked->status !== WalletMovement::STATUS_PENDING) {
+                throw WalletDomainException::approvalRequiresPendingStatus();
             }
 
-            $movement->update([
+            if ($locked->isCredit()) {
+                // pending_debt se cobra de cualquier crédito entrante — ver
+                // recordRefund() para el porqué.
+                $netAmount = $this->settlePendingDebt($locked->wallet, (float) $locked->amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance((string) $locked->wallet_id, $netAmount);
+                }
+                $locked->wallet->refresh();
+            }
+
+            $locked->update([
                 'status' => WalletMovement::STATUS_COMPLETED,
-                'balance_after' => (float) $movement->wallet->balance,
+                'balance_after' => (float) $locked->wallet->balance,
                 'admin_notes' => $adminNotes,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
             ]);
 
-            return $movement->fresh(['wallet', 'wallet.currency']);
+            return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
@@ -141,25 +151,35 @@ final class WalletService
 
     /**
      * Aprobar un retiro PENDING: el saldo ya fue descontado, solo marca COMPLETED.
+     *
+     * Aunque este método no mueve balance (ya se descontó al solicitarse),
+     * se bloquea el movimiento igual que approveDeposit()/approveGeneric()
+     * para mantener el mismo patrón y evitar que dos aprobaciones
+     * concurrentes generen notificaciones/broadcasts duplicados.
      */
     public function approveWithdrawal(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
             throw WalletDomainException::movementNotWithdrawal();
         }
-        if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw WalletDomainException::approvalRequiresPendingStatus();
-        }
 
-        $movement->update([
-            'status' => WalletMovement::STATUS_COMPLETED,
-            'description' => 'Retiro procesado',
-            'admin_notes' => $adminNotes,
-            'processed_by' => (string) Auth::id(),
-            'processed_at' => now(),
-        ]);
+        $updated = DB::transaction(function () use ($movement, $adminNotes) {
+            $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
-        $updated = $movement->fresh(['wallet', 'wallet.currency']);
+            if ($locked->status !== WalletMovement::STATUS_PENDING) {
+                throw WalletDomainException::approvalRequiresPendingStatus();
+            }
+
+            $locked->update([
+                'status' => WalletMovement::STATUS_COMPLETED,
+                'description' => 'Retiro procesado',
+                'admin_notes' => $adminNotes,
+                'processed_by' => (string) Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            return $locked->fresh(['wallet', 'wallet.currency']);
+        });
 
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
 
@@ -930,19 +950,24 @@ final class WalletService
         if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
             throw WalletDomainException::movementNotDeposit();
         }
-        if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw WalletDomainException::rejectionRequiresPendingStatus();
-        }
 
-        $movement->update([
-            'status' => WalletMovement::STATUS_REJECTED,
-            'description' => 'Depósito rechazado',
-            'admin_notes' => $adminNotes,
-            'processed_by' => (string) Auth::id(),
-            'processed_at' => now(),
-        ]);
+        $updated = DB::transaction(function () use ($movement, $adminNotes) {
+            $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
-        $updated = $movement->fresh(['wallet', 'wallet.currency']);
+            if ($locked->status !== WalletMovement::STATUS_PENDING) {
+                throw WalletDomainException::rejectionRequiresPendingStatus();
+            }
+
+            $locked->update([
+                'status' => WalletMovement::STATUS_REJECTED,
+                'description' => 'Depósito rechazado',
+                'admin_notes' => $adminNotes,
+                'processed_by' => (string) Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            return $locked->fresh(['wallet', 'wallet.currency']);
+        });
 
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
 
@@ -956,31 +981,31 @@ final class WalletService
      */
     public function rejectGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
-        if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw WalletDomainException::rejectionRequiresPendingStatus();
-        }
+        $updated = DB::transaction(function() use ($movement, $adminNotes) {
+            $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
-        $isCredit = $movement->isCredit();
-
-        $updated = DB::transaction(function() use ($movement, $adminNotes, $isCredit) {
-            if (! $isCredit) {
-                // pending_debt se cobra de cualquier crédito entrante, incluido
-                // el reintegro de un débito rechazado — ver recordRefund().
-                $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
-                if ($netAmount > 0) {
-                    $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
-                }
-                $movement->wallet->refresh();
+            if ($locked->status !== WalletMovement::STATUS_PENDING) {
+                throw WalletDomainException::rejectionRequiresPendingStatus();
             }
 
-            $movement->update([
+            if (! $locked->isCredit()) {
+                // pending_debt se cobra de cualquier crédito entrante, incluido
+                // el reintegro de un débito rechazado — ver recordRefund().
+                $netAmount = $this->settlePendingDebt($locked->wallet, (float) $locked->amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance((string) $locked->wallet_id, $netAmount);
+                }
+                $locked->wallet->refresh();
+            }
+
+            $locked->update([
                 'status' => WalletMovement::STATUS_REJECTED,
                 'admin_notes' => $adminNotes,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
             ]);
 
-            return $movement->fresh(['wallet', 'wallet.currency']);
+            return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
@@ -990,27 +1015,35 @@ final class WalletService
 
     /**
      * Rechazar un retiro PENDING: devuelve el monto al saldo y marca REJECTED.
+     *
+     * status revalidado DENTRO de la transacción, bajo lockForUpdate() sobre
+     * el movimiento — antes se leía sin lock antes de abrir la transacción,
+     * así que dos rechazos concurrentes del mismo retiro podían ambos pasar
+     * el check y ambos reintegrar el monto (doble crédito).
      */
     public function rejectWithdrawal(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
             throw WalletDomainException::movementNotWithdrawal();
         }
-        if ($movement->status !== WalletMovement::STATUS_PENDING) {
-            throw WalletDomainException::rejectionRequiresPendingStatus();
-        }
 
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
+            $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== WalletMovement::STATUS_PENDING) {
+                throw WalletDomainException::rejectionRequiresPendingStatus();
+            }
+
             // pending_debt se cobra de cualquier crédito entrante, incluido
             // el reintegro de un retiro rechazado — ver recordRefund() para
             // el porqué.
-            $netAmount = $this->settlePendingDebt($movement->wallet, (float) $movement->amount);
+            $netAmount = $this->settlePendingDebt($locked->wallet, (float) $locked->amount);
             if ($netAmount > 0) {
-                $this->walletRepository->incrementBalance((string) $movement->wallet_id, $netAmount);
+                $this->walletRepository->incrementBalance((string) $locked->wallet_id, $netAmount);
             }
-            $movement->wallet->refresh();
+            $locked->wallet->refresh();
 
-            $movement->update([
+            $locked->update([
                 'status' => WalletMovement::STATUS_REJECTED,
                 'description' => 'Retiro rechazado — saldo reintegrado',
                 'admin_notes' => $adminNotes,
@@ -1018,7 +1051,7 @@ final class WalletService
                 'processed_at' => now(),
             ]);
 
-            return $movement->fresh(['wallet', 'wallet.currency']);
+            return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
         // El retiro rechazado ya no cuenta como PENDING/COMPLETED — sin

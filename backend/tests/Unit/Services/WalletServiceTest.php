@@ -229,4 +229,103 @@ class WalletServiceTest extends TestCase
         $this->assertSame(0.0, $split['bonus_spent']);
         $this->assertSame(0.0, $split['balance_spent']);
     }
+
+    // ── approveDeposit() / rejectWithdrawal() — doble-aprobación/rechazo ────
+    // No reproduce la carrera real entre dos requests HTTP paralelos (eso
+    // requiere dos conexiones DB concurrentes), pero sí verifica que la
+    // segunda llamada sobre un movimiento ya procesado falla en vez de
+    // duplicar el crédito — la propiedad que lockForUpdate() + revalidar el
+    // status DENTRO de la transacción garantiza incluso bajo concurrencia.
+
+    public function test_approve_deposit_credits_balance_and_marks_completed(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $movement = WalletMovement::create([
+            'wallet_id'      => $wallet->id,
+            'user_id'        => $wallet->user_id,
+            'type'           => WalletMovement::TYPE_DEPOSIT,
+            'status'         => WalletMovement::STATUS_PENDING,
+            'amount'         => 50.0,
+            'balance_before' => 10.0,
+            'balance_after'  => 10.0,
+        ]);
+
+        $this->service->approveDeposit($movement);
+
+        $this->assertSame(60.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(WalletMovement::STATUS_COMPLETED, $movement->fresh()->status);
+    }
+
+    public function test_approve_deposit_twice_throws_and_does_not_double_credit(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+
+        $movement = WalletMovement::create([
+            'wallet_id'      => $wallet->id,
+            'user_id'        => $wallet->user_id,
+            'type'           => WalletMovement::TYPE_DEPOSIT,
+            'status'         => WalletMovement::STATUS_PENDING,
+            'amount'         => 50.0,
+            'balance_before' => 10.0,
+            'balance_after'  => 10.0,
+        ]);
+
+        $this->service->approveDeposit($movement);
+
+        // Segunda aprobación sobre el mismo movimiento (ya COMPLETED): debe
+        // rechazarse, no volver a incrementar el balance.
+        $this->expectException(WalletDomainException::class);
+
+        try {
+            $this->service->approveDeposit($movement->fresh());
+        } finally {
+            $this->assertSame(60.0, (float) $wallet->fresh()->balance);
+        }
+    }
+
+    public function test_reject_withdrawal_refunds_balance_and_marks_rejected(): void
+    {
+        $wallet = $this->makeWallet(balance: 40.0);
+
+        $movement = WalletMovement::create([
+            'wallet_id'      => $wallet->id,
+            'user_id'        => $wallet->user_id,
+            'type'           => WalletMovement::TYPE_WITHDRAWAL,
+            'status'         => WalletMovement::STATUS_PENDING,
+            'amount'         => 25.0,
+            'balance_before' => 65.0,
+            'balance_after'  => 40.0,
+        ]);
+
+        $this->service->rejectWithdrawal($movement);
+
+        $this->assertSame(65.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(WalletMovement::STATUS_REJECTED, $movement->fresh()->status);
+    }
+
+    public function test_reject_withdrawal_twice_throws_and_does_not_double_refund(): void
+    {
+        $wallet = $this->makeWallet(balance: 40.0);
+
+        $movement = WalletMovement::create([
+            'wallet_id'      => $wallet->id,
+            'user_id'        => $wallet->user_id,
+            'type'           => WalletMovement::TYPE_WITHDRAWAL,
+            'status'         => WalletMovement::STATUS_PENDING,
+            'amount'         => 25.0,
+            'balance_before' => 65.0,
+            'balance_after'  => 40.0,
+        ]);
+
+        $this->service->rejectWithdrawal($movement);
+
+        $this->expectException(WalletDomainException::class);
+
+        try {
+            $this->service->rejectWithdrawal($movement->fresh());
+        } finally {
+            $this->assertSame(65.0, (float) $wallet->fresh()->balance);
+        }
+    }
 }
