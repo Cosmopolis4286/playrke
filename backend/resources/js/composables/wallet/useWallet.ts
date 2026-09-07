@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, type Ref } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import echo from '@js/plugins/echo'
 import type {
@@ -14,6 +14,7 @@ import type {
   PendingOperation,
   PendingOperationResponse,
 } from '@js/types/wallet'
+import type { WithdrawalLimitUsage } from '@js/types/kyc'
 
 // Pasos del flujo
 // deposit: 1=monto  → 2=comprobante → 3=confirmado
@@ -31,7 +32,11 @@ export interface WalletUpdatedPayload {
   movement_id:     string | null
 }
 
-export function useWallet(initialWallets: Wallet[], userId?: string) {
+export function useWallet(
+  initialWallets: Wallet[],
+  userId?: string,
+  walletLimitUsage?: Ref<WithdrawalLimitUsage | null>,
+) {
   const wallets      = ref<Wallet[]>(initialWallets)
   const activeWallet = ref<Wallet | null>(wallets.value[0] ?? null)
 
@@ -118,6 +123,21 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
 
   const canSubmitWithdraw = computed(() => selectedDirectory.value !== null && parsedAmount.value > 0)
 
+  // Menor remanente entre los tres topes (diario/semanal/mensual) — el que
+  // realmente limita cuánto puede retirar el usuario ahora mismo. Se basa en
+  // walletLimitUsage, ya cargado por useKyc().fetchLimits() en la página
+  // (mismo endpoint GET /wallet/limits) — no duplica el fetch aquí.
+  const remainingWithdrawalToday = computed(() => {
+    const usage = walletLimitUsage?.value
+    if (!usage) return null
+    const { daily, weekly, monthly } = usage
+    return Math.max(0, Math.min(
+      daily.max - daily.used,
+      weekly.max - weekly.used,
+      monthly.max - monthly.used,
+    ))
+  })
+
   // ── Abrir / cerrar modal ───────────────────────────────────────────────
   async function openModal(op: WalletOperation) {
     operation.value           = op
@@ -173,6 +193,10 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
       if (!activeWallet.value) return
       if (parsedAmount.value > activeWallet.value.balance) {
         errorMsg.value = 'Saldo insuficiente para realizar el retiro.'
+        return
+      }
+      if (remainingWithdrawalToday.value !== null && parsedAmount.value > remainingWithdrawalToday.value) {
+        errorMsg.value = `Superas tu límite de retiro disponible. Puedes retirar hasta ${remainingWithdrawalToday.value.toFixed(2)} más en este período.`
         return
       }
       // Cargar directorios si aún no están cargados
@@ -449,7 +473,7 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     resultToast,
     // computed
     canWithdraw, formattedBalance, formattedBonusBalance, hasBonusBalance, parsedAmount,
-    canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
+    canGoToStep2, canSubmitDeposit, canSubmitWithdraw, remainingWithdrawalToday,
     // acciones
     openModal, closeModal,
     goToStep1, goToStep2,

@@ -24,6 +24,17 @@ const props = defineProps<WalletPageProps>()
 const page   = usePage()
 const userId = computed(() => (page.props.auth as any)?.user?.id as string | undefined)
 
+// ─── KYC (declarado antes de useWallet para pasarle kycLimits) ───────────────
+const { state: kycState, limits: kycLimits, uploading: kycUploading,
+        error: kycError, success: kycSuccess,
+        fetchStatus: fetchKycStatus, fetchLimits, submitDocument } = useKyc()
+
+const kycModalOpen = ref(false)
+
+async function handleKycSubmit(form: Parameters<typeof submitDocument>[0]) {
+  await submitDocument(form)
+}
+
 // ─── Wallet core (debe ir primero para que wallets esté disponible) ──────────
 const {
   wallets, activeWallet,
@@ -36,12 +47,12 @@ const {
   loading, errorMsg, successMsg, tosRequired,
   resultToast,
   canWithdraw, formattedBalance, formattedBonusBalance, hasBonusBalance, parsedAmount,
-  canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
+  canGoToStep2, canSubmitDeposit, canSubmitWithdraw, remainingWithdrawalToday,
   openModal, closeModal,
   goToStep1, goToStep2,
   selectWallet, loadMovements, loadMoreMovements,
   submit, dismissResultToast,
-} = useWallet(props.wallets, userId.value)
+} = useWallet(props.wallets, userId.value, kycLimits)
 
 // ─── TOS ────────────────────────────────────────────────────────────────────
 const { status: tosStatus, accepting: tosAccepting, error: tosError,
@@ -70,17 +81,6 @@ async function handleTosAccept() {
     errorMsg.value = null
     await submit()
   }
-}
-
-// ─── KYC ────────────────────────────────────────────────────────────────────
-const { state: kycState, limits: kycLimits, uploading: kycUploading,
-        error: kycError, success: kycSuccess,
-        fetchStatus: fetchKycStatus, fetchLimits, submitDocument } = useKyc()
-
-const kycModalOpen = ref(false)
-
-async function handleKycSubmit(form: Parameters<typeof submitDocument>[0]) {
-  await submitDocument(form)
 }
 
 watch(

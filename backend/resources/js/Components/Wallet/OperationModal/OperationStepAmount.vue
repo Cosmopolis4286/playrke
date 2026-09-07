@@ -28,6 +28,21 @@ const amountRangeHint = computed(() => {
   return `Monto permitido: ${symbol} ${amountFmt(min)} — ${symbol} ${amountFmt(max)}`
 })
 
+// Remanente diario/semanal/mensual disponible para retiro — antes el
+// usuario solo veía el rango por transacción y se enteraba de haber
+// superado su tope acumulado recién al hacer submit en el paso 2.
+const remainingHint = computed(() => {
+  if (props.operation !== 'withdraw' || !props.walletLimits) return null
+  const symbol = props.activeWallet?.currency.symbol ?? ''
+  const { daily, weekly, monthly } = props.walletLimits
+  const remaining = Math.max(0, Math.min(
+    daily.max - daily.used,
+    weekly.max - weekly.used,
+    monthly.max - monthly.used,
+  ))
+  return `Disponible para retirar hoy: ${symbol} ${amountFmt(remaining)}`
+})
+
 const emit = defineEmits<{
   (e: 'update:amount', v: string): void
   (e: 'select-quick-amount', v: number): void
@@ -140,6 +155,11 @@ function amountFmt(value: number): string {
       <!-- Rango permitido según límites configurados -->
       <p v-if="amountRangeHint" class="op-field__hint">
         <i class="fas fa-info-circle"></i> {{ amountRangeHint }}
+      </p>
+
+      <!-- Remanente diario/semanal/mensual (solo retiro) -->
+      <p v-if="remainingHint" class="op-field__hint">
+        <i class="fas fa-wallet"></i> {{ remainingHint }}
       </p>
 
       <!-- Montos rápidos -->
