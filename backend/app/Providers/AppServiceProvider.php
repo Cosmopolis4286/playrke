@@ -138,6 +138,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: fijar/cambiar PIN de retiro — mismo criterio que
+        // profile-change-password (mitiga fuerza bruta sobre current_password
+        // en este endpoint). El lockout del PIN EN SÍ durante un retiro vive
+        // en WalletFraudService::checkWithdrawalPinLockout(), no aquí — este
+        // limita cuántas veces se puede intentar CAMBIAR el PIN, no probarlo.
+        RateLimiter::for('profile-withdrawal-pin', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip());
+        });
+
         // Rate-limit: actualización de perfil (incluye cambio de email) — 10 por minuto por usuario.
         RateLimiter::for('profile-update', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());

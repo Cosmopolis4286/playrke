@@ -21,6 +21,8 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -1132,11 +1134,20 @@ final class WalletService
         string $directoryId,
         string $directoryType,
         ?string $notes = null,
+        ?string $withdrawalPin = null,
     ) : Wallet {
         $withdrawalMovement = null;
+        $userId = (string) $wallet->user_id;
+
+        // PIN de retiro: verificado ANTES que cualquier otro check —
+        // ninguna validación de negocio (velocity, límites, saldo) debe
+        // ejecutarse hasta confirmar que quien pide el retiro conoce la
+        // segunda credencial, incluida la wallet bloqueada (no revelar ese
+        // estado a quien no probó el PIN).
+        $this->assertWithdrawalPin($wallet, $withdrawalPin);
 
         // Checks antifraude y límites ANTES de abrir la transacción
-        $this->fraudService->checkWithdrawalVelocity((string) $wallet->user_id);
+        $this->fraudService->checkWithdrawalVelocity($userId);
         $this->fraudService->checkDoubleSubmit((string) $wallet->id, $amount, WalletMovement::TYPE_WITHDRAWAL);
         $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
         $this->walletLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
@@ -1190,6 +1201,77 @@ final class WalletService
         $this->broadcastAdminWalletMovement($withdrawalMovement, $wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
 
         return $wallet;
+    }
+
+    /**
+     * Valida el PIN de retiro antes de dejar avanzar requestWithdraw().
+     *
+     * Orden de checks deliberado:
+     *   1. Lockout PRIMERO (antes de tocar Hash::check()) — un usuario
+     *      bloqueado no debe poder seguir probando PINs aunque adivine uno
+     *      correcto a mitad del bloqueo.
+     *   2. Si nunca fijó un PIN, error distinto (withdrawalPinNotSet) que no
+     *      cuenta como intento fallido — no es un ataque, es una cuenta sin
+     *      configurar.
+     *   3. PIN vacío en el request: error distinto de "incorrecto" —evita
+     *      filtrar por el mensaje si el PIN existe o no cuando el campo
+     *      simplemente no llegó.
+     *   4. Hash::check() real. Solo AQUÍ se cuenta como intento (fallido o
+     *      limpia el contador si acierta) — los pasos 2-3 no deben poder
+     *      usarse para acumular intentos sin nunca tocar el hash real.
+     */
+    private function assertWithdrawalPin(Wallet $wallet, ?string $withdrawalPin) : void
+    {
+        $user = $wallet->relationLoaded('user') ? $wallet->user : $wallet->user()->first();
+        $userId = (string) $wallet->user_id;
+
+        if (! $user || ! $user->hasWithdrawalPin()) {
+            throw WalletDomainException::withdrawalPinNotSet();
+        }
+
+        $this->fraudService->checkWithdrawalPinLockout($userId);
+
+        if (empty($withdrawalPin)) {
+            throw WalletDomainException::withdrawalPinRequired();
+        }
+
+        if (! Hash::check($withdrawalPin, $user->withdrawal_pin_hash)) {
+            $remaining = $this->fraudService->recordWithdrawalPinFailure($userId);
+
+            throw WalletDomainException::withdrawalPinInvalid($remaining);
+        }
+
+        $this->fraudService->clearWithdrawalPinAttempts($userId);
+    }
+
+    /**
+     * Fija o cambia el PIN de retiro del usuario. El caller (controller)
+     * es responsable de reautenticar con current_password ANTES de llamar
+     * a este método — este método asume que ya se verificó que quien pide
+     * el cambio es el dueño real de la cuenta, igual que
+     * ProfileController::changePassword() delega esa verificación a la
+     * regla de validación 'current_password' antes de invocar el service.
+     *
+     * $pin ya debe venir validado como 6 dígitos (regla 'digits:6' en el
+     * FormRequest) — este método no revalida el formato, solo hashea y
+     * persiste.
+     */
+    public function setWithdrawalPin(User $user, string $pin) : void
+    {
+        $user->forceFill([
+            'withdrawal_pin_hash'   => Hash::make($pin),
+            'withdrawal_pin_set_at' => now(),
+        ])->save();
+
+        // Limpiar cualquier bloqueo previo: un cambio de PIN reautenticado
+        // con current_password es una acción legítima del dueño de la
+        // cuenta, no debe quedar penalizada por intentos fallidos con el
+        // PIN anterior.
+        $this->fraudService->clearWithdrawalPinAttempts((string) $user->id);
+
+        Log::info('[WalletService] PIN de retiro actualizado', ['user_id' => (string) $user->id]);
+
+        $this->notificationService->createWithdrawalPinChangedNotification((string) $user->id);
     }
 
     /**

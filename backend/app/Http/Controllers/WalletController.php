@@ -126,6 +126,7 @@ class WalletController extends Controller
                 directoryId:   $request->input('directory_id'),
                 directoryType: $request->input('directory_type'),
                 notes:         $request->input('notes'),
+                withdrawalPin: $request->input('withdrawal_pin'),
             );
 
             return response()->json([
@@ -133,6 +134,12 @@ class WalletController extends Controller
                 'message' => 'Solicitud de retiro enviada. Un administrador procesará la transferencia.',
                 'balance' => (float) $wallet->balance,
             ]);
+        } catch (\App\Domains\Wallet\Exceptions\WalletDomainException $e) {
+            // httpStatus() real de la excepción (ej. 429 en el lockout del
+            // PIN de retiro) — antes este catch devolvía 422 fijo para
+            // cualquier DomainException, aplanando la distinción entre
+            // "error de validación" y "espera antes de reintentar".
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
         } catch (\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {

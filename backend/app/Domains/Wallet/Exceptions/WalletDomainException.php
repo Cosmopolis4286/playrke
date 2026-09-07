@@ -299,4 +299,55 @@ final class WalletDomainException extends DomainException
     {
         return new self('Has alcanzado el límite de retiros por hoy. Inténtalo mañana.', 429);
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // PIN de retiro (WalletFraudService::checkWithdrawalPinLockout(),
+    // WalletService::requestWithdraw())
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * requestWithdraw(): el usuario nunca fijó un PIN de retiro
+     * (User::hasWithdrawalPin() === false) — se le exige fijarlo antes de
+     * poder retirar, no se permite retirar "sin PIN" como fallback.
+     */
+    public static function withdrawalPinNotSet() : self
+    {
+        return new self('Debes configurar un PIN de retiro antes de solicitar un retiro. Ve a tu perfil para configurarlo.', 422);
+    }
+
+    /**
+     * requestWithdraw(): el campo withdrawal_pin llegó vacío pese a que el
+     * usuario ya tiene uno fijado — distinto de withdrawalPinInvalid()
+     * (PIN incorrecto) para no filtrar por el mensaje si el PIN existe.
+     */
+    public static function withdrawalPinRequired() : self
+    {
+        return new self('Ingresa tu PIN de retiro para continuar.', 422);
+    }
+
+    /**
+     * requestWithdraw(): Hash::check() del PIN recibido contra
+     * withdrawal_pin_hash falló. $remainingAttempts viene de
+     * WalletFraudService::recordWithdrawalPinFailure() — solo se muestra en
+     * el mensaje cuando es bajo, para no facilitar calibrar un ataque de
+     * fuerza bruta contando intentos totales disponibles.
+     */
+    public static function withdrawalPinInvalid(int $remainingAttempts) : self
+    {
+        $suffix = $remainingAttempts <= 2
+            ? " Te quedan {$remainingAttempts} intento(s) antes de un bloqueo temporal."
+            : '';
+
+        return new self("PIN de retiro incorrecto.{$suffix}", 422);
+    }
+
+    /**
+     * checkWithdrawalPinLockout(): se agotaron los intentos de PIN
+     * permitidos en la ventana de tiempo — bloqueado temporalmente,
+     * independiente de si el usuario ahora escribe el PIN correcto.
+     */
+    public static function withdrawalPinLocked(int $minutes) : self
+    {
+        return new self("Demasiados intentos de PIN incorrectos. Vuelve a intentar en {$minutes} minuto(s).", 429);
+    }
 }

@@ -9,6 +9,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Detecta patrones sospechosos en operaciones de wallet.
@@ -18,6 +19,10 @@ use Illuminate\Support\Facades\Log;
  * 1. Velocity diario: no más de N depósitos/retiros por día por usuario.
  * 2. Duplicate reference: mismo número de referencia en las últimas 24 h.
  * 3. Duplicate amount+window: mismo monto en < X segundos (double-submit).
+ * 4. Lockout del PIN de retiro: mismo patrón que LoginRequest::
+ *    ensureIsNotRateLimited() (RateLimiter::hit/tooManyAttempts/clear), por
+ *    userId en vez de userId+ip porque el PIN se valida post-login (la IP ya
+ *    no discrimina el mismo riesgo que discrimina en el login).
  *
  * Todos los métodos lanzan DomainException si detectan fraude,
  * por lo que se integran con un try/catch en WalletService.
@@ -29,6 +34,12 @@ final class WalletFraudService
     // Máximo de operaciones de cada tipo por día por usuario
     private const MAX_DEPOSITS_PER_DAY = 10;
     private const MAX_WITHDRAWALS_PER_DAY = 5;
+    // Intentos de PIN de retiro antes de bloquear, y minutos de bloqueo —
+    // mismo umbral que LoginRequest (5), pero con una ventana de decay más
+    // larga porque un PIN de 6 dígitos tiene mucho menos entropía que un
+    // password: 5 intentos por minuto sería fuerza-bruteable en horas.
+    private const WITHDRAWAL_PIN_MAX_ATTEMPTS = 5;
+    private const WITHDRAWAL_PIN_DECAY_MINUTES = 15;
 
     /**
      * Verifica velocity de depósitos.
@@ -127,5 +138,71 @@ final class WalletFraudService
     private function velocityCacheKey(string $userId, string $type) : string
     {
         return "fraud:vel:{$userId}:{$type}:" . now()->format('Y-m-d');
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Lockout del PIN de retiro (RateLimiter — mismo patrón que LoginRequest)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Lanza WalletDomainException si el usuario ya agotó
+     * WITHDRAWAL_PIN_MAX_ATTEMPTS intentos fallidos de PIN en la ventana de
+     * WITHDRAWAL_PIN_DECAY_MINUTES. Debe llamarse ANTES de comparar el PIN
+     * recibido contra el hash — nunca dejar que un intento adicional
+     * siquiera llegue a Hash::check() una vez bloqueado.
+     */
+    public function checkWithdrawalPinLockout(string $userId) : void
+    {
+        $key = $this->withdrawalPinKey($userId);
+
+        if (! RateLimiter::tooManyAttempts($key, self::WITHDRAWAL_PIN_MAX_ATTEMPTS)) {
+            return;
+        }
+
+        $seconds = RateLimiter::availableIn($key);
+
+        Log::warning('[Fraud] PIN de retiro bloqueado por intentos fallidos', [
+            'user_id'          => $userId,
+            'available_in_sec' => $seconds,
+        ]);
+
+        throw WalletDomainException::withdrawalPinLocked((int) ceil($seconds / 60));
+    }
+
+    /**
+     * Registra un intento fallido de PIN. Devuelve los intentos restantes
+     * antes del bloqueo, para que el mensaje de error pueda avisar
+     * "te quedan N intentos" sin exponer el umbral exacto de forma que
+     * facilite calibrar un ataque (se muestra solo cuando faltan pocos).
+     */
+    public function recordWithdrawalPinFailure(string $userId) : int
+    {
+        $key = $this->withdrawalPinKey($userId);
+
+        RateLimiter::hit($key, self::WITHDRAWAL_PIN_DECAY_MINUTES * 60);
+
+        $remaining = max(0, self::WITHDRAWAL_PIN_MAX_ATTEMPTS - RateLimiter::attempts($key));
+
+        Log::warning('[Fraud] Intento fallido de PIN de retiro', [
+            'user_id'   => $userId,
+            'remaining' => $remaining,
+        ]);
+
+        return $remaining;
+    }
+
+    /**
+     * Limpia el contador de intentos fallidos tras una validación exitosa
+     * del PIN — mismo momento que RateLimiter::clear() en LoginRequest tras
+     * un login correcto.
+     */
+    public function clearWithdrawalPinAttempts(string $userId) : void
+    {
+        RateLimiter::clear($this->withdrawalPinKey($userId));
+    }
+
+    private function withdrawalPinKey(string $userId) : string
+    {
+        return "withdrawal-pin:{$userId}";
     }
 }

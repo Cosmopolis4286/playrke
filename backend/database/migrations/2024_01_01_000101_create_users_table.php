@@ -44,6 +44,9 @@ return new class extends Migration
 
             // Seguridad y autenticación
             $table->string('password', 255)->comment('Contraseña hasheada');
+            // Ver 2026_09_07_000001_add_withdrawal_pin_to_users_table.php
+            $table->string('withdrawal_pin_hash', 255)->nullable()->comment('Hash (Hash::make) del PIN de retiro — segunda credencial exigida antes de descontar saldo en un retiro, independiente del password de login');
+            $table->timestamp('withdrawal_pin_set_at')->nullable()->comment('Fecha del último cambio de withdrawal_pin_hash');
             $table->rememberToken();
             $table->string('referral_code', 20)->unique()->comment('Código de referido único');
 

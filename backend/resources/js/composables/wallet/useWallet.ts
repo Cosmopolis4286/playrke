@@ -36,6 +36,7 @@ export function useWallet(
   initialWallets: Wallet[],
   userId?: string,
   walletLimitUsage?: Ref<WithdrawalLimitUsage | null>,
+  hasWithdrawalPin?: Ref<boolean>,
 ) {
   const wallets      = ref<Wallet[]>(initialWallets)
   const activeWallet = ref<Wallet | null>(wallets.value[0] ?? null)
@@ -58,6 +59,7 @@ export function useWallet(
   const directories        = ref<UserDirectory[]>([])
   const directoriesLoading = ref(false)
   const selectedDirectory  = ref<UserDirectory | null>(null)
+  const withdrawalPin      = ref<string>('')
 
   // Solicitud pendiente
   const pendingOperation = ref<PendingOperation | null>(null)
@@ -121,7 +123,16 @@ export function useWallet(
 
   const canSubmitDeposit = computed(() => receipt.value !== null && parsedAmount.value > 0)
 
-  const canSubmitWithdraw = computed(() => selectedDirectory.value !== null && parsedAmount.value > 0)
+  // Exige withdrawal_pin cuando el usuario ya tiene uno configurado — si NO
+  // tiene, el submit queda bloqueado igual (OperationStepWithdrawDirectory
+  // muestra el aviso de "configura tu PIN" en vez del campo) en lugar de
+  // dejar avanzar sin PIN y que el backend lo rechace recién en el submit.
+  const canSubmitWithdraw = computed(() => {
+    if (selectedDirectory.value === null || parsedAmount.value <= 0) return false
+    if (hasWithdrawalPin?.value === false) return false
+    if (hasWithdrawalPin?.value === true && !/^\d{6}$/.test(withdrawalPin.value)) return false
+    return true
+  })
 
   // Menor remanente entre los tres topes (diario/semanal/mensual) — el que
   // realmente limita cuánto puede retirar el usuario ahora mismo. Se basa en
@@ -148,6 +159,7 @@ export function useWallet(
     reference.value           = ''
     notes.value               = ''
     selectedDirectory.value   = null
+    withdrawalPin.value       = ''
     directories.value         = []
     errorMsg.value            = null
     successMsg.value          = null
@@ -287,11 +299,12 @@ export function useWallet(
       await getCsrfCookie()
 
       const { data } = await backendClient.post<WalletOperationResponse>('wallet/withdraw', {
-        currency_id:    activeWallet.value.currency_id,
-        amount:         parsedAmount.value,
-        directory_id:   selectedDirectory.value.id,
-        directory_type: selectedDirectory.value.type,
-        notes:          notes.value || undefined,
+        currency_id:     activeWallet.value.currency_id,
+        amount:          parsedAmount.value,
+        directory_id:    selectedDirectory.value.id,
+        directory_type:  selectedDirectory.value.type,
+        notes:           notes.value || undefined,
+        withdrawal_pin:  withdrawalPin.value || undefined,
       })
 
       if (data.success) {
@@ -305,9 +318,13 @@ export function useWallet(
         await loadMovements(1)
       } else {
         errorMsg.value = data.message
+        // No dejar el PIN en el input tras un rechazo (ej. PIN incorrecto) —
+        // mismo criterio que PasswordModal limpia current_password en error.
+        withdrawalPin.value = ''
       }
     } catch (err: any) {
       errorMsg.value = _extractError(err)
+      withdrawalPin.value = ''
     } finally {
       loading.value = false
     }
@@ -467,7 +484,7 @@ export function useWallet(
     modalOpen, operation, step,
     amount, selectedQuickAmount,
     receipt, reference, notes,
-    directories, directoriesLoading, selectedDirectory,
+    directories, directoriesLoading, selectedDirectory, withdrawalPin,
     pendingOperation, pendingLoading,
     loading, errorMsg, successMsg, tosRequired,
     resultToast,

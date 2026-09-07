@@ -10,12 +10,20 @@ defineProps<{
   selectedDirectory: UserDirectory | null
   notes: string
   errorMsg: string | null
+  hasWithdrawalPin: boolean
+  withdrawalPin: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:selectedDirectory', v: UserDirectory | null): void
   (e: 'update:notes', v: string): void
+  (e: 'update:withdrawalPin', v: string): void
 }>()
+
+function onPinInput(e: Event) {
+  const input = e.target as HTMLInputElement
+  emit('update:withdrawalPin', input.value.replace(/\D/g, '').slice(0, 6))
+}
 </script>
 
 <template>
@@ -71,6 +79,32 @@ const emit = defineEmits<{
         </div>
         <i v-if="selectedDirectory?.id === dir.id" class="fas fa-check-circle op-dir-card__check"></i>
       </label>
+    </div>
+  </div>
+
+  <!-- PIN de retiro -->
+  <div v-if="hasWithdrawalPin" class="op-field">
+    <label class="op-field__label" for="withdraw-pin">PIN de retiro</label>
+    <input
+      id="withdraw-pin"
+      type="text"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      maxlength="6"
+      :value="withdrawalPin"
+      class="op-pin-input"
+      placeholder="••••••"
+      autocomplete="off"
+      @input="onPinInput"
+    />
+  </div>
+  <div v-else class="op-pin-missing">
+    <i class="fas fa-exclamation-triangle op-pin-missing__icon"></i>
+    <div>
+      <p class="op-pin-missing__text">Debes configurar un PIN de retiro antes de continuar.</p>
+      <a href="/profile#security" class="op-pin-missing__link">
+        <i class="fas fa-shield-alt"></i> Ir a Seguridad y configurarlo
+      </a>
     </div>
   </div>
 
@@ -149,6 +183,52 @@ const emit = defineEmits<{
 .op-field__textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
 
 .op-optional { color: var(--ds-text-muted); font-weight: 400; font-size: 0.75em; }
+
+/* ── PIN de retiro ── */
+.op-pin-input {
+  width: 100%;
+  border: 2px solid var(--ds-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-align: center;
+  color: var(--ds-text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.op-pin-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+
+.op-pin-missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(220, 38, 38, .12);
+  border: 1px solid rgba(220, 38, 38, .35);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  color: #dc2626;
+  font-size: 0.82rem;
+}
+.op-pin-missing__icon { margin-top: 2px; flex-shrink: 0; font-size: 1rem; }
+.op-pin-missing__text { margin: 0 0 6px; line-height: 1.4; }
+.op-pin-missing__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #dc2626;
+  text-decoration: none;
+  background: rgba(220, 38, 38, .14);
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.op-pin-missing__link:hover { background: rgba(220, 38, 38, .22); }
 
 /* ── Directorios ── */
 .op-dirs-loading {

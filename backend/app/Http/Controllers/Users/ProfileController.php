@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Users;
 
+use App\Domains\Wallet\Services\WalletService;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\User;
@@ -27,6 +28,7 @@ class ProfileController extends Controller
         protected ProfileService $profileService,
         protected KycService     $kycService,
         protected TosService     $tosService,
+        protected WalletService  $walletService,
     ) {}
 
     /** Retorna el usuario autenticado tipado como User (elimina advertencias del IDE). */
@@ -144,6 +146,37 @@ class ProfileController extends Controller
         $this->profileService->changePassword($this->authUser()->id, $request->new_password);
 
         return response()->json(['success' => true, 'message' => 'Contraseña actualizada correctamente.']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PATCH /profile/withdrawal-pin
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Fija o cambia el PIN de retiro (4-6 dígitos), usado por
+     * WalletService::requestWithdraw() como segunda credencial antes de
+     * descontar saldo en un retiro.
+     *
+     * 'current_password' (regla nativa de Laravel) exige reautenticación con
+     * el password de login — mismo patrón que changePassword() — porque
+     * fijar/cambiar el PIN es en sí mismo un cambio de credencial de
+     * seguridad: si se permitiera sin reautenticar, una sesión comprometida
+     * podría fijar un PIN propio y desbloquearse el camino a los retiros.
+     */
+    public function updateWithdrawalPin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'pin'               => ['required', 'digits:6', 'confirmed'],
+        ], [
+            'current_password.current_password' => 'La contraseña actual es incorrecta.',
+            'pin.digits'                        => 'El PIN debe tener exactamente 6 dígitos.',
+            'pin.confirmed'                      => 'Los PIN no coinciden.',
+        ]);
+
+        $this->walletService->setWithdrawalPin($this->authUser(), $request->string('pin')->toString());
+
+        return response()->json(['success' => true, 'message' => 'PIN de retiro actualizado correctamente.']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -330,6 +363,8 @@ class ProfileController extends Controller
             'bio'             => $user->bio,
             'is_verified'     => ! is_null($user->email_verified_at),
             'is_two_factor_enabled' => (bool) $user->is_two_factor_enabled,
+            'has_withdrawal_pin' => $user->hasWithdrawalPin(),
+            'withdrawal_pin_set_at' => $user->withdrawal_pin_set_at?->toIso8601String(),
             'kyc_level'       => (int) ($user->kyc_level ?? 0),
             'kyc_status'      => $user->kyc_status ?? 'NONE',
             'tos_accepted_at' => $user->tos_accepted_at?->toIso8601String(),

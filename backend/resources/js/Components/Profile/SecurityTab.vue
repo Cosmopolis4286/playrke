@@ -20,6 +20,34 @@
 
       <hr class="sec-divider" />
 
+      <!-- PIN de retiro -->
+      <section class="sec-section">
+        <div class="sec-section-head">
+          <div class="sec-icon-wrap" :class="user.has_withdrawal_pin ? 'sec-icon-wrap--success' : 'sec-icon-wrap--danger'">
+            <i class="fas fa-shield-alt" />
+          </div>
+          <div>
+            <h4 class="sec-section-title">PIN de Retiro</h4>
+            <p class="sec-section-desc">
+              <template v-if="user.has_withdrawal_pin">
+                Configurado{{ user.withdrawal_pin_set_at ? ' el ' + formatDate(user.withdrawal_pin_set_at, true) : '' }}. Se te pedirá en cada solicitud de retiro.
+              </template>
+              <template v-else>
+                Sin configurar — debes fijarlo antes de poder solicitar un retiro.
+              </template>
+            </p>
+          </div>
+        </div>
+        <span v-if="user.has_withdrawal_pin" class="status-badge status-badge--success">
+          <i class="fas fa-check-circle me-1" />Activo
+        </span>
+        <button class="sec-btn" :class="user.has_withdrawal_pin ? 'sec-btn--ghost' : 'sec-btn--primary'" @click="$emit('open-withdrawal-pin')">
+          <i class="fas fa-shield-alt me-2" />{{ user.has_withdrawal_pin ? 'Cambiar PIN' : 'Configurar PIN' }}
+        </button>
+      </section>
+
+      <hr class="sec-divider" />
+
       <!-- TOS -->
       <section class="sec-section">
         <div class="sec-section-head">
@@ -198,6 +226,15 @@
             </dd>
           </div>
           <div class="sec-info-row">
+            <dt>PIN de retiro</dt>
+            <dd>
+              <span :class="['status-badge', user.has_withdrawal_pin ? 'status-badge--success' : 'status-badge--danger']">
+                <i :class="['fas me-1', user.has_withdrawal_pin ? 'fa-shield-alt' : 'fa-exclamation-triangle']" />
+                {{ user.has_withdrawal_pin ? 'Configurado' : 'Sin configurar' }}
+              </span>
+            </dd>
+          </div>
+          <div class="sec-info-row">
             <dt>Último acceso</dt>
             <dd class="text-sm last-access-value">{{ lastActiveCompact }}</dd>
           </div>
@@ -241,6 +278,7 @@ const props = defineProps<{
 
 defineEmits<{
     'open-password': []
+    'open-withdrawal-pin': []
     'open-tos': []
     'open-kyc': []
     'load-sessions': []

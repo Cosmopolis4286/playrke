@@ -635,6 +635,24 @@ final class NotificationService
     }
 
     /**
+     * Notificación in-app al propio usuario cuando su PIN de retiro fue
+     * fijado o cambiado — mismo criterio de seguridad que un email de
+     * "tu contraseña fue cambiada": si el cambio no lo hizo el dueño real
+     * de la cuenta (sesión comprometida que ya conocía current_password),
+     * esta es la señal que le permite reaccionar.
+     */
+    public function createWithdrawalPinChangedNotification(string $userId): Notification
+    {
+        return $this->create(
+            userId: $userId,
+            type: 'SYSTEM',
+            title: '🔒 PIN de retiro actualizado',
+            message: 'Tu PIN de retiro fue configurado o cambiado. Si no fuiste tú, contacta soporte de inmediato.',
+            data: ['url' => '/profile#security'],
+        );
+    }
+
+    /**
      * Crear notificaciones masivas para múltiples usuarios
      *
      * @param array $userIds

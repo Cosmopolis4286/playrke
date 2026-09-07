@@ -32,6 +32,9 @@ const props = defineProps<{
   pendingLoading: boolean
   walletLimits: WithdrawalLimitUsage | null
 
+  hasWithdrawalPin: boolean
+  withdrawalPin: string
+
   loading: boolean
   errorMsg: string | null
   successMsg: string | null
@@ -49,6 +52,7 @@ const emit = defineEmits<{
   (e: 'update:reference', v: string): void
   (e: 'update:notes', v: string): void
   (e: 'update:selectedDirectory', v: UserDirectory | null): void
+  (e: 'update:withdrawalPin', v: string): void
   (e: 'select-quick-amount', v: number): void
   (e: 'clear-quick-amount'): void
   (e: 'go-to-step1'): void
@@ -119,8 +123,11 @@ const modalIcon = computed(() => {
       :selected-directory="selectedDirectory"
       :notes="notes"
       :error-msg="errorMsg"
+      :has-withdrawal-pin="hasWithdrawalPin"
+      :withdrawal-pin="withdrawalPin"
       @update:selectedDirectory="emit('update:selectedDirectory', $event)"
       @update:notes="emit('update:notes', $event)"
+      @update:withdrawalPin="emit('update:withdrawalPin', $event)"
     />
 
     <OperationStepDone

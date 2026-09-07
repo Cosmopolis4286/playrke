@@ -19,6 +19,13 @@ class WalletWithdrawRequest extends FormRequest
             'directory_id'   => ['required', 'string'],
             'directory_type' => ['required', 'string', 'in:pago_movil,pix,binance'],
             'notes'          => ['nullable', 'string', 'max:500'],
+            // 'nullable' aquí (no 'required'): la obligatoriedad real depende
+            // de si el usuario ya fijó un PIN (User::hasWithdrawalPin()) y esa
+            // decisión vive en WalletService::assertWithdrawalPin(), que da un
+            // mensaje distinto ("configura tu PIN") a un usuario sin PIN vs.
+            // uno con PIN que lo omitió — exigirlo aquí con 'required' fijo
+            // rompería el primer caso con un mensaje genérico de validación.
+            'withdrawal_pin' => ['nullable', 'digits:6'],
         ];
     }
 
@@ -33,6 +40,7 @@ class WalletWithdrawRequest extends FormRequest
             'directory_id.required'   => 'Selecciona un destino de retiro.',
             'directory_type.required' => 'El tipo de directorio es obligatorio.',
             'directory_type.in'       => 'Tipo de directorio inválido.',
+            'withdrawal_pin.digits'   => 'El PIN debe tener exactamente 6 dígitos.',
         ];
     }
 }

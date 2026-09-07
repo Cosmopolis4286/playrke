@@ -133,6 +133,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $hidden = [
         'password',
+        'withdrawal_pin_hash',
         'remember_token',
     ];
 
@@ -143,6 +144,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected array $auditHidden = [
         'password',
         'demo_password',
+        'withdrawal_pin_hash',
         'remember_token',
     ];
 
@@ -177,6 +179,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'tos_accepted_at'       => 'datetime',
         'kyc_level'             => 'integer',
         'kyc_verified_at'       => 'datetime',
+        'withdrawal_pin_set_at' => 'datetime',
         'created_at'            => 'datetime',
         'updated_at'            => 'datetime',
     ];
@@ -415,6 +418,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasTwoFactorEnabled(): bool
     {
         return $this->is_two_factor_enabled;
+    }
+
+    /**
+     * Verifica si el usuario ya fijó un PIN de retiro. Comparar contra
+     * withdrawal_pin_set_at (no solo withdrawal_pin_hash !== null) es
+     * intencional: withdrawal_pin_set_at nunca se limpia salvo que se borre
+     * el PIN explícitamente, así que sirve de doble confirmación aunque el
+     * hash quedara vacío por un fallo parcial de escritura.
+     */
+    public function hasWithdrawalPin(): bool
+    {
+        return ! is_null($this->withdrawal_pin_hash) && ! is_null($this->withdrawal_pin_set_at);
     }
 
     /**

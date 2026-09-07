@@ -23,6 +23,7 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     Route::get('/data',            [ProfileController::class, 'getProfileData'])   ->name('profile.api.data');
     Route::put('/update',          [ProfileController::class, 'updateProfile'])    ->name('profile.api.update')->middleware(['throttle:profile-update', 'block-during-impersonation']);
     Route::patch('/password',      [ProfileController::class, 'changePassword'])   ->name('profile.changePassword')->middleware(['throttle:profile-change-password', 'block-during-impersonation']);
+    Route::patch('/withdrawal-pin',[ProfileController::class, 'updateWithdrawalPin'])->name('profile.withdrawalPin')->middleware(['throttle:profile-withdrawal-pin', 'block-during-impersonation']);
     Route::post('/avatar',         [ProfileController::class, 'uploadAvatar'])     ->name('profile.api.upload-avatar')->middleware(['throttle:profile-avatar', 'block-during-impersonation']);
     Route::delete('/avatar',       [ProfileController::class, 'deleteAvatar'])     ->name('profile.api.delete-avatar')->middleware(['throttle:profile-avatar', 'block-during-impersonation']);
     Route::get('/preferences',     [ProfileController::class, 'getPreferences'])   ->name('profile.api.preferences');
