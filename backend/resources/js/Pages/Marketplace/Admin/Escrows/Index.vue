@@ -9,6 +9,7 @@
 import { onMounted, ref } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 import { useEscrowAdmin, type AdminEscrow } from '@js/composables/marketplace/admin/useEscrowAdmin'
 
 defineProps<{ title: string }>()
@@ -24,7 +25,21 @@ onMounted(() => {
   fetchList()
 })
 
+const RESOLUTION_LABEL: Record<'BUYER_WINS' | 'SELLER_WINS' | 'CANCELLED', string> = {
+  BUYER_WINS:  'el comprador gane',
+  SELLER_WINS: 'el vendedor gane',
+  CANCELLED:   'cancelar',
+}
+
 async function handleResolve(escrow: AdminEscrow, resolution: 'BUYER_WINS' | 'SELLER_WINS' | 'CANCELLED') {
+  const confirmed = await showToastConfirmAction({
+    title: 'Resolver disputa',
+    text: `Vas a hacer que ${RESOLUTION_LABEL[resolution]} el escrow #${escrow.id.slice(-8)} (${escrow.amount} ${escrow.currency_symbol}). Esta acción mueve el dinero en disputa y no se puede deshacer.`,
+    icon: 'warning',
+    confirmButtonText: 'Sí, confirmar',
+  })
+  if (!confirmed) return
+
   resolvingId.value = escrow.id
   const result = await resolve(escrow.id, resolution)
   feedback.value = { type: result.success ? 'success' : 'error', message: result.message }

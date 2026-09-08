@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
+import { showToast } from '@js/utils/toast'
 
 export interface AdminUser {
   id: string
@@ -66,9 +67,12 @@ export function useEscrowAdmin() {
     try {
       const { data } = await axios.post(`/marketplace-escrows/${escrowId}/resolve`, { resolution })
       await fetchList()
+      showToast('Disputa resuelta.', 'success')
       return { success: true, message: 'Disputa resuelta.', data: data.data }
     } catch (e: any) {
-      return { success: false, message: e?.response?.data?.message ?? 'No se pudo resolver la disputa.' }
+      const message = e?.response?.data?.message ?? 'No se pudo resolver la disputa.'
+      showToast(message, 'error')
+      return { success: false, message }
     }
   }
 
