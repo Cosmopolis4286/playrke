@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
+import { showToast } from '@js/utils/toast'
 import type { KycState, WithdrawalLimitUsage } from '@js/types/kyc'
 
 export function useKyc() {
@@ -61,16 +62,20 @@ export function useKyc() {
       const { data } = await backendClient.post<{ success: boolean; message: string }>('/kyc/submit', fd)
       if (data.success) {
         success.value = data.message
+        showToast(data.message, 'success')
         await fetchStatus()
         return true
       }
       error.value = data.message
+      showToast(data.message, 'error')
       return false
     } catch (err: any) {
       const errs = err?.response?.data?.errors
-      error.value = errs
+      const message = errs
         ? Object.values(errs).flat().join(' ')
         : (err?.response?.data?.message ?? 'Error al enviar el documento.')
+      error.value = message
+      showToast(message, 'error')
       return false
     } finally {
       uploading.value = false

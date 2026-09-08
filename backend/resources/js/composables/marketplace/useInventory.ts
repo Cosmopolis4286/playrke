@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
+import { showToast } from '@js/utils/toast'
 import type { PlayerAsset } from '@js/types/marketplace/listing'
 
 export function useInventory(initial: PlayerAsset[] = []) {
@@ -29,9 +30,13 @@ export function useInventory(initial: PlayerAsset[] = []) {
         currency_id: currencyId,
       })
       await refresh()
-      return { success: true, message: data.message ?? 'Publicado.' }
+      const message = data.message ?? 'Publicado.'
+      showToast(message, 'success')
+      return { success: true, message }
     } catch (e: any) {
-      return { success: false, message: e?.response?.data?.message ?? 'No se pudo publicar el activo.' }
+      const message = e?.response?.data?.message ?? 'No se pudo publicar el activo.'
+      showToast(message, 'error')
+      return { success: false, message }
     }
   }
 

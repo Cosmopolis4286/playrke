@@ -1,5 +1,7 @@
 import { ref, type Ref } from 'vue'
 import axios from 'axios'
+import { showToast } from '@js/utils/toast'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 import type { PlatformWallet } from './usePlatformWallet'
 
 export interface CashModalState {
@@ -47,6 +49,15 @@ export function usePlatformCashModal(
       m.error = 'El monto de confirmación no coincide.'
       return
     }
+
+    const confirmed = await showToastConfirmAction({
+      title: m.mode === 'deposit' ? 'Confirmar depósito' : 'Confirmar retiro',
+      text: `Vas a ${m.mode === 'deposit' ? 'depositar' : 'retirar'} ${m.amount} de la caja de la plataforma. Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      confirmButtonText: m.mode === 'deposit' ? 'Sí, depositar' : 'Sí, retirar',
+    })
+    if (!confirmed) return
+
     m.loading = true
     m.error   = null
     try {
@@ -56,10 +67,13 @@ export function usePlatformCashModal(
         amount,
         description: m.description || undefined,
       })
+      showToast(m.mode === 'deposit' ? 'Depósito registrado correctamente.' : 'Retiro registrado correctamente.', 'success')
       closeCashModal()
       await onSuccess()
     } catch (e: any) {
-      m.error = e?.response?.data?.message ?? 'No se pudo completar la operación.'
+      const message = e?.response?.data?.message ?? 'No se pudo completar la operación.'
+      m.error = message
+      showToast(message, 'error')
     } finally {
       if (cashModal.value) cashModal.value.loading = false
     }

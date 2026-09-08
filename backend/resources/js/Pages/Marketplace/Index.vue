@@ -7,6 +7,7 @@
  */
 import { onMounted, ref } from 'vue'
 import { useMarketplace } from '@js/composables/marketplace/useMarketplace'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 import type { Listing, Paginated } from '@js/types/marketplace/listing'
 
 const props = defineProps<{ listings: Paginated<Listing> }>()
@@ -19,6 +20,14 @@ onMounted(() => {
 })
 
 async function handleBuy(listing: Listing) {
+  const confirmed = await showToastConfirmAction({
+    title: 'Confirmar compra',
+    text: `Vas a comprar "${listing.asset?.name ?? 'este activo'}" por ${listing.price} ${listing.currency?.code ?? ''}. El pago se procesa de inmediato y no se puede deshacer.`,
+    icon: 'warning',
+    confirmButtonText: 'Sí, comprar',
+  })
+  if (!confirmed) return
+
   const result = await buy(listing)
   feedback.value = { type: result.success ? 'success' : 'error', message: result.message }
 }

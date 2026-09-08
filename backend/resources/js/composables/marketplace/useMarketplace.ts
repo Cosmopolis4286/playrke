@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
+import { showToast } from '@js/utils/toast'
 import type { Listing, Paginated } from '@js/types/marketplace/listing'
 
 /**
@@ -30,9 +31,13 @@ export function useMarketplace(initial: Paginated<Listing> | null = null) {
     try {
       const { data } = await axios.post(`/marketplace/listings/${listing.id}/buy`, { quantity })
       await refresh()
-      return { success: true, message: data.message ?? 'Compra completada.' }
+      const message = data.message ?? 'Compra completada.'
+      showToast(message, 'success')
+      return { success: true, message }
     } catch (e: any) {
-      return { success: false, message: e?.response?.data?.message ?? 'No se pudo completar la compra.' }
+      const message = e?.response?.data?.message ?? 'No se pudo completar la compra.'
+      showToast(message, 'error')
+      return { success: false, message }
     } finally {
       buying.value = null
     }

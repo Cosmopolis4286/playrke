@@ -1,4 +1,5 @@
 import { ref, computed, type ComputedRef } from 'vue'
+import { showToast } from '@js/utils/toast'
 import type { Room, Player } from '@js/types/trivia'
 
 interface JoinDeps {
@@ -109,16 +110,21 @@ export function useTriviaRoomJoin(deps: JoinDeps) {
         }
         onJoined(player)
         hasJoined.value = true
+        showToast('Te uniste a la sala correctamente.', 'success')
       } else {
-        joinError.value = data.message ?? ({
+        const message = data.message ?? ({
           402: 'Saldo insuficiente para unirte a esta sala.',
           403: 'No tienes permiso para unirte.',
           409: 'Ya estás registrado en esta sala.',
           422: 'La sala no está disponible.',
         } as Record<number, string>)[res.status] ?? 'Error al unirse a la sala.'
+        joinError.value = message
+        showToast(message, 'error')
       }
     } catch {
-      joinError.value = 'Error de conexión. Intenta de nuevo.'
+      const message = 'Error de conexión. Intenta de nuevo.'
+      joinError.value = message
+      showToast(message, 'error')
     } finally {
       isLoading.value = false
     }
