@@ -105,6 +105,10 @@ class PaymentAccountController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al eliminar Registro: ' . $e->getMessage());
+            return redirect()->back()->with([
+                'message' => 'Ha ocurrido un error al eliminar el registro',
+                'type' => 'warning',
+            ]);
         }
     }
 

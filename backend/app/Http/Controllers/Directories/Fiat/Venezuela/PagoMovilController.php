@@ -53,6 +53,7 @@ class PagoMovilController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al registrar Pago Movil: ' . $e->getMessage());
+            return redirect()->back()->with('message', 'Ha ocurrido un error al registrar el PagoMovil')->with('type', 'error');
         }
     }
 
@@ -90,6 +91,7 @@ class PagoMovilController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al actualizar Pago Movil: ' . $e->getMessage());
+            return redirect()->back()->with('message', 'Ha ocurrido un error al actualizar el PagoMovil')->with('type', 'error');
         }
     }
 
@@ -104,6 +106,7 @@ class PagoMovilController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al eliminar Pago Movil: ' . $e->getMessage());
+            return redirect()->back()->with('message', 'Ha ocurrido un error al eliminar el PagoMovil')->with('type', 'error');
         }
     }
 
