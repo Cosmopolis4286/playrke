@@ -73,10 +73,17 @@ final class PlatformWalletService
             return;
         }
 
-        $wallet = $this->resolveWallet($currencyId);
+        // ensureWallet() (no resolveWallet()): la primera venta con comisión
+        // RKE en una moneda que la plataforma nunca vendió antes no debe
+        // perder esa comisión — antes, si la wallet no existía todavía,
+        // resolveWallet() (solo búsqueda, nunca crea) devolvía null y la
+        // comisión se descartaba en silencio sin loguear ni acreditar nada,
+        // pese al comentario "no bloqueamos la venta" sugiriendo que era un
+        // caso tolerado — en realidad era dinero de la plataforma perdido
+        // sin rastro.
+        $wallet = $this->ensureWallet($currencyId);
 
         if (! $wallet) {
-            // Si aún no existe la wallet de plataforma para esta moneda, no bloqueamos la venta
             return;
         }
 

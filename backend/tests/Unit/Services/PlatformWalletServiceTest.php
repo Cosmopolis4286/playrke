@@ -9,6 +9,7 @@ use App\Models\MovementType;
 use App\Services\Platform\PlatformWalletService;
 use Database\Seeders\MovementTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class PlatformWalletServiceTest extends TestCase
@@ -20,6 +21,15 @@ class PlatformWalletServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // resolvePlatformUser()/resolveWallet() cachean 'platform_user_id' y
+        // 'platform_wallet_{currencyId}' con clave GLOBAL (sin scope de
+        // test). RefreshDatabase trunca las tablas entre tests pero no
+        // limpia la caché de aplicación — sin este forget(), un test
+        // anterior en la misma corrida de PHPUnit deja cacheado el id de un
+        // usuario/wallet que ya no existe tras el truncate, y resolveWallet()
+        // devuelve null aunque este test cree todo lo necesario.
+        Cache::flush();
 
         $this->service = app(PlatformWalletService::class);
 

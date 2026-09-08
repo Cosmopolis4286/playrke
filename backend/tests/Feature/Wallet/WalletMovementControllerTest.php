@@ -71,9 +71,11 @@ class WalletMovementControllerTest extends TestCase
 
     public function test_non_admin_cannot_view_movements_index(): void
     {
+        // MultiPermissionMiddleware redirige a dashboard (no 403) cuando el
+        // request no pide JSON — es una ruta Inertia, no un endpoint JSON.
         $this->actingAs($this->player)
             ->get(route('wallet-movements.index'))
-            ->assertForbidden();
+            ->assertRedirect(route('dashboard'));
     }
 
     public function test_admin_can_view_movements_index(): void
@@ -123,12 +125,16 @@ class WalletMovementControllerTest extends TestCase
         $movement = $this->makePendingDeposit();
         $this->actingAs($this->admin)->postJson(route('wallet-movements.approve', $movement));
 
-        // approvalRequiresPendingStatus() declara httpStatus 409 (conflicto
-        // de estado) — el handler global (bootstrap/app.php) respeta ese
-        // status real, no lo aplana a 422.
+        // WalletMovementPolicy::approve() ya exige status===PENDING, así que
+        // un segundo intento SECUENCIAL sobre el mismo movimiento (ya
+        // COMPLETED) es rechazado por la Policy con 403 antes de llegar al
+        // Service — nunca dispara approvalRequiresPendingStatus() (409),
+        // que es la defensa de segunda línea para el caso de dos requests
+        // CONCURRENTES pasando la Policy casi al mismo tiempo (cubierto en
+        // WalletServiceTest::test_approve_deposit_twice_throws_...).
         $response = $this->actingAs($this->admin)
             ->postJson(route('wallet-movements.approve', $movement->fresh()));
 
-        $response->assertStatus(409);
+        $response->assertForbidden();
     }
 }
