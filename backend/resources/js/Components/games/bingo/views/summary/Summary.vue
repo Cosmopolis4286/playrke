@@ -34,6 +34,7 @@ import BtnGroup from '@js/Components/utils/BtnGroup.vue'
 import TableRooms from '@js/Components/games/bingo/views/summary/TableRooms.vue'
 import { getRoute } from '@js/routes/bingoRoutes'
 import backendClient from '@js/plugins/axios'
+import { showToast } from '@js/utils/toast'
 
 interface SummaryRoom {
   id: string
@@ -86,11 +87,25 @@ async function handleButtonAction(action: { type: string; id: string | number })
   if (action.type === 'copy') {
     // TODO: implementar copia de sala
   } else if (action.type === 'delete') {
+    const result = await Swal.fire({
+      title: 'Eliminar sala',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      reverseButtons: true,
+      ...SWAL_DARK,
+    })
+    if (!result.isConfirmed) return
+
     try {
       await backendClient.delete(`/bingo-rooms/${action.id}/delete`)
+      showToast('Sala eliminada correctamente.', 'success')
       await loadRooms()
-    } catch {
-      // silencioso — la UI no cambia si falla el delete
+    } catch (e: any) {
+      showToast(e?.response?.data?.message ?? 'No se pudo eliminar la sala.', 'error')
     }
   }
 }

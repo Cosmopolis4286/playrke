@@ -42,6 +42,7 @@ import backendClient from '@js/plugins/axios'
 import echo         from '@js/plugins/echo'
 import BingoBoard   from '@js/Components/games/bingo/views/gameInfo/BingoBoard.vue'
 import NumberCaller from '@js/Components/games/bingo/views/gameInfo/NumberCaller.vue'
+import { showToast } from '@js/utils/toast'
 
 declare const route: (name: string, params?: unknown) => string
 
@@ -108,7 +109,11 @@ watch(() => props.data.roomId, (newId, oldId) => {
 })
 
 async function callNumberFromInput(number: number) {
-  await backendClient.post(route('bingo.callNumber', roomId.value), { number })
+  try {
+    await backendClient.post(route('bingo.callNumber', roomId.value), { number })
+  } catch (e: any) {
+    showToast(e?.response?.data?.message ?? 'No se pudo cantar el número.', 'error')
+  }
 }
 </script>
 
