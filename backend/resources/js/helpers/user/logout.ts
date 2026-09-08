@@ -1,4 +1,5 @@
 import backendClient, { clearAuthTokens } from '@js/plugins/axios';
+import { showToastConfirmAction } from '@js/utils/toastNotify';
 
 /**
  * Interfaz para las opciones de logout
@@ -37,7 +38,11 @@ export async function performLogout(options: LogoutOptions = {}): Promise<void> 
 
     // Mostrar confirmación si está habilitada
     if (showConfirmation) {
-        const confirmed = confirm(confirmationMessage);
+        const confirmed = await showToastConfirmAction({
+            text: confirmationMessage,
+            icon: 'question',
+            confirmButtonText: 'Sí, cerrar sesión',
+        });
         if (!confirmed) {
             return;
         }

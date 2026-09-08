@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
-import { showToast } from '@js/utils/toastNotify'
+import { showToast, showToastConfirmAction } from '@js/utils/toastNotify'
 import type { KycState } from '@js/types/kyc'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -332,6 +332,14 @@ export function useProfile(
     }
 
     async function revokeSession(id: string) {
+        const confirmed = await showToastConfirmAction({
+            title: 'Cerrar sesión',
+            text: 'Ese dispositivo perderá acceso inmediatamente y deberá iniciar sesión de nuevo.',
+            icon: 'warning',
+            confirmButtonText: 'Sí, cerrar sesión',
+        })
+        if (!confirmed) return
+
         try {
             await getCsrfCookie()
             const { data } = await backendClient.delete(`/profile/sessions/${id}`)
@@ -347,6 +355,14 @@ export function useProfile(
     }
 
     async function revokeAllSessions() {
+        const confirmed = await showToastConfirmAction({
+            title: 'Cerrar todas las otras sesiones',
+            text: 'Todos tus otros dispositivos perderán acceso inmediatamente y deberán iniciar sesión de nuevo.',
+            icon: 'warning',
+            confirmButtonText: 'Sí, cerrar todas',
+        })
+        if (!confirmed) return
+
         try {
             await getCsrfCookie()
             const { data } = await backendClient.delete('/profile/sessions')
