@@ -1,5 +1,7 @@
 import { ref, watch, computed } from 'vue'
-import type { WalletLimit } from '@/js/types/walletLimit'
+import backendClient from '@/js/plugins/axios'
+import { showToast } from '@/js/utils/toastNotify'
+import type { WalletLimit, WalletLimitRecommendation } from '@/js/types/walletLimit'
 
 const DEFAULTS: Partial<WalletLimit> = {
     currency_id: null,
@@ -30,6 +32,8 @@ export function useWalletLimitForm(
     const form = ref<Partial<WalletLimit>>({ ...DEFAULTS })
 
     const errors = ref<Partial<Record<keyof WalletLimit, string>>>({})
+
+    const isRecommending = ref(false)
 
     /* =======================
      * Computed
@@ -93,6 +97,42 @@ export function useWalletLimitForm(
         errors.value = {}
     }
 
+    /**
+     * Rellena los 7 campos numéricos con la recomendación del backend
+     * (baseline USD escalado por la tasa de cambio ACTIVA de la moneda
+     * seleccionada en el formulario). No toca currency_id/kyc_level/is_active.
+     */
+    async function applyRecommendation(): Promise<void> {
+        if (isRecommending.value || form.value.kyc_level === undefined) return
+
+        try {
+            isRecommending.value = true
+
+            const { data } = await backendClient.get<{
+                success: boolean
+                data: WalletLimitRecommendation
+                message?: string
+            }>('/wallet-limits/recommend', {
+                params: {
+                    currency_id: form.value.currency_id ?? undefined,
+                    kyc_level: form.value.kyc_level
+                }
+            })
+
+            if (data?.success && data.data) {
+                form.value = { ...form.value, ...data.data }
+                showToast('Límites recomendados aplicados según la tasa de cambio actual', 'success')
+            }
+        } catch (error: any) {
+            showToast(
+                error?.response?.data?.message ?? 'No se pudo obtener una recomendación para esta moneda',
+                'error'
+            )
+        } finally {
+            isRecommending.value = false
+        }
+    }
+
     /* =======================
      * Watchers
      * ======================= */
@@ -151,6 +191,8 @@ export function useWalletLimitForm(
         isEditMode,
         isValid,
         validate,
-        reset
+        reset,
+        applyRecommendation,
+        isRecommending
     }
 }
