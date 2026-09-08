@@ -273,13 +273,18 @@
   /**
    * Opciones de comercializadoras — solo llega poblado para admin/superadmin
    * (ver BingoRoomContextService::summaryGameRooms), usado por el filtro
-   * "Comercializadora" y la columna homónima de la tabla.
+   * "Comercializadora" y la columna homónima de la tabla. Incluye la opción
+   * especial "Salas de sistema (admin)" (valor centinela '__SYSTEM__', ver
+   * BingoRoomContextService::resolveSummaryGameRooms) para aislar las salas
+   * creadas directo por un admin/superadmin, sin comercio asociado.
    */
   const commerceOptions = computed(() => {
-    return (props.commerces ?? []).map(c => ({
+    const options = (props.commerces ?? []).map(c => ({
       value: String(c.id),
       label: c.name
     }))
+    options.push({ value: '__SYSTEM__', label: 'Salas de sistema (admin)' })
+    return options
   })
 
   /**
