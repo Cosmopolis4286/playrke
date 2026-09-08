@@ -3,6 +3,8 @@ import { Head, Link, router } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import debounce from 'lodash/debounce'
 import { getRoute } from '@js/routes/triviaRoutes'
+import { showToast } from '@js/utils/toast'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 
 const props = defineProps({
   rooms:   Object,
@@ -40,11 +42,22 @@ const setStatus = s => { status.value = s; doSearch() }
 // ── Acciones ──────────────────────────────────────────────────────────────────
 const goShow = () => selCount.value === 1 && router.get(getRoute('roomsShow', { id: selectedRooms.value[0].id }))
 const goEdit = () => selCount.value === 1 && selectedRooms.value[0].status === 'waiting' && router.get(getRoute('roomsEdit', { id: selectedRooms.value[0].id }))
-const doClose = () => {
+const doClose = async () => {
   const closable = selectedRooms.value.filter(r => r.status !== 'closed')
   if (!closable.length) return
-  if (!confirm(`¿Cerrar ${closable.length} sala(s)? Esta acción no se puede deshacer.`)) return
-  closable.forEach(r => router.delete(getRoute('roomsDestroy', { id: r.id })))
+
+  const confirmed = await showToastConfirmAction({
+    title: 'Cerrar salas',
+    text: `¿Cerrar ${closable.length} sala(s)? Esta acción no se puede deshacer.`,
+    icon: 'warning',
+    confirmButtonText: 'Sí, cerrar',
+  })
+  if (!confirmed) return
+
+  closable.forEach(r => router.delete(getRoute('roomsDestroy', { id: r.id }), {
+    onError: () => showToast('No se pudo cerrar una de las salas.', 'error'),
+  }))
+  showToast(`${closable.length} sala(s) cerrada(s).`, 'success')
   selected.value = new Set()
 }
 
