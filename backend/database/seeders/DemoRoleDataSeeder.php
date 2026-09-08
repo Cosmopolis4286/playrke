@@ -26,7 +26,6 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Crea los registros de entidad para los usuarios demo
@@ -200,11 +199,6 @@ class DemoRoleDataSeeder extends Seeder
                     'user_id'      => $subsidiaryUser->id,
                     'country_id'   => $venezuela->id,
                     'currency_id'  => $ves->id,
-                    // NOT NULL sin default en BD (uso interno/integración,
-                    // no capturados desde ningún formulario) — mismo criterio
-                    // que AdminSubsidiaryCrudService::create().
-                    'token'        => Str::random(40),
-                    'security_key' => Str::random(40),
                     'status'       => 'ACTIVE',
                 ]);
 
