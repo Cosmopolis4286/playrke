@@ -20,6 +20,7 @@ const config: Record<ModalKey, { title: string; icon: string }> = {
 
 <template>
   <Modal
+    id="info-modal"
     :model-value="modelValue !== null"
     :title="modelValue ? config[modelValue].title : ''"
     :icon="modelValue ? config[modelValue].icon : undefined"
@@ -81,56 +82,48 @@ const config: Record<ModalKey, { title: string; icon: string }> = {
   </Modal>
 </template>
 
-<style scoped>
-/* Este modal es contenido público (Términos/Acerca de/Privacidad), visible
-   tanto desde Auth como desde la Landing — debe verse siempre con la
-   identidad de marca oscura, sin depender de --ds-* (tema claro/oscuro del
-   dashboard, guardado en localStorage: ver head.blade.php). Sin esto, un
-   visitante con tema claro guardado veía el modal genérico de Bootstrap
-   (blanco) en vez de la paleta mint/violeta del sitio. Modal.vue se
-   teletransporta a <body> y sus clases son scoped a sí mismo, así que se
-   sobreescriben aquí vía :deep() en vez de tocar el componente compartido
-   (usado en 50+ pantallas del dashboard, que sí debe respetar el tema).
-   El :deep() se filtra a través de InfoModal (:has con este componente
-   no es necesario porque Modal solo se instancia una vez por InfoModal). */
-:deep(.modal-content) {
-  background: #0c1230;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2), 0 24px 70px rgba(0,0,0,0.55);
+<style>
+/* SIN scoped a propósito: Modal.vue usa <Teleport to="body">, así que su
+   DOM real queda fuera del árbol de InfoModal.vue — un bloque `scoped` (o
+   :deep() dentro de uno) nunca alcanza contenido teletransportado, porque
+   el atributo data-v-* que acota el scope pertenece a InfoModal y no
+   aparece en el HTML que Modal.vue realmente renderiza (confirmado
+   inspeccionando el DOM). El id="info-modal" (prop de Modal.vue aplicada
+   a su div raíz) da un selector único, sin afectar los otros 50+ usos de
+   Modal.vue en el dashboard.
+   Tema claro a propósito (más legible para un documento largo que el
+   oscuro del resto del sitio) — forzado con colores fijos en vez de
+   var(--ds-*): esas variables son :root oscuro por defecto y solo
+   [data-theme="light"] las sobreescribe, así que dependiendo de ellas
+   este modal se vería oscuro dentro de la Landing (que fuerza
+   data-theme="dark" en <html>) o en Auth con el tema oscuro por defecto. */
+#info-modal .modal-content { background: #ffffff; }
+#info-modal .modal-header  { background: #f4f5fb; border-bottom-color: #d8dde8; }
+#info-modal .modal-title   { color: #1a202c; }
+#info-modal .modal-close-btn { color: #8a94a6; }
+#info-modal .modal-close-btn:hover { background: #fee2e2; color: #ef4444; }
+#info-modal .modal-body {
+  color: #1a202c;
+  scrollbar-color: #c0c8d8 transparent;
 }
-:deep(.modal-header) {
-  background: linear-gradient(180deg, rgba(123,79,255,0.10), transparent);
-  border-bottom-color: rgba(255,255,255,0.08);
-}
-:deep(.modal-header-icon) {
-  background: linear-gradient(135deg, rgba(42,245,152,0.16), rgba(0,158,253,0.16));
-  color: #2af598;
-}
-:deep(.modal-title) { color: #eef2ff; font-family: "Orbitron", "Inter", sans-serif; }
-:deep(.modal-close-btn) { color: #7a96c8; }
-:deep(.modal-close-btn:hover) { background: rgba(255,77,109,0.12); color: #ff4d6d; }
-:deep(.modal-body) {
-  color: #c7d2f0;
-  scrollbar-color: rgba(42,245,152,0.35) transparent;
-}
-:deep(.modal-body::-webkit-scrollbar-thumb) { background: rgba(42,245,152,0.35); }
-:deep(.modal-footer) {
-  background: rgba(255,255,255,0.02);
-  border-top-color: rgba(255,255,255,0.08);
-}
-:deep(.modal-btn--ghost) {
+#info-modal .modal-body::-webkit-scrollbar-thumb { background: #c0c8d8; }
+#info-modal .modal-footer { background: #f4f5fb; border-top-color: #d8dde8; }
+#info-modal .modal-btn--ghost {
   background: transparent;
-  color: #c7d2f0;
-  border-color: rgba(255,255,255,0.14);
+  color: #4a5568;
+  border-color: #c0c8d8;
 }
-:deep(.modal-btn--ghost:hover) { background: rgba(255,255,255,0.06); }
+#info-modal .modal-btn--ghost:hover { background: #f4f5fb; }
+</style>
 
+<style scoped>
 .info-modal__body {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
   font-size: 0.875rem;
   line-height: 1.75;
-  color: #c7d2f0;
+  color: #374151;
 }
 
 .info-modal__section { display: flex; flex-direction: column; gap: 0.55rem; }
@@ -141,14 +134,14 @@ const config: Record<ModalKey, { title: string; icon: string }> = {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #eef2ff;
+  color: #1a202c;
   padding-bottom: 4px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid #e9eef5;
 }
 
-.info-modal__paragraph { margin: 0; color: #a8b8db; }
-.info-modal__paragraph--intro { color: #eef2ff; font-weight: 500; }
-.info-modal__effective-date   { margin: -0.5rem 0 0; font-size: 0.78rem; color: #4a6698; }
+.info-modal__paragraph { margin: 0; color: #4b5563; }
+.info-modal__paragraph--intro { color: #1a202c; font-weight: 500; }
+.info-modal__effective-date   { margin: -0.5rem 0 0; font-size: 0.78rem; color: #94a3b8; }
 
 .info-modal__list {
   margin: 0;
@@ -156,9 +149,9 @@ const config: Record<ModalKey, { title: string; icon: string }> = {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  color: #a8b8db;
+  color: #4b5563;
 }
 .info-modal__list li { line-height: 1.65; }
 .info-modal__list :deep(a),
-.info-modal__paragraph :deep(a) { color: #2af598; }
+.info-modal__paragraph :deep(a) { color: #009efd; }
 </style>

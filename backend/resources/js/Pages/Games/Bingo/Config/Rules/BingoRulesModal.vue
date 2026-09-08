@@ -42,11 +42,11 @@
       <BingoRulesDefault />
     </div>
 
-    <template #footer>
-      <button class="btn btn-sm btn-secondary" @click="emit('update:modelValue', false)">
-        Cerrar
-      </button>
-    </template>
+    <!-- Sin slot #footer custom: el botón "Cerrar" por defecto de Modal.vue
+         (.modal-btn--ghost) ya cubre este caso — el que había aquí usaba
+         clases de Bootstrap (btn/btn-sm/btn-secondary) que no resuelven a
+         nada fuera del dashboard (la Landing usa un layout Blade sin
+         Bootstrap), cayendo al botón nativo sin estilo del navegador. -->
   </Modal>
 </template>
 

@@ -136,6 +136,7 @@ onUnmounted(() => {
     <Transition name="modal-fade">
       <div
         v-if="modelValue"
+        :id="id"
         ref="modalRef"
         class="modal-overlay"
         tabindex="-1"
