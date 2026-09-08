@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\UserSidebarFavorite;
+use App\Services\Menu\SidebarMenuService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
  */
 class SidebarFavoriteController extends Controller
 {
+    public function __construct(private readonly SidebarMenuService $menuService) {}
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -38,5 +41,35 @@ class SidebarFavoriteController extends Controller
             ->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * GET /sidebar/pending-wallet-movements-count
+     *
+     * Resincroniza el badge de "movimientos pendientes" del navbar/sidebar
+     * (PendingMovementsBadge.vue) cuando el conteo en tiempo real puede
+     * haber quedado desactualizado: el valor inicial solo se recalcula en
+     * un full page load (viene embebido en auth-layout.blade.php como
+     * data-initial-pending-count), y el broadcast WebSocket que lo
+     * mantiene vivo es best-effort — si Reverb no está disponible o la
+     * conexión se cae un momento, el evento se pierde sin reintento y el
+     * badge queda congelado hasta el próximo full reload. Este endpoint
+     * se llama al montar el badge y cada vez que el WebSocket reconecta,
+     * para corregir cualquier drift sin depender de un evento perdido.
+     */
+    public function pendingWalletMovementsCount(Request $request): JsonResponse
+    {
+        // Mismo criterio de roles que NavbarComposer::ROLES_PENDING_MOVEMENTS
+        // — sin esto, cualquier usuario autenticado (jugador, comercio...)
+        // podría consultar cuántos depósitos/retiros de OTROS usuarios están
+        // pendientes, un dato administrativo que no le corresponde ver.
+        if (! $request->user()->hasRole(['superadmin', 'admin', 'treasurer'])) {
+            return response()->json(['success' => true, 'count' => 0]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'count'   => $this->menuService->pendingWalletMovementsCount(),
+        ]);
     }
 }

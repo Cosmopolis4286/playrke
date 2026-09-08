@@ -34,6 +34,13 @@ Route::middleware(['auth', 'web'])->group(function () {
     Route::delete('/sidebar/favorites/{itemKey}', [SidebarFavoriteController::class, 'destroy'])
         ->where('itemKey', '[A-Za-z0-9_.-]+')
         ->name('sidebar.favorites.destroy');
+
+    // Resincroniza el badge de "movimientos pendientes" cuando el
+    // WebSocket best-effort pierde un evento (ver docblock del método) —
+    // throttle:20,1 es de sobra: solo se llama al montar y al reconectar.
+    Route::get('/sidebar/pending-wallet-movements-count', [SidebarFavoriteController::class, 'pendingWalletMovementsCount'])
+        ->middleware('throttle:20,1')
+        ->name('sidebar.pending-wallet-movements-count');
 });
 
 // ====================================

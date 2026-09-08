@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import echo from '@js/plugins/echo'
+import backendClient from '@js/plugins/axios'
 
 export interface WalletMovementRequestedPayload {
   movement_id: string
@@ -32,6 +33,14 @@ export interface WalletMovementProcessedPayload {
  * incrementando con `.wallet.movement.requested` y fijándose al valor
  * autoritativo que trae `.wallet.movement.processed` (evita drift si dos
  * pestañas/admins procesan movimientos a la vez).
+ *
+ * Resync activo (GET /sidebar/pending-wallet-movements-count): el broadcast
+ * de arriba es best-effort (WalletService::broadcastAdminWalletMovement()
+ * lo envuelve en try/catch y solo loguea si Reverb no responde) — si el
+ * evento se pierde, `pendingCount` queda desalineado del real hasta un full
+ * reload. Se resincroniza (a) al montar, por si `initialPendingCount` ya
+ * llegó desactualizado del layout Blade, y (b) cada vez que el canal pasa de
+ * error a suscrito, por si se perdieron eventos mientras estuvo caído.
  */
 export function useWalletMovementsRealtime(
   initialPendingCount = 0,
@@ -50,14 +59,33 @@ export function useWalletMovementsRealtime(
     onProcessed?.(payload)
   }
 
+  async function resyncPendingCount() {
+    try {
+      const { data } = await backendClient.get('/sidebar/pending-wallet-movements-count')
+      if (data.success) pendingCount.value = data.count
+    } catch {
+      // silencioso — mantiene el último valor conocido, ya sea el inicial
+      // del layout o el último actualizado en vivo
+    }
+  }
+
   onMounted(() => {
     const channel = echo.private('admins.wallet-movements')
 
     channel.listen('.wallet.movement.requested', requestedHandler)
     channel.listen('.wallet.movement.processed', processedHandler)
 
-    channel.subscribed(() => { isLive.value = true })
+    let wasLive = false
+    channel.subscribed(() => {
+      isLive.value = true
+      // Solo resincroniza en RE-conexión (wasLive ya true antes), no en la
+      // primera — la primera se cubre con el resync explícito de abajo.
+      if (wasLive) resyncPendingCount()
+      wasLive = true
+    })
     channel.error(() => { isLive.value = false })
+
+    resyncPendingCount()
   })
 
   // stopListening (no `echo.leave`): el badge global del layout y esta misma
