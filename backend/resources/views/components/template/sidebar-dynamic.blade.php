@@ -76,18 +76,20 @@
                         @endphp
                         <li class="nav-item has-treeview {{ $isSubmenuActive ? 'menu-open' : '' }}" data-menu-key="{{ $key }}">
                             <a href="#" class="nav-link {{ $isSubmenuActive ? 'active' : '' }}">
-                                <i class="nav-icon {{ $item['icon'] }}"></i>
-                                <p>
-                                    {{ $item['title'] }}
+                                <span class="sidebar-icon-badge-wrap">
+                                    <i class="nav-icon {{ $item['icon'] }}"></i>
                                     @if($hasRealtimeBadge)
                                         <span
                                             id="sidebar-parent-badge-{{ $key }}"
-                                            class="badge badge-danger right"
+                                            class="sidebar-icon-badge"
                                             style="{{ $parentBadgeTotal > 0 ? '' : 'display:none' }}"
                                         >{{ $parentBadgeTotal }}</span>
                                     @elseif($parentBadgeTotal > 0)
-                                        <span class="badge badge-danger right">{{ $parentBadgeTotal }}</span>
+                                        <span class="sidebar-icon-badge">{{ $parentBadgeTotal }}</span>
                                     @endif
+                                </span>
+                                <p>
+                                    {{ $item['title'] }}
                                     <i class="right fas fa-angle-left"></i>
                                 </p>
                             </a>
@@ -202,6 +204,17 @@
     .sidebar-favorites-divider { border-bottom: 1px solid rgba(255,255,255,0.1); margin: 0 0.9rem 0.4rem; padding: 0 !important; height: 0; }
     .sidebar-favorite-star-icon { color: #fbbf24; }
 
+    /* Badge flotante sobre el ícono del padre (Bingo, Billetera, etc.) —
+       esquina superior-izquierda del ícono, no en línea con el texto. */
+    .sidebar-icon-badge-wrap { position: relative; display: inline-flex; }
+    .sidebar-icon-badge {
+        position: absolute; top: -0.35rem; left: -0.5rem;
+        min-width: 15px; height: 15px; padding: 0 3px;
+        border-radius: 999px; background: #dc3545; color: #fff;
+        font-size: 0.62rem; font-weight: 700; line-height: 15px; text-align: center;
+        box-shadow: 0 0 0 2px #14123f; /* borde a juego con el fondo oscuro del sidebar */
+    }
+
     .nav-sidebar .nav-item { position: relative; }
     .sidebar-favorite-toggle {
         position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
@@ -226,6 +239,7 @@
     [data-theme="light"] .sidebar-filter-empty { color: #8a9ab5; }
     [data-theme="light"] .sidebar-favorites-divider { border-bottom-color: #d8dde8; }
     [data-theme="light"] .sidebar-favorite-toggle { color: #b8c0d8; }
+    [data-theme="light"] .sidebar-icon-badge { box-shadow: 0 0 0 2px #f0f2fa; }
     [data-theme="light"] .sidebar-favorite-toggle--active,
     [data-theme="light"] .sidebar-favorite-toggle:hover { color: #d97706; }
 </style>
