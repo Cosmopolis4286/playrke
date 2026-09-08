@@ -373,10 +373,10 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
         <div class="grp-header-glow" />
         <div class="grp-title-wrap">
           <span class="grp-dice grp-dice--1">&#9858;</span>
-          <h2 class="game-rooms-page__title">Salas de Bingo activas</h2>
+          <h2 class="game-rooms-page__title">Donde el pozo crece en vivo</h2>
           <span class="grp-dice grp-dice--2">&#9858;</span>
         </div>
-        <p class="game-rooms-page__subtitle">Cartones a la venta ahora mismo. El pozo crece con cada compra.</p>
+        <p class="game-rooms-page__subtitle">Salas activas ahora mismo. Cada cartón suma al premio.</p>
         <div class="grp-header-line" />
 
         <div class="grp-toolbar">
@@ -766,7 +766,102 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
    marca (gradientes + scroll-reveal) y duplicar un segundo fondo estelar
    solo en esta sección competiría visualmente con el resto de la página.
    ══════════════════════════════════════════════════════════ */
-.band--rooms { position: relative; }
+.band--rooms {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Fondo estelar — mismas dos capas que Pages/Games/Bingo/Room/GameRooms.vue
+   (vista autenticada), portadas literalmente para que la sección de salas
+   comparta el mismo "mood" en ambos contextos. isolation:isolate en el
+   padre crea un stacking context propio, así que z-index:-1/-2 aquí
+   quedan detrás del contenido de ESTA sección sin colarse detrás de
+   secciones hermanas (Landing es una página larga, a diferencia de
+   GameRooms.vue que ocupa toda la pantalla). */
+.band--rooms::before {
+  content: "";
+  position: absolute; inset: 0; z-index: -2; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at  3%  4%, rgba(255,255,255,0.92) 0%, transparent 100%),
+    radial-gradient(1px 1px at  9% 14%, rgba(255,255,255,0.60) 0%, transparent 100%),
+    radial-gradient(1px 1px at 16%  2%, rgba(255,255,255,0.82) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 28%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px 1px at 29%  9%, rgba(255,255,255,0.74) 0%, transparent 100%),
+    radial-gradient(1px 1px at 36% 18%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 42%  5%, rgba(255,255,255,0.88) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 22%, rgba(255,255,255,0.66) 0%, transparent 100%),
+    radial-gradient(1px 1px at 57%  8%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px 1px at 63% 32%, rgba(255,255,255,0.52) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70%  3%, rgba(255,255,255,0.86) 0%, transparent 100%),
+    radial-gradient(1px 1px at 77% 18%, rgba(255,255,255,0.68) 0%, transparent 100%),
+    radial-gradient(1px 1px at 84%  7%, rgba(255,255,255,0.75) 0%, transparent 100%),
+    radial-gradient(1px 1px at 91% 25%, rgba(255,255,255,0.58) 0%, transparent 100%),
+    radial-gradient(1px 1px at 97% 12%, rgba(255,255,255,0.84) 0%, transparent 100%),
+    radial-gradient(1px 1px at  5% 42%, rgba(255,255,255,0.62) 0%, transparent 100%),
+    radial-gradient(1px 1px at 13% 55%, rgba(255,255,255,0.44) 0%, transparent 100%),
+    radial-gradient(1px 1px at 21% 67%, rgba(255,255,255,0.78) 0%, transparent 100%),
+    radial-gradient(1px 1px at 28% 48%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 72%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 58%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1px 1px at 51% 80%, rgba(255,255,255,0.82) 0%, transparent 100%),
+    radial-gradient(1px 1px at 59% 45%, rgba(255,255,255,0.64) 0%, transparent 100%),
+    radial-gradient(1px 1px at 67% 62%, rgba(255,255,255,0.56) 0%, transparent 100%),
+    radial-gradient(1px 1px at 74% 78%, rgba(255,255,255,0.74) 0%, transparent 100%),
+    radial-gradient(1px 1px at 81% 50%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 68%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px 1px at 94% 85%, rgba(255,255,255,0.52) 0%, transparent 100%),
+    radial-gradient(1px 1px at  7% 88%, rgba(255,255,255,0.66) 0%, transparent 100%),
+    radial-gradient(1px 1px at 18% 93%, rgba(255,255,255,0.44) 0%, transparent 100%),
+    radial-gradient(1px 1px at 33% 87%, rgba(255,255,255,0.72) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48% 95%, rgba(255,255,255,0.58) 0%, transparent 100%),
+    radial-gradient(1px 1px at 62% 90%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 96%, rgba(255,255,255,0.46) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 89%, rgba(255,255,255,0.76) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 11% 16%, rgba(190,210,255,0.95) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 26%  6%, rgba(210,185,255,0.88) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 46% 12%, rgba(180,225,255,0.90) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 66% 19%, rgba(200,255,220,0.82) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 85% 11%, rgba(255,240,180,0.85) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 38% 60%, rgba(190,210,255,0.78) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 72% 52%, rgba(255,200,200,0.72) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 76%, rgba(200,225,255,0.86) 0%, transparent 100%);
+  animation: twinkle-a 7s ease-in-out infinite alternate;
+}
+
+.band--rooms::after {
+  content: "";
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at  8% 12%, rgba(255,255,255,0.96) 0%, transparent 100%),
+    radial-gradient(2px 2px at 24% 35%, rgba(200,215,255,0.88) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40%  6%, rgba(255,255,255,0.84) 0%, transparent 100%),
+    radial-gradient(2px 2px at 58% 22%, rgba(255,240,180,0.92) 0%, transparent 100%),
+    radial-gradient(2px 2px at 74% 15%, rgba(180,200,255,0.86) 0%, transparent 100%),
+    radial-gradient(2px 2px at 90% 38%, rgba(255,255,255,0.78) 0%, transparent 100%),
+    radial-gradient(2px 2px at 15% 65%, rgba(200,255,240,0.82) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 55%, rgba(220,200,255,0.88) 0%, transparent 100%),
+    radial-gradient(2px 2px at 80% 72%, rgba(255,255,255,0.90) 0%, transparent 100%),
+    radial-gradient(2px 2px at 35% 82%, rgba(200,220,255,0.80) 0%, transparent 100%),
+    radial-gradient(2px 2px at 68% 88%, rgba(255,250,200,0.84) 0%, transparent 100%),
+    radial-gradient(3px 3px at 19% 20%, rgba(255,255,255,1.00) 0%, rgba(210,230,255,0.20) 55%, transparent 100%),
+    radial-gradient(3px 3px at 44% 14%, rgba(220,200,255,0.96) 0%, rgba(185,165,255,0.18) 55%, transparent 100%),
+    radial-gradient(3px 3px at 69% 42%, rgba(255,255,255,0.94) 0%, rgba(225,245,255,0.15) 55%, transparent 100%),
+    radial-gradient(3px 3px at 88% 60%, rgba(200,240,255,0.98) 0%, rgba(160,220,255,0.15) 55%, transparent 100%),
+    radial-gradient(3px 3px at 30% 78%, rgba(255,240,160,0.90) 0%, rgba(255,220,100,0.12) 55%, transparent 100%),
+    radial-gradient(4px 4px at 55% 30%, rgba(255,255,255,1.00) 0%, rgba(205,225,255,0.28) 50%, transparent 100%),
+    radial-gradient(4px 4px at 12% 45%, rgba(255,248,200,0.95) 0%, rgba(255,240,160,0.18) 50%, transparent 100%);
+  animation: twinkle-b 9s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes twinkle-a {
+  0%   { opacity: 0.55; } 40%  { opacity: 0.95; }
+  70%  { opacity: 0.70; } 100% { opacity: 0.85; }
+}
+@keyframes twinkle-b {
+  0%   { opacity: 0.70; } 35%  { opacity: 0.50; }
+  65%  { opacity: 1.00; } 100% { opacity: 0.65; }
+}
 
 .grp-rules-fab {
   position: absolute;
@@ -801,6 +896,21 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 
 .game-rooms-page__header { text-align: center; margin-bottom: 32px; position: relative; z-index: 5; }
+
+/* Entrada propia del título — antes solo heredaba el fade genérico de
+   .reveal (toda la sección); esto le da su propio "pop" (scale+fade) con
+   un pequeño delay respecto al resto, para que se sienta como la pieza
+   protagonista del header en vez de aparecer plano junto a todo lo demás. */
+.reveal .game-rooms-page__title {
+  display: inline-block;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.6s ease 0.15s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s;
+}
+.reveal.is-visible .game-rooms-page__title {
+  opacity: 1;
+  transform: scale(1);
+}
 .grp-header-glow {
   position: absolute;
   top: -60px; left: 50%; transform: translateX(-50%);
@@ -810,8 +920,8 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 .grp-title-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
 .grp-dice {
-  font-size: 20px;
-  filter: drop-shadow(0 0 8px rgba(42,245,152,0.6));
+  font-size: 28px;
+  filter: drop-shadow(0 0 10px rgba(42,245,152,0.6));
   animation: spinDice 8s linear infinite;
   color: #2af598;
   flex-shrink: 0;
@@ -821,17 +931,31 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 
 .game-rooms-page__title {
   font-family: "Orbitron", "Anton", sans-serif;
-  font-size: clamp(21px, 3vw, 28px);
+  font-size: clamp(26px, 4.2vw, 38px);
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   margin: 0;
   text-shadow: 0 0 30px rgba(42,245,152,0.22), 0 0 60px rgba(123,79,255,0.12), 0 2px 4px rgba(0,0,0,0.5);
   background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, #7b4fff 100%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: title-shine 5s ease-in-out infinite;
 }
-.game-rooms-page__subtitle { font-size: 13.5px; color: #7a96c8; letter-spacing: 0.2px; margin: 0 0 14px; }
+@keyframes title-shine {
+  0%, 100% { background-position: 0% center; }
+  50%      { background-position: 100% center; }
+}
+.game-rooms-page__subtitle {
+  font-size: 13.5px;
+  color: #7a96c8;
+  letter-spacing: 0.2px;
+  margin: 6px 0 14px;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 .grp-header-line {
   width: 60px; height: 2px; margin: 0 auto;
@@ -993,6 +1117,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   border: 1px solid rgba(255,255,255,0.08);
   color: #7a96c8;
   font-size: 14px;
+  text-decoration: none;
   transition: color 0.2s, border-color 0.2s, transform 0.2s;
 }
 .landing__footer-socials a:hover {
@@ -1090,5 +1215,10 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
+  .reveal .game-rooms-page__title { opacity: 1; transform: none; transition: none; }
+  .game-rooms-page__title { animation: none; }
+  .band--rooms::before,
+  .band--rooms::after { animation: none; }
+  .grp-dice { animation: none; }
 }
 </style>
