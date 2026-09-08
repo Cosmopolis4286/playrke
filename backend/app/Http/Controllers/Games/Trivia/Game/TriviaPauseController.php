@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 use App\Domains\Games\Trivia\Models\TriviaGame;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Services\TriviaPauseService;
+use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,8 @@ final class TriviaPauseController extends Controller
 
         try {
             $this->pauseService->pause($gameId, 'manual');
+        } catch (DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
         } catch (RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -44,6 +47,8 @@ final class TriviaPauseController extends Controller
 
         try {
             $this->pauseService->resume($gameId);
+        } catch (DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
         } catch (RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }

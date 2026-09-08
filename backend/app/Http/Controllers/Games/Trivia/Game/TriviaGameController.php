@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Services\RoomService;
 use App\Domains\Games\Trivia\Actions\JoinRoomAction;
+use App\Exceptions\Domain\DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -84,6 +85,11 @@ final class TriviaGameController extends Controller
                     'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente.',
                 ])
                 : redirect()->route('trivia.room.wait', ['code' => $room->code]);
+
+        } catch (DomainException $e) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus())
+                : back()->with('error', $e->getMessage());
 
         } catch (RuntimeException $e) {
             $status = str_contains($e->getMessage(), 'Saldo insuficiente') ? 402 : 422;

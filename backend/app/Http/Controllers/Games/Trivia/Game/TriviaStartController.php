@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Domains\Games\Trivia\Actions\StartGameAction;
 use App\Domains\Games\Trivia\Services\RoomService;
+use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,12 @@ final class TriviaStartController extends Controller
                 'game_id' => $gameState->gameId,
                 'message' => 'Partida iniciada. Redirigiendo a los jugadores...',
             ]);
+
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->httpStatus());
 
         } catch (RuntimeException $e) {
             return response()->json([

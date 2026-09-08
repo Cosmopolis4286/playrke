@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
 use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
+use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,6 +69,8 @@ final class TriviaPowerUpController extends Controller
 
         try {
             $this->powerUps->consume($gameState->roomId, $userId, $type);
+        } catch (DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
         } catch (RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
