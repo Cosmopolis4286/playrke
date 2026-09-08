@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, ref } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -9,6 +9,7 @@
   import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import WalletLimitForm from '@/js/Components/WalletLimit/WalletLimitForm.vue'
+  import WalletLimitUsageModal from '@/js/Components/WalletLimit/WalletLimitUsageModal.vue'
 
   // ==========================================================================
   // Composables
@@ -22,7 +23,7 @@
   // Types
   // ==========================================================================
 
-  import type { WalletLimitPageProps } from '@js/types/walletLimit'
+  import type { WalletLimit, WalletLimitPageProps } from '@js/types/walletLimit'
   import type { Column } from '@js/types/common/table/column-row'
   import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
@@ -45,10 +46,33 @@
     edit,
     remove,
     toggleStatus,
-    submit
+    submit,
+    usageSummary,
+    isLoadingUsage,
+    fetchUsageSummary
   } = useWalletLimit()
 
   setInitialWalletLimits(props.walletLimits)
+  fetchUsageSummary()
+
+  // ==========================================================================
+  // Formato de montos: separador de miles + decimales según la moneda
+  // ==========================================================================
+
+  function formatAmount(value: number, decimals = 2): string {
+    return new Intl.NumberFormat('es-VE', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    }).format(value)
+  }
+
+  function decimalsFor(row: WalletLimit): number {
+    return row.currency?.decimal_places ?? 2
+  }
+
+  function symbolFor(row: WalletLimit): string {
+    return row.currency?.symbol ?? '$'
+  }
 
   // ==========================================================================
   // Filas de tabla: aplanan currency para mostrar el ISO code directamente
@@ -60,6 +84,36 @@
       currency_label: limit.currency ? limit.currency.iso_code : 'Todas'
     }))
   )
+
+  // ==========================================================================
+  // Modal de uso real (por fila)
+  // ==========================================================================
+
+  const showUsageModal = ref(false)
+  const usageLimit = ref<WalletLimit | null>(null)
+
+  const usageForSelected = computed(() =>
+    usageLimit.value ? usageSummary.value[String(usageLimit.value.id)] ?? null : null
+  )
+
+  function openUsage(row: WalletLimit): void {
+    usageLimit.value = row
+    showUsageModal.value = true
+  }
+
+  /** % de uso del período más crítico (mensual), para el indicador rápido en la tabla. */
+  function usagePercent(row: WalletLimit): number | null {
+    const usage = usageSummary.value[String(row.id)]
+    if (!usage || usage.monthly.max <= 0) return null
+    return Math.min(100, Math.round((usage.monthly.used / usage.monthly.max) * 100))
+  }
+
+  function usageBadgeClass(pct: number | null): string {
+    if (pct === null) return 'badge-secondary'
+    if (pct >= 90) return 'badge-danger'
+    if (pct >= 70) return 'badge-warning'
+    return 'badge-success'
+  }
 
   // ==========================================================================
   // Modal + Form handler
@@ -108,10 +162,9 @@
   const columns: Column[] = [
     { key: 'currency_label',       label: 'Moneda' },
     { key: 'kyc_level',            label: 'Nivel KYC' },
-    { key: 'min_deposit',          label: 'Dep. mín.' },
-    { key: 'max_deposit',          label: 'Dep. máx.' },
-    { key: 'max_per_transaction',  label: 'Retiro máx./tx' },
-    { key: 'max_monthly',          label: 'Retiro máx./mes' },
+    { key: 'deposit_range',        label: 'Depósito', searchable: false },
+    { key: 'tx_range',             label: 'Retiro / tx', searchable: false, hideBelow: 'md' },
+    { key: 'period_usage',         label: 'Uso de período (mes)', searchable: false, hideBelow: 'lg' },
     { key: 'is_active',            label: 'Estado' }
   ]
 
@@ -187,13 +240,52 @@
       {{ kycLabel(row.kyc_level) }}
     </template>
 
-    <!-- Depósito mínimo/máximo -->
-    <template #cell-min_deposit="{ row }">{{ row.min_deposit }}</template>
-    <template #cell-max_deposit="{ row }">{{ row.max_deposit }}</template>
+    <!-- Depósito: rango mín–máx en una sola celda -->
+    <template #cell-deposit_range="{ row }">
+      <div class="wl-range">
+        <span class="wl-range__value text-success">
+          {{ symbolFor(row) }} {{ formatAmount(row.min_deposit, decimalsFor(row)) }}
+        </span>
+        <i class="fas fa-arrow-right wl-range__sep"></i>
+        <span class="wl-range__value text-success fw-semibold">
+          {{ symbolFor(row) }} {{ formatAmount(row.max_deposit, decimalsFor(row)) }}
+        </span>
+      </div>
+    </template>
 
-    <!-- Retiro máximo por transacción / mes -->
-    <template #cell-max_per_transaction="{ row }">{{ row.max_per_transaction }}</template>
-    <template #cell-max_monthly="{ row }">{{ row.max_monthly }}</template>
+    <!-- Retiro por transacción: rango mín–máx -->
+    <template #cell-tx_range="{ row }">
+      <div class="wl-range">
+        <span class="wl-range__value text-primary">
+          {{ symbolFor(row) }} {{ formatAmount(row.min_per_transaction, decimalsFor(row)) }}
+        </span>
+        <i class="fas fa-arrow-right wl-range__sep"></i>
+        <span class="wl-range__value text-primary fw-semibold">
+          {{ symbolFor(row) }} {{ formatAmount(row.max_per_transaction, decimalsFor(row)) }}
+        </span>
+      </div>
+    </template>
+
+    <!-- Uso real del período mensual + acceso al detalle diario/semanal/mensual -->
+    <template #cell-period_usage="{ row }">
+      <button
+        type="button"
+        class="btn btn-sm btn-link wl-usage-btn p-0"
+        :disabled="isLoadingUsage"
+        @click.stop="openUsage(row)"
+      >
+        <span
+          v-if="usagePercent(row) !== null"
+          class="badge me-1"
+          :class="usageBadgeClass(usagePercent(row))"
+        >
+          {{ usagePercent(row) }}%
+        </span>
+        <span v-else class="badge badge-secondary me-1">—</span>
+        Ver uso
+        <i class="fas fa-chart-line ms-1"></i>
+      </button>
+    </template>
 
     <!-- Estado -->
     <template #cell-is_active="{ row }">
@@ -217,4 +309,35 @@
       :currencies="props.currencies"
     />
   </Modal>
+
+  <WalletLimitUsageModal
+    v-model="showUsageModal"
+    :limit="usageLimit"
+    :usage="usageForSelected"
+    :loading="isLoadingUsage"
+  />
 </template>
+
+<style scoped>
+.wl-range {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.wl-range__sep {
+  font-size: 0.65rem;
+  color: #9ca3af;
+}
+
+.wl-usage-btn {
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.wl-usage-btn:hover {
+  text-decoration: underline;
+}
+</style>

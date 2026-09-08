@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Currency;
 use App\Domains\Wallet\Models\WalletLimit;
+use App\Domains\Wallet\Services\WalletLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +30,7 @@ class WalletLimitController extends Controller
      */
     public function index(Request $request): Response
     {
-        $walletLimits = WalletLimit::with('currency:id,iso_code,symbol,name')
+        $walletLimits = WalletLimit::with('currency:id,iso_code,symbol,name,decimal_places')
             ->orderBy('currency_id')
             ->orderBy('kyc_level')
             ->get();
@@ -37,7 +38,7 @@ class WalletLimitController extends Controller
         $currencies = Currency::query()
             ->active()
             ->orderBy('iso_code')
-            ->get(['id', 'iso_code', 'symbol', 'name']);
+            ->get(['id', 'iso_code', 'symbol', 'name', 'decimal_places']);
 
         return Inertia::render('WalletLimits/Index', [
             'walletLimits' => $walletLimits,
@@ -74,7 +75,67 @@ class WalletLimitController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Límites de billetera creados exitosamente',
-            'data'    => $walletLimit->load('currency:id,iso_code,symbol,name'),
+            'data'    => $walletLimit->load('currency:id,iso_code,symbol,name,decimal_places'),
+        ]);
+    }
+
+    /**
+     * Consumo agregado real (retiros del día/semana/mes) de la plataforma
+     * por cada combinación (moneda, nivel KYC) configurada, para que el admin
+     * pueda calibrar si un límite está muy ajustado o muy holgado frente al
+     * uso real. El fallback global (currency_id NULL) agrega TODAS las
+     * monedas que no tengan su propio límite específico.
+     */
+    public function usageSummary(WalletLimitService $service): JsonResponse
+    {
+        $limits = WalletLimit::with('currency:id,iso_code,symbol,name,decimal_places')->get();
+        $rawSummary = $service->usageSummary();
+
+        // currency_id específicos que sí tienen su propio WalletLimit — el
+        // resto cae en el fallback global y no debe contarse dos veces.
+        $specificCurrencyIds = $limits->whereNotNull('currency_id')->pluck('currency_id')->all();
+
+        $result = [];
+
+        foreach ($limits as $limit) {
+            $usage = ['daily' => 0.0, 'weekly' => 0.0, 'monthly' => 0.0, 'transaction_count' => 0];
+
+            if ($limit->currency_id !== null) {
+                foreach ($rawSummary as $key => $entry) {
+                    [$currencyId, $kycLevel] = explode(':', $key, 2);
+                    if ($currencyId === (string) $limit->currency_id && (int) $kycLevel === (int) $limit->kyc_level) {
+                        $usage = $entry;
+                        break;
+                    }
+                }
+            } else {
+                // Fallback global: suma todo lo que NO tenga límite específico propio.
+                foreach ($rawSummary as $key => $entry) {
+                    [$currencyId, $kycLevel] = explode(':', $key, 2);
+                    if ((int) $kycLevel !== (int) $limit->kyc_level) {
+                        continue;
+                    }
+                    if (in_array($currencyId, $specificCurrencyIds, true)) {
+                        continue;
+                    }
+                    $usage['daily'] += $entry['daily'];
+                    $usage['weekly'] += $entry['weekly'];
+                    $usage['monthly'] += $entry['monthly'];
+                    $usage['transaction_count'] += $entry['transaction_count'];
+                }
+            }
+
+            $result[(string) $limit->id] = [
+                'daily'    => ['used' => $usage['daily'],   'max' => (float) $limit->max_daily],
+                'weekly'   => ['used' => $usage['weekly'],  'max' => (float) $limit->max_weekly],
+                'monthly'  => ['used' => $usage['monthly'], 'max' => (float) $limit->max_monthly],
+                'transaction_count' => $usage['transaction_count'],
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $result,
         ]);
     }
 
@@ -83,7 +144,7 @@ class WalletLimitController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $walletLimit = WalletLimit::with('currency:id,iso_code,symbol,name')->findOrFail($id);
+        $walletLimit = WalletLimit::with('currency:id,iso_code,symbol,name,decimal_places')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -120,7 +181,7 @@ class WalletLimitController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Límites de billetera actualizados exitosamente',
-            'data'    => $walletLimit->fresh()->load('currency:id,iso_code,symbol,name'),
+            'data'    => $walletLimit->fresh()->load('currency:id,iso_code,symbol,name,decimal_places'),
         ]);
     }
 
@@ -159,7 +220,7 @@ class WalletLimitController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Estado de los límites actualizado exitosamente',
-            'data'    => $walletLimit->fresh()->load('currency:id,iso_code,symbol,name'),
+            'data'    => $walletLimit->fresh()->load('currency:id,iso_code,symbol,name,decimal_places'),
         ]);
     }
 }

@@ -7,6 +7,7 @@ export interface WalletLimitCurrency {
     iso_code: string
     symbol: string
     name: string
+    decimal_places: number
 }
 
 export interface WalletLimit {
@@ -30,3 +31,20 @@ export interface WalletLimitPageProps {
     walletLimits: WalletLimit[]
     currencies: WalletLimitCurrency[]
 }
+
+/** Consumo real (retiros) de un período frente a su tope configurado. */
+export interface WalletLimitUsagePeriod {
+    used: number
+    max: number
+}
+
+/** Resumen de consumo agregado de la plataforma para UN WalletLimit, indexado por su id en el mapa de respuesta. */
+export interface WalletLimitUsage {
+    daily: WalletLimitUsagePeriod
+    weekly: WalletLimitUsagePeriod
+    monthly: WalletLimitUsagePeriod
+    transaction_count: number
+}
+
+/** Respuesta de GET /wallet-limits/usage-summary: mapa id de WalletLimit -> uso agregado. */
+export type WalletLimitUsageSummary = Record<string, WalletLimitUsage>

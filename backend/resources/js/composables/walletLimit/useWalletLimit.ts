@@ -2,7 +2,7 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 
-import type { WalletLimit } from '@/js/types/walletLimit'
+import type { WalletLimit, WalletLimitUsageSummary } from '@/js/types/walletLimit'
 
 /**
  * Contrato público del composable useWalletLimit
@@ -39,6 +39,15 @@ interface UseWalletLimitReturn {
 
     /** Obtiene y actualiza la lista de límites desde backend */
     fetchWalletLimits: () => Promise<boolean>
+
+    /** Mapa reactivo de uso agregado (id de WalletLimit -> consumo real) */
+    usageSummary: Ref<WalletLimitUsageSummary>
+
+    /** true mientras se carga el resumen de uso */
+    isLoadingUsage: Ref<boolean>
+
+    /** Obtiene el resumen de consumo real agregado por límite */
+    fetchUsageSummary: () => Promise<boolean>
 }
 
 /**
@@ -54,13 +63,37 @@ interface UseWalletLimitReturn {
  */
 export function useWalletLimit(): UseWalletLimitReturn {
     const loading = ref(false)
+    const isLoadingUsage = ref(false)
 
     const walletLimitData = ref<Partial<WalletLimit>>({})
 
     const walletLimits = ref<WalletLimit[]>([])
+    const usageSummary = ref<WalletLimitUsageSummary>({})
 
     function setInitialWalletLimits(initial: WalletLimit[]) {
         walletLimits.value = [...initial]
+    }
+
+    async function fetchUsageSummary(): Promise<boolean> {
+        try {
+            isLoadingUsage.value = true
+
+            const response = await backendClient.get<{
+                success: boolean
+                data: WalletLimitUsageSummary
+            }>('/wallet-limits/usage-summary')
+
+            if (response.data?.data) {
+                usageSummary.value = response.data.data
+            }
+
+            return true
+        } catch (error) {
+            console.error('Error al obtener el resumen de uso de límites:', error)
+            return false
+        } finally {
+            isLoadingUsage.value = false
+        }
     }
 
     async function fetchWalletLimits(): Promise<boolean> {
@@ -232,6 +265,9 @@ export function useWalletLimit(): UseWalletLimitReturn {
         edit,
         remove,
         toggleStatus,
-        fetchWalletLimits
+        fetchWalletLimits,
+        usageSummary,
+        isLoadingUsage,
+        fetchUsageSummary
     }
 }

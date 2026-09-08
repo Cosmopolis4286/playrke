@@ -132,6 +132,69 @@ final class WalletLimitService
     }
 
     /**
+     * Agrega, para CADA WalletLimit configurado, cuánto ha retirado en total la
+     * plataforma en el día/semana/mes actual dentro de esa combinación
+     * (currency_id, kyc_level) — a diferencia de usage(), que es por wallet
+     * individual, esto es la vista "administrador" para calibrar si un límite
+     * está demasiado ajustado o demasiado holgado respecto al uso real.
+     *
+     * Se une wallet_movements → wallets (currency_id) → users (kyc_level del
+     * dueño de la wallet, no el snapshot en el movimiento, que no existe) y se
+     * agrupa por esa combinación. Cacheado igual que withdrawalSums(), expira
+     * a medianoche.
+     *
+     * @return array<string, array{daily: float, weekly: float, monthly: float, transaction_count: int}>
+     *         indexado por "{currency_id|global}:{kyc_level}"
+     */
+    public function usageSummary() : array
+    {
+        $today = Carbon::today()->format('Y-m-d');
+        $cacheKey = "wlimit:usage_summary:{$today}";
+        $secondsUntilMidnight = Carbon::now()->secondsUntilEndOfDay() + 1;
+
+        return Cache::remember($cacheKey, $secondsUntilMidnight, function () {
+            $monthStart = Carbon::now()->startOfMonth();
+            $weekStart = Carbon::now()->startOfWeek();
+            $todayStart = Carbon::today();
+
+            $rows = WalletMovement::query()
+                ->join('wallets', 'wallets.id', '=', 'wallet_movements.wallet_id')
+                ->join('users', 'users.id', '=', 'wallets.user_id')
+                ->where('wallet_movements.type', WalletMovement::TYPE_WITHDRAWAL)
+                ->whereIn('wallet_movements.status', [WalletMovement::STATUS_PENDING, WalletMovement::STATUS_COMPLETED])
+                ->where('wallet_movements.created_at', '>=', $monthStart)
+                ->select([
+                    'wallets.currency_id',
+                    'users.kyc_level',
+                    'wallet_movements.amount',
+                    'wallet_movements.created_at',
+                ])
+                ->get();
+
+            $summary = [];
+
+            foreach ($rows as $row) {
+                $key = $row->currency_id . ':' . $row->kyc_level;
+
+                $summary[$key] ??= ['daily' => 0.0, 'weekly' => 0.0, 'monthly' => 0.0, 'transaction_count' => 0];
+
+                $amount = (float) $row->amount;
+                $summary[$key]['monthly'] += $amount;
+                $summary[$key]['transaction_count']++;
+
+                if ($row->created_at >= $weekStart) {
+                    $summary[$key]['weekly'] += $amount;
+                }
+                if ($row->created_at >= $todayStart) {
+                    $summary[$key]['daily'] += $amount;
+                }
+            }
+
+            return $summary;
+        });
+    }
+
+    /**
      * Sumas de retiros COMPLETADOS o PENDING para los tres períodos en una sola query.
      * Caché por período con clave que incluye el segmento temporal, expiración al fin del día.
      *
