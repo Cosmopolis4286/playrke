@@ -24,7 +24,7 @@
   /**
    * Composable de formulario
    */
-  const { form, errors, isValid, validate } = useWalletLimitForm(props.modelValue, emit)
+  const { form, errors, isValid, validate, applyRecommendation, isRecommending } = useWalletLimitForm(props.modelValue, emit)
 
   const KYC_LEVELS = [
     { value: 0, label: 'Nivel 0 — Sin verificar' },
@@ -79,6 +79,23 @@
         :error="errors.kyc_level"
         @update:model-value="form.kyc_level = Number($event) as 0 | 1 | 2"
       />
+
+      <!-- Recomendación según tasa de cambio -->
+      <div class="col-12 mb-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-primary"
+          :disabled="isRecommending || form.kyc_level === undefined"
+          @click="applyRecommendation"
+        >
+          <i class="fas" :class="isRecommending ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'"></i>
+          {{ isRecommending ? 'Calculando...' : 'Recomendar según tasa de cambio actual' }}
+        </button>
+        <p class="text-muted small mt-1 mb-0">
+          Calcula los 7 montos escalando un baseline en USD por la tasa de cambio activa de la moneda seleccionada.
+          Puedes ajustarlos manualmente después.
+        </p>
+      </div>
 
       <div class="col-12">
         <h6 class="text-muted mt-2 mb-3"><i class="fas fa-arrow-down fa-fw text-success"></i> Depósito</h6>
