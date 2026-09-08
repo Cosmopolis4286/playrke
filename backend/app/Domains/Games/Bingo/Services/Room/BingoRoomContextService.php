@@ -93,7 +93,13 @@ final class BingoRoomContextService
             : [];
 
         if ($isGlobalAdmin && !empty($filters['commerce_id'])) {
-            $conditions['creator_user_id_in'] = $this->sellerUserIdsForCommerce($filters['commerce_id']);
+            // '__SYSTEM__' es el valor centinela de la opción "Salas de sistema
+            // (admin)" del filtro — ver commerceOptions en Summary.vue. No es un
+            // id de Commerce real, así que se resuelve aparte, contra usuarios
+            // admin/superadmin en vez de contra la jerarquía comercial.
+            $conditions['creator_user_id_in'] = $filters['commerce_id'] === '__SYSTEM__'
+                ? $this->adminUserIds()
+                : $this->sellerUserIdsForCommerce($filters['commerce_id']);
         }
         unset($filters['commerce_id']);
 
@@ -528,6 +534,22 @@ final class BingoRoomContextService
             ->all();
 
         return [...$sellerUserIds, (string) $commerce->user_id];
+    }
+
+    /**
+     * user_id de todos los usuarios admin/superadmin — usado por el filtro
+     * "Comercializadora" (opción "Salas de sistema (admin)", ver
+     * resolveSummaryGameRooms()) para aislar salas creadas directo por un
+     * admin, sin comercio asociado.
+     *
+     * @return array<int, string>
+     */
+    private function adminUserIds(): array
+    {
+        return \App\Models\User::whereHas('roles', fn ($q) => $q->whereIn('prefix', ['admin', 'superadmin']))
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
     }
 
     /**
