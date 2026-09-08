@@ -283,6 +283,10 @@ body {
 [data-theme="light"] .nav-sidebar .nav-treeview > .nav-item > .nav-link {
   color: #4a5a7a !important;
 }
+[data-theme="light"] .nav-sidebar .nav-treeview > .nav-item > .nav-link:not(.active):hover {
+  background: rgba(99,102,241,.10) !important;
+  color: #3730a3 !important;
+}
 [data-theme="light"] .nav-sidebar .nav-treeview {
   border-left-color: #c0c8d8 !important;
 }
@@ -1714,6 +1718,13 @@ aside.main-sidebar .sidebar.mt-2 {
 
 .nav-sidebar .nav-treeview > .nav-item > .nav-link {
   color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+/* ── Hover de submenú: mismo acento azul que .active, más tenue ── */
+.nav-sidebar .nav-treeview > .nav-item > .nav-link:not(.active):hover {
+  background: rgba(0, 123, 255, 0.12);
+  color: #fff;
 }
 
 /* ── Submenú activo: mismo acento azul que el padre, con menor intensidad ── */
