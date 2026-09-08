@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Exceptions\Domain\DomainException;
 use App\Services\Roles\ContextResolverService;
 use App\Services\Roles\Dashboard\ActivityLogQueryService;
 use Carbon\Carbon;
-use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

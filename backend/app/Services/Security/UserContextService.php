@@ -2,7 +2,7 @@
 
 namespace App\Services\Security;
 
-use DomainException;
+use App\Exceptions\Domain\DomainException as AppDomainException;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -30,7 +30,7 @@ final class UserContextService
      *
      * @return int ID del usuario resuelto.
      *
-     * @throws DomainException Si no existe un usuario autenticado
+     * @throws \DomainException Si no existe un usuario autenticado
      *                         y no se proporciona un token válido.
      */
     public function resolveUserId(?string $publicToken = null): int
@@ -43,7 +43,7 @@ final class UserContextService
             return $this->tokenResolver->resolve($publicToken);
         }
 
-        throw new DomainException('Usuario no identificado.');
+        throw new \DomainException('Usuario no identificado.');
     }
 
     /**
@@ -71,7 +71,7 @@ final class UserContextService
         try {
             $rolePrefix = $this->roleUserService->getActiveUserRolePrefix((int) Auth::id());
             return strtolower($rolePrefix) === strtolower($roleName);
-        } catch (DomainException $e) {
+        } catch (AppDomainException $e) {
             return false;
         }
     }
