@@ -103,15 +103,16 @@ button { border: none; background: none; cursor: pointer; }
 .guest-layout__card {
     position: relative;
     z-index: 2;
-    width: min(760px, calc(100vw - 32px));
-    min-height: 440px;
-    /* Formularios largos (Register: 6 campos + checkbox) empujaban la card
-       por encima del viewport sin scroll posible (.guest-layout tiene
-       overflow:hidden) — se corta con la parte inferior del footer fuera
-       de pantalla. Con un tope de altura + scroll interno del panel
-       derecho (abajo), el panel izquierdo mantiene su tamaño y solo el
-       form largo scrollea dentro de la card. */
-    max-height: calc(100vh - 32px);
+    width: min(740px, calc(100vw - 32px));
+    /* Altura FIJA e igual en todas las páginas (Login/Register/...) — antes
+       era min-height, así que un form largo (Register: 6 campos +
+       checkbox) hacía crecer la card entera por encima del viewport, sin
+       scroll posible (.guest-layout tiene overflow:hidden), cortando el
+       footer fuera de pantalla. clamp() fija el alto "de diseño" en 520px
+       pero cede en viewports más bajos que eso en vez de desbordarlos.
+       Solo .guest-layout__form (dentro del panel derecho) scrollea cuando
+       su contenido no entra — header/footer del panel quedan fijos. */
+    height: clamp(440px, 72.5vh, 520px);
     display: grid;
     grid-template-columns: 1fr 1fr;
     border-radius: 22px;
@@ -140,6 +141,10 @@ button { border: none; background: none; cursor: pointer; }
     display: flex;
     flex-direction: column;
     padding: 30px 28px;
+    /* Sin esto, un grid item no se encoge por debajo de la altura de su
+       contenido intrínseco — el overflow-y:auto del panel derecho (abajo)
+       no tendría efecto y la card volvería a estirarse con forms largos. */
+    min-height: 0;
 }
 
 /* ── LEFT ───────────────────────────────────────── */
@@ -193,14 +198,7 @@ button { border: none; background: none; cursor: pointer; }
     -webkit-backdrop-filter: blur(28px);
     justify-content: center;
     gap: 8px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(42, 245, 152, 0.25) transparent;
-}
-.guest-layout__panel--right::-webkit-scrollbar { width: 5px; }
-.guest-layout__panel--right::-webkit-scrollbar-thumb {
-    background: rgba(42, 245, 152, 0.25);
-    border-radius: 4px;
+    overflow: hidden;
 }
 
 /* ======================================================
@@ -447,6 +445,7 @@ button { border: none; background: none; cursor: pointer; }
 ====================================================== */
 .guest-layout__header {
     width: 100%;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -492,7 +491,25 @@ button { border: none; background: none; cursor: pointer; }
 /* ======================================================
    RIGHT — FORM
 ====================================================== */
-.guest-layout__form { width: 100%; }
+/* Único elemento con scroll dentro del panel derecho — header y footer
+   quedan fijos (flex-shrink:0) así el título de contexto ("Únete a la
+   élite", etc.) nunca se pierde al scrollear un form largo como Register. */
+.guest-layout__form {
+    width: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(42, 245, 152, 0.25) transparent;
+    /* Espacio para que el thumb del scrollbar no tape los inputs pegados al borde */
+    padding-right: 4px;
+    margin-right: -4px;
+}
+.guest-layout__form::-webkit-scrollbar { width: 5px; }
+.guest-layout__form::-webkit-scrollbar-thumb {
+    background: rgba(42, 245, 152, 0.25);
+    border-radius: 4px;
+}
 
 /* Transición de entrada — antes el form aparecía instantáneo al navegar
    entre Login/Register/etc. */
@@ -502,6 +519,7 @@ button { border: none; background: none; cursor: pointer; }
 /* ── SECURE BADGE ─────────────────────────────────── */
 .gl-secure-badge {
     width: 100%;
+    flex-shrink: 0;
     margin: 10px 0 0;
     display: flex;
     align-items: center;
@@ -522,6 +540,7 @@ button { border: none; background: none; cursor: pointer; }
 ====================================================== */
 .guest-layout__footer {
     width: 100%;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -657,8 +676,8 @@ button { border: none; background: none; cursor: pointer; }
 .auth-form__submit {
     position: relative;
     width: 100%;
-    height: 46px;
-    margin: 14px 0 4px;
+    height: 40px;
+    margin: 12px 0 4px;
     display: flex;
     justify-content: center;
     align-items: center;
