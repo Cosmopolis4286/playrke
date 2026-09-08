@@ -8,11 +8,62 @@ use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletLimit;
 use App\Domains\Wallet\Models\WalletMovement;
+use App\Services\ExchangeRate\CurrencyExchangeRateService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 final class WalletLimitService
 {
+    /**
+     * Montos base en USD por nivel KYC, usados como referencia para
+     * recommend(). Son los mismos valores que ya existían como fallback
+     * global antes de que la plataforma operara con varias monedas — se
+     * asumen pensados en USD/USDT y se escalan al resto vía tasa de cambio.
+     *
+     * @var array<int, array<string, float>>
+     */
+    private const USD_BASELINE_BY_KYC_LEVEL = [
+        0 => ['min_deposit' => 1, 'max_deposit' => 100,   'min_per_transaction' => 1, 'max_per_transaction' => 50,   'max_daily' => 50,   'max_weekly' => 100,   'max_monthly' => 200],
+        1 => ['min_deposit' => 1, 'max_deposit' => 2000,  'min_per_transaction' => 1, 'max_per_transaction' => 500,  'max_daily' => 500,  'max_weekly' => 2000,  'max_monthly' => 10000],
+        2 => ['min_deposit' => 1, 'max_deposit' => 20000, 'min_per_transaction' => 1, 'max_per_transaction' => 5000, 'max_daily' => 5000, 'max_weekly' => 20000, 'max_monthly' => 100000],
+    ];
+
+    public function __construct(
+        private readonly CurrencyExchangeRateService $exchangeRateService
+    ) {
+    }
+
+    /**
+     * Recomienda los 8 campos de WalletLimit para (moneda, nivel KYC),
+     * escalando el baseline USD por la tasa de cambio ACTIVA de la moneda.
+     * Redondeo: monedas con tasa >= 100 (VES, COP…) se redondean a enteros —
+     * decimales no tienen sentido práctico en esas escalas; el resto conserva
+     * 2 decimales.
+     *
+     * @throws \App\Exceptions\Domain\ExchangeRate\ExchangeRateException Si la moneda no tiene tasa ACTIVE registrada.
+     * @return array<string, float>
+     */
+    public function recommend(string $currencyId, int $kycLevel) : array
+    {
+        $rate = $this->exchangeRateService->getActiveRate($currencyId);
+        $baseline = self::USD_BASELINE_BY_KYC_LEVEL[$kycLevel] ?? self::USD_BASELINE_BY_KYC_LEVEL[0];
+        $decimals = $rate >= 100 ? 0 : 2;
+
+        $recommended = [];
+        foreach ($baseline as $field => $usdAmount) {
+            $recommended[$field] = round($usdAmount * $rate, $decimals);
+        }
+
+        // min_deposit/min_per_transaction a 0 tras redondear (posible con
+        // tasas fraccionarias muy bajas) violaría igual las reglas de
+        // negocio de un mínimo real — se fuerza al menor valor positivo
+        // representable en esa escala de decimales.
+        $floor = $decimals === 0 ? 1 : 0.01;
+        $recommended['min_deposit'] = max($recommended['min_deposit'], $floor);
+        $recommended['min_per_transaction'] = max($recommended['min_per_transaction'], $floor);
+
+        return $recommended;
+    }
     /**
      * Lanza DomainException si el depósito viola algún límite.
      * Se llama desde WalletService::requestDeposit() antes de ejecutar.

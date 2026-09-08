@@ -123,9 +123,10 @@ Route::middleware(['auth', 'multiPermission:movement-types.manage'])->group(func
 // ====================================
 // Lectura: basta con wallet-limits.view (o .manage, quien administra también puede ver).
 Route::middleware(['auth', 'multiPermission:wallet-limits.view,wallet-limits.manage'])->group(function () {
-    Route::get('wallet-limits',                 [WalletLimitController::class, 'index'])        ->name('wallet-limits.index');
-    Route::get('wallet-limits/usage-summary',   [WalletLimitController::class, 'usageSummary']) ->name('wallet-limits.usage-summary');
-    Route::get('wallet-limits/{id}',            [WalletLimitController::class, 'show'])         ->name('wallet-limits.show');
+    Route::get('wallet-limits',                 [WalletLimitController::class, 'index'])         ->name('wallet-limits.index');
+    Route::get('wallet-limits/usage-summary',   [WalletLimitController::class, 'usageSummary'])  ->name('wallet-limits.usage-summary');
+    Route::get('wallet-limits/recommend',       [WalletLimitController::class, 'recommend'])     ->name('wallet-limits.recommend');
+    Route::get('wallet-limits/{id}',            [WalletLimitController::class, 'show'])          ->name('wallet-limits.show');
 });
 
 // Escritura: requiere wallet-limits.manage explícito — mismo motivo que

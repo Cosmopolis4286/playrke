@@ -74,6 +74,14 @@
     return row.currency?.symbol ?? '$'
   }
 
+  /**
+   * Un límite "Todas las monedas" aplica el mismo tope numérico por
+   * separado a cada moneda activa que no tenga su propio límite específico.
+   * Con más de una moneda en la plataforma (ej. USDT + VES, escalas muy
+   * distintas), eso amerita un aviso — el admin puede no haberlo notado.
+   */
+  const hasMultipleCurrencies = computed(() => props.currencies.length > 1)
+
   // ==========================================================================
   // Filas de tabla: aplanan currency para mostrar el ISO code directamente
   // ==========================================================================
@@ -101,11 +109,25 @@
     showUsageModal.value = true
   }
 
-  /** % de uso del período más crítico (mensual), para el indicador rápido en la tabla. */
+  /**
+   * % de uso del período mensual, para el indicador rápido en la tabla.
+   * En un límite propio de una moneda es directo. En el fallback compartido
+   * (varias monedas con el mismo tope), NO se suman monedas distintas —
+   * se toma la moneda con mayor % de consumo individual, que es el caso que
+   * realmente le interesa al admin (cuál se acerca más a tocar el techo).
+   */
   function usagePercent(row: WalletLimit): number | null {
     const usage = usageSummary.value[String(row.id)]
-    if (!usage || usage.monthly.max <= 0) return null
-    return Math.min(100, Math.round((usage.monthly.used / usage.monthly.max) * 100))
+    if (!usage) return null
+
+    if (!usage.is_shared_across_currencies) {
+      if (usage.monthly.max <= 0) return null
+      return Math.min(100, Math.round((usage.monthly.used / usage.monthly.max) * 100))
+    }
+
+    if (!usage.by_currency.length || usage.monthly.max <= 0) return null
+    const worst = Math.max(...usage.by_currency.map(c => c.monthly))
+    return Math.min(100, Math.round((worst / usage.monthly.max) * 100))
   }
 
   function usageBadgeClass(pct: number | null): string {
@@ -233,6 +255,11 @@
       <span class="badge" :class="row.currency_id ? 'badge-info' : 'badge-secondary'">
         {{ row.currency_label }}
       </span>
+      <i
+        v-if="!row.currency_id && hasMultipleCurrencies"
+        class="fas fa-triangle-exclamation text-warning ms-1"
+        :title="`Este tope aplica por separado a las ${props.currencies.length} monedas activas (escalas distintas: ${props.currencies.map(c => c.iso_code).join(', ')}). Considera límites específicos por moneda.`"
+      ></i>
     </template>
 
     <!-- Nivel KYC -->

@@ -38,13 +38,44 @@ export interface WalletLimitUsagePeriod {
     max: number
 }
 
-/** Resumen de consumo agregado de la plataforma para UN WalletLimit, indexado por su id en el mapa de respuesta. */
+/** Consumo real de UNA moneda específica dentro de un límite compartido (fallback global). */
+export interface WalletLimitUsageByCurrency {
+    currency_id: string
+    iso_code: string
+    symbol: string
+    decimal_places: number
+    daily: number
+    weekly: number
+    monthly: number
+    transaction_count: number
+}
+
+/**
+ * Resumen de consumo agregado de la plataforma para UN WalletLimit, indexado
+ * por su id en el mapa de respuesta. Cuando is_shared_across_currencies es
+ * true (límite "Todas las monedas"), daily/weekly/monthly son una SUMA de
+ * monedas con escalas distintas (ej. USDT + VES) — no mostrar esos totales
+ * solos; usar by_currency para el desglose real por moneda.
+ */
 export interface WalletLimitUsage {
+    is_shared_across_currencies: boolean
     daily: WalletLimitUsagePeriod
     weekly: WalletLimitUsagePeriod
     monthly: WalletLimitUsagePeriod
     transaction_count: number
+    by_currency: WalletLimitUsageByCurrency[]
 }
 
 /** Respuesta de GET /wallet-limits/usage-summary: mapa id de WalletLimit -> uso agregado. */
 export type WalletLimitUsageSummary = Record<string, WalletLimitUsage>
+
+/** Campos recomendados por GET /wallet-limits/recommend, escalados desde un baseline USD según la tasa de cambio activa. */
+export interface WalletLimitRecommendation {
+    min_deposit: number
+    max_deposit: number
+    min_per_transaction: number
+    max_per_transaction: number
+    max_daily: number
+    max_weekly: number
+    max_monthly: number
+}
