@@ -151,8 +151,10 @@ const stats = computed(() => ({
 }))
 
 async function handleToggleModule(moduleId: string) {
+  const wasActive = modules.value.find(m => m.id === moduleId)?.is_active ?? false
   try {
     await toggleModuleStatus(moduleId)
+    toast.success(wasActive ? 'Módulo desactivado' : 'Módulo activado')
   } catch {
     toast.error('No se pudo actualizar el módulo')
   }

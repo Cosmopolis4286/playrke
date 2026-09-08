@@ -191,6 +191,7 @@ async function handleToggleStatus(node: RoleHierarchyNodeType): Promise<void> {
   togglingStatusId.value = node.id
   try {
     await props.onSave(node.id, { status: !node.status })
+    toast.success(node.status ? 'Rol desactivado' : 'Rol activado')
   } catch {
     toast.error('No se pudo actualizar el rol')
   } finally {
