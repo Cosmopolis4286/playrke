@@ -612,6 +612,14 @@
     opacity: 0.6;
   }
 
+  /* Sala de sistema (creador es admin/superadmin, sin comercio asociado) —
+     distinta de --unknown: aquí SÍ se sabe quién la creó, solo que no
+     pertenece a la jerarquía comercial. */
+  :deep(.room-commerce-pill--admin) {
+    background: rgba(13, 110, 253, 0.14);
+    color: #4c8dff;
+  }
+
   /* Cartones vendidos + cuota mínima, apilados en vez de concatenados en texto */
   :deep(.room-cards-cell) {
     display: flex;
