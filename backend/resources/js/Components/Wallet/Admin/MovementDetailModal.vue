@@ -4,6 +4,7 @@ import MovementDetailHeader  from './MovementDetailHeader.vue'
 import MovementDetailAmounts from './MovementDetailAmounts.vue'
 import MovementReceiptViewer from './MovementReceiptViewer.vue'
 import MovementDetailMeta    from './MovementDetailMeta.vue'
+import MovementFraudSignals  from './MovementFraudSignals.vue'
 import MovementAdminActions  from './MovementAdminActions.vue'
 import type { Movement } from '@js/types/wallet/admin-movement'
 
@@ -36,6 +37,7 @@ defineEmits<{
   'update:showRejectForm': [value: boolean]
   approve: []
   reject: []
+  'view-movement': [id: string]
 }>()
 </script>
 
@@ -78,6 +80,13 @@ defineEmits<{
         :directory-type-label="directoryTypeLabel"
         :admin-name="adminName"
         :format-date="formatDate"
+      />
+
+      <MovementFraudSignals
+        :detail="detail"
+        :format-amount="formatAmount"
+        :format-date="formatDate"
+        @view-movement="$emit('view-movement', $event)"
       />
 
       <MovementAdminActions

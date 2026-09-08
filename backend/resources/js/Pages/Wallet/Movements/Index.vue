@@ -274,6 +274,7 @@ const {
     @update:show-reject-form="showRejectForm = $event"
     @approve="handleApprove"
     @reject="handleReject"
+    @view-movement="openDetail"
   />
 </template>
 

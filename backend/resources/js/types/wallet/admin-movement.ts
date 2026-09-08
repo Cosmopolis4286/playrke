@@ -25,6 +25,27 @@ export interface MovementMetadata {
   [key: string]:   unknown
 }
 
+export interface MovementRecentEntry {
+  id:         string
+  type:       string
+  status:     string
+  amount:     number
+  created_at: string
+}
+
+/**
+ * Solo presente cuando el detalle se cargó vía GET /wallet-movements/{id}
+ * (show) — el listado (fetchList) no las calcula, para no meter N+1 queries
+ * en la tabla paginada.
+ */
+export interface MovementFraudSignals {
+  duplicate_receipt_movement_id: string | null
+  deposits_today:                number | null
+  deposits_today_max:            number | null
+  recent_movements:              MovementRecentEntry[]
+  rejection_rate:                number | null
+}
+
 export interface Movement {
   id:             string
   type:           string
@@ -45,6 +66,7 @@ export interface Movement {
   created_at:     string
   currency:       MovementCurrency | null
   user:           MovementUser | null
+  fraud_signals?: MovementFraudSignals
 }
 
 export interface MovementsMeta {
