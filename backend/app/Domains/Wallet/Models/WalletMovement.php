@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null    $description
  * @property string|null    $reference_id    ID externo (cartón, premio, etc.)
  * @property string|null    $idempotency_key Clave única para prevenir doble acreditación en pagos reintentables
+ * @property string|null    $receipt_hash    sha256 del comprobante subido, para detectar reuso
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property Wallet         $wallet
@@ -101,6 +102,7 @@ class WalletMovement extends Model
         'reference_id',
         'idempotency_key',
         'receipt_path',
+        'receipt_hash',
         'metadata',
         'admin_notes',
         'processed_by',

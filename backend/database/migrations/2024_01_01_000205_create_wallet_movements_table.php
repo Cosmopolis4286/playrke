@@ -56,6 +56,15 @@ return new class extends Migration
             $table->string('receipt_path', 512)->nullable()
                 ->comment('Ruta del comprobante de pago (depósitos)');
 
+            // sha256 del archivo de comprobante subido — permite detectar
+            // reuso del mismo comprobante (captura de pantalla) en otro
+            // depósito, la señal de fraude más común en pagos con
+            // comprobante manual. Indexado (no único: dos usuarios podrían
+            // coincidir en un hash por error de datos, no debe bloquear el
+            // insert, solo alertar al admin en el panel de revisión).
+            $table->char('receipt_hash', 64)->nullable()
+                ->comment('sha256 del archivo de comprobante, para detectar reuso');
+
             // Información adicional en JSON (directorio destino en retiros, notas admin, etc.)
             $table->json('metadata')->nullable()
                 ->comment('Datos adicionales: directorio de retiro, notas admin, etc.');
@@ -79,6 +88,7 @@ return new class extends Migration
             // Índices frecuentes
             $table->index(['wallet_id', 'created_at']);
             $table->index(['user_id', 'type']);
+            $table->index('receipt_hash');
         });
 
         Schema::table('wallet_movements', function (Blueprint $table) {

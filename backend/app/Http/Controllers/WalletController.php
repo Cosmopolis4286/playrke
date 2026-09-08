@@ -103,14 +103,22 @@ class WalletController extends Controller
                 mkdir($destination, 0755, true);
             }
 
+            // Hash del archivo ANTES de moverlo (más simple que releerlo del
+            // destino) — permite al panel admin detectar si este mismo
+            // comprobante (misma captura de pantalla) ya se usó en otro
+            // depósito, sin depender del nombre de archivo (que siempre es
+            // un UUID nuevo).
+            $receiptHash = hash_file('sha256', $file->getRealPath()) ?: null;
+
             $file->move($destination, $filename);
 
             $wallet = $this->walletService->requestDeposit(
-                wallet:    $wallet,
-                amount:    (float) $request->input('amount'),
-                receipt:   'wallet/receipts/' . $filename,
-                reference: $request->input('reference'),
-                notes:     $request->input('notes'),
+                wallet:       $wallet,
+                amount:       (float) $request->input('amount'),
+                receipt:      'wallet/receipts/' . $filename,
+                receiptHash:  $receiptHash,
+                reference:    $request->input('reference'),
+                notes:        $request->input('notes'),
             );
 
             return response()->json([

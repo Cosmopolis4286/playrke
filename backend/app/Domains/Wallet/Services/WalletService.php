@@ -1104,6 +1104,7 @@ final class WalletService
         Wallet $wallet,
         float $amount,
         string $receipt,
+        ?string $receiptHash = null,
         ?string $reference = null,
         ?string $notes = null,
     ) : Wallet {
@@ -1136,6 +1137,7 @@ final class WalletService
             'description' => $notes ?? 'Depósito pendiente de confirmación',
             'reference_id' => $reference,
             'receipt_path' => $receipt,
+            'receipt_hash' => $receiptHash,
         ]);
 
         // Sin esto, checkDepositVelocity() sigue viendo el conteo cacheado
