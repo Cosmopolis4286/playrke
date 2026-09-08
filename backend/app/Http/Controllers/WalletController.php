@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domains\Wallet\Exceptions\WalletDomainException;
+use App\Exceptions\Domain\DomainException;
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
 use App\Models\MovementType;
@@ -33,7 +34,7 @@ class WalletController extends Controller
      * 422 fijo sin importar la excepción, aplanando "espera antes de
      * reintentar" y "corrige el formulario" al mismo código.
      */
-    private function domainErrorResponse(\DomainException $e): JsonResponse
+    private function domainErrorResponse(DomainException $e): JsonResponse
     {
         $status = $e instanceof WalletDomainException ? $e->httpStatus() : 422;
 
@@ -58,7 +59,7 @@ class WalletController extends Controller
         // con fallback a null si no hay rol activo válido para no romper la página.
         try {
             $rolePrefix = $this->roleUserService->getActiveUserRolePrefix((int) Auth::id());
-        } catch (\DomainException) {
+        } catch (DomainException) {
             $rolePrefix = null;
         }
 
@@ -117,7 +118,7 @@ class WalletController extends Controller
                 'message' => 'Solicitud de depósito enviada. Un administrador la revisará pronto.',
                 'balance' => (float) $wallet->balance,
             ]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@deposit] ' . $e->getMessage(), ['exception' => $e]);
@@ -150,7 +151,7 @@ class WalletController extends Controller
                 'message' => 'Solicitud de retiro enviada. Un administrador procesará la transferencia.',
                 'balance' => (float) $wallet->balance,
             ]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@withdraw] ' . $e->getMessage(), ['exception' => $e]);
@@ -201,7 +202,7 @@ class WalletController extends Controller
                     'total'        => $paginator->total(),
                 ],
             ]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@movements] ' . $e->getMessage(), ['exception' => $e]);
@@ -263,7 +264,7 @@ class WalletController extends Controller
             $directories = $this->walletService->getUserDirectories($wallet);
 
             return response()->json(['success' => true, 'data' => $directories]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@userDirectories] ' . $e->getMessage(), ['exception' => $e]);
@@ -317,7 +318,7 @@ class WalletController extends Controller
             $usage    = $this->limitService->usage($wallet, $kycLevel);
 
             return response()->json(['success' => true, 'data' => $usage]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return $this->domainErrorResponse($e);
         } catch (\Throwable $e) {
             Log::error('[WalletController@limits] ' . $e->getMessage());

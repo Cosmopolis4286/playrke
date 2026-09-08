@@ -8,6 +8,7 @@ use App\Domains\Marketplace\Models\Listing;
 use App\Domains\Marketplace\Models\Order;
 use App\Domains\Marketplace\Services\ListingService;
 use App\Domains\Marketplace\Services\OrderService;
+use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Marketplace\BuyListingRequest;
 use App\Http\Requests\Marketplace\CreateListingRequest;
@@ -90,7 +91,7 @@ class MarketplaceController extends Controller
                 'message' => 'Activo publicado en el marketplace.',
                 'listing' => $this->serializeListing($listing->load(['playerAsset.assetDefinition', 'currency'])),
             ]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             Log::error('[MarketplaceController@store] ' . $e->getMessage(), ['exception' => $e]);
@@ -111,7 +112,7 @@ class MarketplaceController extends Controller
             $this->listingService->cancel($listing);
 
             return response()->json(['success' => true, 'message' => 'Listing cancelado.']);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
@@ -143,7 +144,7 @@ class MarketplaceController extends Controller
                 'escrow_id'  => (string) $escrow->id,
                 'status'     => $escrow->status,
             ]);
-        } catch (\DomainException $e) {
+        } catch (DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             Log::error('[MarketplaceController@buy] ' . $e->getMessage(), ['exception' => $e]);
