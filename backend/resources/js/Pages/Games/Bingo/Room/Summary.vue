@@ -100,6 +100,7 @@
     currency_ids: 'currency_id',
     status: 'status',
     from_house: 'from_house',
+    commerce_id: 'commerce_id',
   }
 
   async function fetchSummaryPage(query: ServerQuery) {
@@ -270,6 +271,18 @@
   })
 
   /**
+   * Opciones de comercializadoras — solo llega poblado para admin/superadmin
+   * (ver BingoRoomContextService::summaryGameRooms), usado por el filtro
+   * "Comercializadora" y la columna homónima de la tabla.
+   */
+  const commerceOptions = computed(() => {
+    return (props.commerces ?? []).map(c => ({
+      value: String(c.id),
+      label: c.name
+    }))
+  })
+
+  /**
    * true si la sala en edición es programada (no manual) y su fecha/hora ya pasó.
    * En edición, useBingoRoomBaseForm omite la validación de fecha pasada (el usuario
    * no puede cambiar una fecha ya vencida, pero sí otros campos), así que sin este
@@ -307,7 +320,7 @@
   // ==========================================================================
 
   const { filters } = useRoomSummaryFilters({
-    roomTypeOptions, connectionTypeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin,
+    roomTypeOptions, connectionTypeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin, commerceOptions,
   })
 
   // ==========================================================================

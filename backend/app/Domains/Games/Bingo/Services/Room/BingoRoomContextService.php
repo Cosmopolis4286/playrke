@@ -73,16 +73,29 @@ final class BingoRoomContextService
      */
     private function resolveSummaryGameRooms(?int $userId, int $page = 1, int $perPage = 15, array $filters = []): array
     {
-        $labels  = ['Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio'];
-        $rowKeys = ['code_start_badge', 'status_badge', 'config.roomType.label', 'config.connectionType.label', 'config.prizePoolType.label', 'config.allowed_currencies_badge', 'total_players_badge', 'total_cards_badge', 'prize_pool_badge'];
-
         // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
         $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
             || $this->userContext->userHasRole('admin');
 
+        // Columna "Comercializadora" solo aporta valor a quien ve MÁS de una
+        // (admin/superadmin) — un commerce/customer viendo solo sus propias
+        // salas ya sabe de quién son todas, agregarla sería ruido redundante.
+        $labels  = ['Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio'];
+        $rowKeys = ['code_start_badge', 'status_badge', 'config.roomType.label', 'config.connectionType.label', 'config.prizePoolType.label', 'config.allowed_currencies_badge', 'total_players_badge', 'total_cards_badge', 'prize_pool_badge'];
+
+        if ($isGlobalAdmin) {
+            array_splice($labels, 1, 0, ['Comercializadora']);
+            array_splice($rowKeys, 1, 0, ['commerce_badge']);
+        }
+
         $conditions = (!$isGlobalAdmin && $userId)
             ? ['creator_user_id' => $userId]
             : [];
+
+        if ($isGlobalAdmin && !empty($filters['commerce_id'])) {
+            $conditions['creator_user_id_in'] = $this->sellerUserIdsForCommerce($filters['commerce_id']);
+        }
+        unset($filters['commerce_id']);
 
         $source = $this->bingoRooms->paginateSummaryGameRooms(
             perPage: $perPage,
@@ -134,6 +147,13 @@ final class BingoRoomContextService
             $model->displayTimezone = $displayTimezone;
             $model->lastEditor = $lastEditorsByRoomId[(string) $model->id] ?? null;
         }
+
+        // Solo se resuelve para admin/superadmin — commerce/customer ya ven
+        // únicamente sus propias salas (condiciones arriba), no necesitan esta
+        // columna. Evita el costo de resolución para el caso común (no-admin).
+        $commercesByCreator = $isGlobalAdmin
+            ? $this->resolveCommercesForCreators($collection->pluck('creator_user_id')->unique()->filter()->all())
+            : [];
 
         $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
@@ -348,6 +368,27 @@ final class BingoRoomContextService
             }
 
             $row['prize_pool_badge'] = '<div class="room-prize-cell">' . implode('', $prizeLines) . $totalLineHtml . '</div>';
+
+            // Columna "Comercializadora" — solo admin/superadmin (ver $isGlobalAdmin
+            // arriba). Antes esta pantalla no distinguía de qué comercio era cada
+            // sala; un admin viendo todas las salas del sistema no tenía forma de
+            // saberlo sin abrir el detalle. Una sala puede pertenecer a un Commerce
+            // real, o haber sido creada directo por un admin/superadmin (sala de
+            // sistema, sin comercio asociado — caso legítimo, se distingue con su
+            // propio badge en vez de mostrarla como "desconocida").
+            if ($isGlobalAdmin) {
+                $creatorId = (string) ($model?->creator_user_id ?? '');
+                $owner = $commercesByCreator[$creatorId] ?? null;
+
+                $row['commerce_badge'] = match ($owner['type'] ?? null) {
+                    'commerce' => '<span class="room-commerce-pill">' . e($owner['name']) . '</span>',
+                    'admin'    => '<span class="room-commerce-pill room-commerce-pill--admin">Admin: ' . e($owner['name']) . '</span>',
+                    default    => '<span class="room-commerce-pill room-commerce-pill--unknown">—</span>',
+                };
+                // Campo meta crudo (no HTML) — usado por el filtro "Comercializadora"
+                // client-side para la opción especial "Salas de sistema (admin)".
+                $row['creator_owner_type'] = $owner['type'] ?? 'unknown';
+            }
         }
         unset($row);
 
@@ -396,6 +437,100 @@ final class BingoRoomContextService
     }
 
     /**
+     * Resuelve, para un conjunto de user_id creadores de sala, a qué Commerce
+     * pertenece cada uno — sin equivalente previo a Seller::resolveCommerce()
+     * para "dueño de esta sala" (el creador puede ser un Commerce directo, un
+     * Seller/Subsidiary vendiendo a nombre de un Commerce, o un admin/superadmin
+     * creando una sala de sistema sin comercio asociado).
+     *
+     * Resuelve en 3 queries batch (Commerce directo, Seller, admin/superadmin
+     * para los user_id restantes) en vez de N+1 por fila — el volumen esperado
+     * es bajo (creadores únicos de una página de 15-20 salas, casi siempre
+     * repetidos entre filas).
+     *
+     * @param array<int, string> $creatorUserIds
+     * @return array<string, array{type: 'commerce'|'admin', name: string}> indexado por creator_user_id
+     */
+    private function resolveCommercesForCreators(array $creatorUserIds): array
+    {
+        if (empty($creatorUserIds)) {
+            return [];
+        }
+
+        $result = [];
+
+        // 1. Creador es un Commerce directo.
+        $commercesByUserId = \App\Models\Roles\Commerce::whereIn('user_id', $creatorUserIds)
+            ->get(['user_id', 'name'])
+            ->keyBy(fn ($c) => (string) $c->user_id);
+
+        foreach ($commercesByUserId as $userId => $commerce) {
+            $result[$userId] = ['type' => 'commerce', 'name' => $commerce->name];
+        }
+
+        // 2. Creadores restantes: puede ser un Seller (directo o vía Subsidiary).
+        $remainingUserIds = array_diff($creatorUserIds, array_keys($result));
+
+        if (!empty($remainingUserIds)) {
+            $sellers = \App\Models\Roles\Seller::whereIn('user_id', $remainingUserIds)
+                ->with(['subsidiary.commerce:id,name', 'managerCommerce:id,user_id,name'])
+                ->get(['id', 'user_id', 'manager_user_id', 'subsidiary_id']);
+
+            foreach ($sellers as $seller) {
+                $commerce = $seller->resolveCommerce();
+                if ($commerce) {
+                    $result[(string) $seller->user_id] = ['type' => 'commerce', 'name' => $commerce->name];
+                }
+            }
+        }
+
+        // 3. Creadores restantes: sala de sistema, creada directo por un
+        // admin/superadmin (sin comercio asociado — caso legítimo, no huérfano).
+        $remainingUserIds = array_diff($creatorUserIds, array_keys($result));
+
+        if (!empty($remainingUserIds)) {
+            $admins = \App\Models\User::whereIn('id', $remainingUserIds)
+                ->whereHas('roles', fn ($q) => $q->whereIn('prefix', ['admin', 'superadmin']))
+                ->get(['id', 'username']);
+
+            foreach ($admins as $admin) {
+                $result[(string) $admin->id] = ['type' => 'admin', 'name' => $admin->username];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * user_id "creadores posibles" bajo un Commerce dado — el propio Commerce
+     * más todos sus Sellers (directos y vía cualquiera de sus Subsidiaries).
+     * Usado por el filtro "Comercializadora" (admin/superadmin): una sala
+     * puede haber sido creada por el Commerce mismo o por uno de sus
+     * vendedores, ver resolveSummaryGameRooms().
+     *
+     * @return array<int, string>
+     */
+    private function sellerUserIdsForCommerce(string $commerceId): array
+    {
+        $commerce = \App\Models\Roles\Commerce::find($commerceId, ['id', 'user_id']);
+
+        if (!$commerce) {
+            return ['0']; // id inexistente: fuerza cero resultados, mismo criterio que ExternalPlayerAdminService.
+        }
+
+        $subsidiaryIds = \App\Models\Roles\Subsidiary::where('commerce_id', $commerce->id)->pluck('id');
+
+        $sellerUserIds = \App\Models\Roles\Seller::query()
+            ->where('manager_user_id', $commerce->user_id)
+            ->orWhereIn('subsidiary_id', $subsidiaryIds)
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        return [...$sellerUserIds, (string) $commerce->user_id];
+    }
+
+    /**
      * Obtener las salas de bingo.
      *
      * @param int $userId ID del usuario
@@ -427,6 +562,9 @@ final class BingoRoomContextService
             ->values()
             ->all();
 
+        $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
+            || $this->userContext->userHasRole('admin');
+
         return new BingoRoomSummaryDTO(
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
@@ -438,6 +576,9 @@ final class BingoRoomContextService
             connectionTypes: $this->connectionTypes->getActiveConnectionTypes(),
             roomTypes: $this->roomTypes->getActiveTypes(),
             gameModeCatalog: $this->bingoGameId() ? $this->gameModeCatalog->getActiveByGame((string) $this->bingoGameId()) : collect(),
+            commerces: $isGlobalAdmin
+                ? \App\Models\Roles\Commerce::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name'])->toArray()
+                : [],
         );
     }
 

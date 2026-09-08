@@ -5,15 +5,16 @@ import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 interface OptionLike { value: string; label: string }
 interface PrizePoolTypeOption { value: string; code: string; label: string }
 
-/** Filtros de la tabla de resumen de salas — el filtro "Origen" solo aplica a admin/superadmin. */
+/** Filtros de la tabla de resumen de salas — "Origen" y "Comercializadora" solo aplican a admin/superadmin. */
 export function useRoomSummaryFilters(deps: {
   roomTypeOptions: ComputedRef<OptionLike[]>
   connectionTypeOptions: ComputedRef<OptionLike[]>
   prizePoolTypeOptions: ComputedRef<PrizePoolTypeOption[]>
   allowedCurrenciesOptions: ComputedRef<OptionLike[]>
   isAdmin: ComputedRef<boolean>
+  commerceOptions?: ComputedRef<OptionLike[]>
 }) {
-  const { roomTypeOptions, connectionTypeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin } = deps
+  const { roomTypeOptions, connectionTypeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin, commerceOptions } = deps
 
   const filters = computed<readonly TableFilterInterface[]>(() => {
     const baseFilters = [
@@ -55,7 +56,7 @@ export function useRoomSummaryFilters(deps: {
       }
     ]
 
-    // Agregar filtro from_house solo para admin/superadmin
+    // Agregar filtro from_house y commerce_id solo para admin/superadmin
     if (isAdmin.value) {
       baseFilters.push({
         key: 'from_house',
@@ -66,6 +67,15 @@ export function useRoomSummaryFilters(deps: {
           { value: 'N', label: 'Salas de usuarios' }
         ]
       })
+
+      if (commerceOptions?.value.length) {
+        baseFilters.push({
+          key: 'commerce_id',
+          label: 'Comercializadora',
+          placeholder: 'Filtrar por comercializadora',
+          options: commerceOptions.value
+        })
+      }
     }
 
     return baseFilters

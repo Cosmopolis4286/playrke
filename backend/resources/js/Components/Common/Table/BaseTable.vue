@@ -593,6 +593,25 @@
     padding: 0 0.3rem;
   }
 
+  /* Comercializadora dueña de la sala — solo visible para admin/superadmin (ver
+     BingoRoomContextService::resolveSummaryGameRooms), mismo estilo pill discreta
+     que .room-currency-pill para consistencia visual entre columnas de metadata. */
+  :deep(.room-commerce-pill) {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.16rem 0.42rem;
+    border-radius: 4px;
+    background: var(--ds-surface-2);
+    color: var(--ds-text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  :deep(.room-commerce-pill--unknown) {
+    opacity: 0.6;
+  }
+
   /* Cartones vendidos + cuota mínima, apilados en vez de concatenados en texto */
   :deep(.room-cards-cell) {
     display: flex;

@@ -103,6 +103,10 @@ final class BingoRoomController extends Controller
                     'prize_pool_type_id' => $request->query('prize_pool_type_id'),
                     'from_house' => $request->query('from_house'),
                     'currency_id' => $request->query('currency_id'),
+                    // Solo admin/superadmin lo usan (ver BingoRoomContextService::
+                    // resolveSummaryGameRooms()) — un commerce/customer ya ve
+                    // únicamente sus propias salas, este filtro no le aporta nada.
+                    'commerce_id' => $request->query('commerce_id'),
                 ])
             )
         );

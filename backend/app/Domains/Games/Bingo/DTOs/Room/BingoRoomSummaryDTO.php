@@ -19,6 +19,8 @@ final class BingoRoomSummaryDTO implements ContextDTO
         public readonly Collection $connectionTypes,
         public readonly Collection $roomTypes,
         public readonly Collection $gameModeCatalog,
+        /** Catálogo para el filtro "Comercializadora" — vacío salvo admin/superadmin, ver BingoRoomContextService::resolveSummaryGameRooms(). */
+        public readonly array $commerces = [],
     ) {}
 
     public function toView(): array
@@ -39,6 +41,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
             'gameModes' => $this->connectionTypes,
             'roomTypes' => $this->roomTypes,
             'gameModeCatalog' => $this->gameModeCatalog,
+            'commerces' => $this->commerces,
         ];
     }
 }

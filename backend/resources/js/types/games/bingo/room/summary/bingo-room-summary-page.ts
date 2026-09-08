@@ -20,4 +20,6 @@ export interface BingoRoomSummaryPageProps {
     prizePoolTypes: { id: string | number; code: string; label: string }[],
     jackpotTypes: { id: string | number; code: string; label: string }[],
     bingoPatterns?: { id: string | number; name: string }[]
+    /** Catálogo de comercializadoras — solo poblado para admin/superadmin, ver BingoRoomContextService::summaryGameRooms(). */
+    commerces?: { id: string | number; name: string }[]
 }

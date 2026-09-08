@@ -349,6 +349,14 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->with($relations);
 
         foreach ($conditions as $field => $value) {
+            // 'creator_user_id_in' (filtro por Commerce en BingoRoomContextService::
+            // resolveSummaryGameRooms(), admin/superadmin) resuelve un árbol de
+            // varios user_id (Commerce + sus Sellers) — requiere whereIn, no where().
+            if ($field === 'creator_user_id_in') {
+                $query->whereIn('creator_user_id', $value);
+                continue;
+            }
+
             $query->where($field, $value);
         }
 
