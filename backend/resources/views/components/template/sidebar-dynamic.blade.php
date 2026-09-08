@@ -65,12 +65,29 @@
                         {{-- Menú con submenús --}}
                         @php
                             $isSubmenuActive = $menuService->hasActiveSubmenu($item['submenu']);
+                            // Suma de badges de los subitems visibles — el padre
+                            // muestra el total agregado para que sea visible
+                            // incluso con el submenú colapsado (ver id
+                            // "sidebar-parent-badge-{key}" abajo, actualizado en
+                            // vivo por PendingMovementsBadge.vue junto con el del
+                            // subitem cuando el padre incluye wallet-movements).
+                            $parentBadgeTotal = collect($item['submenu'])->sum(fn ($s) => (int) ($s['badge'] ?? 0));
+                            $hasRealtimeBadge = collect($item['submenu'])->contains(fn ($s) => $s['route'] === 'wallet-movements.index');
                         @endphp
                         <li class="nav-item has-treeview {{ $isSubmenuActive ? 'menu-open' : '' }}" data-menu-key="{{ $key }}">
                             <a href="#" class="nav-link {{ $isSubmenuActive ? 'active' : '' }}">
                                 <i class="nav-icon {{ $item['icon'] }}"></i>
                                 <p>
                                     {{ $item['title'] }}
+                                    @if($hasRealtimeBadge)
+                                        <span
+                                            id="sidebar-parent-badge-{{ $key }}"
+                                            class="badge badge-danger right"
+                                            style="{{ $parentBadgeTotal > 0 ? '' : 'display:none' }}"
+                                        >{{ $parentBadgeTotal }}</span>
+                                    @elseif($parentBadgeTotal > 0)
+                                        <span class="badge badge-danger right">{{ $parentBadgeTotal }}</span>
+                                    @endif
                                     <i class="right fas fa-angle-left"></i>
                                 </p>
                             </a>

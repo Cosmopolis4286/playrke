@@ -7,12 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\MovementType;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Menu\SidebarMenuService;
+use App\Domains\Wallet\Services\WalletFraudService;
 use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class WalletMovementController extends Controller
 {
@@ -22,6 +25,7 @@ final class WalletMovementController extends Controller
         private readonly WalletService $walletService,
         private readonly WalletMovementRepositoryInterface $movementRepository,
         private readonly SidebarMenuService $sidebarMenuService,
+        private readonly WalletFraudService $fraudService,
     ) {}
 
     public function index(Request $request): Response
@@ -51,17 +55,100 @@ final class WalletMovementController extends Controller
         return $this->handleServiceJson(function () use ($request) {
             $perPage = (int) $request->query('per_page', self::DEFAULT_PER_PAGE);
 
-            $paginator = $this->movementRepository->getForAdminPanel([
-                'type'   => $request->query('type'),
-                'status' => $request->query('status'),
-                'search' => $request->query('search'),
-            ], $perPage);
+            $paginator = $this->movementRepository->getForAdminPanel($this->filtersFromRequest($request), $perPage);
 
             return [
                 'data' => collect($paginator->items())->map(fn (WalletMovement $m) => $this->mapMovement($m)),
                 'meta' => $this->mapMeta($paginator),
             ];
         });
+    }
+
+    /**
+     * GET /wallet-movements/stats?type=&status=&search=&date_from=&date_to=
+     * KPIs agregados sobre el conjunto filtrado (no solo la página visible):
+     * pendientes, tiempo medio de resolución de hoy, volumen aprobado hoy,
+     * tasa de rechazo de hoy. Todo derivado de wallet_movements, sin tablas
+     * nuevas.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', WalletMovement::class);
+
+        return $this->handleServiceJson(function () use ($request) {
+            $filters = $this->filtersFromRequest($request);
+            $query   = $this->movementRepository->queryForAdminPanel($filters);
+
+            $pendingCount = (clone $query)->where('status', WalletMovement::STATUS_PENDING)->count();
+
+            $todayProcessed = (clone $query)
+                ->whereIn('status', [WalletMovement::STATUS_COMPLETED, WalletMovement::STATUS_REJECTED])
+                ->whereDate('processed_at', now()->toDateString());
+
+            $approvedToday = (clone $todayProcessed)->where('status', WalletMovement::STATUS_COMPLETED)->count();
+            $rejectedToday = (clone $todayProcessed)->where('status', WalletMovement::STATUS_REJECTED)->count();
+            $totalToday    = $approvedToday + $rejectedToday;
+
+            $avgResolutionMinutes = (clone $todayProcessed)
+                ->whereNotNull('processed_at')
+                ->avg(DB::raw('TIMESTAMPDIFF(MINUTE, created_at, processed_at)'));
+
+            $approvedVolumeToday = (clone $todayProcessed)
+                ->where('status', WalletMovement::STATUS_COMPLETED)
+                ->sum('amount');
+
+            return [
+                'data' => [
+                    'pending_count'          => $pendingCount,
+                    'approved_today'         => $approvedToday,
+                    'rejected_today'         => $rejectedToday,
+                    'rejection_rate_today'   => $totalToday > 0 ? round($rejectedToday / $totalToday * 100, 1) : 0.0,
+                    'avg_resolution_minutes' => $avgResolutionMinutes !== null ? round((float) $avgResolutionMinutes, 1) : null,
+                    'approved_volume_today'  => (float) $approvedVolumeToday,
+                ],
+            ];
+        });
+    }
+
+    /**
+     * GET /wallet-movements/export?type=&status=&search=&date_from=&date_to=
+     * Export CSV del conjunto filtrado completo (no solo la página visible)
+     * — mismo patrón que AdminUserController::export().
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', WalletMovement::class);
+
+        $filters = $this->filtersFromRequest($request);
+        $query   = $this->movementRepository->queryForAdminPanel($filters);
+
+        return response()->streamDownload(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Usuario', 'Email', 'Tipo', 'Estado', 'Monto', 'Moneda', 'Referencia', 'Notas admin', 'Procesado por', 'Creado', 'Procesado']);
+
+            $query->chunk(500, function ($movements) use ($handle) {
+                foreach ($movements as $m) {
+                    fputcsv($handle, [
+                        $m->id,
+                        trim(($m->user?->first_name ?? '') . ' ' . ($m->user?->last_name ?? '')),
+                        $m->user?->email,
+                        $m->type,
+                        $m->status,
+                        $m->amount,
+                        $m->wallet?->currency?->iso_code,
+                        $m->reference_id,
+                        $m->admin_notes,
+                        trim(($m->processedBy?->first_name ?? '') . ' ' . ($m->processedBy?->last_name ?? '')),
+                        $m->created_at?->format('Y-m-d H:i:s'),
+                        $m->processed_at?->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, 'movimientos-billetera-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function show(WalletMovement $movement): JsonResponse
@@ -129,6 +216,18 @@ final class WalletMovementController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** @return array{type: ?string, status: ?string, search: ?string, date_from: ?string, date_to: ?string} */
+    private function filtersFromRequest(Request $request): array
+    {
+        return [
+            'type'      => $request->query('type'),
+            'status'    => $request->query('status'),
+            'search'    => $request->query('search'),
+            'date_from' => $request->query('date_from'),
+            'date_to'   => $request->query('date_to'),
+        ];
+    }
 
     private function assertRequiresApproval(WalletMovement $movement): void
     {

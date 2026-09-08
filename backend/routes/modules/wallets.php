@@ -85,6 +85,8 @@ Route::middleware('auth')->get('wallet/receipt/{filename}', function (string $fi
 Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movements.manage'])->group(function () {
     Route::get('wallet-movements',                          [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
     Route::get('wallet-movements/fetch',                    [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
+    Route::get('wallet-movements/stats',                    [WalletMovementController::class, 'stats'])     ->name('wallet-movements.stats');
+    Route::get('wallet-movements/export',                   [WalletMovementController::class, 'export'])    ->name('wallet-movements.export');
     Route::get('wallet-movements/{movement}',               [WalletMovementController::class, 'show'])      ->name('wallet-movements.show');
 
     // throttle:30,1 → protege contra doble-submit accidental (doble click) y

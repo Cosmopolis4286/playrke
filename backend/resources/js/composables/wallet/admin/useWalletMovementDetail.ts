@@ -20,6 +20,7 @@ import type { MovementType } from '@js/types/movementType'
 export function useWalletMovementDetail(
   onUpdated: (updated: Movement) => void,
   movementTypes: Ref<MovementType[]> | MovementType[],
+  pendingQueue?: Ref<Movement[]>,
 ) {
   const showDetail     = ref(false)
   const detailLoading  = ref(false)
@@ -49,6 +50,23 @@ export function useWalletMovementDetail(
     }
   }
 
+  /**
+   * Siguiente PENDING en la cola visible (excluyendo el que se acaba de
+   * resolver) — permite encadenar aprobar/rechazar sin volver a la tabla y
+   * hacer click de nuevo. `pendingQueue` es la lista ya filtrada/ordenada que
+   * ve el admin en pantalla, así que respeta el filtro/búsqueda activos.
+   */
+  const nextPendingId = computed(() => {
+    if (!pendingQueue?.value || !detail.value) return null
+    const next = pendingQueue.value.find(m => m.status === 'PENDING' && m.id !== detail.value!.id)
+    return next?.id ?? null
+  })
+
+  function openNextPending() {
+    if (nextPendingId.value) openDetail(nextPendingId.value)
+    else showDetail.value = false
+  }
+
   async function handleApprove() {
     if (!detail.value) return
 
@@ -66,10 +84,10 @@ export function useWalletMovementDetail(
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/approve`, {
         admin_notes: adminNotes.value || null,
       })
-      detail.value = data.data
       onUpdated(data.data)
       adminNotes.value = ''
       showToast('Movimiento aprobado correctamente.', 'success')
+      openNextPending()
     } catch (e: any) {
       const message = e?.response?.data?.message ?? 'Error al aprobar el movimiento.'
       actionError.value = message
@@ -96,11 +114,11 @@ export function useWalletMovementDetail(
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/reject`, {
         admin_notes: adminNotes.value || null,
       })
-      detail.value = data.data
       onUpdated(data.data)
       adminNotes.value     = ''
       showRejectForm.value = false
       showToast('Movimiento rechazado correctamente.', 'success')
+      openNextPending()
     } catch (e: any) {
       const message = e?.response?.data?.message ?? 'Error al rechazar el movimiento.'
       actionError.value = message
@@ -132,5 +150,6 @@ export function useWalletMovementDetail(
     adminNotes, actionLoading, actionError, showRejectForm, receiptZoom,
     openDetail, handleApprove, handleReject,
     isReceiptImage, isPending, isActionable,
+    nextPendingId,
   }
 }

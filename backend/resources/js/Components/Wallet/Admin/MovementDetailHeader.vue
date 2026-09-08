@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { ageInfo } from '@js/composables/wallet/admin/useMovementFormatters'
 import type { Movement } from '@js/types/wallet/admin-movement'
 
-defineProps<{
+const props = defineProps<{
   detail: Movement
   isActionable: boolean
   typeConfig: Record<string, { label: string; cls: string; style?: string; icon: string }>
@@ -9,13 +11,15 @@ defineProps<{
   statusConfig: Record<string, { label: string; cls: string }>
   userName: (u: Movement['user']) => string
 }>()
+
+const age = computed(() => ageInfo(props.detail.created_at))
 </script>
 
 <template>
   <!-- ── Alerta de acción requerida ──────────────────────────────── -->
-  <div v-if="isActionable" class="mv-action-banner">
+  <div v-if="isActionable" class="mv-action-banner" :class="`mv-action-banner--${age.level}`">
     <i class="fas fa-clock me-2"></i>
-    Este movimiento está <strong>pendiente</strong> de revisión.
+    Este movimiento está <strong>pendiente</strong> de revisión ({{ age.label }}).
     <template v-if="detail.type === 'WITHDRAWAL'">
       El saldo ya fue descontado del usuario.
     </template>
@@ -159,16 +163,17 @@ defineProps<{
   margin: 0;
 }
 
-/* Banner acción requerida */
+/* Banner acción requerida — color escala con la antigüedad del pendiente */
 .mv-action-banner {
-  background: rgba(217,119,6,.14);
-  border: 1px solid rgba(217,119,6,.4);
   border-radius: 8px;
   padding: 0.6rem 0.9rem;
   font-size: 0.82rem;
-  color: #fbbf24;
   margin-bottom: 0.75rem;
+  border: 1px solid transparent;
 }
+.mv-action-banner--normal   { background: rgba(217,119,6,.14); border-color: rgba(217,119,6,.4);  color: #fbbf24; }
+.mv-action-banner--warning  { background: rgba(217,119,6,.14); border-color: rgba(217,119,6,.4);  color: #fbbf24; }
+.mv-action-banner--critical { background: rgba(220,38,38,.16); border-color: rgba(220,38,38,.45); color: #f87171; }
 
 .me-2 { margin-right: 0.5rem; }
 </style>

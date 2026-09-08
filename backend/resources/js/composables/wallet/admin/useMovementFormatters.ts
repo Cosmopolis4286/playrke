@@ -47,6 +47,35 @@ export function formatDate(iso: string): string {
 }
 
 /**
+ * SLA interno para movimientos PENDING sin resolver: hasta 4h es normal,
+ * entre 4h y 24h se marca como advertencia, y más de 24h como crítico —
+ * ayuda al admin a priorizar la cola sin tener que ordenar manualmente por
+ * fecha en cada revisión.
+ */
+const AGE_WARNING_HOURS  = 4
+const AGE_CRITICAL_HOURS = 24
+
+export interface AgeInfo {
+  label: string
+  level: 'normal' | 'warning' | 'critical'
+  cls: string
+}
+
+export function ageInfo(createdAt: string): AgeInfo {
+  const hours = (Date.now() - new Date(createdAt).getTime()) / 3_600_000
+  const level: AgeInfo['level'] =
+    hours >= AGE_CRITICAL_HOURS ? 'critical' :
+    hours >= AGE_WARNING_HOURS  ? 'warning'  : 'normal'
+
+  const label =
+    hours < 1  ? 'hace unos minutos' :
+    hours < 24 ? `hace ${Math.floor(hours)}h` :
+    `hace ${Math.floor(hours / 24)}d`
+
+  return { label, level, cls: `mv-age mv-age--${level}` }
+}
+
+/**
  * Helpers visuales derivados del catálogo MovementType recibido por props
  * (admin/superadmin lo gestionan vía CRUD).
  */

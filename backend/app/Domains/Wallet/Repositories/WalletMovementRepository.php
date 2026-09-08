@@ -8,6 +8,7 @@ use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Repositories\BaseRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class WalletMovementRepository extends BaseRepository implements WalletMovementRepositoryInterface
@@ -63,7 +64,52 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
                 ->orWhere('email', 'like', "%{$search}%"));
         }
 
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
         return $query->paginate($perPage);
+    }
+
+    /**
+     * Mismo filtrado que getForAdminPanel() pero sin paginar — usado por
+     * export CSV (todo el resultado filtrado) y por las stats del header
+     * (agregados sobre el conjunto completo, no solo la página visible).
+     */
+    public function queryForAdminPanel(array $filters): Builder
+    {
+        $query = $this->model->with(self::ADMIN_PANEL_RELATIONS)->orderByDesc('created_at');
+
+        if (! empty($filters['type'])) {
+            $query->where('type', strtoupper($filters['type']));
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', strtoupper($filters['status']));
+        }
+
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->whereHas('user', fn ($q) => $q
+                ->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%"));
+        }
+
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        return $query;
     }
 
     public function getLatestByWallet(string $walletId, int $limit = 10) : Collection

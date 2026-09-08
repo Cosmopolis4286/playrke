@@ -44,6 +44,17 @@ export function useWalletMovementsList(
   const lastFilters = ref<Record<string, string>>({})
   const lastPage    = ref(1)
 
+  // Rango de fechas — controles propios fuera del sistema de filtros
+  // genérico (TableFilterInterface solo soporta selects de opciones fijas),
+  // se combinan con lastFilters al hacer fetch y se reflejan en el link de
+  // export para que descargue exactamente lo que el admin está viendo.
+  const dateFrom = ref('')
+  const dateTo   = ref('')
+
+  function applyDateRange() {
+    fetchMovements(1)
+  }
+
   const columns = COLUMNS
 
   const tableFilters = computed<TableFilterInterface[]>(() => {
@@ -69,18 +80,21 @@ export function useWalletMovementsList(
     ]
   })
 
+  /** Params compartidos por fetch/stats/export para que los tres reflejen el mismo filtro activo. */
+  const activeParams = computed(() => ({
+    type:      lastFilters.value.type   || undefined,
+    status:    lastFilters.value.status || undefined,
+    search:    lastSearch.value         || undefined,
+    date_from: dateFrom.value           || undefined,
+    date_to:   dateTo.value             || undefined,
+  }))
+
   async function fetchMovements(page = 1) {
     loading.value = true
     lastPage.value = page
     try {
       const { data } = await backendClient.get('/wallet-movements/fetch', {
-        params: {
-          page,
-          per_page: 20,
-          type:     lastFilters.value.type   || undefined,
-          status:   lastFilters.value.status || undefined,
-          search:   lastSearch.value         || undefined,
-        },
+        params: { page, per_page: 20, ...activeParams.value },
       })
       movements.value = data.data ?? []
       meta.value      = data.meta ?? null
@@ -90,6 +104,14 @@ export function useWalletMovementsList(
     } finally {
       loading.value = false
     }
+  }
+
+  function exportUrl(): string {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(activeParams.value)) {
+      if (value) params.set(key, value)
+    }
+    return `/wallet-movements/export?${params.toString()}`
   }
 
   /** Adapta el evento query-change de TableWithFilterBridge (server-side) al fetch. */
@@ -175,5 +197,6 @@ export function useWalletMovementsList(
     columns, tableFilters,
     fetchMovements, onQueryChange, updateMovement,
     totalPages, currentPage,
+    dateFrom, dateTo, applyDateRange, exportUrl, activeParams,
   }
 }

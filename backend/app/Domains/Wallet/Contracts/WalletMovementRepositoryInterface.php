@@ -7,6 +7,7 @@ namespace App\Domains\Wallet\Contracts;
 use App\Contracts\BaseRepositoryInterface;
 use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
@@ -25,9 +26,16 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
      * Listado paginado y filtrable para el panel admin, con las relaciones
      * (wallet.currency, user, processedBy) ya cargadas para el DTO de salida.
      *
-     * @param array{type?: ?string, status?: ?string, search?: ?string} $filters
+     * @param array{type?: ?string, status?: ?string, search?: ?string, date_from?: ?string, date_to?: ?string} $filters
      */
     public function getForAdminPanel(array $filters, int $perPage = 20) : LengthAwarePaginator;
+
+    /**
+     * Mismo filtrado que getForAdminPanel() sin paginar — export CSV y stats.
+     *
+     * @param array{type?: ?string, status?: ?string, search?: ?string, date_from?: ?string, date_to?: ?string} $filters
+     */
+    public function queryForAdminPanel(array $filters) : Builder;
 
     /**
      * Últimos N movimientos de una billetera (sin paginar, para resumen).

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
+import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 import MovementDetailModal from '@js/Components/Wallet/Admin/MovementDetailModal.vue'
 import { useWalletMovementsList } from '@js/composables/wallet/admin/useWalletMovementsList'
 import { useWalletMovementDetail } from '@js/composables/wallet/admin/useWalletMovementDetail'
-import { useMovementFormatters } from '@js/composables/wallet/admin/useMovementFormatters'
+import { useWalletMovementsStats } from '@js/composables/wallet/admin/useWalletMovementsStats'
+import { useMovementFormatters, ageInfo } from '@js/composables/wallet/admin/useMovementFormatters'
 import type { MovementType } from '@js/types/movementType'
 import type { Movement, MovementsMeta } from '@js/types/wallet/admin-movement'
 
@@ -24,6 +26,7 @@ const {
   movements, meta, loading,
   columns, tableFilters,
   onQueryChange, updateMovement,
+  dateFrom, dateTo, applyDateRange, exportUrl, activeParams,
 } = useWalletMovementsList(
   props.movements,
   props.meta,
@@ -31,13 +34,50 @@ const {
   props.initialPendingCount,
 )
 
+// ── KPIs del header — se refrescan cuando cambian los filtros activos
+// (tipo/estado/búsqueda/fecha) y tras cada aprobar/rechazar, para reflejar
+// siempre el mismo conjunto que ve el admin en la tabla.
+const { stats, fetchStats } = useWalletMovementsStats()
+
+function refreshStats() {
+  fetchStats(activeParams.value)
+}
+
+watch(activeParams, refreshStats, { immediate: true, deep: true })
+
 // ── Modal de detalle + acciones admin ───────────────────────────────────────
+function handleMovementUpdated(updated: Movement) {
+  updateMovement(updated)
+  refreshStats()
+}
+
 const {
   showDetail, detailLoading, detail,
   adminNotes, actionLoading, actionError, showRejectForm, receiptZoom,
   openDetail, handleApprove, handleReject,
   isReceiptImage, isPending, isActionable,
-} = useWalletMovementDetail(updateMovement, computed(() => props.movementTypes))
+  nextPendingId,
+} = useWalletMovementDetail(handleMovementUpdated, computed(() => props.movementTypes), movements)
+
+// ── Atajos de teclado en el modal: A aprobar, R abrir rechazo, Esc cerrar ──
+// Solo activos con el modal abierto y sin foco en un campo de texto (notas),
+// para no interceptar la letra 'a'/'r' mientras el admin escribe.
+function handleShortcut(e: KeyboardEvent) {
+  if (!showDetail.value || !isActionable.value) return
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return
+
+  if (e.key === 'a' || e.key === 'A') {
+    if (!showRejectForm.value && !actionLoading.value) handleApprove()
+  } else if (e.key === 'r' || e.key === 'R') {
+    if (!showRejectForm.value) showRejectForm.value = true
+  } else if (e.key === 'Escape' && showRejectForm.value) {
+    showRejectForm.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('keydown', handleShortcut))
+onBeforeUnmount(() => document.removeEventListener('keydown', handleShortcut))
 
 // ── Deep-link desde notificación: /wallet-movements?movement={id} ──────────
 function openMovementFromQuery() {
@@ -75,7 +115,26 @@ const {
       { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
       { label: 'Movimientos de Billetera' },
     ]"
-  />
+  >
+    <template #actions>
+      <div v-if="stats" class="mv-stats">
+        <StatTile
+          label="Pendientes"
+          :value="stats.pending_count"
+          icon="fa-hourglass-half"
+          :variant="stats.pending_count > 0 ? 'warning' : 'default'"
+        />
+        <StatTile label="Aprobados hoy" :value="stats.approved_today" icon="fa-check" variant="success" />
+        <StatTile label="Rechazados hoy" :value="stats.rejected_today" icon="fa-xmark" variant="danger" />
+        <StatTile label="Tasa de rechazo hoy" :value="`${stats.rejection_rate_today}%`" icon="fa-chart-line" variant="info" />
+        <StatTile
+          label="Resolución media"
+          :value="stats.avg_resolution_minutes !== null ? `${stats.avg_resolution_minutes} min` : '—'"
+          icon="fa-stopwatch"
+        />
+      </div>
+    </template>
+  </PageHeader>
 
   <div class="container-fluid">
     <TableWithFilterBridge
@@ -93,6 +152,29 @@ const {
       :server-total-pages="meta?.last_page ?? 1"
       @query-change="onQueryChange"
     >
+      <template #action-buttons>
+        <div class="mv-date-range">
+          <input
+            v-model="dateFrom"
+            type="date"
+            class="form-control form-control-sm"
+            title="Desde"
+            @change="applyDateRange"
+          />
+          <span class="mv-date-range__sep">—</span>
+          <input
+            v-model="dateTo"
+            type="date"
+            class="form-control form-control-sm"
+            title="Hasta"
+            @change="applyDateRange"
+          />
+        </div>
+        <a class="btn btn-sm btn-outline-secondary" title="Exportar movimientos filtrados a CSV" :href="exportUrl()">
+          <i class="fas fa-file-csv mr-1"></i>Exportar
+        </a>
+      </template>
+
       <template #cell-id="{ row }">
         <span class="mv-id">{{ String((row as Movement).id).slice(-8) }}</span>
       </template>
@@ -146,6 +228,12 @@ const {
 
       <template #cell-created_at="{ row }">
         <span class="mv-date">{{ formatDate((row as Movement).created_at) }}</span>
+        <span
+          v-if="(row as Movement).status === 'PENDING'"
+          :class="ageInfo((row as Movement).created_at).cls"
+        >
+          {{ ageInfo((row as Movement).created_at).label }}
+        </span>
       </template>
 
       <template #cell-actions="{ row }">
@@ -241,5 +329,38 @@ const {
 .mv-status--cancelled { background: var(--ds-surface-2); color: var(--ds-text-2); }
 .mv-status--rejected  { background: rgba(225,29,72,.16); color: #fb7185; }
 
-.mv-date { font-size: 0.78rem; color: var(--ds-text-2); white-space: nowrap; }
+.mv-date { display: block; font-size: 0.78rem; color: var(--ds-text-2); white-space: nowrap; }
+
+.mv-age {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.mv-age--normal   { color: var(--ds-text-muted); }
+.mv-age--warning  { color: #fbbf24; }
+.mv-age--critical { color: #f87171; }
+
+.mv-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+@media (max-width: 1200px) {
+  .mv-stats { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+}
+@media (max-width: 768px) {
+  .mv-stats { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+}
+
+.mv-date-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 0.5rem;
+}
+.mv-date-range input[type="date"] { width: 140px; }
+.mv-date-range__sep { color: var(--ds-text-muted); font-size: 0.8rem; }
+
+.mr-1 { margin-right: 0.25rem; }
 </style>

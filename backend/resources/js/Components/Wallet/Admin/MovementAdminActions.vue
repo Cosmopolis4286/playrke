@@ -49,6 +49,7 @@ const emit = defineEmits<{
         <span v-if="actionLoading" class="spinner-border spinner-border-sm me-1"></span>
         <i v-else class="fas fa-check me-1"></i>
         Aprobar
+        <kbd class="mv-actions__kbd">A</kbd>
       </button>
       <button
         class="btn btn-danger btn-sm"
@@ -57,6 +58,7 @@ const emit = defineEmits<{
       >
         <i class="fas fa-times me-1"></i>
         Rechazar
+        <kbd class="mv-actions__kbd">R</kbd>
       </button>
     </div>
 
@@ -121,6 +123,17 @@ const emit = defineEmits<{
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.mv-actions__kbd {
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 0.65rem;
+  font-family: ui-monospace, monospace;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 4px;
+  opacity: 0.85;
 }
 
 .mv-reject-confirm {
