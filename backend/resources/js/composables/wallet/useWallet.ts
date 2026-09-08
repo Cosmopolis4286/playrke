@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, type Ref } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import echo from '@js/plugins/echo'
+import { showToast } from '@js/utils/toast'
 import type {
   Wallet,
   WalletMovement,
@@ -272,13 +273,17 @@ export function useWallet(
       if (data.success) {
         successMsg.value = data.message
         step.value = 3
+        showToast(data.message, 'success')
         // Recargar movimientos para mostrar el depósito PENDING recién creado
         loadMovements(1)
       } else {
         errorMsg.value = data.message
+        showToast(data.message, 'error')
       }
     } catch (err: any) {
-      errorMsg.value = _extractError(err)
+      const message = _extractError(err)
+      errorMsg.value = message
+      showToast(message, 'error')
     } finally {
       loading.value = false
     }
@@ -310,6 +315,7 @@ export function useWallet(
       if (data.success) {
         successMsg.value = data.message
         step.value = 3
+        showToast(data.message, 'success')
 
         if (data.balance !== undefined) {
           _updateLocalBalance(data.balance)
@@ -318,12 +324,15 @@ export function useWallet(
         await loadMovements(1)
       } else {
         errorMsg.value = data.message
+        showToast(data.message, 'error')
         // No dejar el PIN en el input tras un rechazo (ej. PIN incorrecto) —
         // mismo criterio que PasswordModal limpia current_password en error.
         withdrawalPin.value = ''
       }
     } catch (err: any) {
-      errorMsg.value = _extractError(err)
+      const message = _extractError(err)
+      errorMsg.value = message
+      showToast(message, 'error')
       withdrawalPin.value = ''
     } finally {
       loading.value = false

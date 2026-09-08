@@ -1,5 +1,7 @@
 import { ref, computed, type Ref } from 'vue'
 import backendClient from '@js/plugins/axios'
+import { showToast } from '@js/utils/toast'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 import type { Movement } from '@js/types/wallet/admin-movement'
 import type { MovementType } from '@js/types/movementType'
 
@@ -49,6 +51,15 @@ export function useWalletMovementDetail(
 
   async function handleApprove() {
     if (!detail.value) return
+
+    const confirmed = await showToastConfirmAction({
+      title: 'Aprobar movimiento',
+      text: `Vas a aprobar este ${detail.value.type === 'DEPOSIT' ? 'depósito' : 'retiro'}. Esta acción mueve saldo real y no se puede deshacer.`,
+      icon: 'warning',
+      confirmButtonText: 'Sí, aprobar',
+    })
+    if (!confirmed) return
+
     actionError.value   = ''
     actionLoading.value = true
     try {
@@ -58,8 +69,11 @@ export function useWalletMovementDetail(
       detail.value = data.data
       onUpdated(data.data)
       adminNotes.value = ''
+      showToast('Movimiento aprobado correctamente.', 'success')
     } catch (e: any) {
-      actionError.value = e?.response?.data?.message ?? 'Error al aprobar el movimiento.'
+      const message = e?.response?.data?.message ?? 'Error al aprobar el movimiento.'
+      actionError.value = message
+      showToast(message, 'error')
     } finally {
       actionLoading.value = false
     }
@@ -67,6 +81,15 @@ export function useWalletMovementDetail(
 
   async function handleReject() {
     if (!detail.value) return
+
+    const confirmed = await showToastConfirmAction({
+      title: 'Rechazar movimiento',
+      text: `Vas a rechazar este ${detail.value.type === 'DEPOSIT' ? 'depósito' : 'retiro'}.${detail.value.type === 'WITHDRAWAL' ? ' El saldo reservado será reintegrado al usuario.' : ''}`,
+      icon: 'warning',
+      confirmButtonText: 'Sí, rechazar',
+    })
+    if (!confirmed) return
+
     actionError.value   = ''
     actionLoading.value = true
     try {
@@ -77,8 +100,11 @@ export function useWalletMovementDetail(
       onUpdated(data.data)
       adminNotes.value     = ''
       showRejectForm.value = false
+      showToast('Movimiento rechazado correctamente.', 'success')
     } catch (e: any) {
-      actionError.value = e?.response?.data?.message ?? 'Error al rechazar el movimiento.'
+      const message = e?.response?.data?.message ?? 'Error al rechazar el movimiento.'
+      actionError.value = message
+      showToast(message, 'error')
     } finally {
       actionLoading.value = false
     }
