@@ -17,10 +17,15 @@ class DemoCredentialsController extends Controller
 
     /**
      * Retorna las credenciales demo para entorno local.
+     *
+     * Doble gate independiente: config('app.demo_credentials_enabled') (false
+     * por defecto, hay que activarlo a propósito en .env) + app()->isLocal().
+     * Ninguno de los dos por sí solo puede dejar el endpoint expuesto — si se
+     * activa el flag por error en staging, isLocal() sigue bloqueando.
      */
     public function index(): JsonResponse
     {
-        if (!app()->isLocal()) {
+        if (!app()->isLocal() || !config('app.demo_credentials_enabled')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',

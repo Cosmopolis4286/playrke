@@ -43,6 +43,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo Credentials Endpoint
+    |--------------------------------------------------------------------------
+    |
+    | Interruptor explícito para /dev/demo-credentials. Por defecto false:
+    | aunque el entorno sea local, hay que activarlo a propósito en .env.
+    | DemoCredentialsController exige además app()->isLocal() en runtime, así
+    | que ninguno de los dos checks por sí solo puede dejarlo expuesto.
+    |
+    */
+
+    'demo_credentials_enabled' => (bool) env('DEMO_CREDENTIALS_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

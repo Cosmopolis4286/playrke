@@ -39,6 +39,13 @@ class TestUserSeeder extends Seeder
             // ================================
             // Usuarios demo por rol
             // ================================
+            // Cada rol tiene una contraseña robusta y ÚNICA (16+ chars,
+            // mayúsculas/minúsculas/dígitos/símbolos). Antes las 10 cuentas
+            // compartían literalmente 'password123' — cualquiera que
+            // conociera un email demo tenía acceso a TODOS los roles,
+            // incluido superadmin. Fijas (no aleatorias) a propósito: deben
+            // ser reproducibles entre entornos y compartibles con QA sin
+            // reconsultar la BD en cada refresh.
             $demoUsers = [
                 // SuperAdmin
                 [
@@ -46,7 +53,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'superadmin',
                     'first_name'  => 'Super',
                     'last_name'   => 'Admin',
-                    'password'    => 'password123',
+                    'password'    => 'Sp4dm!n#Rk3-Vzla9Q',
                     'role'        => 'superadmin',
                     'description' => 'Super Administrador del sistema',
                 ],
@@ -56,7 +63,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'admin',
                     'first_name'  => 'Play',
                     'last_name'   => 'RKE',
-                    'password'    => 'password123',
+                    'password'    => 'Adm1n!Rke#Panel7Wz',
                     'role'        => 'admin',
                     'description' => 'Administrador del sistema',
                 ],
@@ -66,7 +73,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'commerce_demo',
                     'first_name'  => 'Comercio',
                     'last_name'   => 'Demo',
-                    'password'    => 'password123',
+                    'password'    => 'C0merc10!Demo#4Lt9',
                     'role'        => 'commerce',
                     'description' => 'Comercio de prueba',
                 ],
@@ -79,7 +86,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'commerce_demo_2',
                     'first_name'  => 'Comercio',
                     'last_name'   => 'Demo Dos',
-                    'password'    => 'password123',
+                    'password'    => 'C0merc10!Dos#8Xn2',
                     'role'        => 'commerce',
                     'description' => 'Segundo comercio de prueba',
                 ],
@@ -90,7 +97,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'subsidiary_demo',
                     'first_name'  => 'Sucursal',
                     'last_name'   => 'Demo',
-                    'password'    => 'password123',
+                    'password'    => 'Sucurs4l!Demo#3Ky7',
                     'role'        => 'subsidiary',
                     'description' => 'Agencia/sucursal de prueba',
                 ],
@@ -101,7 +108,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'seller_demo',
                     'first_name'  => 'Vendedor',
                     'last_name'   => 'Demo',
-                    'password'    => 'password123',
+                    'password'    => 'V3ndedor!Demo#6Fp1',
                     'role'        => 'seller',
                     'description' => 'Vendedor asociado a la sucursal demo',
                 ],
@@ -111,7 +118,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'customer_demo',
                     'first_name'  => 'Cliente',
                     'last_name'   => 'Demo',
-                    'password'    => 'password123',
+                    'password'    => 'Cl13nte!Demo#2Rb5',
                     'role'        => 'customer',
                     'description' => 'Cliente de prueba',
                 ],
@@ -121,7 +128,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'player1',
                     'first_name'  => 'Juan',
                     'last_name'   => 'Pérez',
-                    'password'    => 'password123',
+                    'password'    => 'Pl4y3r1!Juan#9Tm4',
                     'role'        => 'player',
                     'description' => 'Jugador de prueba 1',
                 ],
@@ -130,7 +137,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'player2',
                     'first_name'  => 'Ana',
                     'last_name'   => 'Gómez',
-                    'password'    => 'password123',
+                    'password'    => 'Pl4y3r2!Ana#5Wq8',
                     'role'        => 'player',
                     'description' => 'Jugador de prueba 2',
                 ],
@@ -139,7 +146,7 @@ class TestUserSeeder extends Seeder
                     'username'    => 'player3',
                     'first_name'  => 'Luis',
                     'last_name'   => 'Martínez',
-                    'password'    => 'password123',
+                    'password'    => 'Pl4y3r3!Luis#1Zc6',
                     'role'        => 'player',
                     'description' => 'Jugador de prueba 3',
                 ],
