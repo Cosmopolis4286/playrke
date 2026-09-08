@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import backendClient from '@js/plugins/axios'
 import { useToast } from 'vue-toastification'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 
 interface ExternalPlayerInfo {
   name: string
@@ -64,7 +65,13 @@ async function approve(payment: PendingPayment) {
 }
 
 async function reject(payment: PendingPayment) {
-  if (!confirm('¿Rechazar este pago? Los cartones se anularán y se reembolsará al vendedor.')) return
+  const confirmed = await showToastConfirmAction({
+    title: 'Rechazar pago',
+    text: '¿Rechazar este pago? Los cartones se anularán y se reembolsará al vendedor.',
+    icon: 'warning',
+    confirmButtonText: 'Sí, rechazar',
+  })
+  if (!confirmed) return
 
   actionLoadingId.value = payment.id
   try {

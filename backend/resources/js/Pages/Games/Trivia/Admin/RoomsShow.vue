@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
 import { onMounted, onUnmounted, ref } from 'vue'
+import { showToast } from '@js/utils/toast'
 
 interface RoomShowPlayer {
   player_id: string
@@ -38,7 +39,11 @@ function openDispute(winnerId: string) {
 function submitDispute(winnerId: string) {
   disputeForm.post(getRoute('participantsDispute', { roomId: props.room.id, participantId: winnerId }), {
     preserveScroll: true,
-    onSuccess: () => { disputingWinnerId.value = null },
+    onSuccess: () => {
+      disputingWinnerId.value = null
+      showToast('Premio revertido correctamente.', 'success')
+    },
+    onError: () => showToast('No se pudo revertir el premio.', 'error'),
   })
 }
 
