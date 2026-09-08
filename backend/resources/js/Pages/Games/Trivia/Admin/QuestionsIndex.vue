@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import debounce from 'lodash/debounce'
 import { getRoute } from '@js/routes/triviaRoutes'
+import { showToast } from '@js/utils/toast'
+import { showToastConfirmAction } from '@js/utils/toastNotify'
 
 interface Question {
   id: string
@@ -76,24 +78,36 @@ const bulkEdit = () => {
 }
 
 const bulkToggleActive = () => {
+  const count = selectedQuestions.value.length
   selectedQuestions.value.forEach(q => {
     router.patch(getRoute('questionsToggleActive', { roomId: props.roomId, questionId: q.id }), {}, {
       preserveScroll: true,
+      onError: () => showToast('No se pudo actualizar una de las preguntas.', 'error'),
     })
   })
+  showToast(`Estado actualizado en ${count} pregunta(s).`, 'success')
   clearSelection()
 }
 
-const bulkDelete = () => {
+const bulkDelete = async () => {
   const count = selectedQuestions.value.length
   const names = selectedQuestions.value.map(q => `"${q.question_text.slice(0, 40)}..."`).join(', ')
 
-  if (confirm(`¿Eliminar ${count} pregunta(s)?\n\n${names}\n\nEsta acción no se puede deshacer.`)) {
-    selectedQuestions.value.forEach(q => {
-      router.delete(getRoute('questionsDestroy', { roomId: props.roomId, questionId: q.id }))
+  const confirmed = await showToastConfirmAction({
+    title: 'Eliminar preguntas',
+    text: `¿Eliminar ${count} pregunta(s)? ${names}. Esta acción no se puede deshacer.`,
+    icon: 'warning',
+    confirmButtonText: 'Sí, eliminar',
+  })
+  if (!confirmed) return
+
+  selectedQuestions.value.forEach(q => {
+    router.delete(getRoute('questionsDestroy', { roomId: props.roomId, questionId: q.id }), {
+      onError: () => showToast('No se pudo eliminar una de las preguntas.', 'error'),
     })
-    clearSelection()
-  }
+  })
+  showToast(`${count} pregunta(s) eliminada(s).`, 'success')
+  clearSelection()
 }
 
 const applyFilters = debounce(() => {
@@ -104,15 +118,26 @@ const applyFilters = debounce(() => {
   )
 }, 300)
 
-function confirmDelete(q: Question) {
-  if (confirm(`¿Eliminar la pregunta?\n\n"${q.question_text.slice(0, 80)}..."\n\nEsta acción no se puede deshacer.`)) {
-    router.delete(getRoute('questionsDestroy', { roomId: props.roomId, questionId: q.id }))
-  }
+async function confirmDelete(q: Question) {
+  const confirmed = await showToastConfirmAction({
+    title: 'Eliminar pregunta',
+    text: `¿Eliminar la pregunta "${q.question_text.slice(0, 80)}..."? Esta acción no se puede deshacer.`,
+    icon: 'warning',
+    confirmButtonText: 'Sí, eliminar',
+  })
+  if (!confirmed) return
+
+  router.delete(getRoute('questionsDestroy', { roomId: props.roomId, questionId: q.id }), {
+    onSuccess: () => showToast('Pregunta eliminada.', 'success'),
+    onError:   () => showToast('No se pudo eliminar la pregunta.', 'error'),
+  })
 }
 
 function toggleActive(q: Question) {
   router.patch(getRoute('questionsToggleActive', { roomId: props.roomId, questionId: q.id }), {}, {
     preserveScroll: true,
+    onSuccess: () => showToast(q.is_active ? 'Pregunta desactivada.' : 'Pregunta activada.', 'success'),
+    onError:   () => showToast('No se pudo actualizar la pregunta.', 'error'),
   })
 }
 
