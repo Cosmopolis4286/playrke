@@ -157,6 +157,7 @@ async function saveDescription(roleId: string) {
   try {
     await updateRoleDescription(roleId, value)
     editingId.value = null
+    toast.success('Descripción del rol actualizada')
   } catch {
     toast.error('No se pudo actualizar el rol')
   } finally {
@@ -185,6 +186,7 @@ async function handleToggle(role: AdminRole) {
   savingId.value = role.id
   try {
     await toggleRoleStatus(role.id)
+    toast.success(role.status ? 'Rol desactivado' : 'Rol activado')
   } catch {
     toast.error('No se pudo actualizar el rol')
   } finally {
