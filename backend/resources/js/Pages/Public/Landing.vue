@@ -15,6 +15,8 @@ import GameRoomsKpiHeader from "@js/Components/games/bingo/Room/GameRooms/GameRo
 import GameRoomsFilterBar from "@js/Components/games/bingo/Room/GameRooms/GameRoomsFilterBar.vue";
 import BingoRulesModal from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
 import InfoModal from "@js/Components/auth/InfoModal.vue";
+import JackpotDisplay from "@js/Components/Platform/JackpotDisplay.vue";
+import type { JackpotEntry } from "@js/Components/Platform/JackpotDisplay.vue";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { useGameRoomKpis } from "@js/composables/games/bingo/room/game-rooms/useGameRoomKpis";
 import { useGameRoomEcho } from "@js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
@@ -50,6 +52,7 @@ const props = defineProps<
     register?: boolean;
     platformStats?: PlatformStats;
     initialLeaderboard?: LeaderboardEntry[];
+    initialJackpots?: JackpotEntry[];
   }
 >();
 
@@ -213,6 +216,11 @@ const leaderboard = ref<LeaderboardEntry[]>(props.initialLeaderboard ?? []);
 // cacheadas 60s), refrescadas junto al leaderboard cada pocos minutos.
 const platformStats = ref<PlatformStats | undefined>(props.platformStats);
 
+// ── Jackpots — sembrados por el backend, refrescados por el propio
+// JackpotDisplay.vue (polling interno cada 15s, mismo TTL de cache del
+// endpoint) — sin orquestar aquí, el componente es autosuficiente.
+const jackpots = ref<JackpotEntry[]>(props.initialJackpots ?? []);
+
 let statsTimer: ReturnType<typeof setInterval> | null = null;
 
 async function refreshStatsAndLeaderboard() {
@@ -283,8 +291,10 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
       <div class="landing__nav-inner">
         <span class="landing__brand">PLAYRKE</span>
         <div class="landing__nav-links">
+          <a href="#jackpot">Jackpot</a>
           <a href="#salas">Salas en vivo</a>
           <a href="#verificar">Verificar cartón</a>
+          <a href="#invita">Invita y gana</a>
           <a href="#ganadores">Ganadores</a>
         </div>
         <div class="landing__nav-cta">
@@ -353,6 +363,15 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
         </div>
       </div>
     </header>
+
+    <!-- ══ JACKPOT — pozo progresivo, alimentado por JackpotLedgerService en
+         cada venta de cartón (dominio ya existía, sin ninguna UI hasta ahora) ══ -->
+    <section id="jackpot" class="band band--jackpot reveal" :ref="setRevealRef">
+      <span class="eyebrow eyebrow--center">Pozo acumulado</span>
+      <h2 class="jackpot-section__title">El jackpot no para de crecer</h2>
+      <p class="jackpot-section__sub">Cada cartón vendido en cualquier sala suma al pozo. Así de simple.</p>
+      <JackpotDisplay :jackpots="jackpots" />
+    </section>
 
     <!-- ══ SALAS DESTACADAS — mismo header/filtros/realtime que /bingo/game-rooms
          (vista autenticada), portado a la landing pública ══ -->
@@ -442,6 +461,36 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
       </div>
     </section>
 
+    <!-- ══ INVITA Y GANA — sistema de referidos ya existente en backend
+         (código propio, link compartible, recompensa XP anti-fraude vía
+         AwardReferralXpOnVerifiedListener), sin UI pública hasta ahora. El
+         código/link real solo se ve ya logueado (perfil); esta sección solo
+         explica la mecánica para atraer registros. ══ -->
+    <section id="invita" class="band band--alt reveal" :ref="setRevealRef">
+      <div class="verify-grid">
+        <div>
+          <span class="eyebrow">Programa de referidos</span>
+          <h2 class="verify-title">Invita y gana</h2>
+          <p class="verify-sub">
+            Comparte tu enlace único cuando crees tu cuenta. Cuando un amigo
+            se registre y verifique su cuenta, ganas XP.
+          </p>
+          <ul class="verify-steps">
+            <li><span class="num">1</span> Crea tu cuenta y obtén tu enlace de invitación personal</li>
+            <li><span class="num">2</span> Comparte tu enlace con amigos</li>
+            <li><span class="num">3</span> Cuando se registren y verifiquen su cuenta, ganas XP automáticamente</li>
+          </ul>
+        </div>
+        <div class="invite-card">
+          <i class="fas fa-user-plus invite-card__icon" />
+          <p class="invite-card__lead">Tu enlace de invitación te espera dentro de tu perfil</p>
+          <button type="button" class="btn btn--primary btn--block" @click="goToRegister">
+            Crear cuenta gratis
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- ══ GANADORES ══ -->
     <section id="ganadores" class="band reveal" :ref="setRevealRef">
       <div class="leaderboard-grid">
@@ -489,8 +538,10 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
 
         <nav class="landing__footer-col" aria-label="Navegación">
           <span class="landing__footer-col-title">Plataforma</span>
+          <a href="#jackpot">Jackpot</a>
           <a href="#salas">Salas en vivo</a>
           <a href="#verificar">Verificar cartón</a>
+          <a href="#invita">Invita y gana</a>
           <a href="#ganadores">Ganadores</a>
         </nav>
 
@@ -626,7 +677,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 
 /* ── Anclas del nav sticky — sin esto el header tapa el título al saltar ── */
-#salas, #verificar, #ganadores { scroll-margin-top: 76px; }
+#jackpot, #salas, #verificar, #invita, #ganadores { scroll-margin-top: 76px; }
 
 /* ── Nav ── */
 .landing__nav {
@@ -756,6 +807,19 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .band__head h2 { font-size: clamp(21px, 3vw, 28px); margin: 10px 0 10px; }
 .band__head p { color: #7a96c8; font-size: 13.5px; line-height: 1.6; margin: 0; }
 .band__cta { text-align: center; margin-top: 28px; }
+
+/* ── Jackpot ── */
+.band--jackpot { text-align: center; padding: 56px 20px 64px; }
+.jackpot-section__title {
+  font-size: clamp(22px, 3.4vw, 30px);
+  margin: 10px 0 8px;
+}
+.jackpot-section__sub {
+  color: #7a96c8;
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0 0 30px;
+}
 
 /* ══════════════════════════════════════════════════════════
    SALAS DESTACADAS — portado de Pages/Games/Bingo/Room/GameRooms.vue
@@ -1056,6 +1120,31 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   border-color: #2af598;
 }
 .verify-form input::placeholder { color: #4a6698; }
+
+/* ── Invita y gana ── */
+.invite-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 32px 24px;
+}
+.invite-card__icon {
+  font-size: 28px;
+  color: #2af598;
+  filter: drop-shadow(0 0 10px rgba(42,245,152,0.4));
+}
+.invite-card__lead {
+  margin: 0;
+  color: #c7d2f0;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 280px;
+}
 
 /* ── Leaderboard semanal ── */
 .leaderboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }

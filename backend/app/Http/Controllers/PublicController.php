@@ -6,10 +6,10 @@ use App\Contracts\AppParameterRepositoryInterface;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomContextService;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
 use App\Domains\Platform\WinEvent\Services\WinEventLeaderboardService;
+use App\Services\Jackpot\JackpotPublicStatsService;
 use App\Services\Platform\PlatformStatsService;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\View;
 
 /**
  * Controlador de páginas públicas
@@ -41,6 +41,7 @@ class PublicController extends Controller
         BingoRoomContextService $contextService,
         PlatformStatsService $platformStats,
         WinEventLeaderboardService $leaderboardService,
+        JackpotPublicStatsService $jackpotStats,
     ): Response {
         $register = $this->settings->getParameterStatus('REGISTER');
 
@@ -72,6 +73,7 @@ class PublicController extends Controller
             'initialWins' => $wins,
             'platformStats' => $platformStats->summary(),
             'initialLeaderboard' => $leaderboardService->weeklyTopWinners(),
+            'initialJackpots' => $jackpotStats->list(),
         ]));
     }
 
@@ -90,26 +92,14 @@ class PublicController extends Controller
      * de compra real: el CTA lleva a login/registro. Decisión de producto:
      * no exponer compra sin cuenta (KYC/fraude, ver análisis de riesgo).
      */
-    public function gameRoomsShowcase(\App\Domains\Games\Bingo\Services\Room\BingoRoomContextService $contextService): Response
-    {
+    public function gameRoomsShowcase(
+        \App\Domains\Games\Bingo\Services\Room\BingoRoomContextService $contextService,
+        JackpotPublicStatsService $jackpotStats,
+    ): Response {
         $dto = $contextService->publicShowcase();
 
-        return Inertia::render('Public/GameRoomsShowcase', $dto->toView());
-    }
-
-    /**
-     * Páginas de información estática (terms, about, privacy)
-     */
-    public function info(string $page): Response
-    {
-        $allowed = ['terms', 'about', 'privacy'];
-
-        if (!in_array($page, $allowed)) {
-            abort(404);
-        }
-
-        return Inertia::render('Info/StaticPage', [
-            'page' => $page,
-        ]);
+        return Inertia::render('Public/GameRoomsShowcase', array_merge($dto->toView(), [
+            'initialJackpots' => $jackpotStats->list(),
+        ]));
     }
 }

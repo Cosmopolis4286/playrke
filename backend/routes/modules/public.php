@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\PublicController;
-use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\Platform\BingoCardVerifyController;
+use App\Http\Controllers\Platform\JackpotPublicController;
 use App\Http\Controllers\Platform\PlatformStatsController;
 use App\Http\Controllers\Platform\WinEventController;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +26,6 @@ use Illuminate\Support\Facades\Route;
  * login/registro viven en sus propias rutas. Ver PublicController::root().
  */
 Route::get('/', [PublicController::class, 'root'])->name('root')->defaults('inertiaOnly', true);
-Route::get('getInfo/{page}', [PublicController::class, 'info'])->name('info');
 
 /**
  * Página pública "Verificar mi cartón" — sin sesión, como un ticket físico.
@@ -88,10 +87,6 @@ Route::get('/health', function () {
 // API PÚBLICAS
 // ====================================
 Route::prefix('api')->group(function () {
-    // Sistema de Niveles - Rutas Públicas
-    Route::get('/leaderboard', [UserLevelController::class, 'getLeaderboard'])->name('api.leaderboard');
-    Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.calculate-reward');
-
     // Feed de ganancias en vivo (seed inicial para el ticker, cualquier juego/premio)
     Route::get('/win-events/recent', [WinEventController::class, 'recent'])->name('api.win-events.recent');
 
@@ -104,6 +99,11 @@ Route::prefix('api')->group(function () {
     Route::get('/platform/stats', [PlatformStatsController::class, 'index'])
         ->middleware('throttle:30,1')
         ->name('api.platform.stats');
+
+    // Jackpots activos de la plataforma (gancho visual de landing/vitrina)
+    Route::get('/jackpots', [JackpotPublicController::class, 'index'])
+        ->middleware('throttle:30,1')
+        ->name('api.jackpots');
 
     // Verificación pública de un cartón de Bingo por serial + últimos 4 del teléfono
     Route::post('/bingo/verify-card', [BingoCardVerifyController::class, 'verify'])
