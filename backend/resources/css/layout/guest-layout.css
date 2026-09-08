@@ -105,6 +105,13 @@ button { border: none; background: none; cursor: pointer; }
     z-index: 2;
     width: min(760px, calc(100vw - 32px));
     min-height: 440px;
+    /* Formularios largos (Register: 6 campos + checkbox) empujaban la card
+       por encima del viewport sin scroll posible (.guest-layout tiene
+       overflow:hidden) — se corta con la parte inferior del footer fuera
+       de pantalla. Con un tope de altura + scroll interno del panel
+       derecho (abajo), el panel izquierdo mantiene su tamaño y solo el
+       form largo scrollea dentro de la card. */
+    max-height: calc(100vh - 32px);
     display: grid;
     grid-template-columns: 1fr 1fr;
     border-radius: 22px;
@@ -186,6 +193,14 @@ button { border: none; background: none; cursor: pointer; }
     -webkit-backdrop-filter: blur(28px);
     justify-content: center;
     gap: 8px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(42, 245, 152, 0.25) transparent;
+}
+.guest-layout__panel--right::-webkit-scrollbar { width: 5px; }
+.guest-layout__panel--right::-webkit-scrollbar-thumb {
+    background: rgba(42, 245, 152, 0.25);
+    border-radius: 4px;
 }
 
 /* ======================================================
