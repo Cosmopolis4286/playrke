@@ -2,16 +2,27 @@
 import { onMounted, onUnmounted, ref, computed } from "vue";
 import { Link } from "@inertiajs/vue3";
 import { useHead } from "@vueuse/head";
+// La Landing usa components/layouts/inertia.blade.php (head minimalista, sin
+// Bootstrap/AdminLTE) — a diferencia de las páginas de Auth, aquí NO llega
+// el <link> de FontAwesome vendorizado en head.blade.php, así que sin este
+// import los iconos (fab fa-facebook, etc.) no renderizan nunca. Mismo
+// paquete e import que ya usa GuestLayout.vue con éxito.
+import "@fortawesome/fontawesome-free/css/all.min.css";
 
 import BingoGameRoomCard from "@js/Components/games/bingo/Room/GameRooms/BingoGameRoomCard.vue";
 import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTopBuyersModal.vue";
+import GameRoomsKpiHeader from "@js/Components/games/bingo/Room/GameRooms/GameRoomsKpiHeader.vue";
+import GameRoomsFilterBar from "@js/Components/games/bingo/Room/GameRooms/GameRoomsFilterBar.vue";
+import BingoRulesModal from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
 import InfoModal from "@js/Components/auth/InfoModal.vue";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
+import { useGameRoomKpis } from "@js/composables/games/bingo/room/game-rooms/useGameRoomKpis";
+import { useGameRoomEcho } from "@js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
 import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
 import { useRevealOnScroll } from "@js/composables/ui/useRevealOnScroll";
 import { axios } from "@js/plugins/axios";
 
-import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
+import type { BingoGameRoomsPageProps, GameRoomFilters } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
 
 /**
  * Landing pública — nueva raíz `/` (ver PublicController::root()). PlayRKE
@@ -93,6 +104,13 @@ useHead({
 });
 
 // ── Salas destacadas (mismo DTO que /game-rooms, ya truncado a 3 por el backend) ──
+// Copia reactiva propia (no las props directas): useGameRoomEcho parchea este
+// array in-place con los mismos eventos WebSocket que usa la vista autenticada
+// (bingo.lobby/bingo.room.{id} son canales públicos, sin auth), dándole a la
+// landing el mismo realtime que /bingo/game-rooms en vez del listado estático
+// que tenía antes.
+const rooms = ref(props.rooms ? props.rooms.map((r) => ({ ...r })) : []);
+
 const serverTimestampMs = props.dateTimeRooms?.timestamp
   ? Number(props.dateTimeRooms.timestamp)
   : Date.now();
@@ -100,8 +118,43 @@ const serverTimestampMs = props.dateTimeRooms?.timestamp
 const { init: initCountdown, getCountdown } = useGameRoomCountdown(serverTimestampMs);
 
 onMounted(() => {
-  initCountdown(props.rooms);
+  initCountdown(rooms.value);
 });
+
+useGameRoomEcho(rooms, {
+  onRoomAdded: (room) => initCountdown([room]),
+});
+
+// ── Filtro por variante (75/90/60/30) — mismo GameRoomsFilterBar que la
+// vista autenticada, pero filtrado 100% client-side: con solo 3 salas
+// destacadas no hay paginación ni filtrado server-side que valga la pena. ──
+const filters = ref<GameRoomFilters>({ dateFrom: null, dateTo: null, variant: null });
+const filteredRooms = computed(() => {
+  if (!filters.value.variant && !filters.value.dateFrom) return rooms.value;
+  return rooms.value.filter((room) => {
+    if (filters.value.variant && room.config?.game_variant !== filters.value.variant) return false;
+    if (filters.value.dateFrom) {
+      const unix = room.config?.unix_date;
+      if (!unix) return false;
+      const roomDate = new Date(unix * 1000).toISOString().slice(0, 10);
+      const to = filters.value.dateTo ?? filters.value.dateFrom;
+      if (roomDate < filters.value.dateFrom || roomDate > to) return false;
+    }
+    return true;
+  });
+});
+function resetFilters() {
+  filters.value = { dateFrom: null, dateTo: null, variant: null };
+}
+
+const isFiltered = ref(false);
+const { nextRoomUnixDate, totalActiveRooms } = useGameRoomKpis(rooms, isFiltered);
+
+// ── Reglamento del bingo — sin dueño único en el contexto público
+// (PublicController::gameRoomsShowcase() omite bingoRules a propósito),
+// BingoRulesModal ya resuelve ese caso mostrando el reglamento genérico
+// (BingoRulesDefault.vue) cuando no llega texto/imagen personalizados. ──
+const showRulesModal = ref(false);
 
 // La Landing es pública y siempre se ve oscura, sin importar el tema del
 // dashboard guardado en localStorage (head.blade.php pone data-theme="light"
@@ -115,7 +168,9 @@ onMounted(() => {
 const previousTheme = document.documentElement.getAttribute("data-theme");
 document.documentElement.setAttribute("data-theme", "dark");
 const previousBodyBg = document.body.style.backgroundColor;
+const previousBodyMargin = document.body.style.margin;
 document.body.style.backgroundColor = "#060a18";
+document.body.style.margin = "0";
 onUnmounted(() => {
   if (previousTheme) {
     document.documentElement.setAttribute("data-theme", previousTheme);
@@ -123,6 +178,7 @@ onUnmounted(() => {
     document.documentElement.removeAttribute("data-theme");
   }
   document.body.style.backgroundColor = previousBodyBg;
+  document.body.style.margin = previousBodyMargin;
 });
 
 function goToRegister() {
@@ -132,7 +188,7 @@ function goToRegister() {
 // ── Modal "Ver Top de Compras" (mismo componente que la vitrina completa) ──
 const topBuyersRoomId = ref<string | null>(null);
 const topBuyersRoomUuidCode = computed(() => {
-  const room = props.rooms?.find((r) => r.id === topBuyersRoomId.value);
+  const room = rooms.value.find((r) => r.id === topBuyersRoomId.value);
   return room?.uuid_code ?? null;
 });
 function openTopBuyers(roomId: string) {
@@ -182,7 +238,7 @@ onUnmounted(() => {
 });
 
 const onlineCount = computed(
-  () => platformStats.value?.players_online ?? props.rooms?.reduce((sum, r) => sum + (r.total_players ?? 0), 0) ?? 0
+  () => platformStats.value?.players_online ?? rooms.value.reduce((sum, r) => sum + (r.total_players ?? 0), 0) ?? 0
 );
 const totalPaidFormatted = computed(() => {
   const total = platformStats.value?.total_paid_usd;
@@ -298,21 +354,50 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
       </div>
     </header>
 
-    <!-- ══ SALAS DESTACADAS ══ -->
-    <section id="salas" class="band reveal" :ref="setRevealRef">
-      <div class="band__head">
-        <span class="eyebrow">Catálogo en vivo</span>
-        <h2>Salas de Bingo activas</h2>
-        <p>Cartones a la venta ahora mismo. El pozo crece con cada compra.</p>
+    <!-- ══ SALAS DESTACADAS — mismo header/filtros/realtime que /bingo/game-rooms
+         (vista autenticada), portado a la landing pública ══ -->
+    <section id="salas" class="band band--rooms reveal" :ref="setRevealRef">
+      <!-- Botón flotante: reglamento del bingo (mismo modal que la vista autenticada,
+           usa el reglamento genérico ya que no hay dueño único sin sesión) -->
+      <button
+        type="button"
+        class="grp-rules-fab"
+        title="Ver reglamento del Bingo"
+        aria-label="Ver reglamento del Bingo"
+        @click="showRulesModal = true"
+      >
+        <i class="fas fa-book" />
+      </button>
+
+      <div class="game-rooms-page__header">
+        <div class="grp-header-glow" />
+        <div class="grp-title-wrap">
+          <span class="grp-dice grp-dice--1">&#9858;</span>
+          <h2 class="game-rooms-page__title">Salas de Bingo activas</h2>
+          <span class="grp-dice grp-dice--2">&#9858;</span>
+        </div>
+        <p class="game-rooms-page__subtitle">Cartones a la venta ahora mismo. El pozo crece con cada compra.</p>
+        <div class="grp-header-line" />
+
+        <div class="grp-toolbar">
+          <div class="grp-toolbar__top">
+            <GameRoomsKpiHeader
+              :next-room-unix-date="nextRoomUnixDate"
+              :total-active-rooms="totalActiveRooms"
+            />
+          </div>
+
+          <GameRoomsFilterBar :filters="filters" :loading="false" @apply="() => {}" @reset="resetFilters" />
+        </div>
       </div>
 
-      <div v-if="!props.rooms?.length" class="rooms-empty">
-        <i class="fas fa-door-closed" />
-        <p>No hay salas activas en este momento</p>
+      <div v-if="!filteredRooms.length" class="game-rooms-page__empty">
+        <i class="fas fa-door-closed grp-empty-icon" />
+        <p class="grp-empty-title">No hay salas activas en este momento</p>
       </div>
-      <div v-else class="rooms-grid">
+      <div v-else class="grp-cards-grid">
         <BingoGameRoomCard
-          v-for="(room, index) in props.rooms"
+          v-for="(room, index) in filteredRooms"
           :key="room.id"
           :room="room"
           :exchange-rate="1"
@@ -433,35 +518,29 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
 
     <!-- ══ Modal Términos/Acerca de/Privacidad — mismo componente que Auth ══ -->
     <InfoModal v-model="activeInfoModal" />
+
+    <!-- ══ Modal de reglamento del bingo — mismo componente que /bingo/game-rooms ══ -->
+    <BingoRulesModal v-model="showRulesModal" :rules="props.bingoRules" :image="props.imageBingoRules" />
   </div>
 </template>
 
 <style>
-/* Sin scoped: html/body deben quedar oscuros mientras la Landing esté
-   montada, sin importar --ds-bg (tema claro/oscuro del dashboard guardado
-   en localStorage — ver head.blade.php) — la Landing es pública y siempre
-   se ve oscura. Sin esto, un visitante con tema claro guardado veía franjas
-   blancas del body en los bordes del viewport. */
+/* Sin scoped: la Landing usa components/layouts/inertia.blade.php, un head
+   minimalista sin Bootstrap/AdminLTE/reset alguno (Tailwind corre con
+   corePlugins.preflight:false para no romper Bootstrap en el dashboard —
+   ver tailwind.config.js) — así que nadie más resetea el margin de 8px
+   que el navegador aplica a <body> por defecto. Confirmado inspeccionando
+   el DOM real: getComputedStyle(body).marginLeft === "8px" sin esto,
+   dejando franjas visibles a los lados aun con .landing ocupando el resto
+   del ancho. También se fuerza el fondo oscuro real (sin importar
+   --ds-bg del tema del dashboard guardado en localStorage) y un scrollbar
+   a tono, ya que el scroll ocurre en el documento, no dentro de .landing. */
 html:has(.landing), body:has(.landing) {
+  margin: 0;
   background-color: #060a18 !important;
   overflow-x: hidden;
 }
 
-/* El layout Blade público (components/layouts/guest-layout.blade.php)
-   envuelve todo el slot de Inertia en <main class="container-fluid"> — esa
-   clase es de Bootstrap/AdminLTE (vendor CSS cargado global) y trae
-   padding-left/right propio (7.25px), pensado para las pantallas de
-   admin/dashboard. La Landing es full-bleed: debe ignorar ese padding, no
-   heredarlo, así que se anula puntualmente cuando esa clase envuelve la
-   Landing (sin tocar container-fluid en el resto del sitio). */
-main.container-fluid:has(.landing) {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-/* Scrollbar a tono con el resto del sitio, en vez del nativo del navegador —
-   el scroll real ocurre en el documento (html/body), no dentro de .landing,
-   que solo define min-height: 100vh sin su propio overflow. */
 html:has(.landing) {
   scrollbar-width: thin;
   scrollbar-color: #2af598 rgba(255, 255, 255, 0.06);
@@ -678,7 +757,100 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .band__head p { color: #7a96c8; font-size: 13.5px; line-height: 1.6; margin: 0; }
 .band__cta { text-align: center; margin-top: 28px; }
 
-.rooms-empty {
+/* ══════════════════════════════════════════════════════════
+   SALAS DESTACADAS — portado de Pages/Games/Bingo/Room/GameRooms.vue
+   (vista autenticada de /bingo/game-rooms), mismas clases grp- y
+   game-rooms-page__ para reutilizar tal cual el header con dados, KPIs,
+   filtros y FAB de reglamento. Las capas de fondo estelar (before/after
+   en el original) se omiten aquí: .landing ya tiene su propio fondo de
+   marca (gradientes + scroll-reveal) y duplicar un segundo fondo estelar
+   solo en esta sección competiría visualmente con el resto de la página.
+   ══════════════════════════════════════════════════════════ */
+.band--rooms { position: relative; }
+
+.grp-rules-fab {
+  position: absolute;
+  right: 16px;
+  bottom: 18px;
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(123,79,255,0.35);
+  background: linear-gradient(135deg, #2a1f5e 0%, #1a2a52 100%);
+  color: #cdd8ff;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 0 rgba(123,79,255,0.5);
+  transition: transform .2s ease, box-shadow .2s ease, color .2s ease, border-color .2s ease;
+  animation: rulesFabPulse 3s ease-in-out infinite;
+}
+.grp-rules-fab:hover {
+  transform: translateY(-2px) scale(1.06);
+  color: #fff;
+  border-color: rgba(42,245,152,0.6);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 18px rgba(42,245,152,0.35);
+}
+.grp-rules-fab:active { transform: translateY(0) scale(0.97); }
+@keyframes rulesFabPulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 0 rgba(123,79,255,0.45); }
+  50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 8px rgba(123,79,255,0); }
+}
+
+.game-rooms-page__header { text-align: center; margin-bottom: 32px; position: relative; z-index: 5; }
+.grp-header-glow {
+  position: absolute;
+  top: -60px; left: 50%; transform: translateX(-50%);
+  width: 500px; height: 200px;
+  background: radial-gradient(ellipse, rgba(123,79,255,0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+.grp-title-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
+.grp-dice {
+  font-size: 20px;
+  filter: drop-shadow(0 0 8px rgba(42,245,152,0.6));
+  animation: spinDice 8s linear infinite;
+  color: #2af598;
+  flex-shrink: 0;
+}
+.grp-dice--2 { animation-direction: reverse; animation-duration: 10s; color: #009efd; }
+@keyframes spinDice { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.game-rooms-page__title {
+  font-family: "Orbitron", "Anton", sans-serif;
+  font-size: clamp(21px, 3vw, 28px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin: 0;
+  text-shadow: 0 0 30px rgba(42,245,152,0.22), 0 0 60px rgba(123,79,255,0.12), 0 2px 4px rgba(0,0,0,0.5);
+  background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, #7b4fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.game-rooms-page__subtitle { font-size: 13.5px; color: #7a96c8; letter-spacing: 0.2px; margin: 0 0 14px; }
+
+.grp-header-line {
+  width: 60px; height: 2px; margin: 0 auto;
+  background: linear-gradient(90deg, transparent, #2af598, #009efd, transparent);
+  border-radius: 2px;
+  position: relative;
+}
+.grp-header-line::after {
+  content: '';
+  position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  width: 6px; height: 4px;
+  background: #2af598; border-radius: 50%;
+  box-shadow: 0 0 8px #2af598;
+}
+
+.grp-toolbar { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 18px auto 0; max-width: 620px; position: relative; z-index: 30; }
+.grp-toolbar__top { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+.game-rooms-page__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -690,17 +862,20 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   text-align: center;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #9fb3da;
-  font-size: 13.5px;
-  font-weight: 600;
 }
-.rooms-empty i { font-size: 24px; color: #4a6698; }
+.grp-empty-icon { font-size: 24px; color: #4a6698; }
+.grp-empty-title { font-size: 13.5px; font-weight: 600; color: #9fb3da; margin: 0; }
 
-.rooms-grid {
+.grp-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 220px));
   justify-content: center;
   gap: 18px;
+}
+
+@media (max-width: 380px) {
+  .grp-cards-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .grp-rules-fab { right: 12px; bottom: 14px; width: 34px; height: 34px; font-size: 12px; }
 }
 
 /* ── Verify strip ── */
@@ -902,7 +1077,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 @media (max-width: 640px) {
   .landing__nav-cta { gap: 6px; }
   .landing__nav-cta .btn { padding: 8px 13px; font-size: 12px; }
-  .rooms-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  .grp-cards-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
   .landing__hero-title { font-size: clamp(26px, 8vw, 50px); }
   .verify-form, .lb-card { padding: 16px; }
   .verify-grid { padding: 32px 16px; gap: 24px; }
