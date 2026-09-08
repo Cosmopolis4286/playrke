@@ -50,6 +50,14 @@ const actionLoadingId = ref<string | null>(null)
 const notesById = ref<Record<string, string>>({})
 
 async function approve(payment: PendingPayment) {
+  const confirmed = await showToastConfirmAction({
+    title: 'Aprobar pago',
+    text: 'Se liberarán los cartones y el comprador podrá jugar de inmediato. Esta acción no se puede deshacer.',
+    icon: 'warning',
+    confirmButtonText: 'Sí, aprobar',
+  })
+  if (!confirmed) return
+
   actionLoadingId.value = payment.id
   try {
     await backendClient.post(`/bingo/card-payments/${payment.id}/approve`, {
