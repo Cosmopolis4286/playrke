@@ -157,7 +157,7 @@ final class WalletMovementController extends Controller
 
         $this->movementRepository->loadForAdminPanel($movement);
 
-        return $this->handleServiceJson(fn () => ['data' => $this->mapMovement($movement)]);
+        return $this->handleServiceJson(fn () => ['data' => $this->mapMovement($movement, withFraudSignals: true)]);
     }
 
     /**
@@ -248,7 +248,7 @@ final class WalletMovementController extends Controller
         ];
     }
 
-    private function mapMovement(WalletMovement $m): array
+    private function mapMovement(WalletMovement $m, bool $withFraudSignals = false): array
     {
         return [
             'id'             => (string) $m->id,
@@ -285,6 +285,70 @@ final class WalletMovementController extends Controller
                 'email'      => $m->user->email,
                 'username'   => $m->user->username ?? null,
             ] : null,
+            ...($withFraudSignals ? ['fraud_signals' => $this->buildFraudSignals($m)] : []),
+        ];
+    }
+
+    /**
+     * Señales de riesgo mostradas en el detalle del movimiento — solo se
+     * calculan al abrir el detalle (show(), nunca en el listado) para no
+     * meter N+1 queries en fetchList().
+     *
+     * @return array{
+     *   duplicate_receipt_movement_id: ?string,
+     *   deposits_today: ?int,
+     *   deposits_today_max: ?int,
+     *   recent_movements: array<int, array{id: string, type: string, status: string, amount: float, created_at: \Carbon\Carbon}>,
+     *   rejection_rate: ?float,
+     * }
+     */
+    private function buildFraudSignals(WalletMovement $m): array
+    {
+        $duplicateReceiptId = null;
+        if ($m->receipt_hash) {
+            $duplicateReceiptId = WalletMovement::where('receipt_hash', $m->receipt_hash)
+                ->where('id', '!=', $m->id)
+                ->orderByDesc('created_at')
+                ->value('id');
+        }
+
+        $depositsToday = null;
+        $depositsMax   = null;
+        if ($m->type === WalletMovement::TYPE_DEPOSIT) {
+            $depositsToday = $this->fraudService->depositsTodayCount((string) $m->user_id);
+            $depositsMax   = $this->fraudService->maxDepositsPerDay();
+        }
+
+        $recentMovements = WalletMovement::where('user_id', $m->user_id)
+            ->where('id', '!=', $m->id)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get(['id', 'type', 'status', 'amount', 'created_at'])
+            ->map(fn (WalletMovement $rm) => [
+                'id'         => (string) $rm->id,
+                'type'       => $rm->type,
+                'status'     => $rm->status,
+                'amount'     => (float) $rm->amount,
+                'created_at' => $rm->created_at,
+            ])
+            ->all();
+
+        $processedCounts = WalletMovement::where('user_id', $m->user_id)
+            ->whereIn('status', [WalletMovement::STATUS_COMPLETED, WalletMovement::STATUS_REJECTED])
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $completed = (int) ($processedCounts[WalletMovement::STATUS_COMPLETED] ?? 0);
+        $rejected  = (int) ($processedCounts[WalletMovement::STATUS_REJECTED] ?? 0);
+        $total     = $completed + $rejected;
+
+        return [
+            'duplicate_receipt_movement_id' => $duplicateReceiptId !== null ? (string) $duplicateReceiptId : null,
+            'deposits_today'                => $depositsToday,
+            'deposits_today_max'            => $depositsMax,
+            'recent_movements'              => $recentMovements,
+            'rejection_rate'                => $total > 0 ? round($rejected / $total * 100, 1) : null,
         ];
     }
 }

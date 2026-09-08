@@ -56,6 +56,23 @@ final class WalletFraudService
     }
 
     /**
+     * Depósitos ya registrados hoy por este usuario — expuesto al panel
+     * admin (WalletMovementController) para dar contexto en el detalle del
+     * movimiento ("3er depósito en 24h") en vez de que el límite solo
+     * bloquee silenciosamente sin que el admin vea la señal.
+     */
+    public function depositsTodayCount(string $userId) : int
+    {
+        return $this->operationCountToday($userId, WalletMovement::TYPE_DEPOSIT);
+    }
+
+    /** Tope diario de depósitos, para que el frontend calcule cuán cerca está del límite. */
+    public function maxDepositsPerDay(): int
+    {
+        return self::MAX_DEPOSITS_PER_DAY;
+    }
+
+    /**
      * Previene double-submit: mismo monto en la misma wallet en < 30 s.
      */
     public function checkDoubleSubmit(string $walletId, float $amount, string $type) : void
