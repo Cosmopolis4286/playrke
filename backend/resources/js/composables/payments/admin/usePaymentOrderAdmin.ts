@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
+import { showToast } from '@js/utils/toast'
 
 export interface AdminUser {
   id: string
@@ -64,9 +65,12 @@ export function usePaymentOrderAdmin() {
     try {
       const { data } = await axios.post(`/payments-orders/${orderId}/reevaluate`)
       await fetchList()
+      showToast('Orden reevaluada.', 'success')
       return { success: true, message: 'Orden reevaluada.', data: data.data }
     } catch (e: any) {
-      return { success: false, message: e?.response?.data?.message ?? 'No se pudo reevaluar la orden.' }
+      const message = e?.response?.data?.message ?? 'No se pudo reevaluar la orden.'
+      showToast(message, 'error')
+      return { success: false, message }
     }
   }
 
