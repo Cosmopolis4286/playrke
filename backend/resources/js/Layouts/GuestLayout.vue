@@ -146,6 +146,14 @@
         <!-- Branding -->
         <div class="gl-panel__brand">
           <img class="gl-panel__logo" :src="logoSrc" alt="PlayRKE" />
+          <!-- Live badge: antes vivía casi invisible al fondo del panel —
+               es la señal de confianza más fuerte ("hay gente jugando
+               ahora") en una plataforma de dinero real, así que sube junto
+               al logo con jerarquía alta en vez de quedar enterrada. -->
+          <p v-if="showStats && playersOnline !== null" class="gl-live-badge">
+            <span class="gl-live-badge__dot" aria-hidden="true"></span>
+            {{ playersOnline }} jugadores en línea ahora
+          </p>
         </div>
 
         <!-- Slides -->
@@ -178,12 +186,6 @@
           <span :key="current" class="gl-carousel__progress-bar"></span>
         </div>
 
-        <!-- Mini social-proof opcional (solo si showStats está activo) -->
-        <p v-if="showStats && playersOnline !== null" class="gl-panel__stat">
-          <i class="fa-solid fa-circle" aria-hidden="true"></i>
-          {{ playersOnline }} jugadores en línea ahora
-        </p>
-
         <!-- Redes sociales -->
         <nav class="gl-panel__socials" aria-label="Social media">
           <a class="gl-panel__social-icon fab fa-facebook"  href="https://www.facebook.com/my.play.rke"  target="_blank" aria-label="Facebook" />
@@ -196,18 +198,31 @@
       <section class="guest-layout__panel guest-layout__panel--right">
         <!-- Header -->
         <header class="guest-layout__header">
-          <p class="guest-layout__tagline">
+          <span class="guest-layout__eyebrow">PlayRKE</span>
+          <h1 class="guest-layout__tagline">
             <slot name="tagline">Tu plataforma de juegos premium</slot>
-          </p>
+          </h1>
           <div class="guest-layout__header-text">
             <slot name="header-text" />
           </div>
         </header>
 
-        <!-- Form -->
-        <section class="guest-layout__form">
-          <slot name="form-content" />
-        </section>
+        <!-- Form — transición de entrada propia: antes aparecía instantáneo
+             al navegar entre Login/Register, ahora entra con el mismo
+             lenguaje (fade + lift) que el resto de la SPA. appear:true la
+             dispara también en el primer render, no solo al cambiar v-if. -->
+        <Transition name="form-in" appear>
+          <section class="guest-layout__form">
+            <slot name="form-content" />
+          </section>
+        </Transition>
+
+        <!-- Badge de conexión segura — refuerzo de confianza cerca del
+             submit, relevante en una plataforma de dinero real. -->
+        <p class="gl-secure-badge">
+          <i class="fa-solid fa-lock" aria-hidden="true"></i>
+          Conexión cifrada y segura
+        </p>
 
         <!-- Footer -->
         <footer class="guest-layout__footer">
@@ -215,9 +230,9 @@
             <slot name="footer-content" />
           </aside>
           <nav class="guest-layout__legal">
-            <button class="guest-layout__legal-link" @click="openModal('terms')">Terms</button>
-            <button class="guest-layout__legal-link" @click="openModal('about')">About</button>
-            <button class="guest-layout__legal-link" @click="openModal('privacy')">Privacy</button>
+            <button class="guest-layout__legal-link" @click="openModal('terms')">Términos</button>
+            <button class="guest-layout__legal-link" @click="openModal('about')">Nosotros</button>
+            <button class="guest-layout__legal-link" @click="openModal('privacy')">Privacidad</button>
           </nav>
           <span class="guest-layout__copyright">PlayRKE © {{ new Date().getFullYear() }}</span>
         </footer>

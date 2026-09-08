@@ -32,7 +32,7 @@
     --border-focus:  rgba(42, 245, 152, 0.55);
 
     --radius:  10px;
-    --input-h: 46px;
+    --input-h: 44px;
 }
 
 /* ======================================================
@@ -71,6 +71,10 @@ button { border: none; background: none; cursor: pointer; }
     object-position: center;
     z-index: 0;
     opacity: 0;
+    /* A color (el duotono la deslucía sin aportar nada perceptible) — un
+       leve ajuste de saturación/contraste y un blur sutil la acercan al
+       resto de la paleta sin taparla ni cambiarle el tono. */
+    filter: saturate(1.15) contrast(1.05) blur(1.5px);
     transition: opacity 0.6s ease;
     will-change: opacity;
 }
@@ -79,7 +83,7 @@ button { border: none; background: none; cursor: pointer; }
 .guest-layout__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(2, 4, 20, 0.60) 0%, rgba(1, 2, 12, 0.82) 100%);
+    background: linear-gradient(180deg, rgba(2, 4, 20, 0.62) 0%, rgba(1, 2, 12, 0.86) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -99,17 +103,17 @@ button { border: none; background: none; cursor: pointer; }
 .guest-layout__card {
     position: relative;
     z-index: 2;
-    width: min(840px, calc(100vw - 32px));
-    min-height: 500px;
+    width: min(760px, calc(100vw - 32px));
+    min-height: 440px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    border-radius: 24px;
+    border-radius: 22px;
     overflow: hidden;
     box-shadow:
         0 0 0 1px rgba(42, 245, 152, 0.07),
-        0 0 60px rgba(123, 79, 255, 0.10),
-        0 32px 80px rgba(0, 0, 0, 0.70),
-        0 8px 24px rgba(0, 0, 0, 0.40);
+        0 0 50px rgba(123, 79, 255, 0.09),
+        0 28px 70px rgba(0, 0, 0, 0.70),
+        0 8px 20px rgba(0, 0, 0, 0.40);
     opacity: 0; /* invisible hasta ready */
 }
 
@@ -128,7 +132,7 @@ button { border: none; background: none; cursor: pointer; }
 .guest-layout__panel {
     display: flex;
     flex-direction: column;
-    padding: 40px 32px;
+    padding: 30px 28px;
 }
 
 /* ── LEFT ───────────────────────────────────────── */
@@ -136,7 +140,7 @@ button { border: none; background: none; cursor: pointer; }
     position: relative;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 18px;
     background: linear-gradient(155deg, var(--bg-mid) 0%, #070c1e 55%, var(--bg-deep) 100%);
     border-right: 1px solid rgba(42, 245, 152, 0.08);
     overflow: hidden;
@@ -191,19 +195,55 @@ button { border: none; background: none; cursor: pointer; }
     position: relative;
     z-index: 1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
     width: 100%;
 }
 
+/* ── LIVE BADGE — señal de confianza principal del panel, junto al logo ── */
+.gl-live-badge {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(42, 245, 152, 0.08);
+    border: 1px solid rgba(42, 245, 152, 0.24);
+    font-size: 0.70em;
+    font-weight: var(--medium);
+    color: var(--gray-1);
+    white-space: nowrap;
+}
+.gl-live-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 6px var(--mint);
+    animation: live-pulse 1.8s ease-in-out infinite;
+    flex-shrink: 0;
+}
+@keyframes live-pulse {
+    0%, 100% { opacity: 1;   transform: scale(1); }
+    50%      { opacity: 0.5; transform: scale(0.75); }
+}
+
 .gl-panel__logo {
-    max-height: 70px;
+    max-height: 80px;
     opacity: 0.95;
     filter: drop-shadow(0 0 14px rgba(123, 79, 255, 0.30));
     transition: opacity 0.3s, filter 0.3s;
+    animation: logo-float 4.5s ease-in-out infinite;
 }
 .gl-panel__logo:hover {
     opacity: 1;
-    filter: drop-shadow(0 0 20px rgba(42, 245, 152, 0.45));
+    filter: drop-shadow(0 0 22px rgba(42, 245, 152, 0.50));
+}
+@keyframes logo-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
 }
 
 /* ======================================================
@@ -218,8 +258,8 @@ button { border: none; background: none; cursor: pointer; }
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 190px;
-    gap: 12px;
+    min-height: 150px;
+    gap: 10px;
 }
 
 .gl-carousel__slide {
@@ -227,15 +267,16 @@ button { border: none; background: none; cursor: pointer; }
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 14px;
+    gap: 10px;
     padding: 0 8px;
     width: 100%;
 }
 
 .gl-carousel__icon-wrap {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
     background: rgba(42, 245, 152, 0.06);
     border: 1px solid rgba(42, 245, 152, 0.18);
     display: flex;
@@ -247,6 +288,22 @@ button { border: none; background: none; cursor: pointer; }
 .gl-carousel__icon-wrap:hover {
     box-shadow: 0 0 28px rgba(42, 245, 152, 0.22);
     transform: scale(1.05);
+}
+/* Anillo que respira alrededor del icono — antes estático, ahora refuerza
+   la sensación de "vivo" que ya tiene el resto de la plataforma (mismo
+   lenguaje que el pulso de las room cards). */
+.gl-carousel__icon-wrap::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 22px;
+    border: 1px solid rgba(42, 245, 152, 0.22);
+    animation: icon-ring-pulse 2.6s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes icon-ring-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50%      { opacity: 0;   transform: scale(1.12); }
 }
 
 .gl-carousel__icon {
@@ -281,7 +338,25 @@ button { border: none; background: none; cursor: pointer; }
 .carousel-fade-enter-from   { opacity: 0; transform: translateX(16px); }
 .carousel-fade-leave-to     { opacity: 0; transform: translateX(-16px); }
 
-/* ── DOTS ────────────────────────────────────────── */
+/* ── DOTS + CONTADOR ─────────────────────────────── */
+.gl-carousel__nav {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.gl-carousel__count {
+    font-family: var(--font-heading);
+    font-size: 0.62em;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(42, 245, 152, 0.55);
+    font-variant-numeric: tabular-nums;
+}
+
 .gl-carousel__dots {
     position: relative;
     z-index: 1;
@@ -333,25 +408,6 @@ button { border: none; background: none; cursor: pointer; }
     to   { transform: scaleX(1); }
 }
 
-/* ── MINI SOCIAL-PROOF (opcional, solo Login) ─────── */
-.gl-panel__stat {
-    position: relative;
-    z-index: 1;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    font-size: 0.72em;
-    font-weight: var(--medium);
-    color: var(--gray-1);
-}
-.gl-panel__stat i {
-    font-size: 6px;
-    color: var(--mint);
-    filter: drop-shadow(0 0 4px var(--mint));
-}
-
 /* ── SOCIALS ─────────────────────────────────────── */
 .gl-panel__socials {
     position: relative;
@@ -379,33 +435,72 @@ button { border: none; background: none; cursor: pointer; }
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 8px;
+    gap: 3px;
+    margin-bottom: 6px;
 }
 
-.guest-layout__tagline {
-    margin: 0;
-    font-size: 0.63em;
+.guest-layout__eyebrow {
+    font-size: 0.58em;
     font-weight: var(--light);
-    letter-spacing: 3.5px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     color: rgba(42, 245, 152, 0.42);
+}
+
+/* Antes era un eyebrow diminuto (0.63em, todo mayúsculas) — el slot
+   #tagline en realidad lleva el título real de cada página ("Bienvenido de
+   vuelta", "Únete a la élite"...), así que pasa a ser el H1 visual del
+   panel derecho, con la misma tipografía de marca que el resto del sitio. */
+.guest-layout__tagline {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.35em;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--white);
     text-align: center;
 }
 
-.guest-layout__header-text {
+/* min-height solo cuando el slot trae contenido real (:not(:empty)) —
+   antes reservaba 16px siempre, incluso vacío (caso de Login), sumando
+   espacio de sobra entre el título y el form. */
+.guest-layout__header-text:not(:empty) {
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.85em;
     text-align: center;
     min-height: 16px;
+    margin-top: 2px;
 }
 
 /* ======================================================
    RIGHT — FORM
 ====================================================== */
 .guest-layout__form { width: 100%; }
+
+/* Transición de entrada — antes el form aparecía instantáneo al navegar
+   entre Login/Register/etc. */
+.form-in-enter-active { transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+.form-in-enter-from   { opacity: 0; transform: translateY(10px); }
+
+/* ── SECURE BADGE ─────────────────────────────────── */
+.gl-secure-badge {
+    width: 100%;
+    margin: 10px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.68em;
+    font-weight: var(--medium);
+    letter-spacing: 0.2px;
+    color: var(--gray-3);
+}
+.gl-secure-badge i {
+    font-size: 0.85em;
+    color: var(--mint-dim);
+}
 
 /* ======================================================
    RIGHT — FOOTER
@@ -469,6 +564,12 @@ button { border: none; background: none; cursor: pointer; }
     display: flex;
     align-items: center;
     margin: 8px 0;
+    transition: transform 0.2s ease;
+}
+/* Micro-lift al enfocar — refuerza el feedback táctil del cambio de color
+   del ícono que ya existía, sin depender solo de eso. */
+.auth-form__field:focus-within {
+    transform: translateY(-1px);
 }
 
 .auth-form__input {
@@ -583,7 +684,31 @@ button { border: none; background: none; cursor: pointer; }
     box-shadow: none;
 }
 .auth-form__submit:disabled { opacity: 0.40; cursor: not-allowed; }
-.auth-form__submit-text { position: relative; z-index: 1; }
+.auth-form__submit-text {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+/* Flecha que entra desde la izquierda al hover — refuerza la acción del
+   submit más allá del shimmer de fondo que ya existía. font-family: "Font
+   Awesome 6 Free" (peso 900/solid) para no depender de un <i> extra en
+   cada página que usa este botón (Login/Register/ForgotPassword/...). */
+.auth-form__submit-text::after {
+    content: '\f061'; /* fa-arrow-right */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.85em;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: width 0.25s ease, opacity 0.25s ease;
+}
+.auth-form__submit:hover:not(:disabled) .auth-form__submit-text::after {
+    width: 1em;
+    opacity: 1;
+}
 /* El spinner por defecto usa un aro claro (pensado para fondos oscuros);
    dentro del submit (fondo mint/azul claro) necesita el contraste invertido. */
 .auth-form__submit .spinner-border {
@@ -609,12 +734,18 @@ button { border: none; background: none; cursor: pointer; }
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     font-size: 10.5px;
     color: var(--gray-2);
     margin: 6px 0 2px;
 }
-.auth-form__checkbox input[type="checkbox"] { accent-color: var(--mint-dim); cursor: pointer; }
+.auth-form__checkbox input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    accent-color: var(--mint-dim);
+    cursor: pointer;
+    flex-shrink: 0;
+}
 .auth-form__link {
     font: inherit;
     color: var(--mint-dim);
@@ -740,8 +871,8 @@ button { border: none; background: none; cursor: pointer; }
     .gl-carousel__icon { font-size: 1.2rem; }
     .gl-orb { width: 180px; height: 180px; }
     .gl-orb--secondary { width: 110px; height: 110px; }
-    .gl-carousel__progress,
-    .gl-panel__stat { display: none; }
+    .gl-carousel__progress { display: none; }
+    .gl-live-badge { font-size: 0.62em; padding: 4px 10px; }
 }
 
 @media (max-width: 400px) {
@@ -755,8 +886,13 @@ button { border: none; background: none; cursor: pointer; }
     .guest-layout__bg          { transition: none; }
     .spinner-border            { animation-duration: 1.5s; }
     .gl-orb                    { animation: none; }
+    .gl-panel__logo            { animation: none; }
     .gl-carousel__progress-bar { animation: none; transform: scaleX(1); }
+    .gl-carousel__icon-wrap::before { animation: none; opacity: 0; }
+    .gl-live-badge__dot        { animation: none; }
     .carousel-fade-enter-active,
     .carousel-fade-leave-active { transition: none; }
+    .form-in-enter-active      { transition: none; }
+    .auth-form__field          { transition: none; }
     .auth-form__submit::after  { display: none; }
 }
