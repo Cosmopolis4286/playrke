@@ -121,7 +121,7 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
 </template>
 
 <style scoped>
-/* Reusa la misma paleta visual .sd-*/.sp-* de las páginas de perfil hermanas. */
+/* Reusa la misma paleta visual .sd- / .sp- de las páginas de perfil hermanas. */
 .sp-card { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: 12px; padding: 1.25rem 1.5rem; }
 
 .sd-header { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--ds-border); }
