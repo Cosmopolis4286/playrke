@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Roles\CommerceController;
+use App\Http\Controllers\Roles\Commerce\CommerceEconomyReportController;
 use App\Http\Controllers\Roles\Commerce\CommerceProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,15 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'multiPermission:commerces.manage-own'])->group(function () {
     Route::get('commerce/profile', [CommerceProfileController::class, 'show'])->name('commerce.profile.show');
     Route::put('commerce/profile', [CommerceProfileController::class, 'update'])->name('commerce.profile.update');
+
+    // Reporte financiero consolidado de la red propia (ventas + comisión
+    // real por moneda y por vendedor, TODA la red: directos + agencias) —
+    // antes no existía ningún reporte propio que cruzara esto, solo el
+    // dashboard (mes en curso) y bingo.sales-report (solo ventas directas
+    // del propio commerce, sin su red — ver Commerce::networkUserIds()).
+    Route::get('commerce/economy-summary', [CommerceEconomyReportController::class, 'index'])->name('commerce.economy-summary.index');
+    Route::get('commerce/economy-summary/fetch', [CommerceEconomyReportController::class, 'fetch'])->name('commerce.economy-summary.fetch');
+    Route::get('commerce/economy-summary/export-by-seller', [CommerceEconomyReportController::class, 'exportBySeller'])->name('commerce.economy-summary.export-by-seller');
 });
 
 // ====================================

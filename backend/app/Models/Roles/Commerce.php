@@ -107,6 +107,37 @@ class Commerce extends BaseModel
     }
 
     /**
+     * user_id del propio commerce + de TODA su red de vendedores: directos
+     * (sellers() vía manager_user_id) y los que reportan a través de cada
+     * Subsidiary (jerarquía Comercializadora → Agencia → Taquilla).
+     *
+     * Existía un hueco real antes de este método: CommerceDashboardContextService
+     * y BingoReportController solo filtraban por el user_id del commerce
+     * (creator_user_id de sala/lote propio), así que un commerce con
+     * vendedores activos veía un total de ventas incompleto — nunca
+     * contaba lo generado por su red. Mismo criterio de "vendedores
+     * propios" que ya usa SubsidiaryDashboardContextService::sellerUserIds(),
+     * extendido un nivel más arriba en la jerarquía.
+     *
+     * @return string[]
+     */
+    public function networkUserIds(): array
+    {
+        $directSellerIds = $this->sellers()->pluck('user_id')->map(fn ($id) => (string) $id);
+
+        $subsidiarySellerIds = Seller::whereIn('subsidiary_id', $this->subsidiaries()->pluck('id'))
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id);
+
+        return $directSellerIds
+            ->merge($subsidiarySellerIds)
+            ->push((string) $this->user_id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Monedas que maneja el comercio
      */
     public function currencies(): BelongsToMany

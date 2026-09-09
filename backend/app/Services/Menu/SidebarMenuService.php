@@ -137,6 +137,11 @@ class SidebarMenuService
                     'route' => 'commerce.profile.show',
                     'permission' => 'commerces.manage-own',
                 ],
+                'commerce_economy_summary' => [
+                    'title' => 'Resumen Financiero',
+                    'route' => 'commerce.economy-summary.index',
+                    'permission' => 'commerces.manage-own',
+                ],
                 'my_profile_seller' => [
                     'title' => 'Mi Perfil',
                     'route' => 'seller.profile.show',
