@@ -137,7 +137,7 @@ function formatAmount(entry: JackpotEntry, amount: number): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
 }
 
 .jackpot-display__hero {
@@ -145,44 +145,24 @@ function formatAmount(entry: JackpotEntry, amount: number): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 28px 40px;
-  border-radius: 24px;
-  background: linear-gradient(160deg, #0a0f24 0%, #0c1230 60%, #060a18 100%);
-  border: 1px solid transparent;
-  background-clip: padding-box;
-  box-shadow:
-    0 0 0 1px rgba(42, 245, 152, 0.15),
-    0 0 60px rgba(123, 79, 255, 0.18),
-    0 20px 50px rgba(0, 0, 0, 0.55);
-  transition: box-shadow 0.4s ease, transform 0.4s ease;
-}
-.jackpot-display__hero::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 24px;
-  padding: 1px;
-  background: linear-gradient(135deg, #2af598, #7b4fff, #009efd);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0.6;
-  pointer-events: none;
+  gap: 4px;
+  padding: 22px 36px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(123,79,255,0.05) 0%, rgba(10,15,36,0.7) 100%);
+  border: 1px solid rgba(42, 245, 152, 0.18);
+  box-shadow: 0 0 40px rgba(42, 245, 152, 0.08);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
 .jackpot-display__hero--pulse {
-  transform: scale(1.02);
-  box-shadow:
-    0 0 0 1px rgba(42, 245, 152, 0.4),
-    0 0 90px rgba(42, 245, 152, 0.35),
-    0 20px 50px rgba(0, 0, 0, 0.55);
+  border-color: rgba(42, 245, 152, 0.5);
+  box-shadow: 0 0 55px rgba(42, 245, 152, 0.22);
 }
 
 .jackpot-display__hero-label {
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.1px;
   text-transform: uppercase;
   color: #7a96c8;
 }
@@ -190,36 +170,35 @@ function formatAmount(entry: JackpotEntry, amount: number): string {
 .jackpot-display__hero-amount {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 5px;
   font-family: "Orbitron", "Anton", sans-serif;
 }
 .jackpot-display__symbol {
-  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
   font-weight: 700;
   color: #2af598;
 }
 .jackpot-display__number {
-  font-size: clamp(2.2rem, 8vw, 4.5rem);
+  font-size: clamp(1.7rem, 5vw, 2.8rem);
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 30px rgba(42, 245, 152, 0.35), 0 0 70px rgba(123, 79, 255, 0.2);
   background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 45%, #7b4fff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .jackpot-display__code {
-  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  font-size: clamp(0.72rem, 1.8vw, 0.85rem);
   font-weight: 700;
   color: #7a96c8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .jackpot-display__periodicity {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   color: #4a6698;
   text-transform: uppercase;
 }
@@ -233,29 +212,28 @@ function formatAmount(entry: JackpotEntry, amount: number): string {
 .jackpot-display__chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
+  gap: 7px;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: linear-gradient(160deg, rgba(123, 79, 255, 0.08) 0%, rgba(10, 15, 36, 0.55) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 .jackpot-display__chip-label {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #7a96c8;
 }
 .jackpot-display__chip-value {
   font-family: "Orbitron", "Anton", sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: #e0eaff;
+  color: #c7d2f0;
 }
 
 @media (max-width: 480px) {
-  .jackpot-display__hero { padding: 22px 24px; }
+  .jackpot-display__hero { padding: 18px 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .jackpot-display__hero { transition: none; }
-  .jackpot-display__hero--pulse { transform: none; }
 }
 </style>
