@@ -7,8 +7,7 @@
         <x-shared.app-loader />
     @endif
 
-    @include('sweetalert::alert')
-@include('includes.notifications')
+    @include('includes.notifications')
 
     <main class="container-fluid">
         {{ $slot }}

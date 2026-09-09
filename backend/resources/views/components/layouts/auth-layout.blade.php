@@ -69,9 +69,6 @@
         {{-- Sidebar dinámico --}}
         <x-template.sidebar-dynamic />
 
-        {{-- Alertas SweetAlert --}}
-        @include('sweetalert::alert')
-
         {{-- Notificaciones globales --}}
         @include('includes.notifications')
 
