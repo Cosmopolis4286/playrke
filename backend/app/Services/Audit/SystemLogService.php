@@ -20,6 +20,17 @@ class SystemLogService
     private const SORTABLE_COLUMNS = ['id', 'date', 'level', 'occurrences'];
 
     /**
+     * Logs ignorados no cuentan en las stats "sin revisar" ni en el conteo
+     * de nuevos del polling — el admin decidió explícitamente que ese
+     * fingerprint es conocido y no amerita más atención, a diferencia de
+     * reviewed_at que es por fila y se resetea con cada nueva ocurrencia.
+     */
+    private function excludeIgnored(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereNull('ignored_at');
+    }
+
+    /**
      * Tabla compacta: 'level' incluye el indicador de revisado adosado, y
      * 'message' incluye contexto + ocurrencias como metadata secundaria —
      * ver #cell-level y #cell-message en SystemLogs/Index.vue. Las claves
@@ -102,7 +113,7 @@ class SystemLogService
      */
     public function countSince(string $sinceIso): int
     {
-        return SystemLog::where('last_seen_at', '>', $sinceIso)->count();
+        return $this->excludeIgnored(SystemLog::where('last_seen_at', '>', $sinceIso))->count();
     }
 
     /**
@@ -120,27 +131,68 @@ class SystemLogService
             $log->forceFill(['reviewed_at' => now(), 'reviewed_by_user_id' => Auth::id()])->save();
         }
 
-        return $this->toDetail($log->fresh('reviewedBy'));
+        return $this->toDetail($log->fresh(['reviewedBy', 'ignoredBy', 'assignedTo']));
     }
 
     /**
-     * Estadísticas para los stat tiles: total + conteo por nivel.
-     * Cacheado 5 min — menor TTL que /audit porque errores nuevos son más
-     * urgentes de reflejar que cambios de auditoría de negocio.
+     * Marca (o desmarca) un log como ignorado — "conocido, no molestar más"
+     * a nivel de fingerprint, a diferencia de reviewed_at que es por fila.
+     * Mientras esté ignorado, nuevas ocurrencias del mismo error no cuentan
+     * en newLogsCount ni en las stats "sin revisar" (ver excludeIgnored()).
+     */
+    public function toggleIgnored(string $id): array
+    {
+        $log = SystemLog::findOrFail($id);
+
+        if ($log->ignored_at) {
+            $log->forceFill(['ignored_at' => null, 'ignored_by_user_id' => null])->save();
+        } else {
+            $log->forceFill(['ignored_at' => now(), 'ignored_by_user_id' => Auth::id()])->save();
+        }
+
+        Cache::forget('system-logs:stats');
+
+        return $this->toDetail($log->fresh(['reviewedBy', 'ignoredBy', 'assignedTo']));
+    }
+
+    /**
+     * Asigna (o desasigna, con $userId null) un log a un admin — reparte la
+     * carga cuando hay varios admins mirando /logs; el filtro "assigned_to
+     * =mine" en buildQuery() deja ver solo lo propio.
+     */
+    public function assign(string $id, ?string $userId): array
+    {
+        $log = SystemLog::findOrFail($id);
+        $log->forceFill(['assigned_to_user_id' => $userId])->save();
+
+        return $this->toDetail($log->fresh(['reviewedBy', 'ignoredBy', 'assignedTo']));
+    }
+
+    /**
+     * Estadísticas para los stat tiles: total + conteo por nivel, excluyendo
+     * lo ignorado (ruido ya conocido no debe inflar los números que el admin
+     * usa para priorizar). Cacheado 5 min — menor TTL que /audit porque
+     * errores nuevos son más urgentes de reflejar que cambios de auditoría
+     * de negocio.
      */
     public function stats(): array
     {
         return Cache::remember('system-logs:stats', 300, function (): array {
-            $total = SystemLog::count();
+            $base = fn () => $this->excludeIgnored(SystemLog::query());
 
-            $byLevel = SystemLog::selectRaw('level, COUNT(*) as total')
+            $total = $base()->count();
+
+            $byLevel = $base()
+                ->selectRaw('level, COUNT(*) as total')
                 ->groupBy('level')
                 ->get()
                 ->map(fn ($row) => ['level' => $row->level, 'count' => (int) $row->total])
                 ->values()
                 ->toArray();
 
-            return compact('total', 'byLevel');
+            $ignoredCount = SystemLog::whereNotNull('ignored_at')->count();
+
+            return compact('total', 'byLevel', 'ignoredCount');
         });
     }
 
@@ -188,6 +240,20 @@ class SystemLogService
             $query->whereDate('system_logs.last_seen_at', '<=', $filters['date_to']);
         }
 
+        // 'mine' filtra por el admin autenticado — atajo de "assigned_to_user_id"
+        // sin exponer IDs de otros usuarios en la UI.
+        if (!empty($filters['assigned_to_user_id'])) {
+            $query->where('assigned_to_user_id', $filters['assigned_to_user_id'] === 'mine' ? Auth::id() : $filters['assigned_to_user_id']);
+        }
+
+        // Por defecto la vista principal oculta lo ignorado (ruido conocido);
+        // 'ignored' = 'only' lo invierte para poder auditar qué se silenció.
+        if (($filters['ignored'] ?? null) === 'only') {
+            $query->whereNotNull('ignored_at');
+        } elseif (($filters['ignored'] ?? null) !== 'all') {
+            $this->excludeIgnored($query);
+        }
+
         return $query;
     }
 
@@ -222,6 +288,8 @@ class SystemLogService
             'context'         => $log->context ?? '—',
             'occurrences'     => $log->occurrences,
             'reviewed'        => (bool) $log->reviewed_at,
+            'ignored'         => (bool) $log->ignored_at,
+            'assigned_to'     => $log->assignedTo?->full_name,
             'server_timezone' => config('app.timezone'),
         ];
     }
@@ -229,21 +297,44 @@ class SystemLogService
     private function toDetail(SystemLog $log): array
     {
         return [
-            'id'              => $log->id,
+            'id'                  => $log->id,
             // ISO 8601 con offset (no un string ya formateado en la zona del
             // servidor) para que el frontend pueda convertirlo a la zona
             // horaria local del navegador del usuario y mostrar ambas.
-            'date'            => $log->created_at?->toIso8601String(),
-            'last_seen_at'    => $log->last_seen_at?->toIso8601String(),
-            'level'           => $log->level,
-            'message'         => $log->message,
-            'context'         => $log->context,
-            'stack'           => $log->stack,
-            'meta'            => $log->meta,
-            'occurrences'     => $log->occurrences,
-            'reviewed_at'     => $log->reviewed_at?->toIso8601String(),
-            'reviewed_by'     => $log->reviewedBy?->full_name,
-            'server_timezone' => config('app.timezone'),
+            'date'                => $log->created_at?->toIso8601String(),
+            'last_seen_at'        => $log->last_seen_at?->toIso8601String(),
+            'level'               => $log->level,
+            'message'             => $log->message,
+            'context'             => $log->context,
+            'stack'               => $log->stack,
+            'meta'                => $log->meta,
+            'occurrences'         => $log->occurrences,
+            'reviewed_at'         => $log->reviewed_at?->toIso8601String(),
+            'reviewed_by'         => $log->reviewedBy?->full_name,
+            'ignored_at'          => $log->ignored_at?->toIso8601String(),
+            'ignored_by'          => $log->ignoredBy?->full_name,
+            'assigned_to_user_id' => $log->assigned_to_user_id ? (string) $log->assigned_to_user_id : null,
+            'assigned_to'         => $log->assignedTo?->full_name,
+            'server_timezone'     => config('app.timezone'),
         ];
+    }
+
+    /**
+     * Admins/superadmins disponibles para asignar un log — alimenta el
+     * selector de "Asignar a" en el modal de detalle.
+     */
+    public function assignableUsers(): array
+    {
+        return Cache::remember('system-logs:assignable-users', 300, function (): array {
+            return \App\Models\User::whereHas(
+                'roles',
+                fn ($q) => $q->whereIn('name', ['admin', 'superadmin']),
+            )
+                ->orderBy('first_name')
+                ->get(['id', 'first_name', 'last_name'])
+                ->map(fn ($u) => ['value' => (string) $u->id, 'label' => trim("{$u->first_name} {$u->last_name}")])
+                ->values()
+                ->toArray();
+        });
     }
 }

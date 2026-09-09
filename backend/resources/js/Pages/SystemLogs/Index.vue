@@ -29,7 +29,7 @@
 
   const {
     logs, detail, loading, lastQuery, newLogsCount,
-    setInitialLogs, initPolling, onQueryChange, fetchDetail, toggleReviewed, clearDetail,
+    setInitialLogs, initPolling, onQueryChange, fetchDetail, toggleReviewed, toggleIgnored, assign, clearDetail,
     startPolling, stopPolling,
   } = useSystemLogs()
 
@@ -73,20 +73,32 @@
       label:   'Contexto',
       options: props.contexts,
     },
+    {
+      key:     'assigned_to_user_id',
+      label:   'Asignado a',
+      options: [{ label: 'Asignados a mí', value: 'mine' }, ...props.assignableUsers],
+    },
   ])
 
   /* -------------------------------------------------------------------------- */
-  /* Filtros ad-hoc: fecha                                                       */
+  /* Filtros ad-hoc: fecha + ignorados                                           */
   /* -------------------------------------------------------------------------- */
 
   const showDateFilters = ref(false)
   const dateFrom = ref('')
   const dateTo   = ref('')
+  const showIgnored = ref(false)
 
   const extraFilters = computed(() => ({
     date_from: dateFrom.value || undefined,
     date_to:   dateTo.value   || undefined,
+    ignored:   showIgnored.value ? ('only' as const) : undefined,
   }))
+
+  async function toggleShowIgnored(): Promise<void> {
+    showIgnored.value = !showIgnored.value
+    await refetch()
+  }
 
   async function refetch(): Promise<void> {
     await onQueryChange(lastQuery.value, extraFilters.value)
@@ -115,8 +127,10 @@
     if (lastQuery.value.search) params.set('search', lastQuery.value.search)
     if (lastQuery.value.filters.level) params.set('level', lastQuery.value.filters.level)
     if (lastQuery.value.filters.context) params.set('context', lastQuery.value.filters.context)
+    if (lastQuery.value.filters.assigned_to_user_id) params.set('assigned_to_user_id', lastQuery.value.filters.assigned_to_user_id)
     if (dateFrom.value) params.set('date_from', dateFrom.value)
     if (dateTo.value) params.set('date_to', dateTo.value)
+    if (showIgnored.value) params.set('ignored', 'only')
     window.location.href = `/logs/export?${params.toString()}`
   }
 
@@ -147,6 +161,40 @@
     const ok = await toggleReviewed(detail.value.id)
     if (ok) {
       showToast(wasReviewed ? 'Log marcado como no revisado' : 'Log marcado como revisado', 'success')
+      await refetch()
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Ignorar: "conocido, no molestar más" a nivel de fingerprint — distinto de  */
+  /* revisado, que es por fila y se resetea con cada nueva ocurrencia.          */
+  /* -------------------------------------------------------------------------- */
+
+  async function handleToggleIgnored(): Promise<void> {
+    if (!detail.value) return
+    const wasIgnored = !!detail.value.ignored_at
+
+    const confirmed = wasIgnored
+      ? await showToastConfirmAction('Este log volverá a aparecer en la lista y a contar en las alertas.', 'question', 'Sí, reactivar')
+      : await showToastConfirmAction('Este error se ocultará de la lista y ya no contará como pendiente, incluso si vuelve a ocurrir.', 'warning', 'Sí, ignorar')
+    if (!confirmed) return
+
+    const ok = await toggleIgnored(detail.value.id)
+    if (ok) {
+      showToast(wasIgnored ? 'Log reactivado' : 'Log marcado como ignorado', 'success')
+      await refetch()
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Asignación: reparte la carga cuando hay varios admins mirando /logs        */
+  /* -------------------------------------------------------------------------- */
+
+  async function handleAssign(userId: string): Promise<void> {
+    if (!detail.value) return
+    const ok = await assign(detail.value.id, userId || null)
+    if (ok) {
+      showToast(userId ? 'Log asignado' : 'Asignación removida', 'success')
       await refetch()
     }
   }
@@ -230,9 +278,10 @@
       icon="fa-exclamation-circle"
       :variant="statVariant[item.level] ?? 'default'"
     />
+    <StatTile label="Ignorados" :value="stats.ignoredCount" icon="fa-eye-slash" variant="default" />
   </div>
 
-  <!-- Filtros ad-hoc: fecha -->
+  <!-- Filtros ad-hoc: fecha + ignorados -->
   <div class="card mb-3">
     <div class="card-body py-2">
       <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -241,6 +290,14 @@
           @click="showDateFilters = !showDateFilters"
         >
           <i class="fas fa-calendar-alt me-1"></i> Filtrar por fecha
+        </button>
+
+        <button
+          class="btn btn-sm"
+          :class="showIgnored ? 'btn-secondary' : 'btn-outline-secondary'"
+          @click="toggleShowIgnored"
+        >
+          <i class="fas fa-eye-slash me-1"></i> {{ showIgnored ? 'Viendo ignorados' : 'Ver ignorados' }}
         </button>
 
         <div v-if="showDateFilters" class="d-flex align-items-center gap-2 flex-wrap">
@@ -259,6 +316,15 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
+      </div>
+
+      <div class="log-retention-info mt-2">
+        <i class="fas fa-info-circle me-1"></i>
+        Se conservan <strong>{{ retention.days }} días</strong> de logs (purga automática diaria) · alerta si hay
+        <strong>{{ retention.alertThreshold }}+ errores</strong> en <strong>{{ retention.alertWindowMinutes }} min</strong>.
+        <a href="/app-parameters" class="ms-1">Editar en Parámetros</a>
+        ·
+        <a href="/system/jobs">Ver historial de ejecución</a>
       </div>
     </div>
   </div>
@@ -313,13 +379,15 @@
       </div>
     </template>
 
-    <!-- Columna: Mensaje (truncado, con contexto + ocurrencias como metadata secundaria) -->
+    <!-- Columna: Mensaje (truncado, con contexto + ocurrencias + asignado como metadata secundaria) -->
     <template #cell-message="{ row, value }">
       <div class="log-message-cell">
         <span class="text-truncate d-inline-block" style="max-width: 420px" :title="value">{{ value }}</span>
         <small class="text-muted log-message-meta">
           <span class="font-monospace">{{ row.context }}</span>
           <span v-if="row.occurrences > 1" class="badge bg-secondary ms-1">×{{ row.occurrences }}</span>
+          <span v-if="row.ignored" class="badge bg-secondary ms-1"><i class="fas fa-eye-slash me-1"></i>Ignorado</span>
+          <span v-if="row.assigned_to" class="badge bg-info text-dark ms-1"><i class="fas fa-user me-1"></i>{{ row.assigned_to }}</span>
         </small>
       </div>
     </template>
@@ -344,11 +412,29 @@
     size="lg"
   >
     <template v-if="detail">
-      <div class="d-flex justify-content-end mb-2">
+      <div class="d-flex justify-content-end align-items-center gap-2 mb-2 flex-wrap">
+        <select
+          class="form-select form-select-sm"
+          style="width: auto"
+          :value="detail.assigned_to_user_id ?? ''"
+          @change="handleAssign(($event.target as HTMLSelectElement).value)"
+        >
+          <option value="">Sin asignar</option>
+          <option v-for="u in props.assignableUsers" :key="u.value" :value="u.value">{{ u.label }}</option>
+        </select>
+        <button class="btn btn-sm" :class="detail.ignored_at ? 'btn-outline-secondary' : 'btn-outline-dark'" @click="handleToggleIgnored">
+          <i class="fas" :class="detail.ignored_at ? 'fa-eye' : 'fa-eye-slash'"></i>
+          {{ detail.ignored_at ? 'Reactivar' : 'Ignorar' }}
+        </button>
         <button class="btn btn-sm" :class="detail.reviewed_at ? 'btn-outline-secondary' : 'btn-success'" @click="handleToggleReviewed">
           <i class="fas" :class="detail.reviewed_at ? 'fa-times' : 'fa-check'"></i>
           {{ detail.reviewed_at ? 'Marcar como no revisado' : 'Marcar como revisado' }}
         </button>
+      </div>
+
+      <div v-if="detail.ignored_at" class="alert alert-secondary py-2 px-3 mb-3 small">
+        <i class="fas fa-eye-slash me-1"></i>
+        Ignorado{{ detail.ignored_by ? ` por ${detail.ignored_by}` : '' }} — no cuenta en las stats ni en las alertas.
       </div>
 
       <div class="row g-3">
@@ -432,6 +518,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
+}
+
+.log-retention-info {
+  font-size: 0.78rem;
+  color: var(--ds-text-muted, #6c757d);
 }
 
 .log-stack {

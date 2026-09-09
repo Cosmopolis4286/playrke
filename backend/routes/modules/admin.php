@@ -402,6 +402,8 @@ Route::middleware('auth')->group(function () {
         'checkNew'       => ['method' => 'get', 'uri' => 'check-new',      'action' => 'checkNew'],
         'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
         'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
+        'toggleIgnored'  => ['method' => 'put', 'uri' => '{id}/ignored',    'action' => 'toggleIgnored'],
+        'assign'         => ['method' => 'put', 'uri' => '{id}/assign',    'action' => 'assign'],
     ]);
 
     /**

@@ -17,6 +17,7 @@ export interface SystemLogLevelCount {
 export interface SystemLogStats {
     total: number
     byLevel: SystemLogLevelCount[]
+    ignoredCount: number
 }
 
 export interface SystemLogContextOption {
@@ -24,10 +25,23 @@ export interface SystemLogContextOption {
     value: string
 }
 
+export interface SystemLogAssignableUser {
+    value: string
+    label: string
+}
+
+export interface SystemLogRetentionInfo {
+    days: number
+    alertThreshold: number
+    alertWindowMinutes: number
+}
+
 export interface SystemLogPageProps {
     logs: SystemLogTableData
     stats: SystemLogStats
     contexts: SystemLogContextOption[]
+    assignableUsers: SystemLogAssignableUser[]
+    retention: SystemLogRetentionInfo
 }
 
 export interface SystemLogDetail {
@@ -42,5 +56,9 @@ export interface SystemLogDetail {
     occurrences: number
     reviewed_at: string | null
     reviewed_by: string | null
+    ignored_at: string | null
+    ignored_by: string | null
+    assigned_to_user_id: string | null
+    assigned_to: string | null
     server_timezone: string | null
 }

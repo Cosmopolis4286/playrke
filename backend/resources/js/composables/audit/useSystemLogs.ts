@@ -11,6 +11,8 @@ interface SystemLogFilters {
     date_from?: string
     date_to?: string
     search?: string
+    assigned_to_user_id?: string
+    ignored?: 'all' | 'only'
 }
 
 interface UseSystemLogsReturn {
@@ -25,6 +27,8 @@ interface UseSystemLogsReturn {
     onQueryChange: (query: ServerQuery, extraFilters?: SystemLogFilters) => Promise<void>
     fetchDetail: (id: string) => Promise<boolean>
     toggleReviewed: (id: string) => Promise<boolean>
+    toggleIgnored: (id: string) => Promise<boolean>
+    assign: (id: string, userId: string | null) => Promise<boolean>
     clearDetail: () => void
     startPolling: (intervalMs?: number) => void
     stopPolling: () => void
@@ -141,6 +145,39 @@ export function useSystemLogs(): UseSystemLogsReturn {
         }
     }
 
+    async function toggleIgnored(id: string): Promise<boolean> {
+        try {
+            const { data } = await backendClient.put<{ data: SystemLogDetail }>(
+                `/logs/${id}/ignored`
+            )
+            if (data?.data) {
+                detail.value = data.data
+            }
+            return true
+        } catch (error) {
+            console.error(error)
+            showToast('Error al actualizar el estado de ignorado', 'error')
+            return false
+        }
+    }
+
+    async function assign(id: string, userId: string | null): Promise<boolean> {
+        try {
+            const { data } = await backendClient.put<{ data: SystemLogDetail }>(
+                `/logs/${id}/assign`,
+                { user_id: userId }
+            )
+            if (data?.data) {
+                detail.value = data.data
+            }
+            return true
+        } catch (error) {
+            console.error(error)
+            showToast('Error al asignar el log', 'error')
+            return false
+        }
+    }
+
     function clearDetail(): void {
         detail.value = null
     }
@@ -202,6 +239,8 @@ export function useSystemLogs(): UseSystemLogsReturn {
         onQueryChange,
         fetchDetail,
         toggleReviewed,
+        toggleIgnored,
+        assign,
         clearDetail,
         startPolling,
         stopPolling,

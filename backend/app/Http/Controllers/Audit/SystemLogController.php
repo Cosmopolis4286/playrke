@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Audit;
 
 use App\Http\Controllers\Controller;
+use App\Services\Audit\LogAlertSettings;
+use App\Services\Audit\SystemLogRetentionSettings;
 use App\Services\Audit\SystemLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +14,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SystemLogController extends Controller
 {
-    private const LIST_FILTER_KEYS = ['level', 'context', 'date_from', 'date_to', 'search'];
+    private const LIST_FILTER_KEYS = ['level', 'context', 'date_from', 'date_to', 'search', 'assigned_to_user_id', 'ignored'];
 
     public function __construct(
         private SystemLogService $service
@@ -22,9 +24,15 @@ class SystemLogController extends Controller
     {
         return $this->handleServiceInertia(function () {
             return Inertia::render('SystemLogs/Index', [
-                'logs'     => $this->service->getTableData(),
-                'stats'    => $this->service->stats(),
-                'contexts' => $this->service->contexts(),
+                'logs'            => $this->service->getTableData(),
+                'stats'           => $this->service->stats(),
+                'contexts'        => $this->service->contexts(),
+                'assignableUsers' => $this->service->assignableUsers(),
+                'retention'       => [
+                    'days'                => SystemLogRetentionSettings::retentionDays(),
+                    'alertThreshold'      => LogAlertSettings::errorThreshold(),
+                    'alertWindowMinutes'  => LogAlertSettings::windowMinutes(),
+                ],
             ]);
         });
     }
@@ -52,6 +60,24 @@ class SystemLogController extends Controller
     {
         return $this->handleServiceJson(function () use ($id) {
             return ['data' => $this->service->toggleReviewed($id)];
+        });
+    }
+
+    public function toggleIgnored(Request $request, string $id): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($id) {
+            return ['data' => $this->service->toggleIgnored($id)];
+        });
+    }
+
+    public function assign(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => ['nullable', 'string'],
+        ]);
+
+        return $this->handleServiceJson(function () use ($id, $validated) {
+            return ['data' => $this->service->assign($id, $validated['user_id'] ?? null)];
         });
     }
 

@@ -44,9 +44,36 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->cascadeOnUpdate();
 
+            /**
+             * "Conocido, no volver a alertar" — a diferencia de reviewed_at
+             * (por fila, no sobrevive a una nueva ocurrencia del mismo
+             * fingerprint), ignored_at aplica al fingerprint completo:
+             * mientras esté ignorado, nuevas ocurrencias no cuentan para
+             * newLogsCount ni para las stats de "sin revisar".
+             */
+            $table->timestamp('ignored_at')->nullable();
+            $table->foreignSnowflake('ignored_by_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->cascadeOnUpdate();
+
+            // Reparte la carga cuando hay varios admins mirando /logs.
+            $table->foreignSnowflake('assigned_to_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete()
+                ->cascadeOnUpdate();
+
+            // Evita reenviar la alerta de Slack/email en cada ocurrencia de
+            // un fingerprint que ya cruzó el umbral una vez.
+            $table->timestamp('alert_sent_at')->nullable();
+
             $table->timestamp('created_at')->useCurrent();
 
             $table->index('created_at');
+            $table->index('ignored_at');
+            $table->index('assigned_to_user_id');
         });
     }
 
