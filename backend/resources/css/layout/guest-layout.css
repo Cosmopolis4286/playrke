@@ -59,6 +59,18 @@ button { border: none; background: none; cursor: pointer; }
     overflow: hidden;
     padding: 16px;
     background: #020614; /* color sólido mientras carga el BG */
+    /* Container query en vez de media query para el colapso del card: lo
+       que decide si caben 2 columnas es el ANCHO DISPONIBLE REAL de este
+       contenedor, no el viewport completo — con container-type:inline-size,
+       @container abajo responde a eso directamente. Es el equivalente
+       "moderno" correcto aquí (el layout se vuelve autocontenido, no
+       depende de asumir que este contenedor siempre ocupa el viewport
+       completo); prefers-reduced-motion y el resto de breakpoints de
+       tipografía/spacing siguen usando @media porque consultan la
+       preferencia del usuario o el viewport real, no el tamaño de este
+       contenedor — eso no es lo que resuelven container queries. */
+    container-type: inline-size;
+    container-name: guest-layout;
 }
 
 /* imagen de fondo */
@@ -882,22 +894,49 @@ button { border: none; background: none; cursor: pointer; }
 
 /* ======================================================
    RESPONSIVE
+   Antes el colapso a 1 columna ocurría recién bajo 600px — en el rango
+   ~600-768px (tablet angosta, móvil apaisado, ventana de escritorio
+   reducida) la card seguía forzando 2 columnas de 1fr, comprimiendo el
+   panel derecho hasta desbordarlo horizontalmente (inputs/botón cortados,
+   scrollbar horizontal visible). Se sube el punto de colapso a 768px para
+   cubrir ese rango, y se agregan breakpoints intermedios para que el
+   tamaño de card/paddings/tipografía escale gradualmente en vez de saltar.
 ====================================================== */
-@media (max-width: 600px) {
+/* .guest-layout es el propio elemento con container-type — no puede
+   consultar su propio tamaño con @container (dependencia circular), así
+   que sus ajustes de padding van en @media aparte, contra el viewport
+   real (que en la práctica coincide con el ancho disponible, ya que
+   .guest-layout siempre ocupa la pantalla completa). */
+@media (max-width: 768px) {
+    .guest-layout { padding: 12px; }
+}
+
+@container guest-layout (max-width: 768px) {
     .guest-layout__card {
         grid-template-columns: 1fr;
-        width: calc(100vw - 32px);
+        width: calc(100cqw - 24px);
+        height: auto;
+        max-height: calc(100vh - 24px);
+        /* En 1 columna, panel izquierdo y derecho son hermanos apilados en
+           el flujo vertical del grid — si juntos exceden max-height, la
+           card entera scrollea (a diferencia del desktop, donde solo
+           .guest-layout__form scrollea internamente manteniendo el panel
+           izquierdo siempre visible). */
+        overflow-y: auto;
     }
+    .guest-layout__panel--right { overflow-y: visible; }
+    .guest-layout__form { overflow-y: visible; }
     .guest-layout__panel--left {
-        padding: 16px 20px 12px;
+        padding: 20px 24px 16px;
         border-right: none;
         border-bottom: 1px solid rgba(42, 245, 152, 0.08);
-        gap: 10px;
+        gap: 12px;
     }
-    /* En mobile el form es la tarea principal: el carrusel se comprime a
-       solo icono, dejando fuera título/descripción (compiten por espacio
-       con el form) — logo y redes sociales se mantienen por ser señales
-       de confianza en una plataforma de dinero real. */
+    .guest-layout__panel--right { padding: 26px 24px; }
+    /* En mobile/tablet angosta el form es la tarea principal: el carrusel
+       se comprime a solo icono, dejando fuera título/descripción (compiten
+       por espacio con el form) — logo y redes sociales se mantienen por
+       ser señales de confianza en una plataforma de dinero real. */
     .gl-carousel { min-height: auto; gap: 8px; }
     .gl-carousel__title,
     .gl-carousel__desc { display: none; }
@@ -909,10 +948,26 @@ button { border: none; background: none; cursor: pointer; }
     .gl-live-badge { font-size: 0.62em; padding: 4px 10px; }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 480px) {
     .guest-layout { padding: 8px; }
-    .guest-layout__panel { padding: 28px 20px; }
-    .guest-layout__panel--left { padding: 14px 16px 10px; }
+}
+@media (max-width: 360px) {
+    .guest-layout { padding: 5px; }
+}
+
+@container guest-layout (max-width: 480px) {
+    .guest-layout__card { width: calc(100cqw - 16px); border-radius: 18px; }
+    .guest-layout__panel--right { padding: 22px 18px; }
+    .guest-layout__panel--left { padding: 16px 18px 12px; }
+    .guest-layout__tagline { font-size: 1.15em; }
+    .auth-form__input,
+    .auth-dropdown__trigger { font-size: 0.82em; }
+}
+
+@container guest-layout (max-width: 360px) {
+    .guest-layout__card { width: calc(100cqw - 10px); }
+    .guest-layout__panel--right { padding: 18px 14px; }
+    .guest-layout__panel--left { padding: 14px 14px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
