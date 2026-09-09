@@ -23,7 +23,7 @@
 </script>
 
 <template>
-  <GuestLayout title="Verifica tu correo">
+  <GuestLayout title="Verifica tu correo" tagline-icon="fa-envelope-circle-check">
     <template #tagline>Un último paso</template>
 
     <template #form-content>

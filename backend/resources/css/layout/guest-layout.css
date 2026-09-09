@@ -476,15 +476,44 @@ button { border: none; background: none; cursor: pointer; }
 /* Antes era un eyebrow diminuto (0.63em, todo mayúsculas) — el slot
    #tagline en realidad lleva el título real de cada página ("Bienvenido de
    vuelta", "Únete a la élite"...), así que pasa a ser el H1 visual del
-   panel derecho, con la misma tipografía de marca que el resto del sitio. */
+   panel derecho, con la misma tipografía de marca que el resto del sitio.
+   Gradiente mint→violeta (mismo lenguaje que los h1/h2 del resto del
+   sitio) + mayúsculas, en vez de blanco sólido plano — y un ícono
+   contextual (candado, usuario+, etc., ver taglineIcon) junto al texto en
+   vez de un título "mudo" sin ninguna señal visual de qué acción es. */
+.guest-layout__tagline-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+}
+
+.guest-layout__tagline-icon {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(42, 245, 152, 0.10);
+    border: 1px solid rgba(42, 245, 152, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mint);
+    font-size: 0.68em;
+}
+
 .guest-layout__tagline {
     margin: 0;
     font-family: var(--font-heading);
     font-size: 1.35em;
     font-weight: 700;
     letter-spacing: 0.2px;
-    color: var(--white);
+    text-transform: uppercase;
     text-align: center;
+    background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, var(--violet) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* min-height solo cuando el slot trae contenido real (:not(:empty)) —
@@ -912,17 +941,19 @@ button { border: none; background: none; cursor: pointer; }
 }
 
 @container guest-layout (max-width: 768px) {
+    /* .guest-layout (el contenedor raíz) tiene overflow:hidden — necesario
+       en desktop (donde la card SIEMPRE cabe en pantalla, animaciones de
+       orbes/carrusel no deben desbordar). En este breakpoint apilado eso
+       recortaba visualmente cualquier contenido que excediera la altura
+       de la card ANTES de que su propio overflow-y:auto pudiera mostrar
+       scroll — el navegador no puede scrollear algo que su ancestro ya
+       recortó. Se cambia a auto solo aquí, permitiendo que la PÁGINA
+       (no la card) scrollee si el contenido no entra completo. */
+    .guest-layout { overflow-y: auto; align-items: flex-start; padding-top: 24px; }
     .guest-layout__card {
         grid-template-columns: 1fr;
         width: calc(100cqw - 24px);
         height: auto;
-        max-height: calc(100vh - 24px);
-        /* En 1 columna, panel izquierdo y derecho son hermanos apilados en
-           el flujo vertical del grid — si juntos exceden max-height, la
-           card entera scrollea (a diferencia del desktop, donde solo
-           .guest-layout__form scrollea internamente manteniendo el panel
-           izquierdo siempre visible). */
-        overflow-y: auto;
     }
     .guest-layout__panel--right { overflow-y: visible; }
     .guest-layout__form { overflow-y: visible; }
@@ -934,18 +965,21 @@ button { border: none; background: none; cursor: pointer; }
     }
     .guest-layout__panel--right { padding: 26px 24px; }
     /* En mobile/tablet angosta el form es la tarea principal: el carrusel
-       se comprime a solo icono, dejando fuera título/descripción (compiten
-       por espacio con el form) — logo y redes sociales se mantienen por
+       se comprime (queda solo icono + título, sin la descripción larga,
+       que sí compite con el form) — logo y redes sociales se mantienen por
        ser señales de confianza en una plataforma de dinero real. El logo
        en sí también se reduce (antes se quedaba a los mismos 80px de
        desktop, empujando el resto del panel y el form hacia abajo, sin
-       espacio para ver completo el segundo campo/CTA sin scroll). */
+       espacio para ver completo el segundo campo/CTA sin scroll). Antes el
+       título también se ocultaba junto con la descripción, dejando el
+       ícono sin ningún contexto — al compactar el logo se liberó espacio
+       real para reintroducirlo. */
     .gl-panel__logo { max-height: 52px; animation: none; }
-    .gl-carousel { min-height: auto; gap: 8px; }
-    .gl-carousel__title,
+    .gl-carousel { min-height: auto; gap: 6px; }
     .gl-carousel__desc { display: none; }
-    .gl-carousel__icon-wrap { width: 48px; height: 48px; border-radius: 14px; }
-    .gl-carousel__icon { font-size: 1.2rem; }
+    .gl-carousel__title { font-size: 0.92em; }
+    .gl-carousel__icon-wrap { width: 44px; height: 44px; border-radius: 13px; }
+    .gl-carousel__icon { font-size: 1.05rem; }
     .gl-orb { width: 180px; height: 180px; }
     .gl-orb--secondary { width: 110px; height: 110px; }
     .gl-carousel__progress { display: none; }

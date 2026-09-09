@@ -92,7 +92,7 @@ async function submit() {
 </script>
 
 <template>
-  <GuestLayout title="Verificar cartón" :slides="slides">
+  <GuestLayout title="Verificar cartón" :slides="slides" tagline-icon="fa-ticket">
     <template #tagline>Transparencia total</template>
 
     <template #form-content>

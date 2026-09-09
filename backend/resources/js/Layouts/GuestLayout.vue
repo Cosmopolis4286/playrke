@@ -42,6 +42,10 @@
     logo?: string
     slides?: CarouselSlide[]
     showStats?: boolean
+    /** Ícono FontAwesome (solo el nombre, ej. "fa-lock") junto al título del
+     * panel derecho — contextual por página (candado en login, usuario+ en
+     * registro, etc.), ver Pages/Auth/*.vue. */
+    taglineIcon?: string
   }>()
 
   useHead({
@@ -199,9 +203,14 @@
         <!-- Header -->
         <header class="guest-layout__header">
           <span class="guest-layout__eyebrow">PlayRKE</span>
-          <h1 class="guest-layout__tagline">
-            <slot name="tagline">Tu plataforma de juegos premium</slot>
-          </h1>
+          <div class="guest-layout__tagline-wrap">
+            <span v-if="taglineIcon" class="guest-layout__tagline-icon">
+              <i class="fa-solid" :class="taglineIcon" aria-hidden="true"></i>
+            </span>
+            <h1 class="guest-layout__tagline">
+              <slot name="tagline">Tu plataforma de juegos premium</slot>
+            </h1>
+          </div>
           <div class="guest-layout__header-text">
             <slot name="header-text" />
           </div>

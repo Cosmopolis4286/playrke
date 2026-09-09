@@ -82,7 +82,7 @@
 </script>
 
 <template>
-  <GuestLayout ref="guestLayoutRef" title="Registrarse" :slides="registerSlides">
+  <GuestLayout ref="guestLayoutRef" title="Registrarse" :slides="registerSlides" tagline-icon="fa-user-plus">
     <template #tagline>Únete a la élite</template>
 
     <template #form-content>

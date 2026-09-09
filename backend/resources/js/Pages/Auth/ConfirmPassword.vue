@@ -17,7 +17,7 @@
 </script>
 
 <template>
-  <GuestLayout title="Confirma tu contraseña">
+  <GuestLayout title="Confirma tu contraseña" tagline-icon="fa-shield-halved">
     <template #tagline>Zona segura</template>
     <template #header-text>
       <p style="font-size: 0.82em; color: var(--gray-1); margin: 0;">

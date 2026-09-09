@@ -33,7 +33,7 @@
 </script>
 
 <template>
-  <GuestLayout title="Restablecer Contraseña" :slides="resetSlides">
+  <GuestLayout title="Restablecer Contraseña" :slides="resetSlides" tagline-icon="fa-shield-halved">
     <template #tagline>Restablece tu contraseña</template>
 
     <template #form-content>

@@ -32,7 +32,7 @@
 </script>
 
 <template>
-  <GuestLayout title="Recuperar Contraseña" :slides="forgotSlides">
+  <GuestLayout title="Recuperar Contraseña" :slides="forgotSlides" tagline-icon="fa-key">
     <template #tagline>Recupera tu acceso</template>
 
     <template #form-content>
