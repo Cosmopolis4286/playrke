@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "46ab6fe172577cf2b04b614135dcd14c",
+    "content-hash": "b8f756b30ac0799116ab0996d426f845",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -550,6 +550,79 @@
             "time": "2024-07-08T12:26:09+00:00"
         },
         {
+            "name": "dive-be/laravel-snowflake",
+            "version": "1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/dive-be/laravel-snowflake.git",
+                "reference": "384dfd24542ac4b2b7fea6d2af505cc8bbef1b26"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dive-be/laravel-snowflake/zipball/384dfd24542ac4b2b7fea6d2af505cc8bbef1b26",
+                "reference": "384dfd24542ac4b2b7fea6d2af505cc8bbef1b26",
+                "shasum": ""
+            },
+            "require": {
+                "godruoyi/php-snowflake": "^3.0",
+                "illuminate/cache": "^11.0",
+                "illuminate/contracts": "^11.0",
+                "illuminate/database": "^11.0",
+                "illuminate/support": "^11.0",
+                "php": "~8.3"
+            },
+            "require-dev": {
+                "larastan/larastan": "^2.0",
+                "laravel/pint": "^1.0",
+                "orchestra/testbench": "^9.0",
+                "phpunit/phpunit": "^11.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Snowflake": "Dive\\Snowflake\\Snowflake"
+                    },
+                    "providers": [
+                        "Dive\\Snowflake\\SnowflakeServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
+                "psr-4": {
+                    "Dive\\Snowflake\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Muhammed Sari",
+                    "email": "muhammed@dive.be",
+                    "homepage": "https://dive.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Generate identifiers using Twitter Snowflake",
+            "homepage": "https://github.com/dive-be/laravel-snowflake",
+            "keywords": [
+                "dive",
+                "eloquent",
+                "laravel",
+                "snowflake"
+            ],
+            "support": {
+                "issues": "https://github.com/dive-be/laravel-snowflake/issues",
+                "source": "https://github.com/dive-be/laravel-snowflake/tree/1.3.0"
+            },
+            "time": "2024-03-14T12:59:14+00:00"
+        },
+        {
             "name": "doctrine/inflector",
             "version": "2.1.0",
             "source": {
@@ -1036,6 +1109,73 @@
                 }
             ],
             "time": "2025-12-03T09:33:47+00:00"
+        },
+        {
+            "name": "godruoyi/php-snowflake",
+            "version": "3.2.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/godruoyi/php-snowflake.git",
+                "reference": "46bf78bdf4bb42186216c082b4abc32eea77c6a4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/godruoyi/php-snowflake/zipball/46bf78bdf4bb42186216c082b4abc32eea77c6a4",
+                "reference": "46bf78bdf4bb42186216c082b4abc32eea77c6a4",
+                "shasum": ""
+            },
+            "require": {
+                "php-64bit": ">=8.1"
+            },
+            "require-dev": {
+                "ext-redis": "*",
+                "ext-swoole": "*",
+                "illuminate/contracts": "^10.0 || ^11.0",
+                "laravel/pint": "^1.10",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^10",
+                "predis/predis": "^2.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Godruoyi\\Snowflake\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Godruoyi",
+                    "email": "g@godruoyi.com"
+                }
+            ],
+            "description": "An ID Generator for PHP based on Snowflake Algorithm (Twitter announced).",
+            "homepage": "https://github.com/godruoyi/php-snowflake",
+            "keywords": [
+                "Unique ID",
+                "laravel snowflake",
+                "order id",
+                "php snowflake",
+                "php sonyflake",
+                "php unique id",
+                "snowflake algorithm",
+                "sonyflake",
+                "unique order id"
+            ],
+            "support": {
+                "issues": "https://github.com/godruoyi/php-snowflake/issues",
+                "source": "https://github.com/godruoyi/php-snowflake/tree/3.2.3"
+            },
+            "funding": [
+                {
+                    "url": "https://images.godruoyi.com/wechat.png",
+                    "type": "custom"
+                }
+            ],
+            "time": "2026-04-23T01:56:44+00:00"
         },
         {
             "name": "graham-campbell/manager",

@@ -10,6 +10,7 @@
     "require": {
         "php": "^8.2",
         "bradietilley/laravel-snowflake": "^1.1",
+        "dive-be/laravel-snowflake": "^1.3",
         "endroid/qr-code": "^6.1",
         "guzzlehttp/guzzle": "^7.9",
         "inertiajs/inertia-laravel": "^2.0",
