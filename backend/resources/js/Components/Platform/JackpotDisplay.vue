@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, reactive, watch, onMounted, onUnmounted } from "vue";
 import { axios } from "@js/plugins/axios";
 
 export interface JackpotEntry {
@@ -39,71 +39,72 @@ onMounted(() => {
 });
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
-  if (rafId !== null) cancelAnimationFrame(rafId);
+  for (const state of Object.values(displayState)) {
+    if (state.rafId !== null) cancelAnimationFrame(state.rafId);
+  }
 });
 
-// Destacado = mayor amount (comparación numérica directa, sin conversión de
-// moneda — no hay tasa confiable USDT/VES en este contrato).
-const featured = computed<JackpotEntry | null>(() => {
-  if (!jackpots.value.length) return null;
-  return [...jackpots.value].sort((a, b) => b.amount - a.amount)[0];
-});
-const others = computed(() => jackpots.value.filter((j) => j.code !== featured.value?.code));
+// ── Conteo animado por card — cada jackpot interpola su propio valor
+// anterior→nuevo en ~700ms (ease-out) vía requestAnimationFrame, y dispara
+// un pulso de glow en su card cuando el monto sube. Estado indexado por
+// `code` (una entrada por card), sin dependencia externa. ──
+interface DisplayState {
+  amount: number;
+  pulsing: boolean;
+  rafId: number | null;
+}
+const displayState = reactive<Record<string, DisplayState>>({});
 
-// ── Animación de conteo — interpola el número mostrado desde el valor
-// anterior al nuevo en ~800ms cada vez que amount cambia, vía
-// requestAnimationFrame (sin dependencia externa). ──
-const displayedAmount = ref(featured.value?.amount ?? 0);
-let rafId: number | null = null;
-const isPulsing = ref(false);
-
-function animateTo(target: number, wasIncrease: boolean) {
-  const start = displayedAmount.value;
+function animateEntry(entry: JackpotEntry, previous: number | undefined) {
+  const state = displayState[entry.code] ??= { amount: entry.amount, pulsing: false, rafId: null };
+  const start = previous ?? entry.amount;
+  const target = entry.amount;
   const delta = target - start;
-  if (delta === 0) return;
 
-  if (wasIncrease) {
-    isPulsing.value = true;
-    setTimeout(() => { isPulsing.value = false; }, 900);
+  if (delta === 0) {
+    state.amount = target;
+    return;
+  }
+  if (delta > 0 && previous !== undefined) {
+    state.pulsing = true;
+    setTimeout(() => { state.pulsing = false; }, 900);
   }
 
-  const durationMs = 800;
+  const durationMs = 700;
   const startTime = performance.now();
-  if (rafId !== null) cancelAnimationFrame(rafId);
+  if (state.rafId !== null) cancelAnimationFrame(state.rafId);
 
   function step(now: number) {
     const elapsed = now - startTime;
     const t = Math.min(1, elapsed / durationMs);
     const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
-    displayedAmount.value = start + delta * eased;
+    state.amount = start + delta * eased;
     if (t < 1) {
-      rafId = requestAnimationFrame(step);
+      state.rafId = requestAnimationFrame(step);
     } else {
-      displayedAmount.value = target;
-      rafId = null;
+      state.amount = target;
+      state.rafId = null;
     }
   }
-  rafId = requestAnimationFrame(step);
+  state.rafId = requestAnimationFrame(step);
 }
 
 watch(
-  () => featured.value?.amount,
-  (newAmount, oldAmount) => {
-    if (newAmount == null) return;
-    const previous = oldAmount ?? newAmount;
-    animateTo(newAmount, newAmount > previous);
+  jackpots,
+  (list, previousList) => {
+    const previousByCode = new Map((previousList ?? []).map((j) => [j.code, j.amount]));
+    for (const entry of list) {
+      animateEntry(entry, previousByCode.get(entry.code));
+    }
   },
-  { immediate: true }
-);
-
-const formattedAmount = computed(() =>
-  displayedAmount.value.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  { immediate: true, deep: true }
 );
 
 // El símbolo puede coincidir con el código (ej. USDT: symbol="USDT",
 // iso_code="USDT") — mostrar ambos duplicaría "USDT 0,00 USDT". Solo se
 // antepone el símbolo cuando aporta algo distinto del código (ej. "$"/"Bs").
-function formatAmount(entry: JackpotEntry, amount: number): string {
+function formattedAmount(entry: JackpotEntry): string {
+  const amount = displayState[entry.code]?.amount ?? entry.amount;
   const formatted = amount.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const { symbol, iso_code } = entry.currency;
   const prefix = symbol && symbol !== iso_code ? `${symbol} ` : "";
@@ -112,128 +113,98 @@ function formatAmount(entry: JackpotEntry, amount: number): string {
 </script>
 
 <template>
-  <div class="jackpot-display">
-    <div v-if="featured" class="jackpot-display__hero" :class="{ 'jackpot-display__hero--pulse': isPulsing }">
-      <span class="jackpot-display__hero-label">{{ featured.label }}</span>
-      <div class="jackpot-display__hero-amount">
-        <span v-if="featured.currency.symbol && featured.currency.symbol !== featured.currency.iso_code" class="jackpot-display__symbol">{{ featured.currency.symbol }}</span>
-        <span class="jackpot-display__number">{{ formattedAmount }}</span>
-        <span class="jackpot-display__code">{{ featured.currency.iso_code }}</span>
-      </div>
-      <span class="jackpot-display__periodicity">{{ PERIODICITY_LABELS[featured.periodicity] }}</span>
-    </div>
-
-    <div v-if="others.length" class="jackpot-display__others">
-      <div v-for="j in others" :key="j.code" class="jackpot-display__chip">
-        <span class="jackpot-display__chip-label">{{ j.label }}</span>
-        <b class="jackpot-display__chip-value">{{ formatAmount(j, j.amount) }} {{ j.currency.iso_code }}</b>
-      </div>
+  <div v-if="jackpots.length" class="jackpot-display">
+    <div
+      v-for="(j, i) in jackpots"
+      :key="j.code"
+      class="jp-card"
+      :class="{ 'jp-card--pulse': displayState[j.code]?.pulsing }"
+      :style="{ animationDelay: `${i * 70}ms` }"
+    >
+      <span class="jp-card__period">{{ PERIODICITY_LABELS[j.periodicity] }}</span>
+      <span class="jp-card__label">{{ j.label }}</span>
+      <span class="jp-card__amount num">{{ formattedAmount(j) }}</span>
+      <span class="jp-card__code">{{ j.currency.iso_code }}</span>
     </div>
   </div>
 </template>
 
 <style scoped>
 .jackpot-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 168px));
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
 }
 
-.jackpot-display__hero {
+.jp-card {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 22px 36px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, rgba(123,79,255,0.05) 0%, rgba(10,15,36,0.7) 100%);
-  border: 1px solid rgba(42, 245, 152, 0.18);
-  box-shadow: 0 0 40px rgba(42, 245, 152, 0.08);
-  transition: box-shadow 0.4s ease, border-color 0.4s ease;
-}
-
-.jackpot-display__hero--pulse {
-  border-color: rgba(42, 245, 152, 0.5);
-  box-shadow: 0 0 55px rgba(42, 245, 152, 0.22);
-}
-
-.jackpot-display__hero-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
-  color: #7a96c8;
-}
-
-.jackpot-display__hero-amount {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  font-family: "Orbitron", "Anton", sans-serif;
-}
-.jackpot-display__symbol {
-  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
-  font-weight: 700;
-  color: #2af598;
-}
-.jackpot-display__number {
-  font-size: clamp(1.7rem, 5vw, 2.8rem);
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  font-variant-numeric: tabular-nums;
-  background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 45%, #7b4fff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.jackpot-display__code {
-  font-size: clamp(0.72rem, 1.8vw, 0.85rem);
-  font-weight: 700;
-  color: #7a96c8;
-  letter-spacing: 0.4px;
-}
-
-.jackpot-display__periodicity {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: #4a6698;
-  text-transform: uppercase;
-}
-
-.jackpot-display__others {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
-.jackpot-display__chip {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  gap: 3px;
+  padding: 16px 14px;
+  border-radius: 14px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 rgba(42, 245, 152, 0);
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+  animation: jp-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.jackpot-display__chip-label {
-  font-size: 10.5px;
-  color: #7a96c8;
+
+@keyframes jp-card-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.jackpot-display__chip-value {
-  font-family: "Orbitron", "Anton", sans-serif;
-  font-size: 11px;
+
+.jp-card--pulse {
+  border-color: rgba(42, 245, 152, 0.45);
+  box-shadow: 0 0 28px rgba(42, 245, 152, 0.18);
+  transform: translateY(-2px);
+}
+
+.jp-card__period {
+  font-size: 9px;
   font-weight: 700;
-  color: #c7d2f0;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #4a6698;
+}
+
+.jp-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a96c8;
+  margin-bottom: 2px;
+}
+
+.jp-card__amount {
+  font-family: "Orbitron", "Anton", sans-serif;
+  font-size: clamp(1.15rem, 2.4vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+  color: #eef2ff;
+  transition: color 0.35s ease;
+}
+.jp-card--pulse .jp-card__amount { color: #2af598; }
+
+.jp-card__code {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7a96c8;
+  letter-spacing: 0.3px;
 }
 
 @media (max-width: 480px) {
-  .jackpot-display__hero { padding: 18px 22px; }
+  .jackpot-display { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+  .jp-card { padding: 12px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jackpot-display__hero { transition: none; }
+  .jp-card { animation: none; transition: none; }
+  .jp-card--pulse { transform: none; }
 }
 </style>
