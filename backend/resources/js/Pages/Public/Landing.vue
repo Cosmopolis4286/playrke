@@ -251,25 +251,25 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
     <header class="landing__hero">
       <div class="landing__hero-grid">
         <div>
-          <span class="eyebrow">
+          <span class="eyebrow hero-in" style="--stagger-index: 1">
             <i class="fas fa-circle" /> {{ onlineCount }} jugadores en salas activas
           </span>
-          <h1 class="landing__hero-title">Juega en vivo.<br /><em>Gana en serio.</em></h1>
-          <p class="landing__hero-sub">
+          <h1 class="landing__hero-title hero-in" style="--stagger-index: 2">Juega en vivo.<br /><em>Gana en serio.</em></h1>
+          <p class="landing__hero-sub hero-in" style="--stagger-index: 3">
             Salas de bingo con premios reales, actualizadas en tiempo real. Ves el pozo,
             ves quién compró, ves quién ganó.
           </p>
-          <div class="landing__hero-actions">
+          <div class="landing__hero-actions hero-in" style="--stagger-index: 4">
             <button v-if="register !== false" type="button" class="btn btn--primary btn--lg" @click="goToRegister">
               Crear cuenta gratis
             </button>
             <a class="btn btn--ghost btn--lg" href="#salas">Ver salas activas</a>
           </div>
-          <div v-if="totalPaidFormatted" class="landing__hero-stat">
+          <div v-if="totalPaidFormatted" class="landing__hero-stat hero-in" style="--stagger-index: 5">
             <i class="fas fa-sack-dollar" />
             <span><strong>${{ totalPaidFormatted }} USD</strong> repartidos en premios a la fecha</span>
           </div>
-          <div class="landing__hero-trust">
+          <div class="landing__hero-trust hero-in" style="--stagger-index: 6">
             <span>Retiros verificados</span>
             <span class="dot" />
             <span>Cartones auditables por serial</span>
@@ -279,7 +279,7 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
         </div>
 
         <!-- Ticker de ganancias en vivo -->
-        <div class="ticker-card">
+        <div class="ticker-card hero-in" style="--stagger-index: 3">
           <div class="ticker-card__head">
             <h3>Ganancias recientes</h3>
             <span class="eyebrow eyebrow--sm"><i class="fas fa-circle" /> en vivo</span>
@@ -582,7 +582,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .landing__hero {
   position: relative;
   overflow: hidden;
-  padding: 64px 20px 40px;
+  padding: 40px 20px;
   background:
     radial-gradient(ellipse 60% 50% at 22% 0%, rgba(123,79,255,0.28), transparent 60%),
     radial-gradient(ellipse 55% 45% at 85% 15%, rgba(0,158,253,0.18), transparent 60%),
@@ -889,6 +889,21 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 .landing__footer-trust { color: #4a6698; }
 
+/* ── Hero — entrada al montar (no ligada al scroll: es contenido
+   above-the-fold, visible de inmediato). Se anima con @keyframes en vez del
+   patrón .reveal (que depende de un IntersectionObserver que nunca
+   dispararía aquí porque el hero ya está en el viewport en el primer
+   frame) — no afecta LCP real: el contenido se pinta en su posición final
+   casi de inmediato, solo con un fundido corto. */
+.hero-in {
+  animation: hero-in-anim 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger-index, 0) * 80ms);
+}
+@keyframes hero-in-anim {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
 /* ── Scroll-reveal — ver useRevealOnScroll.ts; oculto por defecto y
    revelado al agregar .is-visible cuando la sección entra en viewport.
    Variantes por sección (en vez de un único fade+translateY genérico en
@@ -983,6 +998,7 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal-child { opacity: 1; transform: none; transition: none; }
+  .hero-in { animation: none; opacity: 1; transform: none; }
   .final-cta::before { animation: none; }
 }
 </style>

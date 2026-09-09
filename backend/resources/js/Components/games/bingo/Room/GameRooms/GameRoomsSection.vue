@@ -352,7 +352,12 @@ const showRulesModal = ref(false);
 }
 
 @media (max-width: 640px) {
-  .grp-cards-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  /* auto-fit (no repeat(2, ...) fijo): con 1 sola sala, forzar 2 columnas
+     dejaba la card pegada a la izquierda en la columna vacía sobrante —
+     auto-fit ajusta el número real de columnas al contenido disponible,
+     y justify-content:center (arriba) centra ese conjunto siempre,
+     con 1, 2 o N cards. */
+  .grp-cards-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
 
 @media (max-width: 380px) {

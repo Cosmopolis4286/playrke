@@ -936,7 +936,11 @@ button { border: none; background: none; cursor: pointer; }
     /* En mobile/tablet angosta el form es la tarea principal: el carrusel
        se comprime a solo icono, dejando fuera título/descripción (compiten
        por espacio con el form) — logo y redes sociales se mantienen por
-       ser señales de confianza en una plataforma de dinero real. */
+       ser señales de confianza en una plataforma de dinero real. El logo
+       en sí también se reduce (antes se quedaba a los mismos 80px de
+       desktop, empujando el resto del panel y el form hacia abajo, sin
+       espacio para ver completo el segundo campo/CTA sin scroll). */
+    .gl-panel__logo { max-height: 52px; animation: none; }
     .gl-carousel { min-height: auto; gap: 8px; }
     .gl-carousel__title,
     .gl-carousel__desc { display: none; }
@@ -958,7 +962,13 @@ button { border: none; background: none; cursor: pointer; }
 @container guest-layout (max-width: 480px) {
     .guest-layout__card { width: calc(100cqw - 16px); border-radius: 18px; }
     .guest-layout__panel--right { padding: 22px 18px; }
-    .guest-layout__panel--left { padding: 16px 18px 12px; }
+    .guest-layout__panel--left { padding: 14px 18px 10px; gap: 8px; }
+    /* Panel izquierdo aún más compacto: en pantallas de ~480px de ancho de
+       card, cada px que el logo/badge/socials ahorran es espacio real
+       ganado para el form, que es la tarea principal en móvil. */
+    .gl-panel__logo { max-height: 40px; }
+    .gl-live-badge { font-size: 0.58em; padding: 3px 9px; }
+    .gl-panel__socials { gap: 12px; }
     .guest-layout__tagline { font-size: 1.15em; }
     .auth-form__input,
     .auth-dropdown__trigger { font-size: 0.82em; }
