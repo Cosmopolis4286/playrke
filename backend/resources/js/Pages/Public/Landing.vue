@@ -13,6 +13,8 @@ import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTo
 import GameRoomsSection from "@js/Components/games/bingo/Room/GameRooms/GameRoomsSection.vue";
 import InfoModal from "@js/Components/auth/InfoModal.vue";
 import JackpotSection from "@js/Components/Platform/JackpotSection.vue";
+import PublicNavbar from "@js/Components/Platform/PublicNavbar.vue";
+import type { NavLink } from "@js/Components/Platform/PublicNavbar.vue";
 import type { JackpotEntry } from "@js/Components/Platform/JackpotDisplay.vue";
 import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
 import { useRevealOnScroll } from "@js/composables/ui/useRevealOnScroll";
@@ -133,6 +135,14 @@ function goToRegister() {
   window.location.href = "/register";
 }
 
+const navLinks: NavLink[] = [
+  { href: "#jackpot", label: "Jackpot" },
+  { href: "#salas", label: "Salas en vivo" },
+  { href: "#verificar", label: "Verificar cartón" },
+  { href: "#invita", label: "Invita y gana" },
+  { href: "#ganadores", label: "Ganadores" },
+];
+
 // ── Modal "Ver Top de Compras" (mismo componente que la vitrina completa) ──
 // GameRoomsSection mantiene su propia copia reactiva de rooms (con realtime
 // vía Echo) internamente — el uuid_code se resuelve contra props.rooms, que
@@ -235,24 +245,7 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
 <template>
   <div class="landing">
     <!-- ══ NAV ══ -->
-    <nav class="landing__nav">
-      <div class="landing__nav-inner">
-        <span class="landing__brand">PLAYRKE</span>
-        <div class="landing__nav-links">
-          <a href="#jackpot">Jackpot</a>
-          <a href="#salas">Salas en vivo</a>
-          <a href="#verificar">Verificar cartón</a>
-          <a href="#invita">Invita y gana</a>
-          <a href="#ganadores">Ganadores</a>
-        </div>
-        <div class="landing__nav-cta">
-          <Link href="/login" class="btn btn--ghost">Iniciar sesión</Link>
-          <button v-if="register !== false" type="button" class="btn btn--primary" @click="goToRegister">
-            Crear cuenta
-          </button>
-        </div>
-      </div>
-    </nav>
+    <PublicNavbar :links="navLinks" :show-register="register !== false" @register="goToRegister" />
 
     <!-- ══ HERO ══ -->
     <header class="landing__hero">
@@ -569,47 +562,16 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 
 /* ── Foco accesible — el default del navegador desentona con el fondo oscuro ── */
 .btn:focus-visible,
-.landing__nav-links a:focus-visible,
 .landing__footer-legal a:focus-visible,
 .verify-form input:focus-visible {
   outline: 2px solid #2af598;
   outline-offset: 2px;
 }
 
-/* ── Anclas del nav sticky — sin esto el header tapa el título al saltar ── */
+/* ── Anclas del nav sticky — sin esto el header tapa el título al saltar ──
+   El nav en sí (sticky, logo, links, CTAs) ahora vive en PublicNavbar.vue,
+   compartido con GameRoomsShowcase.vue. */
 #jackpot, #salas, #verificar, #invita, #ganadores { scroll-margin-top: 76px; }
-
-/* ── Nav ── */
-.landing__nav {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: rgba(6,10,24,0.72);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.landing__nav-inner {
-  max-width: 1180px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-}
-.landing__brand {
-  font-family: "Orbitron", sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 1px;
-  background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, #7b4fff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.landing__nav-links { display: flex; gap: 26px; font-size: 13px; font-weight: 600; color: #7a96c8; }
-.landing__nav-links a { text-decoration: none; color: inherit; }
-.landing__nav-links a:hover { color: #eef2ff; }
-.landing__nav-cta { display: flex; gap: 10px; align-items: center; }
 
 /* ── Hero ── */
 .landing__hero {
@@ -927,7 +889,6 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 
 @media (max-width: 880px) {
   .landing__hero-grid, .verify-grid, .leaderboard-grid { grid-template-columns: minmax(0, 1fr); }
-  .landing__nav-links { display: none; }
   .band { padding: 44px 20px; }
   .verify-grid { padding: 40px 20px; gap: 32px; }
   .verify-sub { max-width: none; }
@@ -938,8 +899,6 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 
 @media (max-width: 640px) {
-  .landing__nav-cta { gap: 6px; }
-  .landing__nav-cta .btn { padding: 8px 13px; font-size: 12px; }
   .landing__hero-title { font-size: clamp(26px, 8vw, 50px); }
   .verify-form, .lb-card { padding: 16px; }
   .verify-grid { padding: 32px 16px; gap: 24px; }

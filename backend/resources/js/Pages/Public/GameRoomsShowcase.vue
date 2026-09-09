@@ -9,6 +9,7 @@ import RoomTopBuyersModal from "@js/Components/games/bingo/Room/GameRooms/RoomTo
 import GameRoomsSection from "@js/Components/games/bingo/Room/GameRooms/GameRoomsSection.vue";
 import InfoModal from "@js/Components/auth/InfoModal.vue";
 import JackpotSection from "@js/Components/Platform/JackpotSection.vue";
+import PublicNavbar from "@js/Components/Platform/PublicNavbar.vue";
 import type { JackpotEntry } from "@js/Components/Platform/JackpotDisplay.vue";
 
 import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
@@ -77,6 +78,9 @@ function goToRegister() {
 
 <template>
   <div class="showcase-page">
+    <!-- ══ NAV — mismo componente que Landing.vue ══ -->
+    <PublicNavbar :show-register="true" @register="goToRegister" />
+
     <!-- Wrapper con el padding lateral — el footer (fuera de este div)
          debe llegar de borde a borde, igual que en Landing.vue (donde
          .landing raíz no tiene padding, solo sus .band internas). -->

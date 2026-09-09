@@ -235,9 +235,13 @@ const showRulesModal = ref(false);
   65%  { opacity: 1.00; } 100% { opacity: 0.65; }
 }
 
-/* ── FAB reglamento ── */
+/* ── FAB reglamento — absolute (no fixed) anclado a .game-rooms-section:
+   antes flotaba sobre TODA la página (fixed = relativo al viewport), así
+   que seguía visible aunque el usuario hubiera scrolleado a otras secciones
+   (Invita y gana, footer, etc.). Con absolute queda acotado a los límites
+   de esta sección, visible solo mientras ella ocupa la pantalla. ── */
 .grp-rules-fab {
-  position: fixed;
+  position: absolute;
   right: 16px;
   bottom: 18px;
   z-index: 50;
