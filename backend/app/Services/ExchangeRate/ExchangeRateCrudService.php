@@ -13,6 +13,7 @@ use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -52,7 +53,7 @@ final class ExchangeRateCrudService
 
         // For admin/superadmin role, save user_id for tracking
         if (in_array($role, ['admin', 'superadmin'])) {
-            return DB::transaction(function () use ($repo, $dto, $role, $userId) {
+            $result = DB::transaction(function () use ($repo, $dto, $role, $userId) {
                 $repo->create($dto->toArray() + ['user_id' => $userId]);
 
                 Log::info('ExchangeRate creado', [
@@ -63,12 +64,16 @@ final class ExchangeRateCrudService
 
                 return true;
             });
+
+            $this->forgetActiveRateCache($dto->currencyId);
+
+            return $result;
         }
 
         $model = $repo->getModel();
         $foreignKey = $this->foreignKeyData($entityId, $model);
 
-        return DB::transaction(function () use ($repo, $dto, $role, $foreignKey) {
+        $result = DB::transaction(function () use ($repo, $dto, $role, $foreignKey) {
             $repo->create($dto->toArray() + $foreignKey);
 
             Log::info('ExchangeRate creado', [
@@ -78,6 +83,10 @@ final class ExchangeRateCrudService
 
             return true;
         });
+
+        $this->forgetActiveRateCache($dto->currencyId);
+
+        return $result;
     }
 
     /**
@@ -116,7 +125,7 @@ final class ExchangeRateCrudService
         [$repo, $role] = $this->resolveContext($userId);
 
         if (in_array($role, ['admin', 'superadmin'])) {
-            return DB::transaction(function () use ($repo, $dto, $userId) {
+            $result = DB::transaction(function () use ($repo, $dto, $userId) {
                 $oldAmount = $repo->getValueById($dto->id, 'amount');
 
                 if (is_null($oldAmount)) {
@@ -138,9 +147,13 @@ final class ExchangeRateCrudService
 
                 return true;
             });
+
+            $this->forgetActiveRateCache($dto->currencyId);
+
+            return $result;
         }
 
-        return DB::transaction(function () use ($repo, $dto) {
+        $result = DB::transaction(function () use ($repo, $dto) {
             $oldAmount = $repo->getValueById($dto->id, 'amount');
 
             if (is_null($oldAmount)) {
@@ -167,6 +180,10 @@ final class ExchangeRateCrudService
 
             return true;
         });
+
+        $this->forgetActiveRateCache($dto->currencyId);
+
+        return $result;
     }
 
     /**
@@ -194,9 +211,12 @@ final class ExchangeRateCrudService
     {
         [$repo, $role] = $this->resolveContext($userId);
 
-        return $repo->toggleStatus(
-            $repo->findOrFail($id)
-        );
+        $model = $repo->findOrFail($id);
+        $result = $repo->toggleStatus($model);
+
+        $this->forgetActiveRateCache($model->currency_id);
+
+        return $result;
     }
 
     /* =====================================================
@@ -229,6 +249,23 @@ final class ExchangeRateCrudService
         }
 
         return [$this->repo($role), $role, $entityId];
+    }
+
+    /**
+     * Invalida el caché de "tasa activa" que CurrencyExchangeRateService
+     * mantiene por moneda (TTL 5 min) — sin esto, crear/editar/activar una
+     * tasa admin/superadmin podía tardar hasta 5 minutos en reflejarse para
+     * cualquier consumidor de getActiveRate() (ej. BingoRoomContextService
+     * armando el lobby), o peor: si un jugador cargó el lobby ANTES de que
+     * existiera la tasa, el resultado "sin tasa" (null) quedaba cacheado y
+     * seguía lanzando ExchangeRateException incluso después de que el admin
+     * ya la hubiera activado.
+     */
+    private function forgetActiveRateCache(mixed $currencyId): void
+    {
+        if ($currencyId) {
+            Cache::forget("exchange_rate:active:{$currencyId}");
+        }
     }
 
     /**
