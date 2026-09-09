@@ -49,17 +49,7 @@ class RoleUser extends Pivot
      */
     protected $casts = [
         'status' => AsActiveStatusEnum::class,
-    ];
-
-    /**
-     * Campos que deben ser tratados como fechas
-     *
-     * @var array<int, string>
-     */
-    protected $dates = [
-        'expires_at',
-        'created_at',
-        'updated_at',
+        'expires_at' => 'datetime',
     ];
 
     /**
