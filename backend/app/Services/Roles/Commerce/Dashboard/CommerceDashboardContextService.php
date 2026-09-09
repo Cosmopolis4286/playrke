@@ -37,15 +37,28 @@ final class CommerceDashboardContextService
         $now    = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
-        $commerce = Commerce::where('user_id', $userId)->first(['id', 'commission']);
+        $commerce = Commerce::where('user_id', $userId)->first(['id', 'user_id', 'commission']);
+
+        // Toda la red del commerce (él mismo + vendedores directos + los de
+        // cada agencia/subsidiary) — antes estos widgets solo contaban lo
+        // que el commerce vendía con su PROPIA cuenta (BingoCardLot.user_id
+        // = creador de sala), así que un commerce con vendedores activos
+        // veía un total de ventas/comisión incompleto: nunca sumaba lo
+        // generado por su red. Ver Commerce::networkUserIds().
+        //
+        // pendingWalletCount/wallets siguen siendo estrictamente personales
+        // ($userId, no $networkUserIds): cada vendedor tiene su propia
+        // wallet con sus propios movimientos, no relacionados a la del
+        // commerce — mezclarlos sería sumar dinero que no es del commerce.
+        $networkUserIds = $commerce ? $commerce->networkUserIds() : [$userId];
 
         return new CommerceDashboardContextDTO(
             userName:           $user?->first_name ?? $user?->username ?? 'Comercio',
-            stats:              $this->buildStats($userId, $commerce, $now),
-            recentActivity:     $this->buildRecentActivity($userId),
+            stats:              $this->buildStats($userId, $networkUserIds, $commerce, $now),
+            recentActivity:     $this->buildRecentActivity($networkUserIds),
             entityCounts:       $this->buildEntityCounts($commerce),
-            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q->where('creator_user_id', $userId)),
-            salesBySeller:      $this->buildSalesBySeller($userId, $now),
+            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q->whereIn('creator_user_id', $networkUserIds)),
+            salesBySeller:      $this->buildSalesBySeller($networkUserIds, $now),
             wallets:            $this->buildWallets($userId),
             configuration:      $this->buildConfiguration($commerce),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
@@ -57,23 +70,24 @@ final class CommerceDashboardContextService
     // Stats principales
     // -------------------------------------------------------------------------
 
-    private function buildStats(string $userId, ?Commerce $commerce, Carbon $now): array
+    /** @param string[] $networkUserIds */
+    private function buildStats(string $userId, array $networkUserIds, ?Commerce $commerce, Carbon $now): array
     {
         $startOfMonth = $now->copy()->startOfMonth();
         $startOfDay   = $now->copy()->startOfDay();
 
-        $lotsThisMonth = BingoCardLot::where('user_id', $userId)
+        $lotsThisMonth = BingoCardLot::whereIn('user_id', $networkUserIds)
             ->where('created_at', '>=', $startOfMonth);
 
         $totalSalesThisMonth = (clone $lotsThisMonth)->sum('sale_amount');
-        $cardsSoldToday      = BingoCard::where('creator_user_id', $userId)
+        $cardsSoldToday      = BingoCard::whereIn('creator_user_id', $networkUserIds)
             ->where('created_at', '>=', $startOfDay)
             ->count();
-        $activeRooms = BingoRoom::active()->where('creator_user_id', $userId)->count();
+        $activeRooms = BingoRoom::active()->whereIn('creator_user_id', $networkUserIds)->count();
         $pendingPayouts = WalletMovement::forUser($userId)
             ->where('status', WalletMovement::STATUS_PENDING)
             ->count();
-        $commissionByCurrency = $this->buildCommissionThisMonth($userId, $startOfMonth);
+        $commissionByCurrency = $this->buildCommissionThisMonth($networkUserIds, $startOfMonth);
 
         return [
             'totalSales' => array_merge([
@@ -82,7 +96,7 @@ final class CommerceDashboardContextService
                 'icon'        => 'fas fa-shopping-cart',
                 'variant'     => 'primary',
                 'href'        => '/bingo/sales-report',
-            ], $this->buildWeeklyTrend(BingoCardLot::where('user_id', $userId))),
+            ], $this->buildWeeklyTrend(BingoCardLot::whereIn('user_id', $networkUserIds))),
             'totalRevenue' => [
                 'label'   => 'Cartones vendidos hoy',
                 'value'   => $cardsSoldToday,
@@ -116,18 +130,19 @@ final class CommerceDashboardContextService
     }
 
     /**
-     * Comisión real generada este mes (rke_commission + room_commission ya
-     * persistida en cada BingoCardLot.commission_amount — no una
-     * re-derivación del % de Commerce::commission), agrupada por moneda.
-     * El widget anterior solo mostraba la TASA configurada (%), nunca
-     * cuánto dinero representó eso — el dueño de la comercializadora no
-     * tenía forma de ver esa cifra sin entrar al reporte de ventas.
+     * Comisión real generada este mes por TODA la red (rke_commission +
+     * room_commission ya persistida en cada BingoCardLot.commission_amount
+     * — no una re-derivación del % de Commerce::commission), agrupada por
+     * moneda. El widget anterior solo mostraba la TASA configurada (%),
+     * nunca cuánto dinero representó eso — el dueño de la comercializadora
+     * no tenía forma de ver esa cifra sin entrar al reporte de ventas.
      *
+     * @param string[] $networkUserIds
      * @return array{primaryLabel: string, descriptionSuffix: string}
      */
-    private function buildCommissionThisMonth(string $userId, Carbon $startOfMonth): array
+    private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth): array
     {
-        $rows = BingoCardLot::where('user_id', $userId)
+        $rows = BingoCardLot::whereIn('user_id', $networkUserIds)
             ->where('created_at', '>=', $startOfMonth)
             ->select(['currency_id', DB::raw('SUM(commission_amount) as total_commission')])
             ->groupBy('currency_id')
@@ -155,12 +170,13 @@ final class CommerceDashboardContextService
     // Ventas agrupadas por vendedor (top 10, este mes)
     // -------------------------------------------------------------------------
 
-    private function buildSalesBySeller(string $userId, Carbon $now): array
+    /** @param string[] $networkUserIds */
+    private function buildSalesBySeller(array $networkUserIds, Carbon $now): array
     {
         $startOfMonth = $now->copy()->startOfMonth();
 
         return BingoCardLot::query()
-            ->where('user_id', $userId)
+            ->whereIn('user_id', $networkUserIds)
             ->where('created_at', '>=', $startOfMonth)
             ->select([
                 'seller_user_id',
@@ -275,9 +291,10 @@ final class CommerceDashboardContextService
     // Actividad reciente: ventas de la red propia
     // -------------------------------------------------------------------------
 
-    private function buildRecentActivity(string $userId): array
+    /** @param string[] $networkUserIds */
+    private function buildRecentActivity(array $networkUserIds): array
     {
-        return BingoCardLot::where('user_id', $userId)
+        return BingoCardLot::whereIn('user_id', $networkUserIds)
             ->with(['room:id,uuid_code', 'currency:id,symbol,iso_code', 'seller:id,first_name,last_name,username'])
             ->latest()
             ->limit(10)
