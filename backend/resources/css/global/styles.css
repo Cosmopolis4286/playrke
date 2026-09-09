@@ -279,6 +279,8 @@ body {
 [data-theme="light"] .nav-sidebar > .nav-item > .nav-link.active {
   background: rgba(99,102,241,.15) !important;
   color: #3730a3 !important;
+  border-left: 3px solid #6366f1 !important;
+  padding-left: calc(1rem - 3px) !important;
 }
 [data-theme="light"] .nav-sidebar .nav-treeview > .nav-item > .nav-link {
   color: #4a5a7a !important;
@@ -1709,11 +1711,27 @@ aside.main-sidebar .sidebar.mt-2 {
   transition: transform 0.2s ease;
 }
 
-/* ── Línea guía de jerarquía para los submenús ── */
+/* ── Espaciado vertical entre items del árbol raíz: separa levemente cada
+   fila para que la jerarquía padre/hijo se perciba sin necesitar abrir los
+   submenús — antes los items quedaban pegados unos a otros. ── */
+.nav-sidebar > .nav-item {
+  margin-bottom: 0.15rem;
+}
+
+/* ── Acento de borde en el item padre activo: refuerza cuál sección está
+   abierta/activa más allá del solo cambio de color de fondo. ── */
+.nav-sidebar > .nav-item > .nav-link.active {
+  border-left: 3px solid #4dabf7;
+  padding-left: calc(1rem - 3px);
+}
+
+/* ── Línea guía de jerarquía para los submenús: opacidad reforzada (antes
+   0.12, casi invisible) para que el trazo de conexión padre→hijos se note
+   sin llamar demasiado la atención. ── */
 .nav-sidebar .nav-treeview {
   margin-left: 1.6rem;
   padding-left: 0.5rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .nav-sidebar .nav-treeview > .nav-item > .nav-link {
