@@ -210,6 +210,27 @@
         font-size: 0.65rem;
         vertical-align: 1px;
     }
+    /* El chevron del padre se ancla siempre al mismo borde derecho del <a>,
+       independiente de si el badge de arriba está presente o no — con
+       .right (float de AdminLTE) el chevron se desplazaba según el ancho
+       del contenido que lo precede, desalineándose entre items con y sin
+       badge (ver captura: "Billetera" vs "Trivia"/"Negocio"). */
+    .nav-sidebar > .nav-item.has-treeview > .nav-link { position: relative; }
+    .nav-sidebar > .nav-item.has-treeview > .nav-link > p { padding-right: 0.9rem; }
+    .nav-sidebar > .nav-item.has-treeview > .nav-link .right.fa-angle-left {
+        position: absolute; right: 0.5rem; top: 50%;
+        transform: translateY(-50%);
+        float: none; margin: 0;
+        transition: transform 0.2s ease;
+    }
+    /* AdminLTE rota el chevron en .menu-open con "transform: rotate(-90deg)"
+       puro (sin el translateY que ya necesitamos para el centrado vertical
+       de arriba) — al combinar ambas reglas, la nuestra (más específica,
+       .has-treeview) ganaba y dejaba la rotación sin aplicar nunca. Se repite
+       aquí sumando ambas transformaciones. */
+    .nav-sidebar > .nav-item.has-treeview.menu-open > .nav-link .right.fa-angle-left {
+        transform: translateY(-50%) rotate(-90deg);
+    }
 
     .nav-sidebar .nav-item { position: relative; }
     /* Badge de conteo en el submenú (ej. "Movimientos"): posición fija a la
@@ -309,16 +330,20 @@
     }
 
     // ── Persistencia de expansión manual de submenús ────────────────
+    // sessionStorage (no localStorage): el estado expandido debe olvidarse
+    // al cerrar la pestaña/navegador, no persistir indefinidamente entre
+    // sesiones — a diferencia del tema (playrke-theme) o los favoritos, que
+    // sí son preferencias de largo plazo.
     var OPEN_KEY = 'playrke-sidebar-open';
 
     function getOpenKeys() {
         try {
-            return JSON.parse(localStorage.getItem(OPEN_KEY) || '[]');
+            return JSON.parse(sessionStorage.getItem(OPEN_KEY) || '[]');
         } catch (e) { return []; }
     }
 
     function setOpenKeys(keys) {
-        try { localStorage.setItem(OPEN_KEY, JSON.stringify(keys)); } catch (e) {}
+        try { sessionStorage.setItem(OPEN_KEY, JSON.stringify(keys)); } catch (e) {}
     }
 
     // Al cargar: además del submenú con la ruta activa (ya viene con
