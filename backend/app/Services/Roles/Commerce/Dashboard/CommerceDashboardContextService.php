@@ -73,6 +73,7 @@ final class CommerceDashboardContextService
         $pendingPayouts = WalletMovement::forUser($userId)
             ->where('status', WalletMovement::STATUS_PENDING)
             ->count();
+        $commissionByCurrency = $this->buildCommissionThisMonth($userId, $startOfMonth);
 
         return [
             'totalSales' => array_merge([
@@ -103,13 +104,51 @@ final class CommerceDashboardContextService
                 'href'    => '/wallet-movements',
             ],
             'commission' => [
-                'label'       => 'Mi comisión',
-                'value'       => $commerce ? number_format((float) $commerce->commission, 2) . '%' : '—',
+                'label'       => 'Mi comisión (este mes)',
+                'value'       => $commissionByCurrency['primaryLabel'],
                 'icon'        => 'fas fa-percentage',
                 'variant'     => 'secondary',
-                'description' => 'Tasa configurada',
+                'description' => $commerce
+                    ? sprintf('Tasa %s%% · %s', number_format((float) $commerce->commission, 2), $commissionByCurrency['descriptionSuffix'])
+                    : $commissionByCurrency['descriptionSuffix'],
             ],
         ];
+    }
+
+    /**
+     * Comisión real generada este mes (rke_commission + room_commission ya
+     * persistida en cada BingoCardLot.commission_amount — no una
+     * re-derivación del % de Commerce::commission), agrupada por moneda.
+     * El widget anterior solo mostraba la TASA configurada (%), nunca
+     * cuánto dinero representó eso — el dueño de la comercializadora no
+     * tenía forma de ver esa cifra sin entrar al reporte de ventas.
+     *
+     * @return array{primaryLabel: string, descriptionSuffix: string}
+     */
+    private function buildCommissionThisMonth(string $userId, Carbon $startOfMonth): array
+    {
+        $rows = BingoCardLot::where('user_id', $userId)
+            ->where('created_at', '>=', $startOfMonth)
+            ->select(['currency_id', DB::raw('SUM(commission_amount) as total_commission')])
+            ->groupBy('currency_id')
+            ->having(DB::raw('SUM(commission_amount)'), '>', 0)
+            ->orderByDesc(DB::raw('SUM(commission_amount)'))
+            ->with('currency:id,iso_code,symbol')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return ['primaryLabel' => '—', 'descriptionSuffix' => 'Sin comisión este mes'];
+        }
+
+        $primary = $rows->first();
+        $primaryLabel = ($primary->currency?->symbol ?? '') . ' ' . number_format((float) $primary->total_commission, 2);
+
+        $rest = $rows->slice(1);
+        $descriptionSuffix = $rest->isEmpty()
+            ? 'Tasa configurada'
+            : 'Tasa configurada · +' . $rest->count() . ' moneda(s) más';
+
+        return ['primaryLabel' => $primaryLabel, 'descriptionSuffix' => $descriptionSuffix];
     }
 
     // -------------------------------------------------------------------------
@@ -127,6 +166,11 @@ final class CommerceDashboardContextService
                 'seller_user_id',
                 DB::raw('SUM(sale_amount) as total_sales'),
                 DB::raw('SUM(card_count) as total_cards'),
+                // commission_amount ya es el monto persistido por lote
+                // (rke_commission + room_commission aplicados a esa venta,
+                // ver RoomMetricsService) — no se re-deriva del % de
+                // Commerce::commission, que es solo la tasa configurada.
+                DB::raw('SUM(commission_amount) as total_commission'),
             ])
             ->groupBy('seller_user_id')
             ->orderByDesc(DB::raw('SUM(sale_amount)'))
@@ -139,10 +183,11 @@ final class CommerceDashboardContextService
                     : 'Venta directa';
 
                 return [
-                    'seller_user_id' => $row->seller_user_id ? (string) $row->seller_user_id : null,
-                    'seller_name'    => $sellerName,
-                    'total_sales'    => round((float) $row->total_sales, 2),
-                    'total_cards'    => (int) $row->total_cards,
+                    'seller_user_id'   => $row->seller_user_id ? (string) $row->seller_user_id : null,
+                    'seller_name'      => $sellerName,
+                    'total_sales'      => round((float) $row->total_sales, 2),
+                    'total_cards'      => (int) $row->total_cards,
+                    'total_commission' => round((float) $row->total_commission, 2),
                 ];
             })
             ->values()

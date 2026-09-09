@@ -11,6 +11,8 @@ use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Game;
+use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
+use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\User;
 use App\Models\Roles\Commerce;
 use App\Services\Platform\PlatformConfigService;

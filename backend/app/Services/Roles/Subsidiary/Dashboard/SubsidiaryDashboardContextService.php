@@ -163,6 +163,10 @@ final class SubsidiaryDashboardContextService
                 'seller_user_id',
                 DB::raw('SUM(sale_amount) as total_sales'),
                 DB::raw('SUM(card_count) as total_cards'),
+                // Mismo criterio que CommerceDashboardContextService::
+                // buildSalesBySeller() — commission_amount ya es el monto
+                // persistido por lote, no una re-derivación de una tasa.
+                DB::raw('SUM(commission_amount) as total_commission'),
             ])
             ->groupBy('seller_user_id')
             ->orderByDesc(DB::raw('SUM(sale_amount)'))
@@ -175,10 +179,11 @@ final class SubsidiaryDashboardContextService
                     : 'Vendedor';
 
                 return [
-                    'seller_user_id' => $row->seller_user_id ? (string) $row->seller_user_id : null,
-                    'seller_name'    => $sellerName,
-                    'total_sales'    => round((float) $row->total_sales, 2),
-                    'total_cards'    => (int) $row->total_cards,
+                    'seller_user_id'   => $row->seller_user_id ? (string) $row->seller_user_id : null,
+                    'seller_name'      => $sellerName,
+                    'total_sales'      => round((float) $row->total_sales, 2),
+                    'total_cards'      => (int) $row->total_cards,
+                    'total_commission' => round((float) $row->total_commission, 2),
                 ];
             })
             ->values()
