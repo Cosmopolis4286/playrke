@@ -16,6 +16,7 @@ defineProps<{
           <th>Vendedor</th>
           <th class="ssl-table__num">Cartones</th>
           <th class="ssl-table__num">Total vendido</th>
+          <th class="ssl-table__num">Comisión generada</th>
         </tr>
       </thead>
       <tbody>
@@ -23,6 +24,7 @@ defineProps<{
           <td>{{ row.seller_name }}</td>
           <td class="ssl-table__num">{{ row.total_cards }}</td>
           <td class="ssl-table__num ssl-table__amount">$ {{ formatUsd(row.total_sales) }}</td>
+          <td class="ssl-table__num ssl-table__commission">$ {{ formatUsd(row.total_commission) }}</td>
         </tr>
       </tbody>
     </table>
@@ -76,4 +78,5 @@ defineProps<{
 
 .ssl-table__num { text-align: right; }
 .ssl-table__amount { font-weight: 600; color: var(--ds-text); }
+.ssl-table__commission { font-weight: 600; color: #10b981; }
 </style>

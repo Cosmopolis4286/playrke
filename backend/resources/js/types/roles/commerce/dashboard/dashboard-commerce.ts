@@ -20,10 +20,11 @@ export interface SalesTrendPoint {
 }
 
 export interface SellerSalesRow {
-    seller_user_id: string | null
-    seller_name:    string
-    total_sales:    number
-    total_cards:    number
+    seller_user_id:   string | null
+    seller_name:      string
+    total_sales:      number
+    total_cards:      number
+    total_commission: number
 }
 
 export interface CommerceWallet {
