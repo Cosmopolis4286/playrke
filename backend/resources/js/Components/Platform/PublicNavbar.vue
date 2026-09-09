@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
 import { Link } from "@inertiajs/vue3";
 
 /**
- * Navbar compartido por las páginas públicas (Landing, GameRoomsShowcase) —
- * antes cada página tenía su propio <nav> casi idéntico, con un bug real de
- * responsive: en viewports muy angostos (~320-360px) "PLAYRKE" (texto) + los
- * dos botones de CTA no cabían en una sola fila sin wrap, desbordando el
- * nav horizontalmente. El logo real (imagen) es más compacto que el texto
- * con letter-spacing, y el breakpoint nuevo abajo compacta los CTAs más
- * agresivamente en pantallas pequeñas.
+ * Navbar compartido por las páginas públicas (Landing, GameRoomsShowcase).
+ *
+ * Bug real corregido en esta versión: al extraer el nav a este componente
+ * las clases .btn/.btn--ghost/.btn--primary quedaron SIN estilo — vivían en
+ * el <style scoped> de Landing.vue, y `scoped` no comparte reglas entre
+ * componentes distintos. Los botones caían al estilo nativo del navegador
+ * (blanco, con borde) en vez del diseño de marca. Se declaran aquí también.
  */
 export interface NavLink {
   href: string;
@@ -31,10 +32,23 @@ defineEmits<{ register: [] }>();
 // URL construida en runtime para que Vite no la trate como import estático
 // — mismo patrón que GuestLayout.vue.
 const logoSrc = `${window.location.origin}/img/logo.png`;
+
+// El nav se "endurece" (más opaco + sombra) tras un scroll pequeño, en vez
+// de mantener siempre el mismo blur translúcido — refuerza que quedó
+// pegado arriba de contenido real, no flotando sobre el hero vacío.
+const scrolled = ref(false);
+function onScroll() {
+  scrolled.value = window.scrollY > 8;
+}
+onMounted(() => {
+  onScroll();
+  window.addEventListener("scroll", onScroll, { passive: true });
+});
+onUnmounted(() => window.removeEventListener("scroll", onScroll));
 </script>
 
 <template>
-  <nav class="public-nav">
+  <nav class="public-nav" :class="{ 'public-nav--scrolled': scrolled }">
     <div class="public-nav__inner">
       <a href="/" class="public-nav__brand" aria-label="PlayRKE — Inicio">
         <img :src="logoSrc" alt="PlayRKE" class="public-nav__logo" />
@@ -59,10 +73,18 @@ const logoSrc = `${window.location.origin}/img/logo.png`;
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(6, 10, 24, 0.72);
+  background: rgba(6, 10, 24, 0.55);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
+.public-nav--scrolled {
+  background: rgba(6, 10, 24, 0.86);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
 .public-nav__inner {
   max-width: 1180px;
   margin: 0 auto;
@@ -70,29 +92,54 @@ const logoSrc = `${window.location.origin}/img/logo.png`;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 20px;
+  padding: 12px 20px;
 }
 
-.public-nav__brand { display: flex; align-items: center; flex-shrink: 0; }
+.public-nav__brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.public-nav__brand:hover { transform: translateY(-1px); }
 .public-nav__logo {
-  height: 34px;
+  height: 32px;
   width: auto;
   display: block;
-  filter: drop-shadow(0 0 10px rgba(123, 79, 255, 0.25));
+  filter: drop-shadow(0 0 10px rgba(123, 79, 255, 0.3));
 }
 
 .public-nav__links {
   display: flex;
-  gap: 26px;
+  gap: 28px;
   font-size: 13px;
   font-weight: 600;
   color: #7a96c8;
 }
-.public-nav__links a { text-decoration: none; color: inherit; white-space: nowrap; }
+.public-nav__links a {
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  white-space: nowrap;
+  padding: 4px 0;
+  transition: color 0.2s ease;
+}
+.public-nav__links a::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 100%;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #2af598, #009efd);
+  transition: right 0.25s ease;
+}
 .public-nav__links a:hover { color: #eef2ff; }
+.public-nav__links a:hover::after { right: 0; }
 .public-nav__links a:focus-visible {
   outline: 2px solid #2af598;
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .public-nav__cta {
@@ -100,6 +147,42 @@ const logoSrc = `${window.location.origin}/img/logo.png`;
   gap: 10px;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* ── Botones — mismas clases usadas en el resto del sitio público
+   (Landing.vue las declara para SU propio scope; este componente necesita
+   su propia copia porque `scoped` no las comparte entre componentes). ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  transition: filter 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn--ghost {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c7d2f0;
+}
+.btn--ghost:hover { border-color: #7a96c8; background: rgba(255, 255, 255, 0.06); }
+.btn--primary {
+  background: linear-gradient(135deg, #2af598 0%, #009efd 100%);
+  color: #06121a;
+  box-shadow: 0 4px 16px rgba(42, 245, 152, 0.25);
+}
+.btn--primary:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(42, 245, 152, 0.35); }
+.btn:focus-visible {
+  outline: 2px solid #2af598;
+  outline-offset: 2px;
 }
 
 @media (max-width: 880px) {
@@ -118,6 +201,13 @@ const logoSrc = `${window.location.origin}/img/logo.png`;
   /* En el extremo más angosto (iPhone SE y similares), "Iniciar sesión"
      como texto completo sigue sin caber junto a "Crear cuenta" — se
      abrevia sin perder claridad de la acción. */
-  .public-nav__cta :deep(.btn) { padding: 7px 10px; font-size: 11.5px; }
+  .public-nav__cta .btn { padding: 7px 10px; font-size: 11.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-nav,
+  .public-nav__brand,
+  .public-nav__links a,
+  .btn { transition: none; }
 }
 </style>
