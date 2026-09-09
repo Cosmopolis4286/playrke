@@ -90,22 +90,26 @@ const showRulesModal = ref(false);
 
 <template>
   <section :id="id" class="game-rooms-section" :class="{ 'game-rooms-section--starry': starryBackground }">
-    <button
-      type="button"
-      class="grp-rules-fab"
-      title="Ver reglamento del Bingo"
-      aria-label="Ver reglamento del Bingo"
-      @click="showRulesModal = true"
-    >
-      <i class="fas fa-book" />
-    </button>
-
     <div class="game-rooms-page__header">
       <div class="grp-header-glow" />
       <div class="grp-title-wrap">
         <span class="grp-dice grp-dice--1">&#9858;</span>
         <h2 class="game-rooms-page__title">{{ title }}</h2>
         <span class="grp-dice grp-dice--2">&#9858;</span>
+        <!-- Antes flotaba (position:absolute, bottom-right) sobre TODA la
+             sección, tapando contenido que varía de tamaño (grid de cards,
+             CTA "Ver todas las salas") según cuántas salas haya. Junto al
+             título es una posición fija y predecible, no se superpone a
+             nada dinámico. -->
+        <button
+          type="button"
+          class="grp-rules-btn"
+          title="Ver reglamento del Bingo"
+          aria-label="Ver reglamento del Bingo"
+          @click="showRulesModal = true"
+        >
+          <i class="fas fa-book" />
+        </button>
       </div>
       <p class="game-rooms-page__subtitle">{{ subtitle }}</p>
       <div class="grp-header-line" />
@@ -235,41 +239,38 @@ const showRulesModal = ref(false);
   65%  { opacity: 1.00; } 100% { opacity: 0.65; }
 }
 
-/* ── FAB reglamento — absolute (no fixed) anclado a .game-rooms-section:
-   antes flotaba sobre TODA la página (fixed = relativo al viewport), así
-   que seguía visible aunque el usuario hubiera scrolleado a otras secciones
-   (Invita y gana, footer, etc.). Con absolute queda acotado a los límites
-   de esta sección, visible solo mientras ella ocupa la pantalla. ── */
-.grp-rules-fab {
-  position: absolute;
-  right: 16px;
-  bottom: 18px;
-  z-index: 50;
-  width: 38px;
-  height: 38px;
+/* ── Botón de reglamento — junto al título (inline en el flujo normal),
+   no un FAB flotante. Antes usaba position:absolute anclado a
+   .game-rooms-section entera, superponiéndose a contenido que cambia de
+   tamaño según cuántas salas haya (grid de cards, CTA "Ver todas las
+   salas"). Junto al título, su posición es fija y nunca tapa nada. ── */
+.grp-rules-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 1px solid rgba(123,79,255,0.35);
   background: linear-gradient(135deg, #2a1f5e 0%, #1a2a52 100%);
   color: #cdd8ff;
-  font-size: 14px;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 0 rgba(123,79,255,0.5);
+  box-shadow: 0 0 0 0 rgba(123,79,255,0.5);
   transition: transform .2s ease, box-shadow .2s ease, color .2s ease, border-color .2s ease;
-  animation: rulesFabPulse 3s ease-in-out infinite;
+  animation: rulesBtnPulse 3s ease-in-out infinite;
 }
-.grp-rules-fab:hover {
-  transform: translateY(-2px) scale(1.06);
+.grp-rules-btn:hover {
+  transform: translateY(-1px) scale(1.08);
   color: #fff;
   border-color: rgba(42,245,152,0.6);
-  box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 18px rgba(42,245,152,0.35);
+  box-shadow: 0 0 14px rgba(42,245,152,0.35);
 }
-.grp-rules-fab:active { transform: translateY(0) scale(0.97); }
-@keyframes rulesFabPulse {
-  0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 0 rgba(123,79,255,0.45); }
-  50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 8px rgba(123,79,255,0); }
+.grp-rules-btn:active { transform: translateY(0) scale(0.97); }
+@keyframes rulesBtnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(123,79,255,0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(123,79,255,0); }
 }
 
 /* ── Header ── */
@@ -281,7 +282,7 @@ const showRulesModal = ref(false);
   background: radial-gradient(ellipse, rgba(123,79,255,0.25) 0%, transparent 70%);
   pointer-events: none;
 }
-.grp-title-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
+.grp-title-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-bottom: 4px; }
 .grp-dice {
   font-size: 22px;
   filter: drop-shadow(0 0 8px rgba(42,245,152,0.6));
@@ -341,10 +342,16 @@ const showRulesModal = ref(false);
 .grp-empty-title { font-size: 13.5px; font-weight: 600; color: #9fb3da; margin: 0; }
 
 /* ── Grid ── */
+/* justify-content:center centra el CONJUNTO de columnas dentro del
+   contenedor; justify-items:center centra el CONTENIDO dentro de cada
+   columna — sin esto, una columna con máximo 1fr (que se estira a ocupar
+   todo el ancho disponible cuando solo cabe 1 card) dejaba la card
+   pegada a la izquierda de esa columna ancha en vez de centrada. */
 .grp-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 220px));
   justify-content: center;
+  justify-items: center;
   gap: 18px;
   max-width: 1180px;
   margin: 0 auto;
@@ -355,20 +362,21 @@ const showRulesModal = ref(false);
   /* auto-fit (no repeat(2, ...) fijo): con 1 sola sala, forzar 2 columnas
      dejaba la card pegada a la izquierda en la columna vacía sobrante —
      auto-fit ajusta el número real de columnas al contenido disponible,
-     y justify-content:center (arriba) centra ese conjunto siempre,
+     y justify-content/justify-items:center (arriba) centran tanto el
+     conjunto de columnas como la card dentro de su propia columna,
      con 1, 2 o N cards. */
   .grp-cards-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
 
 @media (max-width: 380px) {
   .grp-cards-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-  .grp-rules-fab { right: 12px; bottom: 14px; width: 34px; height: 34px; font-size: 12px; }
+  .grp-rules-btn { width: 22px; height: 22px; font-size: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .game-rooms-section--starry::before,
   .game-rooms-section--starry::after { animation: none; }
   .grp-dice { animation: none; }
-  .grp-rules-fab { animation: none; }
+  .grp-rules-btn { animation: none; }
 }
 </style>
