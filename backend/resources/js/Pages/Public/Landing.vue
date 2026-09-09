@@ -307,7 +307,7 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
 
     <!-- ══ JACKPOT — pozo progresivo, alimentado por JackpotLedgerService en
          cada venta de cartón (dominio ya existía, sin ninguna UI hasta ahora) ══ -->
-    <div class="reveal" :ref="setRevealRef">
+    <div class="reveal reveal--pop" :ref="setRevealRef">
       <JackpotSection :jackpots="jackpots" />
     </div>
 
@@ -330,7 +330,7 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
     </div>
 
     <!-- ══ VERIFICAR CARTÓN ══ -->
-    <section id="verificar" class="band band--alt reveal" :ref="setRevealRef">
+    <section id="verificar" class="band band--alt reveal reveal--left" :ref="setRevealRef">
       <div class="verify-grid">
         <div>
           <span class="eyebrow">Sin necesidad de cuenta</span>
@@ -340,9 +340,9 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
             con el número de serial y los últimos 4 dígitos de tu teléfono.
           </p>
           <ul class="verify-steps">
-            <li><span class="num">1</span> Ingresa el serial impreso en tu cartón</li>
-            <li><span class="num">2</span> Ingresa los últimos 4 dígitos de tu teléfono</li>
-            <li><span class="num">3</span> Ve el estado, la sala y el resultado al instante</li>
+            <li class="reveal-child" style="--stagger-index: 0"><span class="num">1</span> Ingresa el serial impreso en tu cartón</li>
+            <li class="reveal-child" style="--stagger-index: 1"><span class="num">2</span> Ingresa los últimos 4 dígitos de tu teléfono</li>
+            <li class="reveal-child" style="--stagger-index: 2"><span class="num">3</span> Ve el estado, la sala y el resultado al instante</li>
           </ul>
         </div>
         <form class="verify-form" @submit.prevent="submitVerify">
@@ -362,7 +362,7 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
          AwardReferralXpOnVerifiedListener), sin UI pública hasta ahora. El
          código/link real solo se ve ya logueado (perfil); esta sección solo
          explica la mecánica para atraer registros. ══ -->
-    <section id="invita" class="band band--alt reveal" :ref="setRevealRef">
+    <section id="invita" class="band band--alt reveal reveal--right" :ref="setRevealRef">
       <div class="verify-grid">
         <div>
           <span class="eyebrow">Programa de referidos</span>
@@ -372,9 +372,9 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
             se registre y verifique su cuenta, ganas XP.
           </p>
           <ul class="verify-steps">
-            <li><span class="num">1</span> Crea tu cuenta y obtén tu enlace de invitación personal</li>
-            <li><span class="num">2</span> Comparte tu enlace con amigos</li>
-            <li><span class="num">3</span> Cuando se registren y verifiquen su cuenta, ganas XP automáticamente</li>
+            <li class="reveal-child" style="--stagger-index: 0"><span class="num">1</span> Crea tu cuenta y obtén tu enlace de invitación personal</li>
+            <li class="reveal-child" style="--stagger-index: 1"><span class="num">2</span> Comparte tu enlace con amigos</li>
+            <li class="reveal-child" style="--stagger-index: 2"><span class="num">3</span> Cuando se registren y verifiquen su cuenta, ganas XP automáticamente</li>
           </ul>
         </div>
         <div class="invite-card">
@@ -400,7 +400,12 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
         </div>
         <div class="lb-card">
           <div v-if="leaderboard.length" class="lb-list">
-            <div v-for="entry in leaderboard" :key="entry.rank" class="lb-row">
+            <div
+              v-for="(entry, i) in leaderboard"
+              :key="entry.rank"
+              class="lb-row reveal-child"
+              :style="{ '--stagger-index': i }"
+            >
               <span class="lb-rank">{{ String(entry.rank).padStart(2, "0") }}</span>
               <span class="lb-name">{{ entry.winner_name }}</span>
               <span class="lb-amt">+${{ entry.total_amount.toFixed(2) }}</span>
@@ -412,7 +417,7 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
     </section>
 
     <!-- ══ CTA FINAL ══ -->
-    <section v-if="register !== false" class="final-cta reveal" :ref="setRevealRef">
+    <section v-if="register !== false" class="final-cta reveal reveal--cta" :ref="setRevealRef">
       <span class="eyebrow eyebrow--center">Empieza hoy</span>
       <h2>Tu primera sala te espera</h2>
       <p>Crear cuenta toma menos de un minuto. El pozo no espera.</p>
@@ -772,10 +777,24 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 
 /* ── Final CTA ── */
 .final-cta {
+  position: relative;
   text-align: center;
   padding: 64px 20px 72px;
-  background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(123,79,255,0.22), transparent 65%);
+  overflow: hidden;
 }
+.final-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(123,79,255,0.22), transparent 65%);
+  animation: final-cta-breathe 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes final-cta-breathe {
+  0%, 100% { opacity: 0.75; }
+  50%      { opacity: 1; }
+}
+.final-cta > * { position: relative; z-index: 1; }
 .final-cta h2 { font-size: clamp(22px, 3.4vw, 32px); margin: 14px 0; }
 .final-cta p { color: #7a96c8; font-size: 14px; margin: 0 0 26px; }
 
@@ -871,13 +890,65 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 .landing__footer-trust { color: #4a6698; }
 
 /* ── Scroll-reveal — ver useRevealOnScroll.ts; oculto por defecto y
-   revelado al agregar .is-visible cuando la sección entra en viewport ── */
+   revelado al agregar .is-visible cuando la sección entra en viewport.
+   Variantes por sección (en vez de un único fade+translateY genérico en
+   toda la página) para que el recorrido se sienta más vivo: cada bloque
+   "llega" de una forma distinta, coherente con su contenido. ── */
 .reveal {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Jackpot — "pop" con leve escala, refuerza el efecto de sección más
+   dramática de la página. */
+.reveal--pop {
+  transform: translateY(20px) scale(0.96);
+}
+.reveal--pop.is-visible {
+  transform: none;
+}
+
+/* Verificar cartón — el bloque de texto entra desde la izquierda. */
+.reveal--left {
+  transform: translateX(-32px);
+}
+.reveal--left.is-visible {
+  transform: none;
+}
+
+/* Invita y gana — espejo del anterior, entra desde la derecha (variedad
+   frente a "Verificar cartón", misma estructura visual .verify-grid). */
+.reveal--right {
+  transform: translateX(32px);
+}
+.reveal--right.is-visible {
+  transform: none;
+}
+
+/* CTA final — el llamado a la acción con más énfasis: escala más notoria +
+   un halo que aparece junto con el contenido. */
+.reveal--cta {
+  transform: translateY(28px) scale(0.94);
+}
+.reveal--cta.is-visible {
+  transform: none;
+}
+
+/* ── Stagger de hijos — dentro de una sección ya revelada, sus elementos
+   directos (pasos numerados, cards) entran en cascada leyendo
+   --stagger-index (asignado inline por elemento) en vez de todos a la vez. ── */
+.reveal-child {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition-delay: calc(var(--stagger-index, 0) * 90ms);
+}
+.reveal.is-visible .reveal-child {
   opacity: 1;
   transform: none;
 }
@@ -910,6 +981,8 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; transition: none; }
+  .reveal,
+  .reveal-child { opacity: 1; transform: none; transition: none; }
+  .final-cta::before { animation: none; }
 }
 </style>
