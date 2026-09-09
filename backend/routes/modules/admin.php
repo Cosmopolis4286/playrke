@@ -401,6 +401,7 @@ Route::middleware('auth')->group(function () {
         'export'         => ['method' => 'get', 'uri' => 'export',         'action' => 'export'],
         'checkNew'       => ['method' => 'get', 'uri' => 'check-new',      'action' => 'checkNew'],
         'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
+        'relatedLogs'    => ['method' => 'get', 'uri' => '{id}/related',    'action' => 'relatedLogs'],
         'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
         'toggleIgnored'  => ['method' => 'put', 'uri' => '{id}/ignored',    'action' => 'toggleIgnored'],
         'assign'         => ['method' => 'put', 'uri' => '{id}/assign',    'action' => 'assign'],

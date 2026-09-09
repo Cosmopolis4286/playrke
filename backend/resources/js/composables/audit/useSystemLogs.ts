@@ -2,7 +2,7 @@ import { ref, Ref } from 'vue'
 import axios from 'axios'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
-import type { SystemLogTableData, SystemLogDetail } from '@/js/types/audit/system-log'
+import type { SystemLogTableData, SystemLogDetail, SystemLogRelatedEntry } from '@/js/types/audit/system-log'
 import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
 interface SystemLogFilters {
@@ -18,6 +18,8 @@ interface SystemLogFilters {
 interface UseSystemLogsReturn {
     logs: Ref<SystemLogTableData>
     detail: Ref<SystemLogDetail | null>
+    relatedLogs: Ref<SystemLogRelatedEntry[]>
+    relatedLoading: Ref<boolean>
     loading: Ref<boolean>
     lastQuery: Ref<ServerQuery>
     newLogsCount: Ref<number>
@@ -26,6 +28,7 @@ interface UseSystemLogsReturn {
     fetchList: (filters?: SystemLogFilters, page?: number) => Promise<boolean>
     onQueryChange: (query: ServerQuery, extraFilters?: SystemLogFilters) => Promise<void>
     fetchDetail: (id: string) => Promise<boolean>
+    fetchRelatedLogs: (id: string) => Promise<void>
     toggleReviewed: (id: string) => Promise<boolean>
     toggleIgnored: (id: string) => Promise<boolean>
     assign: (id: string, userId: string | null) => Promise<boolean>
@@ -40,6 +43,8 @@ export function useSystemLogs(): UseSystemLogsReturn {
     const loading = ref(false)
     const logs    = ref<SystemLogTableData>(emptyTableData())
     const detail  = ref<SystemLogDetail | null>(null)
+    const relatedLogs    = ref<SystemLogRelatedEntry[]>([])
+    const relatedLoading = ref(false)
 
     const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: 'asc' }, page: 1 })
 
@@ -129,6 +134,27 @@ export function useSystemLogs(): UseSystemLogsReturn {
         }
     }
 
+    /**
+     * Otros logs (error/warn) del mismo usuario en sesión, cerca en el
+     * tiempo del log abierto — se pide aparte de fetchDetail() para que el
+     * detalle principal se vea de inmediato sin esperar esta consulta
+     * secundaria, y para no acoplar el endpoint /show con esta lógica.
+     */
+    async function fetchRelatedLogs(id: string): Promise<void> {
+        relatedLoading.value = true
+        try {
+            const { data } = await backendClient.get<{ data: SystemLogRelatedEntry[] }>(
+                `/logs/${id}/related`
+            )
+            relatedLogs.value = data?.data ?? []
+        } catch (error) {
+            console.error(error)
+            relatedLogs.value = []
+        } finally {
+            relatedLoading.value = false
+        }
+    }
+
     async function toggleReviewed(id: string): Promise<boolean> {
         try {
             const { data } = await backendClient.put<{ data: SystemLogDetail }>(
@@ -180,6 +206,7 @@ export function useSystemLogs(): UseSystemLogsReturn {
 
     function clearDetail(): void {
         detail.value = null
+        relatedLogs.value = []
     }
 
     /* -------------------------------------------------------------------------- */
@@ -230,6 +257,8 @@ export function useSystemLogs(): UseSystemLogsReturn {
     return {
         logs,
         detail,
+        relatedLogs,
+        relatedLoading,
         loading,
         lastQuery,
         newLogsCount,
@@ -238,6 +267,7 @@ export function useSystemLogs(): UseSystemLogsReturn {
         fetchList,
         onQueryChange,
         fetchDetail,
+        fetchRelatedLogs,
         toggleReviewed,
         toggleIgnored,
         assign,

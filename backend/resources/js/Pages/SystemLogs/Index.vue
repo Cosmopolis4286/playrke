@@ -28,8 +28,8 @@
   /* -------------------------------------------------------------------------- */
 
   const {
-    logs, detail, loading, lastQuery, newLogsCount,
-    setInitialLogs, initPolling, onQueryChange, fetchDetail, toggleReviewed, toggleIgnored, assign, clearDetail,
+    logs, detail, relatedLogs, relatedLoading, loading, lastQuery, newLogsCount,
+    setInitialLogs, initPolling, onQueryChange, fetchDetail, fetchRelatedLogs, toggleReviewed, toggleIgnored, assign, clearDetail,
     startPolling, stopPolling,
   } = useSystemLogs()
 
@@ -88,15 +88,22 @@
   const dateFrom = ref('')
   const dateTo   = ref('')
   const showIgnored = ref(false)
+  const showUnreviewedOnly = ref(false)
 
   const extraFilters = computed(() => ({
     date_from: dateFrom.value || undefined,
     date_to:   dateTo.value   || undefined,
     ignored:   showIgnored.value ? ('only' as const) : undefined,
+    reviewed:  showUnreviewedOnly.value ? ('no' as const) : undefined,
   }))
 
   async function toggleShowIgnored(): Promise<void> {
     showIgnored.value = !showIgnored.value
+    await refetch()
+  }
+
+  async function toggleShowUnreviewedOnly(): Promise<void> {
+    showUnreviewedOnly.value = !showUnreviewedOnly.value
     await refetch()
   }
 
@@ -131,6 +138,7 @@
     if (dateFrom.value) params.set('date_from', dateFrom.value)
     if (dateTo.value) params.set('date_to', dateTo.value)
     if (showIgnored.value) params.set('ignored', 'only')
+    if (showUnreviewedOnly.value) params.set('reviewed', 'no')
     window.location.href = `/logs/export?${params.toString()}`
   }
 
@@ -142,7 +150,10 @@
 
   async function openDetail(id: string): Promise<void> {
     const ok = await fetchDetail(id)
-    if (ok) showDetail.value = true
+    if (ok) {
+      showDetail.value = true
+      if (detail.value?.meta?.user_id) await fetchRelatedLogs(id)
+    }
   }
 
   watch(showDetail, isOpen => {
@@ -278,6 +289,20 @@
       icon="fa-exclamation-circle"
       :variant="statVariant[item.level] ?? 'default'"
     />
+    <button
+      type="button"
+      class="log-stat-tile-btn"
+      :class="{ 'log-stat-tile-btn--active': showUnreviewedOnly }"
+      title="Filtrar solo logs sin revisar"
+      @click="toggleShowUnreviewedOnly"
+    >
+      <StatTile
+        label="Sin revisar"
+        :value="stats.unreviewedCount"
+        icon="fa-circle-question"
+        :variant="stats.unreviewedCount > 0 ? 'warning' : 'default'"
+      />
+    </button>
     <StatTile label="Ignorados" :value="stats.ignoredCount" icon="fa-eye-slash" variant="default" />
   </div>
 
@@ -503,6 +528,24 @@
           <small class="text-muted d-block mb-1">Meta</small>
           <pre class="bg-light border rounded p-2 small mb-0" style="max-height:200px;overflow:auto">{{ JSON.stringify(detail.meta, null, 2) }}</pre>
         </div>
+
+        <!-- Logs relacionados: mismo usuario, ventana de ±10 min -->
+        <div v-if="relatedUserId" class="col-12">
+          <small class="text-muted d-block mb-1">
+            Otros logs de este usuario (±10 min)
+            <span v-if="relatedLoading" class="spinner-border spinner-border-sm ms-1" style="width:0.7rem;height:0.7rem"></span>
+          </small>
+          <ul v-if="relatedLogs.length" class="log-related-list list-unstyled mb-0">
+            <li v-for="rel in relatedLogs" :key="rel.id" class="log-related-item">
+              <button type="button" class="log-related-btn" @click="openDetail(rel.id)">
+                <LogLevelBadge :level="rel.level" />
+                <span class="log-related-message text-truncate">{{ rel.message }}</span>
+                <span class="log-related-date text-muted">{{ rel.date ? describeDateTime(rel.date, detail.server_timezone)?.localTime : '' }}</span>
+              </button>
+            </li>
+          </ul>
+          <span v-else-if="!relatedLoading" class="text-muted small">Sin otros logs de este usuario en esta ventana de tiempo.</span>
+        </div>
       </div>
     </template>
     <template v-else>
@@ -523,6 +566,64 @@
 .log-retention-info {
   font-size: 0.78rem;
   color: var(--ds-text-muted, #6c757d);
+}
+
+.log-stat-tile-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.log-stat-tile-btn:hover {
+  opacity: 0.85;
+}
+
+.log-stat-tile-btn--active {
+  outline: 2px solid var(--ds-primary, #6366f1);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.log-related-list {
+  border: 1px solid var(--ds-border, #dee2e6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.log-related-item + .log-related-item {
+  border-top: 1px solid var(--ds-border, #dee2e6);
+}
+
+.log-related-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.log-related-btn:hover {
+  background: var(--ds-surface-2, rgba(0,0,0,.03));
+}
+
+.log-related-message {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+}
+
+.log-related-date {
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .log-stack {

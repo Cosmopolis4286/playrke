@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SystemLogController extends Controller
 {
-    private const LIST_FILTER_KEYS = ['level', 'context', 'date_from', 'date_to', 'search', 'assigned_to_user_id', 'ignored'];
+    private const LIST_FILTER_KEYS = ['level', 'context', 'date_from', 'date_to', 'search', 'assigned_to_user_id', 'ignored', 'reviewed'];
 
     public function __construct(
         private SystemLogService $service
@@ -53,6 +53,18 @@ class SystemLogController extends Controller
     {
         return $this->handleServiceJson(function () use ($id) {
             return ['data' => $this->service->show($id)];
+        });
+    }
+
+    /**
+     * Otros logs del mismo usuario (meta.user_id) cerca en el tiempo del
+     * log actual — contexto de diagnóstico sin necesidad de guardar un
+     * historial de cada ocurrencia individual.
+     */
+    public function relatedLogs(Request $request, string $id): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($id) {
+            return ['data' => $this->service->relatedLogs($id)];
         });
     }
 

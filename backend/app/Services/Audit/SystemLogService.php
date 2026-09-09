@@ -88,9 +88,58 @@ class SystemLogService
 
     public function show(string $id): array
     {
-        $log = SystemLog::with('reviewedBy')->findOrFail($id);
+        $log = SystemLog::with(['reviewedBy', 'ignoredBy', 'assignedTo'])->findOrFail($id);
 
         return $this->toDetail($log);
+    }
+
+    /**
+     * Ventana de tiempo (antes/después de last_seen_at) para buscar otros
+     * logs del mismo usuario — suficientemente amplia para capturar la
+     * secuencia de acciones que probablemente causaron o siguieron al
+     * error, sin traer todo el historial del usuario.
+     */
+    private const RELATED_WINDOW_MINUTES = 10;
+    private const RELATED_LIMIT = 10;
+
+    /**
+     * Otros logs (error/warn) del mismo usuario en sesión, cerca en el
+     * tiempo del log actual — da contexto de "qué más le pasó a este
+     * usuario" sin necesidad de guardar un historial de cada ocurrencia
+     * individual (ver docblock de la tabla: occurrences es solo un
+     * contador). Requiere meta.user_id, que DatabaseLogHandler solo captura
+     * si había un usuario autenticado en el momento del error.
+     */
+    public function relatedLogs(string $id): array
+    {
+        $log = SystemLog::findOrFail($id);
+        $userId = $log->meta['user_id'] ?? null;
+
+        if ($userId === null) {
+            return [];
+        }
+
+        $anchor = $log->last_seen_at ?? $log->created_at;
+
+        return SystemLog::query()
+            ->whereKeyNot($log->id)
+            ->whereJsonContains('meta->user_id', $userId)
+            ->whereBetween('last_seen_at', [
+                $anchor->clone()->subMinutes(self::RELATED_WINDOW_MINUTES),
+                $anchor->clone()->addMinutes(self::RELATED_WINDOW_MINUTES),
+            ])
+            ->orderBy('last_seen_at')
+            ->limit(self::RELATED_LIMIT)
+            ->get(['id', 'level', 'message', 'context', 'last_seen_at'])
+            ->map(fn (SystemLog $related) => [
+                'id'      => (string) $related->id,
+                'level'   => $related->level,
+                'message' => $related->message,
+                'context' => $related->context,
+                'date'    => $related->last_seen_at?->toIso8601String(),
+            ])
+            ->values()
+            ->toArray();
     }
 
     /**
@@ -130,6 +179,8 @@ class SystemLogService
         } else {
             $log->forceFill(['reviewed_at' => now(), 'reviewed_by_user_id' => Auth::id()])->save();
         }
+
+        Cache::forget('system-logs:stats');
 
         return $this->toDetail($log->fresh(['reviewedBy', 'ignoredBy', 'assignedTo']));
     }
@@ -171,7 +222,8 @@ class SystemLogService
     /**
      * Estadísticas para los stat tiles: total + conteo por nivel, excluyendo
      * lo ignorado (ruido ya conocido no debe inflar los números que el admin
-     * usa para priorizar). Cacheado 5 min — menor TTL que /audit porque
+     * usa para priorizar), más el conteo de sin revisar/ignorados como
+     * indicadores propios. Cacheado 5 min — menor TTL que /audit porque
      * errores nuevos son más urgentes de reflejar que cambios de auditoría
      * de negocio.
      */
@@ -192,7 +244,11 @@ class SystemLogService
 
             $ignoredCount = SystemLog::whereNotNull('ignored_at')->count();
 
-            return compact('total', 'byLevel', 'ignoredCount');
+            // Sin revisar = no tiene reviewed_at Y no está ignorado (un log
+            // ignorado ya fue triado, no debe seguir contando como pendiente).
+            $unreviewedCount = $base()->whereNull('reviewed_at')->count();
+
+            return compact('total', 'byLevel', 'ignoredCount', 'unreviewedCount');
         });
     }
 
@@ -252,6 +308,15 @@ class SystemLogService
             $query->whereNotNull('ignored_at');
         } elseif (($filters['ignored'] ?? null) !== 'all') {
             $this->excludeIgnored($query);
+        }
+
+        // 'reviewed' = 'no' filtra solo lo pendiente de revisar (click desde
+        // el stat tile "Sin revisar"); 'yes' el complemento, para auditar
+        // qué ya se marcó como visto.
+        if (($filters['reviewed'] ?? null) === 'no') {
+            $query->whereNull('reviewed_at');
+        } elseif (($filters['reviewed'] ?? null) === 'yes') {
+            $query->whereNotNull('reviewed_at');
         }
 
         return $query;

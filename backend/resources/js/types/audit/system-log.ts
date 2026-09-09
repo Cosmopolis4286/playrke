@@ -18,6 +18,7 @@ export interface SystemLogStats {
     total: number
     byLevel: SystemLogLevelCount[]
     ignoredCount: number
+    unreviewedCount: number
 }
 
 export interface SystemLogContextOption {
@@ -42,6 +43,14 @@ export interface SystemLogPageProps {
     contexts: SystemLogContextOption[]
     assignableUsers: SystemLogAssignableUser[]
     retention: SystemLogRetentionInfo
+}
+
+export interface SystemLogRelatedEntry {
+    id: string
+    level: string
+    message: string
+    context: string | null
+    date: string | null
 }
 
 export interface SystemLogDetail {
