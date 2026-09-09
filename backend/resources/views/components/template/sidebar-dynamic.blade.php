@@ -216,6 +216,18 @@
     }
 
     .nav-sidebar .nav-item { position: relative; }
+    /* Badge de conteo en el submenú (ej. "Movimientos"): posición fija a la
+       IZQUIERDA de la estrella de favorito (que conserva su posición
+       original a la derecha) — ya no usa la clase .right de AdminLTE, que
+       lo hacía chocar con el botón de favorito en la misma esquina. */
+    .nav-treeview .badge.right {
+        position: absolute; right: 1.8rem; top: 50%; transform: translateY(-50%);
+        float: none; margin: 0;
+    }
+    /* Reserva el espacio de badge + estrella para que un título largo no
+       quede tapado debajo de ninguno de los dos (antes lo evitaba el float
+       de AdminLTE, perdido al pasar el badge a position:absolute arriba). */
+    .nav-treeview > .nav-item > a.nav-link { padding-right: 2.6rem; }
     .sidebar-favorite-toggle {
         position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
         background: none; border: none; padding: 0.25rem; line-height: 1;
