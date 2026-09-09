@@ -21,6 +21,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Guard de idempotencia — sin esto, un migrate:fresh que corre en
+        // paralelo con otra sesión que ya deja estas columnas físicamente
+        // creadas pero sin registrar en `migrations` revienta con "Column
+        // already exists" y aborta toda la corrida de tests antes de
+        // llegar al seeder (mismo problema ya visto con receipt_hash).
+        if (Schema::hasColumn('system_logs', 'ignored_at')) {
+            return;
+        }
+
         Schema::table('system_logs', function (Blueprint $table) {
             $table->timestamp('ignored_at')->nullable()->after('reviewed_by_user_id');
             $table->foreignSnowflake('ignored_by_user_id')
@@ -49,6 +58,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasColumn('system_logs', 'ignored_at')) {
+            return;
+        }
+
         Schema::table('system_logs', function (Blueprint $table) {
             $table->dropIndex(['ignored_at']);
             $table->dropIndex(['assigned_to_user_id']);

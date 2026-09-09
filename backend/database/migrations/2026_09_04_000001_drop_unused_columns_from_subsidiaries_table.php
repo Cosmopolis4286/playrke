@@ -24,6 +24,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Guard de idempotencia — sin esto, un migrate:fresh que corre en
+        // paralelo con otra sesión que ya dropeó estas columnas pero sin
+        // registrar la migración en `migrations` revienta con "column does
+        // not exist" y aborta toda la corrida de tests antes de llegar al
+        // seeder (mismo problema ya visto con receipt_hash).
+        if (! Schema::hasColumn('subsidiaries', 'token')) {
+            return;
+        }
+
         Schema::table('subsidiaries', function (Blueprint $table) {
             $table->dropColumn(['token', 'security_key', 'link_route', 'brand', 'product']);
         });
@@ -31,6 +40,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (Schema::hasColumn('subsidiaries', 'token')) {
+            return;
+        }
+
         Schema::table('subsidiaries', function (Blueprint $table) {
             $table->string('brand', 20)->nullable()->after('name')->comment('Marca asociada');
             $table->string('product', 30)->nullable()->after('brand')->comment('Producto principal');
