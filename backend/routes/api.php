@@ -18,5 +18,7 @@
 | player + auditoría) y en los flujos automáticos de juego
 | (BingoDrawService, GameEngineService, GameCompletionService, etc.).
 |
-| Nota: las rutas API de Trivia (trivia.php) son cargadas por TriviaServiceProvider
+| Nota: las rutas de Trivia (web, no API) viven en routes/modules/games/trivia.php
+| y se cargan desde routes/web.php. TriviaServiceProvider solo registra
+| bindings/config/migraciones, no rutas.
 */
