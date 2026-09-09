@@ -18,6 +18,15 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Guard de idempotencia — sin esto, un migrate:fresh que corre en
+        // paralelo con otra sesión que ya deja estas columnas físicamente
+        // creadas pero sin registrar en `migrations` revienta con "Column
+        // already exists" y aborta toda la corrida de tests antes de
+        // llegar al seeder (mismo problema ya visto con receipt_hash).
+        if (Schema::hasColumn('scheduled_commands', 'cron_expression')) {
+            return;
+        }
+
         Schema::table('scheduled_commands', function (Blueprint $table) {
             $table->string('cron_expression', 100)->nullable()->after('description')
                 ->comment('Expresión cron estándar de 5 campos (min hora dia mes dow). NULL = usa el default de código.');
@@ -36,6 +45,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! Schema::hasColumn('scheduled_commands', 'cron_expression')) {
+            return;
+        }
+
         Schema::table('scheduled_commands', function (Blueprint $table) {
             $table->dropForeign(['frequency_updated_by']);
             $table->dropColumn(['cron_expression', 'min_interval_seconds', 'frequency_updated_by', 'frequency_updated_at']);
