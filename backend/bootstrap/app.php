@@ -110,6 +110,20 @@ return Application::configure(
         };
 
         $renderInertiaError = function ($request, int $status, ?string $message) {
+            // Este render() se dispara DESDE el exception handler, fuera del
+            // pipeline normal de middlewares 'web' — ShareErrorsFromSession
+            // (que comparte $errors a TODAS las vistas Blade) nunca llega a
+            // ejecutarse para esta respuesta. app.blade.php (raíz de Inertia)
+            // siempre monta <x-shared.modal> con el form de cambio de
+            // contraseña (auth-layout.blade.php), cuyo x-form.input usa
+            // $errors->has() sin fallback: sin este share manual, CUALQUIER
+            // error real (500/403/404/503) provocaba un segundo error fatal
+            // ("Undefined variable $errors") al intentar mostrar la página
+            // de error, ocultando el error original tras un crash en cascada.
+            if (! view()->shared('errors')) {
+                view()->share('errors', session()->get('errors') ?? new \Illuminate\Support\ViewErrorBag());
+            }
+
             return Inertia::render('Errors/Error', [
                 'status'  => $status,
                 'message' => $message,
