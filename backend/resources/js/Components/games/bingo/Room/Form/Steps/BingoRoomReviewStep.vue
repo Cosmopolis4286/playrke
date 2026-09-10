@@ -19,7 +19,7 @@ const props = defineProps<{
   /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
   lockActivateRoom?: boolean
   /** Metadatos de solo lectura de la sala en edición (null en modo creación). */
-  roomMeta?: Partial<Pick<BingoRoom, 'created_at' | 'updated_at' | 'created_by' | 'last_updated_by' | 'edit_count'>> | null
+  roomMeta?: Partial<Pick<BingoRoom, 'created_at' | 'updated_at' | 'created_by' | 'last_updated_by' | 'edit_count' | 'last_activated_by' | 'last_deactivated_by'>> | null
 }>()
 
 const emit = defineEmits<{
@@ -179,6 +179,17 @@ const creatorLabel = computed(() => creator.value?.username ?? '—')
 const lastEditor = computed(() => props.roomMeta?.last_updated_by ?? null)
 const lastEditorLabel = computed(() => lastEditor.value?.username ?? 'Sin ediciones registradas')
 const editCount = computed(() => props.roomMeta?.edit_count ?? 0)
+
+const lastActivated = computed(() => props.roomMeta?.last_activated_by ?? null)
+const lastActivatedLabel = computed(() => formatDateTime(lastActivated.value?.at))
+const lastActivatedRelative = computed(() => formatRelativeTime(lastActivated.value?.at))
+const lastActivatedByLabel = computed(() => lastActivated.value?.username ?? 'Sistema')
+
+const lastDeactivated = computed(() => props.roomMeta?.last_deactivated_by ?? null)
+const lastDeactivatedLabel = computed(() => formatDateTime(lastDeactivated.value?.at))
+const lastDeactivatedRelative = computed(() => formatRelativeTime(lastDeactivated.value?.at))
+const lastDeactivatedByLabel = computed(() => lastDeactivated.value?.username ?? 'Sistema')
+
 const editCountLabel = computed(() => {
   const n = editCount.value
   if (n === 0) return 'Sin ediciones desde su creación'
@@ -292,6 +303,22 @@ const scheduleLabel = computed(() => {
           </dd>
           <dt><i class="fa-solid fa-user-pen bingo-review-step__meta-icon"></i> Editado por</dt>
           <dd>{{ lastEditorLabel }}</dd>
+          <template v-if="lastActivated">
+            <dt><i class="fa-solid fa-toggle-on bingo-review-step__meta-icon"></i> Última activación</dt>
+            <dd>
+              {{ lastActivatedLabel ?? '—' }}
+              <span v-if="lastActivatedRelative" class="bingo-review-step__meta-relative">({{ lastActivatedRelative }})</span>
+              — {{ lastActivatedByLabel }}
+            </dd>
+          </template>
+          <template v-if="lastDeactivated">
+            <dt><i class="fa-solid fa-toggle-off bingo-review-step__meta-icon"></i> Última desactivación</dt>
+            <dd>
+              {{ lastDeactivatedLabel ?? '—' }}
+              <span v-if="lastDeactivatedRelative" class="bingo-review-step__meta-relative">({{ lastDeactivatedRelative }})</span>
+              — {{ lastDeactivatedByLabel }}
+            </dd>
+          </template>
         </dl>
       </section>
 
