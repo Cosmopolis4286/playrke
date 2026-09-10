@@ -251,6 +251,41 @@ final class WalletDomainException extends DomainException
         return new self('No tienes una billetera activa para esa moneda.', 404);
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // Movimientos: asignación/lock anti-colisión (WalletService)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * assignMovement(): el movimiento ya está tomado por OTRO admin y el
+     * lock (assigned_at + ASSIGNMENT_LOCK_MINUTES) sigue vigente — evita que
+     * dos admins trabajen el mismo caso a la vez. Un superadmin puede
+     * forzar la reasignación igualmente (no pasa por este guard).
+     */
+    public static function movementAssignedToAnotherAdmin(string $adminName) : self
+    {
+        return new self("Este movimiento ya está siendo revisado por {$adminName}.", 409);
+    }
+
+    /**
+     * unassignMovement(): solo el dueño de la asignación o un superadmin
+     * pueden liberar un caso tomado por otro admin.
+     */
+    public static function cannotUnassignOthersMovement(string $adminName) : self
+    {
+        return new self("Este movimiento está siendo revisado por {$adminName}. Solo esa persona o un superadmin puede liberarlo.", 409);
+    }
+
+    /**
+     * approveDeposit()/approveWithdrawal()/approveGeneric()/rejectDeposit()/
+     * rejectWithdrawal()/rejectGeneric() (individual y bulk): el movimiento
+     * está bloqueado por otro admin — hace que el lock de asignación sea
+     * real y no decorativo.
+     */
+    public static function movementLockedByAnotherAdmin(string $adminName) : self
+    {
+        return new self("Este movimiento está siendo revisado por {$adminName}. Solo esa persona (o un superadmin) puede procesarlo.", 409);
+    }
+
     /**
      * Intento de rechazar (rejectDeposit/rejectGeneric/rejectWithdrawal)
      * un movimiento que ya no está en STATUS_PENDING.

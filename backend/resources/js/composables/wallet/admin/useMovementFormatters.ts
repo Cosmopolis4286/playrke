@@ -76,6 +76,38 @@ export function ageInfo(createdAt: string): AgeInfo {
 }
 
 /**
+ * Escala de resolución dinámica para el KPI "Resolución media" — antes se
+ * mostraba siempre en minutos crudos (ej. "1847.3 min"), ilegible cuando el
+ * promedio del día sube a horas o días. Reusa los mismos umbrales visuales
+ * que ageInfo (4h/24h) para que el admin asocie el mismo código de color
+ * entre "antigüedad de un pendiente" y "qué tan rápido se resuelve en general".
+ */
+const RESOLUTION_SLOW_MINUTES     = AGE_WARNING_HOURS * 60
+const RESOLUTION_CRITICAL_MINUTES = AGE_CRITICAL_HOURS * 60
+
+export interface ResolutionTimeInfo {
+  label: string
+  level: 'fast' | 'normal' | 'slow'
+}
+
+export function resolutionTimeInfo(minutes: number | null): ResolutionTimeInfo {
+  if (minutes === null) {
+    return { label: '—', level: 'normal' }
+  }
+
+  const level: ResolutionTimeInfo['level'] =
+    minutes >= RESOLUTION_CRITICAL_MINUTES ? 'slow' :
+    minutes >= RESOLUTION_SLOW_MINUTES     ? 'normal' : 'fast'
+
+  const label =
+    minutes < 60   ? `${Math.round(minutes)} min` :
+    minutes < 1440 ? `${(minutes / 60).toFixed(1)} h` :
+    `${(minutes / 1440).toFixed(1)} d`
+
+  return { label, level }
+}
+
+/**
  * Helpers visuales derivados del catálogo MovementType recibido por props
  * (admin/superadmin lo gestionan vía CRUD).
  */

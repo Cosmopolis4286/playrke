@@ -6,6 +6,7 @@ namespace App\Domains\Wallet\Services;
 
 use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
 use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Events\WalletMovementAssigned;
 use App\Domains\Wallet\Events\WalletMovementRequested;
 use App\Domains\Wallet\Events\WalletUpdated;
 use App\Domains\Wallet\Exceptions\WalletDomainException;
@@ -77,6 +78,8 @@ final class WalletService
             throw WalletDomainException::movementNotDeposit();
         }
 
+        $this->guardNotLockedByOther($movement);
+
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
@@ -118,6 +121,8 @@ final class WalletService
      */
     public function approveGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
+        $this->guardNotLockedByOther($movement);
+
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
@@ -164,6 +169,8 @@ final class WalletService
         if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
             throw WalletDomainException::movementNotWithdrawal();
         }
+
+        $this->guardNotLockedByOther($movement);
 
         $updated = DB::transaction(function () use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
@@ -983,6 +990,8 @@ final class WalletService
             throw WalletDomainException::movementNotDeposit();
         }
 
+        $this->guardNotLockedByOther($movement);
+
         $updated = DB::transaction(function () use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
@@ -1013,6 +1022,8 @@ final class WalletService
      */
     public function rejectGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
     {
+        $this->guardNotLockedByOther($movement);
+
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
@@ -1059,6 +1070,8 @@ final class WalletService
             throw WalletDomainException::movementNotWithdrawal();
         }
 
+        $this->guardNotLockedByOther($movement);
+
         $updated = DB::transaction(function() use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
@@ -1094,6 +1107,121 @@ final class WalletService
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
 
         return $updated;
+    }
+
+    /**
+     * Minutos que dura el lock de asignación por inactividad. Pasado este
+     * tiempo desde assigned_at, cualquier admin puede volver a tomar el
+     * caso sin necesidad de que el dueño original lo libere manualmente —
+     * evita que un caso quede bloqueado indefinidamente si esa persona se
+     * desconecta sin liberar.
+     */
+    private const ASSIGNMENT_LOCK_MINUTES = 30;
+
+    /**
+     * "Tomar" un movimiento PENDING como propio — evita que dos admins
+     * trabajen el mismo caso a la vez. Rechaza con 409 si ya está asignado a
+     * OTRO admin y el lock sigue vigente, salvo que el actor sea superadmin
+     * (puede forzar la reasignación tomando el caso él mismo).
+     */
+    public function assignMovement(WalletMovement $movement) : WalletMovement
+    {
+        $this->guardNotLockedByOther($movement);
+
+        $actor = Auth::user();
+
+        $movement->forceFill([
+            'assigned_to_user_id' => $actor->id,
+            'assigned_at' => now(),
+        ])->save();
+
+        $this->broadcastMovementAssigned($movement->fresh(), $actor, assigned: true);
+
+        return $movement->fresh(['wallet', 'wallet.currency', 'assignedTo']);
+    }
+
+    /**
+     * Libera la asignación ("Liberar caso"). El propio dueño de la
+     * asignación o un superadmin pueden liberar; cualquier otro admin recibe
+     * 409. Liberar un movimiento sin asignar (o cuyo lock ya expiró) es un
+     * no-op seguro.
+     */
+    public function unassignMovement(WalletMovement $movement) : WalletMovement
+    {
+        $actor = Auth::user();
+
+        if (
+            $movement->assigned_to_user_id
+            && (string) $movement->assigned_to_user_id !== (string) $actor->id
+            && ! $actor->hasRole('superadmin')
+        ) {
+            throw WalletDomainException::cannotUnassignOthersMovement(
+                $movement->assignedTo?->first_name ?? 'otro admin'
+            );
+        }
+
+        $movement->forceFill([
+            'assigned_to_user_id' => null,
+            'assigned_at' => null,
+        ])->save();
+
+        $this->broadcastMovementAssigned($movement->fresh(), $actor, assigned: false);
+
+        return $movement->fresh(['wallet', 'wallet.currency', 'assignedTo']);
+    }
+
+    /**
+     * Guard reusado por assignMovement() y por cada approve/reject: si
+     * el movimiento está asignado a alguien distinto del actor autenticado,
+     * el lock no ha expirado (assigned_at dentro de ASSIGNMENT_LOCK_MINUTES)
+     * y el actor no es superadmin, bloquea con 409 — hace que el lock de
+     * asignación sea real y no decorativo. Sin esto, "Tomar caso" en la UI
+     * sería solo un badge informativo que cualquiera podría ignorar.
+     */
+    private function guardNotLockedByOther(WalletMovement $movement) : void
+    {
+        if (! $movement->assigned_to_user_id) {
+            return;
+        }
+
+        $actor = Auth::user();
+
+        if ((string) $movement->assigned_to_user_id === (string) $actor?->id) {
+            return;
+        }
+
+        if ($actor?->hasRole('superadmin')) {
+            return;
+        }
+
+        $lockExpired = ! $movement->assigned_at
+            || $movement->assigned_at->lt(now()->subMinutes(self::ASSIGNMENT_LOCK_MINUTES));
+
+        if ($lockExpired) {
+            return;
+        }
+
+        throw WalletDomainException::movementLockedByAnotherAdmin(
+            $movement->assignedTo?->first_name ?? 'otro admin'
+        );
+    }
+
+    /**
+     * Broadcast best-effort (nunca bloquea la operación principal) de que un
+     * admin tomó o liberó un caso — mismo patrón try/catch que el resto de
+     * los broadcasts de este servicio (ver broadcastAndNotifyResult()).
+     */
+    private function broadcastMovementAssigned(WalletMovement $movement, User $actor, bool $assigned) : void
+    {
+        try {
+            broadcast(new WalletMovementAssigned(
+                movementId: (string) $movement->id,
+                assignedToUserId: $assigned ? (string) $actor->id : null,
+                assignedToName: $assigned ? trim("{$actor->first_name} {$actor->last_name}") : null,
+            ));
+        } catch (Throwable $e) {
+            Log::warning('[WalletService] broadcastMovementAssigned falló (WebSocket no disponible): ' . $e->getMessage());
+        }
     }
 
     /**

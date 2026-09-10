@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
 import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
@@ -8,7 +8,9 @@ import MovementDetailModal from '@js/Components/Wallet/Admin/MovementDetailModal
 import { useWalletMovementsList } from '@js/composables/wallet/admin/useWalletMovementsList'
 import { useWalletMovementDetail } from '@js/composables/wallet/admin/useWalletMovementDetail'
 import { useWalletMovementsStats } from '@js/composables/wallet/admin/useWalletMovementsStats'
-import { useMovementFormatters, ageInfo } from '@js/composables/wallet/admin/useMovementFormatters'
+import { useWalletMovementsBulk } from '@js/composables/wallet/admin/useWalletMovementsBulk'
+import { useMovementAssignment } from '@js/composables/wallet/admin/useMovementAssignment'
+import { useMovementFormatters, ageInfo, resolutionTimeInfo } from '@js/composables/wallet/admin/useMovementFormatters'
 import type { MovementType } from '@js/types/movementType'
 import type { Movement, MovementsMeta } from '@js/types/wallet/admin-movement'
 
@@ -21,11 +23,14 @@ interface Props {
 }
 const props = defineProps<Props>()
 
+const page = usePage()
+const currentUserId = computed(() => String((page.props.auth as any)?.user?.id ?? ''))
+
 // ── Lista + filtros + paginación (server-side) + tiempo real ───────────────
 const {
   movements, meta, loading,
   columns, tableFilters,
-  onQueryChange, updateMovement,
+  onQueryChange, updateMovement, fetchMovements,
   dateFrom, dateTo, applyDateRange, exportUrl, activeParams,
 } = useWalletMovementsList(
   props.movements,
@@ -58,6 +63,26 @@ const {
   isReceiptImage, isPending, isActionable,
   nextPendingId,
 } = useWalletMovementDetail(handleMovementUpdated, computed(() => props.movementTypes), movements)
+
+// ── Tomar/liberar caso desde el modal de detalle ────────────────────────────
+function handleAssignmentUpdated(updated: Movement) {
+  detail.value = updated
+  updateMovement(updated)
+}
+
+const { assignLoading, assignToMe, unassign } = useMovementAssignment(handleAssignmentUpdated)
+
+// ── Aprobación/rechazo en lote desde la selección de la tabla ──────────────
+function handleBulkProcessed() {
+  fetchMovements(meta.value?.current_page ?? 1)
+  refreshStats()
+}
+
+const { bulkLoading, bulkApprove, bulkReject } = useWalletMovementsBulk(handleBulkProcessed)
+
+function selectedMovements(ids: string[]): Movement[] {
+  return movements.value.filter(m => ids.includes(m.id))
+}
 
 // ── Atajos de teclado en el modal: A aprobar, R abrir rechazo, Esc cerrar ──
 // Solo activos con el modal abierto y sin foco en un campo de texto (notas),
@@ -128,9 +153,10 @@ const {
         <StatTile label="Rechazados hoy" :value="stats.rejected_today" icon="fa-xmark" variant="danger" />
         <StatTile label="Tasa de rechazo hoy" :value="`${stats.rejection_rate_today}%`" icon="fa-chart-line" variant="info" />
         <StatTile
-          label="Resolución media"
-          :value="stats.avg_resolution_minutes !== null ? `${stats.avg_resolution_minutes} min` : '—'"
+          label="Resolución media (hoy)"
+          :value="resolutionTimeInfo(stats.avg_resolution_minutes).label"
           icon="fa-stopwatch"
+          :variant="resolutionTimeInfo(stats.avg_resolution_minutes).level === 'slow' ? 'danger' : 'default'"
         />
       </div>
     </template>
@@ -152,7 +178,7 @@ const {
       :server-total-pages="meta?.last_page ?? 1"
       @query-change="onQueryChange"
     >
-      <template #action-buttons>
+      <template #action-buttons="{ selectedIds }">
         <div class="mv-date-range">
           <input
             v-model="dateFrom"
@@ -173,6 +199,22 @@ const {
         <a class="btn btn-sm btn-outline-secondary" title="Exportar movimientos filtrados a CSV" :href="exportUrl()">
           <i class="fas fa-file-csv mr-1"></i>Exportar
         </a>
+        <button
+          v-if="selectedIds.length > 0"
+          class="btn btn-sm btn-success"
+          :disabled="bulkLoading"
+          @click="bulkApprove(selectedMovements(selectedIds))"
+        >
+          <i class="fas fa-check mr-1"></i>Aprobar ({{ selectedIds.length }})
+        </button>
+        <button
+          v-if="selectedIds.length > 0"
+          class="btn btn-sm btn-danger"
+          :disabled="bulkLoading"
+          @click="bulkReject(selectedMovements(selectedIds))"
+        >
+          <i class="fas fa-times mr-1"></i>Rechazar ({{ selectedIds.length }})
+        </button>
       </template>
 
       <template #cell-id="{ row }">
@@ -228,12 +270,29 @@ const {
 
       <template #cell-created_at="{ row }">
         <span class="mv-date">{{ formatDate((row as Movement).created_at) }}</span>
+      </template>
+
+      <template #cell-age="{ row }">
         <span
           v-if="(row as Movement).status === 'PENDING'"
           :class="ageInfo((row as Movement).created_at).cls"
         >
+          <i :class="{
+            'fas fa-circle-check': ageInfo((row as Movement).created_at).level === 'normal',
+            'fas fa-clock':        ageInfo((row as Movement).created_at).level === 'warning',
+            'fas fa-triangle-exclamation': ageInfo((row as Movement).created_at).level === 'critical',
+          }"></i>
           {{ ageInfo((row as Movement).created_at).label }}
         </span>
+        <span v-else class="text-muted">—</span>
+      </template>
+
+      <template #cell-assigned="{ row }">
+        <span v-if="(row as Movement).assigned_to" class="mv-assigned" :title="`En revisión por ${adminName((row as Movement).assigned_to)}`">
+          <i class="fas fa-user-clock"></i>
+          {{ adminName((row as Movement).assigned_to) }}
+        </span>
+        <span v-else class="text-muted">—</span>
       </template>
 
       <template #cell-actions="{ row }">
@@ -269,12 +328,16 @@ const {
     :admin-name="adminName"
     :format-amount="formatAmount"
     :format-date="formatDate"
+    :current-user-id="currentUserId"
+    :assign-loading="assignLoading"
     @update:receipt-zoom="receiptZoom = $event"
     @update:admin-notes="adminNotes = $event"
     @update:show-reject-form="showRejectForm = $event"
     @approve="handleApprove"
     @reject="handleReject"
     @view-movement="openDetail"
+    @assign="detail && assignToMe(detail.id)"
+    @unassign="detail && unassign(detail.id)"
   />
 </template>
 
@@ -333,14 +396,28 @@ const {
 .mv-date { display: block; font-size: 0.78rem; color: var(--ds-text-2); white-space: nowrap; }
 
 .mv-age {
-  display: inline-block;
-  font-size: 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
   font-weight: 600;
-  margin-top: 2px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
 }
-.mv-age--normal   { color: var(--ds-text-muted); }
-.mv-age--warning  { color: #fbbf24; }
-.mv-age--critical { color: #f87171; }
+.mv-age--normal   { background: var(--ds-surface-2);  color: var(--ds-text-muted); }
+.mv-age--warning  { background: rgba(217,119,6,.18);  color: #fbbf24; }
+.mv-age--critical { background: rgba(220,38,38,.18);  color: #f87171; }
+
+.mv-assigned {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #60a5fa;
+  white-space: nowrap;
+}
 
 .mv-stats {
   display: grid;

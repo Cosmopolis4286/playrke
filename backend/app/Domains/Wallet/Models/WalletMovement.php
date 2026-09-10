@@ -86,6 +86,7 @@ class WalletMovement extends Model
         'balance_after' => 'float',
         'metadata' => 'array',
         'processed_at' => 'datetime',
+        'assigned_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -107,6 +108,8 @@ class WalletMovement extends Model
         'admin_notes',
         'processed_by',
         'processed_at',
+        'assigned_to_user_id',
+        'assigned_at',
     ];
     protected $keyType = 'string';
     protected $primaryKey = 'id';
@@ -147,6 +150,11 @@ class WalletMovement extends Model
     public function processedBy() : BelongsTo
     {
         return $this->belongsTo(User::class, 'processed_by');
+    }
+
+    public function assignedTo() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
     }
 
     // ─── Scopes ──────────────────────────────────────────────────────────────

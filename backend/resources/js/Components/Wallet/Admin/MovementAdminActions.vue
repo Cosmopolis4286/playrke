@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import type { Movement } from '@js/types/wallet/admin-movement'
+import { adminName } from '@js/composables/wallet/admin/useMovementFormatters'
 
 defineProps<{
   detail: Movement
+  isActionable: boolean
   adminNotes: string
   actionLoading: boolean
   actionError: string
   showRejectForm: boolean
+  currentUserId: string
+  assignLoading: boolean
 }>()
 
 const emit = defineEmits<{
@@ -14,6 +18,8 @@ const emit = defineEmits<{
   'update:showRejectForm': [value: boolean]
   approve: []
   reject: []
+  assign: []
+  unassign: []
 }>()
 </script>
 
@@ -26,6 +32,33 @@ const emit = defineEmits<{
       <i class="fas fa-exclamation-circle me-1"></i> {{ actionError }}
     </div>
 
+    <!-- Asignación: "en revisión por mí" — evita que dos admins trabajen el
+         mismo caso a la vez (lock real en el backend, no solo informativo). -->
+    <div class="mv-assignment mb-2">
+      <template v-if="!detail.assigned_to">
+        <button class="btn btn-sm btn-outline-primary" :disabled="assignLoading" @click="emit('assign')">
+          <span v-if="assignLoading" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-user-check me-1"></i>
+          Tomar caso
+        </button>
+      </template>
+      <template v-else>
+        <span class="mv-assignment__badge">
+          <i class="fas fa-user-clock me-1"></i>
+          En revisión por {{ adminName(detail.assigned_to) }}
+        </span>
+        <button
+          v-if="detail.assigned_to.id === currentUserId"
+          class="btn btn-sm btn-outline-secondary"
+          :disabled="assignLoading"
+          @click="emit('unassign')"
+        >
+          Liberar
+        </button>
+      </template>
+    </div>
+
+    <template v-if="isActionable">
     <!-- Notas admin -->
     <div class="mb-2">
       <label class="mv-detail__label mb-1">Notas (opcional)</label>
@@ -92,6 +125,7 @@ const emit = defineEmits<{
         </button>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -150,6 +184,21 @@ const emit = defineEmits<{
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   border: 1px solid rgba(217,119,6,.4);
+}
+
+.mv-assignment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mv-assignment__badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #60a5fa;
 }
 
 .mb-2 { margin-bottom: 0.5rem; }

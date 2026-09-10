@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Wallet;
 
 use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
+use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\MovementType;
 use App\Domains\Wallet\Models\WalletMovement;
@@ -12,6 +13,7 @@ use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -215,18 +217,157 @@ final class WalletMovementController extends Controller
         });
     }
 
+    /**
+     * POST /wallet-movements/bulk/approve
+     * Aprueba varios movimientos PENDING en una sola pasada. Cada uno se
+     * autoriza y procesa individualmente (misma lógica que approve()) — un
+     * fallo puntual (ya no pendiente, tipo no aprobable, sin permiso,
+     * bloqueado por otro admin) no aborta el lote: se omite y se reporta en
+     * 'skipped' con motivo humano. Mismo shape de respuesta que
+     * AdminUserController::toggleStatusBulk().
+     */
+    public function bulkApprove(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids'         => 'required|array|min:1|max:100',
+            'ids.*'       => 'string',
+            'admin_notes' => 'nullable|string|max:512',
+        ]);
+
+        return $this->handleServiceJson(fn () => $this->processBulk(
+            $request->input('ids'),
+            $request->input('admin_notes'),
+            'approve',
+        ));
+    }
+
+    /**
+     * POST /wallet-movements/bulk/reject
+     * Mismo patrón que bulkApprove() pero rechaza (reintegra saldo si aplica).
+     */
+    public function bulkReject(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids'         => 'required|array|min:1|max:100',
+            'ids.*'       => 'string',
+            'admin_notes' => 'nullable|string|max:512',
+        ]);
+
+        return $this->handleServiceJson(fn () => $this->processBulk(
+            $request->input('ids'),
+            $request->input('admin_notes'),
+            'reject',
+        ));
+    }
+
+    /**
+     * PUT /wallet-movements/{movement}/assign
+     * Auto-asigna el movimiento al admin autenticado ("Tomar caso"). Solo
+     * auto-asignación: no acepta user_id — evita el caso ambiguo de
+     * asignarle trabajo a otro admin sin que lo pida. Un superadmin puede
+     * forzar la reasignación simplemente tomando el caso él mismo.
+     */
+    public function assign(WalletMovement $movement): JsonResponse
+    {
+        $this->authorize('assign', $movement);
+
+        return $this->handleServiceJson(function () use ($movement) {
+            $updated = $this->walletService->assignMovement($movement);
+            $this->movementRepository->loadForAdminPanel($updated);
+
+            return ['data' => $this->mapMovement($updated)];
+        });
+    }
+
+    /**
+     * PUT /wallet-movements/{movement}/unassign
+     * Libera el caso ("Liberar"). El propio dueño de la asignación o un
+     * superadmin pueden liberar.
+     */
+    public function unassign(WalletMovement $movement): JsonResponse
+    {
+        $this->authorize('assign', $movement);
+
+        return $this->handleServiceJson(function () use ($movement) {
+            $updated = $this->walletService->unassignMovement($movement);
+            $this->movementRepository->loadForAdminPanel($updated);
+
+            return ['data' => $this->mapMovement($updated)];
+        });
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** @return array{type: ?string, status: ?string, search: ?string, date_from: ?string, date_to: ?string} */
+    /** @return array{type: ?string, status: ?string, search: ?string, date_from: ?string, date_to: ?string, fraud_flag: ?string, assigned_to_user_id: ?string} */
     private function filtersFromRequest(Request $request): array
     {
         return [
-            'type'      => $request->query('type'),
-            'status'    => $request->query('status'),
-            'search'    => $request->query('search'),
-            'date_from' => $request->query('date_from'),
-            'date_to'   => $request->query('date_to'),
+            'type'                => $request->query('type'),
+            'status'              => $request->query('status'),
+            'search'              => $request->query('search'),
+            'date_from'           => $request->query('date_from'),
+            'date_to'             => $request->query('date_to'),
+            'fraud_flag'          => $request->query('fraud_flag'),
+            'assigned_to_user_id' => $request->query('assigned_to_user_id'),
         ];
+    }
+
+    /**
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    private function processBulk(array $ids, ?string $adminNotes, string $action): array
+    {
+        return DB::transaction(function () use ($ids, $adminNotes, $action) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (WalletMovement::whereIn('id', $ids)->get() as $movement) {
+                try {
+                    if (! Auth::user()->can($action, $movement)) {
+                        throw new \DomainException('No autorizado para este movimiento.');
+                    }
+
+                    $this->assertRequiresApproval($movement);
+
+                    if ($action === 'approve') {
+                        match ($movement->type) {
+                            WalletMovement::TYPE_DEPOSIT    => $this->walletService->approveDeposit($movement, $adminNotes),
+                            WalletMovement::TYPE_WITHDRAWAL => $this->walletService->approveWithdrawal($movement, $adminNotes),
+                            default => $this->walletService->approveGeneric($movement, $adminNotes),
+                        };
+                    } else {
+                        match ($movement->type) {
+                            WalletMovement::TYPE_DEPOSIT    => $this->walletService->rejectDeposit($movement, $adminNotes),
+                            WalletMovement::TYPE_WITHDRAWAL => $this->walletService->rejectWithdrawal($movement, $adminNotes),
+                            default => $this->walletService->rejectGeneric($movement, $adminNotes),
+                        };
+                    }
+
+                    $updated++;
+                } catch (DomainException|\DomainException $e) {
+                    // DomainException custom (guardNotLockedByOther(), approve*/reject*
+                    // del WalletService) y \DomainException nativo (assertRequiresApproval(),
+                    // el check de autorización arriba) — ninguna extiende la otra, así que
+                    // ambas ramas son necesarias para que el aislamiento por item funcione
+                    // sin importar cuál de los dos tipos dispare el fallo puntual.
+                    $skipped[] = [
+                        'id'     => (string) $movement->id,
+                        'name'   => $this->movementLabel($movement),
+                        'reason' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    private function movementLabel(WalletMovement $m): string
+    {
+        $userName = $m->user ? trim("{$m->user->first_name} {$m->user->last_name}") : null;
+        $suffix   = $userName ? " ({$userName})" : '';
+
+        return "{$m->type} #" . substr((string) $m->id, -8) . $suffix;
     }
 
     private function assertRequiresApproval(WalletMovement $movement): void
@@ -271,6 +412,13 @@ final class WalletMovementController extends Controller
                 'first_name' => $m->processedBy->first_name,
                 'last_name'  => $m->processedBy->last_name,
                 'email'      => $m->processedBy->email,
+            ] : null,
+            'assigned_at' => $m->assigned_at?->toISOString(),
+            'assigned_to' => $m->assignedTo ? [
+                'id'         => (string) $m->assignedTo->id,
+                'first_name' => $m->assignedTo->first_name,
+                'last_name'  => $m->assignedTo->last_name,
+                'email'      => $m->assignedTo->email,
             ] : null,
             'created_at' => $m->created_at,
             'currency'   => $m->wallet?->currency ? [

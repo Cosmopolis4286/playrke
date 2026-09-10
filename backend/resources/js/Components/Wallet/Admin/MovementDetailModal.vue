@@ -28,6 +28,8 @@ defineProps<{
   adminName: (u: Movement['processed_by']) => string
   formatAmount: (mov: Movement) => string
   formatDate: (iso: string) => string
+  currentUserId: string
+  assignLoading: boolean
 }>()
 
 defineEmits<{
@@ -38,6 +40,8 @@ defineEmits<{
   approve: []
   reject: []
   'view-movement': [id: string]
+  assign: []
+  unassign: []
 }>()
 </script>
 
@@ -90,16 +94,21 @@ defineEmits<{
       />
 
       <MovementAdminActions
-        v-if="isActionable"
+        v-if="isActionable || detail.status === 'PENDING'"
         :detail="detail"
+        :is-actionable="isActionable"
         :admin-notes="adminNotes"
         :action-loading="actionLoading"
         :action-error="actionError"
         :show-reject-form="showRejectForm"
+        :current-user-id="currentUserId"
+        :assign-loading="assignLoading"
         @update:admin-notes="$emit('update:adminNotes', $event)"
         @update:show-reject-form="$emit('update:showRejectForm', $event)"
         @approve="$emit('approve')"
         @reject="$emit('reject')"
+        @assign="$emit('assign')"
+        @unassign="$emit('unassign')"
       />
     </div>
   </Modal>

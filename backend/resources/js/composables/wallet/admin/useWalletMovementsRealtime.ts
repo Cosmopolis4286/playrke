@@ -20,6 +20,12 @@ export interface WalletMovementProcessedPayload {
   pending_count: number
 }
 
+export interface WalletMovementAssignedPayload {
+  movement_id: string
+  assigned_to_user_id: string | null
+  assigned_to_name: string | null
+}
+
 /**
  * Único punto de suscripción al canal privado `admins.wallet-movements`.
  * Laravel Echo deja unirse al mismo canal varias veces desde distintos
@@ -46,6 +52,7 @@ export function useWalletMovementsRealtime(
   initialPendingCount = 0,
   onRequested?: (payload: WalletMovementRequestedPayload) => void,
   onProcessed?: (payload: WalletMovementProcessedPayload) => void,
+  onAssigned?: (payload: WalletMovementAssignedPayload) => void,
 ) {
   const pendingCount = ref(initialPendingCount)
   const isLive = ref(false)
@@ -57,6 +64,9 @@ export function useWalletMovementsRealtime(
   const processedHandler = (payload: WalletMovementProcessedPayload) => {
     pendingCount.value = payload.pending_count
     onProcessed?.(payload)
+  }
+  const assignedHandler = (payload: WalletMovementAssignedPayload) => {
+    onAssigned?.(payload)
   }
 
   async function resyncPendingCount() {
@@ -74,6 +84,7 @@ export function useWalletMovementsRealtime(
 
     channel.listen('.wallet.movement.requested', requestedHandler)
     channel.listen('.wallet.movement.processed', processedHandler)
+    channel.listen('.wallet.movement.assigned', assignedHandler)
 
     let wasLive = false
     channel.subscribed(() => {
@@ -96,6 +107,7 @@ export function useWalletMovementsRealtime(
     echo.private('admins.wallet-movements')
       .stopListening('.wallet.movement.requested', requestedHandler)
       .stopListening('.wallet.movement.processed', processedHandler)
+      .stopListening('.wallet.movement.assigned', assignedHandler)
   })
 
   return { pendingCount, isLive }

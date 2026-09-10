@@ -5,17 +5,19 @@ import type { ServerQuery } from '@js/composables/common/table/useTableControlle
 import { useDateRangeExport } from '@js/composables/common/table/useDateRangeExport'
 import type { MovementType } from '@js/types/movementType'
 import type { Movement, MovementsMeta } from '@js/types/wallet/admin-movement'
-import { useWalletMovementsRealtime, type WalletMovementProcessedPayload } from './useWalletMovementsRealtime'
+import { useWalletMovementsRealtime, type WalletMovementProcessedPayload, type WalletMovementAssignedPayload } from './useWalletMovementsRealtime'
 
 const COLUMNS = [
-  { key: 'id',         label: 'ID',       sortable: false },
-  { key: 'user',       label: 'Usuario',  sortable: false },
-  { key: 'type',       label: 'Tipo',     sortable: false },
-  { key: 'amount',     label: 'Monto',    sortable: false },
-  { key: 'currency',   label: 'Moneda',   sortable: false },
-  { key: 'status',     label: 'Estado',   sortable: false },
-  { key: 'created_at', label: 'Fecha',    sortable: false },
-  { key: 'actions',    label: 'Acciones', sortable: false },
+  { key: 'id',         label: 'ID',         sortable: false },
+  { key: 'user',       label: 'Usuario',    sortable: false },
+  { key: 'type',       label: 'Tipo',       sortable: false },
+  { key: 'amount',     label: 'Monto',      sortable: false },
+  { key: 'currency',   label: 'Moneda',     sortable: false },
+  { key: 'status',     label: 'Estado',     sortable: false },
+  { key: 'created_at', label: 'Fecha',      sortable: false },
+  { key: 'age',        label: 'Antigüedad', sortable: false },
+  { key: 'assigned',   label: 'Asignado a', sortable: false },
+  { key: 'actions',    label: 'Acciones',   sortable: false },
 ]
 
 /**
@@ -76,16 +78,34 @@ export function useWalletMovementsList(
           { value: 'REJECTED',  label: 'Rechazado'  },
         ],
       },
+      {
+        key: 'fraud_flag',
+        label: 'Riesgo',
+        placeholder: 'Todos',
+        options: [
+          { value: 'duplicate_receipt', label: 'Posible comprobante duplicado' },
+        ],
+      },
+      {
+        key: 'assigned_to_user_id',
+        label: 'Asignado a',
+        placeholder: 'Todos',
+        options: [
+          { value: 'mine', label: 'Asignados a mí' },
+        ],
+      },
     ]
   })
 
   /** Params compartidos por fetch/stats/export para que los tres reflejen el mismo filtro activo. */
   const activeParams = computed(() => ({
-    type:      lastFilters.value.type   || undefined,
-    status:    lastFilters.value.status || undefined,
-    search:    lastSearch.value         || undefined,
-    date_from: dateFrom.value           || undefined,
-    date_to:   dateTo.value             || undefined,
+    type:                 lastFilters.value.type                 || undefined,
+    status:               lastFilters.value.status                || undefined,
+    search:               lastSearch.value                        || undefined,
+    date_from:            dateFrom.value                          || undefined,
+    date_to:              dateTo.value                            || undefined,
+    fraud_flag:           lastFilters.value.fraud_flag            || undefined,
+    assigned_to_user_id:  lastFilters.value.assigned_to_user_id   || undefined,
   }))
 
   async function fetchMovements(page = 1) {
@@ -186,7 +206,29 @@ export function useWalletMovementsList(
     if (movement) applyUpdate(movement)
   }
 
-  const { pendingCount } = useWalletMovementsRealtime(initialPendingCount, handleRequested, handleProcessed)
+  /**
+   * Refleja en vivo cuándo otro admin toma/libera un caso — hace visible el
+   * lock de WalletService::guardNotLockedByOther() antes de que alguien
+   * choque con el 409 al intentar aprobar/rechazar. No dispara un fetch
+   * completo: el payload ya trae todo lo necesario para actualizar la fila.
+   */
+  function handleAssigned(payload: WalletMovementAssignedPayload) {
+    const idx = movements.value.findIndex(m => m.id === payload.movement_id)
+    if (idx === -1) return
+
+    movements.value[idx] = {
+      ...movements.value[idx],
+      assigned_to: payload.assigned_to_user_id ? {
+        id: payload.assigned_to_user_id,
+        first_name: payload.assigned_to_name,
+        last_name: null,
+        email: '',
+      } : null,
+      assigned_at: payload.assigned_to_user_id ? new Date().toISOString() : null,
+    }
+  }
+
+  const { pendingCount } = useWalletMovementsRealtime(initialPendingCount, handleRequested, handleProcessed, handleAssigned)
 
   const totalPages  = computed(() => meta.value?.last_page    ?? 1)
   const currentPage = computed(() => meta.value?.current_page ?? 1)

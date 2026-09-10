@@ -201,6 +201,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
         });
 
+        // Rate-limit: aprobación/rechazo en lote de movimientos de billetera
+        // — 5 requests por minuto por admin. Más restrictivo que
+        // admin-users-bulk (10/min) porque cada request puede mover dinero
+        // real hasta 100 veces (ver WalletMovementController::processBulk()),
+        // a diferencia de un toggle de estado de usuario.
+        RateLimiter::for('wallet-movements-bulk', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip());
+        });
+
         // Rate-limit: registro de cuentas nuevas por IP — 20 por día. Ya
         // existe throttle:5,1 (por minuto) en routes/auth.php, pero un
         // ataque de sybil farming (crear muchas cuentas para acumular XP de

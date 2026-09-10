@@ -63,6 +63,8 @@ export interface Movement {
   admin_notes:    string | null
   processed_at:   string | null
   processed_by:   MovementAdmin | null
+  assigned_at:    string | null
+  assigned_to:    MovementAdmin | null
   created_at:     string
   currency:       MovementCurrency | null
   user:           MovementUser | null
