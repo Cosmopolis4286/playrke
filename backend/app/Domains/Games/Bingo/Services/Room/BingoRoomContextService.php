@@ -67,6 +67,8 @@ final class BingoRoomContextService
      *     prize_pool_type_id?: string,
      *     from_house?: string,
      *     currency_id?: string,
+     *     date_from?: string,
+     *     date_to?: string,
      * } $filters Filtros server-side sobre campos reales (ver BingoRoomRepository::paginateSummaryGameRooms)
      * @return array Listado de salas con paginación
      * @throws DomainException Si no se pueden resolver las salas de bingo

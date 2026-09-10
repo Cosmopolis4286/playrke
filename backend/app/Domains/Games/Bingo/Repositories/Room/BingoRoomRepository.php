@@ -395,6 +395,14 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             );
         }
 
+        if (!empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
         return $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
     }

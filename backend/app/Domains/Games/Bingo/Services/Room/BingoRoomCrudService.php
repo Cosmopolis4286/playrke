@@ -947,7 +947,8 @@ class BingoRoomCrudService
                 BingoRoomAuditLogger::EVENT_STATUS_CHANGED,
                 'admin',
                 "Estado cambiado de {$room->status?->code} a {$newStatus}",
-                ['previous_status' => $room->status?->code, 'new_status' => $newStatus, 'changed_by' => Auth::id()],
+                ['previous_status' => $room->status?->code, 'new_status' => $newStatus],
+                userId: Auth::id() ? (string) Auth::id() : null,
             );
         }
 
