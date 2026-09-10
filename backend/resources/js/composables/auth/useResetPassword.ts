@@ -1,7 +1,7 @@
-import { reactive, ref, computed } from 'vue'
-import { useToast } from 'vue-toastification'
+import { reactive } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import { resetPasswordSchema } from './resetPasswordSchema'
+import { useValidatedForm } from '@js/composables/form/useValidatedForm'
 
 interface ResetPasswordPayload {
   token: string
@@ -16,34 +16,18 @@ interface ResetPasswordPayload {
  * pre-rellenados por Auth/ResetPassword.vue vía props de Inertia.
  */
 export function useResetPassword(token: string, email: string) {
-  const toast = useToast()
-
   const form = reactive<ResetPasswordPayload>({
     token,
     email,
     password: '',
     password_confirmation: '',
   })
-  const loading = ref(false)
-  const isBusy = computed(() => loading.value)
-  const errors = reactive<Record<string, string>>({})
 
-  function validate(): boolean {
-    Object.keys(errors).forEach(key => delete errors[key])
-
-    const result = resetPasswordSchema.safeParse(form)
-    if (result.success) return true
-
-    for (const issue of result.error.issues) {
-      const path = issue.path[0]
-      if (typeof path === 'string' && !errors[path]) {
-        errors[path] = issue.message
-      }
-    }
-    return false
-  }
+  const { loading, isBusy, errors, touched, submitted, markTouched, fieldError, validate, reportHttpError, toast } =
+    useValidatedForm(form, resetPasswordSchema)
 
   const submit = async (): Promise<void> => {
+    submitted.value = true
     if (isBusy.value) return
 
     if (!validate()) {
@@ -59,19 +43,11 @@ export function useResetPassword(token: string, email: string) {
       toast.success('Contraseña restablecida. Ya puedes iniciar sesión.')
       window.location.replace('/login')
     } catch (error: any) {
-      const status = error?.response?.status
-
-      if (status === 422) {
-        toast.error('El link de recuperación es inválido o ya expiró.')
-      } else if (status === 429) {
-        toast.warning('Demasiados intentos. Espera unos minutos.')
-      } else {
-        toast.error('Error inesperado. Por favor intenta nuevamente.')
-      }
+      reportHttpError(error, { validation: 'El link de recuperación es inválido o ya expiró.' })
     } finally {
       loading.value = false
     }
   }
 
-  return { form, errors, loading, isBusy, submit }
+  return { form, errors, touched, submitted, markTouched, fieldError, loading, isBusy, submit }
 }

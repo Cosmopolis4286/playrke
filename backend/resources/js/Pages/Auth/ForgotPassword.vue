@@ -5,7 +5,7 @@
   import AuthFormField from '@js/Components/auth/AuthFormField.vue'
   import { useForgotPassword } from '@js/composables/auth/useForgotPassword'
 
-  const { form, errors, loading, isBusy, submit } = useForgotPassword()
+  const { form, loading, isBusy, submit, markTouched, fieldError } = useForgotPassword()
 
   const forgotSlides: CarouselSlide[] = [
     {
@@ -45,7 +45,8 @@
           maxlength="60"
           required
           :disabled="isBusy"
-          :error="errors.email"
+          :error="fieldError('email')"
+          @input="markTouched('email')"
         />
 
         <button type="submit" class="auth-form__submit" :disabled="isBusy">

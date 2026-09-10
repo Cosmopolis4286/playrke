@@ -1,24 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { computed, onMounted, nextTick, ref } from 'vue'
+import { useToast } from 'vue-toastification'
 import GuestLayout from '@js/Layouts/GuestLayout.vue'
 import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
-import backendClient from '@/js/plugins/axios'
+import AuthFormField from '@js/Components/auth/AuthFormField.vue'
 import { useTurnstile } from '@js/composables/common/useTurnstile'
-
-interface CardPrize {
-  type_label:   string
-  status_label: string
-  amount_usd:   number
-}
-
-interface CardResult {
-  serial_number: string
-  card_numbers:  Record<string, (number | null)[]>
-  status: number
-  status_label:  string
-  room: { name: string | null; date: string | null; time: string | null }
-  prize: CardPrize | null
-}
+import { useVerifyCard } from '@js/composables/public/useVerifyCard'
+import { SERIAL_MASK, PHONE_LAST4_MASK } from '@js/composables/public/verifyCardSchema'
 
 // BingoCard::CARD_STATUSES: 1=Activo, 2=Inactivo, 3=Ganador, 4=Cancelado.
 // Mapear por el número (no parseando status_label en español) es más
@@ -38,11 +26,8 @@ const slides: CarouselSlide[] = [
   },
 ]
 
-const serialNumber = ref('')
-const phoneLast4   = ref('')
-const loading       = ref(false)
-const errorMessage  = ref<string | null>(null)
-const result        = ref<CardResult | null>(null)
+const toast = useToast()
+const { form, result, loading, isBusy, markTouched, fieldError, submit: submitVerify } = useVerifyCard()
 
 const statusBadgeClass = computed(() =>
   result.value ? STATUS_BADGE_CLASS[result.value.status] ?? 'verify-card__status-badge--neutral' : ''
@@ -58,8 +43,8 @@ onMounted(async () => {
   const params = new URLSearchParams(window.location.search)
   const serialParam = params.get('serial')
   const phoneParam = params.get('phone')
-  if (serialParam) serialNumber.value = serialParam
-  if (phoneParam) phoneLast4.value = phoneParam
+  if (serialParam) form.serial_number = serialParam
+  if (phoneParam) form.phone_last4 = phoneParam
 
   await nextTick()
   if (turnstileContainer.value) renderTurnstile(turnstileContainer.value)
@@ -67,27 +52,11 @@ onMounted(async () => {
 
 async function submit() {
   if (siteKey && !turnstileToken.value) {
-    errorMessage.value = 'Completa la verificación de seguridad.'
+    toast.warning('Completa la verificación de seguridad.')
     return
   }
-
-  errorMessage.value = null
-  result.value = null
-  loading.value = true
-
-  try {
-    const { data } = await backendClient.post('/api/bingo/verify-card', {
-      serial_number: serialNumber.value.trim(),
-      phone_last4:   phoneLast4.value.trim(),
-      'cf-turnstile-response': turnstileToken.value,
-    })
-    result.value = data.card
-  } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message ?? 'No se pudo verificar el cartón. Intenta de nuevo.'
-  } finally {
-    loading.value = false
-    resetTurnstile()
-  }
+  await submitVerify(turnstileToken.value || undefined)
+  resetTurnstile()
 }
 </script>
 
@@ -97,40 +66,34 @@ async function submit() {
 
     <template #form-content>
       <form novalidate @submit.prevent="submit" class="auth-form">
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-ticket" aria-hidden="true"></i>
-          <input
-            v-model.trim="serialNumber"
-            type="text"
-            class="auth-form__input"
-            placeholder="Número de serial del cartón"
-            aria-label="Número de serial del cartón"
-            required
-            :disabled="loading"
-          />
-        </fieldset>
+        <AuthFormField
+          v-model="form.serial_number"
+          icon="fa-ticket"
+          placeholder="BINGO-A1B2C3D4E5F67"
+          :mask="SERIAL_MASK"
+          required
+          :disabled="isBusy"
+          :error="fieldError('serial_number')"
+          @input="markTouched('serial_number')"
+        />
 
-        <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-phone" aria-hidden="true"></i>
-          <input
-            v-model.trim="phoneLast4"
-            type="text"
-            inputmode="numeric"
-            maxlength="4"
-            class="auth-form__input"
-            placeholder="Últimos 4 dígitos de tu teléfono"
-            aria-label="Últimos 4 dígitos de tu teléfono"
-            required
-            :disabled="loading"
-          />
-        </fieldset>
+        <AuthFormField
+          v-model="form.phone_last4"
+          type="tel"
+          icon="fa-phone"
+          placeholder="Últimos 4 dígitos de tu teléfono"
+          :mask="PHONE_LAST4_MASK"
+          required
+          :disabled="isBusy"
+          :error="fieldError('phone_last4')"
+          @input="markTouched('phone_last4')"
+        />
 
         <div v-if="siteKey" ref="turnstileContainer" class="auth-form__turnstile"></div>
 
-        <p v-if="errorMessage" class="auth-form__error">{{ errorMessage }}</p>
-
-        <button type="submit" class="auth-form__submit" :disabled="loading || (!!siteKey && !turnstileToken)">
-          {{ loading ? 'Verificando…' : 'Verificar cartón' }}
+        <button type="submit" class="auth-form__submit" :disabled="isBusy || (!!siteKey && !turnstileToken)">
+          <span class="auth-form__submit-text">{{ loading ? 'Verificando…' : 'Verificar cartón' }}</span>
+          <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
       </form>
 

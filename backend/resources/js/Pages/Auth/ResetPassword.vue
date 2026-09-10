@@ -11,7 +11,7 @@
     email: string
   }>()
 
-  const { form, errors, loading, isBusy, submit } = useResetPassword(props.token, props.email)
+  const { form, loading, isBusy, submit, markTouched, fieldError } = useResetPassword(props.token, props.email)
 
   const resetSlides: CarouselSlide[] = [
     {
@@ -54,7 +54,8 @@
           placeholder="Nueva contraseña"
           required
           :disabled="isBusy"
-          :error="errors.password"
+          :error="fieldError('password')"
+          @input="markTouched('password')"
         />
         <PasswordStrengthMeter v-if="form.password" :password="form.password" />
 
@@ -65,7 +66,8 @@
           placeholder="Confirmar contraseña"
           required
           :disabled="isBusy"
-          :error="errors.password_confirmation"
+          :error="fieldError('password_confirmation')"
+          @input="markTouched('password_confirmation')"
         />
 
         <button type="submit" class="auth-form__submit" :disabled="isBusy">

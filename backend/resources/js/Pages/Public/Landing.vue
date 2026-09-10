@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from "vue";
+import { onMounted, onUnmounted, ref, reactive, computed } from "vue";
 import { Link } from "@inertiajs/vue3";
 import { useHead } from "@vueuse/head";
 // La Landing usa components/layouts/inertia.blade.php (head minimalista, sin
@@ -17,6 +17,8 @@ import PublicNavbar from "@js/Components/Platform/PublicNavbar.vue";
 import type { NavLink } from "@js/Components/Platform/PublicNavbar.vue";
 import type { JackpotEntry } from "@js/Components/Platform/JackpotDisplay.vue";
 import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
+import { verifyCardSchema, SERIAL_MASK, PHONE_LAST4_MASK } from "@js/composables/public/verifyCardSchema";
+import { IMaskDirective } from "vue-imask";
 import { useRevealOnScroll } from "@js/composables/ui/useRevealOnScroll";
 import { axios } from "@js/plugins/axios";
 
@@ -212,16 +214,46 @@ const totalPaidFormatted = computed(() => {
   return total.toLocaleString("es", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 });
 
-// ── Verificador de cartón (inline, envía a /verify-card con los valores precargados) ──
+// ── Verificador de cartón (inline, envía a /verify-card con los valores
+// precargados) — valida formato antes de redirigir con las mismas reglas
+// que VerifyCardRequest del backend, para no mandar al usuario a una página
+// nueva solo para descubrir ahí que el serial o el teléfono están mal. ──
 const cardSerial = ref("");
 const cardPhone = ref("");
+const verifyErrors = reactive<{ serial?: string; phone?: string }>({});
+const vImask = IMaskDirective;
+
+function onSerialAccept(event: CustomEvent) {
+  cardSerial.value = event.detail.value;
+  verifyErrors.serial = undefined;
+}
+function onPhoneAccept(event: CustomEvent) {
+  cardPhone.value = event.detail.value;
+  verifyErrors.phone = undefined;
+}
 
 function submitVerify() {
-  const params = new URLSearchParams();
-  if (cardSerial.value) params.set("serial", cardSerial.value);
-  if (cardPhone.value) params.set("phone", cardPhone.value);
-  const qs = params.toString();
-  window.location.href = qs ? `/verify-card?${qs}` : "/verify-card";
+  verifyErrors.serial = undefined;
+  verifyErrors.phone = undefined;
+
+  const result = verifyCardSchema.safeParse({
+    serial_number: cardSerial.value,
+    phone_last4: cardPhone.value,
+  });
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      const path = issue.path[0];
+      if (path === "serial_number") verifyErrors.serial = issue.message;
+      if (path === "phone_last4") verifyErrors.phone = issue.message;
+    }
+    return;
+  }
+
+  const params = new URLSearchParams({
+    serial: cardSerial.value.trim(),
+    phone: cardPhone.value.trim(),
+  });
+  window.location.href = `/verify-card?${params.toString()}`;
 }
 
 // ── Animación de entrada al hacer scroll — el hero queda fuera a propósito
@@ -345,12 +377,35 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
             <li class="reveal-child" style="--stagger-index: 2"><span class="num">3</span> Ve el estado, la sala y el resultado al instante</li>
           </ul>
         </div>
-        <form class="verify-form" @submit.prevent="submitVerify">
+        <form class="verify-form" novalidate @submit.prevent="submitVerify">
           <label for="landing-serial">Serial del cartón</label>
-          <input id="landing-serial" v-model="cardSerial" type="text" placeholder="BGO-2K9X-771" autocomplete="off" />
+          <input
+            id="landing-serial"
+            v-imask="SERIAL_MASK"
+            :value="cardSerial"
+            type="text"
+            placeholder="BINGO-A1B2C3D4E5F67"
+            autocomplete="off"
+            :aria-invalid="!!verifyErrors.serial"
+            :class="{ 'verify-form__input--error': verifyErrors.serial }"
+            @accept="onSerialAccept"
+          />
+          <p v-if="verifyErrors.serial" class="verify-form__error">{{ verifyErrors.serial }}</p>
 
           <label for="landing-phone">Últimos 4 dígitos del teléfono</label>
-          <input id="landing-phone" v-model="cardPhone" type="text" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off" />
+          <input
+            id="landing-phone"
+            v-imask="PHONE_LAST4_MASK"
+            :value="cardPhone"
+            type="text"
+            inputmode="numeric"
+            placeholder="••••"
+            autocomplete="off"
+            :aria-invalid="!!verifyErrors.phone"
+            :class="{ 'verify-form__input--error': verifyErrors.phone }"
+            @accept="onPhoneAccept"
+          />
+          <p v-if="verifyErrors.phone" class="verify-form__error">{{ verifyErrors.phone }}</p>
 
           <button type="submit" class="btn btn--primary btn--block">Verificar cartón</button>
         </form>
@@ -736,6 +791,14 @@ h1, h2, h3 { font-family: "Orbitron", "Anton", sans-serif; margin: 0; color: #ee
   border-color: #2af598;
 }
 .verify-form input::placeholder { color: #4a6698; }
+.verify-form__input--error {
+  border-color: rgba(248,113,113,0.55) !important;
+}
+.verify-form__error {
+  margin: -10px 0 14px;
+  font-size: 11.5px;
+  color: #f87171;
+}
 
 /* ── Invita y gana ── */
 .invite-card {

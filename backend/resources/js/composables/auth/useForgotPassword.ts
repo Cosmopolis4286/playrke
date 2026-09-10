@@ -1,32 +1,16 @@
-import { reactive, ref, computed } from 'vue'
-import { useToast } from 'vue-toastification'
+import { reactive } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import { forgotPasswordSchema } from './forgotPasswordSchema'
+import { useValidatedForm } from '@js/composables/form/useValidatedForm'
 
 export function useForgotPassword() {
-  const toast = useToast()
-
   const form = reactive({ email: '' })
-  const loading = ref(false)
-  const isBusy = computed(() => loading.value)
-  const errors = reactive<Record<string, string>>({})
 
-  function validate(): boolean {
-    Object.keys(errors).forEach(key => delete errors[key])
-
-    const result = forgotPasswordSchema.safeParse(form)
-    if (result.success) return true
-
-    for (const issue of result.error.issues) {
-      const path = issue.path[0]
-      if (typeof path === 'string' && !errors[path]) {
-        errors[path] = issue.message
-      }
-    }
-    return false
-  }
+  const { loading, isBusy, errors, touched, submitted, markTouched, fieldError, validate, reportHttpError, toast } =
+    useValidatedForm(form, forgotPasswordSchema)
 
   const submit = async (): Promise<void> => {
+    submitted.value = true
     if (isBusy.value) return
 
     if (!validate()) {
@@ -44,20 +28,14 @@ export function useForgotPassword() {
       // registradas), así que el frontend tampoco debe hacerlo.
       toast.success('Si el correo está registrado, te enviamos un link de recuperación.')
       form.email = ''
+      submitted.value = false
+      touched.email = false
     } catch (error: any) {
-      const status = error?.response?.status
-
-      if (status === 422) {
-        toast.error('Ingresa un correo electrónico válido.')
-      } else if (status === 429) {
-        toast.warning('Demasiadas solicitudes. Espera unos minutos.')
-      } else {
-        toast.error('Error inesperado. Por favor intenta nuevamente.')
-      }
+      reportHttpError(error, { validation: 'Ingresa un correo electrónico válido.' })
     } finally {
       loading.value = false
     }
   }
 
-  return { form, errors, loading, isBusy, submit }
+  return { form, errors, touched, submitted, markTouched, fieldError, loading, isBusy, submit }
 }

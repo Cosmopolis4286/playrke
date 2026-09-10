@@ -21,7 +21,7 @@
   const prefillPhone = initialParams.get('phone') ?? ''
   const prefillCountry = initialParams.get('country') ?? ''
 
-  const { form, errors, loading, isBusy, submit: submitForm, touched, submitted, markTouched, selectedIso2 } =
+  const { form, loading, isBusy, submit: submitForm, markTouched, fieldError, errors, submitted, touched, selectedIso2 } =
     useRegisterForm(props.countries, {
       phone: prefillPhone,
       country: prefillCountry,
@@ -97,7 +97,7 @@
           maxlength="80"
           required
           :disabled="isBusy"
-          :error="(submitted || touched.email) ? errors.email : null"
+          :error="fieldError('email')"
           @input="markTouched('email')"
         />
 
@@ -109,7 +109,7 @@
           maxlength="30"
           required
           :disabled="isBusy"
-          :error="(submitted || touched.username) ? errors.username : null"
+          :error="fieldError('username')"
           @input="markTouched('username')"
         />
 
@@ -138,7 +138,7 @@
           :placeholder="phonePlaceholder"
           :mask="phoneMask ?? undefined"
           :disabled="isBusy || !selectedIso2"
-          :error="(submitted || touched.phone) ? errors.phone : null"
+          :error="fieldError('phone')"
           @input="markTouched('phone')"
         />
 
@@ -150,7 +150,7 @@
           placeholder="Contraseña"
           required
           :disabled="isBusy"
-          :error="(submitted || touched.password) ? errors.password : null"
+          :error="fieldError('password')"
           @input="markTouched('password')"
         />
         <PasswordStrengthMeter v-if="form.password" :password="form.password" />
@@ -163,7 +163,7 @@
           placeholder="Repetir contraseña"
           required
           :disabled="isBusy"
-          :error="(submitted || touched.password_confirmation) ? errors.password_confirmation : null"
+          :error="fieldError('password_confirmation')"
           @input="markTouched('password_confirmation')"
         />
 

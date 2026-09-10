@@ -11,7 +11,7 @@
 
   const props = defineProps<{ register: Boolean }>()
 
-  const { form, errors, loading, isBusy, requiresTurnstile, submit } = useLogin()
+  const { form, loading, isBusy, requiresTurnstile, submit, markTouched, fieldError } = useLogin()
   const { siteKey, token: turnstileToken, render: renderTurnstile, reset: resetTurnstile } = useTurnstile()
 
   const page = usePage<{ app?: { env?: string } }>()
@@ -49,7 +49,8 @@
           maxlength="40"
           required
           :disabled="isBusy"
-          :error="errors.login"
+          :error="fieldError('login')"
+          @input="markTouched('login')"
         />
 
         <AuthFormField
@@ -59,7 +60,8 @@
           placeholder="Contraseña"
           required
           :disabled="isBusy"
-          :error="errors.password"
+          :error="fieldError('password')"
+          @input="markTouched('password')"
         />
 
         <div class="auth-form__checkbox">

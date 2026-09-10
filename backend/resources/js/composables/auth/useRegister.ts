@@ -1,7 +1,7 @@
-import { reactive, ref, computed } from 'vue'
-import { useToast } from 'vue-toastification'
+import { reactive, computed } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
-import { useRegisterValidation } from './useRegisterValidation'
+import { buildRegisterSchema } from './registerSchema'
+import { useValidatedForm } from '@js/composables/form/useValidatedForm'
 import type { Country } from '@js/types/country'
 
 interface RegisterForm {
@@ -15,8 +15,6 @@ interface RegisterForm {
 }
 
 export function useRegisterForm(countries: Country[], initialValues?: Partial<RegisterForm>) {
-  const toast = useToast()
-
   const form = reactive<RegisterForm>({
     email: '',
     username: '',
@@ -28,11 +26,6 @@ export function useRegisterForm(countries: Country[], initialValues?: Partial<Re
     ...initialValues,
   })
 
-  const loading = ref(false)
-  const isBusy = computed(() => loading.value)
-  const submitted = ref(false)
-  const touched = reactive<Record<string, boolean>>({})
-
   const selectedIso2 = computed<string | null>(() => {
     if (!form.country) return null
     // eslint-disable-next-line eqeqeq
@@ -40,18 +33,14 @@ export function useRegisterForm(countries: Country[], initialValues?: Partial<Re
     return match?.iso_code_2 ?? null
   })
 
-  const { errors, validate } = useRegisterValidation(form, selectedIso2)
-
-  function markTouched(field: string) {
-    touched[field] = true
-  }
+  const { loading, isBusy, errors, touched, submitted, markTouched, fieldError, validate, reportHttpError, toast } =
+    useValidatedForm(form, () => buildRegisterSchema(selectedIso2.value))
 
   const submit = async (turnstileToken?: string) => {
     submitted.value = true
     if (isBusy.value) return
 
-    const valid = await validate()
-    if (!valid) {
+    if (!validate()) {
       toast.warning('Revisa los campos marcados antes de continuar.')
       return
     }
@@ -74,24 +63,11 @@ export function useRegisterForm(countries: Country[], initialValues?: Partial<Re
       toast.success('¡Cuenta creada! Redirigiendo...')
       window.location.replace('/dashboard')
     } catch (error: any) {
-      const status = error?.response?.status
-
-      if (status === 422) {
-        const serverErrors = error.response.data.errors ?? {}
-        Object.assign(errors, serverErrors)
-        // Mostrar el primer error del servidor como toast
-        const first = Object.values(serverErrors)[0]
-        if (first) toast.error(Array.isArray(first) ? first[0] : String(first))
-        else toast.error('Los datos ingresados no son válidos.')
-      } else if (status === 429) {
-        toast.warning('Demasiados intentos. Espera un momento e inténtalo de nuevo.')
-      } else {
-        toast.error('Error inesperado. Por favor intenta nuevamente.')
-      }
+      reportHttpError(error)
     } finally {
       loading.value = false
     }
   }
 
-  return { form, errors, loading, isBusy, submit, touched, submitted, markTouched, selectedIso2 }
+  return { form, errors, loading, isBusy, submit, touched, submitted, markTouched, fieldError, selectedIso2 }
 }
