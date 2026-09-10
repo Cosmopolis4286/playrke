@@ -25,6 +25,7 @@
   import { useRoomActivateModal } from '@js/composables/games/bingo/room/summary/useRoomActivateModal'
   import { useMissingRateModal } from '@js/composables/games/bingo/room/summary/useMissingRateModal'
   import { useRoomSummaryFilters, useRoomSummaryExtraButtons } from '@js/composables/games/bingo/room/summary/useRoomSummaryTableConfig'
+  import { useDateRangeExport } from '@js/composables/common/table/useDateRangeExport'
   import { usePage, router } from '@inertiajs/vue3'
 
   // ==========================================================================
@@ -103,7 +104,14 @@
     commerce_id: 'commerce_id',
   }
 
+  // Última query de la tabla (búsqueda/filtros/página) — se conserva para
+  // poder re-disparar el fetch a página 1 cuando cambia el rango de fechas
+  // sin perder el resto de filtros activos (mismo patrón que
+  // useWalletMovementsList.applyDateRange/fetchMovements).
+  const lastQuery = ref<ServerQuery>({ search: '', filters: {}, sort: { key: null, direction: 'asc' }, page: 1 })
+
   async function fetchSummaryPage(query: ServerQuery) {
+    lastQuery.value = query
     loading.value = true
     try {
       const params: Record<string, string | number> = {
@@ -119,6 +127,9 @@
         if (param) params[param] = value
       }
 
+      if (dateFrom.value) params.date_from = dateFrom.value
+      if (dateTo.value) params.date_to = dateTo.value
+
       const { data } = await backendClient.get('/bingo-rooms/summary-data', { params })
 
       rooms.value = data.rooms?.rows ?? []
@@ -128,6 +139,26 @@
     } finally {
       loading.value = false
     }
+  }
+
+  // ==========================================================================
+  // Filtro por período + exportación CSV — mismo patrón que /wallet-movements
+  // (ver useDateRangeExport, extraído de ahí para reutilizar en ambas pantallas).
+  // ==========================================================================
+  const { dateFrom, dateTo, applyDateRange, exportUrl: exportUrlBase } = useDateRangeExport(
+    '/bingo-rooms/export',
+    () => fetchSummaryPage({ ...lastQuery.value, page: 1 }),
+  )
+
+  function exportUrl(): string {
+    const params: Record<string, string | undefined> = {}
+    if (lastQuery.value.search) params.search = lastQuery.value.search
+    for (const [filterKey, value] of Object.entries(lastQuery.value.filters)) {
+      if (!value) continue
+      const param = FILTER_KEY_TO_PARAM[filterKey]
+      if (param) params[param] = value
+    }
+    return exportUrlBase(params)
   }
 
   // ==========================================================================
@@ -383,7 +414,30 @@
     server-side
     :server-total-pages="pagination.last_page"
     @query-change="fetchSummaryPage"
-  />
+  >
+    <template #action-buttons>
+      <div class="room-date-range">
+        <input
+          v-model="dateFrom"
+          type="date"
+          class="form-control form-control-sm"
+          title="Desde"
+          @change="applyDateRange"
+        />
+        <span class="room-date-range__sep">—</span>
+        <input
+          v-model="dateTo"
+          type="date"
+          class="form-control form-control-sm"
+          title="Hasta"
+          @change="applyDateRange"
+        />
+      </div>
+      <a class="btn btn-sm btn-outline-secondary" title="Exportar salas filtradas a CSV" :href="exportUrl()">
+        <i class="fas fa-file-csv mr-1"></i>Exportar
+      </a>
+    </template>
+  </TableWithFilterBridge>
 
   <Modal
     v-model="showModalForm"
@@ -593,4 +647,15 @@
   .brf__actions { flex-direction: column; align-items: stretch; }
   .brf__btn { width: 100%; justify-content: center; }
 }
+
+.room-date-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 0.5rem;
+}
+.room-date-range input[type="date"] { width: 140px; }
+.room-date-range__sep { color: var(--ds-text-muted); font-size: 0.8rem; }
+
+.mr-1 { margin-right: 0.25rem; }
 </style>

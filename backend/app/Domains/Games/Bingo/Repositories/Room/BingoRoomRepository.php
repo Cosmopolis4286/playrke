@@ -348,6 +348,36 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->select($fields)
             ->with($relations);
 
+        $this->applySummaryFilters($query, $conditions, $filters);
+
+        return $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Mismo conjunto de salas que paginateSummaryGameRooms() pero sin
+     * paginar — usado por el export CSV (BingoRoomContextService::
+     * exportQuery()), que necesita recorrer el resultado completo, no solo
+     * una página.
+     */
+    public function queryForExport(array $conditions, array $filters): Builder
+    {
+        $query = $this->model->newQuery()
+            ->with(['config.roomType', 'config.connectionType', 'config.prizePoolType', 'status', 'creator:id,username']);
+
+        $this->applySummaryFilters($query, $conditions, $filters);
+
+        return $query->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Condiciones (igualdad/whereIn por campo) + filtros de negocio
+     * compartidos por paginateSummaryGameRooms() y queryForExport() — ver
+     * BingoRoomContextService::resolveVisibilityConditions() para el origen
+     * de $conditions.
+     */
+    private function applySummaryFilters(Builder $query, array $conditions, array $filters): void
+    {
         foreach ($conditions as $field => $value) {
             // 'creator_user_id_in' (filtro por Commerce en BingoRoomContextService::
             // resolveSummaryGameRooms(), admin/superadmin) resuelve un árbol de
@@ -402,9 +432,6 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         if (!empty($filters['date_to'])) {
             $query->whereDate('created_at', '<=', $filters['date_to']);
         }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**

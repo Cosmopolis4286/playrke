@@ -90,19 +90,7 @@ final class BingoRoomContextService
             array_splice($rowKeys, 1, 0, ['commerce_badge']);
         }
 
-        $conditions = (!$isGlobalAdmin && $userId)
-            ? ['creator_user_id' => $userId]
-            : [];
-
-        if ($isGlobalAdmin && !empty($filters['commerce_id'])) {
-            // '__SYSTEM__' es el valor centinela de la opción "Salas de sistema
-            // (admin)" del filtro — ver commerceOptions en Summary.vue. No es un
-            // id de Commerce real, así que se resuelve aparte, contra usuarios
-            // admin/superadmin en vez de contra la jerarquía comercial.
-            $conditions['creator_user_id_in'] = $filters['commerce_id'] === '__SYSTEM__'
-                ? $this->adminUserIds()
-                : $this->sellerUserIdsForCommerce($filters['commerce_id']);
-        }
+        $conditions = $this->resolveVisibilityConditions($userId, $isGlobalAdmin, $filters);
         unset($filters['commerce_id']);
 
         $source = $this->bingoRooms->paginateSummaryGameRooms(
@@ -401,6 +389,57 @@ final class BingoRoomContextService
         unset($row);
 
         return ['rooms' => $rooms, 'pagination' => $pagination];
+    }
+
+    /**
+     * Condiciones de visibilidad por rol, compartidas entre el listado
+     * paginado (resolveSummaryGameRooms) y el export CSV (exportQuery): un
+     * admin/superadmin ve todas las salas; commerce/customer/subsidiary solo
+     * las suyas, salvo que el filtro "Comercializadora" acote a un árbol de
+     * usuarios (Commerce + sus Sellers) o a las salas de sistema (admin).
+     *
+     * @return array<string, mixed>
+     */
+    private function resolveVisibilityConditions(?int $userId, bool $isGlobalAdmin, array $filters): array
+    {
+        $conditions = (!$isGlobalAdmin && $userId)
+            ? ['creator_user_id' => $userId]
+            : [];
+
+        if ($isGlobalAdmin && !empty($filters['commerce_id'])) {
+            // '__SYSTEM__' es el valor centinela de la opción "Salas de sistema
+            // (admin)" del filtro — ver commerceOptions en Summary.vue. No es un
+            // id de Commerce real, así que se resuelve aparte, contra usuarios
+            // admin/superadmin en vez de contra la jerarquía comercial.
+            $conditions['creator_user_id_in'] = $filters['commerce_id'] === '__SYSTEM__'
+                ? $this->adminUserIds()
+                : $this->sellerUserIdsForCommerce($filters['commerce_id']);
+        }
+
+        return $conditions;
+    }
+
+    /**
+     * Query (sin paginar) del mismo conjunto de salas que ve el listado
+     * Room/Summary bajo los mismos filtros — usado por BingoRoomController::
+     * export() para el CSV completo, no solo la página visible. Mismo
+     * criterio de visibilidad por rol que resolveSummaryGameRooms().
+     *
+     * @param array{
+     *     status?: string, room_type_id?: string, connection_type_id?: string,
+     *     prize_pool_type_id?: string, from_house?: string, currency_id?: string,
+     *     commerce_id?: string, date_from?: string, date_to?: string,
+     * } $filters
+     */
+    public function exportQuery(?int $userId, array $filters): \Illuminate\Database\Eloquent\Builder
+    {
+        $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
+            || $this->userContext->userHasRole('admin');
+
+        $conditions = $this->resolveVisibilityConditions($userId, $isGlobalAdmin, $filters);
+        unset($filters['commerce_id']);
+
+        return $this->bingoRooms->queryForExport($conditions, $filters);
     }
 
     /**

@@ -62,6 +62,17 @@ final class BingoRoomService
     }
 
     /**
+     * Query (sin paginar) del listado admin/commerce de salas bajo los
+     * mismos filtros que summaryData() — usado por BingoRoomController::
+     * export() para el CSV completo.
+     */
+    public function exportQuery(array $filters): \Illuminate\Database\Eloquent\Builder
+    {
+        $userId = $this->userContext->resolveUserId();
+        return $this->contextService->exportQuery($userId, $filters);
+    }
+
+    /**
      * Mostrar detalle de una sala de bingo.
      */
     public function show(BingoRoom $room): BingoRoomResource

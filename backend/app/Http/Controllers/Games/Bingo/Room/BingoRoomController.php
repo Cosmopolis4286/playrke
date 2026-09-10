@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Games\Bingo\Room;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
@@ -13,6 +15,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador de administración del juego de Bingo.
@@ -112,6 +115,110 @@ final class BingoRoomController extends Controller
                 ])
             )
         );
+    }
+
+    /**
+     * GET /bingo-rooms/export?search=&status=&...&date_from=&date_to=
+     * Export CSV del listado de salas filtrado completo (no solo la página
+     * visible) — mismo patrón que WalletMovementController::export().
+     * Incluye última activación/desactivación manual (toggleStatus) y quién
+     * la hizo, resuelto en batch para no incurrir en N+1 por chunk.
+     *
+     * @return StreamedResponse
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', BingoRoom::class);
+
+        $filters = array_filter([
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+            'room_type_id' => $request->query('room_type_id'),
+            'connection_type_id' => $request->query('connection_type_id'),
+            'prize_pool_type_id' => $request->query('prize_pool_type_id'),
+            'from_house' => $request->query('from_house'),
+            'currency_id' => $request->query('currency_id'),
+            'commerce_id' => $request->query('commerce_id'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ]);
+
+        $query = $this->service->exportQuery($filters);
+
+        return response()->streamDownload(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, [
+                'ID', 'Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Creador', 'Jugadores', 'Cartones',
+                'Premio', 'Creada', 'Última activación', 'Activada por', 'Última desactivación', 'Desactivada por',
+            ]);
+
+            $query->chunk(500, function ($rooms) use ($handle) {
+                $statusEvents = $this->resolveStatusEventsForExport($rooms->pluck('id')->all());
+
+                foreach ($rooms as $room) {
+                    $activated = $statusEvents[(string) $room->id]['ACTIVE'] ?? null;
+                    $deactivated = $statusEvents[(string) $room->id]['INACTIVE'] ?? null;
+
+                    fputcsv($handle, [
+                        $room->id,
+                        $room->uuid_code,
+                        $room->status?->code,
+                        $room->config?->roomType?->label,
+                        $room->config?->connectionType?->label,
+                        $room->config?->prizePoolType?->label,
+                        $room->creator?->username,
+                        $room->total_players,
+                        $room->total_cards,
+                        $room->prize_pool,
+                        $room->created_at?->format('Y-m-d H:i:s'),
+                        $activated?->created_at?->format('Y-m-d H:i:s'),
+                        $activated?->user?->username,
+                        $deactivated?->created_at?->format('Y-m-d H:i:s'),
+                        $deactivated?->user?->username,
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, 'salas-bingo-' . now()->format('Y-m-d-His') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Última activación y última desactivación manual (toggleStatus) de cada
+     * sala en $roomIds, resuelto en una sola query agrupada — evita N+1 por
+     * fila del chunk del export. Mismo evento/origen que BingoRoomResource::
+     * resolveLastStatusChange(), pero en batch para múltiples salas a la vez.
+     *
+     * @param array<int, string|int> $roomIds
+     * @return array<string, array{ACTIVE?: BingoRoomAudit, INACTIVE?: BingoRoomAudit}>
+     */
+    private function resolveStatusEventsForExport(array $roomIds): array
+    {
+        if (empty($roomIds)) {
+            return [];
+        }
+
+        $audits = BingoRoomAudit::whereIn('room_id', $roomIds)
+            ->where('event', BingoRoomAuditLogger::EVENT_STATUS_CHANGED)
+            ->with('user:id,username')
+            ->orderByDesc('id')
+            ->get();
+
+        $result = [];
+        foreach ($audits as $audit) {
+            $roomId = (string) $audit->room_id;
+            $newStatus = $audit->metadata['new_status'] ?? null;
+
+            if (!$newStatus || isset($result[$roomId][$newStatus])) {
+                continue;
+            }
+
+            $result[$roomId][$newStatus] = $audit;
+        }
+
+        return $result;
     }
 
     /**

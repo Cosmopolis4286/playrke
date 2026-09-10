@@ -114,6 +114,12 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     ): LengthAwarePaginator;
 
     /**
+     * Mismo conjunto/filtros que paginateSummaryGameRooms() pero sin
+     * paginar — usado por el export CSV del listado admin/commerce de salas.
+     */
+    public function queryForExport(array $conditions, array $filters): \Illuminate\Database\Eloquent\Builder;
+
+    /**
      * Salas PUBLIC activas para la vitrina pública (sin sesión) — ver
      * BingoRoomRepository::getActivePublicRoomsForShowcase().
      */

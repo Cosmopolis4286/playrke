@@ -46,6 +46,7 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manag
     'cancel' => ['method' => 'patch',  'uri' => '{room}/cancel', 'action' => 'cancel'],
     'activate-now' => ['method' => 'patch', 'uri' => '{room}/activate-now', 'action' => 'activateNow'],
     'schedule-start' => ['method' => 'patch', 'uri' => '{room}/schedule-start', 'action' => 'scheduleStart'],
+    'export' => ['method' => 'get', 'uri' => 'export', 'action' => 'export'],
 ]);
 
 // Replay de fichas cantadas (auditoría post-sorteo)
