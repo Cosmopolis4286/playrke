@@ -55,6 +55,17 @@ export interface BingoRoomLastUpdatedBy {
 }
 
 /**
+ * Última vez que la sala pasó a ACTIVE/INACTIVE y quién lo hizo (derivado de
+ * bingo_room_audits, evento 'status_changed'). user_id es null cuando el
+ * cambio lo hizo el sistema (ej. expiración automática), no un admin.
+ */
+export interface BingoRoomLastStatusChangeBy {
+    user_id: string | null
+    username: string | null
+    at: string | null
+}
+
+/**
  * Usuario creador de una sala.
  */
 export interface BingoRoomCreatedBy {
@@ -120,6 +131,11 @@ export interface BingoRoom {
 
     // Cantidad de ediciones registradas (evento 'updated' en audits) desde la creación.
     readonly edit_count?: number
+
+    // Última activación/desactivación manual (toggleStatus) y quién la hizo.
+    // Null si la sala nunca cambió de estado manualmente desde su creación.
+    readonly last_activated_by?: BingoRoomLastStatusChangeBy | null
+    readonly last_deactivated_by?: BingoRoomLastStatusChangeBy | null
 
     // Campo meta: modo de inicio (MANUAL | SCHEDULED), expuesto en el listado
     readonly start_mode?: 'MANUAL' | 'SCHEDULED' | null

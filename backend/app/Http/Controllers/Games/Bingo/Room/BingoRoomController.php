@@ -107,6 +107,8 @@ final class BingoRoomController extends Controller
                     // resolveSummaryGameRooms()) — un commerce/customer ya ve
                     // únicamente sus propias salas, este filtro no le aporta nada.
                     'commerce_id' => $request->query('commerce_id'),
+                    'date_from' => $request->query('date_from'),
+                    'date_to' => $request->query('date_to'),
                 ])
             )
         );

@@ -3,7 +3,9 @@
 namespace App\Http\Resources\Games\Bingo\Room;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Models\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -35,6 +37,8 @@ class BingoRoomResource extends JsonResource
             ] : null),
             'last_updated_by'    => $this->resolveLastUpdatedBy(),
             'edit_count'         => $this->resolveEditCount(),
+            'last_activated_by'   => $this->resolveLastStatusChange('ACTIVE'),
+            'last_deactivated_by' => $this->resolveLastStatusChange('INACTIVE'),
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
 
@@ -210,5 +214,32 @@ class BingoRoomResource extends JsonResource
         return Audit::ofAuditable(BingoRoom::class, $this->id)
             ->ofEvent('updated')
             ->count();
+    }
+
+    /**
+     * Última vez que la sala pasó al estado dado ('ACTIVE'/'INACTIVE') vía
+     * BingoRoomCrudService::toggleStatus(), y quién lo hizo — de
+     * bingo_room_audits (evento 'status_changed', metadata.new_status),
+     * bitácora de dominio propia de Bingo, distinta de la tabla `audits`
+     * genérica que usa resolveLastUpdatedBy().
+     */
+    private function resolveLastStatusChange(string $newStatus): ?array
+    {
+        $audit = BingoRoomAudit::where('room_id', $this->id)
+            ->where('event', BingoRoomAuditLogger::EVENT_STATUS_CHANGED)
+            ->whereJsonContains('metadata->new_status', $newStatus)
+            ->with('user:id,username')
+            ->latest('id')
+            ->first();
+
+        if (!$audit) {
+            return null;
+        }
+
+        return [
+            'user_id'  => $audit->user_id,
+            'username' => $audit->user?->username,
+            'at'       => $audit->created_at?->toISOString(),
+        ];
     }
 }
