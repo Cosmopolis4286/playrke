@@ -249,7 +249,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 id: room.id,
                 created_at: room.created_at,
                 updated_at: room.updated_at,
+                created_by: room.created_by,
                 last_updated_by: room.last_updated_by,
+                edit_count: room.edit_count,
+                last_activated_by: room.last_activated_by,
+                last_deactivated_by: room.last_deactivated_by,
             }
             soldCurrencyIds.value = (room.sold_currencies ?? []).map((id: string | number) => String(id))
             hostUserLabel.value = config.host_user_label ?? null
