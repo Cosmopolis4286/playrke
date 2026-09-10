@@ -2,6 +2,7 @@ import { ref, computed, type Ref } from 'vue'
 import backendClient from '@js/plugins/axios'
 import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 import type { ServerQuery } from '@js/composables/common/table/useTableController'
+import { useDateRangeExport } from '@js/composables/common/table/useDateRangeExport'
 import type { MovementType } from '@js/types/movementType'
 import type { Movement, MovementsMeta } from '@js/types/wallet/admin-movement'
 import { useWalletMovementsRealtime, type WalletMovementProcessedPayload } from './useWalletMovementsRealtime'
@@ -48,12 +49,10 @@ export function useWalletMovementsList(
   // genérico (TableFilterInterface solo soporta selects de opciones fijas),
   // se combinan con lastFilters al hacer fetch y se reflejan en el link de
   // export para que descargue exactamente lo que el admin está viendo.
-  const dateFrom = ref('')
-  const dateTo   = ref('')
-
-  function applyDateRange() {
-    fetchMovements(1)
-  }
+  const { dateFrom, dateTo, applyDateRange, exportUrl: exportUrlBase } = useDateRangeExport(
+    '/wallet-movements/export',
+    () => fetchMovements(1),
+  )
 
   const columns = COLUMNS
 
@@ -107,11 +106,11 @@ export function useWalletMovementsList(
   }
 
   function exportUrl(): string {
-    const params = new URLSearchParams()
-    for (const [key, value] of Object.entries(activeParams.value)) {
-      if (value) params.set(key, value)
-    }
-    return `/wallet-movements/export?${params.toString()}`
+    return exportUrlBase({
+      type:   lastFilters.value.type   || undefined,
+      status: lastFilters.value.status || undefined,
+      search: lastSearch.value         || undefined,
+    })
   }
 
   /** Adapta el evento query-change de TableWithFilterBridge (server-side) al fetch. */
