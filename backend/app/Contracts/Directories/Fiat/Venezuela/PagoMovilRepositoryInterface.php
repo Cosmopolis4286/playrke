@@ -23,6 +23,22 @@ interface PagoMovilRepositoryInterface extends BaseRepositoryInterface
     public function getByUser(string $userId): Collection;
 
     /**
+     * Cuenta los registros no eliminados (status != DELETED) de un usuario
+     * — usado para aplicar DirectoryLimits::MAX_RECORDS_PER_USER en create().
+     */
+    public function countActiveByUser(string $userId): int;
+
+    /**
+     * Igual que countActiveByUser() pero con lockForUpdate() sobre las filas
+     * del usuario — debe llamarse dentro de una transacción abierta. Cierra
+     * la ventana TOCTOU donde dos requests concurrentes (doble click, dos
+     * pestañas) podían pasar ambas el chequeo de límite antes de que
+     * cualquiera hiciera commit, resultando en más registros de los
+     * permitidos.
+     */
+    public function countActiveByUserForUpdate(string $userId): int;
+
+    /**
      * Obtener registros de pago móvil por banco.
      *
      * @param string $bankId ID del banco

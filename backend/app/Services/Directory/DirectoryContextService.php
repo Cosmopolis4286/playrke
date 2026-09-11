@@ -81,14 +81,15 @@ final class DirectoryContextService
     /**
      * Resuelve el contexto del directorio según país.
      *
-     * @param int $userId ID del usuario
+     * @param int $userId ID del usuario dueño efectivo (owner — puede ser distinto del actor si un admin está gestionando en su nombre)
      * @param string $countryCode Código ISO2 del país (por defecto VE)
+     * @param array{is_impersonation?: bool}|null $access Resultado de DirectoryAdminAccessService::resolve() — solo se usa `is_impersonation` aquí.
      *
      * @return DirectoryContextDTO Contexto listo para la vista
      *
      * @throws DomainException
      */
-    public function resolve(int $userId, string $countryCode = 'VE'): DirectoryContextDTO
+    public function resolve(int $userId, string $countryCode = 'VE', ?array $access = null): DirectoryContextDTO
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
@@ -96,6 +97,8 @@ final class DirectoryContextService
             ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
 
         $currencies = $this->currencyService->getAvailableCurrenciesWithLevel($userId);
+
+        $isImpersonation = $access['is_impersonation'] ?? false;
 
         return new DirectoryContextDTO(
             banks: $this->getBanksByCountry($countryCode),
@@ -105,7 +108,30 @@ final class DirectoryContextService
                 : collect(),
             roleUser: $role,
             currencies: $currencies,
+            isImpersonation: $isImpersonation,
+            viewingUser: $isImpersonation ? $this->resolveViewingUser($userId) : null,
         );
+    }
+
+    /**
+     * Datos mínimos del usuario dueño del directorio, para el banner "Viendo
+     * el directorio de X" que la UI muestra cuando un admin está gestionando
+     * el directorio de otro usuario (isImpersonation=true).
+     */
+    private function resolveViewingUser(int $userId): ?array
+    {
+        $user = \App\Models\User::find($userId, ['id', 'username', 'email', 'first_name', 'last_name']);
+
+        if (!$user) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $user->id,
+            'username' => $user->username,
+            'email' => $user->email,
+            'full_name' => trim("{$user->first_name} {$user->last_name}"),
+        ];
     }
 
     /**

@@ -176,6 +176,9 @@
   const isSuperadmin = computed(() =>
     (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
   )
+  const isAdminOrSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => ['admin', 'superadmin'].includes(r.role?.name?.toLowerCase())) ?? false
+  )
 
   async function handleImpersonate(rowId: string) {
     const player = players.value.find(p => p.id === rowId)
@@ -284,6 +287,17 @@
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
           openPlayerDetail(ids[0])
+        }
+      }
+    },
+    {
+      icon: 'fas fa-address-book',
+      class: 'btn-outline-info',
+      title: 'Ver directorio bancario',
+      show: (ids: string[]) => isAdminOrSuperadmin.value && ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          router.visit(`/directory?target_user_id=${ids[0]}`)
         }
       }
     },

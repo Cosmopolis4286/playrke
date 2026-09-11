@@ -5,6 +5,7 @@ namespace App\Services\Directory;
 use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use App\Exceptions\Domain\Directory\DirectoryException;
 use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
+use App\Models\Directories\DirectoryAudit;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Repositories\Directories\Fiat\Venezuela\PagoMovilRepository;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\Log;
  *
  * Responsabilidades:
  * - Lógica de negocio para crear, leer, actualizar y eliminar
- * - Validaciones de dominio
+ * - Validaciones de dominio (ownership, límite de registros, duplicados)
+ * - Auditoría de cambios (directory_audits, vía DirectoryAuditLogger)
  * - Manejo de transacciones
  * - Logging de operaciones
  *
@@ -23,13 +25,9 @@ use Illuminate\Support\Facades\Log;
  */
 final class DirectoryCrudService
 {
-    /**
-     * Constructor del servicio CRUD.
-     *
-     * @param PagoMovilRepository $repository Repositorio de datos
-     */
     public function __construct(
-        private readonly PagoMovilRepository $repository
+        private readonly PagoMovilRepository $repository,
+        private readonly DirectoryAuditLogger $auditLogger,
     ) {}
 
     /**
@@ -49,7 +47,7 @@ final class DirectoryCrudService
      * Obtiene un registro específico de pago móvil.
      *
      * @param string $id ID del registro
-     * @param string $userId ID del usuario (para validación de propiedad)
+     * @param string $userId ID del usuario dueño (para validación de propiedad)
      * @return PagoMovilResource Registro transformado
      *
      * @throws DirectoryException Si no se encuentra el registro o no pertenece al usuario
@@ -68,26 +66,38 @@ final class DirectoryCrudService
     /**
      * Crea un nuevo registro de pago móvil.
      *
-     * @param PagoMovilDTO $dto    DTO con los datos del registro
-     * @param string       $userId ID del usuario propietario
+     * @param PagoMovilDTO $dto        DTO con los datos del registro
+     * @param string       $userId     ID del usuario propietario (owner efectivo — puede ser distinto del actor si un admin gestiona en su nombre)
+     * @param string|null  $actorUserId ID de quien ejecuta la acción (para auditoría — null = mismo que $userId)
+     * @param string|null  $actorRole   Rol del actor (para auditoría)
      * @return bool True si se creó correctamente
      *
-     * @throws DirectoryException Si ya existe un registro duplicado
+     * @throws DirectoryException Si ya existe un registro duplicado o se alcanzó el límite por usuario
      */
-    public function create(PagoMovilDTO $dto, string $userId): bool
+    public function create(PagoMovilDTO $dto, string $userId, ?string $actorUserId = null, ?string $actorRole = null): bool
     {
-        // Validación de duplicados
-        if ($this->repository->existsPagoMovil(
-            $dto->documentTypeId,
-            $dto->documentNumber,
-            $dto->bankId,
-            $dto->phone
-        )) {
-            throw DirectoryException::duplicate('Ya existe un registro con este documento y banco.');
-        }
-
         try {
             DB::beginTransaction();
+
+            // Conteo y duplicado se re-verifican DENTRO de la transacción con
+            // lockForUpdate() sobre las filas existentes del usuario — sin esto,
+            // dos requests concurrentes (doble click, dos pestañas) podían pasar
+            // ambas el chequeo antes de que cualquiera hiciera commit, resultando
+            // en más de MAX_RECORDS_PER_USER registros reales (mismo patrón de
+            // lockForUpdate() ya establecido en BingoRoomCapacityGuard para
+            // prevenir overbooking).
+            if ($this->repository->countActiveByUserForUpdate($userId) >= DirectoryLimits::MAX_RECORDS_PER_USER) {
+                throw DirectoryException::limitReached(DirectoryLimits::MAX_RECORDS_PER_USER);
+            }
+
+            if ($this->repository->existsPagoMovil(
+                $dto->documentTypeId,
+                $dto->documentNumber,
+                $dto->bankId,
+                $dto->phone
+            )) {
+                throw DirectoryException::duplicate('Ya existe un registro con este documento y banco.');
+            }
 
             $data = array_merge($dto->toArray(), ['user_id' => $userId]);
 
@@ -100,7 +110,23 @@ final class DirectoryCrudService
                 'user_id' => $userId,
             ]);
 
+            $this->auditLogger->log(
+                recordType: DirectoryAudit::TYPE_PAGO_MOVIL,
+                recordId: (string) $pagoMovil->id,
+                ownerUserId: $userId,
+                actorUserId: $actorUserId ?? $userId,
+                event: DirectoryAudit::EVENT_CREATED,
+                actorRole: $actorRole,
+            );
+
             return true;
+        } catch (DirectoryException $e) {
+            // Límite alcanzado / duplicado: error de negocio real, no una falla
+            // de la operación — se relanza tal cual (con su propio httpStatus y
+            // mensaje) en vez de aplanarlo a operationFailed() genérico.
+            DB::rollBack();
+
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -123,12 +149,14 @@ final class DirectoryCrudService
      * que PixKeyCrudService::update() (Brasil), que ya lo hacía bien.
      *
      * @param PagoMovilDTO $dto DTO con los datos actualizados
-     * @param string       $userId ID del usuario (para validación de propiedad)
+     * @param string       $userId ID del usuario dueño (para validación de propiedad)
+     * @param string|null  $actorUserId ID de quien ejecuta la acción (para auditoría)
+     * @param string|null  $actorRole   Rol del actor (para auditoría)
      * @return bool True si se actualizó correctamente
      *
      * @throws DirectoryException Si el registro no existe, no pertenece al usuario, o hay duplicados
      */
-    public function update(PagoMovilDTO $dto, string $userId): bool
+    public function update(PagoMovilDTO $dto, string $userId, ?string $actorUserId = null, ?string $actorRole = null): bool
     {
         if (!$dto->id) {
             throw DirectoryException::missingId();
@@ -151,6 +179,8 @@ final class DirectoryCrudService
             throw DirectoryException::duplicate('Ya existe otro registro con este documento y banco.');
         }
 
+        $changes = $this->diffChanges($existing, $dto->toArray());
+
         try {
             DB::beginTransaction();
 
@@ -161,6 +191,16 @@ final class DirectoryCrudService
             Log::info('Pago móvil actualizado exitosamente', [
                 'id' => $dto->id,
             ]);
+
+            $this->auditLogger->log(
+                recordType: DirectoryAudit::TYPE_PAGO_MOVIL,
+                recordId: (string) $dto->id,
+                ownerUserId: $userId,
+                actorUserId: $actorUserId ?? $userId,
+                event: DirectoryAudit::EVENT_UPDATED,
+                actorRole: $actorRole,
+                changes: $changes,
+            );
 
             return true;
         } catch (\Throwable $e) {
@@ -178,13 +218,15 @@ final class DirectoryCrudService
     /**
      * Elimina un registro de pago móvil (soft delete).
      *
-     * @param string $id ID del registro
-     * @param int $userId ID del usuario (para validación de propiedad)
+     * @param string      $id     ID del registro
+     * @param int         $userId ID del usuario dueño (para validación de propiedad)
+     * @param string|null $actorUserId ID de quien ejecuta la acción (para auditoría)
+     * @param string|null $actorRole   Rol del actor (para auditoría)
      * @return bool True si se eliminó correctamente
      *
      * @throws DirectoryException Si el registro no existe o no pertenece al usuario
      */
-    public function delete(string $id, int $userId): bool
+    public function delete(string $id, int $userId, ?string $actorUserId = null, ?string $actorRole = null): bool
     {
         $existing = $this->repository->find($id);
 
@@ -203,6 +245,15 @@ final class DirectoryCrudService
                 'id' => $id,
                 'user_id' => $userId,
             ]);
+
+            $this->auditLogger->log(
+                recordType: DirectoryAudit::TYPE_PAGO_MOVIL,
+                recordId: $id,
+                ownerUserId: (string) $userId,
+                actorUserId: $actorUserId ?? (string) $userId,
+                event: DirectoryAudit::EVENT_DELETED,
+                actorRole: $actorRole,
+            );
 
             return $deleted;
         } catch (\Throwable $e) {
@@ -226,13 +277,15 @@ final class DirectoryCrudService
      * permitiendo que cualquier usuario desactivara la cuenta bancaria de
      * otro. Mismo criterio que PixKeyCrudService::toggleStatus() (Brasil).
      *
-     * @param PagoMovil $pagoMovil Registro de directorio a actualizar
-     * @param string    $userId    ID del usuario (para validación de propiedad)
+     * @param PagoMovil   $pagoMovil Registro de directorio a actualizar
+     * @param string      $userId    ID del usuario dueño (para validación de propiedad)
+     * @param string|null $actorUserId ID de quien ejecuta la acción (para auditoría)
+     * @param string|null $actorRole   Rol del actor (para auditoría)
      * @return bool True si el cambio fue exitoso
      *
      * @throws DirectoryException Si el registro no pertenece al usuario o está eliminado
      */
-    public function toggleStatus(PagoMovil $pagoMovil, string $userId): bool
+    public function toggleStatus(PagoMovil $pagoMovil, string $userId, ?string $actorUserId = null, ?string $actorRole = null): bool
     {
         if ((string) $pagoMovil->user_id !== $userId) {
             throw DirectoryException::notFound('Registro de pago móvil no encontrado.');
@@ -242,6 +295,49 @@ final class DirectoryCrudService
             throw DirectoryException::invalidStatusChange();
         }
 
-        return $this->repository->toggleStatus($pagoMovil);
+        $previousStatus = $pagoMovil->status;
+        $result = $this->repository->toggleStatus($pagoMovil);
+
+        if ($result) {
+            $this->auditLogger->log(
+                recordType: DirectoryAudit::TYPE_PAGO_MOVIL,
+                recordId: (string) $pagoMovil->id,
+                ownerUserId: $userId,
+                actorUserId: $actorUserId ?? $userId,
+                event: DirectoryAudit::EVENT_STATUS_CHANGED,
+                actorRole: $actorRole,
+                changes: ['status' => [$previousStatus, $pagoMovil->fresh()?->status]],
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Compara los campos relevantes del registro existente contra el nuevo
+     * payload — solo lo que realmente cambió queda en la auditoría, no el
+     * registro completo en cada edición.
+     *
+     * @return array<string, array{0: mixed, 1: mixed}>
+     */
+    private function diffChanges(PagoMovil $existing, array $newData): array
+    {
+        $tracked = ['holder_name', 'document_type_id', 'document_number', 'phone', 'bank_id'];
+        $changes = [];
+
+        foreach ($tracked as $field) {
+            if (!array_key_exists($field, $newData)) {
+                continue;
+            }
+
+            $old = (string) $existing->{$field};
+            $new = (string) $newData[$field];
+
+            if ($old !== $new) {
+                $changes[$field] = [$old, $new];
+            }
+        }
+
+        return $changes;
     }
 }

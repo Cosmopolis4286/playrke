@@ -27,7 +27,13 @@ final class PixKeyRequest extends BaseRequest
 {
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'commerce', 'customer', 'seller', 'player']);
+        // Debe reflejar exactamente los roles admitidos por la ruta
+        // (routes/modules/payments.php, grupo 'directory') — antes le
+        // faltaban 'superadmin', 'treasurer' y 'subsidiary', que sí podían
+        // llegar a esta acción vía la ruta pero recibían 403 aquí.
+        return PermissionService::checkPrefix([
+            'admin', 'superadmin', 'commerce', 'customer', 'seller', 'player', 'treasurer', 'subsidiary',
+        ]);
     }
 
     protected function prepareForValidation(): void

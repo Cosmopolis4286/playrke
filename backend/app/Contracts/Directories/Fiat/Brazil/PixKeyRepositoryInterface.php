@@ -23,6 +23,20 @@ interface PixKeyRepositoryInterface extends BaseRepositoryInterface
     public function getByUser(string $userId): Collection;
 
     /**
+     * Cuenta las claves no eliminadas (status != DELETED) de un usuario —
+     * usado para aplicar DirectoryLimits::MAX_RECORDS_PER_USER en create().
+     */
+    public function countActiveByUser(string $userId): int;
+
+    /**
+     * Igual que countActiveByUser() pero con lockForUpdate() sobre las filas
+     * del usuario — debe llamarse dentro de una transacción abierta. Cierra
+     * la ventana TOCTOU donde dos requests concurrentes podían pasar ambas
+     * el chequeo de límite antes de que cualquiera hiciera commit.
+     */
+    public function countActiveByUserForUpdate(string $userId): int;
+
+    /**
      * Obtener claves PIX por banco.
      *
      * @param string $bankId ID del banco brasileño

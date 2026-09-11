@@ -35,6 +35,19 @@
   const props = defineProps<DirectoryPageProps>()
 
   /* ==========================================================================
+   * Acceso admin — target_user_id en la URL (ver DirectoryAdminAccessService)
+   * ========================================================================== */
+
+  /**
+   * Presente cuando un admin/superadmin llegó desde "Ver directorio bancario"
+   * en la ficha de otro usuario (ej. Roles/Admin/Player/Index.vue). Se
+   * propaga en cada request del composable — el backend re-valida el rol en
+   * cada llamada, esto es solo para no perderlo entre navegaciones internas
+   * de la página (cambio de tab, editar, etc.).
+   */
+  const targetUserId = new URLSearchParams(window.location.search).get('target_user_id')
+
+  /* ==========================================================================
    * Lógica de negocio – Directorio
    * ========================================================================== */
 
@@ -48,7 +61,7 @@
     remove,
     changeStatus,
     fetchContext
-  } = useDirectory(props.tokenId)
+  } = useDirectory(props.tokenId, targetUserId)
 
   // Inicializar directories con las props
   setInitialDirectories(props.directories)
@@ -229,6 +242,19 @@
     ]"
   />
 
+  <div v-if="props.isImpersonation" class="alert alert-warning d-flex align-items-center directory-impersonation-banner" role="alert">
+    <i class="fas fa-user-shield mr-2"></i>
+    <span>
+      Estás viendo y gestionando el directorio bancario de
+      <strong>{{ props.viewingUser?.full_name || props.viewingUser?.username || 'este usuario' }}</strong>
+      <span v-if="props.viewingUser?.email" class="text-muted"> ({{ props.viewingUser.email }})</span>.
+      Toda acción aquí queda auditada.
+    </span>
+    <a href="/directory" class="btn btn-sm btn-outline-dark ml-auto directory-impersonation-banner__exit">
+      <i class="fas fa-arrow-left mr-1"></i>Volver a mi directorio
+    </a>
+  </div>
+
   <div class="card">
     <CardHeader :title="title" :subtitle="subtitle" />
 
@@ -313,3 +339,13 @@
     />
   </Modal>
 </template>
+
+<style scoped>
+.directory-impersonation-banner {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.directory-impersonation-banner__exit {
+  white-space: nowrap;
+}
+</style>

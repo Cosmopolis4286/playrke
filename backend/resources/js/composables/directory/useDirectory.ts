@@ -85,9 +85,15 @@ const emptyTableData = (): DirectoryTableData => ({
  * - Gestión local de la lista
  * - Carga dinámica de contexto al cambiar de país
  *
+ * `targetUserId` (opcional): cuando un admin/superadmin está gestionando el
+ * directorio de OTRO usuario (ver DirectoryAdminAccessService en backend),
+ * se reenvía en cada request como target_user_id. Cualquier otro rol que
+ * lo reciba distinto de su propio ID recibe 403 en el backend — este
+ * parámetro nunca se resuelve del lado del cliente, solo se propaga.
+ *
  * ⚠️ No controla UI directamente
  */
-export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
+export function useDirectory(tokenId: string = '', targetUserId: string | null = null): UseDirectoryReturn {
     /** Estado de carga global */
     const loading = ref(false)
 
@@ -124,7 +130,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
 
             const response = await backendClient.get<{ data: DirectoryTableData }>(
                 '/directory/fetch-list',
-                { params: { token: tokenId, country: countryCode } }
+                { params: { token: tokenId, country: countryCode, target_user_id: targetUserId ?? undefined } }
             )
 
             const data = response.data?.data
@@ -156,7 +162,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
 
             const response = await backendClient.get<{ data: DirectoryContext }>(
                 '/directory/fetch-context',
-                { params: { token: tokenId, country: countryCode } }
+                { params: { token: tokenId, country: countryCode, target_user_id: targetUserId ?? undefined } }
             )
 
             const data = response.data?.data
@@ -188,6 +194,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             const payload = {
                 ...directoryData.value,
                 country_code: activeCountry.value,
+                target_user_id: targetUserId ?? undefined,
             }
 
             if (directoryData.value.id) {
@@ -237,7 +244,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
 
             const { data } = await backendClient.get<{ data: any }>(
                 `/directory/${id}/show`,
-                { params: { country: activeCountry.value } }
+                { params: { country: activeCountry.value, target_user_id: targetUserId ?? undefined } }
             )
 
             const raw = data.data
@@ -293,7 +300,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.patch(`/directory/${id}/status`, {}, { params: { country: activeCountry.value } })
+            await backendClient.patch(`/directory/${id}/status`, {}, { params: { country: activeCountry.value, target_user_id: targetUserId ?? undefined } })
             showToast('Estado cambiado con éxito', 'success')
             await fetchDirectories()
             return true
@@ -316,7 +323,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.delete(`/directory/${id}/delete`, { params: { country: activeCountry.value } })
+            await backendClient.delete(`/directory/${id}/delete`, { params: { country: activeCountry.value, target_user_id: targetUserId ?? undefined } })
             showToast('Directorio eliminado con éxito', 'success')
             await fetchDirectories()
             return true

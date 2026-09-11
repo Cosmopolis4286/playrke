@@ -36,6 +36,22 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     /**
      * {@inheritDoc}
      */
+    public function countActiveByUser(string $userId): int
+    {
+        return $this->model->where('user_id', $userId)->where('status', '!=', 'DELETED')->count();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function countActiveByUserForUpdate(string $userId): int
+    {
+        return $this->model->where('user_id', $userId)->where('status', '!=', 'DELETED')->lockForUpdate()->count();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getByBank(string $bankId): Collection
     {
         return $this->model->where('bank_id', $bankId)->get();
