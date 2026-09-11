@@ -3,6 +3,7 @@
 namespace App\Models\Games\Trivia;
 
 use App\Domains\Games\Trivia\Models\TriviaPrizePayment;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Models\BaseModel;
 use App\Services\Games\GamePrizeContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
