@@ -361,6 +361,22 @@ Route::middleware('auth')->group(function () {
 
     /**
      * =========================================================
+     * CONTENIDO EDITORIAL DE LA LANDING PÚBLICA (Admin y SuperAdmin)
+     * Sin create/destroy: el catálogo de 8 section_key es fijo por diseño,
+     * solo se edita contenido, se activa/desactiva y se reordena.
+     * 'reorder' se declara antes de {landingSection} para prevenir que un
+     * segmento literal fijo colisione con el binding por section_key.
+     * =========================================================
+     */
+    role_protected_routes(['role:admin,superadmin'], 'admin/landing-sections', \App\Http\Controllers\Content\LandingSectionController::class, [
+        'reorder'      => ['method' => 'put', 'uri' => 'reorder',              'action' => 'reorder'],
+        'index'        => ['method' => 'get', 'uri' => ''],
+        'update'       => ['method' => 'put', 'uri' => '{landingSection}/update'],
+        'toggleStatus' => ['method' => 'put', 'uri' => '{landingSection}/status', 'action' => 'toggleStatus'],
+    ], 'landingSection');
+
+    /**
+     * =========================================================
      * ROLES (SuperAdmin y Admin — Admin no puede tocar 'superadmin' ni
      * 'admin' mismo, ver RolePolicy::guardMutation())
      * =========================================================

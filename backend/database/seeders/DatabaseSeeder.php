@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             ScheduledCommandSeeder::class,
             SidebarMenuVisibilitySeeder::class,
+            LandingSectionSeeder::class,
             TestUserSeeder::class,
             DemoRoleDataSeeder::class,
             ExternalPlayerSeeder::class,
