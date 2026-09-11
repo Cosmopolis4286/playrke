@@ -16,13 +16,19 @@ import JackpotSection from "@js/Components/Platform/JackpotSection.vue";
 import PublicNavbar from "@js/Components/Platform/PublicNavbar.vue";
 import type { NavLink } from "@js/Components/Platform/PublicNavbar.vue";
 import type { JackpotEntry } from "@js/Components/Platform/JackpotDisplay.vue";
+import LandingHero from "@js/Components/Public/Landing/LandingHero.vue";
+import LandingVerifySection from "@js/Components/Public/Landing/LandingVerifySection.vue";
+import LandingInviteSection from "@js/Components/Public/Landing/LandingInviteSection.vue";
+import LandingWinnersSection from "@js/Components/Public/Landing/LandingWinnersSection.vue";
+import LandingFinalCta from "@js/Components/Public/Landing/LandingFinalCta.vue";
+import LandingFooter from "@js/Components/Public/Landing/LandingFooter.vue";
 import { usePlatformWinEvents } from "@js/composables/platform/usePlatformWinEvents";
-import { verifyCardSchema, SERIAL_MASK, PHONE_LAST4_MASK } from "@js/composables/public/verifyCardSchema";
-import { IMaskDirective } from "vue-imask";
+import { verifyCardSchema } from "@js/composables/public/verifyCardSchema";
 import { useRevealOnScroll } from "@js/composables/ui/useRevealOnScroll";
 import { axios } from "@js/plugins/axios";
 
 import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
+import type { LandingSectionContentMap, LandingSectionKey, LandingSectionPublic } from "@js/types/content/landing-section";
 
 /**
  * Landing pública — nueva raíz `/` (ver PublicController::root()). PlayRKE
@@ -51,6 +57,7 @@ const props = defineProps<
     platformStats?: PlatformStats;
     initialLeaderboard?: LeaderboardEntry[];
     initialJackpots?: JackpotEntry[];
+    sections: LandingSectionPublic[];
   }
 >();
 
@@ -137,13 +144,38 @@ function goToRegister() {
   window.location.href = "/register";
 }
 
-const navLinks: NavLink[] = [
-  { href: "#jackpot", label: "Jackpot" },
-  { href: "#salas", label: "Salas en vivo" },
-  { href: "#verificar", label: "Verificar cartón" },
-  { href: "#invita", label: "Invita y gana" },
-  { href: "#ganadores", label: "Ganadores" },
-];
+// ── Secciones data-driven — el backend (LandingSectionCrudService::publicList())
+// ya filtra ACTIVE y ordena por sort_order; aquí solo se consulta presencia
+// (isSectionActive) y contenido (contentFor), sin volver a filtrar/ordenar. ──
+function contentFor<K extends LandingSectionKey>(key: K): LandingSectionContentMap[K] | null {
+  const found = props.sections.find((s) => s.key === key);
+  return (found?.content as LandingSectionContentMap[K]) ?? null;
+}
+const isSectionActive = (key: LandingSectionKey) => props.sections.some((s) => s.key === key);
+
+const heroContent = computed(() => contentFor("hero"));
+const salasContent = computed(() => contentFor("salas"));
+const verificarContent = computed(() => contentFor("verificar"));
+const invitaContent = computed(() => contentFor("invita"));
+const ganadoresContent = computed(() => contentFor("ganadores"));
+const ctaFinalContent = computed(() => contentFor("cta_final"));
+const footerContent = computed(() => contentFor("footer"));
+
+// Labels de navegación fijos (UX, no copy editorial) — el link solo aparece
+// si su sección está activa, y el mismo array alimenta la columna
+// "Plataforma" del footer (antes duplicado manualmente en dos lugares).
+const ANCHOR_LABELS: Partial<Record<LandingSectionKey, string>> = {
+  jackpot: "Jackpot",
+  salas: "Salas en vivo",
+  verificar: "Verificar cartón",
+  invita: "Invita y gana",
+  ganadores: "Ganadores",
+};
+const navLinks = computed<NavLink[]>(() =>
+  (Object.keys(ANCHOR_LABELS) as LandingSectionKey[])
+    .filter((key) => isSectionActive(key))
+    .map((key) => ({ href: `#${key}`, label: ANCHOR_LABELS[key]! }))
+);
 
 // ── Modal "Ver Top de Compras" (mismo componente que la vitrina completa) ──
 // GameRoomsSection mantiene su propia copia reactiva de rooms (con realtime
@@ -221,7 +253,6 @@ const totalPaidFormatted = computed(() => {
 const cardSerial = ref("");
 const cardPhone = ref("");
 const verifyErrors = reactive<{ serial?: string; phone?: string }>({});
-const vImask = IMaskDirective;
 
 function onSerialAccept(event: CustomEvent) {
   cardSerial.value = event.detail.value;
@@ -279,137 +310,52 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
     <!-- ══ NAV ══ -->
     <PublicNavbar :links="navLinks" :show-register="register !== false" @register="goToRegister" />
 
-    <!-- ══ HERO ══ -->
-    <header class="landing__hero">
-      <div class="landing__hero-grid">
-        <div>
-          <span class="eyebrow hero-in" style="--stagger-index: 1">
-            <i class="fas fa-circle" /> {{ onlineCount }} jugadores en salas activas
-          </span>
-          <h1 class="landing__hero-title hero-in" style="--stagger-index: 2">Juega en vivo.<br /><em>Gana en serio.</em></h1>
-          <p class="landing__hero-sub hero-in" style="--stagger-index: 3">
-            Salas de bingo con premios reales, actualizadas en tiempo real. Ves el pozo,
-            ves quién compró, ves quién ganó.
-          </p>
-          <div class="landing__hero-actions hero-in" style="--stagger-index: 4">
-            <button v-if="register !== false" type="button" class="btn btn--primary btn--lg" @click="goToRegister">
-              Crear cuenta gratis
-            </button>
-            <a class="btn btn--ghost btn--lg" href="#salas">Ver salas activas</a>
-          </div>
-          <div v-if="totalPaidFormatted" class="landing__hero-stat hero-in" style="--stagger-index: 5">
-            <i class="fas fa-sack-dollar" />
-            <span><strong>${{ totalPaidFormatted }} USD</strong> repartidos en premios a la fecha</span>
-          </div>
-          <div class="landing__hero-trust hero-in" style="--stagger-index: 6">
-            <span>Retiros verificados</span>
-            <span class="dot" />
-            <span>Cartones auditables por serial</span>
-            <span class="dot" />
-            <span>Soporte 24/7</span>
-          </div>
-        </div>
-
-        <!-- Ticker de ganancias en vivo -->
-        <div class="ticker-card hero-in" style="--stagger-index: 3">
-          <div class="ticker-card__head">
-            <h3>Ganancias recientes</h3>
-            <span class="eyebrow eyebrow--sm"><i class="fas fa-circle" /> en vivo</span>
-          </div>
-          <div v-if="wins.length" class="ticker-list">
-            <div
-              v-for="(win, i) in wins"
-              :key="win.id"
-              class="ticker-row"
-              :class="{ 'ticker-row--top': i === 0 }"
-            >
-              <div class="ticker-avatar">{{ win.winner_name.slice(0, 2).toUpperCase() }}</div>
-              <div class="ticker-meta">
-                <div class="ticker-name">{{ win.winner_name }}</div>
-                <div class="ticker-game">{{ win.game }}</div>
-              </div>
-              <div class="ticker-amount">+{{ formatPrize(win) }}</div>
-            </div>
-          </div>
-          <p v-else class="ticker-empty">Aún no hay ganancias recientes — ¡sé el primero!</p>
-          <div class="ticker-card__foot">Actualizado automáticamente</div>
-        </div>
-      </div>
-    </header>
+    <!-- ══ HERO — siempre presente (no es togglable: es el above-the-fold) ══ -->
+    <LandingHero
+      :content="heroContent"
+      :online-count="onlineCount"
+      :total-paid-formatted="totalPaidFormatted"
+      :wins="wins"
+      :format-prize="formatPrize"
+      :register="register"
+      @register="goToRegister"
+    />
 
     <!-- ══ JACKPOT — pozo progresivo, alimentado por JackpotLedgerService en
          cada venta de cartón (dominio ya existía, sin ninguna UI hasta ahora) ══ -->
-    <div class="reveal reveal--pop" :ref="setRevealRef">
+    <div v-if="isSectionActive('jackpot')" class="reveal reveal--pop" :ref="setRevealRef">
       <JackpotSection :jackpots="jackpots" />
     </div>
 
     <!-- ══ SALAS DESTACADAS — componente compartido con GameRoomsShowcase.vue ══ -->
-    <div id="salas" class="band band--rooms reveal" :ref="setRevealRef">
+    <div v-if="isSectionActive('salas')" id="salas" class="band band--rooms reveal" :ref="setRevealRef">
       <GameRoomsSection
         :rooms="props.rooms ?? []"
         :server-timestamp-ms="serverTimestampMs"
-        title="Donde el pozo crece en vivo"
-        subtitle="Salas activas ahora mismo. Cada cartón suma al premio."
+        :title="salasContent?.title ?? 'Donde el pozo crece en vivo'"
+        :subtitle="salasContent?.subtitle ?? 'Salas activas ahora mismo. Cada cartón suma al premio.'"
         @select="goToRegister"
         @show-top-buyers="openTopBuyers"
       >
         <template #after-grid>
           <div class="band__cta">
-            <Link href="/game-rooms" class="btn btn--ghost">Ver todas las salas →</Link>
+            <Link href="/game-rooms" class="btn btn--ghost">{{ salasContent?.ctaLabel ?? 'Ver todas las salas →' }}</Link>
           </div>
         </template>
       </GameRoomsSection>
     </div>
 
     <!-- ══ VERIFICAR CARTÓN ══ -->
-    <section id="verificar" class="band band--alt reveal reveal--left" :ref="setRevealRef">
-      <div class="verify-grid">
-        <div>
-          <span class="eyebrow">Sin necesidad de cuenta</span>
-          <h2 class="verify-title">Verifica tu cartón como un ticket físico</h2>
-          <p class="verify-sub">
-            ¿Compraste un cartón por WhatsApp o en punto físico? Confírmalo en segundos
-            con el número de serial y los últimos 4 dígitos de tu teléfono.
-          </p>
-          <ul class="verify-steps">
-            <li class="reveal-child" style="--stagger-index: 0"><span class="num">1</span> Ingresa el serial impreso en tu cartón</li>
-            <li class="reveal-child" style="--stagger-index: 1"><span class="num">2</span> Ingresa los últimos 4 dígitos de tu teléfono</li>
-            <li class="reveal-child" style="--stagger-index: 2"><span class="num">3</span> Ve el estado, la sala y el resultado al instante</li>
-          </ul>
-        </div>
-        <form class="verify-form" novalidate @submit.prevent="submitVerify">
-          <label for="landing-serial">Serial del cartón</label>
-          <input
-            id="landing-serial"
-            v-imask="SERIAL_MASK"
-            :value="cardSerial"
-            type="text"
-            placeholder="BINGO-A1B2C3D4E5F67"
-            autocomplete="off"
-            :aria-invalid="!!verifyErrors.serial"
-            :class="{ 'verify-form__input--error': verifyErrors.serial }"
-            @accept="onSerialAccept"
-          />
-          <p v-if="verifyErrors.serial" class="verify-form__error">{{ verifyErrors.serial }}</p>
-
-          <label for="landing-phone">Últimos 4 dígitos del teléfono</label>
-          <input
-            id="landing-phone"
-            v-imask="PHONE_LAST4_MASK"
-            :value="cardPhone"
-            type="text"
-            inputmode="numeric"
-            placeholder="••••"
-            autocomplete="off"
-            :aria-invalid="!!verifyErrors.phone"
-            :class="{ 'verify-form__input--error': verifyErrors.phone }"
-            @accept="onPhoneAccept"
-          />
-          <p v-if="verifyErrors.phone" class="verify-form__error">{{ verifyErrors.phone }}</p>
-
-          <button type="submit" class="btn btn--primary btn--block">Verificar cartón</button>
-        </form>
-      </div>
+    <section v-if="isSectionActive('verificar')" id="verificar" class="band band--alt reveal reveal--left" :ref="setRevealRef">
+      <LandingVerifySection
+        :content="verificarContent"
+        :card-serial="cardSerial"
+        :card-phone="cardPhone"
+        :verify-errors="verifyErrors"
+        @serial-accept="onSerialAccept"
+        @phone-accept="onPhoneAccept"
+        @submit="submitVerify"
+      />
     </section>
 
     <!-- ══ INVITA Y GANA — sistema de referidos ya existente en backend
@@ -417,103 +363,27 @@ const openInfoModal = (key: InfoModalKey) => { activeInfoModal.value = key; };
          AwardReferralXpOnVerifiedListener), sin UI pública hasta ahora. El
          código/link real solo se ve ya logueado (perfil); esta sección solo
          explica la mecánica para atraer registros. ══ -->
-    <section id="invita" class="band band--alt reveal reveal--right" :ref="setRevealRef">
-      <div class="verify-grid">
-        <div>
-          <span class="eyebrow">Programa de referidos</span>
-          <h2 class="verify-title">Invita y gana</h2>
-          <p class="verify-sub">
-            Comparte tu enlace único cuando crees tu cuenta. Cuando un amigo
-            se registre y verifique su cuenta, ganas XP.
-          </p>
-          <ul class="verify-steps">
-            <li class="reveal-child" style="--stagger-index: 0"><span class="num">1</span> Crea tu cuenta y obtén tu enlace de invitación personal</li>
-            <li class="reveal-child" style="--stagger-index: 1"><span class="num">2</span> Comparte tu enlace con amigos</li>
-            <li class="reveal-child" style="--stagger-index: 2"><span class="num">3</span> Cuando se registren y verifiquen su cuenta, ganas XP automáticamente</li>
-          </ul>
-        </div>
-        <div class="invite-card">
-          <i class="fas fa-user-plus invite-card__icon" />
-          <p class="invite-card__lead">Tu enlace de invitación te espera dentro de tu perfil</p>
-          <button type="button" class="btn btn--primary btn--block" @click="goToRegister">
-            Crear cuenta gratis
-          </button>
-        </div>
-      </div>
+    <section v-if="isSectionActive('invita')" id="invita" class="band band--alt reveal reveal--right" :ref="setRevealRef">
+      <LandingInviteSection :content="invitaContent" @register="goToRegister" />
     </section>
 
     <!-- ══ GANADORES ══ -->
-    <section id="ganadores" class="band reveal" :ref="setRevealRef">
-      <div class="leaderboard-grid">
-        <div>
-          <span class="eyebrow">Ranking de la semana</span>
-          <h2 class="verify-title">Los mejores jugadores de los últimos 7 días</h2>
-          <p class="verify-sub">
-            Suma de ganancias en dinero por jugador, actualizado cada pocos minutos.
-            Los nombres se muestran parcialmente por privacidad.
-          </p>
-        </div>
-        <div class="lb-card">
-          <div v-if="leaderboard.length" class="lb-list">
-            <div
-              v-for="(entry, i) in leaderboard"
-              :key="entry.rank"
-              class="lb-row reveal-child"
-              :style="{ '--stagger-index': i }"
-            >
-              <span class="lb-rank">{{ String(entry.rank).padStart(2, "0") }}</span>
-              <span class="lb-name">{{ entry.winner_name }}</span>
-              <span class="lb-amt">+${{ entry.total_amount.toFixed(2) }}</span>
-            </div>
-          </div>
-          <p v-else class="ticker-empty">Sin datos suficientes todavía esta semana</p>
-        </div>
-      </div>
+    <section v-if="isSectionActive('ganadores')" id="ganadores" class="band reveal" :ref="setRevealRef">
+      <LandingWinnersSection :content="ganadoresContent" :leaderboard="leaderboard" />
     </section>
 
     <!-- ══ CTA FINAL ══ -->
-    <section v-if="register !== false" class="final-cta reveal reveal--cta" :ref="setRevealRef">
-      <span class="eyebrow eyebrow--center">Empieza hoy</span>
-      <h2>Tu primera sala te espera</h2>
-      <p>Crear cuenta toma menos de un minuto. El pozo no espera.</p>
-      <button type="button" class="btn btn--primary btn--lg" @click="goToRegister">Crear cuenta gratis</button>
+    <section v-if="register !== false && isSectionActive('cta_final')" class="final-cta reveal reveal--cta" :ref="setRevealRef">
+      <LandingFinalCta :content="ctaFinalContent" @register="goToRegister" />
     </section>
 
     <!-- ══ FOOTER ══ -->
-    <footer class="landing__footer">
-      <div class="landing__footer-inner">
-        <div class="landing__footer-brand">
-          <span class="landing__brand">PLAYRKE</span>
-          <p class="landing__footer-tagline">Bingo en vivo con premios reales. Ves el pozo, ves quién gana.</p>
-          <nav class="landing__footer-socials" aria-label="Redes sociales">
-            <a href="https://www.facebook.com/my.play.rke" target="_blank" rel="noopener" aria-label="Facebook" class="fab fa-facebook" />
-            <a href="https://www.instagram.com/my.play.rke" target="_blank" rel="noopener" aria-label="Instagram" class="fab fa-instagram" />
-            <a href="https://t.me/+rV3KWBuuKOtjYzkx" target="_blank" rel="noopener" aria-label="Telegram" class="fab fa-telegram" />
-          </nav>
-        </div>
-
-        <nav class="landing__footer-col" aria-label="Navegación">
-          <span class="landing__footer-col-title">Plataforma</span>
-          <a href="#jackpot">Jackpot</a>
-          <a href="#salas">Salas en vivo</a>
-          <a href="#verificar">Verificar cartón</a>
-          <a href="#invita">Invita y gana</a>
-          <a href="#ganadores">Ganadores</a>
-        </nav>
-
-        <nav class="landing__footer-col" aria-label="Legal">
-          <span class="landing__footer-col-title">Legal</span>
-          <button type="button" class="landing__footer-link" @click="openInfoModal('terms')">Términos y condiciones</button>
-          <button type="button" class="landing__footer-link" @click="openInfoModal('about')">Acerca de nosotros</button>
-          <button type="button" class="landing__footer-link" @click="openInfoModal('privacy')">Política de privacidad</button>
-        </nav>
-      </div>
-
-      <div class="landing__footer-bottom">
-        <span>PlayRKE © {{ new Date().getFullYear() }}. Todos los derechos reservados.</span>
-        <span class="landing__footer-trust">Retiros verificados · Cartones auditables por serial</span>
-      </div>
-    </footer>
+    <LandingFooter
+      v-if="isSectionActive('footer')"
+      :content="footerContent"
+      :nav-links="navLinks"
+      @open-info-modal="openInfoModal"
+    />
 
     <!-- ══ Modal "Ver Top de Compras" ══ -->
     <RoomTopBuyersModal
@@ -559,8 +429,15 @@ html:has(.landing)::-webkit-scrollbar-thumb {
 html:has(.landing)::-webkit-scrollbar-thumb:hover { background: #2af598; }
 </style>
 
-<style scoped>
-/* Sin este reset, width:100% + padding en inputs/cards se suma al ancho
+<style>
+/* Sin scope, a propósito: estos estilos ahora los consumen también los
+   componentes extraídos (LandingHero.vue, LandingVerifySection.vue, etc. en
+   Components/Public/Landing/) — `scoped` no comparte reglas entre
+   componentes distintos, y son estos hijos quienes renderizan las clases
+   .landing__hero, .verify-*, .invite-card, .lb-*, .final-cta*, etc. Mismo
+   criterio ya aplicado a PublicNavbar.vue en esta misma página.
+
+   Sin este reset, width:100% + padding en inputs/cards se suma al ancho
    (content-box, default del navegador) en vez de incluirse en él — causaba
    que .verify-form input y otros elementos con padding se desbordaran de
    su contenedor. */

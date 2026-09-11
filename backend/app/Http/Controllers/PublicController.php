@@ -6,6 +6,7 @@ use App\Contracts\AppParameterRepositoryInterface;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomContextService;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
 use App\Domains\Platform\WinEvent\Services\WinEventLeaderboardService;
+use App\Services\Content\LandingSectionCrudService;
 use App\Services\Jackpot\JackpotPublicStatsService;
 use App\Services\Platform\PlatformStatsService;
 use Inertia\Inertia;
@@ -42,6 +43,7 @@ class PublicController extends Controller
         PlatformStatsService $platformStats,
         WinEventLeaderboardService $leaderboardService,
         JackpotPublicStatsService $jackpotStats,
+        LandingSectionCrudService $landingSections,
     ): Response {
         $register = $this->settings->getParameterStatus('REGISTER');
 
@@ -74,6 +76,7 @@ class PublicController extends Controller
             'platformStats' => $platformStats->summary(),
             'initialLeaderboard' => $leaderboardService->weeklyTopWinners(),
             'initialJackpots' => $jackpotStats->list(),
+            'sections' => $landingSections->publicList(),
         ]));
     }
 
