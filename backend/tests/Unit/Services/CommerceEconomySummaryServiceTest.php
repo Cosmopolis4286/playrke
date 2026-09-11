@@ -15,6 +15,7 @@ use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\Role;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
@@ -23,7 +24,6 @@ use App\Models\User;
 use App\Services\Roles\Commerce\Report\CommerceEconomySummaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**

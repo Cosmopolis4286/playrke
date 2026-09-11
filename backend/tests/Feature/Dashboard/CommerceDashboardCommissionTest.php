@@ -14,6 +14,7 @@ use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\Role;
 use App\Models\Roles\Commerce;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
@@ -21,7 +22,6 @@ use App\Services\Roles\Commerce\Dashboard\CommerceDashboardContextService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
