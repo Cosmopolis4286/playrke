@@ -126,6 +126,15 @@ final class CommerceEconomySummaryService
             ->all();
     }
 
+    /**
+     * El alias SQL no puede llamarse 'total_commission': BingoCreatorSale
+     * declara ese mismo nombre en $appends (getTotalCommissionAttribute()),
+     * y el accessor del modelo siempre gana sobre el atributo crudo al
+     * acceder vía ->total_commission o toArray() — el resultado real de la
+     * agregación SQL queda sombreado y el accessor recalcula sumando
+     * rke_commission/room_commission/seller_commission del modelo, que aquí
+     * son null (no se seleccionaron columnas individuales), dando 0.
+     */
     private function totals(array $networkUserIds, ?string $startDate, ?string $endDate): array
     {
         $query = BingoCreatorSale::query()->whereIn('creator_user_id', $networkUserIds);
@@ -133,14 +142,14 @@ final class CommerceEconomySummaryService
 
         $totals = $query->selectRaw('
             SUM(sale_amount) as total_income,
-            SUM(rke_commission + room_commission + COALESCE(seller_commission, 0)) as total_commission,
+            SUM(rke_commission + room_commission + COALESCE(seller_commission, 0)) as total_commission_sum,
             SUM(prize_pool_amount) as total_prize_pool,
             COUNT(*) as total_room_currency_rows
         ')->first();
 
         return [
             'total_income'     => round((float) ($totals->total_income ?? 0), 2),
-            'total_commission' => round((float) ($totals->total_commission ?? 0), 2),
+            'total_commission' => round((float) ($totals->total_commission_sum ?? 0), 2),
             'total_prize_pool' => round((float) ($totals->total_prize_pool ?? 0), 2),
         ];
     }
