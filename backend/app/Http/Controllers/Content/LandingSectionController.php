@@ -25,7 +25,12 @@ final class LandingSectionController extends Controller
     {
         return $this->handleServiceInertia(function () {
             return Inertia::render('Content/LandingSections/Index', [
-                'sections' => LandingSectionResource::collection($this->service->list()),
+                // ->resolve() en vez de pasar la resource collection directa:
+                // Inertia espera props ya "planas" (array), pero
+                // AnonymousResourceCollection serializa como {"data": [...]}
+                // al pasar por json_encode, dejando props.sections como un
+                // objeto no iterable en el frontend.
+                'sections' => LandingSectionResource::collection($this->service->list())->resolve(),
             ]);
         });
     }
@@ -59,7 +64,10 @@ final class LandingSectionController extends Controller
         return $this->handleServiceJson(function () use ($request) {
             $this->service->reorder($request->validated('ordered_keys'));
 
-            return ['data' => LandingSectionResource::collection($this->service->list())];
+            // ->resolve(): una ResourceCollection anidada dentro de un array
+            // igual hereda el auto-wrapping "data" de Laravel al serializarse,
+            // dejando la respuesta final como {data: {data: [...]}}.
+            return ['data' => LandingSectionResource::collection($this->service->list())->resolve()];
         });
     }
 }

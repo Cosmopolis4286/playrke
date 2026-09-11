@@ -36,7 +36,11 @@ watch(
   () => props.section,
   (section) => {
     Object.keys(localContent).forEach((key) => delete localContent[key])
-    if (section) Object.assign(localContent, structuredClone(section.content))
+    // JSON.parse/stringify en vez de structuredClone: section.content puede
+    // ser un Proxy reactivo de Vue (section viene de un ref del padre) y
+    // structuredClone no sabe clonar Proxies — el contenido es siempre JSON
+    // plano (strings/arrays/objetos), así que este roundtrip es seguro.
+    if (section) Object.assign(localContent, JSON.parse(JSON.stringify(section.content)))
   },
   { immediate: true }
 )
@@ -45,7 +49,7 @@ const formComponent = computed(() => (props.section ? FORM_COMPONENTS[props.sect
 
 async function handleSubmit(): Promise<boolean> {
   if (!props.section) return false
-  emit('save', props.section.section_key, structuredClone(localContent))
+  emit('save', props.section.section_key, JSON.parse(JSON.stringify(localContent)))
   return true
 }
 </script>
@@ -56,6 +60,9 @@ async function handleSubmit(): Promise<boolean> {
     :title="section ? `Editar sección: ${section.label}` : 'Editar sección'"
     icon="fa-pen"
     size="lg"
+    show-confirm
+    confirm-text="Guardar"
+    :confirm-disabled="!formComponent"
     :on-submit="handleSubmit"
     @update:model-value="emit('update:modelValue', $event)"
   >

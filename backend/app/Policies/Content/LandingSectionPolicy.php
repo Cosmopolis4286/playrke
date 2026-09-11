@@ -5,6 +5,7 @@ namespace App\Policies\Content;
 use App\Models\Content\LandingSection;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Contenido de marketing sin superficie de riesgo de dinero/KYC — mismo
@@ -36,12 +37,12 @@ class LandingSectionPolicy extends BaseRolePolicy
         return false;
     }
 
-    public function delete(User $user, LandingSection $model): bool
+    public function delete(User $user, Model $model): bool
     {
         return false;
     }
 
-    public function forceDelete(User $user, LandingSection $model): bool
+    public function forceDelete(User $user, Model $model): bool
     {
         return false;
     }

@@ -81,6 +81,10 @@ const emit = defineEmits<{
 .lsr-label {
   font-weight: 600;
   font-size: 14px;
+  color: #212529;
+}
+.lsr-row--inactive .lsr-label {
+  color: #6c757d;
 }
 .lsr-key {
   font-size: 11px;
