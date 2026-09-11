@@ -122,7 +122,11 @@ final class CommerceDashboardContextService
                 'value'       => $commissionByCurrency['primaryLabel'],
                 'icon'        => 'fas fa-percentage',
                 'variant'     => 'secondary',
-                'description' => $commerce
+                // El prefijo "Tasa X%" solo se antepone cuando SÍ hubo
+                // comisión que reportar este mes — mostrarlo junto a "Sin
+                // comisión este mes" es información redundante que no aporta
+                // nada cuando no hubo ventas.
+                'description' => ($commerce && $commissionByCurrency['hasCommission'])
                     ? sprintf('Tasa %s%% · %s', number_format((float) $commerce->commission, 2), $commissionByCurrency['descriptionSuffix'])
                     : $commissionByCurrency['descriptionSuffix'],
             ],
@@ -138,7 +142,7 @@ final class CommerceDashboardContextService
      * no tenía forma de ver esa cifra sin entrar al reporte de ventas.
      *
      * @param string[] $networkUserIds
-     * @return array{primaryLabel: string, descriptionSuffix: string}
+     * @return array{primaryLabel: string, descriptionSuffix: string, hasCommission: bool}
      */
     private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth): array
     {
@@ -152,7 +156,7 @@ final class CommerceDashboardContextService
             ->get();
 
         if ($rows->isEmpty()) {
-            return ['primaryLabel' => '—', 'descriptionSuffix' => 'Sin comisión este mes'];
+            return ['primaryLabel' => '—', 'descriptionSuffix' => 'Sin comisión este mes', 'hasCommission' => false];
         }
 
         $primary = $rows->first();
@@ -163,7 +167,7 @@ final class CommerceDashboardContextService
             ? 'Tasa configurada'
             : 'Tasa configurada · +' . $rest->count() . ' moneda(s) más';
 
-        return ['primaryLabel' => $primaryLabel, 'descriptionSuffix' => $descriptionSuffix];
+        return ['primaryLabel' => $primaryLabel, 'descriptionSuffix' => $descriptionSuffix, 'hasCommission' => true];
     }
 
     // -------------------------------------------------------------------------
