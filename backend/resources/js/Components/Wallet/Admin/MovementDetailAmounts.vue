@@ -44,6 +44,24 @@ defineProps<{
     </p>
   </div>
 
+  <!-- Saldo ACTUAL de la wallet — distinto de saldo antes/después de ESTE
+       movimiento: refleja si el usuario ya movió el saldo por otro lado
+       desde entonces (otro depósito, compra, premio, etc). -->
+  <div class="mv-detail__current-balance mt-2">
+    <p class="mv-detail__label">Saldo actual de la wallet</p>
+    <div class="mv-detail__current-balance__row">
+      <span class="mv-detail__value mv-detail__value--mono">
+        {{ detail.currency?.symbol }}
+        {{ detail.wallet_balance.toLocaleString('es-VE', { minimumFractionDigits: detail.currency?.decimal_places ?? 2 }) }}
+      </span>
+      <span v-if="detail.wallet_bonus_balance > 0" class="mv-detail__bonus-balance">
+        + {{ detail.currency?.symbol }}
+        {{ detail.wallet_bonus_balance.toLocaleString('es-VE', { minimumFractionDigits: detail.currency?.decimal_places ?? 2 }) }}
+        bono
+      </span>
+    </div>
+  </div>
+
   <div class="mv-detail__divider" />
 </template>
 
@@ -90,6 +108,24 @@ defineProps<{
 }
 .mv-amount--positive { color: #4ade80; }
 .mv-amount--negative { color: #f87171; }
+
+.mv-detail__current-balance {
+  background: var(--ds-surface-2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.mv-detail__current-balance__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.mv-detail__bonus-balance {
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+}
 
 .mt-2 { margin-top: 0.5rem; }
 </style>

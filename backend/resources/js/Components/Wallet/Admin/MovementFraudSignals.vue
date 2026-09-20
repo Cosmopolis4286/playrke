@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'view-movement': [id: string]
+  'view-user-movements': [search: string]
 }>()
 
 const signals = computed(() => props.detail.fraud_signals ?? null)
@@ -20,6 +21,17 @@ const depositVelocityLevel = computed(() => {
   const ratio = s.deposits_today / s.deposits_today_max
   return ratio >= 1 ? 'critical' : ratio >= 0.7 ? 'warning' : 'normal'
 })
+
+const withdrawalVelocityLevel = computed(() => {
+  const s = signals.value
+  if (!s || s.withdrawals_today === null || s.withdrawals_today_max === null) return null
+  const ratio = s.withdrawals_today / s.withdrawals_today_max
+  return ratio >= 1 ? 'critical' : ratio >= 0.7 ? 'warning' : 'normal'
+})
+
+function viewUserMovements() {
+  if (props.detail.user?.email) emit('view-user-movements', props.detail.user.email)
+}
 </script>
 
 <template>
@@ -45,6 +57,22 @@ const depositVelocityLevel = computed(() => {
       {{ signals.deposits_today }}º depósito de hoy (límite {{ signals.deposits_today_max }}/día).
     </div>
 
+    <!-- Velocidad de retiros -->
+    <div
+      v-if="withdrawalVelocityLevel && withdrawalVelocityLevel !== 'normal'"
+      class="mv-fraud__alert"
+      :class="`mv-fraud__alert--${withdrawalVelocityLevel}`"
+    >
+      <i class="fas fa-gauge-high me-2"></i>
+      {{ signals.withdrawals_today }}º retiro de hoy (límite {{ signals.withdrawals_today_max }}/día).
+    </div>
+
+    <!-- Referencia duplicada -->
+    <div v-if="signals.duplicate_reference" class="mv-fraud__alert mv-fraud__alert--warning">
+      <i class="fas fa-copy me-2"></i>
+      Esta referencia ya fue usada en otro movimiento de este usuario en las últimas 24h.
+    </div>
+
     <!-- Tasa de rechazo histórica -->
     <div v-if="signals.rejection_rate !== null && signals.rejection_rate > 20" class="mv-fraud__alert mv-fraud__alert--warning">
       <i class="fas fa-chart-line me-2"></i>
@@ -53,7 +81,12 @@ const depositVelocityLevel = computed(() => {
 
     <!-- Historial reciente -->
     <div v-if="signals.recent_movements.length" class="mv-fraud__history">
-      <p class="mv-detail__label mb-1">Últimos movimientos de este usuario</p>
+      <div class="mv-fraud__history-header">
+        <p class="mv-detail__label mb-1">Últimos movimientos de este usuario</p>
+        <button type="button" class="mv-fraud__link" @click="viewUserMovements">
+          Ver todos <i class="fas fa-arrow-right ms-1"></i>
+        </button>
+      </div>
       <table class="mv-fraud__table">
         <tbody>
           <tr v-for="rm in signals.recent_movements" :key="rm.id">
@@ -99,6 +132,15 @@ const depositVelocityLevel = computed(() => {
 }
 
 .mv-fraud__history { margin-top: 0.6rem; }
+
+.mv-fraud__history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.mv-fraud__history-header .mv-fraud__link { font-size: 0.75rem; white-space: nowrap; }
+.ms-1 { margin-left: 0.25rem; }
 
 .mv-fraud__table {
   width: 100%;

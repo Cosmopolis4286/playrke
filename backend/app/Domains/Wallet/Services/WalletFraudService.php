@@ -73,6 +73,22 @@ final class WalletFraudService
     }
 
     /**
+     * Retiros ya registrados hoy por este usuario — análogo a
+     * depositsTodayCount(), expuesto al panel admin para dar contexto en el
+     * detalle de un retiro ("3er retiro en 24h").
+     */
+    public function withdrawalsTodayCount(string $userId) : int
+    {
+        return $this->operationCountToday($userId, WalletMovement::TYPE_WITHDRAWAL);
+    }
+
+    /** Tope diario de retiros, para que el frontend calcule cuán cerca está del límite. */
+    public function maxWithdrawalsPerDay(): int
+    {
+        return self::MAX_WITHDRAWALS_PER_DAY;
+    }
+
+    /**
      * Previene double-submit: mismo monto en la misma wallet en < 30 s.
      */
     public function checkDoubleSubmit(string $walletId, float $amount, string $type) : void
@@ -115,6 +131,26 @@ final class WalletFraudService
 
             throw WalletDomainException::duplicateReference();
         }
+    }
+
+    /**
+     * Mismo predicado que checkDuplicateReference() (referencia repetida en
+     * las últimas 24h) pero como consulta informativa que devuelve bool en
+     * vez de lanzar excepción — usado por el panel admin para mostrar la
+     * señal en el detalle del movimiento sin bloquear nada. El guard
+     * original (checkDuplicateReference) sigue intacto para el flujo de
+     * creación.
+     */
+    public function hasDuplicateReferenceInWindow(string $walletId, string $reference) : bool
+    {
+        if (empty(trim($reference))) {
+            return false;
+        }
+
+        return WalletMovement::where('wallet_id', $walletId)
+            ->where('reference_id', $reference)
+            ->where('created_at', '>=', Carbon::now()->subDay())
+            ->exists();
     }
 
     /**

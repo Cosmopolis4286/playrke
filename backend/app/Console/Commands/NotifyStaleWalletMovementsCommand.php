@@ -18,8 +18,9 @@ class NotifyStaleWalletMovementsCommand extends Command
         $status = 'SUCCESS';
 
         try {
-            $count = $service->notifyStalePending();
-            $output = "Se notificaron {$count} movimiento(s) de billetera atrasados.";
+            $staleCount    = $service->notifyStalePending();
+            $criticalCount = $service->notifyCriticalPending();
+            $output = "Se notificaron {$staleCount} movimiento(s) atrasado(s) y {$criticalCount} crítico(s).";
         } catch (Throwable $e) {
             $status = 'ERROR';
             $output = sprintf(
