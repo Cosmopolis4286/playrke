@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Vinkla\Hashids\Facades\Hashids;
 
 /**
  * Controlador para la gestión de directorios multi-país.
@@ -40,11 +41,26 @@ class DirectoryController extends Controller
         return $this->tokenResolver->resolve($request);
     }
 
+    /**
+     * Resuelve target_user_id desde query/body. El frontend nunca expone el
+     * Snowflake ID crudo de otro usuario (ver Roles/Admin/Player/Index.vue,
+     * que enlaza aquí con el mismo hashed_id que usa en toda la UI admin)
+     * — se decodifica con Hashids igual que HasHashedRouteKey::
+     * resolveRouteBinding(). Si no decodifica (valor ya numérico, o hash
+     * inválido) se deja pasar tal cual: DirectoryAdminAccessService será
+     * quien determine si el ID resultante es válido.
+     */
     private function resolveTargetUserId(Request $request): ?string
     {
         $target = $request->input('target_user_id') ?? $request->query('target_user_id');
 
-        return $target ? (string) $target : null;
+        if (!$target) {
+            return null;
+        }
+
+        $decoded = Hashids::connection('main')->decode((string) $target);
+
+        return $decoded ? (string) $decoded[0] : (string) $target;
     }
 
     /* ------------------------------------------------------------------ */
