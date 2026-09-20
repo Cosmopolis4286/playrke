@@ -5,7 +5,7 @@ import type { ServerQuery } from '@js/composables/common/table/useTableControlle
 import { useDateRangeExport } from '@js/composables/common/table/useDateRangeExport'
 import type { MovementType } from '@js/types/movementType'
 import type { Movement, MovementsMeta } from '@js/types/wallet/admin-movement'
-import { useWalletMovementsRealtime, type WalletMovementProcessedPayload, type WalletMovementAssignedPayload } from './useWalletMovementsRealtime'
+import { useWalletMovementsRealtime, type WalletMovementProcessedPayload, type WalletMovementAssignedPayload, type WalletMovementCriticalBacklogPayload } from './useWalletMovementsRealtime'
 
 const COLUMNS = [
   { key: 'id',         label: 'ID',         sortable: false },
@@ -39,6 +39,7 @@ export function useWalletMovementsList(
   initialMeta: MovementsMeta | null,
   movementTypes: Ref<MovementType[]> | MovementType[],
   initialPendingCount = 0,
+  onCriticalBacklog?: (payload: WalletMovementCriticalBacklogPayload) => void,
 ) {
   const movements   = ref<Movement[]>(initialMovements)
   const meta        = ref<MovementsMeta | null>(initialMeta)
@@ -140,6 +141,22 @@ export function useWalletMovementsList(
     fetchMovements(query.page)
   }
 
+  /**
+   * "Ver todos los movimientos de este usuario" desde el modal de detalle —
+   * precarga el filtro de búsqueda con el email del usuario y refresca la
+   * lista. El input visual de búsqueda de TableFilter.vue no acepta un valor
+   * inicial externo (ref interno, sin prop), así que el término no queda
+   * reflejado en la caja de texto, pero el filtro sí se aplica y persiste en
+   * fetches subsiguientes (activeParams.search ya usa lastSearch).
+   */
+  function searchByUser(search: string) {
+    lastSearch.value = search
+    lastFilters.value = {}
+    dateFrom.value = ''
+    dateTo.value = ''
+    fetchMovements(1)
+  }
+
   /** Reemplaza un movimiento en la lista tras aprobar/rechazar desde el modal de detalle. */
   function updateMovement(updated: Movement) {
     applyUpdate(updated)
@@ -228,7 +245,7 @@ export function useWalletMovementsList(
     }
   }
 
-  const { pendingCount } = useWalletMovementsRealtime(initialPendingCount, handleRequested, handleProcessed, handleAssigned)
+  const { pendingCount } = useWalletMovementsRealtime(initialPendingCount, handleRequested, handleProcessed, handleAssigned, onCriticalBacklog)
 
   const totalPages  = computed(() => meta.value?.last_page    ?? 1)
   const currentPage = computed(() => meta.value?.current_page ?? 1)
@@ -236,7 +253,7 @@ export function useWalletMovementsList(
   return {
     movements, meta, loading, pendingCount,
     columns, tableFilters,
-    fetchMovements, onQueryChange, updateMovement,
+    fetchMovements, onQueryChange, updateMovement, searchByUser,
     totalPages, currentPage,
     dateFrom, dateTo, applyDateRange, exportUrl, activeParams,
   }

@@ -6,6 +6,7 @@ import MovementReceiptViewer from './MovementReceiptViewer.vue'
 import MovementDetailMeta    from './MovementDetailMeta.vue'
 import MovementFraudSignals  from './MovementFraudSignals.vue'
 import MovementAdminActions  from './MovementAdminActions.vue'
+import MovementAuditTrail    from './MovementAuditTrail.vue'
 import type { Movement } from '@js/types/wallet/admin-movement'
 
 defineProps<{
@@ -40,6 +41,7 @@ defineEmits<{
   approve: []
   reject: []
   'view-movement': [id: string]
+  'view-user-movements': [search: string]
   assign: []
   unassign: []
 }>()
@@ -91,7 +93,10 @@ defineEmits<{
         :format-amount="formatAmount"
         :format-date="formatDate"
         @view-movement="$emit('view-movement', $event)"
+        @view-user-movements="$emit('view-user-movements', $event)"
       />
+
+      <MovementAuditTrail :detail="detail" />
 
       <MovementAdminActions
         v-if="isActionable || detail.status === 'PENDING'"

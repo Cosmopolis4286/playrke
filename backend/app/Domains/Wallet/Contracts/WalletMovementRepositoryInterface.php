@@ -38,6 +38,18 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
     public function queryForAdminPanel(array $filters) : Builder;
 
     /**
+     * Serie diaria de aprobados/rechazados/tiempo de resolución media, para
+     * el gráfico de tendencia histórica del panel admin. Mismo filtrado que
+     * getForAdminPanel()/queryForAdminPanel(). Rellena huecos con 0/null
+     * para los días sin actividad, para que el gráfico nunca reciba fechas
+     * faltantes.
+     *
+     * @param array{type?: ?string, status?: ?string, search?: ?string, date_from?: ?string, date_to?: ?string} $filters
+     * @return array<int, array{date: string, approved: int, rejected: int, avg_resolution_minutes: float|null}>
+     */
+    public function historicalTrend(array $filters, int $days = 30) : array;
+
+    /**
      * Últimos N movimientos de una billetera (sin paginar, para resumen).
      */
     public function getLatestByWallet(string $walletId, int $limit = 10) : Collection;

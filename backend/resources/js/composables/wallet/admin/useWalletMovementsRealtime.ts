@@ -26,6 +26,10 @@ export interface WalletMovementAssignedPayload {
   assigned_to_name: string | null
 }
 
+export interface WalletMovementCriticalBacklogPayload {
+  critical_count: number
+}
+
 /**
  * Único punto de suscripción al canal privado `admins.wallet-movements`.
  * Laravel Echo deja unirse al mismo canal varias veces desde distintos
@@ -53,6 +57,7 @@ export function useWalletMovementsRealtime(
   onRequested?: (payload: WalletMovementRequestedPayload) => void,
   onProcessed?: (payload: WalletMovementProcessedPayload) => void,
   onAssigned?: (payload: WalletMovementAssignedPayload) => void,
+  onCriticalBacklog?: (payload: WalletMovementCriticalBacklogPayload) => void,
 ) {
   const pendingCount = ref(initialPendingCount)
   const isLive = ref(false)
@@ -67,6 +72,9 @@ export function useWalletMovementsRealtime(
   }
   const assignedHandler = (payload: WalletMovementAssignedPayload) => {
     onAssigned?.(payload)
+  }
+  const criticalBacklogHandler = (payload: WalletMovementCriticalBacklogPayload) => {
+    onCriticalBacklog?.(payload)
   }
 
   async function resyncPendingCount() {
@@ -85,6 +93,7 @@ export function useWalletMovementsRealtime(
     channel.listen('.wallet.movement.requested', requestedHandler)
     channel.listen('.wallet.movement.processed', processedHandler)
     channel.listen('.wallet.movement.assigned', assignedHandler)
+    channel.listen('.wallet.movement.critical-backlog', criticalBacklogHandler)
 
     let wasLive = false
     channel.subscribed(() => {
@@ -108,6 +117,7 @@ export function useWalletMovementsRealtime(
       .stopListening('.wallet.movement.requested', requestedHandler)
       .stopListening('.wallet.movement.processed', processedHandler)
       .stopListening('.wallet.movement.assigned', assignedHandler)
+      .stopListening('.wallet.movement.critical-backlog', criticalBacklogHandler)
   })
 
   return { pendingCount, isLive }

@@ -86,8 +86,14 @@ Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movemen
     Route::get('wallet-movements',                          [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
     Route::get('wallet-movements/fetch',                    [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
     Route::get('wallet-movements/stats',                    [WalletMovementController::class, 'stats'])     ->name('wallet-movements.stats');
+    Route::get('wallet-movements/trend',                    [WalletMovementController::class, 'trend'])     ->name('wallet-movements.trend');
     Route::get('wallet-movements/export',                   [WalletMovementController::class, 'export'])    ->name('wallet-movements.export');
+    Route::get('wallet-movements/export-pdf',                [WalletMovementController::class, 'exportPdf']) ->name('wallet-movements.export-pdf');
+    // Rutas literales (trend/export/export-pdf) DEBEN declararse antes de
+    // {movement} — Laravel resuelve en orden y {movement} capturaría
+    // "trend"/"export"/"export-pdf" como un ID si fuera registrada primero.
     Route::get('wallet-movements/{movement}',               [WalletMovementController::class, 'show'])      ->name('wallet-movements.show');
+    Route::get('wallet-movements/{movement}/audit-history', [WalletMovementController::class, 'auditHistory'])->name('wallet-movements.audit-history');
 
     // throttle:30,1 → protege contra doble-submit accidental (doble click) y
     // limita el impacto de una sesión admin comprometida; el límite es alto

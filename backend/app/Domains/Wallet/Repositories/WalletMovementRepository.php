@@ -7,6 +7,7 @@ namespace App\Domains\Wallet\Repositories;
 use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Repositories\BaseRepository;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Auth;
 class WalletMovementRepository extends BaseRepository implements WalletMovementRepositoryInterface
 {
     private const ADMIN_PANEL_RELATIONS = [
-        'wallet:id,currency_id',
+        'wallet:id,currency_id,balance,bonus_balance',
         'wallet.currency:id,iso_code,symbol,decimal_places',
         'user:id,first_name,last_name,email,username',
         'processedBy:id,first_name,last_name,email',
@@ -123,6 +124,54 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         }
 
         return $query;
+    }
+
+    /**
+     * Serie diaria (aprobados/rechazados/resolución media) para el gráfico
+     * de tendencia histórica. Se agrupa por DATE(processed_at) — no
+     * created_at — porque "aprobados/rechazados por día" debe reflejar
+     * cuándo se resolvió, mismo criterio que stats() usa para "hoy"
+     * (whereDate('processed_at', ...)). Huecos rellenados día a día, mismo
+     * patrón que BuildsSalesTrend::buildSalesTrend().
+     */
+    public function historicalTrend(array $filters, int $days = 30) : array
+    {
+        $startDate = Carbon::now()->subDays($days - 1)->startOfDay();
+
+        $base = $this->applyFilters($this->model->newQuery(), $filters)
+            ->where('created_at', '>=', $startDate);
+
+        $approved = (clone $base)
+            ->where('status', WalletMovement::STATUS_COMPLETED)
+            ->whereNotNull('processed_at')
+            ->selectRaw('DATE(processed_at) as date, COUNT(*) as count, AVG(TIMESTAMPDIFF(MINUTE, created_at, processed_at)) as avg_minutes')
+            ->groupBy('date')
+            ->get()
+            ->keyBy('date');
+
+        $rejected = (clone $base)
+            ->where('status', WalletMovement::STATUS_REJECTED)
+            ->whereNotNull('processed_at')
+            ->selectRaw('DATE(processed_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->pluck('count', 'date');
+
+        $trend = [];
+        for ($i = 0; $i < $days; $i++) {
+            $date = $startDate->copy()->addDays($i)->toDateString();
+            $approvedRow = $approved->get($date);
+
+            $trend[] = [
+                'date' => $date,
+                'approved' => (int) ($approvedRow->count ?? 0),
+                'rejected' => (int) ($rejected[$date] ?? 0),
+                'avg_resolution_minutes' => $approvedRow?->avg_minutes !== null
+                    ? round((float) $approvedRow->avg_minutes, 1)
+                    : null,
+            ];
+        }
+
+        return $trend;
     }
 
     public function getLatestByWallet(string $walletId, int $limit = 10) : Collection

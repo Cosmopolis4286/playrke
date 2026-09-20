@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Wallet;
 use App\Domains\Wallet\Contracts\WalletMovementRepositoryInterface;
 use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
+use App\Models\Audit;
 use App\Models\MovementType;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Menu\SidebarMenuService;
 use App\Domains\Wallet\Services\WalletFraudService;
 use App\Domains\Wallet\Services\WalletService;
+use App\Traits\StreamsCsvExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +24,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class WalletMovementController extends Controller
 {
+    use StreamsCsvExport;
+
     private const DEFAULT_PER_PAGE = 20;
 
     public function __construct(
@@ -115,7 +120,9 @@ final class WalletMovementController extends Controller
     /**
      * GET /wallet-movements/export?type=&status=&search=&date_from=&date_to=
      * Export CSV del conjunto filtrado completo (no solo la página visible)
-     * — mismo patrón que AdminUserController::export().
+     * — usa StreamsCsvExport, mismo trait que AuditController/
+     * BingoReportController/CommerceEconomyReportController (antes este
+     * método reimplementaba el streaming manualmente con chunk()).
      */
     public function export(Request $request): StreamedResponse
     {
@@ -124,33 +131,80 @@ final class WalletMovementController extends Controller
         $filters = $this->filtersFromRequest($request);
         $query   = $this->movementRepository->queryForAdminPanel($filters);
 
-        return response()->streamDownload(function () use ($query) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Usuario', 'Email', 'Tipo', 'Estado', 'Monto', 'Moneda', 'Referencia', 'Notas admin', 'Procesado por', 'Creado', 'Procesado']);
+        return $this->streamCsvExport(
+            'movimientos-billetera',
+            [
+                'ID', 'Usuario', 'Email', 'Tipo', 'Estado', 'Monto', 'Moneda', 'Referencia',
+                'Notas admin', 'Procesado por', 'Asignado a', 'Asignado el',
+                'Balance antes', 'Balance después', 'Hash recibo', 'Creado', 'Procesado',
+            ],
+            $query->cursor(),
+            fn (WalletMovement $m) => [
+                $m->id,
+                trim(($m->user?->first_name ?? '') . ' ' . ($m->user?->last_name ?? '')),
+                $m->user?->email,
+                $m->type,
+                $m->status,
+                $m->amount,
+                $m->wallet?->currency?->iso_code,
+                $m->reference_id,
+                $m->admin_notes,
+                trim(($m->processedBy?->first_name ?? '') . ' ' . ($m->processedBy?->last_name ?? '')),
+                $m->assignedTo ? trim("{$m->assignedTo->first_name} {$m->assignedTo->last_name}") : null,
+                $m->assigned_at?->format('Y-m-d H:i:s'),
+                $m->balance_before,
+                $m->balance_after,
+                $m->receipt_hash,
+                $m->created_at?->format('Y-m-d H:i:s'),
+                $m->processed_at?->format('Y-m-d H:i:s'),
+            ]
+        );
+    }
 
-            $query->chunk(500, function ($movements) use ($handle) {
-                foreach ($movements as $m) {
-                    fputcsv($handle, [
-                        $m->id,
-                        trim(($m->user?->first_name ?? '') . ' ' . ($m->user?->last_name ?? '')),
-                        $m->user?->email,
-                        $m->type,
-                        $m->status,
-                        $m->amount,
-                        $m->wallet?->currency?->iso_code,
-                        $m->reference_id,
-                        $m->admin_notes,
-                        trim(($m->processedBy?->first_name ?? '') . ' ' . ($m->processedBy?->last_name ?? '')),
-                        $m->created_at?->format('Y-m-d H:i:s'),
-                        $m->processed_at?->format('Y-m-d H:i:s'),
-                    ]);
-                }
-            });
+    /**
+     * GET /wallet-movements/export-pdf?type=&status=&search=&date_from=&date_to=
+     * Resumen descargable en PDF: totales agregados del período + una
+     * muestra acotada de filas de detalle (no todas — para eso está el CSV).
+     */
+    public function exportPdf(Request $request)
+    {
+        $this->authorize('viewAny', WalletMovement::class);
 
-            fclose($handle);
-        }, 'movimientos-billetera-' . now()->format('Y-m-d-His') . '.csv', [
-            'Content-Type' => 'text/csv',
+        $filters = $this->filtersFromRequest($request);
+        $query   = $this->movementRepository->queryForAdminPanel($filters);
+
+        $totals = [
+            'approved' => (clone $query)->where('status', WalletMovement::STATUS_COMPLETED)->count(),
+            'rejected' => (clone $query)->where('status', WalletMovement::STATUS_REJECTED)->count(),
+            'pending'  => (clone $query)->where('status', WalletMovement::STATUS_PENDING)->count(),
+        ];
+        $totals['rejection_rate'] = ($totals['approved'] + $totals['rejected']) > 0
+            ? round($totals['rejected'] / ($totals['approved'] + $totals['rejected']) * 100, 1)
+            : 0.0;
+
+        $amountByCurrency = (clone $query)
+            ->where('status', WalletMovement::STATUS_COMPLETED)
+            ->join('wallets', 'wallets.id', '=', 'wallet_movements.wallet_id')
+            ->join('currencies', 'currencies.id', '=', 'wallets.currency_id')
+            ->selectRaw('currencies.iso_code, currencies.symbol, SUM(wallet_movements.amount) as total')
+            ->groupBy('currencies.iso_code', 'currencies.symbol')
+            ->get();
+
+        $oldestPending = (clone $query)
+            ->where('status', WalletMovement::STATUS_PENDING)
+            ->orderBy('created_at')
+            ->limit(200)
+            ->get();
+
+        $pdf = Pdf::loadView('exports.wallet-movements-summary', [
+            'filters'          => $filters,
+            'totals'           => $totals,
+            'amountByCurrency' => $amountByCurrency,
+            'rows'             => $oldestPending,
+            'generatedAt'      => now(),
         ]);
+
+        return $pdf->download('resumen-billetera-' . now()->format('Y-m-d-His') . '.pdf');
     }
 
     public function show(WalletMovement $movement): JsonResponse
@@ -420,6 +474,12 @@ final class WalletMovementController extends Controller
                 'last_name'  => $m->assignedTo->last_name,
                 'email'      => $m->assignedTo->email,
             ] : null,
+            // Saldo ACTUAL de la wallet del usuario — distinto de
+            // balance_before/balance_after, que son el saldo antes/después de
+            // ESTE movimiento puntual. Permite al admin ver de un vistazo si
+            // el usuario ya movió el saldo por otro lado desde entonces.
+            'wallet_balance'       => (float) ($m->wallet?->balance ?? 0),
+            'wallet_bonus_balance' => (float) ($m->wallet?->bonus_balance ?? 0),
             'created_at' => $m->created_at,
             'currency'   => $m->wallet?->currency ? [
                 'iso_code'       => $m->wallet->currency->iso_code,
@@ -433,7 +493,11 @@ final class WalletMovementController extends Controller
                 'email'      => $m->user->email,
                 'username'   => $m->user->username ?? null,
             ] : null,
-            ...($withFraudSignals ? ['fraud_signals' => $this->buildFraudSignals($m)] : []),
+            ...($withFraudSignals ? [
+                'fraud_signals' => $this->buildFraudSignals($m),
+                'recent_audits' => $this->recentAudits($m),
+                'has_more_audits' => $this->hasMoreAudits($m),
+            ] : []),
         ];
     }
 
@@ -446,6 +510,9 @@ final class WalletMovementController extends Controller
      *   duplicate_receipt_movement_id: ?string,
      *   deposits_today: ?int,
      *   deposits_today_max: ?int,
+     *   withdrawals_today: ?int,
+     *   withdrawals_today_max: ?int,
+     *   duplicate_reference: bool,
      *   recent_movements: array<int, array{id: string, type: string, status: string, amount: float, created_at: \Carbon\Carbon}>,
      *   rejection_rate: ?float,
      * }
@@ -466,6 +533,17 @@ final class WalletMovementController extends Controller
             $depositsToday = $this->fraudService->depositsTodayCount((string) $m->user_id);
             $depositsMax   = $this->fraudService->maxDepositsPerDay();
         }
+
+        $withdrawalsToday = null;
+        $withdrawalsMax   = null;
+        if ($m->type === WalletMovement::TYPE_WITHDRAWAL) {
+            $withdrawalsToday = $this->fraudService->withdrawalsTodayCount((string) $m->user_id);
+            $withdrawalsMax   = $this->fraudService->maxWithdrawalsPerDay();
+        }
+
+        $duplicateReference = $m->reference_id
+            ? $this->fraudService->hasDuplicateReferenceInWindow((string) $m->wallet_id, $m->reference_id)
+            : false;
 
         $recentMovements = WalletMovement::where('user_id', $m->user_id)
             ->where('id', '!=', $m->id)
@@ -495,8 +573,91 @@ final class WalletMovementController extends Controller
             'duplicate_receipt_movement_id' => $duplicateReceiptId !== null ? (string) $duplicateReceiptId : null,
             'deposits_today'                => $depositsToday,
             'deposits_today_max'            => $depositsMax,
+            'withdrawals_today'             => $withdrawalsToday,
+            'withdrawals_today_max'         => $withdrawalsMax,
+            'duplicate_reference'           => $duplicateReference,
             'recent_movements'              => $recentMovements,
             'rejection_rate'                => $total > 0 ? round($rejected / $total * 100, 1) : null,
         ];
+    }
+
+    // ── Auditoría (D.4) ──────────────────────────────────────────────────────
+    // Mismo patrón que AdminUserService::getUserAuditHistory()/mapAuditRow():
+    // Audit::ofAuditable() + mapeo simple actor/evento/fecha, con "cargar más"
+    // paginado propio en vez de forzar al admin a saltar a /audit.
+
+    private const RECENT_AUDITS_LIMIT = 10;
+    private const AUDIT_HISTORY_PAGE_SIZE = 15;
+
+    private function recentAudits(WalletMovement $m): array
+    {
+        return Audit::ofAuditable(WalletMovement::class, $m->id)
+            ->with('user:id,first_name,last_name,email')
+            ->latest('created_at')
+            ->limit(self::RECENT_AUDITS_LIMIT)
+            ->get()
+            ->map(fn (Audit $audit) => $this->mapAuditRow($audit))
+            ->all();
+    }
+
+    private function hasMoreAudits(WalletMovement $m): bool
+    {
+        return Audit::ofAuditable(WalletMovement::class, $m->id)->count() > self::RECENT_AUDITS_LIMIT;
+    }
+
+    /**
+     * GET /wallet-movements/{movement}/audit-history?page=1
+     * Historial de auditoría paginado — botón "Cargar más" del bloque de
+     * auditoría en el modal de detalle, mismo contrato que
+     * AdminUserService::getUserAuditHistory().
+     */
+    public function auditHistory(Request $request, WalletMovement $movement): JsonResponse
+    {
+        $this->authorize('view', $movement);
+
+        return $this->handleServiceJson(function () use ($request, $movement) {
+            $paginator = Audit::ofAuditable(WalletMovement::class, $movement->id)
+                ->with('user:id,first_name,last_name,email')
+                ->latest('created_at')
+                ->paginate(self::AUDIT_HISTORY_PAGE_SIZE, ['*'], 'page', (int) $request->query('page', 1));
+
+            return [
+                'data' => [
+                    'rows'         => $paginator->getCollection()->map(fn (Audit $audit) => $this->mapAuditRow($audit))->values(),
+                    'has_more'     => $paginator->hasMorePages(),
+                    'current_page' => $paginator->currentPage(),
+                ],
+            ];
+        });
+    }
+
+    private function mapAuditRow(Audit $audit): array
+    {
+        return [
+            'id'    => (string) $audit->id,
+            'date'  => $audit->created_at?->format('d/m/Y H:i:s'),
+            'actor' => $audit->user?->full_name ?? 'Sistema',
+            'event' => $audit->event,
+        ];
+    }
+
+    // ── Tendencia histórica (A) ──────────────────────────────────────────────
+
+    /**
+     * GET /wallet-movements/trend?type=&status=&search=&date_from=&date_to=&fraud_flag=&assigned_to_user_id=&days=30
+     * Serie diaria de aprobados/rechazados/tiempo de resolución media, para
+     * el gráfico de tendencia histórica del dashboard. Mismos filtros que
+     * stats()/fetchList() (filtersFromRequest()), para que el gráfico
+     * refleje exactamente el mismo conjunto que ve el admin en la tabla.
+     */
+    public function trend(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', WalletMovement::class);
+
+        return $this->handleServiceJson(function () use ($request) {
+            $days = min(90, max(7, (int) $request->query('days', 30)));
+
+            return ['data' => $this->movementRepository->historicalTrend($this->filtersFromRequest($request), $days)];
+        });
     }
 }

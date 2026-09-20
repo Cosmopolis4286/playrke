@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
@@ -8,6 +8,8 @@ import MovementDetailModal from '@js/Components/Wallet/Admin/MovementDetailModal
 import { useWalletMovementsList } from '@js/composables/wallet/admin/useWalletMovementsList'
 import { useWalletMovementDetail } from '@js/composables/wallet/admin/useWalletMovementDetail'
 import { useWalletMovementsStats } from '@js/composables/wallet/admin/useWalletMovementsStats'
+import { useWalletMovementsTrend } from '@js/composables/wallet/admin/useWalletMovementsTrend'
+import DashboardMultiTrendChart from '@js/Components/Common/Dashboard/DashboardMultiTrendChart.vue'
 import { useWalletMovementsBulk } from '@js/composables/wallet/admin/useWalletMovementsBulk'
 import { useMovementAssignment } from '@js/composables/wallet/admin/useMovementAssignment'
 import { useMovementFormatters, ageInfo, resolutionTimeInfo } from '@js/composables/wallet/admin/useMovementFormatters'
@@ -26,29 +28,48 @@ const props = defineProps<Props>()
 const page = usePage()
 const currentUserId = computed(() => String((page.props.auth as any)?.user?.id ?? ''))
 
+// ── Banner de escalamiento crítico (>24h) en tiempo real ────────────────────
+const criticalBacklogCount = ref(0)
+function handleCriticalBacklog(payload: { critical_count: number }) {
+  criticalBacklogCount.value = payload.critical_count
+}
+
 // ── Lista + filtros + paginación (server-side) + tiempo real ───────────────
 const {
   movements, meta, loading,
   columns, tableFilters,
-  onQueryChange, updateMovement, fetchMovements,
+  onQueryChange, updateMovement, fetchMovements, searchByUser,
   dateFrom, dateTo, applyDateRange, exportUrl, activeParams,
 } = useWalletMovementsList(
   props.movements,
   props.meta,
   computed(() => props.movementTypes),
   props.initialPendingCount,
+  handleCriticalBacklog,
 )
 
 // ── KPIs del header — se refrescan cuando cambian los filtros activos
 // (tipo/estado/búsqueda/fecha) y tras cada aprobar/rechazar, para reflejar
 // siempre el mismo conjunto que ve el admin en la tabla.
 const { stats, fetchStats } = useWalletMovementsStats()
+const { trend, fetchTrend } = useWalletMovementsTrend()
 
 function refreshStats() {
   fetchStats(activeParams.value)
 }
 
-watch(activeParams, refreshStats, { immediate: true, deep: true })
+function refreshTrend() {
+  fetchTrend(activeParams.value)
+}
+
+watch(activeParams, () => { refreshStats(); refreshTrend() }, { immediate: true, deep: true })
+
+const trendCategories = computed(() => trend.value.map(p => p.date))
+const trendSeries = computed(() => [
+  { name: 'Aprobados', data: trend.value.map(p => p.approved) },
+  { name: 'Rechazados', data: trend.value.map(p => p.rejected) },
+  { name: 'Resolución media (min)', data: trend.value.map(p => p.avg_resolution_minutes), yAxisIndex: 1 },
+])
 
 // ── Modal de detalle + acciones admin ───────────────────────────────────────
 function handleMovementUpdated(updated: Movement) {
@@ -82,6 +103,15 @@ const { bulkLoading, bulkApprove, bulkReject } = useWalletMovementsBulk(handleBu
 
 function selectedMovements(ids: string[]): Movement[] {
   return movements.value.filter(m => ids.includes(m.id))
+}
+
+// ── Export PDF (B.2) — mismos filtros activos que el CSV/stats/tabla ───────
+function exportPdfUrl(): string {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(activeParams.value)) {
+    if (value) params.set(key, value)
+  }
+  return `/wallet-movements/export-pdf?${params.toString()}`
 }
 
 // ── Atajos de teclado en el modal: A aprobar, R abrir rechazo, Esc cerrar ──
@@ -163,6 +193,23 @@ const {
   </PageHeader>
 
   <div class="container-fluid">
+    <div v-if="criticalBacklogCount > 0" class="mv-critical-banner">
+      <i class="fas fa-triangle-exclamation me-2"></i>
+      {{ criticalBacklogCount }} movimiento(s) llevan más de 24h sin resolver — revisión urgente requerida.
+      <button type="button" class="mv-critical-banner__dismiss" @click="criticalBacklogCount = 0">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="mv-trend-card">
+      <p class="mv-trend-card__title"><i class="fas fa-chart-line me-1"></i>Tendencia (últimos 30 días)</p>
+      <DashboardMultiTrendChart
+        :categories="trendCategories"
+        :series="trendSeries"
+        secondary-axis-label="minutos"
+      />
+    </div>
+
     <TableWithFilterBridge
       table-id="wallet-movements"
       title="Movimientos de Billetera"
@@ -198,6 +245,9 @@ const {
         </div>
         <a class="btn btn-sm btn-outline-secondary" title="Exportar movimientos filtrados a CSV" :href="exportUrl()">
           <i class="fas fa-file-csv mr-1"></i>Exportar
+        </a>
+        <a class="btn btn-sm btn-outline-secondary" title="Exportar resumen en PDF" :href="exportPdfUrl()">
+          <i class="fas fa-file-pdf mr-1"></i>PDF
         </a>
         <button
           v-if="selectedIds.length > 0"
@@ -336,6 +386,7 @@ const {
     @approve="handleApprove"
     @reject="handleReject"
     @view-movement="openDetail"
+    @view-user-movements="(search) => { showDetail = false; searchByUser(search) }"
     @assign="detail && assignToMe(detail.id)"
     @unassign="detail && unassign(detail.id)"
   />
@@ -439,6 +490,41 @@ const {
 }
 .mv-date-range input[type="date"] { width: 140px; }
 .mv-date-range__sep { color: var(--ds-text-muted); font-size: 0.8rem; }
+
+.mv-critical-banner {
+  display: flex;
+  align-items: center;
+  background: rgba(220,38,38,.16);
+  border: 1px solid rgba(220,38,38,.45);
+  color: #f87171;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.mv-critical-banner__dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.mv-trend-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.mv-trend-card__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ds-text-2);
+  margin: 0 0 0.5rem;
+}
 
 .mr-1 { margin-right: 0.25rem; }
 </style>
