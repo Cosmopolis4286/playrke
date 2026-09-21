@@ -31,11 +31,17 @@ interface UseExchangeRateReturn {
     /** Abre el modal en modo edición */
     edit: (id: string | number) => Promise<boolean>
 
-    /** Cambia el estado de una tasa */
+    /** Cambia el estado de una tasa (1 confirmación) */
     toggleStatus: (id: string | number) => Promise<boolean>
 
-    /** Elimina una tasa */
+    /** Cambia el estado de varias tasas con UNA sola confirmación agregada. Devuelve la cantidad actualizada con éxito. */
+    toggleStatusMany: (ids: (string | number)[]) => Promise<number>
+
+    /** Elimina una tasa (1 confirmación) */
     remove: (id: string | number) => Promise<boolean>
+
+    /** Elimina varias tasas con UNA sola confirmación agregada. Devuelve la cantidad eliminada con éxito. */
+    removeMany: (ids: (string | number)[]) => Promise<number>
 
     /** Sincroniza tasas desde backend */
     updateExchangeRates: () => Promise<boolean>
@@ -213,6 +219,21 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     }
 
     /**
+     * PUT /exchange-rate/{id}/status sin confirmación ni refetch — bloque
+     * interno reutilizado por toggleStatus() (1 tasa, con confirmación
+     * propia) y toggleStatusMany() (lote, una sola confirmación agregada).
+     */
+    async function toggleStatusRequest(id: string | number): Promise<boolean> {
+        try {
+            await backendClient.put(`/exchange-rate/${id}/status`)
+            return true
+        } catch (error) {
+            console.error('Error cambiando estado:', error)
+            return false
+        }
+    }
+
+    /**
      * Altenar el estado (activo/inactivo) de una tasa
      *
      * @param id Identificador de la tasa
@@ -229,14 +250,63 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
         if (!confirm) return false
 
-        try {
-            await backendClient.put(`/exchange-rate/${id}/status`)
-            showToast('Estado cambiado con éxito', 'success')
+        const ok = await toggleStatusRequest(id)
+        showToast(ok ? 'Estado cambiado con éxito' : 'Error al cambiar el estado', ok ? 'success' : 'error')
+        if (ok) await fetchExchangeRates()
+        return ok
+    }
+
+    /**
+     * Alterna el estado de varias tasas con UNA sola confirmación (no una
+     * por fila) — usado por la acción en lote de la tabla. Antes reusaba
+     * toggleStatus() en un loop, que abría un diálogo de confirmación por
+     * cada tasa seleccionada.
+     *
+     * @param ids Identificadores de las tasas seleccionadas
+     * @returns Cantidad de tasas actualizadas con éxito
+     */
+    async function toggleStatusMany(ids: (string | number)[]): Promise<number> {
+        if (!ids.length) return 0
+
+        const confirm = await showToastConfirmAction({
+            html: ids.length === 1
+                ? '¿Quieres cambiar el estado de esta tasa de cambio?'
+                : `¿Quieres cambiar el estado de <b>${ids.length}</b> tasas de cambio?`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, cambiar estado'
+        })
+
+        if (!confirm) return 0
+
+        const results = await Promise.all(ids.map(toggleStatusRequest))
+        const successCount = results.filter(Boolean).length
+
+        if (successCount > 0) {
+            showToast(
+                successCount === ids.length
+                    ? 'Estado cambiado con éxito'
+                    : `Estado cambiado para ${successCount} de ${ids.length} tasas`,
+                'success'
+            )
             await fetchExchangeRates()
+        } else {
+            showToast('Error al cambiar el estado', 'error')
+        }
+
+        return successCount
+    }
+
+    /**
+     * DELETE /exchange-rate/{id}/delete sin confirmación ni refetch — bloque
+     * interno reutilizado por remove() (1 tasa, con confirmación propia) y
+     * removeMany() (lote, una sola confirmación agregada).
+     */
+    async function removeRequest(id: string | number): Promise<boolean> {
+        try {
+            await backendClient.put(`/exchange-rate/${id}/delete`)
             return true
         } catch (error) {
-            console.error('Error cambiando estado:', error)
-            showToast('Error al cambiar el estado', 'error')
+            console.error('Error eliminando tasa:', error)
             return false
         }
     }
@@ -258,16 +328,48 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
         if (!confirm) return false
 
-        try {
-            await backendClient.put(`/exchange-rate/${id}/delete`)
-            showToast('Tasa de cambio eliminada con éxito', 'success')
+        const ok = await removeRequest(id)
+        showToast(ok ? 'Tasa de cambio eliminada con éxito' : 'Error al eliminar la tasa', ok ? 'success' : 'error')
+        if (ok) await fetchExchangeRates()
+        return ok
+    }
+
+    /**
+     * Elimina varias tasas con UNA sola confirmación (no una por fila) —
+     * usado por la acción en lote de la tabla.
+     *
+     * @param ids Identificadores de las tasas seleccionadas
+     * @returns Cantidad de tasas eliminadas con éxito
+     */
+    async function removeMany(ids: (string | number)[]): Promise<number> {
+        if (!ids.length) return 0
+
+        const confirm = await showToastConfirmAction({
+            html: ids.length === 1
+                ? '¿Estás seguro que deseas eliminar esta tasa de cambio?'
+                : `¿Estás seguro que deseas eliminar <b>${ids.length}</b> tasas de cambio?`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, eliminar'
+        })
+
+        if (!confirm) return 0
+
+        const results = await Promise.all(ids.map(removeRequest))
+        const successCount = results.filter(Boolean).length
+
+        if (successCount > 0) {
+            showToast(
+                successCount === ids.length
+                    ? 'Tasa(s) de cambio eliminada(s) con éxito'
+                    : `Se eliminaron ${successCount} de ${ids.length} tasas`,
+                'success'
+            )
             await fetchExchangeRates()
-            return true
-        } catch (error) {
-            console.error('Error eliminando tasa:', error)
+        } else {
             showToast('Error al eliminar la tasa', 'error')
-            return false
         }
+
+        return successCount
     }
 
     /**
@@ -393,7 +495,9 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         create,
         edit,
         toggleStatus,
+        toggleStatusMany,
         remove,
+        removeMany,
         updateExchangeRates,
         fetchExchangeRates,
         toggleAutoUpdate,

@@ -9,12 +9,24 @@ use Illuminate\Database\Eloquent\Collection;
 
 class CustomerExchangeRateRepository extends RoleExchangeRateRepository implements CustomerExchangeRateRepositoryInterface
 {
+    /**
+     * Sin este constructor, $this->model (declarado en BaseRepository) nunca
+     * se inicializaba — bug preexistente nunca ejercitado porque el rol
+     * 'customer' no llegaba a esta clase en ningún flujo real hasta ahora
+     * (ver fix en ExchangeRateContextService::resolveExchangeRatesByRole()).
+     * Mismo patrón que CommerceExchangeRateRepository/AdminExchangeRateRepository.
+     */
+    public function __construct(CustomerExchangeRate $model)
+    {
+        $this->model = $model;
+    }
+
     public function getAllExchangeRatesByCurrency($customerId, string $currencyId): Collection
     {
         return $this->model->where('customer_id', $customerId)
             ->where('currency_id', $currencyId)
             ->orderByDesc('id')
-            ->get(['currency_id', 'exchange_rate', 'percentage']);
+            ->get(['currency_id', 'amount', 'percentage']);
     }
 
     public function getByCustomerCurrency($customerId, string $currencyId): ?CustomerExchangeRate
@@ -25,7 +37,7 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->first();
     }
 
-    public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'exchange_rate')
+    public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'amount')
     {
         return $this->model->where('customer_id', $customerId)
             ->where('currency_id', $currencyId)
@@ -39,14 +51,14 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
         return $this->model->where('customer_id', $customerId)
             ->where('status', 'ACTIVE')
             ->orderByDesc('id')
-            ->get(['currency_id', 'exchange_rate']);
+            ->get(['currency_id', 'amount']);
     }
 
     public function getValuesByCurrency(string $currencyId): Collection
     {
         return $this->model->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
-            ->pluck('exchange_rate');
+            ->pluck('amount');
     }
 
     public function getAvailableExchangeRates($customerId): Collection
@@ -101,7 +113,7 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->orderByDesc('id')
             ->first();
 
-        if (!$lastRate || $lastRate->exchange_rate != $amount) {
+        if (!$lastRate || $lastRate->amount != $amount) {
             if ($lastRate) {
                 $lastRate->update(['status' => 'INACTIVE']);
             }
@@ -109,7 +121,7 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             return $this->model->create([
                 'customer_id' => $customerId,
                 'currency_id' => $currencyId,
-                'exchange_rate' => $amount,
+                'amount' => $amount,
                 'percentage' => $percentage,
                 'status' => 'ACTIVE'
             ]);
@@ -167,7 +179,7 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
         return $this->model->where('customer_id', $customerId)
             ->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
-            ->orderBy('exchange_rate', 'asc')
+            ->orderBy('amount', 'asc')
             ->first();
     }
 }

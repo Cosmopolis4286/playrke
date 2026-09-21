@@ -20,10 +20,19 @@
   const props = defineProps<ExchangeRatePageProps>()
 
   /**
-   * Determina si el usuario tiene privilegios (company, customer, admin)
+   * Determina si el usuario gestiona la tasa OFICIAL (admin/superadmin/
+   * treasurer) en vez de una tasa propia (commerce/customer) — sin el
+   * límite de UX "una tasa por moneda ya usada" que aplica a estos últimos
+   * en canCreate(), y sin necesidad de mostrar el ISO code junto al valor
+   * en ExchangeRateTable (ya lo saben por columna "Moneda").
+   *
+   * Antes decía 'company' — typo/rol inexistente en el sistema (el prefix
+   * real es 'commerce') — y omitía 'superadmin'/'treasurer', así que ningún
+   * admin/superadmin/tesorero entraba nunca en este grupo pese a ser
+   * exactamente a quienes debía aplicar.
    */
   const hasPrivilegedRole = computed(() =>
-    ['company', 'customer', 'admin'].includes(props.roleUser)
+    ['admin', 'superadmin', 'treasurer'].includes(props.roleUser)
   )
 
   /**
@@ -43,8 +52,8 @@
     setInitialExchangeRates,
     create,
     edit,
-    toggleStatus,
-    remove,
+    toggleStatusMany,
+    removeMany,
     updateExchangeRates,
     submit,
     toggleAutoUpdate,
@@ -149,22 +158,22 @@
   }
 
   /**
-   * Alterna el status de las tasas seleccionadas
+   * Alterna el status de las tasas seleccionadas — una sola confirmación
+   * agregada para todo el lote (antes: una confirmación por cada fila
+   * seleccionada, ver toggleStatusMany en useExchangeRate).
    */
   async function handleChangeStatus(ids: string[]): Promise<void> {
-    for (const id of ids) {
-      await toggleStatus(id)
-    }
+    await toggleStatusMany(ids)
     selectedIds.value = []
   }
 
   /**
-   * Elimina las tasas seleccionadas
+   * Elimina las tasas seleccionadas — una sola confirmación agregada para
+   * todo el lote (antes: una confirmación por cada fila seleccionada, ver
+   * removeMany en useExchangeRate).
    */
   async function handleDelete(ids: string[]): Promise<void> {
-    for (const id of ids) {
-      await remove(id)
-    }
+    await removeMany(ids)
     selectedIds.value = []
   }
 

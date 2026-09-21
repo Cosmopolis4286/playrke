@@ -12,7 +12,7 @@ interface CustomerExchangeRateRepositoryInterface extends BaseRepositoryInterfac
 
     public function getByCustomerCurrency($customerId, string $currencyId): ?CustomerExchangeRate;
 
-    public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'exchange_rate');
+    public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'amount');
 
     public function getAllExchangeRates($customerId): Collection;
 
