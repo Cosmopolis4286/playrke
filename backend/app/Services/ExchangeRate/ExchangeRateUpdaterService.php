@@ -57,6 +57,17 @@ final class ExchangeRateUpdaterService
     /**
      * Actualiza las tasas para una entidad específica según su rol.
      *
+     * Antes hacía 1 query para resolver currency_id por ISO + 1 query para
+     * leer la tasa actual POR CADA moneda del lote (~10-15 monedas típicas)
+     * dentro del loop — ~2 queries × N monedas × cada usuario con
+     * auto-update activado en el cronjob horario. Ambas lecturas ahora se
+     * resuelven en una sola query cada una para todo el lote ANTES del
+     * loop; solo la escritura (updateOrCreateExchangeRate) sigue siendo
+     * por fila, porque commerce/customer versionan historial (INACTIVE +
+     * nueva fila) mientras admin hace upsert directo — estrategias
+     * divergentes por diseño que no se pueden batchear sin cambiar esa
+     * lógica de negocio.
+     *
      * @param string $role Rol de usuario ('commerce'|'customer'|'admin')
      * @param int|string $entityId ID de la entidad (commerce_id o customer_id)
      * @param array $data Tasas a actualizar (iso_code => value)
@@ -66,17 +77,35 @@ final class ExchangeRateUpdaterService
     {
         $repository = $this->getRepository($role);
 
-        foreach ($data as $currencyIso => $newRate) {
-            if ($currencyIso === 'Promedio' || $newRate == 0) {
-                continue;
-            }
+        $isoCodes = array_filter(
+            array_keys($data),
+            fn ($iso) => $iso !== 'Promedio' && ($data[$iso] ?? 0) != 0
+        );
 
-            $currencyId = $this->currencyRepository->getValueByISOCode($currencyIso, 'id');
+        if (empty($isoCodes)) {
+            return;
+        }
+
+        // 1 query: resuelve currency_id para todos los ISO codes del lote.
+        $currencyIdByIso = $this->currencyRepository
+            ->findByMultipleIsoCodes($isoCodes, ['id', 'iso_code'])
+            ->pluck('id', 'iso_code')
+            ->all();
+
+        $currencyIds = array_values($currencyIdByIso);
+
+        // 1 query: resuelve la tasa vigente de TODAS esas monedas a la vez.
+        $currentRates = $this->getCurrentRatesBatch($repository, $role, $entityId, $currencyIds);
+
+        foreach ($isoCodes as $currencyIso) {
+            $newRate = $data[$currencyIso];
+            $currencyId = $currencyIdByIso[$currencyIso] ?? null;
+
             if (!$currencyId) {
                 continue;
             }
 
-            $currentRate = $this->getCurrentRate($repository, $role, $entityId, $currencyId);
+            $currentRate = $currentRates[(string) $currencyId] ?? 0.0;
 
             $percentageChange = $currentRate != 0
                 ? round((($newRate * 100) / $currentRate) - 100, 2)
@@ -91,34 +120,33 @@ final class ExchangeRateUpdaterService
     }
 
     /**
-     * Obtiene la tasa actual de una moneda para una entidad.
+     * Tasas vigentes de varias monedas a la vez para una entidad, según rol
+     * — delega a getCurrentRatesBatch() del repositorio correspondiente
+     * (cada uno con su propia query optimizada, ver los 3 repositorios).
      *
      * @param CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository
      * @param string $role Rol de usuario
-     * @param int|string $entityId ID de la entidad
-     * @param string $currencyId ID de la moneda
-     * @return float Tasa actual o 0 si no existe
+     * @param int|string|null $entityId ID de la entidad
+     * @param array<int, string> $currencyIds
+     * @return array<string, float>
      */
-    protected function getCurrentRate(
+    protected function getCurrentRatesBatch(
         CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository,
         string $role,
         int|string|null $entityId,
-        string $currencyId
-    ): float {
-
+        array $currencyIds
+    ): array {
         if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
-            return (float) ($repository->getCurrencyValue($currencyId, 'amount') ?? 0);
+            return $repository->getCurrentRatesBatch($currencyIds);
         } else if ($role === 'commerce') {
-            return (float) ($repository->getCommerceCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
+            return $repository->getCurrentRatesBatch($entityId, $currencyIds);
         } else if ($role === 'customer') {
-            return (float) ($repository->getCustomerCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
+            return $repository->getCurrentRatesBatch($entityId, $currencyIds);
         }
 
         // getRepository() ya lanza RoleResolutionException para cualquier rol
         // no soportado antes de llegar aquí — este camino es inalcanzable en
-        // la práctica, pero antes devolvía null implícito desde una función
-        // con return type float (TypeError silencioso si algún día ambos
-        // métodos se desacoplan).
+        // la práctica, pero se deja explícito en vez de un return implícito.
         throw RoleResolutionException::unsupportedRole($role);
     }
 

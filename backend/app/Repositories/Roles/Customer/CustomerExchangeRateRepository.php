@@ -46,6 +46,33 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->value($column);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function getCurrentRatesBatch($customerId, array $currencyIds): array
+    {
+        if (empty($currencyIds)) {
+            return [];
+        }
+
+        $rows = $this->model
+            ->where('customer_id', $customerId)
+            ->whereIn('currency_id', $currencyIds)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->get(['currency_id', 'amount']);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $key = (string) $row->currency_id;
+            if (!isset($result[$key])) {
+                $result[$key] = (float) $row->amount;
+            }
+        }
+
+        return $result;
+    }
+
     public function getAllExchangeRates($customerId): Collection
     {
         return $this->model->where('customer_id', $customerId)

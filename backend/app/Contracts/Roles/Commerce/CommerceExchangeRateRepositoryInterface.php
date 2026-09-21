@@ -31,6 +31,18 @@ interface CommerceExchangeRateRepositoryInterface extends RoleExchangeRateReposi
     public function getCommerceCurrencyValue($commerceId, $currencyId, string $field = 'amount');
 
     /**
+     * Tasas ACTIVE actuales de un comercio para varias monedas a la vez
+     * (currency_id => amount) — usado por ExchangeRateUpdaterService::
+     * updateForRole() para resolver TODAS las tasas vigentes en una sola
+     * query en vez de una por moneda dentro del loop de actualización masiva.
+     *
+     * @param mixed $commerceId ID del comercio
+     * @param array<int, string> $currencyIds
+     * @return array<string, float>
+     */
+    public function getCurrentRatesBatch($commerceId, array $currencyIds): array;
+
+    /**
      * Obtiene todas las tasas de cambio de un comercio
      *
      * @param mixed $commerceId ID del comercio

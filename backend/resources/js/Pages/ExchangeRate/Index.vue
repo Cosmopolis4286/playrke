@@ -342,7 +342,6 @@
       v-model="exchangeRateData"
       :currencies="currencies"
       :usedCurrencies="usedCurrencies"
-      :has-privileged-role="hasPrivilegedRole"
       :bcv-auto-update-enabled="bcvAutoUpdateEnabled"
       @update:bcv-auto-update-enabled="bcvAutoUpdateEnabled = $event"
     />

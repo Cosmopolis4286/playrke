@@ -56,6 +56,37 @@ class CommerceExchangeRateRepository extends RoleExchangeRateRepository implemen
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function getCurrentRatesBatch($commerceId, array $currencyIds): array
+    {
+        if (empty($currencyIds)) {
+            return [];
+        }
+
+        // Una sola query trae TODAS las filas ACTIVE candidatas (ordenadas
+        // por id desc); nos quedamos con la primera ocurrencia por
+        // currency_id en PHP — mismo criterio que getCommerceCurrencyValue()
+        // pero para todas las monedas del lote a la vez.
+        $rows = $this->model
+            ->where('commerce_id', $commerceId)
+            ->whereIn('currency_id', $currencyIds)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->get(['currency_id', 'amount']);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $key = (string) $row->currency_id;
+            if (!isset($result[$key])) {
+                $result[$key] = (float) $row->amount;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Obtiene todas las tasas de cambio de un comercio
      *
      * @param mixed $commerceId ID del comercio

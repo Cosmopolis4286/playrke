@@ -36,6 +36,17 @@ interface AdminExchangeRateRepositoryInterface extends RoleExchangeRateRepositor
     public function getCurrencyValue($currencyId, string $field = 'amount');
 
     /**
+     * Tasas actuales de varias monedas a la vez (currency_id => amount) — usado
+     * por ExchangeRateUpdaterService::updateForRole() para resolver TODAS las
+     * tasas vigentes en una sola query en vez de una por moneda dentro del
+     * loop de actualización masiva.
+     *
+     * @param array<int, string> $currencyIds
+     * @return array<string, float>
+     */
+    public function getCurrentRatesBatch(array $currencyIds): array;
+
+    /**
      * Crea o actualiza una tasa de cambio
      *
      * @param mixed $currencyId ID de la moneda

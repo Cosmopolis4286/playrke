@@ -14,6 +14,18 @@ interface CustomerExchangeRateRepositoryInterface extends BaseRepositoryInterfac
 
     public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'amount');
 
+    /**
+     * Tasas ACTIVE actuales de un customer para varias monedas a la vez
+     * (currency_id => amount) — usado por ExchangeRateUpdaterService::
+     * updateForRole() para resolver TODAS las tasas vigentes en una sola
+     * query en vez de una por moneda dentro del loop de actualización masiva.
+     *
+     * @param mixed $customerId ID del customer
+     * @param array<int, string> $currencyIds
+     * @return array<string, float>
+     */
+    public function getCurrentRatesBatch($customerId, array $currencyIds): array;
+
     public function getAllExchangeRates($customerId): Collection;
 
     public function getValuesByCurrency(string $currencyId): Collection;

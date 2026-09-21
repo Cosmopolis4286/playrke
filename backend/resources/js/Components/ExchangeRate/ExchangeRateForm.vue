@@ -14,7 +14,6 @@
   const props = defineProps<{
     usedCurrencies?: UsedCurrency[]
     currencies: Currency[]
-    hasPrivilegedRole: boolean
     modelValue: Partial<ExchangeRate> | Partial<AdminExchangeRate>
     bcvAutoUpdateEnabled?: boolean
   }>()

@@ -90,6 +90,35 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function getCurrentRatesBatch(array $currencyIds): array
+    {
+        if (empty($currencyIds)) {
+            return [];
+        }
+
+        // Una sola query trae TODAS las filas candidatas (ya ordenadas por
+        // updated_at desc); nos quedamos con la primera ocurrencia por
+        // currency_id en PHP — equivalente a "la más reciente por moneda"
+        // sin necesitar una subquery de agregación.
+        $rows = $this->model
+            ->whereIn('currency_id', $currencyIds)
+            ->orderByDesc('updated_at')
+            ->get(['currency_id', 'amount']);
+
+        $result = [];
+        foreach ($rows as $row) {
+            $key = (string) $row->currency_id;
+            if (!isset($result[$key])) {
+                $result[$key] = (float) $row->amount;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Crea o actualiza una tasa de cambio
      *
      * @param mixed $currencyId ID de la moneda
