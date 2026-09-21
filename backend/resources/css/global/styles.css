@@ -279,6 +279,8 @@ body {
 [data-theme="light"] .nav-sidebar > .nav-item > .nav-link.active {
   background: rgba(99,102,241,.15) !important;
   color: #3730a3 !important;
+}
+body:not(.sidebar-mini.sidebar-collapse) [data-theme="light"] .nav-sidebar > .nav-item > .nav-link.active {
   border-left: 3px solid #6366f1 !important;
   padding-left: calc(1rem - 3px) !important;
 }
@@ -1706,6 +1708,16 @@ aside.main-sidebar .sidebar.mt-2 {
   color: rgba(255, 255, 255, 0.75);
 }
 
+/* ── Tamaño de fuente: antes heredaba el tamaño base de AdminLTE (~0.9rem),
+   pesado para un panel tan angosto — reducido un escalón en cada nivel y
+   diferenciado más entre padre/hijo para reforzar la jerarquía. ── */
+.nav-sidebar > .nav-item > .nav-link > p {
+  font-size: 0.85rem;
+}
+.nav-sidebar .nav-treeview > .nav-item > .nav-link > p {
+  font-size: 0.8rem;
+}
+
 /* ── Chevron único: transición suave de la rotación que ya aplica AdminLTE en .menu-open ── */
 .nav-sidebar .nav-item.has-treeview > .nav-link > .right.fa-angle-left {
   transition: transform 0.2s ease;
@@ -1719,8 +1731,11 @@ aside.main-sidebar .sidebar.mt-2 {
 }
 
 /* ── Acento de borde en el item padre activo: refuerza cuál sección está
-   abierta/activa más allá del solo cambio de color de fondo. ── */
-.nav-sidebar > .nav-item > .nav-link.active {
+   abierta/activa más allá del solo cambio de color de fondo. Excluido en
+   sidebar-mini.sidebar-collapse (modo angosto, solo ícono centrado, ~4.6rem
+   de ancho): ahí el borde cortaría visualmente contra el ícono en vez de
+   quedar como un acento lateral limpio. ── */
+body:not(.sidebar-mini.sidebar-collapse) .nav-sidebar > .nav-item > .nav-link.active {
   border-left: 3px solid #4dabf7;
   padding-left: calc(1rem - 3px);
 }
@@ -1750,6 +1765,19 @@ aside.main-sidebar .sidebar.mt-2 {
   background: rgba(0, 123, 255, 0.25);
   color: #fff;
   box-shadow: none;
+}
+
+/* ── Foco visible por teclado (Tab): AdminLTE no define ningún outline
+   propio para .nav-link, así que navegar el sidebar sin mouse no mostraba
+   dónde está el foco. :focus-visible (no :focus) para no mostrar el anillo
+   en clicks de mouse, solo en navegación real por teclado. ── */
+.nav-sidebar .nav-link:focus-visible {
+  outline: 2px solid #4dabf7;
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+[data-theme="light"] .nav-sidebar .nav-link:focus-visible {
+  outline-color: #6366f1;
 }
 
 /* ── Drawer móvil: sidebar debajo del navbar; #sidebar-overlay (z:1037) cubre toda la

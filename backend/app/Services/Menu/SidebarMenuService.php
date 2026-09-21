@@ -258,45 +258,57 @@ class SidebarMenuService
             'title' => 'Sistema',
             'icon' => 'fas fa-cogs',
             'submenu' => [
+                // 'group' agrupa visualmente los subitems en el sidebar (ver
+                // sidebar-dynamic.blade.php) con un separador entre grupos
+                // distintos — puramente cosmético, no afecta filtrado por
+                // permiso/rol ni ninguna otra lógica de SidebarMenuService.
                 'games_catalog' => [
                     'title' => 'Catálogo de Juegos',
                     'route' => 'games.index',
                     'permission' => 'games.manage',
+                    'group' => 'Operación',
                 ],
                 'app-parameters' => [
                     'title' => 'Configuración',
                     'route' => 'app-parameters.index',
                     'permission' => 'app-parameters.manage',
-                ],
-                'audit' => [
-                    'title' => 'Auditoría',
-                    'route' => 'audit.index',
-                    'permission' => 'audit.view',
-                ],
-                'kyc' => [
-                    'title' => 'Verificación KYC',
-                    'route' => 'admin.kyc.index',
-                    'permission' => 'kyc.view',
-                ],
-                'logs' => [
-                    'title' => 'Logs del Sistema',
-                    'route' => 'logs.index',
-                    'permission' => 'system.logs',
-                ],
-                'jobs' => [
-                    'title' => 'Jobs y Scheduler',
-                    'route' => 'system.jobs.index',
-                    'permission' => 'system.jobs',
+                    'group' => 'Operación',
                 ],
                 'sidebar_menu' => [
                     'title' => 'Menú del Sidebar',
                     'route' => 'sidebar-menu.index',
                     'permission' => 'superadmin.access',
+                    'group' => 'Operación',
                 ],
                 'dashboard_widgets' => [
                     'title' => 'Widgets del Dashboard',
                     'route' => 'dashboard-widgets.index',
                     'permission' => 'superadmin.access',
+                    'group' => 'Operación',
+                ],
+                'audit' => [
+                    'title' => 'Auditoría',
+                    'route' => 'audit.index',
+                    'permission' => 'audit.view',
+                    'group' => 'Monitoreo',
+                ],
+                'kyc' => [
+                    'title' => 'Verificación KYC',
+                    'route' => 'admin.kyc.index',
+                    'permission' => 'kyc.view',
+                    'group' => 'Monitoreo',
+                ],
+                'logs' => [
+                    'title' => 'Logs del Sistema',
+                    'route' => 'logs.index',
+                    'permission' => 'system.logs',
+                    'group' => 'Monitoreo',
+                ],
+                'jobs' => [
+                    'title' => 'Jobs y Scheduler',
+                    'route' => 'system.jobs.index',
+                    'permission' => 'system.jobs',
+                    'group' => 'Monitoreo',
                 ],
             ],
         ],

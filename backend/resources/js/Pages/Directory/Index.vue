@@ -250,7 +250,7 @@
       <span v-if="props.viewingUser?.email" class="text-muted"> ({{ props.viewingUser.email }})</span>.
       Toda acción aquí queda auditada.
     </span>
-    <a href="/directory" class="btn btn-sm btn-outline-dark ml-auto directory-impersonation-banner__exit">
+    <a href="/directory" class="btn btn-sm btn-dark ml-auto directory-impersonation-banner__exit">
       <i class="fas fa-arrow-left mr-1"></i>Volver a mi directorio
     </a>
   </div>
