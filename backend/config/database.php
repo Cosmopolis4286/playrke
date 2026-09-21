@@ -95,6 +95,13 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            // PDO::ATTR_TIMEOUT: sin esto, PDO pgsql no aborta una conexión ni
+            // una query colgada — un socket muerto (ej. tras un restart del
+            // contenedor) deja al proceso PHP bloqueado en poll() de forma
+            // indefinida en vez de fallar con una excepción recuperable.
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_TIMEOUT => (int) env('DB_PGSQL_TIMEOUT', 5),
+            ]) : [],
         ],
 
         'pgsql_trivia' => [
@@ -109,6 +116,15 @@ return [
             'prefix_indexes' => true,
             'search_path' => env('DB_TRIVIA_SCHEMA', 'public'),
             'sslmode' => env('DB_TRIVIA_SSLMODE', 'prefer'),
+            // Ver nota en la conexión 'pgsql' de arriba — mismo fix, mismo
+            // motivo. Causa real de los cuelgues de RefreshDatabase vistos en
+            // test-docker.sh: la migración de trivia_rooms (Schema::connection
+            // ('pgsql_trivia')->hasTable(...)) abre esta conexión en el
+            // primer test de cada corrida; sin timeout, un socket que no
+            // responde bloquea el proceso PHPUnit entero sin límite de tiempo.
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_TIMEOUT => (int) env('DB_TRIVIA_TIMEOUT', 5),
+            ]) : [],
         ],
 
         'sqlsrv' => [

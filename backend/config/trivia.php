@@ -44,6 +44,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Timeout de sesión Postgres (conexiones 'pgsql'/'pgsql_trivia')
+    |--------------------------------------------------------------------------
+    |
+    | PDO_pgsql no acota queries en ejecución ni conexiones ESTABLISHED cuyo
+    | socket dejó de responder (PDO::ATTR_TIMEOUT solo limita el connect()
+    | inicial) — sin este límite, un socket "zombie" (ej. tras reiniciar los
+    | contenedores Docker con un test en curso) bloquea el proceso PHP en
+    | poll() indefinidamente. Ver TriviaServiceProvider::guardPgsqlTriviaAgainstHungQueries().
+    */
+    'pgsql_statement_timeout_ms' => env('DB_PGSQL_STATEMENT_TIMEOUT_MS', 15000),
+
+    /*
+    |--------------------------------------------------------------------------
     | Configuraciones de WebSocket
     |--------------------------------------------------------------------------
     */
