@@ -512,5 +512,38 @@
                 .catch(function () {});
         });
     });
+
+    // ── Tooltip solo cuando el texto realmente está truncado ──────────
+    // El <a> de cada subitem llevaba title="" siempre, así que el navegador
+    // mostraba el tooltip nativo incluso con títulos que ya caben completos
+    // ("Menú del Sidebar") — ese tooltip flotante tapaba visualmente la fila
+    // de abajo sin aportar nada. Ahora title solo se agrega si
+    // scrollWidth > clientWidth (el ellipsis realmente está recortando
+    // texto), comparando el ancho real tras el layout final.
+    function applyTruncatedTitles() {
+        document.querySelectorAll('.nav-treeview > .nav-item > a[data-full-title]').forEach(function (a) {
+            var p = a.querySelector(':scope > p');
+            if (!p) return;
+            var isTruncated = p.scrollWidth > p.clientWidth + 1;
+            if (isTruncated) {
+                a.setAttribute('title', a.getAttribute('data-full-title'));
+            } else {
+                a.removeAttribute('title');
+            }
+        });
+    }
+
+    if (menuTree) {
+        applyTruncatedTitles();
+        // Un submenú recién expandido pasa de display:none a visible, y
+        // scrollWidth/clientWidth solo son correctos una vez que el
+        // navegador termina de pintar ese cambio de layout — se re-evalúa
+        // tras el click, no solo al cargar la página.
+        menuTree.querySelectorAll(':scope > li.has-treeview > a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                setTimeout(applyTruncatedTitles, 50);
+            });
+        });
+    }
 })();
 </script>
