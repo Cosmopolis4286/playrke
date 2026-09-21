@@ -36,7 +36,7 @@ final class ExchangeRateUpdaterService
     public function updateRates(int $userId, array $rates): bool
     {
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-        $entityId = in_array($rolePrefix, ['admin', 'superadmin'])
+        $entityId = in_array($rolePrefix, ['admin', 'superadmin', 'treasurer'])
             ? null
             : $this->roleEntityResolver->resolveEntityId($userId, $rolePrefix);
 
@@ -82,7 +82,7 @@ final class ExchangeRateUpdaterService
                 ? round((($newRate * 100) / $currentRate) - 100, 2)
                 : 0;
 
-            if (in_array($role, ['admin', 'superadmin'])) {
+            if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
                 $repository->updateOrCreateExchangeRate($currencyId, $newRate, $percentageChange);
             } else {
                 $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
@@ -106,13 +106,20 @@ final class ExchangeRateUpdaterService
         string $currencyId
     ): float {
 
-        if (in_array($role, ['admin', 'superadmin'])) {
+        if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             return (float) ($repository->getCurrencyValue($currencyId, 'amount') ?? 0);
         } else if ($role === 'commerce') {
             return (float) ($repository->getCommerceCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
         } else if ($role === 'customer') {
             return (float) ($repository->getCustomerCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
         }
+
+        // getRepository() ya lanza RoleResolutionException para cualquier rol
+        // no soportado antes de llegar aquí — este camino es inalcanzable en
+        // la práctica, pero antes devolvía null implícito desde una función
+        // con return type float (TypeError silencioso si algún día ambos
+        // métodos se desacoplan).
+        throw RoleResolutionException::unsupportedRole($role);
     }
 
     /**
@@ -124,10 +131,10 @@ final class ExchangeRateUpdaterService
     protected function getRepository(string $role): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface
     {
         return match ($role) {
-            'admin', 'superadmin' => $this->adminExchangeRateRepository,
-            'commerce'            => $this->commerceExchangeRateRepository,
-            'customer'            => $this->customerExchangeRateRepository,
-            default               => throw RoleResolutionException::unsupportedRole($role),
+            'admin', 'superadmin', 'treasurer' => $this->adminExchangeRateRepository,
+            'commerce'                         => $this->commerceExchangeRateRepository,
+            'customer'                         => $this->customerExchangeRateRepository,
+            default                            => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }

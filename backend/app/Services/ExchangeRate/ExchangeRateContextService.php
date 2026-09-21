@@ -4,6 +4,7 @@ namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Models\UserPreference;
 use App\Services\Currency\CurrencyService;
@@ -29,6 +30,7 @@ final class ExchangeRateContextService
 
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
+        private readonly CustomerExchangeRateRepositoryInterface $customerExchangeRate,
         private readonly AdminExchangeRateRepositoryInterface $adminExchangeRate,
         private readonly CurrencyService $currency,
         private readonly UserContextService $userContext,
@@ -92,6 +94,12 @@ final class ExchangeRateContextService
     /**
      * Resuelve las tasas de cambio según el prefijo de rol activo.
      *
+     * Antes 'customer' caía al default (Collection vacía) pese a que
+     * ExchangeRateCrudService/ExchangeRateUpdaterService sí soportan ese rol
+     * de punta a punta — un customer podía crear/editar su propia tasa pero
+     * nunca la veía listada aquí. 'treasurer' gestiona la tasa OFICIAL igual
+     * que admin/superadmin (no tiene entidad propia, ver RoleEntityResolver).
+     *
      * @param string $role Prefijo de rol activo (ej. 'commerce', 'customer').
      * @param int $userId ID del usuario autenticado o resuelto por token.
      *
@@ -103,8 +111,11 @@ final class ExchangeRateContextService
             'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates(
                 $this->roleEntityResolver->resolveEntityId($userId, $role)
             ),
-            'admin', 'superadmin' => $this->adminExchangeRate->getAvailableExchangeRates(),
-            default               => new Collection(),
+            'customer' => $this->customerExchangeRate->getAvailableExchangeRates(
+                $this->roleEntityResolver->resolveEntityId($userId, $role)
+            ),
+            'admin', 'superadmin', 'treasurer' => $this->adminExchangeRate->getAvailableExchangeRates(),
+            default                            => new Collection(),
         };
     }
 
@@ -144,8 +155,14 @@ final class ExchangeRateContextService
                 $this->roleEntityResolver->resolveEntityId($userId, $role),
                 $currencyId
             ),
-            'admin', 'superadmin' => $this->adminExchangeRate->getHistoryByCurrency($currencyId),
-            default               => new Collection(),
+            // CustomerExchangeRateRepositoryInterface no tiene getHistoryByCurrency
+            // (nombre distinto: getRateHistory) — mismo dato, firma propia.
+            'customer' => $this->customerExchangeRate->getRateHistory(
+                $this->roleEntityResolver->resolveEntityId($userId, $role),
+                $currencyId
+            ),
+            'admin', 'superadmin', 'treasurer' => $this->adminExchangeRate->getHistoryByCurrency($currencyId),
+            default                            => new Collection(),
         };
 
         return [

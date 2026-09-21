@@ -24,11 +24,21 @@ class ExchangeRateRequest extends BaseRequest
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
      *
+     * Debe reflejar exactamente los roles que ExchangeRateCrudService::repo()
+     * sabe resolver (admin/superadmin/treasurer -> tasa oficial, commerce/
+     * customer -> tasa propia) — la ruta en sí no filtra por rol
+     * (multiPermission:exchange.view,exchange.manage, asignable a cualquier
+     * rol), así que antes un customer o un treasurer con el permiso podían
+     * llegar hasta aquí y recibir 403 pese a tener acceso legítimo.
+     * 'treasurer' no tiene entidad propia (no está en RoleEntityResolver) —
+     * gestiona la tasa OFICIAL igual que admin/superadmin, ver
+     * ExchangeRateCrudService::repo().
+     *
      * @return bool
      */
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'superadmin', 'commerce']);
+        return PermissionService::checkPrefix(['admin', 'superadmin', 'treasurer', 'commerce', 'customer']);
     }
 
     /**

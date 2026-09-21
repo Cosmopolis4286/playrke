@@ -56,6 +56,17 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->get();
     }
 
+    public function getAvailableCurrenciesIsoCodes($customerId): array
+    {
+        return $this->model
+            ->join('currencies', 'currencies.id', '=', 'customers_exchange_rates.currency_id')
+            ->where('customers_exchange_rates.customer_id', $customerId)
+            ->where('customers_exchange_rates.status', 'ACTIVE')
+            ->distinct()
+            ->pluck('currencies.iso_code')
+            ->toArray();
+    }
+
     public function getCurrenciesByCustomer($customerId, string $status = 'ACTIVE'): array
     {
         $query = $this->model->select('currency_id')->where('customer_id', $customerId);

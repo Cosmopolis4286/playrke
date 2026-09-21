@@ -20,6 +20,15 @@ interface CustomerExchangeRateRepositoryInterface extends BaseRepositoryInterfac
 
     public function getAvailableExchangeRates($customerId): Collection;
 
+    /**
+     * Códigos ISO de las monedas con tasa registrada (cualquier status,
+     * incluye OLD/INACTIVE — no confundir con "activas") por el customer —
+     * usado para filtrar las tasas crudas de la API externa a solo las
+     * monedas que este customer gestiona, mismo criterio que
+     * CommerceCurrencyRepositoryInterface::getAvailableCurrenciesIsoCodes().
+     */
+    public function getAvailableCurrenciesIsoCodes($customerId): array;
+
     public function getCurrenciesByCustomer($customerId, string $status = 'ACTIVE'): array;
 
     public function getCurrenciesIDsByCustomer($customerId, string $status = 'ACTIVE'): Collection;

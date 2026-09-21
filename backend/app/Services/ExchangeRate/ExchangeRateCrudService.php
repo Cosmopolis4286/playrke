@@ -51,8 +51,8 @@ final class ExchangeRateCrudService
     {
         [$repo, $role, $entityId] = $this->resolveContext($userId);
 
-        // For admin/superadmin role, save user_id for tracking
-        if (in_array($role, ['admin', 'superadmin'])) {
+        // For admin/superadmin/treasurer role (tasa oficial), save user_id for tracking
+        if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             $result = DB::transaction(function () use ($repo, $dto, $role, $userId) {
                 $repo->create($dto->toArray() + ['user_id' => $userId]);
 
@@ -124,7 +124,7 @@ final class ExchangeRateCrudService
 
         [$repo, $role] = $this->resolveContext($userId);
 
-        if (in_array($role, ['admin', 'superadmin'])) {
+        if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             $result = DB::transaction(function () use ($repo, $dto, $userId) {
                 $oldAmount = $repo->getValueById($dto->id, 'amount');
 
@@ -132,7 +132,7 @@ final class ExchangeRateCrudService
                     throw ExchangeRateException::notFoundById((string) $dto->id);
                 }
 
-                // For admin, update the amount and user_id
+                // For admin/treasurer, update the amount and user_id
                 $repo->update($dto->id, [
                     'amount'   => $dto->amount,
                     'user_id'  => $userId
@@ -195,11 +195,23 @@ final class ExchangeRateCrudService
     {
         [$repo] = $this->resolveContext($userId);
 
-        if (!$repo->exists($id)) {
+        $exchangeRate = $repo->find($id);
+
+        if (!$exchangeRate) {
             throw ExchangeRateException::notFound($id);
         }
 
-        return $repo->delete($id);
+        $result = $repo->delete($id);
+
+        // Antes no invalidaba el caché — a diferencia de create/update/
+        // toggleStatus (que sí lo hacen), eliminar la única tasa ACTIVE de
+        // una moneda dejaba CurrencyExchangeRateService::getActiveRate()
+        // sirviendo el valor viejo cacheado hasta por 5 minutos.
+        if ($result) {
+            $this->forgetActiveRateCache($exchangeRate->currency_id);
+        }
+
+        return $result;
     }
 
     /**
@@ -240,7 +252,7 @@ final class ExchangeRateCrudService
 
         $entityId = null;
 
-        if (!in_array($role, ['admin', 'superadmin'])) {
+        if (!in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
             if (!$entityId) {
@@ -277,10 +289,10 @@ final class ExchangeRateCrudService
         string $role
     ): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface {
         return match ($role) {
-            'commerce'            => $this->commerce,
-            'customer'            => $this->customer,
-            'admin', 'superadmin' => $this->admin,
-            default               => throw RoleResolutionException::unsupportedRole($role),
+            'commerce'                         => $this->commerce,
+            'customer'                         => $this->customer,
+            'admin', 'superadmin', 'treasurer' => $this->admin,
+            default                            => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }

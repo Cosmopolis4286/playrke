@@ -3,6 +3,7 @@
 namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
@@ -38,6 +39,7 @@ final class ExchangeRateService
         private readonly BcvExchangeRateService $bcvApi,
         private readonly AdminExchangeRateRepositoryInterface $adminExchangeRate,
         private readonly CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
+        private readonly CustomerExchangeRateRepositoryInterface $customerExchangeRate,
     ) {}
 
     /**
@@ -155,7 +157,7 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (!in_array($role, ['admin', 'superadmin', 'commerce'])) {
+        if (!in_array($role, ['admin', 'superadmin', 'treasurer', 'commerce', 'customer'])) {
             return null;
         }
 
@@ -165,7 +167,7 @@ final class ExchangeRateService
             return null;
         }
 
-        if (in_array($role, ['admin', 'superadmin'])) {
+        if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             // For admin users, get all available currency ISO codes from database
             $availableIsoCodes = $this->adminExchangeRate->getAvailableCurrenciesIsoCodes();
 
@@ -186,6 +188,23 @@ final class ExchangeRateService
 
             $availableIsoCodes = $this->commerceCurrencyRepository
                 ->getAvailableCurrenciesIsoCodes($commerceId);
+
+            $filteredRates = collect($rates)
+                ->filter(
+                    fn($value, $key) =>
+                    $key !== 'Promedio'
+                        && $value != 0
+                        && in_array($key, $availableIsoCodes, true)
+                )
+                ->toArray();
+
+            return $this->overrideVesWithBcvIfEnabled($filteredRates, $userId);
+        } elseif ($role === 'customer') {
+
+            $customerId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+            $availableIsoCodes = $this->customerExchangeRate
+                ->getAvailableCurrenciesIsoCodes($customerId);
 
             $filteredRates = collect($rates)
                 ->filter(
@@ -252,8 +271,8 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (in_array($role, ['admin', 'superadmin'])) {
-            // Para admin/superadmin, actualizar todas las tasas sin filtrar por comercio
+        if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
+            // Para admin/superadmin/treasurer, actualizar todas las tasas (tasa oficial) sin filtrar por comercio
             $filteredRates = collect($rates)
                 ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0)
                 ->toArray();
@@ -263,6 +282,24 @@ final class ExchangeRateService
 
             $availableIsoCodes = $this->commerceCurrencyRepository
                 ->getAvailableCurrenciesIsoCodes($commerceId);
+
+            $filteredRates = collect($rates)
+                ->filter(
+                    fn($value, $key) =>
+                    $key !== 'Promedio'
+                        && $value != 0
+                        && in_array($key, $availableIsoCodes, true)
+                )
+                ->toArray();
+        } elseif ($role === 'customer') {
+            // Antes cualquier customer caía al 'else => return false': podía
+            // crear/editar su propia tasa (ExchangeRateCrudService sí lo
+            // soporta) pero jamás sincronizarla en lote con "Actualizar".
+            $customerId = $this->roleEntityResolver
+                ->resolveEntityId($userId, $role);
+
+            $availableIsoCodes = $this->customerExchangeRate
+                ->getAvailableCurrenciesIsoCodes($customerId);
 
             $filteredRates = collect($rates)
                 ->filter(
