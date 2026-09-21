@@ -107,26 +107,16 @@ class SidebarMenuService
             ],
         ],
 
-        // ── Gestión de negocio ─────────────────────────────────────────
-        'business' => [
-            'title' => 'Negocio',
-            'icon' => 'fa-solid fa-briefcase',
+        // ── Mi Cuenta: perfil propio según el rol (subsidiary/commerce/
+        // seller), separado de "Negocio" (gestión de red de terceros) —
+        // antes ambos vivían mezclados en un solo submenú de 10 items sin
+        // orden claro. Cada subitem se autofiltra por su propio permiso
+        // *-manage-own, así que el padre no exige ninguno en particular
+        // (mismo criterio que "Billetera"). ────────────────────────────
+        'my_account' => [
+            'title' => 'Mi Cuenta',
+            'icon' => 'fa-solid fa-id-card',
             'submenu' => [
-                'exchange_rates' => [
-                    'title' => 'Tasa de Cambio',
-                    'route' => 'exchange-rate.index',
-                    'permission' => 'exchange.view',
-                ],
-                'my_sellers' => [
-                    'title' => 'Mis Vendedores',
-                    'route' => 'manager-seller.index',
-                    'permission' => 'sellers.view',
-                ],
-                'my_subsidiaries' => [
-                    'title' => 'Mis Sucursales',
-                    'route' => 'admin.subsidiaries',
-                    'permission' => 'subsidiaries.view',
-                ],
                 'my_profile_subsidiary' => [
                     'title' => 'Mi Agencia',
                     'route' => 'subsidiary.profile.show',
@@ -146,6 +136,31 @@ class SidebarMenuService
                     'title' => 'Mi Perfil',
                     'route' => 'seller.profile.show',
                     'permission' => 'sellers.manage-own',
+                ],
+            ],
+        ],
+
+        // ── Negocio: gestión de la red de terceros (vendedores, sucursales,
+        // jugadores externos) y operación de premios/eventos — ya no mezcla
+        // perfil propio (ver "Mi Cuenta" arriba). ──────────────────────
+        'business' => [
+            'title' => 'Negocio',
+            'icon' => 'fa-solid fa-briefcase',
+            'submenu' => [
+                'exchange_rates' => [
+                    'title' => 'Tasa de Cambio',
+                    'route' => 'exchange-rate.index',
+                    'permission' => 'exchange.view',
+                ],
+                'my_sellers' => [
+                    'title' => 'Mis Vendedores',
+                    'route' => 'manager-seller.index',
+                    'permission' => 'sellers.view',
+                ],
+                'my_subsidiaries' => [
+                    'title' => 'Mis Sucursales',
+                    'route' => 'admin.subsidiaries',
+                    'permission' => 'subsidiaries.view',
                 ],
                 'my_external_players' => [
                     'title' => 'Jugadores Externos',
@@ -196,11 +211,13 @@ class SidebarMenuService
                     'title' => 'Tipos de Movimiento',
                     'route' => 'movement-types.index',
                     'permission' => 'movement-types.view',
+                    'group' => 'Configuración',
                 ],
                 'wallet_limits' => [
                     'title' => 'Límites de Billetera',
                     'route' => 'wallet-limits.index',
                     'permission' => 'wallet-limits.view',
+                    'group' => 'Configuración',
                 ],
             ],
         ],
@@ -245,11 +262,6 @@ class SidebarMenuService
                 'all_users' => [
                     'title' => 'Listado',
                     'route' => 'admin.users',
-                    'permission' => 'users.manage',
-                ],
-                'external_players' => [
-                    'title' => 'Jugadores Externos',
-                    'route' => 'admin.external-players.index',
                     'permission' => 'users.manage',
                 ],
             ],

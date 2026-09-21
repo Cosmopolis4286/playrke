@@ -197,6 +197,14 @@
 </aside>
 
 <style>
+    /* Cinturón de seguridad: un sidebar de ancho fijo nunca debería
+       necesitar scroll horizontal propio — si algún título largo (padre,
+       submenú o favorito) se escapa del truncado con ellipsis por alguna
+       combinación de CSS no prevista, esto contiene el desborde en vez de
+       dejarlo generar una barra de scroll horizontal a nivel del árbol
+       completo (ver captura: barra visible bajo "Jobs y Scheduler"). */
+    #sidebar-menu-tree { overflow-x: hidden; }
+
     /* Tema oscuro (default del sidebar, degradado morado/negro — ver
        aside.main-sidebar en styles.css): texto e íconos claros sobre fondo
        oscuro. Sobreescrito abajo bajo [data-theme="light"], donde el sidebar
@@ -235,6 +243,7 @@
     .sidebar-favorites-list {
         max-height: 13.5rem;
         overflow-y: auto;
+        overflow-x: hidden;
         scrollbar-width: thin;
         scrollbar-color: rgba(255,255,255,0.3) transparent;
     }
@@ -248,14 +257,59 @@
     [data-theme="light"] .sidebar-favorites-list::-webkit-scrollbar-thumb {
         background: rgba(0,0,0,0.25);
     }
+    /* Mismo grid de 2 columnas [texto][estrella] que el submenú (ver
+       .nav-treeview > .nav-item más abajo) — antes usaba flex + un
+       padding-right fijo calculado a mano, que con un título largo podía
+       dejar la estrella parcialmente tapada por el propio <a> en vez de
+       reservarle su propio espacio garantizado. También evita el scroll
+       horizontal que un favorito con título largo generaba en TODO el
+       sidebar (el <ul id="sidebar-menu-tree"> raíz no tiene
+       overflow-x:hidden propio, así que el desborde de cualquier hijo se
+       propagaba hacia arriba). */
+    .sidebar-favorites-list > .nav-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+    .sidebar-favorites-list > .nav-item > a.nav-link {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+    }
+    .sidebar-favorites-list > .nav-item > a.nav-link > .nav-icon {
+        flex-shrink: 0;
+    }
+    .sidebar-favorites-list > .nav-item > a.nav-link > p {
+        min-width: 0;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0;
+        padding-right: 0.5rem;
+    }
+    .sidebar-favorites-list > .nav-item > .sidebar-favorite-toggle {
+        position: static;
+        transform: none;
+        padding: 0.25rem 0.9rem 0.25rem 0.25rem;
+    }
 
     /* Separador de grupo dentro de un submenú largo (ej. "Sistema": Operación
        vs Monitoreo) — más discreto que .sidebar-favorites-header porque vive
-       anidado, no compite con el título del padre. */
+       anidado, no compite con el título del padre.
+       padding-left:1rem (no 0.5rem) para alinearse exactamente con el texto
+       de los <a class="nav-link"> normales del submenú (mismo padding-left
+       base de AdminLTE, ver .nav-link) — con 0.5rem el header quedaba medio
+       rem más a la izquierda, dando la sensación de una línea guía "cortada"
+       o descentrada en el punto donde cambia de grupo. También se anula el
+       padding-top:1.7rem que AdminLTE aplica a cualquier .nav-header que no
+       sea el primero de su tipo (".nav-header:not(:first-of-type)") — nuestro
+       segundo grupo ("Monitoreo") calificaba porque "Favoritos" ya cuenta
+       como el primer .nav-header del árbol completo. */
     .sidebar-submenu-group-header {
         font-size: 0.62rem; letter-spacing: .05em; text-transform: uppercase;
         color: rgba(255,255,255,0.35);
-        padding: 0.5rem 0 0.2rem 0.5rem !important;
+        padding: 0.5rem 0 0.2rem 1rem !important;
         margin-top: 0.15rem;
     }
     [data-theme="light"] .sidebar-submenu-group-header { color: #9aa5c0 !important; }
@@ -313,46 +367,63 @@
     }
 
     .nav-sidebar .nav-item { position: relative; }
-    /* Badge de conteo en el submenú (ej. "Movimientos"): posición fija a la
-       IZQUIERDA de la estrella de favorito (que conserva su posición
-       original a la derecha) — ya no usa la clase .right de AdminLTE, que
-       lo hacía chocar con el botón de favorito en la misma esquina. */
-    .nav-treeview .badge.right {
-        position: absolute; right: 2.3rem; top: 50%; transform: translateY(-50%);
-        float: none; margin: 0;
+    /* Fila de submenú como grid de 2 columnas: [texto flexible][estrella
+       fija] — el <li> (no el <a>) es el contenedor grid, así el <a> y el
+       <button> de favorito, que son hermanos en el HTML, reciben cada uno
+       su propio espacio garantizado por el grid en vez de competir por el
+       mismo hueco con position:absolute (causaba que la estrella quedara
+       parcialmente tapada/cortada por el <a> — ver captura). El texto se
+       ajusta dinámicamente al ancho real que sobra en la columna 1fr, sin
+       necesitar un padding-right calculado a mano por caso. */
+    .nav-treeview > .nav-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
     }
-    /* Reserva el espacio de badge + estrella para que un título largo no
-       quede tapado debajo de ninguno de los dos (antes lo evitaba el float
-       de AdminLTE, perdido al pasar el badge a position:absolute arriba). */
-    .nav-treeview > .nav-item > a.nav-link { padding-right: 3.1rem; }
-    /* Trunca con "…" en vez de desbordar el ancho del <li> (título largo
-       como "Widgets del Dashboard"/"Verificación KYC"): AdminLTE define
-       .nav-link como display:block (no flex), así que overflow:hidden solo
-       en el <p> no basta — sin un ancho contenedor limitante, el <p> crece
-       con su texto y empuja el <a>/<li>, generando scroll horizontal en
-       todo el sidebar (ver captura). Se vuelve flex aquí puntualmente para
-       que min-width:0 en el <p> sí recorte el texto contra el ancho real
-       disponible. El title="" ya existente en el <a> sigue mostrando el
-       texto completo al hacer hover. */
     .nav-treeview > .nav-item > a.nav-link {
         display: flex;
         align-items: center;
+        min-width: 0;
     }
     .nav-treeview > .nav-item > a.nav-link > p {
         min-width: 0;
+        flex: 1;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         margin-bottom: 0;
+        padding-right: 0.5rem;
+    }
+    /* El badge de conteo (ej. "Movimientos") ya no necesita position:absolute
+       — vive en el flujo normal del <p>, a la derecha del texto truncado,
+       dentro de la misma columna 1fr del grid. */
+    .nav-treeview .badge.right {
+        position: static;
+        float: none;
+        margin-left: 0.35rem;
+        flex-shrink: 0;
     }
     /* right:0.9rem (no 0.4rem): deja libres los 7px del scrollbar de
        OverlayScrollbars que se posiciona en el borde derecho del .sidebar
-       — con 0.4rem la estrella quedaba parcialmente tapada por el track. */
+       — con 0.4rem la estrella quedaba parcialmente tapada por el track.
+       Este es el posicionamiento por defecto (position:absolute), usado
+       fuera del submenú: en el ítem padre simple ("Menú simple" en el
+       Blade) y en la lista de favoritos, donde <a> y <button> siguen
+       siendo hermanos sueltos sin el contenedor grid de abajo. */
     .sidebar-favorite-toggle {
         position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
         background: none; border: none; padding: 0.25rem; line-height: 1;
         color: rgba(255,255,255,0.25); font-size: 0.75rem; cursor: pointer;
         opacity: 0; transition: opacity .12s, color .12s;
+    }
+    /* Dentro del submenú (grid de 2 columnas, ver .nav-treeview > .nav-item
+       arriba), la estrella vive en su propia columna "auto" del grid — se
+       anula el position:absolute para que ocupe el espacio que el grid ya
+       le reservó, en vez de superponerse sobre el <a> de la columna 1fr. */
+    .nav-treeview > .nav-item > .sidebar-favorite-toggle {
+        position: static;
+        transform: none;
+        padding: 0.25rem 0.9rem 0.25rem 0.25rem;
     }
     .nav-sidebar .nav-item:hover .sidebar-favorite-toggle,
     .sidebar-favorite-toggle--active { opacity: 1; }
