@@ -2,6 +2,7 @@
 
 namespace App\Services\ExchangeRate;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -29,19 +30,37 @@ final class BcvExchangeRateService
     private const FALLBACK_API_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
 
     /**
+     * TTL del caché en segundos. El BCV publica su tasa oficial UNA vez
+     * al día — sin caché, cada apertura del selector VES o corrida del
+     * cronjob hacía scraping en vivo (o golpeaba el fallback) sin ningún
+     * colchón. 5 minutos es generoso para el caso de uso real y absorbe
+     * por completo las ráfagas de requests concurrentes.
+     */
+    private const CACHE_TTL_SECONDS = 300;
+
+    private const CACHE_KEY = 'exchange_rate:external_api:bcv';
+
+    /**
      * Obtiene la tasa oficial USD/VES publicada por el BCV.
      *
      * @return float|null Tasa USD/VES o null si no se pudo obtener de ninguna fuente.
      */
     public function fetch(): ?float
     {
-        $rate = $this->fetchFromBcv();
-
-        if ($rate !== null) {
-            return $rate;
+        $cached = Cache::get(self::CACHE_KEY);
+        if ($cached !== null) {
+            return (float) $cached;
         }
 
-        return $this->fetchFromFallbackApi();
+        $rate = $this->fetchFromBcv() ?? $this->fetchFromFallbackApi();
+
+        // No se cachea null — un fallo de ambas fuentes no debe bloquear el
+        // próximo intento hasta que expire el TTL completo.
+        if ($rate !== null) {
+            Cache::put(self::CACHE_KEY, $rate, self::CACHE_TTL_SECONDS);
+        }
+
+        return $rate;
     }
 
     /**
@@ -53,7 +72,6 @@ final class BcvExchangeRateService
     {
         try {
             $response = Http::timeout(8)
-                ->withoutVerifying()
                 ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
                 ->get(self::BCV_URL);
 
