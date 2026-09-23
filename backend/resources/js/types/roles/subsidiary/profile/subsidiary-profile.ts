@@ -13,4 +13,6 @@ export interface SubsidiaryProfile {
 
 export interface SubsidiaryProfilePageProps {
     subsidiary: SubsidiaryProfile
+    /** true si un admin/superadmin está viendo la ficha de otra agencia (ver AdminProfileAccessService). */
+    isAdminView?: boolean
 }

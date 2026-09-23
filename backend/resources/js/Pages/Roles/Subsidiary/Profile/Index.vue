@@ -14,7 +14,15 @@ import type { SubsidiaryProfilePageProps } from '@/js/types/roles/subsidiary/pro
 
 const props = defineProps<SubsidiaryProfilePageProps>()
 
-const { subsidiary, editMode, saving, form, toggleEdit, save } = useSubsidiaryProfile(props.subsidiary)
+/**
+ * Presente cuando un admin/superadmin llegó desde "Ver perfil" en el
+ * listado de agencias (Roles/Admin/Subsidiary/Index.vue). Se propaga en
+ * cada request del composable — el backend re-valida el rol en cada
+ * llamada, esto es solo para no perderlo entre navegaciones internas.
+ */
+const targetUserId = new URLSearchParams(window.location.search).get('target_user_id')
+
+const { subsidiary, editMode, saving, form, toggleEdit, save } = useSubsidiaryProfile(props.subsidiary, targetUserId)
 
 const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.trim())
 </script>
@@ -29,6 +37,18 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
       { label: 'Mi Agencia' },
     ]"
   />
+
+  <div v-if="props.isAdminView" class="alert alert-warning d-flex align-items-center profile-admin-view-banner" role="alert">
+    <i class="fas fa-user-shield mr-2"></i>
+    <span>
+      Estás viendo la ficha de <strong>{{ subsidiary.name }}</strong>
+      <span class="text-muted"> (@{{ subsidiary.user.username }})</span>.
+      Toda acción aquí queda auditada.
+    </span>
+    <a href="/admin/subsidiary" class="btn btn-sm btn-dark ml-auto profile-admin-view-banner__exit">
+      <i class="fas fa-arrow-left mr-1"></i>Volver al listado
+    </a>
+  </div>
 
   <section class="content">
     <div class="container-fluid">
@@ -163,4 +183,12 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
 .sp-save-btn { border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
 .sp-save-btn:hover { filter: brightness(1.08); }
 .sp-save-btn:disabled, .sp-cancel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.profile-admin-view-banner {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.profile-admin-view-banner__exit {
+  white-space: nowrap;
+}
 </style>

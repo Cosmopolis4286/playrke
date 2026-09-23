@@ -12,7 +12,15 @@ import type { SellerProfilePageProps } from '@/js/types/roles/seller/profile/sel
 
 const props = defineProps<SellerProfilePageProps>()
 
-const { seller, editMode, saving, form, toggleEdit, save } = useSellerProfile(props.seller)
+/**
+ * Presente cuando un admin/superadmin llegó desde "Ver perfil" en el
+ * listado de vendedores (Roles/Seller/Manager/Index.vue). Se propaga en
+ * cada request del composable — el backend re-valida el rol en cada
+ * llamada, esto es solo para no perderlo entre navegaciones internas.
+ */
+const targetUserId = new URLSearchParams(window.location.search).get('target_user_id')
+
+const { seller, editMode, saving, form, toggleEdit, save } = useSellerProfile(props.seller, targetUserId)
 
 const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.trim())
 </script>
@@ -27,6 +35,18 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
       { label: 'Mi Perfil' },
     ]"
   />
+
+  <div v-if="props.isAdminView" class="alert alert-warning d-flex align-items-center profile-admin-view-banner" role="alert">
+    <i class="fas fa-user-shield mr-2"></i>
+    <span>
+      Estás viendo la ficha de <strong>{{ seller.name }}</strong>
+      <span class="text-muted"> (@{{ seller.user.username }})</span>.
+      Toda acción aquí queda auditada.
+    </span>
+    <a href="/sellers" class="btn btn-sm btn-dark ml-auto profile-admin-view-banner__exit">
+      <i class="fas fa-arrow-left mr-1"></i>Volver al listado
+    </a>
+  </div>
 
   <section class="content">
     <div class="container-fluid">
@@ -162,4 +182,12 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
 .sp-save-btn { border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
 .sp-save-btn:hover { filter: brightness(1.08); }
 .sp-save-btn:disabled, .sp-cancel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.profile-admin-view-banner {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.profile-admin-view-banner__exit {
+  white-space: nowrap;
+}
 </style>

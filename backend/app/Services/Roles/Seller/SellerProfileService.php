@@ -3,34 +3,40 @@
 namespace App\Services\Roles\Seller;
 
 use App\Models\Roles\Seller;
+use App\Services\Roles\AdminProfileAccessService;
 use App\Services\Security\UserContextService;
 
 /**
  * Autogestión de la ficha propia de un Seller (taquilla/vendedor) —
  * distinto de ManagerSellerService (gestión por su Commerce/Subsidiary,
- * protegido por sellers.*). Este servicio SIEMPRE resuelve el registro
- * Seller del usuario autenticado, nunca recibe un id por parámetro — por
- * diseño, es imposible que opere sobre el registro de otro vendedor.
+ * protegido por sellers.*). Por defecto SIEMPRE resuelve el registro Seller
+ * del usuario autenticado; admin/superadmin pueden pasar $targetUserId
+ * (resuelto por AdminProfileAccessService) para inspeccionar la ficha de un
+ * vendedor específico — sin esto, "Mi Perfil" en el sidebar era un 404
+ * garantizado para admin/superadmin (no tienen registro Seller propio).
  */
 final class SellerProfileService
 {
     public function __construct(
         private readonly UserContextService $userContext,
+        private readonly AdminProfileAccessService $adminAccess,
     ) {}
 
-    private function ownSellerOrFail(): Seller
+    private function ownSellerOrFail(?string $targetUserId = null): Seller
     {
-        $userId = $this->userContext->resolveUserId();
-        $seller = Seller::where('user_id', $userId)->first();
+        $actorId = $this->userContext->resolveUserId();
+        $access = $this->adminAccess->resolve($actorId, $targetUserId);
+
+        $seller = Seller::where('user_id', $access['owner_user_id'])->first();
 
         abort_if(!$seller, 404, 'No se encontró un vendedor asociado a este usuario.');
 
         return $seller;
     }
 
-    public function showOwn(): array
+    public function showOwn(?string $targetUserId = null): array
     {
-        $seller = $this->ownSellerOrFail();
+        $seller = $this->ownSellerOrFail($targetUserId);
         $seller->load(['country:id,name', 'user:id,username,email']);
 
         $commerce = $seller->resolveCommerce();
@@ -54,13 +60,14 @@ final class SellerProfileService
     /**
      * Solo estos 2 campos son autogestionables — comisión/manager/agencia
      * nunca llegan aquí (array_intersect_key es defensa en profundidad,
-     * aunque el Request ya filtre los campos aceptados).
+     * aunque el Request ya filtre los campos aceptados). admin/superadmin
+     * pueden editar vía $targetUserId igual que showOwn().
      *
      * @param array{name?: string, phone?: string} $data
      */
-    public function updateOwn(array $data): void
+    public function updateOwn(array $data, ?string $targetUserId = null): void
     {
-        $seller = $this->ownSellerOrFail();
+        $seller = $this->ownSellerOrFail($targetUserId);
         $seller->update(array_intersect_key($data, array_flip(['name', 'phone'])));
     }
 }

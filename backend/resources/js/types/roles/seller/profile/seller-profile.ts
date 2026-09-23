@@ -18,4 +18,6 @@ export interface SellerProfile {
 
 export interface SellerProfilePageProps {
     seller: SellerProfile
+    /** true si un admin/superadmin está viendo la ficha de otro vendedor (ver AdminProfileAccessService). */
+    isAdminView?: boolean
 }

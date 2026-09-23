@@ -7,8 +7,14 @@ import type { SellerProfile } from '@/js/types/roles/seller/profile/seller-profi
  * Autogestión de la ficha propia del vendedor — patrón simple de edición
  * in-place (sin modal), mismo espíritu que useCommerceProfile.ts /
  * useSubsidiaryProfile.ts.
+ *
+ * `targetUserId` (opcional): cuando un admin/superadmin está inspeccionando
+ * la ficha de OTRO vendedor (ver AdminProfileAccessService en backend), se
+ * reenvía en el PUT como target_user_id. Cualquier otro rol que lo reciba
+ * distinto de su propio ID recibe 403 en el backend — este parámetro nunca
+ * se resuelve del lado del cliente, solo se propaga.
  */
-export function useSellerProfile(initial: SellerProfile) {
+export function useSellerProfile(initial: SellerProfile, targetUserId: string | null = null) {
     const seller = ref<SellerProfile>({ ...initial })
     const editMode = ref(false)
     const saving = ref(false)
@@ -31,7 +37,10 @@ export function useSellerProfile(initial: SellerProfile) {
 
         saving.value = true
         try {
-            await backendClient.put('/seller/profile', form.value)
+            await backendClient.put('/seller/profile', {
+                ...form.value,
+                target_user_id: targetUserId ?? undefined,
+            })
             seller.value = { ...seller.value, name: form.value.name, phone: form.value.phone }
             editMode.value = false
             showToast('Datos actualizados correctamente', 'success')
