@@ -95,11 +95,20 @@ final class AdminSubsidiaryController extends Controller
     /**
      * Eliminar una sucursal (soft delete).
      *
+     * 'delete' no es una acción resource estándar — authorizeResource() del
+     * constructor no la cubre automáticamente (solo cubre 'destroy', el hard
+     * delete). Sin este authorize() explícito, un usuario con rol 'commerce'
+     * podía soft-eliminar la Subsidiary de OTRO comercio con solo cambiar el
+     * {subsidiary} de la URL (AdminSubsidiaryPolicy::delete() sí valida
+     * ownership vía ownsSubsidiary(), pero nunca se invocaba).
+     *
      * @param Subsidiary $subsidiary
      * @return JsonResponse
      */
     public function delete(Subsidiary $subsidiary): JsonResponse
     {
+        $this->authorize('delete', $subsidiary);
+
         return $this->handleServiceJson(
             fn() => $this->service->delete($subsidiary)
         );
@@ -121,11 +130,18 @@ final class AdminSubsidiaryController extends Controller
     /**
      * Alternar estado (ACTIVE / INACTIVE) de la sucursal.
      *
+     * 'toggleStatus' no es una acción resource estándar — authorizeResource()
+     * del constructor no la cubre automáticamente. Mismo hueco de IDOR que
+     * delete()/resetPassword(): sin este authorize(), un usuario 'commerce'
+     * podía activar/desactivar la Subsidiary de otro comercio.
+     *
      * @param Subsidiary $subsidiary
      * @return JsonResponse
      */
     public function toggleStatus(Subsidiary $subsidiary): JsonResponse
     {
+        $this->authorize('toggleStatus', $subsidiary);
+
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($subsidiary)
         );
@@ -134,11 +150,19 @@ final class AdminSubsidiaryController extends Controller
     /**
      * Generar una nueva contraseña para una sucursal.
      *
+     * 'resetPassword' no es una acción resource estándar — authorizeResource()
+     * del constructor no la cubre automáticamente. El hueco más serio de los
+     * tres: sin este authorize(), un usuario 'commerce' podía resetear la
+     * contraseña de acceso de la sucursal de OTRO comercio (account takeover
+     * del recurso ajeno).
+     *
      * @param Subsidiary $subsidiary
      * @return JsonResponse
      */
     public function resetPassword(Subsidiary $subsidiary): JsonResponse
     {
+        $this->authorize('resetPassword', $subsidiary);
+
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->resetPassword($subsidiary),

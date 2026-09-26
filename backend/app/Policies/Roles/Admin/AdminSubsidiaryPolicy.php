@@ -84,17 +84,43 @@ class AdminSubsidiaryPolicy extends BaseRolePolicy
     /**
      * Cambiar estado de la sucursal.
      *
-     * Acción de dominio (no CRUD estándar).
+     * Acción de dominio (no CRUD estándar) — el nombre debe coincidir
+     * exactamente con la acción del controller (toggleStatus()), ya que
+     * authorizeResource() no la cubre automáticamente y por lo tanto
+     * requiere un $this->authorize('toggleStatus', ...) explícito que
+     * resuelve este método por nombre.
      *
      * @param User $user
      * @param Subsidiary $subsidiary
      * @return bool
      */
-    public function changeStatus(User $user, Subsidiary $subsidiary): bool
+    public function toggleStatus(User $user, Subsidiary $subsidiary): bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($subsidiary)
             && $this->ownsSubsidiary($user, $subsidiary);
+    }
+
+    /**
+     * Eliminar (soft delete) la sucursal — acción de dominio 'delete', no
+     * 'destroy' (el hard delete, ya cubierto por authorizeResource()).
+     *
+     * Tipo del segundo parámetro forzado a Model (no Subsidiary): este
+     * método SÍ sobrescribe BaseRolePolicy::delete(User, Model), a
+     * diferencia de toggleStatus()/resetPassword() (métodos propios, sin
+     * equivalente en la clase base) — estrechar el tipo aquí rompe PHP por
+     * contravarianza (fatal error en el bootstrap de CUALQUIER request, no
+     * solo los que llaman authorize('delete', ...), confirmado en runtime).
+     *
+     * @param User $user
+     * @param Model $model
+     * @return bool
+     */
+    public function delete(User $user, Model $model): bool
+    {
+        return $this->hasAccess($user)
+            && $this->canMutate($model)
+            && $this->ownsSubsidiary($user, $model);
     }
 
     /**
