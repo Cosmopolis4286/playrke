@@ -155,6 +155,8 @@ final class TriviaRoomAdminController extends Controller
      */
     public function create(): Response
     {
+        $this->authorize('create', TriviaRoom::class);
+
         return Inertia::render('Games/Trivia/Admin/RoomsCreate', [
             'defaultSettings' => [
                 'max_players' => 100,
@@ -172,6 +174,8 @@ final class TriviaRoomAdminController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', TriviaRoom::class);
+
         $validated = $request->validate([
             'title'              => 'required|string|max:255',
             'description'        => 'nullable|string|max:1000',
@@ -328,6 +332,7 @@ final class TriviaRoomAdminController extends Controller
     public function edit(string $id): Response
     {
         $room = TriviaRoom::with('teams')->findOrFail($id);
+        $this->authorize('update', $room);
 
         // Solo permitir editar si está en espera
         if ($room->status !== 'waiting') {
@@ -350,6 +355,7 @@ final class TriviaRoomAdminController extends Controller
     public function update(UpdateRoomRequest $request, string $id)
     {
         $room = TriviaRoom::findOrFail($id);
+        $this->authorize('update', $room);
 
         if ($room->status !== 'waiting') {
             return redirect()
@@ -417,6 +423,7 @@ final class TriviaRoomAdminController extends Controller
     {
         try {
             $room = TriviaRoom::findOrFail($id);
+            $this->authorize('delete', $room);
 
             $refunded = $this->refundService->refundConfirmedParticipants(
                 $room,
@@ -449,6 +456,7 @@ final class TriviaRoomAdminController extends Controller
     {
         try {
             $room = TriviaRoom::findOrFail($id);
+            $this->authorize('forceClose', $room);
 
             $refunded = $this->refundService->refundConfirmedParticipants(
                 $room,
