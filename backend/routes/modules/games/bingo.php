@@ -23,16 +23,22 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Alias: el frontend hardcodea /bingo/rooms → redirige a la ruta canónica
-Route::middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+Route::middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->get('bingo/rooms', [BingoRoomController::class, 'index'])
     ->name('bingo.rooms.alias');
 
 /**
  * ====================================
- * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN
+ * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN (GESTIÓN)
+ * games.bingo.manage (no games.bingo): games.bingo es "puedo jugar/comprar
+ * bingo" (lo tiene hasta 'player') — usarlo aquí habría dejado la puerta de
+ * CREAR/EDITAR/BORRAR salas abierta a cualquiera que solo pueda jugar.
+ * games.bingo.manage es el permiso específico de gestión, ahora asignado a
+ * admin/commerce/subsidiary/customer (ver RolePermissionSeeder) y exigido
+ * también por BingoRoomPolicy — antes la Policy no lo consultaba en absoluto.
  * ====================================
  */
-route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoRoomController::class, [
+route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manage,games.bingo.manage'], BingoRoomController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
@@ -49,27 +55,34 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manag
     'export' => ['method' => 'get', 'uri' => 'export', 'action' => 'export'],
 ]);
 
-// Replay de fichas cantadas (auditoría post-sorteo)
+// Replay de fichas cantadas (auditoría post-sorteo) — mismo permiso de
+// gestión que bingo-rooms.* de arriba, no games.bingo (jugar): esta info vive
+// dentro de la pantalla de administración de una sala, no algo que un
+// jugador común consulte.
 Route::get('bingo-rooms/{room}/draw/replay', BingoDrawReplayController::class)
-    ->middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+    ->middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->name('bingo-rooms.draw.replay');
 
 // Estadísticas agregadas de sala (snapshot post-sorteo)
 Route::get('bingo-rooms/{room}/stats', BingoRoomStatsController::class)
-    ->middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+    ->middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->name('bingo-rooms.stats');
 
 // Estadísticas de cartones personalizados de la sala
 Route::get('bingo-rooms/{room}/cards/custom-stats', BingoRoomCustomCardStatsController::class)
-    ->middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+    ->middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->name('bingo-rooms.cards.custom-stats');
 
 /**
  * ====================================
  * CONFIGURACIÓN
+ * Solo games.manage (admin/superadmin): reglas/imagen son configuración
+ * GLOBAL del juego, no de un comercio individual — antes 'games.bingo'
+ * (permiso de "puedo jugar") dejaba esto editable por cualquier
+ * commerce/subsidiary/customer, mismo hueco que bingo-automatic-rooms.
  * ====================================
  */
-route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoConfigController::class, [
+route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.manage'], BingoConfigController::class, [
     'index'      => ['method' => 'get',  'uri' => '',           'action' => 'index'],
     'save-rules' => ['method' => 'post', 'uri' => 'save-rules', 'action' => 'saveRules'],
     'save-image' => ['method' => 'post', 'uri' => 'save-image', 'action' => 'saveImage'],
@@ -78,9 +91,11 @@ route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.man
 /**
  * ====================================
  * PATRONES DE BINGO (CANTOS)
+ * Solo games.manage: catálogo GLOBAL de patrones, compartido por todas las
+ * salas de todos los comercios — mismo criterio que bingo/config de arriba.
  * ====================================
  */
-route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoPatternController::class, [
+route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'multiPermission:games.manage'], BingoPatternController::class, [
     'index'               => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
     'store'               => ['method' => 'post',   'uri' => '',                    'action' => 'store'],
     'fetch-list'          => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
@@ -96,9 +111,15 @@ route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'multiPermission:games
 /**
  * ====================================
  * SALAS AUTOMÁTICAS
+ * Solo games.manage (admin/superadmin) — a diferencia de bingo-rooms
+ * (salas manuales), estas son un recurso de PLATAFORMA sin dueño de negocio
+ * (ver BingoRoomAutomaticPolicy). Antes incluía 'games.bingo' aquí, lo que
+ * dejaba la ruta abierta a commerce/subsidiary/customer (games.bingo es
+ * "puedo jugar", no "puedo administrar salas de plataforma") pese a que la
+ * intención documentada en la Policy siempre fue admin-only.
  * ====================================
  */
-route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoRoomAutomaticController::class, [
+route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPermission:games.manage'], BingoRoomAutomaticController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],

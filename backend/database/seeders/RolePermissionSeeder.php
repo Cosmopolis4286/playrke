@@ -43,6 +43,7 @@ class RolePermissionSeeder extends Seeder
                 'exchange.view', 'exchange.manage',
                 'games.view', 'games.manage',
                 'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.manage', // Gestionar salas de bingo (crear/editar/eliminar) — antes solo cubierto por games.manage a nivel de ruta, pero el ítem del sidebar y la Policy ahora exigen este permiso explícito
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
@@ -77,6 +78,7 @@ class RolePermissionSeeder extends Seeder
                 'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.manage', // Gestionar salas de bingo (crear/editar/eliminar/cambiar estado) — antes ausente: el comercio podía jugar/ver reportes pero no administrar salas pese a que la ruta ya lo permitía a nivel de rol
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes
@@ -99,6 +101,7 @@ class RolePermissionSeeder extends Seeder
                 'subsidiaries.manage-own',
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.manage', // Gestionar salas de bingo — mismo criterio que Commerce
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes
@@ -165,6 +168,7 @@ class RolePermissionSeeder extends Seeder
         if ($customer) {
             $customerPermissions = [
                 'games.bingo', // Acceso a juegos de bingo (guard 'web')
+                'games.bingo.manage', // Gestionar salas de bingo — customer tiene vendedores propios (ver sellers.view), la Policy (BingoBasePolicy::requiredRole) ya lo contemplaba para esto
                 'wallet.view', // Ver su propia billetera (juega bingo con saldo propio)
                 'sellers.view', // Gestionar sus propios vendedores
                 'directory.view', 'directory.search', // Acceso al directorio

@@ -21,11 +21,20 @@ class BingoRoomPolicy extends BingoBasePolicy
 {
     /**
      * Puede gestionar (mutar/alternar estado) si tiene rol privilegiado
-     * (admin/superadmin) o si es el creador de la sala.
+     * (admin/superadmin) o si tiene el permiso de gestión Y es el creador de
+     * la sala.
+     *
+     * Antes solo exigía hasAccess() (rol de negocio, sin distinguir permiso)
+     * + ser creador — cualquier commerce/subsidiary/customer con el rol
+     * correcto podía mutar SUS PROPIAS salas sin que existiera forma de
+     * quitarle esa capacidad sin quitarle el rol entero. Ahora
+     * hasManagePermission() (games.bingo.manage) es la puerta explícita: se
+     * puede revocar por permiso sin tocar el rol, igual que el resto del
+     * sistema de permisos.
      */
     protected function canManage(User $user, Model $model): bool
     {
-        if (!$this->hasAccess($user) || !$this->canMutate($model)) {
+        if (!$this->hasAccess($user) || !$this->hasManagePermission($user) || !$this->canMutate($model)) {
             return false;
         }
 
@@ -50,6 +59,17 @@ class BingoRoomPolicy extends BingoBasePolicy
             ->where('user_id', $user->id)
             ->where('cards_purchased', '>', 0)
             ->exists();
+    }
+
+    /**
+     * Crear una sala nueva — no hay $model todavía (recurso aún no existe),
+     * así que no aplica el chequeo de "ser el creador" de canManage(): solo
+     * rol de negocio + permiso de gestión explícito. Sobreescribe
+     * BaseRolePolicy::create(), que solo miraba hasAccess() (rol).
+     */
+    public function create(User $user): bool
+    {
+        return $this->hasAccess($user) && $this->hasManagePermission($user);
     }
 
     public function update(User $user, Model $model): bool
