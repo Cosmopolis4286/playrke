@@ -57,7 +57,16 @@ class SidebarMenuService
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
                     'route' => 'bingo.cards-sold',
-                    'permission' => null,
+                    // games.bingo.sales_report (no null): la ruta real es un
+                    // reporte de VENTAS de cartones ("Reporte de Cartones
+                    // Vendidos", BingoReportController::cardsSold() ya
+                    // bloquea 'player' con abort_if), no "mis cartones" — con
+                    // permission=null cualquier rol veía este ítem aunque la
+                    // ruta ahora exige games.manage,games.bingo.sales_report
+                    // explícitamente (antes solo games.bingo, el mismo hueco
+                    // que bingo.winners/sales-report: visible por URL a
+                    // cualquiera con acceso general a jugar bingo).
+                    'permission' => 'games.bingo.sales_report',
                 ],
                 'bingo_winners' => [
                     'title' => 'Ganadores',

@@ -218,21 +218,31 @@ if (app()->environment('local')) {
 /**
  * ====================================
  * REPORTES Y ESTADÍSTICAS
+ *
+ * El grupo exige games.manage,games.bingo (acceso general) pero cada acción
+ * suma su permiso GRANULAR específico vía 'middleware' por ruta — antes
+ * faltaba: cualquier 'player' (tiene games.bingo, para JUGAR) podía entrar
+ * por URL directa a /bingo/winners o /bingo/sales-report (datos de negocio:
+ * comisiones, ventas por vendedor) aunque el sidebar ya se los ocultaba
+ * correctamente exigiendo games.bingo.winners/sales_report — el hueco estaba
+ * en la ruta, no en el menú. BingoReportController::authorizeResource()
+ * (BingoRoom::class) solo cubre las 3 acciones con {room}
+ * (sales-report-room*), el resto no tenía ningún chequeo granular.
  * ====================================
  */
 route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoReportController::class, [
-    'cards-sold'             => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold'],
-    'cards-sold-data'        => ['method' => 'get', 'uri' => 'cards-sold-data', 'action' => 'cardsSoldData'],
-    'cards-sold-export'      => ['method' => 'get', 'uri' => 'cards-sold-export', 'action' => 'cardsSoldExport'],
-    'sales-report'           => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport'],
-    'sales-report-data'      => ['method' => 'get', 'uri' => 'sales-report-data', 'action' => 'salesReportData'],
-    'sales-report-export'    => ['method' => 'get', 'uri' => 'sales-report-export', 'action' => 'salesReportExport'],
-    'sales-report-room'      => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom'],
-    'sales-report-room-data' => ['method' => 'get', 'uri' => 'sales-report-room-data/{room}', 'action' => 'salesReportByRoomData'],
-    'sales-report-room-export' => ['method' => 'get', 'uri' => 'sales-report-room-export/{room}', 'action' => 'salesReportByRoomExport'],
-    'winners'                => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners'],
-    'winners-data'           => ['method' => 'get', 'uri' => 'winners-data', 'action' => 'winnersData'],
-    'winners-export'         => ['method' => 'get', 'uri' => 'winners-export', 'action' => 'winnersExport'],
+    'cards-sold'             => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'cards-sold-data'        => ['method' => 'get', 'uri' => 'cards-sold-data', 'action' => 'cardsSoldData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'cards-sold-export'      => ['method' => 'get', 'uri' => 'cards-sold-export', 'action' => 'cardsSoldExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report'           => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-data'      => ['method' => 'get', 'uri' => 'sales-report-data', 'action' => 'salesReportData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-export'    => ['method' => 'get', 'uri' => 'sales-report-export', 'action' => 'salesReportExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-room'      => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-room-data' => ['method' => 'get', 'uri' => 'sales-report-room-data/{room}', 'action' => 'salesReportByRoomData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-room-export' => ['method' => 'get', 'uri' => 'sales-report-room-export/{room}', 'action' => 'salesReportByRoomExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'winners'                => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
+    'winners-data'           => ['method' => 'get', 'uri' => 'winners-data', 'action' => 'winnersData', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
+    'winners-export'         => ['method' => 'get', 'uri' => 'winners-export', 'action' => 'winnersExport', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
 ]);
 
 /**

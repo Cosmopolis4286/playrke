@@ -4,6 +4,7 @@ namespace App\Domains\Games\Bingo\Policies;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Policy de autorización para el dominio BingoRoomAutomatic.
@@ -34,14 +35,20 @@ class BingoRoomAutomaticPolicy extends BingoBasePolicy
         return $this->isElevated($user);
     }
 
-    public function update(User $user, BingoRoomAutomatic $bingoRoom): bool
+    /**
+     * Firma con Model (no BingoRoomAutomatic) para respetar LSP con
+     * BaseRolePolicy::update() — authorizeResource() siempre pasa una
+     * instancia real de BingoRoomAutomatic en runtime, así que el estrechado
+     * de tipo no se pierde en la práctica, solo en la firma declarada.
+     */
+    public function update(User $user, Model $model): bool
     {
-        return $this->isElevated($user) && $this->canMutate($bingoRoom);
+        return $this->isElevated($user) && $this->canMutate($model);
     }
 
-    public function delete(User $user, BingoRoomAutomatic $bingoRoom): bool
+    public function delete(User $user, Model $model): bool
     {
-        return $this->update($user, $bingoRoom);
+        return $this->update($user, $model);
     }
 
     /**
