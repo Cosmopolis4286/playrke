@@ -67,8 +67,10 @@ withDefaults(defineProps<{
 .stat-tile-label {
   font-size: 0.75rem;
   color: var(--ds-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Antes: white-space: nowrap + ellipsis cortaba labels largos ("Resolución
+     media (hoy)") en vez de mostrarlos completos — con el grid ahora
+     auto-fit (ver .mv-stats) suele haber espacio de sobra para 2 líneas. */
+  line-height: 1.25;
+  overflow-wrap: break-word;
 }
 </style>

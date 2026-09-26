@@ -64,6 +64,26 @@ function refreshTrend() {
 
 watch(activeParams, () => { refreshStats(); refreshTrend() }, { immediate: true, deep: true })
 
+/** Fecha sola (sin hora) para el título del gráfico — dateFrom/dateTo vienen de un <input type="date"> como "YYYY-MM-DD". */
+function formatDateOnly(isoDate: string): string {
+  return new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })
+    .format(new Date(`${isoDate}T00:00:00`))
+}
+
+// Título dinámico: refleja el rango real que está mostrando el gráfico — antes
+// decía "últimos 30 días" siempre, aunque el backend ahora ajusta el eje al
+// date_from/date_to activo en la tabla (ver WalletMovementRepository::historicalTrend()).
+const trendTitle = computed(() => {
+  if (dateFrom.value && dateTo.value) {
+    return dateFrom.value === dateTo.value
+      ? `Tendencia (${formatDateOnly(dateFrom.value)})`
+      : `Tendencia (${formatDateOnly(dateFrom.value)} — ${formatDateOnly(dateTo.value)})`
+  }
+  if (dateFrom.value) return `Tendencia (desde ${formatDateOnly(dateFrom.value)})`
+  if (dateTo.value) return `Tendencia (hasta ${formatDateOnly(dateTo.value)})`
+  return 'Tendencia (últimos 30 días)'
+})
+
 const trendCategories = computed(() => trend.value.map(p => p.date))
 const trendSeries = computed(() => [
   { name: 'Aprobados', data: trend.value.map(p => p.approved) },
@@ -202,7 +222,40 @@ const {
     </div>
 
     <div class="mv-trend-card">
-      <p class="mv-trend-card__title"><i class="fas fa-chart-line me-1"></i>Tendencia (últimos 30 días)</p>
+      <div class="mv-trend-card__header">
+        <p class="mv-trend-card__title"><i class="fas fa-chart-line me-1"></i>{{ trendTitle }}</p>
+
+        <!-- Mismo date-range que la tabla (dateFrom/dateTo/applyDateRange de
+             useWalletMovementsList) — un único filtro de fecha para ambos, en
+             vez de duplicar el control: filtrar aquí también acota la tabla,
+             y viceversa. Sin rango, el gráfico cae a "últimos 30 días". -->
+        <div class="mv-date-range mv-date-range--trend">
+          <input
+            v-model="dateFrom"
+            type="date"
+            class="form-control form-control-sm"
+            title="Desde"
+            @change="applyDateRange"
+          />
+          <span class="mv-date-range__sep">—</span>
+          <input
+            v-model="dateTo"
+            type="date"
+            class="form-control form-control-sm"
+            title="Hasta"
+            @change="applyDateRange"
+          />
+          <button
+            v-if="dateFrom || dateTo"
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            title="Quitar filtro de fecha"
+            @click="dateFrom = ''; dateTo = ''; applyDateRange()"
+          >
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+      </div>
       <DashboardMultiTrendChart
         :categories="trendCategories"
         :series="trendSeries"
@@ -334,7 +387,7 @@ const {
           }"></i>
           {{ ageInfo((row as Movement).created_at).label }}
         </span>
-        <span v-else class="text-muted">—</span>
+        <span v-else class="text-muted" title="No aplica: la antigüedad solo mide cuánto lleva un movimiento esperando resolución">—</span>
       </template>
 
       <template #cell-assigned="{ row }">
@@ -470,16 +523,25 @@ const {
   white-space: nowrap;
 }
 
+/*
+ * Antes: 5 columnas fijas (repeat(5, minmax(130px, 1fr))) — en el ancho real
+ * disponible del header (comparte fila con el breadcrumb) esto apretaba cada
+ * tile por debajo de su contenido, cortando labels largos como "Resolución
+ * media (hoy)" con el ellipsis de .stat-tile-label pese al wrap habilitado
+ * abajo. auto-fit dimensiona según el espacio real: menos columnas pero más
+ * anchas cuando no entran 5, en vez de encogerlas todas por igual.
+ */
 .mv-stats {
   display: grid;
-  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.6rem;
-}
-@media (max-width: 1200px) {
-  .mv-stats { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+  width: 100%;
 }
 @media (max-width: 768px) {
   .mv-stats { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+}
+@media (max-width: 480px) {
+  .mv-stats { grid-template-columns: 1fr; }
 }
 
 .mv-date-range {
@@ -519,11 +581,20 @@ const {
   padding: 1rem;
   margin-bottom: 1rem;
 }
+.mv-trend-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.mv-date-range--trend { margin-right: 0; }
 .mv-trend-card__title {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--ds-text-2);
-  margin: 0 0 0.5rem;
+  margin: 0;
 }
 
 .mr-1 { margin-right: 0.25rem; }

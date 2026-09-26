@@ -133,10 +133,18 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
      * cuándo se resolvió, mismo criterio que stats() usa para "hoy"
      * (whereDate('processed_at', ...)). Huecos rellenados día a día, mismo
      * patrón que BuildsSalesTrend::buildSalesTrend().
+     *
+     * El eje de días respeta date_from/date_to cuando el admin los filtró en
+     * la tabla — antes SIEMPRE mostraba "los últimos $days días desde hoy"
+     * sin importar el rango elegido: $filters SÍ se aplicaba como condición
+     * WHERE adicional (ver applyFilters()), pero el rango de fechas del EJE
+     * X del gráfico ignoraba por completo date_from/date_to. Acotado a 90
+     * días máximo (igual que el límite de $days) para no generar un gráfico
+     * de miles de puntos si el admin filtra un rango muy amplio.
      */
     public function historicalTrend(array $filters, int $days = 30) : array
     {
-        $startDate = Carbon::now()->subDays($days - 1)->startOfDay();
+        [$startDate, $daysToRender] = $this->resolveTrendRange($filters, $days);
 
         $base = $this->applyFilters($this->model->newQuery(), $filters)
             ->where('created_at', '>=', $startDate);
@@ -157,7 +165,7 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
             ->pluck('count', 'date');
 
         $trend = [];
-        for ($i = 0; $i < $days; $i++) {
+        for ($i = 0; $i < $daysToRender; $i++) {
             $date = $startDate->copy()->addDays($i)->toDateString();
             $approvedRow = $approved->get($date);
 
@@ -172,6 +180,38 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         }
 
         return $trend;
+    }
+
+    /**
+     * Resuelve el rango [fecha de inicio, cantidad de días] del eje del
+     * gráfico: si hay date_from/date_to, ese rango exacto (acotado a 90 días
+     * de ancho); si no, los últimos $days días desde hoy (comportamiento
+     * previo, para cuando la tabla no tiene filtro de fecha activo).
+     *
+     * @return array{0: Carbon, 1: int}
+     */
+    private function resolveTrendRange(array $filters, int $days) : array
+    {
+        $dateFrom = ! empty($filters['date_from']) ? Carbon::parse($filters['date_from'])->startOfDay() : null;
+        $dateTo   = ! empty($filters['date_to'])   ? Carbon::parse($filters['date_to'])->startOfDay()   : null;
+
+        if (! $dateFrom && ! $dateTo) {
+            return [Carbon::now()->subDays($days - 1)->startOfDay(), $days];
+        }
+
+        // Solo uno de los dos presente: el otro extremo es "hasta hoy" o
+        // "desde ese mismo día" — mismo criterio permisivo que
+        // applyFilters()/whereDate() al aplicar cada bound por separado.
+        $dateFrom ??= $dateTo;
+        $dateTo   ??= Carbon::now()->startOfDay();
+
+        if ($dateFrom->greaterThan($dateTo)) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
+
+        $rangeDays = min(90, $dateFrom->diffInDays($dateTo) + 1);
+
+        return [$dateFrom, $rangeDays];
     }
 
     public function getLatestByWallet(string $walletId, int $limit = 10) : Collection
