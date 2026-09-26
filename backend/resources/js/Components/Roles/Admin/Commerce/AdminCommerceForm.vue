@@ -146,10 +146,38 @@
    * Watchers
    * ========================================================================== */
 
+  // Distingue "el usuario cambió de país/moneda en el select" de "el
+  // formulario acaba de recibir un registro completo desde afuera" (edit()
+  // reasigna modelValue de golpe) — antes ambos casos disparaban los mismos
+  // watchers de country_id/currency_id (con oldVal !== undefined como único
+  // guard), así que abrir "Editar" sobre un comercio ya cargado con moneda/
+  // otras monedas válidas las vaciaba apenas Vue propagaba el nuevo
+  // modelValue. La regla correcta no es "hubo un valor anterior", es "el
+  // campo cambió PARA EL MISMO registro" — por eso se compara contra
+  // modelValue.id en un único watcher dedicado, no contra si cada watcher ya
+  // corrió antes (evita además que ambos watchers pisen la misma bandera en
+  // el mismo tick si país y moneda llegan juntos al cargar).
+  // "true" en todo momento salvo durante el único tick en el que
+  // modelValue.id cambia de un registro a otro (o de "nuevo" a "cargado") —
+  // se resetea a true de inmediato después, para que interacciones
+  // posteriores del usuario en el MISMO formulario (crear o editar) sigan
+  // aplicando los resets normales de país→moneda.
+  const isSameRecordAsBefore = ref(true)
+  watch(
+    () => props.modelValue.id,
+    (newId, oldId) => {
+      isSameRecordAsBefore.value = oldId === undefined || newId === oldId
+      if (!isSameRecordAsBefore.value) {
+        nextTick(() => { isSameRecordAsBefore.value = true })
+      }
+    },
+    { immediate: true }
+  )
+
   watch(
     () => form.value.country_id,
     async (newVal, oldVal) => {
-      if (oldVal !== undefined) {
+      if (isSameRecordAsBefore.value && oldVal !== undefined && newVal !== oldVal) {
         form.value = { ...form.value, currency_id: null, time_zone_id: null, other_currencies: [] }
       }
       if (!newVal) return
@@ -170,7 +198,7 @@
   watch(
     () => form.value.currency_id,
     (newVal, oldVal) => {
-      if (oldVal !== undefined && newVal !== oldVal) {
+      if (isSameRecordAsBefore.value && oldVal !== undefined && newVal !== oldVal) {
         form.value = { ...form.value, other_currencies: [] }
       }
     }
