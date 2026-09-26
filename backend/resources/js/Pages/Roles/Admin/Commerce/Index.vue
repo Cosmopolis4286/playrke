@@ -4,7 +4,7 @@
    */
 
   import { computed, onMounted, ref } from 'vue'
-  import { usePage } from '@inertiajs/vue3'
+  import { usePage, router } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -328,6 +328,18 @@
         if (ids.length === 1) {
           openCommerceDetail(ids[0])
         }
+      }
+    },
+    {
+      icon: 'fas fa-address-card',
+      class: 'btn-outline-info',
+      title: 'Ver perfil (Mi Cuenta del comercio)',
+      show: (ids: string[]) => ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length !== 1) return
+        const commerce = commerces.value.find(c => c.id === ids[0])
+        if (!commerce?.user_id) return
+        router.visit(`/commerce/profile?target_user_id=${commerce.user_id}`)
       }
     },
     {

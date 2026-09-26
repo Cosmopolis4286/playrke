@@ -4,6 +4,7 @@
    */
 
   import { computed, onMounted, ref, watch } from 'vue'
+  import { router } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -229,6 +230,21 @@
         if (ids.length === 1) {
           openSellerDetail(ids[0])
         }
+      }
+    },
+    {
+      icon: 'fas fa-address-card',
+      class: 'btn-outline-info',
+      title: 'Ver perfil (Mi Cuenta del vendedor)',
+      // Solo admin/superadmin (normalizado a 'admin' por
+      // ManagerSellerContextService::resolve()) — un vendedor viendo su
+      // propio listado no necesita este botón, ya tiene "Mi Cuenta".
+      show: (ids: string[]) => props.roleUser === 'admin' && ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length !== 1) return
+        const seller = sellers.value.find(s => s.id === ids[0])
+        if (!seller?.user_id) return
+        router.visit(`/seller/profile?target_user_id=${seller.user_id}`)
       }
     },
     {

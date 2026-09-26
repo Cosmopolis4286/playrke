@@ -110,8 +110,21 @@ class ManagerSellerContextService
             'to'           => $source->lastItem(),
         ] : null;
 
+        $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        // Campo meta (no es columna visible de la tabla) — solo admin/
+        // superadmin lo usan para el botón "Ver perfil" en el listado
+        // (Roles/Seller/Manager/Index.vue), que navega a /seller/profile
+        // con target_user_id=user_id del seller seleccionado. row.id es el
+        // id hasheado del propio Seller, no del User, así que sin esto el
+        // frontend no tenía forma de conocer el user_id.
+        foreach ($sellers['rows'] as $i => &$row) {
+            $row['user_id'] = (string) $collection->values()->get($i)?->user_id;
+        }
+        unset($row);
+
         return [
-            'sellers'    => $this->processCollectionTableData($collection, $labels, $rowKeys),
+            'sellers'    => $sellers,
             'pagination' => $pagination,
         ];
     }

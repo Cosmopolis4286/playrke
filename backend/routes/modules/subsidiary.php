@@ -12,7 +12,10 @@ use Illuminate\Support\Facades\Route;
 | su propio registro, resuelto server-side por SubsidiaryProfileService,
 | nunca por un {id} de la URL.
 */
-Route::middleware(['auth', 'multiPermission:subsidiaries.manage-own'])->group(function () {
+// subsidiaries.view agregado: permite la vista administrativa
+// (target_user_id, ver AdminProfileAccessService) a admin/superadmin — ver
+// comentario análogo en routes/modules/seller.php.
+Route::middleware(['auth', 'multiPermission:subsidiaries.manage-own,subsidiaries.view'])->group(function () {
     Route::get('subsidiary/profile', [SubsidiaryProfileController::class, 'show'])->name('subsidiary.profile.show');
     Route::put('subsidiary/profile', [SubsidiaryProfileController::class, 'update'])->name('subsidiary.profile.update');
 });

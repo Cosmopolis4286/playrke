@@ -19,7 +19,10 @@ use Illuminate\Support\Facades\Route;
 // commerces.*) — aquí un usuario 'commerce' opera EXCLUSIVAMENTE sobre su
 // propio registro, resuelto server-side por CommerceProfileService, nunca
 // por un {id} de la URL.
-Route::middleware(['auth', 'multiPermission:commerces.manage-own'])->group(function () {
+// commerces.view agregado: permite la vista administrativa (target_user_id,
+// ver AdminProfileAccessService) a admin/superadmin — ver comentario
+// análogo en routes/modules/seller.php.
+Route::middleware(['auth', 'multiPermission:commerces.manage-own,commerces.view'])->group(function () {
     Route::get('commerce/profile', [CommerceProfileController::class, 'show'])->name('commerce.profile.show');
     Route::put('commerce/profile', [CommerceProfileController::class, 'update'])->name('commerce.profile.update');
 

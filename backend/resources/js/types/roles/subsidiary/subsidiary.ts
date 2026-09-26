@@ -13,6 +13,8 @@ export interface Subsidiary {
     status?: SubsidiaryStatus
     username: string
     email: string
+    /** ID del usuario dueño de la agencia — necesario para el botón "Ver perfil" (target_user_id de /subsidiary/profile, ver AdminProfileAccessService). */
+    user_id?: string | null
 }
 
 export interface SubsidiarySellerSummary {

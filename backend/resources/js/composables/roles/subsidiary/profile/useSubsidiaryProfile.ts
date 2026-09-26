@@ -7,8 +7,14 @@ import type { SubsidiaryProfile } from '@/js/types/roles/subsidiary/profile/subs
  * Autogestión de la ficha propia de la agencia — patrón simple de edición
  * in-place (sin modal, distinto del patrón admin de tabla+modal: aquí es
  * una sola entidad, mismo espíritu que /profile genérico del usuario).
+ *
+ * `targetUserId` (opcional): cuando un admin/superadmin está inspeccionando
+ * la ficha de OTRA agencia (ver AdminProfileAccessService en backend), se
+ * reenvía en el PUT como target_user_id. Cualquier otro rol que lo reciba
+ * distinto de su propio ID recibe 403 en el backend — este parámetro nunca
+ * se resuelve del lado del cliente, solo se propaga.
  */
-export function useSubsidiaryProfile(initial: SubsidiaryProfile) {
+export function useSubsidiaryProfile(initial: SubsidiaryProfile, targetUserId: string | null = null) {
     const subsidiary = ref<SubsidiaryProfile>({ ...initial })
     const editMode = ref(false)
     const saving = ref(false)
@@ -35,7 +41,10 @@ export function useSubsidiaryProfile(initial: SubsidiaryProfile) {
 
         saving.value = true
         try {
-            await backendClient.put('/subsidiary/profile', form.value)
+            await backendClient.put('/subsidiary/profile', {
+                ...form.value,
+                target_user_id: targetUserId ?? undefined,
+            })
             subsidiary.value = { ...subsidiary.value, name: form.value.name, phone: form.value.phone }
             editMode.value = false
             showToast('Datos actualizados correctamente', 'success')

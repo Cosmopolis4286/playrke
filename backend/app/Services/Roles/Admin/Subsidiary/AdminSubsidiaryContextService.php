@@ -137,6 +137,17 @@ final class AdminSubsidiaryContextService
 
         $subsidiaries = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
+        // Campo meta (no es columna visible) — solo admin/superadmin lo usan
+        // para el botón "Ver perfil" en el listado (Roles/Admin/Subsidiary/
+        // Index.vue), que navega a /subsidiary/profile con
+        // target_user_id=user_id de la agencia seleccionada. row.id es el id
+        // hasheado de la propia Subsidiary, no del User.
+        $subsidiariesList = $collection->values();
+        $subsidiaries['rows'] = collect($subsidiaries['rows'])->map(function (array $row, int $index) use ($subsidiariesList) {
+            $row['user_id'] = (string) $subsidiariesList->get($index)?->user_id;
+            return $row;
+        })->all();
+
         return ['subsidiaries' => $subsidiaries, 'pagination' => $pagination];
     }
 }

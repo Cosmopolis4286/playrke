@@ -103,9 +103,14 @@ final class AdminCommerceContextService
 
         // real_id: necesario para el botón "Ver ficha" (mismo motivo que
         // AdminPlayerContextService::resolvePlayers() expone real_id).
+        // user_id: necesario para el botón "Ver perfil" (navega a
+        // /commerce/profile con target_user_id — ver AdminProfileAccessService),
+        // que es el user_id del dueño del comercio, no el id del propio
+        // Commerce (eso ya lo cubre real_id).
         $commercesList = $collection->values();
         $commerces['rows'] = collect($commerces['rows'])->map(function (array $row, int $index) use ($commercesList) {
             $row['real_id'] = $commercesList->get($index)?->id;
+            $row['user_id'] = (string) $commercesList->get($index)?->user_id;
             return $row;
         })->all();
 

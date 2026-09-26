@@ -71,7 +71,13 @@ multi_middleware_routes('seller', 'seller.', [
 // multiPermission sellers.*) — aquí un usuario 'seller' opera EXCLUSIVAMENTE
 // sobre su propio registro, resuelto server-side por SellerProfileService,
 // nunca por un {id} de la URL.
-Route::middleware(['auth', 'multiPermission:sellers.manage-own'])->group(function () {
+// sellers.view agregado: permite la vista administrativa (target_user_id,
+// ver AdminProfileAccessService) a admin/superadmin, que NUNCA tienen
+// sellers.manage-own (ese permiso es exclusivo del propio vendedor). Sin
+// esto, MultiPermissionMiddleware devolvía 302 a dashboard antes de que la
+// request llegara al controlador — el bypass de superadmin tampoco alcanza
+// a un usuario con solo el rol 'admin'.
+Route::middleware(['auth', 'multiPermission:sellers.manage-own,sellers.view'])->group(function () {
     Route::get('seller/profile', [SellerProfileController::class, 'show'])->name('seller.profile.show');
     Route::put('seller/profile', [SellerProfileController::class, 'update'])->name('seller.profile.update');
 });

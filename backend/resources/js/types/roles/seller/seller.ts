@@ -14,8 +14,10 @@ export interface Seller {
     readonly email: string,
     readonly other_currencies?: string[],
     readonly allowed_games?: string[],
-    /** user_id del Commerce o Subsidiary al que reporta — ver ManagerSellerResource::toArray(). */
+    /** user_id del Commerce o Subsidiary al que reporta — ver ManagerSellerResource::toArray(). NO confundir con `user_id` (dueño de ESTE seller). */
     readonly manager_user_id?: string | null
+    /** user_id del propio vendedor (dueño de esta fila) — necesario para el botón "Ver perfil" (target_user_id de /seller/profile, ver AdminProfileAccessService). */
+    readonly user_id?: string | null
     /** Solo presente en filas de la vista admin (columna "Manejador"). */
     readonly manager_name?: string
     /** Solo presente en filas de la vista admin (columna "Rol") — badge HTML "Sucursal"/"Commerce". */

@@ -4,6 +4,7 @@
    */
 
   import { computed, onMounted, ref, watch } from 'vue'
+  import { usePage, router } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -217,6 +218,14 @@
     return ''
   }
 
+  // Esta pantalla también la ven usuarios 'commerce' (viendo sus propias
+  // sucursales) — el botón "Ver perfil" solo tiene sentido para admin/
+  // superadmin (AdminProfileAccessService rechaza a cualquier otro rol).
+  const page = usePage()
+  const isAdminOrSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => ['admin', 'superadmin'].includes(r.role?.name?.toLowerCase())) ?? false
+  )
+
   const extraButtons: ExtraButton[] = [
     {
       icon: 'fas fa-id-card',
@@ -227,6 +236,18 @@
         if (ids.length === 1) {
           openSubsidiaryDetail(ids[0])
         }
+      }
+    },
+    {
+      icon: 'fas fa-address-card',
+      class: 'btn-outline-info',
+      title: 'Ver perfil (Mi Cuenta de la agencia)',
+      show: (ids: string[]) => isAdminOrSuperadmin.value && ids.length === 1,
+      onClick: (ids: string[]) => {
+        if (ids.length !== 1) return
+        const subsidiary = subsidiaries.value.find(s => s.id === ids[0])
+        if (!subsidiary?.user_id) return
+        router.visit(`/subsidiary/profile?target_user_id=${subsidiary.user_id}`)
       }
     },
     {
