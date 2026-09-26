@@ -34,7 +34,15 @@ class SidebarMenuService
                 'bingo_rooms' => [
                     'title' => 'Gestionar Salas',
                     'route' => 'bingo-rooms.index',
-                    'permission' => 'games.view',
+                    // games.bingo.manage (no games.view): antes exigía
+                    // games.view, permiso que SOLO tiene admin — commerce/
+                    // subsidiary/customer nunca veían este ítem pese a que la
+                    // ruta bingo-rooms.* ya los autoriza (ver
+                    // RolePermissionSeeder + BingoRoomPolicy). games.view
+                    // quedó de un menú viejo "Gestión de Juegos" que agrupaba
+                    // solo-admin; el submenú se reorganizó pero el permiso
+                    // nunca se actualizó para reflejarlo.
+                    'permission' => 'games.bingo.manage',
                 ],
                 'game_rooms' => [
                     'title' => 'Salas de Bingo',
