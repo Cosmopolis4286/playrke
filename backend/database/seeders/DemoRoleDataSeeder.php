@@ -139,7 +139,11 @@ class DemoRoleDataSeeder extends Seeder
 
                 $commerce = $this->commerceRepository->create([
                     'name'           => 'Comercio Demo',
-                    'phone'          => '+58 412 0000001',
+                    // Formato validado por PhonePatterns/ValidPhoneForCountry
+                    // para VE: +58 0[2-4]XX-XXXXXXX (con el 0 inicial de la
+                    // operadora y el guion separador) — antes '+58 412
+                    // 0000001' no lo cumplía (sin el 0, sin guion).
+                    'phone'          => '+58 0412-0000001',
                     'commission'     => 5.00,
                     'country_id'     => $venezuela->id,
                     'user_id'        => $commerceUser->id,
@@ -164,7 +168,7 @@ class DemoRoleDataSeeder extends Seeder
 
                 $commerce2 = $this->commerceRepository->create([
                     'name'           => 'Comercio Demo Dos',
-                    'phone'          => '+58 412 0000004',
+                    'phone'          => '+58 0412-0000004',
                     'commission'     => 5.00,
                     'country_id'     => $venezuela->id,
                     'user_id'        => $commerce2User->id,
@@ -190,10 +194,10 @@ class DemoRoleDataSeeder extends Seeder
             if ($subsidiaryUser && $commerce && ! Subsidiary::where('user_id', $subsidiaryUser->id)->exists()) {
                 $subsidiary = $this->subsidiaryRepository->create([
                     'name'         => 'Sucursal Demo',
-                    // subsidiaries.phone es varchar(14) — sin espacios, a
-                    // diferencia de commerces.phone (más ancha), donde el
-                    // formato con espacios sí entra.
-                    'phone'        => '+584120000005',
+                    // subsidiaries.phone ahora es varchar(20) (ver migración
+                    // 2024_01_01_000701), mismo ancho y mismo formato validado
+                    // que el resto de tablas de rol.
+                    'phone'        => '+58 0412-0000005',
                     'commission'   => 4.00,
                     'commerce_id'  => $commerce->id,
                     'user_id'      => $subsidiaryUser->id,
@@ -218,7 +222,7 @@ class DemoRoleDataSeeder extends Seeder
             if ($sellerUser && $commerceUser && ! Seller::where('user_id', $sellerUser->id)->exists()) {
                 $seller = $this->sellerRepository->create([
                     'name'            => 'Vendedor Demo',
-                    'phone'           => '+58 412 0000002',
+                    'phone'           => '+58 0412-0000002',
                     'commission'      => 3.00,
                     'country_id'      => $venezuela->id,
                     'user_id'         => $sellerUser->id,
@@ -254,7 +258,7 @@ class DemoRoleDataSeeder extends Seeder
             if ($customerUser && ! Customer::where('user_id', $customerUser->id)->exists()) {
                 $customer = $this->customerRepository->create([
                     'name'         => 'Cliente Demo',
-                    'phone'        => '+58 412 0000003',
+                    'phone'        => '+58 0412-0000003',
                     'commission'   => 2.00,
                     'country_id'   => $venezuela->id,
                     'currency_id'  => $ves->id,

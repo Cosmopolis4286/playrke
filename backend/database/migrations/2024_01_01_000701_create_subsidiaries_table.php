@@ -25,7 +25,14 @@ return new class extends Migration
 
             // Comisiones y teléfono
             $table->double('commission', 8, 2)->default(0)->comment('Comisión (%) por defecto');
-            $table->string('phone', 14)->nullable()->comment('Teléfono de contacto');
+            // 20 (no 14): el formato canónico validado por PhonePatterns/
+            // ValidPhoneForCountry para VE es "+58 0414-1234567" (16 chars) y
+            // para BR "+55 (11) 91234-5678" (19 chars) — con 14 era
+            // físicamente imposible guardar un teléfono que pasara esa
+            // validación (AdminSubsidiaryRequest exigía 'max:14' junto con la
+            // regla de formato en la misma columna). Mismo ancho que
+            // commerces/sellers/customers/treasurers.phone.
+            $table->string('phone', 20)->nullable()->comment('Teléfono de contacto');
 
             // Relaciones Snowflake
             $table->foreignSnowflake('commerce_id')

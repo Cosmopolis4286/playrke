@@ -56,6 +56,10 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Sp4dm!n#Rk3-Vzla9Q',
                     'role'        => 'superadmin',
                     'description' => 'Super Administrador del sistema',
+                    // users.phone_number (cuenta personal) — formato validado
+                    // por PhonePatterns para VE, distinto del 'phone' de
+                    // negocio que viven en commerces/sellers/etc.
+                    'phone_number' => '+58 0412-1000001',
                 ],
                 // Admin
                 [
@@ -66,6 +70,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Adm1n!Rke#Panel7Wz',
                     'role'        => 'admin',
                     'description' => 'Administrador del sistema',
+                    'phone_number' => '+58 0412-1000002',
                 ],
                 // Commerce
                 [
@@ -76,6 +81,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'C0merc10!Demo#4Lt9',
                     'role'        => 'commerce',
                     'description' => 'Comercio de prueba',
+                    'phone_number' => '+58 0412-1000003',
                 ],
                 // Commerce #2 — segundo comercio de prueba, independiente del
                 // primero (útil para probar escenarios con más de un árbol
@@ -89,6 +95,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'C0merc10!Dos#8Xn2',
                     'role'        => 'commerce',
                     'description' => 'Segundo comercio de prueba',
+                    'phone_number' => '+58 0412-1000004',
                 ],
                 // Subsidiary — agencia de Comercio Demo (jerarquía real
                 // Comercio → Sucursal → Vendedor, ver DemoRoleDataSeeder).
@@ -100,6 +107,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Sucurs4l!Demo#3Ky7',
                     'role'        => 'subsidiary',
                     'description' => 'Agencia/sucursal de prueba',
+                    'phone_number' => '+58 0412-1000005',
                 ],
                 // Seller (gestionado por la Sucursal Demo, que a su vez
                 // pertenece a Comercio Demo — cadena completa de jerarquía)
@@ -111,6 +119,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'V3ndedor!Demo#6Fp1',
                     'role'        => 'seller',
                     'description' => 'Vendedor asociado a la sucursal demo',
+                    'phone_number' => '+58 0412-1000006',
                 ],
                 // Customer (API guard)
                 [
@@ -121,6 +130,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Cl13nte!Demo#2Rb5',
                     'role'        => 'customer',
                     'description' => 'Cliente de prueba',
+                    'phone_number' => '+58 0412-1000007',
                 ],
                 // Players
                 [
@@ -131,6 +141,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Pl4y3r1!Juan#9Tm4',
                     'role'        => 'player',
                     'description' => 'Jugador de prueba 1',
+                    'phone_number' => '+58 0414-1000008',
                 ],
                 [
                     'email'       => 'player2@test.com',
@@ -140,6 +151,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Pl4y3r2!Ana#5Wq8',
                     'role'        => 'player',
                     'description' => 'Jugador de prueba 2',
+                    'phone_number' => '+58 0414-1000009',
                 ],
                 [
                     'email'       => 'player3@test.com',
@@ -149,6 +161,7 @@ class TestUserSeeder extends Seeder
                     'password'    => 'Pl4y3r3!Luis#1Zc6',
                     'role'        => 'player',
                     'description' => 'Jugador de prueba 3',
+                    'phone_number' => '+58 0414-1000010',
                 ],
             ];
 
@@ -168,6 +181,7 @@ class TestUserSeeder extends Seeder
                         'status'             => 'ACTIVE',
                         'is_demo_user'       => true,
                         'demo_password'      => $data['password'],
+                        'phone_number'       => $data['phone_number'],
                     ]
                 );
 

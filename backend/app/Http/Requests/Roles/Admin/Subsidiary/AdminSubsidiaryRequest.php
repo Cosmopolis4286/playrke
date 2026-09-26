@@ -56,7 +56,11 @@ class AdminSubsidiaryRequest extends BaseRequest
             ],
             'country'    => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
             'currency'   => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
-            'phone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:14', new ValidPhoneForCountry($this->input('country'))],
+            // max:20 (no 14): alineado con Commerce/Customer/Player/Treasurer/
+            // Seller — con 14 ningún teléfono VE/BR válido según
+            // ValidPhoneForCountry podía pasar esta misma regla (ver columna
+            // subsidiaries.phone, ampliada por el mismo motivo).
+            'phone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
             'commission' => ['sometimes', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
         ];
 
