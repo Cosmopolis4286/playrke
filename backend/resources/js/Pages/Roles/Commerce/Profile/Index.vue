@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
  * Página de autogestión de la ficha propia del comercio — mismo patrón que
- * Roles/Subsidiary/Profile/Index.vue. Comisión/monedas/juegos quedan
- * siempre de solo lectura (no expuestos aquí en absoluto, se gestionan
- * desde admin/commerce).
+ * Roles/Subsidiary/Profile/Index.vue y Roles/Seller/Profile/Index.vue.
+ * Comisión/monedas/juegos son de solo lectura (RoleProfileExtras.vue) —
+ * nunca editables aquí, se gestionan desde admin/commerce.
  */
 import { computed } from 'vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
 import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+import RoleProfileExtras from '@/js/Components/Roles/Shared/RoleProfileExtras.vue'
 import { useCommerceProfile } from '@/js/composables/roles/commerce/profile/useCommerceProfile'
 import type { CommerceProfilePageProps } from '@/js/types/roles/commerce/profile/commerce-profile'
 
@@ -21,9 +22,14 @@ const props = defineProps<CommerceProfilePageProps>()
  */
 const targetUserId = new URLSearchParams(window.location.search).get('target_user_id')
 
-const { commerce, editMode, saving, form, toggleEdit, save } = useCommerceProfile(props.commerce, targetUserId)
+const { commerce, editMode, saving, justSaved, form, toggleEdit, save } = useCommerceProfile(props.commerce, targetUserId)
 
 const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.trim())
+
+const networkItems = computed(() => [
+  { icon: 'fa-code-branch', label: 'Agencias', value: commerce.value.network.subsidiaries_count, href: '/admin/subsidiary' },
+  { icon: 'fa-user-tie',    label: 'Vendedores', value: commerce.value.network.sellers_count,      href: '/admin/sellers' },
+])
 </script>
 
 <template>
@@ -68,7 +74,14 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
 
             <!-- Datos editables -->
             <div class="sd-section">
-              <h4 class="sd-section-title"><i class="fas fa-address-card mr-2"></i>Datos de contacto</h4>
+              <div class="sd-section-title-row">
+                <h4 class="sd-section-title"><i class="fas fa-address-card mr-2"></i>Datos de contacto</h4>
+                <Transition name="rp-fade">
+                  <span v-if="justSaved" class="rp-saved-badge">
+                    <i class="fas fa-check-circle mr-1"></i>Guardado
+                  </span>
+                </Transition>
+              </div>
 
               <template v-if="!editMode">
                 <div class="sd-grid">
@@ -87,13 +100,13 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
               </template>
 
               <form v-else class="row" novalidate @submit.prevent="save">
-                <FormInput label="Nombre" name="name" required col="col-sm-6" v-model="form.name" />
-                <FormInput label="Teléfono" name="phone" required col="col-sm-6" v-model="form.phone" />
+                <FormInput label="Nombre" name="name" required col="col-sm-6" :disabled="saving" v-model="form.name" />
+                <FormInput label="Teléfono" name="phone" required col="col-sm-6" :disabled="saving" v-model="form.phone" />
 
                 <div class="col-12 sp-actions">
                   <button type="button" class="sp-cancel-btn" :disabled="saving" @click="toggleEdit">Cancelar</button>
                   <button type="submit" class="sp-save-btn" :disabled="saving || !isValid">
-                    <i class="fas fa-spinner fa-spin mr-1" v-if="saving"></i>Guardar
+                    <i class="fas fa-spinner fa-spin mr-1" v-if="saving"></i>{{ saving ? 'Guardando...' : 'Guardar' }}
                   </button>
                 </div>
               </form>
@@ -116,6 +129,16 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
                 <i class="fas fa-info-circle mr-1"></i>País, comisión, monedas y juegos son configurados por administración — para modificarlos, contacta a soporte.
               </small>
             </div>
+
+            <RoleProfileExtras
+              :commission="commerce.commission"
+              :currencies="commerce.currencies"
+              :games="commerce.games"
+              :network="networkItems"
+              :wallets="commerce.wallets"
+              :recent-movements="commerce.recent_movements"
+              :account-meta="commerce.account_meta"
+            />
           </div>
         </div>
       </div>
@@ -138,6 +161,8 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
 .sd-section:last-child { margin-bottom: 0; }
 .sd-section-title { display: flex; align-items: center; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ds-text-muted); margin: 0 0 0.6rem; }
 .sd-section-title i { opacity: 0.7; }
+.sd-section-title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sd-section-title-row .sd-section-title { margin: 0 0 0.6rem; }
 
 .sd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; }
 .sd-field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
@@ -165,6 +190,14 @@ const isValid = computed(() => !!form.value.name.trim() && !!form.value.phone.tr
 .sp-save-btn { border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
 .sp-save-btn:hover { filter: brightness(1.08); }
 .sp-save-btn:disabled, .sp-cancel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.rp-saved-badge {
+  display: inline-flex; align-items: center;
+  font-size: 0.75rem; font-weight: 600;
+  color: #4ade80;
+}
+.rp-fade-enter-active, .rp-fade-leave-active { transition: opacity 0.3s; }
+.rp-fade-enter-from, .rp-fade-leave-to { opacity: 0; }
 
 .profile-admin-view-banner {
   flex-wrap: wrap;

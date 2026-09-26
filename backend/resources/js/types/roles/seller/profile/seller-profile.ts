@@ -1,3 +1,5 @@
+import type { RoleProfileWallet, RoleProfileMovement, RoleProfileAccountMeta } from '@/js/types/roles/shared/role-profile-common'
+
 /** Ficha de autogestión del propio vendedor (GET/PUT /seller/profile). */
 export interface SellerProfileReportsTo {
     name: string
@@ -14,6 +16,12 @@ export interface SellerProfile {
     country: string | null
     reports_to: SellerProfileReportsTo
     user: { username: string; email: string }
+    commission: number
+    currencies: string[]
+    games: string[]
+    wallets: RoleProfileWallet[]
+    recent_movements: RoleProfileMovement[]
+    account_meta: RoleProfileAccountMeta
 }
 
 export interface SellerProfilePageProps {

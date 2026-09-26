@@ -4,6 +4,7 @@ namespace App\Services\Roles\Seller;
 
 use App\Models\Roles\Seller;
 use App\Services\Roles\AdminProfileAccessService;
+use App\Services\Roles\RoleProfileEnrichmentService;
 use App\Services\Security\UserContextService;
 
 /**
@@ -20,6 +21,7 @@ final class SellerProfileService
     public function __construct(
         private readonly UserContextService $userContext,
         private readonly AdminProfileAccessService $adminAccess,
+        private readonly RoleProfileEnrichmentService $enrichment,
     ) {}
 
     private function ownSellerOrFail(?string $targetUserId = null): Seller
@@ -54,6 +56,15 @@ final class SellerProfileService
                 'commerce_name' => $commerce?->name,
             ],
             'user'         => ['username' => $seller->user->username, 'email' => $seller->user->email],
+            'commission'   => (float) $seller->commission,
+
+            // Monedas/juegos permitidos — antes ocultos por completo.
+            'currencies' => $seller->currenciesActive()->pluck('iso_code')->all(),
+            'games'      => $seller->gamesActive()->pluck('name')->all(),
+
+            'wallets'          => $this->enrichment->wallets($seller->user),
+            'recent_movements' => $this->enrichment->recentMovements($seller->user),
+            'account_meta'     => $this->enrichment->accountMeta((string) $seller->user_id),
         ];
     }
 

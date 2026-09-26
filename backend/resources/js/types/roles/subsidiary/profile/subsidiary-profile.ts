@@ -1,3 +1,5 @@
+import type { RoleProfileWallet, RoleProfileMovement, RoleProfileAccountMeta } from '@/js/types/roles/shared/role-profile-common'
+
 /** Ficha de autogestión de la propia agencia (GET/PUT /subsidiary/profile). */
 export interface SubsidiaryProfile {
     id: string
@@ -9,6 +11,13 @@ export interface SubsidiaryProfile {
     country: string | null
     currency: string | null
     user: { username: string; email: string }
+    commission: number
+    network: {
+        sellers_count: number
+    }
+    wallets: RoleProfileWallet[]
+    recent_movements: RoleProfileMovement[]
+    account_meta: RoleProfileAccountMeta
 }
 
 export interface SubsidiaryProfilePageProps {

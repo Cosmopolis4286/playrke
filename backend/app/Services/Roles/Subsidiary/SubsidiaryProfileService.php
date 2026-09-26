@@ -4,6 +4,7 @@ namespace App\Services\Roles\Subsidiary;
 
 use App\Models\Roles\Subsidiary;
 use App\Services\Roles\AdminProfileAccessService;
+use App\Services\Roles\RoleProfileEnrichmentService;
 use App\Services\Security\UserContextService;
 
 /**
@@ -21,6 +22,7 @@ final class SubsidiaryProfileService
     public function __construct(
         private readonly UserContextService $userContext,
         private readonly AdminProfileAccessService $adminAccess,
+        private readonly RoleProfileEnrichmentService $enrichment,
     ) {}
 
     private function ownSubsidiaryOrFail(?string $targetUserId = null): Subsidiary
@@ -50,6 +52,18 @@ final class SubsidiaryProfileService
             'country'      => $subsidiary->country?->name,
             'currency'     => $subsidiary->currency ? "{$subsidiary->currency->name} ({$subsidiary->currency->symbol})" : null,
             'user'         => ['username' => $subsidiary->user->username, 'email' => $subsidiary->user->email],
+            'commission'   => (float) $subsidiary->commission,
+
+            // Red propia: vendedores (taquillas) que reportan a esta agencia
+            // — ver Subsidiary::sellers(). Solo el conteo; el detalle vive en
+            // /admin/sellers filtrado por agencia.
+            'network' => [
+                'sellers_count' => $subsidiary->sellers()->count(),
+            ],
+
+            'wallets'          => $this->enrichment->wallets($subsidiary->user),
+            'recent_movements' => $this->enrichment->recentMovements($subsidiary->user),
+            'account_meta'     => $this->enrichment->accountMeta((string) $subsidiary->user_id),
         ];
     }
 

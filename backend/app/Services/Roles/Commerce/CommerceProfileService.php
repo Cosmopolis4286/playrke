@@ -4,6 +4,7 @@ namespace App\Services\Roles\Commerce;
 
 use App\Models\Roles\Commerce;
 use App\Services\Roles\AdminProfileAccessService;
+use App\Services\Roles\RoleProfileEnrichmentService;
 use App\Services\Security\UserContextService;
 
 /**
@@ -21,6 +22,7 @@ final class CommerceProfileService
     public function __construct(
         private readonly UserContextService $userContext,
         private readonly AdminProfileAccessService $adminAccess,
+        private readonly RoleProfileEnrichmentService $enrichment,
     ) {}
 
     private function ownCommerceOrFail(?string $targetUserId = null): Commerce
@@ -48,6 +50,27 @@ final class CommerceProfileService
             'status_badge' => $commerce->status_badge,
             'country'      => $commerce->country?->name,
             'user'         => ['username' => $commerce->user->username, 'email' => $commerce->user->email],
+            'commission'   => (float) $commerce->commission,
+
+            // Red de negocio: cuántos vendedores/agencias cuelgan de este
+            // comercio (jerarquía Comercializadora → Agencia → Taquilla) —
+            // ver Commerce::sellers()/subsidiaries(). Solo el conteo aquí;
+            // el detalle vive en /admin/sellers y /admin/subsidiary.
+            'network' => [
+                'subsidiaries_count' => $commerce->subsidiaries()->count(),
+                'sellers_count'      => $commerce->sellers()->count(),
+            ],
+
+            // Monedas/juegos permitidos — antes completamente ocultos ("son
+            // configurados por administración"); ahora visibles de solo
+            // lectura para que el dueño del negocio sepa qué tiene habilitado
+            // sin tener que preguntarle a soporte.
+            'currencies' => $commerce->currenciesActive()->pluck('iso_code')->all(),
+            'games'      => $commerce->gamesActive()->pluck('name')->all(),
+
+            'wallets'          => $this->enrichment->wallets($commerce->user),
+            'recent_movements' => $this->enrichment->recentMovements($commerce->user),
+            'account_meta'     => $this->enrichment->accountMeta((string) $commerce->user_id),
         ];
     }
 

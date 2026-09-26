@@ -17,6 +17,8 @@ export function useCommerceProfile(initial: CommerceProfile, targetUserId: strin
     const commerce = ref<CommerceProfile>({ ...initial })
     const editMode = ref(false)
     const saving = ref(false)
+    /** true brevemente tras guardar con éxito — feedback visual además del toast, que desaparece rápido. */
+    const justSaved = ref(false)
 
     function emptyForm() {
         return { name: commerce.value.name, phone: commerce.value.phone }
@@ -43,6 +45,10 @@ export function useCommerceProfile(initial: CommerceProfile, targetUserId: strin
             commerce.value = { ...commerce.value, name: form.value.name, phone: form.value.phone }
             editMode.value = false
             showToast('Datos actualizados correctamente', 'success')
+
+            justSaved.value = true
+            setTimeout(() => { justSaved.value = false }, 2500)
+
             return true
         } catch (error: any) {
             showToast(error?.response?.data?.message ?? 'No se pudo actualizar', 'error')
@@ -52,5 +58,5 @@ export function useCommerceProfile(initial: CommerceProfile, targetUserId: strin
         }
     }
 
-    return { commerce, editMode, saving, form, toggleEdit, save }
+    return { commerce, editMode, saving, justSaved, form, toggleEdit, save }
 }

@@ -18,6 +18,8 @@ export function useSubsidiaryProfile(initial: SubsidiaryProfile, targetUserId: s
     const subsidiary = ref<SubsidiaryProfile>({ ...initial })
     const editMode = ref(false)
     const saving = ref(false)
+    /** true brevemente tras guardar con éxito — feedback visual además del toast, que desaparece rápido. */
+    const justSaved = ref(false)
 
     function emptyForm() {
         return {
@@ -48,6 +50,10 @@ export function useSubsidiaryProfile(initial: SubsidiaryProfile, targetUserId: s
             subsidiary.value = { ...subsidiary.value, name: form.value.name, phone: form.value.phone }
             editMode.value = false
             showToast('Datos actualizados correctamente', 'success')
+
+            justSaved.value = true
+            setTimeout(() => { justSaved.value = false }, 2500)
+
             return true
         } catch (error: any) {
             showToast(error?.response?.data?.message ?? 'No se pudo actualizar', 'error')
@@ -57,5 +63,5 @@ export function useSubsidiaryProfile(initial: SubsidiaryProfile, targetUserId: s
         }
     }
 
-    return { subsidiary, editMode, saving, form, toggleEdit, save }
+    return { subsidiary, editMode, saving, justSaved, form, toggleEdit, save }
 }
