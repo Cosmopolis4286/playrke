@@ -68,6 +68,21 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    # Sin esto, nginx (depends_on: condition: service_healthy más abajo) no
+    # tiene forma de saber cuándo php-fpm ya acepta conexiones FastCGI en
+    # :9000 — el propio `command` de este servicio corre migrate/seed ANTES
+    # de arrancar php-fpm, así que "el contenedor existe" (estado Running)
+    # puede llegar segundos/minutos antes de que el puerto realmente escuche.
+    # `nc -z` (netcat, ya viene en la imagen base php:8.4-fpm-alpine) confirma
+    # el puerto abierto sin depender de php-fpm-healthcheck ni otra herramienta
+    # externa.
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9000"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
     networks:
       - playrke_network
 
@@ -86,8 +101,22 @@ services:
       - "traefik.http.routers.php.rule=Host(`playrke.localhost`) || Host(`localhost`)"
       - "traefik.http.routers.php.entrypoints=web"
       - "traefik.http.services.php.loadbalancer.server.port=8080"
+    # condition: service_healthy (no solo "- php"): nginx resuelve el DNS del
+    # upstream "php" UNA SOLA VEZ al arrancar (ver docker/nginx/app.conf) — si
+    # el contenedor php existe pero migrate/seed todavía no terminó de correr
+    # (puede tardar bastante en un `docker compose up` desde cero) o Docker
+    # aún no le asignó IP en la red, nginx falla con "host not found in
+    # upstream" y queda Exited para siempre, sin reintentar. depends_on con
+    # "- php" a secas solo esperaba a que el contenedor EXISTIERA, no a que
+    # estuviera listo — causa real de los crashes de nginx en este servicio.
     depends_on:
-      - php
+      php:
+        condition: service_healthy
+    # Red de seguridad adicional: si por cualquier motivo (timing de red,
+    # reinicio parcial del daemon Docker) nginx igual fallara al arrancar,
+    # que Docker lo reintente solo en vez de quedar Exited requiriendo un
+    # `docker start` manual como pasó antes de este cambio.
+    restart: unless-stopped
     networks:
       - playrke_network
 
