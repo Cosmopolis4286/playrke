@@ -6,6 +6,7 @@ use App\DTOs\Roles\Admin\Player\AdminPlayerDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\Admin\Player\AdminPlayerRequest;
 use App\Models\User;
+use App\Policies\Roles\Admin\AdminPlayerPolicy;
 use App\Services\Roles\Admin\Player\AdminPlayerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,8 @@ final class AdminPlayerController extends Controller
 
     public function store(AdminPlayerRequest $request): JsonResponse
     {
+        $this->authorize('create', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->create(
@@ -40,6 +43,8 @@ final class AdminPlayerController extends Controller
      */
     public function fetchList(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(function () use ($request) {
             $filters = $request->only(['search', 'country_name', 'status']);
             $page    = (int) $request->get('page', 1);
@@ -60,6 +65,8 @@ final class AdminPlayerController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
+        $this->authorize('viewAny', AdminPlayerPolicy::class);
+
         $filters = $request->only(['search', 'country_name', 'status']);
 
         return response()->streamDownload(function () use ($filters) {
@@ -87,6 +94,8 @@ final class AdminPlayerController extends Controller
 
     public function show(User $player): JsonResponse
     {
+        $this->authorize('view', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => ['data' => $this->service->show($player)]
         );
@@ -94,6 +103,8 @@ final class AdminPlayerController extends Controller
 
     public function update(AdminPlayerRequest $request, User $player): JsonResponse
     {
+        $this->authorize('update', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->update(
                 $player,
@@ -104,6 +115,8 @@ final class AdminPlayerController extends Controller
 
     public function delete(User $player): JsonResponse
     {
+        $this->authorize('delete', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->delete($player)
         );
@@ -111,6 +124,8 @@ final class AdminPlayerController extends Controller
 
     public function destroy(User $player): JsonResponse
     {
+        $this->authorize('delete', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->destroy($player)
         );
@@ -118,6 +133,8 @@ final class AdminPlayerController extends Controller
 
     public function toggleStatus(User $player): JsonResponse
     {
+        $this->authorize('toggleStatus', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($player)
         );
@@ -128,6 +145,8 @@ final class AdminPlayerController extends Controller
      */
     public function toggleStatusBulk(Request $request): JsonResponse
     {
+        $this->authorize('toggleStatus', AdminPlayerPolicy::class);
+
         $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'string',
@@ -143,6 +162,8 @@ final class AdminPlayerController extends Controller
      */
     public function deleteBulk(Request $request): JsonResponse
     {
+        $this->authorize('delete', AdminPlayerPolicy::class);
+
         $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'string',
@@ -155,6 +176,8 @@ final class AdminPlayerController extends Controller
 
     public function resetPassword(User $player): JsonResponse
     {
+        $this->authorize('resetPassword', AdminPlayerPolicy::class);
+
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->resetPassword($player),

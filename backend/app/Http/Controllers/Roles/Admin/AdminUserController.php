@@ -6,6 +6,7 @@ use App\DTOs\Roles\Admin\User\AdminUserUpdateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\Admin\User\AdminUserUpdateRequest;
 use App\Models\User;
+use App\Policies\Roles\Admin\AdminUserPolicy;
 use App\Services\Roles\Admin\User\AdminUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,8 @@ final class AdminUserController extends Controller
      */
     public function fetchList(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', AdminUserPolicy::class);
+
         return $this->handleServiceJson(function () use ($request) {
             $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions', 'last_login_before']);
             $page    = (int) $request->get('page', 1);
@@ -50,6 +53,8 @@ final class AdminUserController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
+        $this->authorize('viewAny', AdminUserPolicy::class);
+
         $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions']);
 
         return response()->streamDownload(function () use ($filters) {
@@ -83,6 +88,8 @@ final class AdminUserController extends Controller
      */
     public function show(User $user): JsonResponse
     {
+        $this->authorize('view', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->getUserDetail($user)
         );
@@ -94,6 +101,8 @@ final class AdminUserController extends Controller
      */
     public function auditHistory(User $user, Request $request): JsonResponse
     {
+        $this->authorize('view', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->getUserAuditHistory($user, (int) $request->get('page', 1))
         );
@@ -105,6 +114,8 @@ final class AdminUserController extends Controller
      */
     public function walletHistory(User $user, Request $request): JsonResponse
     {
+        $this->authorize('view', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->getWalletMovementHistory($user, (int) $request->get('page', 1))
         );
@@ -115,6 +126,8 @@ final class AdminUserController extends Controller
      */
     public function update(AdminUserUpdateRequest $request, User $user): JsonResponse
     {
+        $this->authorize('edit', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->update($user, $request->toDTO(AdminUserUpdateDTO::class))
         );
@@ -125,6 +138,8 @@ final class AdminUserController extends Controller
      */
     public function toggleStatus(User $user): JsonResponse
     {
+        $this->authorize('edit', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($user)
         );
@@ -135,6 +150,8 @@ final class AdminUserController extends Controller
      */
     public function toggleStatusBulk(Request $request): JsonResponse
     {
+        $this->authorize('edit', AdminUserPolicy::class);
+
         $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'string',
@@ -150,6 +167,8 @@ final class AdminUserController extends Controller
      */
     public function deleteBulk(Request $request): JsonResponse
     {
+        $this->authorize('delete', AdminUserPolicy::class);
+
         $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'string',
@@ -165,6 +184,8 @@ final class AdminUserController extends Controller
      */
     public function delete(User $user): JsonResponse
     {
+        $this->authorize('delete', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->delete($user)
         );
@@ -175,6 +196,8 @@ final class AdminUserController extends Controller
      */
     public function destroy(User $user): JsonResponse
     {
+        $this->authorize('delete', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->destroy($user)
         );
@@ -185,6 +208,8 @@ final class AdminUserController extends Controller
      */
     public function resetPassword(User $user): JsonResponse
     {
+        $this->authorize('edit', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->resetPassword($user),
@@ -197,6 +222,8 @@ final class AdminUserController extends Controller
      */
     public function loadWalletBalance(User $user): JsonResponse
     {
+        $this->authorize('edit', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => [
                 'message' => $this->service->loadWalletBalance(
@@ -213,6 +240,8 @@ final class AdminUserController extends Controller
      */
     public function getWalletBalance(User $user): JsonResponse
     {
+        $this->authorize('view', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->getWalletBalance($user)
         );
@@ -223,6 +252,8 @@ final class AdminUserController extends Controller
      */
     public function grantXp(User $user): JsonResponse
     {
+        $this->authorize('edit', AdminUserPolicy::class);
+
         return $this->handleServiceJson(
             fn() => $this->service->grantXp(
                 $user,

@@ -41,6 +41,8 @@ final class AdminWinEventController extends Controller
      */
     public function store(AdminWinEventRequest $request): JsonResponse
     {
+        $this->authorize('create', WinEvent::class);
+
         return $this->handleServiceJson(function () use ($request) {
             $dto = $request->toDTO(AdminWinEventDTO::class);
             $adminUserId = (string) $this->userContext->resolveUserId();
@@ -79,6 +81,8 @@ final class AdminWinEventController extends Controller
      */
     public function fetchList(): JsonResponse
     {
+        $this->authorize('viewAny', WinEvent::class);
+
         return $this->handleServiceJson(function () {
             $events = WinEvent::query()
                 ->with([

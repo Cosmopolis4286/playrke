@@ -48,6 +48,16 @@ class AuthServiceProvider extends ServiceProvider
         // KycPolicy: mismo criterio (vista compuesta sobre KycDocument, no
         // un Model único por acción) — registrada contra su propia clase.
         \App\Policies\Roles\Admin\KycPolicy::class            => \App\Policies\Roles\Admin\KycPolicy::class,
+        // AdminUserPolicy: distinta de UserPolicy (esa sirve al flujo /admins,
+        // requiredRole()='superadmin' puro) — este es el flujo /admin/user/*,
+        // permission-based (users.view/edit/delete), accesible también a
+        // 'admin' no-superadmin. Registrada contra su propia clase, mismo
+        // criterio que KycPolicy/JobsCenterPolicy.
+        \App\Policies\Roles\Admin\AdminUserPolicy::class      => \App\Policies\Roles\Admin\AdminUserPolicy::class,
+        // AdminPlayerPolicy: mismo criterio — Player = User sin Policy propia
+        // hoy, y App\Models\User::class ya está tomado por UserPolicy.
+        \App\Policies\Roles\Admin\AdminPlayerPolicy::class    => \App\Policies\Roles\Admin\AdminPlayerPolicy::class,
+        \App\Domains\Platform\WinEvent\Models\WinEvent::class => \App\Policies\Roles\Admin\AdminWinEventPolicy::class,
     ];
 
     /**
