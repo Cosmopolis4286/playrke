@@ -20,6 +20,12 @@ use Tests\TestCase;
  * authorizeResource() del constructor no las cubre automáticamente), así que
  * un usuario 'commerce' con permiso subsidiaries.edit/delete podía mutar la
  * Subsidiary de OTRO comercio con solo cambiar el {subsidiary} de la URL.
+ *
+ * Subsidiary (vía BaseModel -> HasHashedRouteKey) usa Hashids como route
+ * key, no el id crudo — las URLs deben construirse con getRouteKey(), nunca
+ * con ->id directo (eso resuelve siempre 404, "no encontrado", porque
+ * resolveRouteBinding() intenta decodificar el id crudo como si fuera un
+ * hash válido).
  */
 class AdminSubsidiaryControllerTest extends TestCase
 {
@@ -110,7 +116,7 @@ class AdminSubsidiaryControllerTest extends TestCase
 
     public function test_commerce_cannot_toggle_status_of_another_commerces_subsidiary(): void
     {
-        [$ownCommerceUser, $ownCommerce, $country] = $this->makeCommerceWithUser('propio');
+        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
         $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
 
         [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
@@ -118,7 +124,7 @@ class AdminSubsidiaryControllerTest extends TestCase
         $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
 
         $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$foreignSubsidiary->id}/status");
+            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/status");
 
         $response->assertForbidden();
         $this->assertSame('ACTIVE', $foreignSubsidiary->fresh()->status);
@@ -134,7 +140,7 @@ class AdminSubsidiaryControllerTest extends TestCase
         $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
 
         $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$foreignSubsidiary->id}/delete");
+            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/delete");
 
         $response->assertForbidden();
         $this->assertSame('ACTIVE', $foreignSubsidiary->fresh()->status);
@@ -150,7 +156,7 @@ class AdminSubsidiaryControllerTest extends TestCase
         $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
 
         $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$foreignSubsidiary->id}/reset-password");
+            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/reset-password");
 
         $response->assertForbidden();
     }
@@ -164,7 +170,7 @@ class AdminSubsidiaryControllerTest extends TestCase
         $ownSubsidiary = $this->makeSubsidiaryForCommerce($ownCommerce, $country, $subsidiaryOwner);
 
         $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$ownSubsidiary->id}/status");
+            ->putJson("/admin/subsidiary/{$ownSubsidiary->getRouteKey()}/status");
 
         $response->assertOk();
         $this->assertSame('INACTIVE', $ownSubsidiary->fresh()->status);
@@ -181,7 +187,7 @@ class AdminSubsidiaryControllerTest extends TestCase
         $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
 
         $response = $this->actingAs($admin)
-            ->putJson("/admin/subsidiary/{$subsidiary->id}/status");
+            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/status");
 
         $response->assertOk();
         $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
