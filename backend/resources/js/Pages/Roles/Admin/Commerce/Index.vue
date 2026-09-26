@@ -5,6 +5,7 @@
 
   import { computed, onMounted, ref } from 'vue'
   import { usePage, router } from '@inertiajs/vue3'
+  import Swal from 'sweetalert2'
 
   // ==========================================================================
   // Componentes
@@ -287,6 +288,44 @@
   ])
 
   // ==========================================================================
+  // Impersonación (solo SuperAdmin — ver ImpersonationService)
+  // ==========================================================================
+
+  async function handleImpersonate(rowId: string) {
+    const commerce = commerces.value.find(c => c.id === rowId)
+    if (!commerce?.user_hashed_id) return
+    const name = commerce.name ?? 'este comercio'
+
+    const confirmed = await Swal.fire({
+      title: '¿Iniciar sesión de soporte?',
+      html: `Vas a ver la plataforma como <b>${name}</b>. Se registrará en auditoría y no podrás retirar fondos ni cambiar la contraseña mientras dure la sesión.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, impersonar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d97706',
+      reverseButtons: true,
+    })
+    if (!confirmed.isConfirmed) return
+
+    // POST tradicional (no Inertia/AJAX): el controlador responde con
+    // redirect() a '/' como el propio comercio, que Inertia no puede navegar
+    // como una respuesta JSON — un submit real deja que el navegador siga
+    // la redirección y cargue la sesión ya autenticada como el comercio.
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = `/admin/impersonation/${commerce.user_hashed_id}/start`
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
+    const csrfInput = document.createElement('input')
+    csrfInput.type = 'hidden'
+    csrfInput.name = '_token'
+    csrfInput.value = csrfToken
+    form.appendChild(csrfInput)
+    document.body.appendChild(form)
+    form.submit()
+  }
+
+  // ==========================================================================
   // Botones extra
   // ==========================================================================
 
@@ -340,6 +379,19 @@
         const commerce = commerces.value.find(c => c.id === ids[0])
         if (!commerce?.user_id) return
         router.visit(`/commerce/profile?target_user_id=${commerce.user_id}`)
+      }
+    },
+    {
+      icon: 'fas fa-user-secret',
+      class: 'btn-warning text-white',
+      title: 'Impersonar (sesión de soporte)',
+      // Solo SuperAdmin (mismo criterio que el backend, role:superadmin en
+      // admin/impersonation) y solo comercios activos.
+      show: (ids: string[]) => isSuperadmin.value && ids.length === 1 && commerces.value.find(c => c.id === ids[0])?.status === 'ACTIVE',
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          handleImpersonate(ids[0])
+        }
       }
     },
     {

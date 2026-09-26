@@ -137,14 +137,19 @@ final class AdminSubsidiaryContextService
 
         $subsidiaries = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
-        // Campo meta (no es columna visible) — solo admin/superadmin lo usan
-        // para el botón "Ver perfil" en el listado (Roles/Admin/Subsidiary/
-        // Index.vue), que navega a /subsidiary/profile con
+        // Campos meta (no son columnas visibles) — solo admin/superadmin los
+        // usan. user_id: botón "Ver perfil" en el listado (Roles/Admin/
+        // Subsidiary/Index.vue), que navega a /subsidiary/profile con
         // target_user_id=user_id de la agencia seleccionada. row.id es el id
-        // hasheado de la propia Subsidiary, no del User.
+        // hasheado de la propia Subsidiary, no del User. user_hashed_id:
+        // botón "Impersonar" (admin/impersonation/{player}/start espera el
+        // hash de Hashids del User, ver HasHashedRouteKey — no el Snowflake
+        // plano).
         $subsidiariesList = $collection->values();
         $subsidiaries['rows'] = collect($subsidiaries['rows'])->map(function (array $row, int $index) use ($subsidiariesList) {
-            $row['user_id'] = (string) $subsidiariesList->get($index)?->user_id;
+            $rowUser = $subsidiariesList->get($index)?->user;
+            $row['user_id'] = $rowUser ? (string) $rowUser->id : null;
+            $row['user_hashed_id'] = $rowUser?->getHashedIdAttribute();
             return $row;
         })->all();
 

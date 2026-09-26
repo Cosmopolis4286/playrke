@@ -15,6 +15,8 @@ export interface Subsidiary {
     email: string
     /** ID del usuario dueño de la agencia — necesario para el botón "Ver perfil" (target_user_id de /subsidiary/profile, ver AdminProfileAccessService). */
     user_id?: string | null
+    /** ID hasheado (Hashids) del User dueño de la agencia — necesario para el botón "Impersonar" (admin/impersonation/{player}/start espera el hash, no el Snowflake plano de user_id; ver HasHashedRouteKey). */
+    user_hashed_id?: string | null
 }
 
 export interface SubsidiarySellerSummary {

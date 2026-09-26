@@ -112,14 +112,17 @@ class ManagerSellerContextService
 
         $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
-        // Campo meta (no es columna visible de la tabla) — solo admin/
-        // superadmin lo usan para el botón "Ver perfil" en el listado
-        // (Roles/Seller/Manager/Index.vue), que navega a /seller/profile
-        // con target_user_id=user_id del seller seleccionado. row.id es el
-        // id hasheado del propio Seller, no del User, así que sin esto el
-        // frontend no tenía forma de conocer el user_id.
+        // Campos meta (no son columnas visibles de la tabla) — solo admin/
+        // superadmin los usan. user_id: botón "Ver perfil" (target_user_id de
+        // /seller/profile, Snowflake plano). user_hashed_id: botón
+        // "Impersonar" (admin/impersonation/{player}/start espera el hash de
+        // Hashids del User, ver HasHashedRouteKey — no el Snowflake plano).
+        // row.id es el id hasheado del propio Seller, no del User, así que
+        // sin esto el frontend no tenía forma de conocer ninguno de los dos.
         foreach ($sellers['rows'] as $i => &$row) {
-            $row['user_id'] = (string) $collection->values()->get($i)?->user_id;
+            $rowUser = $collection->values()->get($i)?->user;
+            $row['user_id'] = $rowUser ? (string) $rowUser->id : null;
+            $row['user_hashed_id'] = $rowUser?->getHashedIdAttribute();
         }
         unset($row);
 

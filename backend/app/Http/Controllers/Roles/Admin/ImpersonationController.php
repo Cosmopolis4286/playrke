@@ -14,10 +14,15 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Impersonación de jugadores para soporte — solo SuperAdmin (ver
+ * Impersonación de cuentas operativas para soporte — solo SuperAdmin (ver
  * role_protected_routes en routes/modules/admin.php). Toda la lógica de
- * dominio vive en ImpersonationService; este controlador solo valida el
- * request y decide a dónde redirigir.
+ * dominio (incluyendo qué roles son impersonables, ver
+ * ImpersonationService::ALLOWED_TARGET_ROLES) vive en ImpersonationService;
+ * este controlador solo valida el request y decide a dónde redirigir.
+ *
+ * El parámetro de ruta se sigue llamando {player} (histórico, era
+ * exclusivo de jugadores) pero el binding es por User::class — funciona
+ * igual para seller/commerce/subsidiary, no hace falta tocar la ruta.
  *
  * DomainException se captura aquí (no se deja propagar al Handler global)
  * porque estas dos rutas son navegación de browser normal (form POST +
@@ -32,12 +37,14 @@ final class ImpersonationController extends Controller
 
     public function start(User $player, Request $request): RedirectResponse
     {
-        try {
-            $this->service->start($request->user(), $player);
+        $target = $player;
 
-            return redirect('/')->with('success', "Ahora estás viendo la plataforma como {$player->username}.");
+        try {
+            $this->service->start($request->user(), $target);
+
+            return redirect('/')->with('success', "Ahora estás viendo la plataforma como {$target->username}.");
         } catch (DomainException $e) {
-            return redirect('/admin/players')->with('error', $this->resolveErrorMessage($e));
+            return redirect()->back()->with('error', $this->resolveErrorMessage($e));
         }
     }
 
@@ -46,7 +53,7 @@ final class ImpersonationController extends Controller
         try {
             $this->service->stop($request);
 
-            return redirect('/admin/players')->with('success', 'Sesión de soporte finalizada.');
+            return redirect('/')->with('success', 'Sesión de soporte finalizada.');
         } catch (DomainException $e) {
             return redirect('/')->with('error', $this->resolveErrorMessage($e));
         }

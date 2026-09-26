@@ -106,11 +106,15 @@ final class AdminCommerceContextService
         // user_id: necesario para el botón "Ver perfil" (navega a
         // /commerce/profile con target_user_id — ver AdminProfileAccessService),
         // que es el user_id del dueño del comercio, no el id del propio
-        // Commerce (eso ya lo cubre real_id).
+        // Commerce (eso ya lo cubre real_id). user_hashed_id: botón
+        // "Impersonar" (admin/impersonation/{player}/start espera el hash de
+        // Hashids del User, ver HasHashedRouteKey — no el Snowflake plano).
         $commercesList = $collection->values();
         $commerces['rows'] = collect($commerces['rows'])->map(function (array $row, int $index) use ($commercesList) {
+            $rowUser = $commercesList->get($index)?->user;
             $row['real_id'] = $commercesList->get($index)?->id;
-            $row['user_id'] = (string) $commercesList->get($index)?->user_id;
+            $row['user_id'] = $rowUser ? (string) $rowUser->id : null;
+            $row['user_hashed_id'] = $rowUser?->getHashedIdAttribute();
             return $row;
         })->all();
 

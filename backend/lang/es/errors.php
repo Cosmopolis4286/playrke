@@ -92,7 +92,7 @@ return [
 
     // Impersonación (soporte a jugadores)
     'ALREADY_IMPERSONATING' => 'Ya hay una sesión de soporte activa. Debes finalizarla antes de iniciar otra.',
-    'IMPERSONATION_TARGET_MUST_BE_PLAYER' => 'Solo se puede impersonar a usuarios con rol Jugador.',
+    'IMPERSONATION_TARGET_ROLE_NOT_ALLOWED' => 'Este rol de usuario no se puede impersonar.',
     'NOT_IMPERSONATING' => 'No hay ninguna sesión de soporte activa para finalizar.',
 
     // Sucursales (admin/subsidiary)

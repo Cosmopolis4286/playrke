@@ -18,6 +18,8 @@ export interface Seller {
     readonly manager_user_id?: string | null
     /** user_id del propio vendedor (dueño de esta fila) — necesario para el botón "Ver perfil" (target_user_id de /seller/profile, ver AdminProfileAccessService). */
     readonly user_id?: string | null
+    /** ID hasheado (Hashids) del User dueño de esta fila — necesario para el botón "Impersonar" (admin/impersonation/{player}/start espera el hash, no el Snowflake plano de user_id; ver HasHashedRouteKey). */
+    readonly user_hashed_id?: string | null
     /** Solo presente en filas de la vista admin (columna "Manejador"). */
     readonly manager_name?: string
     /** Solo presente en filas de la vista admin (columna "Rol") — badge HTML "Sucursal"/"Commerce". */

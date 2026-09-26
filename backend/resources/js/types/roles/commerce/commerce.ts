@@ -18,6 +18,8 @@ export interface Commerce {
     readonly real_id?: string | null
     /** ID del usuario dueño del comercio — necesario para el botón "Ver perfil" (target_user_id de /commerce/profile, ver AdminProfileAccessService). */
     readonly user_id?: string | null
+    /** ID hasheado (Hashids) del User dueño del comercio — necesario para el botón "Impersonar" (admin/impersonation/{player}/start espera el hash, no el Snowflake plano de user_id; ver HasHashedRouteKey). */
+    readonly user_hashed_id?: string | null
     /** true si este comercio es el principal/vinculado a la app. Solo viene poblado tras cargar el detalle completo (edit()/show()), no en las filas de la tabla. */
     is_default_commerce?: boolean
 }

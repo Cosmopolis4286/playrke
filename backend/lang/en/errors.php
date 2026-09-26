@@ -92,7 +92,7 @@ return [
 
     // Impersonation (player support)
     'ALREADY_IMPERSONATING' => 'There is already an active support session. End it before starting another.',
-    'IMPERSONATION_TARGET_MUST_BE_PLAYER' => 'Only users with the Player role can be impersonated.',
+    'IMPERSONATION_TARGET_ROLE_NOT_ALLOWED' => 'This user role cannot be impersonated.',
     'NOT_IMPERSONATING' => 'There is no active support session to end.',
 
     // Subsidiaries (admin/subsidiary)

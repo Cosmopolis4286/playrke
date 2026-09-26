@@ -5,6 +5,7 @@
 
   import { computed, onMounted, ref, watch } from 'vue'
   import { usePage, router } from '@inertiajs/vue3'
+  import Swal from 'sweetalert2'
 
   // ==========================================================================
   // Componentes
@@ -225,6 +226,46 @@
   const isAdminOrSuperadmin = computed(() =>
     (page.props.auth as any)?.user?.userRoles?.some((r: any) => ['admin', 'superadmin'].includes(r.role?.name?.toLowerCase())) ?? false
   )
+  // Impersonar es más restrictivo que "Ver perfil": solo SuperAdmin (mismo
+  // criterio que el backend, role:superadmin en admin/impersonation) — un
+  // 'commerce' viendo sus propias sucursales nunca debe ver este botón.
+  const isSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
+  )
+
+  async function handleImpersonate(rowId: string) {
+    const subsidiary = subsidiaries.value.find(s => s.id === rowId)
+    if (!subsidiary?.user_hashed_id) return
+    const name = subsidiary.name ?? 'esta agencia'
+
+    const confirmed = await Swal.fire({
+      title: '¿Iniciar sesión de soporte?',
+      html: `Vas a ver la plataforma como <b>${name}</b>. Se registrará en auditoría y no podrás retirar fondos ni cambiar la contraseña mientras dure la sesión.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, impersonar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d97706',
+      reverseButtons: true,
+    })
+    if (!confirmed.isConfirmed) return
+
+    // POST tradicional (no Inertia/AJAX): el controlador responde con
+    // redirect() a '/' como la propia agencia, que Inertia no puede navegar
+    // como una respuesta JSON — un submit real deja que el navegador siga
+    // la redirección y cargue la sesión ya autenticada como la agencia.
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = `/admin/impersonation/${subsidiary.user_hashed_id}/start`
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
+    const csrfInput = document.createElement('input')
+    csrfInput.type = 'hidden'
+    csrfInput.name = '_token'
+    csrfInput.value = csrfToken
+    form.appendChild(csrfInput)
+    document.body.appendChild(form)
+    form.submit()
+  }
 
   const extraButtons: ExtraButton[] = [
     {
@@ -248,6 +289,17 @@
         const subsidiary = subsidiaries.value.find(s => s.id === ids[0])
         if (!subsidiary?.user_id) return
         router.visit(`/subsidiary/profile?target_user_id=${subsidiary.user_id}`)
+      }
+    },
+    {
+      icon: 'fas fa-user-secret',
+      class: 'btn-warning text-white',
+      title: 'Impersonar (sesión de soporte)',
+      show: (ids: string[]) => isSuperadmin.value && ids.length === 1 && subsidiaries.value.find(s => s.id === ids[0])?.status === 'ACTIVE',
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          handleImpersonate(ids[0])
+        }
       }
     },
     {

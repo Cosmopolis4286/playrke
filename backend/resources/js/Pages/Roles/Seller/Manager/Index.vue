@@ -4,7 +4,8 @@
    */
 
   import { computed, onMounted, ref, watch } from 'vue'
-  import { router } from '@inertiajs/vue3'
+  import { router, usePage } from '@inertiajs/vue3'
+  import Swal from 'sweetalert2'
 
   // ==========================================================================
   // Componentes
@@ -189,6 +190,49 @@
   ])
 
   // ==========================================================================
+  // Impersonación (solo SuperAdmin — ver ImpersonationService)
+  // ==========================================================================
+
+  const page = usePage()
+  const isSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.name?.toLowerCase() === 'superadmin') ?? false
+  )
+
+  async function handleImpersonate(rowId: string) {
+    const seller = sellers.value.find(s => s.id === rowId)
+    if (!seller?.user_hashed_id) return
+    const name = seller.name ?? 'este vendedor'
+
+    const confirmed = await Swal.fire({
+      title: '¿Iniciar sesión de soporte?',
+      html: `Vas a ver la plataforma como <b>${name}</b>. Se registrará en auditoría y no podrás retirar fondos ni cambiar la contraseña mientras dure la sesión.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, impersonar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d97706',
+      reverseButtons: true,
+    })
+    if (!confirmed.isConfirmed) return
+
+    // POST tradicional (no Inertia/AJAX): el controlador responde con
+    // redirect() a '/' como el propio vendedor, que Inertia no puede navegar
+    // como una respuesta JSON — un submit real deja que el navegador siga
+    // la redirección y cargue la sesión ya autenticada como el vendedor.
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = `/admin/impersonation/${seller.user_hashed_id}/start`
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
+    const csrfInput = document.createElement('input')
+    csrfInput.type = 'hidden'
+    csrfInput.name = '_token'
+    csrfInput.value = csrfToken
+    form.appendChild(csrfInput)
+    document.body.appendChild(form)
+    form.submit()
+  }
+
+  // ==========================================================================
   // Botones extra
   // ==========================================================================
 
@@ -245,6 +289,19 @@
         const seller = sellers.value.find(s => s.id === ids[0])
         if (!seller?.user_id) return
         router.visit(`/seller/profile?target_user_id=${seller.user_id}`)
+      }
+    },
+    {
+      icon: 'fas fa-user-secret',
+      class: 'btn-warning text-white',
+      title: 'Impersonar (sesión de soporte)',
+      // Solo SuperAdmin (mismo criterio que el backend, role:superadmin en
+      // admin/impersonation) y solo vendedores activos.
+      show: (ids: string[]) => isSuperadmin.value && ids.length === 1 && sellers.value.find(s => s.id === ids[0])?.status === 'ACTIVE',
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          handleImpersonate(ids[0])
+        }
       }
     },
     {
