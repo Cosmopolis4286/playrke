@@ -14,9 +14,9 @@ final class ImpersonationException extends DomainException
         return new self('ALREADY_IMPERSONATING', 409);
     }
 
-    public static function targetMustBePlayer(): self
+    public static function targetRoleNotAllowed(): self
     {
-        return new self('IMPERSONATION_TARGET_MUST_BE_PLAYER', 422);
+        return new self('IMPERSONATION_TARGET_ROLE_NOT_ALLOWED', 422);
     }
 
     public static function notImpersonating(): self

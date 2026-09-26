@@ -10,19 +10,31 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Impersonación de jugadores para soporte (SuperAdmin-only, ver
+ * Impersonación de cuentas operativas para soporte (SuperAdmin-only, ver
  * role_protected_routes(['role:superadmin'], 'admin/impersonation', ...)).
  *
  * Guarda el admin real en la sesión HTTP (impersonator_id) mientras
- * Auth::login() cambia el usuario autenticado al jugador — así toda la app
- * (HandleInertiaRequests::share(), policies, etc.) ve al jugador como
+ * Auth::login() cambia el usuario autenticado al target — así toda la app
+ * (HandleInertiaRequests::share(), policies, etc.) ve al target como
  * usuario activo sin necesitar lógica especial en cada punto, y stop()
  * puede restaurar exactamente al admin original leyendo esa misma sesión.
+ *
+ * Roles impersonables: ver ALLOWED_TARGET_ROLES. Deliberadamente NO incluye
+ * admin/superadmin/customer/treasurer — impersonar una cuenta con permisos
+ * administrativos sería escalar privilegios, no dar soporte.
  */
 final class ImpersonationService
 {
     private const SESSION_KEY = 'impersonator_id';
     private const STARTED_AT_SESSION_KEY = 'impersonation_started_at';
+
+    /**
+     * Roles que un superadmin puede impersonar para soporte. 'player' es el
+     * caso original; seller/commerce/subsidiary se agregaron porque tienen
+     * ficha propia (Mi Perfil, ver AdminProfileAccessService) y casos de
+     * soporte reales ("no veo mi comisión", "mi vendedor no puede vender").
+     */
+    public const ALLOWED_TARGET_ROLES = ['player', 'seller', 'commerce', 'subsidiary'];
 
     /** Duración máxima de una sesión de soporte antes de restaurarse sola. */
     public const TIMEOUT_MINUTES = 30;
@@ -37,8 +49,8 @@ final class ImpersonationService
             throw ImpersonationException::alreadyImpersonating();
         }
 
-        if (!$target->hasRole('player')) {
-            throw ImpersonationException::targetMustBePlayer();
+        if (!$target->hasRole(self::ALLOWED_TARGET_ROLES)) {
+            throw ImpersonationException::targetRoleNotAllowed();
         }
 
         request()->session()->put(self::SESSION_KEY, (string) $admin->id);
