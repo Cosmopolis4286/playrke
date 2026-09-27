@@ -339,24 +339,31 @@ Route::middleware('auth')->group(function () {
 
     /**
      * =========================================================
-     * VISIBILIDAD DEL SIDEBAR POR ROL (Solo SuperAdmin)
+     * VISIBILIDAD DEL SIDEBAR POR ROL
      * =========================================================
+     * Migrado de role:superadmin a multiPermission:sidebar-menu.* — hoy
+     * solo 'superadmin' tiene esos permisos (ver migración
+     * 2026_09_27_000001_add_sidebar_and_dashboard_visibility_permissions),
+     * mismo nivel de acceso de antes, pero delegable a futuro sin tocar
+     * código. permissions/modules/roles-admin se quedan deliberadamente en
+     * role:superadmin puro (riesgo de escalada de privilegios).
      */
-    role_protected_routes(['role:superadmin'], 'sidebar-menu', SidebarMenuVisibilityController::class, [
+    role_protected_routes(['multiPermission:sidebar-menu.view,sidebar-menu.manage'], 'sidebar-menu', SidebarMenuVisibilityController::class, [
         'index'       => ['method' => 'get',  'uri' => '',           'action' => 'index'],
         'fetchList'   => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
-        'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges'],
+        'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges', 'middleware' => 'multiPermission:sidebar-menu.manage'],
     ], 'sidebar-menu');
 
     /**
      * =========================================================
-     * VISIBILIDAD DE WIDGETS DEL DASHBOARD POR ROL (Solo SuperAdmin)
+     * VISIBILIDAD DE WIDGETS DEL DASHBOARD POR ROL
      * =========================================================
+     * Mismo criterio que sidebar-menu arriba.
      */
-    role_protected_routes(['role:superadmin'], 'dashboard-widgets', DashboardWidgetVisibilityController::class, [
+    role_protected_routes(['multiPermission:dashboard-widgets.view,dashboard-widgets.manage'], 'dashboard-widgets', DashboardWidgetVisibilityController::class, [
         'index'       => ['method' => 'get',  'uri' => '',           'action' => 'index'],
         'fetchList'   => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
-        'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges'],
+        'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges', 'middleware' => 'multiPermission:dashboard-widgets.manage'],
     ], 'dashboard-widgets');
 
     /**
@@ -468,16 +475,27 @@ Route::middleware('auth')->group(function () {
 
     /**
      * =========================================================
-     * IMPERSONACIÓN (soporte a jugadores) — Solo SuperAdmin, mismo criterio
-     * que /logs (role:superadmin en vez de un permiso dedicado): es una
-     * acción de alto riesgo (acceso completo a la cuenta de un jugador real,
-     * incluyendo su wallet), no algo delegable a un admin cualquiera.
+     * IMPERSONACIÓN (soporte a jugadores/seller/commerce/subsidiary) — Solo
+     * SuperAdmin puede INICIARLA (mismo criterio que /logs: role:superadmin
+     * en vez de un permiso dedicado, acción de alto riesgo no delegable a un
+     * admin cualquiera). 'stop' es deliberadamente solo 'auth', sin
+     * role:superadmin: mientras la impersonación está activa, Auth::user()
+     * ES el target (seller/commerce/...), no el superadmin real — exigir
+     * role:superadmin aquí dejaba al superadmin sin forma de terminar su
+     * propia sesión de soporte (RoleMiddleware::forbiddenResponse() lo
+     * redirigía a /dashboard antes de llegar al controlador). La única
+     * autorización real que stop() necesita es "¿hay una sesión de soporte
+     * activa en esta sesión HTTP?", que ImpersonationService::stop() ya
+     * valida internamente (throw NOT_IMPERSONATING si no la hay).
      * =========================================================
      */
     role_protected_routes(['role:superadmin'], 'admin/impersonation', ImpersonationController::class, [
         'start' => ['method' => 'post', 'uri' => '{player}/start', 'action' => 'start'],
-        'stop'  => ['method' => 'post', 'uri' => 'stop',           'action' => 'stop'],
     ], 'player');
+
+    Route::middleware(['auth'])
+        ->post('admin/impersonation/stop', [ImpersonationController::class, 'stop'])
+        ->name('admin.impersonation.stop');
 
     Route::middleware(['auth', 'role:superadmin'])->prefix('admin/impersonation')->group(function () {
         Route::get('history',      [ImpersonationController::class, 'historyPage'])->name('admin.impersonation.history.page');

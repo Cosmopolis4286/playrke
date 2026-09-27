@@ -3,37 +3,41 @@
 namespace App\Policies\Roles\Admin;
 
 use App\Models\User;
-use App\Policies\Roles\BaseRolePolicy;
 
 /**
  * Policy de autorización para la gestión de visibilidad de widgets del
  * dashboard por rol.
  *
- * Capa de defensa independiente del middleware `role:superadmin` de ruta
- * (`role_protected_routes()` en routes/modules/admin.php) — mismo patrón que
- * SidebarMenuVisibilityPolicy. Cambiar qué stats/accesos ve cada rol es una
- * decisión de acceso equivalente a Permission, así que exige el mismo rol
- * base.
+ * Capa de defensa independiente del middleware `multiPermission:
+ * dashboard-widgets.view,dashboard-widgets.manage` de ruta — mismo patrón
+ * que SidebarMenuVisibilityPolicy.
+ *
+ * Permission-based (no BaseRolePolicy con rol fijo): antes exigía
+ * role:superadmin puro; migrado a dashboard-widgets.view/
+ * dashboard-widgets.manage (ver migración
+ * 2026_09_27_000001_add_sidebar_and_dashboard_visibility_permissions) —
+ * hoy solo 'superadmin' tiene esos permisos (mismo nivel de exclusividad
+ * de antes, por diseño), pero el mecanismo ya es permission-based para
+ * permitir delegar a 'admin' en el futuro sin tocar código.
  *
  * manage() (no update() heredado de BaseRolePolicy) para guardar cambios:
- * update(User, Model) exige una instancia real de modelo, pero
  * saveChanges() aplica un LOTE de cambios sobre múltiples filas
- * (item_key × role_id), sin un modelo único que autorizar — mismo criterio
- * que JobsCenterPolicy::manage()/KycPolicy::manage() para acciones mutables
- * sin modelo específico. Usar authorize('update', self::class) aquí
- * lanzaría "Too few arguments... exactly 2 expected", porque Gate::authorize
- * invoca update() pasando solo el nombre de clase (sin instancia) cuando el
- * segundo argumento no puede resolverse implícitamente.
+ * (item_key × role_id), sin un modelo único que autorizar.
  */
-class DashboardWidgetVisibilityPolicy extends BaseRolePolicy
+class DashboardWidgetVisibilityPolicy
 {
-    protected function requiredRole(): string|array
+    public function viewAny(User $user): bool
     {
-        return 'superadmin';
+        return $user->hasAnyPermission(['dashboard-widgets.view', 'dashboard-widgets.manage']);
+    }
+
+    public function view(User $user): bool
+    {
+        return $this->viewAny($user);
     }
 
     public function manage(User $user): bool
     {
-        return $this->hasAccess($user);
+        return $user->hasPermissionTo('dashboard-widgets.manage');
     }
 }

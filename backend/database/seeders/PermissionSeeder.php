@@ -178,6 +178,14 @@ class PermissionSeeder extends Seeder
             // Eventos de ganancia (ticker de la plataforma)
             ['name' => 'win-events.manage', 'guard_name' => 'web', 'description' => 'Registrar y ver eventos de ganancia manuales'],
 
+            // Visibilidad del sidebar y del dashboard por rol (solo superadmin —
+            // ver migración 2026_09_27_000001, misma exclusividad de acceso que
+            // permissions/modules/roles-admin)
+            ['name' => 'sidebar-menu.view', 'guard_name' => 'web', 'description' => 'Ver la matriz de visibilidad del sidebar por rol'],
+            ['name' => 'sidebar-menu.manage', 'guard_name' => 'web', 'description' => 'Editar qué ve cada rol en el sidebar'],
+            ['name' => 'dashboard-widgets.view', 'guard_name' => 'web', 'description' => 'Ver la matriz de visibilidad de widgets del dashboard por rol'],
+            ['name' => 'dashboard-widgets.manage', 'guard_name' => 'web', 'description' => 'Editar qué widgets del dashboard ve cada rol'],
+
             // Opciones independientes del menú
             ['name' => 'directory.view', 'guard_name' => 'web', 'description' => 'Ver directorio de comercios'],
             ['name' => 'directory.search', 'guard_name' => 'web', 'description' => 'Buscar en directorio'],
