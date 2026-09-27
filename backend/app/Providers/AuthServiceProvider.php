@@ -58,6 +58,8 @@ class AuthServiceProvider extends ServiceProvider
         // hoy, y App\Models\User::class ya está tomado por UserPolicy.
         \App\Policies\Roles\Admin\AdminPlayerPolicy::class    => \App\Policies\Roles\Admin\AdminPlayerPolicy::class,
         \App\Domains\Platform\WinEvent\Models\WinEvent::class => \App\Policies\Roles\Admin\AdminWinEventPolicy::class,
+        \App\Domains\Games\Trivia\Models\TriviaQuestion::class => \App\Domains\Games\Trivia\Policies\TriviaQuestionPolicy::class,
+        \App\Models\Games\Trivia\TriviaParticipant::class     => \App\Policies\Games\Trivia\TriviaPrizeDisputePolicy::class,
     ];
 
     /**

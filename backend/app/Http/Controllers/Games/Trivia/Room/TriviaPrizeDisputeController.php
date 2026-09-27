@@ -34,6 +34,8 @@ final class TriviaPrizeDisputeController extends Controller
             ->where('room_id', $roomId)
             ->firstOrFail();
 
+        $this->authorize('create', $participant);
+
         try {
             $this->gamePrizeService->disputeAndReverse($participant, $validated['reason']);
         } catch (RuntimeException $e) {

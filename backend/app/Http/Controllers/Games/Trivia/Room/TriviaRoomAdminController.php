@@ -421,10 +421,14 @@ final class TriviaRoomAdminController extends Controller
      */
     public function destroy(string $id)
     {
-        try {
-            $room = TriviaRoom::findOrFail($id);
-            $this->authorize('delete', $room);
+        // findOrFail()/authorize() fuera del try: AuthorizationException extends
+        // Exception, así que dentro del try el catch(\Exception) genérico de abajo
+        // la atrapaba y la convertía en un redirect con mensaje de error en vez de
+        // dejar pasar la respuesta 403 real de Laravel.
+        $room = TriviaRoom::findOrFail($id);
+        $this->authorize('delete', $room);
 
+        try {
             $refunded = $this->refundService->refundConfirmedParticipants(
                 $room,
                 "La sala '{$room->title}' ({$room->code}) fue cerrada por un administrador. Se te reembolsó tu entrada.",
@@ -454,10 +458,12 @@ final class TriviaRoomAdminController extends Controller
      */
     public function forceClose(string $id)
     {
-        try {
-            $room = TriviaRoom::findOrFail($id);
-            $this->authorize('forceClose', $room);
+        // Mismo motivo que en destroy(): fuera del try para que un 403 real
+        // no sea absorbido por el catch(\Exception) genérico de abajo.
+        $room = TriviaRoom::findOrFail($id);
+        $this->authorize('forceClose', $room);
 
+        try {
             $refunded = $this->refundService->refundConfirmedParticipants(
                 $room,
                 "La sala '{$room->title}' ({$room->code}) fue cerrada por un administrador. Se te reembolsó tu entrada.",

@@ -28,6 +28,8 @@ final class TriviaQuestionController extends Controller
      */
     public function index(string $roomId): Response
     {
+        $this->authorize('viewAny', TriviaQuestion::class);
+
         $query = TriviaQuestion::query()->orderBy('created_at', 'desc');
 
         // Filtros opcionales via querystring
@@ -76,6 +78,8 @@ final class TriviaQuestionController extends Controller
      */
     public function create(string $roomId): Response
     {
+        $this->authorize('create', TriviaQuestion::class);
+
         $categories = TriviaQuestion::select('category')
             ->whereNotNull('category')
             ->distinct()
@@ -93,6 +97,8 @@ final class TriviaQuestionController extends Controller
      */
     public function store(Request $request, string $roomId)
     {
+        $this->authorize('create', TriviaQuestion::class);
+
         $validated = $request->validate([
             'question_text'        => 'required|string|max:1000',
             'options'              => 'required|array|min:2|max:4',
@@ -150,6 +156,7 @@ final class TriviaQuestionController extends Controller
     public function edit(string $roomId, string $questionId): Response
     {
         $question = TriviaQuestion::findOrFail($questionId);
+        $this->authorize('update', $question);
 
         $categories = TriviaQuestion::select('category')
             ->whereNotNull('category')
@@ -170,6 +177,7 @@ final class TriviaQuestionController extends Controller
     public function update(Request $request, string $roomId, string $questionId)
     {
         $question = TriviaQuestion::findOrFail($questionId);
+        $this->authorize('update', $question);
 
         $validated = $request->validate([
             'question_text'        => 'required|string|max:1000',
@@ -228,6 +236,7 @@ final class TriviaQuestionController extends Controller
     public function destroy(string $roomId, string $questionId)
     {
         $question = TriviaQuestion::findOrFail($questionId);
+        $this->authorize('delete', $question);
 
         try {
             $question->delete();
@@ -252,6 +261,8 @@ final class TriviaQuestionController extends Controller
      */
     public function import(Request $request, string $roomId)
     {
+        $this->authorize('create', TriviaQuestion::class);
+
         $request->validate([
             'questions'                          => 'required|array|min:1|max:200',
             'questions.*.question_text'          => 'required|string|max:1000',
@@ -302,6 +313,7 @@ final class TriviaQuestionController extends Controller
     public function toggleActive(string $roomId, string $questionId)
     {
         $question = TriviaQuestion::findOrFail($questionId);
+        $this->authorize('toggleActive', TriviaQuestion::class);
         $question->update(['is_active' => !$question->is_active]);
 
         return back()->with('flash', [
