@@ -15,6 +15,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
+use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -704,7 +705,8 @@ class BingoRoomCrudService
         }
 
         $type = PrizePoolType::find($dto->prizePoolType);
-        if ($type && !$type->isAccumulative()
+        $roundTypes = BingoRoomPrizeRules::roundTypes($dto->roundsConfig ?? []);
+        if ($type && BingoRoomPrizeRules::usesInitialAmount($type->code, $roundTypes)
             && round((float) ($current->amount_added_prize_pool ?? 0), 2) !== round((float) ($dto->amountAddedPrizePool ?? 0), 2)
         ) {
             throw BingoRoomException::prizePoolLockedBySales();

@@ -40,6 +40,40 @@ export function minPlayersFloor(gameModeCode?: string | null): number {
     return gameModeCode === GAME_MODE_SOLO ? 1 : 2
 }
 
+/* ─── Tipo de bote ↔ rondas (espejo de BingoRoomPrizeRules.php) ───────
+ * Premio/Servicio (PRIZE): necesita ≥ 1 ronda de premio físico (P/S).
+ *  - PURO (sin rondas %): no acumula bote en dinero ni usa "Valor Fijo/Extra".
+ *  - HÍBRIDO (con alguna ronda %): acumula bote para pagar esas rondas.
+ * Resto de tipos: si TODAS las rondas son P/S, el bote en dinero nunca se
+ * repartiría → se exige el tipo Premio/Servicio. */
+
+export const POOL_PRIZE = 'PRIZE'
+export const POOL_ACCUMULATIVE = 'ACCUMULATIVE'
+
+type RoundPrizeType = 'percentage' | 'fixed' | 'prize'
+
+export function usesMoneyPool(roundTypes: RoundPrizeType[]): boolean {
+    return roundTypes.includes('percentage')
+}
+
+export function usesInitialAmount(poolCode: string | null | undefined, roundTypes: RoundPrizeType[]): boolean {
+    if (!poolCode || poolCode === POOL_ACCUMULATIVE) return false
+    return poolCode !== POOL_PRIZE || usesMoneyPool(roundTypes)
+}
+
+export function prizeRoundsError(poolCode: string | null | undefined, roundTypes: RoundPrizeType[]): string | null {
+    if (!poolCode || roundTypes.length === 0) return null
+    const hasPrizeRound = roundTypes.includes('prize')
+    const allPrizeRounds = roundTypes.every(t => t === 'prize')
+    if (poolCode === POOL_PRIZE && !hasPrizeRound) {
+        return 'Un bote Premio/Servicio necesita al menos una ronda de premio físico (P/S).'
+    }
+    if (poolCode !== POOL_PRIZE && allPrizeRounds) {
+        return 'Si todas las rondas son de premio físico (P/S), el tipo de bote debe ser Premio/Servicio: si no, el bote en dinero nunca se repartiría.'
+    }
+    return null
+}
+
 /* ─── Rangos de montos / decimales (espejo de BingoRoomRequest) ─────── */
 
 export const BINGO_ROOM_AMOUNT_LIMITS = {
@@ -190,6 +224,8 @@ export interface BingoRoomValidationContext {
     /** true si el Tipo Bote elegido no es ACCUMULATIVE (exige "Valor Fijo/Extra");
      *  null si aún no hay tipo elegido o el catálogo no cargó — no se valida. */
     requiresAmountAddedPrizePool?: boolean | null
+    /** Código del Tipo Bote elegido (ACCUMULATIVE/FIXED/MIXED/PRIZE); null si no hay. */
+    prizePoolCode?: string | null
     /** IDs de jackpots activos (opciones del select) — null si no se pasaron. */
     activeJackpotTypeIds?: string[] | null
     /** Código del modo de juego elegido (SOLO permite 1 jugador mínimo). */
@@ -422,7 +458,15 @@ export function validateBingoRoomForm(
     /* ── % Rondas — usa roundsCount y availablePct del composable ── */
     const { roundsCount: rounds } = ctx
     const rPct = Number(data.roundsPct) || 0
-    if (rounds > 1) {
+    const roundTypes = (data.roundsConfig ?? []).map(r => r.prizeType) as RoundPrizeType[]
+
+    /* ── Tipo de bote ↔ rondas (Premio/Servicio puro o híbrido) ── */
+    const poolRoundsErr = prizeRoundsError(ctx.prizePoolCode, roundTypes)
+    if (poolRoundsErr && !e.prizePoolType) e.prizePoolType = poolRoundsErr
+
+    // %Rondas solo aplica si alguna ronda paga un % del bote: con rondas solo
+    // fijas o de premio físico (P/S) no hay nada que repartir por porcentaje.
+    if (rounds > 1 && usesMoneyPool(roundTypes)) {
         if (!data.roundsPct || rPct === 0) {
             e.roundsPct = 'El % de rondas es requerido.'
         } else {

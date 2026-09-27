@@ -18,7 +18,7 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     /** ID (snowflake) del RoomType con código PRIVATE — resuelto desde roomTypeOptions en el padre. */
     privateRoomTypeId: () => string | number | null = () => null,
     /** Contexto de catálogos (tipo de bote / jackpots activos) resuelto en el padre. */
-    catalogCtx: () => Pick<BingoRoomValidationContext, 'requiresAmountAddedPrizePool' | 'activeJackpotTypeIds' | 'gameModeCode'> = () => ({})
+    catalogCtx: () => Pick<BingoRoomValidationContext, 'requiresAmountAddedPrizePool' | 'activeJackpotTypeIds' | 'gameModeCode' | 'prizePoolCode'> = () => ({})
 ) {
     /* ── v-model computado ── */
 

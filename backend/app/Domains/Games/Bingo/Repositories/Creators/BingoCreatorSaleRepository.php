@@ -562,7 +562,9 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             return false;
         }
 
-        $calculatedTotal = $sale->rke_commission + $sale->room_commission + $sale->seller_commission + $sale->prize_pool_amount;
+        // venta = RKE + creador + vendedor + jackpot + premios
+        $calculatedTotal = $sale->rke_commission + $sale->room_commission + $sale->seller_commission
+            + ($sale->jackpot_contribution ?? 0) + $sale->prize_pool_amount;
         $tolerance = 0.01; // Tolerancia para errores de redondeo
 
         return abs($sale->sale_amount - $calculatedTotal) <= $tolerance;

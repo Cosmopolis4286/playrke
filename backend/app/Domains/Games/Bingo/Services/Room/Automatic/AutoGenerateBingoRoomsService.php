@@ -13,6 +13,7 @@ use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
 use App\Services\Utils\Snowflake\SnowflakeBatchService;
 use App\Domains\Wallet\Services\WalletService;
+use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
@@ -189,8 +190,13 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         // Fijo/Extra si el bote no es acumulativo). Antes las salas generadas
         // arrancaban siempre en 0 aunque la plantilla tuviera bote fijo.
         // Si el tipo ya no existe no se aborta la generación: se arranca en 0.
+        // No aplica en acumulativo ni en Premio/Servicio puro (ver BingoRoomPrizeRules).
         $prizePoolType = PrizePoolType::find($template->prize_pool_type_id);
-        $prizePool = ($prizePoolType && !$prizePoolType->isAccumulative())
+        $roundTypes = array_map(
+            fn ($t) => match ($t) { 'FIXED' => 'fixed', 'OTHER' => 'prize', default => 'percentage' },
+            (array) ($template->rounds_config['prize_types'] ?? [])
+        );
+        $prizePool = ($prizePoolType && BingoRoomPrizeRules::usesInitialAmount($prizePoolType->code, $roundTypes))
             ? (float) ($template->amount_added_prize_pool ?? 0)
             : 0.0;
 

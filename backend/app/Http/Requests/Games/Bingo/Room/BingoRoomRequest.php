@@ -6,6 +6,7 @@ use App\Http\Requests\BaseRequest;
 use App\Models\ExchangeRate;
 use App\Models\Game;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomCapacityRules;
+use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
@@ -156,6 +157,7 @@ class BingoRoomRequest extends BaseRequest
         // modo de juego, jackpot activo, capacidad…) ante un error de monedas.
         $validator->after(function ($validator) {
             $this->validatePrizePoolAmount($validator);
+            $this->validatePrizeRounds($validator);
             $this->validateScheduleLeadTime($validator);
             $allowedCurrencies = $this->validateCurrencies($validator);
             $this->validateFixedRoundPrizes($validator, $allowedCurrencies);
@@ -172,7 +174,7 @@ class BingoRoomRequest extends BaseRequest
     {
         $prizePoolType = $this->resolvedPrizePoolType();
         if (
-            $prizePoolType && !$prizePoolType->isAccumulative()
+            $prizePoolType && $this->usesInitialAmount()
             && $this->input('amountAddedPrizePool') === null
             && !$validator->errors()->has('amountAddedPrizePool')
         ) {
@@ -437,7 +439,7 @@ class BingoRoomRequest extends BaseRequest
      */
     protected function prepareForValidation(): void
     {
-        if ($this->resolvedPrizePoolType()?->isAccumulative()) {
+        if ($this->resolvedPrizePoolType() && !$this->usesInitialAmount()) {
             $this->merge(['amountAddedPrizePool' => null]);
         }
     }
@@ -452,6 +454,30 @@ class BingoRoomRequest extends BaseRequest
             $this->prizePoolTypeCache = PrizePoolType::find($id);
         }
         return $this->prizePoolTypeCache;
+    }
+
+    /**
+     * ¿Aplica el "Valor Fijo/Extra"? No en bote acumulativo ni en Premio/Servicio
+     * puro (sin rondas %: no hay bote en dinero que sembrar). Ver BingoRoomPrizeRules.
+     */
+    private function usesInitialAmount(): bool
+    {
+        return BingoRoomPrizeRules::usesInitialAmount(
+            $this->resolvedPrizePoolType()?->code,
+            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
+        );
+    }
+
+    /** Coherencia tipo de bote ↔ rondas (Premio/Servicio puro o híbrido). */
+    private function validatePrizeRounds($validator): void
+    {
+        $error = BingoRoomPrizeRules::roundsError(
+            $this->resolvedPrizePoolType()?->code,
+            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
+        );
+        if ($error && !$validator->errors()->has('prizePoolType')) {
+            $validator->errors()->add('prizePoolType', $error);
+        }
     }
 
     /**

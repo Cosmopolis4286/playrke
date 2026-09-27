@@ -29,11 +29,16 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->cascadeOnUpdate()
                 ->comment('Moneda asociada');
-            $table->decimal('sale_amount', 12, 2)->comment('Monto total de la venta');
-            $table->decimal('rke_commission', 6, 2)->comment('Comisión de RKE');
-            $table->decimal('room_commission', 6, 2)->comment('Comisión de la sala');
-            $table->decimal('seller_commission', 8, 2)->nullable()->comment('Comisión del vendedor');
-            $table->decimal('prize_pool_amount', 13, 2)->comment('Monto del pool de premios');
+            // Cada fila ACUMULA todas las ventas de una sala por creador y moneda
+            // (moneda local: VES, etc.), así que todas las columnas de montos van
+            // con el mismo ancho — antes rke/room eran decimal(6,2) (tope 9.999,99)
+            // y desbordaban con las ventas acumuladas de una sola sala.
+            $table->decimal('sale_amount', 13, 2)->comment('Monto total de la venta');
+            $table->decimal('rke_commission', 13, 2)->comment('Comisión de RKE');
+            $table->decimal('room_commission', 13, 2)->comment('Comisión de la sala');
+            $table->decimal('seller_commission', 13, 2)->nullable()->comment('Comisión del vendedor');
+            $table->decimal('jackpot_contribution', 13, 2)->default(0)->comment('Aporte al jackpot');
+            $table->decimal('prize_pool_amount', 13, 2)->comment('Monto destinado a premios: bote de la sala, o fondos del premio físico en salas Premio/Servicio puras');
             $table->timestamps();
 
             // Índices para consultas frecuentes

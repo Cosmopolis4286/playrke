@@ -17,7 +17,7 @@ class BingoCreatorSale extends Model
 
     protected $fillable = [
         'room_id', 'creator_user_id', 'currency_id', 'sale_amount',
-        'rke_commission', 'room_commission', 'seller_commission', 'prize_pool_amount',
+        'rke_commission', 'room_commission', 'seller_commission', 'jackpot_contribution', 'prize_pool_amount',
     ];
 
     protected $casts = [
@@ -25,6 +25,7 @@ class BingoCreatorSale extends Model
         'rke_commission'    => 'decimal:8',
         'room_commission'   => 'decimal:8',
         'seller_commission'      => 'decimal:8',
+        'jackpot_contribution' => 'decimal:8',
         'prize_pool_amount' => 'decimal:8',
         'created_at'        => 'datetime',
         'updated_at'        => 'datetime',
@@ -53,7 +54,9 @@ class BingoCreatorSale extends Model
 
     public function getIsValidAttribute(): bool
     {
-        $calculatedTotal = $this->rke_commission + $this->room_commission + $this->seller_commission + $this->prize_pool_amount;
+        // venta = RKE + creador + vendedor + jackpot + premios
+        $calculatedTotal = $this->rke_commission + $this->room_commission + $this->seller_commission
+            + ($this->jackpot_contribution ?? 0) + $this->prize_pool_amount;
         return abs($this->sale_amount - $calculatedTotal) <= 0.01;
     }
 }

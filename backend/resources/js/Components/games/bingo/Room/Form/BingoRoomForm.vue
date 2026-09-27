@@ -20,7 +20,10 @@
   import { useBingoRoomConflictDetector } from '@/js/composables/games/bingo/room/shared/useBingoRoomConflictDetector'
   import { useBingoRoomDraft } from '@/js/composables/games/bingo/room/shared/useBingoRoomDraft'
   import { useBingoRoomStepper } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
-  import { BINGO_ROOM_AMOUNT_LIMITS as AMOUNT_LIMITS } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
+  import {
+    BINGO_ROOM_AMOUNT_LIMITS as AMOUNT_LIMITS,
+    usesInitialAmount
+  } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
   import BingoRoomReviewStep from './Steps/BingoRoomReviewStep.vue'
   import { router } from '@inertiajs/vue3'
   import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
@@ -80,17 +83,21 @@
     props.gameModeOptions.find(o => String(o.value) === String((props.modelValue as any).gameMode))?.code ?? null
   )
 
+  /** Código del Tipo Bote elegido (ACCUMULATIVE/FIXED/MIXED/PRIZE). Lee props.modelValue: se usa antes de crear el form. */
+  const prizePoolCode = computed<string | null>(() =>
+    props.prizePoolTypeOptions.find(opt => String(opt.value) === String(props.modelValue.prizePoolType))?.code ?? null
+  )
+
   /**
-   * true si el Tipo Bote elegido exige "Valor Fijo/Extra" (todo tipo salvo
-   * ACCUMULATIVE — misma regla que PrizePoolType::isAccumulative() en backend).
+   * true si aplica el "Valor Fijo/Extra": todo tipo salvo ACCUMULATIVE y salvo
+   * Premio/Servicio PURO (sin rondas %) — misma regla que
+   * BingoRoomPrizeRules::usesInitialAmount() en backend.
    * null si todavía no hay tipo elegido: no se valida ni se muestra el campo.
-   * Lee props.modelValue (no `form`) porque se usa antes de crear el form.
    */
   const requiresAmountAddedPrizePool = computed<boolean | null>(() => {
-    const selected = props.prizePoolTypeOptions.find(
-      opt => String(opt.value) === String(props.modelValue.prizePoolType)
-    )
-    return selected ? selected.code !== 'ACCUMULATIVE' : null
+    if (!prizePoolCode.value) return null
+    const roundTypes = (props.modelValue.roundsConfig ?? []).map(r => r.prizeType)
+    return usesInitialAmount(prizePoolCode.value, roundTypes)
   })
 
   const {
@@ -115,7 +122,8 @@
     () => ({
       requiresAmountAddedPrizePool: requiresAmountAddedPrizePool.value,
       activeJackpotTypeIds: props.jackpotTypeOptions ? props.jackpotTypeOptions.map(o => String(o.value)) : null,
-      gameModeCode: gameModeCode.value
+      gameModeCode: gameModeCode.value,
+      prizePoolCode: prizePoolCode.value
     })
   )
 
@@ -249,8 +257,9 @@
 
   const showAmountAddedPrizePool = computed(() => requiresAmountAddedPrizePool.value === true)
 
-  // Al pasar a bote acumulativo el "Valor Fijo/Extra" deja de aplicar y se
-  // oculta — se limpia para no enviar (ni validar en oculto) un monto residual.
+  // Cuando el "Valor Fijo/Extra" deja de aplicar (bote acumulativo, o
+  // Premio/Servicio sin rondas %) se oculta — se limpia para no enviar (ni
+  // validar en oculto) un monto residual.
   watch(requiresAmountAddedPrizePool, requires => {
     if (requires === false && form.value.amountAddedPrizePool != null) {
       form.value = { ...form.value, amountAddedPrizePool: null }

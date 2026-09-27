@@ -5,6 +5,7 @@ namespace App\Http\Requests\Games\Bingo\Room\Automatic;
 use App\Http\Requests\BaseRequest;
 use App\Models\Game;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomCapacityRules;
+use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
@@ -161,7 +162,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
      */
     protected function prepareForValidation(): void
     {
-        if ($this->resolvedPrizePoolType()?->isAccumulative()) {
+        if ($this->resolvedPrizePoolType() && !$this->usesInitialAmount()) {
             $this->merge(['amountAddedPrizePool' => null]);
         }
     }
@@ -179,6 +180,30 @@ class BingoRoomAutomaticRequest extends BaseRequest
     }
 
     /**
+     * ¿Aplica el "Valor Fijo/Extra"? No en bote acumulativo ni en Premio/Servicio
+     * puro (sin rondas %: no hay bote en dinero que sembrar). Ver BingoRoomPrizeRules.
+     */
+    private function usesInitialAmount(): bool
+    {
+        return BingoRoomPrizeRules::usesInitialAmount(
+            $this->resolvedPrizePoolType()?->code,
+            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
+        );
+    }
+
+    /** Coherencia tipo de bote ↔ rondas (Premio/Servicio puro o híbrido). */
+    private function validatePrizeRounds($validator): void
+    {
+        $error = BingoRoomPrizeRules::roundsError(
+            $this->resolvedPrizePoolType()?->code,
+            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
+        );
+        if ($error && !$validator->errors()->has('prizePoolType')) {
+            $validator->errors()->add('prizePoolType', $error);
+        }
+    }
+
+    /**
      * Validaciones cruzadas después de las reglas básicas. Cada chequeo vive
      * en su propio método y corre SIEMPRE: antes era un solo closure con
      * `return` tempranos en el bloque de monedas — en particular
@@ -193,6 +218,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
             $this->validateCapacityPairs($validator);
             $this->validateJackpotActive($validator);
             $this->validatePrizePoolAmount($validator);
+            $this->validatePrizeRounds($validator);
             $allowedCurrencies = $this->validateCurrencies($validator);
             $this->validateFixedRoundPrizes($validator, $allowedCurrencies);
             $this->validatePercentageSum($validator);
@@ -285,7 +311,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
     {
         $prizePoolType = $this->resolvedPrizePoolType();
         if (
-            $prizePoolType && !$prizePoolType->isAccumulative()
+            $prizePoolType && $this->usesInitialAmount()
             && $this->input('amountAddedPrizePool') === null
             && !$validator->errors()->has('amountAddedPrizePool')
         ) {

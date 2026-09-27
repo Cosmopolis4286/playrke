@@ -6,6 +6,9 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
+use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Services\Jackpot\JackpotLedgerService;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
@@ -244,17 +247,24 @@ class RoomMetricsService implements RoomMetricsInterface
                 return false;
             }
 
-            // Reparto de cada venta, igual para TODO tipo de bote (Acumulativo,
-            // Fijo, Mixto y Premio/Servicio): comisión RKE + comisión del creador
-            // + comisión del vendedor + aporte al jackpot + resto al bote.
+            // Reparto de cada venta, igual para TODO tipo de bote: comisión RKE +
+            // comisión del creador + comisión del vendedor + aporte al jackpot +
+            // resto "para premios". Lo único que cambia según el tipo es a dónde va
+            // ese resto (ver BingoRoomPrizeRules):
+            //  - Bote en dinero de la sala (prize_pool) — todos los tipos, y
+            //    Premio/Servicio HÍBRIDO (tiene alguna ronda %, que lo consume).
+            //  - Premio/Servicio PURO (solo rondas de premio físico): no hay bote en
+            //    dinero que repartir; el resto queda como fondos del premio que pone
+            //    el creador (BingoCreatorSale.prize_pool_amount, metrics prize_funding).
             //
-            // Antes esto estaba envuelto en `if ($prizePoolType != 2)` para excluir
-            // "Premio" (id 2 en el seeder original autoincremental). Con ids
-            // snowflake la condición era siempre verdadera, así que este reparto ya
-            // aplicaba a todos los tipos — y es el correcto: excluir Premio dejaría
-            // la venta sin comisión RKE, sin comisión del creador y sin
-            // BingoCreatorSale (el dinero cobrado no se acreditaría a nadie), y con
-            // prize_pool en 0 cualquier ronda PCT de esa sala fallaría el health check.
+            // Antes había un `if ($prizePoolType != 2)` pensado para excluir "Premio"
+            // (id 2 en el seeder original autoincremental) de TODO el reparto; con ids
+            // snowflake nunca se cumplía. Excluirlo entero era incorrecto: la venta se
+            // habría quedado sin comisión RKE, sin comisión del creador y sin registro.
+            $poolCode = PrizePoolType::whereKey($bingoConfig->prize_pool_type_id)->value('code');
+            $accruesMoneyPool = $poolCode !== BingoRoomPrizeRules::POOL_PRIZE
+                || BingoRound::where('room_id', $room->id)->where('prize_type', 'PCT')->exists();
+
             $jackpotPct = ($bingoConfig->jackpot_type_id && $bingoConfig->jackpot_pct)
                 ? (float) $bingoConfig->jackpot_pct
                 : 0.0;
@@ -279,9 +289,11 @@ class RoomMetricsService implements RoomMetricsInterface
             $updateData = [
                 'rke_commission' => ($room->rke_commission ?? 0) + $rkeCommission,
                 'room_commission' => ($room->room_commission ?? 0) + $creatorCommission,
-                'prize_pool' => ($room->prize_pool ?? 0) + $prizePool,
-                'full_house_prize' => ($room->full_house_prize ?? 0) + $prizePool,
             ];
+            if ($accruesMoneyPool) {
+                $updateData['prize_pool'] = ($room->prize_pool ?? 0) + $prizePool;
+                $updateData['full_house_prize'] = ($room->full_house_prize ?? 0) + $prizePool;
+            }
 
             // Acreditar RKE a la billetera de plataforma (convertida a la moneda local de la venta)
             if ($rkeCommission > 0) {
@@ -352,8 +364,13 @@ class RoomMetricsService implements RoomMetricsInterface
 
                 $current['total_sales'] = round($current['total_sales'] + $saleAmountLocal, 3);
                 $current['total_cards'] += $saleData['cardCount'];
-                $current['prize_pool'] = round($current['prize_pool'] + $prizePoolLocal, 3);
-                $current['full_house_prize'] = round($current['full_house_prize'] + $prizePoolLocal, 3);
+                if ($accruesMoneyPool) {
+                    $current['prize_pool'] = round($current['prize_pool'] + $prizePoolLocal, 3);
+                    $current['full_house_prize'] = round($current['full_house_prize'] + $prizePoolLocal, 3);
+                } else {
+                    // Premio/Servicio puro: fondos del premio físico (los pone el creador).
+                    $current['prize_funding'] = round(($current['prize_funding'] ?? 0) + $prizePoolLocal, 3);
+                }
                 $current['rke_commission'] = round($current['rke_commission'] + $rkeCommissionLocal, 3);
                 $current['room_commission'] = round($current['room_commission'] + $creatorCommissionLocal, 3);
                 // Clave nueva: salas con ventas previas no la tienen, de ahí el ?? 0.
@@ -379,12 +396,11 @@ class RoomMetricsService implements RoomMetricsInterface
                     // $rkeCommissionLocal puede haber sido sobreescrito en el bloque
                     // de PlatformWallet con un valor recalculado desde USD.
                     // Recalcular prize_pool con ese valor final para que la integridad
-                    // sale_amount == rke + room + seller + prize_pool se mantenga.
-                    // OJO: BingoCreatorSale no tiene columna de jackpot, así que acá
-                    // prize_pool_amount sigue incluyendo el aporte al jackpot (a
-                    // diferencia de bingo_rooms.prize_pool y metrics_by_currency).
+                    // sale_amount == rke + room + seller + jackpot + prize_pool se mantenga.
+                    // prize_pool_amount = lo destinado a premios: bote en dinero, o
+                    // fondos del premio físico en salas Premio/Servicio puras.
                     $finalRkeLocal    = $rkeCommissionLocal;
-                    $finalPrizeLocal  = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal, 3);
+                    $finalPrizeLocal  = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal - $jackpotContributionLocal, 3);
 
                     $existing = BingoCreatorSale::where('room_id', $room->id)
                         ->where('creator_user_id', $creatorUserId)
@@ -396,6 +412,7 @@ class RoomMetricsService implements RoomMetricsInterface
                         $existing->increment('rke_commission',   $finalRkeLocal);
                         $existing->increment('room_commission',  $creatorCommissionLocal);
                         $existing->increment('seller_commission',$sellerCommissionLocal);
+                        $existing->increment('jackpot_contribution', $jackpotContributionLocal);
                         $existing->increment('prize_pool_amount',$finalPrizeLocal);
                     } else {
                         BingoCreatorSale::create([
@@ -406,6 +423,7 @@ class RoomMetricsService implements RoomMetricsInterface
                             'rke_commission'    => $finalRkeLocal,
                             'room_commission'   => $creatorCommissionLocal,
                             'seller_commission' => $sellerCommissionLocal,
+                            'jackpot_contribution' => $jackpotContributionLocal,
                             'prize_pool_amount' => $finalPrizeLocal,
                         ]);
                     }
