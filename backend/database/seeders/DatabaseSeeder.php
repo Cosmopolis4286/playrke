@@ -35,7 +35,6 @@ class DatabaseSeeder extends Seeder
             AppParameterSeeder::class,
             ModuleSeeder::class,
             TosVersionSeeder::class,
-            WalletLimitSeeder::class,
             RoleSeeder::class,
             PermissionSeeder::class,
             RolePermissionSeeder::class,
@@ -45,6 +44,17 @@ class DatabaseSeeder extends Seeder
             TestUserSeeder::class,
             DemoRoleDataSeeder::class,
             ExternalPlayerSeeder::class,
+            // ExchangeRateSeeder necesita un User real (user_id NOT NULL en
+            // exchange_rates) — debe correr después de TestUserSeeder. A su
+            // vez, WalletLimitSeeder ahora usa WalletLimitService::recommend()
+            // para los límites específicos por moneda, que depende de una
+            // tasa ACTIVE por moneda (CurrencyExchangeRateService) — por eso
+            // ambos se movieron al final del pipeline, después de vivir junto
+            // a WalletLimitSeeder original (línea de arriba, antes de
+            // RoleSeeder) cuando solo sembraba el fallback global sin esa
+            // dependencia.
+            ExchangeRateSeeder::class,
+            WalletLimitSeeder::class,
         ]);
     }
 }
