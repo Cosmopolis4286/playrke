@@ -722,10 +722,13 @@ footer.main-footer {
   }
 }
 
-/* Ticker de ganancias (position:fixed): su altura empuja el contenido scrollable */
-:root { --pwt-height: 0px; }
+/* Ticker de ganancias + banner de impersonación (ambos position:fixed): su
+   altura combinada empuja el contenido scrollable. --imp-banner-height la
+   setea ImpersonationBanner.vue (0px cuando no hay sesión de soporte activa,
+   el div ni siquiera se monta — ver mountImpersonationBanner() en global.ts). */
+:root { --pwt-height: 0px; --imp-banner-height: 0px; }
 #content-scrollable {
-  padding-top: var(--pwt-height);
+  padding-top: calc(var(--pwt-height) + var(--imp-banner-height));
   transition: padding-top .2s ease-in-out;
 }
 

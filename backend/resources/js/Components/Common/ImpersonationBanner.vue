@@ -7,7 +7,7 @@
  * a la que navegue el admin mientras impersona a un jugador (ver
  * ImpersonationService).
  */
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const props = defineProps<{
   adminName: string
@@ -15,6 +15,23 @@ const props = defineProps<{
 }>()
 
 const stopping = ref(false)
+const rootEl = ref<HTMLElement | null>(null)
+
+/**
+ * .main-header es position:fixed (ver resources/css/global/styles.css), lo
+ * que lo saca del flujo normal — sin esto, este banner (que en el DOM viene
+ * justo después del navbar) queda tapado detrás de él en vez de debajo,
+ * dejando su botón "Volver a mi cuenta" inalcanzable al clic. Mismo patrón
+ * que PlatformWinTicker.vue (--pwt-height): mide la altura real y reserva
+ * ese espacio en #content-scrollable vía variable CSS.
+ */
+function syncReservedSpace(): void {
+  const height = rootEl.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--imp-banner-height', `${height}px`)
+}
+
+onMounted(() => nextTick(syncReservedSpace))
+onBeforeUnmount(() => document.documentElement.style.setProperty('--imp-banner-height', '0px'))
 
 async function handleStop() {
   stopping.value = true
@@ -43,7 +60,7 @@ async function handleStop() {
 </script>
 
 <template>
-  <div class="impersonation-banner">
+  <div ref="rootEl" class="impersonation-banner">
     <i class="fas fa-user-secret"></i>
     <span>
       Estás viendo la plataforma como <strong>{{ playerName }}</strong>
@@ -58,6 +75,14 @@ async function handleStop() {
 
 <style scoped>
 .impersonation-banner {
+  /* fixed bajo el navbar (que también es fixed, ver comentario de
+     syncReservedSpace arriba) — z-index por debajo de .main-header (1035)
+     para no taparlo, por encima del contenido normal. */
+  position: fixed;
+  top: var(--navbar-h);
+  left: 0;
+  right: 0;
+  z-index: 1030;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,6 +94,12 @@ async function handleStop() {
   font-weight: 600;
   flex-wrap: wrap;
   text-align: center;
+}
+@media (min-width: 768px) {
+  .impersonation-banner {
+    left: var(--sidebar-w, 250px);
+    transition: left 0.3s ease-in-out;
+  }
 }
 .impersonation-banner__btn {
   display: inline-flex;
