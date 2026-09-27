@@ -34,9 +34,22 @@ class SidebarMenuVisibilitySeeder extends Seeder
         'business.exchange_rates'       => ['player', 'seller'],
         'business.my_sellers'           => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
         'business.my_subsidiaries'      => ['player', 'seller', 'superadmin'],
-        'business.my_profile_subsidiary' => ['admin', 'commerce', 'player', 'seller', 'superadmin'],
-        'business.my_profile_commerce'  => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
-        'business.my_profile_seller'    => ['admin', 'commerce', 'player', 'subsidiary', 'superadmin'],
+        // my_account.* — antes vivían bajo 'business.*' (ver comentario de
+        // clase); el refactor 3c945746 ("Mi Cuenta" separado de "Negocio")
+        // movió estos 4 items de parent pero nunca migró estas filas, así
+        // que quedaron apuntando a keys huérfanas sin efecto — admin y
+        // superadmin volvieron a ver "Mi Perfil"/"Mi Comercio"/"Mi Agencia"
+        // sin tener nunca una ficha Seller/Commerce/Subsidiary propia,
+        // causando 404 al entrar (ver AdminProfileAccessService). commerce
+        // NO se excluye de my_profile_commerce/commerce_economy_summary (sí
+        // tiene ficha propia); subsidiary NO se excluye de
+        // my_profile_subsidiary (ídem); seller NO se excluye de
+        // my_profile_seller (ídem) — todo lo demás replica la exclusión
+        // original de 'business.*'.
+        'my_account.my_profile_subsidiary'  => ['admin', 'commerce', 'player', 'seller', 'superadmin'],
+        'my_account.my_profile_commerce'    => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
+        'my_account.commerce_economy_summary' => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
+        'my_account.my_profile_seller'      => ['admin', 'commerce', 'player', 'subsidiary', 'superadmin'],
         'business.my_external_players'  => ['admin', 'player', 'superadmin'],
         'business.prizes'               => ['player', 'seller'],
         'business.win_events'           => ['commerce', 'customer', 'player', 'seller'],
