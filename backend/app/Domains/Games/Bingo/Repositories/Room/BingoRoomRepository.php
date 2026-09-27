@@ -77,7 +77,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
-    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false, ?int $sellerCommerceUserId = null): Collection
     {
         // -1 día de margen (diferencias residuales entre el tz del usuario que consulta
         // y el tz de cada creador individual) + 7 días hacia adelante — antes era ±1 día,
@@ -85,7 +85,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         $from = Carbon::parse($today)->subDay()->toDateString();
         $to   = Carbon::parse($today)->addDays(7)->toDateString();
 
-        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, sellerCommerceUserId: $sellerCommerceUserId)
             ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: true));
 
         return $query->orderBy(
@@ -111,7 +111,8 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         int $perPage,
         bool $isPlayer,
         bool $isCommerceCustomer = false,
-        bool $isAdmin = false
+        bool $isAdmin = false,
+        ?int $sellerCommerceUserId = null
     ): LengthAwarePaginator {
         // Sin filtro de fecha explícito: ventana amplia (hoy → +30 días) en vez
         // de la unbounded query completa, para no escanear todo el histórico
@@ -130,7 +131,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         $from = $filters['date_from'] ?? now()->toDateString();
         $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
 
-        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId)
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, sellerCommerceUserId: $sellerCommerceUserId)
             ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: !$hasExplicitDateFilter));
 
         if (!empty($filters['variant'])) {
@@ -175,7 +176,8 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         array $filters,
         bool $isPlayer,
         bool $isCommerceCustomer = false,
-        bool $isAdmin = false
+        bool $isAdmin = false,
+        ?int $sellerCommerceUserId = null
     ): ?BingoRoom {
         // now() aquí es fallback defensivo — ver comentario en
         // paginateRoomsForViewWithFilters(), mismo criterio.
@@ -183,7 +185,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         $from = $filters['date_from'] ?? now()->toDateString();
         $to   = $filters['date_to'] ?? now()->addDays(30)->toDateString();
 
-        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, light: true)
+        $query = $this->buildActiveRoomsQuery($isPlayer, $isCommerceCustomer, $isAdmin, $userId, light: true, sellerCommerceUserId: $sellerCommerceUserId)
             ->whereHas('status', fn($q) => $q->where('code', 'ACTIVE'))
             ->whereHas('config', fn($q) => $this->applyDateWindow($q, $from, $to, includeNullDate: !$hasExplicitDateFilter));
 
@@ -230,13 +232,21 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      *                     playersPreview) usados solo por el listado real de
      *                     salas — las queries de agregación (KPIs) no los
      *                     necesitan y serían N+1 innecesarios.
+     * @param int|null $sellerCommerceUserId user_id del Commerce real del vendedor
+     *                     (Seller::resolveCommerce(), directo o vía agencia) —
+     *                     si viene, el seller ve las salas de su comercio + las
+     *                     PUBLIC (mismo criterio que BingoRoom::scopeAccessibleBy()
+     *                     en el formulario de generar cartones). Sin esto caía en
+     *                     el fallback "solo las propias" y un seller, que nunca
+     *                     crea salas, veía el listado vacío.
      */
     private function buildActiveRoomsQuery(
         bool $isPlayer,
         bool $isCommerceCustomer,
         bool $isAdmin,
         int $userId,
-        bool $light = false
+        bool $light = false,
+        ?int $sellerCommerceUserId = null
     ): Builder {
         $with = [
             'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,connection_type_id,min_cards_to_start,max_cards_to_start,max_players,min_players,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x',
@@ -275,6 +285,9 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             $query->whereHas('config', fn($q) => $q->where('from_house', 'N'));
         } elseif ($isAdmin) {
             // Admin/superadmin: todas las salas sin filtro adicional
+        } elseif ($sellerCommerceUserId !== null) {
+            // Seller: salas de su comercio + públicas
+            $query->accessibleBy($sellerCommerceUserId);
         } else {
             // Fallback: solo las salas propias
             $query->where('bingo_rooms.creator_user_id', $userId);

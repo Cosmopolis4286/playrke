@@ -837,8 +837,14 @@ final class BingoCardGenerateService
 
         return match ($role) {
             'commerce', 'customer' => $userId,
-            'seller' => $this->sellerRepository
-                ->getValueByUserId($userId, 'manager_user_id'),
+            // Commerce real vía resolveCommerce(): para un seller de agencia,
+            // manager_user_id es el usuario de la Subsidiary (que no crea
+            // salas), no el del Commerce dueño de las salas.
+            'seller' => (int) (Seller::where('user_id', $userId)
+                ->first(['id', 'manager_user_id', 'subsidiary_id'])
+                ?->resolveCommerce()
+                ?->user_id
+                ?? throw BingoCardGenerateException::commerceNotFound()),
             default => throw BingoCardGenerateException::invalidManagerRole(),
         };
     }

@@ -701,7 +701,7 @@ final class BingoRoomContextService
         $isAdmin           = $this->userContext->userHasRole('admin') || $this->userContext->userHasRole('superadmin');
 
         // Usar el nuevo método con filtrado por rol
-        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer, $isCommerceCustomer, $isAdmin);
+        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer, $isCommerceCustomer, $isAdmin, $this->resolveSellerCommerceUserId($userId));
 
         $timestamp = now()->valueOf(); // ms
 
@@ -735,6 +735,27 @@ final class BingoRoomContextService
             bingoRules: $this->bingoConfigContext->getBingoRules($userId),
             imageBingoRules: $this->bingoConfigContext->getImageBingoRules($userId),
         );
+    }
+
+    /**
+     * user_id del Commerce real del vendedor autenticado, o null si no es
+     * seller (o no tiene comercio resoluble). Seller::resolveCommerce() cubre
+     * tanto sellers directos (manager_user_id) como de agencia (subsidiary_id
+     * → Subsidiary → Commerce) — no usar manager_user_id crudo, que para un
+     * seller de agencia apunta al usuario de la agencia, no al dueño de las salas.
+     */
+    private function resolveSellerCommerceUserId(int $userId): ?int
+    {
+        if (!$this->userContext->userHasRole('seller')) {
+            return null;
+        }
+
+        $commerceUserId = \App\Models\Roles\Seller::where('user_id', $userId)
+            ->first(['id', 'manager_user_id', 'subsidiary_id'])
+            ?->resolveCommerce()
+            ?->user_id;
+
+        return $commerceUserId !== null ? (int) $commerceUserId : null;
     }
 
     /**
@@ -800,6 +821,7 @@ final class BingoRoomContextService
         $isPlayer           = $this->userContext->userHasRole('player');
         $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
         $isAdmin            = $this->userContext->userHasRole('admin') || $this->userContext->userHasRole('superadmin');
+        $sellerCommerceUserId = $this->resolveSellerCommerceUserId($userId);
 
         // Sin filtro de fecha explícito del usuario: completar el default con "hoy" en
         // SU timezone (no el del servidor) antes de llegar al repositorio — mismo
@@ -815,7 +837,8 @@ final class BingoRoomContextService
             $perPage,
             $isPlayer,
             $isCommerceCustomer,
-            $isAdmin
+            $isAdmin,
+            $sellerCommerceUserId
         );
 
         ['rate' => $exchangeRate, 'sym' => $currencySym] = $this->resolvePlayerCurrency($userId, $isPlayer);
@@ -839,7 +862,7 @@ final class BingoRoomContextService
         // El total de salas activas para el KPI es el mismo total ya resuelto
         // por el paginator (paginate() ya ejecuta su propio COUNT(*) internamente)
         // — evita una segunda query de conteo redundante en cada refetch.
-        $nextRoom = $this->bingoRooms->findNextStartingRoom($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin);
+        $nextRoom = $this->bingoRooms->findNextStartingRoom($userId, $filters, $isPlayer, $isCommerceCustomer, $isAdmin, $sellerCommerceUserId);
 
         return [
             'rooms' => $dto->toView()['rooms'],
