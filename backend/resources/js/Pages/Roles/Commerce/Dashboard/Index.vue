@@ -59,17 +59,17 @@
 
   const quickLinks: QuickLink[] = [
     {
-      label:       'Juegos',
-      description: 'Ver juegos disponibles',
-      icon:        'fas fa-gamepad',
-      href:        '/games',
+      label:       'Gestionar Salas',
+      description: 'Salas de bingo activas',
+      icon:        'fas fa-dice',
+      href:        '/bingo-rooms',
       variant:     'primary',
     },
     {
-      label:       'Ventas',
-      description: 'Ver historial de ventas',
+      label:       'Reporte de Ventas',
+      description: 'Resumen por sala',
       icon:        'fas fa-chart-bar',
-      href:        '/sales',
+      href:        '/bingo/sales-report',
       variant:     'success',
     },
     {
@@ -93,6 +93,13 @@
       href:        '/admin/subsidiaries',
       variant:     'secondary',
     },
+    {
+      label:       'Mi Perfil',
+      description: 'Datos del comercio',
+      icon:        'fas fa-id-card',
+      href:        '/commerce/profile',
+      variant:     'danger',
+    },
   ]
 </script>
 
@@ -107,8 +114,8 @@
         roleKey="commerce"
         :message="period ? `Período: ${period}` : undefined"
         :actions="[
-          { label: 'Ver juegos', icon: 'fas fa-gamepad', href: '/games', variant: 'outline-primary' },
-          { label: 'Ver ventas', icon: 'fas fa-chart-bar', href: '/sales', variant: 'primary' },
+          { label: 'Gestionar salas', icon: 'fas fa-dice', href: '/bingo-rooms', variant: 'outline-primary' },
+          { label: 'Ver ventas', icon: 'fas fa-chart-bar', href: '/bingo/sales-report', variant: 'primary' },
         ]"
       >
         <template #highlights>
