@@ -173,15 +173,19 @@ class BingoRoomCrudService
 
                 $wasActive = !$isCreate && (string) $room->status_id === (string) $activeStatusId;
 
-                // No sobreescribir prize_pool si el juego está en estado terminal
-                $lockedIds    = array_values(array_filter([
-                    $statusMap['IN_PROGRESS'] ?? null,
-                    $statusMap['FINISHED']    ?? null,
-                    $statusMap['CANCELLED']   ?? null,
-                ]));
-                $dataToUpdate = (!$isCreate && in_array($room->status_id, $lockedIds))
-                    ? []
-                    : ['prize_pool' => $prizePool];
+                // prize_pool = monto inicial + aportes de cada venta (RoomMetricsService).
+                // Antes se reescribía con el monto inicial en todo guardado, borrando lo
+                // acumulado por las ventas de una sala ACTIVE (el chequeo de "estado
+                // terminal" que había acá nunca aplicaba: esos estados ya no son
+                // editables, ver roomNotEditableStatus() arriba).
+                // - Sin ventas: se re-siembra con el monto inicial (no hay nada que perder).
+                // - Con ventas: no se toca, y no se permite cambiar el tipo de bote ni el
+                //   monto (la UI ya bloquea esos campos con jugadores registrados).
+                $hasSales = !$isCreate && ((int) ($room->total_cards ?? 0) > 0 || (float) ($room->total_sales ?? 0) > 0);
+                if ($hasSales) {
+                    $this->guardPrizePoolUnchanged($room, $dto);
+                }
+                $dataToUpdate = $hasSales ? [] : ['prize_pool' => $prizePool];
 
                 // Solo si hubo cambio del estado de la sala
                 if ($room->status_id != $statusId) {
@@ -678,6 +682,33 @@ class BingoRoomCrudService
             totalCards:   (int)    $freshRoom->total_cards,
             statusCode:   $freshRoom->status?->code,
         ));
+    }
+
+    /**
+     * Con cartones vendidos, el bote actual ya incluye los aportes de esas
+     * ventas sobre el monto inicial — cambiar el tipo de bote o el "Valor
+     * Fijo/Extra" dejaría prize_pool inconsistente, así que se rechaza.
+     * En bote acumulativo el monto no aplica (se descarta en el request), así
+     * que solo se compara el tipo: una sala vieja con monto residual guardado
+     * no debe quedar bloqueada para editar otros campos.
+     *
+     * @throws BingoRoomException Si cambia el tipo de bote o su monto
+     */
+    private function guardPrizePoolUnchanged(BingoRoom $room, BingoRoomUpdateDTO $dto): void
+    {
+        $current = $room->loadMissing('config')->config;
+        if (!$current) return;
+
+        if ((string) $current->prize_pool_type_id !== (string) $dto->prizePoolType) {
+            throw BingoRoomException::prizePoolLockedBySales();
+        }
+
+        $type = PrizePoolType::find($dto->prizePoolType);
+        if ($type && !$type->isAccumulative()
+            && round((float) ($current->amount_added_prize_pool ?? 0), 2) !== round((float) ($dto->amountAddedPrizePool ?? 0), 2)
+        ) {
+            throw BingoRoomException::prizePoolLockedBySales();
+        }
     }
 
     /**

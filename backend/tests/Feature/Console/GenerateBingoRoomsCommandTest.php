@@ -240,6 +240,31 @@ class GenerateBingoRoomsCommandTest extends TestCase
     }
 
     #[Test]
+    public function service_seeds_initial_prize_pool_from_fixed_template(): void
+    {
+        $fixedTypeId = $this->nextId();
+        DB::table('prize_pool_types')->insert(['id' => $fixedTypeId, 'game_id' => '1', 'code' => 'FIXED', 'label' => 'Bote Fijo', 'status' => 'ACTIVE']);
+        $this->makeTemplate(['prize_pool_type_id' => $fixedTypeId, 'amount_added_prize_pool' => 150]);
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $this->assertEquals(150.0, (float) BingoRoom::first()->prize_pool);
+    }
+
+    #[Test]
+    public function service_does_not_seed_prize_pool_for_accumulative_template(): void
+    {
+        $accTypeId = $this->nextId();
+        DB::table('prize_pool_types')->insert(['id' => $accTypeId, 'game_id' => '1', 'code' => 'ACCUMULATIVE', 'label' => 'Bote Acumulativo', 'status' => 'ACTIVE']);
+        // Monto residual en la plantilla: no debe sembrarse en un bote acumulativo.
+        $this->makeTemplate(['prize_pool_type_id' => $accTypeId, 'amount_added_prize_pool' => 150]);
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $this->assertEquals(0.0, (float) BingoRoom::first()->prize_pool);
+    }
+
+    #[Test]
     public function service_creates_bingo_creator_for_room(): void
     {
         $template = $this->makeTemplate();

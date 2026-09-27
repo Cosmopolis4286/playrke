@@ -205,4 +205,13 @@ final class BingoRoomException extends DomainException
     {
         return new self('BINGO_ROOM_NOT_EDITABLE_STATUS', 409);
     }
+
+    /**
+     * Con cartones ya vendidos no se puede cambiar el tipo de bote ni el
+     * "Valor Fijo/Extra": el bote actual ya incluye los aportes de esas ventas.
+     */
+    public static function prizePoolLockedBySales(): self
+    {
+        return new self('BINGO_ROOM_PRIZE_POOL_LOCKED_BY_SALES', 409);
+    }
 }

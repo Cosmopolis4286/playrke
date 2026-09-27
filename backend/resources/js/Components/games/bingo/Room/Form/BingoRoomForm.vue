@@ -518,6 +518,7 @@
           :connectionTypeOptions="connectionTypeOptions"
           :gameModeOptions="gameModeOptions"
           :hostUserLabel="hostUserLabel"
+          :lockPrizePool="lockedByPlayers"
           :prizePoolTypeOptions="prizePoolTypeOptions"
           :jackpotTypeOptions="jackpotTypeOptions ?? []"
           :roomCommn="roomCommn"
@@ -544,7 +545,10 @@
           label="Valor Fijo/Extra"
           name="amount_added_prize_pool"
           :error="errors.amountAddedPrizePool"
-          :hint="`Monto inicial del bote (${AMOUNT_LIMITS.amountAddedPrizePool.min} a ${AMOUNT_LIMITS.amountAddedPrizePool.max.toLocaleString('es-VE')}).`"
+          :hint="lockedByPlayers
+            ? 'Bloqueado: la sala ya tiene jugadores, no se puede cambiar el bote.'
+            : `Monto inicial del bote (${AMOUNT_LIMITS.amountAddedPrizePool.min} a ${AMOUNT_LIMITS.amountAddedPrizePool.max.toLocaleString('es-VE')}).`"
+          :disabled="lockedByPlayers"
           type="number"
           required
           :step="0.05"

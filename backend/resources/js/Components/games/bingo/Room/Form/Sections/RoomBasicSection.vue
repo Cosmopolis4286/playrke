@@ -37,6 +37,8 @@ import { SelectOption } from '@/js/types/common/form/form'
     }
     /** Etiqueta del anfitrión ya asignado (para precargar el AsyncSelect al editar sin re-buscarlo). */
     hostUserLabel?: string | null
+    /** Sala con ventas: el tipo de bote no se puede cambiar (el backend lo rechaza). */
+    lockPrizePool?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -379,6 +381,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="Tipo Bote"
       name="prize_pool_type"
       :error="errors.prizePoolType"
+      :disabled="lockPrizePool"
       required
       placeholder="Selecciona tipo bote"
       :options="prizePoolTypeOptions"

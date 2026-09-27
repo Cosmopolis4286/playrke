@@ -220,7 +220,10 @@ class BingoRoomRequest extends BaseRequest
 
         // Si no mandaron allowedCurrencies, lo sacamos del room actual
         if ($allowedCurrencies === null) {
-            $allowedCurrencies = $this->route('room')?->config?->first()?->allowed_currencies ?? [];
+            // `config` es HasOne: ->config ya es el modelo. (Antes era
+            // ->config->first(), que ejecuta BingoRoomConfig::first() y
+            // devolvía la primera config de TODA la tabla, no la de esta sala.)
+            $allowedCurrencies = $this->route('room')?->config?->allowed_currencies ?? [];
         }
         if (!is_array($allowedCurrencies)) {
             $allowedCurrencies = [];
@@ -387,7 +390,7 @@ class BingoRoomRequest extends BaseRequest
      */
     private function validateCapacityPairs($validator): void
     {
-        $currentConfig = $this->route('room')?->config?->first();
+        $currentConfig = $this->route('room')?->config; // HasOne (ver validateCurrencies)
 
         $resolvePair = function (string $minKey, string $maxKey, string $currentMinCol, string $currentMaxCol) use ($currentConfig) {
             $min = $this->has($minKey) ? $this->input($minKey) : ($currentConfig?->{$currentMinCol} ?? null);

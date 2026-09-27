@@ -13,6 +13,7 @@ use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
 use App\Services\Utils\Snowflake\SnowflakeBatchService;
 use App\Domains\Wallet\Services\WalletService;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -184,10 +185,20 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             $this->generatedRoomStatusId()
         );
 
-        // Establecer comisiones en la sala (createBaseRoom no las incluye)
+        // Bote inicial: mismo cálculo que una sala creada a mano (monto
+        // Fijo/Extra si el bote no es acumulativo). Antes las salas generadas
+        // arrancaban siempre en 0 aunque la plantilla tuviera bote fijo.
+        // Si el tipo ya no existe no se aborta la generación: se arranca en 0.
+        $prizePoolType = PrizePoolType::find($template->prize_pool_type_id);
+        $prizePool = ($prizePoolType && !$prizePoolType->isAccumulative())
+            ? (float) ($template->amount_added_prize_pool ?? 0)
+            : 0.0;
+
+        // Establecer comisiones y bote inicial en la sala (createBaseRoom no los incluye)
         $room->update([
             'rke_commission'  => $template->rke_commission,
             'room_commission' => $template->room_commission,
+            'prize_pool'      => $prizePool,
         ]);
 
         // 3. Crear configuración de sala (is_scheduled='Y' para automática)
