@@ -132,6 +132,20 @@ class TestUserSeeder extends Seeder
                     'description' => 'Cliente de prueba',
                     'phone_number' => '+58 0412-1000007',
                 ],
+                // Treasurer — antes tenía permisos completos asignados en
+                // RolePermissionSeeder pero ninguna cuenta demo para probarlo
+                // (único rol de negocio sin usuario/entidad, ver auditoría de
+                // seeders faltantes).
+                [
+                    'email'       => 'treasurer@playrke.com',
+                    'username'    => 'treasurer_demo',
+                    'first_name'  => 'Tesorero',
+                    'last_name'   => 'Demo',
+                    'password'    => 'Tes0rer0!Demo#7Vn3',
+                    'role'        => 'treasurer',
+                    'description' => 'Tesorero de prueba',
+                    'phone_number' => '+58 0412-1000011',
+                ],
                 // Players
                 [
                     'email'       => 'player1@test.com',

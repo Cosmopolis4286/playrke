@@ -7,6 +7,7 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
+use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Models\Country;
 use App\Models\Currency;
@@ -17,11 +18,14 @@ use App\Models\Pivots\Roles\Customer\CustomerCurrency;
 use App\Models\Roles\Customer\CustomerGame;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
+use App\Models\Pivots\Roles\Treasurer\TreasurerCurrency;
+use App\Models\Pivots\Roles\Treasurer\TreasurerGame;
 use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
+use App\Models\Roles\Treasurer;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Database\Seeder;
@@ -29,7 +33,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Crea los registros de entidad para los usuarios demo
- * de roles admin, commerce, subsidiary, seller y customer.
+ * de roles admin, commerce, subsidiary, seller, customer y treasurer.
  *
  * Jerarquía real de negocio (ver Seller::resolveCommerce()): Comercio →
  * Sucursal (opcional) → Vendedor. El vendedor demo se cuelga de la
@@ -48,6 +52,7 @@ class DemoRoleDataSeeder extends Seeder
         private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly SellerRepositoryInterface $sellerRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
+        private readonly TreasurerRepositoryInterface $treasurerRepository,
         private readonly WalletRepositoryInterface $walletRepository,
     ) {}
 
@@ -274,6 +279,35 @@ class DemoRoleDataSeeder extends Seeder
                 $this->ensureWallet($customerUser->id, $ves->id);
                 $this->command->info("✔ Customer entity creada para {$customerUser->email}");
             }
+
+            // ──────────────────────────────────────────────────────────
+            // 4. TREASURER — antes tenía permisos completos asignados en
+            //    RolePermissionSeeder pero ninguna cuenta demo para probarlo
+            //    (ver TestUserSeeder para el User + auditoría de seeders
+            //    faltantes). Sin sub-red ni jerarquía, mismo nivel que
+            //    Customer.
+            // ──────────────────────────────────────────────────────────
+            $treasurerUser = User::where('email', 'treasurer@playrke.com')->first();
+
+            if ($treasurerUser && ! Treasurer::where('user_id', $treasurerUser->id)->exists()) {
+                $uniqueCode = $this->userService->createUniqueCode((string) $treasurerUser->id);
+
+                $treasurer = $this->treasurerRepository->createTreasurer([
+                    'name'           => 'Tesorero Demo',
+                    'phone'          => '+58 0412-0000006',
+                    'commission'     => 0.00,
+                    'country_id'     => $venezuela->id,
+                    'user_id'        => $treasurerUser->id,
+                    'unique_code_id' => $uniqueCode->id,
+                    'status'         => 'ACTIVE',
+                ]);
+
+                $this->syncCurrencyTreasurer($treasurer, $ves->id);
+                if ($firstGame) $this->syncGameTreasurer($treasurer, $firstGame->id);
+
+                $this->ensureWallet($treasurerUser->id, $ves->id);
+                $this->command->info("✔ Treasurer entity creada para {$treasurerUser->email}");
+            }
         });
 
         $this->command->info('✅ DemoRoleDataSeeder completado.');
@@ -341,6 +375,22 @@ class DemoRoleDataSeeder extends Seeder
     {
         CustomerGame::updateOrCreate(
             ['customer_id' => $customer->id, 'game_id' => $gameId],
+            ['status' => 'ACTIVE']
+        );
+    }
+
+    private function syncCurrencyTreasurer(Treasurer $treasurer, string $currencyId): void
+    {
+        TreasurerCurrency::updateOrCreate(
+            ['treasurer_id' => $treasurer->id, 'level' => 1],
+            ['currency_id' => $currencyId, 'status' => 'ACTIVE']
+        );
+    }
+
+    private function syncGameTreasurer(Treasurer $treasurer, string $gameId): void
+    {
+        TreasurerGame::updateOrCreate(
+            ['treasurer_id' => $treasurer->id, 'game_id' => $gameId],
             ['status' => 'ACTIVE']
         );
     }
