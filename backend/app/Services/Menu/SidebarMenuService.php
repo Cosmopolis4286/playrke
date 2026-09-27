@@ -317,13 +317,24 @@ class SidebarMenuService
                 'sidebar_menu' => [
                     'title' => 'Menú del Sidebar',
                     'route' => 'sidebar-menu.index',
-                    'permission' => 'superadmin.access',
+                    // sidebar-menu.view (no superadmin.access): la ruta se
+                    // migró a permisos granulares (multiPermission:
+                    // sidebar-menu.view,sidebar-menu.manage — ver migración
+                    // 2026_09_27_000001 y routes/modules/admin.php) para que
+                    // el acceso sea delegable a futuro sin tocar código; el
+                    // ítem del menú se quedó con el permiso viejo, así que
+                    // ese "delegable" nunca funcionaría hasta este fix. Hoy
+                    // solo superadmin tiene sidebar-menu.view, mismo acceso
+                    // efectivo que antes.
+                    'permission' => 'sidebar-menu.view',
                     'group' => 'Operación',
                 ],
                 'dashboard_widgets' => [
                     'title' => 'Widgets del Dashboard',
                     'route' => 'dashboard-widgets.index',
-                    'permission' => 'superadmin.access',
+                    // dashboard-widgets.view (no superadmin.access) — mismo
+                    // criterio que sidebar_menu de arriba.
+                    'permission' => 'dashboard-widgets.view',
                     'group' => 'Operación',
                 ],
                 'audit' => [
