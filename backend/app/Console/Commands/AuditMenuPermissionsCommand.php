@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\Menu\SidebarMenuService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Models\Role;
 
 /**
  * Detecta desincronizaciones entre el permiso que exige un ítem del sidebar
@@ -40,12 +41,57 @@ use Illuminate\Support\Facades\Route;
  *   distintos) — se reporta aparte como INFO, no como hallazgo, y requiere
  *   juicio humano para confirmar que ambos producen el mismo resultado.
  *
+ * Un TERCER chequeo, independiente del cruce menú↔ruta: ítems que
+ * 'superadmin' ve pero 'admin' NO, pese a que 'admin' es "casi todos los
+ * permisos excepto los de SuperAdmin" (ver comentario en
+ * RolePermissionSeeder::run()). El bypass de permisos en
+ * SidebarMenuService::generateMenu() es EXCLUSIVO de superadmin
+ * ($userPermissions = null solo si hasRole('superadmin')) — un admin normal
+ * pasa por el chequeo de permiso como cualquier otro rol. Si el seeder
+ * olvida asignarle un permiso nuevo a admin, admin queda ciego a ese ítem
+ * SIN QUE NADA LO AVISE, porque superadmin (quien probablemente prueba los
+ * cambios) nunca pasa por ese chequeo y no lo nota. Se excluyen los casos ya
+ * confirmados como solo-superadmin por diseño (ver
+ * self::ADMIN_EXCLUDED_PERMISSIONS) y los perfiles-propios de otro rol
+ * (*.manage-own — un admin no es commerce/subsidiary/seller, no debería
+ * tener uno).
+ *
  * Uso: `php artisan menu:audit-permissions` — sale con código 1 si encuentra
- * algún DESALINEADO o RUTA_ABIERTA, pensado para correr en CI o antes de
- * cada release que toque permisos/rutas/sidebar.
+ * algún DESALINEADO, RUTA_ABIERTA o ADMIN_SIN_ACCESO, pensado para correr en
+ * CI o antes de cada release que toque permisos/rutas/sidebar.
  */
 class AuditMenuPermissionsCommand extends Command
 {
+    /**
+     * Permisos que un ítem del sidebar puede exigir sin que se reporte como
+     * hallazgo aunque 'admin' no los tenga. Dos motivos distintos:
+     *
+     * - Solo-superadmin por diseño explícito en el propio código (ver
+     *   docblocks de PermissionPolicy/ModulePolicy/
+     *   SidebarMenuVisibilityPolicy/DashboardWidgetVisibilityPolicy y los
+     *   comentarios "SuperAdmin — permiso protegido system.logs/system.jobs"
+     *   en routes/modules/admin.php).
+     * - Función de JUGADOR/CONSUMIDOR, no de gestión administrativa — un
+     *   admin gestiona la plataforma, no tiene billetera/inventario propios
+     *   ni juega Trivia. Ojo: *.manage-own (perfil propio de otro rol de
+     *   negocio) se excluye aparte por sufijo en auditAdminBlindSpots(), no
+     *   aquí — esta lista es solo para permisos sin ese patrón.
+     *
+     * Si agregas un ítem nuevo aquí, deja el motivo — esta lista es la única
+     * defensa contra que "es correcto que admin no lo vea" se use para
+     * silenciar un hallazgo real sin revisarlo primero.
+     *
+     * @var array<int, string>
+     */
+    private const ADMIN_EXCLUDED_PERMISSIONS = [
+        'superadmin.access',
+        'system.logs',
+        'system.jobs',
+        'wallet.view',              // billetera propia de jugador/customer
+        'inventory.view',           // inventario propio de jugador (marketplace P2P)
+        'games.trivia.play',        // jugar Trivia — rol de consumidor, no de gestión
+    ];
+
     protected $signature = 'menu:audit-permissions {--verbose-info : Mostrar también los casos INFO (role: vs permiso, sin comparación automática)}';
 
     protected $description = 'Audita que el permiso de cada ítem del sidebar coincida con el middleware real de su ruta';
@@ -84,10 +130,13 @@ class AuditMenuPermissionsCommand extends Command
             $this->reportFindings('ℹ️  INFO (ruta usa role: — requiere confirmación manual)', $infoCases);
         }
 
-        $totalIssues = count($misaligned) + count($openRoutes);
+        $adminBlindSpots = $this->auditAdminBlindSpots($items);
+        $this->reportAdminBlindSpots($adminBlindSpots);
+
+        $totalIssues = count($misaligned) + count($openRoutes) + count($adminBlindSpots);
 
         if ($totalIssues === 0) {
-            $this->info('✔ Sin desincronizaciones detectadas entre sidebar y rutas.');
+            $this->info('✔ Sin desincronizaciones detectadas entre sidebar, rutas y permisos de admin.');
             return self::SUCCESS;
         }
 
@@ -98,6 +147,65 @@ class AuditMenuPermissionsCommand extends Command
         ));
 
         return self::FAILURE;
+    }
+
+    /**
+     * Ítems visibles para superadmin (vía bypass) que 'admin' NO puede ver,
+     * excluyendo los ya confirmados como solo-superadmin
+     * (self::ADMIN_EXCLUDED_PERMISSIONS) y los perfiles-propios de otro rol
+     * (*.manage-own).
+     *
+     * @param array<string, array{route: string, permission: string|null}> $items
+     * @return array<int, array{item: string, permission: string}>
+     */
+    private function auditAdminBlindSpots(array $items): array
+    {
+        $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->first();
+
+        if (!$adminRole) {
+            return [];
+        }
+
+        $blindSpots = [];
+
+        foreach ($items as $itemKey => $info) {
+            $permission = $info['permission'];
+
+            if (!$permission) {
+                continue;
+            }
+            if (str_ends_with($permission, '.manage-own')) {
+                continue;
+            }
+            if (in_array($permission, self::ADMIN_EXCLUDED_PERMISSIONS, true)) {
+                continue;
+            }
+            if ($adminRole->hasPermissionTo($permission)) {
+                continue;
+            }
+
+            $blindSpots[] = ['item' => $itemKey, 'permission' => $permission];
+        }
+
+        return $blindSpots;
+    }
+
+    /**
+     * @param array<int, array{item: string, permission: string}> $blindSpots
+     */
+    private function reportAdminBlindSpots(array $blindSpots): void
+    {
+        if (empty($blindSpots)) {
+            return;
+        }
+
+        $this->line('<fg=yellow>👁️  ADMIN_SIN_ACCESO (superadmin ve el ítem vía bypass, admin no tiene el permiso)</>');
+
+        foreach ($blindSpots as $spot) {
+            $this->line(sprintf('  %-40s requiere \'%s\' — admin no lo tiene', $spot['item'], $spot['permission']));
+        }
+
+        $this->newLine();
     }
 
     /**
