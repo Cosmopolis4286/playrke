@@ -1035,9 +1035,11 @@ final class BingoReportController extends Controller
             return $this->sellerSalesByRoomInfo($room, $currency);
         }
 
+        // Columnas calificadas: bingo_card_lots también tiene room_id y
+        // currency_id — sin prefijo MySQL rechazaba el query por ambiguo (1052).
         $totalsQuery = BingoCard::query()
-            ->where('room_id', $room->id)
-            ->when($currency, fn ($q) => $q->where('currency_id', $currency))
+            ->where('bingo_cards.room_id', $room->id)
+            ->when($currency, fn ($q) => $q->where('bingo_cards.currency_id', $currency))
             ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id');
 
         $totals = (clone $totalsQuery)

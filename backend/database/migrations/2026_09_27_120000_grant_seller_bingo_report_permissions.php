@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use App\Models\Permission;
+use App\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -28,6 +28,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        // Antes de resolver permisos por nombre: givePermissionTo() los busca
+        // en el cache de Spatie, que puede no reflejar la BD actual.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         foreach (self::PERMISSIONS as $name) {
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
