@@ -1,5 +1,24 @@
 // numericInput.ts
 
+/**
+ * Unifica separadores a "." decimal para textos pegados en formato local:
+ * - con "." y "," a la vez, el ÚLTIMO es el decimal y el otro es de miles
+ *   ("1.234,50" → "1234.50", "1,234.50" → "1234.50");
+ * - solo "," → decimal ("1,5" → "1.5");
+ * - varios "." sin "," → son de miles ("1.234.567" → "1234567").
+ */
+function normalizeSeparators(raw: string): string {
+    const lastDot = raw.lastIndexOf('.')
+    const lastComma = raw.lastIndexOf(',')
+    if (lastDot !== -1 && lastComma !== -1) {
+        const thousands = lastComma > lastDot ? '.' : ','
+        return raw.split(thousands).join('').replace(',', '.')
+    }
+    if (lastComma !== -1) return raw.replace(/,/g, (_m, i) => (i === lastComma ? '.' : ''))
+    if (raw.indexOf('.') !== lastDot) return raw.replace(/\./g, '')
+    return raw
+}
+
 export interface NumericInputLimits {
     min: number
     max: number
@@ -32,9 +51,9 @@ export function sanitizeNumericInput(
     const clampMin = forceMin || (event as InputEvent).inputType === 'insertFromPaste'
     const decimals = limits.integer ? 0 : (limits.decimals ?? 2)
 
-    let text = el.value.replace(',', '.')
+    let text = normalizeSeparators(el.value)
     if (decimals === 0) {
-        text = text.replace(/\D/g, '')
+        text = text.split('.')[0].replace(/\D/g, '')
     } else {
         text = text.replace(/[^\d.]/g, '')
         const dot = text.indexOf('.')
