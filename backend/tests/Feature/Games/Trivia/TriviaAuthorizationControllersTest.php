@@ -24,8 +24,21 @@ use Tests\TestCase;
  * no rompen el acceso legítimo de admin/superadmin (falso-positivo 403
  * sería la peor regresión posible aquí).
  *
- * TriviaRoom/TriviaQuestion (vía BaseModel -> HasHashedRouteKey) usan
- * Hashids como route key — las URLs deben construirse con getRouteKey().
+ * IMPORTANTE — a diferencia de Subsidiary, estos 3 controllers NO usan
+ * implicit route model binding (reciben `string $id` y llaman
+ * TriviaX::findOrFail($id) manualmente) — por lo tanto NO pasan por
+ * HasHashedRouteKey::resolveRouteBinding(), y las URLs deben construirse
+ * con el id crudo (->id), no con ->getRouteKey(). Confirmado leyendo el
+ * frontend real (QuestionsIndex.vue, RoomsIndex.vue, RoomsShow.vue): todos
+ * usan `row.id` tal cual en las rutas.
+ *
+ * El rol 'player' aquí queda bloqueado por el middleware `role:admin,
+ * superadmin` de ruta ANTES de llegar al controller/authorize() — para
+ * peticiones no-JSON, RoleMiddleware::forbiddenResponse() redirige (302)
+ * en vez de devolver 403 (ver RoleMiddleware.php). El authorize() nuevo es
+ * una segunda capa que nunca llega a evaluarse en este caso — lo que este
+ * test verifica para 'player' es que la mutación NO ocurre, sea cual sea
+ * la capa que la bloqueó.
  */
 class TriviaAuthorizationControllersTest extends TestCase
 {
@@ -109,10 +122,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $room = $this->makeRoom();
 
         $response = $this->actingAs($player)
-            ->delete("/trivia-rooms/{$room->getRouteKey()}");
+            ->delete("/trivia-rooms/{$room->id}");
 
-        $response->assertForbidden();
-        $this->assertNotNull($room->fresh());
+        $this->assertNotEquals(200, $response->getStatusCode());
         $this->assertSame('waiting', $room->fresh()->status);
     }
 
@@ -123,10 +135,11 @@ class TriviaAuthorizationControllersTest extends TestCase
         $room = $this->makeRoom();
 
         $response = $this->actingAs($admin)
-            ->delete("/trivia-rooms/{$room->getRouteKey()}");
+            ->delete("/trivia-rooms/{$room->id}");
 
         // No debe ser 403 (el guardrail de defensa en profundidad no debe
         // bloquear al rol que sí tiene acceso legítimo).
+        $this->assertNotEquals(403, $response->getStatusCode());
         $response->assertStatus(302);
         $response->assertSessionHas('success');
         $this->assertSame('closed', $room->fresh()->status);
@@ -140,9 +153,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $room->update(['status' => 'playing']);
 
         $response = $this->actingAs($player)
-            ->post("/trivia-rooms/{$room->getRouteKey()}/force-close");
+            ->post("/trivia-rooms/{$room->id}/force-close");
 
-        $response->assertForbidden();
+        $this->assertNotEquals(200, $response->getStatusCode());
         $this->assertSame('playing', $room->fresh()->status);
     }
 
@@ -154,8 +167,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $room->update(['status' => 'playing']);
 
         $response = $this->actingAs($superadmin)
-            ->post("/trivia-rooms/{$room->getRouteKey()}/force-close");
+            ->post("/trivia-rooms/{$room->id}/force-close");
 
+        $this->assertNotEquals(403, $response->getStatusCode());
         $response->assertStatus(302);
         $response->assertSessionHas('success');
         $this->assertSame('closed', $room->fresh()->status);
@@ -172,9 +186,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $question = $this->makeQuestion();
 
         $response = $this->actingAs($player)
-            ->delete("/trivia-questions/room/all/{$question->getRouteKey()}");
+            ->delete("/trivia-questions/room/all/{$question->id}");
 
-        $response->assertForbidden();
+        $this->assertNotEquals(200, $response->getStatusCode());
         $this->assertNotNull(TriviaQuestion::find($question->id));
     }
 
@@ -185,8 +199,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $question = $this->makeQuestion();
 
         $response = $this->actingAs($admin)
-            ->delete("/trivia-questions/room/all/{$question->getRouteKey()}");
+            ->delete("/trivia-questions/room/all/{$question->id}");
 
+        $this->assertNotEquals(403, $response->getStatusCode());
         $response->assertStatus(302);
         $response->assertSessionMissing('error');
     }
@@ -198,9 +213,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $question = $this->makeQuestion();
 
         $response = $this->actingAs($player)
-            ->patch("/trivia-questions/room/all/{$question->getRouteKey()}/toggle-active");
+            ->patch("/trivia-questions/room/all/{$question->id}/toggle-active");
 
-        $response->assertForbidden();
+        $this->assertNotEquals(200, $response->getStatusCode());
         $this->assertTrue($question->fresh()->is_active);
     }
 
@@ -211,8 +226,9 @@ class TriviaAuthorizationControllersTest extends TestCase
         $question = $this->makeQuestion();
 
         $response = $this->actingAs($admin)
-            ->patch("/trivia-questions/room/all/{$question->getRouteKey()}/toggle-active");
+            ->patch("/trivia-questions/room/all/{$question->id}/toggle-active");
 
+        $this->assertNotEquals(403, $response->getStatusCode());
         $response->assertStatus(302);
         $this->assertFalse($question->fresh()->is_active);
     }
@@ -234,11 +250,11 @@ class TriviaAuthorizationControllersTest extends TestCase
         ]);
 
         $response = $this->actingAs($player)
-            ->post("/trivia-rooms/{$room->getRouteKey()}/participants/{$participant->getRouteKey()}/dispute", [
+            ->post("/trivia-rooms/{$room->id}/participants/{$participant->id}/dispute", [
                 'reason' => 'Sospecha de colusión entre jugadores de la sala.',
             ]);
 
-        $response->assertForbidden();
+        $this->assertNotEquals(200, $response->getStatusCode());
         $this->assertSame('claimed', $participant->fresh()->prize_status);
     }
 
@@ -258,12 +274,12 @@ class TriviaAuthorizationControllersTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin)
-            ->post("/trivia-rooms/{$room->getRouteKey()}/participants/{$participant->getRouteKey()}/dispute", [
+            ->post("/trivia-rooms/{$room->id}/participants/{$participant->id}/dispute", [
                 'reason' => 'Sospecha de colusión entre jugadores de la sala.',
             ]);
 
-        $response->assertStatus(302);
         $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertStatus(302);
         $response->assertSessionHas('error');
     }
 }
