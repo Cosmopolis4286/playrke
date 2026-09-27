@@ -34,7 +34,16 @@
     canSelectRoom
   } = useBingoCardGenerateRoomSection()
 
-  const minDate = computed(() => new Date().toISOString().split('T')[0])
+  /**
+   * Hoy en la zona horaria LOCAL del vendedor (YYYY-MM-DD). toISOString()
+   * devuelve la fecha en UTC: en Venezuela (UTC-4), desde las 8 p. m. ya era
+   * "mañana" y el vendedor no podía elegir las salas de hoy.
+   */
+  const minDate = computed(() => {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  })
 
   function handleCardCount(value: string | number) {
     const raw = Number(value)
