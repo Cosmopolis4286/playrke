@@ -116,7 +116,7 @@
       label: 'Ganadores',
       description: 'Registros de hoy',
       icon: 'fas fa-trophy',
-      href: '/bingo/winners/private/today',
+      href: '/bingo/winners',
       variant: 'warning',
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       label: 'Directorio',
-      description: 'Salas disponibles',
+      description: 'Datos de pago',
       icon: 'fas fa-university',
       href: '/directory',
       variant: 'secondary',
