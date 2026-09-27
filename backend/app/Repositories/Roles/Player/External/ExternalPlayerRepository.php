@@ -46,12 +46,13 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
             ->first();
     }
 
-    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId): ?ExternalPlayer
+    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId, ?array $sellerUserIds = null): ?ExternalPlayer
     {
         return $this->model->where('phone', $phone)
             ->where('country_id', $countryId)
             ->where('game_id', $gameId)
             ->where('room_id', $roomId)
+            ->when($sellerUserIds !== null, fn ($q) => $q->whereIn('seller_user_id', $sellerUserIds))
             ->first();
     }
 

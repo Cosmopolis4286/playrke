@@ -88,6 +88,25 @@ class Subsidiary extends BaseModel
         return $this->hasMany(Seller::class, 'subsidiary_id');
     }
 
+    /**
+     * user_id de la propia agencia + de sus vendedores (un solo nivel: la
+     * agencia no tiene sub-agencias). Equivalente a Commerce::networkUserIds()
+     * un nivel más abajo en la jerarquía — mismo conjunto de vendedores que
+     * SubsidiaryDashboardContextService::sellerUserIds().
+     *
+     * @return string[]
+     */
+    public function networkUserIds(): array
+    {
+        return $this->sellers()
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->push((string) $this->user_id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public static function getValueByUserId(string|int $userId, string $field): mixed
     {
         return static::where('user_id', $userId)->value($field);

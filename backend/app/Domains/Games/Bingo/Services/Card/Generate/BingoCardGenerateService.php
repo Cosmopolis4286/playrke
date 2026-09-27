@@ -553,11 +553,15 @@ final class BingoCardGenerateService
             : $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate);
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
-        // 6. Buscar jugador existente en la sala
+        // 6. Buscar jugador existente en la sala — solo de la red comercial
+        //    del vendedor (mismo criterio que resolveOrCreatePlayer()): en una
+        //    sala PUBLIC el mismo teléfono puede pertenecer a otro comercio y
+        //    su room_user no debe recibir estos cartones.
         $existingRoomUser = ExternalPlayer::select('id', 'link')
             ->where('game_id', 1)
             ->where('room_id', $room->id)
             ->where('phone', $dto->playerPhone)
+            ->whereIn('seller_user_id', $this->externalPlayerLink->actorNetworkUserIds(Auth::id()))
             ->value('room_user_id');
 
         // Definir ID del juego

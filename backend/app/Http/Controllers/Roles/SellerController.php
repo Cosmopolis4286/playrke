@@ -166,10 +166,14 @@ class SellerController extends Controller
                     return response()->json(['response' => false]);
                 }
 
+                // accessibleBy() valida que el seller pueda VENDER en la sala;
+                // el jugador además debe pertenecer a su red comercial — en una
+                // sala PUBLIC el mismo teléfono puede ser de otro comercio.
                 $player = ExternalPlayer::select('room_user_id', 'first_name', 'last_name', 'country_id', 'phone', 'link')
                     ->where('phone', $request->player_info)
                     ->where('game_id', 1)
                     ->where('room_id', $room->id)
+                    ->whereIn('seller_user_id', $this->externalPlayerLink->actorNetworkUserIds(Auth::id()))
                     ->first();
 
                 if (!$player) return response()->json(['response' => false]);
@@ -222,10 +226,11 @@ class SellerController extends Controller
             return json_encode(null);
         }
 
-        $accessibleRoomIds = BingoRoom::accessibleBy((int) $commerceUserId)->pluck('id');
-
+        // Por red comercial (seller_user_id), no por salas accesibles: con
+        // accessibleBy() cualquier PUBLIC entraba, y con ella los jugadores
+        // captados en esa sala por OTROS comercios.
         $player = ExternalPlayer::where('link', $playerLink)
-            ->whereIn('room_id', $accessibleRoomIds)
+            ->whereIn('seller_user_id', $this->externalPlayerLink->actorNetworkUserIds(Auth::id()))
             ->select(['identification', 'phone'])->first();
         if ($player) return json_encode($player);
     }

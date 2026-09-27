@@ -9,7 +9,9 @@ use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
+use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use App\Services\Roles\RoleUserService;
 use App\Traits\StreamsCsvExport;
 use Carbon\Carbon;
@@ -44,36 +46,11 @@ final class BingoReportController extends Controller
         $this->authorizeResource(BingoRoom::class, 'room');
     }
 
-    /**
-     * Resuelve el user_id de "dueño" cuyas salas puede ver el usuario actual
-     * en estos reportes, o null si no hay restricción (ve todas las salas).
-     *
-     * Antes estos endpoints solo bloqueaban 'player' (abort_if de cada
-     * método público) y las 4 queries base traían TODAS las salas sin
-     * filtrar — cualquier 'seller' (tiene el permiso games.bingo requerido
-     * por la ruta) podía ver y exportar en CSV las ventas, comisiones y
-     * ganadores de TODOS los vendedores/comercios de la plataforma, no solo
-     * los propios. Mismo criterio de scope que ya usa
-     * BingoRoom::scopeAccessibleBy() (creator_user_id de la sala), pero
-     * resolviendo el manager real vía Seller::resolveCommerce() — a
-     * diferencia de BingoCardGenerateService::resolveCreatorOrManagerUserId(),
-     * esto sí cubre correctamente un seller que reporta a través de una
-     * Subsidiary (ver comentario en Seller::managerCommerce()).
-     */
-    private function resolveReportScope(): ?string
-    {
-        $userId = (int) Auth::id();
-
-        return match ($this->activeRole()) {
-            'superadmin', 'admin' => null,
-            'commerce', 'subsidiary', 'customer' => (string) $userId,
-            'seller' => (string) (Seller::where('user_id', $userId)->first()?->resolveCommerce()?->user_id),
-            default => (string) $userId,
-        };
-    }
-
     /** Rol activo del usuario, resuelto una sola vez por request. */
     private ?string $activeRole = null;
+
+    /** @var array{owner: string, network: string[]}|null|false false = aún no resuelto */
+    private array|null|false $ownerScope = false;
 
     private function activeRole(): string
     {
@@ -82,10 +59,9 @@ final class BingoReportController extends Controller
 
     /**
      * El vendedor ve SOLO sus propias ventas (seller_user_id = su user_id),
-     * no el scope de salas de resolveReportScope(): ese scope le mostraría
-     * las ventas de TODOS los vendedores de su comercio (con nombres de
-     * jugadores y comisiones de sala/plataforma) y las de cualquier sala
-     * PUBLIC de otros comercios. Mismo criterio que ya usa su dashboard
+     * no el scope de dueño de sala: le mostraría las ventas de TODOS los
+     * vendedores de su comercio (con nombres de jugadores y comisiones de
+     * sala/plataforma). Mismo criterio que ya usa su dashboard
      * (SellerDashboardContextService). seller_user_id se escribe en
      * bingo_card_lots/bingo_cards al vender (BingoCardGenerationService) y
      * se copia a bingo_card_prizes al premiar (BingoDrawService).
@@ -96,48 +72,104 @@ final class BingoReportController extends Controller
     }
 
     /**
-     * Scope para queries sobre filas de VENTA (BingoCard, BingoCardPrize,
-     * BingoCardLot — todas con seller_user_id): el vendedor ve solo las
-     * suyas; el resto de roles mantiene el scope por dueño de sala.
+     * Scope de los roles "dueños" (commerce/subsidiary/customer), o null
+     * para admin/superadmin (sin restricción). El vendedor no pasa por aquí
+     * (ver isSellerView()).
+     *
+     * - owner:   su user_id — creator_user_id de las salas que le pertenecen.
+     * - network: user_ids cuyas ventas son "suyas" en CUALQUIER sala
+     *            (seller_user_id): el propio usuario + su red de vendedores,
+     *            directos y de sus agencias. Misma definición que ya usan el
+     *            dashboard y el Resumen Financiero (Commerce::networkUserIds(),
+     *            Subsidiary::networkUserIds()).
+     *
+     * Antes el scope era BingoRoom::scopeAccessibleBy() — "mis salas + TODAS
+     * las PUBLIC" —, lo que exponía a cualquier comercio/agencia las ventas,
+     * jugadores, ganadores y comisiones de las salas públicas de OTROS
+     * comercios. accessibleBy() es correcto para decidir en qué salas se
+     * puede JUGAR/VENDER, no para decidir qué datos de negocio se pueden ver.
+     *
+     * @return array{owner: string, network: string[]}|null
      */
-    private function applySaleScope(Builder $query, string $roomRelation = 'room'): Builder
+    private function ownerScope(): ?array
     {
-        if ($this->isSellerView()) {
-            return $query->where($query->getModel()->qualifyColumn('seller_user_id'), (string) Auth::id());
+        if ($this->ownerScope !== false) {
+            return $this->ownerScope;
         }
 
-        return $this->applyRoomScope($query, $roomRelation);
+        $userId = (string) Auth::id();
+
+        return $this->ownerScope = match ($this->activeRole()) {
+            'superadmin', 'admin' => null,
+            'commerce' => [
+                'owner'   => $userId,
+                'network' => Commerce::where('user_id', $userId)->first()?->networkUserIds() ?? [$userId],
+            ],
+            'subsidiary' => [
+                'owner'   => $userId,
+                'network' => Subsidiary::where('user_id', $userId)->first()?->networkUserIds() ?? [$userId],
+            ],
+            // customer y cualquier otro rol con acceso: solo lo propio.
+            default => ['owner' => $userId, 'network' => [$userId]],
+        };
     }
 
     /**
-     * Aplica el scope de dueño de sala a un query builder sobre BingoRoom
-     * (o cualquier relación con belongsTo hacia BingoRoom vía $relation).
+     * Scope para queries sobre filas de VENTA (BingoCard, BingoCardPrize —
+     * ambas con room_id y seller_user_id):
+     * - vendedor: solo las que vendió él;
+     * - dueño: todo lo ocurrido en SUS salas + lo vendido por SU red en
+     *   cualquier otra sala (p. ej. sus vendedores en una sala pública);
+     * - admin: sin filtro.
      */
-    private function applyRoomScope(\Illuminate\Database\Eloquent\Builder $query, ?string $relation = null): \Illuminate\Database\Eloquent\Builder
+    private function applySaleScope(Builder $query): Builder
     {
-        $scopeUserId = $this->resolveReportScope();
+        $model = $query->getModel();
 
-        if ($scopeUserId === null) {
+        if ($this->isSellerView()) {
+            return $query->where($model->qualifyColumn('seller_user_id'), (string) Auth::id());
+        }
+
+        $scope = $this->ownerScope();
+
+        if ($scope === null) {
             return $query;
         }
 
-        if ($relation === null) {
-            return $query->accessibleBy((int) $scopeUserId);
+        return $query->where(function (Builder $q) use ($model, $scope) {
+            $q->whereIn($model->qualifyColumn('room_id'), BingoRoom::query()->select('id')->where('creator_user_id', $scope['owner']))
+                ->orWhereIn($model->qualifyColumn('seller_user_id'), $scope['network']);
+        });
+    }
+
+    /**
+     * Scope para queries sobre BingoRoom en los reportes a nivel SALA
+     * (Reporte de Ventas / Ventas por Sala): solo las salas propias. Esos
+     * reportes muestran la economía completa de la sala (comisión de
+     * plataforma y de sala, neto) — dato del dueño de la sala, no de quien
+     * vendió cartones en ella. Las ventas de la red en salas ajenas siguen
+     * visibles en Cartones/Ganadores (applySaleScope) y en el Resumen
+     * Financiero del comercio.
+     */
+    private function applyRoomScope(Builder $query): Builder
+    {
+        $scope = $this->ownerScope();
+
+        if ($scope === null) {
+            return $query;
         }
 
-        return $query->whereHas($relation, fn ($q) => $q->accessibleBy((int) $scopeUserId));
+        return $query->where($query->getModel()->qualifyColumn('creator_user_id'), $scope['owner']);
     }
 
     /**
      * Aborta con 403 si la sala pedida (route-model-binding directo, ej.
      * salesReportByRoom) no está dentro del scope del usuario — mismo
-     * criterio que applyRoomScope() pero para el caso de una sala puntual en
-     * vez de una lista filtrada.
+     * criterio que applyRoomScope() pero para una sala puntual.
      */
     private function assertRoomInScope(BingoRoom $room): void
     {
-        // Vendedor: solo salas donde tiene ventas propias — no cualquier sala
-        // de su comercio ni cualquier PUBLIC (ver isSellerView()).
+        // Vendedor: solo salas donde tiene ventas propias (ver isSellerView()).
         if ($this->isSellerView()) {
             abort_unless(
                 BingoCardLot::where('room_id', $room->id)->where('seller_user_id', (string) Auth::id())->exists(),
@@ -146,15 +178,13 @@ final class BingoReportController extends Controller
             return;
         }
 
-        $scopeUserId = $this->resolveReportScope();
+        $scope = $this->ownerScope();
 
-        if ($scopeUserId === null) {
+        if ($scope === null) {
             return;
         }
 
-        $isPublic = $room->config?->roomType?->code === 'PUBLIC';
-
-        abort_if((string) $room->creator_user_id !== $scopeUserId && !$isPublic, 403);
+        abort_if((string) $room->creator_user_id !== $scope['owner'], 403);
     }
 
     /**

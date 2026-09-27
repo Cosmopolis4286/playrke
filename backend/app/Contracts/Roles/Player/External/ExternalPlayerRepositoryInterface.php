@@ -20,7 +20,12 @@ interface ExternalPlayerRepositoryInterface extends BaseRepositoryInterface
      * ExternalPlayerController::check() para que un vendedor reconozca a un
      * comprador recurrente antes de generar más cartones.
      */
-    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId): ?ExternalPlayer;
+    /**
+     * @param string[]|null $sellerUserIds Si viene, solo jugadores captados por
+     *   estos vendedores (red comercial del actor — ver
+     *   ExternalPlayerLinkService::actorNetworkUserIds()).
+     */
+    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId, ?array $sellerUserIds = null): ?ExternalPlayer;
 
     public function getValueByRoomUser(string $gameId, string $roomUserId, string $column): mixed;
 

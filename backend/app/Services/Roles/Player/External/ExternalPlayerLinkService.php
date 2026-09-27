@@ -3,8 +3,11 @@
 namespace App\Services\Roles\Player\External;
 
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
+use App\Models\Roles\Commerce;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Player\External\UserPurchaseCode;
+use App\Models\Roles\Seller;
+use App\Models\Roles\Subsidiary;
 use Illuminate\Support\Str;
 
 /**
@@ -46,8 +49,14 @@ final class ExternalPlayerLinkService
         $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
 
+        // Solo se reutiliza un jugador captado por la MISMA red comercial: en
+        // una sala PUBLIC, el mismo teléfono puede haber sido registrado por
+        // otro comercio — reutilizarlo le colgaba estos cartones a su link y
+        // mezclaba compradores entre comercios (external_players no tiene
+        // unique por sala+teléfono: cada red lleva su propio registro).
         $player = ExternalPlayer::where('game_id', $data['gameId'])->where('room_id', $data['roomId'])
             ->where('phone', $playerPhone)
+            ->whereIn('seller_user_id', $this->actorNetworkUserIds(auth()->id()))
             ->first(['id', 'link']);
 
         if (!$player) {
@@ -117,6 +126,35 @@ final class ExternalPlayerLinkService
         unset($data['country'], $data['playerPhone'], $data['playerName'], $data['playerLastName']);
 
         return $data;
+    }
+
+    /**
+     * user_ids de la red comercial a la que pertenece el actor: el Commerce
+     * dueño del negocio + todos sus vendedores (directos y de sus agencias),
+     * vía Commerce::networkUserIds(). El actor puede ser el propio Commerce,
+     * un Seller (Seller::resolveCommerce(), directo o vía agencia) o una
+     * Subsidiary (su Commerce padre).
+     *
+     * Un ExternalPlayer "pertenece" a la red que lo captó (seller_user_id):
+     * cualquier vendedor del mismo comercio puede reconocerlo y venderle, pero
+     * nunca otro comercio — aunque compartan una sala PUBLIC. Sin comercio
+     * resoluble, solo el propio usuario.
+     *
+     * @return string[]
+     */
+    public function actorNetworkUserIds(int|string|null $userId): array
+    {
+        if ($userId === null) {
+            return [];
+        }
+
+        $userId = (string) $userId;
+
+        $commerce = Commerce::where('user_id', $userId)->first()
+            ?? Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id'])?->resolveCommerce()
+            ?? Subsidiary::where('user_id', $userId)->first(['id', 'commerce_id', 'user_id'])?->commerce;
+
+        return $commerce?->networkUserIds() ?? [$userId];
     }
 
     /**

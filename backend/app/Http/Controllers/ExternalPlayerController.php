@@ -14,6 +14,7 @@ class ExternalPlayerController extends Controller
 {
     public function __construct(
         private readonly ExternalPlayerRepositoryInterface $externalPlayerRepository,
+        private readonly \App\Services\Roles\Player\External\ExternalPlayerLinkService $externalPlayerLink,
     ) {}
 
     /**
@@ -55,11 +56,16 @@ class ExternalPlayerController extends Controller
             ]);
         }
 
+        // Solo jugadores captados por la red comercial del vendedor: antes
+        // cualquier usuario autenticado obtenía nombre, cartones y link de
+        // acceso de un comprador ajeno con solo su teléfono y el id de una
+        // sala (p. ej. una PUBLIC compartida con otro comercio).
         $externalPlayer = $this->externalPlayerRepository->findByPhoneAndRoom(
             $validated['phone'],
             $validated['country_id'],
             (string) $gameId,
             (string) $roomId,
+            $this->externalPlayerLink->actorNetworkUserIds($request->user()?->getKey()),
         );
 
         if (!$externalPlayer) {
