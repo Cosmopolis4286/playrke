@@ -200,7 +200,7 @@
               </div>
               <div class="col-md-2">
                 <div class="text-center">
-                  <h6 class="text-muted mb-1">Monto Neto</h6>
+                  <h6 class="text-muted mb-1">{{ props.sellerView ? 'Total Banca' : 'Monto Neto' }}</h6>
                   <h5 class="text-warning">{{ roomInfo.currency }} {{ roomInfo.net_amount.toFixed(2) }}</h5>
                 </div>
               </div>

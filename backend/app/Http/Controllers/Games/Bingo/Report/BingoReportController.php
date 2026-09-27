@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Games\Bingo\Report;
 
 use App\Http\Controllers\Controller;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
@@ -11,6 +12,8 @@ use App\Models\Currency;
 use App\Models\Roles\Seller;
 use App\Services\Roles\RoleUserService;
 use App\Traits\StreamsCsvExport;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -60,14 +63,50 @@ final class BingoReportController extends Controller
     private function resolveReportScope(): ?string
     {
         $userId = (int) Auth::id();
-        $role   = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        return match ($role) {
+        return match ($this->activeRole()) {
             'superadmin', 'admin' => null,
             'commerce', 'subsidiary', 'customer' => (string) $userId,
             'seller' => (string) (Seller::where('user_id', $userId)->first()?->resolveCommerce()?->user_id),
             default => (string) $userId,
         };
+    }
+
+    /** Rol activo del usuario, resuelto una sola vez por request. */
+    private ?string $activeRole = null;
+
+    private function activeRole(): string
+    {
+        return $this->activeRole ??= (string) $this->roleUserService->getActiveUserRolePrefix((int) Auth::id());
+    }
+
+    /**
+     * El vendedor ve SOLO sus propias ventas (seller_user_id = su user_id),
+     * no el scope de salas de resolveReportScope(): ese scope le mostraría
+     * las ventas de TODOS los vendedores de su comercio (con nombres de
+     * jugadores y comisiones de sala/plataforma) y las de cualquier sala
+     * PUBLIC de otros comercios. Mismo criterio que ya usa su dashboard
+     * (SellerDashboardContextService). seller_user_id se escribe en
+     * bingo_card_lots/bingo_cards al vender (BingoCardGenerationService) y
+     * se copia a bingo_card_prizes al premiar (BingoDrawService).
+     */
+    private function isSellerView(): bool
+    {
+        return $this->activeRole() === 'seller';
+    }
+
+    /**
+     * Scope para queries sobre filas de VENTA (BingoCard, BingoCardPrize,
+     * BingoCardLot — todas con seller_user_id): el vendedor ve solo las
+     * suyas; el resto de roles mantiene el scope por dueño de sala.
+     */
+    private function applySaleScope(Builder $query, string $roomRelation = 'room'): Builder
+    {
+        if ($this->isSellerView()) {
+            return $query->where($query->getModel()->qualifyColumn('seller_user_id'), (string) Auth::id());
+        }
+
+        return $this->applyRoomScope($query, $roomRelation);
     }
 
     /**
@@ -97,6 +136,16 @@ final class BingoReportController extends Controller
      */
     private function assertRoomInScope(BingoRoom $room): void
     {
+        // Vendedor: solo salas donde tiene ventas propias — no cualquier sala
+        // de su comercio ni cualquier PUBLIC (ver isSellerView()).
+        if ($this->isSellerView()) {
+            abort_unless(
+                BingoCardLot::where('room_id', $room->id)->where('seller_user_id', (string) Auth::id())->exists(),
+                403
+            );
+            return;
+        }
+
         $scopeUserId = $this->resolveReportScope();
 
         if ($scopeUserId === null) {
@@ -166,7 +215,7 @@ final class BingoReportController extends Controller
             ->with(['room', 'roomUser.user', 'currency', 'cardLot'])
             ->orderByDesc('created_at');
 
-        $this->applyRoomScope($query, 'room');
+        $this->applySaleScope($query);
 
         if ($currency) {
             $query->where('currency_id', $currency);
@@ -350,7 +399,7 @@ final class BingoReportController extends Controller
             ->with(['room', 'creatorUser', 'currency'])
             ->orderByDesc('created_at');
 
-        $this->applyRoomScope($query, 'room');
+        $this->applySaleScope($query);
 
         if ($type) {
             $query->where('prize_type', $type);
@@ -486,17 +535,154 @@ final class BingoReportController extends Controller
      */
     private function salesReportColumns(): array
     {
+        return array_map(
+            fn (string $key, string $label) => ['key' => $key, 'label' => $label, 'sortable' => true],
+            array_keys($this->salesReportLabels()),
+            $this->salesReportLabels(),
+        );
+    }
+
+    /**
+     * Etiquetas de columna del reporte de Ventas (tabla y CSV). Para el
+     * vendedor, "Comisión" es SU comisión y el neto es lo que debe entregar al
+     * comercio — mismo vocabulario que el formulario de generar cartones.
+     *
+     * @return array<string, string> key => label
+     */
+    private function salesReportLabels(): array
+    {
+        $seller = $this->isSellerView();
+
         return [
-            ['key' => 'id', 'label' => 'ID', 'sortable' => true],
-            ['key' => 'room_name', 'label' => 'Sala', 'sortable' => true],
-            ['key' => 'room_type', 'label' => 'Tipo de Sala', 'sortable' => true],
-            ['key' => 'total_cards_sold', 'label' => 'Cartones Vendidos', 'sortable' => true],
-            ['key' => 'total_amount', 'label' => 'Monto Total', 'sortable' => true],
-            ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
-            ['key' => 'commission', 'label' => 'Comisión', 'sortable' => true],
-            ['key' => 'net_amount', 'label' => 'Monto Neto', 'sortable' => true],
-            ['key' => 'sale_date', 'label' => 'Fecha', 'sortable' => true],
-            ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
+            'id'               => 'ID',
+            'room_name'        => 'Sala',
+            'room_type'        => 'Tipo de Sala',
+            'total_cards_sold' => 'Cartones Vendidos',
+            'total_amount'     => 'Monto Total',
+            'currency'         => 'Moneda',
+            'commission'       => $seller ? 'Mi Comisión' : 'Comisión',
+            'net_amount'       => $seller ? 'Total Banca' : 'Monto Neto',
+            'sale_date'        => $seller ? 'Última Venta' : 'Fecha',
+            'status'           => 'Estado',
+        ];
+    }
+
+    /**
+     * Página del reporte de Ventas (filas + resumen + paginación), común al
+     * render Inertia y al refetch paginado.
+     *
+     * @return array{rows: array, summary: array, paginator: LengthAwarePaginator|null}
+     */
+    private function buildSalesReport(?string $currency, ?string $dateFilter, Collection $currenciesById, int $perPage, int $page): array
+    {
+        if ($this->isSellerView()) {
+            $paginator = $this->sellerSalesRowsQuery($dateFilter, $currency)->paginate($perPage, ['*'], 'page', $page);
+
+            return [
+                'rows'      => $this->mapSellerSalesRows($paginator->getCollection(), $currenciesById),
+                'summary'   => $this->sellerSalesSummary($dateFilter, $currency, $currenciesById),
+                'paginator' => $paginator,
+            ];
+        }
+
+        $paginator = $this->salesReportRoomsQuery($dateFilter)->paginate($perPage, ['*'], 'page', $page);
+
+        return [
+            'rows'      => $this->mapSalesReportRows($paginator->getCollection(), $currency, $currenciesById),
+            'summary'   => $this->salesReportSummary($dateFilter, $currency, $currenciesById),
+            'paginator' => $paginator,
+        ];
+    }
+
+    /**
+     * Lotes de venta propios del vendedor (base del reporte de Ventas en
+     * vista vendedor). Excluye lotes REFUNDED — venta revertida, mismo
+     * criterio que CheckExpiredBingoRoomsService. El filtro de fecha es por
+     * fecha de VENTA (created_at del lote), no de creación de la sala.
+     */
+    private function sellerSalesQuery(?string $dateFilter, ?string $currency): Builder
+    {
+        return BingoCardLot::query()
+            ->where('seller_user_id', (string) Auth::id())
+            ->where('status', '!=', 'REFUNDED')
+            ->when($dateFilter, fn ($q) => $q->whereDate('created_at', $dateFilter))
+            ->when($currency, fn ($q) => $q->where('currency_id', $currency));
+    }
+
+    /**
+     * Una fila por sala+moneda (mismo shape que mapSalesReportRows()), con
+     * los totales de las ventas del vendedor — su comisión real
+     * (commission_amount del lote), no las comisiones de sala/plataforma.
+     */
+    private function sellerSalesRowsQuery(?string $dateFilter, ?string $currency): Builder
+    {
+        return $this->sellerSalesQuery($dateFilter, $currency)
+            ->select(['room_id', 'currency_id'])
+            ->selectRaw('SUM(card_count) as cards_sold, SUM(sale_amount) as total_amount, SUM(commission_amount) as commission_total, MAX(created_at) as last_sale_at')
+            ->groupBy('room_id', 'currency_id')
+            ->with([
+                'room:id,uuid_code,status_id',
+                'room.status:id,code',
+                'room.config:id,room_id,room_type_id',
+                'room.config.roomType:id,code',
+            ])
+            ->orderByDesc('last_sale_at');
+    }
+
+    /**
+     * @param Collection<int, BingoCardLot> $groups Filas agrupadas de sellerSalesRowsQuery()
+     */
+    private function mapSellerSalesRows(Collection $groups, Collection $currenciesById): array
+    {
+        return $groups->map(function (BingoCardLot $group) use ($currenciesById) {
+            $amount     = (float) $group->getAttribute('total_amount');
+            $commission = (float) $group->getAttribute('commission_total');
+            $lastSaleAt = $group->getAttribute('last_sale_at');
+
+            return [
+                'id'               => ($group->room?->getRouteKey() ?? (string) $group->room_id) . ':' . $group->currency_id,
+                'room_name'        => $this->roomLabel($group->room),
+                'room_type'        => $group->room?->config?->roomType?->code ?? 'PUBLIC',
+                'total_cards_sold' => (int) $group->getAttribute('cards_sold'),
+                'total_amount'     => $amount,
+                'currency'         => $currenciesById->get($group->currency_id)?->iso_code ?? '—',
+                'commission'       => $commission,
+                'net_amount'       => $amount - $commission,
+                'sale_date'        => $lastSaleAt ? Carbon::parse($lastSaleAt)->format('Y-m-d') : '—',
+                'status'           => $group->room?->status?->code ?? '—',
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * Resumen del reporte de Ventas en vista vendedor — mismo shape que
+     * salesReportSummary(), agregado en SQL sobre TODAS sus ventas que
+     * matchean los filtros (no solo la página visible).
+     */
+    private function sellerSalesSummary(?string $dateFilter, ?string $currency, Collection $currenciesById): array
+    {
+        $byCurrency = $this->sellerSalesQuery($dateFilter, $currency)
+            ->toBase()
+            ->selectRaw('currency_id, SUM(card_count) as cards_sold, SUM(sale_amount) as total_amount, SUM(commission_amount) as commission_total')
+            ->groupBy('currency_id')
+            ->get();
+
+        $totalsByCurrency = [];
+        $totalCardsSold = 0;
+
+        foreach ($byCurrency as $row) {
+            $isoCode = $currenciesById->get($row->currency_id)?->iso_code ?? '—';
+            $totalsByCurrency[$isoCode] ??= ['amount' => 0.0, 'commission' => 0.0];
+            $totalsByCurrency[$isoCode]['amount'] += (float) $row->total_amount;
+            $totalsByCurrency[$isoCode]['commission'] += (float) $row->commission_total;
+            $totalCardsSold += (int) $row->cards_sold;
+        }
+
+        return [
+            'total_rooms'      => (int) $this->sellerSalesQuery($dateFilter, $currency)->distinct()->count('room_id'),
+            'total_cards_sold' => $totalCardsSold,
+            'by_currency'      => $totalsByCurrency,
+            'total_commission' => array_sum(array_column($totalsByCurrency, 'commission')),
         ];
     }
 
@@ -549,7 +735,11 @@ final class BingoReportController extends Controller
                 $cardsSold = (int) ($metrics['total_cards'] ?? 0);
 
                 $rows[] = [
-                    'id'               => (string) $room->id . ':' . $currencyId,
+                    // getRouteKey() (hash), no el id crudo: Sales.vue arma
+                    // /bingo/sales-report/room/{room} con la parte previa a
+                    // ':' y el binding de BingoRoom (HasHashedRouteKey) solo
+                    // decodifica hashes — con el id crudo daba 404.
+                    'id'               => $room->getRouteKey() . ':' . $currencyId,
                     'room_name'        => $this->roomLabel($room),
                     'room_type'        => $room->config?->roomType?->code ?? 'PUBLIC',
                     'total_cards_sold' => $cardsSold,
@@ -644,13 +834,15 @@ final class BingoReportController extends Controller
         $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
 
         // Se pagina sobre salas (15 por página); metrics_by_currency de cada
-        // sala se expande después, solo para las salas de esta página.
-        $paginator = $this->salesReportRoomsQuery($dateFilter)->paginate(15);
+        // sala se expande después, solo para las salas de esta página. En
+        // vista vendedor, sobre sus propias ventas agrupadas por sala+moneda.
+        $report = $this->buildSalesReport($currency, $dateFilter, $currenciesById, 15, 1);
+        $paginator = $report['paginator'];
 
         $salesData = [
             'columns' => $this->salesReportColumns(),
-            'rows'    => $this->mapSalesReportRows($paginator->getCollection(), $currency, $currenciesById),
-            'summary' => $this->salesReportSummary($dateFilter, $currency, $currenciesById),
+            'rows'    => $report['rows'],
+            'summary' => $report['summary'],
         ];
 
         $roomTypes = \App\Models\Games\Common\Room\RoomType::query()
@@ -665,7 +857,8 @@ final class BingoReportController extends Controller
             'currencies' => $currenciesById->values(),
             'roomTypes' => $roomTypes,
             'selectedCurrency' => $currency,
-            'dateFilter' => $dateFilter
+            'dateFilter' => $dateFilter,
+            'sellerView' => $this->isSellerView(),
         ]);
     }
 
@@ -687,15 +880,15 @@ final class BingoReportController extends Controller
 
         $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
 
-        $paginator = $this->salesReportRoomsQuery($dateFilter)->paginate($perPage, ['*'], 'page', $page);
+        $report = $this->buildSalesReport($currency, $dateFilter, $currenciesById, $perPage, $page);
 
         return $this->handleServiceJson(fn () => [
             'sales' => [
                 'columns' => $this->salesReportColumns(),
-                'rows'    => $this->mapSalesReportRows($paginator->getCollection(), $currency, $currenciesById),
-                'summary' => $this->salesReportSummary($dateFilter, $currency, $currenciesById),
+                'rows'    => $report['rows'],
+                'summary' => $report['summary'],
             ],
-            'pagination' => $this->paginationMeta($paginator),
+            'pagination' => $this->paginationMeta($report['paginator']),
         ]);
     }
 
@@ -713,6 +906,17 @@ final class BingoReportController extends Controller
         $currenciesById = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
 
         $rows = (function () use ($dateFilter, $currency, $currenciesById) {
+            if ($this->isSellerView()) {
+                // get() y no cursor(): cursor() ignora los with() (N+1 por
+                // fila), y el dataset agrupado de un solo vendedor es chico
+                // (una fila por sala+moneda donde vendió).
+                yield from $this->mapSellerSalesRows(
+                    $this->sellerSalesRowsQuery($dateFilter, $currency)->get(),
+                    $currenciesById,
+                );
+                return;
+            }
+
             foreach ($this->salesReportRoomsQuery($dateFilter)->cursor() as $room) {
                 foreach ($this->mapSalesReportRows(collect([$room]), $currency, $currenciesById) as $row) {
                     yield $row;
@@ -722,7 +926,7 @@ final class BingoReportController extends Controller
 
         return $this->streamCsvExport(
             'bingo-ventas',
-            ['ID', 'Sala', 'Tipo de Sala', 'Cartones Vendidos', 'Monto Total', 'Moneda', 'Comisión', 'Monto Neto', 'Fecha', 'Estado'],
+            array_values($this->salesReportLabels()),
             $rows,
             fn (array $row) => $row,
         );
@@ -771,6 +975,11 @@ final class BingoReportController extends Controller
             ->where('room_id', $room->id)
             ->with(['roomUser.user', 'currency', 'cardLot.payments'])
             ->orderByDesc('created_at');
+
+        // Vendedor: solo sus cartones de esta sala, no los de otros vendedores.
+        if ($this->isSellerView()) {
+            $query->where('seller_user_id', (string) Auth::id());
+        }
 
         if ($currency) {
             $query->where('currency_id', $currency);
@@ -822,6 +1031,10 @@ final class BingoReportController extends Controller
      */
     private function salesByRoomInfo(BingoRoom $room, ?string $currency): array
     {
+        if ($this->isSellerView()) {
+            return $this->sellerSalesByRoomInfo($room, $currency);
+        }
+
         $totalsQuery = BingoCard::query()
             ->where('room_id', $room->id)
             ->when($currency, fn ($q) => $q->where('currency_id', $currency))
@@ -847,6 +1060,38 @@ final class BingoReportController extends Controller
             'name'             => $this->roomLabel($room),
             'type'             => $room->config?->roomType?->code ?? 'PUBLIC',
             'total_cards_sold' => (int) ($totals?->cards_count ?? 0),
+            'total_amount'     => $totalAmount,
+            'currency'         => $primaryCurrency,
+            'commission'       => $commission,
+            'net_amount'       => $totalAmount - $commission,
+        ];
+    }
+
+    /**
+     * room_info en vista vendedor: totales de SUS lotes en la sala (sin
+     * REFUNDED) y SU comisión — no room_commission/rke_commission de la sala,
+     * que son datos del comercio/plataforma. net_amount = lo que debe entregar
+     * al comercio (mismo "Total Banca" que el reporte de Ventas).
+     */
+    private function sellerSalesByRoomInfo(BingoRoom $room, ?string $currency): array
+    {
+        $lots = $this->sellerSalesQuery(null, $currency)->where('room_id', $room->id);
+
+        $totals = (clone $lots)
+            ->toBase()
+            ->selectRaw('COALESCE(SUM(card_count), 0) as cards_sold, COALESCE(SUM(sale_amount), 0) as total_amount, COALESCE(SUM(commission_amount), 0) as commission_total')
+            ->first();
+
+        $primaryCurrency = (clone $lots)->with('currency:id,iso_code')->latest('created_at')->first()?->currency?->iso_code ?? '—';
+
+        $totalAmount = (float) ($totals?->total_amount ?? 0);
+        $commission  = (float) ($totals?->commission_total ?? 0);
+
+        return [
+            'id'               => (string) $room->id,
+            'name'             => $this->roomLabel($room),
+            'type'             => $room->config?->roomType?->code ?? 'PUBLIC',
+            'total_cards_sold' => (int) ($totals?->cards_sold ?? 0),
             'total_amount'     => $totalAmount,
             'currency'         => $primaryCurrency,
             'commission'       => $commission,
@@ -889,7 +1134,11 @@ final class BingoReportController extends Controller
             'currencies' => $currencies,
             'paymentMethods' => $paymentMethods,
             'selectedCurrency' => $currency,
-            'roomId' => (string) $room->id
+            // Hash (getRouteKey), no id crudo: SalesByRoom.vue lo usa para
+            // sales-report-room-data/{room} y sales-report-room-export/{room},
+            // cuyo binding (HasHashedRouteKey) solo decodifica hashes.
+            'roomId' => $room->getRouteKey(),
+            'sellerView' => $this->isSellerView(),
         ]);
     }
 

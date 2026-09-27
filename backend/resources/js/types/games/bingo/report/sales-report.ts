@@ -63,4 +63,6 @@ export interface SalesPageProps {
   roomTypes: RoomType[]
   selectedCurrency?: string | null
   dateFilter?: string | null
+  /** true si el usuario es vendedor: el reporte muestra solo SUS ventas y SU comisión. */
+  sellerView?: boolean
 }

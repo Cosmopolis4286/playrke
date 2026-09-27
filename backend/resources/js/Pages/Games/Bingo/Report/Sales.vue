@@ -218,7 +218,7 @@
               <div class="col-md-3">
                 <div class="text-center">
                   <h4 class="text-warning">{{ summaryData.total_commission.toFixed(2) }}</h4>
-                  <p class="mb-0">Total Comisión</p>
+                  <p class="mb-0">{{ props.sellerView ? 'Mi Comisión' : 'Total Comisión' }}</p>
                 </div>
               </div>
             </div>

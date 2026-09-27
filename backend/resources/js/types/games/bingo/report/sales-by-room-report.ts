@@ -56,4 +56,6 @@ export interface SalesByRoomPageProps {
   paymentMethods: PaymentMethod[]
   selectedCurrency?: string | null
   roomId: string
+  /** true si el usuario es vendedor: solo SUS cartones de la sala y SU comisión. */
+  sellerView?: boolean
 }

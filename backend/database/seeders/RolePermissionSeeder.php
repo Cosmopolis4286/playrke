@@ -124,6 +124,9 @@ class RolePermissionSeeder extends Seeder
                 'sellers.manage-own',
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.game_rooms', // Ver/comprar en salas de bingo — antes ausente: el ítem "Salas de Bingo" del sidebar solo lo tenía player, pese a que BingoCardGenerateService trata role==='seller' como caso de primera clase para comprar cartones (mismo flujo que commerce/subsidiary)
+                // Cartones / Ganadores / Reporte de Ventas — BingoReportController
+                // limita al seller a SUS ventas (seller_user_id), ver isSellerView().
+                'games.bingo.sales_report', 'games.bingo.winners',
                 'reports.view', 'reports.gaming',
                 'external-players.view', 'external-players.create',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)

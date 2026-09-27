@@ -149,7 +149,7 @@ final class SellerDashboardContextService
                 'value'   => $winnersToday,
                 'icon'    => 'fas fa-trophy',
                 'variant' => 'warning',
-                'href'    => '/bingo/winners/private/today',
+                'href'    => '/bingo/winners',
             ],
         ];
     }
