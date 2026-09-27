@@ -79,6 +79,13 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      */
     const generatedPlayerLink = ref<string | null>(null)
 
+    /**
+     * Estado del pago de la última venta. PENDING: el comprador no ve sus
+     * cartones hasta que el comercio apruebe el comprobante — el vendedor
+     * debe avisárselo al compartir el link.
+     */
+    const generatedPaymentStatus = ref<'PENDING' | 'APPROVED' | null>(null)
+
     /* ───────── COMPUTED ───────── */
 
     /**
@@ -162,6 +169,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player.cardCount = 0
         player.link = undefined
         generatedPlayerLink.value = null
+        generatedPaymentStatus.value = null
     }
 
     /**
@@ -285,7 +293,10 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         formData.append('player[first_name]', player.firstName.trim())
         formData.append('player[last_name]', player.lastName.trim())
         formData.append('receipt_number', player.receiptNumber!.trim())
-        
+        // Precio unitario que el vendedor vio y cobró: el backend rechaza la
+        // venta (409 BINGO_CARD_PRICE_CHANGED) si cambió desde la vista previa.
+        formData.append('expected_card_price', String(cardPriceData.value!.card_price))
+
         if (player.receiptImage) {
             formData.append('receipt_image', player.receiptImage)
         }
@@ -296,13 +307,21 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
                     'Content-Type': 'multipart/form-data'
                 }
             })
-            showToast(data.message, 'success')
+            showToast(data.message, data.paymentStatus === 'PENDING' ? 'info' : 'success')
             generatedPlayerLink.value = data.playerLink ?? null
+            generatedPaymentStatus.value = data.paymentStatus ?? null
             resetAfterGeneration()
             return true
         }
         catch (error: any) {
-            showToast(error?.response?.data?.message ?? 'Error al generar cartones.', 'error')
+            const errorCode = error?.response?.data?.error_code
+            showToast(error?.response?.data?.message ?? 'Error al generar cartones.', errorCode === 'BINGO_CARD_PRICE_CHANGED' ? 'warning' : 'error')
+
+            // Precio desactualizado: se recarga para que el resumen muestre el
+            // monto vigente y el vendedor lo confirme antes de reintentar.
+            if (errorCode === 'BINGO_CARD_PRICE_CHANGED' && selectedRoom.value && selectedCountry.value) {
+                await fetchCardPrice(selectedRoom.value.id, selectedCountry.value)
+            }
             return false
         }
         finally {
@@ -329,6 +348,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         commerceAmount,
         isFormValid,
         generatedPlayerLink,
+        generatedPaymentStatus,
         generate
     }
 }

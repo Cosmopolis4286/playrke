@@ -41,6 +41,7 @@
     commerceAmount,
     isFormValid,
     generatedPlayerLink,
+    generatedPaymentStatus,
     generate
   } = useBingoCardGenerate(selectedRoom)
 
@@ -154,8 +155,13 @@
 
     <div v-if="generatedPlayerLink" class="alert alert-success mt-3">
       <div class="d-flex align-items-center mb-2">
-        <i class="fas fa-check-circle me-2"></i>
+        <i class="fas fa-check-circle mr-2"></i>
         <strong>Cartones generados.</strong>&nbsp;Comparte este link con el jugador para que vea sus cartones y el sorteo:
+      </div>
+      <div v-if="generatedPaymentStatus === 'PENDING'" class="small mb-2">
+        <i class="fas fa-hourglass-half mr-1"></i>
+        <strong>Pago en revisión:</strong> el comprador verá sus cartones cuando el comercio apruebe el comprobante.
+        Avísale para que no se preocupe si todavía no aparecen.
       </div>
       <div class="input-group">
         <input type="text" class="form-control" readonly :value="generatedPlayerLink" @click="($event.target as HTMLInputElement)?.select()" />

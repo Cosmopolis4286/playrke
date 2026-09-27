@@ -90,6 +90,8 @@ export interface GenerateCardResponse {
     message: string
     /** Link público de acceso al juego para el ExternalPlayer (ver ExternalPlayerGameController). */
     playerLink: string | null
+    /** Estado del pago: PENDING = los cartones se activan cuando el comercio apruebe el comprobante. */
+    paymentStatus?: 'PENDING' | 'APPROVED'
 }
 
 /**
