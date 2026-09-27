@@ -5,6 +5,7 @@ namespace App\Http\Requests\Games\Bingo\Room;
 use App\Http\Requests\BaseRequest;
 use App\Models\ExchangeRate;
 use App\Models\Game;
+use App\Domains\Games\Bingo\ValueObjects\BingoRoomCapacityRules;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
@@ -41,14 +42,13 @@ class BingoRoomRequest extends BaseRequest
             'date'                        => array_filter(['required_if:startMode,SCHEDULED', 'nullable', 'date', $this->route('room') ? null : 'after_or_equal:today']),
             'time'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date_format:H:i'],
 
-            // Cantidad mínima de cartones vendidos para permitir el inicio del sorteo (opcional)
-            'minCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:10000'],
-            // Máximo de cartones permitido en la sala (opcional, sin límite si no se envía)
-            'maxCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:10000'],
-            // Cupo máximo de jugadores en la sala (opcional, sin límite si no se envía)
-            'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
-            // Cantidad mínima de jugadores requerida para permitir el inicio del sorteo (opcional)
-            'minPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
+            // Capacidad (ver BingoRoomCapacityRules). Los mínimos son obligatorios:
+            // el sorteo no inicia sin alcanzarlos y, si al vencer no se alcanzaron,
+            // la sala se cancela y se reembolsa. Los máximos son opcionales (sin tope).
+            'minCardsToStart'             => ['required', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_CARDS],
+            'maxCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_CARDS],
+            'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_PLAYERS],
+            'minPlayers'                  => ['required', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_PLAYERS],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'connectionType'              => ['required', 'exists:connection_types,id'],
             'gameMode'                    => ['required', 'exists:game_modes,id'],
@@ -382,30 +382,35 @@ class BingoRoomRequest extends BaseRequest
     }
 
     /**
-     * Validación cruzada min/max: solo si AMBOS extremos del par tienen valor
-     * (nuevo del request, o el ya guardado en la sala si el campo no vino en
-     * este request), min debe ser <= max. Cada campo del par sigue siendo
-     * independientemente opcional — esto solo bloquea la combinación
-     * inconsistente cuando los dos están presentes a la vez.
+     * Coherencia entre los 4 límites de capacidad (ver BingoRoomCapacityRules):
+     * piso de jugadores según el modo de juego, mín. cartones ≥ mín. jugadores,
+     * máximos ≥ mínimos y máx. cartones ≥ máx. jugadores. Un campo que no vino
+     * en el request se toma del ya guardado en la sala.
      */
     private function validateCapacityPairs($validator): void
     {
         $currentConfig = $this->route('room')?->config; // HasOne (ver validateCurrencies)
 
-        $resolvePair = function (string $minKey, string $maxKey, string $currentMinCol, string $currentMaxCol) use ($currentConfig) {
-            $min = $this->has($minKey) ? $this->input($minKey) : ($currentConfig?->{$currentMinCol} ?? null);
-            $max = $this->has($maxKey) ? $this->input($maxKey) : ($currentConfig?->{$currentMaxCol} ?? null);
-            return [$min, $max];
+        $value = function (string $key, string $column) use ($currentConfig): ?int {
+            $raw = $this->has($key) ? $this->input($key) : ($currentConfig?->{$column} ?? null);
+            return is_numeric($raw) ? (int) $raw : null;
         };
 
-        [$minCards, $maxCards] = $resolvePair('minCardsToStart', 'maxCardsToStart', 'min_cards_to_start', 'max_cards_to_start');
-        if ($minCards !== null && $maxCards !== null && !$validator->errors()->has('maxCardsToStart') && (int) $minCards > (int) $maxCards) {
-            $validator->errors()->add('maxCardsToStart', 'El máximo de cartones debe ser mayor o igual al mínimo.');
-        }
+        $gameModeId = $this->input('gameMode', $currentConfig?->game_mode_id);
+        $gameModeCode = $gameModeId ? GameMode::whereKey($gameModeId)->value('code') : null;
 
-        [$minPlayersVal, $maxPlayersVal] = $resolvePair('minPlayers', 'maxPlayers', 'min_players', 'max_players');
-        if ($minPlayersVal !== null && $maxPlayersVal !== null && !$validator->errors()->has('maxPlayers') && (int) $minPlayersVal > (int) $maxPlayersVal) {
-            $validator->errors()->add('maxPlayers', 'El máximo de jugadores debe ser mayor o igual al mínimo.');
+        $errors = BingoRoomCapacityRules::crossErrors(
+            $value('minCardsToStart', 'min_cards_to_start'),
+            $value('maxCardsToStart', 'max_cards_to_start'),
+            $value('minPlayers', 'min_players'),
+            $value('maxPlayers', 'max_players'),
+            $gameModeCode,
+        );
+
+        foreach ($errors as $field => $message) {
+            if (!$validator->errors()->has($field)) {
+                $validator->errors()->add($field, $message);
+            }
         }
     }
 
