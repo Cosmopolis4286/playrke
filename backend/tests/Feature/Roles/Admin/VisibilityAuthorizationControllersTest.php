@@ -52,7 +52,15 @@ class VisibilityAuthorizationControllersTest extends TestCase
         $role->id = $this->nextId();
         $role->save();
 
-        return $role;
+        // guard_name/type NO están en Role::$fillable — el constructor-array
+        // los descarta en silencio (fill() los ignora), así que el objeto en
+        // memoria queda con guard_name ausente aunque el INSERT sí persiste
+        // 'web' (default de columna en el schema). Spatie\Permission\Guard::
+        // getNames() lee el atributo en memoria directamente — sin este
+        // refresh(), givePermissionTo() sobre este mismo objeto lanza
+        // GuardDoesNotMatch (confirmado real, no solo teórico) pese a que la
+        // fila en BD ya tiene guard_name='web' correcto.
+        return $role->refresh();
     }
 
     private function makeUserWithRole(string $roleName): User
