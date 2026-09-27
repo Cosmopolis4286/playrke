@@ -120,10 +120,32 @@ class CommerceDashboardCommissionTest extends TestCase
         ]);
     }
 
+    /**
+     * Comisión de SALA del comercio para una venta — fuente real del widget
+     * "Comisión del mes" (bingo_creator_sales, acumulada por
+     * RoomMetricsService). BingoCardLot.commission_amount es la comisión del
+     * VENDEDOR, no la del comercio.
+     */
+    private function makeCreatorSale(Currency $currency, float $saleAmount, float $roomCommission): void
+    {
+        $lot = $this->makeLot($currency, $saleAmount, 0.0);
+
+        \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::create([
+            'room_id'           => $lot->room_id,
+            'creator_user_id'   => $this->commerceUser->id,
+            'currency_id'       => $currency->id,
+            'sale_amount'       => $saleAmount,
+            'rke_commission'    => 0,
+            'room_commission'   => $roomCommission,
+            'seller_commission' => 0,
+            'prize_pool_amount' => $saleAmount - $roomCommission,
+        ]);
+    }
+
     public function test_commission_stat_shows_real_amount_for_single_currency(): void
     {
-        $this->makeLot($this->usd, 100.0, 8.0);
-        $this->makeLot($this->usd, 50.0, 4.0);
+        $this->makeCreatorSale($this->usd, 100.0, 8.0);
+        $this->makeCreatorSale($this->usd, 50.0, 4.0);
 
         $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
 
@@ -133,8 +155,8 @@ class CommerceDashboardCommissionTest extends TestCase
 
     public function test_commission_stat_shows_primary_currency_and_counts_the_rest(): void
     {
-        $this->makeLot($this->usd, 100.0, 20.0);
-        $this->makeLot($this->eur, 50.0, 3.0);
+        $this->makeCreatorSale($this->usd, 100.0, 20.0);
+        $this->makeCreatorSale($this->eur, 50.0, 3.0);
 
         $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
 

@@ -74,7 +74,17 @@ class SellerRoomLimits extends Pivot
             return null;
         }
 
-        return static::where('game_id', $game)
+        // $game es el NOMBRE del juego ('BINGO'); game_id es un Snowflake.
+        // Antes se comparaba game_id = 'BINGO' directamente: nunca coincidía,
+        // y las comisiones especiales por sala jamás se aplicaban (siempre
+        // la comisión base del vendedor).
+        $gameId = Game::getValueByName($game, 'id');
+
+        if (!$gameId) {
+            return null;
+        }
+
+        return static::where('game_id', $gameId)
             ->where('seller_id', $sellerId)
             ->where('room_id', $roomId)
             ->value($field);

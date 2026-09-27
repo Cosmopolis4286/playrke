@@ -34,6 +34,10 @@ class BingoCardManagementService
                 'card_count'       => $cartonData['cardCount'],
                 'card_price'       => $cartonData['cardPrice'],
                 'sale_amount'      => $saleAmount,
+                // Comisión del VENDEDOR para este lote (moneda local). Las
+                // comisiones de sala/plataforma viven por sala en
+                // bingo_creator_sales (ver RoomMetricsService), no aquí.
+                'commission_amount' => round((float) ($cartonData['sellerCommissionAmount'] ?? 0), 2),
                 'exchange_rate'    => $cartonData['exchangeRate'] ?? 1,
                 'status'           => 'ACTIVE',
                 'has_custom_cards' => $isCustom,

@@ -134,24 +134,30 @@ final class CommerceDashboardContextService
     }
 
     /**
-     * Comisión real generada este mes por TODA la red (rke_commission +
-     * room_commission ya persistida en cada BingoCardLot.commission_amount
-     * — no una re-derivación del % de Commerce::commission), agrupada por
-     * moneda. El widget anterior solo mostraba la TASA configurada (%),
-     * nunca cuánto dinero representó eso — el dueño de la comercializadora
-     * no tenía forma de ver esa cifra sin entrar al reporte de ventas.
+     * Comisión de SALA ganada este mes por el comercio en sus salas
+     * (bingo_creator_sales.room_commission, acumulada por RoomMetricsService
+     * en moneda local), agrupada por moneda.
+     *
+     * Antes se leía BingoCardLot.commission_amount asumiendo que era la
+     * comisión de sala — pero esa columna nunca se escribía (siempre 0) y
+     * ahora guarda la comisión del VENDEDOR de cada lote (lo que el comercio
+     * paga, no lo que gana). La comisión de sala por venta vive en
+     * bingo_creator_sales, que es su fuente real.
      *
      * @param string[] $networkUserIds
      * @return array{primaryLabel: string, descriptionSuffix: string, hasCommission: bool}
      */
     private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth): array
     {
-        $rows = BingoCardLot::whereIn('user_id', $networkUserIds)
-            ->where('created_at', '>=', $startOfMonth)
-            ->select(['currency_id', DB::raw('SUM(commission_amount) as total_commission')])
+        $rows = \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::whereIn('creator_user_id', $networkUserIds)
+            ->where('updated_at', '>=', $startOfMonth)
+            // Alias distinto de "total_commission": BingoCreatorSale tiene un
+            // accessor getTotalCommissionAttribute() que lo taparía (y en una
+            // fila agregada devuelve 0).
+            ->select(['currency_id', DB::raw('SUM(room_commission) as room_commission_sum')])
             ->groupBy('currency_id')
-            ->having(DB::raw('SUM(commission_amount)'), '>', 0)
-            ->orderByDesc(DB::raw('SUM(commission_amount)'))
+            ->having(DB::raw('SUM(room_commission)'), '>', 0)
+            ->orderByDesc(DB::raw('SUM(room_commission)'))
             ->with('currency:id,iso_code,symbol')
             ->get();
 
@@ -160,7 +166,7 @@ final class CommerceDashboardContextService
         }
 
         $primary = $rows->first();
-        $primaryLabel = ($primary->currency?->symbol ?? '') . ' ' . number_format((float) $primary->total_commission, 2);
+        $primaryLabel = ($primary->currency?->symbol ?? '') . ' ' . number_format((float) $primary->room_commission_sum, 2);
 
         $rest = $rows->slice(1);
         $descriptionSuffix = $rest->isEmpty()
@@ -186,10 +192,8 @@ final class CommerceDashboardContextService
                 'seller_user_id',
                 DB::raw('SUM(sale_amount) as total_sales'),
                 DB::raw('SUM(card_count) as total_cards'),
-                // commission_amount ya es el monto persistido por lote
-                // (rke_commission + room_commission aplicados a esa venta,
-                // ver RoomMetricsService) — no se re-deriva del % de
-                // Commerce::commission, que es solo la tasa configurada.
+                // commission_amount = comisión del VENDEDOR persistida por
+                // lote (ver BingoCardGenerationService::generateCards()).
                 DB::raw('SUM(commission_amount) as total_commission'),
             ])
             ->groupBy('seller_user_id')

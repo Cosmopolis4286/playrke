@@ -136,6 +136,12 @@ final class BingoCardGenerationService
             // Inyectar variante de juego desde la config de la sala
             $cardOrder['gameVariant'] = $room->config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75;
 
+            // Comisión del vendedor de ESTA venta (moneda local) — se persiste en
+            // el lote. Antes nunca se guardaba: bingo_card_lots.commission_amount
+            // quedaba en NULL y todo lo que la lee (dashboard/ranking/reportes
+            // del vendedor, ventas por vendedor del comercio/agencia) mostraba 0.
+            $cardOrder['sellerCommissionAmount'] = $sellerSaleCommn ?? 0;
+
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCardLot($cardOrder, $saleAmount);
 
