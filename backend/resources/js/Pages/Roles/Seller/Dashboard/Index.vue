@@ -102,7 +102,7 @@
       label: 'Generar Cartón',
       description: 'Vender un cartón',
       icon: 'fas fa-plus-circle',
-      href: '/bingo/generate-card',
+      href: '/bingo-card/generate',
       variant: 'primary',
     },
     {
@@ -147,7 +147,7 @@
         roleKey="seller"
         :message="period ? `Período: ${period}` : undefined"
         :actions="[
-          { label: 'Generar cartón', icon: 'fas fa-plus', href: '/bingo/generate-card', variant: 'primary' },
+          { label: 'Generar cartón', icon: 'fas fa-plus', href: '/bingo-card/generate', variant: 'primary' },
         ]"
       >
         <template #highlights>

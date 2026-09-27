@@ -90,6 +90,26 @@ class AuditMenuPermissionsCommand extends Command
         'wallet.view',              // billetera propia de jugador/customer
         'inventory.view',           // inventario propio de jugador (marketplace P2P)
         'games.trivia.play',        // jugar Trivia — rol de consumidor, no de gestión
+        // sidebar-menu.view/dashboard-widgets.view: migrados de role:superadmin
+        // a permisos granulares (ver migración 2026_09_27_000001) pero
+        // "mismo nivel de acceso de antes" según el propio comentario de
+        // routes/modules/admin.php — hoy solo superadmin los tiene, deliberado.
+        'sidebar-menu.view',
+        'dashboard-widgets.view',
+    ];
+
+    /**
+     * Permisos de ítem de menú que pueden ser MÁS ESTRICTOS que los de su
+     * ruta sin que sea un bug — la ruta acepta un conjunto más amplio de
+     * roles porque sirve a otro propósito compartido, pero el ítem del menú
+     * solo debe mostrarse a quien realmente necesita esa acción específica.
+     * Cada entrada debe estar documentada en su definición dentro de
+     * SidebarMenuService::$menuStructure (ver 'generate_card').
+     *
+     * @var array<int, string>
+     */
+    private const MENU_INTENTIONALLY_STRICTER = [
+        'sellers.manage-own', // 'Generar Cartón': solo seller, aunque la ruta también admite games.bingo/game_rooms (más amplio, sirve también a compra de jugador)
     ];
 
     protected $signature = 'menu:audit-permissions {--verbose-info : Mostrar también los casos INFO (role: vs permiso, sin comparación automática)}';
@@ -255,7 +275,9 @@ class AuditMenuPermissionsCommand extends Command
 
         $type = 'OK';
 
-        if ($menuPerm && $permissions && !in_array($menuPerm, $permissions, true)) {
+        if ($menuPerm && in_array($menuPerm, self::MENU_INTENTIONALLY_STRICTER, true)) {
+            // Deliberadamente más estricto que la ruta — no comparar (ver docblock de la constante).
+        } elseif ($menuPerm && $permissions && !in_array($menuPerm, $permissions, true)) {
             $type = 'DESALINEADO';
         } elseif ($menuPerm && !$permissions && !$roles) {
             $type = 'RUTA_ABIERTA';
