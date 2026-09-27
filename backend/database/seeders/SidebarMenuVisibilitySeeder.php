@@ -32,7 +32,13 @@ class SidebarMenuVisibilitySeeder extends Seeder
         'games_bingo.my_games'          => ['admin', 'commerce', 'customer', 'seller', 'subsidiary', 'superadmin'],
         'games_bingo.bingo_cards_sold'  => ['player'],
         'business.exchange_rates'       => ['player', 'seller'],
-        'business.my_sellers'           => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
+        // subsidiary NO se excluye: el fix 9201ced9 (2026-09-01) le agregó
+        // soporte real en ManagerSellerContextService::subsidiaryScopeCondition()
+        // (filtra por subsidiary_id, ve solo sus propios vendedores) pero
+        // nunca se actualizó esta exclusión — la ruta /sellers funcionaba
+        // perfectamente para subsidiary desde entonces, solo el sidebar
+        // nunca ofrecía la entrada.
+        'business.my_sellers'           => ['admin', 'player', 'seller', 'superadmin'],
         'business.my_subsidiaries'      => ['player', 'seller', 'superadmin'],
         // my_account.* — antes vivían bajo 'business.*' (ver comentario de
         // clase); el refactor 3c945746 ("Mi Cuenta" separado de "Negocio")
