@@ -133,6 +133,13 @@
       href: '/directory',
       variant: 'secondary',
     },
+    {
+      label: 'Mi Perfil',
+      description: 'Datos de contacto',
+      icon: 'fas fa-id-card',
+      href: '/seller/profile',
+      variant: 'danger',
+    },
   ]
 </script>
 
@@ -192,7 +199,9 @@
         :loading="sectionsLoading"
         skeleton-variant="list"
       >
-        <DashboardQuickLinks :links="quickLinks" :columns="4" />
+        <!-- 6 links → columns=3 forma 2 filas completas (con columns=4
+             quedaría una segunda fila de solo 2, con 2 huecos vacíos). -->
+        <DashboardQuickLinks :links="quickLinks" :columns="3" />
       </DashboardSection>
 
       <!-- Tendencia + Panel de comisión -->
