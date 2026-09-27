@@ -64,7 +64,12 @@ final class BingoLobbyRoomChanged implements ShouldBroadcast
                 'config' => $config ? [
                     'room_id'            => $config->room_id,
                     'card_price_usd'     => (float) $config->card_price_usd,
-                    'prize_pool_type'    => (int) $config->prize_pool_type_id,
+                    // Código (ACCUMULATIVE/FIXED/MIXED/PRIZE), igual que BingoGameRoomsDTO:
+                    // el lobby reemplaza el config de la sala con este payload y
+                    // isAccumulatedPrize() compara contra el código. Antes se mandaba
+                    // (int) del snowflake — número inútil para el front (y además
+                    // supera MAX_SAFE_INTEGER en JS).
+                    'prize_pool_type'    => $config->prizePoolType?->code,
                     'unix_date'          => $config->unix_date,
                     'date'               => $config->date?->toDateString(),
                     'time'               => $config->time,

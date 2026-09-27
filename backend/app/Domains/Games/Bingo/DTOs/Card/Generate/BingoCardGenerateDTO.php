@@ -17,6 +17,8 @@ final class BingoCardGenerateDTO
         public readonly string $playerLastName,
         public readonly string $receiptNumber,
         public readonly ?\Illuminate\Http\UploadedFile $receiptImage,
+        /** Precio unitario que vio el vendedor en la vista previa; generate() rechaza la venta si ya no coincide. */
+        public readonly ?float $expectedCardPrice = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -32,6 +34,7 @@ final class BingoCardGenerateDTO
             playerLastName: (string) ($player['last_name'] ?? ''),
             receiptNumber:  (string) ($data['receipt_number'] ?? ''),
             receiptImage:   $data['receipt_image'] ?? null,
+            expectedCardPrice: isset($data['expected_card_price']) ? (float) $data['expected_card_price'] : null,
         );
     }
 }

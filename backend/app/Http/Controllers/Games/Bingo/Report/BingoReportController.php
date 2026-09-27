@@ -972,8 +972,10 @@ final class BingoReportController extends Controller
     {
         return [
             'PENDING'   => 'Pending',
-            'COMPLETED' => 'Paid',
-            'FAILED'    => 'Cancelled',
+            // Enum real de bingo_card_payments.payment_status.
+            'APPROVED'  => 'Paid',
+            'REJECTED'  => 'Cancelled',
+            'CANCELLED' => 'Cancelled',
         ];
     }
 

@@ -40,6 +40,9 @@ class BingoCardGenerateRequest extends BaseRequest
             'player.last_name' => ['required', 'string', 'max:100'],
             'receipt_number'   => ['required', 'string', 'max:100'],
             'receipt_image'    => ['required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
+            // Precio unitario que el vendedor vio y cobró — ver
+            // BingoCardGenerateService::generate() (rechaza si cambió).
+            'expected_card_price' => ['required', 'numeric', 'min:0'],
         ];
     }
 
@@ -62,6 +65,7 @@ class BingoCardGenerateRequest extends BaseRequest
             'receipt_image.image'       => 'El archivo debe ser una imagen.',
             'receipt_image.mimes'       => 'La imagen debe estar en formato JPG o PNG.',
             'receipt_image.max'         => 'La imagen no puede superar los 2 MB.',
+            'expected_card_price.required' => 'Falta el precio del cartón. Recarga la página e inténtalo de nuevo.',
         ];
     }
 }

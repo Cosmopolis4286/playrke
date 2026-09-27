@@ -142,12 +142,9 @@ final class BingoCardGenerationService
             // Generar y almacenar los cartones de bingo (lanza excepción si falla)
             $cardIds = $this->cardManagement->generateAndStoreCards($cardOrder, $lotID);
 
-            // Guardar comprobante de pago si se proporcionó
-            if (isset($cardOrder['receiptImage']) && $cardOrder['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
-                $this->storeReceiptImage($cardOrder, $roomUserId, $lotID);
-            }
-
             // Crear registro de pago para jugadores externos o internos con comprobante
+            // (createCardPayment guarda el comprobante — antes además se guardaba
+            // una segunda copia huérfana vía storeReceiptImage()).
             if (isset($cardOrder['externalPlayerId']) && $cardOrder['externalPlayerId']) {
                 // Jugador externo
                 $this->createCardPayment($cardOrder, $roomUserId, $lotID);
@@ -191,6 +188,11 @@ final class BingoCardGenerationService
 
             return ['room_user_id' => $roomUserId];
 
+        } catch (\App\Exceptions\Domain\DomainException $e) {
+            // Errores de dominio con código propio (comprobante, capacidad,
+            // etc.) se propagan intactos para que el usuario vea su mensaje
+            // traducido — el catch genérico de abajo los ocultaba.
+            throw $e;
         } catch (\Throwable $e) {
             throw new \DomainException('Error en generación de cartones: ' . $e->getMessage());
         }
@@ -227,83 +229,72 @@ final class BingoCardGenerationService
      */
     private function createCardPayment(array $cardOrder, int $roomUserId, int $lotID): void
     {
-        try {
-            $paymentProof = null;
+        $paymentProof = null;
 
-            // Si hay imagen de comprobante, guardarla y obtener la ruta
+        try {
+            // Comprobante en disco PRIVADO (no servido por la web): antes iba
+            // al disco 'public' con un nombre adivinable
+            // (receipt_{roomUser}_{lot}_{time}) — cualquiera con la URL veía
+            // datos bancarios del comprador. Se sirve solo vía
+            // BingoCardPaymentReviewController::proof() con autorización.
+            // Nombre aleatorio y extensión según el MIME real, no la del cliente.
             if (isset($cardOrder['receiptImage']) && $cardOrder['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
-                $directory = 'receipts/bingo/' . date('Y/m');
-                $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $cardOrder['receiptImage']->getClientOriginalExtension();
-                $paymentProof = $cardOrder['receiptImage']->storeAs($directory, $fileName, 'public');
+                $file = $cardOrder['receiptImage'];
+                $paymentProof = $file->storeAs(
+                    BingoCardPayment::PROOF_DIRECTORY . '/' . date('Y/m'),
+                    \Illuminate\Support\Str::uuid() . '.' . ($file->extension() ?: 'jpg'),
+                    BingoCardPayment::PROOF_DISK,
+                );
+
+                if (!$paymentProof) {
+                    throw new \RuntimeException('No se pudo almacenar el comprobante.');
+                }
             }
 
             // El pago de un ExternalPlayer (comprador sin cuenta, vía vendedor)
-            // nace PENDING — antes se marcaba COMPLETED automáticamente sin que
-            // nadie revisara el comprobante, tratando "el vendedor dice que
-            // cobró" como equivalente a un pago verificado. Mientras esté
-            // PENDING, BingoGameService::getUserCartonsForExternalPlayer()
-            // excluye estos cartones de "mis cartones" — el comprador no puede
-            // jugar hasta que un admin apruebe el pago (ver
-            // BingoCardPaymentReviewService::approve()/reject()). Un pago
-            // interno con comprobante (no ExternalPlayer) sigue naciendo
-            // COMPLETED: ese caso es informativo, no gate de acceso.
+            // nace PENDING: BingoGameService::getUserCartonsForExternalPlayer()
+            // oculta sus cartones hasta que el comercio/admin lo apruebe (ver
+            // BingoCardPaymentReviewService). Un pago interno con comprobante
+            // nace APPROVED: es informativo, no gate de acceso.
+            //
+            // Columnas y estados alineados con el schema real de
+            // bingo_card_payments (seller_user_id requerido; enum
+            // PENDING/APPROVED/REJECTED/CANCELLED). Antes se escribían
+            // creator_user_id (no existe), seller_id (no está en $fillable) y
+            // estados COMPLETED/FAILED fuera del enum: el INSERT fallaba SIEMPRE,
+            // el error se tragaba, y sin fila PENDING los cartones quedaban
+            // jugables sin que nadie revisara el comprobante.
             $isExternalPlayerPayment = !empty($cardOrder['externalPlayerId']);
 
             BingoCardPayment::create([
-                'payment_method' => 'seller_cash',
-                'description' => $cardOrder['receiptNumber'] ?? 'Pago por generación de cartones',
-                'room_id' => $cardOrder['roomId'],
-                'creator_user_id' => $cardOrder['creator']['id'] ?? null,
-                'seller_id' => $cardOrder['seller'] ?? null,
-                'user_id' => $cardOrder['seller_user_id'] ?? null,
-                'external_player_id' => $cardOrder['externalPlayerId'] ?? null,
-                'currency_id' => $cardOrder['currency'],
-                'card_lot_id' => $lotID,
-                'payment_amount' => $cardOrder['cardPrice'] * $cardOrder['cardCount'],
-                'payment_proof' => $paymentProof,
-                'payment_status' => $isExternalPlayerPayment ? 'PENDING' : 'COMPLETED',
-                'processed_at' => $isExternalPlayerPayment ? null : now(),
+                'payment_method'        => 'seller_cash',
+                'description'           => 'Venta de ' . $cardOrder['cardCount'] . ' cartón(es) por vendedor',
+                'room_id'               => $cardOrder['roomId'],
+                'seller_user_id'        => $cardOrder['seller_user_id'],
+                'user_id'               => $cardOrder['seller_user_id'] ?? null,
+                'external_player_id'    => $cardOrder['externalPlayerId'] ?? null,
+                'currency_id'           => $cardOrder['currency'],
+                'card_lot_id'           => $lotID,
+                'payment_amount'        => round($cardOrder['cardPrice'] * $cardOrder['cardCount'], 2),
+                'payment_proof'         => $paymentProof ?? '',
+                'payment_status'        => $isExternalPlayerPayment ? 'PENDING' : 'APPROVED',
+                'processed_at'          => $isExternalPlayerPayment ? null : now(),
                 'transaction_reference' => $cardOrder['receiptNumber'] ?? null,
             ]);
-
         } catch (\Throwable $e) {
+            if ($paymentProof) {
+                \Illuminate\Support\Facades\Storage::disk(BingoCardPayment::PROOF_DISK)->delete($paymentProof);
+            }
+
             Log::error('Error creating card payment', [
-                'error' => $e->getMessage(),
+                'error'        => $e->getMessage(),
                 'room_user_id' => $roomUserId,
-                'lot_id' => $lotID
+                'lot_id'       => $lotID,
             ]);
-            // No lanzamos excepción para no interrumpir la generación de cartones
-        }
-    }
 
-    /**
-     * Almacena la imagen del comprobante de pago
-     *
-     * @param array $cardOrder Datos de generación de cartones
-     * @param int $roomUserId ID del usuario en la sala
-     * @param int $lotID ID del lote de cartones
-     * @return void
-     */
-    private function storeReceiptImage(array $cardOrder, int $roomUserId, int $lotID): void
-    {
-        try {
-            $receiptImage = $cardOrder['receiptImage'];
-            $receiptNumber = $cardOrder['receiptNumber'] ?? null;
-            
-            // Crear directorio si no existe
-            $directory = 'receipts/bingo/' . date('Y/m');
-            $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $receiptImage->getClientOriginalExtension();
-            
-            // Guardar archivo
-            $path = $receiptImage->storeAs($directory, $fileName, 'public');
-            
-        } catch (\Throwable $e) {
-            Log::error('Error storing receipt image', [
-                'error' => $e->getMessage(),
-                'room_user_id' => $roomUserId,
-                'lot_id' => $lotID
-            ]);
-            // No lanzamos excepción para no interrumpir la generación de cartones
+            // Sin registro de pago no hay revisión: la venta completa se revierte
+            // (estamos dentro de la transacción de generateCards()).
+            throw \App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException::paymentRecordFailed();
         }
     }
 }

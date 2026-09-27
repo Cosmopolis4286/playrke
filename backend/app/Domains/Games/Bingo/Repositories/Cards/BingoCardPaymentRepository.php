@@ -358,7 +358,8 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
     public function calculateTotalByMethod(string $paymentMethod, array $filters = []): float
     {
         $query = $this->model->where('payment_method', $paymentMethod)
-                            ->where('payment_status', 'completed');
+                            // 'APPROVED': 'completed' no existe en el enum real y nunca coincidía.
+                            ->where('payment_status', 'APPROVED');
 
         // Aplicar filtros adicionales
         if (isset($filters['room_id'])) {
@@ -387,7 +388,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
     {
         $expiredDate = now()->subHours($hoursLimit);
 
-        return $this->model->where('payment_status', 'pending')
+        return $this->model->where('payment_status', 'PENDING')
                           ->where('created_at', '<', $expiredDate)
                           ->select($columns)
                           ->with(['room', 'seller', 'user'])

@@ -12,6 +12,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class BingoCardPayment extends BaseModel
 {
+    /**
+     * Comprobantes en disco PRIVADO (storage/app, no servido por la web):
+     * solo accesibles vía BingoCardPaymentReviewController::proof().
+     */
+    public const PROOF_DISK = 'local';
+    public const PROOF_DIRECTORY = 'private/receipts/bingo';
+
     protected $table = 'bingo_card_payments';
 
     protected $fillable = [
@@ -60,19 +67,22 @@ final class BingoCardPayment extends BaseModel
         return $this->belongsTo(BingoCardLot::class, 'card_lot_id');
     }
 
-    public function markAsCompleted(string $transactionReference = null): void
+    // Estados alineados con el enum real de la columna
+    // (PENDING/APPROVED/REJECTED/CANCELLED) — antes COMPLETED/FAILED, que
+    // MySQL rechazaba.
+    public function markAsCompleted(?string $transactionReference = null): void
     {
         $this->update([
-            'payment_status'          => 'COMPLETED',
+            'payment_status'          => 'APPROVED',
             'processed_at'            => now(),
-            'transaction_reference'   => $transactionReference,
+            'transaction_reference'   => $transactionReference ?? $this->transaction_reference,
         ]);
     }
 
-    public function markAsFailed(string $reason = null): void
+    public function markAsFailed(?string $reason = null): void
     {
         $this->update([
-            'payment_status' => 'FAILED',
+            'payment_status' => 'REJECTED',
             'processed_at'   => now(),
             'description'    => $reason ? $this->description . ' - Fallo: ' . $reason : $this->description,
         ]);

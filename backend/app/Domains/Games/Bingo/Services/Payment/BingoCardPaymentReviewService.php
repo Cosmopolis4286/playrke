@@ -44,7 +44,7 @@ final class BingoCardPaymentReviewService
             }
 
             $locked->update([
-                'payment_status' => 'COMPLETED',
+                'payment_status' => 'APPROVED',
                 'processed_at'   => now(),
                 'description'    => trim(($locked->description ?? '') . ' — Aprobado por admin' . ($adminNotes ? ": {$adminNotes}" : '')),
             ]);
@@ -100,7 +100,7 @@ final class BingoCardPaymentReviewService
             }
 
             $locked->update([
-                'payment_status' => 'FAILED',
+                'payment_status' => 'REJECTED',
                 'processed_at'   => now(),
                 'description'    => trim(($locked->description ?? '') . ' — Rechazado por admin' . ($adminNotes ? ": {$adminNotes}" : '')),
             ]);

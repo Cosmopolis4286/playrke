@@ -48,6 +48,38 @@ final class BingoCardGenerateException extends DomainException
         return new self('BINGO_CARD_CURRENCY_NOT_AVAILABLE', 422);
     }
 
+    /**
+     * El precio del cartón cambió entre la vista previa del vendedor y el
+     * envío (tasa o precio personalizado actualizado). 409: el vendedor debe
+     * revisar el nuevo monto antes de cobrar — nunca se registra una venta a
+     * un precio distinto del que vio.
+     */
+    public static function priceChanged(float $expected, float $current): self
+    {
+        return new self('BINGO_CARD_PRICE_CHANGED', 409, replacements: [
+            'expected' => number_format($expected, 2, ',', '.'),
+            'current'  => number_format($current, 2, ',', '.'),
+        ]);
+    }
+
+    /**
+     * El número de comprobante ya respalda otra venta (pendiente o aprobada)
+     * de la misma red comercial — un mismo pago no puede cubrir dos ventas.
+     */
+    public static function duplicateReceipt(): self
+    {
+        return new self('BINGO_CARD_DUPLICATE_RECEIPT', 409);
+    }
+
+    /**
+     * No se pudo registrar el pago de la venta (comprobante/registro). La
+     * venta completa se revierte: sin registro de pago no hay revisión.
+     */
+    public static function paymentRecordFailed(): self
+    {
+        return new self('BINGO_CARD_PAYMENT_RECORD_FAILED', 422);
+    }
+
     public static function cardGenerationFailed(): self
     {
         return new self('BINGO_CARD_GENERATION_FAILED', 422);

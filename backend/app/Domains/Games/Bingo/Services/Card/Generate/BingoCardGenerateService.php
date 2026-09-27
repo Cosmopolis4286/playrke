@@ -16,7 +16,10 @@ use App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService;
 use App\Domains\Wallet\Services\WalletService;
 use App\Services\Roles\Player\External\ExternalPlayerLinkService;
 use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
+use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Game;
@@ -50,6 +53,7 @@ final class BingoCardGenerateService
         private readonly ExternalPlayerLinkService $externalPlayerLink,
         private readonly \App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly \App\Services\NotificationService $notificationService,
+        private readonly CommissionCalculationInterface $commissionCalculation,
     ) {}
 
     /**
@@ -351,7 +355,12 @@ final class BingoCardGenerateService
         // 2. Commerce responsable y user_id de su creador (para filtrar bingo_card_prices)
         [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
 
-        // 3. Moneda del país seleccionado
+        // 3. Sala vendible por este comercio y moneda habilitada — mismas
+        //    validaciones que generate(), para que la vista previa nunca
+        //    muestre un precio de algo que luego no se podrá vender.
+        $this->findSellableRoom($roomId, $creatorUserId);
+        $this->assertCountryAllowed($roomId, $userId, $countryId);
+
         $currencyId     = $this->currencies->getValueByCountry($countryId, 'id');
         $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
 
@@ -359,36 +368,120 @@ final class BingoCardGenerateService
             throw BingoCardGenerateException::currencyNotAvailable();
         }
 
-        // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
-        //    (exchange_rates) — nunca asume 1:1 en silencio, ver ExchangeRateDomainService.
-        $exchangeRate = $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $userId);
+        // 4-5. Tasa y precio — MISMOS helpers que generate()/buyFromGameRooms().
+        $exchangeRate = $this->saleExchangeRate($currencyId, $creatorUserId);
+        $price        = $this->resolveUnitCardPrice($roomId, $currencyId, $creatorUserId, $exchangeRate);
 
-        // 5. Precio personalizado en bingo_card_prices (room + currency + creator_user_id del commerce)
+        // 6. Comisión: para el vendedor, la tasa EFECTIVA que se aplicará en
+        //    la venta (especial de la sala o base, + bono progresivo).
+        $commission = $role === 'seller'
+            ? $this->commissionCalculation->sellerCommissionRate(
+                (string) $this->sellerRepository->getValueByUserId($userId, 'id'),
+                $roomId,
+            )
+            : $this->resolveEntityCommission($userId, $role);
+
+        return [
+            'card_price'        => $price['card_price'],
+            'currency_symbol'   => (string) ($currencySymbol ?? ''),
+            'exchange_rate'     => $exchangeRate,
+            'is_custom_price'   => $price['is_custom_price'],
+            'seller_commission' => $commission,
+        ];
+    }
+
+    /**
+     * Tasa de cambio de una venta: la del COMERCIO dueño del negocio (su tasa
+     * propia si la tiene, si no la oficial — ver ExchangeRateDomainService),
+     * redondeada a 2 decimales.
+     *
+     * Única fuente de la tasa para vista previa y cobro. Antes la vista
+     * previa del vendedor la resolvía con el user_id del VENDEDOR (que nunca
+     * tiene tasa propia → siempre la oficial) y sin redondear, mientras
+     * generate() usaba la del comercio redondeada: si el comercio tenía tasa
+     * propia, el precio que veía el vendedor no era el que se registraba.
+     */
+    private function saleExchangeRate(int|string $currencyId, int|string $rateOwnerUserId): float
+    {
+        return round(
+            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $rateOwnerUserId),
+            2,
+        );
+    }
+
+    /**
+     * Precio unitario del cartón en moneda local: precio personalizado del
+     * comercio (bingo_card_prices) o, si no hay, precio base USD de la sala ×
+     * tasa. Usado por vista previa y cobro.
+     *
+     * @return array{card_price: float, is_custom_price: bool}
+     */
+    private function resolveUnitCardPrice(string $roomId, int|string $currencyId, int|string $creatorUserId, float $exchangeRate): array
+    {
         $customPrice = BingoCardPrice::byRoom($roomId)
             ->byCurrency($currencyId)
             ->where('creator_user_id', $creatorUserId)
             ->value('card_price');
 
-        $isCustomPrice = $customPrice !== null;
-
-        if ($isCustomPrice) {
-            $cardPrice = $this->priceCalculator->calculate($customPrice, true, $exchangeRate);
-        } else {
-            $room         = BingoRoom::select('id')->with('config:id,room_id,card_price_usd')->find($roomId);
-            $roomCardPrice = $room?->config?->card_price_usd ?? 0;
-            $cardPrice    = $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate);
+        if ($customPrice !== null) {
+            return [
+                'card_price'      => (float) $this->priceCalculator->calculate($customPrice, true, $exchangeRate),
+                'is_custom_price' => true,
+            ];
         }
 
-        // 6. Comisión de la entidad autenticada según su rol
-        $commission = $this->resolveEntityCommission($userId, $role);
+        $roomCardPrice = BingoRoomConfig::where('room_id', $roomId)->value('card_price_usd') ?? 0;
 
         return [
-            'card_price'        => (float) $cardPrice,
-            'currency_symbol'   => (string) ($currencySymbol ?? ''),
-            'exchange_rate'     => $exchangeRate,
-            'is_custom_price'   => $isCustomPrice,
-            'seller_commission' => $commission,
+            'card_price'      => (float) $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate),
+            'is_custom_price' => false,
         ];
+    }
+
+    /**
+     * Sala en la que este comercio (y su red) puede vender: ACTIVE o
+     * IN_PROGRESS, y propia del comercio o PUBLIC. Antes generate() solo
+     * validaba el estado — una request armada a mano podía vender cartones en
+     * la sala PRIVADA de otro comercio. Se responde "no disponible" (404) sin
+     * distinguir "no existe" de "no es tuya", para no revelar salas ajenas.
+     */
+    private function findSellableRoom(string $roomId, int|string $creatorUserId): BingoRoom
+    {
+        $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
+            ->whereKey($roomId)
+            ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
+            ->accessibleBy((int) $creatorUserId)
+            ->first();
+
+        if (!$room) {
+            throw BingoCardGenerateException::roomNotAvailable();
+        }
+
+        return $room;
+    }
+
+    /**
+     * El país (y con él la moneda) debe estar entre los habilitados para esta
+     * sala y este usuario — misma intersección que ya arma el selector de
+     * países (getAvailableCountries). Antes solo se validaba en el frontend.
+     */
+    private function assertCountryAllowed(string $roomId, int|string $userId, string $countryId): void
+    {
+        $allowed = collect($this->getAvailableCountries($roomId, (string) $userId)['countries'] ?? [])
+            ->map(fn ($country) => (string) (is_array($country) ? $country['id'] : $country->id));
+
+        if (!$allowed->contains($countryId)) {
+            throw BingoCardGenerateException::currencyNotAvailable();
+        }
+    }
+
+    /**
+     * Normaliza un número de comprobante para comparar duplicados: sin
+     * espacios y en mayúsculas ("ab 123" y "AB123" son el mismo pago).
+     */
+    private function normalizeReceiptNumber(string $receiptNumber): string
+    {
+        return strtoupper((string) preg_replace('/\s+/', '', trim($receiptNumber)));
     }
 
     /**
@@ -514,44 +607,32 @@ final class BingoCardGenerateService
         $creatorUser = $commerceModel->user_id;
         $commerce    = $commerceModel->id;
 
-        // 2. Validar sala — solo se permiten salas con código ACTIVE o IN_PROGRESS
-        $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
-            ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->where('id', $dto->roomId)
-            ->first();
+        // 2. Sala vendible por este comercio (estado + propia o PUBLIC).
+        $room = $this->findSellableRoom($dto->roomId, $creatorUser);
 
-        if (!$room) {
-            throw BingoCardGenerateException::roomNotAvailable();
-        }
+        // 3. País/moneda habilitados para esta sala y este vendedor.
+        $this->assertCountryAllowed((string) $room->id, (string) Auth::id(), $dto->countryId);
 
-        // 3. Obtener moneda por país
         $currency = $this->currencies->getValueByCountry($dto->countryId, 'id');
 
         if (!$currency) {
             throw BingoCardGenerateException::currencyNotAvailable();
         }
 
-        // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
-        //    (exchange_rates) — lanza ExchangeRateException (DomainException) si tampoco existe ahí.
-        $exchangeRate = round(
-            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currency, (int) $creatorUser),
-            2,
-        );
+        // 4-5. Tasa y precio — MISMOS helpers que la vista previa (getCardPrice).
+        $exchangeRate = $this->saleExchangeRate($currency, $creatorUser);
+        $cardPrice    = $this->resolveUnitCardPrice((string) $room->id, $currency, $creatorUser, $exchangeRate)['card_price'];
 
-        // 5. Calcular precio del cartón
-        //    Busca precio personalizado en bingo_card_prices para la sala, moneda y commerce.
-        //    creator_user_id = user_id del commerce manager del seller.
-        $customPrice  = BingoCardPrice::byRoom($room->id)
-            ->byCurrency($currency)
-            ->where('creator_user_id', $creatorUser)
-            ->value('card_price');
+        // El vendedor cobró según el precio que vio: si cambió desde entonces
+        // (tasa o precio personalizado actualizado), no se registra la venta a
+        // un monto distinto — se le pide revisar el nuevo precio.
+        if ($dto->expectedCardPrice !== null && abs($dto->expectedCardPrice - $cardPrice) > 0.005) {
+            throw BingoCardGenerateException::priceChanged($dto->expectedCardPrice, $cardPrice);
+        }
 
-        $roomCardPrice = $room->config?->card_price_usd ?? $room->config?->card_price ?? 0;
-
-        $cardPrice = $customPrice !== null
-            ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
-            : $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate);
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
+
+        $receiptNumber = $this->normalizeReceiptNumber($dto->receiptNumber);
 
         // 6. Buscar jugador existente en la sala — solo de la red comercial
         //    del vendedor (mismo criterio que resolveOrCreatePlayer()): en una
@@ -583,7 +664,7 @@ final class BingoCardGenerateService
             'playerName'    => $dto->playerName,
             'playerLastName' => $dto->playerLastName,
             'exchangeRate'  => $exchangeRate,
-            'receiptNumber' => $dto->receiptNumber,
+            'receiptNumber' => $receiptNumber,
             'receiptImage'  => $dto->receiptImage,
         ];
 
@@ -591,8 +672,58 @@ final class BingoCardGenerateService
             $cardOrder['roomUser'] = $existingRoomUser;
         }
 
-        // 7. Ejecutar transacción atómica
-        $result = DB::transaction(function () use ($cardOrder) {
+        // 7. Comprobante único por red comercial + transacción atómica.
+        //    El lock serializa dos envíos con el mismo comprobante (doble clic,
+        //    reintento, dos vendedores a la vez) — sin él ambos podían pasar el
+        //    chequeo de duplicado antes de que ninguno comiteara.
+        $networkUserIds = $commerceModel->networkUserIds();
+        $lock = Cache::lock('bingo:receipt:' . $commerce . ':' . sha1($receiptNumber), 30);
+
+        if (!$lock->get()) {
+            throw BingoCardGenerateException::duplicateReceipt();
+        }
+
+        try {
+            $this->assertReceiptNotUsed($receiptNumber, $networkUserIds);
+
+            $result = $this->runSaleTransaction($cardOrder);
+        } finally {
+            $lock->release();
+        }
+
+        // 8. Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
+        //    Recarga los datos frescos después del commit para garantizar consistencia.
+        $this->broadcastRoomUpdated((string) $room->id);
+
+        return $result;
+    }
+
+    /**
+     * Un comprobante solo puede respaldar UNA venta vigente (pendiente o
+     * aprobada) dentro de la red comercial. Uno rechazado/cancelado sí puede
+     * reutilizarse (reenvío corregido de una venta anulada).
+     *
+     * @param string[] $networkUserIds
+     */
+    private function assertReceiptNotUsed(string $receiptNumber, array $networkUserIds): void
+    {
+        $used = BingoCardPayment::query()
+            ->where('transaction_reference', $receiptNumber)
+            ->whereIn('payment_status', ['PENDING', 'APPROVED'])
+            ->whereIn('seller_user_id', $networkUserIds)
+            ->exists();
+
+        if ($used) {
+            throw BingoCardGenerateException::duplicateReceipt();
+        }
+    }
+
+    /**
+     * @return array{type: string, message: string, playerLink: string|null, paymentStatus: string}
+     */
+    private function runSaleTransaction(array $cardOrder): array
+    {
+        return DB::transaction(function () use ($cardOrder) {
             // Resolver/crear el ExternalPlayer ANTES de generar los cartones —
             // external_players.room_user_id ahora es nullable/informativo
             // (ver create_external_players_table), así que no depende de que
@@ -613,18 +744,16 @@ final class BingoCardGenerateService
 
             $playerLink = $this->externalPlayerLink->resolveGameUrl($cardOrder['externalPlayerId']);
 
+            // Venta a comprador externo: el pago nace PENDING y los cartones
+            // no son jugables hasta que el comercio apruebe el comprobante —
+            // el vendedor debe saberlo para avisarle al comprador.
             return [
-                'type'       => 'success',
-                'message'    => 'Cartones generados correctamente.',
-                'playerLink' => $playerLink,
+                'type'          => 'success',
+                'message'       => 'Cartones generados. El pago quedó en revisión: el comprador podrá jugar cuando el comercio apruebe el comprobante.',
+                'playerLink'    => $playerLink,
+                'paymentStatus' => 'PENDING',
             ];
         });
-
-        // 8. Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
-        //    Recarga los datos frescos después del commit para garantizar consistencia.
-        $this->broadcastRoomUpdated((string) $room->id);
-
-        return $result;
     }
 
     /**
@@ -667,22 +796,12 @@ final class BingoCardGenerateService
             throw BingoCardGenerateException::currencyNotAvailable();
         }
 
-        // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
-        //    (exchange_rates) — lanza ExchangeRateException (DomainException) si tampoco existe ahí.
-        $exchangeRate = round(
-            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $userId),
-            2,
-        );
-
-        // 5. Precio del cartón
-        $customPrice = BingoCardPrice::byRoom($room->id)
-            ->byCurrency($currencyId)
-            ->where('creator_user_id', $creatorUserId)
-            ->value('card_price');
-
-        $cardPrice = $customPrice !== null
-            ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
-            : $this->priceCalculator->calculate($room->config?->card_price_usd ?? 0, false, $exchangeRate);
+        // 4-5. Tasa y precio — MISMOS helpers que la vista previa. La tasa es
+        //      la del COMERCIO ($creatorUserId), no la del usuario que compra:
+        //      antes se usaba $userId, que para un seller es su propio user
+        //      (sin tasa propia → siempre la oficial), distinta de la del comercio.
+        $exchangeRate = $this->saleExchangeRate($currencyId, $creatorUserId);
+        $cardPrice    = $this->resolveUnitCardPrice((string) $room->id, $currencyId, $creatorUserId, $exchangeRate)['card_price'];
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
         // 6. Seller ID (null si es commerce)
