@@ -114,6 +114,39 @@ class BingoRoomRequestPrizePoolJackpotTest extends TestCase
 
     #[Test]
     #[DataProvider('requestClasses')]
+    public function suma_de_porcentajes_se_valida_con_base_usd(string $class): void
+    {
+        // useBaseUsd=true es el modo por defecto — en la sala automática un
+        // `return` temprano salteaba la suma de % en este caso.
+        [$errors] = $this->validate($class, [
+            'useBaseUsd'        => true,
+            'allowedCurrencies' => ['900000000000000050'],
+            'roomCommn'         => 50,
+            'roundsPct'         => 60,
+        ]);
+
+        $this->assertTrue($errors->has('percentageSum'));
+    }
+
+    #[Test]
+    public function error_de_monedas_no_saltea_el_resto_de_chequeos_cruzados(): void
+    {
+        // 2 monedas sin tasa activa → error de monedas con `return` temprano,
+        // que antes salteaba la suma de % y los premios fijos por moneda.
+        [$errors] = $this->validate(BingoRoomRequest::class, [
+            'allowedCurrencies' => ['900000000000000050', '900000000000000051'],
+            'roomCommn'         => 50,
+            'roundsPct'         => 60,
+            'roundsConfig'      => [['prizeType' => 'fixed', 'prizeValueByCurrency' => []]],
+        ]);
+
+        $this->assertTrue($errors->has('allowedCurrencies'));
+        $this->assertTrue($errors->has('percentageSum'));
+        $this->assertTrue($errors->has('roundsConfig.0.prizeValueByCurrency.900000000000000050'));
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
     public function sin_jackpot_no_da_error_de_jackpot(string $class): void
     {
         [$errors] = $this->validate($class, []);
