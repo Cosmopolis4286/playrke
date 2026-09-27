@@ -5,6 +5,7 @@ namespace App\Http\Requests\Games\Bingo\Room\Automatic;
 use App\Http\Requests\BaseRequest;
 use App\Models\Game;
 use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Services\Auth\PermissionService;
 
@@ -75,8 +76,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             // Comisiones
             'roomCommn'                   => ['required', 'numeric', 'min:10', 'max:50'],
-            'jackpotPct'                  => ['nullable', 'numeric', 'min:1', 'max:15'],
-            'jackpotType'                 => ['nullable', 'exists:jackpot_types,id'],
+            // Jackpot: tipo y % van juntos (ver BingoRoomRequest).
+            'jackpotPct'                  => ['required_with:jackpotType', 'nullable', 'numeric', 'min:1', 'max:15'],
+            'jackpotType'                 => ['required_with:jackpotPct', 'nullable', 'exists:jackpot_types,id'],
 
             // Configuración general del juego
             'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],
@@ -154,12 +156,29 @@ class BingoRoomAutomaticRequest extends BaseRequest
     }
 
     /**
-     * Validaciones adicionales después de las reglas básicas.
-     *
-     * - Si hay más de una o mas monedas permitidas, debe venir cardPriceByCurrency
-     * - cardPriceByCurrency debe contener un precio para cada moneda seleccionada
-     * - Si no se envían allowedCurrencies, se asume que no cambiaron y se valida contra las monedas actuales de la sala (en caso de update)
+     * Con bote acumulativo el "Valor Fijo/Extra" no aplica — se descarta para
+     * no guardar en la plantilla un monto residual que luego heredarían todas
+     * las salas autogeneradas.
      */
+    protected function prepareForValidation(): void
+    {
+        if ($this->resolvedPrizePoolType()?->isAccumulative()) {
+            $this->merge(['amountAddedPrizePool' => null]);
+        }
+    }
+
+    private ?PrizePoolType $prizePoolTypeCache = null;
+
+    private function resolvedPrizePoolType(): ?PrizePoolType
+    {
+        $id = $this->input('prizePoolType');
+        if ($id === null || $id === '') return null;
+        if ($this->prizePoolTypeCache?->id !== (string) $id) {
+            $this->prizePoolTypeCache = PrizePoolType::find($id);
+        }
+        return $this->prizePoolTypeCache;
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
@@ -222,6 +241,17 @@ class BingoRoomAutomaticRequest extends BaseRequest
                 if (!$jackpotType || !$jackpotType->isActive()) {
                     $validator->errors()->add('jackpotType', 'El jackpot seleccionado no está activo.');
                 }
+            }
+
+            // Valor Fijo/Extra: obligatorio en todo bote no acumulativo (en el
+            // acumulativo ya se descartó en prepareForValidation()).
+            $prizePoolType = $this->resolvedPrizePoolType();
+            if (
+                $prizePoolType && !$prizePoolType->isAccumulative()
+                && $this->input('amountAddedPrizePool') === null
+                && !$validator->errors()->has('amountAddedPrizePool')
+            ) {
+                $validator->errors()->add('amountAddedPrizePool', "El valor fijo/extra es obligatorio para \"{$prizePoolType->label}\".");
             }
 
             $allowedCurrencies = $this->input('allowedCurrencies');
@@ -347,6 +377,12 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',
 
             'jackpotType.exists'              => 'El jackpot seleccionado no es válido.',
+            'jackpotType.required_with'       => 'Elija un tipo de jackpot para usar el % de jackpot.',
+            'jackpotPct.required_with'        => 'Ingrese el % de jackpot o quite el tipo de jackpot.',
+            'jackpotPct.min'                  => 'El % de jackpot no puede ser menor a 1.',
+            'jackpotPct.max'                  => 'El % de jackpot no puede ser mayor a 15.',
+            'amountAddedPrizePool.min'        => 'El valor fijo/extra no puede ser menor a 20.',
+            'amountAddedPrizePool.max'        => 'El valor fijo/extra no puede ser mayor a 10.000.',
 
             'accessCode.required_if'          => 'El código de acceso es obligatorio para salas privadas.',
             'accessCode.min'                  => 'El código de acceso debe tener al menos 4 caracteres.',

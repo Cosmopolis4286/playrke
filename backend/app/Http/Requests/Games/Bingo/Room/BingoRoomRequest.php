@@ -6,6 +6,7 @@ use App\Http\Requests\BaseRequest;
 use App\Models\ExchangeRate;
 use App\Models\Game;
 use App\Models\Games\Common\GameMode\GameMode;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Services\Auth\PermissionService;
 
@@ -85,8 +86,10 @@ class BingoRoomRequest extends BaseRequest
 
             // Comisiones
             'roomCommn'                   => ['required', 'numeric', 'min:10', 'max:50'],
-            'jackpotPct'                  => ['nullable', 'numeric', 'min:1', 'max:15'],
-            'jackpotType'                 => ['nullable', 'exists:jackpot_types,id'],
+            // Jackpot: tipo y % van juntos — un % sin destino se descuenta del bote
+            // sin ir a ningún pozo, y un tipo sin % nunca recibe aportes.
+            'jackpotPct'                  => ['required_with:jackpotType', 'nullable', 'numeric', 'min:1', 'max:15'],
+            'jackpotType'                 => ['required_with:jackpotPct', 'nullable', 'exists:jackpot_types,id'],
 
             // Configuración general del juego
             'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],
@@ -147,212 +150,300 @@ class BingoRoomRequest extends BaseRequest
      */
     public function withValidator($validator): void
     {
+        // Cada chequeo cruzado vive en su propio método y corre SIEMPRE: antes
+        // era un solo closure con `return` tempranos en el bloque de monedas,
+        // que salteaban en silencio todo lo que venía después (suma de %,
+        // modo de juego, jackpot activo, capacidad…) ante un error de monedas.
         $validator->after(function ($validator) {
-
-            // Validar que fecha+hora sea al menos 10 minutos desde ahora
-            // Solo aplica a creación; en edición el usuario no puede cambiar una fecha pasada
-            // pero sí debe poder guardar otros cambios sin que la fecha existente lo bloquee.
-            $isCreate = $this->route('room') === null;
-            $date = $this->input('date');
-            $time = $this->input('time');
-            if ($isCreate && $this->input('startMode') === 'SCHEDULED' && $date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
-                $userTz     = auth()->user()?->timeZone?->name ?? 'UTC';
-                $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $userTz);
-                $minAllowed = \Carbon\Carbon::now($userTz)->addMinutes(10);
-
-                if ($scheduled->lt($minAllowed)) {
-                    $validator->errors()->add(
-                        'time',
-                        'La hora debe ser al menos 10 minutos desde ahora (' . $minAllowed->format('H:i') . ' o posterior).'
-                    );
-                }
-            }
-
-            $allowedCurrencies = $this->input('allowedCurrencies');
-            $cardPriceByCurrency = $this->input('cardPriceByCurrency');
-
-            // Si no mandaron ninguno, no validamos nada
-            if ($allowedCurrencies === null && $cardPriceByCurrency === null) {
-                return;
-            }
-
-            // Si no mandaron allowedCurrencies, lo sacamos del room actual
-            if ($allowedCurrencies === null) {
-                $room = $this->route('room'); // depende del nombre en tu ruta
-
-                $config = $room?->config?->first();
-
-                $allowedCurrencies = $config?->allowed_currencies ?? [];
-            }
-
-            if (!is_array($allowedCurrencies)) {
-                $allowedCurrencies = [];
-            }
-
-            // Con 2+ monedas permitidas, todas necesitan tasa de cambio activa: la
-            // compra de cartones siempre deriva el equivalente en USD a partir de la
-            // tasa, sin importar si el precio se definió en USD base o manualmente
-            // por moneda (useBaseUsd false). Defensa en profundidad: el frontend ya
-            // bloquea/advierte esto, pero el backend es la fuente de verdad final.
-            if (count($allowedCurrencies) > 1) {
-                $currenciesWithActiveRate = ExchangeRate::active()
-                    ->whereIn('currency_id', $allowedCurrencies)
-                    ->pluck('currency_id')
-                    ->map(fn ($id) => (string) $id)
-                    ->unique()
-                    ->all();
-
-                $missingRate = array_filter(
-                    $allowedCurrencies,
-                    fn ($currencyId) => !in_array((string) $currencyId, $currenciesWithActiveRate, true)
-                );
-
-                if (!empty($missingRate)) {
-                    $validator->errors()->add(
-                        'allowedCurrencies',
-                        'Las siguientes monedas no tienen tasa de cambio activa: ' . implode(', ', $missingRate) . '.'
-                    );
-                    return;
-                }
-            }
-
-            // Si hay más de una moneda Y no usa base USD, cardPriceByCurrency es obligatorio
-            $useBaseUsd = (bool) $this->input('useBaseUsd', true);
-            if (!$useBaseUsd && count($allowedCurrencies) > 1) {
-
-                if (!is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
-                    $validator->errors()->add(
-                        'cardPriceByCurrency',
-                        'Debe indicar el precio del cartón por cada moneda permitida.'
-                    );
-                    return;
-                }
-
-                foreach ($allowedCurrencies as $currencyId) {
-                    $key = (string) $currencyId;
-
-                    if (
-                        !array_key_exists($key, $cardPriceByCurrency)
-                        || $cardPriceByCurrency[$key] === null
-                        || $cardPriceByCurrency[$key] === ''
-                    ) {
-                        $validator->errors()->add(
-                            "cardPriceByCurrency.$key",
-                            "Falta el precio del cartón para la moneda $key."
-                        );
-                    }
-                }
-            }
-
-            // Validar prizeValueByCurrency para rondas con tipo 'fixed'
-            $roundsConfig = $this->input('roundsConfig', []);
-            if (is_array($roundsConfig)) {
-                foreach ($roundsConfig as $i => $config) {
-                    if (($config['prizeType'] ?? '') !== 'fixed') {
-                        continue;
-                    }
-                    $byCurrency = $config['prizeValueByCurrency'] ?? [];
-                    foreach ($allowedCurrencies as $currencyId) {
-                        $key = (string) $currencyId;
-                        if (
-                            !array_key_exists($key, $byCurrency)
-                            || $byCurrency[$key] === null
-                            || $byCurrency[$key] === ''
-                            || (float) $byCurrency[$key] <= 0
-                        ) {
-                            $validator->errors()->add(
-                                "roundsConfig.$i.prizeValueByCurrency.$key",
-                                "Falta el valor fijo de la ronda " . ($i + 1) . " para la moneda $key."
-                            );
-                        }
-                    }
-                }
-            }
-
-            // Validar que la suma de porcentajes no supere 100
-            $useSerials  = filter_var($this->input('useSerials', false), FILTER_VALIDATE_BOOLEAN);
-            $roomCommn   = (float) ($this->input('roomCommn')  ?? 0);
-            $jackpotPct  = (float) ($this->input('jackpotPct') ?? 0);
-            $serialsPct  = $useSerials ? (float) ($this->input('serialsPct') ?? 0) : 0;
-            $roundsPct   = (float) ($this->input('roundsPct')  ?? 0);
-            $totalPct    = $roomCommn + $jackpotPct + $serialsPct + $roundsPct;
-
-            if ($totalPct > 100) {
-                $validator->errors()->add(
-                    'percentageSum',
-                    "La suma de porcentajes ({$totalPct}%) no puede exceder el 100%."
-                );
-            }
-
-            // gameMode: el exists:game_modes,id no verifica que el modo pertenezca al
-            // juego Bingo — GameMode es un catálogo compartido entre juegos (Trivia, etc.)
-            // y aceptar un id de otro juego dejaría la sala con un modo incoherente.
-            $gameMode = $this->input('gameMode');
-            if ($gameMode !== null && !$validator->errors()->has('gameMode')) {
-                $bingoGameId = Game::where('name', 'BINGO')->value('id');
-                $mode = GameMode::find($gameMode);
-
-                if (!$mode || (string) $mode->game_id !== (string) $bingoGameId) {
-                    $validator->errors()->add('gameMode', 'El modo de juego seleccionado no es válido para Bingo.');
-                }
-            }
-
-            // Mover casilla libre: solo tiene sentido junto con cartón personalizado
-            // y solo en BINGO_75 (única variante con casilla libre).
-            $moveFreeSpaceMode = $this->input('moveFreeSpaceMode');
-            if ($moveFreeSpaceMode !== null) {
-                if (!filter_var($this->input('allowCustomCard', false), FILTER_VALIDATE_BOOLEAN)) {
-                    $validator->errors()->add(
-                        'moveFreeSpaceMode',
-                        'Mover la casilla libre requiere permitir cartón personalizado.'
-                    );
-                }
-
-                $gameVariant = $this->input('gameVariant', \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75);
-                if ($gameVariant !== \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75) {
-                    $validator->errors()->add(
-                        'moveFreeSpaceMode',
-                        'Mover la casilla libre solo aplica a Bingo 75 bolas.'
-                    );
-                }
-            }
-
-            // Validación cruzada min/max: solo si AMBOS extremos del par tienen valor
-            // (nuevo del request, o el ya guardado en la sala si el campo no vino en
-            // este request), min debe ser <= max. Cada campo del par sigue siendo
-            // independientemente opcional — esto solo bloquea la combinación
-            // inconsistente cuando los dos están presentes a la vez.
-            $room = $this->route('room');
-            $currentConfig = $room?->config?->first();
-
-            $resolvePair = function (string $minKey, string $maxKey, string $currentMinCol, string $currentMaxCol) use ($currentConfig) {
-                $min = $this->has($minKey) ? $this->input($minKey) : ($currentConfig?->{$currentMinCol} ?? null);
-                $max = $this->has($maxKey) ? $this->input($maxKey) : ($currentConfig?->{$currentMaxCol} ?? null);
-                return [$min, $max];
-            };
-
-            [$minCards, $maxCards] = $resolvePair('minCardsToStart', 'maxCardsToStart', 'min_cards_to_start', 'max_cards_to_start');
-            if ($minCards !== null && $maxCards !== null && !$validator->errors()->has('maxCardsToStart') && (int) $minCards > (int) $maxCards) {
-                $validator->errors()->add('maxCardsToStart', 'El máximo de cartones debe ser mayor o igual al mínimo.');
-            }
-
-            [$minPlayersVal, $maxPlayersVal] = $resolvePair('minPlayers', 'maxPlayers', 'min_players', 'max_players');
-            if ($minPlayersVal !== null && $maxPlayersVal !== null && !$validator->errors()->has('maxPlayers') && (int) $minPlayersVal > (int) $maxPlayersVal) {
-                $validator->errors()->add('maxPlayers', 'El máximo de jugadores debe ser mayor o igual al mínimo.');
-            }
-
-            // Un jackpot desactivado no debe poder recibir nuevos aportes —
-            // prizePoolType no tiene este chequeo hoy, pero acá sí aplica
-            // porque el jackpot puede desactivarse mientras salas existentes
-            // lo siguen referenciando (FK nullOnDelete, no restrictOnDelete).
-            $jackpotTypeId = $this->input('jackpotType');
-            if ($jackpotTypeId !== null && !$validator->errors()->has('jackpotType')) {
-                $jackpotType = \App\Models\Games\Common\Jackpot\JackpotType::find($jackpotTypeId);
-                if (!$jackpotType || !$jackpotType->isActive()) {
-                    $validator->errors()->add('jackpotType', 'El jackpot seleccionado no está activo.');
-                }
-            }
+            $this->validatePrizePoolAmount($validator);
+            $this->validateScheduleLeadTime($validator);
+            $allowedCurrencies = $this->validateCurrencies($validator);
+            $this->validateFixedRoundPrizes($validator, $allowedCurrencies);
+            $this->validatePercentageSum($validator);
+            $this->validateGameMode($validator);
+            $this->validateMoveFreeSpace($validator);
+            $this->validateCapacityPairs($validator);
+            $this->validateJackpotActive($validator);
         });
+    }
+
+    /** Valor Fijo/Extra: obligatorio en todo bote no acumulativo (en el acumulativo ya se descartó en prepareForValidation()). */
+    private function validatePrizePoolAmount($validator): void
+    {
+        $prizePoolType = $this->resolvedPrizePoolType();
+        if (
+            $prizePoolType && !$prizePoolType->isAccumulative()
+            && $this->input('amountAddedPrizePool') === null
+            && !$validator->errors()->has('amountAddedPrizePool')
+        ) {
+            $validator->errors()->add('amountAddedPrizePool', "El valor fijo/extra es obligatorio para \"{$prizePoolType->label}\".");
+        }
+    }
+
+    /**
+     * Fecha+hora al menos 10 minutos desde ahora. Solo aplica a creación; en
+     * edición el usuario no puede cambiar una fecha pasada pero sí debe poder
+     * guardar otros cambios sin que la fecha existente lo bloquee.
+     */
+    private function validateScheduleLeadTime($validator): void
+    {
+        $isCreate = $this->route('room') === null;
+        $date = $this->input('date');
+        $time = $this->input('time');
+        if (!$isCreate || $this->input('startMode') !== 'SCHEDULED' || !$date || !$time) return;
+        if ($validator->errors()->has('date') || $validator->errors()->has('time')) return;
+
+        $userTz     = auth()->user()?->timeZone?->name ?? 'UTC';
+        $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $userTz);
+        $minAllowed = \Carbon\Carbon::now($userTz)->addMinutes(10);
+
+        if ($scheduled->lt($minAllowed)) {
+            $validator->errors()->add(
+                'time',
+                'La hora debe ser al menos 10 minutos desde ahora (' . $minAllowed->format('H:i') . ' o posterior).'
+            );
+        }
+    }
+
+    /**
+     * Monedas permitidas: tasa activa (con 2+ monedas) y precio por moneda
+     * (sin base USD). Devuelve las monedas resueltas — las del request o, si
+     * no vinieron, las ya guardadas en la sala — para los chequeos que dependen
+     * de ellas. Los `return` de acá solo cortan ESTE bloque.
+     *
+     * @return array<int, string|int>
+     */
+    private function validateCurrencies($validator): array
+    {
+        $allowedCurrencies = $this->input('allowedCurrencies');
+        $cardPriceByCurrency = $this->input('cardPriceByCurrency');
+
+        // Si no mandaron allowedCurrencies, lo sacamos del room actual
+        if ($allowedCurrencies === null) {
+            $allowedCurrencies = $this->route('room')?->config?->first()?->allowed_currencies ?? [];
+        }
+        if (!is_array($allowedCurrencies)) {
+            $allowedCurrencies = [];
+        }
+
+        // Si no mandaron ninguno de los dos, no hay nada nuevo que validar acá
+        if ($this->input('allowedCurrencies') === null && $cardPriceByCurrency === null) {
+            return $allowedCurrencies;
+        }
+
+        // Con 2+ monedas permitidas, todas necesitan tasa de cambio activa: la
+        // compra de cartones siempre deriva el equivalente en USD a partir de la
+        // tasa, sin importar si el precio se definió en USD base o manualmente
+        // por moneda (useBaseUsd false). Defensa en profundidad: el frontend ya
+        // bloquea/advierte esto, pero el backend es la fuente de verdad final.
+        if (count($allowedCurrencies) > 1) {
+            $currenciesWithActiveRate = ExchangeRate::active()
+                ->whereIn('currency_id', $allowedCurrencies)
+                ->pluck('currency_id')
+                ->map(fn ($id) => (string) $id)
+                ->unique()
+                ->all();
+
+            $missingRate = array_filter(
+                $allowedCurrencies,
+                fn ($currencyId) => !in_array((string) $currencyId, $currenciesWithActiveRate, true)
+            );
+
+            if (!empty($missingRate)) {
+                $validator->errors()->add(
+                    'allowedCurrencies',
+                    'Las siguientes monedas no tienen tasa de cambio activa: ' . implode(', ', $missingRate) . '.'
+                );
+                return $allowedCurrencies;
+            }
+        }
+
+        // Si hay más de una moneda Y no usa base USD, cardPriceByCurrency es obligatorio
+        $useBaseUsd = (bool) $this->input('useBaseUsd', true);
+        if ($useBaseUsd || count($allowedCurrencies) <= 1) {
+            return $allowedCurrencies;
+        }
+
+        if (!is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
+            $validator->errors()->add(
+                'cardPriceByCurrency',
+                'Debe indicar el precio del cartón por cada moneda permitida.'
+            );
+            return $allowedCurrencies;
+        }
+
+        foreach ($allowedCurrencies as $currencyId) {
+            $key = (string) $currencyId;
+
+            if (
+                !array_key_exists($key, $cardPriceByCurrency)
+                || $cardPriceByCurrency[$key] === null
+                || $cardPriceByCurrency[$key] === ''
+            ) {
+                $validator->errors()->add(
+                    "cardPriceByCurrency.$key",
+                    "Falta el precio del cartón para la moneda $key."
+                );
+            }
+        }
+
+        return $allowedCurrencies;
+    }
+
+    /** prizeValueByCurrency obligatorio (> 0) por cada moneda en rondas con tipo 'fixed'. */
+    private function validateFixedRoundPrizes($validator, array $allowedCurrencies): void
+    {
+        $roundsConfig = $this->input('roundsConfig', []);
+        if (!is_array($roundsConfig)) return;
+
+        foreach ($roundsConfig as $i => $config) {
+            if (($config['prizeType'] ?? '') !== 'fixed') {
+                continue;
+            }
+            $byCurrency = $config['prizeValueByCurrency'] ?? [];
+            foreach ($allowedCurrencies as $currencyId) {
+                $key = (string) $currencyId;
+                if (
+                    !array_key_exists($key, $byCurrency)
+                    || $byCurrency[$key] === null
+                    || $byCurrency[$key] === ''
+                    || (float) $byCurrency[$key] <= 0
+                ) {
+                    $validator->errors()->add(
+                        "roundsConfig.$i.prizeValueByCurrency.$key",
+                        "Falta el valor fijo de la ronda " . ($i + 1) . " para la moneda $key."
+                    );
+                }
+            }
+        }
+    }
+
+    /** %Sala + %Jackpot + %Seriales + %Rondas no puede superar 100. */
+    private function validatePercentageSum($validator): void
+    {
+        $useSerials  = filter_var($this->input('useSerials', false), FILTER_VALIDATE_BOOLEAN);
+        $roomCommn   = (float) ($this->input('roomCommn')  ?? 0);
+        $jackpotPct  = (float) ($this->input('jackpotPct') ?? 0);
+        $serialsPct  = $useSerials ? (float) ($this->input('serialsPct') ?? 0) : 0;
+        $roundsPct   = (float) ($this->input('roundsPct')  ?? 0);
+        $totalPct    = $roomCommn + $jackpotPct + $serialsPct + $roundsPct;
+
+        if ($totalPct > 100) {
+            $validator->errors()->add(
+                'percentageSum',
+                "La suma de porcentajes ({$totalPct}%) no puede exceder el 100%."
+            );
+        }
+    }
+
+    /**
+     * gameMode: el exists:game_modes,id no verifica que el modo pertenezca al
+     * juego Bingo — GameMode es un catálogo compartido entre juegos (Trivia, etc.)
+     * y aceptar un id de otro juego dejaría la sala con un modo incoherente.
+     */
+    private function validateGameMode($validator): void
+    {
+        $gameMode = $this->input('gameMode');
+        if ($gameMode === null || $validator->errors()->has('gameMode')) return;
+
+        $bingoGameId = Game::where('name', 'BINGO')->value('id');
+        $mode = GameMode::find($gameMode);
+
+        if (!$mode || (string) $mode->game_id !== (string) $bingoGameId) {
+            $validator->errors()->add('gameMode', 'El modo de juego seleccionado no es válido para Bingo.');
+        }
+    }
+
+    /**
+     * Mover casilla libre: solo tiene sentido junto con cartón personalizado
+     * y solo en BINGO_75 (única variante con casilla libre).
+     */
+    private function validateMoveFreeSpace($validator): void
+    {
+        if ($this->input('moveFreeSpaceMode') === null) return;
+
+        if (!filter_var($this->input('allowCustomCard', false), FILTER_VALIDATE_BOOLEAN)) {
+            $validator->errors()->add(
+                'moveFreeSpaceMode',
+                'Mover la casilla libre requiere permitir cartón personalizado.'
+            );
+        }
+
+        $gameVariant = $this->input('gameVariant', \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75);
+        if ($gameVariant !== \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75) {
+            $validator->errors()->add(
+                'moveFreeSpaceMode',
+                'Mover la casilla libre solo aplica a Bingo 75 bolas.'
+            );
+        }
+    }
+
+    /**
+     * Validación cruzada min/max: solo si AMBOS extremos del par tienen valor
+     * (nuevo del request, o el ya guardado en la sala si el campo no vino en
+     * este request), min debe ser <= max. Cada campo del par sigue siendo
+     * independientemente opcional — esto solo bloquea la combinación
+     * inconsistente cuando los dos están presentes a la vez.
+     */
+    private function validateCapacityPairs($validator): void
+    {
+        $currentConfig = $this->route('room')?->config?->first();
+
+        $resolvePair = function (string $minKey, string $maxKey, string $currentMinCol, string $currentMaxCol) use ($currentConfig) {
+            $min = $this->has($minKey) ? $this->input($minKey) : ($currentConfig?->{$currentMinCol} ?? null);
+            $max = $this->has($maxKey) ? $this->input($maxKey) : ($currentConfig?->{$currentMaxCol} ?? null);
+            return [$min, $max];
+        };
+
+        [$minCards, $maxCards] = $resolvePair('minCardsToStart', 'maxCardsToStart', 'min_cards_to_start', 'max_cards_to_start');
+        if ($minCards !== null && $maxCards !== null && !$validator->errors()->has('maxCardsToStart') && (int) $minCards > (int) $maxCards) {
+            $validator->errors()->add('maxCardsToStart', 'El máximo de cartones debe ser mayor o igual al mínimo.');
+        }
+
+        [$minPlayersVal, $maxPlayersVal] = $resolvePair('minPlayers', 'maxPlayers', 'min_players', 'max_players');
+        if ($minPlayersVal !== null && $maxPlayersVal !== null && !$validator->errors()->has('maxPlayers') && (int) $minPlayersVal > (int) $maxPlayersVal) {
+            $validator->errors()->add('maxPlayers', 'El máximo de jugadores debe ser mayor o igual al mínimo.');
+        }
+    }
+
+    /**
+     * Un jackpot desactivado no debe poder recibir nuevos aportes — el jackpot
+     * puede desactivarse mientras salas existentes lo siguen referenciando
+     * (FK nullOnDelete, no restrictOnDelete).
+     */
+    private function validateJackpotActive($validator): void
+    {
+        $jackpotTypeId = $this->input('jackpotType');
+        if ($jackpotTypeId === null || $validator->errors()->has('jackpotType')) return;
+
+        $jackpotType = \App\Models\Games\Common\Jackpot\JackpotType::find($jackpotTypeId);
+        if (!$jackpotType || !$jackpotType->isActive()) {
+            $validator->errors()->add('jackpotType', 'El jackpot seleccionado no está activo.');
+        }
+    }
+
+    /**
+     * Con bote acumulativo el "Valor Fijo/Extra" no aplica (el campo se oculta
+     * en el form) — se descarta para no guardar un monto residual de cuando
+     * el usuario tenía otro tipo de bote seleccionado.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->resolvedPrizePoolType()?->isAccumulative()) {
+            $this->merge(['amountAddedPrizePool' => null]);
+        }
+    }
+
+    private ?PrizePoolType $prizePoolTypeCache = null;
+
+    private function resolvedPrizePoolType(): ?PrizePoolType
+    {
+        $id = $this->input('prizePoolType');
+        if ($id === null || $id === '') return null;
+        if ($this->prizePoolTypeCache?->id !== (string) $id) {
+            $this->prizePoolTypeCache = PrizePoolType::find($id);
+        }
+        return $this->prizePoolTypeCache;
     }
 
     /**
@@ -401,6 +492,12 @@ class BingoRoomRequest extends BaseRequest
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',
 
             'jackpotType.exists'              => 'El jackpot seleccionado no es válido.',
+            'jackpotType.required_with'       => 'Elija un tipo de jackpot para usar el % de jackpot.',
+            'jackpotPct.required_with'        => 'Ingrese el % de jackpot o quite el tipo de jackpot.',
+            'jackpotPct.min'                  => 'El % de jackpot no puede ser menor a 1.',
+            'jackpotPct.max'                  => 'El % de jackpot no puede ser mayor a 15.',
+            'amountAddedPrizePool.min'        => 'El valor fijo/extra no puede ser menor a 20.',
+            'amountAddedPrizePool.max'        => 'El valor fijo/extra no puede ser mayor a 10.000.',
 
             'accessCode.required_if'          => 'El código de acceso es obligatorio para salas privadas.',
             'accessCode.min'                  => 'El código de acceso debe tener al menos 4 caracteres.',

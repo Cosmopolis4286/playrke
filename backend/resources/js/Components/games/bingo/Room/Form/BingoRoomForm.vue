@@ -20,6 +20,7 @@
   import { useBingoRoomConflictDetector } from '@/js/composables/games/bingo/room/shared/useBingoRoomConflictDetector'
   import { useBingoRoomDraft } from '@/js/composables/games/bingo/room/shared/useBingoRoomDraft'
   import { useBingoRoomStepper } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
+  import { BINGO_ROOM_AMOUNT_LIMITS as AMOUNT_LIMITS } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
   import BingoRoomReviewStep from './Steps/BingoRoomReviewStep.vue'
   import { router } from '@inertiajs/vue3'
   import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
@@ -74,6 +75,19 @@
   /** ID (snowflake) del RoomType con código PRIVATE, resuelto desde roomTypeOptions. */
   const privateRoomTypeId = computed(() => props.roomTypeOptions.find(o => o.code === 'PRIVATE')?.value ?? null)
 
+  /**
+   * true si el Tipo Bote elegido exige "Valor Fijo/Extra" (todo tipo salvo
+   * ACCUMULATIVE — misma regla que PrizePoolType::isAccumulative() en backend).
+   * null si todavía no hay tipo elegido: no se valida ni se muestra el campo.
+   * Lee props.modelValue (no `form`) porque se usa antes de crear el form.
+   */
+  const requiresAmountAddedPrizePool = computed<boolean | null>(() => {
+    const selected = props.prizePoolTypeOptions.find(
+      opt => String(opt.value) === String(props.modelValue.prizePoolType)
+    )
+    return selected ? selected.code !== 'ACCUMULATIVE' : null
+  })
+
   const {
     form,
     errors,
@@ -92,7 +106,11 @@
     () => useBaseUsd.value,
     () => props.isEdit ?? false,
     () => props.currenciesWithActiveRate ?? [],
-    () => privateRoomTypeId.value
+    () => privateRoomTypeId.value,
+    () => ({
+      requiresAmountAddedPrizePool: requiresAmountAddedPrizePool.value,
+      activeJackpotTypeIds: props.jackpotTypeOptions ? props.jackpotTypeOptions.map(o => String(o.value)) : null
+    })
   )
 
   /* ==========================================================================
@@ -223,11 +241,14 @@
     return Math.abs(totalRoundValues.value - pct) < 0.01
   })
 
-  const showAmountAddedPrizePool = computed(() => {
-    const selected = props.prizePoolTypeOptions.find(
-      opt => String(opt.value) === String(form.value.prizePoolType)
-    )
-    return selected ? selected.code !== 'ACCUMULATIVE' : false
+  const showAmountAddedPrizePool = computed(() => requiresAmountAddedPrizePool.value === true)
+
+  // Al pasar a bote acumulativo el "Valor Fijo/Extra" deja de aplicar y se
+  // oculta — se limpia para no enviar (ni validar en oculto) un monto residual.
+  watch(requiresAmountAddedPrizePool, requires => {
+    if (requires === false && form.value.amountAddedPrizePool != null) {
+      form.value = { ...form.value, amountAddedPrizePool: null }
+    }
   })
 
   /**
@@ -519,18 +540,20 @@
 
         <!-- Valor extra al bote (fuera de RoomCurrencySection para mantener col grid) -->
         <FormInput
-          v-show="showAmountAddedPrizePool"
+          v-if="showAmountAddedPrizePool"
           label="Valor Fijo/Extra"
           name="amount_added_prize_pool"
           :error="errors.amountAddedPrizePool"
+          :hint="`Monto inicial del bote (${AMOUNT_LIMITS.amountAddedPrizePool.min} a ${AMOUNT_LIMITS.amountAddedPrizePool.max.toLocaleString('es-VE')}).`"
           type="number"
           required
           :step="0.05"
-          :min="20"
-          :max="10000"
+          :min="AMOUNT_LIMITS.amountAddedPrizePool.min"
+          :max="AMOUNT_LIMITS.amountAddedPrizePool.max"
           col="col-sm-6 col-md-4 col-lg-3"
           inputGroup
-          v-model="form.amountAddedPrizePool"
+          :modelValue="form.amountAddedPrizePool ?? ''"
+          @update:modelValue="form = { ...form, amountAddedPrizePool: $event === '' || $event === null ? null : Number($event) }"
         >
           <template #prepend>
             <span class="input-group-text">$</span>

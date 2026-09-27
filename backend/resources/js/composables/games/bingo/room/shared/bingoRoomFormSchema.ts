@@ -170,6 +170,11 @@ export interface BingoRoomValidationContext {
     roundsCount: number
     /** ID (snowflake) del RoomType con código PRIVATE — null si el catálogo aún no cargó. */
     privateRoomTypeId: string | number | null
+    /** true si el Tipo Bote elegido no es ACCUMULATIVE (exige "Valor Fijo/Extra");
+     *  null si aún no hay tipo elegido o el catálogo no cargó — no se valida. */
+    requiresAmountAddedPrizePool?: boolean | null
+    /** IDs de jackpots activos (opciones del select) — null si no se pasaron. */
+    activeJackpotTypeIds?: string[] | null
 }
 
 export function validateBingoRoomForm(
@@ -279,18 +284,33 @@ export function validateBingoRoomForm(
         if (!r.success) e.roomCommn = r.error.issues[0].message
     }
 
-    /* ── % Jackpot (opcional; si se carga, dentro de rango y con tipo de jackpot) ── */
+    /* ── Jackpot (opcional, pero tipo y % van juntos) ──
+     * Un % sin tipo se descuenta del bote sin ir a ningún pozo; un tipo sin %
+     * nunca recibe aportes. Espejo de required_with en BingoRoomRequest. */
     const jkLim = BINGO_ROOM_PERCENTAGE_LIMITS.jackpotPct
-    const jkErr = rangeError(data.jackpotPct, jkLim, { label: 'El % de jackpot' })
-    if (jkErr) {
-        e.jackpotPct = jkErr
-    } else if (data.jackpotPct != null && (data.jackpotPct as unknown) !== '' && !data.jackpotType) {
+    const hasJkPct = data.jackpotPct != null && (data.jackpotPct as unknown) !== ''
+    if (data.jackpotType) {
+        const active = ctx.activeJackpotTypeIds
+        if (active && !active.includes(String(data.jackpotType))) {
+            e.jackpotType = 'El jackpot seleccionado ya no está activo. Elige otro o quítalo.'
+        }
+        const jkErr = rangeError(data.jackpotPct, jkLim, {
+            label: 'El % de jackpot',
+            required: `Ingrese el % de jackpot (${jkLim.min} a ${jkLim.max}) o quite el tipo de jackpot.`,
+        })
+        if (jkErr) e.jackpotPct = jkErr
+    } else if (hasJkPct) {
         e.jackpotPct = 'Elija un tipo de Jackpot para usar este %.'
     }
 
-    /* ── Valor fijo/extra al bote (opcional) ── */
-    const addErr = rangeError(data.amountAddedPrizePool, BINGO_ROOM_AMOUNT_LIMITS.amountAddedPrizePool, { label: 'El valor extra' })
-    if (addErr) e.amountAddedPrizePool = addErr
+    /* ── Valor Fijo/Extra: obligatorio en bote no acumulativo; en acumulativo no aplica ── */
+    if (ctx.requiresAmountAddedPrizePool) {
+        const addErr = rangeError(data.amountAddedPrizePool, BINGO_ROOM_AMOUNT_LIMITS.amountAddedPrizePool, {
+            label: 'El valor fijo/extra',
+            required: 'El valor fijo/extra es obligatorio para este tipo de bote.',
+        })
+        if (addErr) e.amountAddedPrizePool = addErr
+    }
 
     /* ── Tiempo ficha / rondas (requeridos, enteros) ── */
     const I = BINGO_ROOM_INT_LIMITS

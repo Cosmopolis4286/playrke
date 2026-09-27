@@ -32,6 +32,17 @@ class PrizePoolType extends Model
         'status' => 'string',
     ];
 
+    public const CODE_ACCUMULATIVE = 'ACCUMULATIVE';
+
+    /**
+     * Bote acumulativo: se forma solo con las ventas, sin "Valor Fijo/Extra".
+     * El resto de los tipos (FIXED/MIXED/PRIZE) exigen ese monto.
+     */
+    public function isAccumulative(): bool
+    {
+        return $this->code === self::CODE_ACCUMULATIVE;
+    }
+
     public function game(): BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');

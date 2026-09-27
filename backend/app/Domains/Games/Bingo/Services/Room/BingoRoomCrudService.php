@@ -455,7 +455,9 @@ class BingoRoomCrudService
         $type = PrizePoolType::find($prizePoolTypeId);
         if (!$type) throw BingoRoomException::invalidPrizePoolType();
 
-        $prizePool = !$type->is_accumulative ? ($amountAddedPrizePool ?? 0) : 0;
+        // Antes leía `$type->is_accumulative`, una columna que no existe (siempre
+        // null) — así toda sala, incluso acumulativa, arrancaba con el monto extra.
+        $prizePool = !$type->isAccumulative() ? ($amountAddedPrizePool ?? 0) : 0;
         return compact('rkeCommission', 'prizePool');
     }
 

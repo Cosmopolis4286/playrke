@@ -3,6 +3,7 @@ import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 import {
     BINGO_ROOM_PERCENTAGE_LIMITS,
     validateBingoRoomForm,
+    type BingoRoomValidationContext,
 } from './bingoRoomFormSchema'
 
 export { BINGO_ROOM_PERCENTAGE_LIMITS }
@@ -15,7 +16,9 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     isEdit: () => boolean = () => false,
     currenciesWithActiveRate: () => string[] = () => [],
     /** ID (snowflake) del RoomType con código PRIVATE — resuelto desde roomTypeOptions en el padre. */
-    privateRoomTypeId: () => string | number | null = () => null
+    privateRoomTypeId: () => string | number | null = () => null,
+    /** Contexto de catálogos (tipo de bote / jackpots activos) resuelto en el padre. */
+    catalogCtx: () => Pick<BingoRoomValidationContext, 'requiresAmountAddedPrizePool' | 'activeJackpotTypeIds'> = () => ({})
 ) {
     /* ── v-model computado ── */
 
@@ -55,6 +58,7 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             availablePct:          availablePct.value,
             roundsCount:           roundsCount.value,
             privateRoomTypeId:     privateRoomTypeId(),
+            ...catalogCtx(),
         })
     )
 
