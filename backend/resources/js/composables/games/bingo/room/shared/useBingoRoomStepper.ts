@@ -55,7 +55,8 @@ const ALL_MAPPED_ERROR_KEYS = new Set(Object.values(STEP_ERROR_KEYS).flat())
  * estrictamente rojo/verde.
  */
 const STEP_OPTIONAL_KEYS: Partial<Record<BingoRoomStep, (keyof BingoRoomFormData)[]>> = {
-    basic: ['jackpotPct', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
+    // minCardsToStart/minPlayers ya no están acá: son obligatorios (dan error si faltan).
+    basic: ['jackpotPct', 'maxCardsToStart', 'maxPlayers'],
 }
 
 /** Los 4 tabs editables — 'review' no tiene campos propios, su semáforo se deriva de estos. */

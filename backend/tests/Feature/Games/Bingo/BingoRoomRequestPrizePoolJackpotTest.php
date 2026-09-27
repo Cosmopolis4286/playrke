@@ -147,6 +147,34 @@ class BingoRoomRequestPrizePoolJackpotTest extends TestCase
 
     #[Test]
     #[DataProvider('requestClasses')]
+    public function minimos_de_capacidad_son_obligatorios(string $class): void
+    {
+        [$errors] = $this->validate($class, []);
+
+        $this->assertTrue($errors->has('minPlayers'));
+        $this->assertTrue($errors->has('minCardsToStart'));
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function un_jugador_solo_se_acepta_en_modo_solitario(string $class): void
+    {
+        $soloId  = '900000000000000031';
+        $multiId = '900000000000000032';
+        DB::table('game_modes')->insert([
+            ['id' => $soloId,  'game_id' => '1', 'code' => 'SOLO',  'label' => 'Solitario'],
+            ['id' => $multiId, 'game_id' => '1', 'code' => 'MULTI', 'label' => 'Múltiple'],
+        ]);
+
+        [$errors] = $this->validate($class, ['gameMode' => $multiId, 'minPlayers' => 1, 'minCardsToStart' => 1]);
+        $this->assertTrue($errors->has('minPlayers'));
+
+        [$errors] = $this->validate($class, ['gameMode' => $soloId, 'minPlayers' => 1, 'minCardsToStart' => 1]);
+        $this->assertFalse($errors->has('minPlayers'));
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
     public function sin_jackpot_no_da_error_de_jackpot(string $class): void
     {
         [$errors] = $this->validate($class, []);

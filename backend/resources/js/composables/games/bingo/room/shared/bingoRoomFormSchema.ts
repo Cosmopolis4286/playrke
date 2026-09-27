@@ -23,6 +23,23 @@ export const BINGO_ROOM_INT_LIMITS = {
     salesStartOffsetDays: { min: 1, max: 30     },
 } as const
 
+/* ─── Reglas de capacidad (espejo de BingoRoomCapacityRules.php) ──────
+ * Un bingo necesita competencia: con 1 jugador siempre gana él y el bote le
+ * vuelve, así que el piso de jugadores es 2 — salvo el modo Solitario (SOLO).
+ * Cada jugador tiene ≥ 1 cartón → mín. cartones ≥ mín. jugadores. Si al vencer
+ * no se alcanzan los mínimos, la sala se cancela y se reembolsa. */
+
+export const GAME_MODE_SOLO = 'SOLO'
+
+export const BINGO_ROOM_CAPACITY_DEFAULTS = {
+    minPlayers:      2,
+    minCardsToStart: 2,
+} as const
+
+export function minPlayersFloor(gameModeCode?: string | null): number {
+    return gameModeCode === GAME_MODE_SOLO ? 1 : 2
+}
+
 /* ─── Rangos de montos / decimales (espejo de BingoRoomRequest) ─────── */
 
 export const BINGO_ROOM_AMOUNT_LIMITS = {
@@ -175,6 +192,8 @@ export interface BingoRoomValidationContext {
     requiresAmountAddedPrizePool?: boolean | null
     /** IDs de jackpots activos (opciones del select) — null si no se pasaron. */
     activeJackpotTypeIds?: string[] | null
+    /** Código del modo de juego elegido (SOLO permite 1 jugador mínimo). */
+    gameModeCode?: string | null
 }
 
 export function validateBingoRoomForm(
@@ -329,32 +348,42 @@ export function validateBingoRoomForm(
         if (sdErr) e.salesStartOffsetDays = sdErr
     }
 
-    /* ── Capacidad (opcionales, enteros) ── */
-    const capacity: [keyof BingoRoomFormInput, { min: number; max: number }, string][] = [
-        ['minCardsToStart', I.cards,   'La cantidad mínima de cartones'],
-        ['maxCardsToStart', I.cards,   'El máximo de cartones'],
-        ['minPlayers',      I.players, 'El mínimo de jugadores'],
-        ['maxPlayers',      I.players, 'El cupo máximo de jugadores'],
+    /* ── Capacidad: mínimos obligatorios, máximos opcionales (enteros) ── */
+    const playersFloor = minPlayersFloor(ctx.gameModeCode)
+    const capacity: [keyof BingoRoomFormInput, { min: number; max: number }, string, string | undefined][] = [
+        ['minCardsToStart', I.cards,   'El mínimo de cartones',       'Indique el mínimo de cartones para iniciar el sorteo.'],
+        ['maxCardsToStart', I.cards,   'El máximo de cartones',       undefined],
+        ['minPlayers',      I.players, 'El mínimo de jugadores',      'Indique el mínimo de jugadores para iniciar el sorteo.'],
+        ['maxPlayers',      I.players, 'El cupo máximo de jugadores', undefined],
     ]
-    for (const [key, lim, label] of capacity) {
-        const err = rangeError(data[key], lim, { integer: true, label })
+    for (const [key, lim, label, required] of capacity) {
+        const err = rangeError(data[key], lim, { integer: true, label, required })
         if (err) e[key] = err
     }
 
-    /* ── Validación cruzada min/max (solo si ambos extremos del par tienen valor) ── */
-    if (
-        data.minCardsToStart != null && data.maxCardsToStart != null &&
-        !e.minCardsToStart && !e.maxCardsToStart &&
-        Number(data.minCardsToStart) > Number(data.maxCardsToStart)
-    ) {
+    /* ── Coherencia entre límites (espejo de BingoRoomCapacityRules::crossErrors) ── */
+    const num = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v))
+    const minCards = e.minCardsToStart ? null : num(data.minCardsToStart)
+    const maxCards = e.maxCardsToStart ? null : num(data.maxCardsToStart)
+    const minPl    = e.minPlayers      ? null : num(data.minPlayers)
+    const maxPl    = e.maxPlayers      ? null : num(data.maxPlayers)
+
+    if (minPl !== null && minPl < playersFloor) {
+        e.minPlayers = ctx.gameModeCode === GAME_MODE_SOLO
+            ? `El mínimo de jugadores debe ser al menos ${playersFloor}.`
+            : `Un bingo necesita al menos ${playersFloor} jugadores (solo el modo Solitario permite 1).`
+    }
+    if (minCards !== null && minPl !== null && minCards < minPl) {
+        e.minCardsToStart = 'No puede ser menor al mínimo de jugadores (cada jugador tiene al menos un cartón).'
+    }
+    if (minCards !== null && maxCards !== null && minCards > maxCards) {
         e.maxCardsToStart = 'El máximo de cartones debe ser mayor o igual al mínimo.'
     }
-    if (
-        data.minPlayers != null && data.maxPlayers != null &&
-        !e.minPlayers && !e.maxPlayers &&
-        Number(data.minPlayers) > Number(data.maxPlayers)
-    ) {
+    if (minPl !== null && maxPl !== null && minPl > maxPl) {
         e.maxPlayers = 'El máximo de jugadores debe ser mayor o igual al mínimo.'
+    }
+    if (!e.maxCardsToStart && maxCards !== null && maxPl !== null && maxCards < maxPl) {
+        e.maxCardsToStart = 'No puede ser menor al máximo de jugadores: parte del cupo no podría comprar.'
     }
 
     /* ── Seriales (pre-compiled schema) ── */

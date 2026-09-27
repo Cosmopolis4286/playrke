@@ -476,6 +476,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'numSerials.min'                  => 'El número de seriales debe ser al menos 1.',
             'numSerials.max'                  => 'El número de seriales no puede ser mayor a 30.',
 
+            'minCardsToStart.required'        => 'Indique el mínimo de cartones para iniciar el sorteo.',
+
             'minCardsToStart.integer'         => 'El mínimo de cartones debe ser un número entero.',
             'minCardsToStart.min'             => 'El mínimo de cartones debe ser al menos 1.',
             'minCardsToStart.max'             => 'El mínimo de cartones no puede superar 10.000.',
@@ -487,6 +489,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'maxPlayers.integer'              => 'El cupo máximo de jugadores debe ser un número entero.',
             'maxPlayers.min'                  => 'El cupo máximo de jugadores debe ser al menos 1.',
             'maxPlayers.max'                  => 'El cupo máximo de jugadores no puede superar 100000.',
+
+            'minPlayers.required'             => 'Indique el mínimo de jugadores para iniciar el sorteo.',
 
             'minPlayers.integer'              => 'El mínimo de jugadores debe ser un número entero.',
             'minPlayers.min'                  => 'El mínimo de jugadores debe ser al menos 1.',

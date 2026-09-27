@@ -10,7 +10,7 @@ export function useBingoRoomForm(
     isEdit: () => boolean = () => false,
     currenciesWithActiveRate: () => string[] = () => [],
     privateRoomTypeId: () => string | number | null = () => null,
-    catalogCtx: () => Pick<BingoRoomValidationContext, 'requiresAmountAddedPrizePool' | 'activeJackpotTypeIds'> = () => ({})
+    catalogCtx: () => Pick<BingoRoomValidationContext, 'requiresAmountAddedPrizePool' | 'activeJackpotTypeIds' | 'gameModeCode'> = () => ({})
 ) {
     return useBingoRoomBaseForm(modelValueGetter, emit, automaticRoom, useBaseUsd, isEdit, currenciesWithActiveRate, privateRoomTypeId, catalogCtx)
 }

@@ -10,7 +10,8 @@
   import { generateAccessCode, generateRoomPassword } from '../Composables/useRoomPrivateAccess'
   import {
     BINGO_ROOM_INT_LIMITS,
-    BINGO_ROOM_TEXT_LIMITS
+    BINGO_ROOM_TEXT_LIMITS,
+    minPlayersFloor
   } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
 
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
@@ -94,6 +95,12 @@ import { SelectOption } from '@/js/types/common/form/form'
   const isPrivateRoom = computed(() => {
     const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
     return selected?.code === 'PRIVATE'
+  })
+
+  /** Piso de jugadores según el modo de juego elegido (Solitario permite 1). */
+  const playersFloor = computed(() => {
+    const code = props.gameModeOptions.find(o => String(o.value) === String((props.modelValue as any).gameMode))?.code
+    return minPlayersFloor(code)
   })
 
   const hostUserInitialOption = computed(() => {
@@ -309,12 +316,13 @@ import { SelectOption } from '@/js/types/common/form/form'
         Capacidad de la sala
       </p>
       <p class="text-muted mb-2" style="font-size: 0.78rem">
-        Límites opcionales de cartones y jugadores — dejalos vacíos si no querés restricción.
+        Cuántos jugadores y cartones necesita la sala para sortearse, y sus topes.
       </p>
     </div>
     <RoomCapacitySection
       :modelValue="modelValue as BingoRoomFormData"
       :errors="errors"
+      :playersFloor="playersFloor"
       @update:modelValue="emit('update:modelValue', $event as any)"
     />
 

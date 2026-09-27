@@ -471,6 +471,8 @@ class BingoRoomRequest extends BaseRequest
             'time.required_if'                => 'La hora es obligatoria para salas con horario programado.',
             'time.date_format'                => 'La hora debe tener formato HH:mm.',
 
+            'minCardsToStart.required'        => 'Indique el mínimo de cartones para iniciar el sorteo.',
+
             'minCardsToStart.integer'         => 'La cantidad mínima de cartones debe ser un número entero.',
             'minCardsToStart.min'             => 'La cantidad mínima de cartones debe ser al menos 1.',
             'minCardsToStart.max'             => 'La cantidad mínima de cartones no puede superar 10000.',
@@ -482,6 +484,8 @@ class BingoRoomRequest extends BaseRequest
             'maxPlayers.integer'              => 'El cupo máximo de jugadores debe ser un número entero.',
             'maxPlayers.min'                  => 'El cupo máximo de jugadores debe ser al menos 1.',
             'maxPlayers.max'                  => 'El cupo máximo de jugadores no puede superar 100000.',
+
+            'minPlayers.required'             => 'Indique el mínimo de jugadores para iniciar el sorteo.',
 
             'minPlayers.integer'              => 'El mínimo de jugadores debe ser un número entero.',
             'minPlayers.min'                  => 'El mínimo de jugadores debe ser al menos 1.',

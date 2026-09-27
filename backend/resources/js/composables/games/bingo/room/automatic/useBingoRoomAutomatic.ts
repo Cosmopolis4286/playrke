@@ -2,6 +2,7 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { useBingoRoomCrudFactory } from '../shared/useBingoRoomCrudFactory'
+import { BINGO_ROOM_CAPACITY_DEFAULTS } from '../shared/bingoRoomFormSchema'
 
 import type { BingoRoomAutomatic, BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 
@@ -100,9 +101,10 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     cardPriceByCurrency: {},
     roundsConfig: [],
     activateRoom: false,
-    minCardsToStart: null,
+    // Mínimos por defecto: un bingo necesita al menos 2 jugadores (ver BINGO_ROOM_CAPACITY_DEFAULTS)
+    minCardsToStart: BINGO_ROOM_CAPACITY_DEFAULTS.minCardsToStart,
     maxCardsToStart: null,
-    minPlayers: null,
+    minPlayers: BINGO_ROOM_CAPACITY_DEFAULTS.minPlayers,
     maxPlayers: null,
     salesStartOffsetDays: null,
     allowCustomCard: false,

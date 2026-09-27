@@ -75,6 +75,11 @@
   /** ID (snowflake) del RoomType con código PRIVATE, resuelto desde roomTypeOptions. */
   const privateRoomTypeId = computed(() => props.roomTypeOptions.find(o => o.code === 'PRIVATE')?.value ?? null)
 
+  /** Código del modo de juego elegido (SOLO permite 1 jugador mínimo). Lee props.modelValue: se usa antes de crear el form. */
+  const gameModeCode = computed<string | null>(() =>
+    props.gameModeOptions.find(o => String(o.value) === String((props.modelValue as any).gameMode))?.code ?? null
+  )
+
   /**
    * true si el Tipo Bote elegido exige "Valor Fijo/Extra" (todo tipo salvo
    * ACCUMULATIVE — misma regla que PrizePoolType::isAccumulative() en backend).
@@ -109,7 +114,8 @@
     () => privateRoomTypeId.value,
     () => ({
       requiresAmountAddedPrizePool: requiresAmountAddedPrizePool.value,
-      activeJackpotTypeIds: props.jackpotTypeOptions ? props.jackpotTypeOptions.map(o => String(o.value)) : null
+      activeJackpotTypeIds: props.jackpotTypeOptions ? props.jackpotTypeOptions.map(o => String(o.value)) : null,
+      gameModeCode: gameModeCode.value
     })
   )
 

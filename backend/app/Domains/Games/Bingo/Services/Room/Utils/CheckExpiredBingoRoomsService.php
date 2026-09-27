@@ -16,8 +16,12 @@ use Illuminate\Support\Facades\Log;
  *   - total_players == 0  → INACTIVE
  *   - total_players  > 0  → IN_PROGRESS
  *
- * Adicionalmente cancela salas que no alcanzaron el mínimo de cartones requerido
- * (min_cards_to_start) al momento de expirar, iniciando el reembolso automático.
+ * Adicionalmente cancela salas que no alcanzaron el mínimo de cartones
+ * (min_cards_to_start) o de jugadores (min_players) al momento de expirar,
+ * iniciando el reembolso automático. Antes solo se miraba el de cartones: una
+ * sala sin el mínimo de jugadores pasaba a IN_PROGRESS pero
+ * StartPendingBingoDrawsCommand nunca la sorteaba (la salta por min_players),
+ * quedando trabada para siempre con el dinero de los cartones retenido.
  */
 final class CheckExpiredBingoRoomsService
 {
@@ -41,10 +45,10 @@ final class CheckExpiredBingoRoomsService
 
         $expiredSubquery = fn($q) => $q->where('unix_date', '<=', $now);
 
-        // 1. Salas con jugadores pero sin mínimo de cartones → CANCELLED + reembolso
+        // 1. Salas con jugadores pero sin mínimo de cartones o de jugadores → CANCELLED + reembolso
         $this->cancelUnderMinimumRooms($activeId, $cancelledId, $expiredSubquery);
 
-        // 2. Salas con jugadores (y mínimo alcanzado) → IN_PROGRESS
+        // 2. Salas con jugadores (y ambos mínimos alcanzados) → IN_PROGRESS
         // 3. Salas sin jugadores → INACTIVE
         DB::transaction(function () use ($activeId, $inProgressId, $inactiveId, $expiredSubquery): void {
             BingoRoom::where('status_id', $activeId)
@@ -54,6 +58,11 @@ final class CheckExpiredBingoRoomsService
                     // Solo si el mínimo de cartones está satisfecho (o no aplica)
                     $q->whereHas('config', fn($c) => $c->whereNull('min_cards_to_start'))
                       ->orWhereHas('config', fn($c) => $c->whereColumn('min_cards_to_start', '<=', DB::raw('(SELECT COALESCE(SUM(card_count),0) FROM bingo_card_lots WHERE room_id = bingo_rooms.id AND status != \'REFUNDED\')')));
+                })
+                ->where(function ($q) {
+                    // Y el mínimo de jugadores también (o no aplica)
+                    $q->whereHas('config', fn($c) => $c->whereNull('min_players'))
+                      ->orWhereHas('config', fn($c) => $c->whereColumn('min_players', '<=', 'bingo_rooms.total_players'));
                 })
                 ->update(['status_id' => $inProgressId]);
 
@@ -66,22 +75,19 @@ final class CheckExpiredBingoRoomsService
 
     /**
      * Cancela salas ACTIVE expiradas que tienen jugadores pero no alcanzaron
-     * el mínimo de cartones para iniciar el sorteo. Despacha reembolsos.
+     * el mínimo de cartones o de jugadores para iniciar el sorteo. Despacha reembolsos.
      */
     private function cancelUnderMinimumRooms(string $activeId, string $cancelledId, \Closure $expiredSubquery): void
     {
-        // Salas con total_players > 0 Y min_cards_to_start configurado Y total_cards < min.
+        // Salas con total_players > 0 Y algún mínimo configurado sin alcanzar.
         // Eager load 'config' para evitar N+1 en el filter().
         $underMinimum = BingoRoom::where('status_id', $activeId)
             ->whereHas('config', $expiredSubquery)
             ->where('total_players', '>', 0)
-            ->whereHas('config', fn($q) => $q->whereNotNull('min_cards_to_start'))
+            ->whereHas('config', fn($q) => $q->where(fn($w) => $w->whereNotNull('min_cards_to_start')->orWhereNotNull('min_players')))
             ->with('config')
             ->get()
-            ->filter(function (BingoRoom $room): bool {
-                $minCards = $room->config?->min_cards_to_start;
-                return $minCards !== null && ($room->total_cards ?? 0) < $minCards;
-            });
+            ->filter(fn (BingoRoom $room): bool => $this->unmetMinimum($room) !== null);
 
         foreach ($underMinimum as $room) {
             // lockForUpdate dentro de la transacción previene que dos ejecuciones
@@ -103,21 +109,27 @@ final class CheckExpiredBingoRoomsService
                 continue;
             }
 
+            $reason = $this->unmetMinimum($room) === 'players' ? 'jugadores' : 'cartones';
+
             Log::info('[CheckExpiredBingoRoomsService] Sala cancelada por mínimo no alcanzado', [
                 'room_id'          => $room->id,
+                'reason'           => $reason,
                 'total_cards'      => $room->total_cards ?? 0,
                 'min_cards'        => $room->config?->min_cards_to_start,
                 'total_players'    => $room->total_players,
+                'min_players'      => $room->config?->min_players,
             ]);
 
             $this->auditLogger->log(
                 $room,
                 BingoRoomAuditLogger::EVENT_CANCELLED,
                 'system',
-                'Sala cancelada automáticamente: mínimo de cartones no alcanzado al expirar',
+                "Sala cancelada automáticamente: mínimo de {$reason} no alcanzado al expirar",
                 [
-                    'total_cards' => $room->total_cards ?? 0,
-                    'min_cards'   => $room->config?->min_cards_to_start,
+                    'total_cards'   => $room->total_cards ?? 0,
+                    'min_cards'     => $room->config?->min_cards_to_start,
+                    'total_players' => $room->total_players ?? 0,
+                    'min_players'   => $room->config?->min_players,
                 ],
             );
 
@@ -140,5 +152,25 @@ final class CheckExpiredBingoRoomsService
                     ->onQueue('bingo-refunds');
             }
         }
+    }
+
+    /**
+     * Qué mínimo configurado no se alcanzó: 'cards', 'players' o null si ambos
+     * se cumplen (o no aplican). Cartones primero, por compatibilidad con el
+     * motivo que ya se auditaba antes.
+     */
+    private function unmetMinimum(BingoRoom $room): ?string
+    {
+        $minCards = $room->config?->min_cards_to_start;
+        if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
+            return 'cards';
+        }
+
+        $minPlayers = $room->config?->min_players;
+        if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
+            return 'players';
+        }
+
+        return null;
     }
 }
