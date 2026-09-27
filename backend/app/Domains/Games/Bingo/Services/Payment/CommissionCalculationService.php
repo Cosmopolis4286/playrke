@@ -31,29 +31,46 @@ class CommissionCalculationService implements CommissionCalculationInterface
      */
     public function calculateSellerCommission(float $saleAmount, ?string $sellerId = null, ?string $roomId = null): float
     {
-        try {
-            if (!$sellerId) {
-                return 0;
-            }
+        return round($saleAmount * ($this->sellerCommissionRate($sellerId, $roomId) / 100), 2);
+    }
 
-            // Obtener comisión específica para la sala o usar comisión general del vendedor
+    /**
+     * Tasa (%) de comisión EFECTIVA del vendedor en una sala: comisión
+     * especial de la sala (sellers_room_limits) o, si no hay, su comisión
+     * base — más el bono progresivo por volumen del mes.
+     *
+     * Única fuente de verdad del porcentaje: la usa la venta
+     * (calculateSellerCommission) y la vista previa del formulario de
+     * generar cartones (BingoCardGenerateService::getCardPrice) — antes la
+     * vista previa mostraba solo la comisión base y el vendedor veía un
+     * "Mi Comisión" distinto del que se registraba.
+     *
+     * Ya no se traga errores devolviendo 0: una comisión mal calculada es
+     * dinero mal registrado. El error se loguea y se propaga, y la venta
+     * (dentro de su transacción) se revierte completa.
+     */
+    public function sellerCommissionRate(?string $sellerId, ?string $roomId = null): float
+    {
+        if (!$sellerId) {
+            return 0.0;
+        }
+
+        try {
             $commnSeller = SellerRoomLimits::getGameRoomValueBySeller('BINGO', $sellerId, $roomId, 'commission')
                 ?? Seller::getValueById($sellerId, 'commission');
 
             if (!$commnSeller) {
-                return 0;
+                return 0.0;
             }
 
-            $effectiveRate = (float) $commnSeller + $this->progressiveBonusPercent($sellerId);
-
-            return round($saleAmount * ($effectiveRate / 100), 2);
+            return (float) $commnSeller + $this->progressiveBonusPercent($sellerId);
         } catch (\Throwable $e) {
             Log::error('Error al calcular comisión del vendedor: ' . $e->getMessage(), [
                 'sellerId' => $sellerId,
-                'roomId' => $roomId,
-                'saleAmount' => $saleAmount
+                'roomId'   => $roomId,
             ]);
-            return 0;
+
+            throw $e;
         }
     }
 

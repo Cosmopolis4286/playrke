@@ -51,9 +51,8 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
         $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
         $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        // is_accumulative=false / code != cualquier cosa que el test compare como "2" --
-        // RoomMetricsService compara $prizePoolType != 2 (id numérico) para decidir si
-        // acumula comisiones; usamos un id real distinto de 2 (Snowflake, jamás "2").
+        // El tipo de bote no altera el reparto de la venta (ver RoomMetricsService:
+        // todos los tipos, incluido PRIZE, acumulan comisiones y bote).
         // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder) —
         // sin este Game::firstOrCreate() previo, el insert falla con
         // "Field 'game_id' doesn't have a default value".

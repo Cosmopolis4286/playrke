@@ -16,4 +16,10 @@ interface CommissionCalculationInterface
      * @return float Comisión calculada
      */
     public function calculateSellerCommission(float $saleAmount, ?string $sellerId = null, ?string $roomId = null): float;
+
+    /**
+     * Tasa (%) de comisión efectiva del vendedor en una sala (especial de la
+     * sala o base, + bono progresivo) — misma que usa calculateSellerCommission().
+     */
+    public function sellerCommissionRate(?string $sellerId, ?string $roomId = null): float;
 }
