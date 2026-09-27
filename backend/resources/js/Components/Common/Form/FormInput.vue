@@ -29,6 +29,8 @@
     min: { type: [String, Number], default: null },
     max: { type: [String, Number], default: null },
     step: { type: [String, Number], default: null },
+    /** Solo con type="number": descarta decimales y bloquea "." / ",". */
+    integer: { type: Boolean, default: false },
     placeholder: { type: String, default: null },
     accept: { type: String, default: null },
     col: { type: String, default: 'col-sm-6' },
@@ -73,46 +75,58 @@
     return props.mask
   })
 
-  function clampNumericValue(value: string | number): number {
-    if (props.type !== 'number') return Number(value) || 0
-    const num = Number(value) || 0
+  /**
+   * Ajusta un valor numérico a [min, max] (y a entero si `integer`).
+   * `clampMin` en false solo recorta el máximo: mientras se escribe no se
+   * fuerza el mínimo, o con min=10 teclear "1" saltaría a 10 y sería imposible
+   * escribir "15". El mínimo se aplica al pegar y al salir del campo (blur).
+   */
+  function clampNumericValue(value: string | number, clampMin: boolean): number {
+    let num = Number(value) || 0
+    if (props.integer) num = Math.trunc(num)
     const min = props.min !== null ? Number(props.min) : null
     const max = props.max !== null ? Number(props.max) : null
-    if (min !== null && num < min) return min
     if (max !== null && num > max) return max
+    if (clampMin && min !== null && num < min) return min
     return num
+  }
+
+  function emitNumeric(target: HTMLInputElement, clampMin: boolean) {
+    const value = target.value
+    if (value === '') {
+      emit('update:modelValue', '')
+      return
+    }
+    const adjusted = clampNumericValue(value, clampMin)
+    // Solo reescribir el DOM si el valor cambió: reescribirlo siempre borra
+    // estados intermedios válidos mientras se teclea (ej. "10." camino a "10.5").
+    if (adjusted !== Number(value)) target.value = String(adjusted)
+    emit('update:modelValue', adjusted)
   }
 
   function onInput(event: Event) {
     const target = event.target as HTMLInputElement
-    const value = target.value
     if (props.type === 'number') {
-      if (value === '') {
-        emit('update:modelValue', '')
-        return
-      }
-      const adjusted = clampNumericValue(value)
-      target.value = String(adjusted)
-      emit('update:modelValue', adjusted)
+      emitNumeric(target, (event as InputEvent).inputType === 'insertFromPaste')
       return
     }
-    emit('update:modelValue', value)
+    emit('update:modelValue', target.value)
+  }
+
+  /** Bloquea teclas que <input type="number"> acepta pero nunca son válidas aquí (e, +, -, y "." en enteros). */
+  function onKeydown(event: KeyboardEvent) {
+    if (props.type !== 'number') return
+    const blocked = props.integer ? ['e', 'E', '+', '-', '.', ','] : ['e', 'E', '+', '-']
+    if (blocked.includes(event.key)) event.preventDefault()
   }
 
   function onBlur(event: FocusEvent) {
     const target = event.target as HTMLInputElement
-    const value = target.value
     if (props.type === 'number') {
-      if (value === '') {
-        emit('update:modelValue', '')
-        return
-      }
-      const adjusted = clampNumericValue(value)
-      target.value = String(adjusted)
-      emit('update:modelValue', adjusted)
-      return
+      emitNumeric(target, true)
+    } else {
+      emit('update:modelValue', target.value)
     }
-    emit('update:modelValue', value)
     emit('blur', event)
   }
 
@@ -188,6 +202,7 @@
         :step="step"
         :accept="accept"
         @input="onInput"
+        @keydown="onKeydown"
         @blur="onBlur"
         @focus="onFocus"
       />
@@ -251,6 +266,7 @@
       :step="step"
       :accept="accept"
       @input="onInput"
+        @keydown="onKeydown"
       @blur="onBlur"
       @focus="onFocus"
     />

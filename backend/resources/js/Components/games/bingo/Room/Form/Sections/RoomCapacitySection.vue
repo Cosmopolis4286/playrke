@@ -33,6 +33,7 @@
           name="min_cards_to_start"
           :error="(errors as any).minCardsToStart"
           type="number"
+          integer
           placeholder="Sin condición"
           :step="1"
           :min="1"
@@ -55,6 +56,7 @@
           name="max_cards_to_start"
           :error="(errors as any).maxCardsToStart"
           type="number"
+          integer
           placeholder="Sin límite"
           :step="1"
           :min="1"
@@ -86,6 +88,7 @@
           name="min_players"
           :error="(errors as any).minPlayers"
           type="number"
+          integer
           placeholder="Sin condición"
           :step="1"
           :min="1"
@@ -108,6 +111,7 @@
           name="max_players"
           :error="(errors as any).maxPlayers"
           type="number"
+          integer
           placeholder="Sin límite"
           :step="1"
           :min="1"

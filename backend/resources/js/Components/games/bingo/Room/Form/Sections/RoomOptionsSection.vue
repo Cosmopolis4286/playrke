@@ -1,5 +1,10 @@
 <script setup lang="ts">
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+  import {
+    BINGO_ROOM_INT_LIMITS,
+    BINGO_ROOM_AMOUNT_LIMITS
+  } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
+  import { sanitizeNumericInput } from '../Utils/numericInput'
 
   const props = defineProps<{
     modelValue: BingoRoomFormData
@@ -12,6 +17,25 @@
     (e: 'update:modelValue', value: BingoRoomFormData): void
     (e: 'update:serialsPct', value: string | number): void
   }>()
+
+  type IntField = 'customCardEveryX' | 'numSerials' | 'maxSpecialCards'
+  type PctField = 'customCardPricePct' | 'moveFreeSpacePricePct'
+
+  /** Entero saneado al escribir/pegar (ver sanitizeNumericInput); commit=true en change/blur. */
+  function onIntInput(field: IntField, event: Event, commit = false): void {
+    const value = sanitizeNumericInput(event, { ...BINGO_ROOM_INT_LIMITS[field], integer: true }, commit)
+    emit('update:modelValue', { ...props.modelValue, [field]: value } as BingoRoomFormData)
+  }
+
+  function onPctInput(field: PctField, event: Event, commit = false): void {
+    const value = sanitizeNumericInput(event, BINGO_ROOM_AMOUNT_LIMITS[field], commit)
+    emit('update:modelValue', { ...props.modelValue, [field]: value } as BingoRoomFormData)
+  }
+
+  function onSerialsPctInput(event: Event, commit = false): void {
+    const value = sanitizeNumericInput(event, props.percentageLimits.serialsPct, commit)
+    emit('update:serialsPct', value ?? '')
+  }
 </script>
 
 <template>
@@ -81,19 +105,14 @@
             <div class="input-group input-group-sm" style="width: 130px">
               <input
                 name="custom_card_price_pct"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
                 :class="['form-control', { 'is-invalid': (errors as any).customCardPricePct }]"
                 placeholder="Ej: 2"
-                :step="0.25"
-                :min="1"
-                :max="5"
                 :value="(modelValue as any).customCardPricePct ?? ''"
-                @change="
-                  emit('update:modelValue', {
-                    ...modelValue,
-                    customCardPricePct: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
-                  } as any)
-                "
+                @input="onPctInput('customCardPricePct', $event)"
+                @change="onPctInput('customCardPricePct', $event, true)"
               />
               <div class="input-group-append">
                 <span class="input-group-text">%</span>
@@ -122,21 +141,19 @@
             </label>
             <input
               name="custom_card_every_x"
-              type="number"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
               :class="['form-control form-control-sm', { 'is-invalid': (errors as any).customCardEveryX }]"
               placeholder="Ej: 5"
-              :step="1"
-              :min="2"
-              :max="10"
               style="width: 110px"
               :value="(modelValue as any).customCardEveryX ?? ''"
-              @change="
-                emit('update:modelValue', {
-                  ...modelValue,
-                  customCardEveryX: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
-                } as any)
-              "
+              @input="onIntInput('customCardEveryX', $event)"
+              @change="onIntInput('customCardEveryX', $event, true)"
             />
+            <small v-if="!(errors as any).customCardEveryX" class="d-block text-muted" style="font-size: 0.72rem">
+              Entre {{ BINGO_ROOM_INT_LIMITS.customCardEveryX.min }} y {{ BINGO_ROOM_INT_LIMITS.customCardEveryX.max }}.
+            </small>
             <small v-if="(errors as any).customCardEveryX" class="text-danger" style="font-size: 0.72rem">
               {{ (errors as any).customCardEveryX }}
             </small>
@@ -178,19 +195,14 @@
             <div class="input-group input-group-sm" style="width: 130px">
               <input
                 name="move_free_space_price_pct"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
                 :class="['form-control', { 'is-invalid': (errors as any).moveFreeSpacePricePct }]"
                 placeholder="Ej: 2"
-                :step="0.25"
-                :min="1"
-                :max="5"
                 :value="(modelValue as any).moveFreeSpacePricePct ?? ''"
-                @change="
-                  emit('update:modelValue', {
-                    ...modelValue,
-                    moveFreeSpacePricePct: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
-                  } as any)
-                "
+                @input="onPctInput('moveFreeSpacePricePct', $event)"
+                @change="onPctInput('moveFreeSpacePricePct', $event, true)"
               />
               <div class="input-group-append">
                 <span class="input-group-text">%</span>
@@ -248,20 +260,15 @@
             </label>
             <input
               name="max_special_cards"
-              type="number"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
               :class="['form-control form-control-sm', { 'is-invalid': (errors as any).maxSpecialCards }]"
               placeholder="Ej: 3"
-              :step="1"
-              :min="1"
-              :max="5"
               style="width: 110px"
               :value="(modelValue as any).maxSpecialCards ?? ''"
-              @change="
-                emit('update:modelValue', {
-                  ...modelValue,
-                  maxSpecialCards: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
-                } as any)
-              "
+              @input="onIntInput('maxSpecialCards', $event)"
+              @change="onIntInput('maxSpecialCards', $event, true)"
             />
             <small v-if="(errors as any).maxSpecialCards" class="text-danger" style="font-size: 0.72rem">
               {{ (errors as any).maxSpecialCards }}
@@ -299,21 +306,24 @@
             <div class="input-group input-group-sm" style="width: 130px">
               <input
                 name="serials_pct"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
                 :class="['form-control', { 'is-invalid': errors.serialsPct }]"
                 placeholder="Ej: 5"
-                :step="0.25"
-                :min="percentageLimits.serialsPct.min"
-                :max="percentageLimits.serialsPct.max"
                 :value="serialsPct"
-                @change="emit('update:serialsPct', Number(($event.target as HTMLInputElement).value) as any)"
+                @input="onSerialsPctInput($event)"
+                @change="onSerialsPctInput($event, true)"
               />
               <div class="input-group-append">
                 <span class="input-group-text">%</span>
               </div>
             </div>
-            <small v-if="errors.serialsPct" class="text-danger" style="font-size: 0.72rem">
+            <small v-if="errors.serialsPct" class="d-block text-danger" style="font-size: 0.72rem">
               {{ errors.serialsPct }}
+            </small>
+            <small v-else class="d-block text-muted" style="font-size: 0.72rem">
+              Entre {{ percentageLimits.serialsPct.min }} y {{ percentageLimits.serialsPct.max }}.
             </small>
           </div>
 
@@ -324,18 +334,21 @@
             </label>
             <input
               name="num_serials"
-              type="number"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
               :class="['form-control form-control-sm', { 'is-invalid': errors.numSerials }]"
               placeholder="Ej: 10"
-              :step="1"
-              :min="1"
-              :max="30"
               style="width: 110px"
               :value="modelValue.numSerials ?? ''"
-              @change="emit('update:modelValue', { ...modelValue, numSerials: Number(($event.target as HTMLInputElement).value) || null })"
+              @input="onIntInput('numSerials', $event)"
+              @change="onIntInput('numSerials', $event, true)"
             />
-            <small v-if="errors.numSerials" class="text-danger" style="font-size: 0.72rem">
+            <small v-if="errors.numSerials" class="d-block text-danger" style="font-size: 0.72rem">
               {{ errors.numSerials }}
+            </small>
+            <small v-else class="d-block text-muted" style="font-size: 0.72rem">
+              Entre {{ BINGO_ROOM_INT_LIMITS.numSerials.min }} y {{ BINGO_ROOM_INT_LIMITS.numSerials.max }}.
             </small>
           </div>
         </template>

@@ -8,6 +8,8 @@
     getRoundMaxValue
   } from '../Composables/useRoomRounds'
   import { getCurrencyLabel } from '../Composables/useRoomCurrency'
+  import { sanitizeNumericInput } from '../Utils/numericInput'
+  import { BINGO_ROOM_AMOUNT_LIMITS } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
   import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
   import type { SelectOption } from '@/js/types/common/form/form'
 
@@ -113,6 +115,36 @@
     )
   }
 
+  /**
+   * % de una ronda: al escribir solo se sanea el DOM (tope = lo que queda de
+   * %Rondas); se emite recién al confirmar (change), porque cada emisión
+   * redistribuye el resto entre las demás rondas y haría saltar sus valores
+   * a mitad de la escritura.
+   */
+  function onRoundPctInput(index: number, event: Event, commit = false) {
+    const limits = { ...BINGO_ROOM_AMOUNT_LIMITS.roundPrizePct, max: roundMax(index) || BINGO_ROOM_AMOUNT_LIMITS.roundPrizePct.max }
+    const value = sanitizeNumericInput(event, limits, commit)
+    if (commit) onUpdateRoundConfig(index, 'prizeValue', value)
+  }
+
+  function onRoundFixedInput(index: number, cur: string | number, event: Event, commit = false) {
+    const value = sanitizeNumericInput(event, BINGO_ROOM_AMOUNT_LIMITS.roundPrizeFixed, commit)
+    onUpdateRoundPriceByCurrency(index, cur, value)
+  }
+
+  /** Mensajes de error de rondas en texto ("R2: …") — los inputs solo pintan el borde rojo. */
+  const roundsConfigErrorList = computed<string[]>(() => {
+    const err = props.errors.roundsConfig as Record<string, string> | undefined
+    if (!err) return []
+    const list = Object.entries(err).map(([key, msg]) => {
+      if (key === 'sum') return msg
+      const idx = Number(key.split('_')[0])
+      const cur = key.split('_prizeValue_')[1]
+      return `R${idx + 1}${cur ? ` (${currencyLabel(cur)})` : ''}: ${msg}`
+    })
+    return [...new Set(list)]
+  })
+
   function currencyLabel(id: string | number) {
     return getCurrencyLabel(id, props.allowedCurrenciesOptions)
   }
@@ -161,6 +193,7 @@
       name="rounds"
       :error="errors.rounds"
       type="number"
+      integer
       required
       :step="1"
       :min="1"
@@ -302,7 +335,9 @@
                 <input
                   v-if="round.prizeType === 'percentage'"
                   :name="`rounds_prize_value[${index}]`"
-                  type="number"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
                   :class="[
                     'form-control form-control-sm',
                     {
@@ -312,19 +347,11 @@
                     }
                   ]"
                   placeholder="%"
+                  :title="getRoundFieldError(index, 'prizeValue') ?? `Máximo disponible: ${roundMax(index)}%`"
                   :value="isSingleRound ? roundsPct : round.prizeValue"
                   :readonly="isSingleRound"
-                  @change="
-                    !isSingleRound &&
-                    onUpdateRoundConfig(
-                      index,
-                      'prizeValue',
-                      ($event.target as HTMLInputElement).value
-                    )
-                  "
-                  step="0.5"
-                  min="0"
-                  :max="isSingleRound ? 100 : roundMax(index)"
+                  @input="!isSingleRound && onRoundPctInput(index, $event)"
+                  @change="!isSingleRound && onRoundPctInput(index, $event, true)"
                   style="flex: 0 0 72px"
                 />
 
@@ -392,22 +419,18 @@
                     </div>
                     <input
                       :name="`rounds_prize_value_currency[${index}][${cur}]`"
-                      type="number"
+                      type="text"
+                      inputmode="decimal"
+                      autocomplete="off"
                       :class="[
                         'form-control form-control-sm',
                         { 'is-invalid': !!getRoundCurrencyError(index, cur) }
                       ]"
                       placeholder="0.00"
-                      step="0.5"
-                      min="0"
+                      :title="getRoundCurrencyError(index, cur)"
                       :value="round.prizeValueByCurrency?.[String(cur)] ?? ''"
-                      @change="
-                        onUpdateRoundPriceByCurrency(
-                          index,
-                          cur,
-                          ($event.target as HTMLInputElement).value
-                        )
-                      "
+                      @input="onRoundFixedInput(index, cur, $event)"
+                      @change="onRoundFixedInput(index, cur, $event, true)"
                     />
                   </div>
                 </template>
@@ -415,6 +438,10 @@
             </div>
           </template>
         </div>
+
+        <ul v-if="roundsConfigErrorList.length" class="text-danger mb-0 mt-2 pl-3" style="font-size: 0.75rem">
+          <li v-for="msg in roundsConfigErrorList" :key="msg">{{ msg }}</li>
+        </ul>
       </div>
     </div>
 

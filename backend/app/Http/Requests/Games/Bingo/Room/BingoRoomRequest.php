@@ -440,6 +440,7 @@ class BingoRoomRequest extends BaseRequest
 
             'numSerials.required_if'          => 'El número de seriales es obligatorio cuando se usan seriales.',
             'numSerials.min'                  => 'El número de seriales debe ser al menos 1.',
+            'numSerials.max'                  => 'El número de seriales no puede ser mayor a 30.',
 
             'customCardMode.required_if'      => 'Debe seleccionar una modalidad de cartón personalizado.',
             'customCardMode.in'               => 'La modalidad de cartón personalizado no es válida.',

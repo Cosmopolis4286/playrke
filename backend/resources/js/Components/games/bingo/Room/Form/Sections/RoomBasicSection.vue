@@ -8,6 +8,10 @@
   import { searchUsers } from '@/js/composables/users/useUserSearch'
   import { showToast } from '@/js/utils/toastNotify'
   import { generateAccessCode, generateRoomPassword } from '../Composables/useRoomPrivateAccess'
+  import {
+    BINGO_ROOM_INT_LIMITS,
+    BINGO_ROOM_TEXT_LIMITS
+  } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
 
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type {
@@ -233,6 +237,9 @@ import { SelectOption } from '@/js/types/common/form/form'
         :error="(errors as any).accessCode"
         required
         placeholder="Ej. FAMILIA2026"
+        :minlength="BINGO_ROOM_TEXT_LIMITS.accessCode.min"
+        :maxlength="BINGO_ROOM_TEXT_LIMITS.accessCode.max"
+        :hint="`Entre ${BINGO_ROOM_TEXT_LIMITS.accessCode.min} y ${BINGO_ROOM_TEXT_LIMITS.accessCode.max} caracteres.`"
         col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
         :modelValue="(modelValue as any).accessCode ?? null"
@@ -257,6 +264,9 @@ import { SelectOption } from '@/js/types/common/form/form'
         :required="!automaticRoom"
         type="password"
         :placeholder="props.modelValue.hostUserId ? 'Dejar en blanco para no cambiar' : 'Contraseña de acceso'"
+        :minlength="BINGO_ROOM_TEXT_LIMITS.roomPassword.min"
+        :maxlength="BINGO_ROOM_TEXT_LIMITS.roomPassword.max"
+        :hint="`Mínimo ${BINGO_ROOM_TEXT_LIMITS.roomPassword.min} caracteres.`"
         col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
         :modelValue="(modelValue as any).roomPassword ?? null"
@@ -385,7 +395,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       name="room_commission"
       id="room-commn"
       :error="errors.roomCommn"
-      hint="% del bote que se queda la casa como comisión."
+      :hint="`% del bote que se queda la casa como comisión (${percentageLimits.roomCommn.min} a ${percentageLimits.roomCommn.max}).`"
       type="number"
       required
       :step="0.05"
@@ -401,12 +411,13 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="Tiempo Ficha"
       name="time_chip"
       :error="errors.timeChip"
-      hint="Segundos entre cada ficha cantada durante el sorteo."
+      :hint="`Segundos entre cada ficha cantada (${BINGO_ROOM_INT_LIMITS.timeChip.min} a ${BINGO_ROOM_INT_LIMITS.timeChip.max}).`"
       type="number"
+      integer
       required
       :step="1"
-      :min="3"
-      :max="10"
+      :min="BINGO_ROOM_INT_LIMITS.timeChip.min"
+      :max="BINGO_ROOM_INT_LIMITS.timeChip.max"
       col="col-sm-6 col-md-4 col-lg-3"
       inputGroup
       :modelValue="modelValue.timeChip"
@@ -441,7 +452,8 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="%Jackpot"
       name="jackpot_pct"
       id="jackpot-pct"
-      :hint="(modelValue as any).jackpotType ? '% del bote destinado al jackpot (opcional).' : 'Elige primero un tipo de Jackpot para poder configurar el %.'"
+      :error="(errors as any).jackpotPct"
+      :hint="(modelValue as any).jackpotType ? `% del bote destinado al jackpot (opcional, ${percentageLimits.jackpotPct.min} a ${percentageLimits.jackpotPct.max}).` : 'Elige primero un tipo de Jackpot para poder configurar el %.'"
       type="number"
       :disabled="!(modelValue as any).jackpotType"
       :step="0.5"
@@ -461,10 +473,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       :error="(errors as any).salesStartOffsetDays"
       hint="Días antes del sorteo en que la sala se publica y empieza a vender."
       type="number"
+      integer
       placeholder="Mismo día"
       :step="1"
-      :min="1"
-      :max="30"
+      :min="BINGO_ROOM_INT_LIMITS.salesStartOffsetDays.min"
+      :max="BINGO_ROOM_INT_LIMITS.salesStartOffsetDays.max"
       col="col-sm-6 col-md-4 col-lg-3"
       inputGroup
       :modelValue="(modelValue as BingoRoomAutomaticFormData).salesStartOffsetDays ?? null"

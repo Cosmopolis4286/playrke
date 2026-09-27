@@ -386,6 +386,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             'numSerials.required_if'          => 'El número de seriales es obligatorio cuando se usan seriales.',
             'numSerials.min'                  => 'El número de seriales debe ser al menos 1.',
+            'numSerials.max'                  => 'El número de seriales no puede ser mayor a 30.',
 
             'minCardsToStart.integer'         => 'El mínimo de cartones debe ser un número entero.',
             'minCardsToStart.min'             => 'El mínimo de cartones debe ser al menos 1.',

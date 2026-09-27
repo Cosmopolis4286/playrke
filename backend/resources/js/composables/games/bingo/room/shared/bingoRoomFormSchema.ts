@@ -10,6 +10,65 @@ export const BINGO_ROOM_PERCENTAGE_LIMITS = {
     serialsPct: { min: 2,  max: 35  },
 } as const
 
+/* ─── Rangos de campos enteros (espejo de BingoRoomRequest / BingoRoomAutomaticRequest) ── */
+
+export const BINGO_ROOM_INT_LIMITS = {
+    customCardEveryX:     { min: 2, max: 10     },
+    numSerials:           { min: 1, max: 30     },
+    maxSpecialCards:      { min: 1, max: 5      },
+    timeChip:             { min: 3, max: 10     },
+    rounds:               { min: 1, max: 15     },
+    cards:                { min: 1, max: 10000  },
+    players:              { min: 1, max: 100000 },
+    salesStartOffsetDays: { min: 1, max: 30     },
+} as const
+
+/* ─── Rangos de montos / decimales (espejo de BingoRoomRequest) ─────── */
+
+export const BINGO_ROOM_AMOUNT_LIMITS = {
+    cardPriceUsd:          { min: 0.5,  max: 500     },
+    usdExchangeRoundStep:  { min: 0.01, max: 100     },
+    cardPriceByCurrency:   { min: 1,    max: 5000    },
+    amountAddedPrizePool:  { min: 20,   max: 10000   },
+    customCardPricePct:    { min: 1,    max: 5       },
+    moveFreeSpacePricePct: { min: 1,    max: 5       },
+    roundPrizePct:         { min: 0.01, max: 100     },
+    roundPrizeFixed:       { min: 0.01, max: 1000000 },
+} as const
+
+/* ─── Longitudes de texto (sala privada) ─────────────────────────────── */
+
+export const BINGO_ROOM_TEXT_LIMITS = {
+    accessCode:   { min: 4, max: 20  },
+    roomPassword: { min: 6, max: 100 },
+} as const
+
+/** Formatea un número para mensajes: 1000000 → "1.000.000", 0.5 → "0,5". */
+function fmt(n: number): string {
+    return n.toLocaleString('es-VE', { maximumFractionDigits: 2 })
+}
+
+/**
+ * Valida un número opcional/requerido contra un rango. Devuelve el mensaje de
+ * error o null. `label` se antepone al mensaje de rango.
+ */
+function rangeError(
+    value: unknown,
+    limits: { min: number; max: number },
+    opts: { integer?: boolean; required?: string; label?: string } = {}
+): string | null {
+    if (value === null || value === undefined || value === '') return opts.required ?? null
+    const n = Number(value)
+    const say = (msg: string) => (opts.label ? `${opts.label} ${msg}` : msg.charAt(0).toUpperCase() + msg.slice(1))
+    if (!Number.isFinite(n)) return say('debe ser un número válido.')
+    if ((opts.integer && !Number.isInteger(n)) || n < limits.min || n > limits.max) {
+        return opts.integer
+            ? say(`debe ser un entero entre ${fmt(limits.min)} y ${fmt(limits.max)}.`)
+            : say(`debe estar entre ${fmt(limits.min)} y ${fmt(limits.max)}.`)
+    }
+    return null
+}
+
 /* ─── Schemas de porcentaje pre-compilados (fix: no reconstruir en cada computed) ── */
 
 const roomCommnSchema = percentageSchema
@@ -87,8 +146,11 @@ export const bingoRoomFormSchema = z.object({
     moveFreeSpacePricePct: z.number().nullable().optional(),
     allowSpecialCard:   z.boolean().optional(),
     maxSpecialCards:    z.number().nullable().optional(),
+    jackpotType:          z.union([z.number(), z.string()]).nullable().optional(),
+    amountAddedPrizePool: z.number().nullable().optional(),
     // Solo salas automáticas — enum validado en runtime
     days: z.array(z.enum(DAY_OF_WEEK)).optional(),
+    salesStartOffsetDays: z.number().nullable().optional(),
 })
 
 export type BingoRoomFormInput = z.input<typeof bingoRoomFormSchema>
@@ -183,8 +245,22 @@ export function validateBingoRoomForm(
     /* ── Sala privada: código de acceso + contraseña (obligatoria solo al crear) + anfitrión ── */
     const isPrivateRoom = ctx.privateRoomTypeId !== null && String(data.roomType) === String(ctx.privateRoomTypeId)
     if (isPrivateRoom) {
-        if (!data.accessCode) e.accessCode = 'El código de acceso es requerido para salas privadas.'
-        if (!ctx.isEdit && !data.roomPassword) e.roomPassword = 'La contraseña es requerida para salas privadas.'
+        const code = (data.accessCode ?? '').trim()
+        const { accessCode: codeLim, roomPassword: pwdLim } = BINGO_ROOM_TEXT_LIMITS
+        if (!code) {
+            e.accessCode = 'El código de acceso es requerido para salas privadas.'
+        } else if (code.length < codeLim.min || code.length > codeLim.max) {
+            e.accessCode = `El código de acceso debe tener entre ${codeLim.min} y ${codeLim.max} caracteres.`
+        }
+
+        // En edición la contraseña vacía significa "no cambiar" — solo se valida si se escribió una.
+        const pwd = data.roomPassword ?? ''
+        if (!ctx.isEdit && !pwd) {
+            e.roomPassword = 'La contraseña es requerida para salas privadas.'
+        } else if (pwd && (pwd.length < pwdLim.min || pwd.length > pwdLim.max)) {
+            e.roomPassword = `La contraseña debe tener entre ${pwdLim.min} y ${pwdLim.max} caracteres.`
+        }
+
         if (!data.hostUserId) e.hostUserId = 'El anfitrión es requerido para salas privadas.'
     }
 
@@ -203,36 +279,46 @@ export function validateBingoRoomForm(
         if (!r.success) e.roomCommn = r.error.issues[0].message
     }
 
-    /* ── Otros campos requeridos ── */
-    if (data.timeChip === null || data.timeChip === undefined || data.timeChip === 0) {
-        e.timeChip = 'El tiempo de ficha es requerido.'
+    /* ── % Jackpot (opcional; si se carga, dentro de rango y con tipo de jackpot) ── */
+    const jkLim = BINGO_ROOM_PERCENTAGE_LIMITS.jackpotPct
+    const jkErr = rangeError(data.jackpotPct, jkLim, { label: 'El % de jackpot' })
+    if (jkErr) {
+        e.jackpotPct = jkErr
+    } else if (data.jackpotPct != null && (data.jackpotPct as unknown) !== '' && !data.jackpotType) {
+        e.jackpotPct = 'Elija un tipo de Jackpot para usar este %.'
     }
-    if (data.rounds === null || data.rounds === undefined || data.rounds < 1) {
-        e.rounds = 'El número de rondas debe ser al menos 1.'
+
+    /* ── Valor fijo/extra al bote (opcional) ── */
+    const addErr = rangeError(data.amountAddedPrizePool, BINGO_ROOM_AMOUNT_LIMITS.amountAddedPrizePool, { label: 'El valor extra' })
+    if (addErr) e.amountAddedPrizePool = addErr
+
+    /* ── Tiempo ficha / rondas (requeridos, enteros) ── */
+    const I = BINGO_ROOM_INT_LIMITS
+    const tcErr = rangeError(data.timeChip || null, I.timeChip, {
+        integer: true, required: 'El tiempo de ficha es requerido.', label: 'El tiempo de ficha',
+    })
+    if (tcErr) e.timeChip = tcErr
+    const rdErr = rangeError(data.rounds || null, I.rounds, {
+        integer: true, required: 'El número de rondas es requerido.', label: 'El número de rondas',
+    })
+    if (rdErr) e.rounds = rdErr
+
+    /* ── Días de anticipación (solo salas automáticas, opcional) ── */
+    if (ctx.automaticRoom) {
+        const sdErr = rangeError(data.salesStartOffsetDays, I.salesStartOffsetDays, { integer: true, label: 'Los días de anticipación' })
+        if (sdErr) e.salesStartOffsetDays = sdErr
     }
-    if (data.minCardsToStart !== null && data.minCardsToStart !== undefined) {
-        const min = Number(data.minCardsToStart)
-        if (!Number.isInteger(min) || min < 1 || min > 10000) {
-            e.minCardsToStart = 'La cantidad mínima de cartones debe ser un entero entre 1 y 10000.'
-        }
-    }
-    if (data.maxCardsToStart !== null && data.maxCardsToStart !== undefined) {
-        const max = Number(data.maxCardsToStart)
-        if (!Number.isInteger(max) || max < 1 || max > 10000) {
-            e.maxCardsToStart = 'El máximo de cartones debe ser un entero entre 1 y 10000.'
-        }
-    }
-    if (data.maxPlayers !== null && data.maxPlayers !== undefined) {
-        const max = Number(data.maxPlayers)
-        if (!Number.isInteger(max) || max < 1 || max > 100000) {
-            e.maxPlayers = 'El cupo máximo de jugadores debe ser un entero entre 1 y 100000.'
-        }
-    }
-    if (data.minPlayers !== null && data.minPlayers !== undefined) {
-        const min = Number(data.minPlayers)
-        if (!Number.isInteger(min) || min < 1 || min > 100000) {
-            e.minPlayers = 'El mínimo de jugadores debe ser un entero entre 1 y 100000.'
-        }
+
+    /* ── Capacidad (opcionales, enteros) ── */
+    const capacity: [keyof BingoRoomFormInput, { min: number; max: number }, string][] = [
+        ['minCardsToStart', I.cards,   'La cantidad mínima de cartones'],
+        ['maxCardsToStart', I.cards,   'El máximo de cartones'],
+        ['minPlayers',      I.players, 'El mínimo de jugadores'],
+        ['maxPlayers',      I.players, 'El cupo máximo de jugadores'],
+    ]
+    for (const [key, lim, label] of capacity) {
+        const err = rangeError(data[key], lim, { integer: true, label })
+        if (err) e[key] = err
     }
 
     /* ── Validación cruzada min/max (solo si ambos extremos del par tienen valor) ── */
@@ -259,20 +345,27 @@ export function validateBingoRoomForm(
             const r = serialsPctSchema.safeParse(data.serialsPct)
             if (!r.success) e.serialsPct = r.error.issues[0].message
         }
-        if (!data.numSerials) e.numSerials = 'Ingrese cantidad de seriales.'
+        const nsErr = rangeError(data.numSerials, BINGO_ROOM_INT_LIMITS.numSerials, {
+            integer: true, required: 'Ingrese cantidad de seriales.',
+        })
+        if (nsErr) e.numSerials = nsErr
     }
 
     /* ── Precio del cartón ── */
+    const A = BINGO_ROOM_AMOUNT_LIMITS
     if (ctx.useBaseUsd) {
-        if (!data.cardPriceUsd) e.cardPriceUsd = 'Valor en USD requerido.'
+        const usdErr = rangeError(data.cardPriceUsd || null, A.cardPriceUsd, { required: 'Valor en USD requerido.' })
+        if (usdErr) e.cardPriceUsd = usdErr
+        const stepErr = rangeError(data.usdExchangeRoundStep, A.usdExchangeRoundStep, { label: 'El redondeo' })
+        if (stepErr) e.usdExchangeRoundStep = stepErr
     } else {
         const allowed = data.allowedCurrencies ?? []
         const byCurrency = data.cardPriceByCurrency ?? {}
         const currencyErrors: Record<string, string> = {}
         allowed.forEach(cur => {
             const key = String(cur)
-            const val = Number(byCurrency[key])
-            if (isNaN(val) || val <= 0) currencyErrors[key] = 'Ingrese un precio válido.'
+            const err = rangeError(byCurrency[key] || null, A.cardPriceByCurrency, { required: 'Ingrese un precio válido.' })
+            if (err) currencyErrors[key] = err
         })
         if (Object.keys(currencyErrors).length) e.cardPriceByCurrency = currencyErrors
     }
@@ -308,18 +401,33 @@ export function validateBingoRoomForm(
             currencies.forEach(cur => {
                 const key = String(cur)
                 const val = round.prizeValueByCurrency?.[key]
-                if (val === null || val === undefined || Number(val) <= 0) {
-                    roundErrors[`${i}_prizeValue_${key}`] = 'El valor para la moneda es requerido.'
-                }
+                const err = rangeError(val || null, BINGO_ROOM_AMOUNT_LIMITS.roundPrizeFixed, {
+                    required: 'El valor para la moneda es requerido.',
+                })
+                if (err) roundErrors[`${i}_prizeValue_${key}`] = err
             })
         } else if (round.prizeType === 'prize') {
             if (!round.prizeId) roundErrors[`${i}_prizeValue`] = 'Debe seleccionar un premio.'
-        } else {
-            if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
-                roundErrors[`${i}_prizeValue`] = 'El valor es requerido.'
-            }
+        } else if (rounds > 1) {
+            const err = rangeError(Number(round.prizeValue) || null, BINGO_ROOM_AMOUNT_LIMITS.roundPrizePct, {
+                required: 'El valor es requerido.',
+            })
+            if (err) roundErrors[`${i}_prizeValue`] = err
+        } else if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
+            // Con 1 sola ronda el % es readonly (se toma de %Rondas) — solo se exige que exista.
+            roundErrors[`${i}_prizeValue`] = 'El valor es requerido.'
         }
     })
+
+    /* La suma de las rondas en % debe cuadrar con %Rondas (antes solo se
+     * pintaba en rojo en la UI, sin bloquear el paso ni el guardado). */
+    const pctRounds = configs.filter(r => r.prizeType === 'percentage')
+    if (rounds > 1 && rPct > 0 && pctRounds.length > 0) {
+        const sum = pctRounds.reduce((acc, r) => acc + (Number(r.prizeValue) || 0), 0)
+        if (Math.abs(sum - rPct) >= 0.01) {
+            roundErrors.sum = `La suma de las rondas en % (${sum.toFixed(2)}) debe ser igual a %Rondas (${rPct}).`
+        }
+    }
 
     if (Object.keys(roundErrors).length) e.roundsConfig = roundErrors
 
@@ -331,9 +439,10 @@ export function validateBingoRoomForm(
             const r = customCardPricePctSchema.safeParse(Number(data.customCardPricePct))
             if (!r.success) e.customCardPricePct = r.error.issues[0].message
         } else if (data.customCardMode === 'every_x') {
+            const { min, max } = BINGO_ROOM_INT_LIMITS.customCardEveryX
             const everyX = Number(data.customCardEveryX)
-            if (!data.customCardEveryX || !Number.isInteger(everyX) || everyX < 2 || everyX > 10) {
-                e.customCardEveryX = 'Debe ser un entero entre 2 y 10.'
+            if (!data.customCardEveryX || !Number.isInteger(everyX) || everyX < min || everyX > max) {
+                e.customCardEveryX = `Debe ser un entero entre ${min} y ${max}.`
             }
         }
     }
@@ -350,9 +459,10 @@ export function validateBingoRoomForm(
 
     /* ── Cartón especial ── */
     if (data.allowSpecialCard) {
+        const limits = BINGO_ROOM_INT_LIMITS.maxSpecialCards
         const max = Number(data.maxSpecialCards)
-        if (!max || !Number.isInteger(max) || max < 1 || max > 5) {
-            e.maxSpecialCards = 'La cantidad de cartones especiales debe ser un entero entre 1 y 5.'
+        if (!max || !Number.isInteger(max) || max < limits.min || max > limits.max) {
+            e.maxSpecialCards = `La cantidad de cartones especiales debe ser un entero entre ${limits.min} y ${limits.max}.`
         }
     }
 

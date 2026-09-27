@@ -29,15 +29,19 @@ export const STEP_DESCRIPTIONS: Record<BingoRoomStep, string> = {
 }
 
 export const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
-    basic:      ['startMode', 'date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'jackpotPct', 'amountAddedPrizePool', 'accessCode', 'roomPassword', 'hostUserId', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
+    basic:      ['startMode', 'date', 'time', 'days', 'roomType', 'connectionType', 'gameMode', 'gameVariant', 'prizePoolType', 'roomCommn', 'timeChip', 'jackpotType', 'jackpotPct', 'amountAddedPrizePool', 'salesStartOffsetDays', 'accessCode', 'roomPassword', 'hostUserId', 'minCardsToStart', 'maxCardsToStart', 'minPlayers', 'maxPlayers'],
     currencies: ['allowedCurrencies', 'cardPriceUsd', 'cardPriceByCurrency', 'usdExchangeRoundStep'],
     // 'rounds' (cantidad de rondas) vive en el input de este mismo tab (RoomRoundsSection.vue)
     // pese a que el % de comisión que también depende de él está en "Datos básicos" — el ícono
     // de error debe reflejar dónde está el INPUT visualmente, no dónde vive el dato relacionado.
     rounds:     ['rounds', 'roundsPct', 'roundsConfig', 'percentageSum'],
-    options:    ['serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards'],
+    // Debe listar TODAS las claves de error que valida validateBingoRoomForm para este tab —
+    // una clave faltante deja el semáforo en verde y "Siguiente" habilitado pese al error.
+    options:    ['serialsPct', 'numSerials', 'customCardMode', 'customCardPricePct', 'customCardEveryX', 'moveFreeSpaceMode', 'moveFreeSpacePricePct', 'maxSpecialCards'],
     review:     [],
 }
+
+const ALL_MAPPED_ERROR_KEYS = new Set(Object.values(STEP_ERROR_KEYS).flat())
 
 /**
  * Campos OPCIONALES (nunca generan error si están vacíos) que, si se dejan
@@ -110,6 +114,10 @@ export function getStepStatus(
     if (s === 'review') {
         const statuses = EDITABLE_STEPS.map(step => singleStepStatus(step, errors, form))
         if (statuses.includes('error')) return 'error'
+        // Red de seguridad: una clave de error no mapeada en STEP_ERROR_KEYS no pinta
+        // ningún tab, pero igual bloquea el guardado (isValid) — sin esto Revisión
+        // quedaría en verde con "Guardar" deshabilitado y sin pista del porqué.
+        if (Object.keys(errors).some(k => !ALL_MAPPED_ERROR_KEYS.has(k))) return 'error'
         if (statuses.includes('incomplete')) return 'incomplete'
         return 'complete'
     }

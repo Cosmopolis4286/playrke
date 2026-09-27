@@ -3,6 +3,8 @@
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import { updateCardPriceForCurrency, getCurrencyLabel } from '../Composables/useRoomCurrency'
   import { showToast } from '@/js/utils/toastNotify'
+  import { sanitizeNumericInput } from '../Utils/numericInput'
+  import { BINGO_ROOM_AMOUNT_LIMITS } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type { SelectOption } from '@/js/types/common/form/form'
 
@@ -46,6 +48,17 @@
   function onCurrencyPriceChange(currency: string | number, value: string | number | null) {
     const updated = updateCardPriceForCurrency(props.modelValue.cardPriceByCurrency, currency, value)
     emit('update:modelValue', { ...props.modelValue, cardPriceByCurrency: updated })
+  }
+
+  const A = BINGO_ROOM_AMOUNT_LIMITS
+
+  function rangeHint(lim: { min: number; max: number }) {
+    return `Entre ${lim.min.toLocaleString('es-VE')} y ${lim.max.toLocaleString('es-VE')}.`
+  }
+
+  function onAmountInput(field: 'cardPriceUsd' | 'usdExchangeRoundStep', event: Event, commit = false) {
+    const value = sanitizeNumericInput(event, A[field], commit)
+    emit('update:modelValue', { ...props.modelValue, [field]: value })
   }
 
   function label(id: string | number) {
@@ -170,17 +183,18 @@
               </div>
               <input
                 name="card_price_usd"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
                 :class="['form-control', { 'is-invalid': errors.cardPriceUsd }]"
                 placeholder="0.00"
-                step="0.05"
-                min="0.5"
-                max="500"
                 :value="modelValue.cardPriceUsd ?? ''"
-                @change="emit('update:modelValue', { ...modelValue, cardPriceUsd: Number(($event.target as HTMLInputElement).value) || null })"
+                @input="onAmountInput('cardPriceUsd', $event)"
+                @change="onAmountInput('cardPriceUsd', $event, true)"
               />
             </div>
-            <small v-if="errors.cardPriceUsd" class="text-danger" style="font-size: 0.72rem">{{ errors.cardPriceUsd }}</small>
+            <small v-if="errors.cardPriceUsd" class="d-block text-danger" style="font-size: 0.72rem">{{ errors.cardPriceUsd }}</small>
+            <small v-else class="d-block text-muted" style="font-size: 0.72rem">{{ rangeHint(A.cardPriceUsd) }}</small>
           </div>
 
           <div style="color: #ced4da; font-size: 0.85rem; margin-top: 0.42rem">·</div>
@@ -194,17 +208,18 @@
               </div>
               <input
                 name="usd_exchange_round_step"
-                type="number"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
                 :class="['form-control', { 'is-invalid': errors.usdExchangeRoundStep }]"
                 placeholder="Redondeo opc."
-                step="0.01"
-                min="0.01"
-                max="100"
                 :value="modelValue.usdExchangeRoundStep ?? ''"
-                @change="emit('update:modelValue', { ...modelValue, usdExchangeRoundStep: Number(($event.target as HTMLInputElement).value) || null })"
+                @input="onAmountInput('usdExchangeRoundStep', $event)"
+                @change="onAmountInput('usdExchangeRoundStep', $event, true)"
               />
             </div>
-            <small v-if="errors.usdExchangeRoundStep" class="text-danger" style="font-size: 0.72rem">{{ errors.usdExchangeRoundStep }}</small>
+            <small v-if="errors.usdExchangeRoundStep" class="d-block text-danger" style="font-size: 0.72rem">{{ errors.usdExchangeRoundStep }}</small>
+            <small v-else class="d-block text-muted" style="font-size: 0.72rem">Opcional · {{ rangeHint(A.usdExchangeRoundStep) }}</small>
           </div>
         </template>
 
@@ -220,17 +235,17 @@
                 </div>
                 <input
                   :name="`card_price_${String(cur)}`"
-                  type="number"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
                   :class="['form-control', { 'is-invalid': errors.cardPriceByCurrency?.[String(cur)] }]"
                   placeholder="0.00"
-                  step="0.05"
-                  min="0"
-                  max="1000"
                   :value="modelValue.cardPriceByCurrency?.[String(cur)] ?? ''"
-                  @change="onCurrencyPriceChange(cur, ($event.target as HTMLInputElement).value)"
+                  @input="onCurrencyPriceChange(cur, sanitizeNumericInput($event, A.cardPriceByCurrency))"
+                  @change="onCurrencyPriceChange(cur, sanitizeNumericInput($event, A.cardPriceByCurrency, true))"
                 />
               </div>
-              <small v-if="errors.cardPriceByCurrency?.[String(cur)]" class="text-danger" style="font-size: 0.72rem">
+              <small v-if="errors.cardPriceByCurrency?.[String(cur)]" class="d-block text-danger" style="font-size: 0.72rem; max-width: 130px">
                 {{ errors.cardPriceByCurrency[String(cur)] }}
               </small>
             </div>
