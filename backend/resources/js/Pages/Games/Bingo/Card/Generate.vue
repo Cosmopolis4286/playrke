@@ -46,7 +46,13 @@
   <div class="card">
     <CardHeader :title="props.title" />
 
-    <div class="card-body">
+    <div v-if="!props.canSell" class="card-body">
+      <div class="alert alert-info text-center mb-0">
+        {{ props.blockedMessage ?? '¡No puedes vender cartones, contacta a tu gestor!' }}
+      </div>
+    </div>
+
+    <div v-else class="card-body">
       <BingoCardGenerateForm
         :room-type-options="roomTypeOptions"
         :connection-type-options="connectionTypeOptions"

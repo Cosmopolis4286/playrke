@@ -214,6 +214,7 @@
       } else {
         playerExists.value = false
         emit('update:playerExists', false)
+        showToast('Número no registrado, ingresa los datos del nuevo jugador', 'info')
       }
     } catch {
       playerExists.value = false
@@ -249,14 +250,51 @@
     // El popover se controlará automáticamente por shouldShowPhonePopover
   })
 
-  // Reset phone checked when phone changes
-  watch(() => props.player.phone, () => {
+  /**
+   * Limpia los datos del jugador y el estado de verificación.
+   *
+   * Equivale a clearPlayerInfo() de la vista Blade legacy: nombre, apellido,
+   * link y cartones comprados de un jugador encontrado NO deben sobrevivir a
+   * un cambio de teléfono/país — si no, al verificar otro número que no está
+   * registrado, los campos aparecían editables pero pre-llenados con los datos
+   * del jugador anterior.
+   *
+   * @param keepPhone - true cuando la limpieza la dispara el propio cambio de teléfono.
+   */
+  function clearPlayer(keepPhone = false) {
+    emit('update:player', {
+      ...props.player,
+      phone: keepPhone ? props.player.phone : '',
+      firstName: '',
+      lastName: '',
+      cardCount: 0,
+      link: undefined
+    })
     phoneChecked.value = false
     playerExists.value = false
     emit('update:playerExists', false)
-    
+    clearReceiptFields()
+  }
+
+  // Reset phone checked when phone changes
+  watch(() => props.player.phone, () => {
+    // Solo se borran nombre/apellido si venían de un jugador existente (readonly);
+    // los tecleados para un jugador nuevo se conservan al corregir el teléfono.
+    if (playerExists.value) {
+      clearPlayer(true)
+      return
+    }
+
+    phoneChecked.value = false
+    emit('update:playerExists', false)
+
     // Limpiar campos de comprobante cuando cambia el teléfono
     clearReceiptFields()
+  })
+
+  // Cambiar de país invalida el teléfono (máscara distinta) y la búsqueda previa.
+  watch(() => props.selectedCountry, () => {
+    if (props.player.phone || playerExists.value) clearPlayer()
   })
 
   // Emitir cambios en los datos del comprobante
@@ -336,7 +374,18 @@
             :autoHide="false"
             container="body"
           >
+            <!-- Jugador encontrado: el botón pasa a "limpiar" (como en la vista legacy) -->
             <button
+              v-if="playerExists"
+              type="button"
+              class="btn btn-outline-danger"
+              title="Limpiar jugador"
+              @click="clearPlayer()"
+            >
+              <i class="fas fa-eraser"></i>
+            </button>
+            <button
+              v-else
               type="button"
               class="btn btn-outline-secondary"
               :disabled="!player.phone || !selectedCountry || checkingPlayer"

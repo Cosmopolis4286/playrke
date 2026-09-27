@@ -60,11 +60,42 @@ final class BingoCardGenerateService
      */
     public function viewContext(int $userId): BingoCardGenerateContexDTO
     {
+        [$canSell, $blockedMessage] = $this->resolveSellAvailability($userId);
+
         return new BingoCardGenerateContexDTO(
             gameModes: $this->connectionTypes->getActiveConnectionTypes(),
             roomTypes: $this->roomTypes->getActiveTypes(),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
+            canSell: $canSell,
+            blockedMessage: $blockedMessage,
         );
+    }
+
+    /**
+     * Determina si el usuario puede vender cartones desde esta vista.
+     *
+     * Equivale al `$status == 1` de la vista Blade legacy: se evalúa al cargar
+     * la página para mostrar el aviso de inmediato, en lugar de que el vendedor
+     * llene el formulario y solo reciba el 409 (hierarchyNotActive) al consultar
+     * el precio o al generar. Mismo criterio que generate(): Seller ACTIVE +
+     * agencia/comercio padre ACTIVE (Seller::hasActiveHierarchy()).
+     *
+     * @return array{0: bool, 1: string|null} [canSell, blockedMessage]
+     */
+    private function resolveSellAvailability(int $userId): array
+    {
+        if ($this->roleUserService->getActiveUserRolePrefix($userId) !== 'seller') {
+            // BingoCardGenerateRequest::authorize() solo admite 'seller'.
+            return [false, 'Solo los vendedores pueden generar cartones.'];
+        }
+
+        $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id', 'status']);
+
+        if (!$seller || !$seller->hasActiveHierarchy()) {
+            return [false, '¡No puedes vender cartones, contacta a tu gestor!'];
+        }
+
+        return [true, null];
     }
 
     /**

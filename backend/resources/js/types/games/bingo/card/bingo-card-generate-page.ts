@@ -5,4 +5,7 @@ export interface BingoCardGeneratePageProps {
     roomTypes: SelectOption[]
     gameModes: SelectOption[]
     prizePoolTypes: SelectOption[]
+    /** false si el vendedor o su comercio/agencia no está ACTIVE (ver BingoCardGenerateService::resolveSellAvailability). */
+    canSell: boolean
+    blockedMessage: string | null
 }

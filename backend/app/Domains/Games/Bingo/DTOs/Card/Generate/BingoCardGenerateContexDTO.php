@@ -14,6 +14,9 @@ final class BingoCardGenerateContexDTO implements ContextDTO
         public readonly Collection $gameModes,
         public readonly Collection $roomTypes,
         public readonly Collection $prizePoolTypes,
+        /** false si el vendedor (o su comercio/agencia) no está ACTIVE — la vista muestra el aviso en vez del formulario. */
+        public readonly bool $canSell = true,
+        public readonly ?string $blockedMessage = null,
     ) {}
 
     public function toView(): array
@@ -23,6 +26,8 @@ final class BingoCardGenerateContexDTO implements ContextDTO
             'gameModes'      => $this->gameModes,
             'roomTypes'      => $this->roomTypes,
             'prizePoolTypes' => $this->prizePoolTypes,
+            'canSell'        => $this->canSell,
+            'blockedMessage' => $this->blockedMessage,
         ];
     }
 }

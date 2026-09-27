@@ -34,6 +34,8 @@
     loadingCardPrice,
     cardPriceData,
     currencySymbol,
+    cardPrice,
+    prizePoolLocal,
     totalAmount,
     sellerCommission,
     commerceAmount,
@@ -102,6 +104,11 @@
       </div>
 
       <template v-else-if="cardPriceData">
+        <div class="col-12 d-flex justify-content-between small text-muted border-bottom pb-2 mb-2">
+          <span>Precio cartón: <b>{{ currencySymbol }} {{ cardPrice.toFixed(2) }}</b></span>
+          <span>Bote actual: <b>{{ currencySymbol }} {{ prizePoolLocal.toFixed(2) }}</b></span>
+        </div>
+
         <div class="col-4 border-right text-center">
           <div class="text-muted small">Monto Total</div>
           <div class="h5 font-weight-bold mb-0">

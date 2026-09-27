@@ -99,6 +99,18 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      */
     const commission = computed(() => cardPriceData.value?.seller_commission ?? 0)
 
+    /** Precio unitario del cartón en moneda local (expuesto para el resumen). */
+    const cardPrice = roomCardPrice
+
+    /**
+     * Bote actual de la sala convertido a la moneda local del país elegido.
+     * `prize_pool` se persiste en USD (ver RoomMetricsService), igual que en la
+     * vista Blade legacy (`prizePool * exchangeRate`).
+     */
+    const prizePoolLocal = computed(() =>
+        Number(selectedRoom.value?.prize_pool ?? 0) * (cardPriceData.value?.exchange_rate ?? 0)
+    )
+
     /** Monto total a cobrar al jugador (precio unitario × cantidad). */
     const totalAmount = computed(() => roomCardPrice.value * cardCount.value)
 
@@ -147,6 +159,8 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player.lastName = ''
         player.receiptNumber = ''
         player.receiptImage = null
+        player.cardCount = 0
+        player.link = undefined
         generatedPlayerLink.value = null
     }
 
@@ -161,6 +175,8 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player.lastName = ''
         player.receiptNumber = ''
         player.receiptImage = null
+        player.cardCount = 0
+        player.link = undefined
         // Mantiene selectedCountry.value y countries.value
     }
 
@@ -306,6 +322,8 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         loadingCardPrice,
         cardPriceData,
         currencySymbol,
+        cardPrice,
+        prizePoolLocal,
         totalAmount,
         sellerCommission,
         commerceAmount,
