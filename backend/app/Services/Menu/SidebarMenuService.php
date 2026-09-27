@@ -49,6 +49,17 @@ class SidebarMenuService
                     'route' => 'bingo-game-rooms.index',
                     'permission' => 'games.bingo.game_rooms',
                 ],
+                'generate_card' => [
+                    'title' => 'Generar Cartón',
+                    'route' => 'bingo-card.view-generate-card',
+                    // sellers.manage-own: solo el rol seller lo tiene (mismo
+                    // permiso que "Mi Perfil" del vendedor) — la venta a
+                    // jugadores externos es exclusiva del seller
+                    // (BingoCardGenerateRequest::authorize() solo admite
+                    // 'seller'). games.bingo/game_rooms no sirven aquí: también
+                    // los tiene 'player'.
+                    'permission' => 'sellers.manage-own',
+                ],
                 'my_games' => [
                     'title'         => 'Mis Partidas',
                     'route'         => 'bingo.my-games',
