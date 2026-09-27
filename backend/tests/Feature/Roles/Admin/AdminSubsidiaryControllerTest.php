@@ -55,7 +55,15 @@ class AdminSubsidiaryControllerTest extends TestCase
         $role->id = $this->nextId();
         $role->save();
 
-        return $role;
+        // guard_name/type NO están en Role::$fillable — el constructor-array
+        // los descarta en silencio, y el objeto en memoria queda con
+        // guard_name ausente aunque el INSERT sí persiste 'web' (default de
+        // columna). Sin este refresh(), cualquier código que lea
+        // $role->guard_name directamente en memoria (ej. Spatie\Permission\
+        // Guard::getNames() dentro de givePermissionTo()) puede lanzar
+        // GuardDoesNotMatch pese a que la fila en BD ya está correcta —
+        // confirmado real en VisibilityAuthorizationControllersTest.
+        return $role->refresh();
     }
 
     private function makeCommerceWithUser(string $label): array

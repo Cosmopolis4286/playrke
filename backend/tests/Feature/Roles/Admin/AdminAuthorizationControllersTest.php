@@ -56,7 +56,12 @@ class AdminAuthorizationControllersTest extends TestCase
         $role->id = $this->nextId();
         $role->save();
 
-        return $role;
+        // guard_name/type NO están en Role::$fillable — sin refresh(), el
+        // objeto en memoria queda con guard_name ausente (ver
+        // VisibilityAuthorizationControllersTest para el repro completo),
+        // lo que rompe cualquier código que lo lea directamente en memoria
+        // (ej. Guard::getNames() dentro de givePermissionTo()).
+        return $role->refresh();
     }
 
     private function makeUserWithRole(string $roleName): User
