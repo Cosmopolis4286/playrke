@@ -12,10 +12,9 @@ use App\Exceptions\Domain\DomainException;
  * (Admin/Commerce/Seller/etc.), a diferencia de AdministratorException,
  * AdminCommerceException, etc.
  *
- * Cubre RoleUserService, RoleEntityResolver, ContextResolverService y
- * DashboardSellerContextService — todos giran en torno al mismo concepto:
- * el rol activo del usuario no se pudo resolver, o no es uno de los
- * soportados por el caller.
+ * Cubre RoleUserService, RoleEntityResolver y ContextResolverService —
+ * todos giran en torno al mismo concepto: el rol activo del usuario no se
+ * pudo resolver, o no es uno de los soportados por el caller.
  *
  * IMPORTANTE:
  * - El dominio expone mensajes humanos directos (no ERROR_CODES) porque
@@ -24,11 +23,8 @@ use App\Exceptions\Domain\DomainException;
 final class RoleResolutionException extends DomainException
 {
     /**
-     * ContextResolverService::resolve() / DashboardSellerContextService::resolve():
-     * el $context solicitado no está entre los casos soportados por el match.
-     * Mismo mensaje en ambos callers — no es un typo duplicado, es el mismo
-     * concepto ("tipo de contexto de rol inválido") en dos servicios de
-     * dashboard distintos.
+     * ContextResolverService::resolve(): el $context solicitado no está
+     * entre los casos soportados por el match.
      */
     public static function contextNotFound() : self
     {
