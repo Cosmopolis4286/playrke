@@ -95,7 +95,9 @@ class SellerBingoReportScopeTest extends TestCase
         $this->sellerE = $this->makeSeller($this->commerceD);
 
         [$this->subsidiaryS, $subsidiaryId] = $this->makeSubsidiary($this->commerceC);
-        $this->sellerF = $this->makeSeller($this->subsidiaryS, $subsidiaryId);
+        // manager_user_id = Commerce raíz (misma convención que
+        // ManagerSellerService); la agencia va en subsidiary_id.
+        $this->sellerF = $this->makeSeller($this->commerceC, $subsidiaryId);
 
         $this->roomR1 = $this->makeRoom($this->commerceC);
         $this->roomR2 = $this->makeRoom($this->commerceD);

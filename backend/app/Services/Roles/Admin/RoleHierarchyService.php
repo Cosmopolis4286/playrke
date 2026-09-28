@@ -28,8 +28,11 @@ use Illuminate\Support\Collection as SupportCollection;
  * persiste en MAYÚSCULA (ver Role::setPrefixAttribute(), que aplica
  * strtoupper()), así que todo lookup contra este mapa pasa \$role->prefix
  * por strtolower() primero — mismo criterio que User.php y
- * RoleUserRepository.php al comparar prefijos. Role::name ('SuperAdmin',
- * 'Comercio'...) es solo el label de UI, no sirve como clave aquí.
+ * RoleUserRepository.php al comparar prefijos. Role::name se persiste igual
+ * al prefix en minúscula ('commerce', 'seller'... — RoleSeeder guarda
+ * $role['prefix'] en name; el 'name' => 'Comercio' de su array es solo un
+ * label que nunca llega a BD), pero aquí se usa prefix por ser la clave
+ * canónica del rol.
  */
 final class RoleHierarchyService
 {
