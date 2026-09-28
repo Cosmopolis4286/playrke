@@ -55,6 +55,10 @@ class DatabaseSeeder extends Seeder
             // dependencia.
             ExchangeRateSeeder::class,
             WalletLimitSeeder::class,
+            // Requiere que la wallet del jugador ya exista (DemoRoleDataSeeder/
+            // TestUserSeeder) y que los límites estén calibrados (arriba) para
+            // no chocar contra max_deposit — al final del pipeline.
+            DemoWalletBalanceSeeder::class,
         ]);
     }
 }
