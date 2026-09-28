@@ -130,7 +130,15 @@ class DemoRoleDataSeeder extends Seeder
                     'last_login_at' => null,
                 ]);
 
-                $this->ensureWallet($adminUser->id, $ves->id);
+                // Sin ensureWallet(): admin (igual que superadmin) es un rol
+                // administrativo puro, no de negocio/juego — TestUserSeeder ya
+                // excluye explícitamente a admin/superadmin de la creación de
+                // billetera VES ("Excluir admin y superadmin de la creación de
+                // billeteras"), y el sidebar oculta "Mi Billetera" a admin por
+                // el mismo motivo (ver ADMIN_EXCLUDED_PERMISSIONS en
+                // AuditMenuPermissionsCommand). Esta línea contradecía esa
+                // decisión ya tomada — admin gestiona wallets ajenas desde
+                // /wallet-movements, nunca tiene una propia.
                 $this->command->info("✔ Admin entity creada para {$adminUser->email}");
             }
 
