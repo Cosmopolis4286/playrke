@@ -109,6 +109,16 @@ final class SubsidiaryDashboardContextService
             ->where('updated_at', '>=', $startOfDay)
             ->count();
 
+        // Lo que la agencia GANÓ este mes (Y − X de cada venta, reparto en
+        // cascada) — por subsidiary_id snapshot del lote, no por sus
+        // vendedores actuales: un vendedor reasignado no arrastra el histórico.
+        $earnedThisMonth = $subsidiary
+            ? BingoCardLot::where('subsidiary_id', $subsidiary->id)
+                ->where('status', 'ACTIVE')
+                ->where('created_at', '>=', $startOfMonth)
+                ->sum('subsidiary_commission_amount')
+            : 0;
+
         return [
             'totalSales' => array_merge([
                 'label'   => 'Ventas del mes',
@@ -139,11 +149,13 @@ final class SubsidiaryDashboardContextService
                 'href'    => '/sellers',
             ],
             'commission' => [
-                'label'       => 'Mi comisión',
-                'value'       => $subsidiary ? number_format((float) $subsidiary->commission, 2) . '%' : '—',
+                'label'       => 'Mi comisión del mes',
+                'value'       => $subsidiary ? number_format((float) $earnedThisMonth, 2, ',', '.') : '—',
                 'icon'        => 'fas fa-percentage',
                 'variant'     => 'secondary',
-                'description' => 'Tasa configurada',
+                'description' => $subsidiary
+                    ? 'Tasa ' . number_format((float) $subsidiary->commission, 2) . '% (diferencia sobre la de cada vendedor)'
+                    : 'Tasa configurada',
             ],
         ];
     }
