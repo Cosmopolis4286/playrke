@@ -60,7 +60,7 @@ final class CommerceEconomySummaryService
             ->select([
                 'currency_id',
                 DB::raw('SUM(sale_amount) as income'),
-                DB::raw('SUM(rke_commission + room_commission + COALESCE(seller_commission, 0)) as commission'),
+                DB::raw('SUM(rke_commission + room_commission + COALESCE(seller_commission, 0) + subsidiary_commission + commerce_commission) as commission'),
                 DB::raw('SUM(prize_pool_amount) as prize_pool'),
             ])
             ->groupBy('currency_id');
@@ -101,6 +101,10 @@ final class CommerceEconomySummaryService
                 DB::raw('SUM(sale_amount) as total_sales'),
                 DB::raw('SUM(card_count) as total_cards'),
                 DB::raw('SUM(commission_amount) as total_commission'),
+                // Porciones de agencia/comercializadora generadas por las
+                // ventas de este vendedor (reparto en cascada).
+                DB::raw('SUM(subsidiary_commission_amount) as total_subsidiary_commission'),
+                DB::raw('SUM(commerce_commission_amount) as total_commerce_commission'),
             ])
             ->groupBy('seller_user_id')
             ->with('seller:id,first_name,last_name,username');
@@ -120,6 +124,8 @@ final class CommerceEconomySummaryService
                     'total_sales'      => round((float) $row->total_sales, 2),
                     'total_cards'      => (int) $row->total_cards,
                     'total_commission' => round((float) $row->total_commission, 2),
+                    'total_subsidiary_commission' => round((float) $row->total_subsidiary_commission, 2),
+                    'total_commerce_commission'   => round((float) $row->total_commerce_commission, 2),
                 ];
             })
             ->values()
@@ -142,7 +148,7 @@ final class CommerceEconomySummaryService
 
         $totals = $query->selectRaw('
             SUM(sale_amount) as total_income,
-            SUM(rke_commission + room_commission + COALESCE(seller_commission, 0)) as total_commission_sum,
+            SUM(rke_commission + room_commission + COALESCE(seller_commission, 0) + subsidiary_commission + commerce_commission) as total_commission_sum,
             SUM(prize_pool_amount) as total_prize_pool,
             COUNT(*) as total_room_currency_rows
         ')->first();

@@ -6,6 +6,7 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryDTO;
 use App\Http\Resources\Roles\Admin\Subsidiary\AdminSubsidiaryResource;
 use App\Models\Roles\Subsidiary;
+use App\Services\Roles\CommissionHierarchyGuard;
 use App\Services\Roles\RoleUserService;
 use App\Services\Security\UserContextService;
 use App\Services\User\UserPasswordService;
@@ -31,6 +32,7 @@ final class AdminSubsidiaryService
         private readonly RoleUserService $roleUserService,
         private readonly UserContextService $userContext,
         private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly CommissionHierarchyGuard $commissionGuard,
     ) {}
 
     /**
@@ -100,6 +102,9 @@ final class AdminSubsidiaryService
     {
         $this->assertOwnCommerceOrAdmin($dto->commerce);
 
+        // Tope: comisión de la agencia ≤ la de su comercializadora.
+        $this->commissionGuard->assertSubsidiaryRate((float) ($dto->commission ?? 0), (string) $dto->commerce);
+
         return $this->crud->create($dto);
     }
 
@@ -128,6 +133,16 @@ final class AdminSubsidiaryService
     {
         if ($dto->commerce !== null) {
             $this->assertOwnCommerceOrAdmin($dto->commerce);
+        }
+
+        // Topes contra el padre EFECTIVO (el nuevo si se traslada) y contra
+        // sus vendedores — solo si cambia la tasa o la comercializadora.
+        if ($dto->commission !== null || $dto->commerce !== null) {
+            $this->commissionGuard->assertSubsidiaryRate(
+                (float) ($dto->commission ?? $subsidiary->commission),
+                (string) ($dto->commerce ?? $subsidiary->commerce_id),
+                (string) $subsidiary->id,
+            );
         }
 
         $this->crud->update($subsidiary, $dto);

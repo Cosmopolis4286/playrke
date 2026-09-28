@@ -73,7 +73,7 @@ final class EconomySummaryService
                 'game'          => 'bingo',
                 'game_label'    => 'Bingo',
                 'income'        => round($bingoIncome, 2),
-                'commission'    => round((float) BingoCreatorSale::sum(DB::raw('rke_commission + room_commission + seller_commission')), 2),
+                'commission'    => round((float) BingoCreatorSale::sum(DB::raw('rke_commission + room_commission + COALESCE(seller_commission, 0) + subsidiary_commission + commerce_commission')), 2),
             ],
             [
                 'game'          => 'trivia',

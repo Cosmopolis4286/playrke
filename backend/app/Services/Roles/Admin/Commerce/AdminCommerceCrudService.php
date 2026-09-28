@@ -16,6 +16,7 @@ use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\User;
 use App\Models\Roles\Commerce;
 use App\Services\Platform\PlatformConfigService;
+use App\Services\Roles\CommissionHierarchyGuard;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
 
@@ -39,6 +40,7 @@ final class AdminCommerceCrudService
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
         private readonly PlatformConfigService $platformConfig,
+        private readonly CommissionHierarchyGuard $commissionGuard,
     ) {}
 
     /**
@@ -171,8 +173,16 @@ final class AdminCommerceCrudService
      */
     public function update(Commerce $commerce, AdminCommerceDTO $dto): void
     {
+        // Tope: la comercializadora no puede quedar por debajo de sus
+        // agencias ni de sus vendedores directos (reparto en cascada).
+        if ($dto->commission !== null && $dto->commission !== '') {
+            $this->commissionGuard->assertCommerceRate((float) $dto->commission, $commerce);
+        }
+
         DB::transaction(function () use ($commerce, $dto) {
 
+            // Solo null/'' = "sin cambios": array_filter() sin callback
+            // descartaba commission "0".
             $this->commerceRepository->update(
                 $commerce->id,
                 array_filter([
@@ -180,7 +190,7 @@ final class AdminCommerceCrudService
                     'phone'      => $dto->phone,
                     'commission' => $dto->commission,
                     'country_id' => $dto->country,
-                ])
+                ], static fn ($value) => $value !== null && $value !== '')
             );
 
             $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
