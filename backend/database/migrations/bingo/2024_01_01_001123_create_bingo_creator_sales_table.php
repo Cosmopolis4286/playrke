@@ -37,6 +37,8 @@ return new class extends Migration
             $table->decimal('rke_commission', 13, 2)->comment('Comisión de RKE');
             $table->decimal('room_commission', 13, 2)->comment('Comisión de la sala');
             $table->decimal('seller_commission', 13, 2)->nullable()->comment('Comisión del vendedor');
+            $table->decimal('subsidiary_commission', 13, 2)->default(0)->comment('Comisión de agencias (override sobre el vendedor)');
+            $table->decimal('commerce_commission', 13, 2)->default(0)->comment('Comisión de comercializadoras (override de red)');
             $table->decimal('jackpot_contribution', 13, 2)->default(0)->comment('Aporte al jackpot');
             $table->decimal('prize_pool_amount', 13, 2)->comment('Monto destinado a premios: bote de la sala, o fondos del premio físico en salas Premio/Servicio puras');
             $table->timestamps();

@@ -46,6 +46,9 @@ return new class extends Migration
             $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión del RKE');
             $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
             $table->decimal('seller_commission', 8, 2)->default(0)->comment('Comisión del vendedor');
+            // Reparto en cascada de la red comercial (ver CommissionCalculationService::networkSplit())
+            $table->decimal('subsidiary_commission', 8, 2)->default(0)->comment('Comisión de agencias (override sobre el vendedor)');
+            $table->decimal('commerce_commission', 8, 2)->default(0)->comment('Comisión de comercializadoras (override sobre la agencia/vendedor)');
 
             // Contadores
             $table->integer('total_players')->default(0)->comment('Número de jugadores en la sala');

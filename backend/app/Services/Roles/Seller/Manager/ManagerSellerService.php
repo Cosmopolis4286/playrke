@@ -7,6 +7,7 @@ use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
 use App\Models\Roles\Seller;
+use App\Services\Roles\CommissionHierarchyGuard;
 use App\Services\Roles\RoleUserService;
 use App\Services\User\UserPasswordService;
 use App\Services\Roles\Seller\Manager\ManagerSellerCrudService;
@@ -35,6 +36,7 @@ final class ManagerSellerService
         private readonly RoleUserService $roleUserService,
         private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly CommissionHierarchyGuard $commissionGuard,
     ) {}
 
     /**
@@ -86,6 +88,9 @@ final class ManagerSellerService
 
         [$managerUserId, $subsidiaryId] = $explicit
             ?? $this->resolveManagerForUser($this->userContext->resolveUserId($publicToken));
+
+        // Tope: comisión del vendedor ≤ la de su agencia/comercializadora.
+        $this->commissionGuard->assertSellerRate((float) $dto->commission, $subsidiaryId, $managerUserId);
 
         return $this->crud->create($dto, $managerUserId, $subsidiaryId);
     }
@@ -276,6 +281,18 @@ final class ManagerSellerService
         [$managerUserId, $subsidiaryId] = $dto->managerUserId !== null
             ? ($this->resolveExplicitManagerForActor($dto->managerUserId) ?? [null, null])
             : [null, null];
+
+        // Tope contra el padre EFECTIVO tras la edición (el nuevo si se
+        // reasigna, si no el actual). Solo si cambia la tasa o el padre: no
+        // bloquear ediciones ajenas (nombre, teléfono) de un seller legado
+        // que ya violaba el tope.
+        if ($dto->commission !== null || $managerUserId !== null) {
+            $this->commissionGuard->assertSellerRate(
+                (float) ($dto->commission ?? $seller->commission),
+                $managerUserId !== null ? $subsidiaryId : $seller->subsidiary_id,
+                $managerUserId ?? $seller->manager_user_id,
+            );
+        }
 
         $this->crud->update($seller, $dto, $managerUserId, $subsidiaryId);
     }

@@ -73,40 +73,51 @@ final class BingoLotSaleReversalService
         return true;
     }
 
+    /**
+     * Resta a la sala cada monto del desglose. Genérico por clave: cualquier
+     * columna nueva que RoomMetricsService agregue al desglose (ej. comisiones
+     * de agencia/comercializadora) se revierte sin tocar este servicio.
+     * prize_pool también se descuenta de full_house_prize (se suman juntos).
+     */
     private function reverseRoomMetrics(BingoRoom $room, array $b): void
     {
         $locked = BingoRoom::where('id', $room->id)->lockForUpdate()->firstOrFail();
-        $sub = fn ($current, $amount) => round(max(0, (float) ($current ?? 0) - (float) ($amount ?? 0)), 3);
 
-        $usd = $b['room_usd'] ?? [];
-        $update = [
-            'total_sales'       => $sub($locked->total_sales, $usd['total_sales'] ?? 0),
-            'total_cards'       => max(0, (int) ($locked->total_cards ?? 0) - (int) ($usd['total_cards'] ?? 0)),
-            'rke_commission'    => $sub($locked->rke_commission, $usd['rke_commission'] ?? 0),
-            'room_commission'   => $sub($locked->room_commission, $usd['room_commission'] ?? 0),
-            'seller_commission' => $sub($locked->seller_commission, $usd['seller_commission'] ?? 0),
-            'prize_pool'        => $sub($locked->prize_pool, $usd['prize_pool'] ?? 0),
-            'full_house_prize'  => $sub($locked->full_house_prize, $usd['prize_pool'] ?? 0),
-        ];
+        $update = $this->subtractAll($locked->getAttributes(), (array) ($b['room_usd'] ?? []));
 
         $currencyId = $b['currency_id'] ?? null;
         $local = $b['room_local'] ?? null;
         if ($currencyId && is_array($local)) {
             $metrics = (array) ($locked->metrics_by_currency ?? []);
-            $current = (array) ($metrics[$currencyId] ?? []);
-            foreach (['total_sales', 'prize_pool', 'prize_funding', 'rke_commission', 'room_commission', 'seller_commission', 'jackpot_contribution'] as $key) {
-                if (array_key_exists($key, $current) || (float) ($local[$key] ?? 0) > 0) {
-                    $current[$key] = $sub($current[$key] ?? 0, $local[$key] ?? 0);
-                }
-            }
-            $current['full_house_prize'] = $sub($current['full_house_prize'] ?? 0, $local['prize_pool'] ?? 0);
-            $current['total_cards'] = max(0, (int) ($current['total_cards'] ?? 0) - (int) ($local['total_cards'] ?? 0));
-            $metrics[$currencyId] = $current;
+            $metrics[$currencyId] = array_merge(
+                (array) ($metrics[$currencyId] ?? []),
+                $this->subtractAll((array) ($metrics[$currencyId] ?? []), $local),
+            );
             $update['metrics_by_currency'] = $metrics;
         }
 
         $locked->update($update);
         $room->fill($locked->only(array_keys($update)));
+    }
+
+    /**
+     * @param array<string, mixed> $current Valores actuales (fila o entrada JSON)
+     * @param array<string, mixed> $amounts Montos a restar
+     * @return array<string, int|float> Solo las claves afectadas, sin bajar de 0
+     */
+    private function subtractAll(array $current, array $amounts): array
+    {
+        $out = [];
+        foreach ($amounts as $key => $amount) {
+            if (!is_numeric($amount) || (float) $amount == 0.0) continue;
+            $out[$key] = $key === 'total_cards'
+                ? max(0, (int) ($current[$key] ?? 0) - (int) $amount)
+                : round(max(0, (float) ($current[$key] ?? 0) - (float) $amount), 3);
+        }
+        if (isset($amounts['prize_pool']) && (float) $amounts['prize_pool'] != 0.0) {
+            $out['full_house_prize'] = round(max(0, (float) ($current['full_house_prize'] ?? 0) - (float) $amounts['prize_pool']), 3);
+        }
+        return $out;
     }
 
     private function reverseCreatorSale(BingoRoom $room, array $b): void
@@ -126,14 +137,8 @@ final class BingoLotSaleReversalService
             return;
         }
 
-        $sub = fn ($current, $amount) => round(max(0, (float) ($current ?? 0) - (float) ($amount ?? 0)), 3);
-        $sale->update([
-            'sale_amount'          => $sub($sale->sale_amount, $cs['sale_amount']),
-            'rke_commission'       => $sub($sale->rke_commission, $cs['rke_commission']),
-            'room_commission'      => $sub($sale->room_commission, $cs['room_commission']),
-            'seller_commission'    => $sub($sale->seller_commission, $cs['seller_commission']),
-            'jackpot_contribution' => $sub($sale->jackpot_contribution, $cs['jackpot_contribution']),
-            'prize_pool_amount'    => $sub($sale->prize_pool_amount, $cs['prize_pool_amount']),
-        ]);
+        // Genérico por clave (ver reverseRoomMetrics): creator_user_id no es monto.
+        unset($cs['creator_user_id']);
+        $sale->update($this->subtractAll($sale->getAttributes(), $cs));
     }
 }

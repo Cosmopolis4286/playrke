@@ -38,6 +38,12 @@ class BingoCardManagementService
                 // comisiones de sala/plataforma viven por sala en
                 // bingo_creator_sales (ver RoomMetricsService), no aquí.
                 'commission_amount' => round((float) ($cartonData['sellerCommissionAmount'] ?? 0), 2),
+                // Reparto en cascada de la red (CommissionCalculationService::
+                // networkSplit()) + snapshot de agencia/comercializadora al vender.
+                'subsidiary_commission_amount' => round((float) ($cartonData['subsidiaryCommissionAmount'] ?? 0), 2),
+                'commerce_commission_amount'   => round((float) ($cartonData['commerceCommissionAmount'] ?? 0), 2),
+                'subsidiary_id'    => $cartonData['networkSubsidiaryId'] ?? null,
+                'commerce_id'      => $cartonData['networkCommerceId'] ?? null,
                 'exchange_rate'    => $cartonData['exchangeRate'] ?? 1,
                 'status'           => 'ACTIVE',
                 'has_custom_cards' => $isCustom,

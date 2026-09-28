@@ -80,6 +80,14 @@ return new class extends Migration
                 ->unsigned()
                 ->comment('Comisión del vendedor');
 
+            // Reparto en cascada de la red comercial para ESTE lote (moneda
+            // local), con la agencia/comercializadora vigentes al vender —
+            // snapshot: si el vendedor se reasigna después, el histórico no cambia.
+            $table->unsignedBigInteger('subsidiary_id')->nullable()->comment('Agencia del vendedor al vender (snapshot)');
+            $table->unsignedBigInteger('commerce_id')->nullable()->comment('Comercializadora del vendedor al vender (snapshot)');
+            $table->decimal('subsidiary_commission_amount', 10, 2)->default(0)->comment('Comisión de la agencia (Y − X)');
+            $table->decimal('commerce_commission_amount', 10, 2)->default(0)->comment('Comisión de la comercializadora (Z − max(X, Y))');
+
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'REFUNDED'])->default('ACTIVE');
 
             // True cuando al menos uno de los cartones del lote fue personalizado por el jugador.
@@ -97,6 +105,8 @@ return new class extends Migration
 
             // Índices para consultas frecuentes y rendimiento
             $table->index(['room_id', 'room_user_id'], 'idx_bingo_card_lots_room_user');
+            $table->index(['subsidiary_id', 'status'], 'idx_bingo_card_lots_subsidiary_status');
+            $table->index(['commerce_id', 'status'], 'idx_bingo_card_lots_commerce_status');
             $table->index(['room_id', 'status'], 'idx_bingo_card_lots_room_active');
             $table->index(['seller_user_id', 'status'], 'idx_bingo_card_lots_seller_active');
             // room_user_id se filtra solo (sin room_id) en BingoCardLotRepository

@@ -241,6 +241,16 @@ class RoomMetricsService implements RoomMetricsInterface
                 ? round((float) $saleData['sellerCommissionUsd'], 3)
                 : round($sellerCommission / $exchangeRate, 3);
 
+            // Porciones de agencia/comercializadora del reparto en cascada de la
+            // red (CommissionCalculationService::networkSplit(), moneda local).
+            // Salen del mismo lugar que la del vendedor: antes del bote.
+            $subsidiaryCommissionLocal = round((float) ($saleData['networkCommission']['subsidiary'] ?? 0), 3);
+            $commerceCommissionLocal   = round((float) ($saleData['networkCommission']['commerce'] ?? 0), 3);
+            $subsidiaryCommission      = round($subsidiaryCommissionLocal / $exchangeRate, 3);
+            $commerceCommission        = round($commerceCommissionLocal / $exchangeRate, 3);
+            $networkOverrideLocal      = $subsidiaryCommissionLocal + $commerceCommissionLocal;
+            $networkOverride           = $subsidiaryCommission + $commerceCommission;
+
             // Obtener configuración de la sala
             $bingoConfig = BingoRoomConfig::where('room_id', $room->id)
                 ->select(['rke_commission', 'room_commission', 'prize_pool_type_id', 'jackpot_pct', 'jackpot_type_id'])
@@ -279,7 +289,7 @@ class RoomMetricsService implements RoomMetricsInterface
             $jackpotContributionLocal = round(($saleAmountLocal * $jackpotPct) / 100, 3);
             // El aporte al jackpot también sale del bote en moneda local — antes solo
             // se restaba en USD y el desglose por moneda quedaba inflado con él.
-            $prizePoolLocal = $saleAmountLocal - $rkeCommissionLocal - $creatorCommissionLocal - $sellerCommissionLocal - $jackpotContributionLocal;
+            $prizePoolLocal = $saleAmountLocal - $rkeCommissionLocal - $creatorCommissionLocal - $sellerCommissionLocal - $networkOverrideLocal - $jackpotContributionLocal;
 
             // Obtener comisión del creador/casa (comisión por sala)
             $creatorCommission = round(($saleAmount * $bingoConfig->room_commission) / 100, 3);
@@ -288,7 +298,7 @@ class RoomMetricsService implements RoomMetricsInterface
             // Aporte al jackpot (solo si la sala tiene un jackpot asignado Y un % configurado)
             $jackpotContribution = round(($saleAmount * $jackpotPct) / 100, 3);
             // Restar al bote las comisiones y el aporte al jackpot
-            $prizePool = $saleAmount - $rkeCommission - $creatorCommission - $sellerCommission - $jackpotContribution;
+            $prizePool = $saleAmount - $rkeCommission - $creatorCommission - $sellerCommission - $networkOverride - $jackpotContribution;
 
             $updateData = [
                 'rke_commission' => ($room->rke_commission ?? 0) + $rkeCommission,
@@ -358,6 +368,12 @@ class RoomMetricsService implements RoomMetricsInterface
             if (isset($saleData['seller'])) {
                 $updateData['seller_commission'] = ($room->seller_commission ?? 0) + $sellerCommission;
             }
+            if ($subsidiaryCommission > 0) {
+                $updateData['subsidiary_commission'] = ($room->subsidiary_commission ?? 0) + $subsidiaryCommission;
+            }
+            if ($commerceCommission > 0) {
+                $updateData['commerce_commission'] = ($room->commerce_commission ?? 0) + $commerceCommission;
+            }
 
             // Desglose por moneda (en moneda local de la venta)
             $currencyId = (string) ($saleData['currency'] ?? '');
@@ -391,6 +407,13 @@ class RoomMetricsService implements RoomMetricsInterface
                 if (isset($saleData['seller'])) {
                     $current['seller_commission'] = round($current['seller_commission'] + $sellerCommissionLocal, 3);
                 }
+                // Claves nuevas: salas con ventas previas no las tienen, de ahí el ?? 0.
+                if ($subsidiaryCommissionLocal > 0) {
+                    $current['subsidiary_commission'] = round(($current['subsidiary_commission'] ?? 0) + $subsidiaryCommissionLocal, 3);
+                }
+                if ($commerceCommissionLocal > 0) {
+                    $current['commerce_commission'] = round(($current['commerce_commission'] ?? 0) + $commerceCommissionLocal, 3);
+                }
 
                 $metricsByCurrency[$currencyId] = $current;
                 $updateData['metrics_by_currency'] = $metricsByCurrency;
@@ -413,7 +436,7 @@ class RoomMetricsService implements RoomMetricsInterface
                     // prize_pool_amount = lo destinado a premios: bote en dinero, o
                     // fondos del premio físico en salas Premio/Servicio puras.
                     $finalRkeLocal    = $rkeCommissionLocal;
-                    $finalPrizeLocal  = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal - $jackpotContributionLocal, 3);
+                    $finalPrizeLocal  = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal - $networkOverrideLocal - $jackpotContributionLocal, 3);
 
                     $existing = BingoCreatorSale::where('room_id', $room->id)
                         ->where('creator_user_id', $creatorUserId)
@@ -425,6 +448,8 @@ class RoomMetricsService implements RoomMetricsInterface
                         $existing->increment('rke_commission',   $finalRkeLocal);
                         $existing->increment('room_commission',  $creatorCommissionLocal);
                         $existing->increment('seller_commission',$sellerCommissionLocal);
+                        $existing->increment('subsidiary_commission', $subsidiaryCommissionLocal);
+                        $existing->increment('commerce_commission', $commerceCommissionLocal);
                         $existing->increment('jackpot_contribution', $jackpotContributionLocal);
                         $existing->increment('prize_pool_amount',$finalPrizeLocal);
                     } else {
@@ -436,6 +461,8 @@ class RoomMetricsService implements RoomMetricsInterface
                             'rke_commission'    => $finalRkeLocal,
                             'room_commission'   => $creatorCommissionLocal,
                             'seller_commission' => $sellerCommissionLocal,
+                            'subsidiary_commission' => $subsidiaryCommissionLocal,
+                            'commerce_commission'   => $commerceCommissionLocal,
                             'jackpot_contribution' => $jackpotContributionLocal,
                             'prize_pool_amount' => $finalPrizeLocal,
                         ]);
@@ -447,6 +474,8 @@ class RoomMetricsService implements RoomMetricsInterface
                         'rke_commission'       => round($finalRkeLocal, 3),
                         'room_commission'      => round($creatorCommissionLocal, 3),
                         'seller_commission'    => round($sellerCommissionLocal, 3),
+                        'subsidiary_commission' => round($subsidiaryCommissionLocal, 3),
+                        'commerce_commission'   => round($commerceCommissionLocal, 3),
                         'jackpot_contribution' => round($jackpotContributionLocal, 3),
                         'prize_pool_amount'    => $finalPrizeLocal,
                     ];
@@ -462,6 +491,10 @@ class RoomMetricsService implements RoomMetricsInterface
             // el lote para revertirlo tal cual si se reembolsa (sala cancelada o pago
             // rechazado). Recalcularlo después con los % de la sala no sirve: la
             // comisión y el jackpot siguen editables tras vender.
+            // IMPORTANTE: todo monto nuevo que esta venta sume a bingo_rooms,
+            // metrics_by_currency o bingo_creator_sales (ej. comisiones de agencia /
+            // comercializadora) debe agregarse acá con el MISMO nombre de columna/clave:
+            // BingoLotSaleReversalService revierte genéricamente cada clave del desglose.
             $breakdown = [
                 'version'     => 1,
                 'currency_id' => $currencyId !== '' ? $currencyId : null,
@@ -471,6 +504,8 @@ class RoomMetricsService implements RoomMetricsInterface
                     'rke_commission'    => $rkeCommission,
                     'room_commission'   => $creatorCommission,
                     'seller_commission' => isset($saleData['seller']) ? $sellerCommission : 0.0,
+                    'subsidiary_commission' => $subsidiaryCommission,
+                    'commerce_commission'   => $commerceCommission,
                     'prize_pool'        => $accruesMoneyPool ? $prizePool : 0.0,
                 ],
                 'room_local' => $currencyId !== '' ? [
@@ -481,6 +516,8 @@ class RoomMetricsService implements RoomMetricsInterface
                     'rke_commission'       => round($rkeCommissionLocal, 3),
                     'room_commission'      => round($creatorCommissionLocal, 3),
                     'seller_commission'    => isset($saleData['seller']) ? round($sellerCommissionLocal, 3) : 0.0,
+                    'subsidiary_commission' => round($subsidiaryCommissionLocal, 3),
+                    'commerce_commission'   => round($commerceCommissionLocal, 3),
                     'jackpot_contribution' => round($jackpotContributionLocal, 3),
                 ] : null,
                 'creator_sale'        => $creatorSale,

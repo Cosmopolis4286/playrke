@@ -100,9 +100,18 @@ final class BingoCardGenerationService
             // Obtener el connection_type_id real de la config de la sala (Snowflake ID)
             $gameModeId = $room->config?->connection_type_id;
 
-            if ($creator['type'] === 'commerce_id' || $seller) {
-                $sellerSaleCommn = $this->commissionCalculation->calculateSellerCommission($saleAmount, $seller, $roomId);
-            }
+            // Reparto en cascada de la red comercial (vendedor → agencia →
+            // comercializadora), en moneda local — ver
+            // CommissionCalculationService::networkSplit(). Sin vendedor no
+            // hay comisión de red (compra directa de player o del propio commerce).
+            $networkSplit = $seller
+                ? $this->commissionCalculation->networkSplit($saleAmount, (string) $seller, $roomId)
+                : null;
+            $sellerSaleCommn = $networkSplit['seller_amount'] ?? 0;
+            $cardOrder['networkCommission'] = [
+                'subsidiary' => (float) ($networkSplit['subsidiary_amount'] ?? 0),
+                'commerce'   => (float) ($networkSplit['commerce_amount'] ?? 0),
+            ];
 
             // Verificar tope de cartones ANTES de tocar total_cards — debe ir
             // antes de updateRoomMetricsWithCommissions() (que ya incrementa
@@ -144,6 +153,12 @@ final class BingoCardGenerationService
             // quedaba en NULL y todo lo que la lee (dashboard/ranking/reportes
             // del vendedor, ventas por vendedor del comercio/agencia) mostraba 0.
             $cardOrder['sellerCommissionAmount'] = $sellerSaleCommn ?? 0;
+            // Porciones de agencia/comercializadora + snapshot de a quién
+            // correspondían al vender (el vendedor puede reasignarse después).
+            $cardOrder['subsidiaryCommissionAmount'] = $networkSplit['subsidiary_amount'] ?? 0;
+            $cardOrder['commerceCommissionAmount']   = $networkSplit['commerce_amount'] ?? 0;
+            $cardOrder['networkSubsidiaryId']        = $networkSplit['subsidiary_id'] ?? null;
+            $cardOrder['networkCommerceId']          = $networkSplit['commerce_id'] ?? null;
 
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCardLot($cardOrder, $saleAmount);

@@ -22,9 +22,14 @@ class BingoCardLot extends Model
         'room_id', 'user_id', 'seller_user_id', 'seller_type', 'room_user_id', 'currency_id',
         'card_count', 'card_price', 'exchange_rate', 'sale_amount', 'bonus_amount', 'commission_amount', 'status', 'has_custom_cards',
         'financial_breakdown',
+        'subsidiary_id', 'commerce_id', 'subsidiary_commission_amount', 'commerce_commission_amount',
     ];
 
     protected $casts = [
+        'subsidiary_id'     => 'string',
+        'commerce_id'       => 'string',
+        'subsidiary_commission_amount' => 'decimal:2',
+        'commerce_commission_amount'   => 'decimal:2',
         'card_count'        => 'integer',
         'card_price'        => 'decimal:2',
         'exchange_rate'     => 'decimal:4',

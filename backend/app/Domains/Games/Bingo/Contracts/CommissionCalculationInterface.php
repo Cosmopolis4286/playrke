@@ -22,4 +22,17 @@ interface CommissionCalculationInterface
      * sala o base, + bono progresivo) — misma que usa calculateSellerCommission().
      */
     public function sellerCommissionRate(?string $sellerId, ?string $roomId = null): float;
+
+    /**
+     * Reparto en cascada de la comisión de la red comercial para una venta
+     * hecha por un vendedor: vendedor (X), agencia (Y − X) y comercializadora
+     * (Z − max(X, Y)). Nunca negativo.
+     *
+     * @return array{
+     *     seller_rate: float, subsidiary_rate: float, commerce_rate: float,
+     *     seller_amount: float, subsidiary_amount: float, commerce_amount: float,
+     *     subsidiary_id: ?string, commerce_id: ?string
+     * }
+     */
+    public function networkSplit(float $saleAmount, ?string $sellerId, ?string $roomId = null): array;
 }

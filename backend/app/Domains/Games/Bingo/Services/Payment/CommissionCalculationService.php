@@ -75,6 +75,64 @@ class CommissionCalculationService implements CommissionCalculationInterface
     }
 
     /**
+     * Reparto en cascada de la comisión de la red comercial (Comercializadora
+     * → Agencia → Vendedor) para una venta hecha por un vendedor.
+     *
+     * Cada nivel tiene una tasa sobre la venta: vendedor X (efectiva, ver
+     * sellerCommissionRate()), agencia Y (subsidiaries.commission) y
+     * comercializadora Z (commerces.commission). Cada nivel superior cobra la
+     * DIFERENCIA con el nivel inferior — modelo estándar de override:
+     *
+     *   vendedor         = X
+     *   agencia          = max(0, Y − X)                 (solo si tiene agencia)
+     *   comercializadora = max(0, Z − max(X, Y))         (Y = 0 si es directo)
+     *
+     * La comisión total de la red es max(X, Y, Z). Los topes X ≤ Y ≤ Z se
+     * validan al configurar (CommissionHierarchyGuard); aun si se rompen (bono
+     * progresivo o comisión especial de sala por encima del padre), el max(0, …)
+     * garantiza que ningún nivel cobre negativo ni se cuente dos veces.
+     *
+     * La agencia/comercializadora se resuelven al momento de la venta y se
+     * devuelven para guardarse como snapshot en el lote.
+     */
+    public function networkSplit(float $saleAmount, ?string $sellerId, ?string $roomId = null): array
+    {
+        $split = [
+            'seller_rate' => 0.0, 'subsidiary_rate' => 0.0, 'commerce_rate' => 0.0,
+            'seller_amount' => 0.0, 'subsidiary_amount' => 0.0, 'commerce_amount' => 0.0,
+            'subsidiary_id' => null, 'commerce_id' => null,
+        ];
+
+        if (!$sellerId) {
+            return $split;
+        }
+
+        $seller = Seller::with(['subsidiary:id,commerce_id,commission', 'subsidiary.commerce:id,user_id,commission', 'managerCommerce:id,user_id,commission'])
+            ->find($sellerId, ['id', 'manager_user_id', 'subsidiary_id']);
+
+        $sellerRate = $this->sellerCommissionRate($sellerId, $roomId);
+        $subsidiary = $seller?->subsidiary_id ? $seller->subsidiary : null;
+        $commerce   = $seller?->resolveCommerce();
+
+        $subsidiaryRate = $subsidiary ? max(0.0, (float) $subsidiary->commission - $sellerRate) : 0.0;
+        $floor          = max($sellerRate, $subsidiary ? (float) $subsidiary->commission : 0.0);
+        $commerceRate   = $commerce ? max(0.0, (float) $commerce->commission - $floor) : 0.0;
+
+        $amount = fn (float $rate) => round($saleAmount * ($rate / 100), 2);
+
+        return [
+            'seller_rate'       => $sellerRate,
+            'subsidiary_rate'   => $subsidiaryRate,
+            'commerce_rate'     => $commerceRate,
+            'seller_amount'     => $amount($sellerRate),
+            'subsidiary_amount' => $amount($subsidiaryRate),
+            'commerce_amount'   => $amount($commerceRate),
+            'subsidiary_id'     => $subsidiary ? (string) $subsidiary->id : null,
+            'commerce_id'       => $commerce ? (string) $commerce->id : null,
+        ];
+    }
+
+    /**
      * Bonus adicional por comisión progresiva (Fase 10, ver
      * progreso/estrategia-producto-plan.md) — 0 mientras
      * `sellers.progressive_commission_enabled` esté en false (default), para
