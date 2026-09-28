@@ -8,6 +8,8 @@ use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryDTO;
 use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Subsidiary\AdminSubsidiaryException;
 use App\Http\Resources\Roles\Admin\Subsidiary\AdminSubsidiaryResource;
+use App\Models\Roles\Commerce;
+use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +126,9 @@ final class AdminSubsidiaryCrudService
     {
         DB::transaction(function () use ($subsidiary, $dto) {
 
+            $commerceChanged = $dto->commerce !== null
+                && (string) $dto->commerce !== (string) $subsidiary->commerce_id;
+
             $this->subsidiaryRepository->update(
                 $subsidiary->id,
                 array_filter([
@@ -135,6 +140,26 @@ final class AdminSubsidiaryCrudService
                     'currency_id' => $dto->currency,
                 ], static fn ($value) => $value !== null)
             );
+
+            // sellers.manager_user_id de los vendedores de agencia apunta al
+            // user_id del Commerce padre (ver ManagerSellerService::
+            // resolveManagerForUser()). Si la agencia cambia de Commerce, sin
+            // esto sus vendedores seguían listados/contados en la red del
+            // Commerce ANTERIOR (Commerce::sellers()/networkUserIds()) y
+            // ausentes del listado del nuevo.
+            if ($commerceChanged) {
+                $newCommerceUserId = Commerce::where('id', $dto->commerce)->value('user_id');
+
+                if (!$newCommerceUserId) {
+                    throw AdminSubsidiaryException::creationFailed();
+                }
+
+                // withTrashed: un seller soft-deleted restaurado después no
+                // debe volver apuntando al Commerce anterior.
+                Seller::withTrashed()
+                    ->where('subsidiary_id', $subsidiary->id)
+                    ->update(['manager_user_id' => $newCommerceUserId]);
+            }
 
             if ($dto->email !== null || $dto->username !== null) {
                 $subsidiary->user()->update(array_filter([

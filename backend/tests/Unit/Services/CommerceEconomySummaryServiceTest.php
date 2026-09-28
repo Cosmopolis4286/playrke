@@ -135,7 +135,9 @@ class CommerceEconomySummaryServiceTest extends TestCase
             'user_id'         => $user->id,
             'country_id'      => $this->country->id,
             'subsidiary_id'   => $subsidiary->id,
-            'manager_user_id' => $subsidiary->user_id,
+            // Mismo dato que persiste ManagerSellerService: el user_id del
+            // Commerce raíz, no el de la agencia.
+            'manager_user_id' => $subsidiary->commerce->user_id,
             'status'          => 'ACTIVE',
         ]);
 

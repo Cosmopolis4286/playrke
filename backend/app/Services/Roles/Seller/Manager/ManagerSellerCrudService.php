@@ -172,12 +172,14 @@ final class ManagerSellerCrudService
     {
         DB::transaction(function () use ($seller, $dto, $managerUserId, $subsidiaryId) {
 
+            // Solo null = "sin cambios": array_filter() sin callback también
+            // descartaba commission "0", impidiendo bajar la comisión a 0.
             $attributes = array_filter([
                 'name'       => $dto->name,
                 'phone'      => $dto->phone,
                 'commission' => $dto->commission,
                 'country_id' => $dto->country,
-            ]);
+            ], static fn ($value) => $value !== null && $value !== '');
 
             if ($managerUserId !== null) {
                 $attributes['manager_user_id'] = $managerUserId;

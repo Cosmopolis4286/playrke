@@ -74,10 +74,14 @@ class ManagerSellerRequest extends BaseRequest
                     // User::roles() -> belongsToMany(Role::class, 'role_user'),
                     // confirmado contra el pivot real (model_has_roles está
                     // vacío, es infraestructura de Spatie sin usar aquí).
+                    // Se compara contra roles.prefix (persistido en MAYÚSCULA,
+                    // ver Role::setPrefixAttribute()), no roles.name: name es
+                    // el label de UI ('Comercio'/'Sucursal') y con él esta
+                    // regla rechazaba TODO manager_user_id no nulo.
                     $hasValidRole = \Illuminate\Support\Facades\DB::table('role_user')
                         ->join('roles', 'roles.id', '=', 'role_user.role_id')
                         ->where('role_user.user_id', $value)
-                        ->whereIn('roles.name', ['commerce', 'subsidiary'])
+                        ->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(roles.prefix)'), ['commerce', 'subsidiary'])
                         ->exists();
                     if (!$hasValidRole) {
                         $fail('El usuario seleccionado debe tener rol Comercio o Sucursal.');

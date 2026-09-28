@@ -103,14 +103,14 @@ class Seller extends BaseModel
     }
 
     /**
-     * Commerce que actúa como manager DIRECTO de este vendedor (caso sin
-     * agencia intermedia). Busca el commerce cuyo user_id = manager_user_id.
-     * Inversa de Commerce::sellers().
+     * Commerce cuyo user_id = manager_user_id. Inversa de Commerce::sellers().
      *
-     * OJO: cuando el seller tiene subsidiary_id, manager_user_id apunta al
-     * usuario de la Subsidiary (rol 'subsidiary'), no a un Commerce — esta
-     * relación devolvería null en ese caso. Usar resolveCommerce() para
-     * obtener el Commerce real sin importar si hay agencia intermedia.
+     * manager_user_id siempre se persiste con el user_id del Commerce raíz,
+     * también para sellers de agencia (ver ManagerSellerService::
+     * resolveManagerForUser(), y AdminSubsidiaryCrudService::update(), que
+     * lo resincroniza si la agencia cambia de Commerce). Aun así, la fuente
+     * de verdad de la jerarquía es resolveCommerce() (subsidiary_id →
+     * Subsidiary → Commerce cuando hay agencia) — usar esa, no esta relación.
      */
     public function managerCommerce(): HasOne
     {

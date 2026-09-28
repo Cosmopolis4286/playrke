@@ -181,8 +181,14 @@ class ManagerSellerContextService
      */
     public function getAll(int $managerUserId): array
     {
-        // Resolver rol del usuario manager
+        // Resolver rol del usuario manager — superadmin normalizado a admin,
+        // mismo criterio que resolve(): sin esto el listado paginado de un
+        // superadmin filtraba por manager_user_id = su propio id (vacío).
         $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
+
         return $this->resolveSellers($role, $managerUserId)['sellers']['rows'] ?? [];
     }
 }

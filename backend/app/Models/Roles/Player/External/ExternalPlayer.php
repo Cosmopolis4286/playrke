@@ -32,6 +32,10 @@ class ExternalPlayer extends BaseModel
     ];
 
     protected $casts = [
+        'id' => 'string',
+        'game_id' => 'string',
+        'currency_id' => 'string',
+        'purchase_code_id' => 'string',
         'room_id' => 'string',
         'creator_user_id' => 'string',
         'seller_user_id' => 'string',

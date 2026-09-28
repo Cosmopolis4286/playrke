@@ -74,19 +74,69 @@ final class ManagerSellerService
      */
     public function create(ManagerSellerDTO $dto, ?string $publicToken = null): string
     {
-        // Si el DTO trae manager_user_id (caso admin eligiendo explícitamente
-        // a quién asignar el seller — puede ser una Comercializadora o una
-        // Agencia, ver ManagerSellerForm.vue), resolverlo igual que el resto:
-        // el manager puede ser cualquier rol de la jerarquía comercial.
-        // Si no, resolver desde el usuario autenticado (caso
-        // commerce/subsidiary/customer creando sus propios sellers).
-        $targetUserId = $dto->managerUserId !== null
-            ? (int) $dto->managerUserId
-            : $this->userContext->resolveUserId($publicToken);
+        // manager_user_id explícito (ManagerSellerForm.vue): el destino se
+        // valida contra el actor igual que en update() — antes se aceptaba
+        // tal cual, y un commerce/subsidiary podía crear sellers dentro de
+        // la red de OTRO comercio con solo enviar su user_id. Sin destino
+        // explícito (o si el actor no puede elegirlo), el seller cuelga del
+        // propio usuario autenticado.
+        $explicit = $dto->managerUserId !== null
+            ? $this->resolveExplicitManagerForActor($dto->managerUserId)
+            : null;
 
-        [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser($targetUserId);
+        [$managerUserId, $subsidiaryId] = $explicit
+            ?? $this->resolveManagerForUser($this->userContext->resolveUserId($publicToken));
 
         return $this->crud->create($dto, $managerUserId, $subsidiaryId);
+    }
+
+    /**
+     * Resuelve un manager_user_id elegido explícitamente, validando que el
+     * actor autenticado pueda asignar sellers a ese destino:
+     * - admin/superadmin: cualquier Commerce o Subsidiary del sistema.
+     * - commerce: solo a sí mismo o a SUS PROPIAS subsidiaries.
+     * - subsidiary (y cualquier otro rol): no elige destino — null, el
+     *   caller decide (create: cuelga del propio actor; update: sin cambios).
+     *
+     * @return array{0: int, 1: ?string}|null [managerUserId, subsidiaryId]
+     *
+     * @throws ManagerSellerException Si el destino no pertenece al actor
+     */
+    private function resolveExplicitManagerForActor(string $targetUserId): ?array
+    {
+        $actor = Auth::user();
+        $actorRole = $actor ? $this->roleUserService->getActiveUserRolePrefix((int) $actor->id) : null;
+
+        // Mismo criterio que ManagerSellerContextService::resolve().
+        if ($actorRole === 'superadmin') {
+            $actorRole = 'admin';
+        }
+
+        if ($actorRole === 'admin') {
+            return $this->resolveManagerForUser((int) $targetUserId);
+        }
+
+        if ($actorRole !== 'commerce') {
+            return null;
+        }
+
+        [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $targetUserId);
+
+        $ownCommerce = $this->commerceRepository->getByUserId((int) $actor->id, ['id', 'user_id']);
+
+        if (!$ownCommerce || (string) $managerUserId !== (string) $ownCommerce->user_id) {
+            throw ManagerSellerException::creationFailed();
+        }
+
+        if ($subsidiaryId !== null) {
+            $targetSubsidiary = $this->subsidiaryRepository->getByUserId((int) $targetUserId, ['id', 'commerce_id']);
+
+            if (!$targetSubsidiary || (string) $targetSubsidiary->commerce_id !== (string) $ownCommerce->id) {
+                throw ManagerSellerException::creationFailed();
+            }
+        }
+
+        return [$managerUserId, $subsidiaryId];
     }
 
     /**
@@ -101,9 +151,8 @@ final class ManagerSellerService
      * una agencia, se guarda el Commerce padre en manager_user_id y la
      * agencia en subsidiary_id (ver Seller::resolveCommerce()).
      *
-     * Whitelist explícita de roles válidos ('commerce'/'customer' reportan
-     * directo sin agencia intermedia, mismo criterio ya usado en
-     * ManagerSellerContextService::resolveSellers(); 'subsidiary' resuelve
+     * Whitelist explícita de roles válidos ('commerce' reporta directo sin
+     * agencia intermedia; 'subsidiary' resuelve
      * vía su Commerce padre más abajo), no blacklist — antes
      * `if ($role !== 'subsidiary') return [$targetUserId, null]` asumía
      * implícitamente que cualquier rol distinto de 'subsidiary' era válido,
@@ -123,7 +172,11 @@ final class ManagerSellerService
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($targetUserId);
 
-        if ($role === 'commerce' || $role === 'customer') {
+        // 'customer' excluido: es una rama independiente sin sellers propios
+        // (ver ManagerSellerPolicy::ownsSeller()). Antes se aceptaba aquí,
+        // dejando sellers que el customer no podía operar (403) y que nunca
+        // podían vender (hasActiveHierarchy() sin Commerce resoluble).
+        if ($role === 'commerce') {
             return [$targetUserId, null];
         }
 
@@ -218,41 +271,11 @@ final class ManagerSellerService
      */
     public function update(Seller $seller, ManagerSellerDTO $dto): void
     {
-        $managerUserId = null;
-        $subsidiaryId = null;
-
-        if ($dto->managerUserId !== null) {
-            $actor = Auth::user();
-            $actorRole = $actor ? $this->roleUserService->getActiveUserRolePrefix((int) $actor->id) : null;
-            // Mismo criterio que ManagerSellerContextService::resolve():
-            // superadmin siempre tiene el mismo alcance que admin en esta
-            // pantalla (reasignar cualquier seller a cualquier árbol).
-            if ($actorRole === 'superadmin') {
-                $actorRole = 'admin';
-            }
-
-            if ($actorRole === 'admin') {
-                [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);
-            } elseif ($actorRole === 'commerce') {
-                [$managerUserId, $subsidiaryId] = $this->resolveManagerForUser((int) $dto->managerUserId);
-
-                $ownCommerce = $this->commerceRepository->getByUserId((int) $actor->id, ['id', 'user_id']);
-
-                if (!$ownCommerce || (string) $managerUserId !== (string) $ownCommerce->user_id) {
-                    throw ManagerSellerException::creationFailed();
-                }
-
-                if ($subsidiaryId !== null) {
-                    $targetSubsidiary = $this->subsidiaryRepository->getByUserId((int) $dto->managerUserId, ['id', 'commerce_id']);
-
-                    if (!$targetSubsidiary || (string) $targetSubsidiary->commerce_id !== (string) $ownCommerce->id) {
-                        throw ManagerSellerException::creationFailed();
-                    }
-                }
-            }
-            // 'subsidiary' (y cualquier otro rol) — sin bloque: managerUserId
-            // queda null, manager_user_id/subsidiary_id del seller no cambian.
-        }
+        // 'subsidiary' (y cualquier otro rol sin permiso de reasignar) →
+        // null: manager_user_id/subsidiary_id del seller no cambian.
+        [$managerUserId, $subsidiaryId] = $dto->managerUserId !== null
+            ? ($this->resolveExplicitManagerForActor($dto->managerUserId) ?? [null, null])
+            : [null, null];
 
         $this->crud->update($seller, $dto, $managerUserId, $subsidiaryId);
     }
