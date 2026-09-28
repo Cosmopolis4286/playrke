@@ -42,7 +42,8 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         parent::tearDown();
     }
 
-    private function makeRoom(string $poolCode, ?float $jackpotPct = null): BingoRoom
+    /** @param string[] $roundTypes tipos canónicos de bingo_rounds.prize_type (PCT/FIXED/OTHER) */
+    private function makeRoom(string $poolCode, ?float $jackpotPct = null, array $roundTypes = ['PCT']): BingoRoom
     {
         $n = ++self::$seq;
         $typeId = (string) (930000000000000100 + $n);
@@ -60,6 +61,13 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
             'jackpot_type_id' => $jackpotPct ? '930000000000000999' : null, 'jackpot_pct' => $jackpotPct,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        foreach ($roundTypes as $i => $type) {
+            DB::table('bingo_rounds')->insert([
+                'id' => (string) ((int) $roomId + 2000 + $i), 'room_id' => $roomId,
+                'round' => $i + 1, 'prize_type' => $type, 'status' => 'ACTIVE',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
 
         return BingoRoom::find($roomId);
     }
@@ -75,18 +83,37 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
     }
 
     #[Test]
-    public function sala_premio_servicio_reparte_la_venta_igual_que_las_demas(): void
+    public function premio_servicio_puro_no_acumula_bote_y_registra_los_fondos_del_premio(): void
     {
-        $room = $this->makeRoom('PRIZE');
+        $room = $this->makeRoom('PRIZE', roundTypes: ['OTHER', 'OTHER']);
 
         $this->sell($room, 100.0);
 
         $fresh = $room->fresh();
+        // Comisiones igual que cualquier sala…
         $this->assertEqualsWithDelta(5.0, (float) $fresh->rke_commission, 0.01);
         $this->assertEqualsWithDelta(10.0, (float) $fresh->room_commission, 0.01);
-        $this->assertEqualsWithDelta(85.0, (float) $fresh->prize_pool, 0.01);
-        // La venta queda registrada para el creador (antes, excluir PRIZE la perdía).
-        $this->assertTrue(BingoCreatorSale::where('room_id', $room->id)->exists());
+        // …pero sin bote en dinero: ninguna ronda lo consumiría.
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->prize_pool, 0.01);
+
+        $byCurrency = (array) $fresh->metrics_by_currency[$this->currencyId];
+        $this->assertEqualsWithDelta(0.0, (float) $byCurrency['prize_pool'], 0.01);
+        $this->assertEqualsWithDelta(85.0, (float) $byCurrency['prize_funding'], 0.01);
+
+        // El neto queda registrado para el creador como fondos del premio físico.
+        $sale = BingoCreatorSale::where('room_id', $room->id)->firstOrFail();
+        $this->assertEqualsWithDelta(85.0, (float) $sale->prize_pool_amount, 0.01);
+        $this->assertTrue($sale->is_valid);
+    }
+
+    #[Test]
+    public function premio_servicio_hibrido_acumula_bote_para_sus_rondas_en_porcentaje(): void
+    {
+        $room = $this->makeRoom('PRIZE', roundTypes: ['OTHER', 'PCT']);
+
+        $this->sell($room, 100.0);
+
+        $this->assertEqualsWithDelta(85.0, (float) $room->fresh()->prize_pool, 0.01);
     }
 
     #[Test]
@@ -103,5 +130,11 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $byCurrency = (array) $fresh->metrics_by_currency[$this->currencyId];
         $this->assertEqualsWithDelta(80.0, (float) $byCurrency['prize_pool'], 0.01);
         $this->assertEqualsWithDelta(5.0, (float) $byCurrency['jackpot_contribution'], 0.01);
+
+        // Y en BingoCreatorSale el jackpot va en su propia columna, no mezclado con premios.
+        $sale = BingoCreatorSale::where('room_id', $room->id)->firstOrFail();
+        $this->assertEqualsWithDelta(5.0, (float) $sale->jackpot_contribution, 0.01);
+        $this->assertEqualsWithDelta(80.0, (float) $sale->prize_pool_amount, 0.01);
+        $this->assertTrue($sale->is_valid, 'venta = RKE + creador + vendedor + jackpot + premios');
     }
 }

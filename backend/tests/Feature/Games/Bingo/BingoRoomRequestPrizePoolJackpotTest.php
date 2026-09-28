@@ -24,6 +24,7 @@ class BingoRoomRequestPrizePoolJackpotTest extends TestCase
 
     private string $accumulativeId = '900000000000000001';
     private string $fixedId        = '900000000000000002';
+    private string $prizeId        = '900000000000000003';
 
     protected function setUp(): void
     {
@@ -32,6 +33,7 @@ class BingoRoomRequestPrizePoolJackpotTest extends TestCase
         DB::table('prize_pool_types')->insert([
             ['id' => $this->accumulativeId, 'game_id' => '1', 'code' => 'ACCUMULATIVE', 'label' => 'Bote Acumulativo', 'status' => 'ACTIVE'],
             ['id' => $this->fixedId,        'game_id' => '1', 'code' => 'FIXED',        'label' => 'Bote Fijo',        'status' => 'ACTIVE'],
+            ['id' => $this->prizeId,        'game_id' => '1', 'code' => 'PRIZE',        'label' => 'Premio/Servicio',  'status' => 'ACTIVE'],
         ]);
     }
 
@@ -171,6 +173,52 @@ class BingoRoomRequestPrizePoolJackpotTest extends TestCase
 
         [$errors] = $this->validate($class, ['gameMode' => $soloId, 'minPlayers' => 1, 'minCardsToStart' => 1]);
         $this->assertFalse($errors->has('minPlayers'));
+    }
+
+    private static function rounds(string ...$types): array
+    {
+        return array_map(fn ($t) => ['prizeType' => $t], $types);
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function premio_servicio_sin_ronda_de_premio_fisico_es_invalido(string $class): void
+    {
+        [$errors] = $this->validate($class, ['prizePoolType' => $this->prizeId, 'roundsConfig' => self::rounds('percentage')]);
+
+        $this->assertTrue($errors->has('prizePoolType'));
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function todas_las_rondas_fisicas_exigen_bote_premio_servicio(string $class): void
+    {
+        [$errors] = $this->validate($class, ['prizePoolType' => $this->accumulativeId, 'roundsConfig' => self::rounds('prize', 'prize')]);
+
+        $this->assertTrue($errors->has('prizePoolType'));
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function premio_servicio_puro_no_usa_valor_fijo_extra(string $class): void
+    {
+        [$errors, $request] = $this->validate($class, [
+            'prizePoolType' => $this->prizeId, 'roundsConfig' => self::rounds('prize', 'fixed'), 'amountAddedPrizePool' => 50,
+        ]);
+
+        $this->assertFalse($errors->has('prizePoolType'));
+        $this->assertFalse($errors->has('amountAddedPrizePool'));
+        $this->assertNull($request->input('amountAddedPrizePool'), 'sin rondas % no hay bote en dinero que sembrar');
+    }
+
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function premio_servicio_hibrido_exige_valor_fijo_extra(string $class): void
+    {
+        [$errors] = $this->validate($class, ['prizePoolType' => $this->prizeId, 'roundsConfig' => self::rounds('prize', 'percentage')]);
+
+        $this->assertFalse($errors->has('prizePoolType'));
+        $this->assertTrue($errors->has('amountAddedPrizePool'));
     }
 
     #[Test]

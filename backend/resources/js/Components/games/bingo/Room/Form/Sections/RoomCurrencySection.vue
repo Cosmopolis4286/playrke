@@ -18,6 +18,12 @@
     currenciesWithActiveRate?: string[]
     /** IDs de monedas con cartones ya vendidos — no se pueden quitar de "Monedas Permitidas". */
     soldCurrencyIds?: string[]
+    /**
+     * Sala con ventas: monedas cuyo precio ya no se puede cambiar (las que la
+     * sala tenía al abrir la edición). Si no está vacío, además se bloquean el
+     * modo Base USD, el precio USD y el redondeo. Una moneda nueva sí admite precio.
+     */
+    lockedPriceCurrencyIds?: string[]
   }>()
 
   const emit = defineEmits<{
@@ -51,6 +57,9 @@
   }
 
   const A = BINGO_ROOM_AMOUNT_LIMITS
+
+  const pricesLocked = computed(() => (props.lockedPriceCurrencyIds?.length ?? 0) > 0)
+  const isPriceLocked = (cur: string | number) => (props.lockedPriceCurrencyIds ?? []).includes(String(cur))
 
   function rangeHint(lim: { min: number; max: number }) {
     return `Entre ${lim.min.toLocaleString('es-VE')} y ${lim.max.toLocaleString('es-VE')}.`
@@ -147,7 +156,7 @@
                 class="custom-control-input"
                 id="useBaseUsdSwitch"
                 :checked="useBaseUsd"
-                :disabled="canUseBaseUsd === false"
+                :disabled="canUseBaseUsd === false || pricesLocked"
                 @change="emit('update:useBaseUsd', ($event.target as HTMLInputElement).checked)"
               />
               <label class="custom-control-label" for="useBaseUsdSwitch" style="cursor: pointer" />
@@ -157,6 +166,12 @@
       </div>
 
       <div style="border-top: 1px solid #e9ecef; margin: 0.4rem 0 0.55rem" />
+
+      <div v-if="pricesLocked" class="text-muted mb-2" style="font-size: 0.74rem">
+        <i class="fa-solid fa-lock"></i>
+        La sala ya tiene cartones vendidos: el precio del cartón no se puede cambiar
+        (una moneda nueva sí se puede agregar con su precio).
+      </div>
 
       <div
         v-if="currenciesWithoutActiveRate.length > 0"
@@ -183,6 +198,7 @@
               </div>
               <input
                 name="card_price_usd"
+                :readonly="pricesLocked"
                 type="text"
                 inputmode="decimal"
                 autocomplete="off"
@@ -208,6 +224,7 @@
               </div>
               <input
                 name="usd_exchange_round_step"
+                :readonly="pricesLocked"
                 type="text"
                 inputmode="decimal"
                 autocomplete="off"
@@ -235,6 +252,8 @@
                 </div>
                 <input
                   :name="`card_price_${String(cur)}`"
+                  :readonly="isPriceLocked(cur)"
+                  :title="isPriceLocked(cur) ? 'La sala ya tiene cartones vendidos: el precio no se puede cambiar.' : undefined"
                   type="text"
                   inputmode="decimal"
                   autocomplete="off"

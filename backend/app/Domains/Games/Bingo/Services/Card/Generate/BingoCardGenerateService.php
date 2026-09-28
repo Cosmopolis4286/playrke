@@ -447,7 +447,7 @@ final class BingoCardGenerateService
      */
     private function findSellableRoom(string $roomId, int|string $creatorUserId): BingoRoom
     {
-        $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
+        $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
             ->whereKey($roomId)
             ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->accessibleBy((int) $creatorUserId)
@@ -492,9 +492,8 @@ final class BingoCardGenerateService
      *   Seller::resolveCommerce() — directo (manager_user_id → Commerce) o a
      *   través de una agencia intermedia (subsidiary_id → Subsidiary →
      *   Commerce). creator_user_id = user_id del Commerce resuelto, NUNCA
-     *   manager_user_id crudo: cuando el seller pertenece a una Subsidiary,
-     *   manager_user_id apunta al usuario de la agencia, no al del Commerce
-     *   dueño real de la sala/BingoCreator.
+     *   manager_user_id crudo: resolveCommerce() es la fuente de verdad de la
+     *   jerarquía (subsidiary_id prevalece sobre manager_user_id).
      *
      * @param string $userId ID del usuario autenticado.
      * @param string $role   Rol activo ('commerce' | 'seller').
@@ -695,6 +694,32 @@ final class BingoCardGenerateService
         //    Recarga los datos frescos después del commit para garantizar consistencia.
         $this->broadcastRoomUpdated((string) $room->id);
 
+        // 9. Actividad en vivo para admin, el Commerce y — si el seller es de
+        //    agencia — la Subsidiary. Antes solo buyFromGameRooms() emitía
+        //    BingoCardSold, así que la venta principal del punto de venta
+        //    (vendedor → jugador externo) nunca llegaba a los dashboards.
+        //    Best-effort: la venta ya está comprometida, un fallo de
+        //    broadcast no debe convertirse en error para el vendedor.
+        try {
+            $subsidiaryUserId = $seller->subsidiary_id
+                ? \App\Models\Roles\Subsidiary::where('id', $seller->subsidiary_id)->value('user_id')
+                : null;
+
+            broadcast(new BingoCardSold(
+                roomId: (string) $room->id,
+                roomName: (string) $room->uuid_code,
+                quantity: (int) $dto->cardCount,
+                amountUsd: (float) $cardOrder['saleAmountUsd'],
+                creatorUserId: (string) $creatorUser,
+                subsidiaryUserId: $subsidiaryUserId ? (string) $subsidiaryUserId : null,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('BingoCardSold: no se pudo emitir la venta del punto de venta', [
+                'room_id' => (string) $room->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
         return $result;
     }
 
@@ -837,7 +862,11 @@ final class BingoCardGenerateService
                 throw BingoCardGenerateException::cardGenerationFailed();
             }
 
-            $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
+            // Sin resolveOrCreatePlayer(): aquí no hay comprador externo (los
+            // cartones son del propio commerce/seller, sin teléfono ni nombre).
+            // Antes se llamaba con playerPhone '' y se descartaba el resultado,
+            // creando un ExternalPlayer + UserPurchaseCode vacíos por sala/red
+            // sin vínculo con ningún cartón.
 
             return [
                 'type'       => 'success',
@@ -960,9 +989,8 @@ final class BingoCardGenerateService
 
         return match ($role) {
             'commerce', 'customer' => $userId,
-            // Commerce real vía resolveCommerce(): para un seller de agencia,
-            // manager_user_id es el usuario de la Subsidiary (que no crea
-            // salas), no el del Commerce dueño de las salas.
+            // Commerce real vía resolveCommerce() (fuente de verdad de la
+            // jerarquía, cubre sellers directos y de agencia).
             'seller' => (int) (Seller::where('user_id', $userId)
                 ->first(['id', 'manager_user_id', 'subsidiary_id'])
                 ?->resolveCommerce()

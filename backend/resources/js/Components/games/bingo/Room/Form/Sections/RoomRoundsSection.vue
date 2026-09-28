@@ -33,6 +33,8 @@
     totalRoundValues: number
     isRoundValuesValid: boolean
     roundsPct: string | number
+    /** Sala con ventas: rondas, premios y %Rondas no se pueden cambiar (el backend lo rechaza). */
+    locked?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -168,6 +170,13 @@
 
 <template>
   <div style="display: contents">
+    <div v-if="locked" class="col-12 mb-2">
+      <div class="alert alert-warning mb-0 px-3 py-2" style="font-size: 0.82rem">
+        <i class="fa-solid fa-lock"></i>
+        La sala ya tiene cartones vendidos: las rondas, sus premios y el %Rondas no se pueden cambiar.
+      </div>
+    </div>
+
     <!-- Distribución del bote: %Sala + %Rondas + %Seriales + %Jackpot, los 4
          porcentajes que se suman entre sí, mostrados juntos aunque vivan en
          tabs distintos del formulario. -->
@@ -192,6 +201,7 @@
       label="Rondas"
       name="rounds"
       :error="errors.rounds"
+      :disabled="locked"
       type="number"
       integer
       required
@@ -243,6 +253,7 @@
       label="%Rondas"
       name="rounds_pct"
       :error="errors.roundsPct"
+      :disabled="locked"
       type="number"
       :required="showRoundsPct"
       :step="1"
@@ -297,6 +308,7 @@
                 <select
                   :name="`rounds_prize_type[${index}]`"
                   class="form-control form-control-sm"
+                  :disabled="locked"
                   :value="round.prizeType"
                   @change="
                     onUpdateRoundConfig(
@@ -315,6 +327,7 @@
                 <!-- Patrón de bingo -->
                 <FormSelect
                   :name="`rounds_bingo_patterns[${index}]`"
+                  :disabled="locked"
                   label="Patrón"
                   hide-label
                   inline-error
@@ -349,7 +362,7 @@
                   placeholder="%"
                   :title="getRoundFieldError(index, 'prizeValue') ?? `Máximo disponible: ${roundMax(index)}%`"
                   :value="isSingleRound ? roundsPct : round.prizeValue"
-                  :readonly="isSingleRound"
+                  :readonly="isSingleRound || locked"
                   @input="!isSingleRound && onRoundPctInput(index, $event)"
                   @change="!isSingleRound && onRoundPctInput(index, $event, true)"
                   style="flex: 0 0 72px"
@@ -377,6 +390,7 @@
                       font-size: 0.75rem;
                       width: 100%;
                     "
+                    :disabled="locked"
                     @click="emit('open-prize-modal', index)"
                     :title="round.prizeName ?? 'Seleccionar premio'"
                   >
@@ -428,6 +442,7 @@
                       ]"
                       placeholder="0.00"
                       :title="getRoundCurrencyError(index, cur)"
+                      :readonly="locked"
                       :value="round.prizeValueByCurrency?.[String(cur)] ?? ''"
                       @input="onRoundFixedInput(index, cur, $event)"
                       @change="onRoundFixedInput(index, cur, $event, true)"

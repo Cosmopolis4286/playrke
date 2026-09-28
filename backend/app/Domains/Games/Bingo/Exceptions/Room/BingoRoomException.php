@@ -207,11 +207,15 @@ final class BingoRoomException extends DomainException
     }
 
     /**
-     * Con cartones ya vendidos no se puede cambiar el tipo de bote ni el
-     * "Valor Fijo/Extra": el bote actual ya incluye los aportes de esas ventas.
+     * Con cartones ya vendidos no se puede cambiar lo que el jugador "compró":
+     * bote, rondas y premios, seriales, variante ni precio del cartón.
+     *
+     * @param string[] $fields Etiquetas legibles de los campos que se intentó cambiar.
      */
-    public static function prizePoolLockedBySales(): self
+    public static function fieldsLockedBySales(array $fields): self
     {
-        return new self('BINGO_ROOM_PRIZE_POOL_LOCKED_BY_SALES', 409);
+        return new self('BINGO_ROOM_FIELDS_LOCKED_BY_SALES', 409, replacements: [
+            'fields' => implode(', ', $fields),
+        ]);
     }
 }

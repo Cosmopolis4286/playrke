@@ -11,6 +11,8 @@
     errors: Record<string, any>
     percentageLimits: { serialsPct: { min: number; max: number } }
     serialsPct: string | number
+    /** Sala con ventas: los seriales no se pueden cambiar (el backend lo rechaza). */
+    lockSerials?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -290,10 +292,12 @@
             type="checkbox"
             class="custom-control-input"
             :checked="modelValue.useSerials ?? false"
+            :disabled="lockSerials"
             @change="emit('update:modelValue', { ...modelValue, useSerials: ($event.target as HTMLInputElement).checked })"
           />
           <label class="custom-control-label" for="use_serials" style="font-weight: 500">
             ¿Usar Seriales?
+            <i v-if="lockSerials" class="fa-solid fa-lock ml-1 text-muted" title="La sala ya tiene cartones vendidos: los seriales no se pueden cambiar."></i>
           </label>
         </div>
 
@@ -306,6 +310,7 @@
             <div class="input-group input-group-sm" style="width: 130px">
               <input
                 name="serials_pct"
+                :readonly="lockSerials"
                 type="text"
                 inputmode="decimal"
                 autocomplete="off"
@@ -334,6 +339,7 @@
             </label>
             <input
               name="num_serials"
+              :readonly="lockSerials"
               type="text"
               inputmode="numeric"
               autocomplete="off"

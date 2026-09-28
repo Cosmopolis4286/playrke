@@ -38,8 +38,8 @@ import { SelectOption } from '@/js/types/common/form/form'
     }
     /** Etiqueta del anfitrión ya asignado (para precargar el AsyncSelect al editar sin re-buscarlo). */
     hostUserLabel?: string | null
-    /** Sala con ventas: el tipo de bote no se puede cambiar (el backend lo rechaza). */
-    lockPrizePool?: boolean
+    /** Sala con ventas: tipo de bote y variante no se pueden cambiar (el backend lo rechaza). */
+    lockedBySales?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -374,6 +374,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="Variante de Bingo"
       name="game_variant"
       :error="(errors as any).gameVariant"
+      :disabled="lockedBySales"
       required
       placeholder="Selecciona variante"
       :options="GAME_VARIANT_OPTIONS"
@@ -389,7 +390,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="Tipo Bote"
       name="prize_pool_type"
       :error="errors.prizePoolType"
-      :disabled="lockPrizePool"
+      :disabled="lockedBySales"
       required
       placeholder="Selecciona tipo bote"
       :options="prizePoolTypeOptions"

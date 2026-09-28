@@ -230,6 +230,9 @@
    */
   const lockedByPlayers = computed(() => props.isEdit === true && props.editingRoomHasPlayers === true)
 
+  /** Monedas que la sala ya tenía al abrir la edición: con ventas su precio queda congelado (una moneda nueva sí se puede agregar con su precio). */
+  const initialCurrencyIds = (props.modelValue.allowedCurrencies ?? []).map(String)
+
   const soldCurrencyIds = computed(() => (props.soldCurrencyIds ?? []).map(String))
 
   const soldCurrencyLabels = computed(() =>
@@ -315,6 +318,11 @@
     () => form.value.rounds,
     newRounds => {
       const count = Math.max(1, Number(newRounds) || 1)
+      // Si la cantidad no cambió (típicamente: abrir una sala existente para
+      // editarla) no hay nada que sincronizar. Antes esto corría igual en el
+      // `immediate` y redistribuía los % en partes iguales, pisando un reparto
+      // personalizado (ej. 60/40 → 50/50) con solo abrir y guardar el formulario.
+      if ((form.value.roundsConfig ?? []).length === count) return
       const fullHouseId =
         props.bingoPatternOptions.find(o => o.label.toUpperCase() === 'FULL HOUSE')?.value ?? null
       const updated = syncRoundsConfig(
@@ -360,6 +368,10 @@
     () => [form.value.rounds, availablePct.value] as const,
     ([newRounds, avail]) => {
       if (Number(newRounds) !== 1) return
+      // Con ventas el %Rondas está congelado (backend: guardSalesLockedFields):
+      // cambiar la comisión no debe arrastrarlo — si la suma excede 100 se
+      // muestra el error de suma en vez de alterar el premio ya vendido.
+      if (lockedByPlayers.value) return
       if (Number(form.value.roundsPct) === avail) return
       form.value = { ...form.value, roundsPct: avail }
     }
@@ -533,7 +545,7 @@
           :connectionTypeOptions="connectionTypeOptions"
           :gameModeOptions="gameModeOptions"
           :hostUserLabel="hostUserLabel"
-          :lockPrizePool="lockedByPlayers"
+          :lockedBySales="lockedByPlayers"
           :prizePoolTypeOptions="prizePoolTypeOptions"
           :jackpotTypeOptions="jackpotTypeOptions ?? []"
           :roomCommn="roomCommn"
@@ -592,6 +604,7 @@
         <RoomCurrencySection
           :modelValue="form"
           :errors="errors"
+          :lockedPriceCurrencyIds="lockedByPlayers ? initialCurrencyIds : []"
           :allowedCurrenciesOptions="allowedCurrenciesOptions"
           :useBaseUsd="useBaseUsd"
           :canUseBaseUsd="canUseBaseUsd"
@@ -608,6 +621,7 @@
         <RoomRoundsSection
           :modelValue="form"
           :errors="errors"
+          :locked="lockedByPlayers"
           :bingoPatternOptions="bingoPatternOptions"
           :allowedCurrenciesOptions="allowedCurrenciesOptions"
           :isSingleRound="isSingleRound"
@@ -628,6 +642,7 @@
         <RoomOptionsSection
           :modelValue="form"
           :errors="errors"
+          :lockSerials="lockedByPlayers"
           :percentageLimits="percentageLimits"
           :serialsPct="serialsPct"
           @update:modelValue="form = $event"

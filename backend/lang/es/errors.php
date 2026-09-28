@@ -131,7 +131,7 @@ return [
     'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'Esta sala ya alcanzó su tope de cartones disponibles.',
     'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'No puedes quitar :currencies: ya tiene cartones vendidos en esta sala.',
     'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'Solo se puede editar una sala cuyo sorteo no ha iniciado ni finalizado.',
-    'BINGO_ROOM_PRIZE_POOL_LOCKED_BY_SALES' => 'Esta sala ya tiene cartones vendidos: no se puede cambiar el tipo de bote ni el valor fijo/extra.',
+    'BINGO_ROOM_FIELDS_LOCKED_BY_SALES' => 'Esta sala ya tiene cartones vendidos: no se puede cambiar :fields.',
 
     // Patrones de Bingo (games/bingo/pattern)
     'BINGO_PATTERN_DUPLICATE_NAME' => 'Ya existe un patrón con ese nombre.',

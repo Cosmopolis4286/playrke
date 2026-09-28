@@ -131,7 +131,7 @@ return [
     'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'This room has already reached its available card limit.',
     'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'You cannot remove :currencies: it already has cards sold in this room.',
     'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'You can only edit a room whose draw has not started or finished.',
-    'BINGO_ROOM_PRIZE_POOL_LOCKED_BY_SALES' => 'This room already has cards sold: the prize pool type and fixed/extra amount cannot be changed.',
+    'BINGO_ROOM_FIELDS_LOCKED_BY_SALES' => 'This room already has cards sold: :fields cannot be changed.',
 
     // Bingo patterns (games/bingo/pattern)
     'BINGO_PATTERN_DUPLICATE_NAME' => 'A pattern with that name already exists.',

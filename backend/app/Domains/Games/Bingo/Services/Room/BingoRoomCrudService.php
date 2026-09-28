@@ -180,11 +180,11 @@ class BingoRoomCrudService
                 // terminal" que había acá nunca aplicaba: esos estados ya no son
                 // editables, ver roomNotEditableStatus() arriba).
                 // - Sin ventas: se re-siembra con el monto inicial (no hay nada que perder).
-                // - Con ventas: no se toca, y no se permite cambiar el tipo de bote ni el
-                //   monto (la UI ya bloquea esos campos con jugadores registrados).
+                // - Con ventas: no se toca, y no se permite cambiar lo que el jugador
+                //   compró (bote, rondas, seriales, variante, precio — ver guardSalesLockedFields).
                 $hasSales = !$isCreate && ((int) ($room->total_cards ?? 0) > 0 || (float) ($room->total_sales ?? 0) > 0);
                 if ($hasSales) {
-                    $this->guardPrizePoolUnchanged($room, $dto);
+                    $this->guardSalesLockedFields($room, $dto);
                 }
                 $dataToUpdate = $hasSales ? [] : ['prize_pool' => $prizePool];
 
@@ -686,31 +686,180 @@ class BingoRoomCrudService
     }
 
     /**
-     * Con cartones vendidos, el bote actual ya incluye los aportes de esas
-     * ventas sobre el monto inicial — cambiar el tipo de bote o el "Valor
-     * Fijo/Extra" dejaría prize_pool inconsistente, así que se rechaza.
-     * En bote acumulativo el monto no aplica (se descarta en el request), así
-     * que solo se compara el tipo: una sala vieja con monto residual guardado
-     * no debe quedar bloqueada para editar otros campos.
+     * Con cartones vendidos no se puede cambiar lo que el jugador "compró":
+     *  - Tipo de bote y "Valor Fijo/Extra": prize_pool ya incluye los aportes
+     *    de esas ventas sobre el monto inicial.
+     *  - Rondas (cantidad, tipo, patrón, % / montos / premio) y %Rondas: son
+     *    los premios anunciados al momento de la compra. Además syncRounds()
+     *    borra y recrea las rondas en cada guardado.
+     *  - Seriales, variante (los cartones ya se generaron con ese formato) y
+     *    precio del cartón (mismo cartón, mismo precio para todos).
+     * Siguen editables: comisión, jackpot, horario, capacidad, cartón
+     * personalizado/especial, acceso privado. Quitar monedas vendidas ya tiene
+     * su propio guard (guardAgainstRemovingSoldCurrencies).
      *
-     * @throws BingoRoomException Si cambia el tipo de bote o su monto
+     * Un campo en null en el DTO se trata como "no enviado" y no se compara.
+     *
+     * @throws BingoRoomException Con la lista de campos que se intentó cambiar
      */
-    private function guardPrizePoolUnchanged(BingoRoom $room, BingoRoomUpdateDTO $dto): void
+    private function guardSalesLockedFields(BingoRoom $room, BingoRoomUpdateDTO $dto): void
     {
-        $current = $room->loadMissing('config')->config;
+        $room->loadMissing(['config', 'cardPrices', 'rounds.prizes']);
+        $current = $room->config;
         if (!$current) return;
 
-        if ((string) $current->prize_pool_type_id !== (string) $dto->prizePoolType) {
-            throw BingoRoomException::prizePoolLockedBySales();
+        $num  = fn ($v) => $v === null ? null : round((float) $v, 2);
+        $diff = fn ($old, $new) => $new !== null && $old !== $new;
+        $changed = [];
+
+        // Bote
+        if ($diff((string) $current->prize_pool_type_id, $dto->prizePoolType !== null ? (string) $dto->prizePoolType : null)) {
+            $changed[] = 'el tipo de bote';
+        } else {
+            // En acumulativo / Premio puro el monto no aplica (el request lo descarta),
+            // así que no se compara: una sala vieja con monto residual no queda bloqueada.
+            $type = PrizePoolType::find($current->prize_pool_type_id);
+            $roundTypes = BingoRoomPrizeRules::roundTypes($dto->roundsConfig ?? $this->roundsConfigFromRoom($room));
+            if ($type && BingoRoomPrizeRules::usesInitialAmount($type->code, $roundTypes)
+                && ($num($current->amount_added_prize_pool) ?? 0.0) !== ($num($dto->amountAddedPrizePool) ?? 0.0)
+            ) {
+                $changed[] = 'el valor fijo/extra';
+            }
         }
 
-        $type = PrizePoolType::find($dto->prizePoolType);
-        $roundTypes = BingoRoomPrizeRules::roundTypes($dto->roundsConfig ?? []);
-        if ($type && BingoRoomPrizeRules::usesInitialAmount($type->code, $roundTypes)
-            && round((float) ($current->amount_added_prize_pool ?? 0), 2) !== round((float) ($dto->amountAddedPrizePool ?? 0), 2)
+        // Rondas
+        if ($diff((int) $current->rounds, $dto->rounds)
+            || ($dto->roundsConfig !== null
+                && $this->normalizeRounds($this->roundsConfigFromRoom($room)) !== $this->normalizeRounds($dto->roundsConfig))
         ) {
-            throw BingoRoomException::prizePoolLockedBySales();
+            $changed[] = 'las rondas y sus premios';
         }
+        if ($diff($num($current->rounds_pct), $num($dto->roundsPct))) {
+            $changed[] = 'el % de rondas';
+        }
+
+        // Seriales
+        if ($diff((bool) $current->use_serials, $dto->useSerials)
+            || ($dto->useSerials && ($num($current->serials_pct) !== $num($dto->serialsPct) || (int) $current->num_serials !== (int) $dto->numSerials))
+        ) {
+            $changed[] = 'los seriales';
+        }
+
+        // Variante
+        if ($diff($current->game_variant ?? 'BINGO_75', $dto->gameVariant)) {
+            $changed[] = 'la variante de bingo';
+        }
+
+        // Precio del cartón
+        if ($this->cardPriceChanged($room, $dto, $num)) {
+            $changed[] = 'el precio del cartón';
+        }
+
+        if ($changed) {
+            throw BingoRoomException::fieldsLockedBySales($changed);
+        }
+    }
+
+    /**
+     * Precio del cartón: en modo base USD se compara el precio USD y su
+     * redondeo (los precios locales se recalculan con la tasa vigente); en modo
+     * manual, el precio de cada moneda que ya existía (agregar una moneda nueva
+     * con su precio sí está permitido: todavía no tiene compradores).
+     */
+    private function cardPriceChanged(BingoRoom $room, BingoRoomUpdateDTO $dto, \Closure $num): bool
+    {
+        $current = $room->config;
+        if ($dto->useBaseUsd !== null && (bool) $current->use_base_usd !== $dto->useBaseUsd) {
+            return true;
+        }
+
+        $useBaseUsd = $dto->useBaseUsd ?? (bool) $current->use_base_usd;
+        if ($useBaseUsd) {
+            return ($dto->cardPriceUsd !== null && $num($current->card_price_usd) !== $num($dto->cardPriceUsd))
+                || $num($current->usd_exchange_round_step) !== $num($dto->usdExchangeRoundStep);
+        }
+
+        if ($dto->cardPriceByCurrency === null) return false;
+        foreach ($room->cardPrices as $price) {
+            $key = (string) $price->currency_id;
+            if (array_key_exists($key, $dto->cardPriceByCurrency)
+                && $num($price->card_price) !== $num($dto->cardPriceByCurrency[$key])
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Forma canónica de roundsConfig para comparar: solo los campos que definen
+     * el premio de cada ronda según su tipo (ignora prizeName, claves de más, etc.).
+     */
+    private function normalizeRounds(array $roundsConfig): array
+    {
+        return array_values(array_map(function ($r) {
+            $type = $r['prizeType'] ?? 'percentage';
+            $fixed = [];
+            if ($type === 'fixed') {
+                foreach (($r['prizeValueByCurrency'] ?? []) as $cur => $v) {
+                    $fixed[(string) $cur] = $v === null || $v === '' ? null : round((float) $v, 2);
+                }
+                ksort($fixed);
+            }
+            return [
+                'type'    => $type,
+                'pattern' => (string) ($r['bingoPattern'] ?? ''),
+                // 0 y null = "sin %" (BingoRoomResource manda 0 cuando la ronda no tiene fila PCT)
+                'pct'     => $type === 'percentage' && (float) ($r['prizeValue'] ?? 0) > 0 ? round((float) $r['prizeValue'], 2) : null,
+                'fixed'   => $fixed,
+                'prizeId' => $type === 'prize' ? (string) ($r['prizeId'] ?? '') : '',
+            ];
+        }, $roundsConfig));
+    }
+
+    /**
+     * roundsConfig (formato del request) reconstruido desde las rondas guardadas.
+     * Requiere rounds.prizes cargado (y rounds.prizes.prize si se usa prizeName).
+     *
+     * El valor de cada ronda vive en bingo_round_prizes, no en bingo_rounds
+     * (ver syncRounds()): PCT → fila con currency_id null; FIXED → una fila por
+     * moneda; OTHER → fila con prize_id. Antes copyRoom() leía
+     * $round->prize_value / $round->prize_id (columnas inexistentes → null), así
+     * que "copiar sala" perdía los % de las rondas y los premios físicos.
+     */
+    private function roundsConfigFromRoom(BingoRoom $room): array
+    {
+        return $room->rounds
+            ->sortBy('round')
+            ->values()
+            ->map(function ($r) {
+                $prizeType = match ($r->prize_type) {
+                    'PCT'   => 'percentage',
+                    'FIXED' => 'fixed',
+                    default => 'prize',
+                };
+
+                $pctEntry   = $r->prizes->first(fn ($p) => $p->currency_id === null && $p->prize_id === null);
+                $prizeEntry = $r->prizes->first(fn ($p) => $p->prize_id !== null);
+
+                $config = [
+                    'prizeType'    => $prizeType,
+                    'bingoPattern' => $r->bingo_pattern_id,
+                    'prizeValue'   => $prizeType === 'percentage' && $pctEntry ? (float) $pctEntry->prize_value : null,
+                    'prizeId'      => $prizeType === 'prize' ? $prizeEntry?->prize_id : null,
+                    'prizeName'    => $prizeType === 'prize' ? ($prizeEntry?->prize?->name ?? null) : null,
+                ];
+
+                if ($prizeType === 'fixed') {
+                    $config['prizeValueByCurrency'] = $r->prizes
+                        ->filter(fn ($p) => $p->currency_id !== null)
+                        ->mapWithKeys(fn ($p) => [(string) $p->currency_id => (float) $p->prize_value])
+                        ->toArray();
+                }
+
+                return $config;
+            })
+            ->toArray();
     }
 
     /**
@@ -1258,34 +1407,7 @@ class BingoRoomCrudService
             ->map(fn($price) => (float) $price)
             ->toArray();
 
-        $roundsConfig = $room->rounds
-            ->sortBy('round')
-            ->values()
-            ->map(function ($r) {
-                $prizeType = match ($r->prize_type) {
-                    'PCT'   => 'percentage',
-                    'FIXED' => 'fixed',
-                    default => 'prize',
-                };
-
-                $config = [
-                    'prizeType'    => $prizeType,
-                    'bingoPattern' => $r->bingo_pattern_id,
-                    'prizeValue'   => $r->prize_value !== null ? (float) $r->prize_value : null,
-                    'prizeId'      => $prizeType === 'prize' ? $r->prize_id : null,
-                    'prizeName'    => $prizeType === 'prize' ? ($r->prize?->name ?? null) : null,
-                ];
-
-                if ($prizeType === 'fixed' && $r->prizes->isNotEmpty()) {
-                    $config['prizeValueByCurrency'] = $r->prizes
-                        ->pluck('prize_value', 'currency_id')
-                        ->map(fn($v) => (float) $v)
-                        ->toArray();
-                }
-
-                return $config;
-            })
-            ->toArray();
+        $roundsConfig = $this->roundsConfigFromRoom($room);
 
         // La copia se crea sin fecha/hora para evitar que quede con unix_date en el
         // pasado (si la sala original ya expiró) y sea inmediatamente expirada por el cron.
