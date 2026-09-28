@@ -110,6 +110,67 @@ final class PlatformWalletService
     }
 
     /**
+     * Revierte una comisión RKE acreditada por una venta que luego se reembolsó
+     * (sala cancelada o pago rechazado — ver BingoLotSaleReversalService).
+     * Sin esto la plataforma se quedaba con el RKE de un dinero que el jugador
+     * recuperó al 100%.
+     *
+     * Idempotente por $idempotencyKey (el job de reembolso puede reintentarse).
+     * Si la wallet no tiene saldo suficiente (ya se retiró), NO lanza — el
+     * reembolso al jugador es prioritario —: loguea el faltante como error para
+     * conciliación manual y devuelve null.
+     */
+    public function reverseRke(string $currencyId, float $amount, string $idempotencyKey, string $description = 'Reversión comisión RKE'): ?WalletMovement
+    {
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $wallet = $this->resolveWallet($currencyId);
+        if (! $wallet) {
+            \Illuminate\Support\Facades\Log::error('[PlatformWalletService] reverseRke(): no existe wallet de plataforma para la moneda', [
+                'currency_id' => $currencyId, 'amount' => $amount, 'idempotency_key' => $idempotencyKey,
+            ]);
+            return null;
+        }
+
+        $movement = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey, $currencyId) {
+            $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
+            $balanceBefore = (float) $locked->balance;
+
+            if ($balanceBefore < $amount) {
+                \Illuminate\Support\Facades\Log::error('[PlatformWalletService] reverseRke(): saldo insuficiente para revertir RKE — conciliar manualmente', [
+                    'currency_id' => $currencyId, 'amount' => $amount, 'balance' => $balanceBefore, 'idempotency_key' => $idempotencyKey,
+                ]);
+                return null;
+            }
+
+            $this->walletRepository->decrementBalance((string) $locked->id, $amount);
+
+            return $this->movementRepository->record([
+                'wallet_id'       => (string) $locked->id,
+                'user_id'         => (string) $locked->user_id,
+                'type'            => WalletMovement::TYPE_RKE_COMMISSION_REVERSAL,
+                'status'          => WalletMovement::STATUS_COMPLETED,
+                'amount'          => $amount,
+                'balance_before'  => $balanceBefore,
+                'balance_after'   => $balanceBefore - $amount,
+                'description'     => $description,
+                'idempotency_key' => $idempotencyKey,
+            ]);
+        });
+
+        Cache::forget($this->cacheKey($currencyId));
+
+        return $movement;
+    }
+
+    /**
      * Acredita una comisión de marketplace a la wallet de plataforma, de
      * forma idempotente — a diferencia de creditRke() (llamada inline desde
      * una única venta de cartones, sin reintentos), el settlement de un

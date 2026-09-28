@@ -86,6 +86,12 @@ return new class extends Migration
             // Permite filtrar/reportar lotes con selección manual sin hacer JOIN a bingo_cards.
             $table->boolean('has_custom_cards')->default(false);
 
+            // Desglose exacto de lo que la venta de este lote sumó en la sala, en
+            // BingoCreatorSale, en la wallet RKE y en el jackpot (ver
+            // RoomMetricsService). Permite revertirlo tal cual si el lote se
+            // reembolsa (BingoLotSaleReversalService). NULL en lotes previos.
+            $table->json('financial_breakdown')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
 

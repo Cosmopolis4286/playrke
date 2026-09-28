@@ -31,6 +31,8 @@ class JackpotMovement extends Model
     protected $keyType = 'string';
 
     public const TYPE_CONTRIBUTION = 'CONTRIBUTION';
+    /** Reversa de un aporte cuya venta se reembolsó (JackpotLedgerService::reverseContribution). */
+    public const TYPE_REVERSAL = 'REVERSAL';
 
     protected $fillable = [
         'jackpot_id',

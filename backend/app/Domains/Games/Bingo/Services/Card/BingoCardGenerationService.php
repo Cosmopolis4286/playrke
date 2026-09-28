@@ -111,7 +111,10 @@ final class BingoCardGenerationService
             BingoRoomCardCapacityGuard::assertHasCapacityFor($room, $cardCount);
 
             // Actualizar acumulado y comisiones de la sala
-            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $cardOrder, $saleAmountUsd, $sellerSaleCommn ?? 0);
+            $saleBreakdown = null;
+            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $cardOrder, $saleAmountUsd, $sellerSaleCommn ?? 0, $saleBreakdown);
+            // Se guarda en el lote para poder revertir la venta si se reembolsa.
+            $cardOrder['financialBreakdown'] = $saleBreakdown;
 
             if (!$updateRoomMetrics) {
                 throw new \DomainException('Error al actualizar los valores de la sala');

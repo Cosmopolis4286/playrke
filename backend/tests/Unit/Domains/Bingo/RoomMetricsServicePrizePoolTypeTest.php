@@ -2,7 +2,9 @@
 
 namespace Tests\Unit\Domains\Bingo;
 
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -72,14 +74,70 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         return BingoRoom::find($roomId);
     }
 
-    private function sell(BingoRoom $room, float $amount): void
+    private function sell(BingoRoom $room, float $amount): ?array
     {
+        $breakdown = null;
         $ok = app(RoomMetricsService::class)->updateRoomMetricsWithCommissions(
             $room,
             ['cardCount' => 1, 'currency' => $this->currencyId, 'creator' => ['id' => '1']],
             $amount,
+            0,
+            $breakdown,
         );
         $this->assertTrue($ok);
+        return $breakdown;
+    }
+
+    #[Test]
+    public function reembolsar_un_lote_revierte_exactamente_su_venta(): void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
+        $jackpotTypeId = '930000000000000999';
+
+        $this->sell($room->fresh(), 40.0);          // venta que se queda
+        $breakdown = $this->sell($room->fresh(), 100.0); // venta que se reembolsa
+
+        $lot = new BingoCardLot(['financial_breakdown' => $breakdown]);
+        $lot->id = '930000000000000777';
+
+        $jackpotBefore = (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount');
+        $this->assertTrue(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh()));
+
+        // La sala queda como si solo existiera la venta de 40.
+        $fresh = $room->fresh();
+        $this->assertEqualsWithDelta(40.0, (float) $fresh->total_sales, 0.01);
+        $this->assertEquals(1, (int) $fresh->total_cards);
+        $this->assertEqualsWithDelta(32.0, (float) $fresh->prize_pool, 0.01); // 40 - 5% - 10% - 5%
+        $this->assertEqualsWithDelta(2.0, (float) $fresh->rke_commission, 0.01);
+        $byCurrency = (array) $fresh->metrics_by_currency[$this->currencyId];
+        $this->assertEqualsWithDelta(32.0, (float) $byCurrency['prize_pool'], 0.01);
+        $this->assertEqualsWithDelta(2.0, (float) $byCurrency['jackpot_contribution'], 0.01);
+
+        $sale = BingoCreatorSale::where('room_id', $room->id)->firstOrFail();
+        $this->assertEqualsWithDelta(40.0, (float) $sale->sale_amount, 0.01);
+        $this->assertEqualsWithDelta(2.0, (float) $sale->jackpot_contribution, 0.01);
+
+        // El jackpot devuelve el aporte de la venta reembolsada (5 USD).
+        $jackpotAfter = (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount');
+        $this->assertEqualsWithDelta(5.0, $jackpotBefore - $jackpotAfter, 0.01);
+        $this->assertTrue(DB::table('jackpot_movements')->where('idempotency_key', 'bingo-lot-jackpot-reversal-' . $lot->id)->exists());
+
+        // Idempotente: una segunda reversa del mismo lote no vuelve a tocar el jackpot.
+        app(\App\Services\Jackpot\JackpotLedgerService::class)->reverseContribution($jackpotTypeId, 5.0, 'bingo-lot-jackpot-reversal-' . $lot->id);
+        $this->assertEqualsWithDelta($jackpotAfter, (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount'), 0.01);
+    }
+
+    #[Test]
+    public function lote_sin_desglose_no_se_revierte_y_lo_informa(): void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE');
+        $this->sell($room->fresh(), 100.0);
+
+        $lot = new BingoCardLot(['financial_breakdown' => null]);
+        $lot->id = '930000000000000778';
+
+        $this->assertFalse(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh()));
+        $this->assertEqualsWithDelta(100.0, (float) $room->fresh()->total_sales, 0.01);
     }
 
     #[Test]

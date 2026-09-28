@@ -4,7 +4,10 @@ namespace App\Services\Jackpot;
 
 use App\Contracts\JackpotMovementRepositoryInterface;
 use App\Contracts\JackpotRepositoryInterface;
+use App\Models\Jackpot;
 use App\Models\JackpotMovement;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Acumulación del jackpot — SOLO aporta al pozo, no paga ni entrega premios
@@ -47,5 +50,57 @@ final class JackpotLedgerService
             'description'    => $description ?? 'Aporte por venta de cartón',
             'metadata'       => $metadata,
         ]);
+    }
+
+    /**
+     * Revierte el aporte de una venta que luego se reembolsó (sala cancelada o
+     * pago rechazado — ver BingoLotSaleReversalService). Sin esto el pozo se
+     * quedaba con un aporte de dinero que el jugador recuperó al 100%.
+     *
+     * Idempotente por $idempotencyKey (el job de reembolso puede reintentarse).
+     * Si el pozo ya no alcanza (se pagó), revierte lo que haya y loguea el
+     * faltante para conciliación manual — nunca deja el pozo en negativo.
+     */
+    public function reverseContribution(
+        string $jackpotTypeId,
+        float $amount,
+        string $idempotencyKey,
+        ?string $roomId = null,
+        ?string $description = null,
+    ): void {
+        if ($amount <= 0) {
+            return;
+        }
+        if (JackpotMovement::where('idempotency_key', $idempotencyKey)->exists()) {
+            return;
+        }
+
+        $jackpot = $this->jackpots->firstOrCreateByType($jackpotTypeId);
+
+        DB::transaction(function () use ($jackpot, $amount, $idempotencyKey, $roomId, $description) {
+            $locked = Jackpot::where('id', $jackpot->id)->lockForUpdate()->firstOrFail();
+            $balanceBefore = (float) $locked->amount;
+            $reversible = min($amount, $balanceBefore);
+
+            if ($reversible < $amount) {
+                Log::error('[JackpotLedgerService] reverseContribution(): el pozo no alcanza para revertir el aporte completo — conciliar manualmente', [
+                    'jackpot_id' => (string) $locked->id, 'amount' => $amount, 'balance' => $balanceBefore, 'idempotency_key' => $idempotencyKey,
+                ]);
+            }
+
+            $locked->decrement('amount', $reversible);
+
+            $this->movements->record([
+                'jackpot_id'      => (string) $locked->id,
+                'room_id'         => $roomId,
+                'type'            => JackpotMovement::TYPE_REVERSAL,
+                'amount'          => $reversible,
+                'balance_before'  => $balanceBefore,
+                'balance_after'   => $balanceBefore - $reversible,
+                'description'     => $description ?? 'Reversión de aporte por reembolso',
+                'idempotency_key' => $idempotencyKey,
+                'metadata'        => $reversible < $amount ? ['shortfall' => round($amount - $reversible, 4)] : null,
+            ]);
+        });
     }
 }

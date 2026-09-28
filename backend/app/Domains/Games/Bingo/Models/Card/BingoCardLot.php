@@ -21,6 +21,7 @@ class BingoCardLot extends Model
     protected $fillable = [
         'room_id', 'user_id', 'seller_user_id', 'seller_type', 'room_user_id', 'currency_id',
         'card_count', 'card_price', 'exchange_rate', 'sale_amount', 'bonus_amount', 'commission_amount', 'status', 'has_custom_cards',
+        'financial_breakdown',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class BingoCardLot extends Model
         'sale_amount'       => 'decimal:2',
         'bonus_amount'      => 'decimal:2',
         'commission_amount' => 'decimal:2',
+        'financial_breakdown' => 'array',
         'status'            => 'string',
         'has_custom_cards'  => 'boolean',
         'created_at'        => 'datetime',

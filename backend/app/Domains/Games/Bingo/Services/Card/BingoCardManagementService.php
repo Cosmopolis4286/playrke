@@ -41,6 +41,8 @@ class BingoCardManagementService
                 'exchange_rate'    => $cartonData['exchangeRate'] ?? 1,
                 'status'           => 'ACTIVE',
                 'has_custom_cards' => $isCustom,
+                // Desglose de la venta (RoomMetricsService) — para revertirla si se reembolsa.
+                'financial_breakdown' => $cartonData['financialBreakdown'] ?? null,
             ];
 
             $lot = BingoCardLot::create($lotData);

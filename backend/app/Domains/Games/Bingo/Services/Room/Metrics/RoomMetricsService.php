@@ -194,10 +194,14 @@ class RoomMetricsService implements RoomMetricsInterface
      * @param array $saleData Datos de la venta
      * @param float $saleAmount Monto de la venta
      * @param float $sellerCommission Comisión del vendedor
+     * @param array|null $breakdown (salida) Desglose exacto de ESTA venta — el
+     *        caller lo persiste en el lote (bingo_card_lots.financial_breakdown)
+     *        para poder revertirlo si el lote se reembolsa (ver BingoLotSaleReversalService).
      * @return bool True si se actualizó correctamente
      */
-    public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0): bool
+    public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0, ?array &$breakdown = null): bool
     {
+        $breakdown = null;
         try {
             // Releer la fila con lockForUpdate() DENTRO de la transacción ya abierta por
             // el caller (BingoCardGenerationService::generateCards(), siempre envuelto en
@@ -295,6 +299,12 @@ class RoomMetricsService implements RoomMetricsInterface
                 $updateData['full_house_prize'] = ($room->full_house_prize ?? 0) + $prizePool;
             }
 
+            // Lo efectivamente acreditado fuera de la sala (para revertirlo exacto
+            // si el lote se reembolsa): cualquiera de las dos acreditaciones puede
+            // fallar en silencio (try/catch de abajo) y entonces no hay nada que revertir.
+            $rkeCreditedLocal = 0.0;
+            $jackpotCreditedUsd = 0.0;
+
             // Acreditar RKE a la billetera de plataforma (convertida a la moneda local de la venta)
             if ($rkeCommission > 0) {
                 try {
@@ -307,6 +317,7 @@ class RoomMetricsService implements RoomMetricsInterface
                             $rkeCommissionLocal,
                             'Comisión RKE – Sala #' . $room->uuid_code
                         );
+                        $rkeCreditedLocal = $rkeCommissionLocal;
                     }
                 } catch (\Throwable $e) {
                     // No interrumpir la venta si la billetera de plataforma falla
@@ -328,6 +339,7 @@ class RoomMetricsService implements RoomMetricsInterface
                         description: 'Aporte jackpot – Sala #' . $room->uuid_code,
                         metadata: ['currency_id' => $saleData['currency'] ?? null],
                     );
+                    $jackpotCreditedUsd = $jackpotContribution;
                 } catch (\Throwable $e) {
                     Log::warning('JackpotLedger: no se pudo acreditar aporte', [
                         'roomId' => $room->id,
@@ -388,6 +400,7 @@ class RoomMetricsService implements RoomMetricsInterface
 
             // Registrar venta por sala/creador/moneda para el panel de Comisiones RKE
             // (para todo tipo de bote — ver comentario del reparto más arriba).
+            $creatorSale = null;
             try {
                 $creatorUserId = (string) ($saleData['creator']['id'] ?? null);
                 $currencyIdStr = (string) ($saleData['currency'] ?? '');
@@ -427,6 +440,16 @@ class RoomMetricsService implements RoomMetricsInterface
                             'prize_pool_amount' => $finalPrizeLocal,
                         ]);
                     }
+
+                    $creatorSale = [
+                        'creator_user_id'      => $creatorUserId,
+                        'sale_amount'          => round($saleAmountLocal, 3),
+                        'rke_commission'       => round($finalRkeLocal, 3),
+                        'room_commission'      => round($creatorCommissionLocal, 3),
+                        'seller_commission'    => round($sellerCommissionLocal, 3),
+                        'jackpot_contribution' => round($jackpotContributionLocal, 3),
+                        'prize_pool_amount'    => $finalPrizeLocal,
+                    ];
                 }
             } catch (\Throwable $e) {
                 Log::warning('No se pudo registrar BingoCreatorSale', [
@@ -434,6 +457,37 @@ class RoomMetricsService implements RoomMetricsInterface
                     'error'  => $e->getMessage(),
                 ]);
             }
+
+            // Desglose exacto de lo que ESTA venta sumó en cada lugar — se guarda en
+            // el lote para revertirlo tal cual si se reembolsa (sala cancelada o pago
+            // rechazado). Recalcularlo después con los % de la sala no sirve: la
+            // comisión y el jackpot siguen editables tras vender.
+            $breakdown = [
+                'version'     => 1,
+                'currency_id' => $currencyId !== '' ? $currencyId : null,
+                'room_usd' => [
+                    'total_sales'       => round($saleAmount, 3),
+                    'total_cards'       => (int) $saleData['cardCount'],
+                    'rke_commission'    => $rkeCommission,
+                    'room_commission'   => $creatorCommission,
+                    'seller_commission' => isset($saleData['seller']) ? $sellerCommission : 0.0,
+                    'prize_pool'        => $accruesMoneyPool ? $prizePool : 0.0,
+                ],
+                'room_local' => $currencyId !== '' ? [
+                    'total_sales'          => round($saleAmountLocal, 3),
+                    'total_cards'          => (int) $saleData['cardCount'],
+                    'prize_pool'           => $accruesMoneyPool ? round($prizePoolLocal, 3) : 0.0,
+                    'prize_funding'        => $accruesMoneyPool ? 0.0 : round($prizePoolLocal, 3),
+                    'rke_commission'       => round($rkeCommissionLocal, 3),
+                    'room_commission'      => round($creatorCommissionLocal, 3),
+                    'seller_commission'    => isset($saleData['seller']) ? round($sellerCommissionLocal, 3) : 0.0,
+                    'jackpot_contribution' => round($jackpotContributionLocal, 3),
+                ] : null,
+                'creator_sale'        => $creatorSale,
+                'rke_credited_local'  => $rkeCreditedLocal,
+                'jackpot_type_id'     => $jackpotCreditedUsd > 0 ? (string) $bingoConfig->jackpot_type_id : null,
+                'jackpot_credited_usd'=> $jackpotCreditedUsd,
+            ];
 
             return $result;
         } catch (\Throwable $e) {

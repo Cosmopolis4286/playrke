@@ -5,6 +5,7 @@ namespace App\Domains\Games\Bingo\Jobs;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Wallet\Exceptions\WalletUnavailableException;
@@ -110,6 +111,11 @@ final class BingoCardLotRefundJob implements ShouldQueue
                         'external_player_phone'     => $externalBuyer->phone,
                     ] : [],
                 );
+
+                // Revertir lo que esta venta sumó (métricas y bote de la sala,
+                // BingoCreatorSale, RKE de plataforma, aporte al jackpot) — en la
+                // misma transacción: si falla, el reembolso se reintenta entero.
+                app(BingoLotSaleReversalService::class)->reverse($lot, $room);
 
                 $lot->update(['status' => 'REFUNDED']);
 
