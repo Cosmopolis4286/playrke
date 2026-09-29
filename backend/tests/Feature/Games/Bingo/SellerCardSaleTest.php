@@ -470,4 +470,74 @@ class SellerCardSaleTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'props.payments');
     }
+
+    // ─── Punto de venta (/bingo-card/pos/*) ──────────────────────────────────
+
+    /** @test */
+    public function pos_rooms_lists_own_and_public_rooms_in_one_call_but_not_private_rooms_of_others(): void
+    {
+        $response = $this->actingAs($this->sellerE)
+            ->getJson('/bingo-card/pos/rooms?date=' . now()->addDay()->toDateString())
+            ->assertOk();
+
+        $ids = collect($response->json('rooms'))->pluck('id');
+
+        // Propia (privada de D) + pública de C, ambas con sus tipos para filtrar en el cliente.
+        $this->assertTrue($ids->contains($this->privateRoomD->getRouteKey()));
+        $this->assertTrue($ids->contains($this->roomR1->getRouteKey()));
+
+        $own = collect($response->json('rooms'))->firstWhere('id', $this->privateRoomD->getRouteKey());
+        $this->assertTrue($own['is_own']);
+        $this->assertNotNull($own['room_type_id']);
+        $this->assertEqualsWithDelta(self::ROOM_PRICE_USD, $own['card_price_usd'], 0.001);
+
+        // La sala privada de D nunca le aparece a un vendedor de C.
+        $idsA = collect($this->actingAs($this->sellerA)
+            ->getJson('/bingo-card/pos/rooms?date=' . now()->addDay()->toDateString())
+            ->assertOk()
+            ->json('rooms'))->pluck('id');
+
+        $this->assertFalse($idsA->contains($this->privateRoomD->getRouteKey()));
+    }
+
+    /** @test */
+    public function pos_endpoints_are_only_for_sellers(): void
+    {
+        foreach (['/bingo-card/pos/rooms?date=' . now()->toDateString(), '/bingo-card/pos/frequent-buyers', '/bingo-card/pos/today-sales'] as $url) {
+            $this->actingAs($this->commerceC)->getJson($url)->assertForbidden();
+        }
+    }
+
+    /** @test */
+    public function frequent_buyers_and_today_sales_only_show_the_sellers_own_buyers(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        // Búsqueda por nombre y por dígitos del teléfono (se guarda formateado).
+        foreach (['', 'ana', '1112233'] as $q) {
+            $buyers = $this->actingAs($this->sellerA)
+                ->getJson('/bingo-card/pos/frequent-buyers?q=' . $q)
+                ->assertOk()
+                ->json('buyers');
+
+            $this->assertCount(1, $buyers, "búsqueda '{$q}'");
+            $this->assertSame('Ana', $buyers[0]['first_name']);
+            $this->assertSame(1, $buyers[0]['purchases']);
+        }
+
+        $this->actingAs($this->sellerA)->getJson('/bingo-card/pos/frequent-buyers?q=zzz')->assertOk()->assertJsonCount(0, 'buyers');
+
+        $today = $this->actingAs($this->sellerA)->getJson('/bingo-card/pos/today-sales')->assertOk();
+        $this->assertSame(1, $today->json('summary.sales_count'));
+        $this->assertSame(2, $today->json('summary.cards_count'));
+        $this->assertSame(1, $today->json('summary.pending'));
+        $this->assertEqualsWithDelta(50.00, $today->json('summary.totals.0.amount'), 0.001);
+        $this->assertSame('PENDING', $today->json('sales.0.status'));
+        $this->assertSame('Ana Pérez', $today->json('sales.0.buyer_name'));
+        $this->assertNotNull($today->json('sales.0.player_link'));
+
+        // Otro vendedor no ve compradores ni ventas ajenas.
+        $this->actingAs($this->sellerE)->getJson('/bingo-card/pos/frequent-buyers')->assertOk()->assertJsonCount(0, 'buyers');
+        $this->actingAs($this->sellerE)->getJson('/bingo-card/pos/today-sales')->assertOk()->assertJsonCount(0, 'sales');
+    }
 }
