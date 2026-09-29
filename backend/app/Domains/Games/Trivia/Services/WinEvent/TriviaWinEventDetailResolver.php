@@ -54,7 +54,7 @@ final class TriviaWinEventDetailResolver implements WinEventDetailResolver
 
         return array_values(array_filter([
             $participant ? $this->performanceSection($participant) : null,
-            $room ? $this->roomSection($room, $winEvent) : null,
+            $room ? $this->roomSection($room, $winEvent) : $this->missingRoomSection($winEvent),
             $movement ? $this->movementSection($movement) : null,
         ]));
     }
@@ -108,6 +108,20 @@ final class TriviaWinEventDetailResolver implements WinEventDetailResolver
                 'prize'      => $p->prize_won !== null ? number_format((float) $p->prize_won, 2) : '—',
                 '_highlight' => (string) $p->user_id === (string) $winEvent->user_id,
             ])->all());
+    }
+
+    /** Sala referenciada en metadata pero ya inexistente en pgsql_trivia. */
+    private function missingRoomSection(WinEvent $winEvent): ?Section
+    {
+        $roomId = $winEvent->metadata['room_id'] ?? null;
+        if (! $roomId) {
+            return null;
+        }
+
+        return Section::make('trivia-room', 'Sala de Trivia', 'fas fa-door-open')
+            ->item('Estado', 'Sala no encontrada', Section::TYPE_BADGE, 'secondary')
+            ->item('Código', $winEvent->metadata['room_code'] ?? null, Section::TYPE_CODE)
+            ->item('ID de sala', (string) $roomId, Section::TYPE_CODE);
     }
 
     private function movementSection(WalletMovement $m): Section
