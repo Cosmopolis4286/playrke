@@ -57,15 +57,23 @@ function goToHistorical(currencyId: string): void {
         :title="`Ver histórico completo de ${rate.currency_code}`"
         @click="goToHistorical(rate.currency_id)"
       >
-        <span class="er-item__code">{{ rate.currency_code }}</span>
-        <span class="er-item__value">{{ rate.symbol }} {{ rate.amount.toFixed(4) }}</span>
-        <span v-if="rate.percentage" class="er-item__pct" :class="{ 'er-item__pct--up': rate.percentage > 0, 'er-item__pct--down': rate.percentage < 0 }">
-          {{ rate.percentage > 0 ? '+' : '' }}{{ rate.percentage }}%
-        </span>
-        <span class="er-item__spark">
-          <ExchangeRateTrendChart :data="rate.history" :height="36" compact />
-        </span>
-        <span class="er-item__date">{{ formatDate(rate.updated_at) }}</span>
+        <div class="er-item__row">
+          <span class="er-item__code">{{ rate.currency_code }}</span>
+          <span class="er-item__value">{{ rate.symbol }} {{ rate.amount.toFixed(4) }}</span>
+          <span v-if="rate.percentage" class="er-item__pct" :class="{ 'er-item__pct--up': rate.percentage > 0, 'er-item__pct--down': rate.percentage < 0 }">
+            {{ rate.percentage > 0 ? '+' : '' }}{{ rate.percentage }}%
+          </span>
+          <span class="er-item__spark">
+            <ExchangeRateTrendChart :data="rate.history" :height="36" compact />
+          </span>
+        </div>
+        <div class="er-item__meta">
+          <span class="er-item__source" :class="{ 'er-item__source--system': rate.source === 'system' }">
+            <i :class="rate.source === 'system' ? 'fas fa-robot' : 'fas fa-user'"></i>
+            {{ rate.source === 'system' ? 'Automático' : rate.user_name }}
+          </span>
+          <span class="er-item__date">{{ formatDate(rate.updated_at) }}</span>
+        </div>
       </button>
     </div>
 
@@ -153,8 +161,8 @@ function goToHistorical(currencyId: string): void {
 
 .er-item {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.35rem;
   padding: 0.6rem 0.875rem;
   background: var(--ds-surface-2);
   border-radius: 8px;
@@ -170,6 +178,32 @@ function goToHistorical(currencyId: string): void {
   transition: background 0.15s;
 }
 .er-item:hover { background: var(--ds-border-2); }
+
+.er-item__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.er-item__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-left: 0.05rem;
+}
+
+.er-item__source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--ds-text-muted);
+}
+.er-item__source i { font-size: 0.68rem; }
+/* 'Automático' (cronjob) en violeta acento — visualmente distinto de un
+   nombre de usuario real, que se queda con el color muted por defecto. */
+.er-item__source--system { color: #a78bfa; font-weight: 600; }
 
 .er-item__spark {
   width: 90px;
