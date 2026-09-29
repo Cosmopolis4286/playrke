@@ -296,6 +296,60 @@ class SellerCardSaleTest extends TestCase
         $this->assertEqualsWithDelta(round(50.00 * 4.5 / 100, 2), (float) $lot->commission_amount, 0.001);
     }
 
+    // ─── Reparto en cascada de la red comercial ──────────────────────────────
+
+    /** @test */
+    public function agency_seller_sale_splits_network_commission_in_cascade(): void
+    {
+        // Comercializadora C: 5% (fixture). Agencia S de C: 4%. Vendedor F de S: 3%.
+        $subsidiaryUser = $this->makeUserWithRole('commerce');
+        $subsidiaryId = $this->nextId();
+        $commerceId = Commerce::where('user_id', $this->commerceC->id)->value('id');
+        DB::table('subsidiaries')->insert([
+            'id' => $subsidiaryId, 'name' => 'Agencia S', 'commission' => 4.00,
+            'commerce_id' => $commerceId, 'user_id' => $subsidiaryUser->id,
+            'country_id' => $this->country->id, 'currency_id' => $this->currency->id,
+            'status' => 'ACTIVE', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $sellerF = $this->makeSeller($this->commerceC);
+        Seller::where('user_id', $sellerF->id)->update(['subsidiary_id' => $subsidiaryId]);
+
+        $this->sale($sellerF, $this->roomR1)->assertOk();
+
+        // Venta 2 × 25 = 50: vendedor 3% = 1.50, agencia 4−3 = 0.50,
+        // comercializadora 5−max(3,4) = 0.50.
+        $lot = BingoCardLot::where('seller_user_id', $sellerF->id)->firstOrFail();
+        $this->assertEqualsWithDelta(1.50, (float) $lot->commission_amount, 0.001);
+        $this->assertEqualsWithDelta(0.50, (float) $lot->subsidiary_commission_amount, 0.001);
+        $this->assertEqualsWithDelta(0.50, (float) $lot->commerce_commission_amount, 0.001);
+        $this->assertSame((string) $subsidiaryId, (string) $lot->subsidiary_id);
+        $this->assertSame((string) $commerceId, (string) $lot->commerce_id);
+
+        // Las porciones de red salen del bote (igual que la del vendedor) y
+        // quedan registradas con la integridad venta = comisiones + bote.
+        $sale = \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::where('room_id', $this->roomR1->id)->firstOrFail();
+        $this->assertEqualsWithDelta(0.50, (float) $sale->subsidiary_commission, 0.001);
+        $this->assertEqualsWithDelta(0.50, (float) $sale->commerce_commission, 0.001);
+        $this->assertTrue($sale->is_valid, 'sale_amount debe igualar comisiones + jackpot + bote');
+
+        // El desglose del lote incluye las porciones (se revierten en un reembolso).
+        $this->assertEqualsWithDelta(0.50, (float) $lot->financial_breakdown['room_local']['subsidiary_commission'], 0.001);
+        $this->assertEqualsWithDelta(0.50, (float) $lot->financial_breakdown['creator_sale']['commerce_commission'], 0.001);
+    }
+
+    /** @test */
+    public function direct_seller_sale_gives_commerce_the_difference(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        // Directo: vendedor 3% = 1.50, comercializadora 5−3 = 1.00, sin agencia.
+        $lot = BingoCardLot::where('seller_user_id', $this->sellerA->id)->firstOrFail();
+        $this->assertEqualsWithDelta(1.50, (float) $lot->commission_amount, 0.001);
+        $this->assertEqualsWithDelta(0.00, (float) $lot->subsidiary_commission_amount, 0.001);
+        $this->assertEqualsWithDelta(1.00, (float) $lot->commerce_commission_amount, 0.001);
+        $this->assertNull($lot->subsidiary_id);
+    }
+
     // ─── Registro del pago ───────────────────────────────────────────────────
 
     /** @test */

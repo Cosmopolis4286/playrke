@@ -87,7 +87,7 @@ final class CommerceDashboardContextService
         $pendingPayouts = WalletMovement::forUser($userId)
             ->where('status', WalletMovement::STATUS_PENDING)
             ->count();
-        $commissionByCurrency = $this->buildCommissionThisMonth($networkUserIds, $startOfMonth);
+        $commissionByCurrency = $this->buildCommissionThisMonth($networkUserIds, $startOfMonth, $commerce);
 
         return [
             'totalSales' => array_merge([
@@ -144,31 +144,46 @@ final class CommerceDashboardContextService
      * paga, no lo que gana). La comisión de sala por venta vive en
      * bingo_creator_sales, que es su fuente real.
      *
+     * Suma además la porción de RED del comercio (commerce_commission_amount
+     * de los lotes vendidos por su red, reparto en cascada — ver
+     * CommissionCalculationService::networkSplit()), en cualquier sala: son
+     * dos ingresos distintos, como organizador y como distribuidor.
+     *
      * @param string[] $networkUserIds
      * @return array{primaryLabel: string, descriptionSuffix: string, hasCommission: bool}
      */
-    private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth): array
+    private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth, ?Commerce $commerce = null): array
     {
-        $rows = \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::whereIn('creator_user_id', $networkUserIds)
+        // Alias distinto de "total_commission": BingoCreatorSale tiene un
+        // accessor getTotalCommissionAttribute() que lo taparía (y en una
+        // fila agregada devuelve 0).
+        $byCurrency = \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::whereIn('creator_user_id', $networkUserIds)
             ->where('updated_at', '>=', $startOfMonth)
-            // Alias distinto de "total_commission": BingoCreatorSale tiene un
-            // accessor getTotalCommissionAttribute() que lo taparía (y en una
-            // fila agregada devuelve 0).
-            ->select(['currency_id', DB::raw('SUM(room_commission) as room_commission_sum')])
             ->groupBy('currency_id')
-            ->having(DB::raw('SUM(room_commission)'), '>', 0)
-            ->orderByDesc(DB::raw('SUM(room_commission)'))
-            ->with('currency:id,iso_code,symbol')
-            ->get();
+            ->pluck(DB::raw('SUM(room_commission) as room_commission_sum'), 'currency_id')
+            ->map(fn ($sum) => (float) $sum);
 
-        if ($rows->isEmpty()) {
+        if ($commerce) {
+            BingoCardLot::where('commerce_id', $commerce->id)
+                ->where('status', 'ACTIVE')
+                ->where('created_at', '>=', $startOfMonth)
+                ->groupBy('currency_id')
+                ->pluck(DB::raw('SUM(commerce_commission_amount) as network_sum'), 'currency_id')
+                ->each(function ($sum, $currencyId) use ($byCurrency) {
+                    $byCurrency[$currencyId] = ($byCurrency[$currencyId] ?? 0) + (float) $sum;
+                });
+        }
+
+        $byCurrency = $byCurrency->filter(fn ($sum) => $sum > 0)->sortDesc();
+
+        if ($byCurrency->isEmpty()) {
             return ['primaryLabel' => '—', 'descriptionSuffix' => 'Sin comisión este mes', 'hasCommission' => false];
         }
 
-        $primary = $rows->first();
-        $primaryLabel = ($primary->currency?->symbol ?? '') . ' ' . number_format((float) $primary->room_commission_sum, 2);
+        $primaryCurrency = \App\Models\Currency::find($byCurrency->keys()->first(), ['id', 'symbol']);
+        $primaryLabel = ($primaryCurrency?->symbol ?? '') . ' ' . number_format((float) $byCurrency->first(), 2);
 
-        $rest = $rows->slice(1);
+        $rest = $byCurrency->slice(1);
         $descriptionSuffix = $rest->isEmpty()
             ? 'Tasa configurada'
             : 'Tasa configurada · +' . $rest->count() . ' moneda(s) más';

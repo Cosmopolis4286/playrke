@@ -119,19 +119,46 @@ con tasas configurables por sala en `bingo_rooms_config`:
 
 ```
 saleAmount (precio del cartón × cantidad)
- ├─ seller_commission → Seller.commission o SellerRoomLimits override
- │                       (CommissionCalculationService::calculateSellerCommission)
- ├─ room_commission   → % de bingo_rooms_config, va al commerce dueño de la sala
- ├─ rke_commission    → % de bingo_rooms_config, acreditado a PlatformWalletService
- └─ resto             → prize_pool / full_house_prize de la sala
+ ├─ seller_commission     → X: Seller.commission o SellerRoomLimits override (+ bono progresivo)
+ ├─ subsidiary_commission → Y − X   (solo si el vendedor es de agencia)
+ ├─ commerce_commission   → Z − max(X, Y)   (Y = 0 para vendedor directo)
+ │     └─ las tres: CommissionCalculationService::networkSplit(), reparto en cascada
+ ├─ room_commission       → % de bingo_rooms_config, va al commerce dueño de la sala
+ ├─ rke_commission        → % de bingo_rooms_config, acreditado a PlatformWalletService
+ ├─ jackpot_contribution  → % del jackpot asignado a la sala
+ └─ resto                 → prize_pool / full_house_prize de la sala
 ```
+
+### Reparto en cascada de la red comercial (desde 2026-09-29)
+
+X = tasa efectiva del vendedor, Y = `subsidiaries.commission`, Z =
+`commerces.commission`. Cada nivel superior cobra la **diferencia** con el
+inferior; la comisión total de la red es `max(X, Y, Z)`, descontada antes del
+bote (igual que antes lo era solo la del vendedor). Ningún nivel cobra
+negativo (`max(0, …)`), aunque un bono o una comisión especial de sala
+supere al padre.
+
+- **Topes** `X ≤ Y ≤ Z` (directo: `X ≤ Z`): `App\Services\Roles\
+  CommissionHierarchyGuard`, validado al crear/editar/reasignar vendedores,
+  crear/editar/trasladar agencias y editar comercializadoras
+  (`COMMISSION_ABOVE_PARENT` / `COMMISSION_BELOW_CHILDREN`, 422).
+- **Persistencia**: por lote en `bingo_card_lots` (`commission_amount`,
+  `subsidiary_commission_amount`, `commerce_commission_amount` + snapshot
+  `subsidiary_id`/`commerce_id` al vender); agregado en
+  `bingo_creator_sales` y `bingo_rooms` (+ `metrics_by_currency`) con las
+  columnas `subsidiary_commission`/`commerce_commission`; y en
+  `financial_breakdown`, por lo que un reembolso las revierte
+  (`BingoLotSaleReversalService`).
+- Sin vendedor (compra directa de player, o del propio commerce) no hay
+  comisión de red.
 
 `BingoCreator.creator_commission` es una copia de solo-sincronización de
 `bingo_rooms_config.room_commission` (ambos se escriben al crear/editar una
 sala en `BingoRoomCrudService`), útil para listar en UI, pero **no** es lo
 que se lee en el momento del cálculo de venta.
 
-`CommissionCalculationService` solo implementa `calculateSellerCommission()`;
+`CommissionCalculationService` implementa `sellerCommissionRate()`,
+`calculateSellerCommission()` y `networkSplit()`;
 los métodos que antes calculaban comisión de sala/RKE con tasas hardcodeadas
 (5%/10%) fueron eliminados por ser código muerto que nunca se invocaba desde
 el flujo real y podía confundir sobre cuál es la fuente de verdad.

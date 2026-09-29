@@ -4,7 +4,9 @@ namespace Tests\Feature\Roles\Seller;
 
 use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryDTO;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
+use App\Exceptions\Domain\Roles\CommissionHierarchyException;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
+use App\Services\Roles\CommissionHierarchyGuard;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Role;
@@ -117,7 +119,8 @@ class ManagerSellerHierarchyTest extends TestCase
             'user_id'     => $user->id,
             'country_id'  => $this->country->id,
             'currency_id' => $this->currency->id,
-            'commission'  => 2.00,
+            // Topes vendedor (3) ≤ agencia (4) ≤ comercializadora (5).
+            'commission'  => 4.00,
             'phone'       => '+58414' . random_int(1000000, 9999999),
             'status'      => 'ACTIVE',
         ]);
@@ -143,12 +146,12 @@ class ManagerSellerHierarchyTest extends TestCase
         ]);
     }
 
-    private function dto(?string $managerUserId = null): ManagerSellerDTO
+    private function dto(?string $managerUserId = null, ?string $commission = null): ManagerSellerDTO
     {
         return new ManagerSellerDTO(
             username: null,
             email: null,
-            commission: null,
+            commission: $commission,
             country: null,
             timeZone: null,
             currency: null,
@@ -266,6 +269,78 @@ class ManagerSellerHierarchyTest extends TestCase
 
         $seller->refresh();
         $this->assertSame((string) $subsidiary->id, (string) $seller->subsidiary_id);
+    }
+
+    // ─── Topes de comisión: vendedor ≤ agencia ≤ comercializadora ────────────
+
+    public function test_commerce_cannot_create_seller_above_its_own_commission(): void
+    {
+        [$ownUser] = $this->makeCommerce(); // 5%
+
+        $this->actingAs($ownUser);
+
+        $this->expectException(CommissionHierarchyException::class);
+
+        $this->service()->create($this->dto(commission: '6'));
+    }
+
+    public function test_seller_cannot_be_moved_to_an_agency_with_lower_commission(): void
+    {
+        [$ownUser, $ownCommerce] = $this->makeCommerce();
+        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce); // 4%
+        $seller = $this->makeSeller($ownCommerce);
+        $seller->update(['commission' => 4.50]);
+
+        $this->actingAs($ownUser);
+
+        $this->expectException(CommissionHierarchyException::class);
+
+        try {
+            $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
+        } finally {
+            $this->assertNull($seller->fresh()->subsidiary_id);
+        }
+    }
+
+    public function test_seller_commission_cannot_exceed_its_agency_on_update(): void
+    {
+        [$ownUser, $ownCommerce] = $this->makeCommerce();
+        [, $subsidiary] = $this->makeSubsidiary($ownCommerce); // 4%
+        $seller = $this->makeSeller($ownCommerce, $subsidiary);
+
+        $this->actingAs($ownUser);
+
+        $this->expectException(CommissionHierarchyException::class);
+
+        $this->service()->update($seller, $this->dto(commission: '4.5'));
+    }
+
+    public function test_agency_and_commerce_rates_respect_their_network(): void
+    {
+        [, $commerce] = $this->makeCommerce();                 // 5%
+        [, $subsidiary] = $this->makeSubsidiary($commerce);    // 4%
+        $this->makeSeller($commerce, $subsidiary);             // 3%
+
+        $guard = app(CommissionHierarchyGuard::class);
+
+        // Válidos: dentro de los topes.
+        $guard->assertSubsidiaryRate(3.0, (string) $commerce->id, (string) $subsidiary->id);
+        $guard->assertCommerceRate(4.0, $commerce);
+
+        $cases = [
+            'agencia sobre su comercializadora' => fn () => $guard->assertSubsidiaryRate(5.5, (string) $commerce->id, (string) $subsidiary->id),
+            'agencia bajo su vendedor'          => fn () => $guard->assertSubsidiaryRate(2.5, (string) $commerce->id, (string) $subsidiary->id),
+            'comercializadora bajo su agencia'  => fn () => $guard->assertCommerceRate(3.5, $commerce),
+        ];
+
+        foreach ($cases as $label => $case) {
+            try {
+                $case();
+                $this->fail("Debió rechazar: {$label}");
+            } catch (CommissionHierarchyException) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
     // ─── Mover una agencia de Commerce ───────────────────────────────────────
