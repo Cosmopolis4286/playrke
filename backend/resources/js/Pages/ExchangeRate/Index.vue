@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue'
+  import { router } from '@inertiajs/vue3'
 
   import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
   import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
@@ -204,7 +205,13 @@
   }
 
   /**
-   * Navega a la vista histórica de la tasa seleccionada
+   * Navega a la vista histórica de la tasa seleccionada.
+   *
+   * router.visit() de Inertia (no window.location.href): la versión
+   * anterior forzaba una recarga de página completa, rompiendo la SPA y
+   * perdiendo el estado de este composable innecesariamente — la ruta ya
+   * es una página Inertia (ExchangeRateController::historical()), no hay
+   * ninguna razón para no navegarla como tal.
    */
   function goHistorical(): void {
     if (!selectedIds.value.length) return
@@ -212,8 +219,9 @@
     const selected = exchangeRates.value.find(er => String(er.id) === selectedIds.value[0])
     if (!selected?.currency_id) return
 
-    const params = props.tokenId ? `?tokenId=${props.tokenId}` : ''
-    window.location.href = `/exchange-rate/historical/${selected.currency_id}${params}`
+    router.visit(`/exchange-rate/historical/${selected.currency_id}`, {
+      data: props.tokenId ? { tokenId: props.tokenId } : {},
+    })
   }
 
 </script>

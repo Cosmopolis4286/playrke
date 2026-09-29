@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3'
 import type { ExchangeRateSummary } from '@js/composables/roles/superadmin/dashboard/useExchangeRateSummary'
+import ExchangeRateTrendChart from '@/js/Components/Common/ExchangeRate/ExchangeRateTrendChart.vue'
 
 defineProps<{
   summary: ExchangeRateSummary | null
@@ -11,6 +13,16 @@ defineProps<{
 defineEmits<{
   refresh: []
 }>()
+
+/**
+ * Navegación Inertia (no window.location.href, ver auditoría del dominio
+ * exchange-rate: Index.vue::goHistorical() rompía la SPA) hacia el
+ * histórico completo de la moneda — el sparkline compacto de acá es solo
+ * un vistazo, el detalle vive en /exchange-rate/historical/{currencyId}.
+ */
+function goToHistorical(currencyId: string): void {
+  router.visit(`/exchange-rate/historical/${currencyId}`)
+}
 </script>
 
 <template>
@@ -37,14 +49,24 @@ defineEmits<{
     </div>
 
     <div v-else-if="summary && summary.rates.length" class="er-list">
-      <div v-for="rate in summary.rates" :key="rate.currency_id" class="er-item">
+      <button
+        v-for="rate in summary.rates"
+        :key="rate.currency_id"
+        type="button"
+        class="er-item"
+        :title="`Ver histórico completo de ${rate.currency_code}`"
+        @click="goToHistorical(rate.currency_id)"
+      >
         <span class="er-item__code">{{ rate.currency_code }}</span>
         <span class="er-item__value">{{ rate.symbol }} {{ rate.amount.toFixed(4) }}</span>
         <span v-if="rate.percentage" class="er-item__pct" :class="{ 'er-item__pct--up': rate.percentage > 0, 'er-item__pct--down': rate.percentage < 0 }">
           {{ rate.percentage > 0 ? '+' : '' }}{{ rate.percentage }}%
         </span>
+        <span class="er-item__spark">
+          <ExchangeRateTrendChart :data="rate.history" :height="36" compact />
+        </span>
         <span class="er-item__date">{{ formatDate(rate.updated_at) }}</span>
-      </div>
+      </button>
     </div>
 
     <div v-else-if="summary && !summary.rates.length" class="er-state er-state--empty">
@@ -137,6 +159,21 @@ defineEmits<{
   background: var(--ds-surface-2);
   border-radius: 8px;
   font-size: 0.85rem;
+  /* Reset de estilos de <button> — es clickeable (abre el histórico), ver
+     goToHistorical(). */
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.er-item:hover { background: var(--ds-border-2); }
+
+.er-item__spark {
+  width: 90px;
+  flex-shrink: 0;
 }
 
 .er-item__code {

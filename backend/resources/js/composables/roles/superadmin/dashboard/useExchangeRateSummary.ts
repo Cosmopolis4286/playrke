@@ -1,6 +1,11 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
+export interface ExchangeRateHistoryPoint {
+  date:   string | null
+  amount: number
+}
+
 export interface ExchangeRateRow {
   currency_id:   string
   currency_code: string
@@ -8,6 +13,11 @@ export interface ExchangeRateRow {
   amount:        number
   percentage:    number
   updated_at:    string | null
+  /** Últimos puntos reales (ACTIVE + OLD) en orden ascendente — ver
+   *  ExchangeRateSummaryService::buildHistory(). Ya viene en el orden
+   *  correcto para graficar (a diferencia del histórico de
+   *  Historical.vue, que llega descendente). */
+  history:       ExchangeRateHistoryPoint[]
 }
 
 export interface ExchangeRateSummary {

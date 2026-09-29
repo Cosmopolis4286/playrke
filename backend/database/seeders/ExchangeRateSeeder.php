@@ -6,6 +6,7 @@ use App\Models\Currency;
 use App\Models\ExchangeRate;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 
 /**
  * Tasas de cambio ACTIVE de referencia (unidades de esa moneda por 1 USD).
@@ -36,6 +37,22 @@ class ExchangeRateSeeder extends Seeder
         'BRL'  => 5.60,
     ];
 
+    /**
+     * Histórico sintético previo al valor ACTIVE de RATES, como
+     * [días_atrás => amount] — antes una BD recién sembrada solo tenía la
+     * fila ACTIVE (creada aquí mismo), así que /exchange-rate/historical/{id}
+     * y el sparkline del widget del dashboard SuperAdmin (ver
+     * ExchangeRateSummaryService::buildHistory()) aparecían vacíos hasta la
+     * primera edición manual de una tasa — nada que demostrar en una demo
+     * fresca. No aplica a USDT: su tasa es fija (1:1) y no tiene
+     * variaciones reales que simular.
+     */
+    private const HISTORY = [
+        'VES' => [30 => 165.00, 21 => 170.00, 14 => 172.50, 7 => 176.00],
+        'COP' => [30 => 3950.00, 21 => 4000.00, 14 => 4050.00, 7 => 4080.00],
+        'BRL' => [30 => 5.40, 21 => 5.45, 14 => 5.50, 7 => 5.55],
+    ];
+
     public function run(): void
     {
         $admin = User::where('email', 'superadmin@playrke.com')->first();
@@ -61,11 +78,13 @@ class ExchangeRateSeeder extends Seeder
                 continue;
             }
 
+            $this->seedHistory($isoCode, $currency->id, $admin->id);
+
             ExchangeRate::create([
                 'currency_id' => $currency->id,
                 'user_id'     => $admin->id,
                 'amount'      => $amount,
-                'percentage'  => 0,
+                'percentage'  => $this->percentageVsLastHistory($isoCode, $amount),
                 'status'      => 'ACTIVE',
             ]);
 
@@ -73,5 +92,47 @@ class ExchangeRateSeeder extends Seeder
         }
 
         $this->command->info('✅ ExchangeRateSeeder completado.');
+    }
+
+    /**
+     * Siembra las filas OLD de HISTORY para esta moneda, con created_at/
+     * updated_at retrofechados — coherente con cómo
+     * ExchangeRateCrudService::update() marca la tasa reemplazada como OLD
+     * en un cambio real, así Historical.vue/el sparkline del dashboard ven
+     * exactamente el mismo shape de datos que producirían ediciones reales.
+     */
+    private function seedHistory(string $isoCode, mixed $currencyId, mixed $adminId): void
+    {
+        $points = self::HISTORY[$isoCode] ?? [];
+        $previousAmount = null;
+
+        foreach ($points as $daysAgo => $amount) {
+            $timestamp = Carbon::now()->subDays($daysAgo);
+
+            ExchangeRate::create([
+                'currency_id' => $currencyId,
+                'user_id'     => $adminId,
+                'amount'      => $amount,
+                'percentage'  => $previousAmount ? round((($amount - $previousAmount) / $previousAmount) * 100, 3) : 0,
+                'status'      => 'OLD',
+                'created_at'  => $timestamp,
+                'updated_at'  => $timestamp,
+            ]);
+
+            $previousAmount = $amount;
+        }
+    }
+
+    private function percentageVsLastHistory(string $isoCode, float $amount): float
+    {
+        $points = self::HISTORY[$isoCode] ?? [];
+
+        if (empty($points)) {
+            return 0;
+        }
+
+        $lastAmount = end($points);
+
+        return round((($amount - $lastAmount) / $lastAmount) * 100, 3);
     }
 }

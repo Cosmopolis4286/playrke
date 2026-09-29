@@ -77,50 +77,90 @@ class HandleExchangeRatesCommand extends Command
         }
 
         $updatedCount = 0;
-        $status = 'SUCCESS';
+        $failedUserIds = [];
 
-        try {
-            // Usuarios con actualización general (Binance), sustituyendo VES por BCV si aplica.
-            if (!empty($rates)) {
-                foreach ($userIds as $userId) {
-                    $userRates = $rates;
+        // Usuarios con actualización general (Binance), sustituyendo VES por BCV si aplica.
+        if (!empty($rates)) {
+            foreach ($userIds as $userId) {
+                $userRates = $rates;
 
-                    if ($bcvRate !== null && in_array($userId, $bcvUserIds, true)) {
-                        $userRates['VES'] = $bcvRate;
-                    }
-
-                    $this->updaterService->updateRates($userId, $userRates);
-                    $this->info("Tasas actualizadas para usuario #{$userId}.");
-                    $updatedCount++;
+                if ($bcvRate !== null && in_array($userId, $bcvUserIds, true)) {
+                    $userRates['VES'] = $bcvRate;
                 }
+
+                $this->updateOneUser($userId, $userRates, $updatedCount, $failedUserIds);
             }
+        }
 
-            // Usuarios que solo activaron BCV: solo se actualiza VES.
-            if ($bcvRate !== null) {
-                foreach ($bcvOnlyUserIds as $userId) {
-                    $this->updaterService->updateRates($userId, ['VES' => $bcvRate]);
-                    $this->info("Tasa VES (BCV) actualizada para usuario #{$userId}.");
-                    $updatedCount++;
-                }
+        // Usuarios que solo activaron BCV: solo se actualiza VES.
+        if ($bcvRate !== null) {
+            foreach ($bcvOnlyUserIds as $userId) {
+                $this->updateOneUser($userId, ['VES' => $bcvRate], $updatedCount, $failedUserIds);
             }
+        }
 
-            $output = "Tasas actualizadas para {$updatedCount} usuario(s).";
-        } catch (Throwable $e) {
-            $status = 'ERROR';
-            $output = sprintf(
-                'Error al ejecutar la tarea: %s en archivo %s línea %d',
-                $e->getMessage(),
-                $e->getFile(),
-                $e->getLine()
-            );
+        // ERROR solo si NINGÚN usuario se actualizó y hubo al menos un
+        // intento — un fallo aislado (usuario eliminado entre el momento en
+        // que se listó su preferencia y la ejecución del loop, error
+        // transitorio de BD) ya no tira todo el ciclo a ERROR si el resto
+        // de usuarios sí se actualizó correctamente. Antes, updateRates()
+        // corría dentro de un único try/catch envolviendo ambos loops: una
+        // excepción de cualquier usuario detenía el resto del batch sin
+        // dejar rastro de cuántos sí se habían procesado antes del fallo.
+        //
+        // command_logs.status es un enum(['success','error']) — solo esos
+        // 2 valores caben en la columna (ver migración
+        // create_command_logs_table), así que un resultado "parcial" (algún
+        // usuario falló pero no todos) se reporta como SUCCESS con el
+        // detalle de fallos en el propio mensaje `$output`, no como un
+        // tercer status que MySQL rechazaría.
+        $totalAttempted = count($userIds) + count($bcvOnlyUserIds);
+        $hasPartialFailures = $totalAttempted > 0 && !empty($failedUserIds) && $updatedCount > 0;
+        $status = ($totalAttempted > 0 && $updatedCount === 0) ? 'ERROR' : 'SUCCESS';
 
-            $this->error($output);
+        $output = "Tasas actualizadas para {$updatedCount} de {$totalAttempted} usuario(s).";
+        if (!empty($failedUserIds)) {
+            $output .= ' Fallaron: #' . implode(', #', $failedUserIds) . '.';
         }
 
         $this->logExecutionSafely($output, $status);
 
-        if ($status === 'SUCCESS') {
+        if ($status === 'ERROR') {
+            $this->error($output);
+        } elseif ($hasPartialFailures) {
+            $this->warn($output);
+        } else {
             $this->info($output);
+        }
+    }
+
+    /**
+     * Actualiza un usuario individual dentro del loop, con su propio
+     * try/catch — updateRates() ya envuelve la lógica de dominio en su
+     * propio try/catch (retorna bool), pero la resolución de rol
+     * (RoleUserService::getActiveUserRolePrefix()) corre ANTES de ese
+     * try/catch interno y sí puede propagar una excepción no capturada
+     * (ej. el usuario fue eliminado entre listar la preferencia y ejecutar
+     * este loop) — sin este wrapper, ese caso detenía el resto del batch.
+     *
+     * @param-out int $updatedCount
+     * @param-out int[] $failedUserIds
+     */
+    private function updateOneUser(int $userId, array $userRates, int &$updatedCount, array &$failedUserIds): void
+    {
+        try {
+            $ok = $this->updaterService->updateRates($userId, $userRates);
+
+            if ($ok) {
+                $this->info("Tasas actualizadas para usuario #{$userId}.");
+                $updatedCount++;
+            } else {
+                $failedUserIds[] = $userId;
+                $this->warn("No se pudo actualizar la tasa del usuario #{$userId}.");
+            }
+        } catch (Throwable $e) {
+            $failedUserIds[] = $userId;
+            $this->error("Error actualizando usuario #{$userId}: {$e->getMessage()}");
         }
     }
 
