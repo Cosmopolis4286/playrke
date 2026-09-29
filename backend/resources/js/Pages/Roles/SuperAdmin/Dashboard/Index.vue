@@ -20,6 +20,7 @@
   import DashboardPendingWalletWidget from '@/js/Components/Common/Dashboard/DashboardPendingWalletWidget.vue'
   import PlatformWalletPanel          from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformWalletPanel.vue'
   import PlatformCashModal            from '@/js/Components/Roles/SuperAdmin/Dashboard/PlatformCashModal.vue'
+  import ReconciliationPanel          from '@/js/Components/Roles/SuperAdmin/Dashboard/ReconciliationPanel.vue'
   import RkeCommissionsSection        from '@/js/Components/Roles/SuperAdmin/Dashboard/RkeCommissionsSection.vue'
   import TriviaSummarySection         from '@/js/Components/Roles/SuperAdmin/Dashboard/TriviaSummarySection.vue'
   import EconomySummarySection        from '@/js/Components/Roles/SuperAdmin/Dashboard/EconomySummarySection.vue'
@@ -53,6 +54,7 @@
   import { useExchangeRateSummary } from '@/js/composables/roles/superadmin/dashboard/useExchangeRateSummary'
   import { usePlatformWallet }      from '@/js/composables/roles/superadmin/dashboard/usePlatformWallet'
   import { usePlatformCashModal }   from '@/js/composables/roles/superadmin/dashboard/usePlatformCashModal'
+  import { useReconciliation }      from '@/js/composables/roles/superadmin/dashboard/useReconciliation'
   import { useFailedJobs }          from '@/js/composables/roles/superadmin/dashboard/useFailedJobs'
   import { useSystemHealthPolling } from '@/js/composables/roles/superadmin/dashboard/useSystemHealthPolling'
   import type { ActivityItem }      from '@/js/types/common/dashboard/dashboard'
@@ -128,6 +130,13 @@
   const { cashModal, openCashModal, closeCashModal, withdrawConfirmed, submitCash } =
     usePlatformCashModal(activePlatformWallet, loadPlatformWallets)
 
+  // Conciliación: cobrar RKE a comercios acredita la billetera de plataforma → recargarla.
+  const {
+    receivables: pendingReceivables, alerts: reconciliationAlerts, alertsOpen: reconciliationAlertsOpen,
+    loading: reconciliationLoading, error: reconciliationError, busyKey: reconciliationBusyKey,
+    load: loadReconciliation, settle: settleReceivable, resolve: resolveReconciliationAlert,
+  } = useReconciliation(() => { loadPlatformWallets(); loadPlatformMovements(1) })
+
   // Modal de jobs fallidos (widget "Salud del sistema")
   const showFailedJobsModal = ref(false)
   const {
@@ -154,6 +163,7 @@
     loadHierarchy()
     loadExchangeRates()
     loadPlatformWallets()
+    loadReconciliation()
     fetchMovementTypes()
     startSystemHealthPolling()
   })
@@ -499,6 +509,21 @@
         @open-cash-modal="openCashModal"
       />
 
+      <!-- ══ CONCILIACIÓN (RKE por cobrar + alertas de dinero) ════════ -->
+      <ReconciliationPanel
+        :receivables="pendingReceivables"
+        :alerts="reconciliationAlerts"
+        :alerts-open="reconciliationAlertsOpen"
+        :loading="reconciliationLoading"
+        :error="reconciliationError"
+        :busy-key="reconciliationBusyKey"
+        :format-usd="formatUsd"
+        :format-date-time="formatDateTime"
+        @refresh="loadReconciliation"
+        @settle="settleReceivable"
+        @resolve="resolveReconciliationAlert"
+      />
+
       <!-- ══ MODAL DEPÓSITO / RETIRO ══════════════════════════════════ -->
       <PlatformCashModal
         v-model="cashModal"
@@ -566,7 +591,7 @@
         :summary="exchangeRates"
         :loading="exchangeRatesLoading"
         :error="exchangeRatesError"
-        :format-date="formatDate"
+        :format-date="formatDateTime"
         @refresh="loadExchangeRates"
       />
     </div>
