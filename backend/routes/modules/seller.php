@@ -23,7 +23,8 @@ multi_middleware_routes('sellers', 'manager-seller.', [
         // un admin (no superadmin, que sí tiene bypass total vía
         // RoleAuthorizationService::isSuperadmin()) veía la tabla pero recibía
         // 403 al crear/editar/eliminar/resetear contraseña de un vendedor.
-        'middleware' => ['auth', 'role:commerce,subsidiary,customer,admin,superadmin'],
+        // 'customer' quitado: no puede tener sellers (ver ManagerSellerPolicy::requiredRole()).
+        'middleware' => ['auth', 'role:commerce,subsidiary,admin,superadmin'],
         'controller' => ManagerSellerController::class,
         'routes' => [
             'index' => ['method' => 'get', 'uri' => ''],

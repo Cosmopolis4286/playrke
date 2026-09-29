@@ -25,6 +25,16 @@ final class ManagerSellerException extends DomainException
     }
 
     /**
+     * El manager (propio o elegido) no es una Comercializadora ni una Agencia
+     * con Comercializadora — ej. un 'customer', o un vendedor huérfano legado
+     * cuyo manager_user_id apunta a un customer (ver commissions:audit-hierarchy).
+     */
+    public static function invalidManager(): self
+    {
+        return new self('MANAG_SELLER_INVALID_MANAGER', 422);
+    }
+
+    /**
      * Fallo genérico en la actualización del vendedor.
      */
     public static function updateFailed(): self

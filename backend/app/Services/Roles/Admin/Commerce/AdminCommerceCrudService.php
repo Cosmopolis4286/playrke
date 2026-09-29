@@ -173,9 +173,11 @@ final class AdminCommerceCrudService
      */
     public function update(Commerce $commerce, AdminCommerceDTO $dto): void
     {
-        // Tope: la comercializadora no puede quedar por debajo de sus
-        // agencias ni de sus vendedores directos (reparto en cascada).
-        if ($dto->commission !== null && $dto->commission !== '') {
+        // Tope: la comercializadora no puede quedar por debajo de su red
+        // (reparto en cascada). Solo si la tasa CAMBIA: AdminCommerceForm
+        // reenvía siempre commission, y un comercio legado fuera de tope debe
+        // seguir siendo editable en lo demás.
+        if (CommissionHierarchyGuard::rateChanged($dto->commission, $commerce->commission)) {
             $this->commissionGuard->assertCommerceRate((float) $dto->commission, $commerce);
         }
 

@@ -184,6 +184,29 @@ class AdminSubsidiaryControllerTest extends TestCase
         $this->assertSame('INACTIVE', $ownSubsidiary->fresh()->status);
     }
 
+    /**
+     * AdminSubsidiaryForm envía commission: null con el toggle has_commission
+     * apagado. Antes: 422 (numeric sobre null) — una agencia "sin comisión"
+     * era imposible de guardar desde la UI; y aun pasando, el update
+     * descartaba el null en vez de guardar 0.
+     */
+    public function test_admin_can_turn_off_subsidiary_commission(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $admin->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        [, $commerce, $country] = $this->makeCommerceWithUser('propio');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
+
+        $this->actingAs($admin)
+            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/update", ['commission' => null])
+            ->assertOk();
+
+        $this->assertEqualsWithDelta(0.0, (float) $subsidiary->fresh()->commission, 0.001);
+    }
+
     public function test_admin_can_toggle_status_of_any_subsidiary(): void
     {
         $admin = User::factory()->create();

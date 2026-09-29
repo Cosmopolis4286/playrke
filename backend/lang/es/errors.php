@@ -86,6 +86,8 @@ return [
     'MANAG_SELLER_DESTROY_NOT_ALLOWED' => 'No se puede eliminar definitivamente este vendedor.',
     'MANAG_SELLER_CREATION_FAILED' => 'No se pudo crear el vendedor.',
     'COMMISSION_ABOVE_PARENT' => 'La comisión (:rate%) no puede superar la de su nivel superior (:max%).',
+    'COMMISSION_CHILDREN_ABOVE_PARENT' => 'Sus vendedores tienen comisión de hasta :rate%, mayor que la de la comercializadora (:max%). Baja primero la comisión de esos vendedores.',
+    'MANAG_SELLER_INVALID_MANAGER' => 'El vendedor debe reportar a una comercializadora o agencia válida. Selecciona un manager.',
     'COMMISSION_BELOW_CHILDREN' => 'La comisión (:rate%) no puede ser menor que la de su red (:min%). Baja primero la comisión de sus agencias/vendedores.',
     'MANAG_SELLER_UPDATE_FAILED' => 'No se pudo actualizar el vendedor.',
     'MANAG_SELLER_DELETE_FAILED' => 'No se pudo eliminar el vendedor.',

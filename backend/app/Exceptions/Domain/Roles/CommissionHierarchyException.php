@@ -22,6 +22,18 @@ final class CommissionHierarchyException extends DomainException
         ]);
     }
 
+    /**
+     * Los vendedores de una agencia (de paso) quedarían por encima de la
+     * comercializadora — ej. al trasladar la agencia a una con tasa menor.
+     */
+    public static function childrenAboveParent(float $rate, float $max): self
+    {
+        return new self('COMMISSION_CHILDREN_ABOVE_PARENT', 422, null, [
+            'rate' => number_format($rate, 2),
+            'max'  => number_format($max, 2),
+        ]);
+    }
+
     /** La comisión queda por debajo de la de algún nivel inferior. */
     public static function belowChildren(float $rate, float $min): self
     {

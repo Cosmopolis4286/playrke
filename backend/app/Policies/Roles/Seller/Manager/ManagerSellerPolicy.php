@@ -30,7 +30,12 @@ class ManagerSellerPolicy extends BaseRolePolicy
         // /admin/sellers — antes solo pasaba hasAccess() un commerce/
         // subsidiary/customer, y un admin (no superadmin) recibía 403 en
         // cualquier acción CRUD real pese a poder ver el listado.
-        return ['commerce', 'subsidiary', 'customer', 'admin'];
+        // 'customer' quitado: rama independiente sin sellers propios (ver
+        // ownsSeller() y ManagerSellerService::resolveManagerForUser()). Solo
+        // podía llegar a una pantalla donde crear fallaba y sus sellers
+        // legados (huérfanos) daban 403 — los reasigna admin (ver
+        // commissions:audit-hierarchy).
+        return ['commerce', 'subsidiary', 'admin'];
     }
 
     /**

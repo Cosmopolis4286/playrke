@@ -186,19 +186,19 @@ final class ManagerSellerService
         }
 
         if ($role !== 'subsidiary') {
-            throw ManagerSellerException::creationFailed();
+            throw ManagerSellerException::invalidManager();
         }
 
         $subsidiary = $this->subsidiaryRepository->getByUserId($targetUserId, ['id', 'commerce_id']);
 
         if (!$subsidiary || !$subsidiary->commerce_id) {
-            throw ManagerSellerException::creationFailed();
+            throw ManagerSellerException::invalidManager();
         }
 
         $commerceUserId = \App\Models\Roles\Commerce::where('id', $subsidiary->commerce_id)->value('user_id');
 
         if (!$commerceUserId) {
-            throw ManagerSellerException::creationFailed();
+            throw ManagerSellerException::invalidManager();
         }
 
         return [(int) $commerceUserId, $subsidiary->id];
@@ -283,10 +283,17 @@ final class ManagerSellerService
             : [null, null];
 
         // Tope contra el padre EFECTIVO tras la edición (el nuevo si se
-        // reasigna, si no el actual). Solo si cambia la tasa o el padre: no
-        // bloquear ediciones ajenas (nombre, teléfono) de un seller legado
-        // que ya violaba el tope.
-        if ($dto->commission !== null || $managerUserId !== null) {
+        // reasigna, si no el actual). Solo si la tasa o el padre CAMBIAN de
+        // verdad: ManagerSellerForm reenvía siempre commission y
+        // manager_user_id con los valores actuales, así que "viene en el
+        // DTO" no significa "cambió" — sin esta comparación, un seller legado
+        // que ya violaba el tope no se podía editar en absoluto (ni renombrar).
+        $parentChanged = $managerUserId !== null && (
+            (string) $managerUserId !== (string) $seller->manager_user_id
+            || (string) $subsidiaryId !== (string) $seller->subsidiary_id
+        );
+
+        if ($parentChanged || CommissionHierarchyGuard::rateChanged($dto->commission, $seller->commission)) {
             $this->commissionGuard->assertSellerRate(
                 (float) ($dto->commission ?? $seller->commission),
                 $managerUserId !== null ? $subsidiaryId : $seller->subsidiary_id,

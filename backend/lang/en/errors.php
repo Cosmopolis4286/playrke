@@ -86,6 +86,8 @@ return [
     'MANAG_SELLER_DESTROY_NOT_ALLOWED' => 'This seller cannot be permanently deleted.',
     'MANAG_SELLER_CREATION_FAILED' => 'The seller could not be created.',
     'COMMISSION_ABOVE_PARENT' => 'The commission (:rate%) cannot exceed its parent level (:max%).',
+    'COMMISSION_CHILDREN_ABOVE_PARENT' => 'Its sellers have commissions up to :rate%, above the commerce (:max%). Lower those sellers\' commission first.',
+    'MANAG_SELLER_INVALID_MANAGER' => 'The seller must report to a valid commerce or agency. Select a manager.',
     'COMMISSION_BELOW_CHILDREN' => 'The commission (:rate%) cannot be lower than its network (:min%). Lower its agencies/sellers commission first.',
     'MANAG_SELLER_UPDATE_FAILED' => 'The seller could not be updated.',
     'MANAG_SELLER_DELETE_FAILED' => 'The seller could not be deleted.',

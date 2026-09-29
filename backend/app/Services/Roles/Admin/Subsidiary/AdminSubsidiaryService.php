@@ -136,8 +136,14 @@ final class AdminSubsidiaryService
         }
 
         // Topes contra el padre EFECTIVO (el nuevo si se traslada) y contra
-        // sus vendedores — solo si cambia la tasa o la comercializadora.
-        if ($dto->commission !== null || $dto->commerce !== null) {
+        // sus vendedores — solo si la tasa o la comercializadora CAMBIAN de
+        // verdad: AdminSubsidiaryForm reenvía siempre `commerce` (y
+        // `commission` si has_commission), así que sin comparar contra lo
+        // guardado una agencia legada fuera de tope no se podía ni renombrar.
+        // ("sin comisión" llega como '0', ver AdminSubsidiaryRequest::prepareForValidation()).
+        $commerceChanged = $dto->commerce !== null && (string) $dto->commerce !== (string) $subsidiary->commerce_id;
+
+        if ($commerceChanged || CommissionHierarchyGuard::rateChanged($dto->commission, $subsidiary->commission)) {
             $this->commissionGuard->assertSubsidiaryRate(
                 (float) ($dto->commission ?? $subsidiary->commission),
                 (string) ($dto->commerce ?? $subsidiary->commerce_id),

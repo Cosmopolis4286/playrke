@@ -28,7 +28,8 @@ class ManagerSellerRequest extends BaseRequest
         // 'admin'/'commerce', así que un usuario 'subsidiary' o 'customer'
         // (ambos permitidos por la ruta y la policy) recibía 403 aquí mismo,
         // antes de llegar a la lógica de negocio.
-        return PermissionService::checkPrefix(['admin', 'commerce', 'subsidiary', 'customer']);
+        // 'customer' quitado (ver ManagerSellerPolicy::requiredRole()).
+        return PermissionService::checkPrefix(['admin', 'commerce', 'subsidiary']);
     }
 
     /**

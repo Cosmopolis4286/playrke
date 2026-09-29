@@ -371,4 +371,100 @@ class ManagerSellerHierarchyTest extends TestCase
         $this->assertNotContains((string) $active->user_id, $oldCommerce->fresh()->networkUserIds());
         $this->assertContains((string) $active->user_id, $newCommerce->fresh()->networkUserIds());
     }
+
+    // ─── Registros legados fuera de tope ─────────────────────────────────────
+
+    public function test_legacy_seller_above_cap_stays_editable_when_rate_and_parent_are_resent_unchanged(): void
+    {
+        [$ownUser, $ownCommerce] = $this->makeCommerce(); // 5%
+        $seller = $this->makeSeller($ownCommerce);
+        // Legado previo al guard: 6% bajo una comercializadora de 5%.
+        DB::table('sellers')->where('id', $seller->id)->update(['commission' => 6.00]);
+        $seller->refresh();
+
+        $this->actingAs($ownUser);
+
+        // ManagerSellerForm reenvía siempre commission y manager_user_id con
+        // los valores actuales: no es un cambio de tasa ni de padre.
+        $this->service()->update($seller, $this->dto((string) $ownUser->id, '6.00'));
+        $this->assertEqualsWithDelta(6.00, (float) $seller->fresh()->commission, 0.001);
+
+        // Corregirlo a medias sigue rechazado (mensaje con el tope)...
+        try {
+            $this->service()->update($seller, $this->dto((string) $ownUser->id, '5.5'));
+            $this->fail('Debió rechazar 5.5% sobre un tope de 5%');
+        } catch (CommissionHierarchyException $e) {
+            $this->assertSame('COMMISSION_ABOVE_PARENT', $e->errorCode());
+        }
+
+        // ...y corregirlo dentro del tope funciona.
+        $this->service()->update($seller, $this->dto((string) $ownUser->id, '5'));
+        $this->assertEqualsWithDelta(5.00, (float) $seller->fresh()->commission, 0.001);
+    }
+
+    // ─── Agencia "sin comisión" (de paso) ────────────────────────────────────
+
+    public function test_agency_without_commission_is_pass_through_not_a_zero_cap(): void
+    {
+        [$ownUser, $ownCommerce] = $this->makeCommerce(); // 5%
+        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce);
+        $subsidiary->update(['commission' => 0]);
+        $seller = $this->makeSeller($ownCommerce); // 3%
+
+        $this->actingAs($ownUser);
+
+        // Mover un vendedor de 3% a una agencia sin comisión: su tope es la
+        // comercializadora (5%), no 0%.
+        $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
+        $this->assertSame((string) $subsidiary->id, (string) $seller->fresh()->subsidiary_id);
+
+        // Pero sigue sin poder superar a la comercializadora.
+        $this->expectException(CommissionHierarchyException::class);
+        $this->service()->update($seller->fresh(), $this->dto(commission: '6'));
+    }
+
+    public function test_moving_pass_through_agency_under_a_lower_commerce_is_rejected(): void
+    {
+        [, $commerce] = $this->makeCommerce();          // 5%
+        [, $lowCommerce] = $this->makeCommerce();
+        $lowCommerce->update(['commission' => 2.00]);
+        [, $subsidiary] = $this->makeSubsidiary($commerce);
+        $subsidiary->update(['commission' => 0]);
+        $this->makeSeller($commerce, $subsidiary);     // 3%
+
+        try {
+            app(CommissionHierarchyGuard::class)->assertSubsidiaryRate(0.0, (string) $lowCommerce->id, (string) $subsidiary->id);
+            $this->fail('Sus vendedores (3%) quedarían sobre la nueva comercializadora (2%)');
+        } catch (CommissionHierarchyException $e) {
+            $this->assertSame('COMMISSION_CHILDREN_ABOVE_PARENT', $e->errorCode());
+        }
+    }
+
+    // ─── Auditoría y huérfanos ───────────────────────────────────────────────
+
+    public function test_audit_command_reports_cap_violations_and_orphan_sellers(): void
+    {
+        [, $commerce] = $this->makeCommerce(); // 5%
+        $overCap = $this->makeSeller($commerce);
+        DB::table('sellers')->where('id', $overCap->id)->update(['commission' => 9.00, 'name' => 'Vendedor Fuera De Tope']);
+
+        // Huérfano legado: creado por un customer (manager_user_id = customer).
+        $customer = $this->makeUserWithRole('customer');
+        $orphan = $this->makeSeller($commerce);
+        DB::table('sellers')->where('id', $orphan->id)->update(['manager_user_id' => $customer->id, 'name' => 'Vendedor Huerfano']);
+
+        $this->artisan('commissions:audit-hierarchy')
+            ->expectsOutputToContain('Vendedor Fuera De Tope')
+            ->expectsOutputToContain('Vendedor Huerfano')
+            ->assertExitCode(1);
+
+        $this->assertStringContainsString('Sin comercializadora', $orphan->fresh()->manager_role_badge);
+    }
+
+    public function test_customer_no_longer_reaches_seller_management(): void
+    {
+        $customer = $this->makeUserWithRole('customer');
+
+        $this->actingAs($customer)->getJson('/sellers/fetch-list')->assertForbidden();
+    }
 }

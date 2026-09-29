@@ -32,6 +32,22 @@ class AdminSubsidiaryRequest extends BaseRequest
     }
 
     /**
+     * AdminSubsidiaryForm envía `commission: null` cuando el toggle
+     * has_commission está apagado ("agencia sin comisión propia", de paso —
+     * ver CommissionHierarchyGuard). Sin normalizarlo, la regla numeric
+     * rechazaba el null (422: toda agencia sin comisión era imposible de
+     * crear/editar desde la UI), y aun pasando, el update lo descartaba como
+     * "sin cambios" (array_filter !== null) en vez de guardar 0. Presente y
+     * vacío = 0; ausente = sin cambios.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->exists('commission') && ($this->input('commission') === null || $this->input('commission') === '')) {
+            $this->merge(['commission' => '0']);
+        }
+    }
+
+    /**
      * Reglas de validación dinámicas.
      *
      * @return array<string, mixed>

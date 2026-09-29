@@ -38,7 +38,8 @@ class SidebarMenuVisibilitySeeder extends Seeder
         // nunca se actualizó esta exclusión — la ruta /sellers funcionaba
         // perfectamente para subsidiary desde entonces, solo el sidebar
         // nunca ofrecía la entrada.
-        'business.my_sellers'           => ['admin', 'player', 'seller', 'superadmin'],
+        // customer excluido: no puede tener sellers (ver ManagerSellerPolicy)
+        'business.my_sellers'           => ['admin', 'customer', 'player', 'seller', 'superadmin'],
         'business.my_subsidiaries'      => ['player', 'seller', 'superadmin'],
         // my_account.* — antes vivían bajo 'business.*' (ver comentario de
         // clase); el refactor 3c945746 ("Mi Cuenta" separado de "Negocio")

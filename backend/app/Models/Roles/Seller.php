@@ -181,9 +181,17 @@ class Seller extends BaseModel
      */
     public function getManagerRoleBadgeAttribute(): string
     {
-        return $this->subsidiary_id
-            ? '<span class="badge badge-teal text-white">Sucursal</span>'
-            : '<span class="badge badge-info text-white">Commerce</span>';
+        if ($this->subsidiary_id) {
+            return '<span class="badge badge-teal text-white">Sucursal</span>';
+        }
+
+        // Huérfano: manager_user_id no es una Comercializadora (vendedores
+        // legados creados por un 'customer'). No puede vender
+        // (hasActiveHierarchy() false) hasta que admin lo reasigne — ver
+        // commissions:audit-hierarchy.
+        return $this->managerCommerce
+            ? '<span class="badge badge-info text-white">Commerce</span>'
+            : '<span class="badge badge-danger text-white">Sin comercializadora</span>';
     }
 
     /**
