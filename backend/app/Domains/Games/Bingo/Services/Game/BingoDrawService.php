@@ -1091,6 +1091,18 @@ final class BingoDrawService
             'finished_at' => now()->toISOString(),
         ]);
 
+        // Pagar al creador su comisión (+ fondos del premio en Premio/Servicio
+        // puras) de las ventas con billetera. Nunca lanza: un fallo queda como
+        // alerta de conciliación. Idempotente si el cierre se reintenta.
+        try {
+            app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomCreatorPayoutService::class)->payoutOnClose($room);
+        } catch (\Throwable $e) {
+            Log::error('[BingoDrawService] Error al pagar al creador de la sala', [
+                'room_id' => $room->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
         try {
             $room->refresh();
             $this->statsAggregator->aggregate($room);

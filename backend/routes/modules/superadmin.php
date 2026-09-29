@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Roles\SuperAdminController;
 use App\Http\Controllers\Roles\SuperAdmin\FailedJobController;
+use App\Http\Controllers\Roles\SuperAdmin\ReconciliationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,23 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
             Route::middleware('permission:platform.wallet.manage')->group(function () {
                 Route::post('platform-deposit', 'platformDeposit')->name('platform-deposit');
                 Route::post('platform-withdraw', 'platformWithdraw')->name('platform-withdraw');
+            });
+        });
+
+    /**
+     * =========================================================
+     * CONCILIACIÓN (cuentas por cobrar RKE + alertas de dinero)
+     * =========================================================
+     */
+    Route::prefix('superadmin/reconciliation')
+        ->as('superadmin.reconciliation.')
+        ->controller(ReconciliationController::class)
+        ->group(function () {
+            Route::get('', 'index')->name('index');
+
+            Route::middleware('permission:platform.wallet.manage')->group(function () {
+                Route::post('receivables/settle', 'settleReceivables')->name('receivables.settle');
+                Route::post('alerts/{id}/resolve', 'resolveAlert')->name('alerts.resolve');
             });
         });
 

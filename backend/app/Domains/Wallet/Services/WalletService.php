@@ -631,6 +631,73 @@ final class WalletService
     }
 
     /**
+     * Acredita al creador de una sala de Bingo su comisión (y, en salas
+     * Premio/Servicio puras, los fondos del premio que él pone) por las ventas
+     * pagadas con billetera, al cerrarse la sala (BingoRoomCreatorPayoutService).
+     * Mismo patrón idempotente que recordMarketplaceCredit(): la clave
+     * determinística por sala+moneda evita pagar dos veces si el cierre se
+     * reintenta (recuperación de salas trabadas).
+     */
+    public function recordCreatorCommission(
+        Wallet $wallet,
+        float $amount,
+        string $description,
+        string $idempotencyKey,
+        array $metadata = [],
+    ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        try {
+            $movement = DB::transaction(function() use ($wallet, $amount, $description, $idempotencyKey, $metadata) {
+                $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
+                $walletId = (string) $locked->id;
+                $balanceBefore = (float) $locked->balance;
+
+                // pending_debt se cobra de cualquier crédito entrante — ver recordRefund().
+                $netAmount = $this->settlePendingDebt($locked, $amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance($walletId, $netAmount);
+                }
+                if ($netAmount !== $amount) {
+                    $metadata['pending_debt_settled'] = round($amount - $netAmount, 2);
+                }
+                $locked->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id' => $walletId,
+                    'user_id' => (string) $locked->user_id,
+                    'type' => WalletMovement::TYPE_CREATOR_COMMISSION,
+                    'status' => WalletMovement::STATUS_COMPLETED,
+                    'amount' => $amount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => (float) $locked->balance,
+                    'description' => $description,
+                    'idempotency_key' => $idempotencyKey,
+                    'metadata' => $metadata ?: null,
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'idempotency_key')) {
+                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existingMovement) {
+                    return $existingMovement;
+                }
+            }
+
+            throw $e;
+        }
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_CREATOR_COMMISSION, $amount, (string) $movement->id);
+
+        return $movement;
+    }
+
+    /**
      * Acredita un premio (Bingo, Trivia o cualquier juego futuro) al ganador.
      * La wallet se recibe ya resuelta — nunca acepta un ID externo.
      *

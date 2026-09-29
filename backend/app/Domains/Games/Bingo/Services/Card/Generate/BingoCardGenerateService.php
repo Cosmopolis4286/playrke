@@ -1451,6 +1451,10 @@ final class BingoCardGenerateService
             'playerLink'     => true,
             'gameVariant'    => $room->config?->game_variant ?? BingoVariant::BINGO_75,
             'customCardNumbers' => $customMatrices,
+            // Pagado con la billetera del jugador (recordCardPurchase abajo): el
+            // dinero está en el sistema, así que el RKE se acredita al vender y
+            // la comisión del creador se le paga al cerrar la sala.
+            'saleChannel'    => 'wallet',
         ];
 
         // Generar cartones y debitar wallet en una sola transacción atómica.
