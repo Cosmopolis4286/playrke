@@ -58,8 +58,11 @@ final class JackpotLedgerService
      * quedaba con un aporte de dinero que el jugador recuperó al 100%.
      *
      * Idempotente por $idempotencyKey (el job de reembolso puede reintentarse).
-     * Si el pozo ya no alcanza (se pagó), revierte lo que haya y loguea el
-     * faltante para conciliación manual — nunca deja el pozo en negativo.
+     * Si el pozo ya no alcanza (se pagó), revierte lo que haya y devuelve el
+     * faltante para que el caller lo registre en conciliación — nunca deja el
+     * pozo en negativo.
+     *
+     * @return float Faltante no revertido (0 si se revirtió completo o ya estaba revertido).
      */
     public function reverseContribution(
         string $jackpotTypeId,
@@ -67,17 +70,17 @@ final class JackpotLedgerService
         string $idempotencyKey,
         ?string $roomId = null,
         ?string $description = null,
-    ): void {
+    ): float {
         if ($amount <= 0) {
-            return;
+            return 0.0;
         }
         if (JackpotMovement::where('idempotency_key', $idempotencyKey)->exists()) {
-            return;
+            return 0.0;
         }
 
         $jackpot = $this->jackpots->firstOrCreateByType($jackpotTypeId);
 
-        DB::transaction(function () use ($jackpot, $amount, $idempotencyKey, $roomId, $description) {
+        return DB::transaction(function () use ($jackpot, $amount, $idempotencyKey, $roomId, $description) {
             $locked = Jackpot::where('id', $jackpot->id)->lockForUpdate()->firstOrFail();
             $balanceBefore = (float) $locked->amount;
             $reversible = min($amount, $balanceBefore);
@@ -101,6 +104,8 @@ final class JackpotLedgerService
                 'idempotency_key' => $idempotencyKey,
                 'metadata'        => $reversible < $amount ? ['shortfall' => round($amount - $reversible, 4)] : null,
             ]);
+
+            return round($amount - $reversible, 4);
         });
     }
 }

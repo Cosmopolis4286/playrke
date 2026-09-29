@@ -65,6 +65,7 @@ class WalletMovement extends Model
     public const TYPE_REFUND = 'REFUND';
     public const TYPE_RKE_COMMISSION = 'RKE_COMMISSION';
     public const TYPE_RKE_COMMISSION_REVERSAL = 'RKE_COMMISSION_REVERSAL';
+    public const TYPE_CREATOR_COMMISSION = 'CREATOR_COMMISSION';
     public const TYPE_TRIVIA_ENTRY = 'TRIVIA_ENTRY';
     public const TYPE_WITHDRAWAL = 'WITHDRAWAL';
 

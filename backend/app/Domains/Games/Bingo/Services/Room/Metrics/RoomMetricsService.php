@@ -313,10 +313,26 @@ class RoomMetricsService implements RoomMetricsInterface
             // si el lote se reembolsa): cualquiera de las dos acreditaciones puede
             // fallar en silencio (try/catch de abajo) y entonces no hay nada que revertir.
             $rkeCreditedLocal = 0.0;
+            $rkeReceivableLocal = 0.0;
             $jackpotCreditedUsd = 0.0;
 
+            // Canal de la venta: 'wallet' = el jugador pagó con su billetera (el
+            // dinero está en el sistema); 'offline' = venta de vendedor con
+            // comprobante o cobrada en mano por el comercio (el dinero lo tiene
+            // el comercio). En 'offline' el RKE NO se acredita a la wallet de
+            // plataforma: queda como deuda del comercio (PlatformReceivable, la
+            // registra BingoCardGenerationService al crear el lote) y se
+            // acredita recién al cobrarse. Default 'offline': es lo conservador
+            // si un caller nuevo no declara el canal.
+            $saleChannel = ($saleData['saleChannel'] ?? 'offline') === 'wallet' ? 'wallet' : 'offline';
+
+            if ($rkeCommission > 0 && $saleChannel === 'offline') {
+                $rkeCommissionLocal = round($rkeCommission * $exchangeRate, 2);
+                $rkeReceivableLocal = $rkeCommissionLocal;
+            }
+
             // Acreditar RKE a la billetera de plataforma (convertida a la moneda local de la venta)
-            if ($rkeCommission > 0) {
+            if ($rkeCommission > 0 && $saleChannel === 'wallet') {
                 try {
                     $currencyId = $saleData['currency'] ?? null;
                     if ($currencyId) {
@@ -521,7 +537,9 @@ class RoomMetricsService implements RoomMetricsInterface
                     'jackpot_contribution' => round($jackpotContributionLocal, 3),
                 ] : null,
                 'creator_sale'        => $creatorSale,
+                'channel'             => $saleChannel,
                 'rke_credited_local'  => $rkeCreditedLocal,
+                'rke_receivable_local'=> $rkeReceivableLocal,
                 'jackpot_type_id'     => $jackpotCreditedUsd > 0 ? (string) $bingoConfig->jackpot_type_id : null,
                 'jackpot_credited_usd'=> $jackpotCreditedUsd,
             ];

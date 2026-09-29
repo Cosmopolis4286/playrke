@@ -5,7 +5,10 @@ namespace App\Domains\Games\Bingo\Services\Room\Metrics;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\Platform\FinancialReconciliationItem;
 use App\Services\Jackpot\JackpotLedgerService;
+use App\Services\Platform\FinancialReconciliationService;
+use App\Services\Platform\PlatformReceivableService;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
 
@@ -34,6 +37,8 @@ final class BingoLotSaleReversalService
     public function __construct(
         private readonly PlatformWalletService $platformWallet,
         private readonly JackpotLedgerService $jackpotLedger,
+        private readonly PlatformReceivableService $receivables,
+        private readonly FinancialReconciliationService $reconciliation,
     ) {}
 
     /** @return bool false si el lote no tiene desglose (lote previo al fix). */
@@ -44,30 +49,70 @@ final class BingoLotSaleReversalService
             Log::warning('[BingoLotSaleReversalService] Lote sin desglose financiero — no se revierten métricas, RKE ni jackpot; conciliar manualmente', [
                 'lot_id' => (string) $lot->id, 'room_id' => (string) $room->id,
             ]);
+            $this->reconciliation->record(
+                type: FinancialReconciliationItem::TYPE_LEGACY_LOT_NOT_REVERSED,
+                message: "Lote reembolsado sin desglose (venta previa al registro): métricas, RKE y jackpot de la sala #{$room->uuid_code} no se revirtieron.",
+                amount: (float) $lot->sale_amount,
+                currencyId: $lot->currency_id ? (string) $lot->currency_id : null,
+                roomId: (string) $room->id,
+                lotId: (string) $lot->id,
+                idempotencyKey: "legacy-lot-not-reversed-{$lot->id}",
+            );
             return false;
         }
 
         $this->reverseRoomMetrics($room, $b);
         $this->reverseCreatorSale($room, $b);
 
-        $currencyId = $b['currency_id'] ?? null;
-        if ($currencyId && (float) ($b['rke_credited_local'] ?? 0) > 0) {
-            $this->platformWallet->reverseRke(
-                (string) $currencyId,
-                (float) $b['rke_credited_local'],
+        $currencyId = !empty($b['currency_id']) ? (string) $b['currency_id'] : null;
+
+        // RKE que la plataforma debe devolver: el acreditado al vender (venta con
+        // billetera) o, en venta fuera del sistema, el ya cobrado al comercio. Si
+        // la deuda seguía pendiente, basta con anularla.
+        $rkeToReverse = (float) ($b['rke_credited_local'] ?? 0);
+        if ((float) ($b['rke_receivable_local'] ?? 0) > 0 && !$this->receivables->cancelForLot((string) $lot->id)) {
+            $rkeToReverse += (float) $b['rke_receivable_local'];
+        }
+
+        if ($currencyId && $rkeToReverse > 0) {
+            $movement = $this->platformWallet->reverseRke(
+                $currencyId,
+                $rkeToReverse,
                 "bingo-lot-rke-reversal-{$lot->id}",
                 "Reversión comisión RKE – Sala #{$room->uuid_code} (lote reembolsado)",
             );
+            if (!$movement) {
+                $this->reconciliation->record(
+                    type: FinancialReconciliationItem::TYPE_RKE_REVERSAL_FAILED,
+                    message: "No se pudo devolver el RKE de un lote reembolsado (sala #{$room->uuid_code}): la wallet de plataforma no tiene saldo suficiente.",
+                    amount: $rkeToReverse,
+                    currencyId: $currencyId,
+                    roomId: (string) $room->id,
+                    lotId: (string) $lot->id,
+                    idempotencyKey: "rke-reversal-failed-{$lot->id}",
+                );
+            }
         }
 
         if (!empty($b['jackpot_type_id']) && (float) ($b['jackpot_credited_usd'] ?? 0) > 0) {
-            $this->jackpotLedger->reverseContribution(
+            $shortfall = $this->jackpotLedger->reverseContribution(
                 jackpotTypeId: (string) $b['jackpot_type_id'],
                 amount: (float) $b['jackpot_credited_usd'],
                 idempotencyKey: "bingo-lot-jackpot-reversal-{$lot->id}",
                 roomId: (string) $room->id,
                 description: "Reversión aporte jackpot – Sala #{$room->uuid_code} (lote reembolsado)",
             );
+            if ($shortfall > 0) {
+                $this->reconciliation->record(
+                    type: FinancialReconciliationItem::TYPE_JACKPOT_REVERSAL_SHORTFALL,
+                    message: "El pozo del jackpot no alcanzaba para devolver el aporte de un lote reembolsado (sala #{$room->uuid_code}). Faltante en USD.",
+                    amount: $shortfall,
+                    roomId: (string) $room->id,
+                    lotId: (string) $lot->id,
+                    idempotencyKey: "jackpot-reversal-shortfall-{$lot->id}",
+                    details: ['jackpot_type_id' => (string) $b['jackpot_type_id'], 'currency' => 'USD'],
+                );
+            }
         }
 
         return true;
