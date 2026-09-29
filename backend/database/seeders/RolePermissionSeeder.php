@@ -142,7 +142,13 @@ class RolePermissionSeeder extends Seeder
         if ($treasurer) {
             $treasurerPermissions = [
                 'treasury.view', 'treasury.manage', 'treasury.approve.transactions', 'treasury.reports',
-                'exchange.view', 'exchange.update',
+                // exchange.manage (no exchange.update, permiso huérfano que
+                // ningún middleware consulta): ExchangeRateCrudService trata
+                // a treasurer igual que admin/superadmin, gestionando la
+                // tasa OFICIAL — sin este permiso, la separación view/manage
+                // de routes/modules/exchange-rate.php lo dejaba solo con
+                // lectura pese a que el propio dominio lo autoriza a editar.
+                'exchange.view', 'exchange.manage',
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial',
                 // Opciones independientes
                 'directory.view', 'directory.search',

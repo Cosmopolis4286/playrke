@@ -13,6 +13,11 @@ export interface ExchangeRate {
     readonly token?: string
     readonly created_at?: string
     readonly updated_at?: string
+    /** Solo saliente (nunca viene del backend): confirma explícitamente un
+     *  cambio >50% respecto al valor vigente — ver
+     *  ExchangeRateRequest::validateAmountJump(). Sin esto, ese salto se
+     *  rechaza con 422 en vez de guardarse silenciosamente. */
+    confirm_large_jump?: boolean
 }
 
 /** Ver AdminExchangeRateResource::toArray() — tasas de cambio propias de un admin/comercio, con `currency` anidado. */

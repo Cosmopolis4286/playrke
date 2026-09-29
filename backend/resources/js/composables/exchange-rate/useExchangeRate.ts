@@ -139,16 +139,18 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
                 throw new Error('No hay datos para enviar')
             }
 
+            const payload: Record<string, unknown> = { ...exchangeRateData.value }
+
             if (exchangeRateData.value.id) {
                 const { data } = await backendClient.put(
                     `/exchange-rate/${exchangeRateData.value.id}`,
-                    exchangeRateData.value
+                    payload
                 )
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
                     '/exchange-rate',
-                    exchangeRateData.value
+                    payload
                 )
                 showToast(data.message, 'success')
             }
@@ -156,6 +158,31 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             await fetchExchangeRates()
             return true
         } catch (error: any) {
+            // ExchangeRateRequest::validateAmountJump() rechaza (422) un
+            // cambio >50% respecto al valor vigente salvo que el request
+            // traiga confirm_large_jump=true — se detecta por el mensaje
+            // específico del error de 'amount' (no hay un código de error
+            // dedicado en el shape estándar de errores 422 del backend) y
+            // se ofrece confirmar y reenviar en vez de solo mostrar el error.
+            const amountError = error?.response?.data?.errors?.amount?.[0] as string | undefined
+
+            if (amountError?.includes('difiere') && !loading.value) {
+                loading.value = false
+
+                const confirm = await showToastConfirmAction({
+                    html: `${amountError}<br><br>¿Confirmas que el valor es correcto?`,
+                    icon: 'warning',
+                    confirmButtonText: 'Sí, es correcto',
+                })
+
+                if (confirm) {
+                    exchangeRateData.value = { ...exchangeRateData.value, confirm_large_jump: true } as Partial<ExchangeRate>
+                    return submit()
+                }
+
+                return false
+            }
+
             console.error('Error en submit:', error)
             showToast(error?.response?.data?.message ?? 'Error al guardar la tasa', 'error')
             return false

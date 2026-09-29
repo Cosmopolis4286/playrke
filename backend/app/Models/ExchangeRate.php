@@ -22,6 +22,16 @@ class ExchangeRate extends BaseModel
     protected $table = 'exchange_rates';
 
     /**
+     * Valores válidos de `status` — único lugar que los enumera (antes
+     * repetidos como strings mágicos en el enum de la migración y en
+     * ningún otro sitio, así que ExchangeRateRequest::rules() no podía
+     * validar 'status' contra el conjunto real y aceptaba cualquier
+     * string). Debe mantenerse sincronizado con el enum de la migración
+     * 2024_01_01_000204_create_exchange_rates_table.
+     */
+    public const STATUSES = ['ACTIVE', 'INACTIVE', 'DELETED', 'OLD', 'DIRECTORY'];
+
+    /**
      * Los campos que se pueden asignar masivamente.
      *
      * @var array<int, string>
