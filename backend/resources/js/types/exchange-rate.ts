@@ -2,6 +2,10 @@ import type { Currency } from './currency'
 
 export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY' | 'OLD' | 'DELETED'
 
+/** 'user' (acción manual o botón "Consultar") o 'system' (cronjob
+ *  automático, ver HandleExchangeRatesCommand) — ExchangeRate::SOURCE_*. */
+export type ExchangeRateSource = 'user' | 'system'
+
 export interface ExchangeRate {
     readonly id?: number | string
     readonly currency_id?: number | string
@@ -10,6 +14,10 @@ export interface ExchangeRate {
     readonly amount: number
     readonly percentage?: number
     readonly status: ExchangeRateStatus
+    /** Ausente en filas antiguas a las que la migración de columna les
+     *  aplicó el default 'user' — nunca null/undefined en la práctica tras
+     *  la migración, pero opcional por si acaso llega sin poblar. */
+    readonly source?: ExchangeRateSource
     readonly token?: string
     readonly created_at?: string
     readonly updated_at?: string
