@@ -38,10 +38,16 @@ final class ExchangeRateSummaryService
     private function buildSummary(): array
     {
         $rates = ExchangeRate::active()
-            ->with('currency:id,iso_code,symbol')
+            ->with(['currency:id,iso_code,symbol', 'user:id,username,first_name,last_name'])
             ->latest('updated_at')
-            ->get(['id', 'currency_id', 'amount', 'percentage', 'updated_at'])
+            ->get(['id', 'currency_id', 'user_id', 'amount', 'percentage', 'status', 'source', 'updated_at'])
             ->unique('currency_id')
+            // unique() preserva el orden de la colección original
+            // (->latest() ya la ordenaba desc), pero se reordena explícito
+            // acá para no depender de ese detalle de implementación —
+            // "más reciente primero" es un requisito del widget, no un
+            // efecto colateral de otra query.
+            ->sortByDesc('updated_at')
             ->map(fn (ExchangeRate $rate) => [
                 'currency_id'   => (string) $rate->currency_id,
                 'currency_code' => $rate->currency?->iso_code ?? '—',
@@ -49,6 +55,8 @@ final class ExchangeRateSummaryService
                 'amount'        => (float) $rate->amount,
                 'percentage'    => (float) $rate->percentage,
                 'updated_at'    => $rate->updated_at?->toIso8601String(),
+                'source'        => $rate->source ?? ExchangeRate::SOURCE_USER,
+                'user_name'     => $this->displayName($rate),
                 'history'       => $this->buildHistory((string) $rate->currency_id),
             ])
             ->values();
@@ -56,6 +64,30 @@ final class ExchangeRateSummaryService
         return [
             'rates' => $rates,
         ];
+    }
+
+    /**
+     * Nombre a mostrar de quién actualizó la tasa — username si existe,
+     * si no el nombre completo, si no un placeholder. source=system no
+     * cambia qué usuario se muestra (sigue siendo el dueño real de la
+     * preferencia auto_update_enabled, ver HandleExchangeRatesCommand, no
+     * un usuario "Sistema" genérico) — el frontend usa `source` para
+     * decidir si antepone "Automático" o no, este método solo resuelve el
+     * nombre humano.
+     */
+    private function displayName(ExchangeRate $rate): string
+    {
+        if (!$rate->user) {
+            return '—';
+        }
+
+        if ($rate->user->username) {
+            return $rate->user->username;
+        }
+
+        $fullName = trim("{$rate->user->first_name} {$rate->user->last_name}");
+
+        return $fullName !== '' ? $fullName : '—';
     }
 
     /**
