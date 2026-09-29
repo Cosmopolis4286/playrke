@@ -39,8 +39,13 @@
         {{-- Barra de navegación --}}
         <x-template.navbar />
 
-        {{-- Ticker de ganancias en vivo (montado por Vue) --}}
-        <div id="platform-win-ticker"></div>
+        {{-- Ticker de ganancias en vivo (montado por Vue). Superadmin/admin
+             pueden abrir el detalle de cada ganancia (AdminWinEventController::show()) —
+             el backend lo vuelve a validar con middleware + policy. --}}
+        <div
+            id="platform-win-ticker"
+            data-can-view-details="{{ auth()->user()?->hasRole(['superadmin', 'admin']) ? 'true' : 'false' }}"
+        ></div>
 
         {{-- Sincroniza en tiempo real el badge de pendientes del navbar y del
              sidebar (montado por Vue; ver PendingMovementsBadge.vue). Solo

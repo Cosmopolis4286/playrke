@@ -1,6 +1,31 @@
 <script setup lang="ts">
 import { ref, watchEffect, nextTick, onBeforeUnmount } from 'vue'
+import { router } from '@inertiajs/vue3'
 import { usePlatformWinEvents } from '@/js/composables/platform/usePlatformWinEvents'
+
+const props = withDefaults(defineProps<{
+  /** Superadmin/admin: cada ganancia enlaza a su detalle (ver auth-layout.blade.php). */
+  canViewDetails?: boolean
+}>(), {
+  canViewDetails: false,
+})
+
+function detailUrl(id: string): string {
+  return `/admin/win-event/${id}/show`
+}
+
+/**
+ * El ticker vive fuera del árbol Inertia (montado desde global.ts): si la
+ * página actual es Inertia se navega con su router (sin recarga completa);
+ * en una vista Blade pura se deja actuar el href normal.
+ */
+function openDetail(event: MouseEvent, id: string): void {
+  if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return
+  if (!document.querySelector('[data-page]')) return
+
+  event.preventDefault()
+  router.visit(detailUrl(id))
+}
 
 /**
  * Iconos de respaldo por juego cuando no hay imagen dedicada en GAME_IMAGES.
@@ -81,10 +106,15 @@ function expand(): void {
 
     <div class="pwt__track-wrap">
       <div class="pwt__track" :class="{ 'pwt__track--scroll': events.length > 2 }">
-        <div
+        <component
+          :is="props.canViewDetails ? 'a' : 'div'"
           v-for="e in events"
           :key="e.id"
           class="pwt__item"
+          :class="{ 'pwt__item--link': props.canViewDetails }"
+          :href="props.canViewDetails ? detailUrl(e.id) : undefined"
+          :title="props.canViewDetails ? 'Ver detalle de la ganancia' : undefined"
+          @click="props.canViewDetails && openDetail($event, e.id)"
         >
           <div class="pwt__thumb">
             <img
@@ -101,15 +131,21 @@ function expand(): void {
             <strong class="pwt__amount">{{ formatPrize(e) }}</strong>
             en {{ e.game }}
           </span>
-        </div>
+          <i v-if="props.canViewDetails" class="fas fa-chevron-right pwt__go"></i>
+        </component>
 
-        <!-- Duplicado para loop continuo -->
+        <!-- Duplicado para loop continuo (fuera del orden de tabulación) -->
         <template v-if="events.length > 2">
-          <div
+          <component
+            :is="props.canViewDetails ? 'a' : 'div'"
             v-for="e in events"
             :key="`dup-${e.id}`"
             class="pwt__item"
+            :class="{ 'pwt__item--link': props.canViewDetails }"
+            :href="props.canViewDetails ? detailUrl(e.id) : undefined"
+            :tabindex="props.canViewDetails ? -1 : undefined"
             aria-hidden="true"
+            @click="props.canViewDetails && openDetail($event, e.id)"
           >
             <div class="pwt__thumb">
               <img
@@ -126,7 +162,8 @@ function expand(): void {
               <strong class="pwt__amount">{{ formatPrize(e) }}</strong>
               en {{ e.game }}
             </span>
-          </div>
+            <i v-if="props.canViewDetails" class="fas fa-chevron-right pwt__go"></i>
+          </component>
         </template>
       </div>
     </div>
@@ -232,6 +269,30 @@ function expand(): void {
   gap: 8px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.pwt__item--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 6px;
+  transition: background .15s;
+}
+.pwt__item--link:hover,
+.pwt__item--link:focus-visible {
+  background: var(--ds-surface-2);
+  outline: none;
+}
+.pwt__item--link:hover .pwt__text strong:first-child {
+  text-decoration: underline;
+}
+
+.pwt__go {
+  font-size: 9px;
+  color: var(--ds-text-2);
+  opacity: .6;
 }
 
 .pwt__thumb {

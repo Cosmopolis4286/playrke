@@ -24,6 +24,8 @@ use App\Domains\Games\Bingo\Repositories\Round\BingoRoundRepository;
 use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
+use App\Domains\Games\Bingo\Services\WinEvent\BingoWinEventDetailResolver;
+use App\Domains\Platform\WinEvent\Contracts\WinEventDetailResolver;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -61,6 +63,9 @@ class BingoServiceProvider extends ServiceProvider
         $this->app->singleton(CommissionCalculationInterface::class, CommissionCalculationService::class);
         $this->app->singleton(RoomMetricsInterface::class, RoomMetricsService::class);
         $this->app->singleton(RoomUserRegistrationInterface::class, RoomUserRegistrationService::class);
+
+        // Detalle de ganancias de Bingo en la vista admin de WinEvent.
+        $this->app->tag([BingoWinEventDetailResolver::class], WinEventDetailResolver::TAG);
     }
 
     /**

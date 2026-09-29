@@ -63,7 +63,9 @@ function mountPlatformWinTicker(): void {
   const el = document.getElementById('platform-win-ticker')
   if (!el) return
 
-  createApp(PlatformWinTicker).mount(el)
+  createApp(PlatformWinTicker, {
+    canViewDetails: el.dataset.canViewDetails === 'true',
+  }).mount(el)
 }
 
 /**

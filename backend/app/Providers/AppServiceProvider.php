@@ -68,6 +68,16 @@ class AppServiceProvider extends ServiceProvider
         // Necesario para que Laravel pueda resolver el alias antes de que
         // el router haya registrado los aliases de middleware.
         $this->app->bind('tos', \App\Http\Middleware\RequireTosAcceptance::class);
+
+        // -------------------------------------------
+        // Detalle admin de eventos de ganancia
+        // -------------------------------------------
+        // Cada juego etiqueta su resolver con WinEventDetailResolver::TAG en
+        // su propio ServiceProvider (Bingo, Trivia, …); aquí solo se inyecta
+        // la colección, así un juego nuevo no toca este archivo.
+        $this->app->when(\App\Domains\Platform\WinEvent\Services\WinEventDetailService::class)
+            ->needs('$resolvers')
+            ->giveTagged(\App\Domains\Platform\WinEvent\Contracts\WinEventDetailResolver::TAG);
     }
 
     /**

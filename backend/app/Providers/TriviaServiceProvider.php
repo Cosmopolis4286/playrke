@@ -10,6 +10,8 @@ use App\Domains\Games\Trivia\Repositories\RedisGameStateRepository;
 use App\Domains\Games\Trivia\Services\GameEngineService;
 use App\Domains\Games\Trivia\Services\RoomService;
 use App\Domains\Games\Trivia\Services\ScoreService;
+use App\Domains\Games\Trivia\Services\WinEvent\TriviaWinEventDetailResolver;
+use App\Domains\Platform\WinEvent\Contracts\WinEventDetailResolver;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +56,9 @@ class TriviaServiceProvider extends ServiceProvider
         $this->app->bind(\App\Domains\Games\Trivia\Actions\SubmitAnswerAction::class);
         $this->app->bind(\App\Domains\Games\Trivia\Actions\FinishGameAction::class);
         $this->app->bind(\App\Domains\Games\Trivia\Actions\JoinRoomAction::class);
+
+        // Detalle de ganancias de Trivia en la vista admin de WinEvent.
+        $this->app->tag([TriviaWinEventDetailResolver::class], WinEventDetailResolver::TAG);
     }
 
     /**

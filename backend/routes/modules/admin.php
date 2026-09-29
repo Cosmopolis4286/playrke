@@ -537,5 +537,6 @@ Route::middleware('auth')->group(function () {
         'index'     => ['method' => 'get',  'uri' => '',            'action' => 'index'],
         'store'     => ['method' => 'post', 'uri' => '',            'action' => 'store'],
         'fetchList' => ['method' => 'get',  'uri' => 'fetch-list',  'action' => 'fetchList'],
+        'show'      => ['method' => 'get',  'uri' => '{id}/show',   'action' => 'show'],
     ]);
 });

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { Link } from '@inertiajs/vue3'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
@@ -231,6 +232,12 @@ onMounted(fetchList)
               :rows="tableRows"
               empty-message="Sin eventos registrados"
             >
+              <template #cell-winner_name="{ row }">
+                <Link :href="`/admin/win-event/${row.id}/show`" class="fw-semibold text-decoration-none">
+                  {{ row.winner_name }}
+                </Link>
+              </template>
+
               <template #cell-prize="{ row }">
                 <span class="badge bg-light text-dark border me-1">{{ PRIZE_KIND_LABELS[row.prize_kind] }}</span>
                 <span v-if="row.amount_usd !== null">${{ row.amount_usd.toFixed(2) }}</span>

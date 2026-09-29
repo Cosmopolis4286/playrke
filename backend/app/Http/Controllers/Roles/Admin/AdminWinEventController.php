@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Roles\Admin;
 
 use App\DTOs\Roles\Admin\WinEvent\AdminWinEventDTO;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
+use App\Domains\Platform\WinEvent\Services\WinEventDetailService;
 use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\Admin\WinEvent\AdminWinEventRequest;
@@ -17,13 +18,15 @@ use Inertia\Response;
  * para premios físicos/objetos/servicios entregados fuera de la
  * plataforma (rifas presenciales, torneos offline, etc).
  *
- * Es un log de eventos, no una entidad editable: solo expone crear y listar.
+ * Es un log de eventos, no una entidad editable: solo expone crear, listar
+ * y ver el detalle.
  */
 final class AdminWinEventController extends Controller
 {
     public function __construct(
         private readonly WinEventService $winEventService,
         private readonly UserContextService $userContext,
+        private readonly WinEventDetailService $detailService,
     ) {}
 
     /**
@@ -33,6 +36,24 @@ final class AdminWinEventController extends Controller
     {
         return $this->handleServiceInertia(
             fn () => Inertia::render('Roles/Admin/WinEvent/Index')
+        );
+    }
+
+    /**
+     * Detalle completo de una ganancia (cualquier juego): datos del evento,
+     * ganador sin enmascarar y las secciones que aporte el resolver del
+     * juego (ver WinEventDetailResolver). Se llega desde el ticker "En vivo"
+     * o desde el listado de este panel.
+     */
+    public function show(string $id): Response
+    {
+        $winEvent = WinEvent::findOrFail($id);
+        $this->authorize('view', $winEvent);
+
+        return $this->handleServiceInertia(
+            fn () => Inertia::render('Roles/Admin/WinEvent/Show', [
+                'detail' => $this->detailService->build($winEvent),
+            ])
         );
     }
 
