@@ -114,3 +114,16 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+.er-hist-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+.er-hist-source--system {
+  color: #a78bfa;
+  font-weight: 600;
+}
+</style>
