@@ -60,4 +60,15 @@ export interface DashboardCommercePageProps {
     pendingWalletCount?: number
     /** Período activo (e.g. "Febrero 2026") */
     period?: string
+    /** RKE que el comercio le debe a la plataforma por ventas fuera del sistema, por moneda */
+    rkeReceivables?: CommerceRkeReceivable[]
+}
+
+export interface CommerceRkeReceivable {
+    currency_id: string
+    currency:    string
+    symbol:      string
+    sales:       number
+    total:       number
+    oldest:      string
 }

@@ -141,6 +141,22 @@
         </template>
       </DashboardWelcomeBanner>
 
+      <!-- Deuda RKE con la plataforma: ventas cuyo dinero cobró el comercio
+           (vendedores con comprobante / venta en mano). Se liquida con la
+           plataforma; desaparece cuando el superadmin la marca cobrada. -->
+      <div v-if="props.rkeReceivables?.length" class="alert alert-warning d-flex align-items-start mt-3 mb-0" style="gap: 0.6rem; font-size: 0.85rem">
+        <i class="fas fa-file-invoice-dollar mt-1"></i>
+        <div>
+          <strong>Comisión RKE pendiente de liquidar con la plataforma:</strong>
+          <span v-for="(r, i) in props.rkeReceivables" :key="r.currency_id">
+            {{ i > 0 ? ' · ' : ' ' }}{{ r.symbol }} {{ formatUsd(r.total) }} {{ r.currency }} ({{ r.sales }} venta{{ r.sales === 1 ? '' : 's' }})
+          </span>
+          <div class="text-muted" style="font-size: 0.78rem">
+            Corresponde a ventas cobradas por tu red fuera de la billetera. Coordiná el pago con la administración.
+          </div>
+        </div>
+      </div>
+
       <!-- Stats -->
       <div class="row g-3 mt-0">
         <div

@@ -63,6 +63,9 @@ final class CommerceDashboardContextService
             configuration:      $this->buildConfiguration($commerce),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
             period:             $period,
+            // Deuda RKE pendiente con la plataforma (ventas cuyo dinero cobró el
+            // comercio): la ve para saber cuánto tiene que liquidar.
+            rkeReceivables:     app(\App\Services\Platform\PlatformReceivableService::class)->pendingSummary($userId),
         );
     }
 

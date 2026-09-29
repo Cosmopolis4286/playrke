@@ -27,6 +27,8 @@ final class CommerceDashboardContextDTO implements ContextDTO
         public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
+        /** RKE que el comercio le debe a la plataforma por ventas fuera del sistema, por moneda */
+        public readonly array $rkeReceivables = [],
     ) {}
 
     public function toView(): array
@@ -42,6 +44,7 @@ final class CommerceDashboardContextDTO implements ContextDTO
             'configuration'      => $this->configuration,
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
+            'rkeReceivables'     => $this->rkeReceivables,
         ];
     }
 }
