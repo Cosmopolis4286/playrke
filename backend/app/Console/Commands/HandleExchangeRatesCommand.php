@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ExchangeRate;
 use App\Models\UserPreference;
 use App\Services\Commands\CommandService;
 use App\Services\ExchangeRate\BcvExchangeRateService;
@@ -149,7 +150,11 @@ class HandleExchangeRatesCommand extends Command
     private function updateOneUser(int $userId, array $userRates, int &$updatedCount, array &$failedUserIds): void
     {
         try {
-            $ok = $this->updaterService->updateRates($userId, $userRates);
+            // source: SOURCE_SYSTEM — este comando ES el cronjob automático
+            // (ver ExchangeRate::SOURCE_SYSTEM), lo que distingue estas
+            // filas de las creadas manualmente o vía el botón "Consultar"
+            // (SOURCE_USER, el default) en el widget/histórico.
+            $ok = $this->updaterService->updateRates($userId, $userRates, ExchangeRate::SOURCE_SYSTEM);
 
             if ($ok) {
                 $this->info("Tasas actualizadas para usuario #{$userId}.");

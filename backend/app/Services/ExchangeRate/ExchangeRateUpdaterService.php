@@ -31,9 +31,15 @@ final class ExchangeRateUpdaterService
      *
      * @param int $userId ID del usuario activo
      * @param array $rates Tasas confirmadas por el usuario (iso_code => value)
+     * @param string $source ExchangeRate::SOURCE_USER (default, flujo manual/
+     *                        botón "Consultar") o SOURCE_SYSTEM — pasado
+     *                        explícitamente por el caller (HandleExchangeRatesCommand
+     *                        pasa SOURCE_SYSTEM) en vez de inferido por
+     *                        app()->runningInConsole(), que también sería
+     *                        true en tests/tinker y daría falsos "system".
      * @return bool True si la actualización fue exitosa, false en caso contrario
      */
-    public function updateRates(int $userId, array $rates): bool
+    public function updateRates(int $userId, array $rates, string $source = 'user'): bool
     {
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
         $entityId = in_array($rolePrefix, ['admin', 'superadmin', 'treasurer'])
@@ -46,7 +52,7 @@ final class ExchangeRateUpdaterService
         }
 
         try {
-            $this->updateForRole($rolePrefix, $entityId, $rates);
+            $this->updateForRole($rolePrefix, $entityId, $rates, $userId, $source);
             return true;
         } catch (\Throwable $e) {
             Log::error('Error actualizando tasas: ' . $e->getMessage());
@@ -71,9 +77,15 @@ final class ExchangeRateUpdaterService
      * @param string $role Rol de usuario ('commerce'|'customer'|'admin')
      * @param int|string $entityId ID de la entidad (commerce_id o customer_id)
      * @param array $data Tasas a actualizar (iso_code => value)
+     * @param int|null $userId Usuario real que originó la actualización —
+     *                          solo se usa en la rama admin/superadmin/
+     *                          treasurer (commerce/customer resuelven su
+     *                          propio user_id/entityId internamente en sus
+     *                          repositorios, sin columna `source`).
+     * @param string $source ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
      * @return void
      */
-    public function updateForRole(string $role, int|string|null $entityId, array $data): void
+    public function updateForRole(string $role, int|string|null $entityId, array $data, ?int $userId = null, string $source = 'user'): void
     {
         $repository = $this->getRepository($role);
 
@@ -112,7 +124,12 @@ final class ExchangeRateUpdaterService
                 : 0;
 
             if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
-                $repository->updateOrCreateExchangeRate($currencyId, $newRate, $percentageChange);
+                // $userId siempre viene poblado aquí: el único caller real,
+                // updateRates(), lo pasa siempre. Sin fallback a $entityId
+                // (que es null para este grupo de roles, ver líneas 39-41) —
+                // un valor incorrecto en user_id (NOT NULL) es preferible a
+                // uno silenciosamente equivocado.
+                $repository->updateOrCreateExchangeRate($currencyId, $newRate, $percentageChange, $userId, $source);
             } else {
                 $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
             }

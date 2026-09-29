@@ -10,6 +10,7 @@ use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
+use App\Models\ExchangeRate;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
@@ -132,10 +133,15 @@ final class ExchangeRateCrudService
                     throw ExchangeRateException::notFoundById((string) $dto->id);
                 }
 
-                // For admin/treasurer, update the amount and user_id
+                // For admin/treasurer, update the amount and user_id.
+                // source explícito a SOURCE_USER: sin esto, editar a mano
+                // una fila que el cronjob había creado (source=system)
+                // conservaba ese origen aunque ahora la haya tocado un
+                // usuario real.
                 $repo->update($dto->id, [
                     'amount'   => $dto->amount,
-                    'user_id'  => $userId
+                    'user_id'  => $userId,
+                    'source'   => ExchangeRate::SOURCE_USER,
                 ]);
 
                 Log::info('ExchangeRate actualizado', [

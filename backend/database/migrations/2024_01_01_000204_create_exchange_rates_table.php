@@ -35,6 +35,13 @@ return new class extends Migration
                 ->default('ACTIVE')
                 ->comment('Estado de la tasa de cambio');
 
+            // 'user' (manual/botón Consultar) o 'system' (cronjob automático,
+            // ver HandleExchangeRatesCommand) — ver migración incremental
+            // add_source_to_exchange_rates_table para el porqué completo.
+            $table->enum('source', ['user', 'system'])
+                ->default('user')
+                ->comment('Origen de la actualización: user o system');
+
             $table->timestamps();
 
             // Soft deletes

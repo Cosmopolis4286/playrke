@@ -32,6 +32,15 @@ class ExchangeRate extends BaseModel
     public const STATUSES = ['ACTIVE', 'INACTIVE', 'DELETED', 'OLD', 'DIRECTORY'];
 
     /**
+     * Valores válidos de `source` — quién generó esta fila: 'user' (acción
+     * manual, incluyendo el botón "Consultar" que sincroniza en lote) o
+     * 'system' (HandleExchangeRatesCommand, cronjob automático). Ver
+     * migración add_source_to_exchange_rates_table.
+     */
+    public const SOURCE_USER = 'user';
+    public const SOURCE_SYSTEM = 'system';
+
+    /**
      * Los campos que se pueden asignar masivamente.
      *
      * @var array<int, string>
@@ -42,6 +51,7 @@ class ExchangeRate extends BaseModel
         'amount',       // Valor del tipo de cambio
         'percentage',   // Porcentaje de subida/bajada
         'status',       // Estado de la tasa
+        'source',       // Origen: 'user' o 'system' (ver SOURCE_*)
     ];
 
     /**
@@ -55,7 +65,8 @@ class ExchangeRate extends BaseModel
         'user_id' => 'string',
         'amount' => 'decimal:4',
         'percentage' => 'decimal:3',
-        'status' => 'string'
+        'status' => 'string',
+        'source' => 'string',
     ];
 
     /**

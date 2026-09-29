@@ -47,14 +47,26 @@ interface AdminExchangeRateRepositoryInterface extends RoleExchangeRateRepositor
     public function getCurrentRatesBatch(array $currencyIds): array;
 
     /**
-     * Crea o actualiza una tasa de cambio
+     * Crea o actualiza una tasa de cambio.
+     *
+     * $userId/$source explícitos (antes usaba Auth::id() internamente,
+     * ver ver AdminExchangeRateRepository) — en el flujo automático
+     * (HandleExchangeRatesCommand, cronjob) no hay sesión HTTP autenticada,
+     * así que Auth::id() era null contra una columna user_id NOT NULL: el
+     * insert fallaba en silencio (capturado por el try/catch del caller) y
+     * el cronjob nunca actualizaba ninguna tasa con éxito.
      *
      * @param mixed $currencyId ID de la moneda
      * @param float $amount Valor de la tasa
      * @param float $percentage Porcentaje
+     * @param int $userId Usuario real que originó la actualización (dueño
+     *                     de la preferencia auto_update_enabled en el caso
+     *                     del cronjob, o el usuario autenticado en el flujo
+     *                     manual/botón "Consultar")
+     * @param string $source ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage): bool;
+    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage, int $userId, string $source = 'user'): bool;
 
     /**
      * Obtiene la tasa más reciente por moneda

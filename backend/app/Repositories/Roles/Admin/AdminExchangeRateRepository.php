@@ -8,7 +8,7 @@ use App\Models\ExchangeRate;
 use App\Repositories\ExchangeRate\RoleExchangeRateRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Repository para manejar operaciones de tasas de cambio de administradores
@@ -119,27 +119,62 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     }
 
     /**
-     * Crea o actualiza una tasa de cambio
+     * Crea o versiona una tasa de cambio: marca la fila ACTIVE vigente (si
+     * existe) como OLD y crea una fila ACTIVE nueva — mismo criterio de
+     * versionado que ExchangeRateCrudService::update() en el flujo manual,
+     * para que el histórico/gráfico de tendencia (Historical.vue,
+     * ExchangeRateSummaryService::buildHistory()) refleje también las
+     * actualizaciones automáticas del cronjob, no solo las manuales.
+     *
+     * Antes hacía updateOrCreate(['currency_id' => $currencyId], $data) sin
+     * filtrar por status: con varias filas OLD + 1 ACTIVE para la misma
+     * moneda (el caso normal tras cualquier edición), Eloquent tomaba la
+     * PRIMERA fila que matcheara currency_id — típicamente la más antigua,
+     * ya histórica — y la sobreescribía in-place. La tasa realmente vigente
+     * nunca cambiaba pese a que el método devolvía true.
+     *
+     * $userId por parámetro, no Auth::id() (ver comentario de la interfaz)
+     * — este método lo invoca ExchangeRateUpdaterService tanto desde el
+     * cronjob automático (sin sesión HTTP, Auth::id() era null) como desde
+     * el flujo manual, y en ambos casos ya recibe el $userId real que debe
+     * usar.
      *
      * @param mixed $currencyId ID de la moneda
      * @param float $amount Valor de la tasa
      * @param float $percentage Porcentaje
+     * @param int $userId Usuario real que originó la actualización
+     * @param string $source ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage): bool
+    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage, int $userId, string $source = 'user'): bool
     {
         try {
-            $data = [
-                'currency_id' => $currencyId,
-                'amount'      => $amount,
-                'percentage'  => $percentage,
-                'user_id'     => Auth::id()
-            ];
+            DB::transaction(function () use ($currencyId, $amount, $percentage, $userId, $source) {
+                $current = $this->model
+                    ->where('currency_id', $currencyId)
+                    ->where('status', 'ACTIVE')
+                    ->first();
 
-            $this->model->updateOrCreate(
-                ['currency_id' => $currencyId],
-                $data
-            );
+                // No-op si el valor no cambió — evita una fila OLD nueva
+                // por cada tick del cronjob cuando el proveedor externo
+                // devuelve el mismo valor que ya está vigente (caso normal:
+                // el BCV/mercado no cambia cada hora).
+                if ($current && (float) $current->amount === $amount) {
+                    $current->update(['user_id' => $userId, 'source' => $source]);
+                    return;
+                }
+
+                $current?->update(['status' => 'OLD']);
+
+                $this->model->create([
+                    'currency_id' => $currencyId,
+                    'amount'      => $amount,
+                    'percentage'  => $percentage,
+                    'user_id'     => $userId,
+                    'source'      => $source,
+                    'status'      => 'ACTIVE',
+                ]);
+            });
 
             return true;
         } catch (\Exception $e) {
