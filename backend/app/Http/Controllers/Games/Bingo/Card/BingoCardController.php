@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Games\Bingo\Card;
 
 use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO;
+use App\Domains\Games\Bingo\Services\Card\Generate\BingoSellerPosService;
+use App\Services\Auth\PermissionService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
@@ -29,6 +31,7 @@ final class BingoCardController extends Controller
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService $generateService,
+        private readonly BingoSellerPosService $posService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -85,6 +88,58 @@ final class BingoCardController extends Controller
                 ),
             ]
         );
+    }
+
+    /**
+     * Punto de venta: todas las salas vendibles de una fecha en una sola
+     * llamada (el cliente filtra por tipo de sala / conexión / bote).
+     */
+    public function rooms(Request $request): JsonResponse
+    {
+        $this->ensureSeller();
+        $validated = $request->validate(['date' => ['required', 'date_format:Y-m-d']]);
+
+        return $this->handleServiceJson(
+            fn () => ['rooms' => $this->generateService->listSellableRooms($validated['date'])]
+        );
+    }
+
+    /**
+     * Punto de venta: compradores del vendedor para autocompletar.
+     */
+    public function frequentBuyers(Request $request): JsonResponse
+    {
+        $this->ensureSeller();
+        $validated = $request->validate(['q' => ['nullable', 'string', 'max:60']]);
+
+        return $this->handleServiceJson(fn () => [
+            'buyers' => $this->posService->frequentBuyers(
+                (string) $this->userContext->resolveUserId(),
+                $validated['q'] ?? null,
+            ),
+        ]);
+    }
+
+    /**
+     * Punto de venta: ventas del día del vendedor y sus totales.
+     */
+    public function todaySales(): JsonResponse
+    {
+        $this->ensureSeller();
+
+        return $this->handleServiceJson(
+            fn () => $this->posService->todaySales((string) $this->userContext->resolveUserId())
+        );
+    }
+
+    /**
+     * Los endpoints del punto de venta exponen datos personales de
+     * compradores: solo el vendedor (mismo criterio que
+     * BingoCardGenerateRequest::authorize()).
+     */
+    private function ensureSeller(): void
+    {
+        abort_unless(PermissionService::checkPrefix(['seller']), 403, 'Solo los vendedores pueden usar el punto de venta.');
     }
 
     /**

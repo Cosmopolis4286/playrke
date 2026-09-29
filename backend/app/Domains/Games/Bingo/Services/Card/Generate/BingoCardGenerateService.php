@@ -186,6 +186,60 @@ final class BingoCardGenerateService
     }
 
     /**
+     * Todas las salas vendibles de una fecha en una sola llamada, con los IDs
+     * de tipo de sala / conexión / bote para que el punto de venta filtre en
+     * el cliente (chips) sin la cascada de requests de fetchRoom().
+     *
+     * Mismas reglas de visibilidad que fetchRoom(): ACTIVE, de la fecha, y
+     * propias del comercio o PUBLIC.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listSellableRooms(string $date): array
+    {
+        $creatorUserId = $this->resolveCreatorOrManagerUserId();
+
+        return BingoRoom::query()
+            ->active()
+            ->forDate($date)
+            ->accessibleBy($creatorUserId)
+            ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
+            ->orderBy('bingo_rooms_config.time')
+            ->get([
+                'bingo_rooms.id',
+                'bingo_rooms.uuid_code',
+                'bingo_rooms.prize_pool',
+                'bingo_rooms.total_players',
+                'bingo_rooms.total_cards',
+                'bingo_rooms.creator_user_id',
+                'bingo_rooms_config.date',
+                'bingo_rooms_config.time',
+                'bingo_rooms_config.card_price_usd',
+                'bingo_rooms_config.max_players',
+                'bingo_rooms_config.room_type_id',
+                'bingo_rooms_config.connection_type_id',
+                'bingo_rooms_config.prize_pool_type_id',
+            ])
+            ->map(fn (BingoRoom $room) => [
+                'id'                 => $room->hashed_id,
+                'uuid_code'          => $room->uuid_code,
+                'prize_pool'         => (float) $room->prize_pool,
+                'total_players'      => (int) $room->total_players,
+                'total_cards'        => (int) $room->total_cards,
+                'is_own'             => (string) $room->creator_user_id === (string) $creatorUserId,
+                'date'               => $room->getAttribute('date'),
+                'time'               => $room->getAttribute('time'),
+                'card_price_usd'     => (float) $room->getAttribute('card_price_usd'),
+                'max_players'        => $room->getAttribute('max_players') !== null ? (int) $room->getAttribute('max_players') : null,
+                'room_type_id'       => $room->getAttribute('room_type_id') !== null ? (string) $room->getAttribute('room_type_id') : null,
+                'connection_type_id' => $room->getAttribute('connection_type_id') !== null ? (string) $room->getAttribute('connection_type_id') : null,
+                'prize_pool_type_id' => $room->getAttribute('prize_pool_type_id') !== null ? (string) $room->getAttribute('prize_pool_type_id') : null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Obtener países disponibles para el usuario según su rol y la sala de bingo.
      *
      * Lógica de intersección:

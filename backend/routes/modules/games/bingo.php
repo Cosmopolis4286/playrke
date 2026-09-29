@@ -144,6 +144,10 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'verified', 'multiPermission:g
     'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
     'generate-card-store' => ['method' => 'post', 'uri' => '{room}/generate', 'action' => 'generateCardStore'],
     'fetch-room' => ['method' => 'get', 'uri' => 'fetch-room', 'action' => 'fetchRoom'],
+    // Punto de venta del vendedor (solo seller — ver BingoCardController::ensureSeller()).
+    'pos-rooms'           => ['method' => 'get', 'uri' => 'pos/rooms',            'action' => 'rooms'],
+    'pos-frequent-buyers' => ['method' => 'get', 'uri' => 'pos/frequent-buyers',  'action' => 'frequentBuyers'],
+    'pos-today-sales'     => ['method' => 'get', 'uri' => 'pos/today-sales',      'action' => 'todaySales'],
     'available-countries' => ['method' => 'get', 'uri' => '{room}/available-countries', 'action' => 'availableCountries'],
     'card-price'          => ['method' => 'get', 'uri' => '{room}/card-price',           'action' => 'cardPrice'],
 ]);

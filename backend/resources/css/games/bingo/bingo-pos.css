@@ -1,0 +1,162 @@
+/*
+ * Punto de venta de cartones del vendedor (/bingo-card/generate).
+ * Clases compartidas por los componentes de Components/games/bingo/Card/Pos/.
+ * Colores sobre los tokens --ds-* para funcionar en tema claro y oscuro.
+ */
+.pos {
+  --pos-accent: #0ea5e9;
+  --pos-accent-strong: #0284c7;
+  --pos-accent-soft: rgba(14, 165, 233, .12);
+  --pos-success: #16a34a;
+  --pos-success-soft: rgba(34, 197, 94, .14);
+  --pos-warning: #d97706;
+  --pos-warning-soft: rgba(245, 158, 11, .15);
+  --pos-danger: #dc2626;
+  --pos-danger-soft: rgba(239, 68, 68, .13);
+  --pos-radius: 14px;
+  color: var(--ds-text);
+}
+
+/* ── Tarjeta de paso ─────────────────────────────────────────── */
+.pos-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--pos-radius);
+  padding: 18px;
+}
+.pos-card + .pos-card { margin-top: 14px; }
+.pos-card--locked { opacity: .55; pointer-events: none; }
+
+.pos-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pos-step__num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: var(--ds-surface-2);
+  color: var(--ds-text-2);
+  border: 1px solid var(--ds-border-2);
+  transition: background .2s, color .2s;
+}
+.pos-step__num--done { background: var(--pos-success); border-color: var(--pos-success); color: #fff; }
+.pos-step__num--active { background: var(--pos-accent); border-color: var(--pos-accent); color: #fff; }
+.pos-step__title { font-size: 15px; font-weight: 700; margin: 0; }
+.pos-step__hint { font-size: 12px; color: var(--ds-text-2); margin: 0; }
+.pos-step__aside { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* ── Chips ───────────────────────────────────────────────────── */
+.pos-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pos-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-border-2);
+  background: var(--ds-surface);
+  color: var(--ds-text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.pos-chip:hover { border-color: var(--pos-accent); color: var(--ds-text); }
+.pos-chip:focus-visible { outline: 2px solid var(--pos-accent); outline-offset: 2px; }
+.pos-chip--on { background: var(--pos-accent); border-color: var(--pos-accent); color: #fff; }
+.pos-chip--on:hover { color: #fff; }
+.pos-chip__count {
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ds-badge-bg);
+  color: var(--ds-badge-color);
+}
+.pos-chip--on .pos-chip__count { background: rgba(255,255,255,.25); color: #fff; }
+
+/* ── Pills de estado ─────────────────────────────────────────── */
+.pos-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pos-pill--success { background: var(--pos-success-soft); color: var(--pos-success); }
+.pos-pill--warning { background: var(--pos-warning-soft); color: var(--pos-warning); }
+.pos-pill--danger  { background: var(--pos-danger-soft); color: var(--pos-danger); }
+.pos-pill--info    { background: var(--pos-accent-soft); color: var(--pos-accent-strong); }
+.pos-pill--muted   { background: var(--ds-badge-bg); color: var(--ds-badge-color); }
+
+/* ── Botones ─────────────────────────────────────────────────── */
+.pos-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter .15s, background .15s, transform .1s;
+}
+.pos-btn:active:not(:disabled) { transform: translateY(1px); }
+.pos-btn:disabled { opacity: .5; cursor: not-allowed; }
+.pos-btn:focus-visible { outline: 2px solid var(--pos-accent); outline-offset: 2px; }
+.pos-btn--primary { background: var(--pos-accent); color: #fff; }
+.pos-btn--primary:hover:not(:disabled) { background: var(--pos-accent-strong); color: #fff; }
+.pos-btn--success { background: var(--pos-success); color: #fff; }
+.pos-btn--success:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+.pos-btn--whatsapp { background: #25d366; color: #073b1c; }
+.pos-btn--whatsapp:hover { filter: brightness(1.05); color: #073b1c; }
+.pos-btn--ghost { background: var(--ds-surface); border-color: var(--ds-border-2); color: var(--ds-text); }
+.pos-btn--ghost:hover:not(:disabled) { background: var(--ds-surface-2); }
+.pos-btn--block { width: 100%; }
+.pos-btn--lg { padding: 14px 18px; font-size: 16px; }
+.pos-btn--sm { padding: 6px 10px; font-size: 12px; border-radius: 9px; }
+
+.pos-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid var(--ds-border-2);
+  background: var(--ds-surface);
+  color: var(--ds-text-2);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+.pos-icon-btn:hover { color: var(--ds-text); background: var(--ds-surface-2); }
+
+/* ── Campos ──────────────────────────────────────────────────── */
+.pos-label { display: block; font-size: 12px; font-weight: 700; color: var(--ds-text-2); margin-bottom: 5px; }
+.pos-muted { color: var(--ds-text-2); font-size: 12px; }
+.pos-money { font-variant-numeric: tabular-nums; }
+
+/* ── Skeleton ────────────────────────────────────────────────── */
+.pos-skeleton {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--ds-skeleton-a) 25%, var(--ds-skeleton-b) 50%, var(--ds-skeleton-a) 75%);
+  background-size: 200% 100%;
+  animation: pos-shimmer 1.2s infinite;
+}
+@keyframes pos-shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pos-skeleton { animation: none; }
+}
