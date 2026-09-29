@@ -12,7 +12,8 @@ export function useDashboardFormatters() {
     return new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(iso))
   }
 
-  function formatDateTime(iso: string) {
+  function formatDateTime(iso: string | null) {
+    if (!iso) return '—'
     return new Intl.DateTimeFormat('es-VE', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     }).format(new Date(iso))
