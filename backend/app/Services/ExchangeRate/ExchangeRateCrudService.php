@@ -133,21 +133,35 @@ final class ExchangeRateCrudService
                     throw ExchangeRateException::notFoundById((string) $dto->id);
                 }
 
+                // percentage recalculado contra el amount ANTERIOR — antes
+                // este update() nunca lo tocaba, así que el campo se quedaba
+                // pegado en el valor de cuando la fila se creó por última
+                // vez (típicamente el del seeder), sin importar cuánto
+                // cambiara amount en ediciones posteriores. Mismo cálculo
+                // que usa la rama commerce/customer (calculatePercentage),
+                // solo que aquí no hace falta crear una fila nueva porque
+                // admin/superadmin/treasurer actualizan in-place.
+                $percentage = $oldAmount > 0
+                    ? $this->domain->calculatePercentage((float) $oldAmount, $dto->amount)
+                    : 0.0;
+
                 // For admin/treasurer, update the amount and user_id.
                 // source explícito a SOURCE_USER: sin esto, editar a mano
                 // una fila que el cronjob había creado (source=system)
                 // conservaba ese origen aunque ahora la haya tocado un
                 // usuario real.
                 $repo->update($dto->id, [
-                    'amount'   => $dto->amount,
-                    'user_id'  => $userId,
-                    'source'   => ExchangeRate::SOURCE_USER,
+                    'amount'     => $dto->amount,
+                    'percentage' => $percentage,
+                    'user_id'    => $userId,
+                    'source'     => ExchangeRate::SOURCE_USER,
                 ]);
 
                 Log::info('ExchangeRate actualizado', [
                     'id'         => $dto->id,
                     'old_amount' => (float) $oldAmount,
                     'new_amount' => $dto->amount,
+                    'percentage' => $percentage,
                     'user_id'    => $userId,
                 ]);
 

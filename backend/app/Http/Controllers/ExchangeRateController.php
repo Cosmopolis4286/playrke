@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador para la gestión de tasas de cambio.
@@ -185,6 +186,55 @@ class ExchangeRateController extends Controller
             ),
             'No se pudo cargar el histórico de tasas de cambio.'
         );
+    }
+
+    /**
+     * Descarga en CSV el mismo histórico que ve Historical.vue — reusa
+     * historicalContext() (mismo scoping por rol que la vista Inertia, ver
+     * ExchangeRateContextService::resolveHistorical()) para no duplicar la
+     * lógica de qué filas puede ver cada rol.
+     *
+     * @param Request $request
+     * @param string $id ID de la moneda (currency_id)
+     * @return StreamedResponse
+     */
+    public function exportHistorical(Request $request, string $id): StreamedResponse
+    {
+        $context = $this->service->historicalContext($id, $this->resolveToken($request));
+        $rows = $context['exchangeRates'] ?? [];
+        $isAdmin = in_array($context['roleUser'] ?? null, ['admin', 'superadmin'], true);
+
+        $filename = 'historico-tasa-cambio-' . now()->format('Y-m-d-His') . '.csv';
+
+        return response()->streamDownload(function () use ($rows, $isAdmin) {
+            $handle = fopen('php://output', 'w');
+
+            $header = ['Moneda', 'Cambio', 'Porcentaje', 'Estado', 'Fecha'];
+            if ($isAdmin) {
+                $header[] = 'Origen';
+                $header[] = 'Registrado por';
+            }
+            fputcsv($handle, $header);
+
+            foreach ($rows as $rate) {
+                $row = [
+                    $rate->currency_name ?? '-',
+                    number_format((float) $rate->amount, 4, '.', ''),
+                    $rate->percentage,
+                    $rate->status,
+                    optional($rate->created_at)->format('Y-m-d H:i:s'),
+                ];
+
+                if ($isAdmin) {
+                    $row[] = $rate->source === ExchangeRate::SOURCE_SYSTEM ? 'Automático' : 'Manual';
+                    $row[] = $rate->user_name ?? '-';
+                }
+
+                fputcsv($handle, $row);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     /**

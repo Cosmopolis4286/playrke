@@ -165,10 +165,17 @@ final class ExchangeRateContextService
             default                            => new Collection(),
         };
 
+        // currencies + tokenId: Historical.vue reutiliza ExchangeRateForm
+        // (el mismo modal de edición de /exchange-rate, ver botón "Editar")
+        // — necesita el catálogo completo de monedas para resolverlas por
+        // iso_code/id (ver ExchangeRateForm::availableCurrencies) aunque
+        // esta vista solo edite, nunca cree.
         return [
             'exchangeRates' => $history,
             'currencyId'    => $currencyId,
             'roleUser'      => $role,
+            'currencies'    => $this->currency->getAvailableCurrencies($userId, true, true),
+            'tokenId'       => $publicToken ?? '',
         ];
     }
 }

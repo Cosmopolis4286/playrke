@@ -56,6 +56,11 @@ export interface ExchangeRateHistoricalPageProps {
     currencyId: string
     roleUser: string
     title: string
+    /** Catálogo completo de monedas — reutilizado por ExchangeRateForm en
+     *  el botón "Editar" (mismo modal de /exchange-rate), ver
+     *  ExchangeRateContextService::resolveHistorical(). */
+    currencies: Currency[]
+    tokenId?: string
 }
 
 export interface UsedCurrency {
