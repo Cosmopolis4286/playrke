@@ -36,7 +36,10 @@ return new class extends Migration
                     ->comment('Comercio que tiene el dinero y le debe a la plataforma');
                 $table->foreignSnowflake('currency_id')->constrained('currencies')->restrictOnDelete()->cascadeOnUpdate();
                 $table->foreignSnowflake('room_id')->nullable()->constrained('bingo_rooms')->nullOnDelete()->cascadeOnUpdate();
-                $table->snowflake('lot_id')->nullable()->unique()->comment('Lote de cartones que originó la deuda (una por lote)');
+                // unsignedBigInteger, NO snowflake(): el macro de dive-be/laravel-snowflake
+                // es unsignedBigInteger($column)->primary() — solo sirve para 'id'. En
+                // otra columna declara una segunda PK ("Multiple primary key defined").
+                $table->unsignedBigInteger('lot_id')->nullable()->unique()->comment('Lote de cartones que originó la deuda (una por lote)');
                 $table->decimal('amount', 13, 2);
                 $table->enum('status', ['PENDING', 'SETTLED', 'CANCELLED'])->default('PENDING');
                 $table->timestamp('settled_at')->nullable();
@@ -57,7 +60,7 @@ return new class extends Migration
                 $table->foreignSnowflake('currency_id')->nullable()->constrained('currencies')->nullOnDelete()->cascadeOnUpdate();
                 $table->decimal('amount', 15, 4)->default(0);
                 $table->foreignSnowflake('room_id')->nullable()->constrained('bingo_rooms')->nullOnDelete()->cascadeOnUpdate();
-                $table->snowflake('lot_id')->nullable();
+                $table->unsignedBigInteger('lot_id')->nullable(); // ver nota en platform_receivables.lot_id
                 $table->string('idempotency_key', 120)->nullable()->unique();
                 $table->string('message', 255);
                 $table->json('details')->nullable();
