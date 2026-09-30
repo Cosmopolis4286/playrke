@@ -47,7 +47,18 @@ final class AdminWinEventController extends Controller
      */
     public function show(string $id): Response
     {
-        $winEvent = WinEvent::findOrFail($id);
+        $this->authorize('viewAny', WinEvent::class);
+
+        $winEvent = WinEvent::find($id);
+
+        // Un evento anunciado pero inexistente (ej. broadcast de una transacción
+        // revertida) muestra un estado vacío en la propia vista, en vez del 404
+        // genérico — funciona igual desde el ticker (navegación Inertia) que
+        // con la URL abierta directamente.
+        if (!$winEvent) {
+            return Inertia::render('Roles/Admin/WinEvent/Show', ['detail' => null, 'missingId' => $id]);
+        }
+
         $this->authorize('view', $winEvent);
 
         return $this->handleServiceInertia(

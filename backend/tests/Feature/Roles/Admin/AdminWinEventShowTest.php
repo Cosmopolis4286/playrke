@@ -3,8 +3,13 @@
 namespace Tests\Feature\Roles\Admin;
 
 use App\Domains\Platform\WinEvent\Models\WinEvent;
+use App\Domains\Platform\WinEvent\Services\WinEventService;
+use App\Events\Platform\WinEventBroadcasted;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Broadcasting\BroadcastEvent;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
@@ -101,10 +106,46 @@ class AdminWinEventShowTest extends TestCase
     }
 
     #[Test]
-    public function unknown_win_event_returns_404(): void
+    public function unknown_win_event_shows_an_empty_state_instead_of_a_404(): void
     {
         $admin = $this->makeUserWithRole('admin');
 
-        $this->actingAs($admin)->get('/admin/win-event/123456789/show')->assertNotFound();
+        $this->actingAs($admin)
+            ->get('/admin/win-event/123456789/show')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Roles/Admin/WinEvent/Show')
+                ->where('detail', null)
+                ->where('missingId', '123456789'));
+    }
+
+    #[Test]
+    public function player_cannot_probe_unknown_win_event_ids(): void
+    {
+        $player = $this->makeUserWithRole('player');
+
+        $this->assertNotEquals(200, $this->actingAs($player)->get('/admin/win-event/123456789/show')->getStatusCode());
+    }
+
+    #[Test]
+    public function win_event_is_broadcast_only_after_the_transaction_commits(): void
+    {
+        Bus::fake();
+        $service = app(WinEventService::class);
+
+        // Transacción revertida: el ticker no debe anunciar un ganador que no existe.
+        try {
+            DB::transaction(function () use ($service) {
+                $service->reportNonMoney(null, 'Fantasma', 'bingo', 'Bingo', WinEvent::PRIZE_ITEM, 'TV');
+                throw new \RuntimeException('rollback');
+            });
+        } catch (\RuntimeException) {
+        }
+
+        Bus::assertNotDispatched(BroadcastEvent::class);
+
+        DB::transaction(fn () => $service->reportNonMoney(null, 'Real', 'bingo', 'Bingo', WinEvent::PRIZE_ITEM, 'TV'));
+
+        Bus::assertDispatched(BroadcastEvent::class, fn (BroadcastEvent $job) => $job->event instanceof WinEventBroadcasted);
     }
 }

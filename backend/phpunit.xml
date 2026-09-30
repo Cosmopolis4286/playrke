@@ -32,6 +32,7 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="BROADCAST_DRIVER" value="log"/>
+        <env name="BROADCAST_CONNECTION" value="log" force="true"/>
         <env name="REDIS_CLIENT" value="predis"/>
         <env name="DB_TRIVIA_DATABASE" value="trivia_testing"/>
     </php>

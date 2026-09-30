@@ -5,6 +5,7 @@ namespace App\Domains\Platform\WinEvent\Services;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
 use App\Events\Platform\WinEventBroadcasted;
 use App\Models\Currency;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -128,7 +129,11 @@ final class WinEventService
             'metadata'             => $metadata,
         ]);
 
-        $this->broadcast($winEvent);
+        // Solo tras el commit: si el llamador está dentro de una transacción
+        // que luego se revierte, el ticker anunciaba un ganador cuyo WinEvent
+        // no existía (y su detalle admin respondía 404). Sin transacción
+        // abierta, afterCommit() ejecuta en el acto.
+        DB::afterCommit(fn () => $this->broadcast($winEvent));
 
         return $winEvent;
     }

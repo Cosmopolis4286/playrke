@@ -9,11 +9,14 @@ import type {
 } from '@/js/types/platform/win-event-detail'
 
 const props = defineProps<{
-  detail: WinEventDetail
+  /** null: el evento no existe (p. ej. anunciado por una transacción revertida). */
+  detail: WinEventDetail | null
+  missingId?: string
 }>()
 
-const event = computed(() => props.detail.event)
-const winner = computed(() => props.detail.winner)
+// Solo se evalúan dentro del v-else (detail presente) — computed es perezoso.
+const event = computed(() => props.detail!.event)
+const winner = computed(() => props.detail!.winner)
 
 /** Misma convención visual que PlatformWinTicker — slug sin entrada cae al genérico. */
 const GAME_ICONS: Record<string, string> = {
@@ -95,6 +98,34 @@ function goBack(): void {
 </script>
 
 <template>
+  <template v-if="!detail">
+    <PageHeader
+      icon="fa-trophy"
+      title="Detalle de Ganancia"
+      :breadcrumb-items="[
+        { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+        { label: 'Eventos de Ganancia', route: '/admin/win-event' },
+        { label: 'Detalle' },
+      ]"
+    />
+    <div class="container-fluid py-4">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-ghost fa-2x text-muted mb-3"></i>
+          <h5 class="fw-semibold">Este evento de ganancia no existe</h5>
+          <p class="text-muted small mb-1">
+            No se registró o fue anunciado por una operación que se revirtió.
+          </p>
+          <p v-if="missingId" class="text-muted small"><code>{{ missingId }}</code></p>
+          <button type="button" class="btn btn-sm btn-primary mt-2" @click="goBack">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template v-else>
   <PageHeader
     icon="fa-trophy"
     title="Detalle de Ganancia"
@@ -263,6 +294,7 @@ function goBack(): void {
       </div>
     </div>
   </div>
+  </template>
 </template>
 
 <style scoped>
