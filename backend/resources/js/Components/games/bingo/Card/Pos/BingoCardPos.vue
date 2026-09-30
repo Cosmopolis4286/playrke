@@ -14,6 +14,7 @@ import { providePos } from '@/js/composables/games/bingo/card/pos/posContext'
 import { usePosRooms } from '@/js/composables/games/bingo/card/pos/usePosRooms'
 import { usePosSale } from '@/js/composables/games/bingo/card/pos/usePosSale'
 import { usePosTodaySales } from '@/js/composables/games/bingo/card/pos/usePosTodaySales'
+import { showToast } from '@/js/utils/toastNotify'
 import type { SelectOption } from '@/js/types/common/form/form'
 
 /**
@@ -35,13 +36,23 @@ const rooms = reactive(usePosRooms({
   connection_type_id: props.connectionTypeOptions,
   prize_pool_type_id: props.prizePoolTypeOptions,
 }))
-const sale = reactive(usePosSale(toRef(rooms, 'selectedRoom')))
-const todaySales = reactive(usePosTodaySales())
-
 const confirmOpen = ref(false)
 const paymentConfirmed = ref(false)
 
+/** El backend dijo que la sala ya no acepta ventas: refrescar para mostrarla cerrada. */
+function onSalesClosed(): void {
+  confirmOpen.value = false
+  rooms.fetchRooms()
+}
+
+const sale = reactive(usePosSale(toRef(rooms, 'selectedRoom'), onSalesClosed))
+const todaySales = reactive(usePosTodaySales())
+
 function requestConfirm(): void {
+  if (!rooms.selectedRoomOpen) {
+    showToast('Las ventas de esta sala ya cerraron. Elige otra sala.', 'warning')
+    return
+  }
   if (!sale.isFormValid || sale.submitting) return
   paymentConfirmed.value = false
   confirmOpen.value = true
@@ -68,8 +79,12 @@ function onKeydown(e: KeyboardEvent): void {
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
-// Cerrar el modal si la venta deja de ser válida (p. ej. el precio se recargó).
-watch(() => sale.isFormValid, valid => { if (!valid && !sale.submitting) confirmOpen.value = false })
+// Cerrar el modal si la venta deja de ser válida (precio recargado, o la
+// sala llegó a su cierre de ventas mientras estaba abierto).
+watch(
+  () => sale.isFormValid && rooms.selectedRoomOpen,
+  valid => { if (!valid && !sale.submitting) confirmOpen.value = false },
+)
 
 const room = computed(() => rooms.selectedRoom)
 

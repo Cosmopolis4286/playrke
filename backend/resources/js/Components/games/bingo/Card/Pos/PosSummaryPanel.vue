@@ -11,6 +11,10 @@ const { rooms, sale, requestConfirm } = usePos()
 
 const hasPrice = computed(() => !!sale.cardPriceData)
 
+/** La sala elegida llegó a su cierre de ventas (5 min antes del inicio por defecto). */
+const roomClosed = computed(() => !!rooms.selectedRoom && !rooms.selectedRoomOpen)
+const canSubmit = computed(() => sale.isFormValid && !sale.submitting && !roomClosed.value)
+
 function money(n: number): string {
   return n.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -65,14 +69,19 @@ function money(n: number): string {
       <button
         type="button"
         class="pos-btn pos-btn--primary pos-btn--block pos-btn--lg pss__cta"
-        :disabled="!sale.isFormValid || sale.submitting"
+        :disabled="!canSubmit"
         @click="requestConfirm"
       >
         <i class="fas fa-ticket-alt"></i>
         Revisar y generar {{ sale.cardCount === 1 ? 'cartón' : `${sale.cardCount} cartones` }}
       </button>
 
-      <ul v-if="!sale.isFormValid && sale.missingSteps.length" class="pss__missing">
+      <div v-if="roomClosed" class="pss__closed" role="alert">
+        <i class="fas fa-store-slash"></i>
+        Las ventas de esta sala cerraron. Elige otra sala para continuar.
+      </div>
+
+      <ul v-else-if="!sale.isFormValid && sale.missingSteps.length" class="pss__missing">
         <li v-for="m in sale.missingSteps" :key="m"><i class="far fa-circle"></i>{{ m }}</li>
       </ul>
     </div>
@@ -86,10 +95,10 @@ function money(n: number): string {
       <button
         type="button"
         class="pos-btn pos-btn--primary"
-        :disabled="!sale.isFormValid || sale.submitting"
+        :disabled="!canSubmit"
         @click="requestConfirm"
       >
-        {{ sale.isFormValid ? 'Generar' : (sale.missingSteps[0] ?? 'Generar') }}
+        {{ roomClosed ? 'Ventas cerradas' : sale.isFormValid ? 'Generar' : (sale.missingSteps[0] ?? 'Generar') }}
       </button>
     </div>
   </aside>
@@ -134,6 +143,18 @@ function money(n: number): string {
 .pss__missing { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 4px; }
 .pss__missing li { font-size: 12px; color: var(--ds-text-2); display: flex; align-items: center; gap: 7px; }
 .pss__missing i { font-size: 9px; }
+
+.pss__closed {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: var(--pos-danger-soft);
+  color: var(--pos-danger);
+}
 
 .pss-bar { display: none; }
 

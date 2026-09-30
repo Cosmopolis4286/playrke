@@ -39,7 +39,11 @@ export function whatsappNumber(phone: string, iso2: string | null): string | nul
  * Mismos endpoints y validación que el formulario anterior
  * (available-countries, card-price, external-players/check, generate).
  */
-export function usePosSale(selectedRoom: Ref<PosRoom | null>) {
+export function usePosSale(
+    selectedRoom: Ref<PosRoom | null>,
+    /** El backend rechazó por cierre de ventas (409 BINGO_CARD_SALES_CLOSED): recargar salas. */
+    onSalesClosed: () => void = () => {},
+) {
     /* ───────── STATE ───────── */
 
     const countries = ref<Country[]>([])
@@ -173,6 +177,7 @@ export function usePosSale(selectedRoom: Ref<PosRoom | null>) {
         } catch (error: any) {
             cardPriceData.value = null
             showToast(error?.response?.data?.message ?? 'No se pudo obtener el precio del cartón.', 'error')
+            if (error?.response?.data?.error_code === 'BINGO_CARD_SALES_CLOSED') onSalesClosed()
         } finally {
             loadingCardPrice.value = false
         }
@@ -275,6 +280,7 @@ export function usePosSale(selectedRoom: Ref<PosRoom | null>) {
                 code === 'BINGO_CARD_PRICE_CHANGED' ? 'warning' : 'error'
             )
             if (code === 'BINGO_CARD_PRICE_CHANGED') await fetchCardPrice()
+            if (code === 'BINGO_CARD_SALES_CLOSED') onSalesClosed()
             return false
         } finally {
             submitting.value = false

@@ -540,4 +540,81 @@ class SellerCardSaleTest extends TestCase
         $this->actingAs($this->sellerE)->getJson('/bingo-card/pos/frequent-buyers')->assertOk()->assertJsonCount(0, 'buyers');
         $this->actingAs($this->sellerE)->getJson('/bingo-card/pos/today-sales')->assertOk()->assertJsonCount(0, 'sales');
     }
+
+    // ─── Plazo de venta del vendedor ─────────────────────────────────────────
+    // Su pago nace PENDING y los cartones no juegan hasta la aprobación del
+    // comercio: la venta cierra N minutos antes del inicio y nunca en IN_PROGRESS.
+
+    private function startRoomIn(BingoRoom $room, int $minutes): void
+    {
+        $start = now()->addMinutes($minutes);
+        DB::table('bingo_rooms_config')->where('room_id', $room->id)->update([
+            'date' => $start->toDateString(), 'time' => $start->format('H:i:s'), 'unix_date' => $start->timestamp,
+        ]);
+    }
+
+    private function posRoom(User $seller, BingoRoom $room, string $date): ?array
+    {
+        return collect($this->actingAs($seller)->getJson('/bingo-card/pos/rooms?date=' . $date)->assertOk()->json('rooms'))
+            ->firstWhere('id', $room->getRouteKey());
+    }
+
+    /** @test */
+    public function seller_sales_close_minutes_before_the_start(): void
+    {
+        config(['app.bingo_seller_sales_cutoff_minutes' => 5]);
+
+        // Empieza en 3 min: ya dentro del cierre de 5.
+        $this->startRoomIn($this->roomR1, 3);
+
+        $this->sale($this->sellerA, $this->roomR1)
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_CARD_SALES_CLOSED');
+
+        $this->actingAs($this->sellerA)
+            ->getJson('/bingo-card/' . $this->roomR1->getRouteKey() . '/card-price?country_id=' . $this->country->id)
+            ->assertStatus(409);
+
+        // Se lista igual, marcada como cerrada.
+        $listed = $this->posRoom($this->sellerA, $this->roomR1, now()->toDateString());
+        $this->assertNotNull($listed);
+        $this->assertFalse($listed['sales_open']);
+        $this->assertNotNull($listed['sales_close_at']);
+
+        // Empieza en 10 min: todavía abierta.
+        $this->startRoomIn($this->roomR1, 10);
+        $this->assertTrue($this->posRoom($this->sellerA, $this->roomR1, now()->toDateString())['sales_open']);
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+    }
+
+    /** @test */
+    public function seller_cannot_sell_once_the_draw_is_in_progress(): void
+    {
+        DB::table('bingo_rooms')->where('id', $this->roomR1->id)->update(['status_id' => GameStatus::codeToId('IN_PROGRESS')]);
+
+        $this->sale($this->sellerA, $this->roomR1)
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_CARD_SALES_CLOSED');
+
+        $this->assertSame(0, BingoCardLot::where('seller_user_id', $this->sellerA->id)->count());
+    }
+
+    /** @test */
+    public function manual_start_rooms_are_listed_today_and_sellable_until_started(): void
+    {
+        DB::table('bingo_rooms_config')->where('room_id', $this->roomR1->id)->update([
+            'date' => null, 'time' => null, 'unix_date' => null, 'start_mode' => 'MANUAL',
+        ]);
+
+        $listed = $this->posRoom($this->sellerA, $this->roomR1, now()->toDateString());
+        $this->assertNotNull($listed, 'La sala manual debe aparecer en "hoy".');
+        $this->assertTrue($listed['is_manual']);
+        $this->assertTrue($listed['sales_open']);
+        $this->assertNull($listed['sales_close_at']);
+
+        // No aparece en otras fechas.
+        $this->assertNull($this->posRoom($this->sellerA, $this->roomR1, now()->addDay()->toDateString()));
+
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+    }
 }
