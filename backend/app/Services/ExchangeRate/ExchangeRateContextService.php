@@ -133,7 +133,41 @@ final class ExchangeRateContextService
         $userId = $this->userContext->resolveUserId($publicToken);
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        return $this->resolveExchangeRatesByRole($role, $userId)->toArray();
+        $rates = $this->resolveExchangeRatesByRole($role, $userId);
+
+        // Sparkline por fila (ExchangeRateTable.vue) — solo para
+        // admin/superadmin/treasurer: son quienes gestionan la tasa
+        // OFICIAL (exchange_rates), con volumen de historial real por
+        // moneda. commerce/customer gestionan su propia tasa en tablas
+        // separadas sin el mismo patrón de versionado ACTIVE/OLD.
+        if (in_array($role, ['admin', 'superadmin', 'treasurer'], true)) {
+            $rates = $rates->map(function ($rate) {
+                $rate->history = $this->buildHistory((string) $rate->currency_id);
+                return $rate;
+            });
+        }
+
+        return $rates->toArray();
+    }
+
+    /** Mismos N puntos/criterio que ExchangeRateSummaryService::buildHistory()
+     *  (ACTIVE + OLD, orden ascendente listo para graficar) — duplicado acá
+     *  porque ese servicio vive en el namespace de dashboards de SuperAdmin
+     *  y esta clase no debería depender de él solo por este helper. */
+    private function buildHistory(string $currencyId): array
+    {
+        return \App\Models\ExchangeRate::where('currency_id', $currencyId)
+            ->whereIn('status', ['ACTIVE', 'OLD'])
+            ->latest('updated_at')
+            ->limit(7)
+            ->get(['amount', 'updated_at'])
+            ->sortBy('updated_at')
+            ->values()
+            ->map(fn ($rate) => [
+                'date'   => $rate->updated_at?->toIso8601String() ?? '',
+                'amount' => (float) $rate->amount,
+            ])
+            ->all();
     }
 
     /**

@@ -6,6 +6,13 @@ export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY' | 'OLD' | '
  *  automático, ver HandleExchangeRatesCommand) — ExchangeRate::SOURCE_*. */
 export type ExchangeRateSource = 'user' | 'system'
 
+/** Punto de historial para el sparkline (ExchangeRateTrendChart compact) —
+ *  ver ExchangeRateContextService::buildHistory(). */
+export interface ExchangeRateHistoryPoint {
+    date: string
+    amount: number
+}
+
 export interface ExchangeRate {
     readonly id?: number | string
     readonly currency_id?: number | string
@@ -18,6 +25,9 @@ export interface ExchangeRate {
      *  aplicó el default 'user' — nunca null/undefined en la práctica tras
      *  la migración, pero opcional por si acaso llega sin poblar. */
     readonly source?: ExchangeRateSource
+    /** Solo presente para admin/superadmin/treasurer — ver
+     *  ExchangeRateContextService::getAll(). */
+    readonly history?: ExchangeRateHistoryPoint[]
     readonly token?: string
     readonly created_at?: string
     readonly updated_at?: string

@@ -37,6 +37,80 @@
   )
 
   /**
+   * Búsqueda/filtro client-side sobre el listado (BaseTable no trae
+   * filtrado propio conectado en esta página, ver useTableFiltering — no se
+   * usa acá porque el volumen de filas es pequeño, un catálogo de pocas
+   * monedas, y no justifica esa infraestructura).
+   */
+  const searchQuery = ref('')
+  const statusFilter = ref<string>('')
+
+  const statusFilterOptions = computed(() => {
+    const seen = new Set<string>()
+    exchangeRates.value.forEach(r => seen.add(r.status))
+    return Array.from(seen)
+  })
+
+  const filteredExchangeRates = computed(() => {
+    return exchangeRates.value.filter(rate => {
+      if (statusFilter.value && rate.status !== statusFilter.value) return false
+
+      if (searchQuery.value.trim()) {
+        const q = searchQuery.value.trim().toLowerCase()
+        const currency = currencies.find(c => c.id === rate.currency_id)
+        const haystack = [currency?.name, currency?.description, currency?.iso_code, rate.user_name]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+
+      return true
+    })
+  })
+
+  const hasActiveFilters = computed(() => !!searchQuery.value.trim() || !!statusFilter.value)
+
+  function clearFilters(): void {
+    searchQuery.value = ''
+    statusFilter.value = ''
+  }
+
+  /**
+   * Stat cards resumen arriba de la tabla — total de tasas activas, cuántas
+   * son automáticas (cronjob) vs. manuales, y la actualización más reciente
+   * entre todas las monedas.
+   */
+  const summaryStats = computed(() => {
+    const rates = exchangeRates.value
+    const active = rates.filter(r => r.status === 'ACTIVE')
+    const automatic = rates.filter(r => r.source === 'system').length
+    const manual = rates.length - automatic
+
+    const mostRecent = rates.reduce<string | null>((latest, r) => {
+      if (!r.updated_at) return latest
+      if (!latest || r.updated_at > latest) return r.updated_at
+      return latest
+    }, null)
+
+    return {
+      activeCount: active.length,
+      automatic,
+      manual,
+      mostRecent,
+    }
+  })
+
+  function formatDateTime(value: string | null): string {
+    if (!value) return '—'
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return value
+    return d.toLocaleString('es-ES', {
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+    })
+  }
+
+  /**
    * Indica si es posible registrar una nueva tasa de cambio
    */
   const canCreate = computed(() => {
@@ -238,6 +312,28 @@
 
   <div class="card">
     <div class="card-body">
+      <!-- Resumen rápido -->
+      <div v-if="exchangeRates.length > 0" class="er-stats">
+        <div class="er-stat">
+          <span class="er-stat__label">Tasas activas</span>
+          <span class="er-stat__value">{{ summaryStats.activeCount }}</span>
+        </div>
+        <div class="er-stat">
+          <span class="er-stat__label">Última actualización</span>
+          <span class="er-stat__value er-stat__value--sm">{{ formatDateTime(summaryStats.mostRecent) }}</span>
+        </div>
+        <div v-if="hasPrivilegedRole" class="er-stat">
+          <span class="er-stat__label">Automáticas</span>
+          <span class="er-stat__value">
+            <i class="fas fa-robot er-stat__icon"></i> {{ summaryStats.automatic }}
+          </span>
+        </div>
+        <div v-if="hasPrivilegedRole" class="er-stat">
+          <span class="er-stat__label">Manuales</span>
+          <span class="er-stat__value">{{ summaryStats.manual }}</span>
+        </div>
+      </div>
+
       <!-- Switch de actualización automática: solo visible si hay tasas registradas -->
       <div v-if="exchangeRates.length > 0" class="row">
         <FormSwitch
@@ -321,19 +417,46 @@
         </template>
       </TableActionButtons>
 
+      <!-- Búsqueda/filtro -->
+      <div v-if="exchangeRates.length > 0" class="row mt-2 mb-1">
+        <div class="col-md-6 col-lg-4">
+          <input
+            type="search"
+            class="form-control form-control-sm"
+            placeholder="Buscar por moneda o usuario..."
+            v-model="searchQuery"
+          />
+        </div>
+        <div class="col-md-4 col-lg-3 mt-2 mt-md-0">
+          <select class="form-control form-control-sm" v-model="statusFilter">
+            <option value="">Todos los status</option>
+            <option v-for="status in statusFilterOptions" :key="status" :value="status">
+              {{ status }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <ExchangeRateTable
         :usedCurrencies="usedCurrencies"
-        :exchange-rates="exchangeRates"
+        :exchange-rates="filteredExchangeRates"
         :has-privileged-role="hasPrivilegedRole"
         :selected-ids="selectedIds"
         @selection-change="ids => (selectedIds = ids)"
       />
 
       <TableFooterInfo
-        :filtered-count="exchangeRates.length"
+        :filtered-count="filteredExchangeRates.length"
         :total-count="exchangeRates.length"
         :selected-count="selectedIds.length"
       />
+
+      <div v-if="hasActiveFilters && filteredExchangeRates.length === 0" class="text-center text-muted py-2">
+        Ningún registro coincide con los filtros aplicados.
+        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @click="clearFilters">
+          Limpiar filtros
+        </button>
+      </div>
     </div>
   </div>
 
@@ -355,3 +478,43 @@
     />
   </Modal>
 </template>
+
+<style scoped>
+.er-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.er-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--ds-surface-2, #f4f5f7);
+  border-radius: 10px;
+}
+
+.er-stat__label {
+  font-size: 0.72rem;
+  color: var(--ds-text-muted, #8a94a6);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.er-stat__value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.er-stat__value--sm {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.er-stat__icon {
+  color: #a78bfa;
+}
+</style>

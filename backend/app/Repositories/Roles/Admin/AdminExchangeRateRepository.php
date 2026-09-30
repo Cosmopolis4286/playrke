@@ -222,7 +222,40 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      */
     public function getAvailableExchangeRates(): Collection
     {
-        return $this->model->where('status', '<>', 'OLD')->get();
+        // with('user'): Index.vue (ExchangeRateTable) muestra "Registrado
+        // por" / origen (manual vs. automático, ver ExchangeRate::source) —
+        // antes esta query no cargaba la relación, forzando un N+1 lazy
+        // load por fila apenas el frontend intentaba mostrar ese dato.
+        return $this->model
+            ->with('user:id,username,first_name,last_name')
+            ->where('status', '<>', 'OLD')
+            ->get()
+            ->map(function (ExchangeRate $rate) {
+                $rate->user_name = $this->displayName($rate);
+                return $rate;
+            });
+    }
+
+    /**
+     * Nombre a mostrar de quién registró/actualizó la tasa — mismo criterio
+     * que ExchangeRateSummaryService::displayName() (username si existe, si
+     * no nombre completo), duplicado acá porque ese servicio vive en el
+     * namespace de dashboards de SuperAdmin y esta clase no debería
+     * depender de él solo por este helper.
+     */
+    private function displayName(ExchangeRate $rate): string
+    {
+        if (!$rate->user) {
+            return '—';
+        }
+
+        if ($rate->user->username) {
+            return $rate->user->username;
+        }
+
+        $fullName = trim("{$rate->user->first_name} {$rate->user->last_name}");
+
+        return $fullName !== '' ? $fullName : '—';
     }
 
     /**

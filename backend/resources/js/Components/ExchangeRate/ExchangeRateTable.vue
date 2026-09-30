@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
+  import ExchangeRateTrendChart from '@js/Components/Common/ExchangeRate/ExchangeRateTrendChart.vue'
   import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
 
@@ -14,12 +15,25 @@
     (e: 'selection-change', ids: string[]): void
   }>()
 
-  const columns: Column[] = [
-    { key: 'currency', label: 'Moneda' },
-    { key: 'amount', label: 'Cambio' },
-    { key: 'percentage', label: '%' },
-    { key: 'status', label: 'Status' }
-  ]
+  // Origen/sparkline solo aportan valor con volumen histórico real (tasa
+  // OFICIAL de admin/superadmin/treasurer) — ver
+  // ExchangeRateContextService::getAll(), que solo puebla `history` para
+  // ese grupo de roles.
+  const columns: Column[] = props.hasPrivilegedRole
+    ? [
+        { key: 'currency', label: 'Moneda' },
+        { key: 'amount', label: 'Cambio' },
+        { key: 'percentage', label: '%' },
+        { key: 'trend', label: 'Tendencia' },
+        { key: 'user_name', label: 'Registrado por' },
+        { key: 'status', label: 'Status' }
+      ]
+    : [
+        { key: 'currency', label: 'Moneda' },
+        { key: 'amount', label: 'Cambio' },
+        { key: 'percentage', label: '%' },
+        { key: 'status', label: 'Status' }
+      ]
 
   type CurrencyValueKey = 'name' | 'description' | 'iso_code' | 'country_iso_code'
 
@@ -105,7 +119,34 @@
 
     <!-- Porcentaje -->
     <template #cell-percentage="{ row }">
-      {{ row.percentage != 0 ? `${row.percentage}%` : '-' }}
+      <span
+        v-if="row.percentage != 0"
+        class="er-pct"
+        :class="row.percentage > 0 ? 'er-pct--up' : 'er-pct--down'"
+      >
+        <i :class="row.percentage > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down'"></i>
+        {{ Math.abs(row.percentage) }}%
+      </span>
+      <span v-else class="er-pct er-pct--flat">—</span>
+    </template>
+
+    <!-- Tendencia (sparkline) -->
+    <template v-if="hasPrivilegedRole" #cell-trend="{ row }">
+      <ExchangeRateTrendChart
+        v-if="(row.history?.length ?? 0) > 1"
+        :data="row.history"
+        :height="36"
+        compact
+      />
+      <span v-else class="text-muted">—</span>
+    </template>
+
+    <!-- Registrado por / Origen -->
+    <template v-if="hasPrivilegedRole" #cell-user_name="{ row }">
+      <span v-if="row.source === 'system'" class="er-source er-source--system">
+        <i class="fas fa-robot"></i> Automático
+      </span>
+      <span v-else>{{ row.user_name ?? '-' }}</span>
     </template>
 
     <!-- Status -->
@@ -127,3 +168,21 @@
     </template>
   </BaseTable>
 </template>
+
+<style scoped>
+.er-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+.er-pct i { font-size: 0.75em; }
+.er-pct--up { color: #22c55e; }
+.er-pct--down { color: #ef4444; }
+.er-pct--flat { color: var(--ds-text-muted, #8a94a6); font-weight: 400; }
+
+.er-source--system {
+  color: #a78bfa;
+  font-weight: 600;
+}
+</style>

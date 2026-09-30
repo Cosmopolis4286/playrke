@@ -17,8 +17,15 @@ final class ExchangeRateApiService
 {
     /**
      * URL de la API externa para obtener las tasas de cambio.
+     *
+     * Antes apuntaba a smcvenezuela.xyz/dolarsmcbot/binance-api.php (bot de
+     * Telegram no oficial) — el dominio dejó de resolver (NXDOMAIN,
+     * detectado 2026-09-29), dejando "Consultar" muerto sin ningún error
+     * visible más que el mensaje genérico "No hay tasas disponibles".
+     * open.er-api.com es gratuita, sin API key, y cubre BRL/COP/VES (las 3
+     * monedas FIAT activas del sistema) en una sola llamada con base USD.
      */
-    private const API_URL = 'https://smcvenezuela.xyz/dolarsmcbot/binance-api.php';
+    private const API_URL = 'https://open.er-api.com/v6/latest/USD';
 
     /**
      * TTL del caché en segundos. Sin caché, cada apertura del modal
@@ -55,14 +62,22 @@ final class ExchangeRateApiService
                 throw new \RuntimeException('API request failed with status ' . $response->status());
             }
 
-            $rates = $response->json();
+            // open.er-api.com anida las tasas bajo "rates" (formato
+            // {"result":"success","base_code":"USD","rates":{"BRL":5.21,...}})
+            // — el resto del dominio espera un array plano iso_code => valor
+            // (mismo shape que devolvía el proveedor anterior), así que se
+            // desenvuelve acá, en el único punto que conoce el formato crudo
+            // de la API externa.
+            $rates = $response->json('rates');
+
+            if (empty($rates) || !is_array($rates)) {
+                throw new \RuntimeException('La API externa no devolvió tasas válidas.');
+            }
 
             // Solo se cachean respuestas válidas — un fallo NO se cachea, para
             // que el próximo fetch() pueda reintentar de inmediato en vez de
             // esperar el TTL completo sirviendo null.
-            if (!empty($rates)) {
-                Cache::put(self::CACHE_KEY, $rates, self::CACHE_TTL_SECONDS);
-            }
+            Cache::put(self::CACHE_KEY, $rates, self::CACHE_TTL_SECONDS);
 
             return $rates;
         } catch (\Throwable $e) {
