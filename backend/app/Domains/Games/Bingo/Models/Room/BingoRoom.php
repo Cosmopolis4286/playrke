@@ -379,14 +379,6 @@ class BingoRoom extends BaseModel
             ->where('prize_pool', '>', 0);
     }
 
-    public function scopeForDate($query, string $date)
-    {
-        return $query->whereHas(
-            'config',
-            fn($q) => $q->whereDate('date', $date)
-        );
-    }
-
     public function scopeAccessibleBy($query, int $creatorUserId)
     {
         return $query->where(function ($q) use ($creatorUserId) {
@@ -396,41 +388,5 @@ class BingoRoom extends BaseModel
                     fn($r) => $r->where('code', 'PUBLIC')
                 );
         });
-    }
-
-    public function scopeFilterRoomType($query, ?string $roomTypeId)
-    {
-        if (!$roomTypeId) {
-            return $query;
-        }
-
-        return $query->whereHas(
-            'config.roomType',
-            fn($q) => $q->where('id', $roomTypeId)
-        );
-    }
-
-    public function scopeFilterGameMode($query, ?string $gameModeId)
-    {
-        if (!$gameModeId) {
-            return $query;
-        }
-
-        return $query->whereHas(
-            'config.connectionType',
-            fn($q) => $q->where('id', $gameModeId)
-        );
-    }
-
-    public function scopeFilterPrizePoolType($query, ?string $prizePoolTypeId)
-    {
-        if (!$prizePoolTypeId) {
-            return $query;
-        }
-
-        return $query->whereHas(
-            'config',
-            fn($q) => $q->where('prize_pool_type_id', $prizePoolTypeId)
-        );
     }
 }

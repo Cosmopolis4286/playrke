@@ -1,69 +1,3 @@
-export type RoomStep = 'date' | 'roomType' | 'connectionType'
-
-/**
- * Configuración asociada a una sala de bingo.
- */
-export interface RoomConfig {
-    card_price_usd: number | null
-    date?: string
-    time?: string
-    room_type_id?: number
-    game_mode_id?: number
-}
-
-/**
- * Representa una sala de bingo disponible.
- */
-export interface Room {
-    id: string
-    uuid_code: string
-    prize_pool: number
-    total_players: number
-    creator_user_id?: number
-    config: RoomConfig
-}
-
-/**
- * Respuesta del endpoint /bingo-card/fetch-room
- */
-export interface FetchRoomResponse {
-    success: boolean
-    data: {
-        exists: boolean
-        rooms: Room[]
-    }
-}
-
-/**
- * Datos del jugador.
- */
-export interface Player {
-    phone: string
-    firstName: string
-    lastName: string
-    cardCount?: number
-    receiptNumber?: string
-    receiptImage?: File | null
-    /** Link público de acceso al juego, presente cuando el jugador ya existía (ver check()). */
-    link?: string
-}
-
-/**
- * Payload para generar cartones.
- */
-export interface GenerateCardPayload {
-    card_count: number
-    /** Snowflake ID del país, enviado como string para evitar truncado. */
-    country_id: string | null
-    player: {
-        phone: string
-        first_name: string
-        last_name: string
-    }
-    receipt_number?: string
-    receipt_image?: File
-}
-
 /**
  * Respuesta del endpoint GET /bingo-card/{room}/card-price?country_id=X
  *
@@ -114,6 +48,14 @@ export interface PosRoom {
     room_type_id: string | null
     connection_type_id: string | null
     prize_pool_type_id: string | null
+    /** Sala de inicio manual (sin fecha/hora): se vende mientras siga ACTIVE. */
+    is_manual: boolean
+    /** Inicio programado (ISO, UTC) — null si es manual. */
+    starts_at: string | null
+    /** Cierre de ventas del vendedor (inicio − bingo_seller_sales_cutoff_minutes). */
+    sales_close_at: string | null
+    /** Estado al momento de listar; el cliente lo re-evalúa con sales_close_at. */
+    sales_open: boolean
 }
 
 /** Comprador frecuente del vendedor (GET /bingo-card/pos/frequent-buyers). */
@@ -164,15 +106,3 @@ export interface PosSaleResult {
     total: number
     currencySymbol: string
 }
-
-/**
- * Estado del proceso de selección de salas.
- */
-export type RoomStepStatus =
-    | 'idle'
-    | 'loading'
-    | 'noDateRooms'
-    | 'noRoomTypeRooms'
-    | 'noConnectionTypeRooms'
-    | 'noPrizePoolTypeRooms'
-    | 'ready'

@@ -43,6 +43,17 @@ final class BingoCardGenerateException extends DomainException
         return new self('BINGO_CARD_ROOM_NOT_AVAILABLE', 404);
     }
 
+    /**
+     * Venta del vendedor fuera de plazo: la sala empieza en menos de
+     * $minutes minutos (o no está ACTIVE). Su pago nace PENDING y los
+     * cartones no juegan hasta que el comercio lo apruebe, así que vender
+     * sobre la hora deja al comprador pagando por una partida que no juega.
+     */
+    public static function salesClosed(int $minutes): self
+    {
+        return new self('BINGO_CARD_SALES_CLOSED', 409, replacements: ['minutes' => $minutes]);
+    }
+
     public static function currencyNotAvailable(): self
     {
         return new self('BINGO_CARD_CURRENCY_NOT_AVAILABLE', 422);

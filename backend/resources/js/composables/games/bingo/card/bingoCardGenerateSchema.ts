@@ -21,8 +21,6 @@ export const bingoCardGenerateSchema = z.object({
     ),
 })
 
-export type BingoCardGenerateFormData = z.infer<typeof bingoCardGenerateSchema>
-
 /* ─── Contexto externo que Zod no puede verificar ───────────────────────── */
 
 export interface BingoCardGenerateContext {

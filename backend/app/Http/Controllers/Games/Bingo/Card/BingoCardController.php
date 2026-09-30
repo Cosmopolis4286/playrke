@@ -25,16 +25,15 @@ use Inertia\Response;
  */
 final class BingoCardController extends Controller
 {
-    /**
-     * @param BingoRoomService $service
-     */
+    // Sin authorizeResource(): ninguna acción es un método de recurso estándar
+    // (index/show/store/…), así que nunca aplicaba. La autorización real vive
+    // en BingoCardGenerateRequest::authorize(), ensureSeller() y las
+    // validaciones de sala/país del servicio.
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService $generateService,
         private readonly BingoSellerPosService $posService,
-    ) {
-        $this->authorizeResource(BingoRoom::class, 'room');
-    }
+    ) {}
 
     /**
      * Vista para generar cartones de bingo.
@@ -70,23 +69,6 @@ final class BingoCardController extends Controller
             fn() => $this->generateService->generate(
                 BingoCardGenerateDTO::fromArray($request->validated())
             )
-        );
-    }
-
-    /**
-     * Obtener lista/detalles de salas de bingo filtradas.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function fetchRoom(Request $request): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => [
-                'data' => $this->generateService->fetchRoom(
-                    $request->all() ?? []
-                ),
-            ]
         );
     }
 
@@ -177,26 +159,6 @@ final class BingoCardController extends Controller
 
         return $this->handleServiceJson(
             fn() => $this->generateService->getCardPrice($room->id, $userId, $countryId)
-        );
-    }
-
-    /**
-     * Obtener el precio del cartón para un jugador usando su billetera configurada.
-     *
-     * Para usuarios con rol 'player', obtiene el precio basado en:
-     * - Moneda configurada en la billetera del jugador
-     * - Tasa de cambio correspondiente
-     * - Precio personalizado si existe para la sala y moneda
-     *
-     * @param BingoRoom $room Sala de bingo (model binding por {room}).
-     * @return JsonResponse  Respuesta con card_price, currency_symbol, exchange_rate, is_custom_price.
-     */
-    public function playerCardPrice(BingoRoom $room): JsonResponse
-    {
-        $userId = $this->userContext->resolveUserId();
-
-        return $this->handleServiceJson(
-            fn() => $this->generateService->getPlayerCardPrice($room->id, $userId)
         );
     }
 }

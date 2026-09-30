@@ -10,7 +10,6 @@ use App\Http\Controllers\Games\Bingo\Room\BingoRoomCustomCardStatsController;
 use App\Http\Controllers\Games\Bingo\Game\BingoGameController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
-use App\Http\Controllers\Games\Bingo\Testing\BingoTestingController;
 use App\Http\Controllers\Games\Bingo\History\PlayerGameHistoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -143,7 +142,6 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPe
 route_group('bingo-card', 'bingo-card.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoCardController::class, [
     'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
     'generate-card-store' => ['method' => 'post', 'uri' => '{room}/generate', 'action' => 'generateCardStore'],
-    'fetch-room' => ['method' => 'get', 'uri' => 'fetch-room', 'action' => 'fetchRoom'],
     // Punto de venta del vendedor (solo seller — ver BingoCardController::ensureSeller()).
     'pos-rooms'           => ['method' => 'get', 'uri' => 'pos/rooms',            'action' => 'rooms'],
     'pos-frequent-buyers' => ['method' => 'get', 'uri' => 'pos/frequent-buyers',  'action' => 'frequentBuyers'],

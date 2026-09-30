@@ -63,8 +63,8 @@ export function usePosRooms(catalogs: Record<RoomFilterKey, SelectOption[]>) {
             if (selectedRoomId.value && !rooms.value.some(r => r.id === selectedRoomId.value)) {
                 selectedRoomId.value = null
             }
-            // Una sola sala posible: seleccionarla directamente.
-            if (!selectedRoomId.value && rooms.value.length === 1) {
+            // Una sola sala posible (y abierta a la venta): seleccionarla directamente.
+            if (!selectedRoomId.value && rooms.value.length === 1 && isSalesOpen(rooms.value[0])) {
                 selectedRoomId.value = rooms.value[0].id
             }
         } catch (error: any) {
@@ -131,13 +131,27 @@ export function usePosRooms(catalogs: Record<RoomFilterKey, SelectOption[]>) {
 
     const selectedRoom = computed(() => rooms.value.find(r => r.id === selectedRoomId.value) ?? null)
 
-    /** Minutos hasta el inicio programado (negativo si ya pasó; null sin hora). */
-    function minutesUntil(room: PosRoom): number | null {
-        if (!room.date || !room.time) return null
-        const start = new Date(`${room.date.slice(0, 10)}T${room.time.slice(0, 8)}`)
-        if (Number.isNaN(start.getTime())) return null
-        return Math.round((start.getTime() - now.value) / 60_000)
+    /**
+     * Minutos hasta el cierre de ventas del vendedor (null en salas manuales).
+     * Usa sales_close_at del servidor (UTC), no la fecha/hora local del
+     * navegador: evita desfases si el vendedor tiene otra zona horaria.
+     */
+    function minutesToClose(room: PosRoom): number | null {
+        if (!room.sales_close_at) return null
+        return Math.floor((new Date(room.sales_close_at).getTime() - now.value) / 60_000)
     }
+
+    /**
+     * ¿Acepta ventas ahora? Se re-evalúa con el reloj: una sala puede cerrar
+     * mientras el vendedor llena el formulario.
+     */
+    function isSalesOpen(room: PosRoom | null): boolean {
+        if (!room || !room.sales_open) return false
+        if (!room.sales_close_at) return true
+        return new Date(room.sales_close_at).getTime() > now.value
+    }
+
+    const selectedRoomOpen = computed(() => isSalesOpen(selectedRoom.value))
 
     function typeLabel(key: RoomFilterKey, id: string | null): string | null {
         if (!id) return null
@@ -155,10 +169,12 @@ export function usePosRooms(catalogs: Record<RoomFilterKey, SelectOption[]>) {
         hasActiveFilters,
         selectedRoomId,
         selectedRoom,
+        selectedRoomOpen,
         toggleFilter,
         clearFilters,
         fetchRooms,
-        minutesUntil,
+        minutesToClose,
+        isSalesOpen,
         typeLabel,
     }
 }

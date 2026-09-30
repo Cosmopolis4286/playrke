@@ -69,6 +69,14 @@ class AppParameterSeeder extends Seeder
             // Máximo de cartones totales por jugador por sala.
             ['param' => 'bingo_max_cards_per_player',   'value' => '20',     'status' => 'ACTIVE'],
 
+            // Minutos antes de la hora de inicio en que se cierran las ventas
+            // del VENDEDOR (punto de venta). Su pago nace PENDING y los cartones
+            // no juegan hasta que el comercio aprueba el comprobante: el margen
+            // es para que alcance a revisarlo antes del sorteo. No aplica a la
+            // compra del jugador con billetera (pago inmediato).
+            // Consumido por: BingoCardGenerateService vía config('app.bingo_seller_sales_cutoff_minutes').
+            ['param' => 'bingo_seller_sales_cutoff_minutes', 'value' => '5', 'status' => 'ACTIVE'],
+
             // ─────────────────────────────────────────────
             // JUGADORES EXTERNOS
             // ─────────────────────────────────────────────

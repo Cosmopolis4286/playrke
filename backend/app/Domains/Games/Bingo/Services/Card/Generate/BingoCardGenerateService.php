@@ -18,6 +18,7 @@ use App\Services\Roles\Player\External\ExternalPlayerLinkService;
 use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
 use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -103,107 +104,38 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Obtiene lista de salas de bingo filtradas.
-     *
-     * Reglas:
-     * - Solo salas activas
-     * - Del creador o públicas
-     * - Filtrado progresivo por date, roomType y gameMode
-     *
-     * Estrategia:
-     * - date obligatorio
-     * - roomType opcional (valida existencia)
-     * - gameMode opcional (si viene, trae data completa)
-     *
-     * @param array{
-     *     date?: string|null,
-     *     roomType?: string|null,
-     *     gameMode?: string|null
-     * } $filters
-     *
-     * @return array{
-     *     exists: bool,
-     *     rooms: array<int, array<string, mixed>>
-     * }
-     */
-    public function fetchRoom(array $filters): array
-    {
-        $date          = $filters['date']          ?? null;
-        $roomType      = $filters['roomType']      ?? null;
-        $gameMode      = $filters['gameMode']      ?? null;
-        $prizePoolType = $filters['prizePoolType'] ?? null;
-
-        if (!$date) {
-            return $this->emptyResponse();
-        }
-
-        $creatorUserId = $this->resolveCreatorOrManagerUserId();
-
-        $query = BingoRoom::query()
-            ->active()
-            ->forDate($date)
-            ->accessibleBy($creatorUserId)
-            ->filterRoomType($roomType)
-            ->filterGameMode($gameMode)
-            ->filterPrizePoolType($prizePoolType);
-
-        // Si no hay gameMode → solo validar existencia
-        if (!$gameMode) {
-            return [
-                'exists' => $query->exists(),
-                'rooms'  => []
-            ];
-        }
-
-        $rooms = $query
-            ->select([
-                'bingo_rooms.id',
-                'bingo_rooms.uuid_code',
-                'bingo_rooms.prize_pool',
-                'bingo_rooms.total_players',
-                'bingo_rooms.creator_user_id',
-            ])
-            ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
-            ->with([
-                'config:id,room_id,room_type_id,connection_type_id,card_price_usd,date,time'
-            ])
-            ->orderBy('bingo_rooms_config.time')
-            ->get()
-            ->map(fn($room) => [
-                'id'              => $room->hashed_id,
-                'uuid_code'       => $room->uuid_code,
-                'prize_pool'      => $room->prize_pool,
-                'total_players'   => $room->total_players,
-                'creator_user_id' => $room->creator_user_id,
-                'config'          => $room->config,
-            ])
-            ->toArray();
-
-        return [
-            'exists' => !empty($rooms),
-            'rooms'  => $rooms
-        ];
-    }
-
-    /**
      * Todas las salas vendibles de una fecha en una sola llamada, con los IDs
      * de tipo de sala / conexión / bote para que el punto de venta filtre en
-     * el cliente (chips) sin la cascada de requests de fetchRoom().
+     * el cliente (chips).
      *
-     * Mismas reglas de visibilidad que fetchRoom(): ACTIVE, de la fecha, y
-     * propias del comercio o PUBLIC.
+     * Visibilidad: ACTIVE, propias del comercio o PUBLIC, de la fecha pedida.
+     * Las salas de inicio manual (sin fecha ni hora) se listan en "hoy",
+     * vendibles hasta que el admin las inicie.
+     *
+     * Cada sala trae sales_close_at / sales_open (ver findSellableRoom()):
+     * las que ya pasaron el cierre se listan igual, marcadas, para que el
+     * vendedor entienda por qué no puede venderlas.
      *
      * @return array<int, array<string, mixed>>
      */
     public function listSellableRooms(string $date): array
     {
         $creatorUserId = $this->resolveCreatorOrManagerUserId();
+        $isToday = $date === now()->toDateString();
 
         return BingoRoom::query()
             ->active()
-            ->forDate($date)
             ->accessibleBy($creatorUserId)
             ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
+            ->where(function ($q) use ($date, $isToday) {
+                $q->whereDate('bingo_rooms_config.date', $date);
+
+                if ($isToday) {
+                    $q->orWhere(fn ($m) => $m
+                        ->whereNull('bingo_rooms_config.date')
+                        ->where('bingo_rooms_config.start_mode', 'MANUAL'));
+                }
+            })
             ->orderBy('bingo_rooms_config.time')
             ->get([
                 'bingo_rooms.id',
@@ -214,29 +146,47 @@ final class BingoCardGenerateService
                 'bingo_rooms.creator_user_id',
                 'bingo_rooms_config.date',
                 'bingo_rooms_config.time',
+                'bingo_rooms_config.unix_date',
+                'bingo_rooms_config.start_mode',
                 'bingo_rooms_config.card_price_usd',
                 'bingo_rooms_config.max_players',
                 'bingo_rooms_config.room_type_id',
                 'bingo_rooms_config.connection_type_id',
                 'bingo_rooms_config.prize_pool_type_id',
             ])
-            ->map(fn (BingoRoom $room) => [
-                'id'                 => $room->hashed_id,
-                'uuid_code'          => $room->uuid_code,
-                'prize_pool'         => (float) $room->prize_pool,
-                'total_players'      => (int) $room->total_players,
-                'total_cards'        => (int) $room->total_cards,
-                'is_own'             => (string) $room->creator_user_id === (string) $creatorUserId,
-                'date'               => $room->getAttribute('date'),
-                'time'               => $room->getAttribute('time'),
-                'card_price_usd'     => (float) $room->getAttribute('card_price_usd'),
-                'max_players'        => $room->getAttribute('max_players') !== null ? (int) $room->getAttribute('max_players') : null,
-                'room_type_id'       => $room->getAttribute('room_type_id') !== null ? (string) $room->getAttribute('room_type_id') : null,
-                'connection_type_id' => $room->getAttribute('connection_type_id') !== null ? (string) $room->getAttribute('connection_type_id') : null,
-                'prize_pool_type_id' => $room->getAttribute('prize_pool_type_id') !== null ? (string) $room->getAttribute('prize_pool_type_id') : null,
-            ])
+            ->map(function (BingoRoom $room) use ($creatorUserId) {
+                $unixDate = $room->getAttribute('unix_date') !== null ? (int) $room->getAttribute('unix_date') : null;
+                $closeAt  = $this->sellerSalesCloseAt($unixDate);
+
+                return $this->sellableRoomPayload($room, $creatorUserId) + [
+                    'is_manual'      => $unixDate === null,
+                    'starts_at'      => $unixDate ? Carbon::createFromTimestamp($unixDate)->toISOString() : null,
+                    'sales_close_at' => $closeAt ? Carbon::createFromTimestamp($closeAt)->toISOString() : null,
+                    'sales_open'     => $this->isOpenForSellerSales('ACTIVE', $unixDate),
+                ];
+            })
             ->values()
             ->all();
+    }
+
+    /** @return array<string, mixed> */
+    private function sellableRoomPayload(BingoRoom $room, int|string $creatorUserId): array
+    {
+        return [
+            'id'                 => $room->hashed_id,
+            'uuid_code'          => $room->uuid_code,
+            'prize_pool'         => (float) $room->prize_pool,
+            'total_players'      => (int) $room->total_players,
+            'total_cards'        => (int) $room->total_cards,
+            'is_own'             => (string) $room->creator_user_id === (string) $creatorUserId,
+            'date'               => $room->getAttribute('date'),
+            'time'               => $room->getAttribute('time'),
+            'card_price_usd'     => (float) $room->getAttribute('card_price_usd'),
+            'max_players'        => $room->getAttribute('max_players') !== null ? (int) $room->getAttribute('max_players') : null,
+            'room_type_id'       => $room->getAttribute('room_type_id') !== null ? (string) $room->getAttribute('room_type_id') : null,
+            'connection_type_id' => $room->getAttribute('connection_type_id') !== null ? (string) $room->getAttribute('connection_type_id') : null,
+            'prize_pool_type_id' => $room->getAttribute('prize_pool_type_id') !== null ? (string) $room->getAttribute('prize_pool_type_id') : null,
+        ];
     }
 
     /**
@@ -493,15 +443,22 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Sala en la que este comercio (y su red) puede vender: ACTIVE o
-     * IN_PROGRESS, y propia del comercio o PUBLIC. Antes generate() solo
-     * validaba el estado — una request armada a mano podía vender cartones en
-     * la sala PRIVADA de otro comercio. Se responde "no disponible" (404) sin
-     * distinguir "no existe" de "no es tuya", para no revelar salas ajenas.
+     * Sala en la que este comercio (y su red) puede vender, propia del
+     * comercio o PUBLIC. Una sala inexistente o ajena responde "no disponible"
+     * (404) sin distinguir ambos casos, para no revelar salas de otros.
+     *
+     * Plazo de venta del vendedor: solo ACTIVE y hasta
+     * sellerSalesCutoffMinutes() antes del inicio. Su pago nace PENDING y los
+     * cartones no juegan hasta que el comercio aprueba el comprobante: vender
+     * con el sorteo encima (o ya en curso, IN_PROGRESS) dejaba al comprador
+     * pagando por una partida que no llegaba a jugar. La compra del jugador
+     * con billetera (buyFromGameRooms / playerBuyFromGameRooms) no pasa por
+     * aquí: su pago es inmediato y sigue admitiendo IN_PROGRESS.
      */
     private function findSellableRoom(string $roomId, int|string $creatorUserId): BingoRoom
     {
         $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
+            ->with(['status:id,code', 'config:id,room_id,unix_date'])
             ->whereKey($roomId)
             ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->accessibleBy((int) $creatorUserId)
@@ -511,7 +468,39 @@ final class BingoCardGenerateService
             throw BingoCardGenerateException::roomNotAvailable();
         }
 
+        $unixDate = $room->config?->unix_date;
+
+        if (!$this->isOpenForSellerSales($room->status?->code, $unixDate !== null ? (int) $unixDate : null)) {
+            throw BingoCardGenerateException::salesClosed($this->sellerSalesCutoffMinutes());
+        }
+
         return $room;
+    }
+
+    /** Minutos antes del inicio en que cierra la venta del vendedor (parámetro de la app). */
+    private function sellerSalesCutoffMinutes(): int
+    {
+        return max(0, (int) config('app.bingo_seller_sales_cutoff_minutes', 5));
+    }
+
+    /**
+     * Momento (unix UTC) en que cierra la venta del vendedor; null en salas
+     * de inicio manual (sin horario): se venden mientras sigan ACTIVE.
+     */
+    private function sellerSalesCloseAt(?int $unixDate): ?int
+    {
+        return $unixDate ? $unixDate - $this->sellerSalesCutoffMinutes() * 60 : null;
+    }
+
+    private function isOpenForSellerSales(?string $statusCode, ?int $unixDate): bool
+    {
+        if ($statusCode !== 'ACTIVE') {
+            return false;
+        }
+
+        $closeAt = $this->sellerSalesCloseAt($unixDate);
+
+        return $closeAt === null || now()->timestamp < $closeAt;
     }
 
     /**
@@ -989,7 +978,7 @@ final class BingoCardGenerateService
             return null;
         }
 
-        // hashed_id es el ID que el frontend usa en rooms[].id (viene de fetchRoom con hashed_id).
+        // hashed_id es el ID que el frontend usa en rooms[].id (listSellableRooms / game-rooms).
         // El canal y el payload deben usar el mismo valor para que patchRoom() encuentre la sala.
         $event = new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
             roomId:       $fresh->hashed_id,
@@ -1525,17 +1514,6 @@ final class BingoCardGenerateService
             'currency'       => $priceInfo['currency_symbol'],
             'exchange_rate'  => $priceInfo['exchange_rate'],
             'wallet_balance' => $newBalance,
-        ];
-    }
-
-    /**
-     * Respuesta vacía estándar.
-     */
-    private function emptyResponse(): array
-    {
-        return [
-            'exists' => false,
-            'rooms'  => []
         ];
     }
 

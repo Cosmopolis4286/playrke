@@ -145,6 +145,7 @@ return [
     'BINGO_CARD_COMMERCE_NOT_FOUND' => 'No se encontró el comercio.',
     'BINGO_CARD_HIERARCHY_NOT_ACTIVE' => 'Tu cuenta, agencia o comercio no está activo. Contacta a soporte para más información.',
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'Esta sala no está disponible para comprar cartones.',
+    'BINGO_CARD_SALES_CLOSED' => 'Las ventas de esta sala ya cerraron: se cierran :minutes minutos antes del inicio para que el comercio alcance a aprobar el comprobante. Elige otra sala.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'La moneda seleccionada no está disponible para esta sala.',
     'BINGO_CARD_GENERATION_FAILED' => 'No se pudieron generar los cartones.',
     'BINGO_CARD_PRICE_CHANGED' => 'El precio del cartón cambió (antes :expected, ahora :current). Revisa el nuevo monto antes de cobrar.',

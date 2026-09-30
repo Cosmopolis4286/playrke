@@ -28,26 +28,43 @@ const expanded = ref(!ctx.selectedRoomId)
 watch(() => ctx.selectedRoomId, id => { expanded.value = !id })
 
 function select(room: PosRoom): void {
+  if (!ctx.isSalesOpen(room)) return
   ctx.selectedRoomId = room.id
   expanded.value = false
 }
 
-function startLabel(room: PosRoom): { text: string; tone: string } {
-  const mins = ctx.minutesUntil(room)
-  if (mins === null) return { text: 'Sin horario', tone: 'muted' }
-  if (mins < 0) return { text: 'Hora pasada', tone: 'muted' }
-  if (mins <= 10) return { text: mins <= 1 ? 'Empieza ya' : `En ${mins} min`, tone: 'danger' }
-  if (mins < 60) return { text: `En ${mins} min`, tone: 'warning' }
+/**
+ * Etiqueta del plazo de VENTA (no del inicio): el vendedor deja de poder
+ * vender unos minutos antes de la hora (ver findSellableRoom() en backend).
+ */
+function saleLabel(room: PosRoom): { text: string; tone: string } {
+  if (!ctx.isSalesOpen(room)) return { text: 'Ventas cerradas', tone: 'muted' }
+  if (room.is_manual) return { text: 'Sin horario', tone: 'info' }
+
+  const mins = ctx.minutesToClose(room)
+  if (mins === null) return { text: 'Abierta', tone: 'info' }
+  if (mins < 1) return { text: 'Cierra ya', tone: 'danger' }
+  if (mins <= 10) return { text: `Cierra en ${mins} min`, tone: 'danger' }
+  if (mins < 60) return { text: `Cierra en ${mins} min`, tone: 'warning' }
   if (mins < 24 * 60) {
     const h = Math.floor(mins / 60)
     const m = mins % 60
-    return { text: m ? `En ${h} h ${m} min` : `En ${h} h`, tone: 'info' }
+    return { text: m ? `Cierra en ${h} h ${m} min` : `Cierra en ${h} h`, tone: 'info' }
   }
-  return { text: 'Programada', tone: 'info' }
+  return { text: 'Abierta', tone: 'info' }
 }
 
-function hhmm(time: string | null): string {
-  return time ? time.slice(0, 5) : '--:--'
+/** Hora de inicio en la zona horaria del vendedor (desde starts_at UTC). */
+function hhmm(room: PosRoom): string {
+  if (room.is_manual) return 'Manual'
+  if (room.starts_at) return new Date(room.starts_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return room.time ? room.time.slice(0, 5) : '--:--'
+}
+
+function closeTime(room: PosRoom): string | null {
+  return room.sales_close_at
+    ? new Date(room.sales_close_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })
+    : null
 }
 
 function usd(n: number): string {
@@ -100,7 +117,7 @@ function fillPct(room: PosRoom): number | null {
       class="prp-selected"
       @click="expanded = true"
     >
-      <span class="prp-selected__time">{{ hhmm(ctx.selectedRoom.time) }}</span>
+      <span class="prp-selected__time">{{ hhmm(ctx.selectedRoom) }}</span>
       <span class="prp-selected__body">
         <strong>{{ ctx.selectedRoom.uuid_code }}</strong>
         <span class="pos-muted">
@@ -108,8 +125,8 @@ function fillPct(room: PosRoom): number | null {
           · {{ ctx.selectedRoom.total_players }} jugadores · bote {{ usd(ctx.selectedRoom.prize_pool) }}
         </span>
       </span>
-      <span class="pos-pill" :class="`pos-pill--${startLabel(ctx.selectedRoom).tone}`">
-        {{ startLabel(ctx.selectedRoom).text }}
+      <span class="pos-pill" :class="`pos-pill--${saleLabel(ctx.selectedRoom).tone}`">
+        {{ saleLabel(ctx.selectedRoom).text }}
       </span>
     </button>
 
@@ -193,13 +210,15 @@ function fillPct(room: PosRoom): number | null {
           type="button"
           role="option"
           class="prp-room"
-          :class="{ 'prp-room--on': ctx.selectedRoomId === room.id }"
+          :class="{ 'prp-room--on': ctx.selectedRoomId === room.id, 'prp-room--closed': !ctx.isSalesOpen(room) }"
           :aria-selected="ctx.selectedRoomId === room.id"
+          :aria-disabled="!ctx.isSalesOpen(room)"
+          :title="!ctx.isSalesOpen(room) ? 'Las ventas del vendedor cierran antes del inicio para que el comercio alcance a aprobar el comprobante.' : undefined"
           @click="select(room)"
         >
           <span class="prp-room__head">
-            <span class="prp-room__time">{{ hhmm(room.time) }}</span>
-            <span class="pos-pill" :class="`pos-pill--${startLabel(room).tone}`">{{ startLabel(room).text }}</span>
+            <span class="prp-room__time">{{ hhmm(room) }}</span>
+            <span class="pos-pill" :class="`pos-pill--${saleLabel(room).tone}`">{{ saleLabel(room).text }}</span>
           </span>
 
           <span class="prp-room__code">
@@ -217,6 +236,10 @@ function fillPct(room: PosRoom): number | null {
             <span><i class="fas fa-trophy"></i> {{ usd(room.prize_pool) }}</span>
             <span><i class="fas fa-users"></i> {{ room.total_players }}<template v-if="room.max_players">/{{ room.max_players }}</template></span>
             <span><i class="fas fa-ticket-alt"></i> {{ usd(room.card_price_usd) }}</span>
+          </span>
+
+          <span v-if="closeTime(room) && ctx.isSalesOpen(room)" class="prp-room__close">
+            <i class="far fa-clock"></i> Venta hasta las {{ closeTime(room) }}
           </span>
 
           <span v-if="fillPct(room) !== null" class="prp-room__bar" aria-hidden="true">
@@ -336,6 +359,9 @@ function fillPct(room: PosRoom): number | null {
 .prp-room__tags span:not(:empty) + span:not(:empty)::before { content: '·'; margin-right: 8px; }
 .prp-room__stats { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--ds-text-2); font-variant-numeric: tabular-nums; }
 .prp-room__stats i { font-size: 10px; opacity: .8; }
+.prp-room__close { font-size: 11px; color: var(--ds-text-2); }
+.prp-room--closed { opacity: .5; cursor: not-allowed; }
+.prp-room--closed:hover { border-color: var(--ds-border); transform: none; }
 .prp-room__bar { height: 4px; border-radius: 4px; background: var(--ds-border); overflow: hidden; }
 .prp-room__bar span { display: block; height: 100%; background: var(--pos-accent); border-radius: 4px; }
 .prp-room__check { position: absolute; top: -7px; right: -7px; font-size: 20px; color: var(--pos-accent); background: var(--ds-surface); border-radius: 50%; }
