@@ -174,7 +174,10 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'verified', 'multi
     'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'join-by-code'     => ['method' => 'post', 'uri' => 'join-by-code', 'action' => 'joinByCode', 'middleware' => ['throttle:bingo-join-by-code']],
     'filter-data'      => ['method' => 'get',  'uri' => 'filter-data', 'action' => 'filterData'],
-    'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
+    // Sin ruta de compra para comercios/vendedores: solo generan cartones para
+    // jugadores externos, desde el punto de venta (generate, con comprobante).
+    // Antes existía '{room}/buy', que les generaba cartones a su propio nombre
+    // sin cobro ni comprobante.
     'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms', 'middleware' => ['throttle:bingo-player-buy']],
     'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],
     'player-card-price' => ['method' => 'get', 'uri' => '{room}/player-card-price', 'action' => 'playerCardPrice'],

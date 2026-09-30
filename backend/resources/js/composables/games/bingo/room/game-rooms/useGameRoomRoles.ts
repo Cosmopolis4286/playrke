@@ -26,10 +26,11 @@ export function useGameRoomRoles() {
     )
   )
 
+  // Solo el jugador compra cartones para sí mismo (con su billetera). Comercios
+  // y vendedores únicamente generan cartones para jugadores externos, desde el
+  // punto de venta (Generar Cartón, con comprobante) — no desde las salas.
   const canBuy = computed(() =>
-    userRoles.value.some(ur =>
-      ['commerce', 'seller', 'player'].includes(ur.role?.prefix ?? '')
-    )
+    userRoles.value.some(ur => ur.role?.prefix === 'player')
   )
 
   const isPlayer = computed(() =>

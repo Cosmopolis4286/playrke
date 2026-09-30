@@ -37,7 +37,7 @@ use Tests\TestCase;
  * - Ver sorteo actual / números cantados -> bingo.draw-state (requiere pertenecer a la sala).
  * - Verificar ganador                  -> bingo.check-bingo (por sala+usuario, no por cartón).
  * - Historial                          -> bingo.my-games (Inertia) — ya no es JSON con `success`.
- * - Cantidad de compra 1-10            -> ahora es 1-40 (BingoRoomPlayerBuyRequest::rules()).
+ * - Cantidad de compra 1-10            -> ahora es 1-40 (BingoRoomController::playerBuyFromGameRooms()).
  * - Bloquear invitados                 -> redirect a login (302), no 401 JSON (rutas web, no API).
  *
  * Funcionalidad removida del dominio (documentada en el reporte, no aquí):

@@ -317,6 +317,13 @@ export function useGameRoomPurchaseModal() {
      * el paso 'loading' dura ~0ms.
      */
     async function open(room: BingoGameRoom): Promise<void> {
+        // Comercios y vendedores no compran cartones para sí mismos: venden a
+        // jugadores externos desde el punto de venta (backend: no hay endpoint).
+        if (!isPlayer.value) {
+            showToast('Para vender cartones a un jugador usá "Generar Cartón".', 'info')
+            return
+        }
+
         selectedRoom.value = room
         selectedCountry.value = null
         cardCount.value = 1
@@ -469,9 +476,9 @@ export function useGameRoomPurchaseModal() {
         try {
             purchasing.value = true
 
-            const endpoint = isPlayer.value
-                ? `/bingo/game-rooms/${routeKey}/player-buy`
-                : `/bingo/game-rooms/${routeKey}/buy`
+            // Solo jugadores compran desde las salas (ver useGameRoomRoles.canBuy):
+            // el endpoint de compra de comercio/vendedor ya no existe.
+            const endpoint = `/bingo/game-rooms/${routeKey}/player-buy`
 
             // Solo enviar matrices con edición manual real (null = cartón aleatorio, no se envía)
             const matricesToSend = effectiveCustomMatrices.value.filter((m): m is CardMatrix => m !== null)

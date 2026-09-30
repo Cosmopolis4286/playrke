@@ -372,7 +372,7 @@ final class BingoCardGenerateService
             throw BingoCardGenerateException::currencyNotAvailable();
         }
 
-        // 4-5. Tasa y precio — MISMOS helpers que generate()/buyFromGameRooms().
+        // 4-5. Tasa y precio — MISMOS helpers que generate().
         $exchangeRate = $this->saleExchangeRate($currencyId, $creatorUserId);
         $price        = $this->resolveUnitCardPrice($roomId, $currencyId, $creatorUserId, $exchangeRate);
 
@@ -452,7 +452,7 @@ final class BingoCardGenerateService
      * cartones no juegan hasta que el comercio aprueba el comprobante: vender
      * con el sorteo encima (o ya en curso, IN_PROGRESS) dejaba al comprador
      * pagando por una partida que no llegaba a jugar. La compra del jugador
-     * con billetera (buyFromGameRooms / playerBuyFromGameRooms) no pasa por
+     * con billetera (playerBuyFromGameRooms) no pasa por
      * aquí: su pago es inmediato y sigue admitiendo IN_PROGRESS.
      */
     private function findSellableRoom(string $roomId, int|string $creatorUserId): BingoRoom
@@ -822,141 +822,6 @@ final class BingoCardGenerateService
                 'paymentStatus' => 'PENDING',
             ];
         });
-    }
-
-    /**
-     * Compra de cartones desde la vista game-rooms (commerce/seller para su player).
-     *
-     * Los datos del jugador (teléfono, nombre) vienen del contexto del commerce/seller
-     * autenticado — no se requiere formulario de datos del jugador.
-     *
-     * @param \App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto
-     * @return array{type: string, message: string, prize_pool?: float, card_count?: int}
-     * @throws BingoCardGenerateException
-     */
-    public function buyFromGameRooms(\App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto): array
-    {
-        $userId = (string) $this->userContext->resolveUserId();
-        $role   = $this->roleUserService->getActiveUserRolePrefix((int) $userId);
-
-        // 1. Resolver commerce responsable según rol
-        [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
-
-        // 2. Validar sala — permite ACTIVE o IN_PROGRESS
-        $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
-            ->with(['status:id,code', 'config:id,room_id,card_price_usd,room_type_id', 'config.roomType:id,code'])
-            ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->where('id', $dto->roomId)
-            ->first();
-
-        if (!$room) {
-            throw BingoCardGenerateException::roomNotAvailable();
-        }
-
-        // Defensa en profundidad: si la sala es privada, exige haber verificado
-        // código/contraseña antes (POST /bingo-rooms/{room}/verify-access).
-        $this->bingoRoomCrud->assertRoomAccessVerified($room);
-
-        // 3. Moneda del país seleccionado
-        $currencyId = $this->currencies->getValueByCountry($dto->countryId, 'id');
-
-        if (!$currencyId) {
-            throw BingoCardGenerateException::currencyNotAvailable();
-        }
-
-        // 4-5. Tasa y precio — MISMOS helpers que la vista previa. La tasa es
-        //      la del COMERCIO ($creatorUserId), no la del usuario que compra:
-        //      antes se usaba $userId, que para un seller es su propio user
-        //      (sin tasa propia → siempre la oficial), distinta de la del comercio.
-        $exchangeRate = $this->saleExchangeRate($currencyId, $creatorUserId);
-        $cardPrice    = $this->resolveUnitCardPrice((string) $room->id, $currencyId, $creatorUserId, $exchangeRate)['card_price'];
-        $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
-
-        // 6. Seller ID (null si es commerce)
-        $sellerId = $role === 'seller'
-            ? $this->sellerRepository->getValueByUserId($userId, 'id')
-            : null;
-
-        $currencySymbol = $this->currencies->find($currencyId, ['symbol'])?->symbol ?? '$';
-
-        $cardOrder = [
-            'gameId'         => Game::getValueByName('BINGO', 'id'),
-            'roomId'         => $room->id,
-            'creator'        => ['id' => $creatorUserId, 'type' => 'user_id'],
-            'seller'         => $sellerId,
-            'commerce'       => $commerceId,
-            'currency'       => $currencyId,
-            'cardCount'      => $dto->cardCount,
-            'cardPrice'      => $cardPrice,
-            'cardPriceUsd'   => $cardPriceUsd,
-            'saleAmountUsd'  => round($cardPriceUsd * $dto->cardCount, 3),
-            'country'        => $dto->countryId,
-            'playerPhone'    => '',
-            'playerName'     => '',
-            'playerLastName' => '',
-            'initials'       => '',
-            'exchangeRate'   => $exchangeRate,
-        ];
-
-        $result = DB::transaction(function () use ($cardOrder) {
-            $roomUser = $this->cardGenerationService->generateCards($cardOrder);
-
-            if (!$roomUser) {
-                throw BingoCardGenerateException::cardGenerationFailed();
-            }
-
-            // Sin resolveOrCreatePlayer(): aquí no hay comprador externo (los
-            // cartones son del propio commerce/seller, sin teléfono ni nombre).
-            // Antes se llamaba con playerPhone '' y se descartaba el resultado,
-            // creando un ExternalPlayer + UserPurchaseCode vacíos por sala/red
-            // sin vínculo con ningún cartón.
-
-            return [
-                'type'       => 'success',
-                'message'    => 'Cartones generados correctamente.',
-                'card_count' => $cardOrder['cardCount'],
-            ];
-        });
-
-        // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
-        $fresh = $this->broadcastRoomUpdated((string) $room->id);
-
-        // Notificar al usuario propietario de los cartones (canal privado) su nuevo total en esta sala,
-        // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
-        $this->broadcastPlayerCardsUpdated((string) $room->id, $creatorUserId, (float) $cardPrice, (string) $currencySymbol);
-
-        // Invalidar el cache de viewGame — el usuario puede haber comprado su primer cartón
-        // y el cache de la policy habría devuelto false durante hasta 30s tras la compra.
-        \Illuminate\Support\Facades\Cache::forget("bingo:policy:viewGame:{$userId}:{$room->id}");
-
-        // Notificar la venta a dashboards de admin/superadmin y al vendedor/comercio propietario.
-        // Si quien vendió es un Seller que reporta a una agencia (subsidiary_id),
-        // también se notifica a esa agencia — antes solo se notificaba al
-        // creador de la sala (el Commerce), dejando a las agencias sin
-        // actividad en vivo pese a que nunca crean salas (ver
-        // SubsidiaryDashboardContextService, dashboard sin tiempo real hasta
-        // este fix).
-        $subsidiaryUserId = null;
-        if ($role === 'seller') {
-            $subsidiaryId = Seller::where('user_id', $userId)->value('subsidiary_id');
-            if ($subsidiaryId) {
-                $subsidiaryUserId = \App\Models\Roles\Subsidiary::where('id', $subsidiaryId)->value('user_id');
-            }
-        }
-
-        broadcast(new BingoCardSold(
-            roomId: (string) $room->id,
-            roomName: (string) $room->uuid_code,
-            quantity: (int) $cardOrder['cardCount'],
-            amountUsd: (float) $cardOrder['saleAmountUsd'],
-            creatorUserId: (string) $creatorUserId,
-            subsidiaryUserId: $subsidiaryUserId ? (string) $subsidiaryUserId : null,
-        ));
-
-        return array_merge($result, [
-            'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
-            'currency' => $currencySymbol,
-        ]);
     }
 
     /**

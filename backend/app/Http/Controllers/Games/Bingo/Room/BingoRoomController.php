@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Games\Bingo\Room;
 
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
-use App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use Illuminate\Http\Request;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
@@ -375,28 +373,6 @@ final class BingoRoomController extends Controller
                 return Inertia::render('Games/Bingo/Room/GameRooms', $response);
             },
             'No se pudo cargar la lista de salas de bingo.'
-        );
-    }
-
-    /**
-     * Compra de cartones desde la vista game-rooms.
-     *
-     * Flujo exclusivo para commerce/seller — el jugador (player)
-     * ya está registrado en el sistema. Solo se requiere país y cantidad.
-     *
-     * @param BingoRoom                $room    Sala decodificada por route model binding.
-     * @param BingoRoomPlayerBuyRequest $request Body con card_count y country_id.
-     * @return JsonResponse
-     */
-    public function buyFromGameRooms(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->generateService->buyFromGameRooms(
-                BingoRoomPlayerBuyDTO::fromArray(
-                    $request->validated(),
-                    (string) $room->id,
-                )
-            )
         );
     }
 
