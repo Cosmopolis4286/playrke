@@ -200,7 +200,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'salesBySeller', 'wallets', 'configuration', 'pendingWalletCount', 'period'],
+            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'salesBySeller', 'wallets', 'configuration', 'pendingWalletCount', 'period', 'rkeReceivables'],
             array_keys($view)
         );
     }
