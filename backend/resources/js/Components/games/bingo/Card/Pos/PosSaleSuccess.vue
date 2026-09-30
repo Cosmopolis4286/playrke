@@ -68,8 +68,9 @@ function otherRoom(): void {
     <div v-if="pending" class="pvs__note">
       <i class="fas fa-info-circle"></i>
       <span>
-        El pago quedó <strong>en revisión</strong>. El comprador verá sus cartones cuando tu comercio apruebe el comprobante.
-        Avísale para que no se preocupe si aún no aparecen.
+        El pago quedó <strong>en revisión</strong>. El comprador verá sus cartones cuando tu comercio apruebe el pago
+        (si fue en efectivo, cuando confirme que recibió el dinero). Te avisaremos cuando se apruebe o se rechace.
+        Avísale al comprador para que no se preocupe si aún no aparecen.
       </span>
     </div>
 

@@ -60,6 +60,15 @@ class SidebarMenuService
                     // los tiene 'player'.
                     'permission' => 'sellers.manage-own',
                 ],
+                'card_payments_review' => [
+                    'title' => 'Revisión de Pagos',
+                    'route' => 'bingo-card-payments.index',
+                    // Solo quien puede revisar (admin: todo; commerce: su
+                    // red — ver BingoCardPaymentReviewController). Antes la
+                    // cola no tenía ítem: solo se llegaba escribiendo la URL.
+                    'permission' => 'games.bingo.payments.review',
+                    'badge_counter' => 'pendingBingoCardPaymentsCount',
+                ],
                 'my_games' => [
                     'title'         => 'Mis Partidas',
                     'route'         => 'bingo.my-games',
@@ -692,8 +701,33 @@ class SidebarMenuService
      * @var array<string, string>
      */
     private const BADGE_COUNTERS = [
-        'pendingWalletMovementsCount' => 'pendingWalletMovementsCount',
+        'pendingWalletMovementsCount'   => 'pendingWalletMovementsCount',
+        'pendingBingoCardPaymentsCount' => 'pendingBingoCardPaymentsCount',
     ];
+
+    /**
+     * Pagos de ventas a jugadores externos esperando revisión, con el mismo
+     * scope que la cola (BingoCardPaymentReviewController): admin/superadmin
+     * cuentan todos; un comercio, solo los de su red comercial.
+     */
+    public function pendingBingoCardPaymentsCount(): int
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return 0;
+        }
+
+        $query = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::where('payment_status', 'PENDING');
+
+        if ($user->hasRole('superadmin') || $user->hasRole('admin')) {
+            return $query->count();
+        }
+
+        $network = \App\Models\Roles\Commerce::where('user_id', $user->id)->first()?->networkUserIds();
+
+        return $network ? $query->whereIn('seller_user_id', $network)->count() : 0;
+    }
 
     private function resolveBadgeCounter(string $counter): int
     {

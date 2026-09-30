@@ -120,6 +120,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.bingo.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos de bingo'],
             ['name' => 'games.bingo.winners', 'guard_name' => 'web', 'description' => 'Ver ganadores de bingo'],
             ['name' => 'games.bingo.sales_report', 'guard_name' => 'web', 'description' => 'Ver reporte de ventas de bingo'],
+            ['name' => 'games.bingo.payments.review', 'guard_name' => 'web', 'description' => 'Revisar (aprobar/rechazar) pagos de ventas de cartones a jugadores externos'],
             
             // Trivia - Permisos generales
             ['name' => 'games.trivia.view', 'guard_name' => 'web', 'description' => 'Ver sección de trivia'],

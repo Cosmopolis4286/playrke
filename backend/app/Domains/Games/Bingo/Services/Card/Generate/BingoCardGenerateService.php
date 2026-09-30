@@ -674,7 +674,10 @@ final class BingoCardGenerateService
 
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
-        $receiptNumber = $this->normalizeReceiptNumber($dto->receiptNumber);
+        // Efectivo no trae comprobante (null): no hay referencia que deduplicar.
+        $receiptNumber = trim($dto->receiptNumber) !== ''
+            ? $this->normalizeReceiptNumber($dto->receiptNumber)
+            : null;
 
         // 6. Buscar jugador existente en la sala — solo de la red comercial
         //    del vendedor (mismo criterio que resolveOrCreatePlayer()): en una
@@ -708,6 +711,7 @@ final class BingoCardGenerateService
             'exchangeRate'  => $exchangeRate,
             'receiptNumber' => $receiptNumber,
             'receiptImage'  => $dto->receiptImage,
+            'paymentMethod' => $dto->paymentMethod,
         ];
 
         if ($existingRoomUser) {
@@ -717,20 +721,25 @@ final class BingoCardGenerateService
         // 7. Comprobante único por red comercial + transacción atómica.
         //    El lock serializa dos envíos con el mismo comprobante (doble clic,
         //    reintento, dos vendedores a la vez) — sin él ambos podían pasar el
-        //    chequeo de duplicado antes de que ninguno comiteara.
-        $networkUserIds = $commerceModel->networkUserIds();
-        $lock = Cache::lock('bingo:receipt:' . $commerce . ':' . sha1($receiptNumber), 30);
-
-        if (!$lock->get()) {
-            throw BingoCardGenerateException::duplicateReceipt();
-        }
-
-        try {
-            $this->assertReceiptNotUsed($receiptNumber, $networkUserIds);
-
+        //    chequeo de duplicado antes de que ninguno comiteara. Sin
+        //    comprobante (efectivo) no hay nada que deduplicar.
+        if ($receiptNumber === null) {
             $result = $this->runSaleTransaction($cardOrder);
-        } finally {
-            $lock->release();
+        } else {
+            $networkUserIds = $commerceModel->networkUserIds();
+            $lock = Cache::lock('bingo:receipt:' . $commerce . ':' . sha1($receiptNumber), 30);
+
+            if (!$lock->get()) {
+                throw BingoCardGenerateException::duplicateReceipt();
+            }
+
+            try {
+                $this->assertReceiptNotUsed($receiptNumber, $networkUserIds);
+
+                $result = $this->runSaleTransaction($cardOrder);
+            } finally {
+                $lock->release();
+            }
         }
 
         // 8. Emitir evento de actualización de sala via WebSocket (fuera de la transacción)

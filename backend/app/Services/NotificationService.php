@@ -560,6 +560,52 @@ final class NotificationService
     }
 
     /**
+     * Aviso al VENDEDOR cuando el comercio (o un admin) revisa el comprobante
+     * de una de sus ventas a un jugador externo. Antes el vendedor no se
+     * enteraba: el comprador veía su link vacío hasta la aprobación, y si el
+     * pago se rechazaba nadie le avisaba que debía devolverle el dinero.
+     *
+     * @param string $status APPROVED | REJECTED
+     */
+    public function createBingoSalePaymentReviewedNotification(
+        string  $sellerUserId,
+        string  $status,
+        string  $roomUuidCode,
+        int     $cardCount,
+        float   $amount,
+        string  $currencySymbol,
+        ?string $buyerName = null,
+        ?string $notes = null,
+    ): Notification {
+        $approved = $status === 'APPROVED';
+        $buyer    = $buyerName ? " de {$buyerName}" : '';
+        $amountLabel = $currencySymbol . number_format($amount, 2, ',', '.');
+
+        $message = $approved
+            ? "Se aprobó el pago{$buyer} ({$cardCount} cartón(es), {$amountLabel}) en la sala #{$roomUuidCode}. Ya puede ver y jugar sus cartones."
+            : "Se rechazó el pago{$buyer} ({$cardCount} cartón(es), {$amountLabel}) en la sala #{$roomUuidCode}. Los cartones se anularon y el monto se te reembolsa: devuélveselo al comprador.";
+
+        if ($notes) {
+            $message .= " Nota: {$notes}";
+        }
+
+        return $this->create(
+            userId:  $sellerUserId,
+            type:    'BINGO_SALE_PAYMENT_REVIEWED',
+            title:   $approved ? '✅ Pago aprobado' : '❌ Pago rechazado',
+            message: $message,
+            data:    [
+                'status'          => $status,
+                'room_uuid_code'  => $roomUuidCode,
+                'card_count'      => $cardCount,
+                'amount'          => $amount,
+                'currency_symbol' => $currencySymbol,
+                'url'             => '/bingo-card/generate',
+            ]
+        );
+    }
+
+    /**
      * Notificación genérica al usuario cuando un movimiento de tipo custom
      * (catálogo MovementType, fuera de DEPOSIT/WITHDRAWAL) es aprobado o
      * rechazado.

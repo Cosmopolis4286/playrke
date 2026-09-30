@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { usePos } from '@/js/composables/games/bingo/card/pos/posContext'
-import { MAX_CARDS } from '@/js/composables/games/bingo/card/pos/usePosSale'
+import { MAX_CARDS, PAYMENT_METHODS } from '@/js/composables/games/bingo/card/pos/usePosSale'
 import { showToast } from '@/js/utils/toastNotify'
 
 /**
- * Paso 3: cantidad de cartones (stepper + atajos) y comprobante de pago.
- * El comprobante acepta clic, arrastrar y soltar, pegar (Ctrl+V desde
+ * Paso 3: cantidad de cartones (stepper + atajos), método de pago y
+ * comprobante. El comprobante solo se pide para pago móvil / transferencia
+ * (efectivo no tiene); acepta clic, arrastrar y soltar, pegar (Ctrl+V desde
  * WhatsApp Web / captura) y cámara en el teléfono.
  */
 const { sale } = usePos()
@@ -45,7 +46,7 @@ function onDrop(e: DragEvent): void {
 
 /** Pegar una captura en cualquier parte de la página mientras el paso esté activo. */
 function onPaste(e: ClipboardEvent): void {
-  if (locked.value) return
+  if (locked.value || !sale.requiresReceipt) return
   const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'))
   if (!item) return
   e.preventDefault()
@@ -125,8 +126,31 @@ function money(n: number): string {
         </span>
       </div>
 
-      <!-- ── Comprobante ── -->
-      <div class="pps-proof">
+      <!-- ── Método de pago ── -->
+      <span class="pos-label">¿Cómo pagó?</span>
+      <div class="pos-chips pps-methods" role="radiogroup" aria-label="Método de pago">
+        <button
+          v-for="method in PAYMENT_METHODS"
+          :key="method.value"
+          type="button"
+          role="radio"
+          class="pos-chip"
+          :class="{ 'pos-chip--on': sale.paymentMethod === method.value }"
+          :aria-checked="sale.paymentMethod === method.value"
+          @click="sale.paymentMethod = method.value"
+        >
+          <i :class="method.icon" class="me-1"></i>{{ method.label }}
+        </button>
+      </div>
+
+      <p v-if="!sale.requiresReceipt" class="pps-cash-note">
+        <i class="fas fa-info-circle me-1"></i>
+        Pago en efectivo: no hace falta comprobante. La venta queda <strong>en revisión</strong> hasta que tu comercio
+        confirme que recibió el dinero.
+      </p>
+
+      <!-- ── Comprobante (solo pago móvil / transferencia) ── -->
+      <div v-else class="pps-proof">
         <div>
           <span class="pos-label">Foto del comprobante</span>
           <div
@@ -238,6 +262,17 @@ function money(n: number): string {
 .pps-stepper input::-webkit-outer-spin-button,
 .pps-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pps-subtotal { font-size: 13px; color: var(--ds-text-2); }
+
+.pps-methods { margin-bottom: 16px; }
+.pps-cash-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ds-text-2);
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+}
 
 .pps-proof {
   display: grid;

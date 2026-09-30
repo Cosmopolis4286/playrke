@@ -19,6 +19,15 @@ export const MAX_CARDS = 40
 
 export type BuyerLookup = 'idle' | 'checking' | 'found' | 'new'
 
+/** Cómo pagó el comprador. Efectivo no lleva comprobante (el comercio confirma al revisar). */
+export type PaymentMethod = 'cash' | 'mobile_payment' | 'bank_transfer'
+
+export const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] = [
+    { value: 'mobile_payment', label: 'Pago móvil',    icon: 'fas fa-mobile-alt' },
+    { value: 'bank_transfer',  label: 'Transferencia', icon: 'fas fa-university' },
+    { value: 'cash',           label: 'Efectivo',      icon: 'fas fa-money-bill-wave' },
+]
+
 /**
  * Número en formato wa.me (solo dígitos, sin el 0 troncal local): el
  * teléfono se guarda formateado por IMask ("+58 0414-1234567").
@@ -62,6 +71,9 @@ export function usePosSale(
 
     const receiptNumber = ref('')
     const receiptImage = ref<File | null>(null)
+    /** Se conserva entre ventas: el vendedor suele cobrar siempre igual. */
+    const paymentMethod = ref<PaymentMethod>('mobile_payment')
+    const requiresReceipt = computed(() => paymentMethod.value !== 'cash')
 
     const submitting = ref(false)
     const lastSale = ref<PosSaleResult | null>(null)
@@ -96,7 +108,9 @@ export function usePosSale(
         !!buyer.firstName.trim() && !!buyer.lastName.trim()
     )
 
-    const paymentReady = computed(() => !!receiptNumber.value.trim() && !!receiptImage.value)
+    const paymentReady = computed(() =>
+        !requiresReceipt.value || (!!receiptNumber.value.trim() && !!receiptImage.value)
+    )
 
     const isFormValid = computed(() =>
         validateBingoCardGenerate(
@@ -113,6 +127,7 @@ export function usePosSale(
                 hasRoom: !!selectedRoom.value,
                 isLoadingPrice: loadingCardPrice.value,
                 hasPriceLoaded: !!cardPriceData.value,
+                requiresReceipt: requiresReceipt.value,
             }
         ) && buyerReady.value
     )
@@ -124,8 +139,10 @@ export function usePosSale(
         if (!selectedCountry.value) missing.push('Elegir país')
         else if (!phone.isPhoneValid.value) missing.push('Teléfono del comprador')
         else if (!buyer.firstName.trim() || !buyer.lastName.trim()) missing.push('Nombre del comprador')
-        if (!receiptImage.value) missing.push('Foto del comprobante')
-        if (!receiptNumber.value.trim()) missing.push('Número de comprobante')
+        if (requiresReceipt.value) {
+            if (!receiptImage.value) missing.push('Foto del comprobante')
+            if (!receiptNumber.value.trim()) missing.push('Número de comprobante')
+        }
         return missing
     })
 
@@ -249,10 +266,14 @@ export function usePosSale(
         formData.append('player[phone]', buyer.phone.trim())
         formData.append('player[first_name]', buyer.firstName.trim())
         formData.append('player[last_name]', buyer.lastName.trim())
-        formData.append('receipt_number', receiptNumber.value.trim())
+        formData.append('payment_method', paymentMethod.value)
         // El backend rechaza la venta (409 BINGO_CARD_PRICE_CHANGED) si el precio cambió.
         formData.append('expected_card_price', String(cardPriceData.value.card_price))
-        if (receiptImage.value) formData.append('receipt_image', receiptImage.value)
+        // Efectivo: sin comprobante (el backend lo ignora igual).
+        if (requiresReceipt.value) {
+            formData.append('receipt_number', receiptNumber.value.trim())
+            if (receiptImage.value) formData.append('receipt_image', receiptImage.value)
+        }
 
         try {
             const { data } = await backendClient.post<GenerateCardResponse>(
@@ -337,7 +358,7 @@ export function usePosSale(
         // comprador
         buyer, buyerLookup, existingBuyer, phone, applyFrequentBuyer,
         // cantidad / pago
-        cardCount, setCardCount, receiptNumber, receiptImage,
+        cardCount, setCardCount, receiptNumber, receiptImage, paymentMethod, requiresReceipt,
         // estado general
         buyerReady, paymentReady, isFormValid, missingSteps,
         submitting, submit, lastSale, startNewSale,

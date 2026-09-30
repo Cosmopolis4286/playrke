@@ -27,6 +27,8 @@ export interface BingoCardGenerateContext {
     hasRoom:         boolean
     hasPriceLoaded:  boolean
     isLoadingPrice:  boolean
+    /** false para pago en efectivo: no hay comprobante (número ni imagen). Por defecto true. */
+    requiresReceipt?: boolean
 }
 
 /* ─── Función de validación completa ────────────────────────────────────── */
@@ -45,7 +47,11 @@ export function validateBingoCardGenerate(
 ): boolean {
     if (!ctx.hasRoom || ctx.isLoadingPrice || !ctx.hasPriceLoaded) return false
 
-    const result = bingoCardGenerateSchema.safeParse({
+    const schema = ctx.requiresReceipt === false
+        ? bingoCardGenerateSchema.omit({ receiptNumber: true, receiptImage: true })
+        : bingoCardGenerateSchema
+
+    const result = schema.safeParse({
         selectedCountry: data.selectedCountry ?? '',
         cardCount:         data.cardCount ?? 0,
         phone:           data.phone ?? '',

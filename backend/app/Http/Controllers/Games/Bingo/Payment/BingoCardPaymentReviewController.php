@@ -86,6 +86,14 @@ final class BingoCardPaymentReviewController extends Controller
             'card_count'         => $p->cardLot?->card_count,
             'payment_amount'     => (float) $p->payment_amount,
             'transaction_reference' => $p->transaction_reference,
+            // cash → sin comprobante: el revisor confirma que recibió el efectivo.
+            'payment_method'     => $p->payment_method,
+            'payment_method_label' => match ($p->payment_method) {
+                'cash', 'seller_cash' => 'Efectivo',
+                'mobile_payment'      => 'Pago móvil',
+                'bank_transfer'       => 'Transferencia',
+                default               => (string) $p->payment_method,
+            },
             // Ruta autenticada (proof()), no URL pública del disco.
             'payment_proof_url'  => $p->payment_proof ? route('bingo-card-payments.proof', ['payment' => $p]) : null,
             'created_at'         => $p->created_at?->toIso8601String(),

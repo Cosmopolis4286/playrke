@@ -46,6 +46,7 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo.manage', // Gestionar salas de bingo (crear/editar/eliminar) — antes solo cubierto por games.manage a nivel de ruta, pero el ítem del sidebar y la Policy ahora exigen este permiso explícito
                 'games.bingo.game_rooms', // Ver/comprar en salas de bingo — antes ausente: admin tenía "Gestionar Salas" pero no la vista de comprador, útil para soporte/QA sin necesitar otra cuenta
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
+                'games.bingo.payments.review', // Cola de revisión de pagos de ventas a externos (ve todos)
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
                 'kyc.view', 'kyc.manage',
@@ -81,6 +82,7 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.manage', // Gestionar salas de bingo (crear/editar/eliminar/cambiar estado) — antes ausente: el comercio podía jugar/ver reportes pero no administrar salas pese a que la ruta ya lo permitía a nivel de rol
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
+                'games.bingo.payments.review', // Revisa los pagos de SU red (scope en BingoCardPaymentReviewController)
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes
                 'directory.view', 'directory.search',

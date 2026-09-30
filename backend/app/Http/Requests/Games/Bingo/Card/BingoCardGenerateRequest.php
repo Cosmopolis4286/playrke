@@ -38,8 +38,12 @@ class BingoCardGenerateRequest extends BaseRequest
             'player.phone'     => ['required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country_id'))],
             'player.first_name' => ['required', 'string', 'max:100'],
             'player.last_name' => ['required', 'string', 'max:100'],
-            'receipt_number'   => ['required', 'string', 'max:100'],
-            'receipt_image'    => ['required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
+            // Efectivo: sin comprobante (exclude_if lo saca de validated(); la
+            // venta igual nace PENDING y el comercio confirma que recibió el
+            // dinero). Pago móvil / transferencia: comprobante obligatorio.
+            'payment_method'   => ['required', 'string', \Illuminate\Validation\Rule::in(\App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO::PAYMENT_METHODS)],
+            'receipt_number'   => ['exclude_if:payment_method,cash', 'required', 'string', 'max:100'],
+            'receipt_image'    => ['exclude_if:payment_method,cash', 'required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
             // Precio unitario que el vendedor vio y cobró — ver
             // BingoCardGenerateService::generate() (rechaza si cambió).
             'expected_card_price' => ['required', 'numeric', 'min:0'],
@@ -59,9 +63,11 @@ class BingoCardGenerateRequest extends BaseRequest
             'player.phone.required'     => 'El teléfono del jugador es obligatorio.',
             'player.first_name.required' => 'El nombre del jugador es obligatorio.',
             'player.last_name.required' => 'El apellido del jugador es obligatorio.',
-            'receipt_number.required'   => 'El número de comprobante es obligatorio.',
+            'payment_method.required'   => 'Indica cómo pagó el comprador.',
+            'payment_method.in'         => 'El método de pago no es válido.',
+            'receipt_number.required'   => 'El número de comprobante es obligatorio para pago móvil o transferencia.',
             'receipt_number.max'       => 'El número de comprobante no puede superar los 100 caracteres.',
-            'receipt_image.required'    => 'La imagen del comprobante es obligatoria.',
+            'receipt_image.required'    => 'La foto del comprobante es obligatoria para pago móvil o transferencia.',
             'receipt_image.image'       => 'El archivo debe ser una imagen.',
             'receipt_image.mimes'       => 'La imagen debe estar en formato JPG o PNG.',
             'receipt_image.max'         => 'La imagen no puede superar los 2 MB.',

@@ -122,8 +122,8 @@ class SellerCardSaleTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $grants = [
-            'admin'    => ['games.manage', 'games.bingo', 'games.bingo.manage'],
-            'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms'],
+            'admin'    => ['games.manage', 'games.bingo', 'games.bingo.manage', 'games.bingo.payments.review'],
+            'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review'],
             'seller'   => ['games.bingo', 'games.bingo.game_rooms'],
         ];
 
@@ -260,6 +260,7 @@ class SellerCardSaleTest extends TestCase
             'card_count'          => 2,
             'country_id'          => (string) $this->country->id,
             'player'              => ['phone' => '+584141112233', 'first_name' => 'Ana', 'last_name' => 'Pérez'],
+            'payment_method'      => 'mobile_payment',
             'receipt_number'      => 'REF-' . Str::random(6),
             'receipt_image'       => UploadedFile::fake()->image('comprobante.jpg'),
             'expected_card_price' => self::ROOM_PRICE_USD * self::COMMERCE_RATE,
@@ -371,6 +372,59 @@ class SellerCardSaleTest extends TestCase
         $this->assertStringNotContainsString('receipt_', $payment->payment_proof);
     }
 
+    // ─── Método de pago ──────────────────────────────────────────────────────
+
+    /** @test */
+    public function cash_sale_needs_no_receipt_and_still_goes_to_review(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1, [
+            'payment_method' => 'cash',
+            'receipt_number' => null,
+            'receipt_image'  => null,
+        ])->assertOk()->assertJson(['paymentStatus' => 'PENDING']);
+
+        $payment = BingoCardPayment::firstOrFail();
+        $this->assertSame('cash', $payment->payment_method);
+        $this->assertSame('PENDING', $payment->payment_status);
+        $this->assertNull($payment->transaction_reference);
+        $this->assertSame('', $payment->payment_proof);
+    }
+
+    /** @test */
+    public function cash_sale_ignores_a_receipt_sent_by_mistake(): void
+    {
+        // Un número enviado junto con "efectivo" no reserva esa referencia.
+        $this->sale($this->sellerA, $this->roomR1, ['payment_method' => 'cash', 'receipt_number' => 'AB123'])->assertOk();
+
+        $this->assertNull(BingoCardPayment::firstOrFail()->transaction_reference);
+
+        // Luego una venta real por pago móvil con esa referencia es válida.
+        $this->sale($this->sellerA, $this->roomR1, [
+            'receipt_number' => 'AB123',
+            'player'         => ['phone' => '+584149998877', 'first_name' => 'Luis', 'last_name' => 'Díaz'],
+        ])->assertOk();
+    }
+
+    /** @test */
+    public function mobile_payment_and_transfer_require_the_receipt(): void
+    {
+        foreach (['mobile_payment', 'bank_transfer'] as $method) {
+            $this->sale($this->sellerA, $this->roomR1, [
+                'payment_method' => $method,
+                'receipt_number' => null,
+                'receipt_image'  => null,
+            ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['receipt_number', 'receipt_image']);
+        }
+
+        $this->sale($this->sellerA, $this->roomR1, ['payment_method' => 'crypto'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['payment_method']);
+
+        $this->assertSame(0, BingoCardLot::count());
+    }
+
     /** @test */
     public function sale_is_rejected_when_price_changed_since_preview(): void
     {
@@ -469,6 +523,73 @@ class SellerCardSaleTest extends TestCase
             ->get('/bingo/card-payments', ['X-Inertia' => 'true', 'X-Inertia-Version' => \Inertia\Inertia::getVersion()])
             ->assertOk()
             ->assertJsonCount(1, 'props.payments');
+    }
+
+    /** @test */
+    public function approving_the_payment_notifies_the_seller(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $payment = BingoCardPayment::firstOrFail();
+
+        $this->actingAs($this->commerceC)
+            ->postJson(route('bingo-card-payments.approve', ['payment' => $payment]))
+            ->assertOk();
+
+        $notification = DB::table('notifications')
+            ->where('user_id', $this->sellerA->id)
+            ->where('type', 'BINGO_SALE_PAYMENT_REVIEWED')
+            ->first();
+
+        $this->assertNotNull($notification, 'El vendedor debe recibir aviso de la aprobación.');
+        $this->assertStringContainsString('aprobó', $notification->message);
+        $this->assertStringContainsString('Ana Pérez', $notification->message);
+    }
+
+    /** @test */
+    public function rejecting_the_payment_notifies_the_seller_to_refund_the_buyer(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $payment = BingoCardPayment::firstOrFail();
+
+        $this->actingAs($this->commerceC)
+            ->postJson(route('bingo-card-payments.reject', ['payment' => $payment]), ['admin_notes' => 'Comprobante ilegible'])
+            ->assertOk();
+
+        $notification = DB::table('notifications')
+            ->where('user_id', $this->sellerA->id)
+            ->where('type', 'BINGO_SALE_PAYMENT_REVIEWED')
+            ->first();
+
+        $this->assertNotNull($notification, 'El vendedor debe recibir aviso del rechazo.');
+        $this->assertStringContainsString('rechazó', $notification->message);
+        $this->assertStringContainsString('devuélveselo al comprador', $notification->message);
+        $this->assertStringContainsString('Comprobante ilegible', $notification->message);
+    }
+
+    /** @test */
+    public function review_queue_menu_item_shows_pending_count_only_to_reviewers(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        $reviewItem = function (User $user): ?array {
+            $this->actingAs($user);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            $bingo = app(\App\Services\Menu\SidebarMenuService::class)->generateMenu()->get('games_bingo');
+
+            return collect($bingo['submenu'] ?? [])->firstWhere('route', 'bingo-card-payments.index');
+        };
+
+        // El comercio de la red ve el ítem con 1 pendiente.
+        $this->assertSame(1, $reviewItem($this->commerceC)['badge'] ?? null);
+
+        // Otro comercio ve el ítem, pero sin pendientes ajenos.
+        $this->assertSame(0, $reviewItem($this->commerceD)['badge'] ?? null);
+
+        // El vendedor no revisa: no ve el ítem.
+        $this->assertNull($reviewItem($this->sellerA));
     }
 
     // ─── Punto de venta (/bingo-card/pos/*) ──────────────────────────────────

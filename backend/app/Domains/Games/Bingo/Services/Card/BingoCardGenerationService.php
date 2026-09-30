@@ -305,7 +305,9 @@ final class BingoCardGenerationService
             $isExternalPlayerPayment = !empty($cardOrder['externalPlayerId']);
 
             BingoCardPayment::create([
-                'payment_method'        => 'seller_cash',
+                // cash | mobile_payment | bank_transfer (elegido en el punto de
+                // venta). Antes siempre 'seller_cash', aunque se exigiera comprobante.
+                'payment_method'        => $cardOrder['paymentMethod'] ?? 'cash',
                 'description'           => 'Venta de ' . $cardOrder['cardCount'] . ' cartón(es) por vendedor',
                 'room_id'               => $cardOrder['roomId'],
                 'seller_user_id'        => $cardOrder['seller_user_id'],

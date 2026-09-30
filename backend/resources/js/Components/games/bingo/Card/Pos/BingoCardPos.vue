@@ -12,7 +12,7 @@ import PosTodaySales from './PosTodaySales.vue'
 
 import { providePos } from '@/js/composables/games/bingo/card/pos/posContext'
 import { usePosRooms } from '@/js/composables/games/bingo/card/pos/usePosRooms'
-import { usePosSale } from '@/js/composables/games/bingo/card/pos/usePosSale'
+import { usePosSale, PAYMENT_METHODS } from '@/js/composables/games/bingo/card/pos/usePosSale'
 import { usePosTodaySales } from '@/js/composables/games/bingo/card/pos/usePosTodaySales'
 import { showToast } from '@/js/utils/toastNotify'
 import type { SelectOption } from '@/js/types/common/form/form'
@@ -88,6 +88,10 @@ watch(
 
 const room = computed(() => rooms.selectedRoom)
 
+const paymentMethodLabel = computed(() =>
+  PAYMENT_METHODS.find(m => m.value === sale.paymentMethod)?.label ?? '—'
+)
+
 function money(n: number): string {
   return n.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -126,7 +130,8 @@ function money(n: number): string {
           <div><dt>Teléfono</dt><dd>{{ sale.buyer.phone }}</dd></div>
           <div><dt>Sala</dt><dd>{{ room?.time?.slice(0, 5) }} · {{ room?.uuid_code }}</dd></div>
           <div><dt>Cartones</dt><dd>{{ sale.cardCount }} × {{ sale.currencySymbol }} {{ money(sale.cardPrice) }}</dd></div>
-          <div><dt>Comprobante</dt><dd>{{ sale.receiptNumber }}</dd></div>
+          <div><dt>Pago</dt><dd>{{ paymentMethodLabel }}</dd></div>
+          <div v-if="sale.requiresReceipt"><dt>Comprobante</dt><dd>{{ sale.receiptNumber }}</dd></div>
           <div><dt>Tu comisión</dt><dd class="bcp-confirm__earn">{{ sale.currencySymbol }} {{ money(sale.sellerCommission) }}</dd></div>
         </dl>
 

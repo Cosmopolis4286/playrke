@@ -7,6 +7,17 @@ namespace App\Domains\Games\Bingo\DTOs\Card\Generate;
  */
 final class BingoCardGenerateDTO
 {
+    /** Métodos de pago de una venta a jugador externo (ver BingoCardGenerateRequest). */
+    public const PAYMENT_CASH           = 'cash';
+    public const PAYMENT_MOBILE_PAYMENT = 'mobile_payment';
+    public const PAYMENT_BANK_TRANSFER  = 'bank_transfer';
+
+    public const PAYMENT_METHODS = [
+        self::PAYMENT_CASH,
+        self::PAYMENT_MOBILE_PAYMENT,
+        self::PAYMENT_BANK_TRANSFER,
+    ];
+
     public function __construct(
         public readonly string $roomId,
         public readonly int    $cardCount,
@@ -19,6 +30,8 @@ final class BingoCardGenerateDTO
         public readonly ?\Illuminate\Http\UploadedFile $receiptImage,
         /** Precio unitario que vio el vendedor en la vista previa; generate() rechaza la venta si ya no coincide. */
         public readonly ?float $expectedCardPrice = null,
+        /** cash | mobile_payment | bank_transfer — efectivo va sin comprobante. */
+        public readonly string $paymentMethod = self::PAYMENT_MOBILE_PAYMENT,
     ) {}
 
     public static function fromArray(array $data): self
@@ -35,6 +48,7 @@ final class BingoCardGenerateDTO
             receiptNumber:  (string) ($data['receipt_number'] ?? ''),
             receiptImage:   $data['receipt_image'] ?? null,
             expectedCardPrice: isset($data['expected_card_price']) ? (float) $data['expected_card_price'] : null,
+            paymentMethod:  (string) ($data['payment_method'] ?? self::PAYMENT_MOBILE_PAYMENT),
         );
     }
 }

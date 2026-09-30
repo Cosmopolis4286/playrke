@@ -7,7 +7,9 @@ use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Revisión admin de pagos de cartones de ExternalPlayer (comprador sin
@@ -22,6 +24,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class BingoCardPaymentReviewService
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     /**
      * Aprueba un pago PENDING: los cartones de su lote pasan a ser visibles
      * y jugables de inmediato (no requiere ninguna acción adicional — ya
@@ -36,7 +42,7 @@ final class BingoCardPaymentReviewService
      */
     public function approve(BingoCardPayment $payment, ?string $adminNotes = null): BingoCardPayment
     {
-        return DB::transaction(function () use ($payment, $adminNotes) {
+        $approved = DB::transaction(function () use ($payment, $adminNotes) {
             $locked = BingoCardPayment::where('id', $payment->id)->lockForUpdate()->first();
 
             if (!$locked || $locked->payment_status !== 'PENDING') {
@@ -51,6 +57,48 @@ final class BingoCardPaymentReviewService
 
             return $locked->fresh();
         });
+
+        // Fuera de la transacción: el aviso solo sale si la aprobación comiteó.
+        $this->notifySeller($approved, 'APPROVED', $adminNotes);
+
+        return $approved;
+    }
+
+    /**
+     * Avisa al vendedor del resultado de la revisión. Best-effort: un fallo
+     * del aviso (BD de notificaciones, broadcast) no revierte la revisión,
+     * que ya quedó comiteada — solo se registra.
+     */
+    private function notifySeller(BingoCardPayment $payment, string $status, ?string $notes): void
+    {
+        if (!$payment->seller_user_id) {
+            return;
+        }
+
+        try {
+            $payment->loadMissing(['room:id,uuid_code', 'cardLot:id,card_count', 'currency:id,symbol', 'externalPlayer:id,first_name,last_name']);
+
+            $buyerName = $payment->externalPlayer
+                ? trim("{$payment->externalPlayer->first_name} {$payment->externalPlayer->last_name}")
+                : null;
+
+            $this->notifications->createBingoSalePaymentReviewedNotification(
+                sellerUserId:   (string) $payment->seller_user_id,
+                status:         $status,
+                roomUuidCode:   (string) ($payment->room?->uuid_code ?? ''),
+                cardCount:      (int) ($payment->cardLot?->card_count ?? 0),
+                amount:         (float) $payment->payment_amount,
+                currencySymbol: (string) ($payment->currency?->symbol ?? ''),
+                buyerName:      $buyerName ?: null,
+                notes:          $notes,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo notificar al vendedor la revisión del pago de bingo', [
+                'payment_id' => (string) $payment->id,
+                'status'     => $status,
+                'error'      => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -114,6 +162,8 @@ final class BingoCardPaymentReviewService
 
         BingoCardLotRefundJob::dispatch((string) $updated->card_lot_id, (string) $updated->room_id)
             ->onQueue('bingo-refunds');
+
+        $this->notifySeller($updated, 'REJECTED', $adminNotes);
 
         return $updated;
     }

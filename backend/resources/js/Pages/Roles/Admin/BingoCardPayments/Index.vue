@@ -17,6 +17,8 @@ interface PendingPayment {
   card_count: number | null
   payment_amount: number
   transaction_reference: string | null
+  payment_method: string | null
+  payment_method_label: string | null
   payment_proof_url: string | null
   created_at: string | null
 }
@@ -116,6 +118,7 @@ async function reject(payment: PendingPayment) {
           <th>Comprador externo</th>
           <th>Cartones</th>
           <th>Monto</th>
+          <th>Método</th>
           <th>Referencia</th>
           <th>Comprobante</th>
           <th>Notas</th>
@@ -132,11 +135,15 @@ async function reject(payment: PendingPayment) {
           </td>
           <td>{{ payment.card_count ?? '—' }}</td>
           <td>{{ payment.payment_amount.toFixed(2) }}</td>
+          <td>{{ payment.payment_method_label ?? '—' }}</td>
           <td>{{ payment.transaction_reference ?? '—' }}</td>
           <td>
             <a v-if="payment.payment_proof_url" :href="payment.payment_proof_url" target="_blank" rel="noopener">
               Ver imagen
             </a>
+            <span v-else-if="payment.payment_method === 'cash'" class="bcp-muted">
+              Efectivo: confirma que el vendedor te entregó el dinero
+            </span>
             <span v-else class="bcp-muted">Sin comprobante</span>
           </td>
           <td>
