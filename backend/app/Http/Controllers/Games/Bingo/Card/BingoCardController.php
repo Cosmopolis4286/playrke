@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Games\Bingo\Card;
 use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO;
 use App\Domains\Games\Bingo\Services\Card\Generate\BingoSellerPosService;
 use App\Services\Auth\PermissionService;
+use App\Services\Roles\Player\External\ExternalBuyerPurchaseCodeService;
+use App\Services\Roles\Seller\SellerSalesLinkService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
@@ -112,6 +114,87 @@ final class BingoCardController extends Controller
         return $this->handleServiceJson(
             fn () => $this->posService->todaySales((string) $this->userContext->resolveUserId())
         );
+    }
+
+    // ─── Enlace de venta y códigos de compra (compra por cuenta propia) ─────
+
+    /**
+     * Enlace público de venta del vendedor + opciones para otorgar códigos.
+     */
+    public function salesLink(SellerSalesLinkService $links): JsonResponse
+    {
+        $this->ensureSeller();
+
+        return $this->handleServiceJson(fn () => [
+            'link'          => $links->linkFor($this->currentSeller()),
+            'code_options'  => [
+                'uses'               => config('sellers.purchase_codes.uses_options'),
+                'default_uses'       => config('sellers.purchase_codes.default_uses'),
+                'valid_days'         => config('sellers.purchase_codes.valid_days_options'),
+                'default_valid_days' => config('sellers.purchase_codes.default_valid_days'),
+            ],
+        ]);
+    }
+
+    /** Regenera el enlace (el anterior deja de funcionar). */
+    public function regenerateSalesLink(SellerSalesLinkService $links): JsonResponse
+    {
+        $this->ensureSeller();
+
+        return $this->handleServiceJson(fn () => ['link' => $links->regenerate($this->currentSeller())]);
+    }
+
+    /** Códigos de compra otorgados por el vendedor. */
+    public function purchaseCodes(ExternalBuyerPurchaseCodeService $codes): JsonResponse
+    {
+        $this->ensureSeller();
+
+        return $this->handleServiceJson(fn () => [
+            'codes' => $codes->listForSeller((string) $this->userContext->resolveUserId()),
+        ]);
+    }
+
+    /**
+     * Otorga un código a un comprador recurrente (ya le compró antes a este
+     * vendedor). Revoca el código vigente previo de ese comprador.
+     */
+    public function issuePurchaseCode(Request $request, ExternalBuyerPurchaseCodeService $codes): JsonResponse
+    {
+        $this->ensureSeller();
+
+        $validated = $request->validate([
+            'country_id' => ['required', 'string', 'exists:countries,id'],
+            'phone'      => ['required', 'string', 'max:25'],
+            'max_uses'   => ['required', 'integer', \Illuminate\Validation\Rule::in(config('sellers.purchase_codes.uses_options'))],
+            'valid_days' => ['required', 'integer', \Illuminate\Validation\Rule::in(config('sellers.purchase_codes.valid_days_options'))],
+        ]);
+
+        return $this->handleServiceJson(fn () => [
+            'code' => $codes->present($codes->issue(
+                (string) $this->userContext->resolveUserId(),
+                $validated['country_id'],
+                $validated['phone'],
+                (int) $validated['max_uses'],
+                (int) $validated['valid_days'],
+            )),
+        ]);
+    }
+
+    /** Revoca un código propio. */
+    public function revokePurchaseCode(string $purchaseCode, ExternalBuyerPurchaseCodeService $codes): JsonResponse
+    {
+        $this->ensureSeller();
+
+        return $this->handleServiceJson(function () use ($purchaseCode, $codes) {
+            $codes->revoke((string) $this->userContext->resolveUserId(), $purchaseCode);
+
+            return ['message' => 'Código revocado.'];
+        });
+    }
+
+    private function currentSeller(): \App\Models\Roles\Seller
+    {
+        return \App\Models\Roles\Seller::where('user_id', $this->userContext->resolveUserId())->firstOrFail();
     }
 
     /**

@@ -50,6 +50,28 @@ Route::get('/game-rooms/{room}/top-buyers', [\App\Http\Controllers\Games\Bingo\R
     ->name('game-rooms.showcase.top-buyers');
 
 /**
+ * Compra por cuenta propia de compradores RECURRENTES desde el enlace
+ * público del vendedor — sin sesión de usuario, con código de compra
+ * otorgado por el vendedor (vence por usos o tiempo). Ver
+ * PublicBingoBuyController. El verify tiene además su propio límite de
+ * intentos fallidos con bloqueo (config('sellers.purchase_codes')).
+ */
+Route::prefix('comprar/{token}')
+    ->name('bingo-buy.')
+    ->middleware('throttle:60,1')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'show'])
+            ->name('show')->defaults('inertiaOnly', true);
+        Route::post('/verify', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'verify'])
+            ->middleware('throttle:20,1')->name('verify');
+        Route::post('/forget', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'forget'])->name('forget');
+        Route::get('/rooms', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'rooms'])->name('rooms');
+        Route::get('/rooms/{room}/price', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'price'])->name('price');
+        Route::post('/rooms/{room}/purchase', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'purchase'])
+            ->middleware('throttle:10,1')->name('purchase');
+    });
+
+/**
  * Health check para monitoreo externo (uptime monitors, load balancers).
  * Sin autenticación — no expone datos, solo disponibilidad de dependencias
  * críticas. Verifica DB y cache; si alguna falla responde 503.

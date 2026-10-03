@@ -57,6 +57,16 @@ class Seller extends BaseModel
         'subsidiary_id' => 'string',
     ];
 
+    /**
+     * El token del enlace público de venta funciona como credencial de
+     * entrada a /comprar/{token}: no debe viajar en serializaciones del
+     * modelo (listados admin, recursos API). Se lee explícitamente vía
+     * SellerSalesLinkService.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = ['sales_link_token'];
+
     // ========================
     // Accessors computados
     // ========================

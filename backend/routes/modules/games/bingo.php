@@ -146,6 +146,12 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'verified', 'multiPermission:g
     'pos-rooms'           => ['method' => 'get', 'uri' => 'pos/rooms',            'action' => 'rooms'],
     'pos-frequent-buyers' => ['method' => 'get', 'uri' => 'pos/frequent-buyers',  'action' => 'frequentBuyers'],
     'pos-today-sales'     => ['method' => 'get', 'uri' => 'pos/today-sales',      'action' => 'todaySales'],
+    // Enlace público de venta + códigos de compra para compradores recurrentes.
+    'pos-sales-link'            => ['method' => 'get',    'uri' => 'pos/sales-link',                         'action' => 'salesLink'],
+    'pos-sales-link-regenerate' => ['method' => 'post',   'uri' => 'pos/sales-link/regenerate',              'action' => 'regenerateSalesLink'],
+    'pos-purchase-codes'        => ['method' => 'get',    'uri' => 'pos/purchase-codes',                     'action' => 'purchaseCodes'],
+    'pos-purchase-codes-issue'  => ['method' => 'post',   'uri' => 'pos/purchase-codes',                     'action' => 'issuePurchaseCode'],
+    'pos-purchase-codes-revoke' => ['method' => 'delete', 'uri' => 'pos/purchase-codes/{purchaseCode}',      'action' => 'revokePurchaseCode'],
     'available-countries' => ['method' => 'get', 'uri' => '{room}/available-countries', 'action' => 'availableCountries'],
     'card-price'          => ['method' => 'get', 'uri' => '{room}/card-price',           'action' => 'cardPrice'],
 ]);
