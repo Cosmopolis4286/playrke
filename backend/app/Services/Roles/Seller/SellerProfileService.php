@@ -4,8 +4,11 @@ namespace App\Services\Roles\Seller;
 
 use App\Models\Roles\Seller;
 use App\Services\Roles\AdminProfileAccessService;
+use App\Services\Roles\CommissionHierarchyGuard;
 use App\Services\Roles\RoleProfileEnrichmentService;
+use App\Services\Roles\RoleProfileInsightsService as Insights;
 use App\Services\Security\UserContextService;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Autogestión de la ficha propia de un Seller (taquilla/vendedor) —
@@ -22,6 +25,8 @@ final class SellerProfileService
         private readonly UserContextService $userContext,
         private readonly AdminProfileAccessService $adminAccess,
         private readonly RoleProfileEnrichmentService $enrichment,
+        private readonly Insights $insights,
+        private readonly CommissionHierarchyGuard $commissionGuard,
     ) {}
 
     private function ownSellerOrFail(?string $targetUserId = null): Seller
@@ -39,11 +44,22 @@ final class SellerProfileService
     public function showOwn(?string $targetUserId = null): array
     {
         $seller = $this->ownSellerOrFail($targetUserId);
-        $seller->load(['country:id,name', 'user:id,username,email']);
+        $seller->load([
+            'country:id,name',
+            'user:id,username,email',
+            'subsidiary:id,name,status,commission,commerce_id',
+            'subsidiary.commerce:id,user_id,name,status,commission',
+            'managerCommerce:id,user_id,name,status,commission',
+        ]);
 
-        $commerce = $seller->resolveCommerce();
+        $commerce   = $seller->resolveCommerce();
+        $subsidiary = $seller->subsidiary_id ? $seller->subsidiary : null;
+        $rate       = (float) $seller->commission;
+
+        $lotScope = fn (Builder $q) => $q->where('seller_user_id', $seller->user_id);
 
         return [
+            'role'         => 'seller',
             'id'           => $seller->hashed_id,
             'name'         => $seller->name,
             'phone'        => $seller->phone,
@@ -56,12 +72,25 @@ final class SellerProfileService
                 'commerce_name' => $commerce?->name,
             ],
             'user'         => ['username' => $seller->user->username, 'email' => $seller->user->email],
-            'commission'   => (float) $seller->commission,
+            'commission'   => $rate,
 
-            // Monedas/juegos permitidos — antes ocultos por completo.
+            // Cascada: el vendedor cobra X; su tope es la agencia (si cobra
+            // comisión propia) o la comercializadora (ver CommissionHierarchyGuard).
+            'hierarchy' => [
+                'chain' => array_values(array_filter([
+                    $commerce ? ['level' => 'commerce', 'name' => $commerce->name, 'rate' => (float) $commerce->commission, 'status' => $commerce->status, 'is_self' => false] : null,
+                    $subsidiary ? ['level' => 'subsidiary', 'name' => $subsidiary->name, 'rate' => (float) $subsidiary->commission, 'status' => $subsidiary->status, 'is_self' => false] : null,
+                    ['level' => 'seller', 'name' => $seller->name, 'rate' => $rate, 'status' => $seller->status, 'is_self' => true],
+                ])),
+                'cap' => $this->commissionGuard->sellerCap($seller->subsidiary_id, $seller->manager_user_id),
+            ],
+
             'currencies' => $seller->currenciesActive()->pluck('iso_code')->all(),
             'games'      => $seller->gamesActive()->pluck('name')->all(),
 
+            'performance'      => $this->insights->performance($lotScope, 'commission_amount'),
+            'alerts'           => $this->alerts($seller, $commerce),
+            'security'         => $this->insights->security((string) $seller->user_id),
             'wallets'          => $this->enrichment->wallets($seller->user),
             'recent_movements' => $this->enrichment->recentMovements($seller->user),
             'account_meta'     => $this->enrichment->accountMeta((string) $seller->user_id),
@@ -80,5 +109,34 @@ final class SellerProfileService
     {
         $seller = $this->ownSellerOrFail($targetUserId);
         $seller->update(array_intersect_key($data, array_flip(['name', 'phone'])));
+    }
+
+    private function alerts(Seller $seller, $commerce): array
+    {
+        $alerts = [];
+
+        if (!$commerce) {
+            $alerts[] = Insights::alert('danger', 'fa-link-slash', 'Sin comercializadora asignada',
+                'Tu taquilla no está asignada a ninguna comercializadora, así que no puedes vender. Contacta a soporte para que te reasignen.');
+        } elseif (!$seller->hasActiveHierarchy()) {
+            $who = $seller->status !== 'ACTIVE'
+                ? 'Tu taquilla está ' . strtolower($seller->status)
+                : ($seller->subsidiary && $seller->subsidiary->status !== 'ACTIVE'
+                    ? "Tu agencia ({$seller->subsidiary->name}) no está activa"
+                    : "Tu comercializadora ({$commerce->name}) no está activa");
+
+            $alerts[] = Insights::alert('danger', 'fa-ban', 'No puedes vender en este momento',
+                "{$who}. Las ventas quedan bloqueadas hasta que se reactive.");
+        }
+
+        $cap = $this->commissionGuard->sellerCap($seller->subsidiary_id, $seller->manager_user_id);
+        if ($cap !== null && (float) $seller->commission > $cap + 0.001) {
+            $alerts[] = Insights::alert('warning', 'fa-scale-unbalanced', 'Comisión fuera de tope',
+                sprintf('Tu comisión (%s%%) supera el tope de tu nivel superior (%s%%). Seguirás cobrando tu comisión; tu responsable debe ajustarla.',
+                    rtrim(rtrim(number_format((float) $seller->commission, 2), '0'), '.'),
+                    rtrim(rtrim(number_format($cap, 2), '0'), '.')));
+        }
+
+        return $alerts;
     }
 }
