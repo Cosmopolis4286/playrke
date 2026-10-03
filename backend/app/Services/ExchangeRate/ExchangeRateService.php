@@ -391,4 +391,73 @@ final class ExchangeRateService
             false
         );
     }
+
+    /**
+     * Clave de preferencia para el auto-update por moneda individual (todas
+     * excepto VES, que usa 'bcv_auto_update_enabled' y la fuente oficial del
+     * BCV en vez de open.er-api.com — ver overrideVesWithBcvIfEnabled()).
+     */
+    private function currencyAutoUpdateKey(string $isoCode): string
+    {
+        return 'auto_update_enabled:' . strtoupper($isoCode);
+    }
+
+    /**
+     * Activar la actualización automática de una moneda individual (control
+     * independiente del switch global "¿Actualización automática?" — un
+     * usuario puede tener COP en automático y BRL en manual). Ver
+     * HandleExchangeRatesCommand, que lee estas preferencias además de la
+     * global.
+     *
+     * @param string $isoCode Código ISO de la moneda (ej. 'COP', 'BRL')
+     * @param string|null $publicToken Token público opcional
+     */
+    public function enableCurrencyAutoUpdate(string $isoCode, ?string $publicToken = null): void
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        UserPreference::setPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            $this->currencyAutoUpdateKey($isoCode),
+            'true'
+        );
+    }
+
+    /**
+     * Desactivar la actualización automática de una moneda individual.
+     *
+     * @param string $isoCode Código ISO de la moneda (ej. 'COP', 'BRL')
+     * @param string|null $publicToken Token público opcional
+     */
+    public function disableCurrencyAutoUpdate(string $isoCode, ?string $publicToken = null): void
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        UserPreference::setPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            $this->currencyAutoUpdateKey($isoCode),
+            'false'
+        );
+    }
+
+    /**
+     * Obtener el estado actual de la actualización automática de una moneda
+     * individual.
+     *
+     * @param string $isoCode Código ISO de la moneda (ej. 'COP', 'BRL')
+     * @param string|null $publicToken Token público opcional
+     */
+    public function getCurrencyAutoUpdateStatus(string $isoCode, ?string $publicToken = null): bool
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        return (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            $this->currencyAutoUpdateKey($isoCode),
+            false
+        );
+    }
 }

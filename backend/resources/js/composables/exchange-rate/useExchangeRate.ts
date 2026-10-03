@@ -57,6 +57,12 @@ interface UseExchangeRateReturn {
 
     /** Maneja el cambio del switch de actualización automática vía BCV (solo VES) */
     toggleBcvAutoUpdate: (enabled: boolean) => Promise<boolean>
+
+    /** Consulta el estado de auto-update de una moneda individual (control independiente del switch global) */
+    fetchCurrencyAutoUpdateStatus: (isoCode: string) => Promise<boolean>
+
+    /** Maneja el cambio del switch de actualización automática de una moneda individual (todas excepto VES) */
+    toggleCurrencyAutoUpdate: (isoCode: string, enabled: boolean) => Promise<boolean>
 }
 
 /**
@@ -514,6 +520,48 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         }
     }
 
+    /**
+     * Consulta el estado de auto-update de una moneda individual.
+     *
+     * @param isoCode Código ISO de la moneda (ej. 'COP', 'BRL')
+     */
+    async function fetchCurrencyAutoUpdateStatus(isoCode: string): Promise<boolean> {
+        try {
+            const response = await backendClient.get<{ enabled: boolean }>(
+                `/exchange-rate/currency-cronjob/${isoCode}/status`
+            )
+            return response.data?.enabled ?? false
+        } catch (error) {
+            console.error('Error al consultar el estado de auto-update de la moneda:', error)
+            return false
+        }
+    }
+
+    /**
+     * Maneja el cambio del switch de actualización automática de una moneda
+     * individual (todas excepto VES, que usa toggleBcvAutoUpdate con la
+     * fuente oficial del BCV) — control independiente del switch global.
+     *
+     * @param isoCode Código ISO de la moneda (ej. 'COP', 'BRL')
+     * @param enabled Estado del switch (true para activar, false para desactivar)
+     */
+    async function toggleCurrencyAutoUpdate(isoCode: string, enabled: boolean): Promise<boolean> {
+        try {
+            const endpoint = enabled
+                ? `/exchange-rate/currency-cronjob/${isoCode}/enable`
+                : `/exchange-rate/currency-cronjob/${isoCode}/disable`
+
+            const response = await backendClient.post(endpoint)
+
+            showToast(response.data.message, 'success')
+            return true
+        } catch (error: any) {
+            console.error('Error al cambiar estado del auto-update de la moneda:', error)
+            showToast(error?.response?.data?.message || 'Error al cambiar el estado de la actualización automática', 'error')
+            return false
+        }
+    }
+
     return {
         exchangeRateData,
         exchangeRates,
@@ -530,5 +578,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         toggleAutoUpdate,
         fetchBcvRate,
         toggleBcvAutoUpdate,
+        fetchCurrencyAutoUpdateStatus,
+        toggleCurrencyAutoUpdate,
     }
 }

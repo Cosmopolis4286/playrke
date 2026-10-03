@@ -443,4 +443,66 @@ class ExchangeRateController extends Controller
             'No se pudo obtener el estado de la actualización automática vía BCV.'
         );
     }
+
+    /**
+     * Activar la actualización automática de una moneda individual (todas
+     * excepto VES, ver enableBcvAutoUpdate).
+     *
+     * @param Request $request
+     * @param string $isoCode
+     * @return JsonResponse
+     */
+    public function enableCurrencyAutoUpdate(Request $request, string $isoCode): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request, $isoCode) {
+                $this->service->enableCurrencyAutoUpdate($isoCode, $this->resolveToken($request));
+
+                return [
+                    'message' => "Actualización automática de {$isoCode} activada.",
+                    'enabled' => true,
+                ];
+            },
+            'No se pudo activar la actualización automática de la moneda.'
+        );
+    }
+
+    /**
+     * Desactivar la actualización automática de una moneda individual.
+     *
+     * @param Request $request
+     * @param string $isoCode
+     * @return JsonResponse
+     */
+    public function disableCurrencyAutoUpdate(Request $request, string $isoCode): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request, $isoCode) {
+                $this->service->disableCurrencyAutoUpdate($isoCode, $this->resolveToken($request));
+
+                return [
+                    'message' => "Actualización automática de {$isoCode} desactivada.",
+                    'enabled' => false,
+                ];
+            },
+            'No se pudo desactivar la actualización automática de la moneda.'
+        );
+    }
+
+    /**
+     * Obtener el estado actual de la actualización automática de una moneda individual.
+     *
+     * @param Request $request
+     * @param string $isoCode
+     * @return JsonResponse
+     */
+    public function getCurrencyAutoUpdateStatus(Request $request, string $isoCode): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'enabled' => $this->service->getCurrencyAutoUpdateStatus($isoCode, $this->resolveToken($request)),
+            ],
+            'No se pudo obtener el estado de la actualización automática de la moneda.'
+        );
+    }
 }

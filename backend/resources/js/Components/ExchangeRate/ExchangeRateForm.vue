@@ -1,5 +1,5 @@
 <script setup lang="ts" name="ExchangeRateForm">
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
   import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
   import type { Currency } from '@/js/types/currency'
@@ -38,12 +38,19 @@
   /**
    * Composable de tasas de cambio (para consulta y auto-actualización BCV)
    */
-  const { fetchBcvRate, toggleBcvAutoUpdate } = useExchangeRate()
+  const { fetchBcvRate, toggleBcvAutoUpdate, fetchCurrencyAutoUpdateStatus, toggleCurrencyAutoUpdate } = useExchangeRate()
 
   /**
    * Estado del switch de actualización automática vía BCV (solo VES)
    */
   const bcvAutoUpdate = ref(props.bcvAutoUpdateEnabled ?? false)
+
+  /**
+   * Estado del switch de actualización automática genérico (todas las
+   * monedas excepto VES, que usa bcvAutoUpdate con la fuente oficial del
+   * BCV) — control independiente por moneda, ver toggleCurrencyAutoUpdate.
+   */
+  const currencyAutoUpdate = ref(false)
 
   /**
    * Loading exclusivo para la consulta de la tasa BCV
@@ -152,6 +159,38 @@
   }
 
   /**
+   * Maneja el cambio del switch de actualización automática genérico
+   * (moneda no-VES) — control independiente por moneda, ver
+   * toggleCurrencyAutoUpdate.
+   */
+  async function handleCurrencyAutoUpdateToggle(enabled: boolean): Promise<void> {
+    if (!form.value.currency_id) return
+
+    const success = await toggleCurrencyAutoUpdate(form.value.currency_id, enabled)
+    if (!success) {
+      currencyAutoUpdate.value = !enabled
+    }
+  }
+
+  /**
+   * Carga el estado del auto-update genérico al abrir el modal en modo
+   * edición de una moneda no-VES (create empieza siempre en false: recién
+   * se está registrando la tasa, no hay nada que auto-actualizar todavía).
+   */
+  watch(
+    () => form.value.currency_id,
+    async (isoCode) => {
+      if (!isoCode || isoCode === 'VES' || !isEditMode.value) {
+        currencyAutoUpdate.value = false
+        return
+      }
+
+      currencyAutoUpdate.value = await fetchCurrencyAutoUpdateStatus(isoCode)
+    },
+    { immediate: true }
+  )
+
+  /**
    * Submit interno del formulario
    */
   const submit = (): boolean => {
@@ -248,6 +287,19 @@
         col="col-12"
         v-model="bcvAutoUpdate"
         @update:modelValue="handleBcvAutoUpdateToggle"
+      />
+
+      <!-- Switch actualización automática genérico (todas las monedas
+           excepto VES, que usa la fuente oficial del BCV arriba) — solo en
+           modo edición: no tiene sentido auto-actualizar una tasa que
+           todavía no existe. -->
+      <FormSwitch
+        v-if="!isVes && isEditMode"
+        name="currency-auto-update"
+        label="¿Actualizar automáticamente?"
+        col="col-12"
+        v-model="currencyAutoUpdate"
+        @update:modelValue="handleCurrencyAutoUpdateToggle"
       />
 
       <div class="col-12">

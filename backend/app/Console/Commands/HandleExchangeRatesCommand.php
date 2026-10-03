@@ -48,13 +48,37 @@ class HandleExchangeRatesCommand extends Command
         // Usuarios que solo activaron BCV (VES) sin la actualización general (Binance).
         $bcvOnlyUserIds = array_values(array_diff($bcvUserIds, $userIds));
 
-        if (empty($userIds) && empty($bcvOnlyUserIds)) {
+        // Auto-update por moneda individual (ej. solo COP, ver
+        // ExchangeRateService::enableCurrencyAutoUpdate) — claves dinámicas
+        // 'auto_update_enabled:{ISO}', agrupadas por usuario → lista de ISO
+        // codes. Solo aporta algo para usuarios que NO tienen ya el switch
+        // global activo (si lo tienen, esa moneda ya se actualiza con el
+        // resto en $rates).
+        $currencyPrefs = UserPreference::query()
+            ->where('category', UserPreference::CATEGORY_EXCHANGE_RATE)
+            ->where('key', 'like', 'auto_update_enabled:%')
+            ->where('value', 'true')
+            ->whereNotNull('user_id')
+            ->get(['user_id', 'key']);
+
+        $isoByUser = [];
+        foreach ($currencyPrefs as $pref) {
+            $userId = (int) $pref->user_id;
+            if (in_array($userId, $userIds, true)) {
+                continue;
+            }
+            $iso = substr($pref->key, strlen('auto_update_enabled:'));
+            $isoByUser[$userId][] = $iso;
+        }
+
+        if (empty($userIds) && empty($bcvOnlyUserIds) && empty($isoByUser)) {
             $this->info('Ningún usuario tiene la actualización automática habilitada.');
             return;
         }
 
-        $rates = !empty($userIds) ? $this->apiService->fetch() : null;
-        $ratesFetchFailed = !empty($userIds) && empty($rates);
+        $needsRates = !empty($userIds) || !empty($isoByUser);
+        $rates = $needsRates ? $this->apiService->fetch() : null;
+        $ratesFetchFailed = $needsRates && empty($rates);
 
         if ($ratesFetchFailed) {
             $this->error('No se pudieron obtener las tasas desde la API externa.');
@@ -100,6 +124,20 @@ class HandleExchangeRatesCommand extends Command
             }
         }
 
+        // Usuarios con auto-update de monedas individuales (sin el switch
+        // global): solo las monedas que activaron explícitamente.
+        if (!empty($rates)) {
+            foreach ($isoByUser as $userId => $isoCodes) {
+                $userRates = array_intersect_key($rates, array_flip($isoCodes));
+
+                if (empty($userRates)) {
+                    continue;
+                }
+
+                $this->updateOneUser($userId, $userRates, $updatedCount, $failedUserIds);
+            }
+        }
+
         // ERROR solo si NINGÚN usuario se actualizó y hubo al menos un
         // intento — un fallo aislado (usuario eliminado entre el momento en
         // que se listó su preferencia y la ejecución del loop, error
@@ -115,7 +153,7 @@ class HandleExchangeRatesCommand extends Command
         // usuario falló pero no todos) se reporta como SUCCESS con el
         // detalle de fallos en el propio mensaje `$output`, no como un
         // tercer status que MySQL rechazaría.
-        $totalAttempted = count($userIds) + count($bcvOnlyUserIds);
+        $totalAttempted = count($userIds) + count($bcvOnlyUserIds) + count($isoByUser);
         $hasPartialFailures = $totalAttempted > 0 && !empty($failedUserIds) && $updatedCount > 0;
         $status = ($totalAttempted > 0 && $updatedCount === 0) ? 'ERROR' : 'SUCCESS';
 
