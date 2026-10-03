@@ -31,6 +31,10 @@ defineProps<{
   formatDate: (iso: string) => string
   currentUserId: string
   assignLoading: boolean
+  /** false para perfiles de solo lectura (wallet.movements.view sin manage): sin bloque de acciones. */
+  canManage?: boolean
+  typeLabel?: string
+  canSubmitReject?: boolean
 }>()
 
 defineEmits<{
@@ -99,9 +103,12 @@ defineEmits<{
       <MovementAuditTrail :detail="detail" />
 
       <MovementAdminActions
-        v-if="isActionable || detail.status === 'PENDING'"
+        v-if="canManage !== false && (isActionable || detail.status === 'PENDING')"
         :detail="detail"
         :is-actionable="isActionable"
+        :type-label="typeLabel ?? 'movimiento'"
+        :can-submit-reject="canSubmitReject ?? true"
+        :is-credit="!!isCreditByCode[detail.type]"
         :admin-notes="adminNotes"
         :action-loading="actionLoading"
         :action-error="actionError"

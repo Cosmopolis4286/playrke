@@ -67,12 +67,30 @@ export function useWalletMovementDetail(
     else showDetail.value = false
   }
 
+  const typeByCode = computed<Record<string, MovementType>>(() => {
+    const types = Array.isArray(movementTypes) ? movementTypes : movementTypes.value
+    return Object.fromEntries(types.map(t => [t.code, t]))
+  })
+
+  /** Etiqueta del tipo en minúscula para frases ("este depósito", "esta compra") — antes todo lo que no era DEPOSIT decía "retiro". */
+  const typeLabel = computed(() => {
+    if (!detail.value) return 'movimiento'
+    return (typeByCode.value[detail.value.type]?.label ?? detail.value.type).toLowerCase()
+  })
+
+  /** Mensaje del backend, priorizando el primer error de validación (422) sobre el genérico. */
+  function errorMessage(e: any, fallback: string): string {
+    const errors = e?.response?.data?.errors as Record<string, string[]> | undefined
+    const firstValidation = errors ? Object.values(errors)[0]?.[0] : undefined
+    return firstValidation ?? e?.response?.data?.message ?? fallback
+  }
+
   async function handleApprove() {
-    if (!detail.value) return
+    if (!detail.value || actionLoading.value) return
 
     const confirmed = await showToastConfirmAction({
       title: 'Aprobar movimiento',
-      text: `Vas a aprobar este ${detail.value.type === 'DEPOSIT' ? 'depósito' : 'retiro'}. Esta acción mueve saldo real y no se puede deshacer.`,
+      text: `Vas a aprobar: ${typeLabel.value}. Esta acción mueve saldo real y no se puede deshacer.`,
       icon: 'warning',
       confirmButtonText: 'Sí, aprobar',
     })
@@ -82,14 +100,14 @@ export function useWalletMovementDetail(
     actionLoading.value = true
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/approve`, {
-        admin_notes: adminNotes.value || null,
+        admin_notes: adminNotes.value.trim() || null,
       })
       onUpdated(data.data)
       adminNotes.value = ''
       showToast('Movimiento aprobado correctamente.', 'success')
       openNextPending()
     } catch (e: any) {
-      const message = e?.response?.data?.message ?? 'Error al aprobar el movimiento.'
+      const message = errorMessage(e, 'Error al aprobar el movimiento.')
       actionError.value = message
       showToast(message, 'error')
     } finally {
@@ -97,22 +115,29 @@ export function useWalletMovementDetail(
     }
   }
 
-  async function handleReject() {
-    if (!detail.value) return
+  /** Longitud mínima del motivo — misma regla que REJECT_NOTES_RULES en WalletMovementController. */
+  const REJECT_REASON_MIN = 5
 
-    const confirmed = await showToastConfirmAction({
-      title: 'Rechazar movimiento',
-      text: `Vas a rechazar este ${detail.value.type === 'DEPOSIT' ? 'depósito' : 'retiro'}.${detail.value.type === 'WITHDRAWAL' ? ' El saldo reservado será reintegrado al usuario.' : ''}`,
-      icon: 'warning',
-      confirmButtonText: 'Sí, rechazar',
-    })
-    if (!confirmed) return
+  const canSubmitReject = computed(() => adminNotes.value.trim().length >= REJECT_REASON_MIN)
+
+  /**
+   * El paso "Confirmar rechazo" del formulario inline ya ES la confirmación
+   * (antes se encadenaba además un SweetAlert: 3 clicks para rechazar). Lo que
+   * sí se exige ahora es el motivo — el jugador lo recibe en su notificación.
+   */
+  async function handleReject() {
+    if (!detail.value || actionLoading.value) return
+
+    if (!canSubmitReject.value) {
+      actionError.value = `Indica el motivo del rechazo (mínimo ${REJECT_REASON_MIN} caracteres): el jugador lo recibe en su notificación.`
+      return
+    }
 
     actionError.value   = ''
     actionLoading.value = true
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/reject`, {
-        admin_notes: adminNotes.value || null,
+        admin_notes: adminNotes.value.trim(),
       })
       onUpdated(data.data)
       adminNotes.value     = ''
@@ -120,7 +145,7 @@ export function useWalletMovementDetail(
       showToast('Movimiento rechazado correctamente.', 'success')
       openNextPending()
     } catch (e: any) {
-      const message = e?.response?.data?.message ?? 'Error al rechazar el movimiento.'
+      const message = errorMessage(e, 'Error al rechazar el movimiento.')
       actionError.value = message
       showToast(message, 'error')
     } finally {
@@ -150,6 +175,6 @@ export function useWalletMovementDetail(
     adminNotes, actionLoading, actionError, showRejectForm, receiptZoom,
     openDetail, handleApprove, handleReject,
     isReceiptImage, isPending, isActionable,
-    nextPendingId,
+    nextPendingId, typeLabel, canSubmitReject,
   }
 }

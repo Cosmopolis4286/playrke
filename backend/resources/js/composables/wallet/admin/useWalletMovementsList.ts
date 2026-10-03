@@ -1,5 +1,6 @@
 import { ref, computed, type Ref } from 'vue'
 import backendClient from '@js/plugins/axios'
+import { showToast } from '@js/utils/toast'
 import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 import type { ServerQuery } from '@js/composables/common/table/useTableController'
 import { useDateRangeExport } from '@js/composables/common/table/useDateRangeExport'
@@ -40,6 +41,8 @@ export function useWalletMovementsList(
   movementTypes: Ref<MovementType[]> | MovementType[],
   initialPendingCount = 0,
   onCriticalBacklog?: (payload: WalletMovementCriticalBacklogPayload) => void,
+  /** Disparado ante cualquier evento en vivo que cambia la cola (nuevo, procesado) — para refrescar KPIs/tendencia. */
+  onRealtimeChange?: () => void,
 ) {
   const movements   = ref<Movement[]>(initialMovements)
   const meta        = ref<MovementsMeta | null>(initialMeta)
@@ -109,29 +112,38 @@ export function useWalletMovementsList(
     assigned_to_user_id:  lastFilters.value.assigned_to_user_id   || undefined,
   }))
 
+  // Secuencia de requests: si el admin cambia filtros rápido (búsqueda con
+  // debounce + select + página), una respuesta lenta de un filtro anterior
+  // podía llegar DESPUÉS y pisar la lista correcta. Solo se aplica la última.
+  let fetchSeq = 0
+
   async function fetchMovements(page = 1) {
+    const seq = ++fetchSeq
     loading.value = true
     lastPage.value = page
     try {
       const { data } = await backendClient.get('/wallet-movements/fetch', {
         params: { page, per_page: 20, ...activeParams.value },
       })
+      if (seq !== fetchSeq) return
       movements.value = data.data ?? []
       meta.value      = data.meta ?? null
     } catch (e) {
+      if (seq !== fetchSeq) return
       console.error('[movements] Error cargando movimientos:', e)
-      movements.value = []
+      showToast('No se pudo cargar la lista de movimientos. Reintenta en unos segundos.', 'error')
     } finally {
-      loading.value = false
+      if (seq === fetchSeq) loading.value = false
     }
   }
 
+  /**
+   * Antes solo pasaba type/status/search: el CSV ignoraba los filtros de
+   * Riesgo y Asignado a, y descargaba más filas de las que el admin veía.
+   * Ahora usa exactamente activeParams (igual que tabla, stats, tendencia y PDF).
+   */
   function exportUrl(): string {
-    return exportUrlBase({
-      type:   lastFilters.value.type   || undefined,
-      status: lastFilters.value.status || undefined,
-      search: lastSearch.value         || undefined,
-    })
+    return exportUrlBase(activeParams.value)
   }
 
   /** Adapta el evento query-change de TableWithFilterBridge (server-side) al fetch. */
@@ -214,11 +226,13 @@ export function useWalletMovementsList(
    * en el frontend.
    */
   async function handleRequested(payload: { movement_id: string }) {
+    onRealtimeChange?.()
     const movement = await fetchMovementById(payload.movement_id)
     if (movement) insertIncomingMovement(movement)
   }
 
   async function handleProcessed(payload: WalletMovementProcessedPayload) {
+    onRealtimeChange?.()
     const movement = await fetchMovementById(payload.movement_id)
     if (movement) applyUpdate(movement)
   }
@@ -245,13 +259,13 @@ export function useWalletMovementsList(
     }
   }
 
-  const { pendingCount } = useWalletMovementsRealtime(initialPendingCount, handleRequested, handleProcessed, handleAssigned, onCriticalBacklog)
+  const { pendingCount, isLive } = useWalletMovementsRealtime(initialPendingCount, handleRequested, handleProcessed, handleAssigned, onCriticalBacklog)
 
   const totalPages  = computed(() => meta.value?.last_page    ?? 1)
   const currentPage = computed(() => meta.value?.current_page ?? 1)
 
   return {
-    movements, meta, loading, pendingCount,
+    movements, meta, loading, pendingCount, isLive,
     columns, tableFilters,
     fetchMovements, onQueryChange, updateMovement, searchByUser,
     totalPages, currentPage,

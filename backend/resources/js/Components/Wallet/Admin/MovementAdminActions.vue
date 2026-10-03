@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { computed, nextTick, ref, watch } from 'vue'
 import type { Movement } from '@js/types/wallet/admin-movement'
 import { adminName } from '@js/composables/wallet/admin/useMovementFormatters'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   detail: Movement
   isActionable: boolean
   adminNotes: string
@@ -11,7 +12,14 @@ defineProps<{
   showRejectForm: boolean
   currentUserId: string
   assignLoading: boolean
-}>()
+  typeLabel?: string
+  canSubmitReject?: boolean
+  isCredit?: boolean
+}>(), {
+  typeLabel: 'movimiento',
+  canSubmitReject: true,
+  isCredit: false,
+})
 
 const emit = defineEmits<{
   'update:adminNotes': [value: string]
@@ -21,6 +29,64 @@ const emit = defineEmits<{
   assign: []
   unassign: []
 }>()
+
+/**
+ * Motivos frecuentes por tipo — un click los inserta en el textarea (editable
+ * después). Acelera el caso común y hace que los mensajes que recibe el
+ * jugador sean consistentes entre admins.
+ */
+const quickReasons = computed<string[]>(() => {
+  const common = ['Información incompleta o inconsistente']
+  if (props.detail.type === 'DEPOSIT') {
+    return [
+      'Pago no recibido en la cuenta destino',
+      'El monto no coincide con el comprobante',
+      'Comprobante ilegible',
+      'Comprobante duplicado o ya utilizado',
+      ...common,
+    ]
+  }
+  if (props.detail.type === 'WITHDRAWAL') {
+    return [
+      'Datos bancarios incorrectos',
+      'La cuenta destino no pertenece al titular',
+      'Verificación de identidad (KYC) pendiente',
+      ...common,
+    ]
+  }
+  return common
+})
+
+function applyQuickReason(reason: string) {
+  const current = props.adminNotes.trim()
+  emit('update:adminNotes', current && !current.includes(reason) ? `${current}. ${reason}` : reason)
+}
+
+/** Consecuencia del rechazo según el tipo — antes todo lo que no era WITHDRAWAL decía "¿Rechazar el depósito?". */
+const rejectConsequence = computed(() => {
+  if (props.detail.type === 'WITHDRAWAL' || !props.isCredit) {
+    return 'El monto reservado será <strong>devuelto</strong> al saldo del usuario.'
+  }
+  return 'No se acreditará ningún monto al usuario.'
+})
+
+const notesRef = ref<HTMLTextAreaElement | null>(null)
+
+// Al abrir el formulario de rechazo (botón o atajo R) el foco va directo al
+// motivo, que ahora es obligatorio.
+watch(() => props.showRejectForm, async (open) => {
+  if (!open) return
+  await nextTick()
+  notesRef.value?.focus()
+})
+
+function onNotesKeydown(e: KeyboardEvent) {
+  // Ctrl/⌘+Enter confirma el rechazo sin soltar el teclado.
+  if (props.showRejectForm && (e.ctrlKey || e.metaKey) && e.key === 'Enter' && props.canSubmitReject) {
+    e.preventDefault()
+    emit('reject')
+  }
+}
 </script>
 
 <template>
@@ -59,17 +125,44 @@ const emit = defineEmits<{
     </div>
 
     <template v-if="isActionable">
-    <!-- Notas admin -->
+    <!-- Notas admin: opcionales al aprobar, motivo OBLIGATORIO al rechazar
+         (el jugador lo recibe en su notificación). -->
     <div class="mb-2">
-      <label class="mv-detail__label mb-1">Notas (opcional)</label>
+      <label class="mv-detail__label mb-1" :class="{ 'mv-detail__label--required': showRejectForm }">
+        {{ showRejectForm ? 'Motivo del rechazo (obligatorio · lo verá el jugador)' : 'Notas (opcional)' }}
+      </label>
+
+      <div v-if="showRejectForm" class="mv-quick-reasons">
+        <button
+          v-for="reason in quickReasons"
+          :key="reason"
+          type="button"
+          class="mv-quick-reasons__chip"
+          :disabled="actionLoading"
+          @click="applyQuickReason(reason)"
+        >
+          {{ reason }}
+        </button>
+      </div>
+
       <textarea
+        ref="notesRef"
         :value="adminNotes"
         class="form-control form-control-sm"
+        :class="{ 'is-invalid': showRejectForm && actionError && !canSubmitReject }"
         rows="2"
-        placeholder="Motivo de aprobación o rechazo..."
+        maxlength="512"
+        :placeholder="showRejectForm ? 'Explica por qué se rechaza…' : 'Notas internas sobre la aprobación…'"
         :disabled="actionLoading"
         @input="emit('update:adminNotes', ($event.target as HTMLTextAreaElement).value)"
+        @keydown="onNotesKeydown"
       ></textarea>
+      <div class="mv-notes-meta">
+        <span v-if="showRejectForm" class="mv-notes-meta__hint">
+          <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para confirmar
+        </span>
+        <span class="mv-notes-meta__count">{{ adminNotes.length }}/512</span>
+      </div>
     </div>
 
     <!-- Botones -->
@@ -99,17 +192,13 @@ const emit = defineEmits<{
     <div v-else class="mv-reject-confirm">
       <p class="mv-reject-confirm__text">
         <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-        <template v-if="detail.type === 'WITHDRAWAL'">
-          ¿Rechazar el retiro? El saldo será <strong>devuelto</strong> al usuario.
-        </template>
-        <template v-else>
-          ¿Rechazar el depósito? No se acreditará ningún monto.
-        </template>
+        ¿Rechazar este {{ typeLabel }}? <span v-html="rejectConsequence"></span>
       </p>
       <div class="mv-actions__btns">
         <button
           class="btn btn-danger btn-sm"
-          :disabled="actionLoading"
+          :disabled="actionLoading || !canSubmitReject"
+          :title="canSubmitReject ? '' : 'Escribe el motivo del rechazo (mínimo 5 caracteres)'"
           @click="emit('reject')"
         >
           <span v-if="actionLoading" class="spinner-border spinner-border-sm me-1"></span>
@@ -184,6 +273,44 @@ const emit = defineEmits<{
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   border: 1px solid rgba(217,119,6,.4);
+}
+
+.mv-detail__label--required { color: #f87171; }
+
+.mv-quick-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+.mv-quick-reasons__chip {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--ds-border-2);
+  background: var(--ds-surface);
+  color: var(--ds-text-2);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.mv-quick-reasons__chip:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+
+.mv-notes-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.25rem;
+  font-size: 0.68rem;
+  color: var(--ds-text-muted);
+}
+.mv-notes-meta__count { margin-left: auto; }
+.mv-notes-meta kbd {
+  padding: 0 4px;
+  font-size: 0.65rem;
+  border: 1px solid var(--ds-border-2);
+  border-radius: 3px;
+  background: var(--ds-surface);
+  color: var(--ds-text-2);
 }
 
 .mv-assignment {

@@ -95,10 +95,15 @@ Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movemen
     Route::get('wallet-movements/{movement}',               [WalletMovementController::class, 'show'])      ->name('wallet-movements.show');
     Route::get('wallet-movements/{movement}/audit-history', [WalletMovementController::class, 'auditHistory'])->name('wallet-movements.audit-history');
 
+    // Mutaciones (aprobar/rechazar/tomar caso/lote) exigen wallet.movements.manage
+    // — antes bastaba wallet.movements.view (el grupo externo acepta cualquiera
+    // de los dos), así que un perfil de solo lectura podía mover saldo real.
+    // Mismo criterio view/manage separado que admin/kyc en routes/modules/admin.php.
+    //
     // throttle:30,1 → protege contra doble-submit accidental (doble click) y
     // limita el impacto de una sesión admin comprometida; el límite es alto
     // porque un admin legítimo puede procesar varias solicitudes por minuto.
-    Route::middleware('throttle:30,1')->group(function () {
+    Route::middleware(['multiPermission:wallet.movements.manage', 'throttle:30,1'])->group(function () {
         Route::post('wallet-movements/{movement}/approve', [WalletMovementController::class, 'approve']) ->name('wallet-movements.approve');
         Route::post('wallet-movements/{movement}/reject',  [WalletMovementController::class, 'reject'])  ->name('wallet-movements.reject');
         Route::put('wallet-movements/{movement}/assign',   [WalletMovementController::class, 'assign'])  ->name('wallet-movements.assign');
@@ -109,7 +114,7 @@ Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movemen
     // multiplica el trabajo (hasta 100 movimientos), así que el límite de
     // requests debe ser menor aunque el límite de movimientos por request
     // sea generoso.
-    Route::middleware('throttle:wallet-movements-bulk')->group(function () {
+    Route::middleware(['multiPermission:wallet.movements.manage', 'throttle:wallet-movements-bulk'])->group(function () {
         Route::post('wallet-movements/bulk/approve', [WalletMovementController::class, 'bulkApprove']) ->name('wallet-movements.bulk-approve');
         Route::post('wallet-movements/bulk/reject',  [WalletMovementController::class, 'bulkReject'])  ->name('wallet-movements.bulk-reject');
     });

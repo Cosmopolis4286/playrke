@@ -90,12 +90,27 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         }
 
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->whereHas('user', fn ($q) => $q
-                ->where('first_name', 'like', "%{$search}%")
-                ->orWhere('last_name', 'like', "%{$search}%")
-                ->orWhere('username', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%"));
+            $search = trim((string) $filters['search']);
+
+            // Además de los datos del usuario, acepta el ID del movimiento
+            // (completo, o los últimos 8 dígitos que muestra la tabla) y la
+            // referencia bancaria — es lo que el soporte suele tener a mano
+            // cuando un jugador reclama ("mi depósito ref. 123456").
+            $query->where(function (Builder $q) use ($search) {
+                $q->whereHas('user', fn ($u) => $u
+                    ->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%"))
+                  ->orWhere('reference_id', 'like', "%{$search}%");
+
+                $digits = ltrim($search, '#');
+                if (ctype_digit($digits)) {
+                    strlen($digits) >= 15
+                        ? $q->orWhere('wallet_movements.id', $digits)
+                        : $q->orWhereRaw('CAST(wallet_movements.id AS CHAR) LIKE ?', ["%{$digits}"]);
+                }
+            });
         }
 
         if (! empty($filters['date_from'])) {

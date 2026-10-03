@@ -18,16 +18,20 @@ export function useWalletMovementsTrend() {
   const trend   = ref<MovementTrendPoint[]>([])
   const loading = ref(false)
 
+  // Solo se aplica la respuesta más reciente — ver fetchSeq en useWalletMovementsList.
+  let seq = 0
+
   async function fetchTrend(params: Record<string, string | undefined>, days = 30) {
+    const current = ++seq
     loading.value = true
     try {
       const { data } = await backendClient.get('/wallet-movements/trend', { params: { ...params, days } })
-      trend.value = data.data ?? []
+      if (current === seq) trend.value = data.data ?? []
     } catch (e) {
       console.error('[movements] Error cargando tendencia:', e)
-      trend.value = []
+      // Se conserva la última serie buena en vez de vaciar el gráfico por un fallo puntual.
     } finally {
-      loading.value = false
+      if (current === seq) loading.value = false
     }
   }
 
