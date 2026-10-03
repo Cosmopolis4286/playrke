@@ -102,9 +102,10 @@ class WalletMovementControllerTest extends TestCase
         $movement = $this->makePendingDeposit(50.0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.reject', $movement))
+            ->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'Pago no recibido'])
             ->assertOk()
-            ->assertJsonPath('data.status', WalletMovement::STATUS_REJECTED);
+            ->assertJsonPath('data.status', WalletMovement::STATUS_REJECTED)
+            ->assertJsonPath('data.admin_notes', 'Pago no recibido');
 
         // Un depósito rechazado nunca tocó el balance al crearse, y
         // rechazarlo tampoco debe moverlo.
@@ -136,5 +137,126 @@ class WalletMovementControllerTest extends TestCase
             ->postJson(route('wallet-movements.approve', $movement->fresh()));
 
         $response->assertForbidden();
+    }
+
+    public function test_reject_requires_a_reason(): void
+    {
+        $movement = $this->makePendingDeposit();
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.reject', $movement))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('admin_notes');
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'no'])
+            ->assertStatus(422);
+
+        $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
+    }
+
+    private function makeViewOnlyAdmin(): User
+    {
+        $viewer = User::factory()->create();
+        $viewer->assignRole('admin');
+        $viewer->givePermissionTo('wallet.movements.view');
+
+        return $viewer;
+    }
+
+    public function test_view_only_admin_can_list_but_cannot_mutate(): void
+    {
+        $viewer   = $this->makeViewOnlyAdmin();
+        $movement = $this->makePendingDeposit();
+
+        $this->actingAs($viewer)->get(route('wallet-movements.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('canManage', false));
+
+        $this->actingAs($viewer)->postJson(route('wallet-movements.approve', $movement))->assertForbidden();
+        $this->actingAs($viewer)->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'Motivo válido'])->assertForbidden();
+        $this->actingAs($viewer)->putJson(route('wallet-movements.assign', $movement))->assertForbidden();
+        $this->actingAs($viewer)->postJson(route('wallet-movements.bulk-approve'), ['ids' => [(string) $movement->id]])->assertForbidden();
+
+        $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
+        $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
+    }
+
+    public function test_manager_index_exposes_can_manage(): void
+    {
+        $this->actingAs($this->admin)->get(route('wallet-movements.index'))
+            ->assertInertia(fn ($page) => $page->where('canManage', true));
+    }
+
+    public function test_bulk_reject_requires_a_reason(): void
+    {
+        $movement = $this->makePendingDeposit();
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.bulk-reject'), ['ids' => [(string) $movement->id]])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('admin_notes');
+    }
+
+    public function test_bulk_approve_processes_each_item_and_reports_missing_ids(): void
+    {
+        $first  = $this->makePendingDeposit(10.0);
+        $second = $this->makePendingDeposit(20.0);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.bulk-approve'), [
+                'ids' => [(string) $first->id, (string) $second->id, '999999999999999999'],
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('updated', 2);
+        $this->assertCount(1, $response->json('skipped'));
+        $this->assertSame('999999999999999999', $response->json('skipped.0.id'));
+
+        $this->assertSame(130.0, (float) $this->wallet->fresh()->balance);
+    }
+
+    public function test_search_matches_reference_and_movement_id_suffix(): void
+    {
+        $withRef = $this->makePendingDeposit();
+        $withRef->update(['reference_id' => 'REF-778899']);
+        $other = $this->makePendingDeposit();
+
+        $byRef = $this->actingAs($this->admin)
+            ->getJson(route('wallet-movements.fetch', ['search' => '778899']))
+            ->assertOk()
+            ->json('data');
+        $this->assertSame([(string) $withRef->id], array_column($byRef, 'id'));
+
+        $suffix = substr((string) $other->id, -8);
+        $byId = $this->actingAs($this->admin)
+            ->getJson(route('wallet-movements.fetch', ['search' => $suffix]))
+            ->assertOk()
+            ->json('data');
+        $this->assertContains((string) $other->id, array_column($byId, 'id'));
+    }
+
+    public function test_stats_include_queue_sla(): void
+    {
+        $old = $this->makePendingDeposit();
+        $old->forceFill(['created_at' => now()->subHours(30)])->save();
+        $this->makePendingDeposit();
+
+        $this->actingAs($this->admin)
+            ->getJson(route('wallet-movements.stats'))
+            ->assertOk()
+            ->assertJsonPath('data.pending_count', 2)
+            ->assertJsonPath('data.critical_pending_count', 1)
+            ->assertJsonStructure(['data' => ['oldest_pending_at']]);
+    }
+
+    public function test_csv_export_includes_related_user_data(): void
+    {
+        $this->makePendingDeposit();
+
+        $response = $this->actingAs($this->admin)->get(route('wallet-movements.export'));
+        $response->assertOk();
+
+        $this->assertStringContainsString($this->player->email, $response->streamedContent());
     }
 }

@@ -367,26 +367,50 @@ const {
         <a class="btn btn-sm btn-outline-secondary" title="Exportar resumen en PDF" :href="exportPdfUrl()">
           <i class="fas fa-file-pdf mr-1"></i>PDF
         </a>
-        <button
-          v-if="canManage && selectedIds.length > 0"
-          class="btn btn-sm btn-success"
-          :disabled="bulkLoading"
-          @click="bulkApprove(selectedMovements(selectedIds))"
-        >
-          <i class="fas fa-check mr-1"></i>Aprobar ({{ selectedIds.length }})
-        </button>
-        <button
-          v-if="canManage && selectedIds.length > 0"
-          class="btn btn-sm btn-danger"
-          :disabled="bulkLoading"
-          @click="bulkReject(selectedMovements(selectedIds))"
-        >
-          <i class="fas fa-times mr-1"></i>Rechazar ({{ selectedIds.length }})
-        </button>
+        <!-- Acciones sobre la selección: Ver detalle (1 fila) + Aprobar/Rechazar
+             (1..N), todas en la misma zona en vez de una columna por fila. -->
+        <template v-if="selectedIds.length > 0">
+          <span class="mv-selection-sep"></span>
+          <button
+            class="btn btn-sm btn-outline-info"
+            :disabled="selectedIds.length !== 1"
+            :title="selectedIds.length === 1 ? 'Ver detalle del movimiento' : 'Selecciona un solo movimiento para ver su detalle'"
+            @click="openDetail(selectedIds[0])"
+          >
+            <i class="fas fa-eye mr-1"></i>Ver detalle
+          </button>
+          <button
+            v-if="canManage"
+            class="btn btn-sm btn-success"
+            :disabled="bulkLoading"
+            @click="bulkApprove(selectedMovements(selectedIds))"
+          >
+            <i class="fas fa-check mr-1"></i>Aprobar ({{ selectedIds.length }})
+          </button>
+          <button
+            v-if="canManage"
+            class="btn btn-sm btn-danger"
+            :disabled="bulkLoading"
+            @click="bulkReject(selectedMovements(selectedIds))"
+          >
+            <i class="fas fa-times mr-1"></i>Rechazar ({{ selectedIds.length }})
+          </button>
+        </template>
       </template>
 
-      <template #cell-id="{ row }">
-        <span class="mv-id">{{ String((row as Movement).id).slice(-8) }}</span>
+      <!-- Movimiento: ID corto (clicable → detalle) + fecha de creación. -->
+      <template #cell-movement="{ row }">
+        <div class="mv-stack">
+          <button
+            type="button"
+            class="mv-id mv-id--link"
+            title="Ver detalle"
+            @click="openDetail(String((row as Movement).id))"
+          >
+            #{{ String((row as Movement).id).slice(-8) }}
+          </button>
+          <span class="mv-sub">{{ formatDate((row as Movement).created_at) }}</span>
+        </div>
       </template>
 
       <template #cell-user="{ row }">
@@ -414,65 +438,46 @@ const {
         </span>
       </template>
 
+      <!-- Monto + moneda (ISO) en la misma celda. -->
       <template #cell-amount="{ row }">
-        <span
-          class="mv-amount"
-          :class="isCreditByCode[(row as Movement).type] ? 'mv-amount--positive' : 'mv-amount--negative'"
-        >
-          {{ formatAmount(row as Movement) }}
-        </span>
+        <div class="mv-stack">
+          <span
+            class="mv-amount"
+            :class="isCreditByCode[(row as Movement).type] ? 'mv-amount--positive' : 'mv-amount--negative'"
+          >
+            {{ formatAmount(row as Movement) }}
+          </span>
+          <span v-if="(row as Movement).currency" class="mv-sub">{{ (row as Movement).currency!.iso_code }}</span>
+        </div>
       </template>
 
-      <template #cell-currency="{ row }">
-        <span v-if="(row as Movement).currency" class="mv-currency">
-          {{ (row as Movement).currency!.symbol }} {{ (row as Movement).currency!.iso_code }}
-        </span>
-        <span v-else class="text-muted">—</span>
-      </template>
-
+      <!-- Estado + (si está pendiente) antigüedad y quién lo revisa.
+           :data-tick lee nowTick → la antigüedad se re-renderiza cada minuto. -->
       <template #cell-status="{ row }">
-        <span :class="statusConfig[(row as Movement).status]?.cls ?? 'mv-status'">
-          {{ statusConfig[(row as Movement).status]?.label ?? (row as Movement).status }}
-        </span>
-      </template>
-
-      <template #cell-created_at="{ row }">
-        <span class="mv-date">{{ formatDate((row as Movement).created_at) }}</span>
-      </template>
-
-      <template #cell-age="{ row }">
-        <!-- :data-tick lee nowTick → la celda se re-renderiza cada minuto. -->
-        <span
-          v-if="(row as Movement).status === 'PENDING'"
-          :data-tick="nowTick"
-          :class="ageInfo((row as Movement).created_at).cls"
-        >
-          <i :class="{
-            'fas fa-circle-check': ageInfo((row as Movement).created_at).level === 'normal',
-            'fas fa-clock':        ageInfo((row as Movement).created_at).level === 'warning',
-            'fas fa-triangle-exclamation': ageInfo((row as Movement).created_at).level === 'critical',
-          }"></i>
-          {{ ageInfo((row as Movement).created_at).label }}
-        </span>
-        <span v-else class="text-muted" title="No aplica: la antigüedad solo mide cuánto lleva un movimiento esperando resolución">—</span>
-      </template>
-
-      <template #cell-assigned="{ row }">
-        <span v-if="(row as Movement).assigned_to" class="mv-assigned" :title="`En revisión por ${adminName((row as Movement).assigned_to)}`">
-          <i class="fas fa-user-clock"></i>
-          {{ adminName((row as Movement).assigned_to) }}
-        </span>
-        <span v-else class="text-muted">—</span>
-      </template>
-
-      <template #cell-actions="{ row }">
-        <button
-          class="btn btn-sm btn-outline-info"
-          title="Ver detalle"
-          @click="openDetail(String((row as Movement).id))"
-        >
-          <i class="fas fa-eye"></i>
-        </button>
+        <div class="mv-stack" :data-tick="nowTick">
+          <span :class="statusConfig[(row as Movement).status]?.cls ?? 'mv-status'">
+            {{ statusConfig[(row as Movement).status]?.label ?? (row as Movement).status }}
+          </span>
+          <span
+            v-if="(row as Movement).status === 'PENDING'"
+            class="mv-sub"
+            :class="`mv-sub--${ageInfo((row as Movement).created_at).level}`"
+          >
+            <i :class="{
+              'fas fa-clock': ageInfo((row as Movement).created_at).level !== 'critical',
+              'fas fa-triangle-exclamation': ageInfo((row as Movement).created_at).level === 'critical',
+            }"></i>
+            {{ ageInfo((row as Movement).created_at).label }}
+          </span>
+          <span
+            v-if="(row as Movement).assigned_to"
+            class="mv-sub mv-assigned"
+            :title="`En revisión por ${adminName((row as Movement).assigned_to)}`"
+          >
+            <i class="fas fa-user-clock"></i>
+            {{ adminName((row as Movement).assigned_to) }}
+          </span>
+        </div>
       </template>
     </TableWithFilterBridge>
   </div>
@@ -525,6 +530,33 @@ const {
   border-radius: 4px;
   white-space: nowrap;
 }
+.mv-id--link {
+  border: 1px solid transparent;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: border-color .15s, color .15s;
+}
+.mv-id--link:hover { border-color: #667eea; color: #667eea; }
+
+/* Celdas fusionadas: dato principal arriba, secundario abajo en pequeño. */
+.mv-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.mv-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--ds-text-muted);
+  white-space: nowrap;
+}
+.mv-sub--warning  { color: #fbbf24; font-weight: 600; }
+.mv-sub--critical { color: #f87171; font-weight: 600; }
+
+.mv-selection-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--ds-border);
+  margin: 0 0.25rem;
+}
 
 .mv-user        { display: flex; flex-direction: column; gap: 1px; }
 .mv-user__name  { font-size: 0.85rem; font-weight: 600; color: var(--ds-text); }
@@ -551,7 +583,6 @@ const {
 .mv-amount--positive { color: #4ade80; }
 .mv-amount--negative { color: #f87171; }
 
-.mv-currency { font-size: 0.78rem; font-weight: 600; color: var(--ds-text-2); }
 
 .mv-status {
   display: inline-flex;
@@ -566,22 +597,6 @@ const {
 .mv-status--completed { background: rgba(22,163,74,.16); color: #4ade80; }
 .mv-status--cancelled { background: var(--ds-surface-2); color: var(--ds-text-2); }
 .mv-status--rejected  { background: rgba(225,29,72,.16); color: #fb7185; }
-
-.mv-date { display: block; font-size: 0.78rem; color: var(--ds-text-2); white-space: nowrap; }
-
-.mv-age {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-.mv-age--normal   { background: var(--ds-surface-2);  color: var(--ds-text-muted); }
-.mv-age--warning  { background: rgba(217,119,6,.18);  color: #fbbf24; }
-.mv-age--critical { background: rgba(220,38,38,.18);  color: #f87171; }
 
 .mv-assigned {
   display: inline-flex;

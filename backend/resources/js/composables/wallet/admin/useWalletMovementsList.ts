@@ -8,17 +8,18 @@ import type { MovementType } from '@js/types/movementType'
 import type { Movement, MovementsMeta } from '@js/types/wallet/admin-movement'
 import { useWalletMovementsRealtime, type WalletMovementProcessedPayload, type WalletMovementAssignedPayload, type WalletMovementCriticalBacklogPayload } from './useWalletMovementsRealtime'
 
+/**
+ * 5 columnas compactas (antes 10): ID+fecha → "Movimiento", monto+moneda →
+ * "Monto", estado+antigüedad+asignado → "Estado". La columna "Acciones"
+ * desapareció: "Ver detalle" vive en la barra de acciones junto a
+ * Aprobar/Rechazar (aparece al seleccionar 1 fila), y el ID es clicable.
+ */
 const COLUMNS = [
-  { key: 'id',         label: 'ID',         sortable: false },
-  { key: 'user',       label: 'Usuario',    sortable: false },
-  { key: 'type',       label: 'Tipo',       sortable: false },
-  { key: 'amount',     label: 'Monto',      sortable: false },
-  { key: 'currency',   label: 'Moneda',     sortable: false },
-  { key: 'status',     label: 'Estado',     sortable: false },
-  { key: 'created_at', label: 'Fecha',      sortable: false },
-  { key: 'age',        label: 'Antigüedad', sortable: false },
-  { key: 'assigned',   label: 'Asignado a', sortable: false },
-  { key: 'actions',    label: 'Acciones',   sortable: false },
+  { key: 'movement', label: 'Movimiento', sortable: false },
+  { key: 'user',     label: 'Usuario',    sortable: false },
+  { key: 'type',     label: 'Tipo',       sortable: false },
+  { key: 'amount',   label: 'Monto',      sortable: false },
+  { key: 'status',   label: 'Estado',     sortable: false },
 ]
 
 /**

@@ -95,6 +95,20 @@ Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movemen
     Route::get('wallet-movements/{movement}',               [WalletMovementController::class, 'show'])      ->name('wallet-movements.show');
     Route::get('wallet-movements/{movement}/audit-history', [WalletMovementController::class, 'auditHistory'])->name('wallet-movements.audit-history');
 
+    // throttle propio y más bajo que el individual: cada request de bulk
+    // multiplica el trabajo (hasta 100 movimientos), así que el límite de
+    // requests debe ser menor aunque el límite de movimientos por request
+    // sea generoso.
+    //
+    // DEBE ir ANTES que wallet-movements/{movement}/approve|reject: antes se
+    // declaraba después y "bulk" se capturaba como {movement} → 404 por model
+    // binding, así que la aprobación/rechazo en lote nunca llegaba al
+    // controlador. Mismo problema de orden que trend/export arriba.
+    Route::middleware(['multiPermission:wallet.movements.manage', 'throttle:wallet-movements-bulk'])->group(function () {
+        Route::post('wallet-movements/bulk/approve', [WalletMovementController::class, 'bulkApprove']) ->name('wallet-movements.bulk-approve');
+        Route::post('wallet-movements/bulk/reject',  [WalletMovementController::class, 'bulkReject'])  ->name('wallet-movements.bulk-reject');
+    });
+
     // Mutaciones (aprobar/rechazar/tomar caso/lote) exigen wallet.movements.manage
     // — antes bastaba wallet.movements.view (el grupo externo acepta cualquiera
     // de los dos), así que un perfil de solo lectura podía mover saldo real.
@@ -108,15 +122,6 @@ Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movemen
         Route::post('wallet-movements/{movement}/reject',  [WalletMovementController::class, 'reject'])  ->name('wallet-movements.reject');
         Route::put('wallet-movements/{movement}/assign',   [WalletMovementController::class, 'assign'])  ->name('wallet-movements.assign');
         Route::put('wallet-movements/{movement}/unassign', [WalletMovementController::class, 'unassign'])->name('wallet-movements.unassign');
-    });
-
-    // throttle propio y más bajo que el individual: cada request de bulk
-    // multiplica el trabajo (hasta 100 movimientos), así que el límite de
-    // requests debe ser menor aunque el límite de movimientos por request
-    // sea generoso.
-    Route::middleware(['multiPermission:wallet.movements.manage', 'throttle:wallet-movements-bulk'])->group(function () {
-        Route::post('wallet-movements/bulk/approve', [WalletMovementController::class, 'bulkApprove']) ->name('wallet-movements.bulk-approve');
-        Route::post('wallet-movements/bulk/reject',  [WalletMovementController::class, 'bulkReject'])  ->name('wallet-movements.bulk-reject');
     });
 });
 
