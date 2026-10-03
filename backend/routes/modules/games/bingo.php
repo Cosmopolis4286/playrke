@@ -257,11 +257,14 @@ route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bing
  * Cola de aprobación/rechazo de pagos PENDING (ver
  * BingoCardPaymentReviewService — antes se marcaban COMPLETED sin revisión).
  *
- * games.bingo.manage (no games.bingo): games.bingo lo tiene el seller, que
- * así podía aprobar sus propias ventas. El scope fino (commerce → solo su
- * red; admin → todo) vive en BingoCardPaymentReviewController.
+ * games.bingo.payments.review (admin + commerce, ver migración
+ * 2026_09_30_100000): mismo permiso que el ítem "Revisión de Pagos" del
+ * sidebar. Antes games.bingo (lo tiene el seller: podía aprobar sus propias
+ * ventas) y luego games.bingo.manage (agencia/cliente entraban a una cola
+ * siempre vacía). El scope fino (commerce → solo su red; admin → todo) vive
+ * en BingoCardPaymentReviewController.
  */
-route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermission:games.manage,games.bingo.manage'], \App\Http\Controllers\Games\Bingo\Payment\BingoCardPaymentReviewController::class, [
+route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermission:games.manage,games.bingo.payments.review'], \App\Http\Controllers\Games\Bingo\Payment\BingoCardPaymentReviewController::class, [
     'index'   => ['method' => 'get',  'uri' => '',                'action' => 'index'],
     'proof'   => ['method' => 'get',  'uri' => '{payment}/proof', 'action' => 'proof'],
     'approve' => ['method' => 'post', 'uri' => '{payment}/approve', 'action' => 'approve'],
