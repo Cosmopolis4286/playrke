@@ -9,6 +9,7 @@ import PosPaymentStep from './PosPaymentStep.vue'
 import PosSummaryPanel from './PosSummaryPanel.vue'
 import PosSaleSuccess from './PosSaleSuccess.vue'
 import PosTodaySales from './PosTodaySales.vue'
+import PosPurchaseCodes from './PosPurchaseCodes.vue'
 
 import { providePos } from '@/js/composables/games/bingo/card/pos/posContext'
 import { usePosRooms } from '@/js/composables/games/bingo/card/pos/usePosRooms'
@@ -116,6 +117,7 @@ function money(n: number): string {
     <div class="bcp__side">
       <PosSummaryPanel v-if="!sale.lastSale" />
       <PosTodaySales />
+      <PosPurchaseCodes />
     </div>
 
     <!-- ── Confirmación del cobro ── -->

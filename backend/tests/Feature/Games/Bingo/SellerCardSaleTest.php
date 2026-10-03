@@ -619,6 +619,214 @@ class SellerCardSaleTest extends TestCase
         $this->assertNull($reviewItem($this->sellerA));
     }
 
+    // ─── Compra por cuenta propia con código (/comprar/{token}) ──────────────
+
+    private const BUYER_PHONE = '+584141112233';
+
+    private function salesLinkToken(User $seller): string
+    {
+        return (string) $this->actingAs($seller)->getJson('/bingo-card/pos/sales-link')->assertOk()->json('link.token');
+    }
+
+    private function issueCode(User $seller, string $phone = self::BUYER_PHONE, int $uses = 5, int $days = 30): \Illuminate\Testing\TestResponse
+    {
+        return $this->actingAs($seller)->postJson('/bingo-card/pos/purchase-codes', [
+            'country_id' => (string) $this->country->id,
+            'phone'      => $phone,
+            'max_uses'   => $uses,
+            'valid_days' => $days,
+        ]);
+    }
+
+    /** El comprador no tiene cuenta: las requests públicas van sin usuario autenticado. */
+    private function asGuest(): void
+    {
+        $this->app['auth']->forgetGuards();
+    }
+
+    private function verifyCode(string $token, string $code, string $phone = '+58 414-111-2233'): \Illuminate\Testing\TestResponse
+    {
+        return $this->postJson("/comprar/{$token}/verify", [
+            'country_id' => (string) $this->country->id,
+            'phone'      => $phone, // otro formato: se compara por dígitos
+            'code'       => strtolower($code),
+        ]);
+    }
+
+    private function publicPurchase(string $token, array $overrides = []): \Illuminate\Testing\TestResponse
+    {
+        return $this->post("/comprar/{$token}/rooms/{$this->roomR1->getRouteKey()}/purchase", array_merge([
+            'card_count'          => 2,
+            'payment_method'      => 'bank_transfer',
+            'receipt_number'      => 'PUB-' . Str::random(6),
+            'receipt_image'       => UploadedFile::fake()->image('pago.jpg'),
+            'expected_card_price' => self::ROOM_PRICE_USD * self::COMMERCE_RATE,
+        ], $overrides), ['Accept' => 'application/json']);
+    }
+
+    /** @test */
+    public function seller_can_only_give_a_code_to_a_buyer_who_already_bought_from_them(): void
+    {
+        // Nunca le compró: no se puede otorgar.
+        $this->issueCode($this->sellerA)->assertStatus(422);
+
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        $first = $this->issueCode($this->sellerA, uses: 5)->assertOk()->json('code');
+        $this->assertSame(5, $first['remaining_uses']);
+        $this->assertMatchesRegularExpression('/^[A-Z2-9]{8}$/', $first['code']);
+
+        // Otro vendedor no puede darle código a un comprador ajeno.
+        $this->issueCode($this->sellerE)->assertStatus(422);
+
+        // Un código nuevo reemplaza al vigente anterior.
+        $this->issueCode($this->sellerA, uses: 1)->assertOk();
+        $statuses = collect($this->actingAs($this->sellerA)->getJson('/bingo-card/pos/purchase-codes')->json('codes'))
+            ->pluck('status', 'code');
+        $this->assertSame('Revocado', $statuses[$first['code']]);
+    }
+
+    /** @test */
+    public function recurring_buyer_buys_with_code_and_sale_goes_to_review_under_the_seller(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $code  = $this->issueCode($this->sellerA, uses: 5)->json('code.code');
+        $token = $this->salesLinkToken($this->sellerA);
+
+        $this->asGuest();
+
+        $this->verifyCode($token, $code)->assertOk()->assertJson(['buyer_name' => 'Ana Pérez', 'remaining_uses' => 5]);
+
+        $this->getJson("/comprar/{$token}/rooms?date=" . now()->addDay()->toDateString())
+            ->assertOk()
+            ->assertJsonFragment(['id' => $this->roomR1->getRouteKey()]);
+
+        $this->getJson("/comprar/{$token}/rooms/{$this->roomR1->getRouteKey()}/price")
+            ->assertOk()
+            ->assertJsonMissingPath('seller_commission')
+            ->assertJson(['card_price' => 25]);
+
+        $this->publicPurchase($token)
+            ->assertOk()
+            ->assertJson(['paymentStatus' => 'PENDING', 'remaining_uses' => 4]);
+
+        // Registrada como venta del vendedor A, en revisión, con su comisión.
+        $this->assertSame(2, BingoCardLot::where('seller_user_id', $this->sellerA->id)->count());
+        $this->assertSame(2, BingoCardPayment::where('payment_status', 'PENDING')->count());
+        $this->assertSame('bank_transfer', BingoCardPayment::latest('id')->first()->payment_method);
+
+        // Mismo comprador (mismo registro y mismo link en la sala), no un duplicado.
+        $this->assertSame(1, \App\Models\Roles\Player\External\ExternalPlayer::count());
+    }
+
+    /** @test */
+    public function code_expires_after_its_uses_run_out(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $code  = $this->issueCode($this->sellerA, uses: 1)->json('code.code');
+        $token = $this->salesLinkToken($this->sellerA);
+
+        $this->asGuest();
+        $this->verifyCode($token, $code)->assertOk();
+        $this->publicPurchase($token)->assertOk()->assertJson(['remaining_uses' => 0]);
+
+        // Agotado: ni la sesión abierta ni un nuevo intento sirven.
+        $this->publicPurchase($token)->assertStatus(401);
+        $this->verifyCode($token, $code)->assertStatus(422);
+    }
+
+    /** @test */
+    public function code_expires_after_its_validity_period(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $code  = $this->issueCode($this->sellerA, uses: 10, days: 7)->json('code.code');
+        $token = $this->salesLinkToken($this->sellerA);
+
+        $this->travel(8)->days();
+
+        $this->asGuest();
+        $this->verifyCode($token, $code)->assertStatus(422);
+    }
+
+    /** @test */
+    public function a_failed_purchase_gives_the_use_back(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $code  = $this->issueCode($this->sellerA, uses: 1)->json('code.code');
+        $token = $this->salesLinkToken($this->sellerA);
+
+        $this->asGuest();
+        $this->verifyCode($token, $code)->assertOk();
+
+        // Precio desactualizado: la venta no se registra y el uso se devuelve.
+        $this->publicPurchase($token, ['expected_card_price' => 10])
+            ->assertStatus(409)
+            ->assertJson(['error_code' => 'BINGO_CARD_PRICE_CHANGED']);
+
+        $this->assertSame(0, \App\Models\Roles\Player\External\ExternalBuyerPurchaseCode::firstOrFail()->uses_count);
+        $this->publicPurchase($token)->assertOk();
+    }
+
+    /** @test */
+    public function public_purchase_requires_a_verified_session_and_a_receipt(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $code  = $this->issueCode($this->sellerA)->json('code.code');
+        $token = $this->salesLinkToken($this->sellerA);
+
+        $this->asGuest();
+
+        // Sin verificar el código: nada.
+        $this->publicPurchase($token)->assertStatus(401);
+        $this->getJson("/comprar/{$token}/rooms")->assertStatus(401);
+
+        $this->verifyCode($token, $code)->assertOk();
+
+        // Compra a distancia: siempre con comprobante, nunca efectivo.
+        $this->publicPurchase($token, ['payment_method' => 'cash'])->assertStatus(422)->assertJsonValidationErrors('payment_method');
+        $this->publicPurchase($token, ['receipt_image' => null])->assertStatus(422)->assertJsonValidationErrors('receipt_image');
+
+        $this->assertSame(1, BingoCardLot::count());
+    }
+
+    /** @test */
+    public function revoked_code_and_regenerated_link_stop_working(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $issued = $this->issueCode($this->sellerA)->json('code');
+        $token  = $this->salesLinkToken($this->sellerA);
+
+        $this->actingAs($this->sellerA)->deleteJson("/bingo-card/pos/purchase-codes/{$issued['id']}")->assertOk();
+
+        $this->asGuest();
+        $this->verifyCode($token, $issued['code'])->assertStatus(422);
+
+        // Regenerar el enlace invalida el anterior.
+        $newToken = (string) $this->actingAs($this->sellerA)->postJson('/bingo-card/pos/sales-link/regenerate')->json('link.token');
+        $this->assertNotSame($token, $newToken);
+
+        $this->asGuest();
+        $this->get("/comprar/{$token}")->assertNotFound();
+    }
+
+    /** @test */
+    public function wrong_codes_are_locked_out_after_too_many_attempts(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $code  = $this->issueCode($this->sellerA)->json('code.code');
+        $token = $this->salesLinkToken($this->sellerA);
+
+        $this->asGuest();
+
+        $max = (int) config('sellers.purchase_codes.max_failed_attempts');
+        for ($i = 0; $i < $max; $i++) {
+            $this->verifyCode($token, 'ZZZZZZZZ')->assertStatus(422);
+        }
+
+        // Bloqueado: ni siquiera el código correcto entra hasta que pase el tiempo.
+        $this->verifyCode($token, $code)->assertStatus(429);
+    }
+
     // ─── Punto de venta (/bingo-card/pos/*) ──────────────────────────────────
 
     /** @test */
