@@ -203,14 +203,20 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      */
     public function getHistoryByCurrency($currencyId): Collection
     {
+        // user_name: mismo criterio que displayName() (username si existe,
+        // si no nombre completo) — antes construía el nombre directo con
+        // first_name+last_name sin username, inconsistente con
+        // getAvailableExchangeRates(). Mostraba "Play RKE" (nombre real del
+        // usuario admin@playrke.com) en el histórico mientras el listado
+        // principal mostraba "admin" (su username) para la misma fila.
         return $this->model
-            ->with(['currency', 'user:id,first_name,last_name'])
+            ->with(['currency', 'user:id,username,first_name,last_name'])
             ->where('currency_id', $currencyId)
             ->orderByDesc('updated_at')
             ->get()
-            ->map(function ($rate) {
+            ->map(function (ExchangeRate $rate) {
                 $rate->currency_name = $rate->currency?->name ?? '-';
-                $rate->user_name = $rate->user ? trim("{$rate->user->first_name} {$rate->user->last_name}") : '-';
+                $rate->user_name = $this->displayName($rate);
                 return $rate;
             });
     }

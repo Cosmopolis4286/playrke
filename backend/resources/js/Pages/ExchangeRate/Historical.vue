@@ -300,7 +300,7 @@
 
         <template v-if="isAdmin" #cell-user_name="{ row }">
           <span v-if="row.source === 'system'" class="er-hist-source er-hist-source--system">
-            <i class="fas fa-robot"></i> Automático
+            <i class="fas fa-robot"></i> PlayRKE
           </span>
           <span v-else>{{ row.user_name ?? '-' }}</span>
         </template>

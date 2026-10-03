@@ -8,6 +8,7 @@ use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
 use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
+use App\Models\ExchangeRate;
 use App\Models\UserPreference;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
@@ -259,6 +260,14 @@ final class ExchangeRateService
     /**
      * Actualizar tasas con los valores confirmados por el usuario.
      *
+     * Las tasas vienen de getRawRates() (botón "Consultar") — un proveedor
+     * externo (open.er-api.com / BCV), no un número tipeado a mano por el
+     * admin en el formulario. El admin solo CONFIRMA el modal, no edita el
+     * valor, así que esto se marca SOURCE_SYSTEM (mismo origen que el
+     * cronjob automático) — antes quedaba como SOURCE_USER (default),
+     * haciendo que el histórico y el widget del dashboard atribuyeran al
+     * admin un valor que en realidad vino de la API externa.
+     *
      * @param array $rates Tasas confirmadas por el usuario (iso_code => value)
      * @param string|null $publicToken Token público opcional para resolver usuario
      * @return bool True si la actualización fue exitosa
@@ -313,7 +322,7 @@ final class ExchangeRateService
             return false;
         }
 
-        return $this->updater->updateRates($userId, $filteredRates);
+        return $this->updater->updateRates($userId, $filteredRates, ExchangeRate::SOURCE_SYSTEM);
     }
 
     /**

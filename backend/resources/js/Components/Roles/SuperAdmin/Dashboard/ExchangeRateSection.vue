@@ -70,7 +70,7 @@ function goToHistorical(currencyId: string): void {
         <div class="er-item__meta">
           <span class="er-item__source" :class="{ 'er-item__source--system': rate.source === 'system' }">
             <i :class="rate.source === 'system' ? 'fas fa-robot' : 'fas fa-user'"></i>
-            {{ rate.source === 'system' ? 'Automático' : rate.user_name }}
+            {{ rate.source === 'system' ? 'PlayRKE' : rate.user_name }}
           </span>
           <span class="er-item__date">{{ formatDate(rate.updated_at) }}</span>
         </div>
