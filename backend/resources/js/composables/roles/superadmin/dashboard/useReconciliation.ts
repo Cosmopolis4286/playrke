@@ -9,7 +9,11 @@ export interface PendingReceivable {
   currency:       string
   symbol:         string
   sales:          number
+  /** rke + jackpot + prize_pool */
   total:          number
+  rke:            number
+  jackpot:        number
+  prize_pool:     number
   oldest:         string
 }
 
@@ -56,7 +60,7 @@ export function useReconciliation(onSettled?: () => void) {
 
   async function settle(r: PendingReceivable) {
     const ok = await showToastConfirmAction(
-      `¿Confirmás que ${r.debtor} ya pagó ${r.symbol} ${r.total.toFixed(2)} de RKE (${r.sales} venta(s))? Se acreditará a la billetera de plataforma.`,
+      `¿Confirmás que ${r.debtor} ya pagó ${r.symbol} ${r.total.toFixed(2)} (${r.sales} venta(s): RKE ${r.rke.toFixed(2)} + bote ${r.prize_pool.toFixed(2)} + jackpot ${r.jackpot.toFixed(2)})? Se acreditará a la billetera de plataforma.`,
       'warning',
       'Marcar cobrado'
     )

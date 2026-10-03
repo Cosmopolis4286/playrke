@@ -147,12 +147,16 @@
       <div v-if="props.rkeReceivables?.length" class="alert alert-warning d-flex align-items-start mt-3 mb-0" style="gap: 0.6rem; font-size: 0.85rem">
         <i class="fas fa-file-invoice-dollar mt-1"></i>
         <div>
-          <strong>Comisión RKE pendiente de liquidar con la plataforma:</strong>
-          <span v-for="(r, i) in props.rkeReceivables" :key="r.currency_id">
-            {{ i > 0 ? ' · ' : ' ' }}{{ r.symbol }} {{ formatUsd(r.total) }} {{ r.currency }} ({{ r.sales }} venta{{ r.sales === 1 ? '' : 's' }})
-          </span>
+          <strong>Pendiente de liquidar con la plataforma:</strong>
+          <div v-for="r in props.rkeReceivables" :key="r.currency_id">
+            {{ r.symbol }} {{ formatUsd(r.total) }} {{ r.currency }} ({{ r.sales }} venta{{ r.sales === 1 ? '' : 's' }})
+            <span class="text-muted" style="font-size: 0.78rem">
+              — RKE {{ formatUsd(r.rke) }} · bote {{ formatUsd(r.prize_pool) }} · jackpot {{ formatUsd(r.jackpot) }}
+            </span>
+          </div>
           <div class="text-muted" style="font-size: 0.78rem">
-            Corresponde a ventas cobradas por tu red fuera de la billetera. Coordiná el pago con la administración.
+            Ventas cobradas por tu red fuera de la billetera. Tu red conserva sus comisiones (vendedores, agencias y la
+            tuya); el bote y el jackpot los paga la plataforma a los ganadores. Coordiná el pago con la administración.
           </div>
         </div>
       </div>

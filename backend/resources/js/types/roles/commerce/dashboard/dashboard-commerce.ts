@@ -69,6 +69,10 @@ export interface CommerceRkeReceivable {
     currency:    string
     symbol:      string
     sales:       number
+    /** rke + jackpot + prize_pool */
     total:       number
+    rke:         number
+    jackpot:     number
+    prize_pool:  number
     oldest:      string
 }

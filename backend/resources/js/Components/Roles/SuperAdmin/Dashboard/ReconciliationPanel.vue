@@ -69,7 +69,11 @@ const ALERT_LABELS: Record<string, string> = {
 
       <!-- Cuentas por cobrar -->
       <div class="rc-block">
-        <p class="rc-block__title"><i class="fas fa-file-invoice-dollar"></i> RKE por cobrar a comercios</p>
+        <p class="rc-block__title"><i class="fas fa-file-invoice-dollar"></i> Por cobrar a comercios (ventas fuera de la billetera)</p>
+        <p class="rc-block__hint">
+          Lo que cada comercio retuvo en efectivo y corresponde a la plataforma: RKE, bote (la plataforma paga los
+          premios) y jackpot. Las comisiones de vendedor, agencia, comercializadora y creador se las queda la red.
+        </p>
 
         <div v-if="loading && !receivables.length" class="rc-state"><span class="rc-spinner"></span> Cargando…</div>
         <div v-else-if="!receivables.length" class="rc-state rc-state--empty"><i class="fas fa-circle-check"></i> Sin deudas pendientes.</div>
@@ -79,6 +83,9 @@ const ALERT_LABELS: Record<string, string> = {
             <div class="rc-item__info">
               <p class="rc-item__label">{{ r.debtor }}</p>
               <p class="rc-item__desc">{{ r.sales }} venta(s) · desde {{ formatDateTime(r.oldest) }}</p>
+              <p class="rc-item__desc">
+                RKE {{ formatUsd(r.rke) }} · Bote {{ formatUsd(r.prize_pool) }} · Jackpot {{ formatUsd(r.jackpot) }}
+              </p>
             </div>
             <div class="rc-item__side">
               <p class="rc-item__amount">{{ r.symbol }} {{ formatUsd(r.total) }} <span class="rc-item__cur">{{ r.currency }}</span></p>
@@ -124,6 +131,7 @@ const ALERT_LABELS: Record<string, string> = {
 .rc-block__title { font-size: 0.875rem; font-weight: 700; color: var(--ds-text); display: flex; align-items: center; gap: 6px; margin: 0 0 0.75rem; }
 .rc-block__title i { color: #d97706; }
 .rc-block__title--alert i { color: #dc2626; }
+.rc-block__hint { font-size: 0.75rem; color: var(--ds-text-2); margin: -0.4rem 0 0.75rem; }
 
 .rc-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--ds-border); border-radius: 10px; overflow: hidden; }
 .rc-item { display: flex; align-items: center; gap: 12px; padding: 0.75rem 1rem; border-bottom: 1px solid var(--ds-border); flex-wrap: wrap; }
