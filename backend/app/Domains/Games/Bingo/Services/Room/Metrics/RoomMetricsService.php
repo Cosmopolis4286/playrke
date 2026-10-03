@@ -540,6 +540,17 @@ class RoomMetricsService implements RoomMetricsInterface
                 'channel'             => $saleChannel,
                 'rke_credited_local'  => $rkeCreditedLocal,
                 'rke_receivable_local'=> $rkeReceivableLocal,
+                // Venta fuera del sistema: lo que el comercio retuvo en efectivo y le
+                // debe a la plataforma, que es quien paga los premios a billeteras y
+                // acumula el jackpot. NO incluye las comisiones de la red (vendedor,
+                // agencia, comercializadora) ni la del creador: esas se las queda la
+                // red. prize_pool solo si la sala acumula bote en dinero (en
+                // Premio/Servicio pura esos fondos son del creador, que pone el premio).
+                'receivable_local' => $saleChannel === 'offline' ? [
+                    'rke'        => round($rkeReceivableLocal, 2),
+                    'jackpot'    => $jackpotCreditedUsd > 0 ? round($jackpotContributionLocal, 2) : 0.0,
+                    'prize_pool' => $accruesMoneyPool ? round(max(0, $prizePoolLocal), 2) : 0.0,
+                ] : null,
                 'jackpot_type_id'     => $jackpotCreditedUsd > 0 ? (string) $bingoConfig->jackpot_type_id : null,
                 'jackpot_credited_usd'=> $jackpotCreditedUsd,
             ];

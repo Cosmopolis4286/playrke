@@ -41,8 +41,15 @@ final class BingoLotSaleReversalService
         private readonly FinancialReconciliationService $reconciliation,
     ) {}
 
-    /** @return bool false si el lote no tiene desglose (lote previo al fix). */
-    public function reverse(BingoCardLot $lot, BingoRoom $room): bool
+    /**
+     * @return array{reversed: bool, channel: string|null, refund_to_seller: float}
+     *   reversed:         false si el lote no tiene desglose (venta previa al registro).
+     *   channel:          'wallet' | 'offline' | null (sin desglose).
+     *   refund_to_seller: en venta fuera del sistema, lo que la plataforma ya le
+     *                     había cobrado al comercio y le devuelve para que reembolse
+     *                     al comprador (el resto del dinero ya lo tiene en efectivo).
+     */
+    public function reverse(BingoCardLot $lot, BingoRoom $room): array
     {
         $b = $lot->financial_breakdown;
         if (!is_array($b) || ($b['version'] ?? null) !== 1) {
@@ -58,38 +65,29 @@ final class BingoLotSaleReversalService
                 lotId: (string) $lot->id,
                 idempotencyKey: "legacy-lot-not-reversed-{$lot->id}",
             );
-            return false;
+            return ['reversed' => false, 'channel' => null, 'refund_to_seller' => 0.0];
         }
 
         $this->reverseRoomMetrics($room, $b);
         $this->reverseCreatorSale($room, $b);
 
         $currencyId = !empty($b['currency_id']) ? (string) $b['currency_id'] : null;
+        $channel = ($b['channel'] ?? 'wallet') === 'offline' ? 'offline' : 'wallet';
+        $refundToSeller = 0.0;
 
-        // RKE que la plataforma debe devolver: el acreditado al vender (venta con
-        // billetera) o, en venta fuera del sistema, el ya cobrado al comercio. Si
-        // la deuda seguía pendiente, basta con anularla.
-        $rkeToReverse = (float) ($b['rke_credited_local'] ?? 0);
-        if ((float) ($b['rke_receivable_local'] ?? 0) > 0 && !$this->receivables->cancelForLot((string) $lot->id)) {
-            $rkeToReverse += (float) $b['rke_receivable_local'];
-        }
-
-        if ($currencyId && $rkeToReverse > 0) {
-            $movement = $this->platformWallet->reverseRke(
-                $currencyId,
-                $rkeToReverse,
-                "bingo-lot-rke-reversal-{$lot->id}",
-                "Reversión comisión RKE – Sala #{$room->uuid_code} (lote reembolsado)",
-            );
-            if (!$movement) {
-                $this->reconciliation->record(
-                    type: FinancialReconciliationItem::TYPE_RKE_REVERSAL_FAILED,
-                    message: "No se pudo devolver el RKE de un lote reembolsado (sala #{$room->uuid_code}): la wallet de plataforma no tiene saldo suficiente.",
-                    amount: $rkeToReverse,
-                    currencyId: $currencyId,
-                    roomId: (string) $room->id,
-                    lotId: (string) $lot->id,
-                    idempotencyKey: "rke-reversal-failed-{$lot->id}",
+        if ($channel === 'wallet') {
+            // Venta con billetera: devolver el RKE que se acreditó al vender.
+            $this->reversePlatformAmount('rke', $currencyId, (float) ($b['rke_credited_local'] ?? 0), $lot, $room);
+        } else {
+            // Venta fuera del sistema: si la deuda seguía pendiente, se anula y
+            // listo (el comercio tiene todo el dinero y se lo devuelve al
+            // comprador). Si ya la había pagado, la plataforma le devuelve lo
+            // cobrado — RKE y fondeo de bote/jackpot — para que pueda reembolsar.
+            $settled = $this->receivables->cancelForLot((string) $lot->id);
+            if ($settled) {
+                $refundToSeller += $this->reversePlatformAmount('rke', $currencyId, (float) $settled->rke_amount, $lot, $room);
+                $refundToSeller += $this->reversePlatformAmount(
+                    'pool', $currencyId, (float) $settled->jackpot_amount + (float) $settled->prize_pool_amount, $lot, $room,
                 );
             }
         }
@@ -115,7 +113,52 @@ final class BingoLotSaleReversalService
             }
         }
 
-        return true;
+        return ['reversed' => true, 'channel' => $channel, 'refund_to_seller' => round($refundToSeller, 2)];
+    }
+
+    /**
+     * Saca de la wallet de plataforma lo que hay que devolver por un lote
+     * reembolsado. Si no alcanza el saldo (ya se retiró), queda una alerta de
+     * conciliación y devuelve 0: nunca se reintegra al comercio dinero que la
+     * plataforma no pudo devolver (eso crearía dinero de la nada).
+     *
+     * @param 'rke'|'pool' $kind
+     * @return float Monto efectivamente revertido.
+     */
+    private function reversePlatformAmount(string $kind, ?string $currencyId, float $amount, BingoCardLot $lot, BingoRoom $room): float
+    {
+        $amount = round($amount, 2);
+        if (!$currencyId || $amount <= 0) {
+            return 0.0;
+        }
+
+        $movement = $kind === 'rke'
+            ? $this->platformWallet->reverseRke(
+                $currencyId, $amount, "bingo-lot-rke-reversal-{$lot->id}",
+                "Reversión comisión RKE – Sala #{$room->uuid_code} (lote reembolsado)",
+            )
+            : $this->platformWallet->reversePoolFunding(
+                $currencyId, $amount, "bingo-lot-pool-reversal-{$lot->id}",
+                "Devolución fondeo bote/jackpot – Sala #{$room->uuid_code} (lote reembolsado)",
+            );
+
+        if ($movement) {
+            return $amount;
+        }
+
+        $this->reconciliation->record(
+            type: FinancialReconciliationItem::TYPE_RKE_REVERSAL_FAILED,
+            message: $kind === 'rke'
+                ? "No se pudo devolver el RKE de un lote reembolsado (sala #{$room->uuid_code}): la wallet de plataforma no tiene saldo suficiente."
+                : "No se pudo devolver el fondeo de bote/jackpot de un lote reembolsado (sala #{$room->uuid_code}): la wallet de plataforma no tiene saldo suficiente.",
+            amount: $amount,
+            currencyId: $currencyId,
+            roomId: (string) $room->id,
+            lotId: (string) $lot->id,
+            idempotencyKey: "{$kind}-reversal-failed-{$lot->id}",
+            details: ['kind' => $kind],
+        );
+        return 0.0;
     }
 
     /**

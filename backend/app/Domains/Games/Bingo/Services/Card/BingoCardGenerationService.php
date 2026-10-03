@@ -163,17 +163,18 @@ final class BingoCardGenerationService
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCardLot($cardOrder, $saleAmount);
 
-            // Venta fuera del sistema (el dinero lo tiene el comercio): la comisión
-            // RKE queda como deuda del comercio con la plataforma, no como saldo
-            // de la wallet de plataforma (ver RoomMetricsService / PlatformReceivableService).
-            if ((float) ($saleBreakdown['rke_receivable_local'] ?? 0) > 0) {
+            // Venta fuera del sistema (el dinero lo tiene el comercio): lo que no
+            // es comisión de la red ni del creador (RKE + jackpot + bote) queda
+            // como deuda del comercio con la plataforma, que es quien paga los
+            // premios y acumula el jackpot (ver PlatformReceivableService).
+            if (is_array($saleBreakdown['receivable_local'] ?? null)) {
                 app(\App\Services\Platform\PlatformReceivableService::class)->record(
                     debtorUserId: (string) $creator['id'],
                     currencyId: (string) $currency,
-                    amount: (float) $saleBreakdown['rke_receivable_local'],
+                    parts: $saleBreakdown['receivable_local'],
                     roomId: (string) $room->id,
                     lotId: (string) $lotID,
-                    notes: "RKE venta – Sala #{$room->uuid_code}",
+                    notes: "Venta – Sala #{$room->uuid_code}",
                 );
             }
 

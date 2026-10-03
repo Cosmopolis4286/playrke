@@ -40,7 +40,12 @@ return new class extends Migration
                 // es unsignedBigInteger($column)->primary() — solo sirve para 'id'. En
                 // otra columna declara una segunda PK ("Multiple primary key defined").
                 $table->unsignedBigInteger('lot_id')->nullable()->unique()->comment('Lote de cartones que originó la deuda (una por lote)');
-                $table->decimal('amount', 13, 2);
+                $table->decimal('amount', 13, 2)->comment('Total = rke + jackpot + prize_pool');
+                // Desglose: la red (vendedor/agencia/comercializadora) y el creador se
+                // quedan con sus comisiones; esto es lo que el comercio retuvo y debe.
+                $table->decimal('rke_amount', 13, 2)->default(0)->comment('Comisión RKE de la plataforma');
+                $table->decimal('jackpot_amount', 13, 2)->default(0)->comment('Aporte al jackpot (lo acumula la plataforma)');
+                $table->decimal('prize_pool_amount', 13, 2)->default(0)->comment('Parte del bote (la plataforma paga los premios a billeteras)');
                 $table->enum('status', ['PENDING', 'SETTLED', 'CANCELLED'])->default('PENDING');
                 $table->timestamp('settled_at')->nullable();
                 $table->foreignSnowflake('settled_by')->nullable()->constrained('users')->nullOnDelete()->cascadeOnUpdate();

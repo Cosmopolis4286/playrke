@@ -101,7 +101,7 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $lot->id = '930000000000000777';
 
         $jackpotBefore = (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount');
-        $this->assertTrue(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh()));
+        $this->assertTrue(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh())['reversed']);
 
         // La sala queda como si solo existiera la venta de 40.
         $fresh = $room->fresh();
@@ -136,7 +136,7 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $lot = new BingoCardLot(['financial_breakdown' => null]);
         $lot->id = '930000000000000778';
 
-        $this->assertFalse(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh()));
+        $this->assertFalse(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh())['reversed']);
         $this->assertEqualsWithDelta(100.0, (float) $room->fresh()->total_sales, 0.01);
     }
 

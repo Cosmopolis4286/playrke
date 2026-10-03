@@ -56,6 +56,22 @@ final class PlatformWalletService
      */
     public function creditRke(string $currencyId, float $amount, string $description = 'Comisión RKE'): void
     {
+        $this->creditPlatform($currencyId, $amount, $description, WalletMovement::TYPE_RKE_COMMISSION);
+    }
+
+    /**
+     * Acredita a la wallet de plataforma el bote/jackpot que un comercio
+     * retuvo en ventas fuera del sistema, al cobrarle su deuda
+     * (PlatformReceivableService::settle). La plataforma es quien paga los
+     * premios a billeteras y acumula el jackpot: este es el dinero que los respalda.
+     */
+    public function creditPoolFunding(string $currencyId, float $amount, string $description): void
+    {
+        $this->creditPlatform($currencyId, $amount, $description, WalletMovement::TYPE_BINGO_POOL_FUNDING);
+    }
+
+    private function creditPlatform(string $currencyId, float $amount, string $description, string $type): void
+    {
         // amount == 0 es legítimo (sala con rke_commission configurada al
         // 0%) y no debe interrumpir la venta ni generar ruido. amount < 0
         // sí es anómalo (bug de cálculo de tasa/redondeo aguas arriba en
@@ -87,7 +103,7 @@ final class PlatformWalletService
             return;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $type) {
             $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
             $balanceBefore = (float) $locked->balance;
 
@@ -96,7 +112,7 @@ final class PlatformWalletService
             $this->movementRepository->record([
                 'wallet_id'      => (string) $locked->id,
                 'user_id'        => (string) $locked->user_id,
-                'type'           => WalletMovement::TYPE_RKE_COMMISSION,
+                'type'           => $type,
                 'status'         => WalletMovement::STATUS_COMPLETED,
                 'amount'         => $amount,
                 'balance_before' => $balanceBefore,
@@ -122,6 +138,21 @@ final class PlatformWalletService
      */
     public function reverseRke(string $currencyId, float $amount, string $idempotencyKey, string $description = 'Reversión comisión RKE'): ?WalletMovement
     {
+        return $this->reversePlatform($currencyId, $amount, $idempotencyKey, $description, WalletMovement::TYPE_RKE_COMMISSION_REVERSAL);
+    }
+
+    /**
+     * Devuelve el bote/jackpot cobrado a un comercio por un lote que luego se
+     * reembolsó (el comercio debe devolverle el dinero al comprador). Mismas
+     * garantías que reverseRke(): idempotente y sin dejar la wallet en negativo.
+     */
+    public function reversePoolFunding(string $currencyId, float $amount, string $idempotencyKey, string $description): ?WalletMovement
+    {
+        return $this->reversePlatform($currencyId, $amount, $idempotencyKey, $description, WalletMovement::TYPE_BINGO_POOL_FUNDING_REVERSAL);
+    }
+
+    private function reversePlatform(string $currencyId, float $amount, string $idempotencyKey, string $description, string $type): ?WalletMovement
+    {
         if ($amount <= 0) {
             return null;
         }
@@ -139,7 +170,7 @@ final class PlatformWalletService
             return null;
         }
 
-        $movement = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey, $currencyId) {
+        $movement = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey, $currencyId, $type) {
             $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
             $balanceBefore = (float) $locked->balance;
 
@@ -155,7 +186,7 @@ final class PlatformWalletService
             return $this->movementRepository->record([
                 'wallet_id'       => (string) $locked->id,
                 'user_id'         => (string) $locked->user_id,
-                'type'            => WalletMovement::TYPE_RKE_COMMISSION_REVERSAL,
+                'type'            => $type,
                 'status'          => WalletMovement::STATUS_COMPLETED,
                 'amount'          => $amount,
                 'balance_before'  => $balanceBefore,

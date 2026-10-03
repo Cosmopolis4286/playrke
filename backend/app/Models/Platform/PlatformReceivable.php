@@ -21,10 +21,14 @@ class PlatformReceivable extends Model
     public const STATUS_SETTLED   = 'SETTLED';
     public const STATUS_CANCELLED = 'CANCELLED';
 
+    /** Deudas previas: solo RKE. */
     public const SOURCE_BINGO_RKE = 'BINGO_RKE';
+    /** Venta fuera del sistema: RKE + jackpot + bote. */
+    public const SOURCE_BINGO_SALE = 'BINGO_SALE';
 
     protected $fillable = [
         'source', 'debtor_user_id', 'currency_id', 'room_id', 'lot_id', 'amount',
+        'rke_amount', 'jackpot_amount', 'prize_pool_amount',
         'status', 'settled_at', 'settled_by', 'cancelled_at', 'notes',
     ];
 
@@ -36,6 +40,9 @@ class PlatformReceivable extends Model
         'lot_id'         => 'string',
         'settled_by'     => 'string',
         'amount'         => 'decimal:2',
+        'rke_amount'        => 'decimal:2',
+        'jackpot_amount'    => 'decimal:2',
+        'prize_pool_amount' => 'decimal:2',
         'settled_at'     => 'datetime',
         'cancelled_at'   => 'datetime',
     ];

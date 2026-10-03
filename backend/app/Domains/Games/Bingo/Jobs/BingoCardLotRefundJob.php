@@ -69,8 +69,29 @@ final class BingoCardLotRefundJob implements ShouldQueue
                     return;
                 }
 
-                $amount = (float) $lot->sale_amount;
+                if ((float) $lot->sale_amount <= 0) {
+                    return;
+                }
+
+                // Revertir primero lo que esta venta sumó (métricas y bote de la
+                // sala, BingoCreatorSale, RKE/fondeo de plataforma, jackpot) — en
+                // la misma transacción: si algo falla, el reembolso se reintenta entero.
+                $reversal = app(BingoLotSaleReversalService::class)->reverse($lot, $room);
+
+                // Cuánto acreditar y a quién:
+                //  - Venta con billetera (o lote previo sin desglose): el total de la
+                //    venta a la wallet del comprador, como siempre.
+                //  - Venta fuera del sistema (vendedor → jugador externo): el dinero
+                //    lo cobró el comercio en efectivo y lo sigue teniendo — antes
+                //    igual se le acreditaba el total en su wallet (y en un pago
+                //    RECHAZADO, plata que nunca cobró). Ahora solo se le reintegra
+                //    lo que la plataforma ya le había cobrado de ese lote; el resto
+                //    se lo devuelve al comprador de su efectivo.
+                $offline = $reversal['channel'] === 'offline';
+                $amount  = $offline ? (float) $reversal['refund_to_seller'] : (float) $lot->sale_amount;
+
                 if ($amount <= 0) {
+                    $this->completeLotRefund($lot, $room, $auditLogger, 0.0, 'Reembolso sin acreditación: el comercio devuelve al comprador el efectivo que cobró');
                     return;
                 }
 
@@ -94,16 +115,20 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 // debe entregar, no como saldo propio ganado.
                 $externalBuyer = $this->resolveExternalBuyer($lot);
 
-                $description = $externalBuyer
-                    ? "Reembolso Bingo — Sala cancelada #{$room->id} (cartones de jugador externo {$externalBuyer->first_name} — ENTREGAR al comprador, no es saldo propio)"
-                    : "Reembolso Bingo — Sala cancelada #{$room->id}";
+                $description = match (true) {
+                    $offline => "Reembolso Bingo — Sala #{$room->id}: reintegro de lo cobrado por la plataforma"
+                        . ($externalBuyer ? " (jugador externo {$externalBuyer->first_name} — ENTREGAR al comprador junto con el efectivo retenido, no es saldo propio)" : ''),
+                    (bool) $externalBuyer => "Reembolso Bingo — Sala cancelada #{$room->id} (cartones de jugador externo {$externalBuyer->first_name} — ENTREGAR al comprador, no es saldo propio)",
+                    default => "Reembolso Bingo — Sala cancelada #{$room->id}",
+                };
 
                 $walletService->recordRefund(
                     wallet:        $wallet,
                     amount:        $amount,
                     gameId:        (string) $room->id,
                     description:   $description,
-                    bonusPortion:  (float) $lot->bonus_amount,
+                    // En fuera del sistema no hubo bono de billetera involucrado.
+                    bonusPortion:  $offline ? 0.0 : (float) $lot->bonus_amount,
                     extraMetadata: $externalBuyer ? [
                         'is_external_player_refund' => true,
                         'external_player_id'        => (string) $externalBuyer->id,
@@ -112,30 +137,7 @@ final class BingoCardLotRefundJob implements ShouldQueue
                     ] : [],
                 );
 
-                // Revertir lo que esta venta sumó (métricas y bote de la sala,
-                // BingoCreatorSale, RKE de plataforma, aporte al jackpot) — en la
-                // misma transacción: si falla, el reembolso se reintenta entero.
-                app(BingoLotSaleReversalService::class)->reverse($lot, $room);
-
-                $lot->update(['status' => 'REFUNDED']);
-
-                BingoLotRefundFailure::where('lot_id', $lot->id)
-                    ->where('room_id', $room->id)
-                    ->whereNull('resolved_at')
-                    ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
-
-                Log::info('[BingoCardLotRefundJob] Reembolso acreditado', [
-                    'lot_id'  => $lot->id,
-                    'room_id' => $room->id,
-                    'amount'  => $amount,
-                ]);
-
-                try {
-                    $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', 'Reembolso acreditado', [
-                        'lot_id' => (string) $lot->id,
-                        'amount' => $amount,
-                    ]);
-                } catch (\Throwable) {}
+                $this->completeLotRefund($lot, $room, $auditLogger, $amount, 'Reembolso acreditado');
             });
         } catch (\Throwable $e) {
             Log::error('[BingoCardLotRefundJob] Error al reembolsar', [
@@ -167,6 +169,30 @@ final class BingoCardLotRefundJob implements ShouldQueue
      * que todos los cartones de un mismo lote pertenecen al mismo comprador
      * (una sola llamada a generateCards() por compra).
      */
+    /** Marca el lote REFUNDED, resuelve fallas previas y deja log + auditoría. */
+    private function completeLotRefund(BingoCardLot $lot, BingoRoom $room, BingoRoomAuditLogger $auditLogger, float $amount, string $message): void
+    {
+        $lot->update(['status' => 'REFUNDED']);
+
+        BingoLotRefundFailure::where('lot_id', $lot->id)
+            ->where('room_id', $room->id)
+            ->whereNull('resolved_at')
+            ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
+
+        Log::info('[BingoCardLotRefundJob] ' . $message, [
+            'lot_id'  => $lot->id,
+            'room_id' => $room->id,
+            'amount'  => $amount,
+        ]);
+
+        try {
+            $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', $message, [
+                'lot_id' => (string) $lot->id,
+                'amount' => $amount,
+            ]);
+        } catch (\Throwable) {}
+    }
+
     private function resolveExternalBuyer(BingoCardLot $lot): ?ExternalPlayer
     {
         $firstCardId = BingoCard::where('card_lot_id', $lot->id)->value('id');

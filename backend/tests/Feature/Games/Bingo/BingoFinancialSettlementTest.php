@@ -70,12 +70,13 @@ class BingoFinancialSettlementTest extends TestCase
     }
 
     /** Vende y crea el lote con su desglose (como BingoCardGenerationService). */
-    private function sellLot(BingoRoom $room, float $amount, string $channel): BingoCardLot
+    private function sellLot(BingoRoom $room, float $amount, string $channel, array $networkCommission = []): BingoCardLot
     {
         $breakdown = null;
         $this->assertTrue(app(RoomMetricsService::class)->updateRoomMetricsWithCommissions(
             $room->fresh(),
-            ['cardCount' => 1, 'currency' => $this->currencyId, 'creator' => ['id' => $this->creatorId], 'saleChannel' => $channel],
+            ['cardCount' => 1, 'currency' => $this->currencyId, 'creator' => ['id' => $this->creatorId], 'saleChannel' => $channel,
+             'networkCommission' => $networkCommission],
             $amount, 0, $breakdown,
         ));
 
@@ -85,8 +86,8 @@ class BingoFinancialSettlementTest extends TestCase
             'status' => 'ACTIVE', 'financial_breakdown' => $breakdown,
         ]);
 
-        if ((float) ($breakdown['rke_receivable_local'] ?? 0) > 0) {
-            app(PlatformReceivableService::class)->record($this->creatorId, $this->currencyId, (float) $breakdown['rke_receivable_local'], (string) $room->id, (string) $lot->id);
+        if (is_array($breakdown['receivable_local'] ?? null)) {
+            app(PlatformReceivableService::class)->record($this->creatorId, $this->currencyId, $breakdown['receivable_local'], (string) $room->id, (string) $lot->id);
         }
         return $lot;
     }
@@ -113,13 +114,32 @@ class BingoFinancialSettlementTest extends TestCase
         $this->assertSame('comercio_fin', $summary[0]['debtor']);
         $this->assertSame('VES', $summary[0]['currency']);
         $this->assertSame(1, $summary[0]['sales']);
-        $this->assertEqualsWithDelta(5.0, $summary[0]['total'], 0.001);
+        // 100 - 5 (RKE) - 10 (creador) = 85 al bote → el comercio debe RKE + bote = 90.
+        $this->assertEqualsWithDelta(90.0, $summary[0]['total'], 0.001);
+        $this->assertEqualsWithDelta(5.0, $summary[0]['rke'], 0.001);
+        $this->assertEqualsWithDelta(85.0, $summary[0]['prize_pool'], 0.001);
 
-        // El superadmin marca cobrado → recién ahí entra a la wallet de plataforma.
+        // El superadmin marca cobrado → recién ahí entra a la wallet de plataforma
+        // (RKE como comisión, bote como fondeo de premios).
         $result = app(PlatformReceivableService::class)->settle($this->creatorId, $this->currencyId, '1');
         $this->assertSame(1, $result['count']);
-        $this->assertEqualsWithDelta(5.0, $this->platformBalance(), 0.001);
+        $this->assertEqualsWithDelta(90.0, $this->platformBalance(), 0.001);
         $this->assertSame('SETTLED', PlatformReceivable::first()->status);
+        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_RKE_COMMISSION)->where('amount', 5)->exists());
+        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_BINGO_POOL_FUNDING)->where('amount', 85)->exists());
+    }
+
+    #[Test]
+    public function la_comision_de_agencia_y_comercializadora_no_forma_parte_de_la_deuda(): void
+    {
+        $room = $this->makeRoom();
+        // Agencia 3 + comercializadora 2: se las queda la red, salen del bote.
+        $this->sellLot($room, 100.0, 'offline', ['subsidiary' => 3, 'commerce' => 2]);
+
+        $debt = PlatformReceivable::firstOrFail();
+        $this->assertEqualsWithDelta(5.0, (float) $debt->rke_amount, 0.001);
+        $this->assertEqualsWithDelta(80.0, (float) $debt->prize_pool_amount, 0.001); // 100 - 5 - 10 - 3 - 2
+        $this->assertEqualsWithDelta(85.0, (float) $debt->amount, 0.001);
     }
 
     #[Test]
@@ -138,24 +158,43 @@ class BingoFinancialSettlementTest extends TestCase
         $room = $this->makeRoom();
         $lot = $this->sellLot($room, 100.0, 'offline');
 
-        app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
+        $result = app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
 
         $this->assertSame('CANCELLED', PlatformReceivable::first()->status);
         $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001);
+        $this->assertSame(0.0, $result['refund_to_seller'], 'El comercio tiene todo el efectivo: no se le acredita nada');
         $this->assertEquals(0, FinancialReconciliationItem::count());
     }
 
     #[Test]
-    public function reembolso_de_deuda_ya_cobrada_devuelve_el_rke_a_la_plataforma(): void
+    public function reembolso_de_deuda_ya_cobrada_le_devuelve_al_comercio_lo_cobrado(): void
     {
         $room = $this->makeRoom();
         $lot = $this->sellLot($room, 100.0, 'offline');
         app(PlatformReceivableService::class)->settle($this->creatorId, $this->currencyId, '1');
-        $this->assertEqualsWithDelta(5.0, $this->platformBalance(), 0.001);
+        $this->assertEqualsWithDelta(90.0, $this->platformBalance(), 0.001);
 
-        app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
+        $result = app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
 
         $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001);
+        $this->assertEqualsWithDelta(90.0, $result['refund_to_seller'], 0.001);
+    }
+
+    #[Test]
+    public function job_de_reembolso_no_acredita_al_comercio_lo_que_ya_tiene_en_efectivo(): void
+    {
+        $room = $this->makeRoom();
+        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
+        $lot = $this->sellLot($room, 100.0, 'offline'); // pago pendiente / rechazado: deuda sin cobrar
+
+        (new \App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob((string) $lot->id, (string) $room->id))
+            ->handle(app(\App\Domains\Wallet\Services\WalletService::class), app(\App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger::class));
+
+        $this->assertSame('REFUNDED', $lot->fresh()->status);
+        // Antes se le acreditaba el total (100) aunque el efectivo ya lo tenía — o
+        // nunca lo cobró, si el comprobante era falso.
+        $this->assertEqualsWithDelta(0.0, (float) $wallet->fresh()->balance, 0.001);
+        $this->assertSame('CANCELLED', PlatformReceivable::first()->status);
     }
 
     #[Test]
