@@ -72,6 +72,8 @@ final class ExternalPlayerGameController extends Controller
             // registrarse. No se usan para nada más en esta pantalla.
             'phone'      => $player->phone,
             'country_id' => (string) $player->country_id,
+            // Pago en revisión / rechazado / premios y a quién acudir.
+            'status'     => $this->service->getExternalPlayerPurchaseStatus($player),
         ];
 
         return Inertia::render('Games/Bingo/Game/Index', $response);

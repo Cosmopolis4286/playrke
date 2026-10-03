@@ -280,6 +280,96 @@ final class BingoGameService
     }
 
     /**
+     * Estado de las compras de un ExternalPlayer para mostrar en SU link:
+     * cuántos cartones esperan revisión de pago, cuántos se anularon por pago
+     * rechazado, qué premios ganó y quién se los entrega.
+     *
+     * Sin esto el comprador veía el link vacío (pago PENDING) o sus cartones
+     * desaparecer (pago rechazado) sin explicación, y si ganaba no sabía que
+     * el premio lo entrega su vendedor/comercio (no tiene billetera: el
+     * premio se acredita al comercio, ver BingoCardPrize::getUserId()).
+     *
+     * @return array{
+     *     pending_cards: int,
+     *     rejected_cards: int,
+     *     prizes: array<int, array{type: string, amount: float, currency_symbol: string, status: string, status_label: string}>,
+     *     sold_by: ?string,
+     *     commerce_name: ?string
+     * }
+     */
+    public function getExternalPlayerPurchaseStatus(\App\Models\Roles\Player\External\ExternalPlayer $externalPlayer): array
+    {
+        $cardsByStatus = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
+            ->where('external_player_id', $externalPlayer->id)
+            ->whereIn('payment_status', ['PENDING', 'REJECTED'])
+            ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_card_payments.card_lot_id')
+            ->groupBy('bingo_card_payments.payment_status')
+            ->selectRaw('bingo_card_payments.payment_status as status, COALESCE(SUM(bingo_card_lots.card_count), 0) as cards')
+            ->pluck('cards', 'status');
+
+        $cardIds = \App\Models\Roles\Player\External\ExternalPlayerParticipation::participableIdsFor(
+            $externalPlayer->id,
+            \App\Domains\Games\Bingo\Models\Card\BingoCard::class,
+        );
+
+        $statusLabels = [
+            'waiting'    => 'Por entregar',
+            'processing' => 'En proceso',
+            'claimed'    => 'Entregado',
+            'cancelled'  => 'Anulado',
+            'suspended'  => 'En revisión',
+            'disputed'   => 'En disputa',
+        ];
+
+        $prizes = empty($cardIds) ? collect() : \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::query()
+            ->whereIn('winning_card_id', $cardIds)
+            ->with('currency:id,symbol')
+            ->orderBy('created_at')
+            ->get();
+
+        [$soldBy, $commerceName] = $this->resolveExternalPlayerSeller((string) $externalPlayer->seller_user_id);
+
+        return [
+            'pending_cards'  => (int) ($cardsByStatus['PENDING'] ?? 0),
+            'rejected_cards' => (int) ($cardsByStatus['REJECTED'] ?? 0),
+            'prizes'         => $prizes->map(fn ($prize) => [
+                'type'            => (string) $prize->prize_type_description,
+                'amount'          => (float) $prize->local_amount,
+                'currency_symbol' => (string) ($prize->currency?->symbol ?? ''),
+                'status'          => (string) $prize->prize_status,
+                'status_label'    => $statusLabels[$prize->prize_status] ?? (string) $prize->prize_status,
+            ])->values()->all(),
+            'sold_by'        => $soldBy,
+            'commerce_name'  => $commerceName,
+        ];
+    }
+
+    /**
+     * Nombre del vendedor que captó al ExternalPlayer y del comercio al que
+     * pertenece (directo o vía agencia) — a quién debe acudir el comprador
+     * por su premio o una devolución. Solo nombres, sin datos de contacto.
+     *
+     * @return array{0: ?string, 1: ?string} [vendedor, comercio]
+     */
+    private function resolveExternalPlayerSeller(string $sellerUserId): array
+    {
+        if ($sellerUserId === '') {
+            return [null, null];
+        }
+
+        $seller = \App\Models\Roles\Seller::where('user_id', $sellerUserId)->first(['id', 'name', 'manager_user_id', 'subsidiary_id']);
+
+        if ($seller) {
+            return [$seller->name ?: null, $seller->resolveCommerce()?->name];
+        }
+
+        // Vendió el propio comercio (sin vendedor intermedio).
+        $commerceName = \App\Models\Roles\Commerce::where('user_id', $sellerUserId)->value('name');
+
+        return [$commerceName, $commerceName];
+    }
+
+    /**
      * Resuelve moneda, tasa de cambio y precio del cartón para el jugador,
      * según la wallet activa que tenga configurada (si tiene alguna).
      */

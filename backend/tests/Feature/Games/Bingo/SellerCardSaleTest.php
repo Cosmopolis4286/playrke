@@ -569,6 +569,33 @@ class SellerCardSaleTest extends TestCase
     }
 
     /** @test */
+    public function external_player_link_status_shows_pending_then_rejected_cards_and_who_sold_them(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $player  = \App\Models\Roles\Player\External\ExternalPlayer::firstOrFail();
+        $service = app(\App\Domains\Games\Bingo\Services\Game\BingoGameService::class);
+
+        // Recién vendido: 2 cartones esperando revisión.
+        $status = $service->getExternalPlayerPurchaseStatus($player);
+        $this->assertSame(2, $status['pending_cards']);
+        $this->assertSame(0, $status['rejected_cards']);
+        $this->assertSame([], $status['prizes']);
+        $this->assertSame('Vendedor ' . $this->sellerA->id, $status['sold_by']);
+        $this->assertSame('Comercio ' . $this->commerceC->id, $status['commerce_name']);
+
+        // Rechazado: el comprador ve que se anularon y a quién reclamar.
+        $this->actingAs($this->commerceC)
+            ->postJson(route('bingo-card-payments.reject', ['payment' => BingoCardPayment::firstOrFail()]))
+            ->assertOk();
+
+        $status = $service->getExternalPlayerPurchaseStatus($player->fresh());
+        $this->assertSame(0, $status['pending_cards']);
+        $this->assertSame(2, $status['rejected_cards']);
+    }
+
+    /** @test */
     public function review_queue_menu_item_shows_pending_count_only_to_reviewers(): void
     {
         $this->sale($this->sellerA, $this->roomR1)->assertOk();

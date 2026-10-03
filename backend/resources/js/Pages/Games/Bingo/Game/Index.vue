@@ -18,6 +18,8 @@ import PlayersModal    from '@js/Components/games/bingo/views/inGame/PlayersModa
 import PreDrawModal    from '@js/Components/games/bingo/views/inGame/PreDrawModal.vue'
 import GameEndModal    from '@js/Components/games/bingo/views/inGame/GameEndModal.vue'
 import GameStarfield      from '@js/Components/games/bingo/views/inGame/GameStarfield.vue'
+import ExternalPlayerStatusNotices from '@js/Components/games/bingo/views/inGame/ExternalPlayerStatusNotices.vue'
+import type { ExternalPlayerStatus } from '@js/Components/games/bingo/views/inGame/ExternalPlayerStatusNotices.vue'
 import GameStatusBanners  from '@js/Components/games/bingo/views/inGame/GameStatusBanners.vue'
 import { getBingoVariantDef }    from '@js/modules/games/bingo/utils/bingoVariants'
 import type { WinnerEntry, PlayerProgress } from '@js/Components/games/bingo/views/inGame/types'
@@ -66,7 +68,15 @@ interface Props {
    * ExternalPlayerLinkService::resolveGameUrl(). Cambia el prefijo de API
    * usado por los composables (apiBase) y desactiva WS/HTTP que requieren
    * un userId real. */
-  externalPlayer?: { link: string; first_name: string | null; last_name: string | null; phone: string | null; country_id: string | null } | null
+  externalPlayer?: {
+    link: string
+    first_name: string | null
+    last_name: string | null
+    phone: string | null
+    country_id: string | null
+    /** Pago en revisión / rechazado / premios — ver BingoGameService::getExternalPlayerPurchaseStatus(). */
+    status?: ExternalPlayerStatus
+  } | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -506,6 +516,8 @@ onUnmounted(() => {
           Regístrate y no pierdas tu premio
         </a>
       </div>
+
+      <ExternalPlayerStatusNotices v-if="externalPlayer?.status" :status="externalPlayer.status" />
 
       <GameHeader
         :prizePoolType="prizePoolType"
