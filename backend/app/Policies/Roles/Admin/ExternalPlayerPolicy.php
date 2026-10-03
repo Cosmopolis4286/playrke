@@ -44,6 +44,7 @@ class ExternalPlayerPolicy
      * - admin/superadmin: sin restricción adicional.
      * - commerce: dueño si el Seller que lo captó (seller_user_id) resuelve,
      *   vía Seller::resolveCommerce(), al Commerce de este user.
+     * - seller: dueño solo de los que captó él mismo (seller_user_id = su user).
      * - subsidiary: dueño si el Seller que lo captó cuelga (subsidiary_id)
      *   de la Subsidiary de este user — un seller que reporta directo al
      *   commerce (sin subsidiary_id) nunca es de una agencia, así que
@@ -57,6 +58,14 @@ class ExternalPlayerPolicy
 
         if (!$externalPlayer->seller_user_id) {
             return false;
+        }
+
+        // Vendedor: dueño solo de los compradores que captó él mismo (mismo
+        // criterio que ExternalPlayerAdminService::applyOwnershipFilter()).
+        // Sus acciones siguen limitadas por permiso (view/create, no
+        // manage/block), así que esto no le permite modificarlos.
+        if ($user->hasRole('seller')) {
+            return (string) $externalPlayer->seller_user_id === (string) $user->id;
         }
 
         $seller = Seller::where('user_id', $externalPlayer->seller_user_id)->first();

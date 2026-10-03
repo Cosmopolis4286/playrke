@@ -164,6 +164,10 @@ final class ExternalPlayerAdminService
         $ownSellerIds = match ($role) {
             'commerce'   => $this->ownSellerUserIds($userId),
             'subsidiary' => ($subsidiaryId = $this->ownSubsidiaryId($userId)) ? $this->subsidiarySellerUserIds($subsidiaryId) : [],
+            // El vendedor ve SOLO los compradores que captó él mismo. Antes
+            // caía en default (cero resultados): tiene external-players.view
+            // y entraba a la pantalla, pero la lista salía siempre vacía.
+            'seller'     => [(string) $userId],
             default      => [], // cualquier otro rol con el permiso pero sin jerarquía propia: cero resultados, nunca "todo"
         };
 

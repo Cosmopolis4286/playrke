@@ -124,7 +124,7 @@ class SellerCardSaleTest extends TestCase
         $grants = [
             'admin'    => ['games.manage', 'games.bingo', 'games.bingo.manage', 'games.bingo.payments.review'],
             'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review'],
-            'seller'   => ['games.bingo', 'games.bingo.game_rooms'],
+            'seller'   => ['games.bingo', 'games.bingo.game_rooms', 'external-players.view'],
         ];
 
         foreach (array_unique(array_merge(...array_values($grants))) as $name) {
@@ -617,6 +617,32 @@ class SellerCardSaleTest extends TestCase
 
         // El vendedor no revisa: no ve el ítem.
         $this->assertNull($reviewItem($this->sellerA));
+    }
+
+    // ─── Jugadores externos del vendedor (/admin/external-players) ──────────
+
+    /** @test */
+    public function seller_sees_only_the_external_players_they_captured(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $this->sale($this->sellerE, $this->roomR1, [
+            'player' => ['phone' => '+584147778899', 'first_name' => 'Pedro', 'last_name' => 'Ajeno'],
+        ]);
+
+        $names = collect($this->actingAs($this->sellerA)->getJson('/admin/external-players/fetch-list')->assertOk()->json('players.data'))
+            ->map(fn ($p) => trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')))
+            ->all();
+
+        // Antes la lista del vendedor salía siempre vacía (rol sin alcance propio).
+        $this->assertSame(['Ana Pérez'], $names);
+
+        $own   = \App\Models\Roles\Player\External\ExternalPlayer::where('seller_user_id', $this->sellerA->id)->firstOrFail();
+        $other = \App\Models\Roles\Player\External\ExternalPlayer::where('seller_user_id', '!=', $this->sellerA->id)->first();
+
+        $this->assertTrue($this->sellerA->can('view', $own));
+        if ($other) {
+            $this->assertFalse($this->sellerA->can('view', $other));
+        }
     }
 
     // ─── Compra por cuenta propia con código (/comprar/{token}) ──────────────
