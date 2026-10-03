@@ -31,7 +31,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class RoleProfileInsightsService
 {
-    private const TREND_DAYS = 30;
+    /** 14 días: mismo período que la tendencia de los dashboards (BuildsSalesTrend) y legible en el eje X. */
+    private const TREND_DAYS = 14;
 
     /**
      * @param callable(Builder): void $lotScope
@@ -60,7 +61,8 @@ final class RoleProfileInsightsService
         $lifetime = $this->lifetime($lotScope, $commissionColumn, $primaryId);
 
         return [
-            'period_label'     => ucfirst($now->translatedFormat('F Y')),
+            // locale explícito: el de la app no siempre es 'es' ("October 2026").
+            'period_label'     => ucfirst($now->copy()->locale('es')->translatedFormat('F Y')),
             'currency'         => $primaryId && $currencies->has($primaryId)
                 ? ['iso' => $currencies[$primaryId]->iso_code, 'symbol' => $currencies[$primaryId]->symbol]
                 : null,

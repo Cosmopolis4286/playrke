@@ -118,7 +118,7 @@ async function copy(value: string, key: string) {
 
     <p class="rp-note">
       <i class="fas fa-circle-info"></i>
-      El email y el país se cambian desde <a href="/profile">Mi cuenta</a> o con soporte.
+      <span>El email y el país se cambian desde <a href="/profile">Mi cuenta</a> o con soporte.</span>
     </p>
   </RpCard>
 </template>
@@ -166,6 +166,7 @@ async function copy(value: string, key: string) {
 .rp-fade-enter-active, .rp-fade-leave-active { transition: opacity 0.3s; }
 .rp-fade-enter-from, .rp-fade-leave-to { opacity: 0; }
 
-.rp-note { display: flex; align-items: center; gap: 0.4rem; margin: 0.9rem 0 0; font-size: 0.74rem; color: var(--ds-text-muted); }
+.rp-note { display: flex; align-items: flex-start; gap: 0.4rem; margin: 0.9rem 0 0; font-size: 0.74rem; line-height: 1.4; color: var(--ds-text-muted); }
+.rp-note i { margin-top: 0.15rem; }
 .rp-note a { color: #7c8cf0; }
 </style>

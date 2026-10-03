@@ -23,10 +23,10 @@ const hasSales = computed(() => props.performance.lifetime.lots > 0)
 const tiles = computed(() => {
   const k = props.performance.kpis
   return [
-    { key: 'sales', icon: 'fa-sack-dollar', label: 'Ventas', value: `${symbol.value} ${formatAmount(k.sales.value)}`, kpi: k.sales, hint: props.performance.currency?.iso ?? '' },
+    { key: 'sales', icon: 'fa-sack-dollar', label: 'Monto vendido', value:`${symbol.value} ${formatAmount(k.sales.value)}`, kpi: k.sales, hint: props.performance.currency?.iso ?? '' },
     { key: 'commission', icon: 'fa-hand-holding-dollar', label: COMMISSION_LABEL[props.role].label, value: `${symbol.value} ${formatAmount(k.commission.value)}`, kpi: k.commission, hint: COMMISSION_LABEL[props.role].hint, highlight: true },
     { key: 'cards', icon: 'fa-ticket', label: 'Cartones', value: formatInteger(k.cards.value), kpi: k.cards, hint: 'Todas las monedas' },
-    { key: 'lots', icon: 'fa-receipt', label: 'Ventas registradas', value: formatInteger(k.lots.value), kpi: k.lots, hint: 'Lotes vendidos' },
+    { key: 'lots', icon: 'fa-receipt', label: 'Ventas', value: formatInteger(k.lots.value), kpi: k.lots, hint: 'Operaciones registradas' },
   ]
 })
 
@@ -70,7 +70,7 @@ function trend(kpi: RoleProfileKpi): { cls: string; icon: string; text: string }
 
     <div class="rp-chart">
       <div class="rp-chart__head">
-        <span class="rp-chart__title">Cartones vendidos · últimos 30 días</span>
+        <span class="rp-chart__title">Cartones vendidos · últimos 14 días</span>
       </div>
       <DashboardTrendChart :data="performance.trend" label="Cartones vendidos" />
     </div>
