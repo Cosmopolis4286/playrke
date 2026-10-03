@@ -57,6 +57,14 @@ return new class extends Migration
                 ->default('ACTIVE')
                 ->comment('Estado activo/inactivo');
 
+            // Token del enlace público de venta del vendedor (/comprar/{token}),
+            // donde sus compradores recurrentes compran con código. Aleatorio y
+            // regenerable (invalida el anterior); null hasta el primer uso.
+            $table->string('sales_link_token', 40)
+                ->nullable()
+                ->unique()
+                ->comment('Token del enlace público de venta (regenerable)');
+
             // Timestamps automáticos
             $table->timestamps();
 
