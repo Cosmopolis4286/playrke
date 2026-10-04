@@ -42,7 +42,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
      * Arma sala + config + ronda + patrón (línea simple: fila 0 de cada
      * columna) + cartón activo del usuario, listos para checkWinnerForUser().
      */
-    private function makeRoomWithCard(array $cardNumbers, User $user): array
+    private function makeRoomWithCard(array $cardNumbers, User $user, string $roomTypeCode = 'PUBLIC'): array
     {
         $country = Country::firstOrCreate(
             ['iso_code_2' => 'TC'],
@@ -50,7 +50,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
         );
 
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
-        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $roomType = RoomType::firstOrCreate(['code' => $roomTypeCode], ['label' => $roomTypeCode]);
         $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
         // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder).
         $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
@@ -203,6 +203,28 @@ class BingoWinnerDetectionServiceTest extends TestCase
             'user_id'     => (string) $user->id,
             'signal_type' => 'IMPOSSIBLE_CLAIM_TIMING',
         ]);
+    }
+
+    public function test_demo_room_winner_is_recorded_but_prize_is_never_paid(): void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+        // Bote "de mentira" (ej. Valor Fijo de una sala DEMO): no debe acreditarse.
+        $room->update(['prize_pool' => 100, 'full_house_prize' => 100]);
+
+        $this->drawWinningLine($room, $round);
+
+        app(BingoWinnerDetectionService::class)->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $this->assertDatabaseHas('bingo_card_prizes', [
+            'room_id'      => (string) $room->id,
+            'prize_status' => 'cancelled',
+        ]);
+        $this->assertDatabaseMissing('bingo_card_prizes', [
+            'room_id'      => (string) $room->id,
+            'prize_status' => 'claimed',
+        ]);
+        $this->assertDatabaseCount('wallet_movements', 0);
     }
 
     public function test_normal_timing_without_winning_card_returns_null_without_flagging(): void
