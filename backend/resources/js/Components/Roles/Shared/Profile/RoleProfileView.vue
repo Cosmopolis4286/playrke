@@ -104,8 +104,8 @@ const page = computed(() => PAGE[profile.value.role])
 }
 @media (max-width: 1199.98px) {
   .rp-grid { grid-template-columns: minmax(0, 1fr); }
-  /* En una columna, contacto + billetera + seguridad arriba: es lo que más se consulta. */
-  .rp-grid__aside { order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  /* En una columna, el lateral va después del desempeño (lo primero que se busca) y en rejilla si hay ancho. */
+  .rp-grid__aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
 }
 
 .rp-admin-banner {

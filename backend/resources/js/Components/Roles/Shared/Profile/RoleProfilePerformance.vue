@@ -33,7 +33,7 @@ const tiles = computed(() => {
 function trend(kpi: RoleProfileKpi): { cls: string; icon: string; text: string } {
   if (kpi.change_pct === null) {
     return kpi.value > 0
-      ? { cls: 'rp-trend--new', icon: 'fa-star', text: 'Nuevo este mes' }
+      ? { cls: 'rp-trend--new', icon: 'fa-star', text: 'Nuevo' }
       : { cls: 'rp-trend--flat', icon: 'fa-minus', text: 'Sin actividad' }
   }
   if (kpi.change_pct > 0) return { cls: 'rp-trend--up', icon: 'fa-arrow-trend-up', text: `+${kpi.change_pct}%` }
@@ -170,7 +170,12 @@ function trend(kpi: RoleProfileKpi): { cls: string; icon: string; text: string }
 @media (max-width: 1199.98px) {
   .rp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 400px) {
+@media (max-width: 575.98px) {
+  .rp-kpi { padding: 0.7rem 0.75rem; }
+  .rp-kpi__value { font-size: 1.05rem; }
+  .rp-kpi__hint { display: none; }
+}
+@media (max-width: 340px) {
   .rp-kpis { grid-template-columns: 1fr; }
 }
 </style>

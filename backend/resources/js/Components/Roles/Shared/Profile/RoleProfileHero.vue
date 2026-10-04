@@ -88,7 +88,7 @@ const parents = computed(() => props.profile.hierarchy.chain.filter((n) => !n.is
   padding: 0 1.5rem 1.25rem;
   margin-top: -38px;
 }
-.rp-hero__avatar { position: relative; }
+.rp-hero__avatar { position: relative; justify-self: start; width: fit-content; }
 .rp-hero__initials {
   width: 84px; height: 84px;
   display: flex; align-items: center; justify-content: center;

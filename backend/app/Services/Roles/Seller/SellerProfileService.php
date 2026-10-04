@@ -56,6 +56,14 @@ final class SellerProfileService
         $subsidiary = $seller->subsidiary_id ? $seller->subsidiary : null;
         $rate       = (float) $seller->commission;
 
+        // Cada nivel ve las comisiones SUYAS y de quienes tiene debajo, nunca
+        // las de arriba: el vendedor ve la cadena (nombres y estado) pero no el
+        // % de su agencia/comercializadora — ni su tope, que es justamente la
+        // comisión de la agencia (CommissionHierarchyGuard::sellerCap()).
+        // Admin/superadmin viendo el perfil sí ven todo.
+        $isAdminView = (bool) $this->adminAccess->resolve($this->userContext->resolveUserId(), $targetUserId)['is_admin_view'];
+        $upperRate   = fn (float $value): ?float => $isAdminView ? $value : null;
+
         $lotScope = fn (Builder $q) => $q->where('seller_user_id', $seller->user_id);
 
         return [
@@ -78,18 +86,18 @@ final class SellerProfileService
             // comisión propia) o la comercializadora (ver CommissionHierarchyGuard).
             'hierarchy' => [
                 'chain' => array_values(array_filter([
-                    $commerce ? ['level' => 'commerce', 'name' => $commerce->name, 'rate' => (float) $commerce->commission, 'status' => $commerce->status, 'is_self' => false] : null,
-                    $subsidiary ? ['level' => 'subsidiary', 'name' => $subsidiary->name, 'rate' => (float) $subsidiary->commission, 'status' => $subsidiary->status, 'is_self' => false] : null,
+                    $commerce ? ['level' => 'commerce', 'name' => $commerce->name, 'rate' => $upperRate((float) $commerce->commission), 'status' => $commerce->status, 'is_self' => false] : null,
+                    $subsidiary ? ['level' => 'subsidiary', 'name' => $subsidiary->name, 'rate' => $upperRate((float) $subsidiary->commission), 'status' => $subsidiary->status, 'is_self' => false] : null,
                     ['level' => 'seller', 'name' => $seller->name, 'rate' => $rate, 'status' => $seller->status, 'is_self' => true],
                 ])),
-                'cap' => $this->commissionGuard->sellerCap($seller->subsidiary_id, $seller->manager_user_id),
+                'cap' => $isAdminView ? $this->commissionGuard->sellerCap($seller->subsidiary_id, $seller->manager_user_id) : null,
             ],
 
             'currencies' => $seller->currenciesActive()->pluck('iso_code')->all(),
             'games'      => $seller->gamesActive()->pluck('name')->all(),
 
             'performance'      => $this->insights->performance($lotScope, 'commission_amount'),
-            'alerts'           => $this->alerts($seller, $commerce),
+            'alerts'           => $this->alerts($seller, $commerce, $isAdminView),
             'security'         => $this->insights->security((string) $seller->user_id),
             'wallets'          => $this->enrichment->wallets($seller->user),
             'recent_movements' => $this->enrichment->recentMovements($seller->user),
@@ -111,7 +119,7 @@ final class SellerProfileService
         $seller->update(array_intersect_key($data, array_flip(['name', 'phone'])));
     }
 
-    private function alerts(Seller $seller, $commerce): array
+    private function alerts(Seller $seller, $commerce, bool $isAdminView = false): array
     {
         $alerts = [];
 
@@ -131,10 +139,12 @@ final class SellerProfileService
 
         $cap = $this->commissionGuard->sellerCap($seller->subsidiary_id, $seller->manager_user_id);
         if ($cap !== null && (float) $seller->commission > $cap + 0.001) {
+            // El % del tope es la comisión del nivel superior: solo se muestra
+            // a admin; el vendedor ve el aviso sin ese número.
             $alerts[] = Insights::alert('warning', 'fa-scale-unbalanced', 'Comisión fuera de tope',
-                sprintf('Tu comisión (%s%%) supera el tope de tu nivel superior (%s%%). Seguirás cobrando tu comisión; tu responsable debe ajustarla.',
+                sprintf('Tu comisión (%s%%) supera el tope de tu nivel superior%s. Seguirás cobrando tu comisión; tu responsable debe ajustarla.',
                     rtrim(rtrim(number_format((float) $seller->commission, 2), '0'), '.'),
-                    rtrim(rtrim(number_format($cap, 2), '0'), '.')));
+                    $isAdminView ? ' (' . rtrim(rtrim(number_format($cap, 2), '0'), '.') . '%)' : ''));
         }
 
         return $alerts;

@@ -27,7 +27,8 @@ const rule = computed<string[]>(() => {
   if (p.role === 'seller') {
     const lines = [`Cobras el ${pct(own)} de cada venta que registras.`]
     if (p.hierarchy.cap !== null) {
-      const parent = chain.value.find((n) => n.level === 'subsidiary' && n.rate > 0) ? 'tu agencia' : 'tu comercializadora'
+      // Solo llega cap cuando quien mira es admin (con los % de arriba visibles).
+      const parent = chain.value.find((n) => n.level === 'subsidiary' && (n.rate ?? 0) > 0) ? 'tu agencia' : 'tu comercializadora'
       lines.push(`Tu comisión puede llegar hasta el ${pct(p.hierarchy.cap)}, el tope que define ${parent}.`)
     }
     return lines
@@ -60,20 +61,54 @@ const rule = computed<string[]>(() => {
   return lines
 })
 
-/** Ejemplo con números (solo vendedor: conoce la cadena completa hacia arriba). */
-const example = computed(() => {
-  if (props.profile.role !== 'seller') return null
-  const seller = props.profile.commission
-  const agency = chain.value.find((n) => n.level === 'subsidiary')
-  const commerce = chain.value.find((n) => n.level === 'commerce')
-  const agencyRate = agency?.rate ?? 0
+/**
+ * Ejemplo con números — SOLO con datos del propio nivel y de los de abajo
+ * (regla: nadie ve la comisión de quien está por encima; el backend ni
+ * siquiera la envía al dueño del perfil, ver SellerProfileService).
+ *
+ * - Vendedor: cuánto gana según cuánto venda (100 / 500 / 1.000).
+ * - Agencia / comercializadora: por cada 100 que venda su red, cuánto se
+ *   llevan los de abajo y cuánto gana ella (rango si sus comisiones varían).
+ */
+interface ExampleRow { label: string; value: string; self: boolean }
 
-  return [
-    { label: 'Tú', amount: seller, self: true },
-    ...(agency ? [{ label: agency.name, amount: Math.max(0, agencyRate - seller), self: false }] : []),
-    ...(commerce ? [{ label: commerce.name, amount: Math.max(0, commerce.rate - Math.max(seller, agencyRate)), self: false }] : []),
-  ]
+const num = (n: number) => Math.max(0, n).toLocaleString('es-VE', { maximumFractionDigits: 2 })
+const span = (min: number, max: number) => (Math.abs(max - min) < 0.005 ? num(max) : `${num(min)} – ${num(max)}`)
+
+const example = computed<{ title: string; rows: ExampleRow[] } | null>(() => {
+  const p = props.profile
+  const own = p.commission
+
+  if (p.role === 'seller') {
+    return {
+      title: 'Lo que ganas según lo que vendas',
+      rows: [100, 500, 1000].map((sold) => ({
+        label: `Si vendes ${num(sold)}`,
+        value: num((sold * own) / 100),
+        self: sold === 100,
+      })),
+    }
+  }
+
+  if (p.role === 'subsidiary' && p.hierarchy.pass_through) return null
+
+  const range = p.hierarchy.children_rate_range
+  if (!range) return null
+
+  return {
+    title: 'Por cada 100 que venda tu red',
+    rows: [
+      { label: p.role === 'subsidiary' ? 'Tus vendedores cobran' : 'Tu red cobra', value: span(range.min, range.max), self: false },
+      { label: 'Tú ganas', value: span(own - range.max, own - range.min), self: true },
+    ],
+  }
 })
+
+/** Celda de % de un nivel: oculto (nivel superior), "De paso" o el porcentaje. */
+function rateLabel(node: { level: RoleProfileRole; rate: number | null }): string | null {
+  if (node.rate === null) return null
+  return node.level === 'subsidiary' && node.rate <= 0 ? 'De paso' : formatRate(node.rate)
+}
 
 const currencies = computed(() => ('currencies' in props.profile ? props.profile.currencies : []))
 const games = computed(() => ('games' in props.profile ? props.profile.games : []))
@@ -89,7 +124,10 @@ const games = computed(() => ('games' in props.profile ? props.profile.games : [
           <span class="rp-chain__name">{{ node.name }}</span>
         </div>
         <span :class="['rp-chain__status', `rp-chain__status--${statusMeta(node.status).tone}`]" :title="statusMeta(node.status).label"></span>
-        <span class="rp-chain__rate">{{ node.level === 'subsidiary' && node.rate <= 0 ? 'De paso' : formatRate(node.rate) }}</span>
+        <span v-if="rateLabel(node) !== null" class="rp-chain__rate">{{ rateLabel(node) }}</span>
+        <span v-else class="rp-chain__rate rp-chain__rate--hidden" title="Solo ese nivel ve su comisión">
+          <i class="fas fa-lock"></i>
+        </span>
       </li>
     </ol>
 
@@ -101,11 +139,11 @@ const games = computed(() => ('games' in props.profile ? props.profile.games : [
     </div>
 
     <div v-if="example" class="rp-example">
-      <span class="rp-example__title">Por cada 100 vendidos</span>
+      <span class="rp-example__title">{{ example.title }}</span>
       <div class="rp-example__rows">
-        <div v-for="row in example" :key="row.label" :class="['rp-example__row', { 'rp-example__row--self': row.self }]">
+        <div v-for="row in example.rows" :key="row.label" :class="['rp-example__row', { 'rp-example__row--self': row.self }]">
           <span class="rp-example__label">{{ row.label }}</span>
-          <span class="rp-example__amount">{{ row.amount.toLocaleString('es-VE', { maximumFractionDigits: 2 }) }}</span>
+          <span class="rp-example__amount">{{ row.value }}</span>
         </div>
       </div>
     </div>
@@ -170,6 +208,7 @@ const games = computed(() => ('games' in props.profile ? props.profile.games : [
   font-size: 1rem; font-weight: 800; color: var(--ds-text);
   font-variant-numeric: tabular-nums;
 }
+.rp-chain__rate--hidden { font-size: 0.8rem; color: var(--ds-text-muted); cursor: help; }
 
 .rp-rule {
   display: flex; gap: 0.6rem;

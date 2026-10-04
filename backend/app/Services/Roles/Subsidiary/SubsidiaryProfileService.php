@@ -51,6 +51,10 @@ final class SubsidiaryProfileService
         $rate = (float) $subsidiary->commission;
         $commerce = $subsidiary->commerce;
 
+        // Cada nivel ve las comisiones SUYAS y de quienes tiene debajo (sus
+        // vendedores), nunca la de su comercializadora. Admin ve todo.
+        $isAdminView = (bool) $this->adminAccess->resolve($this->userContext->resolveUserId(), $targetUserId)['is_admin_view'];
+
         $sellers = Seller::where('subsidiary_id', $subsidiary->id)
             ->where('status', '!=', 'DELETED')
             ->orderBy('name')
@@ -98,7 +102,7 @@ final class SubsidiaryProfileService
             // comercializadora — ver CommissionHierarchyGuard).
             'hierarchy' => [
                 'chain' => array_values(array_filter([
-                    $commerce ? ['level' => 'commerce', 'name' => $commerce->name, 'rate' => (float) $commerce->commission, 'status' => $commerce->status, 'is_self' => false] : null,
+                    $commerce ? ['level' => 'commerce', 'name' => $commerce->name, 'rate' => $isAdminView ? (float) $commerce->commission : null, 'status' => $commerce->status, 'is_self' => false] : null,
                     ['level' => 'subsidiary', 'name' => $subsidiary->name, 'rate' => $rate, 'status' => $subsidiary->status, 'is_self' => true],
                 ])),
                 'pass_through'        => $rate <= 0.001,
@@ -109,7 +113,7 @@ final class SubsidiaryProfileService
             ],
 
             'performance'      => $this->insights->performance($lotScope, 'subsidiary_commission_amount'),
-            'alerts'           => $this->alerts($subsidiary, $sellers),
+            'alerts'           => $this->alerts($subsidiary, $sellers, $isAdminView),
             'security'         => $this->insights->security((string) $subsidiary->user_id),
             'wallets'          => $this->enrichment->wallets($subsidiary->user),
             'recent_movements' => $this->enrichment->recentMovements($subsidiary->user),
@@ -131,7 +135,7 @@ final class SubsidiaryProfileService
         $subsidiary->update(array_intersect_key($data, array_flip(['name', 'phone'])));
     }
 
-    private function alerts(Subsidiary $subsidiary, $sellers): array
+    private function alerts(Subsidiary $subsidiary, $sellers, bool $isAdminView = false): array
     {
         $alerts = [];
         $rate = (float) $subsidiary->commission;
@@ -152,7 +156,11 @@ final class SubsidiaryProfileService
 
         if ($commerce && $rate > (float) $commerce->commission + 0.001) {
             $alerts[] = Insights::alert('warning', 'fa-scale-unbalanced', 'Comisión por encima de tu comercializadora',
-                sprintf('Tu comisión (%s%%) supera la de %s (%s%%). Pide a tu comercializadora que la ajuste.', $this->pct($rate), $commerce->name, $this->pct((float) $commerce->commission)));
+                // El % de la comercializadora solo se muestra a admin.
+                sprintf('Tu comisión (%s%%) supera la de %s%s. Pide a tu comercializadora que la ajuste.',
+                    $this->pct($rate),
+                    $commerce->name,
+                    $isAdminView ? ' (' . $this->pct((float) $commerce->commission) . '%)' : ''));
         }
 
         if ($rate > 0.001) {

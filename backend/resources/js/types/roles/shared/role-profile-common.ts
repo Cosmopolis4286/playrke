@@ -49,7 +49,11 @@ export interface RoleProfilePerformance {
 export interface RoleProfileChainNode {
     level: RoleProfileRole
     name: string
-    rate: number
+    /**
+     * null = nivel SUPERIOR al que mira su propio perfil: cada nivel ve solo
+     * las comisiones suyas y de quienes tiene debajo (admin ve todo).
+     */
+    rate: number | null
     status: EntityStatus
     is_self: boolean
 }
