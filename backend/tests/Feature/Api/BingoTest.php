@@ -179,6 +179,24 @@ class BingoTest extends TestCase
      * FOREIGN_KEY_CHECKS=0 no requieren fila real, igual que en el resto de
      * la suite de Bingo ya migrada.
      */
+    private function publicRoomTypeId(): string
+    {
+        return $this->roomTypeId('PUBLIC');
+    }
+
+    private function roomTypeId(string $code): string
+    {
+        $id = DB::table('room_types')->where('code', $code)->value('id');
+        if ($id === null) {
+            $id = $this->nextId();
+            DB::table('room_types')->insert([
+                'id' => $id, 'code' => $code, 'label' => $code, 'status' => 'ACTIVE',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+        return (string) $id;
+    }
+
     private function makeRoom(array $roomOverrides = [], array $configOverrides = []): BingoRoom
     {
         $roomId = $this->nextId();
@@ -213,7 +231,9 @@ class BingoTest extends TestCase
             'parent_automatic_id' => null,
             'is_scheduled' => 'N',
             'from_house' => 'N',
-            'room_type_id' => $this->nextId(),
+            // Tipo real PUBLIC: canPlayerAccessRoom() cierra los tipos
+            // desconocidos, así que un ID sintético sin fila bloquearía la compra.
+            'room_type_id' => $this->publicRoomTypeId(),
             'creator_user_id' => $this->user->id,
             'connection_type_id' => $this->nextId(),
             'in_live' => 'N',
@@ -354,6 +374,52 @@ class BingoTest extends TestCase
         $this->assertEquals(80.0, (float) $response->json('wallet_balance'));
         $this->assertEquals(80.0, (float) $wallet->fresh()->balance);
         $this->assertEquals(2, BingoCard::where('room_id', $room->id)->where('creator_user_id', $player->id)->count());
+    }
+
+    /** @test */
+    public function demo_room_cards_are_free_and_move_no_money()
+    {
+        // Sala DEMO creada por el propio jugador (único que la ve, junto con admin).
+        $player = $this->makePlayer();
+        $room = $this->makeRoom(
+            ['creator_user_id' => $player->id, 'rke_commission' => 5, 'room_commission' => 10],
+            ['creator_user_id' => $player->id, 'room_type_id' => $this->roomTypeId('DEMO'), 'card_price_usd' => 10.00],
+        );
+        $wallet = $this->makeWallet($player, 100);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 2]);
+
+        $response->assertOk();
+        $this->assertEquals(100.0, (float) $wallet->fresh()->balance, 'DEMO no debita la billetera');
+        $this->assertEquals(2, BingoCard::where('room_id', $room->id)->count());
+
+        $fresh = $room->fresh();
+        $this->assertSame(2, (int) $fresh->total_cards);
+        $this->assertEquals(0.0, (float) $fresh->total_sales);
+        $this->assertEquals(0.0, (float) $fresh->prize_pool);
+
+        $lot = \App\Domains\Games\Bingo\Models\Card\BingoCardLot::where('room_id', $room->id)->firstOrFail();
+        $this->assertEquals(0.0, (float) $lot->sale_amount);
+        $this->assertSame('demo', $lot->financial_breakdown['channel'] ?? null);
+
+        $this->assertSame(0, DB::table('wallet_movements')->where('wallet_id', $wallet->id)->count());
+        $this->assertSame(0, DB::table('platform_receivables')->where('room_id', $room->id)->count());
+        $this->assertSame(0, DB::table('bingo_creator_sales')->where('room_id', $room->id)->count());
+    }
+
+    /** @test */
+    public function demo_room_is_closed_to_other_players()
+    {
+        $room = $this->makeRoom([], ['room_type_id' => $this->roomTypeId('DEMO')]);
+        $player = $this->makePlayer();
+        $wallet = $this->makeWallet($player, 100);
+
+        $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1])
+            ->assertStatus(404);
+
+        $this->assertEquals(100.0, (float) $wallet->fresh()->balance);
     }
 
     /** @test */

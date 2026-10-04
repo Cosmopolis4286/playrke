@@ -783,8 +783,10 @@ final class BingoDrawService
             $round->load('prizes');
         }
 
+        $isDemoRoom = $room->isDemo();
+
         /** @var array{winnerData: array<string,mixed>, broadcast: array<string,mixed>}|null $txResult */
-        $txResult = DB::transaction(function () use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, &$cardPrize) {
+        $txResult = DB::transaction(function () use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, &$cardPrize) {
             $card = BingoCard::where('id', $cardId)
                 ->lockForUpdate()
                 ->with(['roomUser.user', 'cardLot'])
@@ -893,7 +895,10 @@ final class BingoDrawService
                 'winning_pattern'   => $pattern->name,
                 'usd_amount'        => $prizeAmounts['usd_amount'],
                 'local_amount'      => $prizeAmounts['local_amount'],
-                'prize_status'      => 'waiting',
+                // Sala DEMO (sin dinero real): el premio queda registrado pero
+                // cancelado de entrada — ni el pago de abajo ni el comando de
+                // reintentos (waiting/processing) lo acreditan nunca.
+                'prize_status'      => $isDemoRoom ? 'cancelled' : 'waiting',
                 'verification_code' => strtoupper(bin2hex(random_bytes(8))),
             ]);
 
@@ -957,6 +962,19 @@ final class BingoDrawService
                 pattern:    $broadcastWinner['pattern'],
                 prize:      $broadcastWinner['prize'],
             ));
+
+            if ($isDemoRoom) {
+                // Sala DEMO: ganador simulado. Sin ticker público de ganadores,
+                // sin acreditación a la billetera y sin XP/logros.
+                if ($txResult['wasNewlyCreated']) {
+                    $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_PRIZE_CREATED, 'system', 'Sala DEMO: premio simulado, no se acredita', [
+                        'card_prize_id' => (string) $cardPrize->id,
+                        'usd_amount'    => $cardPrize->usd_amount,
+                    ]);
+                }
+
+                return $winnerData;
+            }
 
             $cardPrize->loadMissing('currency');
 

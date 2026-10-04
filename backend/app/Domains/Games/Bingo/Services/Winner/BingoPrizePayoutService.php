@@ -31,6 +31,16 @@ final class BingoPrizePayoutService
 
     public function payout(BingoCardPrize $cardPrize): void
     {
+        // Sala DEMO: nunca se acredita (el premio nace 'cancelled' en
+        // BingoDrawService; esto cubre reintentos o cambios manuales de estado).
+        $cardPrize->loadMissing('room');
+        if ($cardPrize->room?->isDemo()) {
+            if (!$cardPrize->isCancelled()) {
+                $cardPrize->update(['prize_status' => 'cancelled']);
+            }
+            return;
+        }
+
         $this->gamePrizeService->payout(
             prizeRecord: $cardPrize,
             description: "Premio Bingo — Sala #{$cardPrize->room_id}",

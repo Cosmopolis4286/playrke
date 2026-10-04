@@ -764,6 +764,7 @@ final class BingoCardGenerateService
                 amountUsd: (float) $cardOrder['saleAmountUsd'],
                 creatorUserId: (string) $creatorUser,
                 subsidiaryUserId: $subsidiaryUserId ? (string) $subsidiaryUserId : null,
+                sellerUserId: (string) Auth::id(),
             ));
         } catch (\Throwable $e) {
             Log::warning('BingoCardSold: no se pudo emitir la venta del punto de venta', [
@@ -976,6 +977,13 @@ final class BingoCardGenerateService
             $cardPrice = $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate);
         }
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
+
+        // Sala DEMO: cartones gratis (sin dinero real). Con precio base 0 los
+        // recargos por cartón personalizado / mover la libre también dan 0.
+        if ($room->isDemo()) {
+            $cardPrice = 0.0;
+            $cardPriceUsd = 0.0;
+        }
 
         $customCardMode = $room->config?->custom_card_mode;
         $customCardPricePct = match ($customCardMode) {
@@ -1292,7 +1300,10 @@ final class BingoCardGenerateService
         // verificación autoritativa ocurre dentro de recordCardPurchase() bajo
         // lockForUpdate(). Se considera bono + saldo real, ya que la compra
         // consume primero el bono.
-        if (! $playerWallet->hasSufficientPlayableBalance($totalAmount)) {
+        // Sala DEMO: no se toca la billetera (ni validación de saldo ni débito).
+        $isDemo = $room->isDemo();
+
+        if (! $isDemo && ! $playerWallet->hasSufficientPlayableBalance($totalAmount)) {
             $currentBalance = (float) $playerWallet->getPlayableBalance();
             throw BingoCardGenerateException::insufficientBalance($currentBalance, $totalAmount);
         }
@@ -1322,7 +1333,7 @@ final class BingoCardGenerateService
             // Pagado con la billetera del jugador (recordCardPurchase abajo): el
             // dinero está en el sistema, así que el RKE se acredita al vender y
             // la comisión del creador se le paga al cerrar la sala.
-            'saleChannel'    => 'wallet',
+            'saleChannel'    => $isDemo ? 'demo' : 'wallet',
         ];
 
         // Generar cartones y debitar wallet en una sola transacción atómica.
@@ -1330,8 +1341,12 @@ final class BingoCardGenerateService
         // no queda con cartones sin pago.
         $description = "Compra de {$cardCount} cartón(es) — Sala {$room->uuid_code}";
         $newBalance = null;
-        DB::transaction(function () use ($cardOrder, $playerWallet, $totalAmount, $description, $roomId, $userId, &$newBalance) {
+        DB::transaction(function () use ($cardOrder, $playerWallet, $totalAmount, $description, $roomId, $userId, $isDemo, &$newBalance) {
             $this->cardGenerationService->generateInTransaction($cardOrder);
+            if ($isDemo) {
+                $newBalance = (float) $playerWallet->getPlayableBalance();
+                return;
+            }
             $purchase = $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
             $newBalance = (float) $purchase['wallet']->getPlayableBalance();
 

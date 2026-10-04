@@ -244,6 +244,27 @@ class BingoRoom extends BaseModel
     }
 
     /**
+     * Sala DEMO: de prueba, sin dinero real (cartones gratis, sin reparto de
+     * comisiones/jackpot/deudas y premios simulados, sin acreditar).
+     *
+     * Usa la relación roomType si ya viene cargada; si no (o la config se
+     * cargó con un select parcial sin room_type_id), lo consulta.
+     */
+    public function isDemo(): bool
+    {
+        $config = $this->relationLoaded('config') ? $this->getRelation('config') : null;
+        if ($config && $config->relationLoaded('roomType') && $config->getRelation('roomType')) {
+            return $config->getRelation('roomType')->code === 'DEMO';
+        }
+
+        $typeId = $config?->room_type_id
+            ?? BingoRoomConfig::where('room_id', $this->id)->value('room_type_id');
+
+        return $typeId !== null
+            && \App\Models\Games\Common\Room\RoomType::whereKey($typeId)->value('code') === 'DEMO';
+    }
+
+    /**
      * Total de comisiones
      */
     public function getTotalCommissionsAttribute(): float

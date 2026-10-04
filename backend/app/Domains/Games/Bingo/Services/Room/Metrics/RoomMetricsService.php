@@ -212,6 +212,17 @@ class RoomMetricsService implements RoomMetricsInterface
             // pozo de premios y las comisiones de la casa quedan subestimados.
             $room = BingoRoom::where('id', $room->id)->lockForUpdate()->firstOrFail();
 
+            // Sala DEMO (sin dinero real, ver BingoCardGenerationService): solo
+            // se cuentan los cartones. Nada de RKE, jackpot, bote, venta del
+            // creador ni deuda — el desglose sin montos hace que un reembolso
+            // del lote tampoco revierta nada.
+            if (($saleData['saleChannel'] ?? null) === 'demo') {
+                $breakdown = ['version' => 1, 'channel' => 'demo'];
+                return $room->update([
+                    'total_cards' => ($room->total_cards ?? 0) + $saleData['cardCount'],
+                ]);
+            }
+
             // Persistir métricas monetarias de bingo_rooms en USD.
             // Los lotes/pagos pueden conservar moneda local; este agregado siempre queda normalizado.
             $exchangeRate = $saleData['exchangeRate'] ?? 1;

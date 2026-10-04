@@ -71,6 +71,16 @@ final class BingoCardGenerationService
             throw new \DomainException('Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
         }
 
+        // Sala DEMO (de prueba, sin dinero real): el cartón es gratis sin
+        // importar el canal (jugador o POS). Con monto 0 no hay reparto de red,
+        // y el canal 'demo' hace que RoomMetricsService solo cuente cartones
+        // (sin RKE, jackpot, bote, venta del creador ni deuda del comercio).
+        if ($room->isDemo()) {
+            $cardOrder['cardPrice']     = 0;
+            $cardOrder['saleAmountUsd'] = 0;
+            $cardOrder['saleChannel']   = 'demo';
+        }
+
         try {
             // Inicialización de variables
             $creator = $cardOrder['creator'];
@@ -104,7 +114,7 @@ final class BingoCardGenerationService
             // comercializadora), en moneda local — ver
             // CommissionCalculationService::networkSplit(). Sin vendedor no
             // hay comisión de red (compra directa de player o del propio commerce).
-            $networkSplit = $seller
+            $networkSplit = ($seller && $saleAmount > 0)
                 ? $this->commissionCalculation->networkSplit($saleAmount, (string) $seller, $roomId)
                 : null;
             $sellerSaleCommn = $networkSplit['seller_amount'] ?? 0;
