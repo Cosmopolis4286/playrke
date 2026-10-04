@@ -34,14 +34,17 @@ final class PlatformReceivableService
     /**
      * Idempotente por lote (lot_id único).
      *
-     * @param array{rke?: float, jackpot?: float, prize_pool?: float} $parts
+     * @param array{rke?: float, jackpot?: float, prize_pool?: float, creator?: float} $parts
+     * @param string|null $creatorPayeeUserId Creador de la sala que debe recibir la parte
+     *                                         'creator' (solo en venta cruzada).
      */
-    public function record(string $debtorUserId, string $currencyId, array $parts, ?string $roomId, ?string $lotId, ?string $notes = null): ?PlatformReceivable
+    public function record(string $debtorUserId, string $currencyId, array $parts, ?string $roomId, ?string $lotId, ?string $notes = null, ?string $creatorPayeeUserId = null): ?PlatformReceivable
     {
         $rke     = round(max(0, (float) ($parts['rke'] ?? 0)), 2);
         $jackpot = round(max(0, (float) ($parts['jackpot'] ?? 0)), 2);
         $pool    = round(max(0, (float) ($parts['prize_pool'] ?? 0)), 2);
-        $amount  = round($rke + $jackpot + $pool, 2);
+        $creator = $creatorPayeeUserId ? round(max(0, (float) ($parts['creator'] ?? 0)), 2) : 0.0;
+        $amount  = round($rke + $jackpot + $pool + $creator, 2);
 
         if ($amount <= 0) {
             return null;
@@ -60,6 +63,8 @@ final class PlatformReceivableService
             'rke_amount'        => $rke,
             'jackpot_amount'    => $jackpot,
             'prize_pool_amount' => $pool,
+            'creator_amount'    => $creator,
+            'creator_payee_user_id' => $creator > 0 ? $creatorPayeeUserId : null,
             'status'            => PlatformReceivable::STATUS_PENDING,
             'notes'             => $notes,
         ]);
@@ -145,7 +150,7 @@ final class PlatformReceivableService
             ->groupBy('debtor_user_id', 'platform_receivables.currency_id', 'users.username', 'currencies.iso_code', 'currencies.symbol')
             ->selectRaw('debtor_user_id, platform_receivables.currency_id, users.username as debtor, currencies.iso_code as currency, currencies.symbol,
                 COUNT(*) as sales, SUM(amount) as total, SUM(rke_amount) as rke, SUM(jackpot_amount) as jackpot,
-                SUM(prize_pool_amount) as prize_pool, MIN(platform_receivables.created_at) as oldest')
+                SUM(prize_pool_amount) as prize_pool, SUM(creator_amount) as creator, MIN(platform_receivables.created_at) as oldest')
             ->orderByDesc('total')
             ->get()
             ->map(fn ($r) => [
@@ -159,6 +164,7 @@ final class PlatformReceivableService
                 'rke'            => round((float) $r->rke, 2),
                 'jackpot'        => round((float) $r->jackpot, 2),
                 'prize_pool'     => round((float) $r->prize_pool, 2),
+                'creator'        => round((float) $r->creator, 2),
                 'oldest'         => $r->oldest,
             ])
             ->all();

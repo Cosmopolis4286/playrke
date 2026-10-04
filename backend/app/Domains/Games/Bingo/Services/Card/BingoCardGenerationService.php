@@ -175,6 +175,8 @@ final class BingoCardGenerationService
                     roomId: (string) $room->id,
                     lotId: (string) $lotID,
                     notes: "Venta – Sala #{$room->uuid_code}",
+                    // Venta cruzada: la parte 'creator' es del creador de la sala.
+                    creatorPayeeUserId: $saleBreakdown['room_creator_user_id'] ?? null,
                 );
             }
 

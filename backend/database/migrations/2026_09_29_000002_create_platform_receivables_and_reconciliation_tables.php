@@ -40,12 +40,19 @@ return new class extends Migration
                 // es unsignedBigInteger($column)->primary() — solo sirve para 'id'. En
                 // otra columna declara una segunda PK ("Multiple primary key defined").
                 $table->unsignedBigInteger('lot_id')->nullable()->unique()->comment('Lote de cartones que originó la deuda (una por lote)');
-                $table->decimal('amount', 13, 2)->comment('Total = rke + jackpot + prize_pool');
+                $table->decimal('amount', 13, 2)->comment('Total = rke + jackpot + prize_pool + creator');
                 // Desglose: la red (vendedor/agencia/comercializadora) y el creador se
                 // quedan con sus comisiones; esto es lo que el comercio retuvo y debe.
                 $table->decimal('rke_amount', 13, 2)->default(0)->comment('Comisión RKE de la plataforma');
                 $table->decimal('jackpot_amount', 13, 2)->default(0)->comment('Aporte al jackpot (lo acumula la plataforma)');
                 $table->decimal('prize_pool_amount', 13, 2)->default(0)->comment('Parte del bote (la plataforma paga los premios a billeteras)');
+                // Venta cruzada (sala PÚBLICA de otro creador): comisión del creador
+                // que retuvo el comercio vendedor. La plataforma la custodia y se la
+                // paga al creador cuando la sala cerró y la deuda está cobrada.
+                $table->decimal('creator_amount', 13, 2)->default(0)->comment('Comisión del creador de la sala (venta cruzada)');
+                $table->foreignSnowflake('creator_payee_user_id')->nullable()->constrained('users')->nullOnDelete()->cascadeOnUpdate()
+                    ->comment('Creador de la sala que debe recibir creator_amount');
+                $table->timestamp('creator_paid_at')->nullable()->comment('Cuándo se le pagó al creador');
                 $table->enum('status', ['PENDING', 'SETTLED', 'CANCELLED'])->default('PENDING');
                 $table->timestamp('settled_at')->nullable();
                 $table->foreignSnowflake('settled_by')->nullable()->constrained('users')->nullOnDelete()->cascadeOnUpdate();

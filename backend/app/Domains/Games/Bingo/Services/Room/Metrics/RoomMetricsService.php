@@ -326,6 +326,13 @@ class RoomMetricsService implements RoomMetricsInterface
             // si un caller nuevo no declara el canal.
             $saleChannel = ($saleData['saleChannel'] ?? 'offline') === 'wallet' ? 'wallet' : 'offline';
 
+            // Venta cruzada: quien vende (comercio dueño de la red) no es el creador
+            // de la sala (sala PÚBLICA ajena, o creada por la plataforma).
+            $sellerCommerceId = (string) ($saleData['creator']['id'] ?? '');
+            $isCrossSale = $saleChannel === 'offline'
+                && $sellerCommerceId !== ''
+                && (string) $room->creator_user_id !== $sellerCommerceId;
+
             if ($rkeCommission > 0 && $saleChannel === 'offline') {
                 $rkeCommissionLocal = round($rkeCommission * $exchangeRate, 2);
                 $rkeReceivableLocal = $rkeCommissionLocal;
@@ -550,7 +557,15 @@ class RoomMetricsService implements RoomMetricsInterface
                     'rke'        => round($rkeReceivableLocal, 2),
                     'jackpot'    => $jackpotCreditedUsd > 0 ? round($jackpotContributionLocal, 2) : 0.0,
                     'prize_pool' => $accruesMoneyPool ? round(max(0, $prizePoolLocal), 2) : 0.0,
+                    // Venta cruzada: un comercio vende cartones de una sala PÚBLICA
+                    // creada por otro (o por la plataforma). Cobra en efectivo también
+                    // la comisión del creador, que no es suya → entra en la deuda y la
+                    // plataforma se la paga al creador (custodia hasta el cierre).
+                    // En sus propias salas se la queda, como siempre.
+                    'creator'    => $isCrossSale ? round($creatorCommissionLocal, 2) : 0.0,
                 ] : null,
+                // A quién le corresponde la parte 'creator' de la deuda.
+                'room_creator_user_id' => $room->creator_user_id ? (string) $room->creator_user_id : null,
                 'jackpot_type_id'     => $jackpotCreditedUsd > 0 ? (string) $bingoConfig->jackpot_type_id : null,
                 'jackpot_credited_usd'=> $jackpotCreditedUsd,
             ];

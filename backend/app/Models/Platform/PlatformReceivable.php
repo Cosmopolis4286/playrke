@@ -29,6 +29,7 @@ class PlatformReceivable extends Model
     protected $fillable = [
         'source', 'debtor_user_id', 'currency_id', 'room_id', 'lot_id', 'amount',
         'rke_amount', 'jackpot_amount', 'prize_pool_amount',
+        'creator_amount', 'creator_payee_user_id', 'creator_paid_at',
         'status', 'settled_at', 'settled_by', 'cancelled_at', 'notes',
     ];
 
@@ -43,6 +44,9 @@ class PlatformReceivable extends Model
         'rke_amount'        => 'decimal:2',
         'jackpot_amount'    => 'decimal:2',
         'prize_pool_amount' => 'decimal:2',
+        'creator_amount'    => 'decimal:2',
+        'creator_payee_user_id' => 'string',
+        'creator_paid_at'   => 'datetime',
         'settled_at'     => 'datetime',
         'cancelled_at'   => 'datetime',
     ];

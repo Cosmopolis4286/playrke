@@ -70,26 +70,62 @@ class BingoFinancialSettlementTest extends TestCase
     }
 
     /** Vende y crea el lote con su desglose (como BingoCardGenerationService). */
-    private function sellLot(BingoRoom $room, float $amount, string $channel, array $networkCommission = []): BingoCardLot
+    /**
+     * @param string|null $sellerCommerceId Comercio que vende (default: el creador de la
+     *                                      sala). Otro id = venta cruzada en sala pública ajena.
+     */
+    private function sellLot(BingoRoom $room, float $amount, string $channel, array $networkCommission = [], ?string $sellerCommerceId = null): BingoCardLot
     {
+        $seller = $sellerCommerceId ?? $this->creatorId;
         $breakdown = null;
         $this->assertTrue(app(RoomMetricsService::class)->updateRoomMetricsWithCommissions(
             $room->fresh(),
-            ['cardCount' => 1, 'currency' => $this->currencyId, 'creator' => ['id' => $this->creatorId], 'saleChannel' => $channel,
+            ['cardCount' => 1, 'currency' => $this->currencyId, 'creator' => ['id' => $seller], 'saleChannel' => $channel,
              'networkCommission' => $networkCommission],
             $amount, 0, $breakdown,
         ));
 
         $lot = BingoCardLot::create([
-            'room_id' => $room->id, 'user_id' => $this->creatorId, 'room_user_id' => '1', 'currency_id' => $this->currencyId,
+            'room_id' => $room->id, 'user_id' => $seller, 'room_user_id' => '1', 'currency_id' => $this->currencyId,
             'card_count' => 1, 'card_price' => $amount, 'sale_amount' => $amount, 'exchange_rate' => 1,
             'status' => 'ACTIVE', 'financial_breakdown' => $breakdown,
         ]);
 
         if (is_array($breakdown['receivable_local'] ?? null)) {
-            app(PlatformReceivableService::class)->record($this->creatorId, $this->currencyId, $breakdown['receivable_local'], (string) $room->id, (string) $lot->id);
+            app(PlatformReceivableService::class)->record(
+                $seller, $this->currencyId, $breakdown['receivable_local'], (string) $room->id, (string) $lot->id,
+                creatorPayeeUserId: $breakdown['room_creator_user_id'] ?? null,
+            );
         }
         return $lot;
+    }
+
+    #[Test]
+    public function venta_cruzada_suma_la_comision_del_creador_a_la_deuda(): void
+    {
+        $room = $this->makeRoom(); // creada por $this->creatorId
+        $otherCommerce = '950000000000000099';
+
+        $this->sellLot($room, 100.0, 'offline', [], $otherCommerce);
+
+        $debt = PlatformReceivable::firstOrFail();
+        $this->assertSame($otherCommerce, $debt->debtor_user_id, 'Debe quien cobró el efectivo');
+        $this->assertEqualsWithDelta(10.0, (float) $debt->creator_amount, 0.001, 'El 10% del creador no es del que vende');
+        $this->assertSame($this->creatorId, $debt->creator_payee_user_id);
+        $this->assertEqualsWithDelta(100.0, (float) $debt->amount, 0.001); // RKE 5 + bote 85 + creador 10
+        $this->assertNull($debt->creator_paid_at);
+    }
+
+    #[Test]
+    public function en_sala_propia_la_comision_del_creador_no_entra_en_la_deuda(): void
+    {
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'offline');
+
+        $debt = PlatformReceivable::firstOrFail();
+        $this->assertEqualsWithDelta(0.0, (float) $debt->creator_amount, 0.001);
+        $this->assertNull($debt->creator_payee_user_id);
+        $this->assertEqualsWithDelta(90.0, (float) $debt->amount, 0.001);
     }
 
     private function platformBalance(): float
