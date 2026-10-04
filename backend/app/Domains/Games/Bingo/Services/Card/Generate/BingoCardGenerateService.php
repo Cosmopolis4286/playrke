@@ -930,12 +930,17 @@ final class BingoCardGenerateService
     public function getPlayerCardPrice(string $roomId, int $userId): array
     {
         // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
-        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,move_free_space_mode,move_free_space_price_pct')
+        // room_type_id es necesario para el chequeo de acceso por tipo de sala.
+        $room = BingoRoom::with('config:id,room_id,room_type_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,move_free_space_mode,move_free_space_price_pct')
             ->find($roomId);
 
         if (!$room) {
             throw BingoCardGenerateException::roomNotAvailable();
         }
+
+        // Sin acceso (VIP sin invitación, DEMO, privada sin verificar): no se
+        // revela ni el precio.
+        $this->bingoRoomCrud->assertPlayerCanAccessRoom($room);
 
         // Obtener la billetera activa del jugador
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
@@ -1213,9 +1218,9 @@ final class BingoCardGenerateService
 
         $room = BingoRoom::with('config')->findOrFail($roomId);
 
-        // Defensa en profundidad: si la sala es privada, exige haber verificado
-        // código/contraseña antes (POST /bingo-rooms/{room}/verify-access).
-        $this->bingoRoomCrud->assertRoomAccessVerified($room);
+        // Acceso según el tipo de sala (privada verificada, VIP invitado, DEMO
+        // cerrada…) — no alcanza con que la sala no aparezca en el listado.
+        $this->bingoRoomCrud->assertPlayerCanAccessRoom($room);
 
         $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
 

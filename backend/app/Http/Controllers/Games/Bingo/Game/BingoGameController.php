@@ -50,6 +50,13 @@ final class BingoGameController extends Controller
         return $this->handleServiceInertia(
             function () use ($room) {
                 $room->load(['config.roomType']);
+
+                // VIP sin invitación / DEMO: se responde como si la sala no existiera
+                // (antes bastaba tener el enlace para entrar y comprar).
+                if ($this->bingoRoomCrud->isRestrictedRoomType($room) && !$this->bingoRoomCrud->canPlayerAccessRoom($room)) {
+                    abort(404);
+                }
+
                 $isPrivate = $room->config?->roomType?->code === 'PRIVATE';
                 $isVerified = $this->bingoRoomCrud->isRoomAccessVerified($room);
 

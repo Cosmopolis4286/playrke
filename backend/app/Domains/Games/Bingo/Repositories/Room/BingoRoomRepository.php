@@ -281,8 +281,11 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             // Players: solo salas públicas
             $query->whereHas('config.roomType', fn($q) => $q->where('code', 'PUBLIC'));
         } elseif ($isCommerceCustomer) {
-            // Commerce/customer: solo salas de usuarios (from_house = N)
-            $query->whereHas('config', fn($q) => $q->where('from_house', 'N'));
+            // Commerce/customer: sus salas + las PÚBLICAS (mismo criterio que el
+            // punto de venta, BingoRoom::scopeAccessibleBy). Antes veían todas las
+            // salas de usuarios (from_house = N), incluidas las privadas/VIP de
+            // otros comercios, que no pueden vender ni comprar.
+            $query->accessibleBy($userId);
         } elseif ($isAdmin) {
             // Admin/superadmin: todas las salas sin filtro adicional
         } elseif ($sellerCommerceUserId !== null) {

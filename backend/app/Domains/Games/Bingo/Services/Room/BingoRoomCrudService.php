@@ -1570,24 +1570,9 @@ class BingoRoomCrudService
     }
 
     /**
-     * Si la sala es PRIVATE, exige que ya haya sido verificada en la sesión
-     * actual (vía verifyRoomAccess). Defensa en profundidad para el flujo de
-     * compra de cartones — no reemplaza la verificación de código/contraseña,
-     * solo evita que se salte pasando directo a comprar.
-     *
-     * @throws BingoRoomException Si la sala es privada y no fue verificada
-     */
-    public function assertRoomAccessVerified(BingoRoom $room): void
-    {
-        if (!$this->isRoomAccessVerified($room)) {
-            throw BingoRoomException::privateRoomNotVerified();
-        }
-    }
-
-    /**
-     * Versión no-throwing de assertRoomAccessVerified(), para vistas (ej. Lobby)
-     * que necesitan decidir si mostrar el prompt de acceso sin lanzar excepción.
-     * true si la sala no es privada, o si ya fue verificada en esta sesión.
+     * ¿La sala PRIVATE ya fue verificada (código + contraseña) en esta sesión?
+     * true si la sala no es privada. Usado por el lobby para decidir si mostrar
+     * el prompt de acceso, y por canPlayerAccessRoom() (chequeo único de acceso).
      */
     public function isRoomAccessVerified(BingoRoom $room): bool
     {
@@ -1600,6 +1585,66 @@ class BingoRoomCrudService
 
         $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
         return in_array((string) $room->id, $verifiedRooms, true);
+    }
+
+    /**
+     * ¿El usuario puede ver/comprar en esta sala desde los endpoints de jugador
+     * (lobby, precio, compra)? Chequeo único para no depender de que una sala
+     * "no aparezca en el listado": antes VIP y DEMO solo estaban ocultas del
+     * listado y cualquiera con el enlace podía entrar y comprar con dinero real.
+     *
+     *  - Admin/superadmin y el creador de la sala: siempre.
+     *  - PUBLIC: cualquier jugador.
+     *  - PRIVATE: con código + contraseña verificados en la sesión.
+     *  - VIP: solo invitados (lista de invitados — pendiente; hasta entonces, nadie más).
+     *  - DEMO: salas de prueba sin dinero real — solo admin y creador.
+     */
+    public function canPlayerAccessRoom(BingoRoom $room): bool
+    {
+        $room->loadMissing('config.roomType');
+        // Si la config se cargó con un select parcial sin room_type_id, roomType
+        // queda null: recargarla en vez de asumir PUBLIC (eso abriría la sala).
+        if ($room->config && $room->config->roomType === null) {
+            $room->load('config.roomType');
+        }
+        // Sin tipo resoluble → cerrado (nunca asumir pública).
+        $code = $room->config?->roomType?->code;
+        $userId = Auth::id();
+
+        if ($userId !== null && (string) $room->creator_user_id === (string) $userId) {
+            return true;
+        }
+        if (\App\Services\Auth\PermissionService::checkPrefix(['admin', 'superadmin'])) {
+            return true;
+        }
+
+        return match ($code) {
+            'PUBLIC'  => true,
+            'PRIVATE' => $this->isRoomAccessVerified($room),
+            default   => false, // VIP, DEMO y cualquier tipo nuevo: cerrado por defecto
+        };
+    }
+
+    /**
+     * @throws BingoRoomException Si el usuario no puede acceder a la sala:
+     *         privada sin verificar → privateRoomNotVerified; VIP/DEMO → roomNotAccessible.
+     */
+    public function assertPlayerCanAccessRoom(BingoRoom $room): void
+    {
+        if ($this->canPlayerAccessRoom($room)) {
+            return;
+        }
+        if (($room->config?->roomType?->code) === 'PRIVATE') {
+            throw BingoRoomException::privateRoomNotVerified();
+        }
+        throw BingoRoomException::roomNotAccessible();
+    }
+
+    /** ¿Es una sala restringida que debe responder como "no encontrada" si no hay acceso? */
+    public function isRestrictedRoomType(BingoRoom $room): bool
+    {
+        $room->loadMissing('config.roomType');
+        return !in_array($room->config?->roomType?->code, ['PUBLIC', 'PRIVATE'], true);
     }
 
     /**

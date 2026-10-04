@@ -201,6 +201,15 @@ final class BingoRoomException extends DomainException
      * (IN_PROGRESS, FINISHED, CANCELLED) — a partir de ahí puede haber
      * premios entregados que se perderían al reconstruir las rondas.
      */
+    /**
+     * Sala restringida (VIP sin invitación, DEMO) — se responde como "no
+     * encontrada" para no revelar que la sala existe.
+     */
+    public static function roomNotAccessible(): self
+    {
+        return new self('BINGO_ROOM_NOT_ACCESSIBLE', 404);
+    }
+
     public static function roomNotEditableStatus(): self
     {
         return new self('BINGO_ROOM_NOT_EDITABLE_STATUS', 409);

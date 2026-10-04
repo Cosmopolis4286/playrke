@@ -134,6 +134,7 @@ return [
     'BINGO_ROOM_CARD_LIMIT_PARTIAL' => 'This room only allows :remaining more card(s) (you requested :requested).',
     'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'This room has already reached its available card limit.',
     'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'You cannot remove :currencies: it already has cards sold in this room.',
+    'BINGO_ROOM_NOT_ACCESSIBLE' => 'The room does not exist or you do not have access to it.',
     'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'You can only edit a room whose draw has not started or finished.',
     'BINGO_ROOM_FIELDS_LOCKED_BY_SALES' => 'This room already has cards sold: :fields cannot be changed.',
 
