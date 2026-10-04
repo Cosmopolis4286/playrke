@@ -30,14 +30,22 @@ class BingoCardSold implements ShouldBroadcastNow
         public readonly ?string $creatorUserId = null,
         /** user_id de la Subsidiary dueña del Seller que vendió; null si el seller reporta directo al commerce, o no hay seller involucrado */
         public readonly ?string $subsidiaryUserId = null,
+        /**
+         * user_id del VENDEDOR que hizo la venta. Su dashboard escucha
+         * creators.activity.{su user_id}; antes el evento solo iba al
+         * comercio y a la agencia, y el indicador "en vivo" del vendedor
+         * nunca recibía sus propias ventas.
+         */
+        public readonly ?string $sellerUserId = null,
     ) {}
 
     public function broadcastOn(): array
     {
         $channels = [new PrivateChannel('admins.activity')];
 
-        if ($this->creatorUserId) {
-            $channels[] = new PrivateChannel("creators.activity.{$this->creatorUserId}");
+        $creatorChannels = array_unique(array_filter([$this->creatorUserId, $this->sellerUserId]));
+        foreach ($creatorChannels as $userId) {
+            $channels[] = new PrivateChannel("creators.activity.{$userId}");
         }
 
         if ($this->subsidiaryUserId) {
