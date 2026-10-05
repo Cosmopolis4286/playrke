@@ -51,8 +51,11 @@
           <i class="fas fa-file-contract" /> TOS pendiente
         </span>
 
-        <span v-for="role in user.roles" :key="role.id" class="badge-pill badge-role">
-          <i class="fas fa-user-tag" /> {{ role.name }}
+        <!-- Solo roles ADICIONALES al principal (que ya va como badge junto al
+             nombre) y con su etiqueta legible — antes repetía el principal
+             con el slug crudo ("JUGADOR" + "player"). -->
+        <span v-for="role in extraRoles" :key="role.id" class="badge-pill badge-role">
+          <i :class="getRoleMeta(role.name).icon" /> {{ getRoleMeta(role.name).label }}
         </span>
       </div>
 
@@ -125,6 +128,7 @@ const primaryRole = computed(() => getRoleMeta(props.user.roles?.[0]?.name))
 const primaryRoleKey   = computed(() => primaryRole.value.key)
 const primaryRoleLabel = computed(() => primaryRole.value.label)
 const primaryRoleIcon  = computed(() => primaryRole.value.icon)
+const extraRoles       = computed(() => props.user.roles?.slice(1) ?? [])
 
 // ── KYC ───────────────────────────────────────────────────────
 const kycLabel = computed(() => ({
@@ -218,6 +222,8 @@ const kycIcon = computed(() => ({
 .primary-role-badge--treasurer  { background: rgba(16,185,129,0.85); color: #fff; }
 .primary-role-badge--seller     { background: rgba(236,72,153,0.85); color: #fff; }
 .primary-role-badge--customer   { background: rgba(59,130,246,0.85); color: #fff; }
+.primary-role-badge--commerce   { background: rgba(22,163,74,0.85); color: #fff; }
+.primary-role-badge--subsidiary { background: rgba(13,148,136,0.85); color: #fff; }
 .primary-role-badge--player     { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.3); }
 .primary-role-badge--vip        { background: linear-gradient(135deg,rgba(245,158,11,0.9),rgba(249,115,22,0.9)); color: #fff; }
 

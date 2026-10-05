@@ -46,7 +46,7 @@ defineProps<{
     user: ProfileUser
     stats: Record<string, any>
     editMode: boolean
-    formatCurrency: (amount: number | null, currency: unknown) => string
+    formatCurrency: (amount: number | null, currency?: unknown, symbol?: string | null) => string
     missionsPending?: number
     missionsTotal?: number
     /** Gamificación (nivel/XP/partidas/logros/racha/misiones) es exclusiva de player — ver ProfileTabs.vue para el detalle de por qué. */

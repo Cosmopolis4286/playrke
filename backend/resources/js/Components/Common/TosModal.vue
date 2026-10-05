@@ -34,7 +34,7 @@ const version = computed(() => props.status?.version ?? '')
       </div>
 
       <h3 class="tos-title">Acepta los Términos de Servicio</h3>
-      <p class="tos-subtitle">Versión {{ version }}</p>
+      <p v-if="version" class="tos-subtitle">Versión {{ version }}</p>
       <p class="tos-summary">{{ summary }}</p>
 
       <div class="tos-points">

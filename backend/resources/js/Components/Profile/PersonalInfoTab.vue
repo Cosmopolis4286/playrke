@@ -277,7 +277,7 @@ const props = defineProps<{
     isBirthDateEditable: boolean
     errorMsg: string | null
     formatDate: (d: string | null | undefined, withTime?: boolean) => string
-    formatCurrency: (amount: number | null, currency: unknown) => string
+    formatCurrency: (amount: number | null, currency?: unknown, symbol?: string | null) => string
 }>()
 
 defineEmits<{ submit: []; cancel: []; 'open-kyc': [] }>()
@@ -385,7 +385,10 @@ const kycDescription = computed(() => ({
 </script>
 
 <style scoped>
-.personal-tab { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; align-items: start; }
+/* minmax(0, 1fr): con 1fr el mínimo implícito es el contenido más ancho (stepper
+   KYC, emails largos) y en móvil la columna excedía la pantalla — la tarjeta
+   (overflow: hidden) recortaba los inputs por la derecha. */
+.personal-tab { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 2rem; align-items: start; }
 
 /* Header */
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 8px; }
@@ -396,7 +399,7 @@ const kycDescription = computed(() => ({
 .form-error-bar { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.82rem; color: #dc2626; display: flex; gap: 0.4rem; align-items: center; margin-bottom: 1rem; }
 
 /* Fields */
-.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 1.5rem; }
+.fields-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.1rem; margin-bottom: 1.5rem; }
 .field-wrap  { display: flex; flex-direction: column; gap: 4px; }
 .field-wrap--full { grid-column: 1 / -1; }
 
@@ -531,6 +534,6 @@ const kycDescription = computed(() => ({
 .msg-fade-enter-active, .msg-fade-leave-active { transition: opacity 0.2s; }
 .msg-fade-enter-from, .msg-fade-leave-to       { opacity: 0; }
 
-@media (max-width: 860px) { .personal-tab { grid-template-columns: 1fr; } }
-@media (max-width: 540px) { .fields-grid  { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .personal-tab { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 540px) { .fields-grid  { grid-template-columns: minmax(0, 1fr); } }
 </style>

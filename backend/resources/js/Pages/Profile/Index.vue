@@ -255,6 +255,12 @@ export default { name: 'ProfileIndex' }
 .profile-card  { background: var(--ds-surface); border-radius: 0 0 16px 16px; box-shadow: 0 4px 24px rgba(102,126,234,0.10); overflow: hidden; }
 .tab-content   { padding: 2rem; min-height: 400px; }
 
+/* Móvil: 1.5rem + 2rem de margen por lado dejaban ~270px útiles en 390px. */
+@media (max-width: 575.98px) {
+  .profile-body { padding: 1rem 0.75rem 2rem; }
+  .tab-content  { padding: 1.25rem 1rem; }
+}
+
 .tab-fade-enter-active, .tab-fade-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
 .tab-fade-enter-from { opacity: 0; transform: translateY(6px); }
 .tab-fade-leave-to   { opacity: 0; transform: translateY(-4px); }

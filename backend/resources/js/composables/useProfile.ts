@@ -384,10 +384,16 @@ export function useProfile(
         })
     }
 
-    function formatCurrency(amount: number | null, currency: unknown): string {
-        if (!amount) return '0.00'
-        const code = typeof currency === 'string' ? currency : 'USD'
-        return new Intl.NumberFormat('es-VE', { style: 'currency', currency: code }).format(amount)
+    /**
+     * Monto con el símbolo PROPIO de la moneda (currencies.symbol: "Bs", "$"…),
+     * no el de Intl: con style 'currency' Intl usa el suyo ("Bs.S" para VES),
+     * distinto del resto de la app, y PersonalInfoTab además anteponía
+     * wallet.symbol → se veía "Bs Bs.S 1.000,00". Sin símbolo, solo el número.
+     */
+    function formatCurrency(amount: number | string | null, _currency?: unknown, symbol?: string | null): string {
+        const value = new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            .format(Number(amount ?? 0) || 0)
+        return symbol ? `${symbol} ${value}` : value
     }
 
     function formatUnixDate(ts: number): string {

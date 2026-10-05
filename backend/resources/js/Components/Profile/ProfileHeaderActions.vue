@@ -5,7 +5,7 @@
       <div class="wallet-badge__info">
         <span class="wallet-badge__label">Saldo disponible</span>
         <span class="wallet-badge__amount">
-          {{ formatCurrency(user.wallet.balance, user.wallet.currency) }}
+          {{ formatCurrency(user.wallet.balance, user.wallet.currency, user.wallet.symbol) }}
         </span>
       </div>
     </div>
@@ -22,6 +22,10 @@
       <button class="action-btn action-btn--ghost" @click="$emit('open-password')">
         <i class="fas fa-lock" /> Contraseña
       </button>
+
+      <a v-if="businessProfile" :href="businessProfile.href" class="action-btn action-btn--ghost">
+        <i :class="['fas', businessProfile.icon]" /> {{ businessProfile.label }}
+      </a>
 
       <button
         v-if="user.kyc_status !== 'VERIFIED' && user.kyc_status !== 'PENDING'"
@@ -46,8 +50,26 @@ import type { ProfileUser } from '@js/composables/useProfile'
 const props = defineProps<{
     user: ProfileUser
     editMode: boolean
-    formatCurrency: (amount: number | null, currency: unknown) => string
+    formatCurrency: (amount: number | null, currency?: unknown, symbol?: string | null) => string
 }>()
+
+/**
+ * Ficha de negocio del rol ("Mi Comercio", "Mi Agencia"…): datos operativos
+ * (ventas, comisión, red) que no viven en este perfil de usuario — antes no
+ * había forma de llegar a ella desde aquí, solo por el sidebar.
+ */
+const BUSINESS_PROFILES: Record<string, { href: string; label: string; icon: string }> = {
+    commerce:   { href: '/commerce/profile',   label: 'Mi Comercio',  icon: 'fa-store' },
+    subsidiary: { href: '/subsidiary/profile', label: 'Mi Agencia',   icon: 'fa-code-branch' },
+    seller:     { href: '/seller/profile',     label: 'Mi Taquilla',  icon: 'fa-user-tie' },
+    customer:   { href: '/customer/profile',   label: 'Mi Cliente',   icon: 'fa-plug' },
+    treasurer:  { href: '/treasurer/profile',  label: 'Mi Tesorería', icon: 'fa-vault' },
+}
+
+const businessProfile = computed(() => {
+    const role = props.user.roles?.map(r => r.name).find(name => name in BUSINESS_PROFILES)
+    return role ? BUSINESS_PROFILES[role] : null
+})
 
 defineEmits<{
     'toggle-edit': []
@@ -93,7 +115,9 @@ const accountAlert = computed(() => {
     padding: 6px 14px; border-radius: 8px; font-size: 0.76rem;
     font-weight: 600; cursor: pointer; border: none;
     transition: all 0.15s ease; white-space: nowrap;
+    text-decoration: none;
 }
+a.action-btn:hover { text-decoration: none; color: #fff; }
 .action-btn--edit  { background: rgba(255,255,255,0.95); color: #667eea; }
 .action-btn--edit:hover  { background: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .action-btn--save  { background: #28a745; color: #fff; box-shadow: 0 2px 8px rgba(40,167,69,0.4); }
