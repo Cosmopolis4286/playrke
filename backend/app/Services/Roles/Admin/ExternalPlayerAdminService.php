@@ -492,7 +492,15 @@ final class ExternalPlayerAdminService
         ];
     }
 
-    private function recentPurchases(ExternalPlayer $player): Collection
+    /**
+     * \Illuminate\Support\Collection (no Eloquent\Collection, que es el tipo
+     * de BingoCardPayment::get()) — ->map() siempre degrada a la colección
+     * base de Support en vez de preservar el tipo de modelo, porque el
+     * resultado mapeado (un array plano) ya no es una colección de modelos.
+     * El type hint equivocado reventaba en runtime (TypeError) en cuanto
+     * había al menos una fila real que mapear.
+     */
+    private function recentPurchases(ExternalPlayer $player): \Illuminate\Support\Collection
     {
         return BingoCardPayment::byExternalPlayer($player->id)
             ->with('room:id,uuid_code')
@@ -502,7 +510,7 @@ final class ExternalPlayerAdminService
             ->map(fn (BingoCardPayment $payment) => $this->mapPurchaseRow($payment));
     }
 
-    private function recentPrizes(ExternalPlayer $player): Collection
+    private function recentPrizes(ExternalPlayer $player): \Illuminate\Support\Collection
     {
         return BingoCardPrizePayment::byExternalPlayer($player->id)
             ->latest('created_at')
@@ -511,7 +519,7 @@ final class ExternalPlayerAdminService
             ->map(fn (BingoCardPrizePayment $payment) => $this->mapPrizeRow($payment));
     }
 
-    private function recentAudits(ExternalPlayer $player): Collection
+    private function recentAudits(ExternalPlayer $player): \Illuminate\Support\Collection
     {
         return Audit::ofAuditable(ExternalPlayer::class, $player->id)
             ->with('user:id,first_name,last_name,email')
