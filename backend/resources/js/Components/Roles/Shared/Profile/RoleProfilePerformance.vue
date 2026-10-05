@@ -2,20 +2,29 @@
 import { computed } from 'vue'
 import RpCard from './RpCard.vue'
 import DashboardTrendChart from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
-import type { RoleProfileKpi, RoleProfilePerformance, RoleProfileRole } from '@/js/types/roles/shared/role-profile-common'
+import type { AccountRole, RoleProfileKpi, RoleProfilePerformance } from '@/js/types/roles/shared/role-profile-common'
 import { formatAmount, formatDate, formatInteger } from '@/js/composables/roles/shared/profile/useRoleProfile'
+
+type SellingRole = Exclude<AccountRole, 'treasurer'>
 
 const props = defineProps<{
   performance: RoleProfilePerformance
-  role: RoleProfileRole
+  role: SellingRole
 }>()
 
-/** Lo que cobra cada rol en el reparto en cascada (CommissionCalculationService::networkSplit()). */
-const COMMISSION_LABEL: Record<RoleProfileRole, { label: string; hint: string }> = {
-  seller:     { label: 'Mi comisión',      hint: 'Tu % sobre cada venta' },
+/**
+ * Lo que cobra cada rol: la red comercial, su parte del reparto en cascada
+ * (CommissionCalculationService::networkSplit()); el Customer, la comisión de
+ * sala de las salas que crea.
+ */
+const COMMISSION_LABEL: Record<SellingRole, { label: string; hint: string }> = {
+  seller:     { label: 'Mi comisión',       hint: 'Tu % sobre cada venta' },
   subsidiary: { label: 'Margen de agencia', hint: 'Tu % menos el de cada vendedor' },
-  commerce:   { label: 'Comisión de red',  hint: 'Tu % menos el de agencias y vendedores' },
+  commerce:   { label: 'Comisión de red',   hint: 'Tu % menos el de agencias y vendedores' },
+  customer:   { label: 'Comisión de sala',  hint: 'De las ventas en tus salas' },
 }
+
+const salesLabel = computed(() => (props.role === 'customer' ? 'Vendido en tus salas' : 'Monto vendido'))
 
 const symbol = computed(() => props.performance.currency?.symbol ?? '')
 const hasSales = computed(() => props.performance.lifetime.lots > 0)
@@ -23,7 +32,7 @@ const hasSales = computed(() => props.performance.lifetime.lots > 0)
 const tiles = computed(() => {
   const k = props.performance.kpis
   return [
-    { key: 'sales', icon: 'fa-sack-dollar', label: 'Monto vendido', value:`${symbol.value} ${formatAmount(k.sales.value)}`, kpi: k.sales, hint: props.performance.currency?.iso ?? '' },
+    { key: 'sales', icon: 'fa-sack-dollar', label: salesLabel.value, value:`${symbol.value} ${formatAmount(k.sales.value)}`, kpi: k.sales, hint: props.performance.currency?.iso ?? '' },
     { key: 'commission', icon: 'fa-hand-holding-dollar', label: COMMISSION_LABEL[props.role].label, value: `${symbol.value} ${formatAmount(k.commission.value)}`, kpi: k.commission, hint: COMMISSION_LABEL[props.role].hint, highlight: true },
     { key: 'cards', icon: 'fa-ticket', label: 'Cartones', value: formatInteger(k.cards.value), kpi: k.cards, hint: 'Todas las monedas' },
     { key: 'lots', icon: 'fa-receipt', label: 'Ventas', value: formatInteger(k.lots.value), kpi: k.lots, hint: 'Operaciones registradas' },

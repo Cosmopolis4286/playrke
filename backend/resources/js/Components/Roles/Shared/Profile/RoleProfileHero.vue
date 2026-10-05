@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RoleProfile } from '@/js/types/roles/shared/role-profile-common'
+import type { AccountProfile } from '@/js/types/roles/shared/role-profile-common'
 import { ROLE_META, formatDate, formatRate, statusMeta, timeAgo } from '@/js/composables/roles/shared/profile/useRoleProfile'
 
-const props = defineProps<{ profile: RoleProfile }>()
+const props = defineProps<{ profile: AccountProfile }>()
 
 const role = computed(() => ROLE_META[props.profile.role])
 const status = computed(() => statusMeta(props.profile.status))
@@ -49,7 +49,7 @@ const parents = computed(() => props.profile.hierarchy.chain.filter((n) => !n.is
       </div>
 
       <dl class="rp-hero__facts">
-        <div class="rp-hero__fact">
+        <div v-if="profile.commission > 0" class="rp-hero__fact">
           <dt>Comisión</dt>
           <dd>{{ formatRate(profile.commission) }}</dd>
         </div>

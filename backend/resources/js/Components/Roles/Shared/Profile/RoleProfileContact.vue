@@ -22,7 +22,8 @@ async function startEdit() {
   formRef.value?.querySelector<HTMLInputElement>('input')?.focus()
 }
 
-const subsidiaryCurrency = computed(() => (profile.value.role === 'subsidiary' ? profile.value.currency : null))
+// Moneda principal: solo la exponen Subsidiary y Customer.
+const subsidiaryCurrency = computed(() => ('currency' in profile.value ? profile.value.currency : null))
 
 const copied = ref<string | null>(null)
 async function copy(value: string, key: string) {
