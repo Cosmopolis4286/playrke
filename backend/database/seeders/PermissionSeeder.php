@@ -93,6 +93,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'customers.edit', 'guard_name' => 'web', 'description' => 'Editar clientes'],
             ['name' => 'customers.delete', 'guard_name' => 'web', 'description' => 'Eliminar clientes'],
             ['name' => 'customers.api.access', 'guard_name' => 'api', 'description' => 'Acceso API de cliente'],
+            // Ficha propia "Mi Cliente" (CustomerProfileService) — solo nombre/teléfono editables.
+            ['name' => 'customers.manage-own', 'guard_name' => 'web', 'description' => 'Ver y editar los datos del propio cliente'],
+
+            // Ficha propia "Mi Tesorería" (TreasurerProfileService) y su vista admin.
+            ['name' => 'treasurers.manage-own', 'guard_name' => 'web', 'description' => 'Ver y editar los datos del propio tesorero'],
+            ['name' => 'treasurers.view', 'guard_name' => 'web', 'description' => 'Ver fichas de tesoreros'],
 
             // Gestión de tesorería
             ['name' => 'treasury.view', 'guard_name' => 'web', 'description' => 'Ver tesorería'],

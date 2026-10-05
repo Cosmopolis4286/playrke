@@ -39,6 +39,7 @@ class RolePermissionSeeder extends Seeder
                 'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'sellers.view', 'sellers.create', 'sellers.edit',
                 'customers.view', 'customers.create', 'customers.edit',
+                'treasurers.view', // Vista admin de "Mi Tesorería" (target_user_id)
                 'treasury.view', 'treasury.reports',
                 'exchange.view', 'exchange.manage',
                 'games.view', 'games.manage',
@@ -159,6 +160,7 @@ class RolePermissionSeeder extends Seeder
                 'games.trivia.view',
                 'games.trivia.leaderboard.view',
                 'games.trivia.stats.view', 'games.trivia.stats.export',
+                'treasurers.manage-own', // Ficha propia "Mi Tesorería"
             ];
             $treasurer->givePermissionTo($treasurerPermissions);
             $this->command->info('✅ Permisos asignados a Treasurer');
@@ -183,7 +185,9 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo', // Acceso a juegos de bingo (guard 'web')
                 'games.bingo.manage', // Gestionar salas de bingo — customer tiene vendedores propios (ver sellers.view), la Policy (BingoBasePolicy::requiredRole) ya lo contemplaba para esto
                 'wallet.view', // Ver su propia billetera (juega bingo con saldo propio)
-                'sellers.view', // Gestionar sus propios vendedores
+                // Sin sellers.view: un customer no puede tener vendedores (ver
+                // ManagerSellerPolicy::requiredRole()).
+                'customers.manage-own', // Ficha propia "Mi Cliente"
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard
                 'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',

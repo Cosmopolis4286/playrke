@@ -174,6 +174,16 @@ class SidebarMenuService
                     'route' => 'seller.profile.show',
                     'permission' => 'sellers.manage-own',
                 ],
+                'my_profile_customer' => [
+                    'title' => 'Mi Cliente',
+                    'route' => 'customer.profile.show',
+                    'permission' => 'customers.manage-own',
+                ],
+                'my_profile_treasurer' => [
+                    'title' => 'Mi Tesorería',
+                    'route' => 'treasurer.profile.show',
+                    'permission' => 'treasurers.manage-own',
+                ],
             ],
         ],
 

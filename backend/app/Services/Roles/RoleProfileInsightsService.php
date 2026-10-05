@@ -211,8 +211,12 @@ final class RoleProfileInsightsService
             ->selectRaw('COALESCE(SUM(card_count), 0) as cards_sum, COUNT(*) as lots_count, MIN(created_at) as first_sale')
             ->first();
 
+        // selectRaw (no ->sum()): $commissionColumn puede ser una expresión SQL
+        // (ej. la comisión de sala del Customer, leída del financial_breakdown).
         $commission = $primaryCurrencyId
-            ? (float) BingoCardLot::query()->active()->where($lotScope)->where('currency_id', $primaryCurrencyId)->sum($commissionColumn)
+            ? (float) BingoCardLot::query()->active()->where($lotScope)->where('currency_id', $primaryCurrencyId)
+                ->selectRaw("COALESCE(SUM(COALESCE({$commissionColumn}, 0)), 0) as commission_sum")
+                ->value('commission_sum')
             : 0.0;
 
         return [

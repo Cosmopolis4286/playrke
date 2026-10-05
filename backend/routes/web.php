@@ -32,6 +32,8 @@ require __DIR__ . '/modules/admin.php';
 require __DIR__ . '/modules/commerce.php';
 require __DIR__ . '/modules/subsidiary.php';
 require __DIR__ . '/modules/seller.php';
+require __DIR__ . '/modules/customer-profile.php'; // "Mi Cliente" (≠ customer.php, API legada)
+require __DIR__ . '/modules/treasurer.php';        // "Mi Tesorería"
 
 // ====================================
 // RUTAS DE NEGOCIO ESPECÍFICAS

@@ -57,6 +57,10 @@ class SidebarMenuVisibilitySeeder extends Seeder
         'my_account.my_profile_commerce'    => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
         'my_account.commerce_economy_summary' => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
         'my_account.my_profile_seller'      => ['admin', 'commerce', 'player', 'subsidiary', 'superadmin'],
+        // Fichas propias de customer/treasurer: solo su propio rol (superadmin
+        // tiene todos los permisos y sin esto vería ítems que le dan 404).
+        'my_account.my_profile_customer'    => ['admin', 'commerce', 'player', 'seller', 'subsidiary', 'superadmin', 'treasurer'],
+        'my_account.my_profile_treasurer'   => ['admin', 'commerce', 'customer', 'player', 'seller', 'subsidiary', 'superadmin'],
         'business.my_external_players'  => ['admin', 'player', 'superadmin'],
         'business.prizes'               => ['player', 'seller'],
         'business.win_events'           => ['commerce', 'customer', 'player', 'seller'],
