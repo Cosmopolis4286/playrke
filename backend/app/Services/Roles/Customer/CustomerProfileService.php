@@ -71,7 +71,8 @@ final class CustomerProfileService
 
         return [
             'role'          => 'customer',
-            'id'            => $customer->hashed_id,
+            // Customer no extiende BaseModel (sin HasHashedRouteKey → sin hashed_id).
+            'id'            => (string) $customer->id,
             'name'          => $customer->name,
             'business_name' => $customer->business_name,
             'phone'         => $customer->phone,
