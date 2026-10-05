@@ -167,7 +167,7 @@
           </div>
           <div class="wb-stat" v-if="cardsSoldToday > 0">
             <span class="wb-stat__label">Vendidos (sesión)</span>
-            <span class="wb-stat__value wb-stat__value--accent">{{ cardsSoldToday }} · ${{ amountSoldToday.toFixed(2) }}</span>
+            <span class="wb-stat__value wb-stat__value--accent">{{ cardsSoldToday }} · US${{ amountSoldToday.toFixed(2) }}</span>
           </div>
           <div class="wb-stat">
             <span class="wb-stat__label">Comisión (mes)</span>
@@ -208,9 +208,9 @@
       <div class="row g-3">
         <div class="col-12 col-lg-7">
           <DashboardSection
-            title="Tendencia de comisión"
+            title="Tendencia de ventas"
             icon="fas fa-chart-area"
-            subtitle="Cartones vendidos · últimos 14 días"
+            subtitle="Cartones vendidos por día · últimos 14 días"
             :loading="sectionsLoading"
             skeleton-variant="chart"
           >
@@ -244,9 +244,10 @@
                 <span class="ranking-panel__rank-total">de {{ ranking.total_sellers }}</span>
               </div>
               <div class="ranking-panel__body">
-                <p class="ranking-panel__commission">$ {{ ranking.commission_amount.toFixed(2) }} <small>este mes</small></p>
+                <!-- En USD: el ranking compara vendedores de distintas monedas. -->
+                <p class="ranking-panel__commission">US$ {{ ranking.commission_amount.toFixed(2) }} <small>de comisión este mes</small></p>
                 <span class="ranking-panel__goal" :class="{ 'ranking-panel__goal--reached': ranking.goal_reached }">
-                  {{ ranking.goal_reached ? `✓ Meta de $${ranking.goal} alcanzada` : `Meta: $${ranking.goal}` }}
+                  {{ ranking.goal_reached ? `✓ Meta de US$${ranking.goal} alcanzada` : `Meta: US$${ranking.goal}` }}
                 </span>
               </div>
             </div>

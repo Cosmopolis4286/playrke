@@ -21,10 +21,10 @@ use Illuminate\Support\Facades\Cache;
  * se construye aquí — depende de calibrar con datos reales de este ranking
  * primero, no al revés.
  *
- * Misma fuente de datos que ya usa SellerDashboardContextService (el
- * dashboard individual del propio vendedor, en producción): BingoCardLot
- * agrupado por seller_user_id, SIN filtrar por status — el dashboard
- * individual tampoco lo hace, y ambos números deben coincidir.
+ * Fuente: BingoCardLot agrupado por seller_user_id — solo vendedores reales,
+ * sin lotes REFUNDED, y `commission_amount` expresado en USD (comisión de
+ * cada lote ÷ su tasa) para que el ranking y la meta comparen lo mismo sin
+ * importar la moneda en que vende cada uno.
  */
 final class SellerRankingService
 {
@@ -77,11 +77,18 @@ final class SellerRankingService
     {
         $startOfMonth = Carbon::now()->startOfMonth();
 
+        // Solo vendedores reales (antes entraban jugadores que compraron con
+        // su billetera: su seller_user_id es el propio jugador e inflaban
+        // "de N vendedores"), sin lotes reembolsados, y la comisión llevada a
+        // USD con la tasa de cada lote — antes se sumaban bolívares, pesos y
+        // dólares como un mismo número y se comparaban contra una meta en "$".
         $byUser = BingoCardLot::where('created_at', '>=', $startOfMonth)
+            ->whereIn('seller_user_id', Seller::query()->select('user_id'))
+            ->where('status', '!=', 'REFUNDED')
             ->select('seller_user_id')
             ->selectRaw('SUM(card_count) AS cards_sold')
             ->selectRaw('SUM(sale_amount) AS sale_amount')
-            ->selectRaw('SUM(commission_amount) AS commission_amount')
+            ->selectRaw('SUM(commission_amount / NULLIF(exchange_rate, 0)) AS commission_usd')
             ->groupBy('seller_user_id')
             ->get();
 
@@ -96,7 +103,8 @@ final class SellerRankingService
         $rows = $byUser
             ->map(function ($row) use ($sellers) {
                 $seller = $sellers->get($row->seller_user_id);
-                $commissionAmount = (float) $row->commission_amount;
+                // En USD: comparable entre vendedores de distintas monedas.
+                $commissionAmount = (float) $row->commission_usd;
 
                 return [
                     'seller_user_id'     => (string) $row->seller_user_id,

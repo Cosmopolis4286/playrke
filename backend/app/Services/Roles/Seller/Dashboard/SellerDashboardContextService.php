@@ -42,7 +42,9 @@ final class SellerDashboardContextService
             recentActivity:  $this->buildRecentActivity($userId),
             reportsTo:       $this->buildReportsTo($seller),
             roomCommissions: $this->buildRoomCommissions($seller),
-            salesTrend:      $this->buildSalesTrend(scope: fn ($q) => $q->where('seller_user_id', $userId)),
+            salesTrend:      $this->buildSalesTrend(scope: fn ($q) => $q
+                ->where('seller_user_id', $userId)
+                ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
             period:          $period,
             ranking:         $this->sellerRanking->getSellerStanding($userId),
         );
@@ -104,17 +106,19 @@ final class SellerDashboardContextService
         $startOfMonth = $now->copy()->startOfMonth();
         $startOfDay   = $now->copy()->startOfDay();
 
-        $cardsSoldToday = BingoCard::where('seller_user_id', $userId)
-            ->where('created_at', '>=', $startOfDay)
-            ->count();
+        // Cartones anulados (pago rechazado / sala cancelada) no son venta.
+        $soldCards = fn () => BingoCard::where('seller_user_id', $userId)
+            ->where('status', '!=', BingoCard::STATUS_CANCELLED);
 
-        $cardsSoldThisMonth = BingoCard::where('seller_user_id', $userId)
-            ->where('created_at', '>=', $startOfMonth)
-            ->count();
+        $cardsSoldToday     = $soldCards()->where('created_at', '>=', $startOfDay)->count();
+        $cardsSoldThisMonth = $soldCards()->where('created_at', '>=', $startOfMonth)->count();
 
-        $commissionThisMonth = BingoCardLot::where('seller_user_id', $userId)
-            ->where('created_at', '>=', $startOfMonth)
-            ->sum('commission_amount');
+        // Comparación justa: mismos días del mes anterior (1 → hoy-1 mes).
+        $prevStart = $startOfMonth->copy()->subMonthNoOverflow();
+        $prevEnd   = $now->copy()->subMonthNoOverflow();
+        $cardsSamePeriodLastMonth = $soldCards()->whereBetween('created_at', [$prevStart, $prevEnd])->count();
+
+        $commission = $this->buildCommissionByCurrency($userId, $startOfMonth);
 
         $winnersToday = BingoCard::where('seller_user_id', $userId)
             ->winners()
@@ -129,19 +133,23 @@ final class SellerDashboardContextService
                 'variant' => 'primary',
                 'href'    => '/bingo/cards-sold',
             ],
-            'cartonsThisMonth' => [
+            'cartonsThisMonth' => array_merge([
                 'label'   => 'Cartones este mes',
                 'value'   => $cardsSoldThisMonth,
                 'icon'    => 'fas fa-calendar-check',
                 'variant' => 'success',
                 'href'    => '/bingo/cards-sold',
-            ],
+            ], $this->trendAgainst($cardsSoldThisMonth, $cardsSamePeriodLastMonth)),
             'commissionThisMonth' => [
                 'label'       => 'Comisión del mes',
-                'value'       => number_format((float) $commissionThisMonth, 2, ',', '.'),
+                'value'       => $commission['value'],
                 'icon'        => 'fas fa-percentage',
                 'variant'     => 'info',
-                'description' => $seller ? "Tasa: {$seller->commission}%" : null,
+                'description' => trim(implode(' · ', array_filter([
+                    $commission['pending'],
+                    $commission['others'],
+                    $seller ? "Tasa {$seller->commission}%" : null,
+                ]))),
                 'href'        => '/bingo/sales-report',
             ],
             'winnersToday' => [
@@ -151,6 +159,75 @@ final class SellerDashboardContextService
                 'variant' => 'warning',
                 'href'    => '/bingo/winners',
             ],
+        ];
+    }
+
+    /**
+     * Comisión del mes POR MONEDA, separando la confirmada (pago aprobado) de
+     * la que está en revisión. Antes se sumaba commission_amount de todas las
+     * monedas como un solo número (bolívares + pesos + dólares) e incluía
+     * lotes reembolsados/rechazados.
+     *
+     * @return array{value: string, pending: ?string, others: ?string}
+     */
+    private function buildCommissionByCurrency(string $userId, Carbon $since): array
+    {
+        $rows = BingoCardLot::query()
+            ->where('bingo_card_lots.seller_user_id', $userId)
+            ->where('bingo_card_lots.created_at', '>=', $since)
+            ->where('bingo_card_lots.status', '!=', 'REFUNDED')
+            ->leftJoin('bingo_card_payments as p', 'p.card_lot_id', '=', 'bingo_card_lots.id')
+            ->where(fn ($q) => $q->whereNull('p.payment_status')->orWhereIn('p.payment_status', ['PENDING', 'APPROVED']))
+            ->groupBy('bingo_card_lots.currency_id')
+            ->selectRaw("bingo_card_lots.currency_id,
+                SUM(CASE WHEN p.payment_status = 'PENDING' THEN bingo_card_lots.commission_amount ELSE 0 END) AS pending_sum,
+                SUM(CASE WHEN p.payment_status = 'PENDING' THEN 0 ELSE bingo_card_lots.commission_amount END) AS confirmed_sum")
+            ->toBase()
+            ->get()
+            ->sortByDesc(fn ($r) => (float) $r->confirmed_sum + (float) $r->pending_sum)
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return ['value' => '0,00', 'pending' => null, 'others' => null];
+        }
+
+        $currencies = \App\Models\Currency::whereIn('id', $rows->pluck('currency_id'))->get()->keyBy('id');
+        $format = function ($currencyId, float $amount) use ($currencies): string {
+            $currency = $currencies->get($currencyId);
+
+            return $currency
+                ? trim(($currency->symbol ?? '') . ' ' . $currency->formatAmount($amount))
+                : number_format($amount, 2, ',', '.');
+        };
+
+        $primary = $rows->first();
+
+        return [
+            'value'   => $format($primary->currency_id, (float) $primary->confirmed_sum),
+            'pending' => (float) $primary->pending_sum > 0
+                ? $format($primary->currency_id, (float) $primary->pending_sum) . ' en revisión'
+                : null,
+            'others'  => $rows->count() > 1 ? '+' . ($rows->count() - 1) . ' moneda(s) más' : null,
+        ];
+    }
+
+    /**
+     * Variación % contra el mismo tramo del mes anterior, en el formato de
+     * DashboardStatCard (trend + trendValue). Sin base de comparación → nada.
+     *
+     * @return array{trend?: string, trendValue?: float}
+     */
+    private function trendAgainst(int $current, int $previous): array
+    {
+        if ($previous === 0) {
+            return [];
+        }
+
+        $change = round((($current - $previous) / $previous) * 100, 1);
+
+        return [
+            'trend'      => $change > 0 ? 'up' : ($change < 0 ? 'down' : 'neutral'),
+            'trendValue' => abs($change),
         ];
     }
 
