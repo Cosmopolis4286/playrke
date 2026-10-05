@@ -1,14 +1,15 @@
 <script setup lang="ts">
 /**
- * Ficha de autogestión de las 3 entidades de negocio ("Mi Comercio", "Mi
- * Agencia", "Mi Perfil de Vendedor"). Una sola vista para los 3 roles — antes
- * eran 3 páginas copiadas casi línea por línea; las diferencias por rol
- * (red, deuda con la plataforma, cadena jerárquica, regla de comisión) las
- * resuelve cada sección según profile.role.
+ * Ficha de autogestión "Mi …" de todos los roles con entidad propia: red
+ * comercial (Comercio, Agencia, Vendedor), Cliente API y Tesorería. Una sola
+ * vista — antes eran páginas copiadas casi línea por línea; las diferencias
+ * por rol las resuelve cada sección:
+ *  - red comercial: desempeño de ventas + comisión en cascada + red;
+ *  - cliente: desempeño de sus salas + integración API + configuración;
+ *  - tesorero: gestión de movimientos (no vende) + configuración.
  *
- * Layout: hero + alertas a todo el ancho; columna principal (desempeño,
- * comisión/jerarquía, red, movimientos) y columna lateral (contacto,
- * billetera, seguridad). En móvil se apilan.
+ * Layout: hero + alertas a todo el ancho; columna principal y columna lateral
+ * (contacto, billetera, seguridad). En móvil se apilan.
  */
 import { computed } from 'vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
@@ -21,18 +22,23 @@ import RoleProfileActivity from './RoleProfileActivity.vue'
 import RoleProfileContact from './RoleProfileContact.vue'
 import RoleProfileWallet from './RoleProfileWallet.vue'
 import RoleProfileSecurity from './RoleProfileSecurity.vue'
+import RoleProfileConfig from './RoleProfileConfig.vue'
+import RoleProfileIntegration from './RoleProfileIntegration.vue'
+import RoleProfileTreasury from './RoleProfileTreasury.vue'
 import { ROLE_META, useRoleProfile } from '@/js/composables/roles/shared/profile/useRoleProfile'
-import type { RoleProfile, RoleProfileRole } from '@/js/types/roles/shared/role-profile-common'
+import type { AccountProfile, AccountRole, CustomerProfile, RoleProfile, TreasurerProfile } from '@/js/types/roles/shared/role-profile-common'
 
 const props = defineProps<{
-  profile: RoleProfile
+  profile: AccountProfile
   isAdminView?: boolean
 }>()
 
-const PAGE: Record<RoleProfileRole, { title: string; subtitle: string; adminList: string }> = {
+const PAGE: Record<AccountRole, { title: string; subtitle: string; adminList: string }> = {
   commerce:   { title: 'Mi Comercio', subtitle: 'Tu comercializadora: desempeño, red y configuración.', adminList: '/admin/commerces' },
   subsidiary: { title: 'Mi Agencia', subtitle: 'Tu agencia: desempeño, vendedores y configuración.', adminList: '/admin/subsidiaries' },
   seller:     { title: 'Mi Perfil de Vendedor', subtitle: 'Tu taquilla: ventas, comisión y configuración.', adminList: '/admin/sellers' },
+  customer:   { title: 'Mi Cliente', subtitle: 'Tu integración API: salas, usuarios y configuración.', adminList: '/admin/customers' },
+  treasurer:  { title: 'Mi Tesorería', subtitle: 'Tu gestión de movimientos, cola y configuración.', adminList: '/admin/treasurers' },
 }
 
 /**
@@ -44,6 +50,14 @@ const targetUserId = new URLSearchParams(window.location.search).get('target_use
 const editor = useRoleProfile(props.profile, targetUserId)
 const profile = computed(() => editor.profile.value)
 const page = computed(() => PAGE[profile.value.role])
+
+/** Estrechamiento por rol para las secciones específicas. */
+const networkProfile = computed<RoleProfile | null>(() =>
+  ['commerce', 'subsidiary', 'seller'].includes(profile.value.role) ? (profile.value as RoleProfile) : null,
+)
+const customerProfile = computed<CustomerProfile | null>(() => (profile.value.role === 'customer' ? profile.value : null))
+const treasurerProfile = computed<TreasurerProfile | null>(() => (profile.value.role === 'treasurer' ? profile.value : null))
+const sellingProfile = computed(() => networkProfile.value ?? customerProfile.value)
 </script>
 
 <template>
@@ -73,13 +87,23 @@ const page = computed(() => PAGE[profile.value.role])
 
       <div class="rp-grid">
         <div class="rp-grid__main">
-          <RoleProfilePerformance :performance="profile.performance" :role="profile.role" />
-          <RoleProfileCommission :profile="profile" />
-          <RoleProfileNetwork v-if="profile.role !== 'seller'" :profile="profile" />
+          <RoleProfileTreasury v-if="treasurerProfile" :treasury="treasurerProfile.treasury" />
+          <RoleProfilePerformance v-if="sellingProfile" :performance="sellingProfile.performance" :role="sellingProfile.role" />
+          <RoleProfileIntegration v-if="customerProfile" :integration="customerProfile.integration" :business-name="customerProfile.business_name" />
+          <template v-if="networkProfile">
+            <RoleProfileCommission :profile="networkProfile" />
+            <RoleProfileNetwork v-if="networkProfile.role !== 'seller'" :profile="networkProfile" />
+          </template>
           <RoleProfileActivity :movements="profile.recent_movements" />
         </div>
         <aside class="rp-grid__aside">
           <RoleProfileContact :editor="editor" />
+          <RoleProfileConfig
+            v-if="customerProfile || treasurerProfile"
+            :commission="profile.commission"
+            :currencies="(customerProfile ?? treasurerProfile)!.currencies"
+            :games="(customerProfile ?? treasurerProfile)!.games"
+          />
           <RoleProfileWallet :wallets="profile.wallets" :receivables="profile.role === 'commerce' ? profile.receivables : undefined" />
           <RoleProfileSecurity :security="profile.security" :readonly="isAdminView" />
         </aside>

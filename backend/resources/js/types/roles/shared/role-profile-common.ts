@@ -1,10 +1,14 @@
 /**
- * Ficha de autogestión de las 3 entidades de negocio (Commerce/Subsidiary/
- * Seller "Mi …"). Refleja *ProfileService::showOwn() + RoleProfileEnrichmentService
- * + RoleProfileInsightsService en el backend.
+ * Fichas de autogestión "Mi …" de las entidades de rol: red comercial
+ * (Commerce/Subsidiary/Seller), Customer (integración B2B) y Treasurer.
+ * Refleja *ProfileService::showOwn() + RoleProfileEnrichmentService +
+ * RoleProfileInsightsService en el backend.
  */
 
+/** Roles de la red comercial (reparto de comisión en cascada). */
 export type RoleProfileRole = 'commerce' | 'subsidiary' | 'seller'
+/** Todo rol con ficha propia. */
+export type AccountRole = RoleProfileRole | 'customer' | 'treasurer'
 export type EntityStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED' | string
 
 export interface RoleProfileWallet {
@@ -47,7 +51,7 @@ export interface RoleProfilePerformance {
 }
 
 export interface RoleProfileChainNode {
-    level: RoleProfileRole
+    level: AccountRole
     name: string
     /**
      * null = nivel SUPERIOR al que mira su propio perfil: cada nivel ve solo
@@ -89,21 +93,25 @@ export interface RoleProfileNetworkRow {
     sellers_count?: number
 }
 
-interface RoleProfileBase {
+interface AccountProfileBase {
     id: string
     name: string
     phone: string
     status: EntityStatus
-    status_badge: string
     country: string | null
     user: { username: string; email: string }
     commission: number
-    performance: RoleProfilePerformance
+    hierarchy: { chain: RoleProfileChainNode[] }
     alerts: RoleProfileAlert[]
     security: RoleProfileSecurity
     wallets: RoleProfileWallet[]
     recent_movements: RoleProfileMovement[]
     account_meta: RoleProfileAccountMeta
+}
+
+/** Base de las fichas que venden (red comercial y Customer). */
+interface RoleProfileBase extends AccountProfileBase {
+    performance: RoleProfilePerformance
 }
 
 export interface CommerceProfile extends RoleProfileBase {
@@ -137,4 +145,46 @@ export interface SellerProfile extends RoleProfileBase {
     hierarchy: { chain: RoleProfileChainNode[]; cap: number | null }
 }
 
+/** Ficha de la red comercial (comisión en cascada, cadena jerárquica). */
 export type RoleProfile = CommerceProfile | SubsidiaryProfile | SellerProfile
+
+export interface CustomerProfile extends RoleProfileBase {
+    role: 'customer'
+    business_name: string | null
+    currency: string | null
+    currencies: string[]
+    games: string[]
+    /** Integración API — la clave nunca viaja completa, solo key_hint ("••••abcd"). */
+    integration: {
+        api_route: string | null
+        key_hint: string | null
+        users_total: number
+        users_active: number
+        rooms_active: number
+        rooms_total: number
+    }
+}
+
+export interface TreasuryKpi {
+    value: number
+    previous: number
+    change_pct: number | null
+}
+
+export interface TreasurerProfile extends AccountProfileBase {
+    role: 'treasurer'
+    currencies: string[]
+    games: string[]
+    treasury: {
+        period_label: string
+        kpis: { processed: TreasuryKpi; approved: TreasuryKpi; rejected: TreasuryKpi }
+        approval_rate: number | null
+        queue: { pending: number; unassigned: number; assigned_me: number; oldest_at: string | null }
+        trend: Array<{ date: string; count: number }>
+        top_types: Array<{ type: string; label: string; count: number }>
+        lifetime: { processed: number; first_at: string | null; last_at: string | null }
+    }
+}
+
+/** Cualquier ficha "Mi …". */
+export type AccountProfile = RoleProfile | CustomerProfile | TreasurerProfile

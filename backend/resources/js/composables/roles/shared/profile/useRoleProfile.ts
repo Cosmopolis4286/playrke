@@ -1,27 +1,29 @@
 import { computed, ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
-import type { RoleProfile, RoleProfileRole } from '@/js/types/roles/shared/role-profile-common'
+import type { AccountProfile, AccountRole } from '@/js/types/roles/shared/role-profile-common'
 
 /**
- * Ficha de autogestión de Commerce/Subsidiary/Seller ("Mi …") — reemplaza a
- * useCommerceProfile/useSubsidiaryProfile/useSellerProfile, que eran la misma
- * lógica copiada 3 veces.
+ * Ficha de autogestión "Mi …" de Commerce/Subsidiary/Seller/Customer/Treasurer
+ * — reemplaza a useCommerceProfile/useSubsidiaryProfile/useSellerProfile, que
+ * eran la misma lógica copiada 3 veces.
  *
  * `targetUserId` (opcional): cuando un admin/superadmin inspecciona la ficha
  * de OTRO usuario (ver AdminProfileAccessService en backend), se reenvía en el
  * PUT como target_user_id. Cualquier otro rol que lo envíe recibe 403 en el
  * backend — este parámetro nunca se resuelve del lado del cliente.
  */
-const ENDPOINTS: Record<RoleProfileRole, string> = {
+const ENDPOINTS: Record<AccountRole, string> = {
     commerce: '/commerce/profile',
     subsidiary: '/subsidiary/profile',
     seller: '/seller/profile',
+    customer: '/customer/profile',
+    treasurer: '/treasurer/profile',
 }
 
 type EditableField = 'name' | 'phone'
 
-export function useRoleProfile<T extends RoleProfile>(initial: T, targetUserId: string | null = null) {
+export function useRoleProfile<T extends AccountProfile>(initial: T, targetUserId: string | null = null) {
     const profile = ref(initial) as { value: T }
     const editMode = ref(false)
     const saving = ref(false)
@@ -140,8 +142,10 @@ export function statusMeta(status: string) {
     return STATUS_META[status] ?? { label: status, tone: 'warning' as const }
 }
 
-export const ROLE_META: Record<RoleProfileRole, { label: string; icon: string }> = {
+export const ROLE_META: Record<AccountRole, { label: string; icon: string }> = {
     commerce:   { label: 'Comercializadora', icon: 'fa-store' },
     subsidiary: { label: 'Agencia',          icon: 'fa-code-branch' },
     seller:     { label: 'Taquilla',         icon: 'fa-user-tie' },
+    customer:   { label: 'Cliente API',      icon: 'fa-plug' },
+    treasurer:  { label: 'Tesorería',        icon: 'fa-vault' },
 }
