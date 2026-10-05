@@ -6,6 +6,9 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrizePayment;
+use App\Models\Audit;
 use App\Models\Game;
 use App\Models\Role;
 use App\Models\Roles\Player\External\ExternalPlayer;
@@ -23,6 +26,10 @@ use Illuminate\Support\Str;
 
 final class ExternalPlayerAdminService
 {
+    /** Preview embebido en getPlayerDetail() — "Cargar más" usa *History() paginado con este mismo tamaño de página. */
+    private const RECENT_ACTIVITY_LIMIT = 10;
+    private const ACTIVITY_HISTORY_PAGE_SIZE = 15;
+
     private const EAGER_RELATIONS = [
         'game:id,name',
         'sellerUser:id,username,first_name,last_name,email',
@@ -453,6 +460,143 @@ final class ExternalPlayerAdminService
 
             return ['user' => $user, 'temporary_password' => $temporaryPassword];
         });
+    }
+
+    /**
+     * Detalle consolidado de un jugador externo para el modal de ficha —
+     * datos básicos (ya cargados vía EAGER_RELATIONS) + preview de las 3
+     * fuentes de "qué hizo"/"qué le pasó": compras, premios, y auditoría de
+     * cambios de estado (bloqueo, regeneración de link, conversión a
+     * usuario — capturados automáticamente por el trait Auditable en
+     * ExternalPlayer). Mismo patrón que AdminUserService::getUserDetail().
+     */
+    public function getPlayerDetail(ExternalPlayer $player): array
+    {
+        $player->load(self::EAGER_RELATIONS);
+
+        $recentPurchases = $this->recentPurchases($player);
+        $recentPrizes    = $this->recentPrizes($player);
+        $recentAudits    = $this->recentAudits($player);
+
+        return [
+            ...$player->toArray(),
+            'recent_purchases'    => $recentPurchases,
+            'recent_prizes'       => $recentPrizes,
+            'recent_audits'       => $recentAudits,
+            'has_more_purchases'  => $recentPurchases->count() >= self::RECENT_ACTIVITY_LIMIT
+                && BingoCardPayment::byExternalPlayer($player->id)->count() > self::RECENT_ACTIVITY_LIMIT,
+            'has_more_prizes'     => $recentPrizes->count() >= self::RECENT_ACTIVITY_LIMIT
+                && BingoCardPrizePayment::byExternalPlayer($player->id)->count() > self::RECENT_ACTIVITY_LIMIT,
+            'has_more_audits'     => $recentAudits->count() >= self::RECENT_ACTIVITY_LIMIT
+                && Audit::ofAuditable(ExternalPlayer::class, $player->id)->count() > self::RECENT_ACTIVITY_LIMIT,
+        ];
+    }
+
+    private function recentPurchases(ExternalPlayer $player): Collection
+    {
+        return BingoCardPayment::byExternalPlayer($player->id)
+            ->with('room:id,uuid_code')
+            ->latest('created_at')
+            ->limit(self::RECENT_ACTIVITY_LIMIT)
+            ->get()
+            ->map(fn (BingoCardPayment $payment) => $this->mapPurchaseRow($payment));
+    }
+
+    private function recentPrizes(ExternalPlayer $player): Collection
+    {
+        return BingoCardPrizePayment::byExternalPlayer($player->id)
+            ->latest('created_at')
+            ->limit(self::RECENT_ACTIVITY_LIMIT)
+            ->get()
+            ->map(fn (BingoCardPrizePayment $payment) => $this->mapPrizeRow($payment));
+    }
+
+    private function recentAudits(ExternalPlayer $player): Collection
+    {
+        return Audit::ofAuditable(ExternalPlayer::class, $player->id)
+            ->with('user:id,first_name,last_name,email')
+            ->latest('created_at')
+            ->limit(self::RECENT_ACTIVITY_LIMIT)
+            ->get()
+            ->map(fn (Audit $audit) => $this->mapAuditRow($audit));
+    }
+
+    /**
+     * Historial de compras paginado — botón "Cargar más" cuando el preview
+     * de getPlayerDetail() no basta. Mismo patrón que
+     * AdminUserService::getWalletMovementHistory().
+     */
+    public function getPlayerPurchaseHistory(ExternalPlayer $player, int $page = 1): array
+    {
+        $paginator = BingoCardPayment::byExternalPlayer($player->id)
+            ->with('room:id,uuid_code')
+            ->latest('created_at')
+            ->paginate(self::ACTIVITY_HISTORY_PAGE_SIZE, ['*'], 'page', $page);
+
+        return [
+            'rows'         => $paginator->getCollection()->map(fn (BingoCardPayment $p) => $this->mapPurchaseRow($p))->values(),
+            'has_more'     => $paginator->hasMorePages(),
+            'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    public function getPlayerPrizeHistory(ExternalPlayer $player, int $page = 1): array
+    {
+        $paginator = BingoCardPrizePayment::byExternalPlayer($player->id)
+            ->latest('created_at')
+            ->paginate(self::ACTIVITY_HISTORY_PAGE_SIZE, ['*'], 'page', $page);
+
+        return [
+            'rows'         => $paginator->getCollection()->map(fn (BingoCardPrizePayment $p) => $this->mapPrizeRow($p))->values(),
+            'has_more'     => $paginator->hasMorePages(),
+            'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    public function getPlayerAuditHistory(ExternalPlayer $player, int $page = 1): array
+    {
+        $paginator = Audit::ofAuditable(ExternalPlayer::class, $player->id)
+            ->with('user:id,first_name,last_name,email')
+            ->latest('created_at')
+            ->paginate(self::ACTIVITY_HISTORY_PAGE_SIZE, ['*'], 'page', $page);
+
+        return [
+            'rows'         => $paginator->getCollection()->map(fn (Audit $a) => $this->mapAuditRow($a))->values(),
+            'has_more'     => $paginator->hasMorePages(),
+            'current_page' => $paginator->currentPage(),
+        ];
+    }
+
+    private function mapPurchaseRow(BingoCardPayment $payment): array
+    {
+        return [
+            'id'     => (string) $payment->id,
+            'date'   => $payment->created_at?->format('d/m/Y H:i:s'),
+            'amount' => (float) $payment->payment_amount,
+            'status' => $payment->payment_status,
+            'room'   => $payment->room?->uuid_code,
+        ];
+    }
+
+    private function mapPrizeRow(BingoCardPrizePayment $payment): array
+    {
+        return [
+            'id'     => (string) $payment->id,
+            'date'   => $payment->created_at?->format('d/m/Y H:i:s'),
+            'amount' => (float) $payment->payment_amount,
+            'status' => $payment->payment_status,
+            'method' => $payment->payment_method_description,
+        ];
+    }
+
+    private function mapAuditRow(Audit $audit): array
+    {
+        return [
+            'id'    => (string) $audit->id,
+            'date'  => $audit->created_at?->format('d/m/Y H:i:s'),
+            'actor' => $audit->user?->full_name ?? 'Sistema',
+            'event' => $audit->event,
+        ];
     }
 
     /**

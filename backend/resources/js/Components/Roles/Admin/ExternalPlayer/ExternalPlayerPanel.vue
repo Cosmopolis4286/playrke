@@ -32,6 +32,7 @@
             @regenerate-link="handleRegenerateLink"
             @reactivate="handleReactivate"
             @convert-to-user="handleConvertToUser"
+            @view-detail="player => $emit('view-detail', player.id)"
           />
         </div>
       </div>
@@ -73,6 +74,7 @@ const emit = defineEmits<{
   (e: 'reactivate', playerId: string): void
   (e: 'convert-to-user', playerId: string): void
   (e: 'export'): void
+  (e: 'view-detail', playerId: string): void
 }>()
 
 const busyId = ref<string | null>(null)

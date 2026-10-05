@@ -1,11 +1,11 @@
 <template>
   <div class="ep-row" :class="`is-${player.status.toLowerCase()}`">
     <button
-      v-tooltip="expanded ? 'Ocultar detalle' : 'Ver detalle'"
+      v-tooltip="'Ver detalle e historial'"
       class="ep-row-toggle"
-      @click="expanded = !expanded"
+      @click="$emit('view-detail', player)"
     >
-      <i class="fas fa-chevron-right" :class="{ 'is-open': expanded }"></i>
+      <i class="fas fa-circle-info"></i>
     </button>
 
     <div class="ep-row-main">
@@ -101,40 +101,6 @@
       </button>
     </div>
 
-    <Transition name="ep-detail">
-      <div v-if="expanded" class="ep-row-detail">
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Vendedor</span>
-          <span class="ep-detail-value">
-            {{ player.seller_user ? `${player.seller_user.first_name} ${player.seller_user.last_name} (${player.seller_user.email})` : '—' }}
-          </span>
-        </div>
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Agencia</span>
-          <span class="ep-detail-value">{{ player.subsidiary?.name ?? '— (reporta directo al comercio)' }}</span>
-        </div>
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Comercio</span>
-          <span class="ep-detail-value">{{ player.commerce?.name ?? '—' }}</span>
-        </div>
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Link de acceso</span>
-          <code class="ep-detail-value ep-detail-link">{{ player.link }}</code>
-        </div>
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Registrado</span>
-          <span class="ep-detail-value">{{ player.created_at ? formatFullDate(player.created_at) : '—' }}</span>
-        </div>
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Expira</span>
-          <span class="ep-detail-value">{{ player.expiration_date ? formatFullDate(player.expiration_date) : '—' }}</span>
-        </div>
-        <div class="ep-detail-item">
-          <span class="ep-detail-label">Código de compra</span>
-          <code class="ep-detail-value ep-detail-link">{{ player.purchase_code?.purchase_code ?? '—' }}</code>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -155,9 +121,9 @@ defineEmits<{
   (e: 'regenerate-link', player: ExternalPlayer): void
   (e: 'reactivate', player: ExternalPlayer): void
   (e: 'convert-to-user', player: ExternalPlayer): void
+  (e: 'view-detail', player: ExternalPlayer): void
 }>()
 
-const expanded = ref(false)
 const copied = ref(false)
 
 const STATUS_LABELS: Record<ExternalPlayer['status'], string> = {
@@ -259,8 +225,7 @@ async function copyLink() {
   padding: 0.3rem;
   flex-shrink: 0;
 }
-.ep-row-toggle i { font-size: 0.7rem; transition: transform 0.15s; }
-.ep-row-toggle i.is-open { transform: rotate(90deg); }
+.ep-row-toggle i { font-size: 0.85rem; }
 
 .ep-row-main { display: flex; align-items: center; gap: 0.6rem; flex: 1 1 260px; min-width: 0; }
 .ep-status-badge { font-size: 0.7rem; padding: 0.3rem 0.55rem; flex-shrink: 0; white-space: nowrap; }
@@ -303,25 +268,6 @@ async function copyLink() {
 .badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
 .badge-danger    { background-color: rgba(239,68,68,.18);  color: #ef4444; }
 .ep-converted-badge { font-size: 0.7rem; padding: 0.3rem 0.55rem; background-color: rgba(37,99,235,.18); color: #60a5fa; }
-
-/* ── Detalle expandido ── */
-.ep-row-detail {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.6rem;
-  margin-top: 0.5rem;
-  padding-top: 0.65rem;
-  border-top: 1px dashed var(--ds-border);
-}
-.ep-detail-item { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
-.ep-detail-label { font-size: 0.68rem; color: var(--ds-text-muted); text-transform: uppercase; font-weight: 600; }
-.ep-detail-value { font-size: 0.78rem; color: var(--ds-text-2); overflow-wrap: break-word; }
-.ep-detail-link { font-size: 0.7rem; background: var(--ds-surface-2); padding: 0.15rem 0.4rem; border-radius: 4px; }
-
-.ep-detail-enter-active, .ep-detail-leave-active { transition: opacity 0.15s, max-height 0.2s; overflow: hidden; }
-.ep-detail-enter-from, .ep-detail-leave-to { opacity: 0; max-height: 0; }
-.ep-detail-enter-to, .ep-detail-leave-from { opacity: 1; max-height: 200px; }
 
 @media (max-width: 768px) {
   .ep-row { flex-direction: column; align-items: stretch; }

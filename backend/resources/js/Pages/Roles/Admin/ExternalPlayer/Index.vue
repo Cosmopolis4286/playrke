@@ -25,17 +25,26 @@
               @reactivate="handleReactivate"
               @convert-to-user="handleConvertToUser"
               @export="handleExport"
+              @view-detail="openDetail"
             />
           </div>
         </div>
       </div>
     </section>
+
+    <ExternalPlayerDetailModal
+      v-model="showDetail"
+      :detail-loading="detailLoading"
+      :detail="detail"
+    />
 </template>
 
 <script setup lang="ts">
 import ExternalPlayerPanel from '@/js/Components/Roles/Admin/ExternalPlayer/ExternalPlayerPanel.vue'
+import ExternalPlayerDetailModal from '@/js/Components/Roles/Admin/ExternalPlayer/ExternalPlayerDetailModal.vue'
 import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
 import { useExternalPlayers } from '@/js/composables/roles/admin/external-player/useExternalPlayers'
+import { useExternalPlayerDetail } from '@/js/composables/roles/admin/external-player/useExternalPlayerDetail'
 import { useToast } from 'vue-toastification'
 import { showPasswordModal } from '@/js/helpers/user/password'
 import type { ExternalPlayer, ExternalPlayerFilters, ExternalPlayerStatistics, GameOption, HierarchyOptions, PaginatedResult } from '@/js/types/roles/admin/external-player'
@@ -59,6 +68,8 @@ const { players, pagination, statistics, loading, filters, fetchPlayers, searchD
   players: props.players,
   statistics: props.statistics,
 })
+
+const { showDetail, detailLoading, detail, openDetail } = useExternalPlayerDetail()
 
 async function handleSearch(newFilters: ExternalPlayerFilters) {
   await fetchPlayers(newFilters)

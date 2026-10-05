@@ -67,6 +67,11 @@ final class BingoCardPayment extends BaseModel
         return $this->belongsTo(BingoCardLot::class, 'card_lot_id');
     }
 
+    public function scopeByExternalPlayer($query, string $id)
+    {
+        return $query->where('external_player_id', $id);
+    }
+
     // Estados alineados con el enum real de la columna
     // (PENDING/APPROVED/REJECTED/CANCELLED) — antes COMPLETED/FAILED, que
     // MySQL rechazaba.

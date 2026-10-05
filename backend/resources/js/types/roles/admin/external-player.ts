@@ -19,6 +19,48 @@ export interface ExternalPlayer {
   subsidiary?: { id: string; name: string } | null
 }
 
+/** Fila del histórico de auditoría — cambios de estado/link/conversión (ver ExternalPlayerAdminService::mapAuditRow()). */
+export interface ExternalPlayerAuditEntry {
+  id: string
+  date: string
+  actor: string
+  event: string
+}
+
+/** Fila del histórico de compras (bingo_card_payments). */
+export interface ExternalPlayerPurchaseEntry {
+  id: string
+  date: string
+  amount: number
+  status: string
+  room: string | null
+}
+
+/** Fila del histórico de premios (bingo_card_prize_payments). */
+export interface ExternalPlayerPrizeEntry {
+  id: string
+  date: string
+  amount: number
+  status: string
+  method: string | null
+}
+
+/** Detalle consolidado del modal de ficha — datos básicos + preview de las 3 fuentes de actividad. */
+export interface ExternalPlayerDetail extends ExternalPlayer {
+  recent_purchases: ExternalPlayerPurchaseEntry[]
+  recent_prizes: ExternalPlayerPrizeEntry[]
+  recent_audits: ExternalPlayerAuditEntry[]
+  has_more_purchases: boolean
+  has_more_prizes: boolean
+  has_more_audits: boolean
+}
+
+export interface HistoryPage<T> {
+  rows: T[]
+  has_more: boolean
+  current_page: number
+}
+
 export interface ExternalPlayerStatistics {
   total: number
   active: number

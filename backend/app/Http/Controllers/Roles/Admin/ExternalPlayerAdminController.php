@@ -7,6 +7,7 @@ use App\Http\Requests\Roles\Admin\ExternalPlayer\ExternalPlayerSearchRequest;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Services\Roles\Admin\ExternalPlayerAdminService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -96,6 +97,62 @@ final class ExternalPlayerAdminController extends Controller
         }, 'jugadores-externos-' . now()->format('Y-m-d-His') . '.csv', [
             'Content-Type' => 'text/csv',
         ]);
+    }
+
+    /**
+     * Ficha de detalle de un jugador externo — datos básicos + preview de
+     * compras/premios/auditoría. Autorizado vía ExternalPlayerPolicy::view()
+     * (ya escopa por ownership: admin ve todos, commerce/subsidiary/seller
+     * solo los de su propio árbol).
+     */
+    public function show(string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('view', $player);
+
+        return response()->json([
+            'player' => $this->service->getPlayerDetail($player),
+        ]);
+    }
+
+    /**
+     * GET /admin/external-players/{externalPlayer}/purchase-history?page=1
+     * "Cargar más" del bloque de compras del modal de ficha.
+     */
+    public function purchaseHistory(Request $request, string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('view', $player);
+
+        return response()->json(
+            $this->service->getPlayerPurchaseHistory($player, (int) $request->query('page', 1))
+        );
+    }
+
+    /**
+     * GET /admin/external-players/{externalPlayer}/prize-history?page=1
+     */
+    public function prizeHistory(Request $request, string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('view', $player);
+
+        return response()->json(
+            $this->service->getPlayerPrizeHistory($player, (int) $request->query('page', 1))
+        );
+    }
+
+    /**
+     * GET /admin/external-players/{externalPlayer}/audit-history?page=1
+     */
+    public function auditHistory(Request $request, string $externalPlayer): JsonResponse
+    {
+        $player = ExternalPlayer::findOrFail($externalPlayer);
+        $this->authorize('view', $player);
+
+        return response()->json(
+            $this->service->getPlayerAuditHistory($player, (int) $request->query('page', 1))
+        );
     }
 
     public function toggleBlock(string $externalPlayer): JsonResponse

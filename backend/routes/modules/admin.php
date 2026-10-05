@@ -259,13 +259,22 @@ Route::middleware('auth')->group(function () {
      * acción vive en ExternalPlayerPolicy.
      */
     role_protected_routes(['multiPermission:external-players.view'], 'admin/external-players', ExternalPlayerAdminController::class, [
-        'index'          => ['method' => 'get', 'uri' => '',              'action' => 'index'],
-        'fetchList'      => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
-        'export'         => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
-        'toggleBlock'    => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
-        'regenerateLink' => ['method' => 'put', 'uri' => '{externalPlayer}/regenerate-link', 'action' => 'regenerateLink', 'middleware' => 'multiPermission:external-players.manage'],
-        'reactivate'     => ['method' => 'put', 'uri' => '{externalPlayer}/reactivate', 'action' => 'reactivate', 'middleware' => 'multiPermission:external-players.manage'],
-        'convertToUser'  => ['method' => 'put', 'uri' => '{externalPlayer}/convert-to-user', 'action' => 'convertToUser', 'middleware' => 'multiPermission:external-players.manage'],
+        'index'           => ['method' => 'get', 'uri' => '',              'action' => 'index'],
+        'fetchList'       => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'export'          => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
+        // Rutas literales (fetch-list/export) van ANTES que cualquier ruta
+        // con {externalPlayer} — un registro al revés hace que Laravel
+        // capture "fetch-list"/"export" como valor del parámetro en vez de
+        // matchear la ruta literal (ya mordió al proyecto 2 veces, ver
+        // memoria feedback_route_order_literal_vs_param).
+        'show'            => ['method' => 'get', 'uri' => '{externalPlayer}',                   'action' => 'show'],
+        'purchaseHistory' => ['method' => 'get', 'uri' => '{externalPlayer}/purchase-history',   'action' => 'purchaseHistory'],
+        'prizeHistory'    => ['method' => 'get', 'uri' => '{externalPlayer}/prize-history',      'action' => 'prizeHistory'],
+        'auditHistory'    => ['method' => 'get', 'uri' => '{externalPlayer}/audit-history',      'action' => 'auditHistory'],
+        'toggleBlock'     => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
+        'regenerateLink'  => ['method' => 'put', 'uri' => '{externalPlayer}/regenerate-link', 'action' => 'regenerateLink', 'middleware' => 'multiPermission:external-players.manage'],
+        'reactivate'      => ['method' => 'put', 'uri' => '{externalPlayer}/reactivate', 'action' => 'reactivate', 'middleware' => 'multiPermission:external-players.manage'],
+        'convertToUser'   => ['method' => 'put', 'uri' => '{externalPlayer}/convert-to-user', 'action' => 'convertToUser', 'middleware' => 'multiPermission:external-players.manage'],
     ], 'externalPlayer');
 
     /**

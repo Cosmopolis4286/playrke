@@ -7,11 +7,14 @@ use App\Models\Country;
 use App\Models\Game;
 use App\Models\Roles\Seller;
 use App\Models\User;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\BaseModel;
 
 class ExternalPlayer extends BaseModel
 {
+    use Auditable;
+
     protected $fillable = [
         'game_id',
         'room_id',
