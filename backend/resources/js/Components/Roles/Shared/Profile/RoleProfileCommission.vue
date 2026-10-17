@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import RpCard from './RpCard.vue'
-import type { RoleProfile, RoleProfileRole } from '@/js/types/roles/shared/role-profile-common'
+import type { AccountRole, RoleProfile, RoleProfileRole } from '@/js/types/roles/shared/role-profile-common'
 import { ROLE_META, formatRate, statusMeta } from '@/js/composables/roles/shared/profile/useRoleProfile'
 
 const props = defineProps<{ profile: RoleProfile }>()
@@ -105,7 +105,7 @@ const example = computed<{ title: string; rows: ExampleRow[] } | null>(() => {
 })
 
 /** Celda de % de un nivel: oculto (nivel superior), "De paso" o el porcentaje. */
-function rateLabel(node: { level: RoleProfileRole; rate: number | null }): string | null {
+function rateLabel(node: { level: AccountRole; rate: number | null }): string | null {
   if (node.rate === null) return null
   return node.level === 'subsidiary' && node.rate <= 0 ? 'De paso' : formatRate(node.rate)
 }

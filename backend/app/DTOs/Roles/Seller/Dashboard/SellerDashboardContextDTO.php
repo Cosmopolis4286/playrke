@@ -25,6 +25,10 @@ final class SellerDashboardContextDTO implements ContextDTO
         public readonly string $period,
         /** Posición del vendedor en el ranking mensual — null si no vendió nada este mes */
         public readonly ?array $ranking = null,
+        /** Pendientes: pagos en revisión, rechazados (a devolver) y premios por entregar */
+        public readonly array $pendingActions = [],
+        /** Próximas salas de hoy con la venta abierta */
+        public readonly array $upcomingRooms = [],
     ) {}
 
     public function toView(): array
@@ -39,6 +43,8 @@ final class SellerDashboardContextDTO implements ContextDTO
             'salesTrend'      => $this->salesTrend,
             'period'          => $this->period,
             'ranking'         => $this->ranking,
+            'pendingActions'  => $this->pendingActions,
+            'upcomingRooms'   => $this->upcomingRooms,
         ];
     }
 }

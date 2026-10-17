@@ -2,6 +2,7 @@
   /**
    * Página Dashboard → Vendedor
    * Stats: cartones vendidos, comisión, ganadores.
+   * Pendientes (pagos en revisión, devoluciones, premios) y salas abiertas hoy.
    * Accesos rápidos: Generar Cartón, Cartones, Ganadores, Reporte de Ventas, Directorio.
    */
 
@@ -19,6 +20,8 @@
   import DashboardCommissionPanel  from '@/js/Components/Common/Dashboard/DashboardCommissionPanel.vue'
   import DashboardTrendChart       from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
   import DashboardRoomCommissionList from '@/js/Components/Common/Dashboard/DashboardRoomCommissionList.vue'
+  import SellerPendingActions      from '@/js/Components/Roles/Seller/Dashboard/SellerPendingActions.vue'
+  import SellerUpcomingRooms       from '@/js/Components/Roles/Seller/Dashboard/SellerUpcomingRooms.vue'
   import type { QuickLink }        from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -188,6 +191,32 @@
           class="col-12 col-sm-6 col-xl-3"
         >
           <DashboardStatCard v-bind="stat" />
+        </div>
+      </div>
+
+      <!-- Pendientes + salas para vender hoy -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Pendientes"
+            icon="fas fa-list-check"
+            subtitle="Lo que requiere tu atención"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <SellerPendingActions :items="pendingActions ?? []" />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Salas para vender hoy"
+            icon="fas fa-door-open"
+            subtitle="Ordenadas por cierre de venta"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <SellerUpcomingRooms :rooms="upcomingRooms ?? []" />
+          </DashboardSection>
         </div>
       </div>
 

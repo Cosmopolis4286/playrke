@@ -60,6 +60,30 @@ export interface SellerRankingStanding {
     goal:               number
 }
 
+export interface SellerPendingAction {
+    key:     'in_review' | 'rejected' | 'prizes'
+    label:   string
+    count:   number
+    /** Monto de la moneda principal ya formateado ("Bs 120,00 +1 moneda(s)") */
+    amount:  string | null
+    hint:    string
+    icon:    string
+    variant: 'info' | 'danger' | 'warning'
+    href:    string
+}
+
+export interface SellerUpcomingRoom {
+    id:             string
+    name:           string
+    is_own:         boolean
+    is_manual:      boolean
+    starts_at:      string | null
+    sales_close_at: string | null
+    card_price_usd: number
+    prize_pool_usd: number
+    total_cards:    number
+}
+
 // --------------------------------------------------------------------------
 // Inertia page props
 // --------------------------------------------------------------------------
@@ -83,4 +107,8 @@ export interface DashboardSellerPageProps {
     period?: string
     /** Posición del vendedor en el ranking mensual — null si no vendió nada este mes */
     ranking?: SellerRankingStanding | null
+    /** Pendientes: pagos en revisión, rechazados (a devolver) y premios por entregar */
+    pendingActions?: SellerPendingAction[]
+    /** Próximas salas de hoy con la venta abierta */
+    upcomingRooms?: SellerUpcomingRoom[]
 }

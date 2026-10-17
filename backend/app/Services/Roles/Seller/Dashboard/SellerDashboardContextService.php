@@ -5,6 +5,10 @@ namespace App\Services\Roles\Seller\Dashboard;
 use App\DTOs\Roles\Seller\Dashboard\SellerDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
+use App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService;
+use App\Models\Currency;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\Roles\Seller;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
@@ -23,6 +27,7 @@ final class SellerDashboardContextService
 
     public function __construct(
         private readonly SellerRankingService $sellerRanking,
+        private readonly BingoCardGenerateService $cardGenerate,
     ) {
     }
 
@@ -47,7 +52,149 @@ final class SellerDashboardContextService
                 ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
             period:          $period,
             ranking:         $this->sellerRanking->getSellerStanding($userId),
+            pendingActions:  $this->buildPendingActions($userId, $now),
+            upcomingRooms:   $seller ? $this->buildUpcomingRooms() : [],
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Pendientes del vendedor: lo que requiere que haga algo hoy
+    // -------------------------------------------------------------------------
+
+    /**
+     * Tres colas que antes el vendedor no veía en ningún lado:
+     *  - ventas con el pago en revisión (el comprador aún no ve sus cartones);
+     *  - pagos rechazados en los últimos 7 días (debe devolver el dinero);
+     *  - premios de sus compradores sin entregar (el premio se acredita al
+     *    comercio, ver BingoCardPrize::getUserId(), y el vendedor lo entrega).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildPendingActions(string $userId, Carbon $now): array
+    {
+        $inReview = $this->sumByCurrency(
+            BingoCardPayment::where('seller_user_id', $userId)->where('payment_status', 'PENDING'),
+            'payment_amount',
+        );
+
+        $rejected = $this->sumByCurrency(
+            BingoCardPayment::where('seller_user_id', $userId)
+                ->where('payment_status', 'REJECTED')
+                ->where('processed_at', '>=', $now->copy()->subDays(7)),
+            'payment_amount',
+        );
+
+        $prizes = $this->sumByCurrency(
+            BingoCardPrize::where('seller_user_id', $userId)->whereIn('prize_status', ['waiting', 'processing']),
+            'local_amount',
+        );
+
+        return [
+            [
+                'key'         => 'in_review',
+                'label'       => 'Pagos en revisión',
+                'count'       => $inReview['count'],
+                'amount'      => $inReview['amount'],
+                'hint'        => 'Tus compradores verán sus cartones cuando el comercio apruebe el pago.',
+                'icon'        => 'fas fa-hourglass-half',
+                'variant'     => 'info',
+                'href'        => '/bingo/cards-sold',
+            ],
+            [
+                'key'         => 'rejected',
+                'label'       => 'Pagos rechazados (7 días)',
+                'count'       => $rejected['count'],
+                'amount'      => $rejected['amount'],
+                'hint'        => 'Esos cartones se anularon: devuelve el dinero a cada comprador.',
+                'icon'        => 'fas fa-rotate-left',
+                'variant'     => 'danger',
+                'href'        => '/bingo/cards-sold',
+            ],
+            [
+                'key'         => 'prizes',
+                'label'       => 'Premios por entregar',
+                'count'       => $prizes['count'],
+                'amount'      => $prizes['amount'],
+                'hint'        => 'Premios ganados con cartones que vendiste; coordina la entrega con tu comercio.',
+                'icon'        => 'fas fa-gift',
+                'variant'     => 'warning',
+                'href'        => '/bingo/winners',
+            ],
+        ];
+    }
+
+    /**
+     * Cantidad de filas y monto de la moneda principal (la de mayor monto),
+     * con "+N moneda(s)" si hay más — no se suman monedas distintas.
+     *
+     * @return array{count: int, amount: ?string}
+     */
+    private function sumByCurrency($query, string $column): array
+    {
+        $rows = (clone $query)
+            ->groupBy('currency_id')
+            ->selectRaw("currency_id, COUNT(*) AS total, COALESCE(SUM({$column}), 0) AS amount")
+            ->toBase()
+            ->get()
+            ->sortByDesc(fn ($r) => (float) $r->amount)
+            ->values();
+
+        $count = (int) $rows->sum('total');
+
+        if ($count === 0) {
+            return ['count' => 0, 'amount' => null];
+        }
+
+        $primary  = $rows->first();
+        $currency = Currency::find($primary->currency_id);
+        $amount   = $currency
+            ? trim(($currency->symbol ?? '') . ' ' . $currency->formatAmount((float) $primary->amount))
+            : number_format((float) $primary->amount, 2, ',', '.');
+
+        if ($rows->count() > 1) {
+            $amount .= ' +' . ($rows->count() - 1) . ' moneda(s)';
+        }
+
+        return ['count' => $count, 'amount' => $amount];
+    }
+
+    // -------------------------------------------------------------------------
+    // Próximas salas vendibles hoy (mismo criterio que el punto de venta)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Las próximas 5 salas de hoy con la venta abierta, ordenadas por cierre.
+     * Reusa listSellableRooms() para no duplicar la regla de visibilidad
+     * (propias del comercio + PUBLIC) ni el corte de venta previo al inicio.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildUpcomingRooms(): array
+    {
+        try {
+            $rooms = $this->cardGenerate->listSellableRooms(now()->toDateString());
+        } catch (\Throwable $e) {
+            // Vendedor sin comercio asignado: el dashboard ya muestra la alerta.
+            return [];
+        }
+
+        return collect($rooms)
+            ->filter(fn (array $r) => $r['sales_open'])
+            ->sortBy(fn (array $r) => $r['sales_close_at'] ?? '9999')
+            ->take(5)
+            ->map(fn (array $r) => [
+                'id'             => $r['id'],
+                'name'           => $r['uuid_code'],
+                'is_own'         => $r['is_own'],
+                'is_manual'      => $r['is_manual'],
+                'starts_at'      => $r['starts_at'],
+                'sales_close_at' => $r['sales_close_at'],
+                'card_price_usd' => $r['card_price_usd'],
+                'prize_pool_usd' => $r['prize_pool'],
+                'total_cards'    => $r['total_cards'],
+            ])
+            ->values()
+            ->all();
     }
 
     // -------------------------------------------------------------------------

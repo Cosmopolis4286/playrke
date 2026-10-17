@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Roles\Admin;
@@ -217,13 +218,57 @@ class DashboardContextServicesTest extends TestCase
         $view = app(SellerDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'ranking', 'period'],
+            ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'ranking', 'period', 'pendingActions', 'upcomingRooms'],
             array_keys($view)
         );
 
         // reportsTo debe resolver al Commerce recién creado (reporte directo, sin agencia).
         $this->assertSame('commerce', $view['reportsTo']['type']);
         $this->assertSame('Comercio de prueba', $view['reportsTo']['commerce_name']);
+
+        // Vendedor nuevo: las tres colas existen, vacías.
+        $this->assertSame(['in_review', 'rejected', 'prizes'], array_column($view['pendingActions'], 'key'));
+        $this->assertSame([0, 0, 0], array_column($view['pendingActions'], 'count'));
+        $this->assertSame([], $view['upcomingRooms']);
+    }
+
+    /** @test */
+    public function seller_pending_actions_count_only_own_payments_by_status(): void
+    {
+        $commerceUser = $this->makeCommerce();
+        $sellerUser   = $this->makeSeller($commerceUser);
+        $otherSeller  = $this->makeSeller($commerceUser);
+
+        $payment = fn (User $seller, string $status, float $amount, ?string $processedAt = null) => BingoCardPayment::create([
+            'payment_method'        => 'mobile_payment',
+            'room_id'               => '1',
+            'creator_user_id'       => $commerceUser->id,
+            'seller_user_id'        => $seller->id,
+            'currency_id'           => $this->currency->id,
+            'card_lot_id'           => '1',
+            'payment_amount'        => $amount,
+            'payment_proof'         => 'private/receipts/bingo/test.png',
+            'payment_status'        => $status,
+            'processed_at'          => $processedAt,
+            'transaction_reference' => uniqid('REF'),
+        ]);
+
+        $payment($sellerUser, 'PENDING', 10);
+        $payment($sellerUser, 'PENDING', 5);
+        $payment($sellerUser, 'REJECTED', 7, now()->subDays(2)->toDateTimeString());
+        $payment($sellerUser, 'REJECTED', 9, now()->subDays(30)->toDateTimeString()); // fuera de los 7 días
+        $payment($sellerUser, 'APPROVED', 20, now()->toDateTimeString());
+        $payment($otherSeller, 'PENDING', 99);                                         // de otro vendedor
+
+        Auth::login($sellerUser);
+        $actions = collect(app(SellerDashboardContextService::class)->dashboardContext()->toView()['pendingActions'])
+            ->keyBy('key');
+
+        $this->assertSame(2, $actions['in_review']['count']);
+        $this->assertSame(trim($this->currency->symbol . ' ' . $this->currency->formatAmount(15)), $actions['in_review']['amount']);
+        $this->assertSame(1, $actions['rejected']['count']);
+        $this->assertSame(0, $actions['prizes']['count']);
+        $this->assertNull($actions['prizes']['amount']);
     }
 
     // ─── Player ─────────────────────────────────────────────────────────────
