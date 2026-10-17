@@ -32,7 +32,54 @@ final class PlayerDashboardContextService
             kycStatus:      $this->buildKycStatus($userId),
             period:         $period,
             showCrossGameBridge: $this->buildShowCrossGameBridge($userId),
+            upcomingGames:  $this->buildUpcomingGames($userId, $now),
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Mis próximas partidas: salas donde ya tiene cartones y aún no terminaron
+    // -------------------------------------------------------------------------
+
+    /**
+     * Hasta 5 salas ACTIVE/IN_PROGRESS en las que el jugador compró cartones,
+     * las en juego primero y luego por hora de inicio (inicio manual al
+     * final), con el enlace directo al lobby o a la partida.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildUpcomingGames(string $userId, Carbon $now): array
+    {
+        return BingoRoomUser::query()
+            ->where('user_id', $userId)
+            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+            ->where('cards_purchased', '>', 0)
+            ->whereHas('room.status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
+            ->with(['room:id,uuid_code,prize_pool,total_players,status_id', 'room.status:id,code', 'room.config:room_id,unix_date'])
+            ->get(['id', 'room_id', 'cards_purchased'])
+            ->filter(fn (BingoRoomUser $ru) => $ru->room !== null)
+            ->map(function (BingoRoomUser $ru) {
+                $room      = $ru->room;
+                $unixDate  = $room->config?->unix_date ? (int) $room->config->unix_date : null;
+                $inProgress = $room->status?->code === 'IN_PROGRESS';
+
+                return [
+                    'id'            => $room->hashed_id,
+                    'uuid_code'     => $room->uuid_code,
+                    'starts_at'     => $unixDate ? Carbon::createFromTimestamp($unixDate)->toIso8601String() : null,
+                    'is_manual'     => $unixDate === null,
+                    'in_progress'   => $inProgress,
+                    'cards'         => (int) $ru->cards_purchased,
+                    'total_players' => (int) $room->total_players,
+                    'prize_pool_usd' => (float) $room->prize_pool,
+                    'href'          => "/bingo/{$room->hashed_id}/" . ($inProgress ? 'game' : 'lobby'),
+                    'sort'          => $inProgress ? 0 : ($unixDate ?? PHP_INT_MAX),
+                ];
+            })
+            ->sortBy('sort')
+            ->take(5)
+            ->map(fn (array $g) => array_diff_key($g, ['sort' => true]))
+            ->values()
+            ->all();
     }
 
     // -------------------------------------------------------------------------
@@ -92,8 +139,11 @@ final class PlayerDashboardContextService
         // puede jugar.
         $playerCurrencyIds = $activeWallets->pluck('currency_id')->map(fn ($id) => (string) $id)->unique();
         $activeRooms = $playerCurrencyIds->isEmpty()
-            ? BingoRoom::active()->count()
+            ? BingoRoom::active()->whereHas('config.roomType', fn ($q) => $q->where('code', 'PUBLIC'))->count()
             : BingoRoom::active()
+                // Solo PUBLIC: es lo que el jugador ve en el lobby (las
+                // privadas de un comercio no son jugables para él).
+                ->whereHas('config.roomType', fn ($q) => $q->where('code', 'PUBLIC'))
                 ->whereHas('config', function ($q) use ($playerCurrencyIds) {
                     foreach ($playerCurrencyIds as $currencyId) {
                         $q->orWhereJsonContains('allowed_currencies', $currencyId);
@@ -101,13 +151,11 @@ final class PlayerDashboardContextService
                 })
                 ->count();
 
-        // Cartones del jugador este mes
-        $cardsThisMonth = BingoCard::where('creator_user_id', $userId)
-            ->where('created_at', '>=', $startOfMonth)
-            ->count();
-
-        // Total cartones del jugador
-        $totalCards = BingoCard::where('creator_user_id', $userId)->count();
+        // Cartones del jugador (los anulados por sala cancelada no cuentan).
+        $ownCards = fn () => BingoCard::where('creator_user_id', $userId)
+            ->where('status', '!=', BingoCard::STATUS_CANCELLED);
+        $cardsThisMonth = $ownCards()->where('created_at', '>=', $startOfMonth)->count();
+        $totalCards     = $ownCards()->count();
 
         // Partidas jugadas (salas en las que participó como jugador)
         $gamesPlayed = BingoRoomUser::where('user_id', $userId)

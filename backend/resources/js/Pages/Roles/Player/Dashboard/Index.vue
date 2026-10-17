@@ -20,6 +20,7 @@
   import DashboardKycStatusPanel from '@/js/Components/Common/Dashboard/DashboardKycStatusPanel.vue'
   import DashboardGamificationPanel from '@/js/Components/Common/Dashboard/DashboardGamificationPanel.vue'
   import DailyMissionsTab       from '@/js/Components/Profile/DailyMissionsTab.vue'
+  import PlayerUpcomingGames    from '@/js/Components/Roles/Player/Dashboard/PlayerUpcomingGames.vue'
   import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -152,6 +153,17 @@
           <DashboardStatCard v-bind="stat" />
         </div>
       </div>
+
+      <!-- Mis próximas partidas -->
+      <DashboardSection
+        title="Mis próximas partidas"
+        icon="fas fa-play-circle"
+        subtitle="Salas donde ya tienes cartones"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
+      >
+        <PlayerUpcomingGames :games="props.upcomingGames ?? []" />
+      </DashboardSection>
 
       <!-- Puente cross-game: invitación a Trivia tras jugar Bingo -->
       <div v-if="showCrossGameBridge" class="cgb-banner">

@@ -23,6 +23,8 @@ final class PlayerDashboardContextDTO implements ContextDTO
         public readonly string $period,
         /** true si el jugador ya jugó Bingo pero nunca Trivia — dispara el banner de puente cross-game (Fase 8) */
         public readonly bool $showCrossGameBridge = false,
+        /** Salas no terminadas donde tiene cartones (en juego primero) */
+        public readonly array $upcomingGames = [],
     ) {}
 
     public function toView(): array
@@ -36,6 +38,7 @@ final class PlayerDashboardContextDTO implements ContextDTO
             'kycStatus'          => $this->kycStatus,
             'period'             => $this->period,
             'showCrossGameBridge' => $this->showCrossGameBridge,
+            'upcomingGames'      => $this->upcomingGames,
         ];
     }
 }

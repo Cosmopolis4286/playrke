@@ -416,11 +416,12 @@ class DashboardContextServicesTest extends TestCase
         $view = app(PlayerDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'prizesWon', 'triviaActivity', 'kycStatus', 'showCrossGameBridge', 'period'],
+            ['userName', 'stats', 'recentActivity', 'prizesWon', 'triviaActivity', 'kycStatus', 'showCrossGameBridge', 'period', 'upcomingGames'],
             array_keys($view)
         );
 
-        // Jugador recién creado, sin documento KYC enviado.
+        // Jugador recién creado, sin documento KYC enviado ni partidas.
         $this->assertNull($view['kycStatus']);
+        $this->assertSame([], $view['upcomingGames']);
     }
 }

@@ -48,6 +48,19 @@ export interface KycStatus {
 // Inertia page props para el Dashboard del Jugador
 // --------------------------------------------------------------------------
 
+export interface PlayerUpcomingGame {
+  id:             string
+  uuid_code:      string
+  starts_at:      string | null
+  is_manual:      boolean
+  in_progress:    boolean
+  cards:          number
+  total_players:  number
+  prize_pool_usd: number
+  /** Lobby o partida en juego */
+  href:           string
+}
+
 export interface DashboardPlayerPageProps {
   /** Nombre del usuario autenticado */
   userName?: string
@@ -65,4 +78,6 @@ export interface DashboardPlayerPageProps {
   period?: string
   /** true si el jugador ya jugó Bingo pero nunca Trivia — dispara el banner de puente cross-game */
   showCrossGameBridge?: boolean
+  /** Salas no terminadas donde tiene cartones (en juego primero) */
+  upcomingGames?: PlayerUpcomingGame[]
 }
