@@ -12,6 +12,7 @@
 
   import DashboardWelcomeBanner       from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
   import DashboardStatCard            from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+  import DashboardOperationalAlerts from '@/js/Components/Common/Dashboard/DashboardOperationalAlerts.vue'
   import DashboardSection             from '@/js/Components/Common/Dashboard/DashboardSection.vue'
   import DashboardActivityFeed        from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
   import DashboardQuickLinksGroup     from '@/js/Components/Common/Dashboard/DashboardQuickLinksGroup.vue'
@@ -141,6 +142,17 @@
           <DashboardStatCard v-bind="stat" />
         </div>
       </div>
+
+      <!-- Atención requerida: lo que deja a un comprador esperando -->
+      <DashboardSection
+        title="Atención requerida"
+        icon="fas fa-bell"
+        subtitle="Pagos, reembolsos, premios y movimientos pendientes"
+        :loading="sectionsLoading"
+        skeleton-variant="list"
+      >
+        <DashboardOperationalAlerts :alerts="props.operationalAlerts ?? []" />
+      </DashboardSection>
 
       <!-- Accesos rápidos -->
       <DashboardSection

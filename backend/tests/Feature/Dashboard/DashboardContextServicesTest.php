@@ -187,7 +187,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(AdminDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'rkeTotals', 'pendingWalletCount', 'allowedQuickLinks', 'period'],
+            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'rkeTotals', 'pendingWalletCount', 'allowedQuickLinks', 'period', 'operationalAlerts'],
             array_keys($view)
         );
     }
@@ -337,6 +337,41 @@ class DashboardContextServicesTest extends TestCase
         $this->assertSame(trim($this->currency->symbol . ' ' . $this->currency->formatAmount(15)), $view['paymentReview']['pending_amount']);
         $this->assertCount(1, $view['paymentReview']['rejected']);
         $this->assertSame(['count' => 0, 'amount' => null], $view['prizesToDeliver']);
+    }
+
+    /** @test */
+    public function operational_alerts_flag_stale_payments_as_critical(): void
+    {
+        $commerceUser = $this->makeCommerce();
+        $sellerUser   = $this->makeSeller($commerceUser);
+
+        $payment = fn (string $createdAt) => tap(BingoCardPayment::create([
+            'payment_method'        => 'mobile_payment',
+            'room_id'               => '1',
+            'creator_user_id'       => $commerceUser->id,
+            'seller_user_id'        => $sellerUser->id,
+            'currency_id'           => $this->currency->id,
+            'card_lot_id'           => '1',
+            'payment_amount'        => 10,
+            'payment_proof'         => 'private/receipts/bingo/test.png',
+            'payment_status'        => 'PENDING',
+            'transaction_reference' => uniqid('REF'),
+        ]), function (BingoCardPayment $p) use ($createdAt) {
+            // created_at no es fillable: se fija a mano para simular antigüedad.
+            $p->forceFill(['created_at' => $createdAt])->saveQuietly();
+        });
+
+        $service = app(\App\Services\Roles\Dashboard\OperationalAlertsService::class);
+        $before  = collect($service->alerts())->firstWhere('code', 'payments_pending');
+
+        $payment(now()->subMinutes(10)->toDateTimeString());
+        $fresh = collect($service->alerts())->firstWhere('code', 'payments_pending');
+        $this->assertSame(($before['count'] ?? 0) + 1, $fresh['count']);
+
+        $payment(now()->subHours(3)->toDateTimeString());
+        $stale = collect($service->alerts())->firstWhere('code', 'payments_pending');
+        $this->assertSame('critical', $stale['severity']);
+        $this->assertSame('/bingo/card-payments', $stale['href']);
     }
 
     // ─── Treasurer / Customer ───────────────────────────────────────────────

@@ -3,6 +3,7 @@
 namespace App\Services\Roles\SuperAdmin\Dashboard;
 
 use App\DTOs\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextDTO;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Commands\CommandLog;
 use App\Models\KycDocument;
@@ -37,6 +38,7 @@ final class SuperAdminDashboardContextService
     public function __construct(
         private readonly SidebarMenuService $sidebarMenu,
         private readonly DashboardWidgetVisibilityService $widgetVisibility,
+        private readonly \App\Services\Roles\Dashboard\OperationalAlertsService $operationalAlerts,
     ) {}
 
     public function dashboardContext(): SuperAdminDashboardContextDTO
@@ -57,7 +59,7 @@ final class SuperAdminDashboardContextService
                 'adminActivity'  => $this->buildAdminActivity(),
                 'entityCounts'   => $this->buildEntityCounts(),
                 'systemHealth'   => $this->buildSystemHealth($activeRooms),
-                'salesTrend'     => $this->buildSalesTrend(),
+                'salesTrend'     => $this->buildSalesTrend(scope: fn ($q) => $q->where('status', '!=', BingoCard::STATUS_CANCELLED)),
             ];
         });
 
@@ -331,9 +333,20 @@ final class SuperAdminDashboardContextService
 
         $totalIssues = array_sum(array_column($issues, 'count'));
 
+        // Alertas de dinero (pagos por revisar, reembolsos fallidos, premios
+        // trabados): cada una suma 1 al total — 30 pagos en cola no son 30
+        // fallas del sistema — y solo las críticas (pago atrasado, reembolso
+        // abandonado) llevan el estado a "Crítico".
+        $moneyAlerts = $this->operationalAlerts->alerts(includeWalletMovements: false);
+        foreach ($moneyAlerts as $alert) {
+            $issues[] = $alert;
+        }
+        $totalIssues += count($moneyAlerts);
+        $hasCriticalMoneyAlert = collect($moneyAlerts)->contains('severity', 'critical');
+
         $status = 'healthy';
         $label  = 'Saludable';
-        if ($totalIssues > 5) {
+        if ($totalIssues > 5 || $hasCriticalMoneyAlert) {
             $status = 'critical';
             $label  = 'Crítico';
         } elseif ($totalIssues > 0) {

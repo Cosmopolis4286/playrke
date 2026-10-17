@@ -28,6 +28,10 @@ export interface SystemHealthIssue {
     code:  string
     label: string
     count: number
+    /** Solo las alertas de dinero (OperationalAlertsService) traen su severidad y destino */
+    severity?:     'critical' | 'warning'
+    href?:         string | null
+    action_label?: string | null
 }
 
 export interface SystemHealth {

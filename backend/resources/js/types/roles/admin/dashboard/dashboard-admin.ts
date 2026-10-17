@@ -1,4 +1,4 @@
-import type { StatCardData, ActivityItem, EntityCount } from '@/js/types/common/dashboard/dashboard'
+import type { StatCardData, ActivityItem, EntityCount, OperationalAlert } from '@/js/types/common/dashboard/dashboard'
 
 export type { EntityCount }
 
@@ -61,4 +61,6 @@ export interface DashboardAdminPageProps {
     period?:              string
     /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
     allowedQuickLinks?:   string[]
+    /** Alertas de dinero: pagos por revisar, reembolsos fallidos, premios trabados, movimientos */
+    operationalAlerts?:   OperationalAlert[]
 }

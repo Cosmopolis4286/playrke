@@ -63,7 +63,7 @@
   // Types
   // ==========================================================================
 
-  import type { DashboardSuperAdminPageProps } from '@/js/types/roles/superadmin/dashboard/dashboard-superadmin'
+  import type { DashboardSuperAdminPageProps, SystemHealthIssue } from '@/js/types/roles/superadmin/dashboard/dashboard-superadmin'
 
   // ==========================================================================
   // Props (Inertia)
@@ -212,15 +212,18 @@
     }),
   }
 
-  function systemHealthIssueAction(code: string, count: number): SystemHealthIssueAction | null {
-    return systemHealthIssueActions[code]?.(count) ?? null
+  function systemHealthIssueAction(issue: SystemHealthIssue): SystemHealthIssueAction | null {
+    const mapped = systemHealthIssueActions[issue.code]?.(issue.count)
+    if (mapped) return mapped
+    // Alertas de dinero: el backend ya trae destino y texto del botón.
+    return issue.href ? { label: issue.action_label ?? 'Ver', href: issue.href } : null
   }
 
   /** Severidad visual por code — colorea el icono del issue en el template. */
   const criticalIssueCodes = new Set(['reverb_down', 'failed_jobs', 'command_failed'])
 
-  function systemHealthIssueSeverity(code: string): 'critical' | 'warning' {
-    return criticalIssueCodes.has(code) ? 'critical' : 'warning'
+  function systemHealthIssueSeverity(issue: SystemHealthIssue): 'critical' | 'warning' {
+    return issue.severity ?? (criticalIssueCodes.has(issue.code) ? 'critical' : 'warning')
   }
 
   /**
@@ -455,11 +458,11 @@
             v-for="issue in systemHealth.issueDetails"
             :key="issue.code"
             class="sh-issue"
-            :class="`sh-issue--${systemHealthIssueSeverity(issue.code)}`"
+            :class="`sh-issue--${systemHealthIssueSeverity(issue)}`"
           >
             <i class="fas fa-circle-exclamation sh-issue__icon"></i>
             <span class="sh-issue__label">{{ issue.label }} ({{ issue.count }})</span>
-            <template v-for="action in [systemHealthIssueAction(issue.code, issue.count)]" :key="issue.code">
+            <template v-for="action in [systemHealthIssueAction(issue)]" :key="issue.code">
               <Link
                 v-if="action?.href"
                 :href="action.href"

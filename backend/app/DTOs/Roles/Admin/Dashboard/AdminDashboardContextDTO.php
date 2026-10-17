@@ -25,6 +25,8 @@ final class AdminDashboardContextDTO implements ContextDTO
         public readonly string $period,
         /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
         public readonly array $allowedQuickLinks,
+        /** Alertas de dinero: pagos por revisar, reembolsos fallidos, premios trabados, movimientos */
+        public readonly array $operationalAlerts = [],
     ) {}
 
     public function toView(): array
@@ -39,6 +41,7 @@ final class AdminDashboardContextDTO implements ContextDTO
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
             'allowedQuickLinks'  => $this->allowedQuickLinks,
+            'operationalAlerts'  => $this->operationalAlerts,
         ];
     }
 }

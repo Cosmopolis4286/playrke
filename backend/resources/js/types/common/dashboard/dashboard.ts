@@ -163,3 +163,13 @@ export interface UpcomingRoom {
     card_price_usd: number
     prize_pool_usd: number
 }
+
+/** Alerta de dinero (OperationalAlertsService) — Admin y SuperAdmin */
+export interface OperationalAlert {
+    code:         string
+    label:        string
+    count:        number
+    severity:     'critical' | 'warning'
+    href:         string | null
+    action_label: string | null
+}

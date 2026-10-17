@@ -35,6 +35,7 @@ final class AdminDashboardContextService
         private readonly SidebarMenuService $sidebarMenu,
         private readonly RkeSummaryService $rkeSummary,
         private readonly DashboardWidgetVisibilityService $widgetVisibility,
+        private readonly \App\Services\Roles\Dashboard\OperationalAlertsService $operationalAlerts,
     ) {}
 
     public function dashboardContext(): AdminDashboardContextDTO
@@ -54,7 +55,7 @@ final class AdminDashboardContextService
                 'stats'          => $this->buildStats($now),
                 'recentActivity' => $this->buildRecentActivity(),
                 'entityCounts'   => $this->buildEntityCounts(),
-                'salesTrend'     => $this->buildSalesTrend(),
+                'salesTrend'     => $this->buildSalesTrend(scope: fn ($q) => $q->where('status', '!=', BingoCard::STATUS_CANCELLED)),
                 'rkeTotals'      => $this->rkeSummary->getSummary()['totals'],
             ];
         });
@@ -71,6 +72,8 @@ final class AdminDashboardContextService
             pendingWalletCount: $this->sidebarMenu->pendingWalletMovementsCount(),
             period:             $period,
             allowedQuickLinks:  $this->allowedQuickLinks($filter),
+            // Fuera del cache: un pago que entra a revisión debe verse ya.
+            operationalAlerts:  $this->operationalAlerts->alerts(),
         );
     }
 
@@ -148,8 +151,10 @@ final class AdminDashboardContextService
         $activeUsers       = User::active()->count();
         $newUsersThisMonth = User::where('created_at', '>=', $startOfMonth)->count();
 
-        $cardsToday      = BingoCard::where('created_at', '>=', $startOfDay)->count();
-        $cardsThisMonth  = BingoCard::where('created_at', '>=', $startOfMonth)->count();
+        // Cartones anulados (pago rechazado / sala cancelada) no son venta.
+        $soldCards       = fn () => BingoCard::where('status', '!=', BingoCard::STATUS_CANCELLED);
+        $cardsToday      = $soldCards()->where('created_at', '>=', $startOfDay)->count();
+        $cardsThisMonth  = $soldCards()->where('created_at', '>=', $startOfMonth)->count();
         $activeRooms     = BingoRoom::active()->count();
 
         return [
