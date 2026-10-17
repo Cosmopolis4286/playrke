@@ -223,4 +223,53 @@ class AdminSubsidiaryControllerTest extends TestCase
         $response->assertOk();
         $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
     }
+
+    /**
+     * Regresión: ownsSubsidiary() solo reconocía el rol 'admin' literal, así
+     * que un superadmin (sin el rol admin adicional) pasaba hasAccess() pero
+     * recibía 403 al abrir /admin/subsidiaries?open=… (GET show) y en
+     * cualquier acción sobre una sucursal.
+     */
+    public function test_superadmin_can_view_and_operate_any_subsidiary(): void
+    {
+        $this->makeRole('superadmin');
+        $superadmin = User::factory()->create();
+        $superadmin->assignRole('superadmin');
+
+        [, $commerce, $country] = $this->makeCommerceWithUser('superadmin');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
+
+        $this->actingAs($superadmin)
+            ->getJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/show")
+            ->assertOk();
+
+        $this->actingAs($superadmin)
+            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/status")
+            ->assertOk();
+
+        $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
+    }
+
+    /** Mismo bug en ManagerSellerPolicy::ownsSeller(). */
+    public function test_superadmin_owns_any_seller_in_policy(): void
+    {
+        $this->makeRole('superadmin');
+        $superadmin = User::factory()->create();
+        $superadmin->assignRole('superadmin');
+
+        [$commerceUser, , $country] = $this->makeCommerceWithUser('vendedor');
+        $seller = \App\Models\Roles\Seller::create([
+            'id'              => $this->nextId(),
+            'name'            => 'Vendedor superadmin',
+            'phone'           => '+58424' . random_int(1000000, 9999999),
+            'commission'      => 3.00,
+            'user_id'         => User::factory()->create(['country_id' => $country->id])->id,
+            'country_id'      => $country->id,
+            'manager_user_id' => $commerceUser->id,
+            'status'          => 'ACTIVE',
+        ]);
+
+        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($superadmin)->allows('view', $seller));
+    }
 }

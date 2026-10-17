@@ -6,6 +6,7 @@ use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use App\Services\Auth\RoleAuthorizationService;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -57,10 +58,11 @@ class ManagerSellerPolicy extends BaseRolePolicy
      * de OTRO comercio/agencia con solo cambiar el {seller} de la URL,
      * incluyendo resetPassword() (account takeover del vendedor ajeno).
      *
-     * - admin: gestiona el árbol completo, no un subárbol propio — siempre
-     *   "dueño" de cualquier Seller (mismo criterio que superadmin, que ya
-     *   tiene bypass total vía RoleAuthorizationService::isSuperadmin() antes
-     *   de llegar aquí).
+     * - admin/superadmin: gestionan el árbol completo, no un subárbol propio
+     *   — siempre "dueños" de cualquier Seller. El bypass de superadmin de
+     *   hasAccess() NO cubre este chequeo: se resuelve aquí con
+     *   RoleAuthorizationService::hasAnyRole() (antes, hasRole('admin')
+     *   literal dejaba a un superadmin sin el rol admin con 403).
      * - commerce: dueño si Seller::resolveCommerce() (cubre tanto
      *   manager_user_id directo como vía Subsidiary) resuelve a este user.
      * - subsidiary: dueño si el seller cuelga de una Subsidiary cuyo
@@ -70,7 +72,7 @@ class ManagerSellerPolicy extends BaseRolePolicy
      */
     private function ownsSeller(User $user, Seller $seller): bool
     {
-        if ($user->hasRole('admin')) {
+        if (app(RoleAuthorizationService::class)->hasAnyRole($user, 'admin')) {
             return true;
         }
 

@@ -5,6 +5,7 @@ namespace App\Policies\Roles\Admin;
 use App\Models\Roles\Subsidiary;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use App\Services\Auth\RoleAuthorizationService;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -49,12 +50,16 @@ class AdminSubsidiaryPolicy extends BaseRolePolicy
      * que ManagerSellerPolicy::ownsSeller() ya documentó y corrigió para
      * Seller (account takeover del recurso ajeno).
      *
-     * - admin: gestiona el árbol completo, siempre "dueño".
+     * - admin/superadmin: gestionan el árbol completo, siempre "dueños". El
+     *   bypass de superadmin de hasAccess() NO cubre este chequeo: se
+     *   resuelve aquí con RoleAuthorizationService::hasAnyRole() (antes,
+     *   hasRole('admin') literal daba 403 al superadmin al abrir, editar,
+     *   borrar o cambiar el estado de cualquier sucursal).
      * - commerce: dueño si Subsidiary::commerce()->user_id es este user.
      */
     private function ownsSubsidiary(User $user, Subsidiary $subsidiary): bool
     {
-        if ($user->hasRole('admin')) {
+        if (app(RoleAuthorizationService::class)->hasAnyRole($user, 'admin')) {
             return true;
         }
 
