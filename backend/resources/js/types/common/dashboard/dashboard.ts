@@ -111,3 +111,41 @@ export interface WelcomeBannerAction {
     variant?: StatCardVariant
     onClick?: () => void
 }
+
+// --------------------------------------------------------------------------
+// Red de vendedores (Agencia / Comercio) — NetworkDashboardService
+// --------------------------------------------------------------------------
+
+export interface NetworkIdleSeller {
+    name:         string
+    phone:        string | null
+    last_sale_at: string | null
+    /** Días desde la última venta; null si nunca vendió */
+    days:         number | null
+}
+
+export interface NetworkHealth {
+    total:      number
+    active:     number
+    sold_today: number
+    /** Vendedores no activos (inactivos/bloqueados) */
+    inactive:   number
+    /** Activos sin vender en los últimos 7 días */
+    idle_count: number
+    /** Los 5 con más tiempo sin vender */
+    idle:       NetworkIdleSeller[]
+}
+
+export interface NetworkPayments {
+    pending_count:     number
+    /** Monto de la moneda principal ya formateado ("Bs 120,00 +1 moneda(s)") */
+    pending_amount:    string | null
+    oldest_pending_at: string | null
+    /** Rechazados en los últimos 7 días */
+    rejected_count:    number
+}
+
+export interface PrizesSummary {
+    count:  number
+    amount: string | null
+}

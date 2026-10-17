@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\Roles\Seller;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
+use App\Services\Roles\Dashboard\NetworkDashboardService;
 use App\Services\Roles\Seller\SellerRankingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,7 @@ final class SellerDashboardContextService
 
     public function __construct(
         private readonly SellerRankingService $sellerRanking,
+        private readonly NetworkDashboardService $network,
     ) {
     }
 
@@ -97,7 +99,7 @@ final class SellerDashboardContextService
             ->values()
             ->all();
 
-        $pendingAmount = $this->sumByCurrency(
+        $pendingAmount = $this->network->currencySummary(
             \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
                 ->where('seller_user_id', $userId)
                 ->where('payment_status', 'PENDING'),
@@ -202,47 +204,7 @@ final class SellerDashboardContextService
      */
     private function buildPrizesToDeliver(string $userId): array
     {
-        return $this->sumByCurrency(
-            \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::query()
-                ->where('seller_user_id', $userId)
-                ->whereIn('prize_status', ['waiting', 'processing']),
-            'local_amount',
-        );
-    }
-
-    /**
-     * Cantidad de filas y monto de la moneda principal (la de mayor monto),
-     * con "+N moneda(s)" si hay más — no se suman monedas distintas.
-     *
-     * @return array{count: int, amount: ?string}
-     */
-    private function sumByCurrency($query, string $column): array
-    {
-        $rows = (clone $query)
-            ->groupBy('currency_id')
-            ->selectRaw("currency_id, COUNT(*) AS total, COALESCE(SUM({$column}), 0) AS amount")
-            ->toBase()
-            ->get()
-            ->sortByDesc(fn ($r) => (float) $r->amount)
-            ->values();
-
-        $count = (int) $rows->sum('total');
-
-        if ($count === 0) {
-            return ['count' => 0, 'amount' => null];
-        }
-
-        $primary  = $rows->first();
-        $currency = \App\Models\Currency::find($primary->currency_id);
-        $amount   = $currency
-            ? trim(($currency->symbol ?? '') . ' ' . $currency->formatAmount((float) $primary->amount))
-            : number_format((float) $primary->amount, 2, ',', '.');
-
-        if ($rows->count() > 1) {
-            $amount .= ' +' . ($rows->count() - 1) . ' moneda(s)';
-        }
-
-        return ['count' => $count, 'amount' => $amount];
+        return $this->network->prizesToDeliver([$userId]);
     }
 
     // -------------------------------------------------------------------------

@@ -30,6 +30,12 @@ final class SubsidiaryDashboardContextDTO implements ContextDTO
          * individual — el rol 'subsidiary' no lo trae por defecto.
          */
         public readonly bool $canManageRooms = false,
+        /** Salud de la red: vendieron hoy, sin vender en 7 días, no activos */
+        public readonly array $networkHealth = ['total' => 0, 'active' => 0, 'sold_today' => 0, 'inactive' => 0, 'idle_count' => 0, 'idle' => []],
+        /** Pagos de sus vendedores en revisión (los revisa la comercializadora) y rechazados */
+        public readonly array $networkPayments = ['pending_count' => 0, 'pending_amount' => null, 'oldest_pending_at' => null, 'rejected_count' => 0],
+        /** Premios de cartones de su red aún sin entregar */
+        public readonly array $prizesToDeliver = ['count' => 0, 'amount' => null],
     ) {}
 
     public function toView(): array
@@ -45,6 +51,9 @@ final class SubsidiaryDashboardContextDTO implements ContextDTO
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
             'canManageRooms'     => $this->canManageRooms,
+            'networkHealth'      => $this->networkHealth,
+            'networkPayments'    => $this->networkPayments,
+            'prizesToDeliver'    => $this->prizesToDeliver,
         ];
     }
 }

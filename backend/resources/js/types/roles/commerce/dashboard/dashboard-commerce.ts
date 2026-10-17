@@ -1,4 +1,4 @@
-import type { StatCardData, ActivityItem, EntityCount } from '@/js/types/common/dashboard/dashboard'
+import type { StatCardData, ActivityItem, EntityCount, NetworkHealth, NetworkPayments, PrizesSummary } from '@/js/types/common/dashboard/dashboard'
 
 export type { EntityCount }
 
@@ -62,6 +62,27 @@ export interface DashboardCommercePageProps {
     period?: string
     /** RKE que el comercio le debe a la plataforma por ventas fuera del sistema, por moneda */
     rkeReceivables?: CommerceRkeReceivable[]
+    /** Salud de la red: vendieron hoy, sin vender en 7 días, no activos */
+    networkHealth?: NetworkHealth
+    /** Pagos de la red por revisar (los revisa el comercio) */
+    networkPayments?: NetworkPayments
+    /** Premios de cartones de su red aún sin entregar */
+    prizesToDeliver?: PrizesSummary
+    /** Próximas salas propias (hoy y mañana) */
+    upcomingRooms?: CommerceUpcomingRoom[]
+}
+
+export interface CommerceUpcomingRoom {
+    id:             string
+    uuid_code:      string
+    starts_at:      string | null
+    is_manual:      boolean
+    sales_open:     boolean
+    total_players:  number
+    max_players:    number | null
+    total_cards:    number
+    card_price_usd: number
+    prize_pool_usd: number
 }
 
 export interface CommerceRkeReceivable {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
   /**
    * Página Dashboard → Comercio
+   * Arriba lo accionable: pagos por revisar, premios, próximas salas y la
+   * salud de la red de vendedores.
    */
 
   // ==========================================================================
@@ -17,6 +19,9 @@
   import DashboardSellerSalesList     from '@/js/Components/Common/Dashboard/DashboardSellerSalesList.vue'
   import DashboardWalletBalances      from '@/js/Components/Common/Dashboard/DashboardWalletBalances.vue'
   import DashboardConfigSummary       from '@/js/Components/Common/Dashboard/DashboardConfigSummary.vue'
+  import DashboardNetworkHealth       from '@/js/Components/Common/Dashboard/DashboardNetworkHealth.vue'
+  import DashboardNetworkPending      from '@/js/Components/Common/Dashboard/DashboardNetworkPending.vue'
+  import CommerceUpcomingRooms        from '@/js/Components/Roles/Commerce/Dashboard/CommerceUpcomingRooms.vue'
   import type { QuickLink }           from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -172,6 +177,36 @@
         </div>
       </div>
 
+      <!-- Pendientes + próximas salas -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Pendientes"
+            icon="fas fa-list-check"
+            subtitle="Pagos por revisar, rechazos y premios"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardNetworkPending
+              :payments="props.networkPayments"
+              :prizes="props.prizesToDeliver"
+              review-href="/bingo/card-payments"
+            />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Próximas salas"
+            icon="fas fa-calendar-day"
+            subtitle="Tus salas de hoy y mañana"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <CommerceUpcomingRooms :rooms="props.upcomingRooms ?? []" />
+          </DashboardSection>
+        </div>
+      </div>
+
       <!-- Accesos rápidos -->
       <DashboardSection
         title="Accesos rápidos"
@@ -240,16 +275,31 @@
 
       </div>
 
-      <!-- Ventas por vendedor -->
-      <DashboardSection
-        title="Ventas por vendedor"
-        icon="fas fa-user-tie"
-        subtitle="Top 10 este mes"
-        :loading="sectionsLoading"
-        skeleton-variant="list"
-      >
-        <DashboardSellerSalesList :rows="salesBySeller" :format-usd="formatUsd" />
-      </DashboardSection>
+      <!-- Ventas por vendedor + salud de la red -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Ventas por vendedor"
+            icon="fas fa-user-tie"
+            subtitle="Top 10 este mes · en USD"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardSellerSalesList :rows="salesBySeller" :format-usd="formatUsd" />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Salud de tu red"
+            icon="fas fa-heart-pulse"
+            subtitle="Quién vende y quién necesita un empujón"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardNetworkHealth :health="props.networkHealth" sellers-href="/sellers" />
+          </DashboardSection>
+        </div>
+      </div>
 
       <!-- Configuración activa -->
       <DashboardSection

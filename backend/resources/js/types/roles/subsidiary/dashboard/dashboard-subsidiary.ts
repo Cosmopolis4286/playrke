@@ -1,4 +1,4 @@
-import type { StatCardData, ActivityItem } from '@/js/types/common/dashboard/dashboard'
+import type { StatCardData, ActivityItem, NetworkHealth, NetworkPayments, PrizesSummary } from '@/js/types/common/dashboard/dashboard'
 
 // --------------------------------------------------------------------------
 // Inertia page props para el Dashboard de Subsidiary (agencia/sucursal)
@@ -59,4 +59,10 @@ export interface DashboardSubsidiaryPageProps {
     period?: string
     /** true solo si esta agencia tiene games.bingo.manage como permiso individual (el rol no lo trae). */
     canManageRooms?: boolean
+    /** Salud de la red: vendieron hoy, sin vender en 7 días, no activos */
+    networkHealth?: NetworkHealth
+    /** Pagos de sus vendedores en revisión (los revisa la comercializadora) */
+    networkPayments?: NetworkPayments
+    /** Premios de cartones de su red aún sin entregar */
+    prizesToDeliver?: PrizesSummary
 }

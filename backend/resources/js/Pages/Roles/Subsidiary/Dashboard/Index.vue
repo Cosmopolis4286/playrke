@@ -5,9 +5,9 @@
    * A diferencia de Commerce: usa useSubsidiaryActivityRealtime en vez de
    * useCreatorSalesRealtime (el canal creators.activity.{userId} solo
    * notifica al creador de la sala — Subsidiary nunca crea salas; en su
-   * lugar escucha subsidiary.activity.{userId}, alimentado por
-   * BingoCardGenerateService::buyFromGameRooms() cuando el vendedor
-   * pertenece a esta agencia). Sin "Mi red de vendedores" (no tiene
+   * lugar escucha subsidiary.activity.{userId}, alimentado por la venta del
+   * punto de venta, BingoCardGenerateService::generate(), cuando el
+   * vendedor pertenece a esta agencia). Sin "Mi red de vendedores" (no tiene
    * sub-agencias, solo sus propios vendedores, ya reflejados en el stat
    * "Vendedores") y sin "Configuración activa" (monedas/juegos son
    * propiedad del Commerce padre, no de la agencia).
@@ -25,6 +25,8 @@
   import DashboardTrendChart          from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
   import DashboardSellerSalesList     from '@/js/Components/Common/Dashboard/DashboardSellerSalesList.vue'
   import DashboardWalletBalances      from '@/js/Components/Common/Dashboard/DashboardWalletBalances.vue'
+  import DashboardNetworkHealth       from '@/js/Components/Common/Dashboard/DashboardNetworkHealth.vue'
+  import DashboardNetworkPending      from '@/js/Components/Common/Dashboard/DashboardNetworkPending.vue'
   import type { QuickLink }           from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -171,6 +173,32 @@
         </div>
       </div>
 
+      <!-- Pendientes de la red + salud de la red -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Pendientes de tu red"
+            icon="fas fa-list-check"
+            subtitle="Pagos, rechazos y premios"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardNetworkPending :payments="props.networkPayments" :prizes="props.prizesToDeliver" />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Salud de tu red"
+            icon="fas fa-heart-pulse"
+            subtitle="Quién vende y quién necesita un empujón"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardNetworkHealth :health="props.networkHealth" sellers-href="/sellers" />
+          </DashboardSection>
+        </div>
+      </div>
+
       <!-- Accesos rápidos -->
       <DashboardSection
         title="Accesos rápidos"
@@ -216,7 +244,7 @@
           <DashboardSection
             title="Ventas por vendedor"
             icon="fas fa-user-tie"
-            subtitle="Top 10 este mes"
+            subtitle="Top 10 este mes · en USD"
             :loading="sectionsLoading"
             skeleton-variant="list"
           >

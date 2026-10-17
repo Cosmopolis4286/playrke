@@ -29,6 +29,14 @@ final class CommerceDashboardContextDTO implements ContextDTO
         public readonly string $period,
         /** RKE que el comercio le debe a la plataforma por ventas fuera del sistema, por moneda */
         public readonly array $rkeReceivables = [],
+        /** Salud de la red: vendieron hoy, sin vender en 7 días, no activos */
+        public readonly array $networkHealth = ['total' => 0, 'active' => 0, 'sold_today' => 0, 'inactive' => 0, 'idle_count' => 0, 'idle' => []],
+        /** Pagos de la red por revisar (los revisa el comercio) y rechazados */
+        public readonly array $networkPayments = ['pending_count' => 0, 'pending_amount' => null, 'oldest_pending_at' => null, 'rejected_count' => 0],
+        /** Premios de cartones de su red aún sin entregar */
+        public readonly array $prizesToDeliver = ['count' => 0, 'amount' => null],
+        /** Próximas salas propias (hoy y mañana) con su ocupación */
+        public readonly array $upcomingRooms = [],
     ) {}
 
     public function toView(): array
@@ -45,6 +53,10 @@ final class CommerceDashboardContextDTO implements ContextDTO
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
             'rkeReceivables'     => $this->rkeReceivables,
+            'networkHealth'      => $this->networkHealth,
+            'networkPayments'    => $this->networkPayments,
+            'prizesToDeliver'    => $this->prizesToDeliver,
+            'upcomingRooms'      => $this->upcomingRooms,
         ];
     }
 }

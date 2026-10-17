@@ -12,6 +12,10 @@ use App\Models\Roles\Seller;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
+use App\Services\Roles\Dashboard\NetworkDashboardService;
+use App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +24,10 @@ use Illuminate\Support\Facades\DB;
  * Contexto del dashboard de Commerce (comercializadora) — dueño de las
  * salas que crea (BingoRoom.creator_user_id = su user_id) y de la red de
  * vendedores/agencias que operan bajo su cuenta.
+ *
+ * Montos: las ventas se normalizan a USD con la tasa de cada lote y la
+ * comisión se muestra en su moneda principal — nunca se suman monedas
+ * distintas (ver NetworkDashboardService).
  */
 final class CommerceDashboardContextService
 {
@@ -28,6 +36,8 @@ final class CommerceDashboardContextService
 
     public function __construct(
         private readonly WalletRepositoryInterface $walletRepository,
+        private readonly NetworkDashboardService $network,
+        private readonly BingoCardGenerateService $cardGenerate,
     ) {}
 
     public function dashboardContext(): CommerceDashboardContextDTO
@@ -57,8 +67,13 @@ final class CommerceDashboardContextService
             stats:              $this->buildStats($userId, $networkUserIds, $commerce, $now),
             recentActivity:     $this->buildRecentActivity($networkUserIds),
             entityCounts:       $this->buildEntityCounts($commerce),
-            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q->whereIn('creator_user_id', $networkUserIds)),
-            salesBySeller:      $this->buildSalesBySeller($networkUserIds, $now),
+            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q
+                ->whereIn('creator_user_id', $networkUserIds)
+                ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
+            salesBySeller:      $this->network->salesBySellerUsd(
+                $this->networkLots($commerce, $networkUserIds)->where('bingo_card_lots.created_at', '>=', $now->copy()->startOfMonth()),
+                'Venta directa',
+            ),
             wallets:            $this->buildWallets($userId),
             configuration:      $this->buildConfiguration($commerce),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
@@ -66,7 +81,92 @@ final class CommerceDashboardContextService
             // Deuda RKE pendiente con la plataforma (ventas cuyo dinero cobró el
             // comercio): la ve para saber cuánto tiene que liquidar.
             rkeReceivables:     app(\App\Services\Platform\PlatformReceivableService::class)->pendingSummary($userId),
+            networkHealth:      $this->network->networkHealth($this->networkSellers($commerce), $now),
+            // El comercio es quien revisa estos pagos (/bingo/card-payments,
+            // mismo alcance: vendedores de su red).
+            networkPayments:    $this->network->networkPayments($networkUserIds, $now),
+            prizesToDeliver:    $this->network->prizesToDeliver($networkUserIds),
+            upcomingRooms:      $commerce ? $this->buildUpcomingRooms($now) : [],
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Ventas y vendedores de la red
+    // -------------------------------------------------------------------------
+
+    /**
+     * Lotes vendidos (no reembolsados) por la red: por el snapshot
+     * commerce_id del lote y, para lotes anteriores al snapshot, por
+     * user_id (la comercializadora del vendedor al vender).
+     *
+     * @param string[] $networkUserIds
+     */
+    private function networkLots(?Commerce $commerce, array $networkUserIds): Builder
+    {
+        return $this->network->soldLots()->where(function (Builder $q) use ($commerce, $networkUserIds) {
+            if ($commerce) {
+                $q->where('bingo_card_lots.commerce_id', $commerce->id);
+            }
+
+            $q->orWhere(fn (Builder $legacy) => $legacy
+                ->whereNull('bingo_card_lots.commerce_id')
+                ->whereIn('bingo_card_lots.user_id', $networkUserIds));
+        });
+    }
+
+    /** Vendedores directos + los de sus agencias. */
+    private function networkSellers(?Commerce $commerce): \Illuminate\Support\Collection
+    {
+        if (!$commerce) {
+            return collect();
+        }
+
+        return Seller::query()
+            ->where(fn (Builder $q) => $q
+                ->where('manager_user_id', $commerce->user_id)
+                ->orWhereIn('subsidiary_id', $commerce->subsidiaries()->pluck('id')))
+            ->get(['id', 'user_id', 'name', 'phone', 'status']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Próximas salas propias (hoy y mañana)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Próximas 5 salas propias de hoy y mañana, con su ocupación. Reusa el
+     * listado del punto de venta (listSellableRooms), filtrado a las propias.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildUpcomingRooms(Carbon $now): array
+    {
+        try {
+            return collect([$now->toDateString(), $now->copy()->addDay()->toDateString()])
+                ->flatMap(fn (string $date) => $this->cardGenerate->listSellableRooms($date))
+                ->filter(fn (array $room) => $room['is_own'] ?? false)
+                ->unique('id')
+                // Inicio manual (sin hora) al final.
+                ->sortBy(fn (array $room) => $room['starts_at'] ?? '9999')
+                ->take(5)
+                ->map(fn (array $room) => [
+                    'id'             => $room['id'],
+                    'uuid_code'      => $room['uuid_code'],
+                    'starts_at'      => $room['starts_at'] ?? null,
+                    'is_manual'      => (bool) ($room['is_manual'] ?? false),
+                    'sales_open'     => (bool) ($room['sales_open'] ?? false),
+                    'total_players'  => (int) ($room['total_players'] ?? 0),
+                    'max_players'    => $room['max_players'] ?? null,
+                    'total_cards'    => (int) ($room['total_cards'] ?? 0),
+                    'card_price_usd' => (float) ($room['card_price_usd'] ?? 0),
+                    'prize_pool_usd' => (float) ($room['prize_pool'] ?? 0),
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard comercio: no se pudieron listar las próximas salas', ['error' => $e->getMessage()]);
+
+            return [];
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -79,11 +179,12 @@ final class CommerceDashboardContextService
         $startOfMonth = $now->copy()->startOfMonth();
         $startOfDay   = $now->copy()->startOfDay();
 
-        $lotsThisMonth = BingoCardLot::whereIn('user_id', $networkUserIds)
-            ->where('created_at', '>=', $startOfMonth);
-
-        $totalSalesThisMonth = (clone $lotsThisMonth)->sum('sale_amount');
-        $cardsSoldToday      = BingoCard::whereIn('creator_user_id', $networkUserIds)
+        $salesUsd = $this->network->salesUsd(
+            $this->networkLots($commerce, $networkUserIds)->where('bingo_card_lots.created_at', '>=', $startOfMonth),
+        );
+        // Cartones anulados (pago rechazado / sala cancelada) no son venta.
+        $cardsSoldToday = BingoCard::whereIn('creator_user_id', $networkUserIds)
+            ->where('status', '!=', BingoCard::STATUS_CANCELLED)
             ->where('created_at', '>=', $startOfDay)
             ->count();
         $activeRooms = BingoRoom::active()->whereIn('creator_user_id', $networkUserIds)->count();
@@ -95,11 +196,12 @@ final class CommerceDashboardContextService
         return [
             'totalSales' => array_merge([
                 'label'       => 'Ventas del mes',
-                'value'       => number_format((float) $totalSalesThisMonth, 2, ',', '.'),
+                'value'       => 'US$ ' . number_format($salesUsd, 2, ',', '.'),
                 'icon'        => 'fas fa-shopping-cart',
                 'variant'     => 'primary',
+                'description' => 'En USD, a la tasa de cada venta',
                 'href'        => '/bingo/sales-report',
-            ], $this->buildWeeklyTrend(BingoCardLot::whereIn('user_id', $networkUserIds))),
+            ], $this->buildWeeklyTrend($this->networkLots($commerce, $networkUserIds))),
             'totalRevenue' => [
                 'label'   => 'Cartones vendidos hoy',
                 'value'   => $cardsSoldToday,
@@ -195,48 +297,6 @@ final class CommerceDashboardContextService
     }
 
     // -------------------------------------------------------------------------
-    // Ventas agrupadas por vendedor (top 10, este mes)
-    // -------------------------------------------------------------------------
-
-    /** @param string[] $networkUserIds */
-    private function buildSalesBySeller(array $networkUserIds, Carbon $now): array
-    {
-        $startOfMonth = $now->copy()->startOfMonth();
-
-        return BingoCardLot::query()
-            ->whereIn('user_id', $networkUserIds)
-            ->where('created_at', '>=', $startOfMonth)
-            ->select([
-                'seller_user_id',
-                DB::raw('SUM(sale_amount) as total_sales'),
-                DB::raw('SUM(card_count) as total_cards'),
-                // commission_amount = comisión del VENDEDOR persistida por
-                // lote (ver BingoCardGenerationService::generateCards()).
-                DB::raw('SUM(commission_amount) as total_commission'),
-            ])
-            ->groupBy('seller_user_id')
-            ->orderByDesc(DB::raw('SUM(sale_amount)'))
-            ->limit(10)
-            ->with('seller:id,first_name,last_name,username')
-            ->get()
-            ->map(function (BingoCardLot $row) {
-                $sellerName = $row->seller
-                    ? trim("{$row->seller->first_name} {$row->seller->last_name}") ?: $row->seller->username
-                    : 'Venta directa';
-
-                return [
-                    'seller_user_id'   => $row->seller_user_id ? (string) $row->seller_user_id : null,
-                    'seller_name'      => $sellerName,
-                    'total_sales'      => round((float) $row->total_sales, 2),
-                    'total_cards'      => (int) $row->total_cards,
-                    'total_commission' => round((float) $row->total_commission, 2),
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    // -------------------------------------------------------------------------
     // Billeteras propias (saldo por moneda)
     // -------------------------------------------------------------------------
 
@@ -300,7 +360,8 @@ final class CommerceDashboardContextService
         return [
             array_merge([
                 'label' => 'Vendedores directos', 'value' => $directSellers, 'icon' => 'fas fa-user-tie',
-                'variant' => 'success', 'href' => '/admin/sellers',
+                // /sellers (no /admin/sellers, que es solo admin/superadmin).
+                'variant' => 'success', 'href' => '/sellers',
             ], $this->buildWeeklyTrend(Seller::where('manager_user_id', $commerce->user_id))),
             [
                 'label' => 'Agencias/Sucursales', 'value' => $subsidiaries, 'icon' => 'fas fa-code-branch',

@@ -11,9 +11,10 @@ use App\Models\Roles\Subsidiary;
 use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
+use App\Services\Roles\Dashboard\NetworkDashboardService;
+use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Contexto del dashboard de Subsidiary (agencia/sucursal) — a diferencia de
@@ -22,6 +23,10 @@ use Illuminate\Support\Facades\DB;
  * no crea salas ni vende directamente: sus "ventas" son las agregadas de
  * SUS PROPIOS Sellers (whereIn seller_user_id). Un solo nivel — Subsidiary
  * ES la agencia, no tiene sub-agencias, a diferencia de Commerce.
+ *
+ * Montos: las ventas se normalizan a USD con la tasa de cada lote y la
+ * comisión se muestra en su moneda principal — nunca se suman monedas
+ * distintas (ver NetworkDashboardService).
  */
 final class SubsidiaryDashboardContextService
 {
@@ -30,6 +35,7 @@ final class SubsidiaryDashboardContextService
 
     public function __construct(
         private readonly WalletRepositoryInterface $walletRepository,
+        private readonly NetworkDashboardService $network,
     ) {}
 
     public function dashboardContext(): SubsidiaryDashboardContextDTO
@@ -40,33 +46,55 @@ final class SubsidiaryDashboardContextService
         $period = ucfirst($now->translatedFormat('F Y'));
 
         $subsidiary = Subsidiary::where('user_id', $userId)->first(['id', 'commerce_id', 'commission']);
-        $sellerIds  = $subsidiary ? $this->sellerUserIds($subsidiary->id) : [];
+        $sellers    = $subsidiary
+            ? Seller::where('subsidiary_id', $subsidiary->id)->get(['id', 'user_id', 'name', 'phone', 'status'])
+            : collect();
+        $sellerIds  = $sellers->pluck('user_id')->map(fn ($id) => (string) $id)->all();
 
         return new SubsidiaryDashboardContextDTO(
             userName:           $user?->first_name ?? $user?->username ?? 'Agencia',
             stats:              $this->buildStats($sellerIds, $subsidiary, $now),
             recentActivity:     $this->buildRecentActivity($sellerIds),
             reportsTo:          $this->buildReportsTo($subsidiary),
-            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q->whereIn('seller_user_id', $sellerIds)),
-            salesBySeller:      $this->buildSalesBySeller($sellerIds, $now),
+            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q
+                ->whereIn('seller_user_id', $sellerIds)
+                ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
+            salesBySeller:      $this->network->salesBySellerUsd(
+                $this->networkLots($subsidiary, $sellerIds)->where('bingo_card_lots.created_at', '>=', $now->copy()->startOfMonth()),
+            ),
             wallets:            $this->buildWallets($userId),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
             period:             $period,
             canManageRooms:     (bool) $user?->hasPermissionTo('games.bingo.manage'),
+            networkHealth:      $this->network->networkHealth($sellers, $now),
+            networkPayments:    $this->network->networkPayments($sellerIds, $now),
+            prizesToDeliver:    $this->network->prizesToDeliver($sellerIds),
         );
     }
 
     // -------------------------------------------------------------------------
-    // Árbol de vendedores propios
+    // Ventas de la red
     // -------------------------------------------------------------------------
 
-    /** @return string[] */
-    private function sellerUserIds(string $subsidiaryId): array
+    /**
+     * Lotes vendidos (no reembolsados) por la red de la agencia: por el
+     * snapshot subsidiary_id del lote — un vendedor reasignado no arrastra
+     * el histórico — y, para lotes anteriores al snapshot, por sus vendedores
+     * actuales (mismo criterio que SubsidiaryProfileService).
+     *
+     * @param string[] $sellerIds
+     */
+    private function networkLots(?Subsidiary $subsidiary, array $sellerIds): Builder
     {
-        return Seller::where('subsidiary_id', $subsidiaryId)
-            ->pluck('user_id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
+        if (!$subsidiary) {
+            return $this->network->soldLots()->whereRaw('1 = 0');
+        }
+
+        return $this->network->soldLots()->where(fn (Builder $q) => $q
+            ->where('bingo_card_lots.subsidiary_id', $subsidiary->id)
+            ->orWhere(fn (Builder $legacy) => $legacy
+                ->whereNull('bingo_card_lots.subsidiary_id')
+                ->whereIn('bingo_card_lots.seller_user_id', $sellerIds)));
     }
 
     // -------------------------------------------------------------------------
@@ -97,11 +125,13 @@ final class SubsidiaryDashboardContextService
         $startOfMonth = $now->copy()->startOfMonth();
         $startOfDay   = $now->copy()->startOfDay();
 
-        $lotsThisMonth = BingoCardLot::whereIn('seller_user_id', $sellerIds)
-            ->where('created_at', '>=', $startOfMonth);
-        $totalSalesThisMonth = (clone $lotsThisMonth)->sum('sale_amount');
+        $salesUsd = $this->network->salesUsd(
+            $this->networkLots($subsidiary, $sellerIds)->where('bingo_card_lots.created_at', '>=', $startOfMonth),
+        );
 
+        // Cartones anulados (pago rechazado / sala cancelada) no son venta.
         $cardsSoldToday = BingoCard::whereIn('seller_user_id', $sellerIds)
+            ->where('status', '!=', BingoCard::STATUS_CANCELLED)
             ->where('created_at', '>=', $startOfDay)
             ->count();
 
@@ -111,23 +141,26 @@ final class SubsidiaryDashboardContextService
             ->count();
 
         // Lo que la agencia GANÓ este mes (Y − X de cada venta, reparto en
-        // cascada) — por subsidiary_id snapshot del lote, no por sus
-        // vendedores actuales: un vendedor reasignado no arrastra el histórico.
-        $earnedThisMonth = $subsidiary
-            ? BingoCardLot::where('subsidiary_id', $subsidiary->id)
-                ->where('status', 'ACTIVE')
-                ->where('created_at', '>=', $startOfMonth)
-                ->sum('subsidiary_commission_amount')
-            : 0;
+        // cascada), en su moneda principal: antes se sumaban todas las monedas.
+        $earned = $subsidiary
+            ? $this->network->currencySummary(
+                $this->network->soldLots()
+                    ->where('bingo_card_lots.subsidiary_id', $subsidiary->id)
+                    ->where('bingo_card_lots.created_at', '>=', $startOfMonth)
+                    ->where('bingo_card_lots.subsidiary_commission_amount', '>', 0),
+                'subsidiary_commission_amount',
+            )
+            : ['count' => 0, 'amount' => null];
 
         return [
             'totalSales' => array_merge([
-                'label'   => 'Ventas del mes',
-                'value'   => number_format((float) $totalSalesThisMonth, 2, ',', '.'),
-                'icon'    => 'fas fa-shopping-cart',
-                'variant' => 'primary',
-                'href'    => '/bingo/sales-report',
-            ], $this->buildWeeklyTrend(BingoCardLot::whereIn('seller_user_id', $sellerIds))),
+                'label'       => 'Ventas del mes',
+                'value'       => 'US$ ' . number_format($salesUsd, 2, ',', '.'),
+                'icon'        => 'fas fa-shopping-cart',
+                'variant'     => 'primary',
+                'description' => 'En USD, a la tasa de cada venta',
+                'href'        => '/bingo/sales-report',
+            ], $this->buildWeeklyTrend($this->networkLots($subsidiary, $sellerIds))),
             'cardsSoldToday' => [
                 'label'   => 'Cartones vendidos hoy',
                 'value'   => $cardsSoldToday,
@@ -140,7 +173,7 @@ final class SubsidiaryDashboardContextService
                 'value'   => $winnersToday,
                 'icon'    => 'fas fa-trophy',
                 'variant' => 'warning',
-                'href'    => '/bingo/winners/private/today',
+                'href'    => '/bingo/winners',
             ],
             'sellersCount' => [
                 'label'   => 'Vendedores',
@@ -151,7 +184,7 @@ final class SubsidiaryDashboardContextService
             ],
             'commission' => [
                 'label'       => 'Mi comisión del mes',
-                'value'       => $subsidiary ? number_format((float) $earnedThisMonth, 2, ',', '.') : '—',
+                'value'       => $earned['amount'] ?? '—',
                 'icon'        => 'fas fa-percentage',
                 'variant'     => 'secondary',
                 'description' => $subsidiary
@@ -159,48 +192,6 @@ final class SubsidiaryDashboardContextService
                     : 'Tasa configurada',
             ],
         ];
-    }
-
-    // -------------------------------------------------------------------------
-    // Ventas agrupadas por vendedor (top 10, este mes)
-    // -------------------------------------------------------------------------
-
-    private function buildSalesBySeller(array $sellerIds, Carbon $now): array
-    {
-        $startOfMonth = $now->copy()->startOfMonth();
-
-        return BingoCardLot::query()
-            ->whereIn('seller_user_id', $sellerIds)
-            ->where('created_at', '>=', $startOfMonth)
-            ->select([
-                'seller_user_id',
-                DB::raw('SUM(sale_amount) as total_sales'),
-                DB::raw('SUM(card_count) as total_cards'),
-                // Mismo criterio que CommerceDashboardContextService::
-                // buildSalesBySeller() — commission_amount ya es el monto
-                // persistido por lote, no una re-derivación de una tasa.
-                DB::raw('SUM(commission_amount) as total_commission'),
-            ])
-            ->groupBy('seller_user_id')
-            ->orderByDesc(DB::raw('SUM(sale_amount)'))
-            ->limit(10)
-            ->with('seller:id,first_name,last_name,username')
-            ->get()
-            ->map(function (BingoCardLot $row) {
-                $sellerName = $row->seller
-                    ? trim("{$row->seller->first_name} {$row->seller->last_name}") ?: $row->seller->username
-                    : 'Vendedor';
-
-                return [
-                    'seller_user_id'   => $row->seller_user_id ? (string) $row->seller_user_id : null,
-                    'seller_name'      => $sellerName,
-                    'total_sales'      => round((float) $row->total_sales, 2),
-                    'total_cards'      => (int) $row->total_cards,
-                    'total_commission' => round((float) $row->total_commission, 2),
-                ];
-            })
-            ->values()
-            ->all();
     }
 
     // -------------------------------------------------------------------------

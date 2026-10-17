@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\Country;
 use App\Models\Currency;
@@ -12,6 +13,7 @@ use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use App\Services\Roles\Admin\Dashboard\AdminDashboardContextService;
 use App\Services\Roles\Commerce\Dashboard\CommerceDashboardContextService;
+use App\Services\Roles\Dashboard\NetworkDashboardService;
 use App\Services\Roles\Player\Dashboard\PlayerDashboardContextService;
 use App\Services\Roles\Seller\Dashboard\SellerDashboardContextService;
 use App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService;
@@ -201,9 +203,74 @@ class DashboardContextServicesTest extends TestCase
         $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'salesBySeller', 'wallets', 'configuration', 'pendingWalletCount', 'period', 'rkeReceivables'],
+            ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'salesBySeller', 'wallets', 'configuration', 'pendingWalletCount', 'period', 'rkeReceivables', 'networkHealth', 'networkPayments', 'prizesToDeliver', 'upcomingRooms'],
             array_keys($view)
         );
+    }
+
+    /** @test */
+    public function commerce_sales_are_normalized_to_usd_and_exclude_refunded_lots(): void
+    {
+        $commerceUser = $this->makeCommerce();
+        $sellerUser   = $this->makeSeller($commerceUser);
+        $commerceId   = Commerce::where('user_id', $commerceUser->id)->value('id');
+
+        $local = Currency::firstOrCreate(
+            ['iso_code' => 'TVS'],
+            ['symbol' => 'Bs', 'name' => 'Test Local', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE']
+        );
+
+        $lot = fn (Currency $currency, float $rate, float $amount, string $status = 'ACTIVE') => BingoCardLot::create([
+            'room_id'           => '1',
+            'user_id'           => $commerceUser->id,
+            'seller_user_id'    => $sellerUser->id,
+            'seller_type'       => 'SELLER',
+            'room_user_id'      => '1',
+            'currency_id'       => $currency->id,
+            'card_count'        => 1,
+            'card_price'        => $amount,
+            'exchange_rate'     => $rate,
+            'sale_amount'       => $amount,
+            'commission_amount' => 0,
+            'commerce_id'       => $commerceId,
+            'status'            => $status,
+        ]);
+
+        $lot($this->currency, 1, 5);           // US$ 5
+        $lot($local, 40, 400);                 // Bs 400 a 40 = US$ 10
+        $lot($this->currency, 1, 100, 'REFUNDED'); // reembolsado: no es venta
+
+        Auth::login($commerceUser);
+        $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
+
+        // Antes: 505 (bolívares + dólares + el reembolso, sumados como un número).
+        $this->assertSame('US$ 15,00', $view['stats']['totalSales']['value']);
+        $this->assertSame(15.0, $view['salesBySeller'][0]['total_sales']);
+        $this->assertSame(2, $view['salesBySeller'][0]['total_cards']);
+    }
+
+    /** @test */
+    public function network_health_flags_sellers_without_recent_sales(): void
+    {
+        $commerceUser = $this->makeCommerce();
+        $activeSeller = $this->makeSeller($commerceUser);
+        $idleSeller   = $this->makeSeller($commerceUser);
+
+        BingoCardLot::create([
+            'room_id' => '1', 'user_id' => $commerceUser->id, 'seller_user_id' => $activeSeller->id,
+            'seller_type' => 'SELLER', 'room_user_id' => '1', 'currency_id' => $this->currency->id,
+            'card_count' => 1, 'card_price' => 1, 'exchange_rate' => 1, 'sale_amount' => 1,
+            'commission_amount' => 0, 'status' => 'ACTIVE',
+        ]);
+
+        $health = app(NetworkDashboardService::class)->networkHealth(
+            Seller::whereIn('user_id', [$activeSeller->id, $idleSeller->id])->get(),
+        );
+
+        $this->assertSame(2, $health['total']);
+        $this->assertSame(1, $health['sold_today']);
+        $this->assertSame(1, $health['idle_count']);
+        $this->assertNull($health['idle'][0]['days']); // nunca vendió
     }
 
     // ─── Seller ─────────────────────────────────────────────────────────────
