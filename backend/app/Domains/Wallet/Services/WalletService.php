@@ -1546,7 +1546,7 @@ final class WalletService
     }
 
     /**
-     * Notifica a admins/superadmins vía WebSocket + DB cuando llega un movimiento pendiente.
+     * Notifica a admins/superadmins/tesorería vía WebSocket + DB cuando llega un movimiento pendiente.
      */
     private function broadcastAdminWalletMovement(?WalletMovement $movement, Wallet $wallet, string $type, float $amount) : void
     {
@@ -1573,10 +1573,10 @@ final class WalletService
             \Illuminate\Support\Facades\Log::warning('[WalletService] broadcastAdminWalletMovement falló (WebSocket no disponible): ' . $e->getMessage());
         }
 
-        // 2. Notificación persistente en DB para cada admin/superadmin
+        // 2. Notificación persistente en DB para cada admin/superadmin/tesorería
         $admins = \App\Models\User::whereHas(
             'roles',
-            fn ($q) => $q->whereIn('name', ['admin', 'superadmin']),
+            fn ($q) => $q->whereIn('name', ['admin', 'superadmin', 'treasurer']),
         )->get();
 
         $typeLabel = $type === WalletMovement::TYPE_DEPOSIT ? 'depósito' : 'retiro';

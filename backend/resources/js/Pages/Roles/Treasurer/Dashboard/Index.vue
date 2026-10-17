@@ -60,6 +60,7 @@
   }
 
   const quickLinks: QuickLink[] = [
+    { label: 'Movimientos',        description: 'Aprobar recargas y retiros',  icon: 'fas fa-money-bill-transfer', href: '/wallet-movements', variant: 'danger' },
     { label: 'Tasa de Cambio',     description: 'Tasas oficiales e histórico', icon: 'fas fa-arrows-rotate',    href: '/exchange-rate', variant: 'primary' },
     { label: 'Estadísticas Trivia', description: 'Recaudación y ranking',      icon: 'fas fa-chart-line',       href: '/trivia/stats',  variant: 'info' },
     { label: 'Gestión de Premios', description: 'Catálogo de premios',         icon: 'fas fa-gift',             href: '/prizes',        variant: 'warning' },
@@ -78,7 +79,8 @@
         roleKey="treasurer"
         :message="period ? `Período: ${period}` : undefined"
         :actions="[
-          { label: 'Tasa de cambio', icon: 'fas fa-arrows-rotate', href: '/exchange-rate', variant: 'primary' },
+          { label: 'Aprobar movimientos', icon: 'fas fa-money-bill-transfer', href: '/wallet-movements', variant: 'primary' },
+          { label: 'Tasa de cambio', icon: 'fas fa-arrows-rotate', href: '/exchange-rate', variant: 'outline-primary' },
         ]"
       />
 

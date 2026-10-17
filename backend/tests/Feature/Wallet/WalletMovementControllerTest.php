@@ -112,6 +112,25 @@ class WalletMovementControllerTest extends TestCase
         $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
     }
 
+    public function test_treasurer_can_approve_pending_deposit(): void
+    {
+        // Tesorería gestiona la cola de recargas/retiros (rol en
+        // WalletMovementPolicy + wallet.movements.manage en la ruta).
+        $this->makeRole('treasurer');
+        $treasurer = User::factory()->create();
+        $treasurer->assignRole('treasurer');
+        $treasurer->givePermissionTo(['wallet.movements.view', 'wallet.movements.manage']);
+
+        $movement = $this->makePendingDeposit(50.0);
+
+        $this->actingAs($treasurer)
+            ->postJson(route('wallet-movements.approve', $movement))
+            ->assertOk()
+            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED);
+
+        $this->assertSame(150.0, (float) $this->wallet->fresh()->balance);
+    }
+
     public function test_non_admin_cannot_approve_movement(): void
     {
         $movement = $this->makePendingDeposit();

@@ -164,6 +164,9 @@ class RolePermissionSeeder extends Seeder
                 'games.trivia.leaderboard.view',
                 'games.trivia.stats.view', 'games.trivia.stats.export',
                 'treasurers.manage-own', // Ficha propia "Mi Tesorería"
+                // Cola de recargas/retiros: ver y aprobar/rechazar (rol
+                // financiero; WalletMovementPolicy también lo admite).
+                'wallet.movements.view', 'wallet.movements.manage',
             ];
             $treasurer->givePermissionTo($treasurerPermissions);
             $this->command->info('✅ Permisos asignados a Treasurer');

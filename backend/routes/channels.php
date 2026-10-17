@@ -39,9 +39,9 @@ Broadcast::channel('bingo.player.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
-// Canal privado para admins/superadmins: movimientos de billetera pendientes
+// Canal privado para admins/superadmins/tesorería: movimientos de billetera pendientes
 Broadcast::channel('admins.wallet-movements', function ($user) {
-    return $user->hasRole(['admin', 'superadmin']);
+    return $user->hasRole(['admin', 'superadmin', 'treasurer']);
 });
 
 // Canal privado para admins/superadmins: actividad general del sistema (altas de usuario, ventas)

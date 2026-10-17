@@ -12,7 +12,9 @@ use App\Policies\Roles\BaseRolePolicy;
 /**
  * Policy de autorización para movimientos de billetera.
  *
- * Solo superadmin y admin pueden ver y gestionar movimientos.
+ * superadmin, admin y treasurer (rol financiero) pueden ver y gestionar
+ * movimientos; ver vs. aprobar lo separa además el permiso de la ruta
+ * (wallet.movements.view / wallet.movements.manage).
  */
 class WalletMovementPolicy extends BaseRolePolicy
 {
@@ -46,6 +48,6 @@ class WalletMovementPolicy extends BaseRolePolicy
 
     protected function requiredRole() : string|array
     {
-        return ['superadmin', 'admin'];
+        return ['superadmin', 'admin', 'treasurer'];
     }
 }
