@@ -161,6 +161,7 @@ class SellerController extends Controller
                 // Comercializadora + agencia del vendedor (Seller::roomOwnerUserIds()).
                 $room = BingoRoom::select('id')
                     ->accessibleBy($seller->roomOwnerUserIds())
+                    ->notDemo()
                     ->find($request->room);
 
                 if (!$room) {

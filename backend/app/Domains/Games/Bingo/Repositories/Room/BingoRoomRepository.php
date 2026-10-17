@@ -289,8 +289,9 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         } elseif ($isAdmin) {
             // Admin/superadmin: todas las salas sin filtro adicional
         } elseif ($sellerCommerceUserId !== null) {
-            // Seller: salas de su comercio + públicas
-            $query->accessibleBy($sellerCommerceUserId);
+            // Seller: salas de su comercio + públicas, sin las DEMO (de
+            // prueba: solo las ven su creador y admin).
+            $query->accessibleBy($sellerCommerceUserId)->notDemo();
         } else {
             // Fallback: solo las salas propias
             $query->where('bingo_rooms.creator_user_id', $userId);

@@ -127,6 +127,7 @@ final class BingoCardGenerateService
         return BingoRoom::query()
             ->active()
             ->accessibleBy($owners)
+            ->notDemo()
             ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
             ->where(function ($q) use ($date, $isToday) {
                 $q->whereDate('bingo_rooms_config.date', $date);
@@ -482,6 +483,8 @@ final class BingoCardGenerateService
             ->whereKey($roomId)
             ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->accessibleBy($this->sellableRoomOwners($creatorUserId))
+            // DEMO: solo creador/admin la juegan, nunca la red de venta.
+            ->notDemo()
             ->first();
 
         if (!$room) {

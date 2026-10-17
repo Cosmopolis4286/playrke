@@ -408,6 +408,18 @@ class BingoRoom extends BaseModel
      *
      * @param int|string|array<int|string> $creatorUserIds
      */
+    /**
+     * Excluye salas DEMO (de prueba, sin dinero real). Una DEMO solo la ven
+     * y juegan su creador y admin (BingoRoomCrudService::canPlayerAccessRoom),
+     * así que toda vía de la RED de venta (punto de venta, compra con código,
+     * lobby del vendedor) debe filtrarlas: accessibleBy() las dejaría pasar
+     * por ser "propias" de la comercializadora del vendedor.
+     */
+    public function scopeNotDemo($query)
+    {
+        return $query->whereDoesntHave('config.roomType', fn ($r) => $r->where('code', 'DEMO'));
+    }
+
     public function scopeAccessibleBy($query, int|string|array $creatorUserIds)
     {
         $creatorUserIds = array_map('strval', (array) $creatorUserIds);

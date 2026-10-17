@@ -882,6 +882,30 @@ class SellerCardSaleTest extends TestCase
         $this->assertFalse($idsA->contains($this->privateRoomD->getRouteKey()));
     }
 
+    /**
+     * Una sala DEMO (de prueba, sin dinero real) solo la juegan su creador y
+     * admin: los vendedores de la comercializadora dueña no deben verla en el
+     * punto de venta ni poder venderla, aunque accessibleBy() la considere
+     * "propia".
+     *
+     * @test
+     */
+    public function sellers_cannot_see_or_sell_the_commerce_demo_rooms(): void
+    {
+        $demoRoom = $this->makeRoom($this->commerceD, 'DEMO');
+
+        $ids = collect($this->actingAs($this->sellerE)
+            ->getJson('/bingo-card/pos/rooms?date=' . now()->addDay()->toDateString())
+            ->assertOk()
+            ->json('rooms'))->pluck('id');
+
+        $this->assertFalse($ids->contains($demoRoom->getRouteKey()));
+        $this->assertTrue($ids->contains($this->privateRoomD->getRouteKey()), 'La privada propia sigue siendo vendible');
+
+        $this->sale($this->sellerE, $demoRoom)->assertNotFound();
+        $this->assertSame(0, BingoCardLot::where('room_id', $demoRoom->id)->count());
+    }
+
     /** @test */
     public function pos_endpoints_are_only_for_sellers(): void
     {
