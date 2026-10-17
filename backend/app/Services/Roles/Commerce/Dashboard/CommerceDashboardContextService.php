@@ -13,9 +13,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use App\Services\Roles\Dashboard\NetworkDashboardService;
-use App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +35,6 @@ final class CommerceDashboardContextService
     public function __construct(
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly NetworkDashboardService $network,
-        private readonly BingoCardGenerateService $cardGenerate,
     ) {}
 
     public function dashboardContext(): CommerceDashboardContextDTO
@@ -86,7 +83,7 @@ final class CommerceDashboardContextService
             // mismo alcance: vendedores de su red).
             networkPayments:    $this->network->networkPayments($networkUserIds, $now),
             prizesToDeliver:    $this->network->prizesToDeliver($networkUserIds),
-            upcomingRooms:      $commerce ? $this->buildUpcomingRooms($now) : [],
+            upcomingRooms:      $commerce ? $this->network->upcomingOwnRooms($now) : [],
         );
     }
 
@@ -126,47 +123,6 @@ final class CommerceDashboardContextService
                 ->where('manager_user_id', $commerce->user_id)
                 ->orWhereIn('subsidiary_id', $commerce->subsidiaries()->pluck('id')))
             ->get(['id', 'user_id', 'name', 'phone', 'status']);
-    }
-
-    // -------------------------------------------------------------------------
-    // Próximas salas propias (hoy y mañana)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Próximas 5 salas propias de hoy y mañana, con su ocupación. Reusa el
-     * listado del punto de venta (listSellableRooms), filtrado a las propias.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildUpcomingRooms(Carbon $now): array
-    {
-        try {
-            return collect([$now->toDateString(), $now->copy()->addDay()->toDateString()])
-                ->flatMap(fn (string $date) => $this->cardGenerate->listSellableRooms($date))
-                ->filter(fn (array $room) => $room['is_own'] ?? false)
-                ->unique('id')
-                // Inicio manual (sin hora) al final.
-                ->sortBy(fn (array $room) => $room['starts_at'] ?? '9999')
-                ->take(5)
-                ->map(fn (array $room) => [
-                    'id'             => $room['id'],
-                    'uuid_code'      => $room['uuid_code'],
-                    'starts_at'      => $room['starts_at'] ?? null,
-                    'is_manual'      => (bool) ($room['is_manual'] ?? false),
-                    'sales_open'     => (bool) ($room['sales_open'] ?? false),
-                    'total_players'  => (int) ($room['total_players'] ?? 0),
-                    'max_players'    => $room['max_players'] ?? null,
-                    'total_cards'    => (int) ($room['total_cards'] ?? 0),
-                    'card_price_usd' => (float) ($room['card_price_usd'] ?? 0),
-                    'prize_pool_usd' => (float) ($room['prize_pool'] ?? 0),
-                ])
-                ->values()
-                ->all();
-        } catch (\Throwable $e) {
-            Log::warning('Dashboard comercio: no se pudieron listar las próximas salas', ['error' => $e->getMessage()]);
-
-            return [];
-        }
     }
 
     // -------------------------------------------------------------------------

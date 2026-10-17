@@ -1392,12 +1392,14 @@ final class BingoCardGenerateService
         // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
         $this->broadcastPlayerCardsUpdated($roomId, $userId, (float) $priceInfo['card_price'], (string) $priceInfo['currency_symbol']);
 
-        // Notificar la venta a dashboards de admin/superadmin (compra directa del jugador, sin vendedor).
+        // Notificar la venta a dashboards de admin/superadmin y al dueño de la
+        // sala (comercio o cliente API) — compra directa del jugador, sin vendedor.
         broadcast(new BingoCardSold(
             roomId: (string) $room->id,
             roomName: (string) $room->uuid_code,
             quantity: $cardCount,
             amountUsd: (float) $cardOrder['saleAmountUsd'],
+            creatorUserId: $room->creator_user_id ? (string) $room->creator_user_id : null,
         ));
 
         // Notificación persistente de la compra — no interrumpe la compra si

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { CommerceUpcomingRoom } from '@/js/types/roles/commerce/dashboard/dashboard-commerce'
+import type { UpcomingRoom } from '@/js/types/common/dashboard/dashboard'
 import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
 
-defineProps<{
-  rooms: CommerceUpcomingRoom[]
-}>()
+withDefaults(defineProps<{
+  rooms: UpcomingRoom[]
+  /** Página de gestión de salas */
+  manageHref?: string
+}>(), { manageHref: '/bingo-rooms' })
 
-function startLabel(room: CommerceUpcomingRoom): string {
+function startLabel(room: UpcomingRoom): string {
   if (room.is_manual || !room.starts_at) return 'Manual'
   const start = new Date(room.starts_at)
   const time  = start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
@@ -14,7 +16,7 @@ function startLabel(room: CommerceUpcomingRoom): string {
 }
 
 /** Ocupación respecto al cupo de jugadores (si la sala tiene tope). */
-function occupancy(room: CommerceUpcomingRoom): number | null {
+function occupancy(room: UpcomingRoom): number | null {
   if (!room.max_players) return null
   return Math.min(100, Math.round((room.total_players / room.max_players) * 100))
 }
@@ -22,7 +24,7 @@ function occupancy(room: CommerceUpcomingRoom): number | null {
 
 <template>
   <div v-if="rooms.length" class="cur-list">
-    <a v-for="room in rooms" :key="room.id" href="/bingo-rooms" class="cur-item">
+    <a v-for="room in rooms" :key="room.id" :href="manageHref" class="cur-item">
       <div class="cur-item__time">{{ startLabel(room) }}</div>
       <div class="cur-item__body">
         <span class="cur-item__name">

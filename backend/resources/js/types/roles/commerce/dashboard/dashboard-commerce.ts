@@ -1,4 +1,4 @@
-import type { StatCardData, ActivityItem, EntityCount, NetworkHealth, NetworkPayments, PrizesSummary } from '@/js/types/common/dashboard/dashboard'
+import type { StatCardData, ActivityItem, EntityCount, NetworkHealth, NetworkPayments, PrizesSummary, UpcomingRoom } from '@/js/types/common/dashboard/dashboard'
 
 export type { EntityCount }
 
@@ -69,20 +69,7 @@ export interface DashboardCommercePageProps {
     /** Premios de cartones de su red aún sin entregar */
     prizesToDeliver?: PrizesSummary
     /** Próximas salas propias (hoy y mañana) */
-    upcomingRooms?: CommerceUpcomingRoom[]
-}
-
-export interface CommerceUpcomingRoom {
-    id:             string
-    uuid_code:      string
-    starts_at:      string | null
-    is_manual:      boolean
-    sales_open:     boolean
-    total_players:  number
-    max_players:    number | null
-    total_cards:    number
-    card_price_usd: number
-    prize_pool_usd: number
+    upcomingRooms?: UpcomingRoom[]
 }
 
 export interface CommerceRkeReceivable {

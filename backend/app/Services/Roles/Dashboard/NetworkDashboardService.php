@@ -5,12 +5,14 @@ namespace App\Services\Roles\Dashboard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
+use App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService;
 use App\Models\Currency;
 use App\Models\Roles\Seller;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Bloques de dashboard compartidos por Seller, Subsidiary y Commerce, para
@@ -25,6 +27,10 @@ final class NetworkDashboardService
 {
     /** Días sin vender a partir de los cuales un vendedor se marca "inactivo". */
     public const IDLE_DAYS = 7;
+
+    public function __construct(
+        private readonly BingoCardGenerateService $cardGenerate,
+    ) {}
 
     /**
      * Cantidad de filas y monto de la moneda principal (la de mayor monto),
@@ -213,5 +219,43 @@ final class NetworkDashboardService
                 ->whereIn('bingo_card_prizes.prize_status', ['waiting', 'processing']),
             'local_amount',
         );
+    }
+
+    /**
+     * Próximas 5 salas propias de hoy y mañana del usuario autenticado
+     * (comercio o cliente API), con su ocupación. Reusa el listado del punto
+     * de venta (listSellableRooms), filtrado a las propias.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function upcomingOwnRooms(Carbon $now): array
+    {
+        try {
+            return collect([$now->toDateString(), $now->copy()->addDay()->toDateString()])
+                ->flatMap(fn (string $date) => $this->cardGenerate->listSellableRooms($date))
+                ->filter(fn (array $room) => $room['is_own'] ?? false)
+                ->unique('id')
+                // Inicio manual (sin hora) al final.
+                ->sortBy(fn (array $room) => $room['starts_at'] ?? '9999')
+                ->take(5)
+                ->map(fn (array $room) => [
+                    'id'             => $room['id'],
+                    'uuid_code'      => $room['uuid_code'],
+                    'starts_at'      => $room['starts_at'] ?? null,
+                    'is_manual'      => (bool) ($room['is_manual'] ?? false),
+                    'sales_open'     => (bool) ($room['sales_open'] ?? false),
+                    'total_players'  => (int) ($room['total_players'] ?? 0),
+                    'max_players'    => $room['max_players'] ?? null,
+                    'total_cards'    => (int) ($room['total_cards'] ?? 0),
+                    'card_price_usd' => (float) ($room['card_price_usd'] ?? 0),
+                    'prize_pool_usd' => (float) ($room['prize_pool'] ?? 0),
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('Dashboard: no se pudieron listar las próximas salas propias', ['error' => $e->getMessage()]);
+
+            return [];
+        }
     }
 }

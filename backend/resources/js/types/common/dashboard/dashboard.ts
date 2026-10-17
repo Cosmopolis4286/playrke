@@ -149,3 +149,17 @@ export interface PrizesSummary {
     count:  number
     amount: string | null
 }
+
+/** Sala propia próxima (hoy/mañana) — Comercio y Cliente API */
+export interface UpcomingRoom {
+    id:             string
+    uuid_code:      string
+    starts_at:      string | null
+    is_manual:      boolean
+    sales_open:     boolean
+    total_players:  number
+    max_players:    number | null
+    total_cards:    number
+    card_price_usd: number
+    prize_pool_usd: number
+}

@@ -76,7 +76,7 @@ class DashboardContextServicesTest extends TestCase
 
     private function seedRoles(): void
     {
-        foreach (['superadmin', 'admin', 'commerce', 'seller', 'player'] as $name) {
+        foreach (['superadmin', 'admin', 'commerce', 'seller', 'player', 'treasurer', 'customer'] as $name) {
             if (!Role::where('name', $name)->where('guard_name', 'web')->exists()) {
                 $role = new Role([
                     'name' => $name,
@@ -337,6 +337,37 @@ class DashboardContextServicesTest extends TestCase
         $this->assertSame(trim($this->currency->symbol . ' ' . $this->currency->formatAmount(15)), $view['paymentReview']['pending_amount']);
         $this->assertCount(1, $view['paymentReview']['rejected']);
         $this->assertSame(['count' => 0, 'amount' => null], $view['prizesToDeliver']);
+    }
+
+    // ─── Treasurer / Customer ───────────────────────────────────────────────
+    // Antes no tenían dashboard: el controlador buscaba una página
+    // inexistente (Roles/Treasurer|Customer/Dashboard/Index).
+
+    /** @test */
+    public function treasurer_dashboard_context_resolves_with_expected_keys(): void
+    {
+        Auth::login($this->makeUserWithRole('treasurer'));
+
+        $view = app(\App\Services\Roles\ContextResolverService::class)->resolve('treasurer_dashboard')->toView();
+
+        $this->assertEqualsCanonicalizing(['userName', 'stats', 'exchangeRates', 'receivables', 'period'], array_keys($view));
+        $this->assertEqualsCanonicalizing(['pendingMovements', 'receivables', 'staleRates', 'stuckPrizes'], array_keys($view['stats']));
+        $this->assertArrayHasKey('rates', $view['exchangeRates']);
+    }
+
+    /** @test */
+    public function customer_dashboard_context_resolves_with_expected_keys(): void
+    {
+        Auth::login($this->makeUserWithRole('customer'));
+
+        $view = app(\App\Services\Roles\ContextResolverService::class)->resolve('customer_dashboard')->toView();
+
+        $this->assertEqualsCanonicalizing(
+            ['userName', 'stats', 'upcomingRooms', 'salesTrend', 'recentActivity', 'wallets', 'period'],
+            array_keys($view)
+        );
+        $this->assertSame('US$ 0,00', $view['stats']['salesThisMonth']['value']);
+        $this->assertSame([], $view['upcomingRooms']);
     }
 
     // ─── Player ─────────────────────────────────────────────────────────────

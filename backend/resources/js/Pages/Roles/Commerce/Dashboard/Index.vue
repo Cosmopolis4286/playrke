@@ -21,7 +21,7 @@
   import DashboardConfigSummary       from '@/js/Components/Common/Dashboard/DashboardConfigSummary.vue'
   import DashboardNetworkHealth       from '@/js/Components/Common/Dashboard/DashboardNetworkHealth.vue'
   import DashboardNetworkPending      from '@/js/Components/Common/Dashboard/DashboardNetworkPending.vue'
-  import CommerceUpcomingRooms        from '@/js/Components/Roles/Commerce/Dashboard/CommerceUpcomingRooms.vue'
+  import DashboardUpcomingRooms       from '@/js/Components/Common/Dashboard/DashboardUpcomingRooms.vue'
   import type { QuickLink }           from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -202,7 +202,7 @@
             :loading="sectionsLoading"
             skeleton-variant="list"
           >
-            <CommerceUpcomingRooms :rooms="props.upcomingRooms ?? []" />
+            <DashboardUpcomingRooms :rooms="props.upcomingRooms ?? []" />
           </DashboardSection>
         </div>
       </div>
