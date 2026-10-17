@@ -158,8 +158,9 @@ class SellerController extends Controller
                     return response()->json(['response' => false]);
                 }
 
+                // Comercializadora + agencia del vendedor (Seller::roomOwnerUserIds()).
                 $room = BingoRoom::select('id')
-                    ->accessibleBy((int) $commerceUserId)
+                    ->accessibleBy($seller->roomOwnerUserIds())
                     ->find($request->room);
 
                 if (!$room) {

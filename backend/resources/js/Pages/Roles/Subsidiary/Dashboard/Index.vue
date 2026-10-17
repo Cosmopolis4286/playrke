@@ -65,12 +65,24 @@
   // Accesos rápidos
   // ==========================================================================
 
+  // "Gestionar Salas" solo si ESTA agencia tiene games.bingo.manage como
+  // permiso individual: el rol 'subsidiary' no gestiona salas por defecto
+  // (las crea su comercializadora).
+  const manageRoomsLink: QuickLink = {
+    label:       'Gestionar Salas',
+    description: 'Salas de bingo de tu agencia',
+    icon:        'fas fa-dice',
+    href:        '/bingo-rooms',
+    variant:     'primary',
+  }
+
   const quickLinks: QuickLink[] = [
+    ...(props.canManageRooms ? [manageRoomsLink] : []),
     {
-      label:       'Gestionar Salas',
-      description: 'Salas de bingo activas',
-      icon:        'fas fa-dice',
-      href:        '/bingo-rooms',
+      label:       'Ganadores',
+      description: 'Premios de los cartones de tu red',
+      icon:        'fas fa-trophy',
+      href:        '/bingo/winners',
       variant:     'primary',
     },
     {
@@ -115,7 +127,9 @@
         roleKey="subsidiary"
         :message="period ? `Período: ${period}` : undefined"
         :actions="[
-          { label: 'Gestionar salas', icon: 'fas fa-dice', href: '/bingo-rooms', variant: 'outline-primary' },
+          props.canManageRooms
+            ? { label: 'Gestionar salas', icon: 'fas fa-dice', href: '/bingo-rooms', variant: 'outline-primary' }
+            : { label: 'Mis vendedores', icon: 'fas fa-user-tie', href: '/sellers', variant: 'outline-primary' },
           { label: 'Ver ventas', icon: 'fas fa-chart-bar', href: '/bingo/sales-report', variant: 'primary' },
         ]"
       >

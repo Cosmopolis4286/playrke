@@ -121,11 +121,12 @@ final class BingoCardGenerateService
     public function listSellableRooms(string $date): array
     {
         $creatorUserId = $this->resolveCreatorOrManagerUserId();
+        $owners = $this->sellableRoomOwners($creatorUserId);
         $isToday = $date === now()->toDateString();
 
         return BingoRoom::query()
             ->active()
-            ->accessibleBy($creatorUserId)
+            ->accessibleBy($owners)
             ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
             ->where(function ($q) use ($date, $isToday) {
                 $q->whereDate('bingo_rooms_config.date', $date);
@@ -154,11 +155,11 @@ final class BingoCardGenerateService
                 'bingo_rooms_config.connection_type_id',
                 'bingo_rooms_config.prize_pool_type_id',
             ])
-            ->map(function (BingoRoom $room) use ($creatorUserId) {
+            ->map(function (BingoRoom $room) use ($owners) {
                 $unixDate = $room->getAttribute('unix_date') !== null ? (int) $room->getAttribute('unix_date') : null;
                 $closeAt  = $this->sellerSalesCloseAt($unixDate);
 
-                return $this->sellableRoomPayload($room, $creatorUserId) + [
+                return $this->sellableRoomPayload($room, $owners) + [
                     'is_manual'      => $unixDate === null,
                     'starts_at'      => $unixDate ? Carbon::createFromTimestamp($unixDate)->toISOString() : null,
                     'sales_close_at' => $closeAt ? Carbon::createFromTimestamp($closeAt)->toISOString() : null,
@@ -169,8 +170,11 @@ final class BingoCardGenerateService
             ->all();
     }
 
-    /** @return array<string, mixed> */
-    private function sellableRoomPayload(BingoRoom $room, int|string $creatorUserId): array
+    /**
+     * @param string[] $owners Dueños "propios" (comercializadora y, si aplica, agencia del vendedor).
+     * @return array<string, mixed>
+     */
+    private function sellableRoomPayload(BingoRoom $room, array $owners): array
     {
         return [
             'id'                 => $room->hashed_id,
@@ -178,7 +182,7 @@ final class BingoCardGenerateService
             'prize_pool'         => (float) $room->prize_pool,
             'total_players'      => (int) $room->total_players,
             'total_cards'        => (int) $room->total_cards,
-            'is_own'             => (string) $room->creator_user_id === (string) $creatorUserId,
+            'is_own'             => in_array((string) $room->creator_user_id, $owners, true),
             'date'               => $room->getAttribute('date'),
             'time'               => $room->getAttribute('time'),
             'card_price_usd'     => (float) $room->getAttribute('card_price_usd'),
@@ -455,13 +459,29 @@ final class BingoCardGenerateService
      * con billetera (playerBuyFromGameRooms) no pasa por
      * aquí: su pago es inmediato y sigue admitiendo IN_PROGRESS.
      */
+    /**
+     * Dueños cuyas salas (PRIVATE incluidas) puede vender el usuario
+     * autenticado: su comercializadora y, si es vendedor de agencia, también
+     * su agencia — las agencias no crean salas por defecto, pero una con
+     * permiso individual games.bingo.manage sí, y sus vendedores deben poder
+     * venderlas.
+     *
+     * @return string[]
+     */
+    private function sellableRoomOwners(int|string $commerceUserId): array
+    {
+        $seller = Seller::where('user_id', Auth::id())->first(['id', 'manager_user_id', 'subsidiary_id']);
+
+        return array_values(array_unique(array_merge([(string) $commerceUserId], $seller?->roomOwnerUserIds() ?? [])));
+    }
+
     private function findSellableRoom(string $roomId, int|string $creatorUserId): BingoRoom
     {
         $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
             ->with(['status:id,code', 'config:id,room_id,unix_date'])
             ->whereKey($roomId)
             ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->accessibleBy((int) $creatorUserId)
+            ->accessibleBy($this->sellableRoomOwners($creatorUserId))
             ->first();
 
         if (!$room) {

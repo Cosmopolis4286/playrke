@@ -146,6 +146,23 @@ class Seller extends BaseModel
     }
 
     /**
+     * user_ids de los dueños de salas (PRIVATE incluidas) en las que este
+     * vendedor puede vender: su comercializadora y, si es de agencia, también
+     * su agencia — las agencias no crean salas por defecto, pero una con
+     * permiso individual games.bingo.manage sí, y sus vendedores deben poder
+     * venderlas. Para BingoRoom::scopeAccessibleBy().
+     *
+     * @return string[]
+     */
+    public function roomOwnerUserIds(): array
+    {
+        return array_values(array_filter([
+            $this->resolveCommerce()?->user_id ? (string) $this->resolveCommerce()->user_id : null,
+            $this->subsidiary_id && $this->subsidiary?->user_id ? (string) $this->subsidiary->user_id : null,
+        ]));
+    }
+
+    /**
      * true si este Seller y toda su cadena de jerarquía (Subsidiary si
      * aplica, y el Commerce resuelto por resolveCommerce()) están ACTIVE.
      *

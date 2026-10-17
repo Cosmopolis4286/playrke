@@ -25,6 +25,11 @@ final class SubsidiaryDashboardContextDTO implements ContextDTO
         public readonly int $pendingWalletCount,
         /** Período activo (e.g. "Marzo 2026") */
         public readonly string $period,
+        /**
+         * true solo si ESTA agencia tiene games.bingo.manage como permiso
+         * individual — el rol 'subsidiary' no lo trae por defecto.
+         */
+        public readonly bool $canManageRooms = false,
     ) {}
 
     public function toView(): array
@@ -39,6 +44,7 @@ final class SubsidiaryDashboardContextDTO implements ContextDTO
             'wallets'            => $this->wallets,
             'pendingWalletCount' => $this->pendingWalletCount,
             'period'             => $this->period,
+            'canManageRooms'     => $this->canManageRooms,
         ];
     }
 }

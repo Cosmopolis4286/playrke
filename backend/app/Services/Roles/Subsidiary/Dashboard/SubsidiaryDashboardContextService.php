@@ -52,6 +52,7 @@ final class SubsidiaryDashboardContextService
             wallets:            $this->buildWallets($userId),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
             period:             $period,
+            canManageRooms:     (bool) $user?->hasPermissionTo('games.bingo.manage'),
         );
     }
 

@@ -57,4 +57,6 @@ export interface DashboardSubsidiaryPageProps {
     pendingWalletCount?: number
     /** Período activo (e.g. "Febrero 2026") */
     period?: string
+    /** true solo si esta agencia tiene games.bingo.manage como permiso individual (el rol no lo trae). */
+    canManageRooms?: boolean
 }

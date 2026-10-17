@@ -41,6 +41,10 @@ abstract class BingoBasePolicy extends BaseRolePolicy
             return true;
         }
 
+        // Sin bloqueo por rol: el rol 'subsidiary' NO trae games.bingo.manage
+        // por defecto (las agencias no gestionan salas), pero una agencia
+        // concreta puede recibirlo como permiso individual
+        // (UserSpecificPermissionGrant) — hasPermissionTo() ya lo contempla.
         return $user->hasPermissionTo('games.bingo.manage');
     }
 }

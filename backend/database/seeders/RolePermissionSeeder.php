@@ -98,14 +98,17 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('✅ Permisos asignados a Commerce');
         }
 
-        // Subsidiary: Sucursal de un comercio — mismos permisos que Commerce
+        // Subsidiary: Sucursal de un comercio. Por defecto NO gestiona salas
+        // (ni de bingo ni de trivia): las crea su comercializadora; la agencia
+        // gestiona su red de vendedores y consulta reportes/ganadores. A una
+        // agencia concreta se le puede conceder games.bingo.manage como
+        // permiso individual (UserSpecificPermissionGrant).
         if ($subsidiary) {
             $subsidiaryPermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'subsidiaries.manage-own',
                 'customers.view', 'customers.create', 'customers.edit',
-                'games.bingo', // Acceso a juegos de bingo
-                'games.bingo.manage', // Gestionar salas de bingo — mismo criterio que Commerce
+                'games.bingo', // Acceso a juegos de bingo (reportes de su red)
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes

@@ -738,24 +738,24 @@ final class BingoRoomContextService
     }
 
     /**
-     * user_id del Commerce real del vendedor autenticado, o null si no es
-     * seller (o no tiene comercio resoluble). Seller::resolveCommerce() cubre
-     * tanto sellers directos (manager_user_id) como de agencia (subsidiary_id
-     * → Subsidiary → Commerce) — no usar manager_user_id crudo, que para un
-     * seller de agencia apunta al usuario de la agencia, no al dueño de las salas.
+     * user_ids de los dueños de las salas que vende el vendedor autenticado
+     * (su Commerce real vía Seller::resolveCommerce() y, si es de agencia, la
+     * agencia), o null si no es seller o no tiene comercio resoluble.
      */
-    private function resolveSellerCommerceUserId(int $userId): ?int
+    private function resolveSellerCommerceUserId(int $userId): ?array
     {
         if (!$this->userContext->userHasRole('seller')) {
             return null;
         }
 
-        $commerceUserId = \App\Models\Roles\Seller::where('user_id', $userId)
+        // Comercializadora + agencia del vendedor (Seller::roomOwnerUserIds()):
+        // una agencia con permiso individual games.bingo.manage puede crear
+        // salas, y sus vendedores deben verlas igual que las de su comercio.
+        $owners = \App\Models\Roles\Seller::where('user_id', $userId)
             ->first(['id', 'manager_user_id', 'subsidiary_id'])
-            ?->resolveCommerce()
-            ?->user_id;
+            ?->roomOwnerUserIds() ?? [];
 
-        return $commerceUserId !== null ? (int) $commerceUserId : null;
+        return $owners !== [] ? $owners : null;
     }
 
     /**
