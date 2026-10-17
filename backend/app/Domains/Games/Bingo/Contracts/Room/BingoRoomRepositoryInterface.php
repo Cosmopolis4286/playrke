@@ -47,7 +47,7 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
-    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false, ?int $sellerCommerceUserId = null): Collection;
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false, int|array|null $sellerCommerceUserId = null): Collection;
 
     /**
      * Paginar salas activas para la vista de juego (game-rooms) con filtros de
@@ -63,7 +63,7 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
         bool $isPlayer,
         bool $isCommerceCustomer = false,
         bool $isAdmin = false,
-        ?int $sellerCommerceUserId = null
+        int|array|null $sellerCommerceUserId = null
     ): LengthAwarePaginator;
 
     /**
@@ -85,7 +85,7 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
         bool $isPlayer,
         bool $isCommerceCustomer = false,
         bool $isAdmin = false,
-        ?int $sellerCommerceUserId = null
+        int|array|null $sellerCommerceUserId = null
     ): ?BingoRoom;
 
     /**

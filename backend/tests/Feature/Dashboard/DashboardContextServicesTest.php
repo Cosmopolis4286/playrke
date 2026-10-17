@@ -218,7 +218,7 @@ class DashboardContextServicesTest extends TestCase
         $view = app(SellerDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
-            ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'ranking', 'period', 'pendingActions', 'upcomingRooms'],
+            ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'ranking', 'period', 'paymentReview', 'closingRooms', 'purchaseCodes', 'prizesToDeliver'],
             array_keys($view)
         );
 
@@ -226,10 +226,13 @@ class DashboardContextServicesTest extends TestCase
         $this->assertSame('commerce', $view['reportsTo']['type']);
         $this->assertSame('Comercio de prueba', $view['reportsTo']['commerce_name']);
 
-        // Vendedor nuevo: las tres colas existen, vacías.
-        $this->assertSame(['in_review', 'rejected', 'prizes'], array_column($view['pendingActions'], 'key'));
-        $this->assertSame([0, 0, 0], array_column($view['pendingActions'], 'count'));
-        $this->assertSame([], $view['upcomingRooms']);
+        // Vendedor nuevo: nada pendiente.
+        $this->assertSame(0, $view['paymentReview']['pending_count']);
+        $this->assertNull($view['paymentReview']['pending_amount']);
+        $this->assertSame([], $view['paymentReview']['rejected']);
+        $this->assertSame(['count' => 0, 'amount' => null], $view['prizesToDeliver']);
+        $this->assertSame(0, $view['purchaseCodes']['active']);
+        $this->assertSame([], $view['closingRooms']);
     }
 
     /** @test */
@@ -261,14 +264,12 @@ class DashboardContextServicesTest extends TestCase
         $payment($otherSeller, 'PENDING', 99);                                         // de otro vendedor
 
         Auth::login($sellerUser);
-        $actions = collect(app(SellerDashboardContextService::class)->dashboardContext()->toView()['pendingActions'])
-            ->keyBy('key');
+        $view = app(SellerDashboardContextService::class)->dashboardContext()->toView();
 
-        $this->assertSame(2, $actions['in_review']['count']);
-        $this->assertSame(trim($this->currency->symbol . ' ' . $this->currency->formatAmount(15)), $actions['in_review']['amount']);
-        $this->assertSame(1, $actions['rejected']['count']);
-        $this->assertSame(0, $actions['prizes']['count']);
-        $this->assertNull($actions['prizes']['amount']);
+        $this->assertSame(2, $view['paymentReview']['pending_count']);
+        $this->assertSame(trim($this->currency->symbol . ' ' . $this->currency->formatAmount(15)), $view['paymentReview']['pending_amount']);
+        $this->assertCount(1, $view['paymentReview']['rejected']);
+        $this->assertSame(['count' => 0, 'amount' => null], $view['prizesToDeliver']);
     }
 
     // ─── Player ─────────────────────────────────────────────────────────────

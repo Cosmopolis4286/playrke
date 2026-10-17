@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import type { SellerUpcomingRoom } from '@/js/types/roles/seller/dashboard/dashboard-seller'
+import type { SellerClosingRoom } from '@/js/types/roles/seller/dashboard/dashboard-seller'
 import DashboardEmptyState from '@/js/Components/Common/Dashboard/DashboardEmptyState.vue'
 
 defineProps<{
-  rooms: SellerUpcomingRoom[]
+  rooms: SellerClosingRoom[]
 }>()
 
 // Reloj de 30 s: basta para la cuenta regresiva en minutos sin recargar.
@@ -13,12 +13,15 @@ let timer: ReturnType<typeof setInterval> | undefined
 onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 30_000) })
 onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 
-function startTime(room: SellerUpcomingRoom): string {
-  if (room.is_manual || !room.starts_at) return 'Inicio manual'
-  return new Date(room.starts_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+function startTime(room: SellerClosingRoom): string {
+  if (room.is_manual || !room.starts_at) return 'Manual'
+  const start = new Date(room.starts_at)
+  const time  = start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+  // La ventana es de 24 h: marca las de mañana para no confundirlas con hoy.
+  return start.toDateString() === new Date(now.value).toDateString() ? time : `Mañana ${time}`
 }
 
-function closesIn(room: SellerUpcomingRoom): string | null {
+function closesIn(room: SellerClosingRoom): string | null {
   if (!room.sales_close_at) return null
   const minutes = Math.floor((new Date(room.sales_close_at).getTime() - now.value) / 60_000)
   if (minutes <= 0) return 'Venta cerrada'
@@ -26,7 +29,7 @@ function closesIn(room: SellerUpcomingRoom): string | null {
   return `Cierra en ${Math.floor(minutes / 60)} h ${minutes % 60} min`
 }
 
-function isClosingSoon(room: SellerUpcomingRoom): boolean {
+function isClosingSoon(room: SellerClosingRoom): boolean {
   if (!room.sales_close_at) return false
   return new Date(room.sales_close_at).getTime() - now.value < 30 * 60_000
 }
@@ -38,11 +41,11 @@ function isClosingSoon(room: SellerUpcomingRoom): boolean {
       <div class="sur-item__time">{{ startTime(room) }}</div>
       <div class="sur-item__body">
         <span class="sur-item__name">
-          {{ room.name }}
+          {{ room.uuid_code }}
           <span class="sur-item__tag">{{ room.is_own ? 'Tu comercio' : 'Pública' }}</span>
         </span>
         <span class="sur-item__meta">
-          Cartón US$ {{ room.card_price_usd.toFixed(2) }} · Bote US$ {{ room.prize_pool_usd.toFixed(2) }} · {{ room.total_cards }} cartones
+          Cartón US$ {{ room.card_price_usd.toFixed(2) }} · Bote US$ {{ room.prize_pool_usd.toFixed(2) }} · {{ room.total_players }} jugadores
         </span>
         <span
           v-if="closesIn(room)"
@@ -58,8 +61,8 @@ function isClosingSoon(room: SellerUpcomingRoom): boolean {
   <DashboardEmptyState
     v-else
     icon="fas fa-door-closed"
-    title="No hay salas abiertas para vender hoy"
-    description="Cuando tu comercio programe una sala, aparecerá aquí."
+    title="No hay salas por cerrar venta"
+    description="Cuando haya salas con cierre en las próximas 24 horas, aparecerán aquí."
     compact
   />
 </template>

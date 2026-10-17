@@ -5,10 +5,6 @@ namespace App\Services\Roles\Seller\Dashboard;
 use App\DTOs\Roles\Seller\Dashboard\SellerDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
-use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
-use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
-use App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService;
-use App\Models\Currency;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\Roles\Seller;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
@@ -27,7 +23,6 @@ final class SellerDashboardContextService
 
     public function __construct(
         private readonly SellerRankingService $sellerRanking,
-        private readonly BingoCardGenerateService $cardGenerate,
     ) {
     }
 
@@ -52,75 +47,167 @@ final class SellerDashboardContextService
                 ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
             period:          $period,
             ranking:         $this->sellerRanking->getSellerStanding($userId),
-            pendingActions:  $this->buildPendingActions($userId, $now),
-            upcomingRooms:   $seller ? $this->buildUpcomingRooms() : [],
+            paymentReview:   $this->buildPaymentReview($userId),
+            closingRooms:    $this->buildClosingRooms($seller),
+            purchaseCodes:   $this->buildPurchaseCodes($userId),
+            prizesToDeliver: $this->buildPrizesToDeliver($userId),
         );
     }
 
     // -------------------------------------------------------------------------
-    // Pendientes del vendedor: lo que requiere que haga algo hoy
+    // Pagos en revisión / rechazados (acción pendiente del vendedor)
     // -------------------------------------------------------------------------
 
     /**
-     * Tres colas que antes el vendedor no veía en ningún lado:
-     *  - ventas con el pago en revisión (el comprador aún no ve sus cartones);
-     *  - pagos rechazados en los últimos 7 días (debe devolver el dinero);
-     *  - premios de sus compradores sin entregar (el premio se acredita al
-     *    comercio, ver BingoCardPrize::getUserId(), y el vendedor lo entrega).
+     * Ventas cuyo pago espera la revisión del comercio, y las rechazadas en
+     * los últimos 14 días: en ese caso los cartones se anularon y el monto se
+     * le reembolsó al vendedor, que debe devolvérselo al comprador.
+     *
+     * @return array{pending_count: int, pending_amount: ?string, pending_cards: int, oldest_pending_at: ?string, rejected: array<int, array<string, mixed>>}
+     */
+    private function buildPaymentReview(string $userId): array
+    {
+        $pending = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
+            ->where('bingo_card_payments.seller_user_id', $userId)
+            ->where('bingo_card_payments.payment_status', 'PENDING')
+            ->leftJoin('bingo_card_lots as l', 'l.id', '=', 'bingo_card_payments.card_lot_id')
+            ->selectRaw('COUNT(*) as payments, COALESCE(SUM(l.card_count), 0) as cards, MIN(bingo_card_payments.created_at) as oldest')
+            ->toBase()
+            ->first();
+
+        $rejected = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
+            ->where('seller_user_id', $userId)
+            ->where('payment_status', 'REJECTED')
+            ->where('processed_at', '>=', now()->subDays(14))
+            ->with(['externalPlayer:id,first_name,last_name,phone', 'cardLot:id,card_count', 'currency:id,symbol', 'room:id,uuid_code'])
+            ->latest('processed_at')
+            ->limit(5)
+            ->get()
+            ->map(fn ($p) => [
+                'id'          => (string) $p->id,
+                'buyer'       => $p->externalPlayer
+                    ? trim("{$p->externalPlayer->first_name} {$p->externalPlayer->last_name}")
+                    : '—',
+                'phone'       => $p->externalPlayer?->phone,
+                'cards'       => (int) ($p->cardLot?->card_count ?? 0),
+                'amount'      => trim(($p->currency?->symbol ?? '') . ' ' . number_format((float) $p->payment_amount, 2, ',', '.')),
+                'room'        => $p->room?->uuid_code,
+                'rejected_at' => $p->processed_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        $pendingAmount = $this->sumByCurrency(
+            \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
+                ->where('seller_user_id', $userId)
+                ->where('payment_status', 'PENDING'),
+            'payment_amount',
+        )['amount'];
+
+        return [
+            'pending_count'     => (int) ($pending->payments ?? 0),
+            'pending_amount'    => $pendingAmount,
+            'pending_cards'     => (int) ($pending->cards ?? 0),
+            'oldest_pending_at' => $pending?->oldest ? Carbon::parse($pending->oldest)->toIso8601String() : null,
+            'rejected'          => $rejected,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Salas por cerrar venta (próximas 24 h)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Salas que el vendedor todavía puede vender y cuya venta cierra en las
+     * próximas 24 h — mismo listado que el punto de venta
+     * (BingoCardGenerateService::listSellableRooms), para empujar la venta
+     * antes del cierre. Best-effort: sin comercio resoluble, lista vacía.
      *
      * @return array<int, array<string, mixed>>
      */
-    private function buildPendingActions(string $userId, Carbon $now): array
+    private function buildClosingRooms(?Seller $seller): array
     {
-        $inReview = $this->sumByCurrency(
-            BingoCardPayment::where('seller_user_id', $userId)->where('payment_status', 'PENDING'),
-            'payment_amount',
-        );
+        if (!$seller || !$seller->hasActiveHierarchy()) {
+            return [];
+        }
 
-        $rejected = $this->sumByCurrency(
-            BingoCardPayment::where('seller_user_id', $userId)
-                ->where('payment_status', 'REJECTED')
-                ->where('processed_at', '>=', $now->copy()->subDays(7)),
-            'payment_amount',
-        );
+        try {
+            $service  = app(\App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService::class);
+            $now      = now();
+            $deadline = $now->copy()->addDay();
 
-        $prizes = $this->sumByCurrency(
-            BingoCardPrize::where('seller_user_id', $userId)->whereIn('prize_status', ['waiting', 'processing']),
-            'local_amount',
-        );
+            return collect([$now->toDateString(), $deadline->toDateString()])
+                ->unique()
+                ->flatMap(fn (string $date) => $service->listSellableRooms($date))
+                // Las de inicio manual no tienen cierre: se venden hasta que el
+                // admin las inicia, así que van al final de la lista.
+                ->filter(fn (array $room) => ($room['sales_open'] ?? false) && (
+                    ($room['is_manual'] ?? false)
+                    || (!empty($room['sales_close_at']) && Carbon::parse($room['sales_close_at'])->between($now, $deadline))
+                ))
+                ->unique('id')
+                ->sortBy(fn (array $room) => $room['sales_close_at'] ?? '9999')
+                ->take(4)
+                ->map(fn (array $room) => [
+                    'id'             => $room['id'],
+                    'uuid_code'      => $room['uuid_code'],
+                    'time'           => $room['time'] ?? null,
+                    'sales_close_at' => $room['sales_close_at'],
+                    'starts_at'      => $room['starts_at'] ?? null,
+                    'is_manual'      => (bool) ($room['is_manual'] ?? false),
+                    'total_players'  => (int) ($room['total_players'] ?? 0),
+                    'total_cards'    => (int) ($room['total_cards'] ?? 0),
+                    'card_price_usd' => (float) ($room['card_price_usd'] ?? 0),
+                    'prize_pool_usd' => (float) ($room['prize_pool'] ?? 0),
+                    'is_own'         => (bool) ($room['is_own'] ?? false),
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Dashboard vendedor: no se pudieron listar salas por cerrar', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Códigos de compra (compradores recurrentes)
+    // -------------------------------------------------------------------------
+
+    /** @return array{active: int, remaining_uses: int, expiring_soon: int} */
+    private function buildPurchaseCodes(string $userId): array
+    {
+        $active = \App\Models\Roles\Player\External\ExternalBuyerPurchaseCode::query()
+            ->where('seller_user_id', $userId)
+            ->usable()
+            ->get(['id', 'max_uses', 'uses_count', 'expires_at']);
 
         return [
-            [
-                'key'         => 'in_review',
-                'label'       => 'Pagos en revisión',
-                'count'       => $inReview['count'],
-                'amount'      => $inReview['amount'],
-                'hint'        => 'Tus compradores verán sus cartones cuando el comercio apruebe el pago.',
-                'icon'        => 'fas fa-hourglass-half',
-                'variant'     => 'info',
-                'href'        => '/bingo/cards-sold',
-            ],
-            [
-                'key'         => 'rejected',
-                'label'       => 'Pagos rechazados (7 días)',
-                'count'       => $rejected['count'],
-                'amount'      => $rejected['amount'],
-                'hint'        => 'Esos cartones se anularon: devuelve el dinero a cada comprador.',
-                'icon'        => 'fas fa-rotate-left',
-                'variant'     => 'danger',
-                'href'        => '/bingo/cards-sold',
-            ],
-            [
-                'key'         => 'prizes',
-                'label'       => 'Premios por entregar',
-                'count'       => $prizes['count'],
-                'amount'      => $prizes['amount'],
-                'hint'        => 'Premios ganados con cartones que vendiste; coordina la entrega con tu comercio.',
-                'icon'        => 'fas fa-gift',
-                'variant'     => 'warning',
-                'href'        => '/bingo/winners',
-            ],
+            'active'         => $active->count(),
+            'remaining_uses' => (int) $active->sum(fn ($c) => $c->remainingUses()),
+            'expiring_soon'  => $active->filter(fn ($c) => $c->expires_at?->lte(now()->addDays(3)))->count(),
         ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Premios de sus compradores por entregar
+    // -------------------------------------------------------------------------
+
+    /**
+     * Premios ganados con cartones que vendió y aún sin entregar. El premio
+     * se acredita al comercio (BingoCardPrize::getUserId()) y el comprador
+     * externo no tiene billetera: alguien de la red tiene que entregárselo.
+     *
+     * @return array{count: int, amount: ?string}
+     */
+    private function buildPrizesToDeliver(string $userId): array
+    {
+        return $this->sumByCurrency(
+            \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::query()
+                ->where('seller_user_id', $userId)
+                ->whereIn('prize_status', ['waiting', 'processing']),
+            'local_amount',
+        );
     }
 
     /**
@@ -146,7 +233,7 @@ final class SellerDashboardContextService
         }
 
         $primary  = $rows->first();
-        $currency = Currency::find($primary->currency_id);
+        $currency = \App\Models\Currency::find($primary->currency_id);
         $amount   = $currency
             ? trim(($currency->symbol ?? '') . ' ' . $currency->formatAmount((float) $primary->amount))
             : number_format((float) $primary->amount, 2, ',', '.');
@@ -156,45 +243,6 @@ final class SellerDashboardContextService
         }
 
         return ['count' => $count, 'amount' => $amount];
-    }
-
-    // -------------------------------------------------------------------------
-    // Próximas salas vendibles hoy (mismo criterio que el punto de venta)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Las próximas 5 salas de hoy con la venta abierta, ordenadas por cierre.
-     * Reusa listSellableRooms() para no duplicar la regla de visibilidad
-     * (propias del comercio + PUBLIC) ni el corte de venta previo al inicio.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildUpcomingRooms(): array
-    {
-        try {
-            $rooms = $this->cardGenerate->listSellableRooms(now()->toDateString());
-        } catch (\Throwable $e) {
-            // Vendedor sin comercio asignado: el dashboard ya muestra la alerta.
-            return [];
-        }
-
-        return collect($rooms)
-            ->filter(fn (array $r) => $r['sales_open'])
-            ->sortBy(fn (array $r) => $r['sales_close_at'] ?? '9999')
-            ->take(5)
-            ->map(fn (array $r) => [
-                'id'             => $r['id'],
-                'name'           => $r['uuid_code'],
-                'is_own'         => $r['is_own'],
-                'is_manual'      => $r['is_manual'],
-                'starts_at'      => $r['starts_at'],
-                'sales_close_at' => $r['sales_close_at'],
-                'card_price_usd' => $r['card_price_usd'],
-                'prize_pool_usd' => $r['prize_pool'],
-                'total_cards'    => $r['total_cards'],
-            ])
-            ->values()
-            ->all();
     }
 
     // -------------------------------------------------------------------------
@@ -230,7 +278,10 @@ final class SellerDashboardContextService
             return [];
         }
 
+        // Solo salas que todavía venden o juegan: las terminadas/canceladas ya
+        // no aportan nada al vendedor y llenaban la lista.
         return SellerRoomLimits::where('seller_id', $seller->id)
+            ->whereHas('room.status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->with('room:id,uuid_code')
             ->latest('created_at')
             ->limit(10)

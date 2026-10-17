@@ -400,10 +400,20 @@ class BingoRoom extends BaseModel
             ->where('prize_pool', '>', 0);
     }
 
-    public function scopeAccessibleBy($query, int $creatorUserId)
+    /**
+     * Salas propias de uno o varios dueños + todas las PUBLIC. Acepta varios
+     * dueños para el punto de venta: un vendedor de agencia vende las salas de
+     * su comercializadora Y las de su agencia (si esa agencia tiene permiso
+     * individual de gestionar salas).
+     *
+     * @param int|string|array<int|string> $creatorUserIds
+     */
+    public function scopeAccessibleBy($query, int|string|array $creatorUserIds)
     {
-        return $query->where(function ($q) use ($creatorUserId) {
-            $q->where('bingo_rooms.creator_user_id', $creatorUserId)
+        $creatorUserIds = array_map('strval', (array) $creatorUserIds);
+
+        return $query->where(function ($q) use ($creatorUserIds) {
+            $q->whereIn('bingo_rooms.creator_user_id', $creatorUserIds)
                 ->orWhereHas(
                     'config.roomType',
                     fn($r) => $r->where('code', 'PUBLIC')

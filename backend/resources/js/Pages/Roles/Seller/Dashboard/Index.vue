@@ -2,7 +2,7 @@
   /**
    * Página Dashboard → Vendedor
    * Stats: cartones vendidos, comisión, ganadores.
-   * Pendientes (pagos en revisión, devoluciones, premios) y salas abiertas hoy.
+   * Pendientes (pagos en revisión, devoluciones, premios, códigos) y salas por cerrar venta.
    * Accesos rápidos: Generar Cartón, Cartones, Ganadores, Reporte de Ventas, Directorio.
    */
 
@@ -21,7 +21,7 @@
   import DashboardTrendChart       from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
   import DashboardRoomCommissionList from '@/js/Components/Common/Dashboard/DashboardRoomCommissionList.vue'
   import SellerPendingActions      from '@/js/Components/Roles/Seller/Dashboard/SellerPendingActions.vue'
-  import SellerUpcomingRooms       from '@/js/Components/Roles/Seller/Dashboard/SellerUpcomingRooms.vue'
+  import SellerClosingRooms        from '@/js/Components/Roles/Seller/Dashboard/SellerClosingRooms.vue'
   import type { QuickLink }        from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -204,18 +204,22 @@
             :loading="sectionsLoading"
             skeleton-variant="list"
           >
-            <SellerPendingActions :items="pendingActions ?? []" />
+            <SellerPendingActions
+              :payment-review="paymentReview"
+              :prizes-to-deliver="prizesToDeliver"
+              :purchase-codes="purchaseCodes"
+            />
           </DashboardSection>
         </div>
         <div class="col-12 col-lg-7">
           <DashboardSection
-            title="Salas para vender hoy"
+            title="Salas por cerrar venta"
             icon="fas fa-door-open"
-            subtitle="Ordenadas por cierre de venta"
+            subtitle="Próximas 24 h, ordenadas por cierre"
             :loading="sectionsLoading"
             skeleton-variant="list"
           >
-            <SellerUpcomingRooms :rooms="upcomingRooms ?? []" />
+            <SellerClosingRooms :rooms="closingRooms ?? []" />
           </DashboardSection>
         </div>
       </div>

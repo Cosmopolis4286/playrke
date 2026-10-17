@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import RpCard from './RpCard.vue'
-import type { AccountRole, RoleProfile, RoleProfileRole } from '@/js/types/roles/shared/role-profile-common'
+import type { AccountRole, RoleProfile } from '@/js/types/roles/shared/role-profile-common'
 import { ROLE_META, formatRate, statusMeta } from '@/js/composables/roles/shared/profile/useRoleProfile'
 
 const props = defineProps<{ profile: RoleProfile }>()
 
-const LEVEL_LABEL: Record<RoleProfileRole, string> = {
+const LEVEL_LABEL: Record<AccountRole, string> = {
   commerce: 'Comercializadora',
   subsidiary: 'Agencia',
   seller: 'Taquilla',
+  customer: 'Cliente API',
+  treasurer: 'Tesorería',
 }
 
 const chain = computed(() => props.profile.hierarchy.chain)

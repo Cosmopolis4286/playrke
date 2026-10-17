@@ -77,7 +77,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
-    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false, ?int $sellerCommerceUserId = null): Collection
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false, int|array|null $sellerCommerceUserId = null): Collection
     {
         // -1 día de margen (diferencias residuales entre el tz del usuario que consulta
         // y el tz de cada creador individual) + 7 días hacia adelante — antes era ±1 día,
@@ -112,7 +112,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         bool $isPlayer,
         bool $isCommerceCustomer = false,
         bool $isAdmin = false,
-        ?int $sellerCommerceUserId = null
+        int|array|null $sellerCommerceUserId = null
     ): LengthAwarePaginator {
         // Sin filtro de fecha explícito: ventana amplia (hoy → +30 días) en vez
         // de la unbounded query completa, para no escanear todo el histórico
@@ -177,7 +177,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         bool $isPlayer,
         bool $isCommerceCustomer = false,
         bool $isAdmin = false,
-        ?int $sellerCommerceUserId = null
+        int|array|null $sellerCommerceUserId = null
     ): ?BingoRoom {
         // now() aquí es fallback defensivo — ver comentario en
         // paginateRoomsForViewWithFilters(), mismo criterio.
@@ -232,7 +232,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      *                     playersPreview) usados solo por el listado real de
      *                     salas — las queries de agregación (KPIs) no los
      *                     necesitan y serían N+1 innecesarios.
-     * @param int|null $sellerCommerceUserId user_id del Commerce real del vendedor
+     * @param int|array|null $sellerCommerceUserId user_id(s) dueños de las salas que vende el vendedor (Seller::roomOwnerUserIds(): comercializadora + agencia)
      *                     (Seller::resolveCommerce(), directo o vía agencia) —
      *                     si viene, el seller ve las salas de su comercio + las
      *                     PUBLIC (mismo criterio que BingoRoom::scopeAccessibleBy()
@@ -246,7 +246,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         bool $isAdmin,
         int $userId,
         bool $light = false,
-        ?int $sellerCommerceUserId = null
+        int|array|null $sellerCommerceUserId = null
     ): Builder {
         $with = [
             'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,connection_type_id,min_cards_to_start,max_cards_to_start,max_players,min_players,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x',

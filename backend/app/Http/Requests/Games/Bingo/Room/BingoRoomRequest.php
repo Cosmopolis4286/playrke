@@ -27,7 +27,11 @@ class BingoRoomRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer']);
+        // 'subsidiary' incluido: el rol no trae games.bingo.manage por defecto,
+        // pero una agencia puede recibirlo como permiso individual — la puerta
+        // real es el permiso (ruta multiPermission + BingoRoomPolicy); sin
+        // 'subsidiary' aquí, esa agencia recibía 403 al guardar.
+        return PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer', 'subsidiary']);
     }
 
     /**
