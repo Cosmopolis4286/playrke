@@ -25,8 +25,28 @@ final class BingoRoomInvitationController extends Controller
         $this->authorize('update', $room);
 
         return $this->handleServiceJson(fn () => [
-            'is_vip'      => $this->service->isVip($room),
-            'invitations' => $this->service->list($room),
+            'is_vip'       => $this->service->isVip($room),
+            'invitations'  => $this->service->list($room),
+            'requirements' => $this->service->requirements($room),
+        ]);
+    }
+
+    /** Requisitos de acceso automático (null = sin requisito). */
+    public function updateRequirements(Request $request, BingoRoom $room): JsonResponse
+    {
+        $this->authorize('update', $room);
+
+        $data = $request->validate([
+            'min_level'     => ['nullable', 'integer', 'min:1', 'max:999'],
+            'min_spend_usd' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
+        ]);
+
+        return $this->handleServiceJson(fn () => [
+            'requirements' => $this->service->updateRequirements(
+                $room,
+                isset($data['min_level']) ? (int) $data['min_level'] : null,
+                isset($data['min_spend_usd']) ? (float) $data['min_spend_usd'] : null,
+            ),
         ]);
     }
 

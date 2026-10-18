@@ -129,6 +129,7 @@ final class BingoCardGenerateService
             ->accessibleBy($owners)
             ->notDemo()
             ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
+            ->leftJoin('room_types', 'room_types.id', '=', 'bingo_rooms_config.room_type_id')
             ->where(function ($q) use ($date, $isToday) {
                 $q->whereDate('bingo_rooms_config.date', $date);
 
@@ -155,12 +156,15 @@ final class BingoCardGenerateService
                 'bingo_rooms_config.room_type_id',
                 'bingo_rooms_config.connection_type_id',
                 'bingo_rooms_config.prize_pool_type_id',
+                'room_types.code as room_type_code',
             ])
             ->map(function (BingoRoom $room) use ($owners) {
                 $unixDate = $room->getAttribute('unix_date') !== null ? (int) $room->getAttribute('unix_date') : null;
                 $closeAt  = $this->sellerSalesCloseAt($unixDate);
 
                 return $this->sellableRoomPayload($room, $owners) + [
+                    // VIP: el vendedor solo puede venderle a teléfonos de la lista de invitados.
+                    'is_vip'         => $room->getAttribute('room_type_code') === 'VIP',
                     'is_manual'      => $unixDate === null,
                     'starts_at'      => $unixDate ? Carbon::createFromTimestamp($unixDate)->toISOString() : null,
                     'sales_close_at' => $closeAt ? Carbon::createFromTimestamp($closeAt)->toISOString() : null,

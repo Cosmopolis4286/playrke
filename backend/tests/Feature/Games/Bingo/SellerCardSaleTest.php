@@ -1001,6 +1001,77 @@ class SellerCardSaleTest extends TestCase
         $this->assertFalse($seen($stranger)->contains((string) $vip->id));
     }
 
+    /**
+     * Requisitos de acceso automático: un jugador registrado que cumple TODOS
+     * los fijados (nivel y gasto de los últimos 30 días) entra a la VIP sin
+     * invitación; quien no los cumple, no.
+     *
+     * @test
+     */
+    public function vip_requirements_grant_access_without_invitation(): void
+    {
+        $vip    = $this->makeRoom($this->commerceD, 'VIP');
+        $url    = '/bingo-rooms/' . $vip->getRouteKey() . '/invitations/requirements';
+
+        $this->actingAs($this->commerceD)
+            ->patchJson($url, ['min_level' => 3, 'min_spend_usd' => 20])
+            ->assertOk()
+            ->assertJsonPath('requirements.min_level', 3);
+
+        $qualified = $this->makePlayer();
+        $lowLevel  = $this->makePlayer();
+        $noSpend   = $this->makePlayer();
+
+        foreach ([[$qualified, 5], [$lowLevel, 2], [$noSpend, 5]] as [$player, $level]) {
+            \App\Models\UserLevel::create([
+                'user_id' => $player->id, 'current_level' => $level, 'current_xp' => 0,
+                'total_xp' => 0, 'xp_to_next_level' => 1000,
+            ]);
+        }
+
+        // Gasto propio (compra con billetera: user_id = jugador, sin vendedor).
+        foreach ([$qualified, $lowLevel] as $player) {
+            BingoCardLot::create([
+                'room_id' => $this->roomR1->id, 'user_id' => $player->id, 'seller_user_id' => null,
+                'seller_type' => 'USER', 'room_user_id' => '1', 'currency_id' => $this->currency->id,
+                'card_count' => 3, 'card_price' => 10, 'exchange_rate' => 1, 'sale_amount' => 30,
+                'commission_amount' => 0, 'status' => 'ACTIVE',
+            ]);
+        }
+
+        $crud = app(\App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService::class);
+        $repo = app(\App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface::class);
+        $date = now()->addDay()->toDateString();
+
+        foreach ([[$qualified, true], [$lowLevel, false], [$noSpend, false]] as [$player, $expected]) {
+            $this->actingAs($player);
+            $this->assertSame($expected, $crud->canPlayerAccessRoom($vip->fresh()));
+            $this->assertSame(
+                $expected,
+                $repo->getActiveRoomsForViewWithRoleFilter((int) $player->id, $date, true)->pluck('id')->map(fn ($id) => (string) $id)->contains((string) $vip->id)
+            );
+        }
+
+        // Quitar los requisitos: vuelve a ser solo por invitación.
+        $this->actingAs($this->commerceD)->patchJson($url, ['min_level' => null, 'min_spend_usd' => null])->assertOk();
+        $this->actingAs($qualified);
+        $this->assertFalse($crud->canPlayerAccessRoom($vip->fresh()));
+    }
+
+    /** @test */
+    public function pos_marks_vip_rooms(): void
+    {
+        $vip = $this->makeRoom($this->commerceD, 'VIP');
+
+        $rooms = collect($this->actingAs($this->sellerE)
+            ->getJson('/bingo-card/pos/rooms?date=' . now()->addDay()->toDateString())
+            ->assertOk()
+            ->json('rooms'))->keyBy('id');
+
+        $this->assertTrue($rooms[$vip->getRouteKey()]['is_vip']);
+        $this->assertFalse($rooms[$this->privateRoomD->getRouteKey()]['is_vip']);
+    }
+
     /** @test */
     public function pos_endpoints_are_only_for_sellers(): void
     {

@@ -13,6 +13,13 @@ export interface BingoRoomInvitation {
 
 export type InvitationType = 'player' | 'phone'
 
+/** Requisitos de acceso automático (null = sin requisito). */
+export interface VipRequirements {
+  min_level: number | null
+  min_spend_usd: number | null
+  spend_window_days: number
+}
+
 /**
  * Lista de invitados de una sala VIP (GET/POST/DELETE
  * /bingo-rooms/{room}/invitations). Solo la gestiona el creador o un admin.
@@ -24,6 +31,8 @@ export function useRoomInvitationsModal(rooms: Ref<BingoRoom[]>) {
   const loadingInvitations = ref(false)
   const savingInvitation = ref(false)
   const invitationError = ref<string | null>(null)
+  const requirements = ref<VipRequirements>({ min_level: null, min_spend_usd: null, spend_window_days: 30 })
+  const savingRequirements = ref(false)
 
   const endpoint = (roomId: string | number) => `/bingo-rooms/${roomId}/invitations`
 
@@ -49,6 +58,7 @@ export function useRoomInvitationsModal(rooms: Ref<BingoRoom[]>) {
     try {
       const { data } = await backendClient.get(endpoint(room.id))
       invitations.value = data.invitations ?? []
+      if (data.requirements) requirements.value = data.requirements
     } catch (error: any) {
       invitationError.value = errorMessage(error, 'No se pudo cargar la lista de invitados.')
     } finally {
@@ -91,8 +101,23 @@ export function useRoomInvitationsModal(rooms: Ref<BingoRoom[]>) {
     }
   }
 
+  async function saveRequirements(payload: { min_level: number | null; min_spend_usd: number | null }): Promise<void> {
+    if (!invitationsRoom.value) return
+    savingRequirements.value = true
+    try {
+      const { data } = await backendClient.patch(`${endpoint(invitationsRoom.value.id)}/requirements`, payload)
+      requirements.value = data.requirements
+      showToast('Requisitos guardados', 'success')
+    } catch (error: any) {
+      showToast(errorMessage(error, 'No se pudieron guardar los requisitos.'), 'error')
+    } finally {
+      savingRequirements.value = false
+    }
+  }
+
   return {
     showInvitationsModal, invitationsRoom, invitations, loadingInvitations, savingInvitation, invitationError,
-    openInvitationsModal, addInvitation, removeInvitation,
+    requirements, savingRequirements,
+    openInvitationsModal, addInvitation, removeInvitation, saveRequirements,
   }
 }

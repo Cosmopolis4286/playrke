@@ -4,7 +4,7 @@
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
   import type { BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
-  import type { BingoRoomInvitation, InvitationType } from '@js/composables/games/bingo/room/summary/useRoomInvitationsModal'
+  import type { BingoRoomInvitation, InvitationType, VipRequirements } from '@js/composables/games/bingo/room/summary/useRoomInvitationsModal'
 
   const props = defineProps<{
     modelValue: boolean
@@ -13,12 +13,15 @@
     loading?: boolean
     saving?: boolean
     error?: string | null
+    requirements: VipRequirements
+    savingRequirements?: boolean
   }>()
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: boolean): void
     (e: 'add', payload: { type: InvitationType; identifier?: string; phone?: string; label?: string }, done: (ok: boolean) => void): void
     (e: 'remove', invitation: BingoRoomInvitation): void
+    (e: 'save-requirements', payload: { min_level: number | null; min_spend_usd: number | null }): void
   }>()
 
   const type = ref<InvitationType>('player')
@@ -29,6 +32,41 @@
   const canAdd = computed(() =>
     type.value === 'player' ? identifier.value.trim().length > 0 : phone.value.replace(/\D/g, '').length >= 7
   )
+
+  // Requisitos de acceso automático: '' = sin requisito.
+  const minLevel = ref('')
+  const minSpend = ref('')
+
+  watch(() => props.requirements, req => {
+    minLevel.value = req.min_level != null ? String(req.min_level) : ''
+    minSpend.value = req.min_spend_usd != null ? String(req.min_spend_usd) : ''
+  }, { immediate: true })
+
+  const toNumber = (v: string): number | null => {
+    const n = Number(v.replace(',', '.'))
+    return v.trim() !== '' && Number.isFinite(n) && n > 0 ? n : null
+  }
+
+  const requirementsDirty = computed(() =>
+    toNumber(minLevel.value) !== (props.requirements.min_level ?? null)
+    || toNumber(minSpend.value) !== (props.requirements.min_spend_usd ?? null)
+  )
+
+  const requirementsSummary = computed(() => {
+    const parts: string[] = []
+    if (props.requirements.min_level) parts.push(`nivel ${props.requirements.min_level} o más`)
+    if (props.requirements.min_spend_usd) parts.push(`haber gastado US$ ${props.requirements.min_spend_usd.toFixed(2)} o más en los últimos ${props.requirements.spend_window_days} días`)
+    return parts.length ? `Entran sin invitación los jugadores con ${parts.join(' y ')}.` : 'Sin requisitos: solo entran los invitados.'
+  })
+
+  function saveRequirements(): void {
+    if (props.savingRequirements) return
+    const level = toNumber(minLevel.value)
+    emit('save-requirements', {
+      min_level: level !== null ? Math.round(level) : null,
+      min_spend_usd: toNumber(minSpend.value),
+    })
+  }
 
   const players = computed(() => props.invitations.filter(i => i.type === 'player').length)
   const phones = computed(() => props.invitations.filter(i => i.type === 'phone').length)
@@ -113,6 +151,36 @@
         <p v-if="error" class="riv__error"><i class="fas fa-circle-exclamation"></i> {{ error }}</p>
       </form>
 
+      <!-- Acceso automático por requisitos -->
+      <div class="riv__req">
+        <div class="riv__req-head">
+          <span class="riv__req-title"><i class="fas fa-medal"></i> Acceso automático</span>
+          <small>Opcional · solo jugadores registrados</small>
+        </div>
+        <div class="riv__fields">
+          <input
+            v-model="minLevel"
+            class="form-control form-control-sm"
+            inputmode="numeric"
+            maxlength="3"
+            placeholder="Nivel mínimo"
+            @input="minLevel = minLevel.replace(/\D/g, '')"
+          />
+          <input
+            v-model="minSpend"
+            class="form-control form-control-sm"
+            inputmode="decimal"
+            maxlength="10"
+            :placeholder="`Gasto mínimo US$ (${requirements.spend_window_days} días)`"
+            @input="minSpend = minSpend.replace(/[^0-9.,]/g, '')"
+          />
+          <button type="button" class="btn btn-sm btn-outline-primary riv__add" :disabled="!requirementsDirty || savingRequirements" @click="saveRequirements">
+            <i class="fas fa-save"></i> {{ savingRequirements ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+        <p class="riv__req-summary">{{ requirementsSummary }}</p>
+      </div>
+
       <!-- Lista -->
       <div class="riv__summary">
         {{ invitations.length }} invitado(s) · {{ players }} jugador(es) · {{ phones }} teléfono(s)
@@ -153,6 +221,16 @@
 .riv__fields .form-control { flex: 1 1 180px; min-width: 0; }
 .riv__add { flex: 0 0 auto; }
 .riv__error { margin: 0; font-size: 0.78rem; color: #dc2626; }
+
+.riv__req {
+  display: flex; flex-direction: column; gap: 0.45rem;
+  padding: 0.65rem 0.75rem; border-radius: 10px; background: var(--ds-surface-2, #f8fafc);
+}
+.riv__req-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.riv__req-head small { font-size: 0.7rem; color: var(--ds-text-muted, #94a3b8); }
+.riv__req-title { font-size: 0.82rem; font-weight: 700; color: var(--ds-text, #1e293b); }
+.riv__req-title i { color: #f59e0b; }
+.riv__req-summary { margin: 0; font-size: 0.75rem; color: var(--ds-text-2, #64748b); }
 
 .riv__summary { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--ds-text-muted, #94a3b8); }
 .riv__empty { margin: 0; font-size: 0.82rem; color: var(--ds-text-muted, #94a3b8); }

@@ -3,9 +3,11 @@
 namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomInvitation;
 use App\Models\User;
+use App\Models\UserLevel;
 
 /**
  * Lista de invitados de las salas VIP.
@@ -16,10 +18,21 @@ use App\Models\User;
  *  - comprador externo (teléfono): los vendedores de la red solo le venden
  *    si su teléfono está en la lista (BingoCardGenerateService::generate).
  *
+ * Además, el creador puede fijar requisitos de acceso automático (nivel
+ * mínimo y/o gasto mínimo en los últimos SPEND_WINDOW_DAYS días): un jugador
+ * registrado que cumpla TODOS los fijados entra sin invitación. Los
+ * compradores externos siempre necesitan invitación (no tienen nivel ni gasto).
+ *
  * Quién gestiona la lista lo decide BingoRoomPolicy::update (creador o admin).
  */
 final class BingoRoomInvitationService
 {
+    /** Ventana del requisito de gasto mínimo. */
+    public const SPEND_WINDOW_DAYS = 30;
+
+    /** @var array<string, array{level: int, spend_usd: float}> perfil por jugador, memo por request */
+    private array $profiles = [];
+
     public function isVip(BingoRoom $room): bool
     {
         return $room->isVip();
@@ -114,6 +127,86 @@ final class BingoRoomInvitationService
         $key = BingoRoomInvitation::phoneKey($phone);
 
         return $key !== null && BingoRoomInvitation::where('room_id', $roomId)->where('phone_key', $key)->exists();
+    }
+
+    // -------------------------------------------------------------------------
+    // Requisitos de acceso automático
+    // -------------------------------------------------------------------------
+
+    /** @return array{min_level: ?int, min_spend_usd: ?float, spend_window_days: int} */
+    public function requirements(BingoRoom $room): array
+    {
+        $room->loadMissing('config');
+
+        return [
+            'min_level'         => $room->config?->vip_min_level !== null ? (int) $room->config->vip_min_level : null,
+            'min_spend_usd'     => $room->config?->vip_min_spend_usd !== null ? (float) $room->config->vip_min_spend_usd : null,
+            'spend_window_days' => self::SPEND_WINDOW_DAYS,
+        ];
+    }
+
+    /**
+     * Fija (o quita, con null) los requisitos de acceso automático.
+     *
+     * @throws BingoRoomException
+     */
+    public function updateRequirements(BingoRoom $room, ?int $minLevel, ?float $minSpendUsd): array
+    {
+        $this->assertVip($room);
+        $room->loadMissing('config');
+
+        $room->config?->update([
+            'vip_min_level'     => $minLevel !== null && $minLevel > 1 ? $minLevel : null,
+            'vip_min_spend_usd' => $minSpendUsd !== null && $minSpendUsd > 0 ? round($minSpendUsd, 2) : null,
+        ]);
+
+        return $this->requirements($room->fresh('config'));
+    }
+
+    /**
+     * true si la sala tiene al menos un requisito fijado y el jugador cumple
+     * todos. Sin requisitos → false (solo entra por invitación).
+     */
+    public function meetsRequirements(BingoRoom $room, int|string|null $userId): bool
+    {
+        if ($userId === null) {
+            return false;
+        }
+
+        $req = $this->requirements($room);
+        if ($req['min_level'] === null && $req['min_spend_usd'] === null) {
+            return false;
+        }
+
+        $profile = $this->playerProfile($userId);
+
+        return ($req['min_level'] === null || $profile['level'] >= $req['min_level'])
+            && ($req['min_spend_usd'] === null || $profile['spend_usd'] >= $req['min_spend_usd']);
+    }
+
+    /**
+     * Nivel del jugador y lo que gastó comprando cartones con su billetera en
+     * los últimos SPEND_WINDOW_DAYS días, en USD a la tasa de cada compra.
+     * Las compras propias del jugador son lotes con user_id = jugador y sin
+     * vendedor; los lotes reembolsados no cuentan.
+     *
+     * @return array{level: int, spend_usd: float}
+     */
+    public function playerProfile(int|string $userId): array
+    {
+        $key = (string) $userId;
+
+        return $this->profiles[$key] ??= [
+            'level'     => (int) (UserLevel::where('user_id', $userId)->value('current_level') ?? 1),
+            'spend_usd' => round((float) BingoCardLot::query()
+                ->where('user_id', $userId)
+                ->whereNull('seller_user_id')
+                ->where('status', 'ACTIVE')
+                ->where('created_at', '>=', now()->subDays(self::SPEND_WINDOW_DAYS))
+                ->selectRaw('COALESCE(SUM(sale_amount / NULLIF(exchange_rate, 0)), 0) AS usd')
+                ->toBase()
+                ->value('usd'), 2),
+        ];
     }
 
     /** @throws BingoRoomException */

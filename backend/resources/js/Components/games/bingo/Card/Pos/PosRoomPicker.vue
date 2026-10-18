@@ -119,7 +119,10 @@ function fillPct(room: PosRoom): number | null {
     >
       <span class="prp-selected__time">{{ hhmm(ctx.selectedRoom) }}</span>
       <span class="prp-selected__body">
-        <strong>{{ ctx.selectedRoom.uuid_code }}</strong>
+        <strong>
+          {{ ctx.selectedRoom.uuid_code }}
+          <span v-if="ctx.selectedRoom.is_vip" class="prp-vip" title="Solo a compradores de la lista de invitados"><i class="fas fa-crown"></i> VIP · solo invitados</span>
+        </strong>
         <span class="pos-muted">
           {{ ctx.typeLabel('room_type_id', ctx.selectedRoom.room_type_id) ?? 'Sala' }}
           · {{ ctx.selectedRoom.total_players }} jugadores · bote {{ usd(ctx.selectedRoom.prize_pool) }}
@@ -224,6 +227,11 @@ function fillPct(room: PosRoom): number | null {
           <span class="prp-room__code">
             {{ room.uuid_code }}
             <span v-if="room.is_own" class="pos-pill pos-pill--info">Tu comercio</span>
+            <span
+              v-if="room.is_vip"
+              class="pos-pill pos-pill--warning"
+              title="Sala VIP: solo puedes venderle a compradores cuyo teléfono esté en la lista de invitados del creador."
+            ><i class="fas fa-crown"></i> VIP · solo invitados</span>
           </span>
 
           <span class="prp-room__tags">
@@ -399,5 +407,6 @@ function fillPct(room: PosRoom): number | null {
   .prp-search { max-width: none; flex-basis: 100%; }
   .prp-grid { grid-template-columns: 1fr; }
   .prp-selected .pos-pill { display: none; }
+  .prp-vip { margin-left: 6px; font-size: 0.68rem; font-weight: 700; color: #b45309; white-space: nowrap; }
 }
 </style>

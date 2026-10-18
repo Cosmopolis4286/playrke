@@ -111,6 +111,16 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Cantidad mínima de jugadores requerida para iniciar el sorteo (null = sin condición)');
 
+            // Sala VIP: acceso automático (sin invitación) para jugadores registrados
+            // que cumplan TODOS los requisitos fijados (ver BingoRoomInvitationService).
+            $table->unsignedSmallInteger('vip_min_level')
+                ->nullable()
+                ->comment('VIP: nivel mínimo del jugador para entrar sin invitación (null = sin requisito)');
+
+            $table->decimal('vip_min_spend_usd', 12, 2)
+                ->nullable()
+                ->comment('VIP: gasto mínimo en USD de los últimos 30 días para entrar sin invitación (null = sin requisito)');
+
             // Cartón personalizado
             $table->boolean('allow_custom_card')->default(false);
 

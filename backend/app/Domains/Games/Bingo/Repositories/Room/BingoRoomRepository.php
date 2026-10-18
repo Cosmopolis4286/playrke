@@ -278,12 +278,21 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->withCount('rounds');
 
         if ($isPlayer) {
-            // Players: salas públicas y las VIP donde están invitados.
+            // Players: salas públicas y las VIP donde están invitados o cumplen
+            // todos los requisitos de acceso automático fijados (nivel / gasto
+            // de los últimos días, ver BingoRoomInvitationService).
+            $profile = app(\App\Domains\Games\Bingo\Services\Room\BingoRoomInvitationService::class)->playerProfile($userId);
+
             $query->where(fn ($q) => $q
                 ->whereHas('config.roomType', fn ($t) => $t->where('code', 'PUBLIC'))
                 ->orWhere(fn ($vip) => $vip
                     ->whereHas('config.roomType', fn ($t) => $t->where('code', 'VIP'))
-                    ->whereHas('invitations', fn ($i) => $i->where('user_id', $userId))));
+                    ->where(fn ($access) => $access
+                        ->whereHas('invitations', fn ($i) => $i->where('user_id', $userId))
+                        ->orWhereHas('config', fn ($c) => $c
+                            ->where(fn ($any) => $any->whereNotNull('vip_min_level')->orWhereNotNull('vip_min_spend_usd'))
+                            ->where(fn ($lvl) => $lvl->whereNull('vip_min_level')->orWhere('vip_min_level', '<=', $profile['level']))
+                            ->where(fn ($sp) => $sp->whereNull('vip_min_spend_usd')->orWhere('vip_min_spend_usd', '<=', $profile['spend_usd']))))));
         } elseif ($isCommerceCustomer) {
             // Commerce/customer: sus salas + las PÚBLICAS (mismo criterio que el
             // punto de venta, BingoRoom::scopeAccessibleBy). Antes veían todas las

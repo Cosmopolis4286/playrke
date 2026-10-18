@@ -63,6 +63,8 @@ Route::middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->group(function () {
         Route::get('', 'index')->name('index');
         Route::post('', 'store')->name('store');
+        // Antes de {invitation}: si no, "requirements" se tomaría como un id.
+        Route::patch('requirements', 'updateRequirements')->name('requirements');
         Route::delete('{invitation}', 'destroy')->name('destroy');
     });
 

@@ -40,6 +40,8 @@ export interface PosRoom {
     total_cards: number
     /** true si la sala es del comercio del vendedor (false = sala pública de otro). */
     is_own: boolean
+    /** Sala VIP: solo se le vende a compradores cuyo teléfono está en su lista de invitados. */
+    is_vip?: boolean
     date: string | null
     /** "HH:MM:SS" */
     time: string | null

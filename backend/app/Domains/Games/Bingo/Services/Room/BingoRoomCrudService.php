@@ -1621,8 +1621,10 @@ class BingoRoomCrudService
         return match ($code) {
             'PUBLIC'  => true,
             'PRIVATE' => $this->isRoomAccessVerified($room),
-            // VIP: solo los jugadores de su lista de invitados.
-            'VIP'     => app(BingoRoomInvitationService::class)->isUserInvited($room->id, $userId),
+            // VIP: jugadores de su lista de invitados, o que cumplen todos los
+            // requisitos de acceso automático (nivel / gasto) que fijó el creador.
+            'VIP'     => ($inv = app(BingoRoomInvitationService::class))->isUserInvited($room->id, $userId)
+                || $inv->meetsRequirements($room, $userId),
             default   => false, // DEMO y cualquier tipo nuevo: cerrado por defecto
         };
     }

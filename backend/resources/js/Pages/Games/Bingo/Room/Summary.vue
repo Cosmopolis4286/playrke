@@ -373,7 +373,8 @@
   // Lista de invitados de salas VIP (creador o admin).
   const {
     showInvitationsModal, invitationsRoom, invitations, loadingInvitations, savingInvitation, invitationError,
-    openInvitationsModal, addInvitation, removeInvitation,
+    requirements: vipRequirements, savingRequirements,
+    openInvitationsModal, addInvitation, removeInvitation, saveRequirements,
   } = useRoomInvitationsModal(rooms)
 
   async function handleAddInvitation(payload: Parameters<typeof addInvitation>[0], done: (ok: boolean) => void) {
@@ -616,8 +617,11 @@
     :loading="loadingInvitations"
     :saving="savingInvitation"
     :error="invitationError"
+    :requirements="vipRequirements"
+    :saving-requirements="savingRequirements"
     @add="handleAddInvitation"
     @remove="removeInvitation"
+    @save-requirements="saveRequirements"
   />
 </template>
 
