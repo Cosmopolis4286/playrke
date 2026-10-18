@@ -211,6 +211,23 @@ final class PlatformWalletService
      */
     public function creditMarketplaceFee(string $currencyId, float $amount, string $idempotencyKey, string $description = 'Comisión de marketplace'): ?WalletMovement
     {
+        return $this->creditPlatformIdempotent($currencyId, $amount, $idempotencyKey, $description, WalletMovement::TYPE_MARKETPLACE_FEE);
+    }
+
+    /**
+     * Acredita a la plataforma la comisión de sala de una sala creada por la
+     * propia plataforma (admin/superadmin): no hay un creador-usuario a quien
+     * pagársela. Idempotente — la llama BingoRoomCreatorPayoutService, que se
+     * reintenta al cierre de sala y al cobrar deudas de venta cruzada.
+     */
+    public function creditCreatorShare(string $currencyId, float $amount, string $idempotencyKey, string $description): ?WalletMovement
+    {
+        return $this->creditPlatformIdempotent($currencyId, $amount, $idempotencyKey, $description, WalletMovement::TYPE_CREATOR_COMMISSION);
+    }
+
+    /** Crédito idempotente a la wallet de plataforma (patrón idempotency_key de WalletService::recordPrize()). */
+    private function creditPlatformIdempotent(string $currencyId, float $amount, string $idempotencyKey, string $description, string $type): ?WalletMovement
+    {
         if ($amount <= 0) {
             return null;
         }
@@ -226,7 +243,7 @@ final class PlatformWalletService
         }
 
         try {
-            $movement = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey) {
+            $movement = \Illuminate\Support\Facades\DB::transaction(function () use ($wallet, $amount, $description, $idempotencyKey, $type) {
                 $balanceBefore = (float) $wallet->balance;
 
                 $this->walletRepository->incrementBalance((string) $wallet->id, $amount);
@@ -235,7 +252,7 @@ final class PlatformWalletService
                 return $this->movementRepository->record([
                     'wallet_id'       => (string) $wallet->id,
                     'user_id'         => (string) $wallet->user_id,
-                    'type'            => WalletMovement::TYPE_MARKETPLACE_FEE,
+                    'type'            => $type,
                     'status'          => WalletMovement::STATUS_COMPLETED,
                     'amount'          => $amount,
                     'balance_before'  => $balanceBefore,

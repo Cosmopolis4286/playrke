@@ -459,7 +459,16 @@ class RoomMetricsService implements RoomMetricsInterface
             // (para todo tipo de bote — ver comentario del reparto más arriba).
             $creatorSale = null;
             try {
-                $creatorUserId = (string) ($saleData['creator']['id'] ?? null);
+                // A quién se anota la venta: en venta de la red (offline) al comercio
+                // vendedor — reportes de economía la leen como "ventas de mi red";
+                // en compra con billetera del jugador no hay red: se anota al
+                // creador de la sala (antes quedaba a nombre del propio jugador y
+                // el dueño no veía la comisión de esas compras). En venta cruzada,
+                // la parte del creador la custodia la deuda del comercio vendedor
+                // (PlatformReceivable.creator_amount, ver BingoRoomCreatorPayoutService).
+                $creatorUserId = $saleChannel === 'wallet' && $room->creator_user_id
+                    ? (string) $room->creator_user_id
+                    : (string) ($saleData['creator']['id'] ?? null);
                 $currencyIdStr = (string) ($saleData['currency'] ?? '');
 
                 if ($creatorUserId && $currencyIdStr) {

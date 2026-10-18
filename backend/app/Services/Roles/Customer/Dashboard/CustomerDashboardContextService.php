@@ -81,6 +81,18 @@ final class CustomerDashboardContextService
             'room_commission',
         );
 
+        // Venta cruzada en sus salas públicas: su comisión la custodia la
+        // deuda del comercio vendedor y se le paga al cobrarla con la sala
+        // cerrada (BingoRoomCreatorPayoutService).
+        $custody = $this->network->currencySummary(
+            \App\Models\Platform\PlatformReceivable::query()
+                ->where('platform_receivables.creator_payee_user_id', $userId)
+                ->where('platform_receivables.status', '!=', \App\Models\Platform\PlatformReceivable::STATUS_CANCELLED)
+                ->whereNull('platform_receivables.creator_paid_at')
+                ->where('platform_receivables.creator_amount', '>', 0),
+            'creator_amount',
+        );
+
         return [
             'activeRooms' => [
                 'label'   => 'Salas activas',
@@ -107,7 +119,10 @@ final class CustomerDashboardContextService
                 'value'       => $commission['amount'] ?? '—',
                 'icon'        => 'fas fa-percentage',
                 'variant'     => 'secondary',
-                'description' => $commission['count'] > 0 ? 'Lo que ganas como organizador' : 'Sin comisión este mes',
+                'description' => trim(implode(' · ', array_filter([
+                    $commission['count'] > 0 ? 'Lo que ganas como organizador' : 'Sin comisión este mes',
+                    $custody['amount'] ? "{$custody['amount']} por cobrar de otras redes" : null,
+                ]))),
             ],
         ];
     }

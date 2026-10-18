@@ -281,4 +281,74 @@ class BingoFinancialSettlementTest extends TestCase
         $this->assertSame([], $paid);
         $this->assertSame(FinancialReconciliationItem::TYPE_CREATOR_PAYOUT_FAILED, FinancialReconciliationItem::firstOrFail()->type);
     }
+
+    private function finish(BingoRoom $room): BingoRoom
+    {
+        \App\Models\Games\Common\Utils\GameStatus::forgetCache();
+        if (!\App\Models\Games\Common\Utils\GameStatus::where('code', 'FINISHED')->exists()) {
+            \App\Models\Games\Common\Utils\GameStatus::create(['code' => 'FINISHED', 'label' => 'FINISHED']);
+        }
+        DB::table('bingo_rooms')->where('id', $room->id)
+            ->update(['status_id' => \App\Models\Games\Common\Utils\GameStatus::where('code', 'FINISHED')->value('id')]);
+
+        return $room->fresh();
+    }
+
+    /**
+     * Venta cruzada: la comisión del creador (custodiada en la deuda del
+     * comercio vendedor) se le paga cuando la deuda está cobrada Y la sala
+     * cerró — en cualquier orden — y una sola vez.
+     */
+    #[Test]
+    public function la_comision_custodiada_se_paga_al_creador_al_cobrar_con_la_sala_cerrada(): void
+    {
+        $otherCommerce = '950000000000000099';
+        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
+        $payout = app(BingoRoomCreatorPayoutService::class);
+
+        // 1) Cobro antes del cierre: todavía no se paga; al cerrar, sí.
+        $open = $this->makeRoom();
+        $this->sellLot($open, 100.0, 'offline', [], $otherCommerce);
+        app(PlatformReceivableService::class)->settle($otherCommerce, $this->currencyId, '1');
+
+        $this->assertEqualsWithDelta(0.0, (float) $wallet->fresh()->balance, 0.001, 'Sala abierta: aún no se paga');
+        $this->assertNull(PlatformReceivable::firstOrFail()->creator_paid_at);
+
+        $paid = $payout->payoutOnClose($this->finish($open));
+        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
+        $this->assertNotNull(PlatformReceivable::firstOrFail()->creator_paid_at);
+
+        $payout->payoutOnClose($open->fresh());
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001, 'No paga dos veces');
+
+        // 2) Cierre antes del cobro: se paga al cobrar.
+        $closed = $this->finish($this->makeRoom());
+        $this->sellLot($closed, 50.0, 'offline', [], $otherCommerce);
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001, 'Deuda sin cobrar: no se paga');
+
+        app(PlatformReceivableService::class)->settle($otherCommerce, $this->currencyId, '1');
+        $this->assertEqualsWithDelta(15.0, (float) $wallet->fresh()->balance, 0.001, '10 + 5 (10% de 50)');
+    }
+
+    /** Sala de la plataforma (creada por un admin): lo del creador va a la billetera de plataforma. */
+    #[Test]
+    public function en_sala_de_la_plataforma_la_comision_del_creador_va_a_la_plataforma(): void
+    {
+        $role = \App\Models\Role::where('name', 'admin')->where('guard_name', 'web')->first()
+            ?? tap((new \App\Models\Role())->forceFill(['name' => 'admin', 'guard_name' => 'web', 'prefix' => 'admin']))->save();
+        $admin = \App\Models\User::factory()->create();
+        $admin->assignRole('admin');
+        $this->creatorId = (string) $admin->id;
+
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'wallet');
+
+        $before = $this->platformBalance();
+        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
+
+        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
+        $this->assertEqualsWithDelta($before + 10.0, $this->platformBalance(), 0.001);
+        $this->assertFalse(Wallet::where('user_id', $admin->id)->where('balance', '>', 0)->exists(), 'No se acredita al usuario admin');
+    }
 }

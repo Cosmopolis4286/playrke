@@ -235,6 +235,30 @@ final class CommerceDashboardContextService
                 });
         }
 
+        // Venta cruzada: la comisión de sala que su red cobró en salas PÚBLICAS
+        // ajenas no es suya (se la debe al creador, PlatformReceivable.
+        // creator_amount); la que otras redes cobraron en SUS salas sí lo es.
+        if ($commerce) {
+            $receivables = \App\Models\Platform\PlatformReceivable::query()
+                ->where('status', '!=', \App\Models\Platform\PlatformReceivable::STATUS_CANCELLED)
+                ->where('created_at', '>=', $startOfMonth)
+                ->where('creator_amount', '>', 0);
+
+            (clone $receivables)->where('debtor_user_id', $commerce->user_id)
+                ->groupBy('currency_id')
+                ->pluck(DB::raw('SUM(creator_amount) as custody_sum'), 'currency_id')
+                ->each(function ($sum, $currencyId) use ($byCurrency) {
+                    $byCurrency[$currencyId] = ($byCurrency[$currencyId] ?? 0) - (float) $sum;
+                });
+
+            (clone $receivables)->where('creator_payee_user_id', $commerce->user_id)
+                ->groupBy('currency_id')
+                ->pluck(DB::raw('SUM(creator_amount) as owed_sum'), 'currency_id')
+                ->each(function ($sum, $currencyId) use ($byCurrency) {
+                    $byCurrency[$currencyId] = ($byCurrency[$currencyId] ?? 0) + (float) $sum;
+                });
+        }
+
         $byCurrency = $byCurrency->filter(fn ($sum) => $sum > 0)->sortDesc();
 
         if ($byCurrency->isEmpty()) {

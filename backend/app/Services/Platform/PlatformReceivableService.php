@@ -98,7 +98,7 @@ final class PlatformReceivableService
      */
     public function settle(string $debtorUserId, string $currencyId, string $settledBy): array
     {
-        return DB::transaction(function () use ($debtorUserId, $currencyId, $settledBy) {
+        $result = DB::transaction(function () use ($debtorUserId, $currencyId, $settledBy) {
             $pending = PlatformReceivable::where('debtor_user_id', $debtorUserId)
                 ->where('currency_id', $currencyId)
                 ->where('status', PlatformReceivable::STATUS_PENDING)
@@ -130,8 +130,26 @@ final class PlatformReceivableService
                 'rke'        => $rke,
                 'jackpot'    => $jackpot,
                 'prize_pool' => $pool,
+                // Venta cruzada: salas con comisión del creador custodiada en lo cobrado.
+                '_creator_rooms' => $pending->where('creator_amount', '>', 0)->pluck('room_id')->filter()->unique()->values()->all(),
             ];
         });
+
+        // Fuera de la transacción del cobro: si la sala ya cerró, se le paga al
+        // creador su parte ahora; si no, la paga el cierre de la sala
+        // (BingoRoomCreatorPayoutService::payoutOnClose). Nunca lanza.
+        $creatorRooms = $result['_creator_rooms'] ?? [];
+        unset($result['_creator_rooms']);
+
+        if ($creatorRooms !== []) {
+            $payout = app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomCreatorPayoutService::class);
+            \App\Domains\Games\Bingo\Models\Room\BingoRoom::with('status:id,code')
+                ->whereIn('id', $creatorRooms)
+                ->get()
+                ->each(fn ($room) => $payout->payCustodiedShares($room));
+        }
+
+        return $result;
     }
 
     /**
