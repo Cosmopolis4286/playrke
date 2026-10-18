@@ -152,6 +152,7 @@ return [
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'Esta sala no está disponible para comprar cartones.',
     'BINGO_CARD_VIP_BUYER_NOT_INVITED' => 'Esta sala es VIP y el teléfono del comprador no está en su lista de invitados. Pide al creador de la sala que lo agregue.',
     'BINGO_CARD_SALES_CLOSED' => 'Las ventas de esta sala ya cerraron: se cierran :minutes minutos antes del inicio para que el comercio alcance a aprobar el comprobante. Elige otra sala.',
+    'BINGO_PAYMENT_LATE_APPROVAL_CONFIRM' => 'El sorteo de esta sala ya inició: si apruebas el pago, los cartones entran con las bolas ya cantadas. Confirma que el comprador lo acepta.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'La moneda seleccionada no está disponible para esta sala.',
     'BINGO_CARD_GENERATION_FAILED' => 'No se pudieron generar los cartones.',
     'BINGO_CARD_PRICE_CHANGED' => 'El precio del cartón cambió (antes :expected, ahora :current). Revisa el nuevo monto antes de cobrar.',

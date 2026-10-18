@@ -25,11 +25,14 @@ final class BingoCardPayment extends BaseModel
         'payment_method', 'description', 'room_id', 'creator_user_id', 'seller_user_id',
         'user_id', 'external_player_id', 'currency_id', 'card_lot_id',
         'payment_amount', 'payment_proof', 'payment_status', 'processed_at', 'transaction_reference',
+        'start_alert_sent_at', 'pending_at_start_at',
     ];
 
     protected $casts = [
         'payment_amount' => 'decimal:2',
         'processed_at'   => 'datetime',
+        'start_alert_sent_at' => 'datetime',
+        'pending_at_start_at' => 'datetime',
     ];
 
     public function room(): BelongsTo

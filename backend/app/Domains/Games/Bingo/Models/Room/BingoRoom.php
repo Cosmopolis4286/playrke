@@ -280,6 +280,23 @@ class BingoRoom extends BaseModel
         return $this->roomTypeCode() === 'DEMO';
     }
 
+    /**
+     * El sorteo ya inició: en juego/terminada, o su hora programada ya pasó
+     * (aunque el cron todavía no la haya pasado a IN_PROGRESS).
+     */
+    public function hasStarted(?int $now = null): bool
+    {
+        $this->loadMissing(['status:id,code', 'config:id,room_id,unix_date']);
+
+        if (in_array($this->status?->code, ['IN_PROGRESS', 'FINISHED'], true)) {
+            return true;
+        }
+
+        $unixDate = $this->config?->unix_date;
+
+        return $unixDate !== null && (int) $unixDate <= ($now ?? now()->timestamp);
+    }
+
     /** Sala VIP: cerrada salvo creador, admin y su lista de invitados. */
     public function isVip(): bool
     {

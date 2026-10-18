@@ -286,6 +286,7 @@ route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bing
  */
 route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermission:games.manage,games.bingo.payments.review'], \App\Http\Controllers\Games\Bingo\Payment\BingoCardPaymentReviewController::class, [
     'index'   => ['method' => 'get',  'uri' => '',                'action' => 'index'],
+    'policy'  => ['method' => 'patch', 'uri' => 'policy',         'action' => 'updatePolicy'],
     'proof'   => ['method' => 'get',  'uri' => '{payment}/proof', 'action' => 'proof'],
     'approve' => ['method' => 'post', 'uri' => '{payment}/approve', 'action' => 'approve'],
     'reject'  => ['method' => 'post', 'uri' => '{payment}/reject',  'action' => 'reject'],

@@ -152,6 +152,7 @@ return [
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'This room is not available for buying cards.',
     'BINGO_CARD_VIP_BUYER_NOT_INVITED' => 'This is a VIP room and the buyer\'s phone is not on its guest list. Ask the room creator to add it.',
     'BINGO_CARD_SALES_CLOSED' => 'Sales for this room are closed: they close :minutes minutes before the start so the commerce can approve the receipt. Pick another room.',
+    'BINGO_PAYMENT_LATE_APPROVAL_CONFIRM' => 'This room\'s draw has already started: if you approve the payment, the cards join with the balls already called. Confirm the buyer accepts it.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'The selected currency is not available for this room.',
     'BINGO_CARD_GENERATION_FAILED' => 'The cards could not be generated.',
     'BINGO_CARD_PRICE_CHANGED' => 'The card price changed (was :expected, now :current). Review the new amount before charging.',

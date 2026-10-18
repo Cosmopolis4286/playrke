@@ -76,6 +76,15 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Fecha y hora de procesamiento del pago');
 
+            // Pago aún pendiente cerca del inicio del sorteo / al iniciar
+            // (ver HandlePendingBingoPaymentsAtStartCommand).
+            $table->timestamp('start_alert_sent_at')
+                ->nullable()
+                ->comment('Se avisó al revisor que la sala está por iniciar');
+            $table->timestamp('pending_at_start_at')
+                ->nullable()
+                ->comment('Seguía pendiente cuando inició el sorteo');
+
             $table->string('transaction_reference', 100)
                 ->nullable()
                 ->comment('Referencia de la transacción externa');

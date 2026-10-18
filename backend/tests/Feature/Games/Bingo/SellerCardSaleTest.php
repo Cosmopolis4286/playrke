@@ -1256,4 +1256,101 @@ class SellerCardSaleTest extends TestCase
 
         $this->sale($this->sellerA, $this->roomR1)->assertOk();
     }
+
+    // ─── Pagos pendientes al iniciar el sorteo ───────────────────────────────
+    // BingoPendingPaymentStartService: aviso previo y, al iniciar, la regla
+    // de la comercializadora (rechazar con reembolso o mantener en revisión).
+
+    private function runPendingAtStart(): array
+    {
+        return app(\App\Domains\Games\Bingo\Services\Payment\BingoPendingPaymentStartService::class)->run();
+    }
+
+    private function gameAlertsFor(User $user): int
+    {
+        return DB::table('notifications')->where('user_id', $user->id)->where('type', 'GAME_ALERT')->count();
+    }
+
+    /** @test */
+    public function commerce_is_alerted_once_when_a_room_is_about_to_start_with_pending_payments(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $this->startRoomIn($this->roomR1, 3);
+
+        $this->assertSame(1, $this->runPendingAtStart()['alerted']);
+        $this->assertNotNull(BingoCardPayment::firstOrFail()->start_alert_sent_at);
+        $this->assertSame(1, $this->gameAlertsFor($this->commerceC));
+
+        // Idempotente: no repite el aviso.
+        $this->assertSame(0, $this->runPendingAtStart()['alerted']);
+        $this->assertSame(1, $this->gameAlertsFor($this->commerceC));
+    }
+
+    /** @test */
+    public function pending_payment_is_kept_in_review_at_start_by_default_and_late_approval_needs_confirmation(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $payment = BingoCardPayment::firstOrFail();
+        $this->startRoomIn($this->roomR1, -1);
+
+        $result = $this->runPendingAtStart();
+        $this->assertSame(1, $result['kept']);
+        $this->assertSame(0, $result['rejected']);
+
+        $payment->refresh();
+        $this->assertSame('PENDING', $payment->payment_status);
+        $this->assertNotNull($payment->pending_at_start_at);
+        $this->assertSame(1, $this->gameAlertsFor($this->commerceC));
+
+        $url = route('bingo-card-payments.approve', ['payment' => $payment]);
+
+        $this->actingAs($this->commerceC)->postJson($url)
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_PAYMENT_LATE_APPROVAL_CONFIRM');
+        $this->assertSame('PENDING', $payment->fresh()->payment_status);
+
+        $this->actingAs($this->commerceC)->postJson($url, ['confirm_late' => true])->assertOk();
+        $this->assertSame('APPROVED', $payment->fresh()->payment_status);
+    }
+
+    /** @test */
+    public function pending_payment_is_rejected_with_refund_at_start_when_the_commerce_chose_it(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $this->actingAs($this->commerceC)
+            ->patchJson(route('bingo-card-payments.policy'), ['policy' => Commerce::PENDING_POLICY_REJECT])
+            ->assertOk()
+            ->assertJsonPath('policy', Commerce::PENDING_POLICY_REJECT);
+
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+        $payment = BingoCardPayment::firstOrFail();
+        $this->startRoomIn($this->roomR1, -1);
+
+        $this->assertSame(1, $this->runPendingAtStart()['rejected']);
+
+        $payment->refresh();
+        $this->assertSame('REJECTED', $payment->payment_status);
+        $this->assertNotNull($payment->pending_at_start_at);
+        $this->assertSame(0, \App\Domains\Games\Bingo\Models\Card\BingoCard::where('card_lot_id', $payment->card_lot_id)
+            ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)->count());
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob::class);
+
+        // Ya marcado: una segunda corrida no lo vuelve a tocar.
+        $this->assertSame(['alerted' => 0, 'rejected' => 0, 'kept' => 0, 'failed' => 0], $this->runPendingAtStart());
+    }
+
+    /** @test */
+    public function only_the_commerce_can_change_its_pending_payment_policy(): void
+    {
+        $this->actingAs($this->commerceC)
+            ->patchJson(route('bingo-card-payments.policy'), ['policy' => 'otra'])
+            ->assertStatus(422);
+
+        $this->actingAs($this->sellerA)
+            ->patchJson(route('bingo-card-payments.policy'), ['policy' => Commerce::PENDING_POLICY_REJECT])
+            ->assertForbidden();
+
+        $this->assertSame(Commerce::PENDING_POLICY_KEEP, Commerce::where('user_id', $this->commerceC->id)->value('pending_payment_policy'));
+    }
 }

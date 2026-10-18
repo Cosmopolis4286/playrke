@@ -31,6 +31,7 @@ final class ScheduledCommandService
     private const DEFAULT_CRON = [
         'check:expired-bingo-rooms'                    => '* * * * *',
         'bingo:start-pending-draws'                     => '* * * * *',
+        'bingo:handle-pending-payments-at-start'        => '* * * * *',
         'validate:transactions'                         => '*/5 * * * *',
         'bingo:retry-failed-prize-payouts'              => '*/5 * * * *',
         'bingo:retry-failed-refunds'                    => '*/5 * * * *',

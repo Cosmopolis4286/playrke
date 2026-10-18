@@ -30,8 +30,14 @@ class Commerce extends BaseModel
         'user_id',
         'commission',
         'unique_code_id',
+        'pending_payment_policy',
         'status'
     ];
+
+    /** Pago de cartón pendiente al iniciar el sorteo: se rechaza con reembolso. */
+    public const PENDING_POLICY_REJECT = 'reject_refund';
+    /** Pago de cartón pendiente al iniciar el sorteo: sigue en revisión (marcado). */
+    public const PENDING_POLICY_KEEP   = 'keep_review';
 
     protected $casts = [
         'id' => 'string',

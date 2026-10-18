@@ -39,6 +39,12 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->comment('Código único de referencia');
 
+            // Qué hacer con un pago de cartón de su red que sigue PENDIENTE
+            // cuando arranca el sorteo (ver HandlePendingBingoPaymentsAtStartCommand).
+            $table->string('pending_payment_policy', 20)
+                ->default('keep_review')
+                ->comment('Pago pendiente al iniciar el sorteo: reject_refund | keep_review');
+
             // Estado del comercio
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
                 ->default('ACTIVE')

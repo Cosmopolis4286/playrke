@@ -36,6 +36,7 @@ if (!function_exists('schedule_dynamic')) {
 
 schedule_dynamic('check:expired-bingo-rooms', fn (Event $e) => $e->everyMinute());
 schedule_dynamic('bingo:start-pending-draws', fn (Event $e) => $e->everyMinute());
+schedule_dynamic('bingo:handle-pending-payments-at-start', fn (Event $e) => $e->everyMinute());
 schedule_dynamic('validate:transactions', fn (Event $e) => $e->everyFiveMinutes());
 schedule_dynamic('bingo:retry-failed-prize-payouts', fn (Event $e) => $e->everyFiveMinutes());
 schedule_dynamic('bingo:retry-failed-refunds', fn (Event $e) => $e->everyFiveMinutes());

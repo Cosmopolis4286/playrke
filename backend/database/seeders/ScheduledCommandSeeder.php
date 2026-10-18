@@ -23,6 +23,7 @@ class ScheduledCommandSeeder extends Seeder
         $commands = [
             ['command' => 'check:expired-bingo-rooms', 'label' => 'Expirar salas de bingo vencidas', 'description' => 'Marca salas de bingo expiradas como INACTIVE o IN_PROGRESS.', 'min_interval_seconds' => 60],
             ['command' => 'bingo:start-pending-draws', 'label' => 'Iniciar sorteos de bingo pendientes', 'description' => 'Arranca el sorteo de salas de bingo que ya alcanzaron su hora de inicio.', 'min_interval_seconds' => 60],
+            ['command' => 'bingo:handle-pending-payments-at-start', 'label' => 'Pagos de cartones pendientes al iniciar el sorteo', 'description' => 'Avisa a la comercializadora de pagos sin revisar antes del sorteo y, al iniciar, los rechaza con reembolso o los deja en revisión según su regla.', 'min_interval_seconds' => 60],
             ['command' => 'validate:transactions', 'label' => 'Validar transacciones', 'description' => 'Revisa transacciones pendientes de validación.', 'min_interval_seconds' => 60],
             ['command' => 'bingo:retry-failed-prize-payouts', 'label' => 'Reintentar pagos de premios de bingo fallidos', 'description' => 'Reintenta el pago de premios de bingo que fallaron en el primer intento.', 'min_interval_seconds' => 60],
             ['command' => 'bingo:retry-failed-refunds', 'label' => 'Reintentar reembolsos de bingo fallidos', 'description' => 'Reintenta reembolsos de bingo que fallaron en el primer intento.', 'min_interval_seconds' => 60],

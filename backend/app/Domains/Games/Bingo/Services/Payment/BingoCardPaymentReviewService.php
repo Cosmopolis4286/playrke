@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Payment;
 
+use App\Domains\Games\Bingo\Exceptions\Card\BingoCardPaymentException;
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
@@ -39,14 +40,23 @@ final class BingoCardPaymentReviewService
      * comiteara y terminar en un estado inconsistente (pago COMPLETED pero
      * cartones ya CANCELLED por el reject "perdedor", o el reembolso ya
      * despachado pese a que approve() ganó al final).
+     *
+     * Si el sorteo ya inició, los cartones entran con bolas ya cantadas: se
+     * exige $confirmLate (el revisor confirmó que el comprador lo acepta).
+     *
+     * @throws BingoCardPaymentException
      */
-    public function approve(BingoCardPayment $payment, ?string $adminNotes = null): BingoCardPayment
+    public function approve(BingoCardPayment $payment, ?string $adminNotes = null, bool $confirmLate = false): BingoCardPayment
     {
-        $approved = DB::transaction(function () use ($payment, $adminNotes) {
+        $approved = DB::transaction(function () use ($payment, $adminNotes, $confirmLate) {
             $locked = BingoCardPayment::where('id', $payment->id)->lockForUpdate()->first();
 
             if (!$locked || $locked->payment_status !== 'PENDING') {
                 throw new \DomainException('Solo se pueden aprobar pagos en estado PENDING.');
+            }
+
+            if (!$confirmLate && $locked->room?->hasStarted()) {
+                throw BingoCardPaymentException::lateApprovalNeedsConfirmation();
             }
 
             $locked->update([
