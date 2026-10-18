@@ -190,6 +190,7 @@ export const bingoRoomFormSchema = z.object({
     cardPriceByCurrency:  z.record(z.string(), z.number().nullable()).optional(),
     activateRoom:    z.boolean().optional(),
     allowCustomCard: z.boolean().optional(),
+    allowNetworkSales: z.boolean().optional(),
     customCardMode:  z.enum(['paid', 'by_range', 'every_x', 'free']).nullable().optional(),
     customCardPricePct: z.number().nullable().optional(),
     customCardEveryX:   z.number().nullable().optional(),

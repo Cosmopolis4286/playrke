@@ -442,6 +442,25 @@ class BingoRoom extends BaseModel
         return $query->whereDoesntHave('config.roomType', fn ($r) => $r->where('code', 'DEMO'));
     }
 
+    /**
+     * Salas que una red de VENTA puede vender: las propias (de su
+     * comercializadora/agencia) y las PÚBLICAS de otros creadores que
+     * permiten la venta cruzada (config.allow_network_sales). Para jugar o
+     * listar se sigue usando accessibleBy(): una pública sin venta cruzada la
+     * siguen viendo y comprando los jugadores registrados.
+     */
+    public function scopeSellableBy($query, int|string|array $ownerUserIds)
+    {
+        $ownerUserIds = array_map('strval', (array) $ownerUserIds);
+
+        return $query->where(function ($q) use ($ownerUserIds) {
+            $q->whereIn('bingo_rooms.creator_user_id', $ownerUserIds)
+                ->orWhereHas('config', fn ($c) => $c
+                    ->where('allow_network_sales', true)
+                    ->whereHas('roomType', fn ($r) => $r->where('code', 'PUBLIC')));
+        });
+    }
+
     public function scopeAccessibleBy($query, int|string|array $creatorUserIds)
     {
         $creatorUserIds = array_map('strval', (array) $creatorUserIds);

@@ -97,6 +97,12 @@ import { SelectOption } from '@/js/types/common/form/form'
     return selected?.code === 'PRIVATE'
   })
 
+  /** true si el tipo elegido es PUBLIC: solo ahí aplica el interruptor de venta cruzada. */
+  const isPublicRoom = computed(() => {
+    const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
+    return selected?.code === 'PUBLIC'
+  })
+
   /** Piso de jugadores según el modo de juego elegido (Solitario permite 1). */
   const playersFloor = computed(() => {
     const code = props.gameModeOptions.find(o => String(o.value) === String((props.modelValue as any).gameMode))?.code
@@ -237,6 +243,28 @@ import { SelectOption } from '@/js/types/common/form/form'
       :modelValue="modelValue.roomType"
       @update:modelValue="emit('update:modelValue', { ...modelValue, roomType: $event })"
     />
+
+    <!-- Sala pública: ¿otras redes de venta pueden venderla? (no aplica a salas automáticas) -->
+    <div v-if="isPublicRoom && !automaticRoom" class="col-12 mb-2">
+      <div class="custom-control custom-switch" style="padding-left: 2.25rem">
+        <input
+          id="allow_network_sales"
+          name="allow_network_sales"
+          type="checkbox"
+          class="custom-control-input"
+          :checked="(modelValue as any).allowNetworkSales ?? true"
+          @change="emit('update:modelValue', { ...modelValue, allowNetworkSales: ($event.target as HTMLInputElement).checked } as any)"
+        />
+        <label class="custom-control-label" for="allow_network_sales" style="font-weight: 500">
+          Otras redes de venta pueden vender esta sala
+        </label>
+      </div>
+      <small class="text-muted d-block" style="padding-left: 2.25rem">
+        {{ (modelValue as any).allowNetworkSales === false
+          ? 'Solo tus vendedores la venden. Los jugadores registrados la siguen viendo y comprando igual.'
+          : 'Vendedores de otras comercializadoras también pueden venderla (venta cruzada).' }}
+      </small>
+    </div>
 
     <!-- Configuración de sala privada (solo si Tipo de Sala = Privada) -->
     <template v-if="isPrivateRoom">

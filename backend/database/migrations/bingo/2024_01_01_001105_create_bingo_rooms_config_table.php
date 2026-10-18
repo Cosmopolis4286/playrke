@@ -111,6 +111,13 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Cantidad mínima de jugadores requerida para iniciar el sorteo (null = sin condición)');
 
+            // Sala PÚBLICA: ¿la pueden vender vendedores de OTRAS redes (venta
+            // cruzada)? false = solo la red del creador; los jugadores registrados
+            // la siguen viendo y comprando igual.
+            $table->boolean('allow_network_sales')
+                ->default(true)
+                ->comment('PUBLIC: otras redes de venta pueden venderla (venta cruzada)');
+
             // Sala VIP: acceso automático (sin invitación) para jugadores registrados
             // que cumplan TODOS los requisitos fijados (ver BingoRoomInvitationService).
             $table->unsignedSmallInteger('vip_min_level')

@@ -1072,6 +1072,33 @@ class SellerCardSaleTest extends TestCase
         $this->assertFalse($rooms[$this->privateRoomD->getRouteKey()]['is_vip']);
     }
 
+    /**
+     * Venta cruzada: con allow_network_sales = false, una sala PÚBLICA solo la
+     * vende la red de su creador. Por defecto (true) cualquier red la vende.
+     *
+     * @test
+     */
+    public function public_room_without_network_sales_is_sold_only_by_its_own_network(): void
+    {
+        $date = now()->addDay()->toDateString();
+        $posIds = fn (User $seller) => collect($this->actingAs($seller)
+            ->getJson('/bingo-card/pos/rooms?date=' . $date)
+            ->assertOk()
+            ->json('rooms'))->pluck('id');
+
+        // Por defecto: otra red (E, de D) ve y vende la pública de C.
+        $this->assertTrue($posIds($this->sellerE)->contains($this->roomR1->getRouteKey()));
+
+        DB::table('bingo_rooms_config')->where('room_id', $this->roomR1->id)->update(['allow_network_sales' => false]);
+
+        $this->assertFalse($posIds($this->sellerE)->contains($this->roomR1->getRouteKey()));
+        $this->sale($this->sellerE, $this->roomR1)->assertNotFound();
+
+        // La red del creador (A, de C) la sigue vendiendo.
+        $this->assertTrue($posIds($this->sellerA)->contains($this->roomR1->getRouteKey()));
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+    }
+
     /** @test */
     public function pos_endpoints_are_only_for_sellers(): void
     {

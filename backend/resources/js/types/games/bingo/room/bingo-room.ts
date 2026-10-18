@@ -205,6 +205,7 @@ export interface BingoRoom {
         in_live?: string | null
         unix_date?: number | null
         allow_custom_card?: boolean
+        allow_network_sales?: boolean | number | null
         custom_card_price_pct?: number | string | null
         custom_card_mode?: CustomCardMode | null
         custom_card_every_x?: number | null
@@ -326,6 +327,8 @@ export interface BingoRoomFormData {
     cardPriceByCurrency?: Record<string, number | null>
     activateRoom?: boolean
     allowCustomCard?: boolean
+    /** Sala PÚBLICA: otras redes de venta pueden venderla (venta cruzada). */
+    allowNetworkSales?: boolean
     customCardMode?: CustomCardMode | null
     customCardPricePct?: number | null
     customCardEveryX?: number | null

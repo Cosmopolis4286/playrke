@@ -126,6 +126,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     roundsConfig: [],
     activateRoom: false,
     allowCustomCard: false,
+    allowNetworkSales: true,
     customCardMode: null,
     customCardPricePct: null,
     customCardEveryX: null,
@@ -298,6 +299,8 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 })),
                 activateRoom: room.status === 'ACTIVE',
                 allowCustomCard: config.allow_custom_card === true,
+                // null/undefined = default de BD (true): solo false explícito la cierra.
+                allowNetworkSales: !(config.allow_network_sales === false || config.allow_network_sales === 0),
                 customCardMode: config.custom_card_mode ?? null,
                 customCardPricePct: config.custom_card_price_pct != null ? Number(config.custom_card_price_pct) : null,
                 customCardEveryX: config.custom_card_every_x != null ? Number(config.custom_card_every_x) : null,

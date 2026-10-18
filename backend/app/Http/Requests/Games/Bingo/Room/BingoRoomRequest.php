@@ -106,6 +106,8 @@ class BingoRoomRequest extends BaseRequest
 
             // Cartón personalizado
             'allowCustomCard'             => ['boolean'],
+            // Solo aplica a salas PÚBLICAS: ¿otras redes pueden venderla?
+            'allowNetworkSales'           => ['boolean'],
             'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,by_range,every_x,free'],
             'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
             'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:10'],
