@@ -79,6 +79,9 @@ class AuthServiceProvider extends ServiceProvider
             $this->defineRoleGate('seller', ['seller', 'admin']);
             $this->defineRoleGate('customer');
             $this->defineRoleGate('player');
+
+            // "Mis comisiones": solo las propias, con rol de negocio.
+            Gate::define('commissions.viewOwn', [\App\Policies\Commissions\CommissionLedgerPolicy::class, 'viewOwn']);
         });
     }
 

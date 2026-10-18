@@ -244,6 +244,13 @@ class SidebarMenuService
                     'route' => 'wallet.index',
                     'permission' => 'wallet.view',
                 ],
+                // Histórico de comisiones propias (vendedor/agencia/comercializadora/
+                // creador). Solo roles de negocio: ver CommissionLedgerPolicy.
+                'my_commissions' => [
+                    'title' => 'Mis Comisiones',
+                    'route' => 'commissions.index',
+                    'permission' => 'commissions.view-own',
+                ],
                 'movements' => [
                     'title' => 'Movimientos',
                     'route' => 'wallet-movements.index',

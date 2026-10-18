@@ -77,6 +77,7 @@ class RolePermissionSeeder extends Seeder
         if ($commerce) {
             $commercePermissions = [
                 'commerces.manage-own',
+                'commissions.view-own', // "Mis Comisiones": red + comisión de sala
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'customers.view', 'customers.create', 'customers.edit',
@@ -107,6 +108,7 @@ class RolePermissionSeeder extends Seeder
             $subsidiaryPermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'subsidiaries.manage-own',
+                'commissions.view-own', // "Mis Comisiones"
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo (reportes de su red)
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
@@ -128,6 +130,7 @@ class RolePermissionSeeder extends Seeder
         if ($seller) {
             $sellerPermissions = [
                 'sellers.manage-own',
+                'commissions.view-own', // "Mis Comisiones"
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.game_rooms', // Ver/comprar en salas de bingo — antes ausente: el ítem "Salas de Bingo" del sidebar solo lo tenía player, pese a que BingoCardGenerateService trata role==='seller' como caso de primera clase para comprar cartones (mismo flujo que commerce/subsidiary)
                 // Cartones / Ganadores / Reporte de Ventas — BingoReportController
@@ -194,6 +197,7 @@ class RolePermissionSeeder extends Seeder
                 // Sin sellers.view: un customer no puede tener vendedores (ver
                 // ManagerSellerPolicy::requiredRole()).
                 'customers.manage-own', // Ficha propia "Mi Cliente"
+                'commissions.view-own', // "Mis Comisiones": comisión de sala como creador
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard
                 'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',

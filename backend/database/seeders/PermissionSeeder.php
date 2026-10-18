@@ -217,6 +217,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'wallet.movements', 'guard_name' => 'web', 'description' => 'Ver movimientos de billetera'],
             ['name' => 'wallet.movements.view', 'guard_name' => 'web', 'description' => 'Ver todos los movimientos de billetera (admin)'],
             ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
+            ['name' => 'commissions.view-own', 'guard_name' => 'web', 'description' => 'Ver el histórico de comisiones propias ("Mis Comisiones")'],
             ['name' => 'movement-types.view', 'guard_name' => 'web', 'description' => 'Ver catálogo de tipos de movimiento'],
             ['name' => 'movement-types.manage', 'guard_name' => 'web', 'description' => 'Gestionar catálogo de tipos de movimiento (crear/editar/desactivar)'],
             ['name' => 'wallet-limits.view', 'guard_name' => 'web', 'description' => 'Ver límites de depósito/retiro de billetera'],

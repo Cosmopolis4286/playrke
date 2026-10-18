@@ -62,6 +62,9 @@ class SidebarMenuVisibilitySeeder extends Seeder
         'my_account.my_profile_customer'    => ['admin', 'commerce', 'player', 'seller', 'subsidiary', 'superadmin', 'treasurer'],
         'my_account.my_profile_treasurer'   => ['admin', 'commerce', 'customer', 'player', 'seller', 'subsidiary', 'superadmin'],
         'business.my_external_players'  => ['admin', 'player', 'superadmin'],
+        // Mis comisiones: solo roles de negocio (superadmin tiene todos los
+        // permisos pero no comisiones propias: le daría 403).
+        'wallet.my_commissions'         => ['admin', 'player', 'superadmin', 'treasurer'],
         'business.prizes'               => ['player', 'seller'],
         'business.win_events'           => ['commerce', 'customer', 'player', 'seller'],
         'system.app-parameters'         => ['commerce', 'customer', 'player', 'seller'],

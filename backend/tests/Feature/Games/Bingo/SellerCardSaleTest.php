@@ -123,8 +123,8 @@ class SellerCardSaleTest extends TestCase
 
         $grants = [
             'admin'    => ['games.manage', 'games.bingo', 'games.bingo.manage', 'games.bingo.payments.review'],
-            'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review'],
-            'seller'   => ['games.bingo', 'games.bingo.game_rooms', 'external-players.view'],
+            'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review', 'commissions.view-own'],
+            'seller'   => ['games.bingo', 'games.bingo.game_rooms', 'external-players.view', 'commissions.view-own'],
         ];
 
         foreach (array_unique(array_merge(...array_values($grants))) as $name) {
@@ -1097,6 +1097,46 @@ class SellerCardSaleTest extends TestCase
         // La red del creador (A, de C) la sigue vendiendo.
         $this->assertTrue($posIds($this->sellerA)->contains($this->roomR1->getRouteKey()));
         $this->sale($this->sellerA, $this->roomR1)->assertOk();
+    }
+
+    // ─── Mis comisiones ──────────────────────────────────────────────────────
+
+    /**
+     * Cada uno ve solo sus comisiones: el vendedor su venta (pendiente
+     * mientras el pago está en revisión, cobrada en efectivo), y la
+     * comercializadora su comisión de red; otro vendedor no ve nada.
+     *
+     * @test
+     */
+    public function commission_ledger_shows_only_own_commissions(): void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        $sellerRows = collect($this->actingAs($this->sellerA)->getJson('/commissions/data')->assertOk()->json('data.rows'));
+        $this->assertCount(1, $sellerRows);
+        $this->assertSame('seller', $sellerRows[0]['source']);
+        $this->assertSame('cash', $sellerRows[0]['how']);
+        $this->assertSame('pending', $sellerRows[0]['status'], 'Pago en revisión');
+        $this->assertGreaterThan(0, $sellerRows[0]['commission']);
+
+        // Comercializadora C: su comisión de red (5% de C − 3% del vendedor).
+        $commerceRows = collect($this->actingAs($this->commerceC)->getJson('/commissions/data')->assertOk()->json('data.rows'));
+        $this->assertTrue($commerceRows->contains('source', 'network'));
+        $this->assertFalse($commerceRows->contains('source', 'seller'), 'No ve la comisión del vendedor como suya');
+
+        // Otro vendedor no ve la venta ajena.
+        $this->assertSame([], $this->actingAs($this->sellerE)->getJson('/commissions/data')->assertOk()->json('data.rows'));
+
+        // Filtro por estado.
+        $this->assertSame([], $this->actingAs($this->sellerA)->getJson('/commissions/data?status=paid')->assertOk()->json('data.rows'));
+    }
+
+    /** @test */
+    public function commission_ledger_is_only_for_business_roles(): void
+    {
+        // Admin no tiene el permiso ni comisiones propias.
+        $this->actingAs($this->admin)->getJson('/commissions/data')->assertForbidden();
+        $this->actingAs($this->sellerA)->get('/commissions/export')->assertOk();
     }
 
     /** @test */

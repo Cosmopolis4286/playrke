@@ -47,6 +47,7 @@ require __DIR__ . '/modules/exchange-rate.php';
 require __DIR__ . '/modules/currency.php';
 require __DIR__ . '/modules/payments.php';
 require __DIR__ . '/modules/wallets.php';
+require __DIR__ . '/modules/commissions.php';      // "Mis Comisiones"
 require __DIR__ . '/modules/marketplace.php';
 require __DIR__ . '/modules/usdt-payments.php';
 require __DIR__ . '/modules/tos.php';
