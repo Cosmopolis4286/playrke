@@ -675,6 +675,12 @@ final class BingoCardGenerateService
         // 2. Sala vendible por este comercio (estado + propia o PUBLIC).
         $room = $this->findSellableRoom($dto->roomId, $creatorUser);
 
+        // 2b. Sala VIP: solo a compradores cuyo teléfono está en la lista de
+        // invitados (cubre el punto de venta y la compra con código).
+        if ($room->isVip() && !app(\App\Domains\Games\Bingo\Services\Room\BingoRoomInvitationService::class)->isPhoneInvited((string) $room->id, $dto->playerPhone)) {
+            throw BingoCardGenerateException::vipBuyerNotInvited();
+        }
+
         // 3. País/moneda habilitados para esta sala y este vendedor.
         $this->assertCountryAllowed((string) $room->id, (string) Auth::id(), $dto->countryId);
 

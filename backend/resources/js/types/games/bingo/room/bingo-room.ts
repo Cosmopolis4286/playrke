@@ -121,6 +121,10 @@ export interface BingoRoom {
 
     // Resuelto en el resource: si el usuario autenticado puede activar manualmente esta sala
     readonly can_activate_now?: boolean
+    /** Código del tipo de sala (fila del listado de gestión) */
+    readonly room_type_code?: BingoRoomType | null
+    /** true si es VIP y quien mira puede gestionar su lista de invitados (creador o admin) */
+    readonly can_manage_invitations?: boolean
 
     // Usuario que creó la sala (relación creator() sobre creator_user_id).
     readonly created_by?: BingoRoomCreatedBy | null

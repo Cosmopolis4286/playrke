@@ -135,6 +135,10 @@ return [
     'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'This room has already reached its available card limit.',
     'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'You cannot remove :currencies: it already has cards sold in this room.',
     'BINGO_ROOM_NOT_ACCESSIBLE' => 'The room does not exist or you do not have access to it.',
+    'BINGO_ROOM_INVITATIONS_ONLY_VIP' => 'The guest list only applies to VIP rooms.',
+    'BINGO_ROOM_INVITED_PLAYER_NOT_FOUND' => 'There is no registered player with that username or email.',
+    'BINGO_ROOM_INVITATION_ALREADY_EXISTS' => 'That player or phone is already on the guest list.',
+    'BINGO_ROOM_INVITATION_INVALID_PHONE' => 'The phone number is not valid: enter the full number.',
     'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'You can only edit a room whose draw has not started or finished.',
     'BINGO_ROOM_FIELDS_LOCKED_BY_SALES' => 'This room already has cards sold: :fields cannot be changed.',
 
@@ -146,6 +150,7 @@ return [
     'BINGO_CARD_COMMERCE_NOT_FOUND' => 'Commerce not found.',
     'BINGO_CARD_HIERARCHY_NOT_ACTIVE' => 'Your account, agency, or commerce is not active. Contact support for more information.',
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'This room is not available for buying cards.',
+    'BINGO_CARD_VIP_BUYER_NOT_INVITED' => 'This is a VIP room and the buyer\'s phone is not on its guest list. Ask the room creator to add it.',
     'BINGO_CARD_SALES_CLOSED' => 'Sales for this room are closed: they close :minutes minutes before the start so the commerce can approve the receipt. Pick another room.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'The selected currency is not available for this room.',
     'BINGO_CARD_GENERATION_FAILED' => 'The cards could not be generated.',

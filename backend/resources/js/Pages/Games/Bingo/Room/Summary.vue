@@ -13,6 +13,7 @@
   import BingoRoomForm from '@/js/Components/games/bingo/Room/Form/BingoRoomForm.vue'
   import BingoRoomDetails from '@/js/Components/games/bingo/Room/BingoRoomDetails.vue'
   import BingoRoomActivateModal from '@/js/Components/games/bingo/Room/BingoRoomActivateModal.vue'
+  import BingoRoomInvitationsModal from '@/js/Components/games/bingo/Room/BingoRoomInvitationsModal.vue'
 
   // ==========================================================================
   // Composables
@@ -23,6 +24,7 @@
   import { useBingoRoomStatusChecks } from '@js/composables/games/bingo/room/summary/useBingoRoomStatusChecks'
   import { useRoomDetailsModal } from '@js/composables/games/bingo/room/summary/useRoomDetailsModal'
   import { useRoomActivateModal } from '@js/composables/games/bingo/room/summary/useRoomActivateModal'
+  import { useRoomInvitationsModal } from '@js/composables/games/bingo/room/summary/useRoomInvitationsModal'
   import { useMissingRateModal } from '@js/composables/games/bingo/room/summary/useMissingRateModal'
   import { useRoomSummaryFilters, useRoomSummaryExtraButtons } from '@js/composables/games/bingo/room/summary/useRoomSummaryTableConfig'
   import { useDateRangeExport } from '@js/composables/common/table/useDateRangeExport'
@@ -365,8 +367,18 @@
 
   const {
     isExpired, hasPlayers, hasActiveStatus, isNotEditableStatus,
-    canCancelRoom, canActivateNow, isManualRoom,
+    canCancelRoom, canActivateNow, isManualRoom, canManageInvitations,
   } = useBingoRoomStatusChecks(rooms)
+
+  // Lista de invitados de salas VIP (creador o admin).
+  const {
+    showInvitationsModal, invitationsRoom, invitations, loadingInvitations, savingInvitation, invitationError,
+    openInvitationsModal, addInvitation, removeInvitation,
+  } = useRoomInvitationsModal(rooms)
+
+  async function handleAddInvitation(payload: Parameters<typeof addInvitation>[0], done: (ok: boolean) => void) {
+    done(await addInvitation(payload))
+  }
 
   /**
    * true si la sala actualmente en edición ya tiene jugadores registrados —
@@ -377,8 +389,8 @@
   const editingRoomHasPlayers = computed(() => hasPlayers([String(roomData.value.id ?? '')]))
 
   const extraButtons = useRoomSummaryExtraButtons({
-    isExpired, hasPlayers, canCancelRoom, canActivateNow, isManualRoom,
-    openRoomDetails, openActivateModal, goToRoom, cancelRoom,
+    isExpired, hasPlayers, canCancelRoom, canActivateNow, isManualRoom, canManageInvitations,
+    openRoomDetails, openInvitationsModal, openActivateModal, goToRoom, cancelRoom,
   })
 
   const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
@@ -594,6 +606,18 @@
     :scheduling="isSchedulingRoom"
     @activate-now="handleActivateNow"
     @schedule-start="handleScheduleStart"
+  />
+
+  <!-- Modal: invitados de sala VIP -->
+  <BingoRoomInvitationsModal
+    v-model="showInvitationsModal"
+    :room="invitationsRoom"
+    :invitations="invitations"
+    :loading="loadingInvitations"
+    :saving="savingInvitation"
+    :error="invitationError"
+    @add="handleAddInvitation"
+    @remove="removeInvitation"
   />
 </template>
 

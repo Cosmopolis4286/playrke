@@ -278,8 +278,12 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->withCount('rounds');
 
         if ($isPlayer) {
-            // Players: solo salas públicas
-            $query->whereHas('config.roomType', fn($q) => $q->where('code', 'PUBLIC'));
+            // Players: salas públicas y las VIP donde están invitados.
+            $query->where(fn ($q) => $q
+                ->whereHas('config.roomType', fn ($t) => $t->where('code', 'PUBLIC'))
+                ->orWhere(fn ($vip) => $vip
+                    ->whereHas('config.roomType', fn ($t) => $t->where('code', 'VIP'))
+                    ->whereHas('invitations', fn ($i) => $i->where('user_id', $userId))));
         } elseif ($isCommerceCustomer) {
             // Commerce/customer: sus salas + las PÚBLICAS (mismo criterio que el
             // punto de venta, BingoRoom::scopeAccessibleBy). Antes veían todas las

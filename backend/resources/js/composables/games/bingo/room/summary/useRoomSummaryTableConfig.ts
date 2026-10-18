@@ -91,12 +91,14 @@ export function useRoomSummaryExtraButtons(deps: {
   canCancelRoom: (ids: string[]) => boolean
   canActivateNow: (ids: string[]) => boolean
   isManualRoom: (ids: string[]) => boolean
+  canManageInvitations: (ids: string[]) => boolean
   openRoomDetails: (ids: string[]) => void
+  openInvitationsModal: (ids: string[]) => void
   openActivateModal: (ids: string[]) => void
   goToRoom: (ids: string[]) => void
   cancelRoom: (roomId: string) => void
 }): ExtraButton[] {
-  const { isExpired, hasPlayers, canCancelRoom, canActivateNow, isManualRoom, openRoomDetails, openActivateModal, goToRoom, cancelRoom } = deps
+  const { isExpired, hasPlayers, canCancelRoom, canActivateNow, isManualRoom, canManageInvitations, openRoomDetails, openInvitationsModal, openActivateModal, goToRoom, cancelRoom } = deps
 
   return [
     {
@@ -135,6 +137,13 @@ export function useRoomSummaryExtraButtons(deps: {
         isExpired(ids)
           ? 'La sala ya expiró, no se puede cambiar el estado'
           : 'La sala tiene jugadores registrados, no se puede cambiar el estado'
+    },
+    {
+      icon: 'fas fa-crown',
+      class: 'btn-info text-white',
+      title: 'Invitados (VIP)',
+      show: (ids: string[]) => canManageInvitations(ids),
+      onClick: openInvitationsModal
     },
     {
       icon: 'fas fa-copy',

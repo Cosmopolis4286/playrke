@@ -906,6 +906,101 @@ class SellerCardSaleTest extends TestCase
         $this->assertSame(0, BingoCardLot::where('room_id', $demoRoom->id)->count());
     }
 
+    // ─── Salas VIP: lista de invitados ───────────────────────────────────────
+
+    /** Jugador registrado (crea el rol si el fixture no lo trae). */
+    private function makePlayer(): User
+    {
+        if (!Role::where('name', 'player')->where('guard_name', 'web')->exists()) {
+            (new Role())->forceFill(['name' => 'player', 'guard_name' => 'web', 'prefix' => 'player'])->save();
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        }
+
+        return $this->makeUserWithRole('player');
+    }
+
+    /** @test */
+    public function vip_guest_list_is_managed_only_by_the_room_creator(): void
+    {
+        $vip    = $this->makeRoom($this->commerceD, 'VIP');
+        $player = $this->makePlayer();
+        $url    = '/bingo-rooms/' . $vip->getRouteKey() . '/invitations';
+
+        $this->actingAs($this->commerceD)
+            ->postJson($url, ['type' => 'player', 'identifier' => $player->email])
+            ->assertOk();
+        $list = $this->actingAs($this->commerceD)
+            ->postJson($url, ['type' => 'phone', 'phone' => '+58 0414-1112233', 'label' => 'Ana'])
+            ->assertOk()
+            ->json('invitations');
+        $this->assertCount(2, $list);
+
+        // Mismo teléfono con otro formato: ya está en la lista.
+        $this->actingAs($this->commerceD)
+            ->postJson($url, ['type' => 'phone', 'phone' => '+584141112233'])
+            ->assertStatus(409);
+
+        // Otra comercializadora no puede ver ni tocar la lista.
+        $this->actingAs($this->commerceC)->getJson($url)->assertForbidden();
+
+        // La lista solo aplica a salas VIP.
+        $this->actingAs($this->commerceD)
+            ->postJson('/bingo-rooms/' . $this->privateRoomD->getRouteKey() . '/invitations', ['type' => 'phone', 'phone' => '+584141112233'])
+            ->assertStatus(422);
+
+        // Quitar un invitado.
+        $phoneInvite = collect($list)->firstWhere('type', 'phone');
+        $this->actingAs($this->commerceD)
+            ->deleteJson($url . '/' . $phoneInvite['id'])
+            ->assertOk()
+            ->assertJsonCount(1, 'invitations');
+    }
+
+    /** @test */
+    public function sellers_only_sell_vip_rooms_to_invited_phones(): void
+    {
+        $vip = $this->makeRoom($this->commerceD, 'VIP');
+
+        // El comprador (+584141112233, ver sale()) no está invitado.
+        $this->sale($this->sellerE, $vip)
+            ->assertForbidden()
+            ->assertJsonPath('error_code', 'BINGO_CARD_VIP_BUYER_NOT_INVITED');
+        $this->assertSame(0, BingoCardLot::where('room_id', $vip->id)->count());
+
+        // Invitado con el teléfono en otro formato: la venta pasa.
+        app(\App\Domains\Games\Bingo\Services\Room\BingoRoomInvitationService::class)
+            ->addPhone($vip, '+58 0414-1112233', 'Ana', (string) $this->commerceD->id);
+
+        $this->sale($this->sellerE, $vip)->assertOk();
+        $this->assertSame(1, BingoCardLot::where('room_id', $vip->id)->count());
+    }
+
+    /** @test */
+    public function only_invited_players_see_and_enter_a_vip_room(): void
+    {
+        $vip      = $this->makeRoom($this->commerceD, 'VIP');
+        $invited  = $this->makePlayer();
+        $stranger = $this->makePlayer();
+        app(\App\Domains\Games\Bingo\Services\Room\BingoRoomInvitationService::class)
+            ->addPlayer($vip, $invited->email, (string) $this->commerceD->id);
+
+        $crud = app(\App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService::class);
+
+        $this->actingAs($invited);
+        $this->assertTrue($crud->canPlayerAccessRoom($vip->fresh()));
+
+        $this->actingAs($stranger);
+        $this->assertFalse($crud->canPlayerAccessRoom($vip->fresh()));
+
+        // Lobby: la VIP le aparece solo al invitado (junto con las públicas).
+        $repo  = app(\App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface::class);
+        $date  = now()->addDay()->toDateString();
+        $seen  = fn (User $u) => $repo->getActiveRoomsForViewWithRoleFilter((int) $u->id, $date, true)->pluck('id')->map(fn ($id) => (string) $id);
+
+        $this->assertTrue($seen($invited)->contains((string) $vip->id));
+        $this->assertFalse($seen($stranger)->contains((string) $vip->id));
+    }
+
     /** @test */
     public function pos_endpoints_are_only_for_sellers(): void
     {

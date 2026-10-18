@@ -173,6 +173,11 @@ final class BingoRoomContextService
             $isCreator  = $authUserId && (string) $model?->creator_user_id === $authUserId;
             $row['can_activate_now'] = $isManual && $isActive && ($isCreator || $isAdmin);
 
+            // Lista de invitados: solo salas VIP, gestionada por su creador o admin.
+            $row['room_type_code']         = $config?->roomType?->code;
+            $row['can_manage_invitations'] = $row['room_type_code'] === 'VIP' && ($isCreator || $isAdmin)
+                && !in_array($row['status'], ['FINISHED', 'CANCELLED'], true);
+
             // Quitar prefijo "Bote " del tipo de bote (ahorra espacio en la columna).
             // OJO: normalizeKey() convierte 'config.prizePoolType.label' a
             // 'config_prizepooltype_label' (minúsculas + guiones bajos) — buscar la key

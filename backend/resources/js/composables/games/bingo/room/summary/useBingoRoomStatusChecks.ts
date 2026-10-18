@@ -60,8 +60,12 @@ export function useBingoRoomStatusChecks(rooms: Ref<BingoRoom[]>) {
       return room != null && room.start_mode === 'MANUAL'
     })
 
+  const canManageInvitations = (ids: string[]): boolean =>
+    ids.length === 1 &&
+    rooms.value.some(r => String(r.id) === String(ids[0]) && r.can_manage_invitations === true)
+
   return {
     isExpired, hasPlayers, hasActiveStatus, isNotEditableStatus,
-    canCancelRoom, canActivateNow, isManualRoom,
+    canCancelRoom, canActivateNow, isManualRoom, canManageInvitations,
   }
 }

@@ -43,6 +43,12 @@ final class BingoCardGenerateException extends DomainException
         return new self('BINGO_CARD_ROOM_NOT_AVAILABLE', 404);
     }
 
+    /** Sala VIP: el teléfono del comprador no está en la lista de invitados. */
+    public static function vipBuyerNotInvited(): self
+    {
+        return new self('BINGO_CARD_VIP_BUYER_NOT_INVITED', 403);
+    }
+
     /**
      * Venta del vendedor fuera de plazo: la sala empieza en menos de
      * $minutes minutos (o no está ACTIVE). Su pago nace PENDING y los

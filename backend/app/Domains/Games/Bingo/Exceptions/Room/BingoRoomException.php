@@ -210,6 +210,30 @@ final class BingoRoomException extends DomainException
         return new self('BINGO_ROOM_NOT_ACCESSIBLE', 404);
     }
 
+    /** La lista de invitados solo aplica a salas VIP. */
+    public static function invitationsOnlyForVip(): self
+    {
+        return new self('BINGO_ROOM_INVITATIONS_ONLY_VIP', 422);
+    }
+
+    /** No existe un jugador registrado con ese usuario o email. */
+    public static function invitedPlayerNotFound(): self
+    {
+        return new self('BINGO_ROOM_INVITED_PLAYER_NOT_FOUND', 404);
+    }
+
+    /** Ese jugador o teléfono ya está en la lista de invitados. */
+    public static function invitationAlreadyExists(): self
+    {
+        return new self('BINGO_ROOM_INVITATION_ALREADY_EXISTS', 409);
+    }
+
+    /** El teléfono no tiene suficientes dígitos para identificar al invitado. */
+    public static function invitationInvalidPhone(): self
+    {
+        return new self('BINGO_ROOM_INVITATION_INVALID_PHONE', 422);
+    }
+
     public static function roomNotEditableStatus(): self
     {
         return new self('BINGO_ROOM_NOT_EDITABLE_STATUS', 409);

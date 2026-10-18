@@ -54,6 +54,18 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manag
     'export' => ['method' => 'get', 'uri' => 'export', 'action' => 'export'],
 ]);
 
+// Lista de invitados de salas VIP — mismo permiso de gestión que
+// bingo-rooms.*; la policy (update) limita a creador de la sala o admin.
+Route::middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
+    ->prefix('bingo-rooms/{room}/invitations')
+    ->name('bingo-rooms.invitations.')
+    ->controller(\App\Http\Controllers\Games\Bingo\Room\BingoRoomInvitationController::class)
+    ->group(function () {
+        Route::get('', 'index')->name('index');
+        Route::post('', 'store')->name('store');
+        Route::delete('{invitation}', 'destroy')->name('destroy');
+    });
+
 // Replay de fichas cantadas (auditoría post-sorteo) — mismo permiso de
 // gestión que bingo-rooms.* de arriba, no games.bingo (jugar): esta info vive
 // dentro de la pantalla de administración de una sala, no algo que un

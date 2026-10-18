@@ -135,6 +135,10 @@ return [
     'BINGO_ROOM_CARD_LIMIT_EXHAUSTED' => 'Esta sala ya alcanzó su tope de cartones disponibles.',
     'BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED' => 'No puedes quitar :currencies: ya tiene cartones vendidos en esta sala.',
     'BINGO_ROOM_NOT_ACCESSIBLE' => 'La sala no existe o no tenés acceso a ella.',
+    'BINGO_ROOM_INVITATIONS_ONLY_VIP' => 'La lista de invitados solo aplica a salas VIP.',
+    'BINGO_ROOM_INVITED_PLAYER_NOT_FOUND' => 'No existe un jugador registrado con ese usuario o email.',
+    'BINGO_ROOM_INVITATION_ALREADY_EXISTS' => 'Ese jugador o teléfono ya está en la lista de invitados.',
+    'BINGO_ROOM_INVITATION_INVALID_PHONE' => 'El teléfono no es válido: ingresa el número completo.',
     'BINGO_ROOM_NOT_EDITABLE_STATUS' => 'Solo se puede editar una sala cuyo sorteo no ha iniciado ni finalizado.',
     'BINGO_ROOM_FIELDS_LOCKED_BY_SALES' => 'Esta sala ya tiene cartones vendidos: no se puede cambiar :fields.',
 
@@ -146,6 +150,7 @@ return [
     'BINGO_CARD_COMMERCE_NOT_FOUND' => 'No se encontró el comercio.',
     'BINGO_CARD_HIERARCHY_NOT_ACTIVE' => 'Tu cuenta, agencia o comercio no está activo. Contacta a soporte para más información.',
     'BINGO_CARD_ROOM_NOT_AVAILABLE' => 'Esta sala no está disponible para comprar cartones.',
+    'BINGO_CARD_VIP_BUYER_NOT_INVITED' => 'Esta sala es VIP y el teléfono del comprador no está en su lista de invitados. Pide al creador de la sala que lo agregue.',
     'BINGO_CARD_SALES_CLOSED' => 'Las ventas de esta sala ya cerraron: se cierran :minutes minutos antes del inicio para que el comercio alcance a aprobar el comprobante. Elige otra sala.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'La moneda seleccionada no está disponible para esta sala.',
     'BINGO_CARD_GENERATION_FAILED' => 'No se pudieron generar los cartones.',

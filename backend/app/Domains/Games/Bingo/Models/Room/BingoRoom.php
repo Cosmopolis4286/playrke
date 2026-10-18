@@ -121,6 +121,12 @@ class BingoRoom extends BaseModel
     /**
      * Configuración de la sala (1:1)
      */
+    /** Lista de invitados (solo aplica a salas VIP). */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(BingoRoomInvitation::class, 'room_id', 'id');
+    }
+
     public function config(): HasOne
     {
         return $this->hasOne(BingoRoomConfig::class, 'room_id', 'id');
@@ -244,24 +250,40 @@ class BingoRoom extends BaseModel
     }
 
     /**
-     * Sala DEMO: de prueba, sin dinero real (cartones gratis, sin reparto de
-     * comisiones/jackpot/deudas y premios simulados, sin acreditar).
+     * Código del tipo de sala (PUBLIC, PRIVATE, VIP, DEMO) o null.
      *
      * Usa la relación roomType si ya viene cargada; si no (o la config se
-     * cargó con un select parcial sin room_type_id), lo consulta.
+     * cargó con un select parcial sin room_type_id), lo consulta — nunca
+     * asumir un tipo por defecto: una VIP leída como "sin tipo" se abriría.
      */
-    public function isDemo(): bool
+    public function roomTypeCode(): ?string
     {
         $config = $this->relationLoaded('config') ? $this->getRelation('config') : null;
         if ($config && $config->relationLoaded('roomType') && $config->getRelation('roomType')) {
-            return $config->getRelation('roomType')->code === 'DEMO';
+            return $config->getRelation('roomType')->code;
         }
 
         $typeId = $config?->room_type_id
             ?? BingoRoomConfig::where('room_id', $this->id)->value('room_type_id');
 
         return $typeId !== null
-            && \App\Models\Games\Common\Room\RoomType::whereKey($typeId)->value('code') === 'DEMO';
+            ? \App\Models\Games\Common\Room\RoomType::whereKey($typeId)->value('code')
+            : null;
+    }
+
+    /**
+     * Sala DEMO: de prueba, sin dinero real (cartones gratis, sin reparto de
+     * comisiones/jackpot/deudas y premios simulados, sin acreditar).
+     */
+    public function isDemo(): bool
+    {
+        return $this->roomTypeCode() === 'DEMO';
+    }
+
+    /** Sala VIP: cerrada salvo creador, admin y su lista de invitados. */
+    public function isVip(): bool
+    {
+        return $this->roomTypeCode() === 'VIP';
     }
 
     /**
