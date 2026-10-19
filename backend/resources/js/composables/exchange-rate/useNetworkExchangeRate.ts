@@ -31,7 +31,7 @@ export interface NetworkExchangeRate {
 }
 
 export interface NetworkExchangeRateData {
-    owner: { type: 'commerce' | 'platform'; name: string | null }
+    owner: { type: 'commerce' | 'customer' | 'platform'; name: string | null }
     role: string | null
     can_manage: boolean
     rates: NetworkExchangeRate[]

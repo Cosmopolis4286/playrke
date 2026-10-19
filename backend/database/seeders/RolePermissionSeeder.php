@@ -202,6 +202,7 @@ class RolePermissionSeeder extends Seeder
                 // ManagerSellerPolicy::requiredRole()).
                 'customers.manage-own', // Ficha propia "Mi Cliente"
                 'commissions.view-own', // "Mis Comisiones": comisión de sala como creador
+                'exchange.view', 'exchange.manage', // Su tasa propia (customers_exchange_rates)
                 'exchange.view-network', // Widget de tasa en el tablero
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard

@@ -3,6 +3,7 @@
 namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 
 /**
@@ -22,6 +23,7 @@ final class ExchangeRateDomainService
         private readonly \App\Services\Roles\RoleEntityResolver $roleEntityResolver,
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         private readonly CurrencyExchangeRateService $officialExchangeRate,
+        private readonly CustomerExchangeRateRepositoryInterface $customerExchangeRate,
     ) {}
     /**
      * Calcula la variación porcentual entre un monto anterior y uno nuevo.
@@ -69,9 +71,10 @@ final class ExchangeRateDomainService
 
     /**
      * Resuelve la tasa de cambio según el prefijo de rol activo:
-     * - commerce: su tasa propia en commerces_exchange_rates si existe;
-     *   si no, hereda la oficial de exchange_rates.
-     * - cualquier otro rol (customer, admin, etc.): directamente la oficial.
+     * - commerce: su tasa propia ACTIVA en commerces_exchange_rates;
+     * - customer: su tasa propia ACTIVA en customers_exchange_rates;
+     *   en ambos casos, sin tasa propia (o desactivada) hereda la oficial.
+     * - cualquier otro rol (admin, etc.): directamente la oficial.
      *
      * @param string $userId ID del usuario para contextos específicos.
      * @param int|string $currencyId ID de la moneda para la cual se desea obtener el tipo de cambio.
@@ -85,10 +88,14 @@ final class ExchangeRateDomainService
         // Resolver el prefijo de rol activo para el usuario
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if ($role === 'commerce') {
+        // Comercializadora y cliente API (creadores de salas): su tasa propia
+        // ACTIVA de esa moneda, si la tienen.
+        if (in_array($role, ['commerce', 'customer'], true)) {
             $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
             $ownRate  = $entityId
-                ? $this->commerceExchangeRate->getCommerceCurrencyValue($entityId, $currencyId)
+                ? ($role === 'commerce'
+                    ? $this->commerceExchangeRate->getCommerceCurrencyValue($entityId, $currencyId)
+                    : $this->customerExchangeRate->getCustomerCurrencyValue($entityId, (string) $currencyId))
                 : null;
 
             if ($ownRate !== null && (float) $ownRate > 0) {

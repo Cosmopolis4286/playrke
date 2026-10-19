@@ -34,6 +34,7 @@
 
   const subtitle = computed(() => {
     if (!data.value) return 'Valores por 1 USD'
+    if (data.value.owner.type === 'customer') return 'Tus salas · por 1 USD'
     return data.value.owner.type === 'commerce'
       ? `Salas de ${data.value.owner.name ?? 'tu comercializadora'} · por 1 USD`
       : 'Tasa oficial de la plataforma · por 1 USD'
@@ -102,7 +103,7 @@
             <span
               class="badge ner-badge"
               :class="rate.source === 'own' ? 'ner-badge--own' : 'ner-badge--official'"
-              :title="rate.source === 'own' ? 'Tasa fijada por la comercializadora' : 'Tasa oficial de la plataforma'"
+              :title="rate.source === 'own' ? 'Tasa propia del dueño de las salas' : 'Tasa oficial de la plataforma'"
             >
               <i class="fas mr-1" :class="rate.source === 'own' ? 'fa-store' : 'fa-building-columns'"></i>
               {{ rate.source === 'own' ? 'Propia' : 'Oficial' }}

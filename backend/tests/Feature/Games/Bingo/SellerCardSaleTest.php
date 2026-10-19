@@ -125,6 +125,7 @@ class SellerCardSaleTest extends TestCase
             'admin'    => ['games.manage', 'games.bingo', 'games.bingo.manage', 'games.bingo.payments.review'],
             'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review', 'commissions.view-own', 'exchange.view-network'],
             'seller'   => ['games.bingo', 'games.bingo.game_rooms', 'external-players.view', 'commissions.view-own', 'exchange.view-network'],
+            'customer' => ['exchange.view-network'],
         ];
 
         foreach (array_unique(array_merge(...array_values($grants))) as $name) {
@@ -1407,5 +1408,36 @@ class SellerCardSaleTest extends TestCase
     {
         // admin no tiene exchange.view-network en este fixture.
         $this->actingAs($this->admin)->getJson(route('exchange-rates.network'))->assertForbidden();
+    }
+
+    /** @test */
+    public function customer_rooms_use_its_own_active_rate_or_the_official_one(): void
+    {
+        $this->officialRate(2.0);
+
+        $user = $this->makeUserWithRole('customer');
+        $customerId = $this->nextId();
+        DB::table('customers')->insert([
+            'id' => $customerId, 'name' => 'Cliente API', 'phone' => '+58412' . random_int(1000000, 9999999),
+            'api_route' => 'https://api.example.test', 'customer_key' => (string) Str::uuid(),
+            'country_id' => $this->country->id, 'currency_id' => $this->currency->id, 'user_id' => $user->id,
+            'status' => 'ACTIVE', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $rateId = $this->nextId();
+        DB::table('customers_exchange_rates')->insert([
+            'id' => $rateId, 'customer_id' => $customerId, 'currency_id' => $this->currency->id,
+            'amount' => 3.0, 'status' => 'ACTIVE', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $domain = app(\App\Services\ExchangeRate\ExchangeRateDomainService::class);
+
+        // Tasa propia activa → la usan sus salas.
+        $this->assertEqualsWithDelta(3.0, $domain->getExchangeRateByCurrency((int) $this->currency->id, (int) $user->id), 0.0001);
+        $this->assertSame('own', $this->networkRate($user)['source']);
+
+        // Desactivada → la oficial.
+        DB::table('customers_exchange_rates')->where('id', $rateId)->update(['status' => 'INACTIVE']);
+        $this->assertEqualsWithDelta(2.0, $domain->getExchangeRateByCurrency((int) $this->currency->id, (int) $user->id), 0.0001);
+        $this->assertSame('official', $this->networkRate($user)['source']);
     }
 }

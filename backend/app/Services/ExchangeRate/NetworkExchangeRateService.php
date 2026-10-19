@@ -6,6 +6,8 @@ use App\Models\Currency;
 use App\Models\ExchangeRate;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
+use App\Models\Roles\Customer;
+use App\Models\Roles\Customer\CustomerExchangeRate;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
 use App\Models\User;
@@ -25,7 +27,8 @@ use Illuminate\Support\Facades\Cache;
  *  - commerce:   la suya;
  *  - subsidiary: la de su comercializadora;
  *  - seller:     la de su comercializadora (Seller::resolveCommerce());
- *  - customer y roles de plataforma: la oficial (no hay tasa propia que aplique).
+ *  - customer:   la suya (customers_exchange_rates), creador de sus salas;
+ *  - roles de plataforma: la oficial.
  */
 final class NetworkExchangeRateService
 {
@@ -40,7 +43,7 @@ final class NetworkExchangeRateService
 
     /**
      * @return array{
-     *   owner: array{type: 'commerce'|'platform', name: ?string},
+     *   owner: array{type: 'commerce'|'customer'|'platform', name: ?string},
      *   role: ?string,
      *   can_manage: bool,
      *   rates: array<int, array<string, mixed>>
@@ -48,11 +51,11 @@ final class NetworkExchangeRateService
      */
     public function forUser(User $user): array
     {
-        $role     = $this->roleUserService->getActiveUserRolePrefix((int) $user->id);
-        $commerce = $this->commerceFor($role, (string) $user->id);
+        $role  = $this->roleUserService->getActiveUserRolePrefix((int) $user->id);
+        $owner = $this->ownerFor($role, (string) $user->id);
 
         $official = $this->officialRates();
-        $own      = $commerce ? $this->ownRates((string) $commerce->id) : collect();
+        $own      = $owner ? $this->ownRates($owner) : collect();
 
         $currencyIds = $official->keys()->merge($own->keys())->unique()->values();
         $currencies  = Currency::whereIn('id', $currencyIds)->get(['id', 'iso_code', 'symbol', 'name'])->keyBy(fn ($c) => (string) $c->id);
@@ -66,27 +69,29 @@ final class NetworkExchangeRateService
             ->all();
 
         return [
-            'owner'      => $commerce
-                ? ['type' => 'commerce', 'name' => $commerce->name]
+            'owner'      => $owner
+                ? ['type' => $owner instanceof Commerce ? 'commerce' : 'customer', 'name' => $owner->business_name ?? $owner->name]
                 : ['type' => 'platform', 'name' => null],
             'role'       => $role,
-            // Solo la comercializadora fija su tasa propia (ExchangeRateCrudService).
-            'can_manage' => $role === 'commerce' && $user->checkPermissionTo('exchange.manage'),
+            // Solo el dueño de las salas fija su tasa propia (ExchangeRateCrudService).
+            'can_manage' => in_array($role, ['commerce', 'customer'], true) && $user->checkPermissionTo('exchange.manage'),
             'rates'      => $rates,
         ];
     }
 
-    private function commerceFor(?string $role, string $userId): ?Commerce
+    /** Dueño de la tasa que aplica a las salas del usuario (null = la oficial). */
+    private function ownerFor(?string $role, string $userId): Commerce|Customer|null
     {
         return match ($role) {
             'commerce'   => Commerce::where('user_id', $userId)->first(),
+            'customer'   => Customer::where('user_id', $userId)->first(),
             'subsidiary' => Subsidiary::where('user_id', $userId)->first()?->commerce,
             'seller'     => Seller::where('user_id', $userId)->first()?->resolveCommerce(),
             default      => null,
         };
     }
 
-    private function row(string $currencyId, ?Currency $currency, ?array $official, ?CommerceExchangeRate $own): ?array
+    private function row(string $currencyId, ?Currency $currency, ?array $official, CommerceExchangeRate|CustomerExchangeRate|null $own): ?array
     {
         if (!$currency || $currencyId === (string) Currency::usdId()) {
             return null;
@@ -138,15 +143,19 @@ final class NetworkExchangeRateService
             ->all()));
     }
 
-    /** @return Collection<string, CommerceExchangeRate> tasa propia ACTIVA más reciente por moneda */
-    private function ownRates(string $commerceId): Collection
+    /** @return Collection<string, CommerceExchangeRate|CustomerExchangeRate> tasa propia ACTIVA más reciente por moneda */
+    private function ownRates(Commerce|Customer $owner): Collection
     {
-        return CommerceExchangeRate::where('commerce_id', $commerceId)
+        $query = $owner instanceof Commerce
+            ? CommerceExchangeRate::where('commerce_id', $owner->id)
+            : CustomerExchangeRate::where('customer_id', $owner->id);
+
+        return $query
             ->where('status', 'ACTIVE')
             ->orderByDesc('updated_at')
             ->get(['id', 'currency_id', 'amount', 'percentage', 'updated_at'])
             ->unique('currency_id')
-            ->keyBy(fn (CommerceExchangeRate $r) => (string) $r->currency_id);
+            ->keyBy(fn ($r) => (string) $r->currency_id);
     }
 
     /** Últimos N valores oficiales (ACTIVE + OLD), del más antiguo al más reciente. */
