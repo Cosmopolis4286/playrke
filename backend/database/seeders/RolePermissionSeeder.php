@@ -41,7 +41,7 @@ class RolePermissionSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.edit',
                 'treasurers.view', // Vista admin de "Mi Tesorería" (target_user_id)
                 'treasury.view', 'treasury.reports',
-                'exchange.view', 'exchange.manage',
+                'exchange.view', 'exchange.manage', 'exchange.view-network',
                 'games.view', 'games.manage',
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.manage', // Gestionar salas de bingo (crear/editar/eliminar) — antes solo cubierto por games.manage a nivel de ruta, pero el ítem del sidebar y la Policy ahora exigen este permiso explícito
@@ -78,6 +78,8 @@ class RolePermissionSeeder extends Seeder
             $commercePermissions = [
                 'commerces.manage-own',
                 'commissions.view-own', // "Mis Comisiones": red + comisión de sala
+                'exchange.view', 'exchange.manage', // Su tasa propia (commerces_exchange_rates)
+                'exchange.view-network', // Widget de tasa en el tablero
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'subsidiaries.view', 'subsidiaries.create', 'subsidiaries.edit', 'subsidiaries.delete',
                 'customers.view', 'customers.create', 'customers.edit',
@@ -109,6 +111,7 @@ class RolePermissionSeeder extends Seeder
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'subsidiaries.manage-own',
                 'commissions.view-own', // "Mis Comisiones"
+                'exchange.view-network', // Widget de tasa en el tablero
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo (reportes de su red)
                 'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
@@ -131,6 +134,7 @@ class RolePermissionSeeder extends Seeder
             $sellerPermissions = [
                 'sellers.manage-own',
                 'commissions.view-own', // "Mis Comisiones"
+                'exchange.view-network', // Widget de tasa en el tablero
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.game_rooms', // Ver/comprar en salas de bingo — antes ausente: el ítem "Salas de Bingo" del sidebar solo lo tenía player, pese a que BingoCardGenerateService trata role==='seller' como caso de primera clase para comprar cartones (mismo flujo que commerce/subsidiary)
                 // Cartones / Ganadores / Reporte de Ventas — BingoReportController
@@ -157,7 +161,7 @@ class RolePermissionSeeder extends Seeder
                 // tasa OFICIAL — sin este permiso, la separación view/manage
                 // de routes/modules/exchange-rate.php lo dejaba solo con
                 // lectura pese a que el propio dominio lo autoriza a editar.
-                'exchange.view', 'exchange.manage',
+                'exchange.view', 'exchange.manage', 'exchange.view-network',
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial',
                 // Opciones independientes
                 'directory.view', 'directory.search',
@@ -198,6 +202,7 @@ class RolePermissionSeeder extends Seeder
                 // ManagerSellerPolicy::requiredRole()).
                 'customers.manage-own', // Ficha propia "Mi Cliente"
                 'commissions.view-own', // "Mis Comisiones": comisión de sala como creador
+                'exchange.view-network', // Widget de tasa en el tablero
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard
                 'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',

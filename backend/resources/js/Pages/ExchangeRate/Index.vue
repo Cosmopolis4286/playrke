@@ -9,6 +9,7 @@
   import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
   import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import NetworkExchangeRateWidget from '@/js/Components/Common/ExchangeRate/NetworkExchangeRateWidget.vue'
 
   import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
   import { useModalForm } from '@/js/composables/common/useModalForm'
@@ -287,6 +288,13 @@
    * es una página Inertia (ExchangeRateController::historical()), no hay
    * ninguna razón para no navegarla como tal.
    */
+  /**
+   * Comercializadora: comparación "tu tasa vs. la oficial" arriba de la
+   * tabla. Se recarga (key) cada vez que cambian sus tasas.
+   */
+  const widgetKey = ref(0)
+  watch(exchangeRates, () => { widgetKey.value++ }, { deep: true })
+
   function goHistorical(): void {
     if (!selectedIds.value.length) return
 
@@ -309,6 +317,15 @@
       { label: 'Tasas de Cambio' },
     ]"
   />
+
+  <div v-if="!hasPrivilegedRole" class="mb-3">
+    <NetworkExchangeRateWidget :key="widgetKey" hide-manage-link />
+    <p class="er-own-hint">
+      <i class="fas fa-circle-info mr-1"></i>
+      Las ventas de tus salas usan <strong>tu tasa propia</strong> de cada moneda; si no la registras (o la desactivas),
+      se usa la <strong>tasa oficial</strong> de la plataforma.
+    </p>
+  </div>
 
   <div class="card">
     <div class="card-body">
@@ -517,4 +534,5 @@
 .er-stat__icon {
   color: #a78bfa;
 }
+.er-own-hint { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--ds-text-muted); }
 </style>

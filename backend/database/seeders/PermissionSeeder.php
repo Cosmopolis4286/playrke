@@ -110,6 +110,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'exchange.view', 'guard_name' => 'web', 'description' => 'Ver tasas de cambio'],
             ['name' => 'exchange.manage', 'guard_name' => 'web', 'description' => 'Gestionar tasas de cambio'],
             ['name' => 'exchange.update', 'guard_name' => 'web', 'description' => 'Actualizar tasas de cambio'],
+            ['name' => 'exchange.view-network', 'guard_name' => 'web', 'description' => 'Ver la tasa de cambio vigente de su red (widget del tablero)'],
 
             // Gestión de juegos
             ['name' => 'games.view', 'guard_name' => 'web', 'description' => 'Ver juegos'],

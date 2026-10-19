@@ -82,6 +82,9 @@ class AuthServiceProvider extends ServiceProvider
 
             // "Mis comisiones": solo las propias, con rol de negocio.
             Gate::define('commissions.viewOwn', [\App\Policies\Commissions\CommissionLedgerPolicy::class, 'viewOwn']);
+
+            // Widget "Tasa de cambio de tu red" (tableros de la red).
+            Gate::define('exchange.viewNetwork', [\App\Policies\ExchangeRate\NetworkExchangeRatePolicy::class, 'view']);
         });
     }
 

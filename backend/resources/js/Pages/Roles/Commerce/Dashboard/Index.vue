@@ -12,6 +12,7 @@
   import DashboardWelcomeBanner       from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
   import DashboardStatCard            from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
   import DashboardSection             from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+  import NetworkExchangeRateWidget from '@/js/Components/Common/ExchangeRate/NetworkExchangeRateWidget.vue'
   import DashboardActivityFeed        from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
   import DashboardQuickLinks          from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
   import DashboardEntityList          from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
@@ -207,16 +208,23 @@
         </div>
       </div>
 
-      <!-- Accesos rápidos -->
-      <DashboardSection
-        title="Accesos rápidos"
-        icon="fas fa-bolt"
-        subtitle="Operaciones frecuentes"
-        :loading="sectionsLoading"
-        skeleton-variant="list"
-      >
-        <DashboardQuickLinks :links="quickLinks" :columns="3" />
-      </DashboardSection>
+      <!-- Tasa de cambio de la red + accesos rápidos -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-5">
+          <NetworkExchangeRateWidget />
+        </div>
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Accesos rápidos"
+            icon="fas fa-bolt"
+            subtitle="Operaciones frecuentes"
+            :loading="sectionsLoading"
+            skeleton-variant="list"
+          >
+            <DashboardQuickLinks :links="quickLinks" :columns="3" />
+          </DashboardSection>
+        </div>
+      </div>
 
       <!-- Tendencia + Entidades -->
       <div class="row g-3">

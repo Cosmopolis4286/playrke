@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\ExchangeRate\NetworkExchangeRateController;
 use App\Http\Controllers\ExchangeRateController;
+use Illuminate\Support\Facades\Route;
 
 // ====================================
 // TASAS DE CAMBIO
@@ -63,3 +65,10 @@ route_public(
     ],
     'exchange_rates:read'
 );
+
+// Tasa vigente para la red del usuario (widget de tableros). Prefijo propio
+// (plural) para no chocar con exchange-rate/{id} del grupo de arriba. El
+// gate exchange.viewNetwork (NetworkExchangeRatePolicy) además exige rol.
+Route::middleware(['auth', 'multiPermission:exchange.view-network'])
+    ->get('exchange-rates/network', [NetworkExchangeRateController::class, 'index'])
+    ->name('exchange-rates.network');

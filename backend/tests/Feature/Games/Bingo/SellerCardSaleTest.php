@@ -123,8 +123,8 @@ class SellerCardSaleTest extends TestCase
 
         $grants = [
             'admin'    => ['games.manage', 'games.bingo', 'games.bingo.manage', 'games.bingo.payments.review'],
-            'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review', 'commissions.view-own'],
-            'seller'   => ['games.bingo', 'games.bingo.game_rooms', 'external-players.view', 'commissions.view-own'],
+            'commerce' => ['games.bingo', 'games.bingo.manage', 'games.bingo.game_rooms', 'games.bingo.payments.review', 'commissions.view-own', 'exchange.view-network'],
+            'seller'   => ['games.bingo', 'games.bingo.game_rooms', 'external-players.view', 'commissions.view-own', 'exchange.view-network'],
         ];
 
         foreach (array_unique(array_merge(...array_values($grants))) as $name) {
@@ -1352,5 +1352,60 @@ class SellerCardSaleTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame(Commerce::PENDING_POLICY_KEEP, Commerce::where('user_id', $this->commerceC->id)->value('pending_payment_policy'));
+    }
+
+    // ─── Tasa de cambio de la red (widget) ───────────────────────────────────
+
+    private function officialRate(float $amount): void
+    {
+        Cache::flush();
+        DB::table('exchange_rates')->insert([
+            'id' => $this->nextId(), 'currency_id' => $this->currency->id, 'user_id' => $this->admin->id,
+            'amount' => $amount, 'percentage' => 0, 'status' => 'ACTIVE', 'source' => 'user',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
+    private function networkRate(User $user): array
+    {
+        $response = $this->actingAs($user)->getJson(route('exchange-rates.network'))->assertOk();
+
+        return collect($response->json('data.rates'))->firstWhere('currency_id', (string) $this->currency->id);
+    }
+
+    /** @test */
+    public function seller_sees_the_commerce_own_rate_it_sells_with_compared_to_the_official(): void
+    {
+        $this->officialRate(2.0);
+
+        $rate = $this->networkRate($this->sellerA);
+
+        $this->assertSame('own', $rate['source']);
+        $this->assertEqualsWithDelta(self::COMMERCE_RATE, $rate['effective'], 0.0001);
+        $this->assertEqualsWithDelta(2.0, $rate['official']['amount'], 0.0001);
+        $this->assertEqualsWithDelta(25.0, $rate['deviation_pct'], 0.001);
+
+        $this->actingAs($this->sellerA)->getJson(route('exchange-rates.network'))
+            ->assertJsonPath('data.owner.type', 'commerce')
+            ->assertJsonPath('data.can_manage', false);
+    }
+
+    /** @test */
+    public function network_without_own_rate_sees_the_official_rate(): void
+    {
+        $this->officialRate(2.0);
+
+        $rate = $this->networkRate($this->sellerE);
+
+        $this->assertSame('official', $rate['source']);
+        $this->assertEqualsWithDelta(2.0, $rate['effective'], 0.0001);
+        $this->assertNull($rate['own']);
+    }
+
+    /** @test */
+    public function network_exchange_rate_requires_its_permission(): void
+    {
+        // admin no tiene exchange.view-network en este fixture.
+        $this->actingAs($this->admin)->getJson(route('exchange-rates.network'))->assertForbidden();
     }
 }
