@@ -65,6 +65,7 @@ class Notification extends Model
         'LEVEL_UP'              => 'Subida de Nivel',
         'ACHIEVEMENT_UNLOCKED'  => 'Logro Desbloqueado',
         'MISSION_COMPLETED'     => 'Misión Diaria Completada',
+        'EXCHANGE_RATE'         => 'Tasa de Cambio',
     ];
 
     /**
@@ -196,6 +197,7 @@ class Notification extends Model
             'ACHIEVEMENT_UNLOCKED' => '#f59e0b', // dorado
             'MISSION_COMPLETED' => '#11998e', // verde-azulado
             'BINGO_CARD_PURCHASE' => '#2af598', // verde bingo
+            'EXCHANGE_RATE' => '#3b82f6', // azul
             default => '#6c757d', // gris
         };
     }

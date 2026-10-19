@@ -108,6 +108,12 @@
               <i class="fas mr-1" :class="rate.source === 'own' ? 'fa-store' : 'fa-building-columns'"></i>
               {{ rate.source === 'own' ? 'Propia' : 'Oficial' }}
             </span>
+            <span v-if="rate.stale" class="badge ner-badge ner-badge--warn" title="La tasa propia lleva tiempo sin actualizarse">
+              <i class="fas fa-clock mr-1"></i>Desactualizada
+            </span>
+            <span v-if="rate.deviation_alert" class="badge ner-badge ner-badge--warn" title="La tasa propia se aleja mucho de la oficial">
+              <i class="fas fa-triangle-exclamation mr-1"></i>Desvío alto
+            </span>
           </div>
 
           <div class="ner-item__value">
@@ -154,11 +160,12 @@
   background: var(--ds-surface-2);
 }
 .ner-item__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
-.ner-item__head { display: flex; align-items: center; gap: 0.5rem; }
+.ner-item__head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; }
 .ner-item__code { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: var(--ds-text-2); }
 
 .ner-badge { font-size: 0.65rem; font-weight: 600; }
 .ner-badge--own { background: rgba(37,99,235,.15); color: #3b82f6; }
+.ner-badge--warn { background: rgba(217,119,6,.15); color: #d97706; }
 .ner-badge--official { background: var(--ds-badge-bg, rgba(106,134,172,.15)); color: var(--ds-text-2); }
 
 .ner-item__value { font-size: 1.2rem; font-weight: 700; color: var(--ds-text); line-height: 1.25; }

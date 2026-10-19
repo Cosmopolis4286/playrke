@@ -116,9 +116,13 @@ final class NetworkExchangeRateService
                 'updated_at' => $own->updated_at?->toIso8601String(),
             ] : null,
             // Cuánto se aleja la tasa propia de la oficial (+ = más cara).
-            'deviation_pct' => $useOwn && $officialAmount
+            'deviation_pct' => $deviation = ($useOwn && $officialAmount
                 ? round(($ownAmount - $officialAmount) / $officialAmount * 100, 2)
-                : null,
+                : null),
+            // Mismos umbrales que las alertas (ExchangeRateAlertService).
+            'deviation_alert' => $deviation !== null && abs($deviation) >= ExchangeRateAlertSettings::deviationPct(),
+            'stale'           => $useOwn && $own->updated_at
+                && $own->updated_at->lt(now()->subHours(ExchangeRateAlertSettings::staleHours())),
         ];
     }
 

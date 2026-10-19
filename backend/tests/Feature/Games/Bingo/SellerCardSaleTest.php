@@ -1442,4 +1442,76 @@ class SellerCardSaleTest extends TestCase
         $this->assertEqualsWithDelta(2.0, $domain->getExchangeRateByCurrency((int) $this->currency->id, (int) $user->id), 0.0001);
         $this->assertSame('official', $this->networkRate($user)['source']);
     }
+
+    // ─── Alertas de tasas (Fase 3) ───────────────────────────────────────────
+
+    private function runRateAlerts(): array
+    {
+        return app(\App\Services\ExchangeRate\ExchangeRateAlertService::class)->run();
+    }
+
+    private function rateAlertsFor(User $user): int
+    {
+        return DB::table('notifications')->where('user_id', $user->id)->where('type', 'EXCHANGE_RATE')->count();
+    }
+
+    /** @test */
+    public function official_rate_change_is_notified_to_networks_selling_with_it(): void
+    {
+        $this->officialRate(2.0);
+        $this->runRateAlerts(); // primer valor: se registra sin avisar
+        $this->assertSame(0, $this->rateAlertsFor($this->sellerE));
+
+        DB::table('exchange_rates')->where('currency_id', $this->currency->id)->update(['status' => 'OLD']);
+        DB::table('exchange_rates')->insert([
+            'id' => $this->nextId(), 'currency_id' => $this->currency->id, 'user_id' => $this->admin->id,
+            'amount' => 2.2, 'percentage' => 10, 'status' => 'ACTIVE', 'source' => 'user',
+            'created_at' => now()->addSecond(), 'updated_at' => now()->addSecond(),
+        ]);
+
+        $this->assertSame(1, $this->runRateAlerts()['official_changes']);
+
+        // Red de D (sin tasa propia) vende con la oficial: avisados.
+        $this->assertSame(1, $this->rateAlertsFor($this->commerceD));
+        $this->assertSame(1, $this->rateAlertsFor($this->sellerE));
+        // Red de C usa su tasa propia: el cambio de la oficial no le aplica.
+        $this->assertSame(0, $this->rateAlertsFor($this->sellerA));
+
+        // Sin nuevo cambio, no se repite.
+        $this->assertSame(0, $this->runRateAlerts()['official_changes']);
+    }
+
+    /** @test */
+    public function commerce_own_rate_change_is_notified_to_its_network(): void
+    {
+        $this->runRateAlerts();
+
+        DB::table('commerces_exchange_rates')->where('currency_id', $this->currency->id)->update(['amount' => 2.8, 'updated_at' => now()]);
+
+        $this->assertSame(1, $this->runRateAlerts()['own_changes']);
+        $this->assertSame(1, $this->rateAlertsFor($this->sellerA));
+        $this->assertSame(0, $this->rateAlertsFor($this->commerceC), 'Quien cambió la tasa no se avisa a sí mismo.');
+        $this->assertSame(0, $this->rateAlertsFor($this->sellerE));
+    }
+
+    /** @test */
+    public function owner_is_alerted_once_when_its_own_rate_is_stale_or_far_from_the_official(): void
+    {
+        $this->officialRate(2.0); // propia 2.5 → +25 %
+        DB::table('commerces_exchange_rates')->where('currency_id', $this->currency->id)->update(['updated_at' => now()->subDays(2)]);
+
+        $first = $this->runRateAlerts();
+        $this->assertSame(1, $first['stale']);
+        $this->assertSame(1, $first['deviations']);
+        $this->assertSame(2, $this->rateAlertsFor($this->commerceC));
+
+        // Dentro de las 24 h no se repiten.
+        $second = $this->runRateAlerts();
+        $this->assertSame(0, $second['stale']);
+        $this->assertSame(0, $second['deviations']);
+
+        $rate = $this->networkRate($this->sellerA);
+        $this->assertTrue($rate['stale']);
+        $this->assertTrue($rate['deviation_alert']);
+    }
 }

@@ -42,6 +42,7 @@ schedule_dynamic('bingo:retry-failed-prize-payouts', fn (Event $e) => $e->everyF
 schedule_dynamic('bingo:retry-failed-refunds', fn (Event $e) => $e->everyFiveMinutes());
 schedule_dynamic('generate:bingo-rooms', fn (Event $e) => $e->hourly());
 schedule_dynamic('handle:exchange-rates', fn (Event $e) => $e->hourly());
+schedule_dynamic('exchange-rates:alerts', fn (Event $e) => $e->everyFifteenMinutes());
 schedule_dynamic('trivia:start-scheduled-rooms', fn (Event $e) => $e->everyMinute());
 schedule_dynamic('trivia:auto-finish-stale-games', fn (Event $e) => $e->everyMinute());
 schedule_dynamic('trivia:retry-failed-prize-payouts', fn (Event $e) => $e->everyFiveMinutes());

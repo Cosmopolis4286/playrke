@@ -127,6 +127,13 @@ class AppParameterSeeder extends Seeder
             ['param' => 'log_alert_error_threshold', 'value' => '20', 'status' => 'ACTIVE'],
             ['param' => 'log_alert_window_minutes',  'value' => '15', 'status' => 'ACTIVE'],
 
+            // Alertas de tasas de cambio — ver ExchangeRateAlertService:
+            // cambio mínimo (%) que se avisa a la red, horas sin actualizar una
+            // tasa propia y desvío máximo (%) de la tasa propia vs. la oficial.
+            ['param' => 'exchange_alert_change_pct',    'value' => '3',  'status' => 'ACTIVE'],
+            ['param' => 'exchange_alert_stale_hours',   'value' => '24', 'status' => 'ACTIVE'],
+            ['param' => 'exchange_alert_deviation_pct', 'value' => '10', 'status' => 'ACTIVE'],
+
         ];
 
         foreach ($parameters as $data) {

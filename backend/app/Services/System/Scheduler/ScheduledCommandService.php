@@ -37,6 +37,7 @@ final class ScheduledCommandService
         'bingo:retry-failed-refunds'                    => '*/5 * * * *',
         'generate:bingo-rooms'                          => '0 * * * *',
         'handle:exchange-rates'                         => '0 * * * *',
+        'exchange-rates:alerts'                         => '*/15 * * * *',
         'trivia:start-scheduled-rooms'                  => '* * * * *',
         'trivia:auto-finish-stale-games'                => '* * * * *',
         'trivia:retry-failed-prize-payouts'             => '*/5 * * * *',

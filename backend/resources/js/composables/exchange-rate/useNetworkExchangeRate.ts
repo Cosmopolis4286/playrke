@@ -28,6 +28,10 @@ export interface NetworkExchangeRate {
     } | null
     /** % de la tasa propia sobre la oficial (+ = más cara). */
     deviation_pct: number | null
+    /** El desvío supera el umbral de alertas. */
+    deviation_alert: boolean
+    /** La tasa propia lleva más del umbral de horas sin actualizarse. */
+    stale: boolean
 }
 
 export interface NetworkExchangeRateData {
