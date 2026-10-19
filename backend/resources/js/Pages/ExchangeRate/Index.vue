@@ -3,7 +3,6 @@
   import { router } from '@inertiajs/vue3'
 
   import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
-  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
   import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
@@ -311,171 +310,140 @@
   <PageHeader
     icon="fa-money-bill-trend-up"
     title="Tasas de Cambio"
-    subtitle="Valores en base a Un Dólar (1 USD)."
+    :subtitle="hasPrivilegedRole ? 'Tasa oficial de la plataforma · por 1 USD' : 'Tu tasa propia por moneda · por 1 USD'"
     :breadcrumb-items="[
       { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
       { label: 'Tasas de Cambio' },
     ]"
-  />
-
-  <div v-if="!hasPrivilegedRole" class="mb-3">
-    <NetworkExchangeRateWidget :key="widgetKey" hide-manage-link />
-    <p class="er-own-hint">
-      <i class="fas fa-circle-info mr-1"></i>
-      Las ventas de tus salas usan <strong>tu tasa propia</strong> de cada moneda; si no la registras (o la desactivas),
-      se usa la <strong>tasa oficial</strong> de la plataforma.
-    </p>
-  </div>
-
-  <div class="card">
-    <div class="card-body">
-      <!-- Resumen rápido -->
-      <div v-if="exchangeRates.length > 0" class="er-stats">
-        <div class="er-stat">
-          <span class="er-stat__label">Tasas activas</span>
-          <span class="er-stat__value">{{ summaryStats.activeCount }}</span>
-        </div>
-        <div class="er-stat">
-          <span class="er-stat__label">Última actualización</span>
-          <span class="er-stat__value er-stat__value--sm">{{ formatDateTime(summaryStats.mostRecent) }}</span>
-        </div>
-        <div v-if="hasPrivilegedRole" class="er-stat">
-          <span class="er-stat__label">Automáticas</span>
-          <span class="er-stat__value">
-            <i class="fas fa-robot er-stat__icon"></i> {{ summaryStats.automatic }}
-          </span>
-        </div>
-        <div v-if="hasPrivilegedRole" class="er-stat">
-          <span class="er-stat__label">Manuales</span>
-          <span class="er-stat__value">{{ summaryStats.manual }}</span>
-        </div>
+  >
+    <template v-if="exchangeRates.length > 0" #actions>
+      <div class="er-kpis">
+        <span class="er-kpi"><strong>{{ summaryStats.activeCount }}</strong> activas</span>
+        <span v-if="hasPrivilegedRole" class="er-kpi" title="Automáticas / manuales">
+          <i class="fas fa-robot"></i><strong>{{ summaryStats.automatic }}</strong> / {{ summaryStats.manual }}
+        </span>
+        <span class="er-kpi" title="Última actualización">
+          <i class="fas fa-clock"></i>{{ formatDateTime(summaryStats.mostRecent) }}
+        </span>
       </div>
+    </template>
+  </PageHeader>
 
-      <!-- Switch de actualización automática: solo visible si hay tasas registradas -->
-      <div v-if="exchangeRates.length > 0" class="row">
-        <FormSwitch
-          name="auto-update"
-          class="ml-1 col-12"
-          label="¿Actualización automática?"
-          v-model="autoUpdateEnabled"
-          @update:modelValue="handleAutoUpdateToggle"
-        />
-
-        <!-- Feedback: VES se actualiza vía BCV en lugar de la tasa general -->
-        <div v-if="autoUpdateEnabled && hasVesRate && bcvAutoUpdateEnabled" class="col-12">
-          <div class="alert alert-info py-2 mb-2">
-            <i class="fa-solid fa-circle-info"></i>
-            El Bolívar venezolano (VES) tiene activada su propia actualización automática con la tasa
-            oficial del <strong>BCV</strong> y no se verá afectado por esta opción.
-          </div>
-        </div>
-      </div>
-
-      <hr class="mt-n2" />
-
-      <TableActionButtons
-        :selected-ids="selectedIds"
-        :show-create-button="canCreate"
-        show-edit-button
-        show-delete-button
-        has-extra-actions
-        @create="handleCreate"
-        @edit="handleEdit"
-        @delete="handleDelete"
+  <!-- Comercializadora / cliente: con qué tasa venden hoy sus salas -->
+  <section v-if="!hasPrivilegedRole" class="er-panel">
+    <header class="er-panel__head">
+      <h3 class="er-panel__title">Tasas vigentes en tus ventas</h3>
+      <span
+        class="er-panel__help"
+        title="Las ventas de tus salas usan tu tasa propia de cada moneda; si no la registras (o la desactivas), se usa la oficial de la plataforma."
       >
-        <template #action-buttons="{ selectedIds: ids }">
-          <!-- Cambiar Status (solo con selección) -->
-          <button
-            v-if="ids.length > 0"
-            class="btn btn-sm btn-secondary"
-            title="Cambiar Status"
-            @click="handleChangeStatus(ids)"
-          >
-            <i class="fa-solid fa-repeat"></i>
-          </button>
+        <i class="fas fa-circle-question"></i> Propia o, si no hay, la oficial
+      </span>
+    </header>
+    <NetworkExchangeRateWidget :key="widgetKey" bare hide-manage-link />
+  </section>
 
-          <!-- Histórico (requiere exactamente 1 seleccionado) -->
-          <button
-            v-if="ids.length === 1"
-            class="btn btn-sm btn-primary"
-            type="button"
-            title="Ver Histórico"
-            @click="goHistorical"
-          >
-            <i class="fa-solid fa-money-bill-trend-up"></i> Histórico
-          </button>
+  <section class="er-panel er-panel--flush">
+    <!-- Barra de herramientas: búsqueda, filtro, auto-actualización y acciones en una línea -->
+    <div class="er-toolbar">
+      <h3 class="er-panel__title er-toolbar__title">{{ hasPrivilegedRole ? 'Tasas oficiales' : 'Mis tasas' }}</h3>
 
-          <!-- Consultar Valores -->
-          <VDropdown
-            :shown="exchangeRates.length === 0 ? undefined : false"
-            :triggers="exchangeRates.length === 0 ? ['hover', 'focus'] : []"
-            placement="top"
-            :autoHide="true"
-          >
+      <template v-if="exchangeRates.length > 0">
+        <div class="er-search">
+          <i class="fas fa-search"></i>
+          <input v-model="searchQuery" type="search" class="form-control form-control-sm" placeholder="Buscar moneda…" />
+        </div>
+        <select v-model="statusFilter" class="form-control form-control-sm er-status">
+          <option value="">Todos</option>
+          <option v-for="status in statusFilterOptions" :key="status" :value="status">{{ status }}</option>
+        </select>
+        <div
+          class="custom-control custom-switch er-auto"
+          :title="autoUpdateEnabled && hasVesRate && bcvAutoUpdateEnabled ? 'VES se actualiza aparte con la tasa del BCV' : 'Actualizar las tasas automáticamente'"
+        >
+          <input
+            id="er-auto-update"
+            v-model="autoUpdateEnabled"
+            type="checkbox"
+            class="custom-control-input"
+            @change="handleAutoUpdateToggle(autoUpdateEnabled)"
+          />
+          <label class="custom-control-label" for="er-auto-update">
+            Automática<span v-if="autoUpdateEnabled && hasVesRate && bcvAutoUpdateEnabled" class="er-auto__bcv">· VES por BCV</span>
+          </label>
+        </div>
+      </template>
+
+      <div class="er-toolbar__actions">
+        <TableActionButtons
+          :selected-ids="selectedIds"
+          :show-create-button="canCreate"
+          show-edit-button
+          show-delete-button
+          has-extra-actions
+          @create="handleCreate"
+          @edit="handleEdit"
+          @delete="handleDelete"
+        >
+          <template #action-buttons="{ selectedIds: ids }">
             <button
+              v-if="ids.length > 0"
               class="btn btn-sm btn-secondary"
+              title="Activar / desactivar"
+              @click="handleChangeStatus(ids)"
+            >
+              <i class="fa-solid fa-repeat"></i>
+            </button>
+
+            <button
+              v-if="ids.length === 1"
+              class="btn btn-sm btn-outline-primary"
+              type="button"
+              title="Ver histórico"
+              @click="goHistorical"
+            >
+              <i class="fa-solid fa-chart-line"></i>
+            </button>
+
+            <button
+              class="btn btn-sm btn-outline-secondary"
               type="button"
               :disabled="updatingExchangeRates || exchangeRates.length === 0"
+              :title="exchangeRates.length === 0 ? 'Registra al menos una tasa para consultar valores' : 'Consultar valores actuales'"
               @click="handleUpdateExchangeRates"
             >
-              <i class="fa-solid fa-search"></i> Consultar
-              <span
-                v-if="updatingExchangeRates"
-                class="spinner-border spinner-border-sm ml-1"
-                aria-hidden="true"
-              ></span>
+              <span v-if="updatingExchangeRates" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+              <i v-else class="fa-solid fa-rotate"></i>
             </button>
-            <template #popper>
-              <div style="padding: 4px 8px; max-width: 220px; font-size: 0.8rem;">
-                Registra al menos una tasa de cambio para poder consultar valores.
-              </div>
-            </template>
-          </VDropdown>
-        </template>
-      </TableActionButtons>
-
-      <!-- Búsqueda/filtro -->
-      <div v-if="exchangeRates.length > 0" class="row mt-2 mb-1">
-        <div class="col-md-6 col-lg-4">
-          <input
-            type="search"
-            class="form-control form-control-sm"
-            placeholder="Buscar por moneda o usuario..."
-            v-model="searchQuery"
-          />
-        </div>
-        <div class="col-md-4 col-lg-3 mt-2 mt-md-0">
-          <select class="form-control form-control-sm" v-model="statusFilter">
-            <option value="">Todos los status</option>
-            <option v-for="status in statusFilterOptions" :key="status" :value="status">
-              {{ status }}
-            </option>
-          </select>
-        </div>
+          </template>
+        </TableActionButtons>
       </div>
+    </div>
 
-      <ExchangeRateTable
-        :usedCurrencies="usedCurrencies"
-        :exchange-rates="filteredExchangeRates"
-        :has-privileged-role="hasPrivilegedRole"
-        :selected-ids="selectedIds"
-        @selection-change="ids => (selectedIds = ids)"
-      />
+    <ExchangeRateTable
+      :usedCurrencies="usedCurrencies"
+      :exchange-rates="filteredExchangeRates"
+      :has-privileged-role="hasPrivilegedRole"
+      :selected-ids="selectedIds"
+      @selection-change="ids => (selectedIds = ids)"
+    />
 
+    <div class="er-footer">
       <TableFooterInfo
         :filtered-count="filteredExchangeRates.length"
         :total-count="exchangeRates.length"
         :selected-count="selectedIds.length"
       />
-
-      <div v-if="hasActiveFilters && filteredExchangeRates.length === 0" class="text-center text-muted py-2">
-        Ningún registro coincide con los filtros aplicados.
-        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @click="clearFilters">
-          Limpiar filtros
-        </button>
-      </div>
+      <button
+        v-if="hasActiveFilters && filteredExchangeRates.length === 0"
+        type="button"
+        class="btn btn-link btn-sm p-0"
+        @click="clearFilters"
+      >
+        Limpiar filtros
+      </button>
     </div>
-  </div>
+  </section>
 
   <Modal
     v-model="showModalForm"
@@ -497,42 +465,54 @@
 </template>
 
 <style scoped>
-.er-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+/* KPIs compactos en la cabecera */
+.er-kpis { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.er-kpi {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--ds-border); border-radius: 999px;
+  background: var(--ds-surface);
+  font-size: 0.75rem; color: var(--ds-text-2); white-space: nowrap;
 }
+.er-kpi i { color: var(--ds-text-muted); font-size: 0.7rem; }
+.er-kpi strong { color: var(--ds-text); font-variant-numeric: tabular-nums; }
 
-.er-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--ds-surface-2, #f4f5f7);
-  border-radius: 10px;
+/* Paneles */
+.er-panel {
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
 }
+.er-panel--flush { padding: 0; overflow: hidden; }
+.er-panel__head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.55rem; }
+.er-panel__title { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--ds-text); }
+.er-panel__help { font-size: 0.72rem; color: var(--ds-text-muted); cursor: help; white-space: nowrap; }
 
-.er-stat__label {
-  font-size: 0.72rem;
-  color: var(--ds-text-muted, #8a94a6);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+/* Barra de herramientas */
+.er-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--ds-border);
 }
+.er-toolbar__title { margin-right: 0.25rem; }
+.er-toolbar__actions { margin-left: auto; }
+.er-toolbar__actions :deep(.mb-3),
+.er-toolbar__actions :deep(.mb-2) { margin-bottom: 0 !important; }
 
-.er-stat__value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
+.er-search { position: relative; width: 190px; }
+.er-search i { position: absolute; left: 0.55rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: var(--ds-text-muted); }
+.er-search input { padding-left: 1.6rem; }
+.er-status { width: auto; min-width: 110px; }
+.er-auto { font-size: 0.8rem; margin: 0; }
+.er-auto__bcv { margin-left: 0.3rem; font-size: 0.7rem; color: var(--ds-text-muted); }
 
-.er-stat__value--sm {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
+.er-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0.85rem; border-top: 1px solid var(--ds-border); font-size: 0.78rem; }
+.er-footer :deep(*) { margin-bottom: 0; }
 
-.er-stat__icon {
-  color: #a78bfa;
+@media (max-width: 576px) {
+  .er-search { width: 100%; }
+  .er-toolbar__actions { margin-left: 0; width: 100%; }
 }
-.er-own-hint { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--ds-text-muted); }
 </style>

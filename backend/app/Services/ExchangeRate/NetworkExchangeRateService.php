@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Roles\RoleUserService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Tasa de cambio vigente para la red de un usuario (widget de los tableros
@@ -58,7 +59,14 @@ final class NetworkExchangeRateService
         $official = $this->officialRates();
         $own      = $owner ? $this->ownRates($owner) : collect();
 
-        $currencyIds = $official->keys()->merge($own->keys())->unique()->values();
+        // Solo las monedas con las que vende la red (las habilitadas del dueño
+        // de las salas + las que tienen tasa propia); sin dueño, todas.
+        $handled     = $owner ? $this->handledCurrencyIds($owner) : null;
+        $currencyIds = $official->keys()
+            ->when($handled !== null, fn (Collection $ids) => $ids->intersect($handled))
+            ->merge($own->keys())
+            ->unique()
+            ->values();
         $currencies  = Currency::whereIn('id', $currencyIds)->get(['id', 'iso_code', 'symbol', 'name'])->keyBy(fn ($c) => (string) $c->id);
 
         $rates = $currencyIds
@@ -90,6 +98,23 @@ final class NetworkExchangeRateService
             'seller'     => Seller::where('user_id', $userId)->first()?->resolveCommerce(),
             default      => null,
         };
+    }
+
+    /**
+     * Monedas habilitadas del dueño de las salas, o null si no tiene ninguna
+     * configurada (en ese caso no se filtra).
+     *
+     * @return string[]|null
+     */
+    private function handledCurrencyIds(Commerce|Customer $owner): ?array
+    {
+        $ids = $owner instanceof Commerce
+            ? DB::table('commerces_currencies')->where('commerce_id', $owner->id)->where('status', 'ACTIVE')->pluck('currency_id')
+            : collect([$owner->currency_id])->filter();
+
+        $ids = $ids->map(fn ($id) => (string) $id)->values()->all();
+
+        return $ids ?: null;
     }
 
     private function row(string $currencyId, ?Currency $currency, ?array $official, CommerceExchangeRate|CustomerExchangeRate|null $own): ?array
