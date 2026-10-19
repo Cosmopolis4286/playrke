@@ -991,6 +991,7 @@ final class BingoReportController extends Controller
             ['key' => 'player_name', 'label' => 'Jugador', 'sortable' => true],
             ['key' => 'card_price', 'label' => 'Precio Cartón', 'sortable' => true],
             ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
+            ['key' => 'exchange_rate', 'label' => 'Tasa (1 USD)', 'sortable' => true],
             ['key' => 'sale_date', 'label' => 'Fecha de Venta', 'sortable' => true],
             ['key' => 'payment_method', 'label' => 'Método de Pago', 'sortable' => true],
             ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
@@ -1034,6 +1035,8 @@ final class BingoReportController extends Controller
             'player_name'    => $card->roomUser?->user?->name ?? '—',
             'card_price'     => (float) ($card->cardLot?->card_price ?? 0),
             'currency'       => $card->currency?->iso_code ?? '—',
+            // Tasa con la que se cobró (snapshot del lote).
+            'exchange_rate'  => $card->cardLot?->exchange_rate !== null ? round((float) $card->cardLot->exchange_rate, 4) : null,
             'sale_date'      => optional($card->created_at)->format('Y-m-d H:i:s'),
             'payment_method' => $payment?->payment_method ?? '—',
             'status'         => $paymentStatusToLabel[$payment?->payment_status] ?? ($payment?->payment_status ?? 'Pending'),
@@ -1221,7 +1224,7 @@ final class BingoReportController extends Controller
 
         return $this->streamCsvExport(
             'bingo-ventas-sala-' . $room->uuid_code,
-            ['ID', 'Número de Cartón', 'Jugador', 'Precio Cartón', 'Moneda', 'Fecha de Venta', 'Método de Pago', 'Estado'],
+            ['ID', 'Número de Cartón', 'Jugador', 'Precio Cartón', 'Moneda', 'Tasa (1 USD)', 'Fecha de Venta', 'Método de Pago', 'Estado'],
             $this->salesByRoomQuery($room, $currency)->cursor(),
             fn ($card) => $this->mapSalesByRoomRow($card, $paymentStatusToLabel),
         );

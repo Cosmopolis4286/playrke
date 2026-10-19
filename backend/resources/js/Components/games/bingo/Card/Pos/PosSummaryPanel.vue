@@ -49,6 +49,13 @@ function money(n: number): string {
             <span v-if="hasPrice" class="pos-muted">× {{ sale.currencySymbol }} {{ money(sale.cardPrice) }}</span>
           </dd>
         </div>
+        <div v-if="sale.exchangeRateLabel">
+          <dt>Tasa</dt>
+          <dd class="pss__rate">
+            <span class="pos-money">{{ sale.exchangeRateLabel }}</span>
+            <span class="pos-muted">{{ sale.exchangeRateSourceLabel }}</span>
+          </dd>
+        </div>
       </dl>
 
       <div class="pss__total">
@@ -118,6 +125,8 @@ function money(n: number): string {
 .pss__rows { margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
 .pss__rows > div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
 .pss__rows dt { font-weight: 500; color: var(--ds-text-2); }
+.pss__rate { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.pss__rate .pos-muted { font-size: 11px; }
 .pss__rows dd { margin: 0; text-align: right; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .pss__empty { color: var(--ds-text-muted); }
 

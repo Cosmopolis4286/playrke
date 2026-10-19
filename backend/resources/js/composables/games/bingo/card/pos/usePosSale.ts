@@ -102,6 +102,16 @@ export function usePosSale(
         Number(selectedRoom.value?.prize_pool ?? 0) * (cardPriceData.value?.exchange_rate ?? 0)
     )
 
+    /** "1 USD = Bs 36,50" con la que se cobra esta venta; null si es en USD. */
+    const exchangeRateLabel = computed(() => {
+        const data = cardPriceData.value
+        if (!data || data.exchange_rate_source === 'usd' || !data.exchange_rate || data.exchange_rate === 1) return null
+        return `1 USD = ${data.currency_symbol} ${data.exchange_rate.toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
+    })
+    const exchangeRateSourceLabel = computed(() =>
+        cardPriceData.value?.exchange_rate_source === 'own' ? 'Tasa de la comercializadora' : 'Tasa oficial'
+    )
+
     const buyerReady = computed(() =>
         phone.isPhoneValid.value &&
         (buyerLookup.value === 'found' || buyerLookup.value === 'new') &&
@@ -355,6 +365,7 @@ export function usePosSale(
         countries, loadingCountries, selectedCountry, selectedIso2,
         cardPriceData, loadingCardPrice, currencySymbol, cardPrice,
         totalAmount, commissionRate, sellerCommission, prizePoolLocal,
+        exchangeRateLabel, exchangeRateSourceLabel,
         // comprador
         buyer, buyerLookup, existingBuyer, phone, applyFrequentBuyer,
         // cantidad / pago

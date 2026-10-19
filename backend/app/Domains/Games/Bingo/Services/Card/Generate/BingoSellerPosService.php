@@ -84,7 +84,7 @@ final class BingoSellerPosService
             ->with([
                 'room:id,uuid_code',
                 'externalPlayer:id,first_name,last_name,phone,link',
-                'cardLot:id,card_count',
+                'cardLot:id,card_count,exchange_rate',
                 'currency:id,iso_code,symbol',
             ])
             ->latest('created_at')
@@ -100,6 +100,10 @@ final class BingoSellerPosService
             'card_count'      => (int) ($p->cardLot?->card_count ?? 0),
             'amount'          => (float) $p->payment_amount,
             'currency_symbol' => $p->currency?->symbol ?? '',
+            // Tasa con la que se cobró (snapshot del lote); null en USD.
+            'exchange_rate'   => $p->cardLot?->exchange_rate && (float) $p->cardLot->exchange_rate !== 1.0
+                ? (float) $p->cardLot->exchange_rate
+                : null,
             'receipt'         => $p->transaction_reference,
             'created_at'      => $p->created_at?->toISOString(),
         ])->values()->all();

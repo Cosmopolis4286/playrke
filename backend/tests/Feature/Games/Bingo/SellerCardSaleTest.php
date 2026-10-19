@@ -287,6 +287,7 @@ class SellerCardSaleTest extends TestCase
         // Tasa PROPIA del comercio (2.5), no la oficial: 10 USD × 2.5.
         $this->assertEqualsWithDelta(25.00, $preview->json('card_price'), 0.001);
         $this->assertEqualsWithDelta(self::COMMERCE_RATE, $preview->json('exchange_rate'), 0.001);
+        $this->assertSame('own', $preview->json('exchange_rate_source'), 'El POS debe indicar que la tasa es la propia del comercio.');
         // Comisión especial de la sala, no la base.
         $this->assertEqualsWithDelta(4.5, $preview->json('seller_commission'), 0.001);
 
@@ -1174,6 +1175,7 @@ class SellerCardSaleTest extends TestCase
         $this->assertEqualsWithDelta(50.00, $today->json('summary.totals.0.amount'), 0.001);
         $this->assertSame('PENDING', $today->json('sales.0.status'));
         $this->assertSame('Ana Pérez', $today->json('sales.0.buyer_name'));
+        $this->assertEqualsWithDelta(self::COMMERCE_RATE, $today->json('sales.0.exchange_rate'), 0.001);
         $this->assertNotNull($today->json('sales.0.player_link'));
 
         // Otro vendedor no ve compradores ni ventas ajenas.

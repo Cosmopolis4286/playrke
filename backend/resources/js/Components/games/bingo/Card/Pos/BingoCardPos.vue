@@ -132,6 +132,7 @@ function money(n: number): string {
           <div><dt>Teléfono</dt><dd>{{ sale.buyer.phone }}</dd></div>
           <div><dt>Sala</dt><dd>{{ room?.time?.slice(0, 5) }} · {{ room?.uuid_code }}</dd></div>
           <div><dt>Cartones</dt><dd>{{ sale.cardCount }} × {{ sale.currencySymbol }} {{ money(sale.cardPrice) }}</dd></div>
+          <div v-if="sale.exchangeRateLabel"><dt>Tasa</dt><dd>{{ sale.exchangeRateLabel }} <small class="pos-muted">({{ sale.exchangeRateSourceLabel.toLowerCase() }})</small></dd></div>
           <div><dt>Pago</dt><dd>{{ paymentMethodLabel }}</dd></div>
           <div v-if="sale.requiresReceipt"><dt>Comprobante</dt><dd>{{ sale.receiptNumber }}</dd></div>
           <div><dt>Tu comisión</dt><dd class="bcp-confirm__earn">{{ sale.currencySymbol }} {{ money(sale.sellerCommission) }}</dd></div>

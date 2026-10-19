@@ -11,6 +11,8 @@ export interface CardPriceResponse {
     card_price: number
     currency_symbol: string
     exchange_rate: number
+    /** usd = sin conversión; own = tasa propia del dueño de la sala; official = la de la plataforma. */
+    exchange_rate_source?: 'usd' | 'own' | 'official'
     is_custom_price: boolean
     /** Porcentaje de comisión del vendedor autenticado (ej: 5.00 = 5%). */
     seller_commission: number
@@ -83,6 +85,8 @@ export interface PosSale {
     card_count: number
     amount: number
     currency_symbol: string
+    /** Tasa con la que se cobró (1 USD = X); null en USD. */
+    exchange_rate: number | null
     receipt: string | null
     created_at: string | null
 }

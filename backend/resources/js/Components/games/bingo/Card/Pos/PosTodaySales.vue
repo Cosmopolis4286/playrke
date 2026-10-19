@@ -88,6 +88,7 @@ async function copyLink(sale: PosSale): Promise<void> {
           <span class="pos-muted">
             {{ s.card_count }} {{ s.card_count === 1 ? 'cartón' : 'cartones' }} · {{ s.room_code }} ·
             <span class="pos-money">{{ s.currency_symbol }} {{ money(s.amount) }}</span>
+            <template v-if="s.exchange_rate"> · <span class="pos-money" title="Tasa con la que se cobró">tasa {{ money(s.exchange_rate) }}</span></template>
           </span>
         </span>
         <span class="pos-pill" :class="`pos-pill--${STATUS[s.status]?.tone ?? 'muted'}`" :title="s.receipt ? `Comprobante ${s.receipt}` : undefined">

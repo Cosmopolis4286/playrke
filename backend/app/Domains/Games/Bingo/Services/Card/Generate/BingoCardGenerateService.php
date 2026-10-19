@@ -339,6 +339,7 @@ final class BingoCardGenerateService
      *     card_price: float,
      *     currency_symbol: string,
      *     exchange_rate: float,
+     *     exchange_rate_source: string,
      *     is_custom_price: bool,
      *     seller_commission: float
      * }
@@ -360,6 +361,7 @@ final class BingoCardGenerateService
                 'card_price'        => (float) $cardPrice,
                 'currency_symbol'   => (string) ($currencySymbol ?? 'USD'),
                 'exchange_rate'     => 1.0,
+                'exchange_rate_source' => 'usd',
                 'is_custom_price'   => false,
                 'seller_commission' => 0.0,
             ];
@@ -398,6 +400,9 @@ final class BingoCardGenerateService
             'card_price'        => $price['card_price'],
             'currency_symbol'   => (string) ($currencySymbol ?? ''),
             'exchange_rate'     => $exchangeRate,
+            // De dónde sale la tasa: para que el punto de venta muestre
+            // "1 USD = X (tasa propia / oficial)" — ver saleExchangeRateSource().
+            'exchange_rate_source' => $this->saleExchangeRateSource($currencyId, $creatorUserId),
             'is_custom_price'   => $price['is_custom_price'],
             'seller_commission' => $commission,
         ];
@@ -414,6 +419,19 @@ final class BingoCardGenerateService
      * generate() usaba la del comercio redondeada: si el comercio tenía tasa
      * propia, el precio que veía el vendedor no era el que se registraba.
      */
+    /**
+     * 'usd' (moneda base, sin conversión), 'own' (tasa propia del dueño de la
+     * sala) u 'official' (la de la plataforma) — mismo criterio que saleExchangeRate().
+     */
+    private function saleExchangeRateSource(int|string $currencyId, int|string $rateOwnerUserId): string
+    {
+        if ((string) $currencyId === (string) \App\Models\Currency::usdId()) {
+            return 'usd';
+        }
+
+        return $this->exchangeRateDomain->ownRate($currencyId, $rateOwnerUserId) !== null ? 'own' : 'official';
+    }
+
     private function saleExchangeRate(int|string $currencyId, int|string $rateOwnerUserId): float
     {
         return round(
