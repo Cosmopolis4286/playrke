@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BaseTable">
-  import { computed } from 'vue'
+  import { computed, onBeforeUnmount, ref } from 'vue'
   import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { TableSortState } from '@/js/composables/common/table/useTableFiltering'
 
@@ -198,6 +198,65 @@
    * comparando contra la página actual, y borraría la selección de otras
    * páginas cada vez que el usuario simplemente navega — por eso no vive acá.
    */
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * Popovers de celdas HTML (ej. info del estado de sala, ver
+   * BingoRoom::getStatusBadgeAttribute): el panel viene dentro de la celda,
+   * pero .table-responsive tiene overflow-x:auto y eso fuerza overflow-y:auto
+   * (CSS), así que un popover absoluto generaba scroll vertical dentro de la
+   * tabla. Se muestra una copia en una capa position:fixed fuera de la tabla
+   * (Teleport a body), ubicada junto al ícono; el panel original queda oculto.
+   * Hover/focus en escritorio, toque en móvil.
+   * ───────────────────────────────────────────────────────────────────────── */
+  const floating = ref<{ html: string; top: number; left: number; above: boolean } | null>(null)
+  let floatingAnchor: HTMLElement | null = null
+
+  function infoAnchor(target: EventTarget | null): HTMLElement | null {
+    return (target as HTMLElement | null)?.closest?.('.room-status-chip__info') ?? null
+  }
+
+  function showFloating(anchor: HTMLElement): void {
+    const panel = anchor.querySelector('.room-status-popover')
+    if (!panel) return
+    const rect = anchor.getBoundingClientRect()
+    // Abre hacia abajo salvo que no quepa (fila cerca del borde inferior).
+    const above = window.innerHeight - rect.bottom < 140
+    const left = Math.min(Math.max(rect.left + rect.width / 2, 130), window.innerWidth - 130)
+    floatingAnchor = anchor
+    floating.value = { html: panel.innerHTML, top: above ? rect.top - 8 : rect.bottom + 8, left, above }
+  }
+
+  function hideFloating(): void {
+    floating.value = null
+    floatingAnchor = null
+  }
+
+  function onCellOver(e: Event): void {
+    const anchor = infoAnchor(e.target)
+    if (anchor && anchor !== floatingAnchor) showFloating(anchor)
+  }
+
+  function onCellOut(e: MouseEvent | FocusEvent): void {
+    const anchor = infoAnchor(e.target)
+    if (anchor && !anchor.contains(e.relatedTarget as Node | null)) hideFloating()
+  }
+
+  function onCellClick(e: Event): void {
+    const anchor = infoAnchor(e.target)
+    if (!anchor) return
+    e.stopPropagation()
+    if (floatingAnchor === anchor) hideFloating()
+    else showFloating(anchor)
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('scroll', hideFloating, true)
+    window.addEventListener('resize', hideFloating)
+  }
+  onBeforeUnmount(() => {
+    window.removeEventListener('scroll', hideFloating, true)
+    window.removeEventListener('resize', hideFloating)
+  })
 </script>
 
 <template>
@@ -216,7 +275,14 @@
       </button>
     </div>
 
-    <div class="table-responsive mt-2">
+    <div
+      class="table-responsive mt-2"
+      @mouseover="onCellOver"
+      @mouseout="onCellOut"
+      @focusin="onCellOver"
+      @focusout="onCellOut"
+      @click="onCellClick"
+    >
       <table :id="tableId" class="table-striped table-bordered w-100 my-2 table">
         <thead>
           <tr>
@@ -288,6 +354,17 @@
         </tbody>
       </table>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="floating"
+        class="table-floating-popover"
+        :class="{ 'table-floating-popover--above': floating.above }"
+        :style="{ top: `${floating.top}px`, left: `${floating.left}px` }"
+        role="tooltip"
+        v-html="floating.html"
+      ></div>
+    </Teleport>
   </div>
 </template>
 
@@ -521,25 +598,25 @@
     white-space: normal;
   }
 
-  :deep(.room-status-chip__info:hover .room-status-popover),
-  :deep(.room-status-chip__info:focus-visible .room-status-popover) {
-    display: block;
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  /* El panel de la celda nunca se muestra en sitio: se copia a la capa
+     flotante (.table-floating-popover, fuera de la tabla). */
 
-  /* Flecha apuntando hacia arriba, hacia el ícono */
-  :deep(.room-status-popover)::after {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
+  :global(.table-floating-popover) {
+    position: fixed;
+    z-index: 1080;
     transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-bottom-color: var(--ds-surface);
+    min-width: 220px;
+    max-width: calc(100vw - 16px);
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.5rem;
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
   }
+  :global(.table-floating-popover--above) { transform: translate(-50%, -100%); }
 
-  :deep(.room-status-popover__row) {
+  :global(.room-status-popover__row) {
     display: flex;
     justify-content: space-between;
     gap: 0.75rem;
@@ -548,16 +625,16 @@
     white-space: nowrap;
   }
 
-  :deep(.room-status-popover__row + .room-status-popover__row) {
+  :global(.room-status-popover__row + .room-status-popover__row) {
     border-top: 1px solid var(--ds-border);
   }
 
-  :deep(.room-status-popover__label) {
+  :global(.room-status-popover__label) {
     color: var(--ds-text-muted);
     font-weight: 500;
   }
 
-  :deep(.room-status-popover__value) {
+  :global(.room-status-popover__value) {
     color: var(--ds-text);
     font-weight: 600;
     text-align: right;

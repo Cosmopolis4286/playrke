@@ -691,7 +691,7 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 .room-kpis :deep(.stat-tile) { padding: 0.55rem 0.75rem; }
 .room-kpis :deep(.stat-tile-icon) { width: 32px; height: 32px; }
