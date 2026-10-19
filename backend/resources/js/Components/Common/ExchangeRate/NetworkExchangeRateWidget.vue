@@ -132,6 +132,13 @@
                 ({{ signed(rate.deviation_pct) }})
               </span>
             </span>
+            <span
+              v-if="data.can_manage && rate.allowed_range"
+              class="ner-range"
+              :title="`Tope del administrador: ±${rate.allowed_range.max_pct}% de la oficial`"
+            >
+              <i class="fas fa-arrows-left-right-to-line mr-1"></i>Permitido {{ rate.symbol }} {{ formatRate(rate.allowed_range.min) }} – {{ formatRate(rate.allowed_range.max) }}
+            </span>
             <span class="ner-updated">
               <RelativeTime :value="updatedAt(rate)" />
               <i v-if="rate.source === 'official' && rate.official?.source === 'system'" class="fas fa-robot ml-1" title="Actualización automática"></i>
@@ -176,6 +183,7 @@
 .ner-trend--up { color: #dc2626; }
 .ner-trend--down { color: #16a34a; }
 .ner-updated { display: inline-flex; align-items: center; }
+.ner-range { white-space: nowrap; }
 
 .ner-item__spark { width: 110px; flex-shrink: 0; }
 @media (max-width: 576px) {

@@ -41,6 +41,7 @@ final class ExchangeRateCrudService
         private readonly AdminExchangeRateRepositoryInterface $admin,
         private readonly RoleUserService $roleUserService,
         private readonly RoleEntityResolver $roleEntityResolver,
+        private readonly ExchangeRateDeviationCap $deviationCap,
     ) {}
 
     /**
@@ -69,6 +70,11 @@ final class ExchangeRateCrudService
             $this->forgetActiveRateCache($dto->currencyId);
 
             return $result;
+        }
+
+        // Tasa propia: dentro del tope de desvío vs. la oficial (si el admin lo fijó).
+        if ($dto->status === 'ACTIVE') {
+            $this->deviationCap->assert($dto->currencyId, $dto->amount);
         }
 
         $model = $repo->getModel();
@@ -173,6 +179,10 @@ final class ExchangeRateCrudService
             return $result;
         }
 
+        if ($dto->status === 'ACTIVE') {
+            $this->deviationCap->assert($dto->currencyId, $dto->amount);
+        }
+
         $result = DB::transaction(function () use ($repo, $dto) {
             $oldAmount = $repo->getValueById($dto->id, 'amount');
 
@@ -244,6 +254,12 @@ final class ExchangeRateCrudService
         [$repo, $role] = $this->resolveContext($userId);
 
         $model = $repo->findOrFail($id);
+
+        // Activar una tasa propia que hoy queda fuera del tope tampoco se permite.
+        if (!in_array($role, ['admin', 'superadmin', 'treasurer'], true) && $model->status !== 'ACTIVE') {
+            $this->deviationCap->assert($model->currency_id, (float) $model->amount);
+        }
+
         $result = $repo->toggleStatus($model);
 
         $this->forgetActiveRateCache($model->currency_id);

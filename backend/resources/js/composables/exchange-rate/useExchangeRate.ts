@@ -260,8 +260,12 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         try {
             await backendClient.put(`/exchange-rate/${id}/status`)
             return true
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error cambiando estado:', error)
+            // Activar una tasa propia fuera del tope de desvío: explicar el rango permitido.
+            if (error?.response?.data?.error_code === 'EXCHANGE_RATE_DEVIATION_EXCEEDED') {
+                showToast(error.response.data.message, 'error')
+            }
             return false
         }
     }

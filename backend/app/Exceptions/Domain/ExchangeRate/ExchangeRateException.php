@@ -64,4 +64,19 @@ final class ExchangeRateException extends DomainException
     {
         return new self("Tasa con ID {$exchangeRateId} no encontrada", 404);
     }
+
+    /**
+     * ExchangeRateDeviationCap: la tasa propia se aleja de la oficial más de
+     * lo que permite el admin (exchange_rate_max_deviation_pct).
+     */
+    public static function deviationExceeded(string $currency, float $maxPct, string $official, string $min, string $max): self
+    {
+        return new self('EXCHANGE_RATE_DEVIATION_EXCEEDED', 422, replacements: [
+            'currency' => $currency,
+            'max_pct'  => rtrim(rtrim(number_format($maxPct, 2, ',', '.'), '0'), ','),
+            'official' => $official,
+            'min'      => $min,
+            'max'      => $max,
+        ]);
+    }
 }

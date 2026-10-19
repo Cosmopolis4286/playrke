@@ -32,6 +32,8 @@ export interface NetworkExchangeRate {
     deviation_alert: boolean
     /** La tasa propia lleva más del umbral de horas sin actualizarse. */
     stale: boolean
+    /** Rango permitido para la tasa propia (tope del admin); null sin tope. */
+    allowed_range: { min: number; max: number; official: number; max_pct: number } | null
 }
 
 export interface NetworkExchangeRateData {

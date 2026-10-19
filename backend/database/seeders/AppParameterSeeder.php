@@ -133,6 +133,9 @@ class AppParameterSeeder extends Seeder
             ['param' => 'exchange_alert_change_pct',    'value' => '3',  'status' => 'ACTIVE'],
             ['param' => 'exchange_alert_stale_hours',   'value' => '24', 'status' => 'ACTIVE'],
             ['param' => 'exchange_alert_deviation_pct', 'value' => '10', 'status' => 'ACTIVE'],
+            // Tope de desvío (%) de las tasas propias vs. la oficial: no se pueden
+            // guardar/activar fuera de ese rango (ExchangeRateDeviationCap). 0 = sin tope.
+            ['param' => 'exchange_rate_max_deviation_pct', 'value' => '0', 'status' => 'ACTIVE'],
 
         ];
 

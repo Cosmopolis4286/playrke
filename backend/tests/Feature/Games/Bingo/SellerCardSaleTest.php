@@ -1514,4 +1514,75 @@ class SellerCardSaleTest extends TestCase
         $this->assertTrue($rate['stale']);
         $this->assertTrue($rate['deviation_alert']);
     }
+
+    // ─── Tope de desvío de tasas propias ─────────────────────────────────────
+
+    private function setMaxDeviation(string $pct): void
+    {
+        \App\Models\AppParameter::updateOrCreate(
+            ['param' => 'exchange_rate_max_deviation_pct'],
+            ['value' => $pct, 'status' => 'ACTIVE'],
+        );
+        Cache::flush();
+    }
+
+    private function commerceOwnRate(): float
+    {
+        return (float) DB::table('commerces_exchange_rates')
+            ->where('commerce_id', Commerce::where('user_id', $this->commerceC->id)->value('id'))
+            ->where('status', 'ACTIVE')->orderByDesc('updated_at')->value('amount');
+    }
+
+    /** @test */
+    public function own_rate_outside_the_admin_deviation_cap_cannot_be_saved(): void
+    {
+        $this->officialRate(2.0);
+        $this->setMaxDeviation('20'); // permitido 1,60 – 2,40
+
+        $crud = app(\App\Services\ExchangeRate\ExchangeRateCrudService::class);
+        $dto  = fn (float $amount) => new \App\DTOs\ExchangeRate\ExchangeRateDTO(null, (int) $this->currency->id, $amount, 'ACTIVE');
+
+        try {
+            $crud->create($dto(2.6), (int) $this->commerceD->id);
+            $this->fail('Una tasa +30 % sobre la oficial debía rechazarse.');
+        } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException $e) {
+            $this->assertSame('EXCHANGE_RATE_DEVIATION_EXCEEDED', $e->errorCode());
+        }
+
+        $this->assertTrue($crud->create($dto(2.3), (int) $this->commerceD->id));
+
+        $rate = $this->networkRate($this->commerceD);
+        $this->assertEqualsWithDelta(1.6, $rate['allowed_range']['min'], 0.0001);
+        $this->assertEqualsWithDelta(2.4, $rate['allowed_range']['max'], 0.0001);
+    }
+
+    /** @test */
+    public function automatic_update_skips_own_rates_outside_the_cap(): void
+    {
+        $this->officialRate(2.0);
+        $this->setMaxDeviation('20');
+
+        $updater    = app(\App\Services\ExchangeRate\ExchangeRateUpdaterService::class);
+        $commerceId = Commerce::where('user_id', $this->commerceC->id)->value('id');
+
+        $updater->updateForRole('commerce', $commerceId, [$this->currency->iso_code => 3.0]);
+        $this->assertEqualsWithDelta(self::COMMERCE_RATE, $this->commerceOwnRate(), 0.0001, 'Fuera del tope: se conserva la anterior.');
+
+        $updater->updateForRole('commerce', $commerceId, [$this->currency->iso_code => 2.2]);
+        $this->assertEqualsWithDelta(2.2, $this->commerceOwnRate(), 0.0001);
+    }
+
+    /** @test */
+    public function without_cap_any_own_rate_is_allowed(): void
+    {
+        $this->officialRate(2.0);
+        $this->setMaxDeviation('0');
+
+        $crud = app(\App\Services\ExchangeRate\ExchangeRateCrudService::class);
+        $this->assertTrue($crud->create(
+            new \App\DTOs\ExchangeRate\ExchangeRateDTO(null, (int) $this->currency->id, 5.0, 'ACTIVE'),
+            (int) $this->commerceD->id,
+        ));
+        $this->assertNull($this->networkRate($this->commerceD)['allowed_range']);
+    }
 }

@@ -24,6 +24,7 @@ final class ExchangeRateUpdaterService
         protected readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRateRepository,
         protected readonly CustomerExchangeRateRepositoryInterface $customerExchangeRateRepository,
         protected readonly CurrencyRepositoryInterface $currencyRepository,
+        protected readonly ExchangeRateDeviationCap $deviationCap,
     ) {}
 
     /**
@@ -131,6 +132,15 @@ final class ExchangeRateUpdaterService
                 // uno silenciosamente equivocado.
                 $repository->updateOrCreateExchangeRate($currencyId, $newRate, $percentageChange, $userId, $source);
             } else {
+                // Tasa propia fuera del tope de desvío vs. la oficial: no se
+                // aplica (queda la anterior; ExchangeRateAlertService avisará
+                // si se desactualiza).
+                if (!$this->deviationCap->allows($currencyId, (float) $newRate)) {
+                    \Illuminate\Support\Facades\Log::warning('[ExchangeRateUpdater] Tasa propia omitida: supera el tope de desvío', [
+                        'role' => $role, 'entity_id' => (string) $entityId, 'currency_id' => (string) $currencyId, 'rate' => $newRate,
+                    ]);
+                    continue;
+                }
                 $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
             }
         }

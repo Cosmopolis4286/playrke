@@ -39,6 +39,7 @@ final class NetworkExchangeRateService
 
     public function __construct(
         private readonly RoleUserService $roleUserService,
+        private readonly ExchangeRateDeviationCap $deviationCap,
     ) {}
 
     /**
@@ -123,6 +124,8 @@ final class NetworkExchangeRateService
             'deviation_alert' => $deviation !== null && abs($deviation) >= ExchangeRateAlertSettings::deviationPct(),
             'stale'           => $useOwn && $own->updated_at
                 && $own->updated_at->lt(now()->subHours(ExchangeRateAlertSettings::staleHours())),
+            // Rango permitido para la tasa propia (tope del admin), o null sin tope.
+            'allowed_range'   => $this->deviationCap->range($currencyId),
         ];
     }
 
