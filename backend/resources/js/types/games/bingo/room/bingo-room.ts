@@ -121,6 +121,11 @@ export interface BingoRoom {
 
     // Resuelto en el resource: si el usuario autenticado puede activar manualmente esta sala
     readonly can_activate_now?: boolean
+
+    /** Bitácora de la sala (bingo_room_audits), más reciente primero — modal de detalles. */
+    readonly timeline?: BingoRoomTimelineEntry[]
+    /** Solo salas canceladas: cuándo, quién, motivo y estado de reembolsos. */
+    readonly cancellation?: BingoRoomCancellation | null
     /** Código del tipo de sala (fila del listado de gestión) */
     readonly room_type_code?: BingoRoomType | null
     /** true si es VIP y quien mira puede gestionar su lista de invitados (creador o admin) */
@@ -341,4 +346,25 @@ export interface BingoRoomFormData {
     // backend nunca reenvía el hash) — null = no modificar la contraseña actual.
     roomPassword?: string | null
     hostUserId?: string | number | null
+}
+
+export interface BingoRoomTimelineEntry {
+    readonly id: string
+    readonly event: string
+    readonly label: string
+    readonly description: string | null
+    readonly actor: string | null
+    readonly created_at: string | null
+}
+
+export interface BingoRoomCancellation {
+    readonly at: string | null
+    readonly by: string | null
+    readonly reason: string | null
+    readonly refunded_lots: number
+    readonly refunded_cards: number
+    /** Lotes aún sin reembolsar (siguen ACTIVE). */
+    readonly pending_lots: number
+    readonly failed_pending: number
+    readonly failed_abandoned: number
 }

@@ -6,6 +6,7 @@ defineProps<{
   room: BingoRoom
   roomTypeOptions: { value: string; label: string }[]
   connectionTypeOptions: { value: string; label: string }[]
+  gameModeOptions?: { value: string; label: string }[]
   prizePoolTypeOptions: { value: string; code: string; label: string }[]
   startModeLabel: string
   scheduleInfo: string
@@ -22,7 +23,11 @@ defineProps<{
       </div>
       <div class="detail-item">
         <span class="detail-label">Tipo de Conexión</span>
-        <span class="detail-value">{{ resolveOption(connectionTypeOptions, room.config?.game_mode_id) }}</span>
+        <span class="detail-value">{{ resolveOption(connectionTypeOptions, room.config?.connection_type_id) }}</span>
+      </div>
+      <div v-if="room.config?.game_mode_id && gameModeOptions?.length" class="detail-item">
+        <span class="detail-label">Modo de Juego</span>
+        <span class="detail-value">{{ resolveOption(gameModeOptions, room.config?.game_mode_id) }}</span>
       </div>
       <div class="detail-item">
         <span class="detail-label">Variante</span>
@@ -47,10 +52,6 @@ defineProps<{
       <div class="detail-item">
         <span class="detail-label">Rondas</span>
         <span class="detail-value">{{ fmt.number(room.config?.rounds) }}</span>
-      </div>
-      <div v-if="room.config?.min_cards_to_start" class="detail-item highlight-yellow">
-        <span class="detail-label">Min. Cartones para Iniciar</span>
-        <span class="detail-value font-weight-bold">{{ fmt.number(room.config?.min_cards_to_start) }}</span>
       </div>
     </div>
   </div>

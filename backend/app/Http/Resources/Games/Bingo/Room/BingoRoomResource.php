@@ -19,6 +19,7 @@ class BingoRoomResource extends JsonResource
 
         return [
             'id'                 => $this->hashed_id,
+            'uuid_code'          => $this->uuid_code,
             'status'             => $this->status->code,
             'can_activate_now'   => $this->resolveCanActivateNow($request, $config, $userId),
             'paid_prizes'        => $this->paid_prizes,
@@ -41,6 +42,11 @@ class BingoRoomResource extends JsonResource
             'last_deactivated_by' => $this->resolveLastStatusChange('INACTIVE'),
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
+
+            // Modal de detalles: bitácora de la sala y, si se canceló, el
+            // motivo y el estado de los reembolsos.
+            'timeline'           => $this->resolveTimeline(),
+            'cancellation'       => $this->resolveCancellation(),
 
             // Monedas con al menos un cartón vendido (BingoCardLot ACTIVE) — el formulario de
             // edición las usa para advertir/impedir que se quiten de "monedas permitidas".
@@ -240,6 +246,91 @@ class BingoRoomResource extends JsonResource
             'user_id'  => $audit->user_id,
             'username' => $audit->user?->username,
             'at'       => $audit->created_at?->toISOString(),
+        ];
+    }
+
+    /** Eventos de la bitácora de la sala más recientes primero (bingo_room_audits). */
+    private const TIMELINE_LABELS = [
+        BingoRoomAuditLogger::EVENT_STATUS_CHANGED          => 'Cambio de estado',
+        BingoRoomAuditLogger::EVENT_CANCELLED               => 'Sala cancelada',
+        BingoRoomAuditLogger::EVENT_REFUND_INITIATED        => 'Reembolso iniciado',
+        BingoRoomAuditLogger::EVENT_REFUND_COMPLETED        => 'Reembolso acreditado',
+        BingoRoomAuditLogger::EVENT_REFUND_FAILED           => 'Reembolso fallido',
+        BingoRoomAuditLogger::EVENT_DRAW_STARTED            => 'Sorteo iniciado',
+        BingoRoomAuditLogger::EVENT_DRAW_FINISHED           => 'Sorteo finalizado',
+        BingoRoomAuditLogger::EVENT_WINNER_DECLARED         => 'Ganador declarado',
+        BingoRoomAuditLogger::EVENT_CREATED_UNSCHEDULED     => 'Creada sin horario',
+        BingoRoomAuditLogger::EVENT_MANUALLY_ACTIVATED      => 'Iniciada manualmente',
+        BingoRoomAuditLogger::EVENT_START_MODE_CHANGED      => 'Cambio de modo de inicio',
+        BingoRoomAuditLogger::EVENT_PRIZE_CREATED           => 'Premio registrado',
+        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_COMPLETED => 'Premio pagado',
+        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_FAILED    => 'Pago de premio fallido',
+        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_SUSPENDED => 'Pago de premio suspendido',
+    ];
+
+    private const TIMELINE_LIMIT = 30;
+
+    /** @return array<int, array<string, mixed>> */
+    private function resolveTimeline(): array
+    {
+        return BingoRoomAudit::where('room_id', $this->id)
+            ->with('user:id,username')
+            ->latest('created_at')
+            ->limit(self::TIMELINE_LIMIT)
+            ->get(['id', 'room_id', 'user_id', 'event', 'actor_role', 'description', 'created_at'])
+            ->map(fn (BingoRoomAudit $a) => [
+                'id'          => (string) $a->id,
+                'event'       => $a->event,
+                'label'       => self::TIMELINE_LABELS[$a->event] ?? $a->event,
+                'description' => $a->description ?: null,
+                'actor'       => $a->user?->username ?? ($a->actor_role === 'system' ? 'Sistema' : $a->actor_role),
+                'created_at'  => $a->created_at?->toISOString(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Sala cancelada: cuándo, por quién, motivo, y cómo van los reembolsos
+     * de sus lotes (REFUNDED vs. aún activos) y los que fallaron.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveCancellation(): ?array
+    {
+        if (!in_array($this->status?->code, ['CANCELLED', 'REFUND'], true)) {
+            return null;
+        }
+
+        $event = BingoRoomAudit::where('room_id', $this->id)
+            ->where('event', BingoRoomAuditLogger::EVENT_CANCELLED)
+            ->with('user:id,username')
+            ->latest('created_at')
+            ->first();
+
+        $lots = \App\Domains\Games\Bingo\Models\Card\BingoCardLot::where('room_id', $this->id)
+            ->whereIn('status', ['ACTIVE', 'REFUNDED'])
+            ->selectRaw('status, COUNT(*) AS lots, COALESCE(SUM(card_count), 0) AS cards')
+            ->groupBy('status')
+            ->toBase()
+            ->get()
+            ->keyBy('status');
+
+        $failures = \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::where('room_id', $this->id)
+            ->whereIn('status', ['PENDING', 'ABANDONED'])
+            ->selectRaw("SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'ABANDONED' THEN 1 ELSE 0 END) AS abandoned")
+            ->toBase()
+            ->first();
+
+        return [
+            'at'               => $event?->created_at?->toISOString() ?? $this->updated_at?->toISOString(),
+            'by'               => $event?->user?->username ?? ($event?->actor_role === 'system' ? 'Sistema' : $event?->actor_role),
+            'reason'           => $event?->description ?: null,
+            'refunded_lots'    => (int) ($lots->get('REFUNDED')->lots ?? 0),
+            'refunded_cards'   => (int) ($lots->get('REFUNDED')->cards ?? 0),
+            'pending_lots'     => (int) ($lots->get('ACTIVE')->lots ?? 0),
+            'failed_pending'   => (int) ($failures->pending ?? 0),
+            'failed_abandoned' => (int) ($failures->abandoned ?? 0),
         ];
     }
 }

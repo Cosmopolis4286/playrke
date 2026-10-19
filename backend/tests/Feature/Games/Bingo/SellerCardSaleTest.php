@@ -1585,4 +1585,49 @@ class SellerCardSaleTest extends TestCase
         ));
         $this->assertNull($this->networkRate($this->commerceD)['allowed_range']);
     }
+
+    // ─── Gestión de salas: detalles y KPIs ───────────────────────────────────
+
+    /** @test */
+    public function cancelled_room_details_include_reason_refunds_and_timeline(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        if (!GameStatus::where('code', 'CANCELLED')->exists()) {
+            GameStatus::create(['code' => 'CANCELLED', 'label' => 'CANCELLED']);
+            GameStatus::forgetCache();
+        }
+        DB::table('bingo_rooms')->where('id', $this->roomR1->id)->update(['status_id' => GameStatus::codeToId('CANCELLED')]);
+        app(\App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger::class)->log(
+            $this->roomR1->fresh(),
+            \App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger::EVENT_CANCELLED,
+            'system',
+            'No alcanzó el mínimo de cartones',
+        );
+
+        $details = $this->actingAs($this->commerceC)
+            ->getJson('/bingo-rooms/' . $this->roomR1->getRouteKey() . '/show')
+            ->assertOk();
+
+        $this->assertSame($this->roomR1->uuid_code, $details->json('data.uuid_code'));
+        $this->assertSame('No alcanzó el mínimo de cartones', $details->json('data.cancellation.reason'));
+        $this->assertSame('Sistema', $details->json('data.cancellation.by'));
+        // La venta aún no se reembolsó (el job está en cola): queda pendiente.
+        $this->assertSame(1, $details->json('data.cancellation.pending_lots'));
+        $this->assertSame('Sala cancelada', $details->json('data.timeline.0.label'));
+    }
+
+    /** @test */
+    public function room_summary_page_includes_status_counts_of_own_rooms(): void
+    {
+        DB::table('bingo_rooms_config')->where('room_id', $this->roomR1->id)->update(['date' => now()->toDateString()]);
+
+        $this->actingAs($this->commerceC)
+            ->get('/bingo-rooms', ['X-Inertia' => 'true', 'X-Inertia-Version' => \Inertia\Inertia::getVersion()])
+            ->assertOk()
+            ->assertJsonPath('props.statusCounts.total', 1)
+            ->assertJsonPath('props.statusCounts.active', 1)
+            ->assertJsonPath('props.statusCounts.today', 1);
+    }
 }

@@ -22,4 +22,14 @@ export interface BingoRoomSummaryPageProps {
     bingoPatterns?: { id: string | number; name: string }[]
     /** Catálogo de comercializadoras — solo poblado para admin/superadmin, ver BingoRoomContextService::summaryGameRooms(). */
     commerces?: { id: string | number; name: string }[]
+    /** KPIs por estado (BingoRoomContextService::statusCounts). */
+    statusCounts?: {
+        total: number
+        active: number
+        today: number
+        in_progress: number
+        finished: number
+        cancelled: number
+        inactive: number
+    }
 }

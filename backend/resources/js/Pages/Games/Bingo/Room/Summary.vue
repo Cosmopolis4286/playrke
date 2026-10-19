@@ -14,6 +14,7 @@
   import BingoRoomDetails from '@/js/Components/games/bingo/Room/BingoRoomDetails.vue'
   import BingoRoomActivateModal from '@/js/Components/games/bingo/Room/BingoRoomActivateModal.vue'
   import BingoRoomInvitationsModal from '@/js/Components/games/bingo/Room/BingoRoomInvitationsModal.vue'
+  import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
 
   // ==========================================================================
   // Composables
@@ -407,6 +408,15 @@
 </script>
 
 <template>
+  <!-- KPIs por estado (todas las salas que ve el usuario, sin filtros) -->
+  <div v-if="props.statusCounts?.total" class="room-kpis">
+    <StatTile label="Disponibles" :value="props.statusCounts.active" icon="fa-door-open" variant="success" />
+    <StatTile label="Inician hoy" :value="props.statusCounts.today" icon="fa-calendar-day" :variant="props.statusCounts.today ? 'info' : 'default'" />
+    <StatTile label="En juego" :value="props.statusCounts.in_progress" icon="fa-circle-play" :variant="props.statusCounts.in_progress ? 'warning' : 'default'" />
+    <StatTile label="Finalizadas" :value="props.statusCounts.finished" icon="fa-flag-checkered" />
+    <StatTile label="Canceladas" :value="props.statusCounts.cancelled" icon="fa-ban" :variant="props.statusCounts.cancelled ? 'danger' : 'default'" />
+  </div>
+
   <TableWithFilterBridge
     tableId="bingo-room-table"
     :title="props.title"
@@ -589,6 +599,7 @@
       :room="selectedRoomDetails"
       :room-type-options="roomTypeOptions"
       :connection-type-options="connectionTypeOptions"
+      :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :jackpot-type-options="jackpotTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
@@ -675,6 +686,18 @@
   .brf__actions { flex-direction: column; align-items: stretch; }
   .brf__btn { width: 100%; justify-content: center; }
 }
+
+.room-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.room-kpis :deep(.stat-tile) { padding: 0.55rem 0.75rem; }
+.room-kpis :deep(.stat-tile-icon) { width: 32px; height: 32px; }
+.room-kpis :deep(.stat-tile-value) { font-size: 1.1rem; }
+@media (max-width: 992px) { .room-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 576px) { .room-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .room-date-range {
   display: inline-flex;

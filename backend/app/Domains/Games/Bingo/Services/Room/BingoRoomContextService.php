@@ -425,6 +425,41 @@ final class BingoRoomContextService
     }
 
     /**
+     * Conteo por estado de las salas que ve el usuario (mismo criterio de
+     * visibilidad que el listado) + cuántas activas inician hoy — KPIs de
+     * la cabecera de Room/Summary.
+     *
+     * @return array{total: int, active: int, today: int, in_progress: int, finished: int, cancelled: int, inactive: int}
+     */
+    public function statusCounts(?int $userId): array
+    {
+        $base = $this->exportQuery($userId, [])->setEagerLoads([])->reorder();
+
+        $byStatus = (clone $base)
+            ->join('game_status as gs_count', 'gs_count.id', '=', 'bingo_rooms.status_id')
+            ->groupBy('gs_count.code')
+            ->selectRaw('gs_count.code AS code, COUNT(*) AS total')
+            ->toBase()
+            ->pluck('total', 'code')
+            ->map(fn ($n) => (int) $n);
+
+        $today = (clone $base)
+            ->whereHas('status', fn ($q) => $q->where('code', 'ACTIVE'))
+            ->whereHas('config', fn ($q) => $q->whereDate('date', now()->toDateString()))
+            ->count();
+
+        return [
+            'total'       => (int) $byStatus->sum(),
+            'active'      => $byStatus->get('ACTIVE', 0),
+            'today'       => $today,
+            'in_progress' => $byStatus->get('IN_PROGRESS', 0),
+            'finished'    => $byStatus->get('FINISHED', 0),
+            'cancelled'   => $byStatus->get('CANCELLED', 0) + $byStatus->get('REFUND', 0),
+            'inactive'    => $byStatus->get('INACTIVE', 0),
+        ];
+    }
+
+    /**
      * Query (sin paginar) del mismo conjunto de salas que ve el listado
      * Room/Summary bajo los mismos filtros — usado por BingoRoomController::
      * export() para el CSV completo, no solo la página visible. Mismo
@@ -647,6 +682,7 @@ final class BingoRoomContextService
             commerces: $isGlobalAdmin
                 ? \App\Models\Roles\Commerce::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name'])->toArray()
                 : [],
+            statusCounts: $this->statusCounts($userId),
         );
     }
 
