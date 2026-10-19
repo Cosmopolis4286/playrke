@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
 use App\Http\Controllers\Controller;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
+use App\Services\Roles\Dashboard\NetworkDashboardService;
 use App\Services\Roles\RoleUserService;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
@@ -36,6 +37,9 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  */
 final class BingoCardPaymentReviewController extends Controller
 {
+    /** Tope de pagos en la cola (se filtra y busca en el cliente). */
+    private const MAX_QUEUE = 500;
+
     public function __construct(
         private readonly BingoCardPaymentReviewService $reviewService,
         private readonly RoleUserService $roleUserService,
@@ -69,15 +73,20 @@ final class BingoCardPaymentReviewController extends Controller
      * Listado de pagos PENDING pendientes de revisión (cola de trabajo),
      * ordenado por urgencia: primero las salas que inician antes (las de
      * inicio manual, sin hora, al final) y dentro de cada una el más viejo.
+     *
+     * Va completa (hasta MAX_QUEUE) para que la tabla filtre y busque en el
+     * cliente: es una cola de trabajo, no un histórico.
      */
-    public function index(): Response
+    public function index(NetworkDashboardService $network): Response
     {
         $allowed = $this->reviewableSellerUserIds();
 
-        $paginator = BingoCardPayment::query()
-            ->select('bingo_card_payments.*')
+        $pending = fn () => BingoCardPayment::query()
             ->where('bingo_card_payments.payment_status', 'PENDING')
-            ->when($allowed !== null, fn ($q) => $q->whereIn('bingo_card_payments.seller_user_id', $allowed))
+            ->when($allowed !== null, fn ($q) => $q->whereIn('bingo_card_payments.seller_user_id', $allowed));
+
+        $items = $pending()
+            ->select('bingo_card_payments.*')
             ->leftJoin('bingo_rooms_config as rc', 'rc.room_id', '=', 'bingo_card_payments.room_id')
             ->orderByRaw('CASE WHEN rc.unix_date IS NULL THEN 1 ELSE 0 END')
             ->orderBy('rc.unix_date')
@@ -91,9 +100,8 @@ final class BingoCardPaymentReviewController extends Controller
                 'cardLot:id,card_count,commerce_id',
                 'currency',
             ])
-            ->paginate(20);
-
-        $items = collect($paginator->items());
+            ->limit(self::MAX_QUEUE)
+            ->get();
 
         // Vendedor → agencia/comercializadora, y regla de cada comercializadora.
         $sellers = Seller::whereIn('user_id', $items->pluck('seller_user_id')->filter()->unique())
@@ -152,7 +160,9 @@ final class BingoCardPaymentReviewController extends Controller
         // RetryFailedBingoRefundsCommand::notifyAbandonedRefund()). No hay
         // acción manual aquí: el comando programado (cada 5 min, ver
         // routes/console.php) sigue siendo el único mecanismo de reintento.
+        // Comercializadora: solo los de su red (el reembolso se acredita al vendedor).
         $refundFailures = BingoLotRefundFailure::whereIn('status', ['PENDING', 'ABANDONED'])
+            ->when($allowed !== null, fn ($q) => $q->whereIn('user_id', $allowed))
             ->with('room:id,uuid_code')
             ->latest('created_at')
             ->limit(50)
@@ -161,6 +171,7 @@ final class BingoCardPaymentReviewController extends Controller
                 'id'                => (string) $f->id,
                 'room_uuid_code'    => $f->room?->uuid_code,
                 'amount'            => (float) $f->amount,
+                'amount_label'      => $network->formatAmount($f->currency_id, (float) $f->amount),
                 'status'            => $f->status,
                 'attempts'          => $f->attempts,
                 'error_message'     => $f->error_message,
@@ -174,10 +185,11 @@ final class BingoCardPaymentReviewController extends Controller
             'refundFailures' => $refundFailures,
             // Regla editable solo por la comercializadora (la suya); admin ve la de cada fila.
             'policy'         => $this->ownCommerce()?->pending_payment_policy,
-            'meta'           => [
-                'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'total'        => $paginator->total(),
+            'summary'        => [
+                'total'     => $total = $pending()->count(),
+                // Moneda principal + "N más" (nunca se suman monedas distintas).
+                'amount'    => $network->currencySummary($pending(), 'payment_amount')['amount'],
+                'truncated' => $total > self::MAX_QUEUE,
             ],
         ]);
     }
