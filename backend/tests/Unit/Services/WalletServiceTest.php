@@ -216,6 +216,100 @@ class WalletServiceTest extends TestCase
         $this->assertSame(2.0, (float) $movement->metadata['balance_amount']);
     }
 
+    public function test_trivia_entry_with_same_idempotency_key_does_not_charge_twice(): void
+    {
+        $wallet = $this->makeWallet(balance: 50.0, bonusBalance: 8.0);
+        $key = 'trivia_entry:room-idempotent:user-idempotent';
+
+        $first = $this->service->recordTriviaEntry(
+            wallet: $wallet,
+            amount: 10.0,
+            idempotencyKey: $key,
+            roomId: 'room-idempotent',
+        );
+
+        $second = $this->service->recordTriviaEntry(
+            wallet: $wallet->fresh(),
+            amount: 10.0,
+            idempotencyKey: $key,
+            roomId: 'room-idempotent',
+        );
+
+        $this->assertSame((string) $first->id, (string) $second->id);
+        $this->assertSame(48.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(0.0, (float) $wallet->fresh()->bonus_balance);
+        $this->assertSame(
+            1,
+            WalletMovement::where('idempotency_key', $key)
+                ->where('type', WalletMovement::TYPE_TRIVIA_ENTRY)
+                ->count(),
+        );
+    }
+
+    public function test_trivia_entry_rejects_reusing_idempotency_key_with_different_amount(): void
+    {
+        $wallet = $this->makeWallet(balance: 50.0);
+        $key = 'trivia_entry:room-conflict:user-conflict';
+
+        $this->service->recordTriviaEntry(
+            wallet: $wallet,
+            amount: 10.0,
+            idempotencyKey: $key,
+            roomId: 'room-conflict',
+        );
+
+        try {
+            $this->service->recordTriviaEntry(
+                wallet: $wallet->fresh(),
+                amount: 12.0,
+                idempotencyKey: $key,
+                roomId: 'room-conflict',
+            );
+            $this->fail('Reusing an idempotency key with a different amount must fail.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('datos incompatibles', $exception->getMessage());
+        }
+
+        $this->assertSame(40.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(
+            1,
+            WalletMovement::where('idempotency_key', $key)->count(),
+        );
+    }
+
+    public function test_trivia_entry_rejects_reusing_idempotency_key_for_another_wallet(): void
+    {
+        $firstWallet = $this->makeWallet(balance: 50.0);
+        $secondWallet = $this->makeWallet(balance: 30.0);
+        $key = 'trivia_entry:room-owner:user-owner';
+
+        $this->service->recordTriviaEntry(
+            wallet: $firstWallet,
+            amount: 10.0,
+            idempotencyKey: $key,
+            roomId: 'room-owner',
+        );
+
+        try {
+            $this->service->recordTriviaEntry(
+                wallet: $secondWallet,
+                amount: 10.0,
+                idempotencyKey: $key,
+                roomId: 'room-owner',
+            );
+            $this->fail('An idempotency key must not be reusable by another wallet owner.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('datos incompatibles', $exception->getMessage());
+        }
+
+        $this->assertSame(40.0, (float) $firstWallet->fresh()->balance);
+        $this->assertSame(30.0, (float) $secondWallet->fresh()->balance);
+        $this->assertSame(
+            1,
+            WalletMovement::where('idempotency_key', $key)->count(),
+        );
+    }
+
     // ── requestWithdraw(): el bono nunca cubre un retiro ────────────────────
 
     public function test_withdraw_ignores_bonus_balance_and_fails_when_balance_insufficient(): void
