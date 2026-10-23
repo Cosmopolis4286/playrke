@@ -88,11 +88,33 @@ final class TriviaPowerUpController extends Controller
             return $this->handleSkip($gameId, $gameState->roomId, $userId, $questionId, $gameState->playerIds);
         }
 
+        // double_points y extra_time conceden un solo efecto por pregunta.
+        // Reservar la clave con SET NX evita gastar usos en requests repetidos
+        // que lleguen antes de que el jugador responda.
+        $reservedType = in_array($type, [TriviaPowerUpType::DOUBLE_POINTS, TriviaPowerUpType::EXTRA_TIME], true)
+            ? $type->value
+            : null;
+
+        if ($reservedType !== null && ! $this->powerUps->reserveActivation($gameId, $userId, $questionId, $reservedType)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este potenciador ya está activado para la pregunta actual.',
+            ], 409);
+        }
+
         try {
             $this->powerUps->consume($gameState->roomId, $userId, $type);
         } catch (DomainException $e) {
+            if ($reservedType !== null) {
+                $this->powerUps->releaseActivation($gameId, $userId, $questionId, $reservedType);
+            }
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
         } catch (RuntimeException $e) {
+            if ($reservedType !== null) {
+                $this->powerUps->releaseActivation($gameId, $userId, $questionId, $reservedType);
+            }
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
