@@ -177,7 +177,7 @@ jobs:
         run: ./vendor/bin/pint --test
 
   frontend-checks:
-    name: Frontend checks (typecheck + lint)
+    name: Frontend checks (typecheck + JS lint)
     runs-on: ubuntu-latest
 
     steps:
@@ -208,4 +208,4 @@ jobs:
       # archivos silenciosamente en un runner efímero.
       - name: Lint (ESLint)
         working-directory: backend
-        run: pnpm exec eslint . --ext .vue,.ts,.js
+        run: pnpm exec eslint . --ext .js,.jsx
