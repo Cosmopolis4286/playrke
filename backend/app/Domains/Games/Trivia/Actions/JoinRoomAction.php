@@ -12,9 +12,9 @@ use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Wallet\Services\WalletService;
 use App\Models\ExchangeRate;
 use App\Models\User;
+use App\Models\Games\Trivia\TriviaParticipant;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -102,17 +102,37 @@ class JoinRoomAction
             return $this->alreadyJoinedResponse($roomId, $playerId, $nickname);
         }
 
-        // Unir a sala en Redis (tiempo real)
+        // La inscripción ya quedó persistida. Redis/broadcast y notificaciones son
+        // efectos secundarios: si fallan, no deben convertir un join confirmado en
+        // un error de BD ni ocultar fallos de persistencia como si fueran éxito.
+        $realtimeWarning = null;
         $playerData['nickname'] = $nickname;
         $playerData['team_id'] = $teamId;
-        $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
 
-        // Obtener información actualizada de la sala
-        $room = $this->roomService->getRoom($roomId);
-        $players = $this->roomService->listPlayers($roomId);
+        try {
+            $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
+            $room = $this->roomService->getRoom($roomId);
+            $players = $this->roomService->listPlayers($roomId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                '[Trivia JoinRoomAction] Participant persisted but realtime sync failed.',
+                ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e]
+            );
 
-        // Crear notificación de inscripción
-        $this->createTriviaNotification($roomId, $playerId);
+            $player = ['id' => $playerId, 'name' => $nickname, 'roomId' => $roomId];
+            $room = null;
+            $players = [];
+            $realtimeWarning = 'Te uniste a la sala, pero la sincronización en tiempo real está retrasada.';
+        }
+
+        try {
+            $this->createTriviaNotification($roomId, $playerId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                '[Trivia JoinRoomAction] Registration notification failed.',
+                ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e]
+            );
+        }
 
         return [
             'player' => $player,
@@ -120,6 +140,7 @@ class JoinRoomAction
             'players' => $players,
             'already_joined' => false,
             'message' => 'Te has unido a la sala exitosamente',
+            'warning' => $realtimeWarning,
             'team_id' => $teamId,
         ];
     }
@@ -363,7 +384,7 @@ class JoinRoomAction
         $allowPowerups = (bool) (($room?->settings ?? [])['allow_powerups'] ?? false);
 
         DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
-            'id' => (string) Str::ulid(),
+            'id' => TriviaParticipant::generateSnowflakeId(),
             'room_id' => $roomId,
             'team_id' => $teamId,
             'user_id' => $playerId,

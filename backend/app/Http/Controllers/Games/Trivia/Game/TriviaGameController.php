@@ -83,6 +83,7 @@ final class TriviaGameController extends Controller
                     'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
                     'team_id'        => $result['team_id'] ?? null,
                     'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente.',
+                    'warning'        => $result['warning'] ?? null,
                 ])
                 : redirect()->route('trivia.room.wait', ['code' => $room->code]);
 
@@ -99,17 +100,20 @@ final class TriviaGameController extends Controller
                 : back()->with('error', $e->getMessage());
 
         } catch (\Throwable $e) {
-            // Broadcasting u otro error no crítico — el join en BD ya ocurrió
-            \Illuminate\Support\Facades\Log::warning('[TriviaGameController@join] ' . $e->getMessage());
+            // No asumir que la inscripción se guardó: errores de BD o de wallet
+            // deben fallar explícitamente. Fallos de Redis/broadcast tras persistir
+            // se gestionan dentro de JoinRoomAction.
+            \Illuminate\Support\Facades\Log::error(
+                '[TriviaGameController@join] Registration failed.',
+                ['room_id' => $roomId, 'user_id' => $userId, 'exception' => $e]
+            );
 
             return $request->expectsJson()
                 ? response()->json([
-                    'success'        => true,
-                    'already_joined' => false,
-                    'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
-                    'warning'        => 'Te uniste pero hubo un error de conexión en tiempo real.',
-                ])
-                : redirect()->route('trivia.room.wait', ['code' => $room->code]);
+                    'success' => false,
+                    'message' => 'No se pudo completar la inscripción. Inténtalo nuevamente.',
+                ], 500)
+                : back()->with('error', 'No se pudo completar la inscripción. Inténtalo nuevamente.');
         }
     }
 
