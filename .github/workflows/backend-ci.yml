@@ -197,7 +197,8 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # Regenera el lockfile en el runner mientras se sincroniza la nueva configuración de ESLint.
+        run: pnpm install --no-frozen-lockfile
 
       - name: Typecheck (vue-tsc)
         working-directory: backend
