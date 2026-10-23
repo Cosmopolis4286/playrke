@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
+use App\Domains\Games\Trivia\Services\TriviaAnswerTiming;
 use App\Enums\Games\Common\AntiCheatSignalType;
 use App\Enums\Games\Common\GameSlug;
 use App\Http\Controllers\Controller;
@@ -131,9 +132,27 @@ final class TriviaAnswerController extends Controller
 
         // Conservar el tiempo real para decidir si la respuesta llegó tarde. Solo
         // el valor persistido se limita al plazo, para que no afecte métricas.
-        $elapsedMs = max(0, (int) floor((microtime(true) * 1000) - $serverTimestampMs));
-        $isPastDeadline = $elapsedMs > $effectiveTimeLimitMs;
-        $responseTimeMs = min($elapsedMs, $effectiveTimeLimitMs);
+        try {
+            $timing = TriviaAnswerTiming::calculate(
+                $serverTimestampMs,
+                microtime(true) * 1000,
+                $effectiveTimeLimitMs,
+            );
+        } catch (\InvalidArgumentException $e) {
+            Log::warning('[TriviaAnswerController] Timestamp inválido para la pregunta activa.', [
+                'game_id' => $gameId,
+                'question_id' => $questionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede validar el tiempo de esta pregunta. Intenta reconectar.',
+            ], 422);
+        }
+
+        $isPastDeadline = $timing['is_late'];
+        $responseTimeMs = $timing['response_time_ms'];
 
         // Bot gate: ningún humano responde en menos del mínimo configurado.
         if ($responseTimeMs < (int) config('anticheat.trivia.min_human_response_ms', 300)) {
