@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 /**
@@ -170,23 +171,54 @@ final class TriviaAnswerController extends Controller
         }
 
         // ── 6. Persistir respuesta ────────────────────────────────────────────
-        $pgsql->table('trivia_answers')->insert([
-            'id'                    => (string) Str::ulid(),
-            'game_id'               => $gameId,
-            'player_id'             => $userId,
-            'question_id'           => $questionId,
-            'selected_option_index' => $isLate ? -1 : $selectedOptionIndex,
-            'is_correct'            => $isCorrect,
-            'points_earned'         => $points,
-            'response_time_ms'      => $responseTimeMs,
-            'is_late'               => $isLate,
-            'client_id'             => $request->input('client_id'),
-            'created_at'            => now(),
-            'updated_at'            => now(),
-        ]);
+        // Respuesta y score deben confirmarse juntos. La restricción única de
+        // (game_id, player_id, question_id) es la última defensa ante dos requests
+        // simultáneas que pasen el chequeo previo de duplicados.
+        try {
+            $pgsql->transaction(function () use (
+                $pgsql,
+                $gameId,
+                $userId,
+                $questionId,
+                $isLate,
+                $selectedOptionIndex,
+                $isCorrect,
+                $points,
+                $responseTimeMs,
+                $request,
+            ): void {
+                $pgsql->table('trivia_answers')->insert([
+                    'id'                    => (string) Str::ulid(),
+                    'game_id'               => $gameId,
+                    'player_id'             => $userId,
+                    'question_id'           => $questionId,
+                    'selected_option_index' => $isLate ? -1 : $selectedOptionIndex,
+                    'is_correct'            => $isCorrect,
+                    'points_earned'         => $points,
+                    'response_time_ms'      => $responseTimeMs,
+                    'is_late'               => $isLate,
+                    'client_id'             => $request->input('client_id'),
+                    'created_at'            => now(),
+                    'updated_at'            => now(),
+                ]);
 
-        // ── 7. Actualizar score acumulado ─────────────────────────────────────
-        $this->upsertScore($pgsql, $gameId, $userId, $isCorrect, $points, $responseTimeMs);
+                $this->upsertScore($pgsql, $gameId, $userId, $isCorrect, $points, $responseTimeMs);
+            });
+        } catch (QueryException $e) {
+            // PostgreSQL unique_violation: outra requisição já gravou a resposta.
+            // A transação também reverte qualquer alteração parcial na pontuação.
+            $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+            if ($sqlState === '23505') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya respondiste esta pregunta.',
+                ], 409);
+            }
+
+            throw $e;
+        }
+
+        // ── 7. Obtener score acumulado tras confirmar la transacción ───────────
 
         $currentScore = (int) ($pgsql->table('trivia_scores')
             ->where('game_id', $gameId)
