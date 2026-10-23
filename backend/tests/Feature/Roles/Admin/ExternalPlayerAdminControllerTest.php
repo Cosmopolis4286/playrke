@@ -58,7 +58,20 @@ class ExternalPlayerAdminControllerTest extends TestCase
 
     private function makeExternalPlayer(string $status = 'ACTIVE'): ExternalPlayer
     {
-        $country = Country::factory()->create();
+        // Country factory usa códigos aleatorios de 2/3 letras; en suites largas
+        // pueden colisionar con países ya sembrados y hacer flaky el test.
+        do {
+            $iso2 = strtoupper(\\Illuminate\\Support\\Str::random(2));
+        } while (Country::where('iso_code_2', $iso2)->exists());
+
+        do {
+            $iso3 = strtoupper(\\Illuminate\\Support\\Str::random(3));
+        } while (Country::where('iso_code_3', $iso3)->exists());
+
+        $country = Country::factory()->create([
+            'iso_code_2' => $iso2,
+            'iso_code_3' => $iso3,
+        ]);
         $currency = Currency::factory()->create();
         $game = Game::create(['name' => 'Bingo Demo ' . $this->nextId(), 'status' => 'ACTIVE']);
         $creator = User::factory()->create();
