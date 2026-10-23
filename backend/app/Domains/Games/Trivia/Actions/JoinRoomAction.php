@@ -198,6 +198,20 @@ class JoinRoomAction
             return [0.0, null];
         }
 
+        // Si una petición anterior cobró en MySQL pero falló al persistir el
+        // participante en PostgreSQL, recuperar el importe y moneda originales.
+        // No recalcular una tarifa/tasa que pudo cambiar desde el primer intento.
+        $idempotencyKey = "trivia_entry:{$room->id}:{$playerId}";
+        $existingMovement = $this->walletService->findTriviaEntryMovement($idempotencyKey);
+
+        if ($existingMovement) {
+            if ((string) $existingMovement->user_id !== $playerId || ! $existingMovement->wallet) {
+                throw new RuntimeException('El cobro existente de Trivia no coincide con el jugador.');
+            }
+
+            return [(float) $existingMovement->amount, (string) $existingMovement->wallet->currency_id];
+        }
+
         // ── Resolver monedas disponibles ────────────────────────────────────
         $feeByCurrency = $room->fee_by_currency; // array|null (cast en modelo)
 
