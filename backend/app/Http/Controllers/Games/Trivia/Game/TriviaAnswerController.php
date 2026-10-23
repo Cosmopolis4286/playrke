@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
+use App\Domains\Games\Trivia\Services\TriviaAnswerTiming;
 use App\Enums\Games\Common\AntiCheatSignalType;
 use App\Enums\Games\Common\GameSlug;
 use App\Http\Controllers\Controller;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 /**
@@ -113,9 +115,44 @@ final class TriviaAnswerController extends Controller
         // Se limita a $effectiveTimeLimitMs (no $timeLimitMs) para no rechazar
         // por "tiempo excedido" a un jugador con tiempo extra activo.
         $serverTimestampMs = (float) ($questionData['server_timestamp_ms'] ?? 0);
-        $responseTimeMs    = $serverTimestampMs > 0
-            ? (int) max(0, min((microtime(true) * 1000) - $serverTimestampMs, $effectiveTimeLimitMs))
-            : $timeLimitMs; // fail-closed: sin dato server-side, se trata como respuesta al límite del tiempo
+
+        // Sin marca de tiempo generada por el servidor no podemos validar el plazo
+        // de forma segura. No convertir un estado incompleto en una respuesta válida.
+        if ($serverTimestampMs <= 0) {
+            Log::warning('[TriviaAnswerController] Falta server_timestamp_ms en la pregunta activa.', [
+                'game_id' => $gameId,
+                'question_id' => $questionId,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede validar el tiempo de esta pregunta. Intenta reconectar.',
+            ], 422);
+        }
+
+        // Conservar el tiempo real para decidir si la respuesta llegó tarde. Solo
+        // el valor persistido se limita al plazo, para que no afecte métricas.
+        try {
+            $timing = TriviaAnswerTiming::calculate(
+                $serverTimestampMs,
+                microtime(true) * 1000,
+                $effectiveTimeLimitMs,
+            );
+        } catch (\InvalidArgumentException $e) {
+            Log::warning('[TriviaAnswerController] Timestamp inválido para la pregunta activa.', [
+                'game_id' => $gameId,
+                'question_id' => $questionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede validar el tiempo de esta pregunta. Intenta reconectar.',
+            ], 422);
+        }
+
+        $isPastDeadline = $timing['is_late'];
+        $responseTimeMs = $timing['response_time_ms'];
 
         // Bot gate: ningún humano responde en menos del mínimo configurado.
         if ($responseTimeMs < (int) config('anticheat.trivia.min_human_response_ms', 300)) {
@@ -130,7 +167,9 @@ final class TriviaAnswerController extends Controller
             return response()->json(['success' => false, 'message' => 'Velocidad de respuesta sospechosa.'], 422);
         }
 
-        $isLate    = $selectedOptionIndex === -1;
+        // Una respuesta recibida después del plazo se registra como tardía aunque
+        // el cliente haya enviado una opción válida. Nunca concede puntos.
+        $isLate    = $selectedOptionIndex === -1 || $isPastDeadline;
         $isCorrect = ! $isLate && $selectedOptionIndex === $correctOptionIndex;
 
         // ── 5. Calcular puntos ────────────────────────────────────────────────
@@ -142,7 +181,7 @@ final class TriviaAnswerController extends Controller
 
         $points = 0;
         if ($isCorrect) {
-            $speedFactor = max(0.0, 1.0 - ($responseTimeMs / max(1, $timeLimitMs)));
+            $speedFactor = max(0.0, 1.0 - ($responseTimeMs / max(1, $effectiveTimeLimitMs)));
             $points      = (int) round(self::POINTS_BASE + self::POINTS_SPEED_BONUS * $speedFactor);
 
             if ($doublePointsActive) {
@@ -151,23 +190,54 @@ final class TriviaAnswerController extends Controller
         }
 
         // ── 6. Persistir respuesta ────────────────────────────────────────────
-        $pgsql->table('trivia_answers')->insert([
-            'id'                    => (string) Str::ulid(),
-            'game_id'               => $gameId,
-            'player_id'             => $userId,
-            'question_id'           => $questionId,
-            'selected_option_index' => $isLate ? -1 : $selectedOptionIndex,
-            'is_correct'            => $isCorrect,
-            'points_earned'         => $points,
-            'response_time_ms'      => $responseTimeMs,
-            'is_late'               => $isLate,
-            'client_id'             => $request->input('client_id'),
-            'created_at'            => now(),
-            'updated_at'            => now(),
-        ]);
+        // Respuesta y score deben confirmarse juntos. La restricción única de
+        // (game_id, player_id, question_id) es la última defensa ante dos requests
+        // simultáneas que pasen el chequeo previo de duplicados.
+        try {
+            $pgsql->transaction(function () use (
+                $pgsql,
+                $gameId,
+                $userId,
+                $questionId,
+                $isLate,
+                $selectedOptionIndex,
+                $isCorrect,
+                $points,
+                $responseTimeMs,
+                $request,
+            ): void {
+                $pgsql->table('trivia_answers')->insert([
+                    'id'                    => (string) Str::ulid(),
+                    'game_id'               => $gameId,
+                    'player_id'             => $userId,
+                    'question_id'           => $questionId,
+                    'selected_option_index' => $isLate ? -1 : $selectedOptionIndex,
+                    'is_correct'            => $isCorrect,
+                    'points_earned'         => $points,
+                    'response_time_ms'      => $responseTimeMs,
+                    'is_late'               => $isLate,
+                    'client_id'             => $request->input('client_id'),
+                    'created_at'            => now(),
+                    'updated_at'            => now(),
+                ]);
 
-        // ── 7. Actualizar score acumulado ─────────────────────────────────────
-        $this->upsertScore($pgsql, $gameId, $userId, $isCorrect, $points, $responseTimeMs);
+                $this->upsertScore($pgsql, $gameId, $userId, $isCorrect, $points, $responseTimeMs);
+            });
+        } catch (QueryException $e) {
+            // PostgreSQL unique_violation: outra requisição já gravou a resposta.
+            // A transação também reverte qualquer alteração parcial na pontuação.
+            $sqlState = (string) ($e->errorInfo[0] ?? $e->getCode());
+            if ($sqlState === '23505') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya respondiste esta pregunta.',
+                ], 409);
+            }
+
+            throw $e;
+        }
+
+        // ── 7. Obtener score acumulado tras confirmar la transacción ───────────
 
         $currentScore = (int) ($pgsql->table('trivia_scores')
             ->where('game_id', $gameId)
