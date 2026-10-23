@@ -113,9 +113,26 @@ final class TriviaAnswerController extends Controller
         // Se limita a $effectiveTimeLimitMs (no $timeLimitMs) para no rechazar
         // por "tiempo excedido" a un jugador con tiempo extra activo.
         $serverTimestampMs = (float) ($questionData['server_timestamp_ms'] ?? 0);
-        $responseTimeMs    = $serverTimestampMs > 0
-            ? (int) max(0, min((microtime(true) * 1000) - $serverTimestampMs, $effectiveTimeLimitMs))
-            : $timeLimitMs; // fail-closed: sin dato server-side, se trata como respuesta al límite del tiempo
+
+        // Sin marca de tiempo generada por el servidor no podemos validar el plazo
+        // de forma segura. No convertir un estado incompleto en una respuesta válida.
+        if ($serverTimestampMs <= 0) {
+            Log::warning('[TriviaAnswerController] Falta server_timestamp_ms en la pregunta activa.', [
+                'game_id' => $gameId,
+                'question_id' => $questionId,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede validar el tiempo de esta pregunta. Intenta reconectar.',
+            ], 422);
+        }
+
+        // Conservar el tiempo real para decidir si la respuesta llegó tarde. Solo
+        // el valor persistido se limita al plazo, para que no afecte métricas.
+        $elapsedMs = max(0, (int) floor((microtime(true) * 1000) - $serverTimestampMs));
+        $isPastDeadline = $elapsedMs > $effectiveTimeLimitMs;
+        $responseTimeMs = min($elapsedMs, $effectiveTimeLimitMs);
 
         // Bot gate: ningún humano responde en menos del mínimo configurado.
         if ($responseTimeMs < (int) config('anticheat.trivia.min_human_response_ms', 300)) {
@@ -130,7 +147,9 @@ final class TriviaAnswerController extends Controller
             return response()->json(['success' => false, 'message' => 'Velocidad de respuesta sospechosa.'], 422);
         }
 
-        $isLate    = $selectedOptionIndex === -1;
+        // Una respuesta recibida después del plazo se registra como tardía aunque
+        // el cliente haya enviado una opción válida. Nunca concede puntos.
+        $isLate    = $selectedOptionIndex === -1 || $isPastDeadline;
         $isCorrect = ! $isLate && $selectedOptionIndex === $correctOptionIndex;
 
         // ── 5. Calcular puntos ────────────────────────────────────────────────
@@ -142,7 +161,7 @@ final class TriviaAnswerController extends Controller
 
         $points = 0;
         if ($isCorrect) {
-            $speedFactor = max(0.0, 1.0 - ($responseTimeMs / max(1, $timeLimitMs)));
+            $speedFactor = max(0.0, 1.0 - ($responseTimeMs / max(1, $effectiveTimeLimitMs)));
             $points      = (int) round(self::POINTS_BASE + self::POINTS_SPEED_BONUS * $speedFactor);
 
             if ($doublePointsActive) {
