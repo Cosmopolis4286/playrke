@@ -61,18 +61,21 @@ final class TriviaAnswerController extends Controller
             return response()->json(['success' => false, 'message' => 'Juego no activo.'], 422);
         }
 
-        // ── 2. Validar que el jugador pertenece a la partida ──────────────────
-        if (! in_array($userId, $gameState->playerIds, true)) {
-            // Fallback: comprobar en BD (por si Redis se reinicializó después de join)
-            $inDb = $pgsql->table('trivia_participants')
-                ->where('room_id', $gameState->roomId)
-                ->where('user_id', $userId)
-                ->whereNull('deleted_at')
-                ->exists();
+        // ── 2. Validar la inscripción activa desde PostgreSQL ─────────────────
+        // Redis puede conservar playerIds después de una salida, abandono o
+        // soft-delete. La lista en memoria no es una autorización: la BD es la
+        // fuente de verdad para permitir que un jugador responda.
+        $isActiveParticipant = $pgsql->table('trivia_participants')
+            ->where('room_id', $gameState->roomId)
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
+            ->exists();
 
-            if (! $inDb) {
-                return response()->json(['success' => false, 'message' => 'No estás inscrito en esta partida.'], 403);
-            }
+        if (! $isActiveParticipant || ! in_array($userId, $gameState->playerIds, true)) {
+            // Si Redis perdió un jugador válido, no autorizar un estado de juego
+            // incoherente; primero debe restaurarse/sincronizarse el estado.
+            return response()->json(['success' => false, 'message' => 'No estás inscrito activamente en esta partida.'], 403);
         }
 
         // ── 3. Obtener pregunta activa desde Redis ────────────────────────────
