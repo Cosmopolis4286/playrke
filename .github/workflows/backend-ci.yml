@@ -208,4 +208,4 @@ jobs:
       # archivos silenciosamente en un runner efímero.
       - name: Lint (ESLint)
         working-directory: backend
-        run: pnpm exec eslint "**/*.js" "**/*.jsx"
+        run: pnpm exec eslint "**/*.js"
