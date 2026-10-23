@@ -99,11 +99,11 @@ final class TriviaGameController extends Controller
                 ? response()->json(['success' => false, 'message' => $e->getMessage()], $status)
                 : back()->with('error', $e->getMessage());
 
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             // No asumir que la inscripción se guardó: errores de BD o de wallet
             // deben fallar explícitamente. Fallos de Redis/broadcast tras persistir
             // se gestionan dentro de JoinRoomAction.
-            \\Illuminate\\Support\\Facades\\Log::error(
+            \Illuminate\Support\Facades\Log::error(
                 '[TriviaGameController@join] Registration failed.',
                 ['room_id' => $roomId, 'user_id' => $userId, 'exception' => $e]
             );
