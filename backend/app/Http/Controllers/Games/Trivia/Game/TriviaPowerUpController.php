@@ -82,6 +82,12 @@ final class TriviaPowerUpController extends Controller
             return response()->json(['success' => false, 'message' => 'Ya respondiste esta pregunta.'], 409);
         }
 
+        // SKIP valida y consume el uso dentro de la transacción que registra
+        // la respuesta; así los requests concurrentes no gastan usos duplicados.
+        if ($type === TriviaPowerUpType::SKIP) {
+            return $this->handleSkip($gameId, $gameState->roomId, $userId, $questionId, $gameState->playerIds);
+        }
+
         try {
             $this->powerUps->consume($gameState->roomId, $userId, $type);
         } catch (DomainException $e) {
@@ -147,20 +153,66 @@ final class TriviaPowerUpController extends Controller
     {
         $pgsql = DB::connection('pgsql_trivia');
 
-        $pgsql->table('trivia_answers')->insert([
-            'id'                    => (string) \Illuminate\Support\Str::ulid(),
-            'game_id'               => $gameId,
-            'player_id'             => $userId,
-            'question_id'           => $questionId,
-            'selected_option_index' => -1,
-            'is_correct'            => false,
-            'points_earned'         => 0,
-            'response_time_ms'      => 0,
-            'is_late'               => false,
-            'client_id'             => 'power_up:skip',
-            'created_at'            => now(),
-            'updated_at'            => now(),
-        ]);
+        try {
+            $result = $pgsql->transaction(function () use ($pgsql, $gameId, $roomId, $userId, $questionId): array {
+                // Answers and power-up consumption serialize on the participant
+                // row, including the race with a normal answer request.
+                $participant = $pgsql->table('trivia_participants')
+                    ->where('room_id', $roomId)
+                    ->where('user_id', $userId)
+                    ->whereNull('deleted_at')
+                    ->whereIn('status', ['registered', 'confirmed', 'playing'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $participant) {
+                    return ['status' => 403, 'message' => 'No estás inscrito activamente en esta partida.'];
+                }
+
+                $alreadyAnswered = $pgsql->table('trivia_answers')
+                    ->where('game_id', $gameId)
+                    ->where('player_id', $userId)
+                    ->where('question_id', $questionId)
+                    ->whereNull('deleted_at')
+                    ->exists();
+
+                if ($alreadyAnswered) {
+                    return ['status' => 409, 'message' => 'Ya respondiste esta pregunta.'];
+                }
+
+                // consume() usa la misma conexión PostgreSQL para el saldo
+                // gratuito; si falla el insert, la transacción revierte ambos.
+                $this->powerUps->consume($roomId, $userId, TriviaPowerUpType::SKIP);
+
+                $pgsql->table('trivia_answers')->insert([
+                    'id'                    => (string) \Illuminate\Support\Str::ulid(),
+                    'game_id'               => $gameId,
+                    'player_id'             => $userId,
+                    'question_id'           => $questionId,
+                    'selected_option_index' => -1,
+                    'is_correct'            => false,
+                    'points_earned'         => 0,
+                    'response_time_ms'      => 0,
+                    'is_late'               => false,
+                    'client_id'             => 'power_up:skip',
+                    'created_at'            => now(),
+                    'updated_at'            => now(),
+                ]);
+
+                return ['status' => 200];
+            });
+        } catch (DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus());
+        } catch (RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        if ($result['status'] !== 200) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], $result['status']);
+        }
 
         $this->maybeAdvanceQuestion($gameId, $roomId, $questionId, $playerIds, $pgsql);
 
