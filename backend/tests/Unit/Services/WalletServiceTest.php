@@ -227,6 +227,7 @@ class WalletServiceTest extends TestCase
             idempotencyKey: $key,
             roomId: 'room-idempotent',
         );
+        $firstMovement = WalletMovement::where('idempotency_key', $key)->firstOrFail();
 
         $second = $this->service->recordTriviaEntry(
             wallet: $wallet->fresh(),
@@ -234,9 +235,10 @@ class WalletServiceTest extends TestCase
             idempotencyKey: $key,
             roomId: 'room-idempotent',
         );
+        $secondMovement = WalletMovement::where('idempotency_key', $key)->firstOrFail();
 
-        $this->assertSame((string) $wallet->id, (string) $first->id);
-        $this->assertSame((string) $wallet->id, (string) $second->id);
+        $this->assertSame((string) $first->id, (string) $second->id);
+        $this->assertSame((string) $firstMovement->id, (string) $secondMovement->id);
         $this->assertSame(48.0, (float) $wallet->fresh()->balance);
         $this->assertSame(0.0, (float) $wallet->fresh()->bonus_balance);
         $this->assertSame(
