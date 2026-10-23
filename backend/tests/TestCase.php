@@ -68,6 +68,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Las pruebas HTTP validan respuestas y vistas, no el empaquetado de assets.
+        $this->withoutVite();
+
         $this->guardAgainstNonTestDatabase();
     }
 
