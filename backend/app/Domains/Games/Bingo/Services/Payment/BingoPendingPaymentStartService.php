@@ -201,8 +201,10 @@ final class BingoPendingPaymentStartService
         return $commerce?->user_id ? (string) $commerce->user_id : null;
     }
 
-    private function notify(string $userId, string $title, string $message): void
+    private function notify(string|int $userId, string $title, string $message): void
     {
+        $userId = (string) $userId;
+
         try {
             $this->notifications->create($userId, 'GAME_ALERT', $title, $message, ['url' => '/bingo/card-payments']);
         } catch (\Throwable $e) {

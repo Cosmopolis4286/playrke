@@ -88,7 +88,22 @@ class SellerCardSaleTest extends TestCase
 
         $this->seedRolesAndPermissions();
 
-        $this->admin     = $this->makeUserWithRole('admin');
+        $this->admin = $this->makeUserWithRole('admin');
+
+        // La tasa oficial es el fallback real cuando un comercio no tiene
+        // tasa propia; la prueba debe preparar ese dato explícitamente.
+        DB::table('exchange_rates')->insert([
+            'id' => $this->nextId(),
+            'user_id' => $this->admin->id,
+            'currency_id' => $this->currency->id,
+            'amount' => 1,
+            'percentage' => 0,
+            'status' => 'ACTIVE',
+            'source' => 'user',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->commerceC = $this->makeCommerce(ownRate: self::COMMERCE_RATE);
         $this->commerceD = $this->makeCommerce();
         $this->sellerA   = $this->makeSeller($this->commerceC);
@@ -255,6 +270,26 @@ class SellerCardSaleTest extends TestCase
         return BingoRoom::findOrFail($roomId);
     }
 
+    private function expectedCardPriceForSeller(User $seller): float
+    {
+        $managerUserId = Seller::where('user_id', $seller->id)->value('manager_user_id');
+        $commerceId = Commerce::where('user_id', $managerUserId)->value('id');
+
+        $ownRate = DB::table('commerces_exchange_rates')
+            ->where('commerce_id', $commerceId)
+            ->where('currency_id', $this->currency->id)
+            ->where('status', 'ACTIVE')
+            ->value('amount');
+
+        $rate = $ownRate ?? DB::table('exchange_rates')
+            ->where('currency_id', $this->currency->id)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('created_at')
+            ->value('amount');
+
+        return self::ROOM_PRICE_USD * (float) $rate;
+    }
+
     private function sale(User $seller, BingoRoom $room, array $overrides = []): \Illuminate\Testing\TestResponse
     {
         return $this->actingAs($seller)->post('/bingo-card/' . $room->getRouteKey() . '/generate', array_merge([
@@ -264,7 +299,7 @@ class SellerCardSaleTest extends TestCase
             'payment_method'      => 'mobile_payment',
             'receipt_number'      => 'REF-' . Str::random(6),
             'receipt_image'       => UploadedFile::fake()->image('comprobante.jpg'),
-            'expected_card_price' => self::ROOM_PRICE_USD * self::COMMERCE_RATE,
+            'expected_card_price' => $this->expectedCardPriceForSeller($seller),
         ], $overrides), ['Accept' => 'application/json']);
     }
 
@@ -462,7 +497,6 @@ class SellerCardSaleTest extends TestCase
         $this->sale($this->sellerA, $this->privateRoomD)
             ->assertStatus(404)
             ->assertJson(['error_code' => 'BINGO_CARD_ROOM_NOT_AVAILABLE']);
-
         $this->assertSame(0, BingoCardLot::count());
     }
 
@@ -962,7 +996,6 @@ class SellerCardSaleTest extends TestCase
     public function sellers_only_sell_vip_rooms_to_invited_phones(): void
     {
         $vip = $this->makeRoom($this->commerceD, 'VIP');
-
         // El comprador (+584141112233, ver sale()) no está invitado.
         $this->sale($this->sellerE, $vip)
             ->assertForbidden()
@@ -1362,11 +1395,34 @@ class SellerCardSaleTest extends TestCase
     private function officialRate(float $amount): void
     {
         Cache::flush();
-        DB::table('exchange_rates')->insert([
-            'id' => $this->nextId(), 'currency_id' => $this->currency->id, 'user_id' => $this->admin->id,
-            'amount' => $amount, 'percentage' => 0, 'status' => 'ACTIVE', 'source' => 'user',
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+
+        // setUp prepara una tasa oficial base para los escenarios de venta.
+        // Actualizarla evita dejar dos tasas ACTIVE para la misma moneda cuando
+        // un caso define su propia tasa oficial (lo que vuelve ambiguo el tope).
+        $updated = DB::table('exchange_rates')
+            ->where('currency_id', $this->currency->id)
+            ->where('user_id', $this->admin->id)
+            ->where('status', 'ACTIVE')
+            ->update([
+                'amount' => $amount,
+                'percentage' => 0,
+                'source' => 'user',
+                'updated_at' => now(),
+            ]);
+
+        if ($updated === 0) {
+            DB::table('exchange_rates')->insert([
+                'id' => $this->nextId(),
+                'currency_id' => $this->currency->id,
+                'user_id' => $this->admin->id,
+                'amount' => $amount,
+                'percentage' => 0,
+                'status' => 'ACTIVE',
+                'source' => 'user',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function networkRate(User $user): array
@@ -1486,11 +1542,16 @@ class SellerCardSaleTest extends TestCase
     {
         $this->runRateAlerts();
 
+        // La primera ejecución también puede avisar al dueño por una condición
+        // independiente (tasa desactualizada o desviada). Comparamos el total
+        // antes/después para verificar que el cambio propio no añade otro aviso.
+        $ownerAlertsBefore = $this->rateAlertsFor($this->commerceC);
+
         DB::table('commerces_exchange_rates')->where('currency_id', $this->currency->id)->update(['amount' => 2.8, 'updated_at' => now()]);
 
         $this->assertSame(1, $this->runRateAlerts()['own_changes']);
         $this->assertSame(1, $this->rateAlertsFor($this->sellerA));
-        $this->assertSame(0, $this->rateAlertsFor($this->commerceC), 'Quien cambió la tasa no se avisa a sí mismo.');
+        $this->assertSame($ownerAlertsBefore, $this->rateAlertsFor($this->commerceC), 'El cambio de su propia tasa no debe añadir una notificación al dueño.');
         $this->assertSame(0, $this->rateAlertsFor($this->sellerE));
     }
 

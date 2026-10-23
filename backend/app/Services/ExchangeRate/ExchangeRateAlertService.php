@@ -243,7 +243,9 @@ final class ExchangeRateAlertService
             ->merge($commerce->subsidiaries()->pluck('user_id')->map(fn ($id) => (string) $id));
 
         if (!$includeOwner) {
-            $ids = $ids->reject(fn ($id) => $id === (string) $commerce->user_id);
+            // Los IDs pueden llegar como enteros o cadenas según la relación.
+            // Normalizarlos evita notificar al comercio que actualizó su propia tasa.
+            $ids = $ids->reject(fn ($id) => (string) $id === (string) $commerce->user_id);
         }
 
         return $ids->filter()->unique()->values()->all();

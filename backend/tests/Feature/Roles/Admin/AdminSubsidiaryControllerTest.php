@@ -99,7 +99,7 @@ class AdminSubsidiaryControllerTest extends TestCase
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$', 'type' => 'FIAT']);
 
         return Subsidiary::create([
-            'name' => 'Sucursal de ' . $commerce->name,
+            'name' => 'Sucursal ' . substr((string) $commerce->id, -8),
             'commerce_id' => $commerce->id,
             'user_id' => $subsidiaryOwner->id,
             'country_id' => $country->id,

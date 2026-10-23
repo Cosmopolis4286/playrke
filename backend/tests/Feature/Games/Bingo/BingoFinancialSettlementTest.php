@@ -56,14 +56,33 @@ class BingoFinancialSettlementTest extends TestCase
         $n = ++self::$seq;
         $typeId = (string) (950000000000000100 + $n);
         $roomId = (string) (950000000000000200 + $n);
-        DB::table('prize_pool_types')->insert(['id' => $typeId, 'game_id' => '1', 'code' => 'ACCUMULATIVE', 'label' => 'Acumulativo', 'status' => 'ACTIVE']);
+        // prize_pool_types tiene UNIQUE(game_id, code): reutilizar el tipo
+        // del catálogo en vez de insertar el mismo código en cada caso de prueba.
+        $existingTypeId = DB::table('prize_pool_types')
+            ->where('game_id', '1')
+            ->where('code', 'ACCUMULATIVE')
+            ->value('id');
+
+        if ($existingTypeId === null) {
+            DB::table('prize_pool_types')->insert([
+                'id' => $typeId,
+                'game_id' => '1',
+                'code' => 'ACCUMULATIVE',
+                'label' => 'Acumulativo',
+                'status' => 'ACTIVE',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $existingTypeId = $typeId;
+        }
+
         DB::table('bingo_rooms')->insert([
             'id' => $roomId, 'status_id' => '1', 'creator_user_id' => $this->creatorId, 'paid_prizes' => 'N',
             'uuid_code' => 'FIN-' . $roomId, 'prize_pool' => 0, 'total_cards' => 0, 'total_sales' => 0,
             'rke_commission' => 0, 'room_commission' => 0, 'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('bingo_rooms_config')->insert([
-            'id' => (string) ((int) $roomId + 1000), 'room_id' => $roomId, 'prize_pool_type_id' => $typeId,
+            'id' => (string) ((int) $roomId + 1000), 'room_id' => $roomId, 'prize_pool_type_id' => $existingTypeId,
             'rke_commission' => 5, 'room_commission' => 10, 'created_at' => now(), 'updated_at' => now(),
         ]);
         return BingoRoom::find($roomId);
