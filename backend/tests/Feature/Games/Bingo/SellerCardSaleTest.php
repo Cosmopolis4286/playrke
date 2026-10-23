@@ -1377,11 +1377,34 @@ class SellerCardSaleTest extends TestCase
     private function officialRate(float $amount): void
     {
         Cache::flush();
-        DB::table('exchange_rates')->insert([
-            'id' => $this->nextId(), 'currency_id' => $this->currency->id, 'user_id' => $this->admin->id,
-            'amount' => $amount, 'percentage' => 0, 'status' => 'ACTIVE', 'source' => 'user',
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+
+        // setUp prepara una tasa oficial base para los escenarios de venta.
+        // Actualizarla evita dejar dos tasas ACTIVE para la misma moneda cuando
+        // un caso define su propia tasa oficial (lo que vuelve ambiguo el tope).
+        $updated = DB::table('exchange_rates')
+            ->where('currency_id', $this->currency->id)
+            ->where('user_id', $this->admin->id)
+            ->where('status', 'ACTIVE')
+            ->update([
+                'amount' => $amount,
+                'percentage' => 0,
+                'source' => 'user',
+                'updated_at' => now(),
+            ]);
+
+        if ($updated === 0) {
+            DB::table('exchange_rates')->insert([
+                'id' => $this->nextId(),
+                'currency_id' => $this->currency->id,
+                'user_id' => $this->admin->id,
+                'amount' => $amount,
+                'percentage' => 0,
+                'status' => 'ACTIVE',
+                'source' => 'user',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function networkRate(User $user): array
