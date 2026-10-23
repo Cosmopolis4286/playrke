@@ -270,6 +270,26 @@ class SellerCardSaleTest extends TestCase
         return BingoRoom::findOrFail($roomId);
     }
 
+    private function expectedCardPriceForSeller(User $seller): float
+    {
+        $managerUserId = Seller::where('user_id', $seller->id)->value('manager_user_id');
+        $commerceId = Commerce::where('user_id', $managerUserId)->value('id');
+
+        $ownRate = DB::table('commerces_exchange_rates')
+            ->where('commerce_id', $commerceId)
+            ->where('currency_id', $this->currency->id)
+            ->where('status', 'ACTIVE')
+            ->value('amount');
+
+        $rate = $ownRate ?? DB::table('exchange_rates')
+            ->where('currency_id', $this->currency->id)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('created_at')
+            ->value('amount');
+
+        return self::ROOM_PRICE_USD * (float) $rate;
+    }
+
     private function sale(User $seller, BingoRoom $room, array $overrides = []): \Illuminate\Testing\TestResponse
     {
         return $this->actingAs($seller)->post('/bingo-card/' . $room->getRouteKey() . '/generate', array_merge([
@@ -279,7 +299,7 @@ class SellerCardSaleTest extends TestCase
             'payment_method'      => 'mobile_payment',
             'receipt_number'      => 'REF-' . Str::random(6),
             'receipt_image'       => UploadedFile::fake()->image('comprobante.jpg'),
-            'expected_card_price' => self::ROOM_PRICE_USD * self::COMMERCE_RATE,
+            'expected_card_price' => $this->expectedCardPriceForSeller($seller),
         ], $overrides), ['Accept' => 'application/json']);
     }
 
