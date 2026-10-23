@@ -86,21 +86,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configurar pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.25.0
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Instalar dependencias del frontend
-        run: pnpm install --frozen-lockfile
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -174,10 +159,6 @@ jobs:
           BROADCAST_DRIVER=log
           TELESCOPE_ENABLED=false
           EOF
-
-      - name: Generar manifiesto de Vite para las pruebas
-        working-directory: backend
-        run: pnpm run build -- --mode development
 
       - name: Run test suite
         working-directory: backend
