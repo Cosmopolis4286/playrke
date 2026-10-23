@@ -981,6 +981,19 @@ final class WalletService
      * pero si se pasan disparan TriviaEntryPurchased hacia admins.activity —
      * mismo patrón que BingoCardSold para ventas de cartones.
      */
+    /**
+     * Busca un cobro de entrada de Trivia ya confirmado para que el flujo de
+     * inscripción pueda recuperar el monto y la moneda originales al reintentar
+     * después de un fallo parcial (la tasa o la tarifa de la sala pudo cambiar).
+     */
+    public function findTriviaEntryMovement(string $idempotencyKey): ?WalletMovement
+    {
+        return WalletMovement::with('wallet.currency')
+            ->where('idempotency_key', $idempotencyKey)
+            ->where('type', WalletMovement::TYPE_TRIVIA_ENTRY)
+            ->first();
+    }
+
     public function recordTriviaEntry(
         Wallet $wallet,
         float $amount,
