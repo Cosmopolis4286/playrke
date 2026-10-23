@@ -103,6 +103,7 @@ class JoinRoomAction
                 ->table('trivia_participants')
                 ->where('room_id', $roomId)
                 ->whereNull('deleted_at')
+                ->whereNotIn('status', ['abandoned'])
                 ->count();
 
             if ($activeParticipants >= (int) $room->max_players) {
