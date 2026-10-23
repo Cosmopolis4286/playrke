@@ -198,6 +198,20 @@ class JoinRoomAction
             return [0.0, null];
         }
 
+        // Si una petición anterior cobró en MySQL pero falló al persistir el
+        // participante en PostgreSQL, recuperar el importe y moneda originales.
+        // No recalcular una tarifa/tasa que pudo cambiar desde el primer intento.
+        $idempotencyKey = "trivia_entry:{$room->id}:{$playerId}";
+        $existingMovement = $this->walletService->findTriviaEntryMovement($idempotencyKey);
+
+        if ($existingMovement) {
+            if ((string) $existingMovement->user_id !== $playerId || ! $existingMovement->wallet) {
+                throw new RuntimeException('El cobro existente de Trivia no coincide con el jugador.');
+            }
+
+            return [(float) $existingMovement->amount, (string) $existingMovement->wallet->currency_id];
+        }
+
         // ── Resolver monedas disponibles ────────────────────────────────────
         $feeByCurrency = $room->fee_by_currency; // array|null (cast en modelo)
 
@@ -257,18 +271,13 @@ class JoinRoomAction
             throw TriviaRoomException::noWalletForRequiredCurrency($symbols);
         }
 
-        if (! $chargeWallet->hasSufficientPlayableBalance($chargeAmount)) {
-            $symbol = $chargeWallet->currency?->symbol ?? $chargeCurrencyId;
-
-            throw TriviaRoomException::insufficientBalance((string) $symbol, $chargeAmount);
-        }
-
         $this->walletService->recordTriviaEntry(
             wallet: $chargeWallet,
             amount: $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
             roomId: (string) $room->id,
             roomName: $room->title,
+            idempotencyKey: "trivia_entry:{$room->id}:{$playerId}",
         );
 
         return [$chargeAmount, $chargeCurrencyId];
@@ -297,18 +306,13 @@ class JoinRoomAction
         $exchangeRate = $this->getPlayerExchangeRate((string) $wallet->currency_id);
         $chargeAmount = round($baseFeeUsd * $exchangeRate, 2);
 
-        if (! $wallet->hasSufficientPlayableBalance($chargeAmount)) {
-            $symbol = $wallet->currency?->symbol ?? '';
-
-            throw TriviaRoomException::insufficientBalance((string) $symbol, $chargeAmount);
-        }
-
         $this->walletService->recordTriviaEntry(
             wallet: $wallet,
             amount: $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
             roomId: (string) $room->id,
             roomName: $room->title,
+            idempotencyKey: "trivia_entry:{$room->id}:{$playerId}",
         );
 
         return [$chargeAmount, (string) $wallet->currency_id];
