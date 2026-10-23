@@ -165,6 +165,25 @@ class TriviaPowerUpServiceTest extends TestCase
         $this->assertFalse($this->service->hasDoublePointsFlag('game-1', 'user-1', 'question-1'));
     }
 
+    public function test_activation_reservation_is_atomic_and_pending_does_not_grant_effect(): void
+    {
+        $this->assertTrue($this->service->reserveActivation('game-1', 'user-1', 'question-1', 'double_points'));
+        $this->assertFalse($this->service->reserveActivation('game-1', 'user-1', 'question-1', 'double_points'));
+        $this->assertFalse($this->service->hasDoublePointsFlag('game-1', 'user-1', 'question-1'));
+
+        $this->service->activateDoublePoints('game-1', 'user-1', 'question-1');
+        $this->assertTrue($this->service->hasDoublePointsFlag('game-1', 'user-1', 'question-1'));
+    }
+
+    public function test_failed_activation_can_release_reservation_for_retry(): void
+    {
+        $this->assertTrue($this->service->reserveActivation('game-1', 'user-1', 'question-1', 'extra_time'));
+        $this->service->releaseActivation('game-1', 'user-1', 'question-1', 'extra_time');
+
+        $this->assertTrue($this->service->reserveActivation('game-1', 'user-1', 'question-1', 'extra_time'));
+        $this->assertSame(0, $this->service->extraTimeBonusMs('game-1', 'user-1', 'question-1'));
+    }
+
     public function test_extra_time_bonus_is_zero_when_not_activated(): void
     {
         $this->assertSame(0, $this->service->extraTimeBonusMs('game-1', 'user-1', 'question-1'));
