@@ -202,6 +202,7 @@ final class TriviaAnswerController extends Controller
                 $pgsql,
                 $gameId,
                 $userId,
+                $gameState,
                 $questionId,
                 $isLate,
                 $selectedOptionIndex,
@@ -210,6 +211,17 @@ final class TriviaAnswerController extends Controller
                 $responseTimeMs,
                 $request,
             ): void {
+                // Serialize answer/score writes for the same player. Locking the
+                // participant row also covers the first score insert, when no
+                // trivia_scores row exists yet to lock.
+                $pgsql->table('trivia_participants')
+                    ->where('room_id', $gameState->roomId)
+                    ->where('user_id', $userId)
+                    ->whereNull('deleted_at')
+                    ->whereIn('status', ['registered', 'confirmed', 'playing'])
+                    ->lockForUpdate()
+                    ->first();
+
                 $pgsql->table('trivia_answers')->insert([
                     'id'                    => (string) Str::ulid(),
                     'game_id'               => $gameId,
@@ -346,6 +358,7 @@ final class TriviaAnswerController extends Controller
         $existing = $pgsql->table('trivia_scores')
             ->where('game_id', $gameId)
             ->where('player_id', $userId)
+            ->lockForUpdate()
             ->first();
 
         if ($existing) {
