@@ -54,6 +54,21 @@ final class TriviaPowerUpController extends Controller
 
         $questionId = (string) ($questionData['question_id'] ?? $questionData['id'] ?? '');
 
+        // Redis puede conservar playerIds de participantes que ya salieron o
+        // fueron eliminados. Igual que al responder, la inscripción activa en
+        // PostgreSQL es la fuente de verdad para autorizar power-ups.
+        $pgsql = DB::connection('pgsql_trivia');
+        $isActiveParticipant = $pgsql->table('trivia_participants')
+            ->where('room_id', $gameState->roomId)
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['registered', 'confirmed', 'playing'])
+            ->exists();
+
+        if (! $isActiveParticipant) {
+            return response()->json(['success' => false, 'message' => 'No estás inscrito activamente en esta partida.'], 403);
+        }
+
         // Ya respondió esta pregunta → ningún power-up tiene sentido (mismo
         // chequeo que TriviaAnswerController::store()).
         $alreadyAnswered = DB::connection('pgsql_trivia')
@@ -79,7 +94,7 @@ final class TriviaPowerUpController extends Controller
             TriviaPowerUpType::FIFTY_FIFTY   => $this->handleFiftyFifty($questionData),
             TriviaPowerUpType::DOUBLE_POINTS => $this->handleDoublePoints($gameId, $userId, $questionId),
             TriviaPowerUpType::EXTRA_TIME    => $this->handleExtraTime($gameId, $userId, $questionId),
-            TriviaPowerUpType::SKIP          => $this->handleSkip($gameId, $userId, $questionId, $gameState->playerIds),
+            TriviaPowerUpType::SKIP          => $this->handleSkip($gameId, $gameState->roomId, $userId, $questionId, $gameState->playerIds),
         };
     }
 
@@ -128,7 +143,7 @@ final class TriviaPowerUpController extends Controller
      * automático que TriviaAnswerController::store() usa cuando todos ya
      * respondieron.
      */
-    private function handleSkip(string $gameId, string $userId, string $questionId, array $playerIds): JsonResponse
+    private function handleSkip(string $gameId, string $roomId, string $userId, string $questionId, array $playerIds): JsonResponse
     {
         $pgsql = DB::connection('pgsql_trivia');
 
@@ -147,7 +162,7 @@ final class TriviaPowerUpController extends Controller
             'updated_at'            => now(),
         ]);
 
-        $this->maybeAdvanceQuestion($gameId, $questionId, $playerIds, $pgsql);
+        $this->maybeAdvanceQuestion($gameId, $roomId, $questionId, $playerIds, $pgsql);
 
         return response()->json([
             'success' => true,
@@ -161,18 +176,39 @@ final class TriviaPowerUpController extends Controller
      * dependencia cruzada por un método privado; si se repite una tercera
      * vez, corresponde extraerlo a un servicio compartido.
      */
-    private function maybeAdvanceQuestion(string $gameId, string $questionId, array $playerIds, object $pgsql): void
+    private function maybeAdvanceQuestion(string $gameId, string $roomId, string $questionId, array $playerIds, object $pgsql): void
     {
         if (empty($playerIds)) {
+            return;
+        }
+
+        // Solo cuentan los participantes que siguen activos en la sala.
+        // Los playerIds de Redis representan la lista inicial y pueden incluir
+        // usuarios que abandonaron; además, los duplicados no deben acelerar
+        // ni bloquear el avance.
+        $activePlayerIds = $pgsql->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->whereIn('user_id', $playerIds)
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['registered', 'confirmed', 'playing'])
+            ->distinct()
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        if (empty($activePlayerIds)) {
             return;
         }
 
         $answeredCount = $pgsql->table('trivia_answers')
             ->where('game_id', $gameId)
             ->where('question_id', $questionId)
-            ->count();
+            ->whereNull('deleted_at')
+            ->whereIn('player_id', $activePlayerIds)
+            ->distinct()
+            ->count('player_id');
 
-        if ($answeredCount < count($playerIds)) {
+        if ($answeredCount < count($activePlayerIds)) {
             return;
         }
 
