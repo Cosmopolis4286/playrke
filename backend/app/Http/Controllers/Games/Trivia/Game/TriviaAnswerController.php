@@ -177,11 +177,10 @@ final class TriviaAnswerController extends Controller
         $isCorrect = ! $isLate && $selectedOptionIndex === $correctOptionIndex;
 
         // ── 5. Calcular puntos ────────────────────────────────────────────────
-        // consumeDoublePointsFlag() se llama siempre (no solo si isCorrect)
-        // para limpiar el flag de Redis tras esta pregunta pase lo que pase
-        // — de un solo uso, el jugador ya pagó el uso al activarlo aunque
-        // termine respondiendo mal (no hay puntos que duplicar en ese caso).
-        $doublePointsActive = $this->powerUps->consumeDoublePointsFlag($gameId, $userId, $questionId);
+        // Leer sin borrar: si el insert/score falla o la request es duplicada,
+        // el power-up debe seguir disponible para el primer guardado válido.
+        // Se limpia después de confirmar la transacción, incluso si respondió mal.
+        $doublePointsActive = $this->powerUps->hasDoublePointsFlag($gameId, $userId, $questionId);
 
         $points = 0;
         if ($isCorrect) {
@@ -251,6 +250,12 @@ final class TriviaAnswerController extends Controller
             }
 
             throw $e;
+        }
+
+        // El consumo lógico del power-up ocurre solo después de que la respuesta
+        // y el score quedaron persistidos. Un 409 o fallo de DB retorna antes.
+        if ($doublePointsActive) {
+            $this->powerUps->clearDoublePointsFlag($gameId, $userId, $questionId);
         }
 
         // ── 7. Obtener score acumulado tras confirmar la transacción ───────────

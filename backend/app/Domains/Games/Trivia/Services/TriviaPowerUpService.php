@@ -109,17 +109,34 @@ class TriviaPowerUpService
     }
 
     /**
-     * Verifica y CONSUME (borra) el flag de double_points activo para esta
-     * pregunta — de un solo uso, no debe aplicar a preguntas futuras si por
-     * algún motivo no se limpia solo (TTL como red de seguridad adicional).
+     * Consulta el flag de double_points sin consumirlo. La respuesta debe
+     * quedar persistida antes de borrar el flag, para que un request duplicado
+     * o un fallo de PostgreSQL no haga perder un power-up ya pagado.
+     */
+    public function hasDoublePointsFlag(string $gameId, string $userId, string $questionId) : bool
+    {
+        return (bool) Redis::get($this->key($gameId, $userId, $questionId, 'double_points'));
+    }
+
+    /**
+     * Borra el flag después de que la respuesta y la puntuación se confirmen.
+     */
+    public function clearDoublePointsFlag(string $gameId, string $userId, string $questionId) : void
+    {
+        Redis::del($this->key($gameId, $userId, $questionId, 'double_points'));
+    }
+
+    /**
+     * Compatibilidad para consumidores existentes: consulta y consume el flag.
+     * El flujo de respuesta debe usar hasDoublePointsFlag() y clear...() tras
+     * confirmar la transacción.
      */
     public function consumeDoublePointsFlag(string $gameId, string $userId, string $questionId) : bool
     {
-        $key = $this->key($gameId, $userId, $questionId, 'double_points');
-        $active = (bool) Redis::get($key);
+        $active = $this->hasDoublePointsFlag($gameId, $userId, $questionId);
 
         if ($active) {
-            Redis::del($key);
+            $this->clearDoublePointsFlag($gameId, $userId, $questionId);
         }
 
         return $active;
