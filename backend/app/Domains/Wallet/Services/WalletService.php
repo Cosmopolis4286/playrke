@@ -1002,7 +1002,7 @@ final class WalletService
                 if ((string) $existing->wallet_id !== (string) $wallet->id
                     || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
                     || abs((float) $existing->amount - $amount) > 0.00000001) {
-                    throw new \\RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
+                    throw new \RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
                 }
 
                 return $wallet->fresh(['currency']) ?? $wallet;
@@ -1010,9 +1010,10 @@ final class WalletService
         }
 
         $movementId = null;
+        $newMovement = false;
 
         try {
-            $result = DB::transaction(function() use ($wallet, $amount, $description, $roomId, $idempotencyKey, &$movementId) {
+            $result = DB::transaction(function() use ($wallet, $amount, $description, $roomId, $idempotencyKey, &$movementId, &$newMovement) {
                 $walletId = (string) $wallet->id;
 
                 $locked = Wallet::lockForUpdate()->findOrFail($walletId);
@@ -1026,7 +1027,7 @@ final class WalletService
                         if ((string) $existing->wallet_id !== $walletId
                             || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
                             || abs((float) $existing->amount - $amount) > 0.00000001) {
-                            throw new \\RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
+                            throw new \RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
                         }
 
                         $movementId = (string) $existing->id;
@@ -1064,10 +1065,11 @@ final class WalletService
                     ],
                 ]);
                 $movementId = (string) $movement->id;
+                $newMovement = true;
 
                 return $locked;
             });
-        } catch (\\Illuminate\\Database\\QueryException $e) {
+        } catch (\Illuminate\Database\QueryException $e) {
             // La restricción UNIQUE de idempotency_key es la última defensa
             // ante dos peticiones simultáneas. La transacción perdedora revierte
             // su débito; reutilizamos el movimiento ganador si coincide.
@@ -1086,7 +1088,7 @@ final class WalletService
         }
 
         // Broadcast fuera de la transacción: el commit MySQL ya ocurrió.
-        if ($movementId !== null) {
+        if ($newMovement && $movementId !== null) {
             $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount, $movementId);
 
             if ($roomId !== null && $roomName !== null) {
