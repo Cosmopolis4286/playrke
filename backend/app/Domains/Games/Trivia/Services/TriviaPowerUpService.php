@@ -59,7 +59,9 @@ class TriviaPowerUpService
     {
         $key = $this->key($gameId, $userId, $questionId, $type);
 
-        return Redis::set($key, 'pending', 'EX', self::REDIS_TTL_SECONDS, 'NX') === 'OK';
+        $reserved = Redis::set($key, 'pending', 'EX', self::REDIS_TTL_SECONDS, 'NX');
+
+        return $reserved !== false && $reserved !== null;
     }
 
     /** Libera una reserva si el consumo del power-up no pudo completarse. */
