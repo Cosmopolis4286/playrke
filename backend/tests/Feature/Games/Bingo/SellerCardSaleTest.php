@@ -88,7 +88,22 @@ class SellerCardSaleTest extends TestCase
 
         $this->seedRolesAndPermissions();
 
-        $this->admin     = $this->makeUserWithRole('admin');
+        $this->admin = $this->makeUserWithRole('admin');
+
+        // La tasa oficial es el fallback real cuando un comercio no tiene
+        // tasa propia; la prueba debe preparar ese dato explícitamente.
+        DB::table('exchange_rates')->insert([
+            'id' => $this->nextId(),
+            'user_id' => $this->admin->id,
+            'currency_id' => $this->currency->id,
+            'amount' => 1,
+            'percentage' => 0,
+            'status' => 'ACTIVE',
+            'source' => 'user',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->commerceC = $this->makeCommerce(ownRate: self::COMMERCE_RATE);
         $this->commerceD = $this->makeCommerce();
         $this->sellerA   = $this->makeSeller($this->commerceC);
