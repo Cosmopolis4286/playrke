@@ -235,7 +235,8 @@ class WalletServiceTest extends TestCase
             roomId: 'room-idempotent',
         );
 
-        $this->assertSame((string) $first->id, (string) $second->id);
+        $this->assertSame((string) $wallet->id, (string) $first->id);
+        $this->assertSame((string) $wallet->id, (string) $second->id);
         $this->assertSame(48.0, (float) $wallet->fresh()->balance);
         $this->assertSame(0.0, (float) $wallet->fresh()->bonus_balance);
         $this->assertSame(
