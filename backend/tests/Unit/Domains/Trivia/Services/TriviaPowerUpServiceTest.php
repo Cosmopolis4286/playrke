@@ -153,6 +153,18 @@ class TriviaPowerUpServiceTest extends TestCase
         $this->assertFalse($this->service->consumeDoublePointsFlag('game-1', 'user-1', 'question-1'));
     }
 
+    public function test_double_points_flag_can_be_checked_without_consuming_it(): void
+    {
+        $this->service->activateDoublePoints('game-1', 'user-1', 'question-1');
+
+        $this->assertTrue($this->service->hasDoublePointsFlag('game-1', 'user-1', 'question-1'));
+        $this->assertTrue($this->service->hasDoublePointsFlag('game-1', 'user-1', 'question-1'));
+
+        $this->service->clearDoublePointsFlag('game-1', 'user-1', 'question-1');
+
+        $this->assertFalse($this->service->hasDoublePointsFlag('game-1', 'user-1', 'question-1'));
+    }
+
     public function test_extra_time_bonus_is_zero_when_not_activated(): void
     {
         $this->assertSame(0, $this->service->extraTimeBonusMs('game-1', 'user-1', 'question-1'));
