@@ -113,8 +113,8 @@ class JoinRoomAction
             $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
             $room = $this->roomService->getRoom($roomId);
             $players = $this->roomService->listPlayers($roomId);
-        } catch (\\Throwable $e) {
-            \\Illuminate\\Support\\Facades\\Log::warning(
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
                 '[Trivia JoinRoomAction] Participant persisted but realtime sync failed.',
                 ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e]
             );
@@ -127,8 +127,8 @@ class JoinRoomAction
 
         try {
             $this->createTriviaNotification($roomId, $playerId);
-        } catch (\\Throwable $e) {
-            \\Illuminate\\Support\\Facades\\Log::warning(
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
                 '[Trivia JoinRoomAction] Registration notification failed.',
                 ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e]
             );
