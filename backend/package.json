@@ -6,7 +6,7 @@
         "build": "vite build",
         "preview": "vite preview",
         "typecheck": "vue-tsc --noEmit",
-        "lint": "eslint . --ext .vue,.ts,.js --fix",
+        "lint": "eslint . --ext .js,.jsx --fix",
         "format": "prettier --write .",
         "test": "vitest run"
     },
