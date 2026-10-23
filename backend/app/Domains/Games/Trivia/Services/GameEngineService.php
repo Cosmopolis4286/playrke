@@ -25,6 +25,7 @@ use App\Models\GameParticipation;
 use App\Models\User;
 use App\Services\Games\GameCompletionService;
 use App\Services\User\UserLevelService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -296,7 +297,37 @@ class GameEngineService implements GameEngineInterface
     /**
      * Enviar siguiente pregunta.
      */
-    public function sendNextQuestion(string $gameId) : ?QuestionDTO
+    public function sendNextQuestion(string $gameId, ?string $expectedQuestionId = null) : ?QuestionDTO
+    {
+        // Serialize advances across HTTP requests and timeout jobs. The expected
+        // question ID makes the operation idempotent: a caller that waited for
+        // another advance cannot accidentally skip the newly sent question.
+        $lock = Cache::lock("trivia:game:{$gameId}:advance-question", 30);
+
+        if (! $lock->get()) {
+            return null;
+        }
+
+        try {
+            if ($expectedQuestionId !== null) {
+                $current = $this->stateRepository->getCurrentQuestion($gameId);
+                $currentId = (string) ($current['question_id'] ?? $current['id'] ?? '');
+
+                if ($currentId !== $expectedQuestionId) {
+                    return null;
+                }
+            }
+
+            return $this->sendNextQuestionLocked($gameId);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Perform the state mutation while the per-game advance lock is held.
+     */
+    private function sendNextQuestionLocked(string $gameId) : ?QuestionDTO
     {
         $state = $this->stateRepository->getState($gameId);
 

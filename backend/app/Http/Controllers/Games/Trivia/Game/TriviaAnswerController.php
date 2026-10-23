@@ -298,7 +298,7 @@ final class TriviaAnswerController extends Controller
 
         // Todos respondieron → avanzar
         try {
-            $nextQuestion = $this->gameEngine->sendNextQuestion($gameId);
+            $nextQuestion = $this->gameEngine->sendNextQuestion($gameId, $questionId);
 
             if ($nextQuestion === null) {
                 // sendNextQuestion devuelve null cuando llama finishGame() internamente

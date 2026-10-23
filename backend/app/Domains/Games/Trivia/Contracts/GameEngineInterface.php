@@ -30,7 +30,7 @@ interface GameEngineInterface
     /**
      * Enviar la siguiente pregunta a todos los jugadores.
      */
-    public function sendNextQuestion(string $gameId): ?QuestionDTO;
+    public function sendNextQuestion(string $gameId, ?string $expectedQuestionId = null): ?QuestionDTO;
 
     /**
      * Validar una respuesta del jugador.
