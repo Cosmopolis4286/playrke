@@ -311,9 +311,8 @@ class GameEngineService implements GameEngineInterface
         try {
             if ($expectedQuestionId !== null) {
                 $current = $this->stateRepository->getCurrentQuestion($gameId);
-                $currentId = (string) ($current['question_id'] ?? $current['id'] ?? '');
 
-                if ($currentId !== $expectedQuestionId) {
+                if (! TriviaQuestionAdvanceGuard::matchesExpectedQuestion($expectedQuestionId, $current)) {
                     return null;
                 }
             }
