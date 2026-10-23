@@ -79,7 +79,7 @@ class AdvanceTriviaQuestion implements ShouldQueue
 
         // Avanzar: los jugadores que no respondieron quedan con 0 puntos para esta ronda
         try {
-            $gameEngine->sendNextQuestion($this->gameId);
+            $gameEngine->sendNextQuestion($this->gameId, $this->questionId);
         } catch (\Throwable $e) {
             Log::error('[AdvanceTriviaQuestion] Error al avanzar pregunta', [
                 'game_id' => $this->gameId,
