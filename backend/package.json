@@ -6,7 +6,7 @@
         "build": "vite build",
         "preview": "vite preview",
         "typecheck": "vue-tsc --noEmit",
-        "lint": "eslint \"**/*.js\" --fix",
+        "lint": "eslint . --ext .vue,.ts,.js --fix",
         "format": "prettier --write .",
         "test": "vitest run"
     },
@@ -64,6 +64,7 @@
         "@vue/test-utils": "^2.4.11",
         "autoprefixer": "^10.4.23",
         "eslint": "^9.39.2",
+        "@eslint/js": "^9.39.2",
         "eslint-plugin-vue": "^9.33.0",
         "happy-dom": "^20.10.6",
         "laravel-vite-plugin": "^2.1.0",
@@ -78,7 +79,8 @@
         "vite-plugin-javascript-obfuscator": "^3.1.0",
         "vitest": "^4.1.10",
         "vue-tsc": "^2.2.12",
-        "@eslint/js": "^9.39.2"
+        "@typescript-eslint/eslint-plugin": "^8.46.2",
+        "@typescript-eslint/parser": "^8.46.2"
     },
     "overrides": {
         "axios": "^1.12.1"
