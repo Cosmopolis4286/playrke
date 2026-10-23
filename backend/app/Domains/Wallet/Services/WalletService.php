@@ -1013,6 +1013,7 @@ final class WalletService
 
             if ($existing) {
                 if ((string) $existing->wallet_id !== (string) $wallet->id
+                    || (string) $existing->user_id !== (string) $wallet->user_id
                     || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
                     || abs((float) $existing->amount - $amount) > 0.00000001) {
                     throw new \RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
@@ -1038,6 +1039,7 @@ final class WalletService
 
                     if ($existing) {
                         if ((string) $existing->wallet_id !== $walletId
+                            || (string) $existing->user_id !== (string) $locked->user_id
                             || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
                             || abs((float) $existing->amount - $amount) > 0.00000001) {
                             throw new \RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
@@ -1091,6 +1093,7 @@ final class WalletService
 
                 if ($existing
                     && (string) $existing->wallet_id === (string) $wallet->id
+                    && (string) $existing->user_id === (string) $wallet->user_id
                     && $existing->type === WalletMovement::TYPE_TRIVIA_ENTRY
                     && abs((float) $existing->amount - $amount) <= 0.00000001) {
                     return $wallet->fresh(['currency']) ?? $wallet;
