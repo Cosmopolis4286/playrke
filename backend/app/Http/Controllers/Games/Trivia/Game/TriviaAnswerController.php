@@ -69,7 +69,10 @@ final class TriviaAnswerController extends Controller
             ->where('room_id', $gameState->roomId)
             ->where('user_id', $userId)
             ->whereNull('deleted_at')
-            ->whereNotIn('status', ['abandoned'])
+            // Registered/confirmed participants are valid here because the
+            // current start flow does not transition them to "playing".
+            // Exclude terminal states so eliminated/winner records cannot answer.
+            ->whereIn('status', ['registered', 'confirmed', 'playing'])
             ->exists();
 
         if (! $isActiveParticipant) {
