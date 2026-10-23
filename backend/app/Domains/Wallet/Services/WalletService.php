@@ -987,62 +987,116 @@ final class WalletService
         string $description = 'Entrada sala Trivia',
         ?string $roomId = null,
         ?string $roomName = null,
+        ?string $idempotencyKey = null,
     ) : Wallet {
         $this->assertPositiveAmount($amount);
 
+        // El débito de wallet vive en MySQL y la inscripción de Trivia en
+        // PostgreSQL; no hay una transacción distribuida entre ambas bases.
+        // La clave estable permite reintentar la inscripción tras un fallo
+        // después del débito sin volver a cobrar al jugador.
+        if ($idempotencyKey !== null) {
+            $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+
+            if ($existing) {
+                if ((string) $existing->wallet_id !== (string) $wallet->id
+                    || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
+                    || abs((float) $existing->amount - $amount) > 0.00000001) {
+                    throw new \\RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
+                }
+
+                return $wallet->fresh(['currency']) ?? $wallet;
+            }
+        }
+
         $movementId = null;
 
-        $result = DB::transaction(function() use ($wallet, $amount, $description, $roomId, &$movementId) {
-            $walletId = (string) $wallet->id;
+        try {
+            $result = DB::transaction(function() use ($wallet, $amount, $description, $roomId, $idempotencyKey, &$movementId) {
+                $walletId = (string) $wallet->id;
 
-            // La wallet llega SIN lock desde el controller/caller (resuelta vía
-            // findOwnedWalletByCurrency()/findActiveWallet()). A diferencia del
-            // decrementBalance() ciego de antes, consumeBonusFirst() necesita
-            // leer bonus_balance/balance para decidir el split, así que requiere
-            // lockForUpdate() explícito para no correr esa lectura sin proteger.
-            $locked = Wallet::lockForUpdate()->findOrFail($walletId);
+                $locked = Wallet::lockForUpdate()->findOrFail($walletId);
 
-            if (! $locked->hasSufficientPlayableBalance($amount)) {
-                throw WalletDomainException::insufficientBalanceForRoomEntry();
+                // Revalidar después de tomar el lock MySQL: dos requests no
+                // pueden gastar dos veces la misma entrada.
+                if ($idempotencyKey !== null) {
+                    $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+
+                    if ($existing) {
+                        if ((string) $existing->wallet_id !== $walletId
+                            || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
+                            || abs((float) $existing->amount - $amount) > 0.00000001) {
+                            throw new \\RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
+                        }
+
+                        $movementId = (string) $existing->id;
+
+                        return $locked;
+                    }
+                }
+
+                if (! $locked->hasSufficientPlayableBalance($amount)) {
+                    throw WalletDomainException::insufficientBalanceForRoomEntry();
+                }
+
+                $balanceBefore = (float) $locked->balance;
+                $bonusBalanceBefore = (float) $locked->bonus_balance;
+
+                $split = $this->walletRepository->consumeBonusFirst($walletId, $amount);
+                $locked->refresh();
+
+                $movement = $this->movementRepository->record([
+                    'wallet_id' => $walletId,
+                    'user_id' => (string) $locked->user_id,
+                    'type' => WalletMovement::TYPE_TRIVIA_ENTRY,
+                    'status' => WalletMovement::STATUS_COMPLETED,
+                    'amount' => $amount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => (float) $locked->balance,
+                    'description' => $description,
+                    'idempotency_key' => $idempotencyKey,
+                    'metadata' => [
+                        'bonus_amount' => $split['bonus_spent'],
+                        'balance_amount' => $split['balance_spent'],
+                        'bonus_balance_before' => $bonusBalanceBefore,
+                        'bonus_balance_after' => (float) $locked->bonus_balance,
+                        'room_id' => $roomId,
+                    ],
+                ]);
+                $movementId = (string) $movement->id;
+
+                return $locked;
+            });
+        } catch (\\Illuminate\\Database\\QueryException $e) {
+            // La restricción UNIQUE de idempotency_key es la última defensa
+            // ante dos peticiones simultáneas. La transacción perdedora revierte
+            // su débito; reutilizamos el movimiento ganador si coincide.
+            if ($idempotencyKey !== null) {
+                $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+
+                if ($existing
+                    && (string) $existing->wallet_id === (string) $wallet->id
+                    && $existing->type === WalletMovement::TYPE_TRIVIA_ENTRY
+                    && abs((float) $existing->amount - $amount) <= 0.00000001) {
+                    return $wallet->fresh(['currency']) ?? $wallet;
+                }
             }
 
-            $balanceBefore = (float) $locked->balance;
-            $bonusBalanceBefore = (float) $locked->bonus_balance;
+            throw $e;
+        }
 
-            $split = $this->walletRepository->consumeBonusFirst($walletId, $amount);
-            $locked->refresh();
+        // Broadcast fuera de la transacción: el commit MySQL ya ocurrió.
+        if ($movementId !== null) {
+            $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount, $movementId);
 
-            $movement = $this->movementRepository->record([
-                'wallet_id' => $walletId,
-                'user_id' => (string) $locked->user_id,
-                'type' => WalletMovement::TYPE_TRIVIA_ENTRY,
-                'status' => WalletMovement::STATUS_COMPLETED,
-                'amount' => $amount,
-                'balance_before' => $balanceBefore,
-                'balance_after' => (float) $locked->balance,
-                'description' => $description,
-                'metadata' => [
-                    'bonus_amount' => $split['bonus_spent'],
-                    'balance_amount' => $split['balance_spent'],
-                    'bonus_balance_before' => $bonusBalanceBefore,
-                    'bonus_balance_after' => (float) $locked->bonus_balance,
-                    'room_id' => $roomId,
-                ],
-            ]);
-            $movementId = (string) $movement->id;
-
-            return $locked;
-        });
-
-        $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount, $movementId);
-
-        if ($roomId !== null && $roomName !== null) {
-            broadcast(new TriviaEntryPurchased(
-                roomId: $roomId,
-                roomName: $roomName,
-                amount: $amount,
-                currencySymbol: $result->currency?->symbol ?? '',
-            ));
+            if ($roomId !== null && $roomName !== null) {
+                broadcast(new TriviaEntryPurchased(
+                    roomId: $roomId,
+                    roomName: $roomName,
+                    amount: $amount,
+                    currencySymbol: $result->currency?->symbol ?? '',
+                ));
+            }
         }
 
         return $result;
