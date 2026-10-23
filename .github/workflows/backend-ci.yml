@@ -31,6 +31,23 @@ jobs:
   backend-tests:
     name: Backend tests (PHPUnit)
     runs-on: ubuntu-latest
+    # Composer's post-autoload-dump boots Laravel (package:discover), so
+    # EnvValidator runs before .env.testing is generated below. Supply safe,
+    # test-only values at job scope so dependency installation can complete.
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: playrke_testing
+      DB_USERNAME: playrke_user
+      DB_PASSWORD: playrke_password
+      REVERB_APP_ID: test-app
+      REVERB_APP_KEY: test-key
+      REVERB_APP_SECRET: test-secret
+      FRONTEND_URL: http://localhost:3000
 
     services:
       mysql:
