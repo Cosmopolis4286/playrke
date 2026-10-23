@@ -497,7 +497,6 @@ class SellerCardSaleTest extends TestCase
         $this->sale($this->sellerA, $this->privateRoomD)
             ->assertStatus(404)
             ->assertJson(['error_code' => 'BINGO_CARD_ROOM_NOT_AVAILABLE']);
-
         $this->assertSame(0, BingoCardLot::count());
     }
 
@@ -997,7 +996,6 @@ class SellerCardSaleTest extends TestCase
     public function sellers_only_sell_vip_rooms_to_invited_phones(): void
     {
         $vip = $this->makeRoom($this->commerceD, 'VIP');
-
         // El comprador (+584141112233, ver sale()) no está invitado.
         $this->sale($this->sellerE, $vip)
             ->assertForbidden()
@@ -1544,11 +1542,16 @@ class SellerCardSaleTest extends TestCase
     {
         $this->runRateAlerts();
 
+        // La primera ejecución también puede avisar al dueño por una condición
+        // independiente (tasa desactualizada o desviada). Comparamos el total
+        // antes/después para verificar que el cambio propio no añade otro aviso.
+        $ownerAlertsBefore = $this->rateAlertsFor($this->commerceC);
+
         DB::table('commerces_exchange_rates')->where('currency_id', $this->currency->id)->update(['amount' => 2.8, 'updated_at' => now()]);
 
         $this->assertSame(1, $this->runRateAlerts()['own_changes']);
         $this->assertSame(1, $this->rateAlertsFor($this->sellerA));
-        $this->assertSame(0, $this->rateAlertsFor($this->commerceC), 'Quien cambió la tasa no se avisa a sí mismo.');
+        $this->assertSame($ownerAlertsBefore, $this->rateAlertsFor($this->commerceC), 'El cambio de su propia tasa no debe añadir una notificación al dueño.');
         $this->assertSame(0, $this->rateAlertsFor($this->sellerE));
     }
 
