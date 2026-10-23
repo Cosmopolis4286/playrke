@@ -264,7 +264,7 @@ final class TriviaAnswerController extends Controller
         }
 
         // ── 9. Avance automático: todos respondieron → siguiente pregunta ─────
-        $this->maybeAdvanceQuestion($gameId, $questionId, $gameState->playerIds, $pgsql);
+        $this->maybeAdvanceQuestion($gameId, $gameState->roomId, $questionId, $gameState->playerIds, $pgsql);
 
         return response()->json([
             'success'              => true,
@@ -282,6 +282,7 @@ final class TriviaAnswerController extends Controller
      */
     private function maybeAdvanceQuestion(
         string $gameId,
+        string $roomId,
         string $questionId,
         array  $playerIds,
         object $pgsql,
@@ -290,17 +291,35 @@ final class TriviaAnswerController extends Controller
             return;
         }
 
-        // Contar respuestas para esta pregunta
+        // Redis conserva la lista inicial de jugadores incluso después de que
+        // alguien abandona o es eliminado. Solo los participantes activos deben
+        // bloquear el avance automático de la pregunta.
+        $activePlayerIds = $pgsql->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->whereIn('user_id', $playerIds)
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['registered', 'confirmed', 'playing'])
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        if (empty($activePlayerIds)) {
+            return;
+        }
+
         $answeredCount = $pgsql->table('trivia_answers')
             ->where('game_id', $gameId)
             ->where('question_id', $questionId)
-            ->count();
+            ->whereNull('deleted_at')
+            ->whereIn('player_id', $activePlayerIds)
+            ->distinct()
+            ->count('player_id');
 
-        if ($answeredCount < count($playerIds)) {
-            return; // Todavía faltan respuestas
+        if ($answeredCount < count($activePlayerIds)) {
+            return; // Todavía faltan respuestas de participantes activos
         }
 
-        // Todos respondieron → avanzar
+        // Todos los participantes activos respondieron → avanzar
         try {
             $nextQuestion = $this->gameEngine->sendNextQuestion($gameId, $questionId);
 
