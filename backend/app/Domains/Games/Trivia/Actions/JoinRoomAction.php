@@ -12,9 +12,9 @@ use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Wallet\Services\WalletService;
 use App\Models\ExchangeRate;
 use App\Models\User;
+use App\Models\Games\Trivia\TriviaParticipant;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -363,7 +363,7 @@ class JoinRoomAction
         $allowPowerups = (bool) (($room?->settings ?? [])['allow_powerups'] ?? false);
 
         DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
-            'id' => (string) Str::ulid(),
+            'id' => TriviaParticipant::generateSnowflakeId(),
             'room_id' => $roomId,
             'team_id' => $teamId,
             'user_id' => $playerId,
