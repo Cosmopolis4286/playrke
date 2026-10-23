@@ -73,12 +73,40 @@ class JoinRoomAction
         $alreadyJoinedInRace = false;
 
         DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerId, $nickname, $teamId, &$alreadyJoinedInRace) {
-            DB::connection('pgsql_trivia')->table('trivia_rooms')->where('id', $roomId)->lockForUpdate()->first();
+            // Bloquear la fila de la sala antes de contar participantes. Todos
+            // los joins de esta sala quedan serializados, de modo que dos
+            // solicitudes no puedan consumir simultáneamente el último cupo.
+            $room = DB::connection('pgsql_trivia')
+                ->table('trivia_rooms')
+                ->where('id', $roomId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $room) {
+                throw new RuntimeException('La sala de Trivia no existe.');
+            }
+
+            if (! in_array((string) $room->status, ['waiting', 'playing'], true)) {
+                throw TriviaRoomException::notJoinable();
+            }
 
             if ($this->isPlayerAlreadyJoined($roomId, $playerId)) {
                 $alreadyJoinedInRace = true;
 
                 return;
+            }
+
+            // Contar desde PostgreSQL, no desde Redis ni current_players, que
+            // puede estar desactualizado. El bloqueo de la sala protege esta
+            // comprobación frente a otros joins que sigan este mismo flujo.
+            $activeParticipants = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->where('room_id', $roomId)
+                ->whereNull('deleted_at')
+                ->count();
+
+            if ($activeParticipants >= (int) $room->max_players) {
+                throw TriviaRoomException::roomFull();
             }
 
             // Validar equipo dentro de la misma sección crítica que registra
