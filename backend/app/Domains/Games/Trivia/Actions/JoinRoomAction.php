@@ -61,11 +61,6 @@ class JoinRoomAction
             return $this->alreadyJoinedResponse($roomId, $playerId, $nickname);
         }
 
-        // Validar equipo si el modo lo requiere
-        if ($teamId) {
-            $this->validateTeamSelection($roomId, $teamId);
-        }
-
         // lockForUpdate() sobre la sala serializa dos joins concurrentes del
         // mismo jugador (doble clic, reintento de red): sin el lock, ambas
         // requests podían leer isPlayerAlreadyJoined()=false, cobrar la
@@ -84,6 +79,13 @@ class JoinRoomAction
                 $alreadyJoinedInRace = true;
 
                 return;
+            }
+
+            // Validar equipo dentro de la misma sección crítica que registra
+            // al participante. Fuera del lock, dos jugadores podían observar
+            // el último cupo libre y exceder max_players.
+            if ($teamId) {
+                $this->validateTeamSelection($roomId, $teamId);
             }
 
             // Descontar tarifa de entrada — devuelve lo realmente cobrado
@@ -425,6 +427,7 @@ class JoinRoomAction
             ->table('trivia_teams')
             ->where('id', $teamId)
             ->where('room_id', $roomId)
+            ->lockForUpdate()
             ->first();
 
         if (! $team) {
