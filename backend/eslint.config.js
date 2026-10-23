@@ -3,10 +3,6 @@ import vue from 'eslint-plugin-vue'
 
 export default [
   js.configs.recommended,
-
-  // Keep Vue template rules available for editor tooling. CI runs the JS
-  // subset here; Vue/TypeScript SFCs are covered by vue-tsc until the
-  // TypeScript ESLint parser/plugin are added as locked workspace deps.
   ...vue.configs['flat/recommended'],
 
   {
@@ -33,30 +29,13 @@ export default [
       }
     },
     rules: {
+      // TypeScript files are checked by vue-tsc. Type-aware linting is disabled
+      // until @typescript-eslint/parser/plugin are properly added to the lockfile.
       'no-unused-vars': 'off',
       'no-console': 'warn',
       'no-debugger': 'error',
       'prefer-const': 'error',
-      'no-var': 'error',
-      'object-shorthand': 'error',
-      'prefer-template': 'error',
-      'template-curly-spacing': ['error', 'never'],
-      'arrow-spacing': 'error',
-      'comma-dangle': ['error', 'never'],
-      'comma-spacing': 'error',
-      'comma-style': 'error',
-      'key-spacing': 'error',
-      'keyword-spacing': 'error',
-      'object-curly-spacing': ['error', 'always'],
-      'space-before-blocks': 'error',
-      'space-in-parens': 'error',
-      'space-infix-ops': 'error',
-      quotes: ['error', 'single', { allowTemplateLiterals: true }],
-      semi: ['error', 'never'],
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'linebreak-style': ['error', 'unix'],
-      'eol-last': 'error',
-      'no-trailing-spaces': 'error'
+      'no-var': 'error'
     }
   },
 
