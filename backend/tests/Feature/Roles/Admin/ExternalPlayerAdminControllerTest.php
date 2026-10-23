@@ -61,11 +61,11 @@ class ExternalPlayerAdminControllerTest extends TestCase
         // Country factory usa códigos aleatorios de 2/3 letras; en suites largas
         // pueden colisionar con países ya sembrados y hacer flaky el test.
         do {
-            $iso2 = strtoupper(\\Illuminate\\Support\\Str::random(2));
+            $iso2 = strtoupper(\Illuminate\Support\Str::random(2));
         } while (Country::where('iso_code_2', $iso2)->exists());
 
         do {
-            $iso3 = strtoupper(\\Illuminate\\Support\\Str::random(3));
+            $iso3 = strtoupper(\Illuminate\Support\Str::random(3));
         } while (Country::where('iso_code_3', $iso3)->exists());
 
         $country = Country::factory()->create([
