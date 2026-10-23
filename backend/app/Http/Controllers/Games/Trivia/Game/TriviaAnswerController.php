@@ -72,9 +72,7 @@ final class TriviaAnswerController extends Controller
             ->whereNotIn('status', ['abandoned'])
             ->exists();
 
-        if (! $isActiveParticipant || ! in_array($userId, $gameState->playerIds, true)) {
-            // Si Redis perdió un jugador válido, no autorizar un estado de juego
-            // incoherente; primero debe restaurarse/sincronizarse el estado.
+        if (! $isActiveParticipant) {
             return response()->json(['success' => false, 'message' => 'No estás inscrito activamente en esta partida.'], 403);
         }
 
