@@ -267,7 +267,7 @@ class WalletServiceTest extends TestCase
                 roomId: 'room-conflict',
             );
             $this->fail('Reusing an idempotency key with a different amount must fail.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('datos incompatibles', $exception->getMessage());
         }
 
@@ -299,7 +299,7 @@ class WalletServiceTest extends TestCase
                 roomId: 'room-owner',
             );
             $this->fail('An idempotency key must not be reusable by another wallet owner.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('datos incompatibles', $exception->getMessage());
         }
 
