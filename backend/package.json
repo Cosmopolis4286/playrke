@@ -6,7 +6,7 @@
         "build": "vite build",
         "preview": "vite preview",
         "typecheck": "vue-tsc --noEmit",
-        "lint": "eslint \"**/*.js\" \"**/*.jsx\" --fix",
+        "lint": "eslint \"**/*.js\" --fix",
         "format": "prettier --write .",
         "test": "vitest run"
     },
