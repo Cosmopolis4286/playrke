@@ -257,18 +257,13 @@ class JoinRoomAction
             throw TriviaRoomException::noWalletForRequiredCurrency($symbols);
         }
 
-        if (! $chargeWallet->hasSufficientPlayableBalance($chargeAmount)) {
-            $symbol = $chargeWallet->currency?->symbol ?? $chargeCurrencyId;
-
-            throw TriviaRoomException::insufficientBalance((string) $symbol, $chargeAmount);
-        }
-
         $this->walletService->recordTriviaEntry(
             wallet: $chargeWallet,
             amount: $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
             roomId: (string) $room->id,
             roomName: $room->title,
+            idempotencyKey: "trivia_entry:{$room->id}:{$playerId}",
         );
 
         return [$chargeAmount, $chargeCurrencyId];
@@ -297,18 +292,13 @@ class JoinRoomAction
         $exchangeRate = $this->getPlayerExchangeRate((string) $wallet->currency_id);
         $chargeAmount = round($baseFeeUsd * $exchangeRate, 2);
 
-        if (! $wallet->hasSufficientPlayableBalance($chargeAmount)) {
-            $symbol = $wallet->currency?->symbol ?? '';
-
-            throw TriviaRoomException::insufficientBalance((string) $symbol, $chargeAmount);
-        }
-
         $this->walletService->recordTriviaEntry(
             wallet: $wallet,
             amount: $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
             roomId: (string) $room->id,
             roomName: $room->title,
+            idempotencyKey: "trivia_entry:{$room->id}:{$playerId}",
         );
 
         return [$chargeAmount, (string) $wallet->currency_id];
