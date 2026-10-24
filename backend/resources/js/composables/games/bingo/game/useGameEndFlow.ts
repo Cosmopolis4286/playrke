@@ -213,8 +213,10 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
         scheduleRetry(() => resyncDrawState(attempt + 1), delay)
       }
     } catch (e) {
-      if (attempt < 1) {
-        scheduleRetry(() => resyncDrawState(attempt + 1), 2000)
+      if (attempt < 5 && waitForFinish) {
+        scheduleRetry(() => resyncDrawState(attempt + 1, true), attempt < 2 ? 1000 : 2000)
+      } else if (attempt < 1) {
+        scheduleRetry(() => resyncDrawState(attempt + 1, waitForFinish), 2000)
       } else {
         console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
       }
