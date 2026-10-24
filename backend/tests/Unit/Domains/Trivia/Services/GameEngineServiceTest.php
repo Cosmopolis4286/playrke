@@ -53,7 +53,7 @@ class GameEngineServiceTest extends TestCase
             'question_count' => 3,
         ]);
 
-        for ($i = 1; $i <= 3; $i++) {
+        // GameEngineService now snapshots participants from PostgreSQL under the\n        // same room lock used by JoinRoomAction; seed the active participants\n        // expected by the tests instead of passing a potentially stale list.\n        foreach (['player-1', 'player-2'] as $playerId) {\n            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([\n                'id' => (string) Str::ulid(),\n                'room_id' => (string) $room->id,\n                'user_id' => $playerId,\n                'status' => 'registered',\n                'registered_at' => now(),\n                'created_at' => now(),\n                'updated_at' => now(),\n            ]);\n        }\n\n        for ($i = 1; $i <= 3; $i++) {
             TriviaQuestion::create([
                 'question_text' => "Pregunta {$i}",
                 'options' => ['A', 'B', 'C', 'D'],
