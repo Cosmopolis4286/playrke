@@ -86,7 +86,10 @@ class JoinRoomAction
                 throw new RuntimeException('La sala de Trivia no existe.');
             }
 
-            if (! in_array((string) $room->status, ['waiting', 'playing'], true)) {
+            // Joining is only allowed before the game starts. Allowing a player to join
+            // a playing room can charge the entry fee without including that player
+            // in the game state snapshot created by GameEngineService.
+            if ((string) $room->status !== 'waiting') {
                 throw TriviaRoomException::notJoinable();
             }
 
