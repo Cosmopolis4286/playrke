@@ -28,3 +28,7 @@ The regular PlayRKE web application authenticates through Laravel's `web` guard 
 ## Regression coverage
 
 `tests/Feature/Games/Bingo/BingoRoomAuthorizationTest.php` protects against broad business roles accidentally granting access to another room's draw state/participant list and preserves creator access.
+
+## Known security gap (not fixed by the room-policy change)
+
+The room event channel `bingo.room.{roomId}` is currently public. In particular, `BingoGameEnded::broadcastWith()` publishes the full winners array (user IDs/names, card identifiers/serials, and prizes) and `BingoWinnerDeclared` publishes winner identity and prize details. HTTP policies do not protect public WebSocket broadcasts. Do not treat private-room game results as confidential until the event contract is split into a public summary and authorized/private result delivery, coordinated with the frontend and external-player flow.
