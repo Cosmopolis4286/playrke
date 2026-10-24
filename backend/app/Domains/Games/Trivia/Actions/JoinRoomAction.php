@@ -399,6 +399,7 @@ class JoinRoomAction
             ->where('room_id', $roomId)
             ->where('user_id', $playerId)
             ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
             ->exists();
     }
 
@@ -421,27 +422,69 @@ class JoinRoomAction
         $room = TriviaRoom::find($roomId);
         $allowPowerups = (bool) (($room?->settings ?? [])['allow_powerups'] ?? false);
 
-        DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
-            'id' => TriviaParticipant::generateSnowflakeId(),
-            'room_id' => $roomId,
+        $participants = DB::connection('pgsql_trivia')->table('trivia_participants');
+        $existing = $participants
+            ->where('room_id', $roomId)
+            ->where('user_id', $playerId)
+            ->whereNull('deleted_at')
+            ->lockForUpdate()
+            ->first();
+
+        $participantData = [
             'team_id' => $teamId,
-            'user_id' => $playerId,
             'status' => 'confirmed',
             'registered_at' => now(),
             'confirmed_at' => now(),
             'paid_amount' => $paidAmount,
             'paid_currency_id' => $paidCurrencyId,
-            // 1 uso de cada tipo por partida — solo si la sala los habilita
-            // (settings.allow_powerups, toggle ya existente en RoomsCreate.vue).
+            // 1 uso de cada tipo por partida — solo si la sala los habilita.
             'power_ups' => $allowPowerups
                 ? json_encode(TriviaPowerUpType::defaultAllowance())
                 : null,
             'metadata' => json_encode(['nickname' => $nickname]),
-            'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
 
-        // Incrementar contador de jugadores en el equipo
+        if ($existing && $existing->status === 'abandoned') {
+            // La fila tiene una restricción única (room_id, user_id): reactivar
+            // la inscripción abandonada evita un INSERT duplicado y reutiliza
+            // el movimiento de entrada idempotente, sin volver a cobrar.
+            $participants
+                ->where('id', $existing->id)
+                ->update($participantData);
+
+            if ($existing->team_id && (string) $existing->team_id !== (string) $teamId) {
+                DB::connection('pgsql_trivia')
+                    ->table('trivia_teams')
+                    ->where('id', $existing->team_id)
+                    ->where('current_players', '>', 0)
+                    ->decrement('current_players');
+            }
+
+            if ($teamId && (string) $existing->team_id !== (string) $teamId) {
+                DB::connection('pgsql_trivia')
+                    ->table('trivia_teams')
+                    ->where('id', $teamId)
+                    ->increment('current_players');
+            }
+
+            return;
+        }
+
+        if ($existing) {
+            // Protección adicional ante llamadas repetidas: el estado activo se
+            // detecta normalmente antes de llegar aquí, dentro del lock de sala.
+            return;
+        }
+
+        $participants->insert(array_merge($participantData, [
+            'id' => TriviaParticipant::generateSnowflakeId(),
+            'room_id' => $roomId,
+            'user_id' => $playerId,
+            'created_at' => now(),
+        ]));
+
+        // Incrementar contador de jugadores en el equipo solo para una fila nueva.
         if ($teamId) {
             DB::connection('pgsql_trivia')
                 ->table('trivia_teams')
