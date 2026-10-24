@@ -65,11 +65,11 @@ class TriviaRoomRefundService
                 );
 
                 if (! $wallet) {
-                    Log::warning('[TriviaRoomRefundService] Wallet no disponible para reembolso — se omite este participante', [
+                    Log::warning('[TriviaRoomRefundService] Wallet no disponible para reembolso — la sala no debe finalizar su cancelación', [
                         'room_id' => $room->id,
                         'user_id' => $participant->user_id,
                     ]);
-                    return;
+                    throw new \\RuntimeException("No hay wallet activa para reembolsar al participante {$participant->user_id} de la sala {$room->id}.");
                 }
 
                 // La entrada original se registró como TRIVIA_ENTRY con
