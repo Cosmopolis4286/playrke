@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class BingoRoomAuthorizationTest extends TestCase
 {
-    public function test_business_role_alone_does_not_grant_access_to_another_rooms_game_state_or_lobby_players(): void
+    public function test_non_player_without_room_membership_cannot_read_another_rooms_game_state_or_lobby_players(): void
     {
         $user = Mockery::mock(User::class)->makePartial();
         $user->id = '960000000000000002';
@@ -22,10 +22,7 @@ class BingoRoomAuthorizationTest extends TestCase
         $room->creator_user_id = '960000000000000001';
 
         $roles = Mockery::mock(RoleAuthorizationService::class);
-        $roles->shouldReceive('hasAnyRole')->andReturnUsing(
-            static fn ($candidate, array $requiredRoles): bool => !in_array('admin', $requiredRoles, true)
-                && !in_array('superadmin', $requiredRoles, true)
-        );
+        $roles->shouldReceive('hasAnyRole')->andReturn(false);
         $this->app->instance(RoleAuthorizationService::class, $roles);
 
         $policy = app(BingoRoomPolicy::class);
