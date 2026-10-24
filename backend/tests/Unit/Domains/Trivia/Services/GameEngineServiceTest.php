@@ -9,6 +9,8 @@ use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class GameEngineServiceTest extends TestCase
@@ -53,7 +55,20 @@ class GameEngineServiceTest extends TestCase
             'question_count' => 3,
         ]);
 
-        // GameEngineService now snapshots participants from PostgreSQL under the\n        // same room lock used by JoinRoomAction; seed the active participants\n        // expected by the tests instead of passing a potentially stale list.\n        foreach (['player-1', 'player-2'] as $playerId) {\n            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([\n                'id' => (string) Str::ulid(),\n                'room_id' => (string) $room->id,\n                'user_id' => $playerId,\n                'status' => 'registered',\n                'registered_at' => now(),\n                'created_at' => now(),\n                'updated_at' => now(),\n            ]);\n        }\n\n        for ($i = 1; $i <= 3; $i++) {
+        // GameEngineService now snapshots participants from PostgreSQL under the\n        // same room lock used by JoinRoomAction; seed the active participants\n        // expected by the tests instead of passing a potentially stale list.\n        foreach (['player-1', 'player-2'] as $playerId) {\n            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([\n                'id' => (string) Str::ulid(),\n                'room_id' => (string) $room->id,\n                'user_id' => $playerId,\n                'status' => 'registered',\n                'registered_at' => now(),\n                'created_at' => now(),\n                'updated_at' => now(),\n            ]);\n        }\n\n        // The engine takes its authoritative player snapshot under the room lock.
+        foreach (['player-1', 'player-2'] as $playerId) {
+            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+                'id' => (string) Str::ulid(),
+                'room_id' => (string) $room->id,
+                'user_id' => $playerId,
+                'status' => 'registered',
+                'registered_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        for ($i = 1; $i <= 3; $i++) {
             TriviaQuestion::create([
                 'question_text' => "Pregunta {$i}",
                 'options' => ['A', 'B', 'C', 'D'],
