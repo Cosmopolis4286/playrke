@@ -51,6 +51,26 @@ class TriviaPowerUpService
     }
 
     /**
+     * Reserva atómicamente la activación de un power-up que deja un flag
+     * por pregunta. Evita que requests repetidos consuman varios usos para
+     * un único efecto. El valor pending no concede el efecto al jugador.
+     */
+    public function reserveActivation(string $gameId, string $userId, string $questionId, string $type): bool
+    {
+        $key = $this->key($gameId, $userId, $questionId, $type);
+
+        $reserved = Redis::set($key, 'pending', 'EX', self::REDIS_TTL_SECONDS, 'NX');
+
+        return $reserved !== false && $reserved !== null;
+    }
+
+    /** Libera una reserva si el consumo del power-up no pudo completarse. */
+    public function releaseActivation(string $gameId, string $userId, string $questionId, string $type): void
+    {
+        Redis::del($this->key($gameId, $userId, $questionId, $type));
+    }
+
+    /**
      * Activa double_points para la próxima respuesta del jugador a esta
      * pregunta específica. TriviaAnswerController::store() lo consulta y
      * consume al calcular los puntos.
@@ -115,7 +135,7 @@ class TriviaPowerUpService
      */
     public function hasDoublePointsFlag(string $gameId, string $userId, string $questionId) : bool
     {
-        return (bool) Redis::get($this->key($gameId, $userId, $questionId, 'double_points'));
+        return Redis::get($this->key($gameId, $userId, $questionId, 'double_points')) === '1';
     }
 
     /**
@@ -150,7 +170,7 @@ class TriviaPowerUpService
      */
     public function extraTimeBonusMs(string $gameId, string $userId, string $questionId) : int
     {
-        return Redis::exists($this->key($gameId, $userId, $questionId, 'extra_time'))
+        return Redis::get($this->key($gameId, $userId, $questionId, 'extra_time')) === '1'
             ? self::EXTRA_TIME_BONUS_MS
             : 0;
     }
