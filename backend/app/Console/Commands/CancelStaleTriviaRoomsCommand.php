@@ -44,31 +44,101 @@ class CancelStaleTriviaRoomsCommand extends Command
             // (StartScheduledTriviaRoomsCommand ya la vio y la saltó por
             // falta de jugadores, o sí tenía pero nunca se pudo iniciar),
             // o sin scheduled_at (inicio manual) y el host nunca la arrancó.
-            $rooms = TriviaRoom::where('status', 'waiting')
-                ->where(function ($q) use ($cutoff) {
-                    $q->where('scheduled_at', '<=', $cutoff)
-                        ->orWhere(function ($q2) use ($cutoff) {
-                            $q2->whereNull('scheduled_at')->where('created_at', '<=', $cutoff);
-                        });
-                })
-                ->get();
+            // Las salas en estado cancelling son reintentos de ejecuciones
+            // previas que fallaron tras reclamar la sala. Nunca se permite que
+            // el cron de inicio ni un host arranquen una sala en ese estado.
+            $rooms = TriviaRoom::where(function ($q) use ($cutoff) {
+                $q->where('status', 'cancelling')
+                    ->orWhere(function ($waiting) use ($cutoff) {
+                        $waiting->where('status', 'waiting')
+                            ->where(function ($stale) use ($cutoff) {
+                                $stale->where('scheduled_at', '<=', $cutoff)
+                                    ->orWhere(function ($manual) use ($cutoff) {
+                                        $manual->whereNull('scheduled_at')
+                                            ->where('created_at', '<=', $cutoff);
+                                    });
+                            });
+                    });
+            })->get(['id']);
 
-            foreach ($rooms as $room) {
+            foreach ($rooms as $candidate) {
+                $roomId = (string) $candidate->id;
+
                 try {
-                    $reasonMessage = "La sala '{$room->title}' ({$room->code}) fue cancelada por falta de actividad. Se te reembolsó tu entrada.";
-                    $roomRefunded  = $refundService->refundConfirmedParticipants($room, $reasonMessage);
-                    $room->update(['status' => 'cancelled']);
+                    // Fase 1: reclamar la sala y confirmar 'cancelling' antes
+                    // de tocar wallets en MySQL. Si el proceso cae después, el
+                    // siguiente cron puede reintentar sin que la sala arranque.
+                    $claimed = DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $cutoff) {
+                        $room = DB::connection('pgsql_trivia')
+                            ->table('trivia_rooms')
+                            ->where('id', $roomId)
+                            ->lockForUpdate()
+                            ->first();
 
-                    $cancelled++;
-                    $refunded += $roomRefunded;
-                    $this->info("Sala {$room->code} cancelada — {$roomRefunded} reembolso(s) aplicado(s).");
+                        if (! $room || ! in_array((string) $room->status, ['waiting', 'cancelling'], true)) {
+                            return false;
+                        }
+
+                        if ((string) $room->status === 'waiting') {
+                            $isStale = $room->scheduled_at !== null
+                                ? \\Illuminate\\Support\\Carbon::parse($room->scheduled_at)->lte($cutoff)
+                                : \\Illuminate\\Support\\Carbon::parse($room->created_at)->lte($cutoff);
+
+                            if (! $isStale) {
+                                return false;
+                            }
+
+                            DB::connection('pgsql_trivia')
+                                ->table('trivia_rooms')
+                                ->where('id', $roomId)
+                                ->update(['status' => 'cancelling', 'updated_at' => now()]);
+                        }
+
+                        return true;
+                    });
+
+                    if (! $claimed) {
+                        continue;
+                    }
+
+                    // Fase 2: procesar bajo el mismo bloqueo que usa el inicio
+                    // de partida. Reintentos de reembolso son seguros por clave
+                    // idempotente; una sala solo pasa a cancelled al completar.
+                    $result = DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $refundService) {
+                        $locked = DB::connection('pgsql_trivia')
+                            ->table('trivia_rooms')
+                            ->where('id', $roomId)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if (! $locked || (string) $locked->status !== 'cancelling') {
+                            return ['state' => 'skipped', 'refunded' => 0, 'code' => null];
+                        }
+
+                        $room = TriviaRoom::findOrFail($roomId);
+                        $reasonMessage = "La sala '{$room->title}' ({$room->code}) fue cancelada por falta de actividad. Se te reembolsó tu entrada.";
+                        $roomRefunded = $refundService->refundConfirmedParticipants($room, $reasonMessage);
+
+                        DB::connection('pgsql_trivia')
+                            ->table('trivia_rooms')
+                            ->where('id', $roomId)
+                            ->update(['status' => 'cancelled', 'updated_at' => now()]);
+
+                        return ['state' => 'cancelled', 'refunded' => $roomRefunded, 'code' => $room->code];
+                    });
+
+                    if ($result['state'] === 'cancelled') {
+                        $cancelled++;
+                        $refunded += $result['refunded'];
+                        $this->info("Sala {$result['code']} cancelada — {$result['refunded']} reembolso(s) nuevo(s).");
+                    }
                 } catch (Throwable $e) {
                     $errors++;
-                    Log::error('[CancelStaleTriviaRooms] Error al cancelar sala', [
-                        'room_id' => $room->id,
+                    Log::error('[CancelStaleTriviaRooms] Error al cancelar sala; queda en cancelling para reintento seguro', [
+                        'room_id' => $roomId,
                         'error'   => $e->getMessage(),
                     ]);
-                    $this->warn("  ✗ Error en sala {$room->code}: {$e->getMessage()}");
+                    $this->warn("  ✗ Error en sala {$roomId}: {$e->getMessage()}");
                 }
             }
 
