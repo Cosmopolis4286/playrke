@@ -91,7 +91,7 @@ class GameEngineServiceTest extends TestCase
         $this->assertInstanceOf(GameStateDTO::class, $gameState);
         $this->assertEquals('active', $gameState->status);
         $this->assertEquals(3, $gameState->totalQuestions);
-        $this->assertCount(2, $gameState->playerIds);
+        $this->assertEqualsCanonicalizing(['player-1', 'player-2'], $gameState->playerIds);
     }
 
     public function test_game_is_active_after_start(): void
