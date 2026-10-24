@@ -53,6 +53,7 @@ final class TriviaGameController extends Controller
             ->where('room_id', $roomId)
             ->where('user_id', $userId)
             ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
             ->exists();
 
         if ($alreadyJoined) {
