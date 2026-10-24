@@ -913,23 +913,43 @@ final class WalletService
         string $description = 'Reembolso',
         float $bonusPortion = 0.0,
         array $extraMetadata = [],
+        ?string $idempotencyKey = null,
     ) : WalletMovement {
         $this->assertPositiveAmount($amount);
 
-        $movement = DB::transaction(function() use ($wallet, $amount, $gameId, $description, $bonusPortion, $extraMetadata) {
+        [$movement, $created] = DB::transaction(function() use ($wallet, $amount, $gameId, $description, $bonusPortion, $extraMetadata, $idempotencyKey) {
             $walletId = (string) $wallet->id;
-            $balanceBefore = (float) $wallet->balance;
-            $bonusBalanceBefore = (float) $wallet->bonus_balance;
+
+            // Serializar reembolsos de una misma wallet y volver a comprobar la
+            // clave dentro de la transacción: dos workers pueden reintentar la
+            // misma cancelación simultáneamente.
+            $lockedWallet = Wallet::lockForUpdate()->findOrFail($walletId);
+
+            if ($idempotencyKey !== null) {
+                $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+
+                if ($existing) {
+                    if ((string) $existing->wallet_id !== $walletId
+                        || (string) $existing->user_id !== (string) $lockedWallet->user_id
+                        || $existing->type !== WalletMovement::TYPE_REFUND
+                        || abs((float) $existing->amount - $amount) > 0.00000001
+                        || (string) ($existing->metadata['game_id'] ?? '') !== $gameId) {
+                        throw new \\RuntimeException('La clave de idempotencia del reembolso ya existe con datos incompatibles.');
+                    }
+
+                    return [$existing, false];
+                }
+            }
+
+            $balanceBefore = (float) $lockedWallet->balance;
+            $bonusBalanceBefore = (float) $lockedWallet->bonus_balance;
 
             $bonusPortion = min($bonusPortion, $amount);
             $balancePortion = round($amount - $bonusPortion, 2);
 
-            // pending_debt (reversión de premio en disputa) se cobra de
-            // CUALQUIER crédito entrante, incluido este reembolso — decisión
-            // de producto explícita (2026-08-31): la deuda se salda contra el
-            // primer dinero que vuelva a entrar a la wallet, sea cual sea su
-            // origen. Solo se aplica a la porción "balance", no a la de bono.
-            $balancePortion = $this->settlePendingDebt($wallet, $balancePortion);
+            // pending_debt se cobra de cualquier crédito entrante. Solo se
+            // aplica a la porción de saldo, no a la porción de bono.
+            $balancePortion = $this->settlePendingDebt($lockedWallet, $balancePortion);
 
             if ($bonusPortion > 0) {
                 $this->walletRepository->incrementBonusBalance($walletId, $bonusPortion);
@@ -937,29 +957,34 @@ final class WalletService
             if ($balancePortion > 0) {
                 $this->walletRepository->incrementBalance($walletId, $balancePortion);
             }
-            $wallet->refresh();
+            $lockedWallet->refresh();
 
-            return $this->movementRepository->record([
+            $movement = $this->movementRepository->record([
                 'wallet_id' => $walletId,
-                'user_id' => (string) $wallet->user_id,
+                'user_id' => (string) $lockedWallet->user_id,
                 'type' => WalletMovement::TYPE_REFUND,
                 'status' => WalletMovement::STATUS_COMPLETED,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,
-                'balance_after' => (float) $wallet->balance,
+                'balance_after' => (float) $lockedWallet->balance,
                 'description' => $description,
+                'idempotency_key' => $idempotencyKey,
                 'metadata' => [
                     'game_id' => $gameId,
                     'bonus_amount' => $bonusPortion,
                     'balance_amount' => $balancePortion,
                     'bonus_balance_before' => $bonusBalanceBefore,
-                    'bonus_balance_after' => (float) $wallet->bonus_balance,
+                    'bonus_balance_after' => (float) $lockedWallet->bonus_balance,
                     ...$extraMetadata,
                 ],
             ]);
+
+            return [$movement, true];
         });
 
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_REFUND, $amount, (string) $movement->id);
+        if ($created) {
+            $this->broadcastWalletUpdated($wallet->fresh(), WalletMovement::TYPE_REFUND, $amount, (string) $movement->id);
+        }
 
         return $movement;
     }
