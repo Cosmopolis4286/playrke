@@ -58,7 +58,7 @@ class GameEngineServiceTest extends TestCase
         // The engine takes its authoritative player snapshot under the room lock.
         foreach (['player-1', 'player-2'] as $playerId) {
             DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
-                'id' => (string) Str::ulid(),
+                'id' => (string) Str::random(20),
                 'room_id' => (string) $room->id,
                 'user_id' => $playerId,
                 'status' => 'registered',
