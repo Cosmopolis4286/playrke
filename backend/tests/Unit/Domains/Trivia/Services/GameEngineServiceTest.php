@@ -83,7 +83,8 @@ class GameEngineServiceTest extends TestCase
     public function test_can_start_game(): void
     {
         $room = $this->createRoomWithQuestions();
-        $playerIds = ['player-1', 'player-2'];
+        // Deliberately stale caller snapshot: the engine must read the locked DB snapshot.
+        $playerIds = ['stale-player'];
 
         $gameState = $this->service->startGame((string) $room->id, $playerIds);
 
