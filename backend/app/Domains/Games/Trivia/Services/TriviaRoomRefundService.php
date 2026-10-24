@@ -88,27 +88,33 @@ class TriviaRoomRefundService
 
                 $bonusPortion = (float) ($originalEntry?->metadata['bonus_amount'] ?? 0.0);
 
-                $this->walletService->recordRefund(
-                    wallet:       $wallet,
-                    amount:       (float) $participant->paid_amount,
-                    gameId:       (string) $room->id,
-                    description:  "Reembolso Trivia: sala {$room->title} ({$room->code})",
-                    bonusPortion: $bonusPortion,
+                $movement = $this->walletService->recordRefund(
+                    wallet:          $wallet,
+                    amount:          (float) $participant->paid_amount,
+                    gameId:          (string) $room->id,
+                    description:     "Reembolso Trivia: sala {$room->title} ({$room->code})",
+                    bonusPortion:    $bonusPortion,
+                    idempotencyKey:  "trivia_refund:{$room->id}:{$participant->user_id}",
                 );
 
-                $this->notificationService->create(
-                    userId: (string) $participant->user_id,
-                    type: 'SYSTEM',
-                    title: '↩️ Trivia cancelada — reembolso aplicado',
-                    message: $reasonMessage,
-                    data: [
-                        'room_id'   => (string) $room->id,
-                        'room_code' => $room->code,
-                        'amount'    => (float) $participant->paid_amount,
-                    ],
-                );
+                // Solo notificar/contabilizar una acreditación nueva. En un
+                // reintento el movimiento idempotente ya existe y no se vuelve
+                // a acreditar ni a notificar como si fuera un reembolso nuevo.
+                if ($movement->wasRecentlyCreated) {
+                    $this->notificationService->create(
+                        userId: (string) $participant->user_id,
+                        type: 'SYSTEM',
+                        title: '↩️ Trivia cancelada — reembolso aplicado',
+                        message: $reasonMessage,
+                        data: [
+                            'room_id'   => (string) $room->id,
+                            'room_code' => $room->code,
+                            'amount'    => (float) $participant->paid_amount,
+                        ],
+                    );
 
-                $refundedCount++;
+                    $refundedCount++;
+                }
             });
         }
 
