@@ -69,7 +69,7 @@ class TriviaRoomRefundService
                         'room_id' => $room->id,
                         'user_id' => $participant->user_id,
                     ]);
-                    throw new \\RuntimeException("No hay wallet activa para reembolsar al participante {$participant->user_id} de la sala {$room->id}.");
+                    throw new \RuntimeException("No hay wallet activa para reembolsar al participante {$participant->user_id} de la sala {$room->id}.");
                 }
 
                 // La entrada original se registró como TRIVIA_ENTRY con
