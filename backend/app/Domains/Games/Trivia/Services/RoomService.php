@@ -329,21 +329,36 @@ class RoomService implements RoomServiceInterface
 
             $this->deletePlayerFromRedis($playerId, $roomId);
 
-            if ($activeCount !== null) {
+            $remainingPlayerIds = array_values(array_filter(
+                $roomDto->playerIds,
+                fn ($id) => (string) $id !== $playerId
+            ));
+
+            // Si hay participantes persistidos, PostgreSQL define el conteo.
+            // Para salas legacy sin fila en trivia_participants, conservar el
+            // contador derivado del DTO/Redis como hacía la implementación previa.
+            $countToPublish = $activeCount;
+            if ($countToPublish === null && $roomStatus === 'waiting' && $wasCached) {
+                $countToPublish = $updatedRoom->currentPlayers;
+
+                DB::connection('pgsql_trivia')
+                    ->table('trivia_rooms')
+                    ->where('id', $roomId)
+                    ->update(['current_players' => $countToPublish]);
+            }
+
+            if ($countToPublish !== null) {
                 // El DTO puede estar desactualizado; publicar el conteo confirmado
-                // por PostgreSQL para evitar que el lobby conserve el valor viejo.
+                // por PostgreSQL cuando hay inscripción, o el conteo legacy calculado.
                 $updatedRoom = new RoomDTO(
                     roomId: $roomDto->roomId,
                     code: $roomDto->code,
                     title: $roomDto->title,
                     status: $roomDto->status,
                     maxPlayers: $roomDto->maxPlayers,
-                    currentPlayers: $activeCount,
+                    currentPlayers: $countToPublish,
                     hostId: $roomDto->hostId,
-                    playerIds: array_values(array_filter(
-                        $roomDto->playerIds,
-                        fn ($id) => (string) $id !== $playerId
-                    )),
+                    playerIds: $remainingPlayerIds,
                     settings: $roomDto->settings,
                     createdAt: $roomDto->createdAt,
                     startedAt: $roomDto->startedAt,
