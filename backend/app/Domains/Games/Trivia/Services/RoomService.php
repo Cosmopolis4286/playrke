@@ -256,28 +256,99 @@ class RoomService implements RoomServiceInterface
      */
     public function leaveRoom(string $roomId, string $playerId) : void
     {
-        $roomDto = $this->getRoom($roomId);
+        // Persistir primero la salida: Redis es una proyección en tiempo real,
+        // no la fuente de verdad para decidir si el participante sigue inscrito.
+        $roomStatus = null;
+        $activeCount = null;
 
-        if (! in_array($playerId, $roomDto->playerIds, true)) {
-            return;
-        }
+        DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $playerId, &$roomStatus, &$activeCount) {
+            $room = DB::connection('pgsql_trivia')
+                ->table('trivia_rooms')
+                ->where('id', $roomId)
+                ->lockForUpdate()
+                ->first();
 
-        $updatedRoom = $roomDto->removePlayer($playerId);
-        $this->saveRoomToRedis($updatedRoom);
-        $this->deletePlayerFromRedis($playerId, $roomId);
+            if (! $room) {
+                return;
+            }
 
-        // Sincronizar current_players en BD (best-effort)
+            $roomStatus = (string) $room->status;
+
+            // Una salida del lobby abandona la inscripción. No cambiar el
+            // estado de participantes durante una partida: el motor necesita
+            // conservar su snapshot para resolver resultados y premios.
+            if ($roomStatus === 'waiting') {
+                DB::connection('pgsql_trivia')
+                    ->table('trivia_participants')
+                    ->where('room_id', $roomId)
+                    ->where('user_id', $playerId)
+                    ->whereNull('deleted_at')
+                    ->whereNotIn('status', ['abandoned'])
+                    ->update([
+                        'status' => 'abandoned',
+                        'updated_at' => now(),
+                    ]);
+
+                $activeCount = DB::connection('pgsql_trivia')
+                    ->table('trivia_participants')
+                    ->where('room_id', $roomId)
+                    ->whereNull('deleted_at')
+                    ->whereNotIn('status', ['abandoned'])
+                    ->count();
+
+                DB::connection('pgsql_trivia')
+                    ->table('trivia_rooms')
+                    ->where('id', $roomId)
+                    ->update(['current_players' => $activeCount]);
+            }
+        });
+
+        // Actualizar Redis aunque el jugador falte en su lista (caché obsoleta).
+        // No retornar temprano basándose únicamente en playerIds cacheados.
         try {
-            TriviaRoom::where('id', $roomId)
-                ->update(['current_players' => $updatedRoom->currentPlayers]);
+            $roomDto = $this->getRoom($roomId);
+            $wasCached = in_array($playerId, $roomDto->playerIds, true);
+
+            if ($wasCached) {
+                $updatedRoom = $roomDto->removePlayer($playerId);
+                $this->saveRoomToRedis($updatedRoom);
+            } else {
+                $updatedRoom = $roomDto;
+            }
+
+            $this->deletePlayerFromRedis($playerId, $roomId);
+
+            if ($activeCount !== null) {
+                // El DTO puede estar desactualizado; publicar el conteo confirmado
+                // por PostgreSQL para evitar que el lobby conserve el valor viejo.
+                $updatedRoom = new RoomDTO(
+                    roomId: $roomDto->roomId,
+                    code: $roomDto->code,
+                    title: $roomDto->title,
+                    status: $roomDto->status,
+                    maxPlayers: $roomDto->maxPlayers,
+                    currentPlayers: $activeCount,
+                    hostId: $roomDto->hostId,
+                    playerIds: array_values(array_filter(
+                        $roomDto->playerIds,
+                        fn ($id) => (string) $id !== $playerId
+                    )),
+                    settings: $roomDto->settings,
+                    createdAt: $roomDto->createdAt,
+                    startedAt: $roomDto->startedAt,
+                    endedAt: $roomDto->endedAt,
+                );
+                $this->saveRoomToRedis($updatedRoom);
+            }
         } catch (Throwable) {
+            // La salida ya quedó persistida; Redis se reconstruye al próximo acceso.
         }
 
         try {
             broadcast(new TriviaPlayerLeft(
                 roomId: $roomId,
                 playerId: $playerId,
-                currentPlayerCount: $updatedRoom->currentPlayers,
+                currentPlayerCount: $activeCount ?? max(0, ($updatedRoom->currentPlayers ?? 0)),
                 reason: 'left',
             ));
         } catch (Throwable) {
