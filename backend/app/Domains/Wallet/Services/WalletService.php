@@ -934,7 +934,7 @@ final class WalletService
                         || $existing->type !== WalletMovement::TYPE_REFUND
                         || abs((float) $existing->amount - $amount) > 0.00000001
                         || (string) ($existing->metadata['game_id'] ?? '') !== $gameId) {
-                        throw new \\RuntimeException('La clave de idempotencia del reembolso ya existe con datos incompatibles.');
+                        throw new \RuntimeException('La clave de idempotencia del reembolso ya existe con datos incompatibles.');
                     }
 
                     return [$existing, false];
