@@ -260,8 +260,9 @@ class RoomService implements RoomServiceInterface
         // no la fuente de verdad para decidir si el participante sigue inscrito.
         $roomStatus = null;
         $activeCount = null;
+        $hasPersistedParticipant = false;
 
-        DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $playerId, &$roomStatus, &$activeCount) {
+        DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $playerId, &$roomStatus, &$activeCount, &$hasPersistedParticipant) {
             $room = DB::connection('pgsql_trivia')
                 ->table('trivia_rooms')
                 ->where('id', $roomId)
@@ -274,10 +275,20 @@ class RoomService implements RoomServiceInterface
 
             $roomStatus = (string) $room->status;
 
+            // Algunas rutas heredadas solo mantienen jugadores en Redis. Si
+            // existe una inscripción persistida, PostgreSQL gobierna su salida
+            // y el contador; si no, conservamos el comportamiento legacy.
+            $hasPersistedParticipant = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->where('room_id', $roomId)
+                ->where('user_id', $playerId)
+                ->whereNull('deleted_at')
+                ->exists();
+
             // Una salida del lobby abandona la inscripción. No cambiar el
             // estado de participantes durante una partida: el motor necesita
             // conservar su snapshot para resolver resultados y premios.
-            if ($roomStatus === 'waiting') {
+            if ($roomStatus === 'waiting' && $hasPersistedParticipant) {
                 DB::connection('pgsql_trivia')
                     ->table('trivia_participants')
                     ->where('room_id', $roomId)
