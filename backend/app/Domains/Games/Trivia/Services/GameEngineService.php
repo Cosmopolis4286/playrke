@@ -450,7 +450,7 @@ class GameEngineService implements GameEngineInterface
         // el TriviaGame, resultando en dos partidas 'playing' para la misma
         // sala y, más grave, en PrizeDistributionService::distribute()
         // ejecutándose dos veces al finalizar cada una.
-        [$room, $game, $playerIds] = DB::connection('pgsql_trivia')->transaction(function() use ($roomId) {
+        [$room, $game, $playerIds] = DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerIds) {
             $room = TriviaRoom::lockForUpdate()->findOrFail($roomId);
 
             if (! $room->canStart()) {
