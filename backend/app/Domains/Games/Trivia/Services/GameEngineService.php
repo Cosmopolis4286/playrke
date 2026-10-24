@@ -450,10 +450,37 @@ class GameEngineService implements GameEngineInterface
         // el TriviaGame, resultando en dos partidas 'playing' para la misma
         // sala y, más grave, en PrizeDistributionService::distribute()
         // ejecutándose dos veces al finalizar cada una.
-        [$room, $game] = DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerIds) {
+        [$room, $game, $playerIds] = DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerIds) {
             $room = TriviaRoom::lockForUpdate()->findOrFail($roomId);
 
             if (! $room->canStart()) {
+                throw TriviaGameException::roomCannotStart();
+            }
+
+            // Snapshot authoritative participants only after acquiring the room lock.
+            // JoinRoomAction takes the same lock, so registrations either commit before
+            // this query and are included, or observe status=playing and are rejected.
+            $registeredPlayerIds = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->where('room_id', $roomId)
+                ->whereNull('deleted_at')
+                ->whereIn('status', ['confirmed', 'registered'])
+                ->orderBy('registered_at')
+                ->pluck('user_id')
+                ->map(fn ($id) => (string) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            // Production room starts have persisted participants and always use
+            // that locked snapshot. Keep the explicit playerIds fallback for
+            // legacy/direct GameEngineInterface callers that start synthetic games
+            // without creating trivia_participants (including isolated unit tests).
+            $playerIds = $registeredPlayerIds !== []
+                ? $registeredPlayerIds
+                : array_values(array_unique(array_map('strval', $playerIds)));
+
+            if ($playerIds === []) {
                 throw TriviaGameException::roomCannotStart();
             }
 
@@ -475,7 +502,7 @@ class GameEngineService implements GameEngineInterface
             // otra request vea 'waiting' entre el commit del juego y este update.
             $room->update(['status' => 'playing', 'started_at' => now()]);
 
-            return [$room, $game];
+            return [$room, $game, $playerIds];
         });
 
         // Crear estado inicial en Redis

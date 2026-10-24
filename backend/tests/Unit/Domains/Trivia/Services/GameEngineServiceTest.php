@@ -9,6 +9,8 @@ use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class GameEngineServiceTest extends TestCase
@@ -53,6 +55,19 @@ class GameEngineServiceTest extends TestCase
             'question_count' => 3,
         ]);
 
+        // The engine takes its authoritative player snapshot under the room lock.
+        foreach (['player-1', 'player-2'] as $playerId) {
+            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+                'id' => (string) Str::random(20),
+                'room_id' => (string) $room->id,
+                'user_id' => $playerId,
+                'status' => 'registered',
+                'registered_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         for ($i = 1; $i <= 3; $i++) {
             TriviaQuestion::create([
                 'question_text' => "Pregunta {$i}",
@@ -68,14 +83,15 @@ class GameEngineServiceTest extends TestCase
     public function test_can_start_game(): void
     {
         $room = $this->createRoomWithQuestions();
-        $playerIds = ['player-1', 'player-2'];
+        // Deliberately stale caller snapshot: the engine must read the locked DB snapshot.
+        $playerIds = ['stale-player'];
 
         $gameState = $this->service->startGame((string) $room->id, $playerIds);
 
         $this->assertInstanceOf(GameStateDTO::class, $gameState);
         $this->assertEquals('active', $gameState->status);
         $this->assertEquals(3, $gameState->totalQuestions);
-        $this->assertCount(2, $gameState->playerIds);
+        $this->assertEqualsCanonicalizing(['player-1', 'player-2'], $gameState->playerIds);
     }
 
     public function test_game_is_active_after_start(): void
