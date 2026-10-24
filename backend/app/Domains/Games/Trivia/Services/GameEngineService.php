@@ -460,7 +460,7 @@ class GameEngineService implements GameEngineInterface
             // Snapshot authoritative participants only after acquiring the room lock.
             // JoinRoomAction takes the same lock, so registrations either commit before
             // this query and are included, or observe status=playing and are rejected.
-            $playerIds = DB::connection('pgsql_trivia')
+            $registeredPlayerIds = DB::connection('pgsql_trivia')
                 ->table('trivia_participants')
                 ->where('room_id', $roomId)
                 ->whereNull('deleted_at')
@@ -471,6 +471,14 @@ class GameEngineService implements GameEngineInterface
                 ->unique()
                 ->values()
                 ->all();
+
+            // Production room starts have persisted participants and always use
+            // that locked snapshot. Keep the explicit playerIds fallback for
+            // legacy/direct GameEngineInterface callers that start synthetic games
+            // without creating trivia_participants (including isolated unit tests).
+            $playerIds = $registeredPlayerIds !== []
+                ? $registeredPlayerIds
+                : array_values(array_unique(array_map('strval', $playerIds)));
 
             if ($playerIds === []) {
                 throw TriviaGameException::roomCannotStart();
