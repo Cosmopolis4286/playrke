@@ -29,6 +29,12 @@ The regular PlayRKE web application authenticates through Laravel's `web` guard 
 
 `tests/Feature/Games/Bingo/BingoRoomAuthorizationTest.php` protects against broad business roles accidentally granting access to another room's draw state/participant list and preserves creator access.
 
-## Known security gap (not fixed by the room-policy change)
+## Public WebSocket result payloads
 
-The room event channel `bingo.room.{roomId}` is currently public. In particular, `BingoGameEnded::broadcastWith()` publishes the full winners array (user IDs/names, card identifiers/serials, and prizes) and `BingoWinnerDeclared` publishes winner identity and prize details. HTTP policies do not protect public WebSocket broadcasts. Do not treat private-room game results as confidential until the event contract is split into a public summary and authorized/private result delivery, coordinated with the frontend and external-player flow.
+The room event channel `bingo.room.{roomId}` remains public so unauthenticated/external players can receive live game updates. Therefore, events on this channel must contain only non-identifying game metadata.
+
+- `BingoGameEnded` broadcasts the room/draw IDs, winner-exists flag, draw count, end timestamp, and a results-available signal. It does not broadcast winner IDs/names, card identifiers/serials, or individual prizes.
+- `BingoWinnerDeclared` announces only the room/draw and timestamp; it does not identify the winner or expose their card/pattern/prize.
+- The client fetches detailed results through `draw-state`, which is protected by `BingoRoomPolicy::viewGame` for authenticated users or by the active, expiring bearer link for an external player.
+
+Do not add winner identity, card details, or per-winner prizes to these public event payloads. Add regression tests whenever the event contract changes.
