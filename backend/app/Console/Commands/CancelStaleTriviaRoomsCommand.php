@@ -6,6 +6,8 @@ use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -81,8 +83,8 @@ class CancelStaleTriviaRoomsCommand extends Command
 
                         if ((string) $room->status === 'waiting') {
                             $isStale = $room->scheduled_at !== null
-                                ? \\Illuminate\\Support\\Carbon::parse($room->scheduled_at)->lte($cutoff)
-                                : \\Illuminate\\Support\\Carbon::parse($room->created_at)->lte($cutoff);
+                                ? Carbon::parse($room->scheduled_at)->lte($cutoff)
+                                : Carbon::parse($room->created_at)->lte($cutoff);
 
                             if (! $isStale) {
                                 return false;
