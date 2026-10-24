@@ -9,6 +9,7 @@ use App\Domains\Games\Trivia\Exceptions\PowerUp\TriviaPowerUpException;
 use App\Domains\Marketplace\Inventory\Exceptions\AssetNotAvailableException;
 use App\Domains\Marketplace\Inventory\Services\AssetConsumptionService;
 use App\Models\Games\Trivia\TriviaParticipant;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 /**
@@ -98,34 +99,38 @@ class TriviaPowerUpService
      */
     public function consume(string $roomId, string $userId, TriviaPowerUpType $type) : TriviaParticipant
     {
-        $participant = TriviaParticipant::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->whereNull('deleted_at')
-            ->first();
+        // Serialize all free-use balance updates for this participant. Without
+        // the row lock, two concurrent activations of different power-up types
+        // can read the same JSON counter and overwrite each other's update.
+        return DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $userId, $type): TriviaParticipant {
+            $participant = TriviaParticipant::where('room_id', $roomId)
+                ->where('user_id', $userId)
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
 
-        if (! $participant) {
-            throw TriviaPowerUpException::notEnrolled();
-        }
+            if (! $participant) {
+                throw TriviaPowerUpException::notEnrolled();
+            }
 
-        if ($participant->usePowerUp($type->value)) {
-            $participant->save();
+            if ($participant->usePowerUp($type->value)) {
+                $participant->save();
 
+                return $participant;
+            }
+
+            try {
+                $this->assetConsumption->consumeByCode($userId, self::FALLBACK_ASSET_CODE, 1, 'TRIVIA');
+            } catch (AssetNotAvailableException) {
+                throw TriviaPowerUpException::noUsesAvailable();
+            }
+
+            // The inventory fallback uses MySQL while the free-use balance is
+            // stored in PostgreSQL. These databases cannot share a transaction;
+            // inventory consumption therefore remains a separate operation.
+            // Do not increment the free-use counter for a marketplace ticket.
             return $participant;
-        }
-
-        try {
-            $this->assetConsumption->consumeByCode($userId, self::FALLBACK_ASSET_CODE, 1, 'TRIVIA');
-        } catch (AssetNotAvailableException) {
-            throw TriviaPowerUpException::noUsesAvailable();
-        }
-
-        // El fallback consumió el activo, pero power_ups_used no se
-        // incrementa: ese contador es específico del uso "gratis" por
-        // partida (ver getAvailablePowerUp()) y seguir sumándolo ahí
-        // haría que un segundo uso gratis pareciera agotado sin haberlo
-        // usado. El PlayerAsset consumido ya es el registro de auditoría
-        // de este uso (ver InventoryService::consume()).
-        return $participant;
+        });
     }
 
     /**

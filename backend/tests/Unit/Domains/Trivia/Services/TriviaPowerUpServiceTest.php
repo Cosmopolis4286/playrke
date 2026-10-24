@@ -72,6 +72,20 @@ class TriviaPowerUpServiceTest extends TestCase
         $this->assertSame(1, $participant->getAvailablePowerUp(TriviaPowerUpType::SKIP->value));
     }
 
+    public function test_consuming_different_power_up_types_preserves_both_counters(): void
+    {
+        [$room, $participant] = $this->createRoomAndParticipant();
+
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::FIFTY_FIFTY);
+        $this->service->consume((string) $room->id, $participant->user_id, TriviaPowerUpType::SKIP);
+
+        $participant->refresh();
+
+        $this->assertSame(0, $participant->getAvailablePowerUp(TriviaPowerUpType::FIFTY_FIFTY->value));
+        $this->assertSame(0, $participant->getAvailablePowerUp(TriviaPowerUpType::SKIP->value));
+        $this->assertSame(1, $participant->getAvailablePowerUp(TriviaPowerUpType::DOUBLE_POINTS->value));
+    }
+
     public function test_consume_throws_when_no_uses_left(): void
     {
         [$room, $participant] = $this->createRoomAndParticipant();

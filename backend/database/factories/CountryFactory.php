@@ -14,12 +14,25 @@ class CountryFactory extends Factory
 
     public function definition(): array
     {
-        $isoCode2 = fake()->unique()->countryCode();
+        // Faker's unique() only tracks values generated in this process; it
+        // does not know about countries or ISO codes already seeded in the DB.
+        // Check the persisted unique indexes too, to avoid flaky factory inserts.
+        do {
+            $name = fake()->unique()->country();
+        } while (Country::where('name', $name)->exists());
+
+        do {
+            $isoCode2 = strtoupper(fake()->unique()->lexify('??'));
+        } while (Country::where('iso_code_2', $isoCode2)->exists());
+
+        do {
+            $isoCode3 = strtoupper(fake()->unique()->lexify('???'));
+        } while (Country::where('iso_code_3', $isoCode3)->exists());
 
         return [
-            'name' => fake()->unique()->country(),
+            'name' => $name,
             'iso_code_2' => $isoCode2,
-            'iso_code_3' => strtoupper(fake()->unique()->lexify('???')),
+            'iso_code_3' => $isoCode3,
             'status' => 'ACTIVE',
         ];
     }
