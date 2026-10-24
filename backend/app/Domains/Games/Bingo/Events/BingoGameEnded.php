@@ -16,7 +16,7 @@ class BingoGameEnded implements ShouldBroadcastNow
         public readonly int    $drawId,
         public readonly bool   $hasWinner,
         public readonly int    $totalDrawn,
-        public readonly array  $winners,   // [{user_id, user_name, card_id, card_serial, prize}]
+        public readonly array  $winners,
         public readonly float  $prize,
         public readonly string $endTime,
     ) {
@@ -38,6 +38,11 @@ class BingoGameEnded implements ShouldBroadcastNow
         return 'GameEnded';
     }
 
+    /**
+     * This channel is public. Only broadcast non-identifying game metadata;
+     * authorized clients fetch detailed results through the room-scoped HTTP
+     * endpoint (or the external-player link-scoped endpoint).
+     */
     public function broadcastWith(): array
     {
         return [
@@ -45,9 +50,8 @@ class BingoGameEnded implements ShouldBroadcastNow
             'draw_id'     => $this->drawId,
             'has_winner'  => $this->hasWinner,
             'total_drawn' => $this->totalDrawn,
-            'winners'     => $this->winners,
-            'prize'       => $this->prize,
             'end_time'    => $this->endTime,
+            'results_available' => true,
         ];
     }
 }
