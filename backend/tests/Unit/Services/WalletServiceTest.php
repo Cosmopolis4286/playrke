@@ -100,6 +100,34 @@ class WalletServiceTest extends TestCase
         $this->service->recordRefund(wallet: $wallet, amount: 0.0, gameId: 'game-1');
     }
 
+    public function test_record_refund_with_same_idempotency_key_credits_only_once(): void
+    {
+        $wallet = $this->makeWallet(balance: 10.0);
+        $key = 'trivia_refund:room-idempotent:user-idempotent';
+
+        $first = $this->service->recordRefund(
+            wallet: $wallet,
+            amount: 5.0,
+            gameId: 'room-idempotent',
+            idempotencyKey: $key,
+        );
+        $second = $this->service->recordRefund(
+            wallet: $wallet->fresh(),
+            amount: 5.0,
+            gameId: 'room-idempotent',
+            idempotencyKey: $key,
+        );
+
+        $this->assertSame((string) $first->id, (string) $second->id);
+        $this->assertSame(15.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(
+            1,
+            WalletMovement::where('idempotency_key', $key)
+                ->where('type', WalletMovement::TYPE_REFUND)
+                ->count(),
+        );
+    }
+
     public function test_record_admin_deposit_with_negative_amount_throws(): void
     {
         $wallet = $this->makeWallet(balance: 10.0);
