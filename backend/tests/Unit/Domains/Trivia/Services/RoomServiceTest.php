@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
@@ -358,6 +360,41 @@ class RoomServiceTest extends TestCase
         $this->service->leaveRoom($room->roomId, 'p1');
 
         $this->assertEquals(1, TriviaRoom::find($room->roomId)->current_players);
+    }
+
+    #[Test]
+    public function leaving_waiting_room_marks_persisted_participant_abandoned(): void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'code' => 'LEAVEDB',
+        ]);
+
+        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
+
+        DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+            'id' => Str::random(20),
+            'room_id' => $room->roomId,
+            'user_id' => 'p1',
+            'status' => 'confirmed',
+            'registered_at' => now(),
+            'confirmed_at' => now(),
+            'paid_amount' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->service->leaveRoom($room->roomId, 'p1');
+
+        $this->assertDatabaseHas('trivia_participants', [
+            'room_id' => $room->roomId,
+            'user_id' => 'p1',
+            'status' => 'abandoned',
+        ], 'pgsql_trivia');
+        $this->assertDatabaseHas('trivia_rooms', [
+            'id' => $room->roomId,
+            'current_players' => 0,
+        ], 'pgsql_trivia');
     }
 
     #[Test]
