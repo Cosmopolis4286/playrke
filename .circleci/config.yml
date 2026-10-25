@@ -50,7 +50,9 @@ jobs:
           command: sudo -E install-php-extensions gmp
       - run:
           name: Install required phpredis PHP extension
-          command: sudo -E install-php-extensions redis-6.2.0
+          command: |
+            echo yes | sudo pecl install redis-6.2.0
+            echo "extension=redis.so" | sudo tee /usr/local/etc/php/conf.d/redis.ini
       - run:
           name: Verify required PHP extensions
           command: |
@@ -157,7 +159,7 @@ jobs:
     resource_class: large
     working_directory: ~/project
     environment:
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - checkout
       - restore_cache:
