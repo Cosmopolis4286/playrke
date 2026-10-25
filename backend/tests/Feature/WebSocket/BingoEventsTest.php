@@ -161,12 +161,17 @@ class BingoEventsTest extends TestCase
 
         $data = $event->broadcastWith();
 
-        $this->assertArrayHasKey('winner', $data);
-        $this->assertEquals(789, $data['winner']['id']);
-        $this->assertEquals('John Doe', $data['winner']['name']);
-        $this->assertEquals(101, $data['winner']['card_id']);
-        $this->assertEquals('full_card', $data['winner']['pattern']);
-        $this->assertEquals(1000.00, $data['winner']['prize']);
+        $this->assertSame(123, $data['room_id']);
+        $this->assertSame(456, $data['draw_id']);
+        $this->assertArrayHasKey('timestamp', $data);
+
+        // The room channel is public: winner identity, card and prize details
+        // must only be exposed by the authorized room-scoped result endpoint.
+        $this->assertArrayNotHasKey('winner', $data);
+        $this->assertArrayNotHasKey('winner_id', $data);
+        $this->assertArrayNotHasKey('winner_name', $data);
+        $this->assertArrayNotHasKey('card_id', $data);
+        $this->assertArrayNotHasKey('prize', $data);
     }
 
     /** @test */
