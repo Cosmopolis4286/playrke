@@ -197,7 +197,7 @@ jobs:
           command: pnpm --dir backend run build
       - run:
           name: Run frontend unit tests
-          command: pnpm --dir backend run test
+          command: NODE_OPTIONS=--max-old-space-size=4096 pnpm --dir backend run test
       - run:
           name: Type-check Vue and TypeScript
           command: pnpm --dir backend run typecheck
