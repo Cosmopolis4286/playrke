@@ -41,19 +41,21 @@ jobs:
             - v1-php84-composer-{{ checksum "backend/composer.lock" }}
             - v1-php84-composer-
       - run:
+          name: Install GMP system development library
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends libgmp-dev
+      - run:
           name: Install PHP extensions required by the backend
           command: |
             set -euo pipefail
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends libgmp-dev
             sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp igbinary
-            # Compile phpredis via PECL because install-php-extensions does not
-            # support this Redis release on PHP 8.4. Keep Redis' optional igbinary
-            # serializer disabled: the app does not require it, and this avoids a
-            # hard build dependency on igbinary.h while igbinary remains available
-            # as a standalone PHP extension.
+            # PECL is used because install-php-extensions does not support this
+            # Redis release on PHP 8.4. The app does not require Redis' optional
+            # igbinary serializer, so disable it to avoid requiring igbinary.h.
             printf 'no\nno\nno\nno\nno\n' | sudo pecl install redis-6.2.0
             echo "extension=redis.so" | sudo tee /usr/local/etc/php/conf.d/redis.ini
+            php -m
       - run:
           name: Verify required PHP extensions and platform requirements
           command: |
@@ -75,7 +77,9 @@ jobs:
             php --ri redis
       - run:
           name: Install PHP dependencies
-          command: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
+          command: |
+            composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
+            composer check-platform-reqs --working-dir=backend
       - save_cache:
           key: v1-php84-composer-{{ checksum "backend/composer.lock" }}
           paths:
@@ -156,17 +160,19 @@ jobs:
           name: Check domain error translations
           command: cd backend && php artisan check:domain-error-translations
       - run:
-          name: Lint new PHP files with Pint
+          name: Lint changed PHP files with Pint
           command: |
+            set -euo pipefail
             git fetch origin master --depth=1
-            FILES="$(git diff --diff-filter=A --name-only origin/master...HEAD -- 'backend/**/*.php' | sed 's#^backend/##' || true)"
-            if [ -z "$FILES" ]; then
-              echo "No newly added PHP files compared with master; skipping Pint."
+            mapfile -t FILES < <(git diff --diff-filter=ACMRT --name-only origin/master...HEAD -- 'backend/**/*.php' | sed 's#^backend/##')
+            if [ "${#FILES[@]}" -eq 0 ]; then
+              echo "No changed PHP files compared with master; skipping Pint."
               exit 0
             fi
-            printf 'PHP files checked by Pint:\n%s\n' "$FILES"
+            printf 'PHP files checked by Pint:\n'
+            printf ' - %s\n' "${FILES[@]}"
             cd backend
-            ./vendor/bin/pint --test $FILES
+            ./vendor/bin/pint --test "${FILES[@]}"
 
   backend-assets:
     docker:
@@ -199,7 +205,7 @@ jobs:
           command: pnpm --dir backend run build
       - run:
           name: Run frontend unit tests
-          command: pnpm --dir backend run test
+          command: NODE_OPTIONS=--max-old-space-size=4096 pnpm --dir backend run test
       - run:
           name: Type-check Vue and TypeScript
           command: pnpm --dir backend run typecheck
