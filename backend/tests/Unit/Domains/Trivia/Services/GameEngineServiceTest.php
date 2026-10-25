@@ -164,7 +164,7 @@ class GameEngineServiceTest extends TestCase
 
         // The cancellation command claims the same PostgreSQL row under
         // lockForUpdate(); the engine must reject a start after that claim.
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\App\Domains\Games\Trivia\Exceptions\Game\TriviaGameException::class);
         $this->service->startGame((string) $room->id, ['player-1']);
     }
 
