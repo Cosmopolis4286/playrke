@@ -174,7 +174,7 @@ jobs:
           name: Lint changed frontend files with ESLint
           command: |
             git fetch origin master --depth=1
-            FILES="$(git diff --name-only origin/master...HEAD -- 'backend/resources/js/**/*.vue' 'backend/resources/js/**/*.ts' 'backend/resources/js/**/*.js' 'backend/vite.config.js' 'backend/vite.config.ts' | sed 's#^backend/##' | grep -E '\\.(vue|ts|js)$' || true)"
+            FILES="$(git diff --name-only origin/master...HEAD -- 'backend/resources/js/**/*.vue' 'backend/resources/js/**/*.ts' 'backend/resources/js/**/*.js' 'backend/vite.config.js' 'backend/vite.config.ts' | sed 's#^backend/##' | grep -E '\.(vue|ts|js)$' || true)"
             if [ -z "$FILES" ]; then
               echo "No changed frontend files compared with master; skipping ESLint."
               exit 0
