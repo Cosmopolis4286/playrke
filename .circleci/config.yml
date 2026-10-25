@@ -38,6 +38,153 @@ jobs:
             - v1-php84-composer-{{ checksum "backend/composer.lock" }}
             - v1-php84-composer-
       - run:
+          name: Install required GMP PHP extension
+          command: sudo -E install-php-extensions gmp
+      - run:
+          name: Verify required PHP extensions
+          command: php -m | grep -i '^gmp
+      - save_cache:
+          key: v1-php84-composer-{{ checksum "backend/composer.lock" }}
+          paths:
+            - backend/vendor
+      - run:
+          name: Prepare isolated test environment
+          command: |
+            cat > backend/.env.testing \<<'EOF'
+            APP_NAME="PlayRKE"
+            APP_ENV=testing
+            APP_KEY=base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
+            APP_DEBUG=true
+            APP_URL=http://localhost:8000
+            APP_TIMEZONE=America/Caracas
+            APP_LOCALE=en
+            APP_FALLBACK_LOCALE=en
+            APP_FAKER_LOCALE=en_US
+            SESSION_DRIVER=array
+            SESSION_LIFETIME=120
+            SESSION_ENCRYPT=false
+            SANCTUM_STATEFUL_DOMAINS=localhost,localhost:8000,127.0.0.1,127.0.0.1:8000
+            DB_CONNECTION=mysql
+            DB_HOST=mysql
+            DB_PORT=3306
+            DB_DATABASE=playrke_testing
+            DB_USERNAME=playrke_user
+            DB_PASSWORD=playrke_password
+            DB_TRIVIA_HOST=postgres
+            DB_TRIVIA_PORT=5432
+            DB_TRIVIA_DATABASE=trivia_testing
+            DB_TRIVIA_USERNAME=trivia
+            DB_TRIVIA_PASSWORD=trivia
+            DB_TRIVIA_SCHEMA=public
+            CACHE_STORE=array
+            QUEUE_CONNECTION=sync
+            BCRYPT_ROUNDS=4
+            LOG_CHANNEL=stack
+            LOG_STACK=single
+            LOG_LEVEL=debug
+            REDIS_CLIENT=predis
+            REDIS_HOST=redis
+            REDIS_PASSWORD=null
+            REDIS_PORT=6379
+            FILESYSTEM_DISK=local
+            MAIL_MAILER=array
+            MAIL_FROM_ADDRESS="test@playrke.local"
+            MAIL_FROM_NAME="PlayRKE"
+            BROADCAST_DRIVER=log
+            BROADCAST_CONNECTION=log
+            TELESCOPE_ENABLED=false
+            EOF
+      - run:
+          name: Wait for test services
+          command: |
+            for service in "mysql 3306" "postgres 5432" "redis 6379"; do
+              set -- $service
+              host="$1"
+              port="$2"
+              ready=false
+              for attempt in $(seq 1 60); do
+                if (echo > "/dev/tcp/$host/$port") 2>/dev/null; then
+                  ready=true
+                  break
+                fi
+                sleep 2
+              done
+              if [ "$ready" != "true" ]; then
+                echo "Service $host:$port did not become ready in time."
+                exit 1
+              fi
+            done
+      - run:
+          name: Run PHPUnit suite
+          command: cd backend && php artisan test
+      - run:
+          name: Check domain error translations
+          command: cd backend && php artisan check:domain-error-translations
+      - run:
+          name: Lint new PHP files with Pint
+          command: |
+            git fetch origin master --depth=1
+            FILES="$(git diff --diff-filter=A --name-only origin/master...HEAD -- 'backend/**/*.php' | sed 's#^backend/##' || true)"
+            if [ -z "$FILES" ]; then
+              echo "No newly added PHP files compared with master; skipping Pint."
+              exit 0
+            fi
+            printf 'PHP files checked by Pint:\n%s\n' "$FILES"
+            cd backend
+            ./vendor/bin/pint --test $FILES
+
+  backend-assets:
+    docker:
+      - image: cimg/node:20.19
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+            - v1-pnpm-
+      - run:
+          name: Activate repository-pinned pnpm
+          command: |
+            corepack enable
+            corepack prepare pnpm@10.25.0 --activate
+            pnpm --version
+      - run:
+          name: Install JavaScript dependencies
+          command: pnpm install --no-frozen-lockfile
+      - save_cache:
+          key: v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.local/share/pnpm/store
+      - run:
+          name: Build Vite assets
+          command: pnpm --dir backend run build
+      - run:
+          name: Run frontend unit tests
+          command: pnpm --dir backend run test
+      - run:
+          name: Type-check Vue and TypeScript
+          command: pnpm --dir backend run typecheck
+      - run:
+          name: Lint changed frontend files with ESLint
+          command: |
+            git fetch origin master --depth=1
+            FILES="$(git diff --name-only origin/master...HEAD -- 'backend/resources/js/**/*.vue' 'backend/resources/js/**/*.ts' 'backend/resources/js/**/*.js' 'backend/vite.config.js' 'backend/vite.config.ts' | sed 's#^backend/##' | grep -E '\.(vue|ts|js)$' || true)"
+            if [ -z "$FILES" ]; then
+              echo "No changed frontend files compared with master; skipping ESLint."
+              exit 0
+            fi
+            printf 'Frontend files checked by ESLint:\n%s\n' "$FILES"
+            cd backend
+            pnpm exec eslint $FILES
+
+workflows:
+  playrke-ci:
+    jobs:
+      - backend-php
+      - backend-assets
+
+      - run:
           name: Install PHP dependencies
           command: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
       - save_cache:
