@@ -157,4 +157,15 @@ class GameEngineServiceTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->service->startGame((string) $room->id, ['player-1']);
     }
+    public function test_cannot_start_game_while_room_is_being_cancelled(): void
+    {
+        $room = $this->createRoomWithQuestions();
+        $room->update(['status' => 'cancelling']);
+
+        // The cancellation command claims the same PostgreSQL row under
+        // lockForUpdate(); the engine must reject a start after that claim.
+        $this->expectException(\\RuntimeException::class);
+        $this->service->startGame((string) $room->id, ['player-1']);
+    }
+
 }
