@@ -47,7 +47,10 @@ jobs:
             sudo apt-get install -y --no-install-recommends libgmp-dev
       - run:
           name: Install PHP extensions required by the backend
-          command: sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp igbinary redis-6.2.0
+          command: |
+            set -euo pipefail
+            sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp redis-6.2.0
+            sudo -E install-php-extensions igbinary
       - run:
           name: Verify required PHP extensions and platform requirements
           command: |
