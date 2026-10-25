@@ -5,17 +5,20 @@ jobs:
     docker:
       - image: cimg/php:8.4
       - image: mysql:8.0
+        name: mysql
         environment:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: playrke_testing
           MYSQL_USER: playrke_user
           MYSQL_PASSWORD: playrke_password
       - image: postgres:16-alpine
+        name: postgres
         environment:
           POSTGRES_DB: trivia_testing
           POSTGRES_USER: trivia
           POSTGRES_PASSWORD: trivia
       - image: redis:7-alpine
+        name: redis
     working_directory: ~/project
     environment:
       APP_ENV: testing
@@ -110,15 +113,17 @@ jobs:
               host="$1"
               port="$2"
               ready=false
-              for attempt in $(seq 1 60); do
-                if (echo > "/dev/tcp/$host/$port") 2>/dev/null; then
+              for attempt in $(seq 1 120); do
+                if getent hosts "$host" >/dev/null 2>&1 && (echo > "/dev/tcp/$host/$port") 2>/dev/null; then
                   ready=true
                   break
                 fi
                 sleep 2
               done
               if [ "$ready" != "true" ]; then
-                echo "Service $host:$port did not become ready in time."
+                echo "Service $host:$port did not become ready in time after 240 seconds."
+                echo "DNS lookup for $host:"
+                getent hosts "$host" || true
                 exit 1
               fi
             done
