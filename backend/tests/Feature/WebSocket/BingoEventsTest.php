@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\WebSocket;
 
 use App\Domains\Games\Bingo\Events\BingoNumberCalled;
@@ -16,7 +18,7 @@ class BingoEventsTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function all_bingo_events_broadcast_on_correct_channel()
+    public function all_bingo_events_broadcast_on_correct_channel(): void
     {
         $roomId = 123;
 
@@ -43,7 +45,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function all_events_have_correct_broadcast_names()
+    public function all_events_have_correct_broadcast_names(): void
     {
         $expectedNames = [
             BingoNumberCalled::class => 'BingoNumberCalled',
@@ -60,7 +62,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_game_ended_event_can_be_dispatched()
+    public function bingo_game_ended_event_can_be_dispatched(): void
     {
         Event::fake();
 
@@ -78,7 +80,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_game_ended_event_includes_winner_status()
+    public function bingo_game_ended_event_includes_winner_status(): void
     {
         $event = new BingoGameEnded(
             roomId: 123,
@@ -108,7 +110,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_game_started_event_broadcasts_with_correct_data()
+    public function bingo_game_started_event_broadcasts_with_correct_data(): void
     {
         $roomId = 123;
         $drawId = 456;
@@ -124,7 +126,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_game_started_event_can_be_dispatched()
+    public function bingo_game_started_event_can_be_dispatched(): void
     {
         Event::fake();
 
@@ -133,13 +135,13 @@ class BingoEventsTest extends TestCase
 
         broadcast(new BingoGameStarted($roomId, $drawId));
 
-        Event::assertDispatched(BingoGameStarted::class, function ($event) use ($roomId, $drawId) {
+        Event::assertDispatched(BingoGameStarted::class, function ($event) use ($roomId, $drawId): bool {
             return $event->roomId === $roomId && $event->drawId === $drawId;
         });
     }
 
     /** @test */
-    public function bingo_number_called_event_broadcasts_on_correct_channel()
+    public function bingo_number_called_event_broadcasts_on_correct_channel(): void
     {
         $roomId = 123;
         $event = new BingoNumberCalled(42, $roomId);
@@ -150,7 +152,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_number_called_event_can_be_dispatched()
+    public function bingo_number_called_event_can_be_dispatched(): void
     {
         Event::fake();
 
@@ -159,13 +161,13 @@ class BingoEventsTest extends TestCase
 
         broadcast(new BingoNumberCalled($number, $roomId));
 
-        Event::assertDispatched(BingoNumberCalled::class, function ($event) use ($number, $roomId) {
+        Event::assertDispatched(BingoNumberCalled::class, function ($event) use ($number, $roomId): bool {
             return $event->number === $number && $event->roomId === $roomId;
         });
     }
 
     /** @test */
-    public function bingo_number_called_event_has_correct_name()
+    public function bingo_number_called_event_has_correct_name(): void
     {
         $event = new BingoNumberCalled(42, 123);
 
@@ -173,7 +175,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_player_joined_event_can_be_dispatched()
+    public function bingo_player_joined_event_can_be_dispatched(): void
     {
         Event::fake();
 
@@ -183,7 +185,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_player_joined_event_includes_player_count()
+    public function bingo_player_joined_event_includes_player_count(): void
     {
         $event = new BingoPlayerJoined(123, 789, 'John Doe', 10);
         $data = $event->broadcastWith();
@@ -192,7 +194,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_winner_declared_event_broadcasts_winner_details()
+    public function bingo_winner_declared_event_broadcasts_winner_details(): void
     {
         $event = new BingoWinnerDeclared(
             roomId: 123,
@@ -220,7 +222,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function bingo_winner_declared_event_can_be_dispatched()
+    public function bingo_winner_declared_event_can_be_dispatched(): void
     {
         Event::fake();
 
@@ -238,7 +240,7 @@ class BingoEventsTest extends TestCase
     }
 
     /** @test */
-    public function events_should_broadcast_now()
+    public function events_should_broadcast_now(): void
     {
         $events = [
             new BingoNumberCalled(42, 123),
@@ -265,7 +267,7 @@ class BingoEventsTest extends TestCase
         }
     }
 
-    protected function createEventInstance($class)
+    protected function createEventInstance(string $class): object
     {
         return match ($class) {
             BingoNumberCalled::class => new BingoNumberCalled(42, 123),
