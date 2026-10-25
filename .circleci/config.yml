@@ -38,6 +38,11 @@ jobs:
             - v1-php84-composer-{{ checksum "backend/composer.lock" }}
             - v1-php84-composer-
       - run:
+          name: Install GMP system development library
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends libgmp-dev
+      - run:
           name: Install required GMP PHP extension
           command: sudo -E install-php-extensions gmp
       - run:
