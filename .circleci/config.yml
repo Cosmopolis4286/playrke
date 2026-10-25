@@ -46,11 +46,13 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends libgmp-dev
       - run:
-          name: Install required GMP PHP extension
-          command: sudo -E install-php-extensions gmp
+          name: Install required PHP extensions
+          command: sudo -E install-php-extensions gmp redis
       - run:
           name: Verify required PHP extensions
-          command: php -m | grep -i '^gmp$'
+          command: |
+            php -m | grep -ix 'gmp'
+            php -m | grep -ix 'redis'
       - run:
           name: Install PHP dependencies
           command: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
@@ -93,7 +95,7 @@ jobs:
             LOG_CHANNEL=stack
             LOG_STACK=single
             LOG_LEVEL=debug
-            REDIS_CLIENT=predis
+            REDIS_CLIENT=phpredis
             REDIS_HOST=redis
             REDIS_PASSWORD=null
             REDIS_PORT=6379
