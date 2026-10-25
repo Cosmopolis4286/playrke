@@ -49,8 +49,11 @@ jobs:
           name: Install required GMP PHP extension
           command: sudo -E install-php-extensions gmp
       - run:
+          name: Install igbinary PHP extension required by phpredis build
+          command: sudo -E install-php-extensions igbinary
+      - run:
           name: Install required phpredis PHP extension
-          command: sudo -E install-php-extensions redis-6.2.0 -- --enable-redis-igbinary=no
+          command: sudo -E install-php-extensions redis-6.2.0
       - run:
           name: Verify required PHP extensions
           command: |
