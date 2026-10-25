@@ -135,7 +135,7 @@ class BingoEventsTest extends TestCase
 
         broadcast(new BingoGameStarted($roomId, $drawId));
 
-        Event::assertDispatched(BingoGameStarted::class, function ($event) use ($roomId, $drawId): bool {
+        Event::assertDispatched(BingoGameStarted::class, function($event) use ($roomId, $drawId): bool {
             return $event->roomId === $roomId && $event->drawId === $drawId;
         });
     }
@@ -161,7 +161,7 @@ class BingoEventsTest extends TestCase
 
         broadcast(new BingoNumberCalled($number, $roomId));
 
-        Event::assertDispatched(BingoNumberCalled::class, function ($event) use ($number, $roomId): bool {
+        Event::assertDispatched(BingoNumberCalled::class, function($event) use ($number, $roomId): bool {
             return $event->number === $number && $event->roomId === $roomId;
         });
     }
@@ -203,7 +203,7 @@ class BingoEventsTest extends TestCase
             winnerName: 'John Doe',
             cardId: 101,
             pattern: 'full_card',
-            prize: 1000.00
+            prize: 1000.00,
         );
 
         $data = $event->broadcastWith();
@@ -233,7 +233,7 @@ class BingoEventsTest extends TestCase
             winnerName: 'John Doe',
             cardId: 101,
             pattern: 'full_card',
-            prize: 1000.00
+            prize: 1000.00,
         ));
 
         Event::assertDispatched(BingoWinnerDeclared::class);
