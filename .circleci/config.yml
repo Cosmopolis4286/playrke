@@ -92,6 +92,26 @@ jobs:
             TELESCOPE_ENABLED=false
             EOF
       - run:
+          name: Wait for test services
+          command: |
+            for service in "mysql 3306" "postgres 5432" "redis 6379"; do
+              set -- $service
+              host="$1"
+              port="$2"
+              ready=false
+              for attempt in $(seq 1 60); do
+                if (echo > "/dev/tcp/$host/$port") 2>/dev/null; then
+                  ready=true
+                  break
+                fi
+                sleep 2
+              done
+              if [ "$ready" != "true" ]; then
+                echo "Service $host:$port did not become ready in time."
+                exit 1
+              fi
+            done
+      - run:
           name: Run PHPUnit suite
           command: cd backend && php artisan test
       - run:
