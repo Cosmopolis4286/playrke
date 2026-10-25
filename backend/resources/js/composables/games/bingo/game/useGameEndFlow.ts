@@ -76,28 +76,28 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
   }
 
   function handleGameEnded(data: GameEndedEvent, bingoConfirmed: Ref<boolean>) {
-    // Capturar antes de limpiar: si el jugador ya confirmó su BINGO pero GameEnded
-    // llega antes del callback de confirmación, forzamos la apertura del modal.
+    // The public WebSocket event intentionally contains no winner identities,
+    // card identifiers, or individual prizes. Fetch the full result through the
+    // room-scoped endpoint (or the external-player bearer-link endpoint).
+    if (data.results_available) {
+      if (bingoConfirmed.value) {
+        bingoConfirmed.value = false
+        resetModal()
+      }
+      void resyncDrawState(0, true)
+      return
+    }
+
     const forceOpen = bingoConfirmed.value
     bingoConfirmed.value = false
-
     roomFinishedLocal.value = true
     gameEndData.value = {
       hasWinner: data.has_winner,
       totalDrawn: data.total_drawn,
-      winners: (data.winners ?? []).map(w => ({
-        user_id: w.user_id,
-        user_name: w.user_name,
-        card_id: String(w.card_id ?? ''),
-        card_serial: w.card_serial ?? '',
-        prize: Number(w.prize ?? 0),
-        pattern: w.pattern ?? '',
-        round: w.round ?? 1,
-      })),
-      prize: data.prize ?? 0,
+      winners: [],
+      prize: 0,
       endTime: data.end_time,
     }
-    isMyWin.value = !!(userId && data.winners?.some(w => String(w.user_id) === String(userId)))
     if (forceOpen) { resetModal() }
     if (!userClosedModal.value || forceOpen) showWinnerModal.value = true
   }
@@ -119,7 +119,7 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
   // Resincroniza el estado del sorteo tras recuperar la conexión de socket —
   // Reverb/Pusher no reenvía eventos emitidos mientras el cliente estuvo
   // desconectado, así que se refresca contra el backend (ver useBingoGameEcho.onReconnected).
-  async function resyncDrawState(attempt = 0) {
+  async function resyncDrawState(attempt = 0, waitForFinish = false) {
     if (!apiBase.value) return
     try {
       const [stateRes, cardsRes] = await Promise.all([
@@ -182,6 +182,12 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
         liveCartons.value = cardsRes.data.data
       }
 
+      if (!data.roomFinished && waitForFinish && attempt < 5) {
+        const delay = attempt < 2 ? 1000 : 2000
+        scheduleRetry(() => resyncDrawState(attempt + 1, true), delay)
+        return
+      }
+
       if (data.roomFinished) {
         roomFinishedLocal.value = true
         if (gameEndData.value === null) {
@@ -207,8 +213,10 @@ export function useGameEndFlow(deps: GameEndFlowDeps) {
         scheduleRetry(() => resyncDrawState(attempt + 1), delay)
       }
     } catch (e) {
-      if (attempt < 1) {
-        scheduleRetry(() => resyncDrawState(attempt + 1), 2000)
+      if (attempt < 5 && waitForFinish) {
+        scheduleRetry(() => resyncDrawState(attempt + 1, true), attempt < 2 ? 1000 : 2000)
+      } else if (attempt < 1) {
+        scheduleRetry(() => resyncDrawState(attempt + 1, waitForFinish), 2000)
       } else {
         console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
       }

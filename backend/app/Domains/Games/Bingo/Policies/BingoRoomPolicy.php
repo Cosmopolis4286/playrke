@@ -109,17 +109,19 @@ class BingoRoomPolicy extends BingoBasePolicy
      */
     public function viewLobbyPlayers(User $user, BingoRoom $room): bool
     {
-        // Gestores siempre pueden ver
-        if ($this->hasAccess($user)) {
+        // Los administradores pueden moderar cualquier sala.
+        if ($this->hasElevatedRole($user)) {
             return true;
         }
 
-        // Players: solo si tienen cartones comprados en la sala
-        if (!$user->hasRole('player')) {
-            return false;
+        // El creador puede supervisar su propia sala, no las de otros.
+        if ((string) $user->id === (string) $room->creator_user_id) {
+            return true;
         }
 
-        return $this->belongsToRoom($user, $room);
+        // Un rol de negocio (commerce/customer/subsidiary) por sí solo no
+        // autoriza a inspeccionar la lista de participantes de cualquier sala.
+        return $user->hasRole('player') && $this->belongsToRoom($user, $room);
     }
 
     /**
@@ -137,16 +139,21 @@ class BingoRoomPolicy extends BingoBasePolicy
      */
     public function viewGame(User $user, BingoRoom $room): bool
     {
-        if ($this->hasAccess($user)) {
+        // Solo administración de plataforma tiene acceso global a las partidas.
+        if ($this->hasElevatedRole($user)) {
             return true;
         }
 
-        if (!$user->hasRole('player')) {
-            return false;
-        }
-
+        // El creador puede consultar su propia sala sin depender del pivote
+        // BingoRoomUser (algunas salas propias no tienen ese registro).
         if ((string) $user->id === (string) $room->creator_user_id) {
             return true;
+        }
+
+        // Los permisos generales del módulo y los roles de negocio no deben
+        // permitir leer el sorteo/ganadores de una sala ajena.
+        if (!$user->hasRole('player')) {
+            return false;
         }
 
         $cacheKey = "bingo:policy:viewGame:{$user->id}:{$room->id}";

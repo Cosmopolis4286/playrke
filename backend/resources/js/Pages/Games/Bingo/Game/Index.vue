@@ -329,16 +329,9 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
   onGameStarted:     ()  => { gameStarted.value = true },
   onWinnerDeclared:  ()  => {
-    // useBingoGameEcho ya filtró por userId antes de llamar este callback
-    isMyWin.value = true
-    // WinnerDeclared puede llegar antes que GameEnded (que trae el premio y los ganadores).
-    // Esperar 1.5 s para que GameEnded llegue primero y el modal se abra con datos completos.
-    // Si GameEnded ya llegó (gameEndData !== null) o el usuario ya cerró el modal, no hacer nada.
-    if (!userClosedModal.value && gameEndData.value === null && !isFinished.value) {
-      scheduleRetry(() => {
-        if (!userClosedModal.value && gameEndData.value === null) showWinnerModal.value = true
-      }, 1500)
-    }
+    // El evento público ya no identifica al ganador. Reconsultar el estado
+    // mediante la ruta autorizada y dejar que el backend determine el resultado.
+    scheduleRetry(() => { resyncDrawState() }, 750)
   },
   onGameEnded:       (e) => handleGameEnded(e, bingoConfirmed),
   onReconnected:     ()  => { resyncDrawState() },

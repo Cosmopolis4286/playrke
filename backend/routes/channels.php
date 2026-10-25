@@ -1,6 +1,8 @@
 <?php
 
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Gate;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,12 +70,19 @@ Broadcast::channel('trivia.player.{userId}', function ($user, $userId) {
     return (string) $user->id === (string) $userId;
 });
 
-// Presence Channel for Bingo Room (shows who's online)
+// Presence Channel for Bingo Room (shows who's online).
+// El canal es privado: reutiliza la misma policy HTTP que protege el estado
+// de la partida para no revelar nombres/usuarios de salas ajenas.
 Broadcast::channel('bingo.room.{roomId}.presence', function ($user, $roomId) {
-    // Return user info if they can join this room
+    $room = BingoRoom::find($roomId);
+
+    if (!$room || !Gate::forUser($user)->allows('viewGame', $room)) {
+        return false;
+    }
+
     return [
-        'id' => $user->id,
-        'name' => $user->first_name . ' ' . $user->last_name,
+        'id' => (string) $user->id,
+        'name' => trim($user->first_name . ' ' . $user->last_name),
         'username' => $user->username,
     ];
 });

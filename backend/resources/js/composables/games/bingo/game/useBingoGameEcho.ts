@@ -5,19 +5,12 @@ import type { PlayerProgress } from '@js/Components/games/bingo/views/inGame/typ
 export type { PlayerProgress }
 
 export interface GameEndedEvent {
-  has_winner:  boolean
+  room_id: number | string
+  draw_id: number | string
+  has_winner: boolean
   total_drawn: number
-  prize:       number
-  end_time:    string
-  winners: {
-    user_id:     number | string
-    user_name:   string
-    card_id:     number | string
-    card_serial: string
-    prize:       number
-    pattern?:    string
-    round?:      number
-  }[]
+  end_time: string
+  results_available: boolean
 }
 
 export interface UseBingoGameEchoOptions {
@@ -34,7 +27,7 @@ export interface UseBingoGameEchoOptions {
   onNumberCalled:    (e: { number: number }) => void
   onPlayersProgress: (e: { players: PlayerProgress[] }) => void
   onGameStarted:     () => void
-  onWinnerDeclared:  (e: { winner: { id: number | string } }) => void
+  onWinnerDeclared:  () => void
   onGameEnded:       (e: GameEndedEvent) => void
   /** Se dispara al recuperar la conexión tras una desconexión (no en el
    * connect inicial) — usado para resincronizar estado que pudo perderse
@@ -50,9 +43,9 @@ const ROOM_EVENTS = [
 
 export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
   const {
-    roomId, userId,
+    roomId,
     syncTime, updateRoomTime, currentUnixDate,
-    clearDrawTimer, playNext, playWinner,
+    clearDrawTimer, playNext,
     onRoomUpdated, onPlayerJoined, onNumberCalled,
     onPlayersProgress, onGameStarted, onWinnerDeclared,
     onGameEnded, onReconnected,
@@ -89,9 +82,6 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
   function subscribe() {
     if (!roomId.value) return
-    // unbind previo a modo defensivo: si subscribe() llegara a invocarse dos
-    // veces sin pasar por unmount, evita apilar el mismo handler N veces y
-    // que onReconnected se dispare N veces por cada reconexión real.
     echo.connector.pusher.connection.unbind('state_change', handleConnectionStateChange)
     echo.connector.pusher.connection.bind('state_change', handleConnectionStateChange)
     roomChannelName = `bingo.room.${roomId.value}`
@@ -122,19 +112,15 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
       clearDrawTimer()
     })
 
-    channel.listen('.WinnerDeclared', (e: { winner: { id: number | string } }) => {
-      if (e.winner && String(e.winner.id) === String(userId)) {
-        onWinnerDeclared(e)
-      }
+    // WinnerDeclared is intentionally non-identifying on this public channel.
+    // The client resynchronizes through its authorized HTTP endpoint instead
+    // of deciding whether the current user won from a public payload.
+    channel.listen('.WinnerDeclared', () => {
+      onWinnerDeclared()
     })
 
     channel.listen('.GameEnded', (e: GameEndedEvent) => {
       onGameEnded(e)
-      // playWinner() solo para el ganador real — no para todos los jugadores.
-      // Comparar igual que WinnerDeclared (String cast para Snowflake IDs).
-      if (e.has_winner && userId && e.winners.some(w => String(w.user_id) === String(userId))) {
-        playWinner()
-      }
     })
 
     channel.listen('.RoomTimeSync', (e: { server_timestamp: number; unix_date: number }) => {

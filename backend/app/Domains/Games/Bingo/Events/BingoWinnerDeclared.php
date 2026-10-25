@@ -28,11 +28,10 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
         string $pattern,
         float $prize
     ) {
+        // Do not write personal winner/card data to logs unnecessarily.
         Log::info('Creando evento BingoWinnerDeclared', [
             'roomId' => $roomId,
-            'winnerId' => $winnerId,
-            'winnerName' => $winnerName,
-            'prize' => $prize
+            'drawId' => $drawId,
         ]);
 
         $this->roomId = $roomId;
@@ -44,28 +43,26 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
         $this->prize = $prize;
     }
 
-    public function broadcastOn()
+    public function broadcastOn(): Channel
     {
         return new Channel("bingo.room.{$this->roomId}");
     }
 
-    public function broadcastAs()
+    public function broadcastAs(): string
     {
         return 'WinnerDeclared';
     }
 
-    public function broadcastWith()
+    /**
+     * This channel is public, so announce only that a winner was declared.
+     * The winner identity, card, pattern, and prize are returned only by the
+     * authorized room-scoped result endpoint.
+     */
+    public function broadcastWith(): array
     {
         return [
             'room_id' => $this->roomId,
             'draw_id' => $this->drawId,
-            'winner' => [
-                'id'      => $this->winnerId,
-                'name'    => $this->winnerName,
-                'card_id' => (string) $this->cardId,
-                'pattern' => $this->pattern,
-                'prize'   => $this->prize,
-            ],
             'timestamp' => now()->toISOString(),
         ];
     }
