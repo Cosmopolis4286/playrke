@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Domains\\Games\\Trivia\\Models\\TriviaRoom;
-use App\\Domains\\Games\\Trivia\\Services\\TriviaRoomRefundService;
-use App\\Services\\Commands\\CommandService;
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Carbon;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Log;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
+use App\Services\Commands\CommandService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
