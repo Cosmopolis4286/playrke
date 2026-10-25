@@ -53,7 +53,7 @@ jobs:
             # PECL is used because install-php-extensions does not support this
             # Redis release on PHP 8.4. The app does not require Redis' optional
             # igbinary serializer, so disable it to avoid requiring igbinary.h.
-            printf 'no\nno\nno\nno\nno\n' | sudo pecl install redis-6.2.0
+            printf 'no\nno\nno\nno\nno\n' | sudo pecl install redis-6.3.0
             echo "extension=redis.so" | sudo tee /usr/local/etc/php/conf.d/redis.ini
             php -m
       - run:
