@@ -46,13 +46,16 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends libgmp-dev
       - run:
-          name: Install required PHP extensions
-          command: sudo -E install-php-extensions gmp redis
+          name: Install required GMP PHP extension
+          command: sudo -E install-php-extensions gmp
+      - run:
+          name: Install required phpredis PHP extension
+          command: sudo -E install-php-extensions redis
       - run:
           name: Verify required PHP extensions
           command: |
-            php -m | grep -ix 'gmp'
-            php -m | grep -ix 'redis'
+            php --ri gmp
+            php --ri redis
       - run:
           name: Install PHP dependencies
           command: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
