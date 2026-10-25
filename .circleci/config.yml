@@ -51,6 +51,8 @@ jobs:
             set -euo pipefail
             sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp redis-6.2.0
             sudo -E install-php-extensions igbinary
+            sudo -E docker-php-ext-enable redis igbinary
+            php -m
       - run:
           name: Verify required PHP extensions and platform requirements
           command: |
