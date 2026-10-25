@@ -47,10 +47,12 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends libgmp-dev
             sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp igbinary
-            # Compile phpredis only after igbinary headers are installed. PECL's
-            # prompt is used because install-php-extensions does not yet support
-            # this Redis release on PHP 8.4.
-            printf 'yes\nno\nno\nno\nno\n' | sudo pecl install redis-6.2.0
+            # Compile phpredis via PECL because install-php-extensions does not
+            # support this Redis release on PHP 8.4. Keep Redis' optional igbinary
+            # serializer disabled: the app does not require it, and this avoids a
+            # hard build dependency on igbinary.h while igbinary remains available
+            # as a standalone PHP extension.
+            printf 'no\nno\nno\nno\nno\n' | sudo pecl install redis-6.2.0
             echo "extension=redis.so" | sudo tee /usr/local/etc/php/conf.d/redis.ini
       - run:
           name: Verify required PHP extensions and platform requirements
