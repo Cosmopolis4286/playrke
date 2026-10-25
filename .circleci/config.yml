@@ -46,22 +46,32 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends libgmp-dev
       - run:
-          name: Install required GMP PHP extension
-          command: sudo -E install-php-extensions gmp
+          name: Install PHP extensions required by the backend
+          command: sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp igbinary redis-6.2.0
       - run:
-          name: Install igbinary PHP extension required by phpredis build
-          command: sudo -E install-php-extensions igbinary
-      - run:
-          name: Install required phpredis PHP extension
-          command: sudo -E install-php-extensions redis-6.2.0
-      - run:
-          name: Verify required PHP extensions
+          name: Verify required PHP extensions and platform requirements
           command: |
+            set -euo pipefail
+            php -v
+            php --ini
+            php -r '
+              $required = ["pdo_mysql", "pdo_pgsql", "gmp", "igbinary", "redis"];
+              $missing = array_values(array_filter($required, fn ($extension) => ! extension_loaded($extension)));
+              if ($missing !== []) {
+                  fwrite(STDERR, "Missing PHP extensions: " . implode(", ", $missing) . PHP_EOL);
+                  fwrite(STDERR, "Loaded extensions: " . implode(", ", get_loaded_extensions()) . PHP_EOL);
+                  exit(1);
+              }
+              echo "Required PHP extensions loaded: " . implode(", ", $required) . PHP_EOL;
+            '
             php --ri gmp
+            php --ri igbinary
             php --ri redis
       - run:
           name: Install PHP dependencies
-          command: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
+          command: |
+            composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
+            composer check-platform-reqs --working-dir=backend
       - save_cache:
           key: v1-php84-composer-{{ checksum "backend/composer.lock" }}
           paths:
@@ -69,7 +79,7 @@ jobs:
       - run:
           name: Prepare isolated test environment
           command: |
-            cat > backend/.env.testing \<<'EOF'
+            cat > backend/.env.testing <<'EOF'
             APP_NAME="PlayRKE"
             APP_ENV=testing
             APP_KEY=base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
@@ -142,17 +152,19 @@ jobs:
           name: Check domain error translations
           command: cd backend && php artisan check:domain-error-translations
       - run:
-          name: Lint new PHP files with Pint
+          name: Lint changed PHP files with Pint
           command: |
+            set -euo pipefail
             git fetch origin master --depth=1
-            FILES="$(git diff --diff-filter=A --name-only origin/master...HEAD -- 'backend/**/*.php' | sed 's#^backend/##' || true)"
-            if [ -z "$FILES" ]; then
-              echo "No newly added PHP files compared with master; skipping Pint."
+            mapfile -t FILES < <(git diff --diff-filter=ACMRT --name-only origin/master...HEAD -- 'backend/**/*.php' | sed 's#^backend/##')
+            if [ "${#FILES[@]}" -eq 0 ]; then
+              echo "No changed PHP files compared with master; skipping Pint."
               exit 0
             fi
-            printf 'PHP files checked by Pint:\n%s\n' "$FILES"
+            printf 'PHP files checked by Pint:\n'
+            printf ' - %s\n' "${FILES[@]}"
             cd backend
-            ./vendor/bin/pint --test $FILES
+            ./vendor/bin/pint --test "${FILES[@]}"
 
   backend-assets:
     docker:
