@@ -154,9 +154,10 @@ jobs:
   backend-assets:
     docker:
       - image: cimg/node:20.19
+    resource_class: large
     working_directory: ~/project
     environment:
-      NODE_OPTIONS: --max-old-space-size=3072
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - checkout
       - restore_cache:
