@@ -41,22 +41,35 @@ jobs:
             - v1-php84-composer-{{ checksum "backend/composer.lock" }}
             - v1-php84-composer-
       - run:
-          name: Install GMP system development library
+          name: Install PHP extensions required by the backend
           command: |
+            set -euo pipefail
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends libgmp-dev
-      - run:
-          name: Install required GMP PHP extension
-          command: sudo -E install-php-extensions gmp
-      - run:
-          name: Install required phpredis PHP extension
-          command: |
-            echo yes | sudo pecl install redis-6.2.0
+            sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp igbinary
+            # Compile phpredis only after igbinary headers are installed. PECL's
+            # prompt is used because install-php-extensions does not yet support
+            # this Redis release on PHP 8.4.
+            printf 'yes\nno\nno\nno\nno\n' | sudo pecl install redis-6.2.0
             echo "extension=redis.so" | sudo tee /usr/local/etc/php/conf.d/redis.ini
       - run:
-          name: Verify required PHP extensions
+          name: Verify required PHP extensions and platform requirements
           command: |
+            set -euo pipefail
+            php -v
+            php --ini
+            php -r '
+              $required = ["pdo_mysql", "pdo_pgsql", "gmp", "igbinary", "redis"];
+              $missing = array_values(array_filter($required, fn ($extension) => ! extension_loaded($extension)));
+              if ($missing !== []) {
+                  fwrite(STDERR, "Missing PHP extensions: " . implode(", ", $missing) . PHP_EOL);
+                  fwrite(STDERR, "Loaded extensions: " . implode(", ", get_loaded_extensions()) . PHP_EOL);
+                  exit(1);
+              }
+              echo "Required PHP extensions loaded: " . implode(", ", $required) . PHP_EOL;
+            '
             php --ri gmp
+            php --ri igbinary
             php --ri redis
       - run:
           name: Install PHP dependencies
