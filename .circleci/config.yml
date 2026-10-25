@@ -79,7 +79,7 @@ jobs:
       - run:
           name: Prepare isolated test environment
           command: |
-            cat > backend/.env.testing <<'EOF'
+            cat > backend/.env.testing \<<'EOF'
             APP_NAME="PlayRKE"
             APP_ENV=testing
             APP_KEY=base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
