@@ -49,7 +49,7 @@ jobs:
           name: Install PHP extensions required by the backend
           command: |
             set -euo pipefail
-            sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp igbinary
+            sudo -E install-php-extensions pdo_mysql pdo_pgsql gmp
             # PECL is used because install-php-extensions does not support this
             # Redis release on PHP 8.4. The app does not require Redis' optional
             # igbinary serializer, so disable it to avoid requiring igbinary.h.
@@ -63,7 +63,7 @@ jobs:
             php -v
             php --ini
             php -r '
-              $required = ["pdo_mysql", "pdo_pgsql", "gmp", "igbinary", "redis"];
+              $required = ["pdo_mysql", "pdo_pgsql", "gmp", "redis"];
               $missing = array_values(array_filter($required, fn ($extension) => ! extension_loaded($extension)));
               if ($missing !== []) {
                   fwrite(STDERR, "Missing PHP extensions: " . implode(", ", $missing) . PHP_EOL);
@@ -73,7 +73,6 @@ jobs:
               echo "Required PHP extensions loaded: " . implode(", ", $required) . PHP_EOL;
             '
             php --ri gmp
-            php --ri igbinary
             php --ri redis
       - run:
           name: Install PHP dependencies
