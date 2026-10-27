@@ -10,12 +10,12 @@ use App\Models\Roles\Customer;
  */
 class CustomerProfileRequest extends RoleProfileRequest
 {
-    protected function entityClass(): string
+    protected function entityClass() : string
     {
         return Customer::class;
     }
 
-    protected function ownerPrefix(): string
+    protected function ownerPrefix() : string
     {
         return 'customer';
     }

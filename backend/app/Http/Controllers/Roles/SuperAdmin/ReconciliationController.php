@@ -20,22 +20,34 @@ class ReconciliationController extends Controller
     public function __construct(
         private readonly PlatformReceivableService $receivables,
         private readonly FinancialReconciliationService $reconciliation,
-    ) {}
+    ) {
+    }
 
-    public function index(): JsonResponse
+    public function index() : JsonResponse
     {
         return response()->json([
             'receivables' => $this->receivables->pendingSummary(),
-            'alerts'      => $this->reconciliation->openItems(),
+            'alerts' => $this->reconciliation->openItems(),
             'alerts_open' => $this->reconciliation->openCount(),
         ]);
     }
 
-    public function settleReceivables(Request $request): JsonResponse
+    public function resolveAlert(Request $request, string $id) : JsonResponse
+    {
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->reconciliation->resolve($id, (string) Auth::id(), $validated['notes'] ?? null);
+
+        return response()->json(['message' => 'Alerta marcada como resuelta.']);
+    }
+
+    public function settleReceivables(Request $request) : JsonResponse
     {
         $validated = $request->validate([
             'debtor_user_id' => ['required', 'string'],
-            'currency_id'    => ['required', 'string'],
+            'currency_id' => ['required', 'string'],
         ]);
 
         $result = $this->receivables->settle($validated['debtor_user_id'], $validated['currency_id'], (string) Auth::id());
@@ -48,16 +60,5 @@ class ReconciliationController extends Controller
             'message' => "Cobro registrado: {$result['count']} venta(s), {$result['amount']} acreditado a la billetera de plataforma.",
             ...$result,
         ]);
-    }
-
-    public function resolveAlert(Request $request, string $id): JsonResponse
-    {
-        $validated = $request->validate([
-            'notes' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $this->reconciliation->resolve($id, (string) Auth::id(), $validated['notes'] ?? null);
-
-        return response()->json(['message' => 'Alerta marcada como resuelta.']);
     }
 }

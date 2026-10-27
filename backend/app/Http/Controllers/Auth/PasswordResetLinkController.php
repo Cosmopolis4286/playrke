@@ -14,7 +14,7 @@ class PasswordResetLinkController extends Controller
     /**
      * Display the password reset link request view.
      */
-    public function create(): Response
+    public function create() : Response
     {
         return Inertia::render('Auth/ForgotPassword');
     }
@@ -34,7 +34,7 @@ class PasswordResetLinkController extends Controller
      * "genérico" salvo error real de validación/servidor) — evita
      * enumeración de cuentas registradas vía este endpoint.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request) : JsonResponse
     {
         $request->validate([
             'email' => ['required', 'email'],

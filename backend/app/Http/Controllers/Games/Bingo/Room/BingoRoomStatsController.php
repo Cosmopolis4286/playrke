@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Games\Bingo\Room;
@@ -16,13 +17,13 @@ final class BingoRoomStatsController extends Controller
      * Devuelve las estadísticas agregadas de la sala (snapshot post-sorteo).
      * Solo disponible una vez que BingoRoomStatsAggregator::aggregate() se haya ejecutado.
      */
-    public function __invoke(BingoRoom $room): JsonResponse
+    public function __invoke(BingoRoom $room) : JsonResponse
     {
         $this->authorize('view', $room);
 
         $stat = BingoRoomStat::where('room_id', (string) $room->id)->first();
 
-        if (!$stat) {
+        if (! $stat) {
             return response()->json(['message' => 'Las estadísticas aún no están disponibles para esta sala.'], 404);
         }
 

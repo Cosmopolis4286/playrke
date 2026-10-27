@@ -10,12 +10,12 @@ use App\Models\Roles\Seller;
  */
 class SellerProfileRequest extends RoleProfileRequest
 {
-    protected function entityClass(): string
+    protected function entityClass() : string
     {
         return Seller::class;
     }
 
-    protected function ownerPrefix(): string
+    protected function ownerPrefix() : string
     {
         return 'seller';
     }

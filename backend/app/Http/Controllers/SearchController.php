@@ -18,9 +18,10 @@ class SearchController extends Controller
 {
     public function __construct(
         private readonly SidebarMenuService $menuService,
-    ) {}
+    ) {
+    }
 
-    public function search(Request $request): View
+    public function search(Request $request) : View
     {
         $term = trim((string) $request->query('q', ''));
         $user = $request->user();
@@ -31,16 +32,16 @@ class SearchController extends Controller
                 ->flatMap(fn (array $item) => isset($item['submenu'])
                     ? collect($item['submenu'])->push($item)
                     : [$item])
-                ->filter(fn (array $item) => !empty($item['route']))
+                ->filter(fn (array $item) => ! empty($item['route']))
                 ->filter(fn (array $item) => str_contains(
                     mb_strtolower($item['title']),
-                    mb_strtolower($term)
+                    mb_strtolower($term),
                 ));
 
             $menuResults = $visibleRoutes
                 ->map(fn (array $item) => [
                     'title' => $item['title'],
-                    'url'   => route($item['route']),
+                    'url' => route($item['route']),
                 ])
                 ->values()
                 ->all();
@@ -51,7 +52,7 @@ class SearchController extends Controller
         if ($term !== '' && $canSearchUsers) {
             $userResults = User::query()
                 ->select(['id', 'username', 'first_name', 'last_name', 'email'])
-                ->where(function ($query) use ($term) {
+                ->where(function($query) use ($term) {
                     $query->where('username', 'like', "%{$term}%")
                         ->orWhere('email', 'like', "%{$term}%")
                         ->orWhere('first_name', 'like', "%{$term}%")
@@ -62,14 +63,14 @@ class SearchController extends Controller
                 ->get()
                 ->map(fn (User $result) => [
                     'title' => trim("{$result->username} ({$result->first_name} {$result->last_name})"),
-                    'url'   => route('admin.users'),
+                    'url' => route('admin.users'),
                 ])
                 ->values()
                 ->all();
         }
 
         return view('modules.shared.search.index', [
-            'term'        => $term,
+            'term' => $term,
             'menuResults' => $menuResults,
             'userResults' => $userResults,
         ]);

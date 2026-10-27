@@ -10,25 +10,25 @@ use App\Services\Auth\PermissionService;
  */
 class BingoConfigImageRequest extends BaseRequest
 {
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['admin', 'superadmin', 'commerce']);
     }
 
-    public function rules(): array
-    {
-        return [
-            'image' => ['required', 'image', 'mimes:jpeg,png', 'max:2048'],
-        ];
-    }
-
-    public function messages(): array
+    public function messages() : array
     {
         return [
             'image.required' => 'La imagen es obligatoria.',
-            'image.image'    => 'El archivo debe ser una imagen válida.',
-            'image.mimes'    => 'Solo se aceptan imágenes JPEG o PNG.',
-            'image.max'      => 'La imagen no puede superar los 2 MB.',
+            'image.image' => 'El archivo debe ser una imagen válida.',
+            'image.mimes' => 'Solo se aceptan imágenes JPEG o PNG.',
+            'image.max' => 'La imagen no puede superar los 2 MB.',
+        ];
+    }
+
+    public function rules() : array
+    {
+        return [
+            'image' => ['required', 'image', 'mimes:jpeg,png', 'max:2048'],
         ];
     }
 }

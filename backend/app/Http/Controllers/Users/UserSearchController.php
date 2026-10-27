@@ -18,9 +18,9 @@ class UserSearchController extends Controller
     /**
      * @return JsonResponse {data: {value: string, label: string}[]}
      */
-    public function search(Request $request): JsonResponse
+    public function search(Request $request) : JsonResponse
     {
-        if (!PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer'])) {
+        if (! PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer'])) {
             abort(403);
         }
 
@@ -28,8 +28,8 @@ class UserSearchController extends Controller
 
         $users = User::query()
             ->select(['id', 'username', 'first_name', 'last_name', 'email'])
-            ->when($term !== '', function ($query) use ($term) {
-                $query->where(function ($q) use ($term) {
+            ->when($term !== '', function($query) use ($term) {
+                $query->where(function($q) use ($term) {
                     $q->where('username', 'like', "%{$term}%")
                         ->orWhere('email', 'like', "%{$term}%")
                         ->orWhere('first_name', 'like', "%{$term}%")
@@ -40,8 +40,8 @@ class UserSearchController extends Controller
             ->limit(15)
             ->get();
 
-        return $this->handleServiceJson(fn() => [
-            'data' => $users->map(fn(User $user) => [
+        return $this->handleServiceJson(fn () => [
+            'data' => $users->map(fn (User $user) => [
                 'value' => (string) $user->id,
                 'label' => trim("{$user->username} ({$user->first_name} {$user->last_name})"),
             ])->values(),

@@ -19,13 +19,14 @@ class MultiPermissionMiddleware
 {
     public function __construct(
         private readonly RoleAuthorizationService $roleAuthorizationService,
-    ) {}
+    ) {
+    }
 
-    public function handle(Request $request, Closure $next, string ...$permissions): Response
+    public function handle(Request $request, Closure $next, string ...$permissions) : Response
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 

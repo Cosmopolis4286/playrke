@@ -10,12 +10,12 @@ use App\Models\Roles\Subsidiary;
  */
 class SubsidiaryProfileRequest extends RoleProfileRequest
 {
-    protected function entityClass(): string
+    protected function entityClass() : string
     {
         return Subsidiary::class;
     }
 
-    protected function ownerPrefix(): string
+    protected function ownerPrefix() : string
     {
         return 'subsidiary';
     }

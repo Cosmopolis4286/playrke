@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Utils;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 
 class CookieController extends Controller
@@ -13,7 +12,7 @@ class CookieController extends Controller
     public function getReferral()
     {
         return response()->json([
-            'referral' => Cookie::get('referral')
+            'referral' => Cookie::get('referral'),
         ]);
     }
 }

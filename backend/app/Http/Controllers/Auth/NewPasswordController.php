@@ -19,7 +19,7 @@ class NewPasswordController extends Controller
     /**
      * Display the password reset view.
      */
-    public function create(Request $request): Response
+    public function create(Request $request) : Response
     {
         return Inertia::render('Auth/ResetPassword', [
             'token' => $request->route('token'),
@@ -42,7 +42,7 @@ class NewPasswordController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request) : JsonResponse
     {
         $request->validate([
             'token' => ['required'],
@@ -52,14 +52,14 @@ class NewPasswordController extends Controller
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
+            function($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
 
                 event(new PasswordReset($user));
-            }
+            },
         );
 
         if ($status !== Password::PASSWORD_RESET) {

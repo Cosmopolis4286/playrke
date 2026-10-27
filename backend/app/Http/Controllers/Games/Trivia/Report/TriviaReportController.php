@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Games\Trivia\Report;
 
-use App\Http\Controllers\Controller;
-use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaQuestion;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -29,7 +29,7 @@ final class TriviaReportController extends Controller
      * Fuente de verdad: trivia_scores (pgsql_trivia) + users (MySQL).
      * trivia_scores.player_id = users.id (referencia externa, sin FK).
      */
-    public function leaderboard(Request $request): Response
+    public function leaderboard(Request $request) : Response
     {
         $pgsql = DB::connection('pgsql_trivia');
 
@@ -63,19 +63,19 @@ final class TriviaReportController extends Controller
             ->get();
 
         $globalStats = [
-            'total_games'   => $pgsql->table('trivia_games')->whereNull('deleted_at')
-                ->when($period === 'week',  fn($q) => $q->where('started_at', '>=', now()->subWeek()))
-                ->when($period === 'month', fn($q) => $q->where('started_at', '>=', now()->subMonth()))
+            'total_games' => $pgsql->table('trivia_games')->whereNull('deleted_at')
+                ->when($period === 'week', fn ($q) => $q->where('started_at', '>=', now()->subWeek()))
+                ->when($period === 'month', fn ($q) => $q->where('started_at', '>=', now()->subMonth()))
                 ->where('status', 'finished')->count(),
             'total_players' => 0,
-            'top_score'     => 0,
-            'top_name'      => '-',
+            'top_score' => 0,
+            'top_name' => '-',
         ];
 
         if ($scores->isEmpty()) {
             return Inertia::render('Games/Trivia/Leaderboard', [
-                'players'     => [],
-                'period'      => $period,
+                'players' => [],
+                'period' => $period,
                 'globalStats' => $globalStats,
             ]);
         }
@@ -101,46 +101,46 @@ final class TriviaReportController extends Controller
             ->keyBy('user_id');
 
         // ── Combinar y calcular métricas derivadas ────────────────────────────
-        $players = $scores->values()->map(function ($row, $index) use ($users, $prizes) {
-            $user   = $users->get($row->player_id);
-            $prize  = $prizes->get($row->player_id);
+        $players = $scores->values()->map(function($row, $index) use ($users, $prizes) {
+            $user = $users->get($row->player_id);
+            $prize = $prizes->get($row->player_id);
 
-            $totalAnswers = (int)$row->total_correct + (int)$row->total_wrong;
-            $accuracy     = $totalAnswers > 0
+            $totalAnswers = (int) $row->total_correct + (int) $row->total_wrong;
+            $accuracy = $totalAnswers > 0
                 ? round(($row->total_correct / $totalAnswers) * 100, 1)
                 : 0.0;
 
-            $winRate = (int)$row->games_played > 0
-                ? round(((int)$row->wins / (int)$row->games_played) * 100, 1)
+            $winRate = (int) $row->games_played > 0
+                ? round(((int) $row->wins / (int) $row->games_played) * 100, 1)
                 : 0.0;
 
             return [
-                'rank'            => $index + 1,
-                'player_id'       => $row->player_id,
-                'name'            => ($user?->display_name ?: null) ?? 'Jugador #' . substr($row->player_id, 0, 6),
-                'games_played'    => (int)$row->games_played,
-                'total_score'     => (int)$row->total_score,
-                'total_correct'   => (int)$row->total_correct,
-                'total_wrong'     => (int)$row->total_wrong,
-                'wins'            => (int)$row->wins,
-                'best_score'      => (int)$row->best_score,
-                'best_streak'     => (int)$row->best_streak,
-                'avg_response_ms' => (int)$row->avg_response_ms,
-                'total_prizes'    => (float)($prize?->total_prizes ?? 0),
-                'rooms_entered'   => (int)($prize?->rooms_entered ?? 0),
-                'accuracy'        => $accuracy,
-                'win_rate'        => $winRate,
+                'rank' => $index + 1,
+                'player_id' => $row->player_id,
+                'name' => ($user?->display_name ?: null) ?? 'Jugador #' . substr($row->player_id, 0, 6),
+                'games_played' => (int) $row->games_played,
+                'total_score' => (int) $row->total_score,
+                'total_correct' => (int) $row->total_correct,
+                'total_wrong' => (int) $row->total_wrong,
+                'wins' => (int) $row->wins,
+                'best_score' => (int) $row->best_score,
+                'best_streak' => (int) $row->best_streak,
+                'avg_response_ms' => (int) $row->avg_response_ms,
+                'total_prizes' => (float) ($prize?->total_prizes ?? 0),
+                'rooms_entered' => (int) ($prize?->rooms_entered ?? 0),
+                'accuracy' => $accuracy,
+                'win_rate' => $winRate,
             ];
         })->all();
 
         // Completar stats con datos ya calculados
         $globalStats['total_players'] = count($players);
-        $globalStats['top_score']     = $players[0]['total_score'] ?? 0;
-        $globalStats['top_name']      = $players[0]['name']        ?? '-';
+        $globalStats['top_score'] = $players[0]['total_score'] ?? 0;
+        $globalStats['top_name'] = $players[0]['name'] ?? '-';
 
         return Inertia::render('Games/Trivia/Leaderboard', [
-            'players'     => $players,
-            'period'      => $period,
+            'players' => $players,
+            'period' => $period,
             'globalStats' => $globalStats,
         ]);
     }
@@ -149,29 +149,29 @@ final class TriviaReportController extends Controller
      * Estadísticas globales del sistema de Trivia (nuevo sistema DDD).
      * Ruta: GET /trivia/stats
      */
-    public function stats(): Response
+    public function stats() : Response
     {
         $pgsql = DB::connection('pgsql_trivia');
 
         // ── Salas ────────────────────────────────────────────────────────────
         $roomStats = [
-            'total'     => TriviaRoom::count(),
-            'waiting'   => TriviaRoom::where('status', 'waiting')->count(),
-            'playing'   => TriviaRoom::where('status', 'playing')->count(),
-            'finished'  => TriviaRoom::where('status', 'closed')->count(),
+            'total' => TriviaRoom::count(),
+            'waiting' => TriviaRoom::where('status', 'waiting')->count(),
+            'playing' => TriviaRoom::where('status', 'playing')->count(),
+            'finished' => TriviaRoom::where('status', 'closed')->count(),
             'cancelled' => TriviaRoom::where('status', 'cancelled')->count(),
         ];
 
         // ── Juegos ───────────────────────────────────────────────────────────
         $gameStats = [
-            'total'    => $pgsql->table('trivia_games')->whereNull('deleted_at')->count(),
+            'total' => $pgsql->table('trivia_games')->whereNull('deleted_at')->count(),
             'finished' => $pgsql->table('trivia_games')->where('status', 'finished')->whereNull('deleted_at')->count(),
-            'playing'  => $pgsql->table('trivia_games')->where('status', 'playing')->whereNull('deleted_at')->count(),
+            'playing' => $pgsql->table('trivia_games')->where('status', 'playing')->whereNull('deleted_at')->count(),
         ];
 
         // ── Preguntas ────────────────────────────────────────────────────────
         $questionStats = [
-            'total'  => TriviaQuestion::count(),
+            'total' => TriviaQuestion::count(),
             'active' => TriviaQuestion::where('is_active', true)->count(),
             'by_difficulty' => TriviaQuestion::selectRaw('difficulty, COUNT(*) as total')
                 ->groupBy('difficulty')
@@ -186,11 +186,11 @@ final class TriviaReportController extends Controller
 
         // ── Participantes ────────────────────────────────────────────────────
         $participantStats = [
-            'total'         => $pgsql->table('trivia_participants')->whereNull('deleted_at')->count(),
-            'unique_users'  => $pgsql->table('trivia_participants')->whereNull('deleted_at')->distinct()->count('user_id'),
-            'winners'       => $pgsql->table('trivia_participants')->where('status', 'winner')->whereNull('deleted_at')->count(),
-            'abandoned'     => $pgsql->table('trivia_participants')->where('status', 'abandoned')->whereNull('deleted_at')->count(),
-            'total_prizes'  => (float) $pgsql->table('trivia_participants')->whereNull('deleted_at')->sum('prize_won'),
+            'total' => $pgsql->table('trivia_participants')->whereNull('deleted_at')->count(),
+            'unique_users' => $pgsql->table('trivia_participants')->whereNull('deleted_at')->distinct()->count('user_id'),
+            'winners' => $pgsql->table('trivia_participants')->where('status', 'winner')->whereNull('deleted_at')->count(),
+            'abandoned' => $pgsql->table('trivia_participants')->where('status', 'abandoned')->whereNull('deleted_at')->count(),
+            'total_prizes' => (float) $pgsql->table('trivia_participants')->whereNull('deleted_at')->sum('prize_won'),
         ];
 
         // ── Scores (top 10 jugadores por puntuación total) ───────────────────
@@ -226,14 +226,14 @@ final class TriviaReportController extends Controller
         $accuracyRate = $totalAnswers > 0 ? round(($totalCorrect / $totalAnswers) * 100, 1) : 0;
 
         return Inertia::render('Games/Trivia/Stats', [
-            'roomStats'        => $roomStats,
-            'gameStats'        => $gameStats,
-            'questionStats'    => $questionStats,
+            'roomStats' => $roomStats,
+            'gameStats' => $gameStats,
+            'questionStats' => $questionStats,
             'participantStats' => $participantStats,
-            'topPlayers'       => $topPlayers,
-            'monthlyActivity'  => $monthlyActivity,
-            'avgResponseMs'    => $avgResponseMs,
-            'accuracyRate'     => $accuracyRate,
+            'topPlayers' => $topPlayers,
+            'monthlyActivity' => $monthlyActivity,
+            'avgResponseMs' => $avgResponseMs,
+            'accuracyRate' => $accuracyRate,
         ]);
     }
 }

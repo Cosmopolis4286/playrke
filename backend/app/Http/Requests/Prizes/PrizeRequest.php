@@ -18,33 +18,9 @@ class PrizeRequest extends BaseRequest
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer']);
-    }
-
-    /**
-     * Reglas de validación dinámicas.
-     *
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        $prize    = $this->resolvePrize();
-        $isUpdate = $prize !== null;
-
-        return [
-            'code'        => ['sometimes', 'nullable', 'string', 'max:12', 'alpha_num'],
-            'reward_type' => [$isUpdate ? 'sometimes' : 'required', 'string', Rule::in(['PRODUCT', 'SERVICE', 'MIXED'])],
-            'name'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:60'],
-            'kit'         => ['sometimes', 'string', Rule::in(['Y', 'N'])],
-            'num_items'   => ['sometimes', 'integer', 'min:1', 'max:127'],
-            'kit_items'   => ['sometimes', 'nullable', 'array', 'max:127'],
-            'kit_items.*' => ['required'],
-            'price'       => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:9999999999.99'],
-            'description' => ['nullable', 'string', 'max:255'],
-            'status'      => ['sometimes', 'string', Rule::in(['ACTIVE', 'INACTIVE'])],
-        ];
     }
 
     /**
@@ -52,33 +28,57 @@ class PrizeRequest extends BaseRequest
      *
      * @return array<string, string>
      */
-    public function messages(): array
+    public function messages() : array
     {
         return [
-            'code.required'        => 'El código del premio es obligatorio.',
-            'code.max'             => 'El código no puede tener más de 12 caracteres.',
-            'code.alpha_num'       => 'El código solo puede contener letras y números.',
-            'code.unique'          => 'Ya existe un premio con este código.',
+            'code.required' => 'El código del premio es obligatorio.',
+            'code.max' => 'El código no puede tener más de 12 caracteres.',
+            'code.alpha_num' => 'El código solo puede contener letras y números.',
+            'code.unique' => 'Ya existe un premio con este código.',
             'reward_type.required' => 'El tipo de recompensa es obligatorio.',
-            'reward_type.in'       => 'El tipo debe ser PRODUCT, SERVICE o MIXED.',
-            'name.required'        => 'El nombre del premio es obligatorio.',
-            'name.max'             => 'El nombre no puede tener más de 60 caracteres.',
-            'kit.in'               => 'El campo kit debe ser Y o N.',
-            'num_items.integer'    => 'El número de ítems debe ser un entero.',
-            'num_items.min'        => 'El número de ítems debe ser al menos 1.',
-            'kit_items.max'        => 'Un kit puede tener máximo 127 ítems.',
-            'price.required'       => 'El precio es obligatorio.',
-            'price.numeric'        => 'El precio debe ser un número.',
-            'price.min'            => 'El precio no puede ser negativo.',
-            'description.max'      => 'La descripción no puede tener más de 255 caracteres.',
-            'status.in'            => 'El estado debe ser ACTIVE o INACTIVE.',
+            'reward_type.in' => 'El tipo debe ser PRODUCT, SERVICE o MIXED.',
+            'name.required' => 'El nombre del premio es obligatorio.',
+            'name.max' => 'El nombre no puede tener más de 60 caracteres.',
+            'kit.in' => 'El campo kit debe ser Y o N.',
+            'num_items.integer' => 'El número de ítems debe ser un entero.',
+            'num_items.min' => 'El número de ítems debe ser al menos 1.',
+            'kit_items.max' => 'Un kit puede tener máximo 127 ítems.',
+            'price.required' => 'El precio es obligatorio.',
+            'price.numeric' => 'El precio debe ser un número.',
+            'price.min' => 'El precio no puede ser negativo.',
+            'description.max' => 'La descripción no puede tener más de 255 caracteres.',
+            'status.in' => 'El estado debe ser ACTIVE o INACTIVE.',
+        ];
+    }
+
+    /**
+     * Reglas de validación dinámicas.
+     *
+     * @return array<string, mixed>
+     */
+    public function rules() : array
+    {
+        $prize = $this->resolvePrize();
+        $isUpdate = $prize !== null;
+
+        return [
+            'code' => ['sometimes', 'nullable', 'string', 'max:12', 'alpha_num'],
+            'reward_type' => [$isUpdate ? 'sometimes' : 'required', 'string', Rule::in(['PRODUCT', 'SERVICE', 'MIXED'])],
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:60'],
+            'kit' => ['sometimes', 'string', Rule::in(['Y', 'N'])],
+            'num_items' => ['sometimes', 'integer', 'min:1', 'max:127'],
+            'kit_items' => ['sometimes', 'nullable', 'array', 'max:127'],
+            'kit_items.*' => ['required'],
+            'price' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'status' => ['sometimes', 'string', Rule::in(['ACTIVE', 'INACTIVE'])],
         ];
     }
 
     /**
      * Resuelve el modelo Prize desde el parámetro de ruta.
      */
-    protected function resolvePrize(): ?Prize
+    protected function resolvePrize() : ?Prize
     {
         $routeParam = $this->route('prize');
 
@@ -90,6 +90,6 @@ class PrizeRequest extends BaseRequest
             return $routeParam;
         }
 
-        return (new Prize())->resolveRouteBinding($routeParam);
+        return (new Prize)->resolveRouteBinding($routeParam);
     }
 }

@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Games\Trivia\Game;
 
-use App\Http\Controllers\Controller;
+use App\Domains\Games\Trivia\Actions\JoinRoomAction;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Services\RoomService;
-use App\Domains\Games\Trivia\Actions\JoinRoomAction;
 use App\Exceptions\Domain\DomainException;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
+use Throwable;
 
 /**
  * Controlador de juego de Trivia.
@@ -30,9 +31,9 @@ final class TriviaGameController extends Controller
      * Unirse a una sala de trivia.
      * POST /trivia-game/room/{id}/join
      */
-    public function join(Request $request, string $id): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+    public function join(Request $request, string $id) : \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
     {
-        $user       = Auth::user();
+        $user = Auth::user();
         $joinAction = app(JoinRoomAction::class);
 
         $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
@@ -43,8 +44,8 @@ final class TriviaGameController extends Controller
                 : back()->with('error', 'La sala ya no está disponible.');
         }
 
-        $roomId      = (string) $room->id;
-        $userId      = (string) $user->id;
+        $roomId = (string) $room->id;
+        $userId = (string) $user->id;
         $displayName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador');
 
         // Verificar si ya está registrado (respuesta rápida, sin cobro)
@@ -59,9 +60,9 @@ final class TriviaGameController extends Controller
         if ($alreadyJoined) {
             return $request->expectsJson()
                 ? response()->json([
-                    'success'        => true,
+                    'success' => true,
                     'already_joined' => true,
-                    'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
+                    'player' => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
                 ])
                 : redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
@@ -79,34 +80,31 @@ final class TriviaGameController extends Controller
 
             return $request->expectsJson()
                 ? response()->json([
-                    'success'        => true,
+                    'success' => true,
                     'already_joined' => false,
-                    'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
-                    'team_id'        => $result['team_id'] ?? null,
-                    'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente.',
-                    'warning'        => $result['warning'] ?? null,
+                    'player' => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
+                    'team_id' => $result['team_id'] ?? null,
+                    'message' => $result['message'] ?? 'Te has unido a la sala exitosamente.',
+                    'warning' => $result['warning'] ?? null,
                 ])
                 : redirect()->route('trivia.room.wait', ['code' => $room->code]);
-
         } catch (DomainException $e) {
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $e->getMessage()], $e->httpStatus())
                 : back()->with('error', $e->getMessage());
-
         } catch (RuntimeException $e) {
             $status = str_contains($e->getMessage(), 'Saldo insuficiente') ? 402 : 422;
 
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $e->getMessage()], $status)
                 : back()->with('error', $e->getMessage());
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // No asumir que la inscripción se guardó: errores de BD o de wallet
             // deben fallar explícitamente. Fallos de Redis/broadcast tras persistir
             // se gestionan dentro de JoinRoomAction.
             \Illuminate\Support\Facades\Log::error(
                 '[TriviaGameController@join] Registration failed.',
-                ['room_id' => $roomId, 'user_id' => $userId, 'exception' => $e]
+                ['room_id' => $roomId, 'user_id' => $userId, 'exception' => $e],
             );
 
             return $request->expectsJson()
@@ -119,273 +117,15 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Estado de sala en JSON para polling desde WaitingRoom.
-     * Ruta: GET /trivia/room/{code}/state
-     */
-    public function roomState(string $code): \Illuminate\Http\JsonResponse
-    {
-        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
-            ->whereIn('status', ['waiting', 'playing', 'closed'])
-            ->firstOrFail();
-
-        // Participantes desde trivia_participants + nombre desde MySQL users
-        $participants = DB::connection('pgsql_trivia')
-            ->table('trivia_participants')
-            ->where('room_id', $room->id)
-            ->whereNull('deleted_at')
-            ->whereNotIn('status', ['abandoned'])
-            ->select('user_id', 'status')
-            ->get();
-
-        $userIds = $participants->pluck('user_id')->all();
-        $names   = $userIds
-            ? DB::table('users')->whereIn('id', $userIds)
-                ->select('id', DB::raw("TRIM(CONCAT(first_name, ' ', COALESCE(last_name, ''))) as display_name"))
-                ->get()->pluck('display_name', 'id')->all()
-            : [];
-
-        $players = $participants->map(function ($p) use ($names, $room) {
-            return [
-                'id'       => $p->user_id,
-                'name'     => $names[$p->user_id] ?? 'Jugador',
-                'roomCode' => $room->code,
-                'joinedAt' => $p->registered_at
-                    ? \Carbon\Carbon::parse($p->registered_at)->toISOString()
-                    : null,
-            ];
-        })->values()->all();
-
-        return response()->json([
-            'status'  => $room->status,
-            'players' => $players,
-        ]);
-    }
-
-    /**
-     * Sala de espera de una sala específica (WaitingRoom).
-     * Ruta: GET /trivia/room/{code}/lobby
-     */
-    public function waitingRoom(string $code): Response
-    {
-        $roomService = app(RoomService::class);
-        $user        = Auth::user();
-
-        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::with('teams')
-            ->where('code', $code)
-            ->whereIn('status', ['waiting', 'playing'])
-            ->firstOrFail();
-
-        $roomId  = (string) $room->id;
-        $roomDto = $roomService->getRoom($roomId);
-
-        // ── Jugadores desde trivia_participants (fuente de verdad — no Redis) ──
-        $participants = DB::connection('pgsql_trivia')
-            ->table('trivia_participants')
-            ->where('room_id', $roomId)
-            ->whereNull('deleted_at')
-            ->whereNotIn('status', ['abandoned'])
-            ->orderBy('registered_at')
-            ->select('user_id', 'team_id', 'status', 'registered_at')
-            ->get();
-
-        $userIds = $participants->pluck('user_id')->all();
-        $names   = $userIds
-            ? DB::table('users')
-                ->whereIn('id', $userIds)
-                ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
-                ->get()->pluck('display_name', 'id')->all()
-            : [];
-
-        $initialPlayers = $participants->map(fn($p) => [
-            'id'       => $p->user_id,
-            'name'     => $names[$p->user_id] ?? 'Jugador',
-            'roomCode' => $roomDto->code,
-            'joinedAt' => $p->registered_at
-                ? \Carbon\Carbon::parse($p->registered_at)->toISOString()
-                : null,
-            'teamId'   => $p->team_id,
-        ])->values()->all();
-
-        // ── Detectar si el usuario ya está inscrito ───────────────────────────
-        $alreadyJoined = collect($initialPlayers)
-            ->contains('id', (string) $user->id);
-
-        // ── Resolver monedas de entrada y wallets del usuario ────────────────
-        // fee_by_currency = { currency_id => amount, ... } (multidivisa)
-        // Fallback: entry_currency_id / entry_fee (legado, una sola moneda)
-        $entryCurrencySymbol = null;
-        $userWallet          = null;
-        $displayEntryFee     = $room->entry_fee ? (float) $room->entry_fee : null;
-        $feeByCurrency       = $room->fee_by_currency; // array|null (cast en el modelo)
-
-        // Recopilar todos los currency_ids relevantes para la sala
-        $feeCurrencyIds = [];
-        if (!empty($feeByCurrency) && is_array($feeByCurrency)) {
-            $feeCurrencyIds = array_keys($feeByCurrency);
-        } elseif ($room->entry_currency_id) {
-            $feeCurrencyIds = [(string) $room->entry_currency_id];
-        }
-
-        // Cargar símbolos de moneda (cacheados 5 min, ver Currency::symbolsByIds)
-        // y wallets del usuario en una sola pasada.
-        $currencySymbols = [];
-        $walletsByCurrency = [];
-        if (!empty($feeCurrencyIds)) {
-            $feeCurrencyIds = array_map('strval', $feeCurrencyIds);
-
-            $currencySymbols = \App\Models\Currency::symbolsByIds($feeCurrencyIds);
-
-            $userWallets = $user->wallets()
-                ->whereIn('currency_id', $feeCurrencyIds)
-                ->with('currency')
-                ->get();
-
-            foreach ($userWallets as $w) {
-                $walletsByCurrency[(string) $w->currency_id] = $w;
-            }
-        }
-
-        // Construir entryCurrencySymbol (primera moneda o la única)
-        if (!empty($feeCurrencyIds)) {
-            $firstId = $feeCurrencyIds[0];
-            $entryCurrencySymbol = $currencySymbols[$firstId]
-                ?? $walletsByCurrency[$firstId]?->currency?->symbol
-                ?? null;
-        }
-
-        // Construir userWallet: para multidivisa se expone la primera wallet
-        // que el usuario tiene; el frontend mostrará todas cuando haya varias.
-        if (!empty($feeCurrencyIds)) {
-            // Intentar encontrar cualquier wallet del usuario para estas monedas
-            $matchedWallet   = null;
-            $matchedCurrency = null;
-            foreach ($feeCurrencyIds as $cid) {
-                if (isset($walletsByCurrency[$cid])) {
-                    $matchedWallet   = $walletsByCurrency[$cid];
-                    $matchedCurrency = $cid;
-                    break;
-                }
-            }
-
-            $entryCurrencySymbol = $currencySymbols[$feeCurrencyIds[0]] ?? $entryCurrencySymbol;
-
-            $userWallet = [
-                'balance'    => $matchedWallet ? (float) $matchedWallet->balance : 0.0,
-                'symbol'     => $matchedWallet?->currency?->symbol
-                                ?? $currencySymbols[$matchedCurrency ?? $feeCurrencyIds[0]]
-                                ?? '',
-                'currencyId' => $matchedCurrency ?? $feeCurrencyIds[0],
-                'found'      => $matchedWallet !== null,
-                // Wallets por moneda para que el frontend muestre el balance correcto
-                // cuando la sala acepta múltiples monedas.
-                'byCurrency' => collect($feeCurrencyIds)->mapWithKeys(function ($cid) use ($walletsByCurrency, $currencySymbols, $feeByCurrency, $room) {
-                    $w    = $walletsByCurrency[$cid] ?? null;
-                    $sym  = $w?->currency?->symbol ?? $currencySymbols[$cid] ?? '';
-                    $fee  = $feeByCurrency ? (float) ($feeByCurrency[$cid] ?? 0) : (float) ($room->entry_fee ?? 0);
-                    return [$cid => [
-                        'balance' => $w ? (float) $w->balance : 0.0,
-                        'symbol'  => $sym,
-                        'fee'     => $fee,
-                        'found'   => $w !== null,
-                    ]];
-                })->all(),
-            ];
-        } else {
-            // Sala sin moneda específica configurada: si tiene un costo base
-            // (entry_fee / entry_fee_usd), se muestra convertido a la moneda
-            // de la wallet activa del jugador (igual que en Bingo).
-            $baseFeeUsd = (float) ($room->entry_fee_usd ?: $room->entry_fee ?? 0);
-
-            if ($baseFeeUsd > 0) {
-                $wallet = $user->wallets()
-                    ->where('status', 'ACTIVE')
-                    ->with('currency')
-                    ->orderByDesc('balance')
-                    ->first();
-
-                if ($wallet) {
-                    $exchangeRate = (float) \App\Models\ExchangeRate::where('currency_id', (string) $wallet->currency_id)
-                        ->where('status', 'ACTIVE')
-                        ->orderByDesc('created_at')
-                        ->value('amount') ?: 1.0;
-
-                    $convertedFee = round($baseFeeUsd * $exchangeRate, 2);
-
-                    $entryCurrencySymbol = $wallet->currency?->symbol ?? '';
-                    $displayEntryFee     = $convertedFee;
-
-                    $userWallet = [
-                        'balance'    => (float) $wallet->balance,
-                        'symbol'     => $wallet->currency?->symbol ?? '',
-                        'currencyId' => (string) $wallet->currency_id,
-                        'found'      => true,
-                    ];
-                } else {
-                    $userWallet = [
-                        'balance'    => 0.0,
-                        'symbol'     => '',
-                        'currencyId' => null,
-                        'found'      => false,
-                    ];
-                }
-            }
-        }
-
-        // ── Preparar datos de equipos si aplica ────────────────────────────────
-        $teams = null;
-        if ($room->usesTeams() && $room->teams) {
-            $teams = $room->teams->map(fn($t) => [
-                'id' => $t->id,
-                'name' => $t->name,
-                'color' => $t->color,
-                'icon' => $t->icon,
-                'maxPlayers' => $t->max_players,
-                'currentPlayers' => $t->current_players,
-            ])->toArray();
-        }
-
-        return Inertia::render('Games/Trivia/WaitingRoom', [
-            'room' => [
-                'id'                   => (string) $roomDto->roomId,
-                'code'                 => $roomDto->code,
-                'title'                => $roomDto->title,
-                'description'          => $room->description,
-                'category'             => $room->category ?? null,
-                'hostId'               => $roomDto->hostId,
-                'status'               => $roomDto->status,
-                'maxPlayers'           => $roomDto->maxPlayers,
-                'currentPlayers'       => count($initialPlayers),
-                'questionCount'        => $room->question_count,
-                'timePerQuestion'      => $room->time_per_question,
-                'entryFee'             => $displayEntryFee,
-                'entryCurrencyId'      => $room->entry_currency_id,
-                'entryCurrencySymbol'  => $entryCurrencySymbol,
-                'feeByCurrency'        => $room->fee_by_currency ?: null,
-                'prizeAmount'          => $room->prize_amount ? (float) $room->prize_amount : null,
-                'prizeCurrencyId'      => $room->prize_currency_id,
-                'prizeType'            => $room->prize_type,
-                'createdAt'            => $room->created_at->toISOString(),
-                'updatedAt'            => $room->updated_at->toISOString(),
-            ],
-            'teams' => $teams,
-            'gameMode' => strtolower($room->gameModeCode() ?? 'free_for_all'),
-            'initialPlayers' => $initialPlayers,
-            'alreadyJoined'  => $alreadyJoined,
-            'currentUserId'  => (string) $user->id,
-            'userWallet'     => $userWallet,
-        ]);
-    }
-
-    /**
      * Display the trivia lobby for players.
      * Muestra todas las salas en espera/jugando, agrupadas por categoría.
      * GET /trivia/lobby
      */
-    public function lobby(Request $request): Response
+    public function lobby(Request $request) : Response
     {
         $pgsql = DB::connection('pgsql_trivia');
 
-        $search   = $request->get('search', '');
+        $search = $request->get('search', '');
         $category = $request->get('category', '');
 
         // ── Salas activas ─────────────────────────────────────────────────────
@@ -396,10 +136,10 @@ final class TriviaGameController extends Controller
             ->orderBy('created_at', 'desc');
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
+            $query->where(function($q) use ($search) {
                 $q->where('title', 'ilike', "%{$search}%")
-                  ->orWhere('code', 'ilike', "%{$search}%")
-                  ->orWhere('category', 'ilike', "%{$search}%");
+                    ->orWhere('code', 'ilike', "%{$search}%")
+                    ->orWhere('category', 'ilike', "%{$search}%");
             });
         }
 
@@ -408,11 +148,22 @@ final class TriviaGameController extends Controller
         }
 
         $rooms = $query->select(
-            'id', 'code', 'title', 'description', 'category',
-            'status', 'game_mode_id', 'max_players',
-            'question_count', 'time_per_question', 'created_at',
-            'entry_fee', 'entry_currency_id',
-            'prize_amount', 'prize_type', 'prize_currency_id'
+            'id',
+            'code',
+            'title',
+            'description',
+            'category',
+            'status',
+            'game_mode_id',
+            'max_players',
+            'question_count',
+            'time_per_question',
+            'created_at',
+            'entry_fee',
+            'entry_currency_id',
+            'prize_amount',
+            'prize_type',
+            'prize_currency_id',
         )->get();
 
         // ── Contar participantes reales desde trivia_participants ─────────────
@@ -420,7 +171,7 @@ final class TriviaGameController extends Controller
         // La fuente de verdad es trivia_participants (igual que waitingRoom).
         $roomIds = $rooms->pluck('id')->all();
         $participantCounts = [];
-        if (!empty($roomIds)) {
+        if (! empty($roomIds)) {
             $participantCounts = $pgsql->table('trivia_participants')
                 ->whereIn('room_id', $roomIds)
                 ->whereNull('deleted_at')
@@ -433,7 +184,7 @@ final class TriviaGameController extends Controller
 
         // ── Resolver símbolos de moneda (cacheados 5 min, ver Currency::symbolsByIds) ──
         $currencyIds = collect($rooms)
-            ->flatMap(fn($r) => array_filter([$r->entry_currency_id, $r->prize_currency_id]))
+            ->flatMap(fn ($r) => array_filter([$r->entry_currency_id, $r->prize_currency_id]))
             ->unique()
             ->values()
             ->all();
@@ -452,9 +203,9 @@ final class TriviaGameController extends Controller
                 ->map(fn ($code) => strtolower($code))
                 ->all();
 
-        $rooms = $rooms->map(function ($room) use ($currencySymbols, $participantCounts, $gameModeCodes) {
+        $rooms = $rooms->map(function($room) use ($currencySymbols, $participantCounts, $gameModeCodes) {
             return array_merge((array) $room, [
-                'current_players'       => (int) ($participantCounts[$room->id] ?? 0),
+                'current_players' => (int) ($participantCounts[$room->id] ?? 0),
                 'entry_currency_symbol' => $room->entry_currency_id
                     ? ($currencySymbols[$room->entry_currency_id] ?? null)
                     : null,
@@ -479,14 +230,14 @@ final class TriviaGameController extends Controller
         $stats = [
             'waiting' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->where('status', 'waiting')->count(),
             'playing' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->where('status', 'playing')->count(),
-            'total'   => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->whereIn('status', ['waiting', 'playing'])->count(),
+            'total' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->whereIn('status', ['waiting', 'playing'])->count(),
         ];
 
         return Inertia::render('Games/Trivia/Lobby', [
-            'rooms'      => $rooms,
+            'rooms' => $rooms,
             'categories' => $categories,
-            'stats'      => $stats,
-            'filters'    => compact('search', 'category'),
+            'stats' => $stats,
+            'filters' => compact('search', 'category'),
         ]);
     }
 
@@ -497,9 +248,9 @@ final class TriviaGameController extends Controller
      * La pregunta activa se obtiene de Redis (GameStateRepository) — no de BD.
      * La BD solo persiste datos finales; el estado en tiempo real vive en Redis.
      */
-    public function play(string $gameId): Response
+    public function play(string $gameId) : Response
     {
-        $user  = Auth::user();
+        $user = Auth::user();
         $pgsql = DB::connection('pgsql_trivia');
 
         $game = $pgsql->table('trivia_games')
@@ -521,9 +272,9 @@ final class TriviaGameController extends Controller
             : (float) (($room->entry_fee ?? 0) * ($game->player_count ?? 0));
 
         // ── Pregunta activa desde Redis ───────────────────────────────────────
-        $stateRepo    = app(GameStateRepositoryInterface::class);
+        $stateRepo = app(GameStateRepositoryInterface::class);
         $questionData = $stateRepo->getCurrentQuestion($gameId);
-        $gameState    = $stateRepo->getState($gameId);
+        $gameState = $stateRepo->getState($gameId);
 
         $question = null;
         if ($questionData) {
@@ -532,17 +283,17 @@ final class TriviaGameController extends Controller
                 $options = json_decode($options, true) ?? [];
             }
             $question = [
-                'id'        => (string) ($questionData['question_id'] ?? $questionData['id'] ?? ''),
-                'text'      => $questionData['question_text'] ?? $questionData['text'] ?? '',
-                'image'     => $questionData['image_url'] ?? null,
-                'options'   => $options,
+                'id' => (string) ($questionData['question_id'] ?? $questionData['id'] ?? ''),
+                'text' => $questionData['question_text'] ?? $questionData['text'] ?? '',
+                'image' => $questionData['image_url'] ?? null,
+                'options' => $options,
                 'timeLimit' => (int) ($questionData['time_limit_seconds'] ?? $room->time_per_question ?? 20),
-                'category'  => $questionData['category'] ?? null,
+                'category' => $questionData['category'] ?? null,
             ];
         }
 
         $currentQuestionIndex = $gameState?->currentQuestionIndex ?? ($game->current_question_index ?? 0);
-        $totalQuestions       = $gameState?->totalQuestions ?? ($room->question_count ?? 10);
+        $totalQuestions = $gameState?->totalQuestions ?? ($room->question_count ?? 10);
 
         // ── Power-ups disponibles del jugador (null si la sala no los habilita) ──
         $participant = $pgsql->table('trivia_participants')
@@ -554,7 +305,7 @@ final class TriviaGameController extends Controller
         $powerUps = null;
         if ($participant && $participant->power_ups) {
             $total = json_decode($participant->power_ups, true) ?? [];
-            $used  = json_decode($participant->power_ups_used ?? '[]', true) ?? [];
+            $used = json_decode($participant->power_ups_used ?? '[]', true) ?? [];
             $powerUps = collect($total)->mapWithKeys(fn ($count, $type) => [
                 $type => max(0, (int) $count - (int) ($used[$type] ?? 0)),
             ])->all();
@@ -562,23 +313,23 @@ final class TriviaGameController extends Controller
 
         return Inertia::render('Games/Trivia/Play', [
             'room' => [
-                'id'             => (string) $room->id,
-                'code'           => $room->code,
-                'title'          => $room->title,
-                'potAmount'      => $potAmount,
+                'id' => (string) $room->id,
+                'code' => $room->code,
+                'title' => $room->title,
+                'potAmount' => $potAmount,
                 'currentPlayers' => $game->player_count ?? 0,
-                'maxPlayers'     => $room->max_players ?? 100,
+                'maxPlayers' => $room->max_players ?? 100,
             ],
             'game' => [
-                'id'              => $gameId,
+                'id' => $gameId,
                 'currentQuestion' => $currentQuestionIndex,
-                'totalQuestions'  => $totalQuestions,
-                'isPaused'        => $game->status === 'paused',
+                'totalQuestions' => $totalQuestions,
+                'isPaused' => $game->status === 'paused',
             ],
             'question' => $question,
-            'player'   => [
-                'id'     => (string) $user->id,
-                'name'   => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
+            'player' => [
+                'id' => (string) $user->id,
+                'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
                 'avatar' => $user->avatar ?? null,
             ],
             'powerUps' => $powerUps,
@@ -587,7 +338,7 @@ final class TriviaGameController extends Controller
             // no sean el host_id exacto. $room aquí es un stdClass (query builder
             // crudo), no el modelo Eloquent que la Policy espera, así que se
             // recarga como TriviaRoom en vez de forzar Gate sobre un stdClass.
-            'isHost'   => app(\App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class)
+            'isHost' => app(\App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class)
                 ->start($user, \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($room->id)),
         ]);
     }
@@ -597,7 +348,7 @@ final class TriviaGameController extends Controller
      * Muestra el desempeño del jugador y la clasificación final.
      * Ruta: GET /trivia/play/{gameId}/results
      */
-    public function playResults(string $gameId): Response
+    public function playResults(string $gameId) : Response
     {
         $user = Auth::user();
         $pgsql = DB::connection('pgsql_trivia');
@@ -607,7 +358,7 @@ final class TriviaGameController extends Controller
             ->where('id', $gameId)
             ->first();
 
-        if (!$game) {
+        if (! $game) {
             abort(404, 'Juego no encontrado');
         }
 
@@ -636,6 +387,7 @@ final class TriviaGameController extends Controller
         foreach ($allScores as $index => $score) {
             if ($score->player_id === (string) $user->id) {
                 $playerRank = $index + 1;
+
                 break;
             }
         }
@@ -643,7 +395,7 @@ final class TriviaGameController extends Controller
         // Obtener nombres de jugadores
         $playerIds = $allScores->pluck('player_id')->unique()->all();
         $playerNames = [];
-        if (!empty($playerIds)) {
+        if (! empty($playerIds)) {
             $playerNames = DB::table('users')
                 ->whereIn('id', $playerIds)
                 ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
@@ -653,7 +405,7 @@ final class TriviaGameController extends Controller
         }
 
         // Construir top players (top 10)
-        $topPlayers = $allScores->take(10)->map(function ($score, $index) use ($playerNames, $user) {
+        $topPlayers = $allScores->take(10)->map(function($score, $index) use ($playerNames, $user) {
             return [
                 'position' => $index + 1,
                 'name' => $playerNames[$score->player_id] ?? 'Jugador',
@@ -690,6 +442,266 @@ final class TriviaGameController extends Controller
                 'avatar' => $user->avatar ?? null,
             ],
             'topPlayers' => $topPlayers,
+        ]);
+    }
+
+    /**
+     * Estado de sala en JSON para polling desde WaitingRoom.
+     * Ruta: GET /trivia/room/{code}/state
+     */
+    public function roomState(string $code) : \Illuminate\Http\JsonResponse
+    {
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
+            ->whereIn('status', ['waiting', 'playing', 'closed'])
+            ->firstOrFail();
+
+        // Participantes desde trivia_participants + nombre desde MySQL users
+        $participants = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $room->id)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
+            ->select('user_id', 'status')
+            ->get();
+
+        $userIds = $participants->pluck('user_id')->all();
+        $names = $userIds
+            ? DB::table('users')->whereIn('id', $userIds)
+                ->select('id', DB::raw("TRIM(CONCAT(first_name, ' ', COALESCE(last_name, ''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all()
+            : [];
+
+        $players = $participants->map(function($p) use ($names, $room) {
+            return [
+                'id' => $p->user_id,
+                'name' => $names[$p->user_id] ?? 'Jugador',
+                'roomCode' => $room->code,
+                'joinedAt' => $p->registered_at
+                    ? \Carbon\Carbon::parse($p->registered_at)->toISOString()
+                    : null,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'status' => $room->status,
+            'players' => $players,
+        ]);
+    }
+
+    /**
+     * Sala de espera de una sala específica (WaitingRoom).
+     * Ruta: GET /trivia/room/{code}/lobby
+     */
+    public function waitingRoom(string $code) : Response
+    {
+        $roomService = app(RoomService::class);
+        $user = Auth::user();
+
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::with('teams')
+            ->where('code', $code)
+            ->whereIn('status', ['waiting', 'playing'])
+            ->firstOrFail();
+
+        $roomId = (string) $room->id;
+        $roomDto = $roomService->getRoom($roomId);
+
+        // ── Jugadores desde trivia_participants (fuente de verdad — no Redis) ──
+        $participants = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
+            ->orderBy('registered_at')
+            ->select('user_id', 'team_id', 'status', 'registered_at')
+            ->get();
+
+        $userIds = $participants->pluck('user_id')->all();
+        $names = $userIds
+            ? DB::table('users')
+                ->whereIn('id', $userIds)
+                ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all()
+            : [];
+
+        $initialPlayers = $participants->map(fn ($p) => [
+            'id' => $p->user_id,
+            'name' => $names[$p->user_id] ?? 'Jugador',
+            'roomCode' => $roomDto->code,
+            'joinedAt' => $p->registered_at
+                ? \Carbon\Carbon::parse($p->registered_at)->toISOString()
+                : null,
+            'teamId' => $p->team_id,
+        ])->values()->all();
+
+        // ── Detectar si el usuario ya está inscrito ───────────────────────────
+        $alreadyJoined = collect($initialPlayers)
+            ->contains('id', (string) $user->id);
+
+        // ── Resolver monedas de entrada y wallets del usuario ────────────────
+        // fee_by_currency = { currency_id => amount, ... } (multidivisa)
+        // Fallback: entry_currency_id / entry_fee (legado, una sola moneda)
+        $entryCurrencySymbol = null;
+        $userWallet = null;
+        $displayEntryFee = $room->entry_fee ? (float) $room->entry_fee : null;
+        $feeByCurrency = $room->fee_by_currency; // array|null (cast en el modelo)
+
+        // Recopilar todos los currency_ids relevantes para la sala
+        $feeCurrencyIds = [];
+        if (! empty($feeByCurrency) && is_array($feeByCurrency)) {
+            $feeCurrencyIds = array_keys($feeByCurrency);
+        } elseif ($room->entry_currency_id) {
+            $feeCurrencyIds = [(string) $room->entry_currency_id];
+        }
+
+        // Cargar símbolos de moneda (cacheados 5 min, ver Currency::symbolsByIds)
+        // y wallets del usuario en una sola pasada.
+        $currencySymbols = [];
+        $walletsByCurrency = [];
+        if (! empty($feeCurrencyIds)) {
+            $feeCurrencyIds = array_map('strval', $feeCurrencyIds);
+
+            $currencySymbols = \App\Models\Currency::symbolsByIds($feeCurrencyIds);
+
+            $userWallets = $user->wallets()
+                ->whereIn('currency_id', $feeCurrencyIds)
+                ->with('currency')
+                ->get();
+
+            foreach ($userWallets as $w) {
+                $walletsByCurrency[(string) $w->currency_id] = $w;
+            }
+        }
+
+        // Construir entryCurrencySymbol (primera moneda o la única)
+        if (! empty($feeCurrencyIds)) {
+            $firstId = $feeCurrencyIds[0];
+            $entryCurrencySymbol = $currencySymbols[$firstId]
+                ?? $walletsByCurrency[$firstId]?->currency?->symbol
+                ?? null;
+        }
+
+        // Construir userWallet: para multidivisa se expone la primera wallet
+        // que el usuario tiene; el frontend mostrará todas cuando haya varias.
+        if (! empty($feeCurrencyIds)) {
+            // Intentar encontrar cualquier wallet del usuario para estas monedas
+            $matchedWallet = null;
+            $matchedCurrency = null;
+            foreach ($feeCurrencyIds as $cid) {
+                if (isset($walletsByCurrency[$cid])) {
+                    $matchedWallet = $walletsByCurrency[$cid];
+                    $matchedCurrency = $cid;
+
+                    break;
+                }
+            }
+
+            $entryCurrencySymbol = $currencySymbols[$feeCurrencyIds[0]] ?? $entryCurrencySymbol;
+
+            $userWallet = [
+                'balance' => $matchedWallet ? (float) $matchedWallet->balance : 0.0,
+                'symbol' => $matchedWallet?->currency?->symbol
+                                ?? $currencySymbols[$matchedCurrency ?? $feeCurrencyIds[0]]
+                                ?? '',
+                'currencyId' => $matchedCurrency ?? $feeCurrencyIds[0],
+                'found' => $matchedWallet !== null,
+                // Wallets por moneda para que el frontend muestre el balance correcto
+                // cuando la sala acepta múltiples monedas.
+                'byCurrency' => collect($feeCurrencyIds)->mapWithKeys(function($cid) use ($walletsByCurrency, $currencySymbols, $feeByCurrency, $room) {
+                    $w = $walletsByCurrency[$cid] ?? null;
+                    $sym = $w?->currency?->symbol ?? $currencySymbols[$cid] ?? '';
+                    $fee = $feeByCurrency ? (float) ($feeByCurrency[$cid] ?? 0) : (float) ($room->entry_fee ?? 0);
+
+                    return [$cid => [
+                        'balance' => $w ? (float) $w->balance : 0.0,
+                        'symbol' => $sym,
+                        'fee' => $fee,
+                        'found' => $w !== null,
+                    ]];
+                })->all(),
+            ];
+        } else {
+            // Sala sin moneda específica configurada: si tiene un costo base
+            // (entry_fee / entry_fee_usd), se muestra convertido a la moneda
+            // de la wallet activa del jugador (igual que en Bingo).
+            $baseFeeUsd = (float) ($room->entry_fee_usd ?: $room->entry_fee ?? 0);
+
+            if ($baseFeeUsd > 0) {
+                $wallet = $user->wallets()
+                    ->where('status', 'ACTIVE')
+                    ->with('currency')
+                    ->orderByDesc('balance')
+                    ->first();
+
+                if ($wallet) {
+                    $exchangeRate = (float) \App\Models\ExchangeRate::where('currency_id', (string) $wallet->currency_id)
+                        ->where('status', 'ACTIVE')
+                        ->orderByDesc('created_at')
+                        ->value('amount') ?: 1.0;
+
+                    $convertedFee = round($baseFeeUsd * $exchangeRate, 2);
+
+                    $entryCurrencySymbol = $wallet->currency?->symbol ?? '';
+                    $displayEntryFee = $convertedFee;
+
+                    $userWallet = [
+                        'balance' => (float) $wallet->balance,
+                        'symbol' => $wallet->currency?->symbol ?? '',
+                        'currencyId' => (string) $wallet->currency_id,
+                        'found' => true,
+                    ];
+                } else {
+                    $userWallet = [
+                        'balance' => 0.0,
+                        'symbol' => '',
+                        'currencyId' => null,
+                        'found' => false,
+                    ];
+                }
+            }
+        }
+
+        // ── Preparar datos de equipos si aplica ────────────────────────────────
+        $teams = null;
+        if ($room->usesTeams() && $room->teams) {
+            $teams = $room->teams->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'color' => $t->color,
+                'icon' => $t->icon,
+                'maxPlayers' => $t->max_players,
+                'currentPlayers' => $t->current_players,
+            ])->toArray();
+        }
+
+        return Inertia::render('Games/Trivia/WaitingRoom', [
+            'room' => [
+                'id' => (string) $roomDto->roomId,
+                'code' => $roomDto->code,
+                'title' => $roomDto->title,
+                'description' => $room->description,
+                'category' => $room->category ?? null,
+                'hostId' => $roomDto->hostId,
+                'status' => $roomDto->status,
+                'maxPlayers' => $roomDto->maxPlayers,
+                'currentPlayers' => count($initialPlayers),
+                'questionCount' => $room->question_count,
+                'timePerQuestion' => $room->time_per_question,
+                'entryFee' => $displayEntryFee,
+                'entryCurrencyId' => $room->entry_currency_id,
+                'entryCurrencySymbol' => $entryCurrencySymbol,
+                'feeByCurrency' => $room->fee_by_currency ?: null,
+                'prizeAmount' => $room->prize_amount ? (float) $room->prize_amount : null,
+                'prizeCurrencyId' => $room->prize_currency_id,
+                'prizeType' => $room->prize_type,
+                'createdAt' => $room->created_at->toISOString(),
+                'updatedAt' => $room->updated_at->toISOString(),
+            ],
+            'teams' => $teams,
+            'gameMode' => strtolower($room->gameModeCode() ?? 'free_for_all'),
+            'initialPlayers' => $initialPlayers,
+            'alreadyJoined' => $alreadyJoined,
+            'currentUserId' => (string) $user->id,
+            'userWallet' => $userWallet,
         ]);
     }
 }

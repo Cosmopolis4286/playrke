@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -19,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SecurityHeaders
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next) : Response
     {
         $nonce = base64_encode(random_bytes(16));
         $request->attributes->set('csp_nonce', $nonce);
@@ -51,18 +50,18 @@ class SecurityHeaders
      * Fonts por @import en styles.css, Reverb por WebSocket, Turnstile de
      * Cloudflare para el captcha, y Vite dev server/HMR solo fuera de prod).
      */
-    private function buildPolicy(string $nonce): string
+    private function buildPolicy(string $nonce) : string
     {
         $isProduction = app()->environment('production');
-        $reverbHost   = $this->reverbConnectSrc();
+        $reverbHost = $this->reverbConnectSrc();
 
         $scriptSrc = ["'self'", "'nonce-{$nonce}'", 'https://challenges.cloudflare.com'];
         $connectSrc = ["'self'", 'https://challenges.cloudflare.com', $reverbHost];
 
-        if (!$isProduction) {
+        if (! $isProduction) {
             // Vite dev server + HMR (ver vite.config.ts: server.host/port).
-            $scriptSrc[]  = "'unsafe-eval'"; // HMR de Vite inyecta eval() en dev
-            $scriptSrc[]  = 'http://localhost:5173';
+            $scriptSrc[] = "'unsafe-eval'"; // HMR de Vite inyecta eval() en dev
+            $scriptSrc[] = 'http://localhost:5173';
             $connectSrc[] = 'http://localhost:5173';
             $connectSrc[] = 'ws://localhost:5173';
         }
@@ -89,7 +88,7 @@ class SecurityHeaders
         return implode('; ', $directives);
     }
 
-    private function reverbConnectSrc(): string
+    private function reverbConnectSrc() : string
     {
         // OJO: REVERB_BROADCAST_HOST (broadcasting.connections.reverb.options.host)
         // es el host INTERNO que Laravel usa server-side para hablar con

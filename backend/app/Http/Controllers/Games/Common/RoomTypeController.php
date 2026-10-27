@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Common\RoomTypeRequest;
 use App\Services\Games\Common\Room\RoomTypeService;
 use Illuminate\Http\JsonResponse;
+use InvalidArgumentException;
 
 /**
  * Administración del catálogo global de tipos de sala (RoomType: Privada,
@@ -16,9 +17,24 @@ final class RoomTypeController extends Controller
 {
     public function __construct(
         private readonly RoomTypeService $service,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(): JsonResponse
+    public function delete(string $id) : JsonResponse
+    {
+        try {
+            $this->service->delete($id);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tipo de sala eliminado exitosamente',
+        ]);
+    }
+
+    public function fetchList() : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -26,7 +42,7 @@ final class RoomTypeController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(string $id) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -34,11 +50,11 @@ final class RoomTypeController extends Controller
         ]);
     }
 
-    public function store(RoomTypeRequest $request): JsonResponse
+    public function store(RoomTypeRequest $request) : JsonResponse
     {
         try {
             $roomType = $this->service->create($request->validated());
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
@@ -49,22 +65,7 @@ final class RoomTypeController extends Controller
         ]);
     }
 
-    public function update(RoomTypeRequest $request, string $id): JsonResponse
-    {
-        try {
-            $roomType = $this->service->update($id, $request->validated());
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tipo de sala actualizado exitosamente',
-            'data' => $roomType,
-        ]);
-    }
-
-    public function toggleStatus(string $id): JsonResponse
+    public function toggleStatus(string $id) : JsonResponse
     {
         $roomType = $this->service->toggleStatus($id);
 
@@ -75,17 +76,18 @@ final class RoomTypeController extends Controller
         ]);
     }
 
-    public function delete(string $id): JsonResponse
+    public function update(RoomTypeRequest $request, string $id) : JsonResponse
     {
         try {
-            $this->service->delete($id);
-        } catch (\InvalidArgumentException $e) {
+            $roomType = $this->service->update($id, $request->validated());
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Tipo de sala eliminado exitosamente',
+            'message' => 'Tipo de sala actualizado exitosamente',
+            'data' => $roomType,
         ]);
     }
 }

@@ -32,10 +32,28 @@ use Inertia\Response;
 final class ImpersonationController extends Controller
 {
     public function __construct(
-        private readonly ImpersonationService $service
-    ) {}
+        private readonly ImpersonationService $service,
+    ) {
+    }
 
-    public function start(User $player, Request $request): RedirectResponse
+    public function history(Request $request) : JsonResponse
+    {
+        $page = (int) $request->get('page', 1);
+
+        return response()->json([
+            'success' => true,
+            ...$this->resolveHistory($page),
+        ]);
+    }
+
+    public function historyPage() : Response
+    {
+        return Inertia::render('Roles/Admin/Impersonation/History', [
+            'history' => $this->resolveHistory(1),
+        ]);
+    }
+
+    public function start(User $player, Request $request) : RedirectResponse
     {
         $target = $player;
 
@@ -48,7 +66,7 @@ final class ImpersonationController extends Controller
         }
     }
 
-    public function stop(Request $request): RedirectResponse
+    public function stop(Request $request) : RedirectResponse
     {
         try {
             $this->service->stop($request);
@@ -59,21 +77,9 @@ final class ImpersonationController extends Controller
         }
     }
 
-    public function historyPage(): Response
+    private function resolveErrorMessage(DomainException $e) : string
     {
-        return Inertia::render('Roles/Admin/Impersonation/History', [
-            'history' => $this->resolveHistory(1),
-        ]);
-    }
-
-    public function history(Request $request): JsonResponse
-    {
-        $page = (int) $request->get('page', 1);
-
-        return response()->json([
-            'success' => true,
-            ...$this->resolveHistory($page),
-        ]);
+        return trans("errors.{$e->getMessage()}") ?: $e->getMessage();
     }
 
     /**
@@ -84,7 +90,7 @@ final class ImpersonationController extends Controller
      * pasar por stop(), ej. expiró la sesión HTTP completa) — se marca como
      * tal en vez de ocultarse, es información operativa relevante.
      */
-    private function resolveHistory(int $page): array
+    private function resolveHistory(int $page) : array
     {
         $perPage = 20;
 
@@ -93,7 +99,7 @@ final class ImpersonationController extends Controller
             ->latest('created_at')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $rows = $starts->getCollection()->map(function (Audit $start) {
+        $rows = $starts->getCollection()->map(function(Audit $start) {
             $targetId = is_array($start->auditable_id) ? ($start->auditable_id[0] ?? null) : $start->auditable_id;
 
             $end = Audit::ofEvent('impersonation_ended')
@@ -104,13 +110,13 @@ final class ImpersonationController extends Controller
                 ->first();
 
             return [
-                'id'                => (string) $start->id,
-                'admin_username'    => $start->user?->username ?? $start->new_values['admin_username'] ?? '—',
-                'target_username'   => $start->new_values['target_username'] ?? '—',
-                'started_at'        => $start->created_at?->format('d/m/Y H:i:s'),
-                'ended_at'          => $end?->created_at?->format('d/m/Y H:i:s'),
-                'is_active'         => $end === null,
-                'duration_minutes'  => $end ? $start->created_at->diffInMinutes($end->created_at) : null,
+                'id' => (string) $start->id,
+                'admin_username' => $start->user?->username ?? $start->new_values['admin_username'] ?? '—',
+                'target_username' => $start->new_values['target_username'] ?? '—',
+                'started_at' => $start->created_at?->format('d/m/Y H:i:s'),
+                'ended_at' => $end?->created_at?->format('d/m/Y H:i:s'),
+                'is_active' => $end === null,
+                'duration_minutes' => $end ? $start->created_at->diffInMinutes($end->created_at) : null,
             ];
         });
 
@@ -122,16 +128,11 @@ final class ImpersonationController extends Controller
                 ['key' => 'ended_at',        'label' => 'Fin',      'sortable' => false],
                 ['key' => 'is_active',       'label' => 'Estado',   'sortable' => false],
             ],
-            'rows'         => $rows->values(),
-            'total'        => $starts->total(),
-            'per_page'     => $starts->perPage(),
+            'rows' => $rows->values(),
+            'total' => $starts->total(),
+            'per_page' => $starts->perPage(),
             'current_page' => $starts->currentPage(),
-            'last_page'    => $starts->lastPage(),
+            'last_page' => $starts->lastPage(),
         ];
-    }
-
-    private function resolveErrorMessage(DomainException $e): string
-    {
-        return trans("errors.{$e->getMessage()}") ?: $e->getMessage();
     }
 }

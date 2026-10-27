@@ -22,20 +22,21 @@ final class CustomerProfileController extends Controller
 
     public function __construct(
         private readonly CustomerProfileService $service,
-    ) {}
+    ) {
+    }
 
-    public function show(Request $request): Response
+    public function show(Request $request) : Response
     {
         $targetUserId = $this->resolveTargetUserId($request);
 
         return Inertia::render('Roles/Customer/Profile/Index', [
-            'title'       => 'Mi Cliente',
-            'customer'    => $this->service->showOwn($targetUserId),
+            'title' => 'Mi Cliente',
+            'customer' => $this->service->showOwn($targetUserId),
             'isAdminView' => $targetUserId !== null,
         ]);
     }
 
-    public function update(CustomerProfileRequest $request): JsonResponse
+    public function update(CustomerProfileRequest $request) : JsonResponse
     {
         $this->service->updateOwn($request->validated(), $this->resolveTargetUserId($request));
 

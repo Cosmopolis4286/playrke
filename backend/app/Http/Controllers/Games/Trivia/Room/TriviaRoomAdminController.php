@@ -11,6 +11,9 @@ use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Trivia\UpdateRoomRequest;
 use App\Models\Game;
+use DateTime;
+use DateTimeZone;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -28,132 +31,13 @@ final class TriviaRoomAdminController extends Controller
         private readonly RoomServiceInterface $roomService,
         private readonly GameModeRepositoryInterface $gameModes,
         private readonly TriviaRoomRefundService $refundService,
-    ) {}
-
-    /**
-     * Listado de salas de trivia.
-     */
-    public function index(Request $request): Response
-    {
-        $query = TriviaRoom::query()
-            ->orderBy('created_at', 'desc');
-
-        // Filtros
-        if ($request->has('status') && $request->status !== '') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('search') && $request->search !== '') {
-            $query->where('title', 'ilike', '%' . $request->search . '%');
-        }
-
-        $rooms = $query->paginate(15)->withQueryString();
-
-        // Contar jugadores reales desde trivia_participants (fuente de verdad)
-        // Redis puede estar desactualizado — mismo patrón que lobby y waitingRoom
-        $roomIds = $rooms->pluck('id')->map(fn($id) => (string) $id)->all();
-        $participantCounts = [];
-        if (!empty($roomIds)) {
-            $participantCounts = DB::connection('pgsql_trivia')
-                ->table('trivia_participants')
-                ->whereIn('room_id', $roomIds)
-                ->whereNull('deleted_at')
-                ->whereNotIn('status', ['abandoned'])
-                ->selectRaw('room_id, COUNT(*) as cnt')
-                ->groupBy('room_id')
-                ->pluck('cnt', 'room_id')
-                ->all();
-        }
-
-        $rooms->getCollection()->transform(function ($room) use ($participantCounts) {
-            $room->current_players = (int) ($participantCounts[(string) $room->id] ?? 0);
-            return $room;
-        });
-
-        // Stats para el dashboard
-        $stats = [
-            'total' => TriviaRoom::count(),
-            'waiting' => TriviaRoom::where('status', 'waiting')->count(),
-            'playing' => TriviaRoom::where('status', 'playing')->count(),
-            'closed' => TriviaRoom::where('status', 'closed')->count(),
-            'by_mode' => TriviaRoom::query()
-                ->whereNotNull('game_mode_id')
-                ->selectRaw('game_mode_id, COUNT(*) as cnt')
-                ->groupBy('game_mode_id')
-                ->pluck('cnt', 'game_mode_id')
-                ->all(),
-        ];
-
-        return Inertia::render('Games/Trivia/Admin/RoomsIndex', [
-            'rooms' => $rooms,
-            'stats' => $stats,
-            'filters' => $request->only(['search', 'status']),
-        ]);
-    }
-
-    /**
-     * Monedas activas disponibles para seleccionar como fee/prize.
-     */
-    private function availableCurrencies(): array
-    {
-        return DB::table('currencies')
-            ->where('status', 'ACTIVE')
-            ->orderBy('name')
-            ->select('id', 'symbol', 'name', 'iso_code')
-            ->get()
-            ->map(fn($c) => [
-                'id'      => (string) $c->id,
-                'symbol'  => $c->symbol,
-                'name'    => $c->name,
-                'iso_code'=> $c->iso_code,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Categorías disponibles (unión de rooms + questions para sugerencias).
-     */
-    private function availableCategories(): array
-    {
-        $fromRooms = TriviaRoom::whereNotNull('category')
-            ->distinct()
-            ->pluck('category');
-
-        $fromQuestions = \Illuminate\Support\Facades\DB::connection('pgsql_trivia')
-            ->table('trivia_questions')
-            ->whereNull('deleted_at')
-            ->whereNotNull('category')
-            ->distinct()
-            ->pluck('category');
-
-        return $fromRooms->merge($fromQuestions)->unique()->sort()->values()->all();
-    }
-
-    /**
-     * Modos de juego disponibles para Trivia, desde el catálogo dinámico
-     * game_modes (administrable por admins vía GameModeController).
-     */
-    private function availableGameModes(): array
-    {
-        $triviaGameId = Game::where('name', 'TRIVIA')->value('id');
-        if (!$triviaGameId) {
-            return [];
-        }
-
-        return $this->gameModes->getActiveByGame($triviaGameId)
-            ->map(fn ($mode) => [
-                'value' => (string) $mode->id,
-                'label' => $mode->label,
-            ])
-            ->values()
-            ->all();
+    ) {
     }
 
     /**
      * Formulario para crear sala.
      */
-    public function create(): Response
+    public function create() : Response
     {
         $this->authorize('create', TriviaRoom::class);
 
@@ -163,252 +47,10 @@ final class TriviaRoomAdminController extends Controller
                 'question_count' => 10,
                 'time_per_question' => 15,
             ],
-            'gameModes'   => $this->availableGameModes(),
-            'categories'  => $this->availableCategories(),
-            'currencies'  => $this->availableCurrencies(),
-        ]);
-    }
-
-    /**
-     * Guardar nueva sala.
-     */
-    public function store(Request $request)
-    {
-        $this->authorize('create', TriviaRoom::class);
-
-        $validated = $request->validate([
-            'title'              => 'required|string|max:255',
-            'description'        => 'nullable|string|max:1000',
-            'category'           => 'nullable|string|max:50',
-            'game_mode'          => ['required', \Illuminate\Validation\Rule::exists('mysql.game_modes', 'id')],
-            'teams_config'       => 'nullable|array',
-            'teams_config.team_count' => 'nullable|integer|min:2|max:10',
-            'teams_config.team_size'  => 'nullable|integer|min:1|max:100',
-            'teams_config.duel_type'  => 'nullable|in:2vs2,1vsX',
-            'max_players'        => 'required|integer|min:2|max:500',
-            'question_count'     => 'required|integer|min:1|max:100',
-            'time_per_question'  => 'required|integer|min:5|max:300',
-            'entry_fee'              => 'nullable|numeric|min:0',
-            'entry_currency_id'      => 'nullable|string',
-            'fee_by_currency'        => 'nullable|array',
-            'fee_by_currency.*'      => 'nullable|numeric|min:0',
-            'prize_type'             => 'nullable|in:fixed,accumulated',
-            'prize_amount'           => 'nullable|numeric|min:0',
-            'prize_currency_id'      => 'nullable|string',
-            'prize_model'            => 'nullable|in:guaranteed,pool',
-            'sponsor_prize'          => 'nullable|numeric|min:0',
-            'platform_rake_percent'  => 'nullable|numeric|min:0|max:30',
-            'prize_payouts'          => 'nullable|array',
-            'prize_payouts.*.rank'   => 'required_with:prize_payouts|integer|min:1',
-            'prize_payouts.*.percent'=> 'required_with:prize_payouts|numeric|min:0|max:1',
-            'scheduled_at'           => 'nullable|date',
-            'settings'               => 'nullable|array',
-        ]);
-
-        // Validar que scheduled_at sea futuro (con tolerancia de 1 minuto para diferencias de timezone)
-        if (!empty($validated['scheduled_at'])) {
-            $scheduledTime = new \DateTime($validated['scheduled_at']);
-            $now = new \DateTime('now', new \DateTimeZone('UTC'));
-            if ($scheduledTime <= $now->modify('-1 minute')) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'La fecha programada debe ser futura.')
-                    ->withInput();
-            }
-        }
-
-        // Normalizar fee_by_currency: eliminar entradas vacías/nulas
-        $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
-            ->filter(fn($v) => $v !== null && $v !== '' && (float) $v > 0)
-            ->map(fn($v) => (float) $v)
-            ->all();
-
-        // Si sólo hay una moneda en fee_by_currency, sincronizar entry_fee/entry_currency_id
-        if (count($feeByCurrency) === 1) {
-            $validated['entry_currency_id'] = array_key_first($feeByCurrency);
-            $validated['entry_fee']         = array_values($feeByCurrency)[0];
-        }
-
-        try {
-            $roomDto = $this->roomService->createRoom([
-                'host_id'           => (string) auth()->id(),
-                'title'             => $validated['title'],
-                'description'       => $validated['description'] ?? null,
-                'category'          => $validated['category'] ?? null,
-                'game_mode_id'      => $validated['game_mode'],
-                'teams_config'      => $validated['teams_config'] ?? null,
-                'max_players'       => $validated['max_players'],
-                'question_count'    => $validated['question_count'],
-                'time_per_question' => $validated['time_per_question'],
-                'entry_fee'         => $validated['entry_fee'] ?? 0,
-                'entry_currency_id' => $validated['entry_currency_id'] ?? null,
-                'fee_by_currency'   => empty($feeByCurrency) ? null : $feeByCurrency,
-                'prize_type'        => $validated['prize_type'] ?? 'accumulated',
-                'prize_amount'      => $validated['prize_amount'] ?? 0,
-                'prize_currency_id' => $validated['prize_currency_id'] ?? null,
-                'prize_model'           => $validated['prize_model'] ?? 'guaranteed',
-                'prize_payouts'         => $validated['prize_payouts'] ?? null,
-                'platform_rake_percent' => $validated['platform_rake_percent'] ?? 0,
-                'sponsor_prize'         => $validated['sponsor_prize'] ?? 0,
-                'scheduled_at'      => $validated['scheduled_at'] ?? null,
-                'settings'          => $validated['settings'] ?? [],
-            ]);
-
-            return redirect()
-                ->route('trivia-rooms-admin.index')
-                ->with('success', 'Sala creada exitosamente. Código: ' . $roomDto->code);
-        } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->with('error', 'Error al crear sala: ' . $e->getMessage())
-                ->withInput();
-        }
-    }
-
-    /**
-     * Ver detalle de sala (con jugadores en tiempo real).
-     */
-    public function show(string $id): Response
-    {
-        $room = TriviaRoom::with('teams')->findOrFail($id);
-
-        try {
-            $roomDto = $this->roomService->getRoom($id);
-            $players = $this->roomService->listPlayers($id);
-        } catch (\Exception) {
-            $roomDto = null;
-            $players = [];
-        }
-
-        return Inertia::render('Games/Trivia/Admin/RoomsShow', [
-            'room' => $room,
-            'roomState' => $roomDto?->toArray(),
-            'players' => array_map(fn($p) => $p->toArray(), $players),
-            'playerCount' => count($players),
-            'winners' => $this->roomWinners($id),
-        ]);
-    }
-
-    /**
-     * Ganadores de la sala (final_rank asignado) con su estado de premio —
-     * fuente: trivia_participants (Postgres, persiste al finalizar la
-     * partida), no Redis. Incluye nombre desde MySQL users. Usado por la UI
-     * de disputa de premios (TriviaPrizeDisputeController).
-     */
-    private function roomWinners(string $roomId): array
-    {
-        $winners = DB::connection('pgsql_trivia')
-            ->table('trivia_participants')
-            ->where('room_id', $roomId)
-            ->whereNotNull('final_rank')
-            ->orderBy('final_rank')
-            ->select('id', 'user_id', 'final_rank', 'prize_won', 'prize_status')
-            ->get();
-
-        if ($winners->isEmpty()) {
-            return [];
-        }
-
-        $userIds = $winners->pluck('user_id')->unique()->all();
-        $names = DB::table('users')
-            ->whereIn('id', $userIds)
-            ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
-            ->get()
-            ->pluck('display_name', 'id');
-
-        return $winners->map(fn ($w) => [
-            'id'           => $w->id,
-            'userId'       => (string) $w->user_id,
-            'name'         => $names[$w->user_id] ?? 'Jugador',
-            'finalRank'    => (int) $w->final_rank,
-            'prizeWon'     => (float) $w->prize_won,
-            'prizeStatus'  => $w->prize_status,
-        ])->values()->all();
-    }
-
-    /**
-     * Formulario para editar sala.
-     */
-    public function edit(string $id): Response
-    {
-        $room = TriviaRoom::with('teams')->findOrFail($id);
-        $this->authorize('update', $room);
-
-        // Solo permitir editar si está en espera
-        if ($room->status !== 'waiting') {
-            return redirect()
-                ->route('trivia-rooms-admin.index')
-                ->with('error', 'No se puede editar una sala que ya inició o cerró.');
-        }
-
-        return Inertia::render('Games/Trivia/Admin/RoomsEdit', [
-            'room'       => $room,
-            'gameModes'  => $this->availableGameModes(),
+            'gameModes' => $this->availableGameModes(),
             'categories' => $this->availableCategories(),
             'currencies' => $this->availableCurrencies(),
         ]);
-    }
-
-    /**
-     * Actualizar sala.
-     */
-    public function update(UpdateRoomRequest $request, string $id)
-    {
-        $room = TriviaRoom::findOrFail($id);
-        $this->authorize('update', $room);
-
-        if ($room->status !== 'waiting') {
-            return redirect()
-                ->route('trivia-rooms-admin.index')
-                ->with('error', 'No se puede editar una sala que ya inició o cerró.');
-        }
-
-        $validated = $request->validated();
-
-        // Normalizar fee_by_currency: eliminar entradas vacías/nulas/cero
-        $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
-            ->filter(fn ($v) => $v !== null && $v !== '' && (float) $v > 0)
-            ->map(fn ($v) => (float) $v)
-            ->all();
-
-        // Si sólo hay una moneda, sincronizar entry_fee/entry_currency_id para compatibilidad
-        if (count($feeByCurrency) === 1) {
-            $validated['entry_currency_id'] = array_key_first($feeByCurrency);
-            $validated['entry_fee']         = array_values($feeByCurrency)[0];
-        } elseif (empty($feeByCurrency)) {
-            $validated['entry_currency_id'] = null;
-            $validated['entry_fee']         = 0;
-        }
-
-        try {
-            $this->roomService->updateRoomConfig($id, [
-                'title'             => $validated['title'],
-                'description'       => $validated['description'] ?? null,
-                'category'          => $validated['category'] ?? null,
-                'max_players'       => $validated['max_players'],
-                'entry_fee'         => $validated['entry_fee'] ?? 0,
-                'entry_currency_id' => $validated['entry_currency_id'] ?? null,
-                'fee_by_currency'   => empty($feeByCurrency) ? null : $feeByCurrency,
-                'prize_type'        => $validated['prize_type'] ?? 'accumulated',
-                'prize_amount'      => $validated['prize_amount'] ?? 0,
-                'prize_currency_id' => $validated['prize_currency_id'] ?? null,
-                'prize_model'           => $validated['prize_model'] ?? 'guaranteed',
-                'prize_payouts'         => $validated['prize_payouts'] ?? null,
-                'platform_rake_percent' => $validated['platform_rake_percent'] ?? 0,
-                'sponsor_prize'         => $validated['sponsor_prize'] ?? 0,
-                'scheduled_at'      => $validated['scheduled_at'] ?? null,
-                'settings'          => $validated['settings'] ?? [],
-            ]);
-
-            return redirect()
-                ->route('trivia-rooms-admin.index')
-                ->with('success', 'Sala actualizada exitosamente.');
-        } catch (\Exception $e) {
-            return redirect()
-                ->back()
-                ->with('error', 'Error al actualizar sala: ' . $e->getMessage())
-                ->withInput();
-        }
     }
 
     /**
@@ -443,11 +85,34 @@ final class TriviaRoomAdminController extends Controller
             return redirect()
                 ->route('trivia-rooms-admin.index')
                 ->with('success', $message);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return redirect()
                 ->back()
                 ->with('error', 'Error al cerrar sala: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Formulario para editar sala.
+     */
+    public function edit(string $id) : Response
+    {
+        $room = TriviaRoom::with('teams')->findOrFail($id);
+        $this->authorize('update', $room);
+
+        // Solo permitir editar si está en espera
+        if ($room->status !== 'waiting') {
+            return redirect()
+                ->route('trivia-rooms-admin.index')
+                ->with('error', 'No se puede editar una sala que ya inició o cerró.');
+        }
+
+        return Inertia::render('Games/Trivia/Admin/RoomsEdit', [
+            'room' => $room,
+            'gameModes' => $this->availableGameModes(),
+            'categories' => $this->availableCategories(),
+            'currencies' => $this->availableCurrencies(),
+        ]);
     }
 
     /**
@@ -481,10 +146,350 @@ final class TriviaRoomAdminController extends Controller
             return redirect()
                 ->route('trivia-rooms-admin.index')
                 ->with('success', $message);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return redirect()
                 ->back()
                 ->with('error', 'Error al cerrar sala: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Listado de salas de trivia.
+     */
+    public function index(Request $request) : Response
+    {
+        $query = TriviaRoom::query()
+            ->orderBy('created_at', 'desc');
+
+        // Filtros
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('search') && $request->search !== '') {
+            $query->where('title', 'ilike', '%' . $request->search . '%');
+        }
+
+        $rooms = $query->paginate(15)->withQueryString();
+
+        // Contar jugadores reales desde trivia_participants (fuente de verdad)
+        // Redis puede estar desactualizado — mismo patrón que lobby y waitingRoom
+        $roomIds = $rooms->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $participantCounts = [];
+        if (! empty($roomIds)) {
+            $participantCounts = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->whereIn('room_id', $roomIds)
+                ->whereNull('deleted_at')
+                ->whereNotIn('status', ['abandoned'])
+                ->selectRaw('room_id, COUNT(*) as cnt')
+                ->groupBy('room_id')
+                ->pluck('cnt', 'room_id')
+                ->all();
+        }
+
+        $rooms->getCollection()->transform(function($room) use ($participantCounts) {
+            $room->current_players = (int) ($participantCounts[(string) $room->id] ?? 0);
+
+            return $room;
+        });
+
+        // Stats para el dashboard
+        $stats = [
+            'total' => TriviaRoom::count(),
+            'waiting' => TriviaRoom::where('status', 'waiting')->count(),
+            'playing' => TriviaRoom::where('status', 'playing')->count(),
+            'closed' => TriviaRoom::where('status', 'closed')->count(),
+            'by_mode' => TriviaRoom::query()
+                ->whereNotNull('game_mode_id')
+                ->selectRaw('game_mode_id, COUNT(*) as cnt')
+                ->groupBy('game_mode_id')
+                ->pluck('cnt', 'game_mode_id')
+                ->all(),
+        ];
+
+        return Inertia::render('Games/Trivia/Admin/RoomsIndex', [
+            'rooms' => $rooms,
+            'stats' => $stats,
+            'filters' => $request->only(['search', 'status']),
+        ]);
+    }
+
+    /**
+     * Ver detalle de sala (con jugadores en tiempo real).
+     */
+    public function show(string $id) : Response
+    {
+        $room = TriviaRoom::with('teams')->findOrFail($id);
+
+        try {
+            $roomDto = $this->roomService->getRoom($id);
+            $players = $this->roomService->listPlayers($id);
+        } catch (Exception) {
+            $roomDto = null;
+            $players = [];
+        }
+
+        return Inertia::render('Games/Trivia/Admin/RoomsShow', [
+            'room' => $room,
+            'roomState' => $roomDto?->toArray(),
+            'players' => array_map(fn ($p) => $p->toArray(), $players),
+            'playerCount' => count($players),
+            'winners' => $this->roomWinners($id),
+        ]);
+    }
+
+    /**
+     * Guardar nueva sala.
+     */
+    public function store(Request $request)
+    {
+        $this->authorize('create', TriviaRoom::class);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'category' => 'nullable|string|max:50',
+            'game_mode' => ['required', \Illuminate\Validation\Rule::exists('mysql.game_modes', 'id')],
+            'teams_config' => 'nullable|array',
+            'teams_config.team_count' => 'nullable|integer|min:2|max:10',
+            'teams_config.team_size' => 'nullable|integer|min:1|max:100',
+            'teams_config.duel_type' => 'nullable|in:2vs2,1vsX',
+            'max_players' => 'required|integer|min:2|max:500',
+            'question_count' => 'required|integer|min:1|max:100',
+            'time_per_question' => 'required|integer|min:5|max:300',
+            'entry_fee' => 'nullable|numeric|min:0',
+            'entry_currency_id' => 'nullable|string',
+            'fee_by_currency' => 'nullable|array',
+            'fee_by_currency.*' => 'nullable|numeric|min:0',
+            'prize_type' => 'nullable|in:fixed,accumulated',
+            'prize_amount' => 'nullable|numeric|min:0',
+            'prize_currency_id' => 'nullable|string',
+            'prize_model' => 'nullable|in:guaranteed,pool',
+            'sponsor_prize' => 'nullable|numeric|min:0',
+            'platform_rake_percent' => 'nullable|numeric|min:0|max:30',
+            'prize_payouts' => 'nullable|array',
+            'prize_payouts.*.rank' => 'required_with:prize_payouts|integer|min:1',
+            'prize_payouts.*.percent' => 'required_with:prize_payouts|numeric|min:0|max:1',
+            'scheduled_at' => 'nullable|date',
+            'settings' => 'nullable|array',
+        ]);
+
+        // Validar que scheduled_at sea futuro (con tolerancia de 1 minuto para diferencias de timezone)
+        if (! empty($validated['scheduled_at'])) {
+            $scheduledTime = new DateTime($validated['scheduled_at']);
+            $now = new DateTime('now', new DateTimeZone('UTC'));
+            if ($scheduledTime <= $now->modify('-1 minute')) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'La fecha programada debe ser futura.')
+                    ->withInput();
+            }
+        }
+
+        // Normalizar fee_by_currency: eliminar entradas vacías/nulas
+        $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
+            ->filter(fn ($v) => $v !== null && $v !== '' && (float) $v > 0)
+            ->map(fn ($v) => (float) $v)
+            ->all();
+
+        // Si sólo hay una moneda en fee_by_currency, sincronizar entry_fee/entry_currency_id
+        if (count($feeByCurrency) === 1) {
+            $validated['entry_currency_id'] = array_key_first($feeByCurrency);
+            $validated['entry_fee'] = array_values($feeByCurrency)[0];
+        }
+
+        try {
+            $roomDto = $this->roomService->createRoom([
+                'host_id' => (string) auth()->id(),
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'category' => $validated['category'] ?? null,
+                'game_mode_id' => $validated['game_mode'],
+                'teams_config' => $validated['teams_config'] ?? null,
+                'max_players' => $validated['max_players'],
+                'question_count' => $validated['question_count'],
+                'time_per_question' => $validated['time_per_question'],
+                'entry_fee' => $validated['entry_fee'] ?? 0,
+                'entry_currency_id' => $validated['entry_currency_id'] ?? null,
+                'fee_by_currency' => empty($feeByCurrency) ? null : $feeByCurrency,
+                'prize_type' => $validated['prize_type'] ?? 'accumulated',
+                'prize_amount' => $validated['prize_amount'] ?? 0,
+                'prize_currency_id' => $validated['prize_currency_id'] ?? null,
+                'prize_model' => $validated['prize_model'] ?? 'guaranteed',
+                'prize_payouts' => $validated['prize_payouts'] ?? null,
+                'platform_rake_percent' => $validated['platform_rake_percent'] ?? 0,
+                'sponsor_prize' => $validated['sponsor_prize'] ?? 0,
+                'scheduled_at' => $validated['scheduled_at'] ?? null,
+                'settings' => $validated['settings'] ?? [],
+            ]);
+
+            return redirect()
+                ->route('trivia-rooms-admin.index')
+                ->with('success', 'Sala creada exitosamente. Código: ' . $roomDto->code);
+        } catch (Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Error al crear sala: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    /**
+     * Actualizar sala.
+     */
+    public function update(UpdateRoomRequest $request, string $id)
+    {
+        $room = TriviaRoom::findOrFail($id);
+        $this->authorize('update', $room);
+
+        if ($room->status !== 'waiting') {
+            return redirect()
+                ->route('trivia-rooms-admin.index')
+                ->with('error', 'No se puede editar una sala que ya inició o cerró.');
+        }
+
+        $validated = $request->validated();
+
+        // Normalizar fee_by_currency: eliminar entradas vacías/nulas/cero
+        $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
+            ->filter(fn ($v) => $v !== null && $v !== '' && (float) $v > 0)
+            ->map(fn ($v) => (float) $v)
+            ->all();
+
+        // Si sólo hay una moneda, sincronizar entry_fee/entry_currency_id para compatibilidad
+        if (count($feeByCurrency) === 1) {
+            $validated['entry_currency_id'] = array_key_first($feeByCurrency);
+            $validated['entry_fee'] = array_values($feeByCurrency)[0];
+        } elseif (empty($feeByCurrency)) {
+            $validated['entry_currency_id'] = null;
+            $validated['entry_fee'] = 0;
+        }
+
+        try {
+            $this->roomService->updateRoomConfig($id, [
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'category' => $validated['category'] ?? null,
+                'max_players' => $validated['max_players'],
+                'entry_fee' => $validated['entry_fee'] ?? 0,
+                'entry_currency_id' => $validated['entry_currency_id'] ?? null,
+                'fee_by_currency' => empty($feeByCurrency) ? null : $feeByCurrency,
+                'prize_type' => $validated['prize_type'] ?? 'accumulated',
+                'prize_amount' => $validated['prize_amount'] ?? 0,
+                'prize_currency_id' => $validated['prize_currency_id'] ?? null,
+                'prize_model' => $validated['prize_model'] ?? 'guaranteed',
+                'prize_payouts' => $validated['prize_payouts'] ?? null,
+                'platform_rake_percent' => $validated['platform_rake_percent'] ?? 0,
+                'sponsor_prize' => $validated['sponsor_prize'] ?? 0,
+                'scheduled_at' => $validated['scheduled_at'] ?? null,
+                'settings' => $validated['settings'] ?? [],
+            ]);
+
+            return redirect()
+                ->route('trivia-rooms-admin.index')
+                ->with('success', 'Sala actualizada exitosamente.');
+        } catch (Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Error al actualizar sala: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    /**
+     * Categorías disponibles (unión de rooms + questions para sugerencias).
+     */
+    private function availableCategories() : array
+    {
+        $fromRooms = TriviaRoom::whereNotNull('category')
+            ->distinct()
+            ->pluck('category');
+
+        $fromQuestions = \Illuminate\Support\Facades\DB::connection('pgsql_trivia')
+            ->table('trivia_questions')
+            ->whereNull('deleted_at')
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category');
+
+        return $fromRooms->merge($fromQuestions)->unique()->sort()->values()->all();
+    }
+
+    /**
+     * Monedas activas disponibles para seleccionar como fee/prize.
+     */
+    private function availableCurrencies() : array
+    {
+        return DB::table('currencies')
+            ->where('status', 'ACTIVE')
+            ->orderBy('name')
+            ->select('id', 'symbol', 'name', 'iso_code')
+            ->get()
+            ->map(fn ($c) => [
+                'id' => (string) $c->id,
+                'symbol' => $c->symbol,
+                'name' => $c->name,
+                'iso_code' => $c->iso_code,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Modos de juego disponibles para Trivia, desde el catálogo dinámico
+     * game_modes (administrable por admins vía GameModeController).
+     */
+    private function availableGameModes() : array
+    {
+        $triviaGameId = Game::where('name', 'TRIVIA')->value('id');
+        if (! $triviaGameId) {
+            return [];
+        }
+
+        return $this->gameModes->getActiveByGame($triviaGameId)
+            ->map(fn ($mode) => [
+                'value' => (string) $mode->id,
+                'label' => $mode->label,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Ganadores de la sala (final_rank asignado) con su estado de premio —
+     * fuente: trivia_participants (Postgres, persiste al finalizar la
+     * partida), no Redis. Incluye nombre desde MySQL users. Usado por la UI
+     * de disputa de premios (TriviaPrizeDisputeController).
+     */
+    private function roomWinners(string $roomId) : array
+    {
+        $winners = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->whereNotNull('final_rank')
+            ->orderBy('final_rank')
+            ->select('id', 'user_id', 'final_rank', 'prize_won', 'prize_status')
+            ->get();
+
+        if ($winners->isEmpty()) {
+            return [];
+        }
+
+        $userIds = $winners->pluck('user_id')->unique()->all();
+        $names = DB::table('users')
+            ->whereIn('id', $userIds)
+            ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+            ->get()
+            ->pluck('display_name', 'id');
+
+        return $winners->map(fn ($w) => [
+            'id' => $w->id,
+            'userId' => (string) $w->user_id,
+            'name' => $names[$w->user_id] ?? 'Jugador',
+            'finalRank' => (int) $w->final_rank,
+            'prizeWon' => (float) $w->prize_won,
+            'prizeStatus' => $w->prize_status,
+        ])->values()->all();
     }
 }

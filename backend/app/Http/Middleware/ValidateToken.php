@@ -10,8 +10,9 @@ use Symfony\Component\HttpFoundation\Response;
 class ValidateToken
 {
     public function __construct(
-        protected TokenService $tokenService
-    ) {}
+        protected TokenService $tokenService,
+    ) {
+    }
 
     /**
      * Maneja la validación del token.
@@ -20,12 +21,9 @@ class ValidateToken
      * - 'required': El token es obligatorio (por defecto)
      * - 'optional': El token es opcional, si se proporciona se valida
      *
-     * @param Request $request
-     * @param Closure $next
      * @param string $mode 'required' o 'optional'
-     * @return Response
      */
-    public function handle(Request $request, Closure $next, string $mode = 'required'): Response
+    public function handle(Request $request, Closure $next, string $mode = 'required') : Response
     {
         $rawToken = $request->query('token');
 

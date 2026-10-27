@@ -6,6 +6,7 @@ use App\Http\Requests\BaseRequest;
 use App\Models\Roles\Seller;
 use App\Rules\ValidPhoneForCountry;
 use App\Services\Auth\PermissionService;
+use Closure;
 use Illuminate\Validation\Rule;
 
 /**
@@ -18,10 +19,8 @@ class ManagerSellerRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
-     *
-     * @return bool
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         // Mismo set de roles que routes/modules/seller.php (middleware de la
         // ruta) y ManagerSellerPolicy::requiredRole() — antes solo admitía
@@ -33,30 +32,60 @@ class ManagerSellerRequest extends BaseRequest
     }
 
     /**
+     * Mensajes de error personalizados.
+     *
+     * @return array<string, string>
+     */
+    public function messages() : array
+    {
+        return [
+            'username.required' => 'El nombre de usuario es obligatorio.',
+            'username.unique' => 'El nombre de usuario no está disponible.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.unique' => 'El número ya está registrado.',
+            'name.required' => 'El nombre del comercio es obligatorio.',
+            'country.required' => 'El país es obligatorio.',
+            'currency.required' => 'La moneda principal es obligatoria.',
+            'time_zone.required' => 'La zona horaria es obligatoria.',
+            'commission.required' => 'La comisión es obligatoria.',
+            'commission.numeric' => 'La comisión debe ser un número.',
+            'commission.min' => 'La comisión no puede ser menor a 0.',
+            'commission.max' => 'La comisión no puede ser mayor a 100.',
+            'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
+            'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
+            'allowed_games.required' => 'Debes permitir al menos un juego.',
+            'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
+        ];
+    }
+
+    /**
      * Reglas de validación dinámicas.
      *
      * @return array<string, mixed>
      */
-    public function rules(): array
+    public function rules() : array
     {
         // Resuelve el modelo Seller manualmente desde el route parameter
         $seller = $this->resolveSeller();
 
         $sellerId = $seller?->id;
-        $isUpdate   = $seller !== null;
-        $userId     = $seller?->user_id;
+        $isUpdate = $seller !== null;
+        $userId = $seller?->user_id;
 
         $rules = [
-            'commission'       => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
-            'country'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
-            'currency'         => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
-            'time_zone'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'            => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
-            'name'             => [$isUpdate ? 'sometimes' : 'required', 'string'],
-            'other_currencies'   => ['sometimes', 'array'],
+            'commission' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
+            'country' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
+            'currency' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
+            'time_zone' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
+            'phone' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string'],
+            'other_currencies' => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
-            'allowed_games'      => ['required', 'array'],
-            'allowed_games.*'    => ['string', 'exists:games,id'],
+            'allowed_games' => ['required', 'array'],
+            'allowed_games.*' => ['string', 'exists:games,id'],
             // Solo lo usa admin (ver ManagerSellerForm.vue) para elegir a qué
             // Commerce/Subsidiary asignar el seller. Antes solo validaba
             // 'exists:users,id' — cualquier user_id válido pasaba (ej. un
@@ -64,9 +93,9 @@ class ManagerSellerRequest extends BaseRequest
             // resolveManagerForUser() lo aceptaba igual salvo que el rol
             // fuera 'subsidiary' sin commerce_id, dejando sellers con
             // manager_user_id apuntando a un usuario sin rol de negocio real.
-            'manager_user_id'    => [
+            'manager_user_id' => [
                 'sometimes', 'nullable', 'string', 'exists:users,id',
-                function (string $attribute, mixed $value, \Closure $fail) {
+                function(string $attribute, mixed $value, Closure $fail) {
                     if ($value === null) {
                         return;
                     }
@@ -80,7 +109,7 @@ class ManagerSellerRequest extends BaseRequest
                         ->where('role_user.user_id', $value)
                         ->whereIn('roles.name', ['commerce', 'subsidiary'])
                         ->exists();
-                    if (!$hasValidRole) {
+                    if (! $hasValidRole) {
                         $fail('El usuario seleccionado debe tener rol Comercio o Sucursal.');
                     }
                 },
@@ -96,44 +125,14 @@ class ManagerSellerRequest extends BaseRequest
         if ($isUpdate) {
             // En update: validar solo si se envían, excluyendo el usuario actual
             $rules['username'] = ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)];
-            $rules['email']    = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
+            $rules['email'] = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
         } else {
             // En creación: obligatorios y únicos
             $rules['username'] = ['required', 'string', 'max:20', Rule::unique('users', 'username')];
-            $rules['email']    = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
+            $rules['email'] = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
         }
 
         return $rules;
-    }
-
-    /**
-     * Mensajes de error personalizados.
-     *
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique'   => 'El nombre de usuario no está disponible.',
-            'email.required'    => 'El correo electrónico es obligatorio.',
-            'email.email'       => 'El correo electrónico debe ser válido.',
-            'email.unique'      => 'Este correo ya está registrado.',
-            'phone.required'    => 'El teléfono es obligatorio.',
-            'phone.unique'      => 'El número ya está registrado.',
-            'name.required'     => 'El nombre del comercio es obligatorio.',
-            'country.required'  => 'El país es obligatorio.',
-            'currency.required' => 'La moneda principal es obligatoria.',
-            'time_zone.required' => 'La zona horaria es obligatoria.',
-            'commission.required' => 'La comisión es obligatoria.',
-            'commission.numeric' => 'La comisión debe ser un número.',
-            'commission.min' => 'La comisión no puede ser menor a 0.',
-            'commission.max' => 'La comisión no puede ser mayor a 100.',
-            'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
-            'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
-            'allowed_games.required' => 'Debes permitir al menos un juego.',
-            'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
-        ];
     }
 
     /**
@@ -143,7 +142,7 @@ class ManagerSellerRequest extends BaseRequest
      * por lo que debemos resolver el modelo manualmente usando el
      * método resolveRouteBinding del modelo.
      */
-    protected function resolveSeller(): ?Seller
+    protected function resolveSeller() : ?Seller
     {
         // Intentar obtener el parámetro por varios nombres posibles
         $routeParam = $this->route('seller') ?? $this->route('id');
@@ -158,6 +157,6 @@ class ManagerSellerRequest extends BaseRequest
         }
 
         // Resolver manualmente usando el método del modelo (soporta Hashids)
-        return (new Seller())->resolveRouteBinding($routeParam);
+        return (new Seller)->resolveRouteBinding($routeParam);
     }
 }

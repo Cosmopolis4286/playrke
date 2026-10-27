@@ -11,112 +11,9 @@ use Inertia\Response;
 class MovementTypeController extends Controller
 {
     /**
-     * Display a listing of the movement types.
-     */
-    public function index(Request $request): Response
-    {
-        $movementTypes = MovementType::orderBy('sort_order')->orderBy('label')->get();
-
-        return Inertia::render('MovementTypes/Index', [
-            'movementTypes' => $movementTypes,
-            'tokenId'       => $request->get('token'),
-        ]);
-    }
-
-    /**
-     * Store a newly created movement type.
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'code'              => 'required|string|max:30|regex:/^[A-Z_]+$/|unique:movement_types,code',
-            'label'             => 'required|string|max:100',
-            'description'       => 'nullable|string|max:255',
-            'icon'              => 'nullable|string|max:60',
-            'color'             => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'is_credit'         => 'required|boolean',
-            'requires_approval' => 'required|boolean',
-            'status'            => 'required|in:ACTIVE,INACTIVE',
-            'visible_roles'     => 'nullable|array',
-            'visible_roles.*'   => 'string|max:30',
-            'game_group'        => 'nullable|string|max:40',
-            'sort_order'        => 'nullable|integer|min:0',
-        ]);
-
-        $movementType = MovementType::create($validated + ['is_system' => false]);
-
-        MovementType::forgetCatalogCache();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tipo de movimiento creado exitosamente',
-            'data'    => $movementType,
-        ]);
-    }
-
-    /**
-     * Display the specified movement type.
-     */
-    public function show(string $id): JsonResponse
-    {
-        $movementType = MovementType::findOrFail($id);
-
-        return response()->json([
-            'success' => true,
-            'data'    => $movementType,
-        ]);
-    }
-
-    /**
-     * Update the specified movement type.
-     */
-    public function update(Request $request, string $id): JsonResponse
-    {
-        $movementType = MovementType::findOrFail($id);
-
-        $codeRule = $movementType->is_system || $movementType->movements()->exists()
-            ? 'prohibited'
-            : 'required|string|max:30|regex:/^[A-Z_]+$/|unique:movement_types,code,' . $id;
-
-        $validated = $request->validate([
-            'code'              => $codeRule,
-            'label'             => 'required|string|max:100',
-            'description'       => 'nullable|string|max:255',
-            'icon'              => 'nullable|string|max:60',
-            'color'             => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
-            'is_credit'         => 'required|boolean',
-            'requires_approval' => 'required|boolean',
-            'status'            => 'required|in:ACTIVE,INACTIVE',
-            'visible_roles'     => 'nullable|array',
-            'visible_roles.*'   => 'string|max:30',
-            'game_group'        => 'nullable|string|max:40',
-            'sort_order'        => 'nullable|integer|min:0',
-        ]);
-
-        // is_credit de un tipo de sistema (DEPOSIT, PRIZE, BONUS_PRIZE, etc.) no
-        // es editable: cambiarlo invertiría silenciosamente el signo de todos los
-        // movimientos históricos y futuros de ese tipo (WalletMovement::isCredit()
-        // delega en este valor), un riesgo de integridad financiera real que el
-        // frontend deshabilita visualmente pero que debe reforzarse aquí.
-        if ($movementType->is_system) {
-            $validated['is_credit'] = $movementType->is_credit;
-        }
-
-        $movementType->update($validated);
-
-        MovementType::forgetCatalogCache();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tipo de movimiento actualizado exitosamente',
-            'data'    => $movementType->fresh(),
-        ]);
-    }
-
-    /**
      * Delete the specified movement type.
      */
-    public function delete(string $id): JsonResponse
+    public function delete(string $id) : JsonResponse
     {
         $movementType = MovementType::findOrFail($id);
 
@@ -147,7 +44,7 @@ class MovementTypeController extends Controller
     /**
      * Fetch list of movement types for AJAX requests.
      */
-    public function fetchList(Request $request): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
         $status = $request->get('status');
 
@@ -158,14 +55,71 @@ class MovementTypeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $movementTypes,
+            'data' => $movementTypes,
+        ]);
+    }
+
+    /**
+     * Display a listing of the movement types.
+     */
+    public function index(Request $request) : Response
+    {
+        $movementTypes = MovementType::orderBy('sort_order')->orderBy('label')->get();
+
+        return Inertia::render('MovementTypes/Index', [
+            'movementTypes' => $movementTypes,
+            'tokenId' => $request->get('token'),
+        ]);
+    }
+
+    /**
+     * Display the specified movement type.
+     */
+    public function show(string $id) : JsonResponse
+    {
+        $movementType = MovementType::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $movementType,
+        ]);
+    }
+
+    /**
+     * Store a newly created movement type.
+     */
+    public function store(Request $request) : JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:30|regex:/^[A-Z_]+$/|unique:movement_types,code',
+            'label' => 'required|string|max:100',
+            'description' => 'nullable|string|max:255',
+            'icon' => 'nullable|string|max:60',
+            'color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'is_credit' => 'required|boolean',
+            'requires_approval' => 'required|boolean',
+            'status' => 'required|in:ACTIVE,INACTIVE',
+            'visible_roles' => 'nullable|array',
+            'visible_roles.*' => 'string|max:30',
+            'game_group' => 'nullable|string|max:40',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        $movementType = MovementType::create($validated + ['is_system' => false]);
+
+        MovementType::forgetCatalogCache();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tipo de movimiento creado exitosamente',
+            'data' => $movementType,
         ]);
     }
 
     /**
      * Toggle movement type status.
      */
-    public function toggleStatus(string $id): JsonResponse
+    public function toggleStatus(string $id) : JsonResponse
     {
         $movementType = MovementType::findOrFail($id);
 
@@ -177,7 +131,53 @@ class MovementTypeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Estado del tipo de movimiento actualizado exitosamente',
-            'data'    => $movementType->fresh(),
+            'data' => $movementType->fresh(),
+        ]);
+    }
+
+    /**
+     * Update the specified movement type.
+     */
+    public function update(Request $request, string $id) : JsonResponse
+    {
+        $movementType = MovementType::findOrFail($id);
+
+        $codeRule = $movementType->is_system || $movementType->movements()->exists()
+            ? 'prohibited'
+            : 'required|string|max:30|regex:/^[A-Z_]+$/|unique:movement_types,code,' . $id;
+
+        $validated = $request->validate([
+            'code' => $codeRule,
+            'label' => 'required|string|max:100',
+            'description' => 'nullable|string|max:255',
+            'icon' => 'nullable|string|max:60',
+            'color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
+            'is_credit' => 'required|boolean',
+            'requires_approval' => 'required|boolean',
+            'status' => 'required|in:ACTIVE,INACTIVE',
+            'visible_roles' => 'nullable|array',
+            'visible_roles.*' => 'string|max:30',
+            'game_group' => 'nullable|string|max:40',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        // is_credit de un tipo de sistema (DEPOSIT, PRIZE, BONUS_PRIZE, etc.) no
+        // es editable: cambiarlo invertiría silenciosamente el signo de todos los
+        // movimientos históricos y futuros de ese tipo (WalletMovement::isCredit()
+        // delega en este valor), un riesgo de integridad financiera real que el
+        // frontend deshabilita visualmente pero que debe reforzarse aquí.
+        if ($movementType->is_system) {
+            $validated['is_credit'] = $movementType->is_credit;
+        }
+
+        $movementType->update($validated);
+
+        MovementType::forgetCatalogCache();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tipo de movimiento actualizado exitosamente',
+            'data' => $movementType->fresh(),
         ]);
     }
 }

@@ -32,31 +32,29 @@ abstract class RoleProfileRequest extends BaseRequest
 {
     use ResolvesTargetUserId;
 
-    /** @return class-string<Model> Modelo de la ficha (Commerce/Subsidiary/Seller). */
-    abstract protected function entityClass(): string;
-
-    /** Prefijo del rol dueño de la ficha ('commerce' | 'subsidiary' | 'seller'). */
-    abstract protected function ownerPrefix(): string;
-
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix([$this->ownerPrefix(), 'admin', 'superadmin']);
     }
 
-    protected function profileEntity(): ?Model
+    public function messages() : array
     {
-        $ownerUserId = $this->resolveTargetUserId($this) ?? (string) Auth::id();
-
-        return ($this->entityClass())::where('user_id', $ownerUserId)->first(['id', 'country_id']);
+        return [
+            'name.filled' => 'El nombre no puede quedar vacío.',
+            'name.max' => 'El nombre no puede superar los 30 caracteres.',
+            'phone.filled' => 'El teléfono no puede quedar vacío.',
+            'phone.max' => 'El teléfono no puede superar los 20 caracteres.',
+            'phone.unique' => 'El número ya está registrado.',
+        ];
     }
 
-    public function rules(): array
+    public function rules() : array
     {
         $entity = $this->profileEntity();
         $table = (new ($this->entityClass()))->getTable();
 
         return [
-            'name'  => ['sometimes', 'filled', 'string', 'max:30'],
+            'name' => ['sometimes', 'filled', 'string', 'max:30'],
             'phone' => [
                 'sometimes', 'filled', 'string', 'max:20',
                 Rule::unique($table, 'phone')->ignore($entity?->id),
@@ -65,14 +63,16 @@ abstract class RoleProfileRequest extends BaseRequest
         ];
     }
 
-    public function messages(): array
+    /** @return class-string<Model> Modelo de la ficha (Commerce/Subsidiary/Seller). */
+    abstract protected function entityClass() : string;
+
+    /** Prefijo del rol dueño de la ficha ('commerce' | 'subsidiary' | 'seller'). */
+    abstract protected function ownerPrefix() : string;
+
+    protected function profileEntity() : ?Model
     {
-        return [
-            'name.filled'  => 'El nombre no puede quedar vacío.',
-            'name.max'     => 'El nombre no puede superar los 30 caracteres.',
-            'phone.filled' => 'El teléfono no puede quedar vacío.',
-            'phone.max'    => 'El teléfono no puede superar los 20 caracteres.',
-            'phone.unique' => 'El número ya está registrado.',
-        ];
+        $ownerUserId = $this->resolveTargetUserId($this) ?? (string) Auth::id();
+
+        return ($this->entityClass())::where('user_id', $ownerUserId)->first(['id', 'country_id']);
     }
 }

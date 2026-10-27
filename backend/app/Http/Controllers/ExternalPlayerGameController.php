@@ -30,74 +30,81 @@ final class ExternalPlayerGameController extends Controller
     public function __construct(
         private readonly BingoGameService $service,
         private readonly BingoWinnerDetectionService $winnerDetection,
-    ) {}
-
-    /**
-     * Resuelve el ExternalPlayer activo (no expirado) por su link, o 404.
-     */
-    private function resolvePlayer(string $link): ExternalPlayer
-    {
-        $player = ExternalPlayer::where('link', $link)
-            ->where('status', 'ACTIVE')
-            ->first();
-
-        if (!$player) {
-            abort(404, 'Link no encontrado o inactivo.');
-        }
-
-        if ($player->expiration_date && $player->expiration_date->isPast()) {
-            abort(410, 'Este link de acceso ha expirado.');
-        }
-
-        return $player;
+    ) {
     }
 
     /**
-     * Vista del juego de bingo para el jugador externo.
+     * Verifica si el jugador externo tiene bingo en alguno de sus cartones.
      */
-    public function game(string $link): Response
+    public function checkBingo(string $link) : JsonResponse
     {
         $player = $this->resolvePlayer($link);
-        $room   = BingoRoom::findOrFail($player->room_id);
+        $room = BingoRoom::findOrFail($player->room_id);
 
-        $response = $this->service->getInGameDataForExternalPlayer($room, $player);
-        $response['isLocal']         = app()->environment('local');
-        $response['externalPlayer']  = [
-            'link'       => $player->link,
-            'first_name' => $player->first_name,
-            'last_name'  => $player->last_name,
-            // Usados solo para precargar el formulario de registro (CTA del
-            // banner de invitado) — permite que RegisteredUserController::
-            // linkExternalPlayerHistory() encuentre coincidencia exacta al
-            // registrarse. No se usan para nada más en esta pantalla.
-            'phone'      => $player->phone,
-            'country_id' => (string) $player->country_id,
-            // Pago en revisión / rechazado / premios y a quién acudir.
-            'status'     => $this->service->getExternalPlayerPurchaseStatus($player),
-        ];
+        $winner = $this->winnerDetection->checkWinnerForExternalPlayer($room, (string) $player->id);
 
-        return Inertia::render('Games/Bingo/Game/Index', $response);
+        if ($winner) {
+            return response()->json([
+                'success' => true,
+                'hasBingo' => true,
+                'winner' => $winner,
+                'message' => '¡BINGO! Has completado tu cartón.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'hasBingo' => false,
+            'message' => 'No tienes bingo aún. Sigue atento.',
+        ]);
     }
 
     /**
      * Estado actual del sorteo (API) — mismo contrato que
      * BingoGameController::drawState(), no depende de identidad del jugador.
      */
-    public function drawState(string $link): JsonResponse
+    public function drawState(string $link) : JsonResponse
     {
         $player = $this->resolvePlayer($link);
-        $room   = BingoRoom::findOrFail($player->room_id);
+        $room = BingoRoom::findOrFail($player->room_id);
 
         return response()->json($this->service->getDrawState($room));
     }
 
     /**
-     * Cartones del jugador externo (API).
+     * Vista del juego de bingo para el jugador externo.
      */
-    public function getUserCards(string $link): JsonResponse
+    public function game(string $link) : Response
     {
         $player = $this->resolvePlayer($link);
-        $room   = BingoRoom::findOrFail($player->room_id);
+        $room = BingoRoom::findOrFail($player->room_id);
+
+        $response = $this->service->getInGameDataForExternalPlayer($room, $player);
+        $response['isLocal'] = app()->environment('local');
+        $response['externalPlayer'] = [
+            'link' => $player->link,
+            'first_name' => $player->first_name,
+            'last_name' => $player->last_name,
+            // Usados solo para precargar el formulario de registro (CTA del
+            // banner de invitado) — permite que RegisteredUserController::
+            // linkExternalPlayerHistory() encuentre coincidencia exacta al
+            // registrarse. No se usan para nada más en esta pantalla.
+            'phone' => $player->phone,
+            'country_id' => (string) $player->country_id,
+            // Pago en revisión / rechazado / premios y a quién acudir.
+            'status' => $this->service->getExternalPlayerPurchaseStatus($player),
+        ];
+
+        return Inertia::render('Games/Bingo/Game/Index', $response);
+    }
+
+    /**
+     * Cartones del jugador externo (API).
+     */
+    public function getUserCards(string $link) : JsonResponse
+    {
+        $player = $this->resolvePlayer($link);
+        $room = BingoRoom::findOrFail($player->room_id);
 
         $room->loadMissing('status');
         $roomIsFinished = strtoupper($room->status?->code ?? '') === 'FINISHED';
@@ -106,34 +113,28 @@ final class ExternalPlayerGameController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $cartons,
+            'data' => $cartons,
             'message' => 'Cartones obtenidos exitosamente',
         ])->header('Cache-Control', 'no-store');
     }
 
     /**
-     * Verifica si el jugador externo tiene bingo en alguno de sus cartones.
+     * Resuelve el ExternalPlayer activo (no expirado) por su link, o 404.
      */
-    public function checkBingo(string $link): JsonResponse
+    private function resolvePlayer(string $link) : ExternalPlayer
     {
-        $player = $this->resolvePlayer($link);
-        $room   = BingoRoom::findOrFail($player->room_id);
+        $player = ExternalPlayer::where('link', $link)
+            ->where('status', 'ACTIVE')
+            ->first();
 
-        $winner = $this->winnerDetection->checkWinnerForExternalPlayer($room, (string) $player->id);
-
-        if ($winner) {
-            return response()->json([
-                'success'  => true,
-                'hasBingo' => true,
-                'winner'   => $winner,
-                'message'  => '¡BINGO! Has completado tu cartón.',
-            ]);
+        if (! $player) {
+            abort(404, 'Link no encontrado o inactivo.');
         }
 
-        return response()->json([
-            'success'  => true,
-            'hasBingo' => false,
-            'message'  => 'No tienes bingo aún. Sigue atento.',
-        ]);
+        if ($player->expiration_date && $player->expiration_date->isPast()) {
+            abort(410, 'Este link de acceso ha expirado.');
+        }
+
+        return $player;
     }
 }

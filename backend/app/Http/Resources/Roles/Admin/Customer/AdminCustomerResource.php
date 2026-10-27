@@ -6,7 +6,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class AdminCustomerResource extends JsonResource
 {
-    public function toArray($request): array
+    public function toArray($request) : array
     {
         return [
             'id' => $this->hashed_id,
@@ -38,7 +38,7 @@ class AdminCustomerResource extends JsonResource
                 ->values()
                 ->all(),
 
-            'allowed_games' => $this->whenLoaded('gamesActive', function () {
+            'allowed_games' => $this->whenLoaded('gamesActive', function() {
                 return $this->gamesActive
                     ->pluck('id')
                     ->values()

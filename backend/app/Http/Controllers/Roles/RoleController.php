@@ -21,9 +21,10 @@ final class RoleController extends Controller
     public function __construct(
         protected readonly RoleService $service,
         protected readonly RoleHierarchyService $hierarchyService,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(): JsonResponse
+    public function fetchList() : JsonResponse
     {
         $this->authorize('viewAny', Role::class);
 
@@ -32,7 +33,7 @@ final class RoleController extends Controller
         ]);
     }
 
-    public function hierarchy(): JsonResponse
+    public function hierarchy() : JsonResponse
     {
         $this->authorize('viewAny', Role::class);
 
@@ -41,7 +42,20 @@ final class RoleController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $role): JsonResponse
+    public function toggleStatus(string $role) : JsonResponse
+    {
+        $roleModel = Role::findOrFail($role);
+        $this->authorize('update', $roleModel);
+
+        $updated = $this->service->toggleStatus($role);
+
+        return response()->json([
+            'message' => 'Rol actualizado correctamente',
+            'role' => $updated,
+        ]);
+    }
+
+    public function update(Request $request, string $role) : JsonResponse
     {
         $roleModel = Role::findOrFail($role);
         $this->authorize('update', $roleModel);
@@ -63,19 +77,6 @@ final class RoleController extends Controller
         }
 
         $updated = $this->service->updateMeta($role, $validated);
-
-        return response()->json([
-            'message' => 'Rol actualizado correctamente',
-            'role' => $updated,
-        ]);
-    }
-
-    public function toggleStatus(string $role): JsonResponse
-    {
-        $roleModel = Role::findOrFail($role);
-        $this->authorize('update', $roleModel);
-
-        $updated = $this->service->toggleStatus($role);
 
         return response()->json([
             'message' => 'Rol actualizado correctamente',

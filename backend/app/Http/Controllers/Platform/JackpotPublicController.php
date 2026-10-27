@@ -13,9 +13,10 @@ class JackpotPublicController extends Controller
 {
     public function __construct(
         private readonly JackpotPublicStatsService $jackpotStats,
-    ) {}
+    ) {
+    }
 
-    public function index(): JsonResponse
+    public function index() : JsonResponse
     {
         return $this->handleServiceJson(fn () => ['jackpots' => $this->jackpotStats->list()]);
     }

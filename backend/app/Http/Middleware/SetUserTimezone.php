@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Carbon\Carbon;
 use Closure;
+use DateTimeZone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SetUserTimezone
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next) : Response
     {
         if (Auth::check()) {
             $user = Auth::user();
@@ -32,8 +33,8 @@ class SetUserTimezone
         return $next($request);
     }
 
-    private function isValidTimezone(string $tz): bool
+    private function isValidTimezone(string $tz) : bool
     {
-        return in_array($tz, \DateTimeZone::listIdentifiers(), true);
+        return in_array($tz, DateTimeZone::listIdentifiers(), true);
     }
 }

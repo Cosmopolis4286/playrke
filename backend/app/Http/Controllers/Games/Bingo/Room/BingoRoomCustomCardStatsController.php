@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Games\Bingo\Room;
@@ -21,7 +22,7 @@ final class BingoRoomCustomCardStatsController extends Controller
      *  - custom_pct:     porcentaje (0–100, 2 decimales)
      *  - custom_winners: cuántos premios fueron ganados con cartones personalizados
      */
-    public function __invoke(BingoRoom $room): JsonResponse
+    public function __invoke(BingoRoom $room) : JsonResponse
     {
         $this->authorize('view', $room);
 
@@ -34,7 +35,7 @@ final class BingoRoomCustomCardStatsController extends Controller
             ])
             ->first();
 
-        $total  = (int) ($counts->total  ?? 0);
+        $total = (int) ($counts->total ?? 0);
         $custom = (int) ($counts->custom ?? 0);
 
         $customWinners = BingoCardPrize::where('room_id', $roomId)
@@ -42,9 +43,9 @@ final class BingoRoomCustomCardStatsController extends Controller
             ->count();
 
         return response()->json([
-            'total'          => $total,
-            'custom'         => $custom,
-            'custom_pct'     => $total > 0 ? round($custom / $total * 100, 2) : 0.0,
+            'total' => $total,
+            'custom' => $custom,
+            'custom_pct' => $total > 0 ? round($custom / $total * 100, 2) : 0.0,
             'custom_winners' => $customWinners,
         ]);
     }

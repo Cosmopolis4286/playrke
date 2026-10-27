@@ -6,7 +6,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ManagerSellerResource extends JsonResource
 {
-    public function toArray($request): array
+    public function toArray($request) : array
     {
         return [
             'id' => $this->hashed_id,
@@ -40,7 +40,7 @@ class ManagerSellerResource extends JsonResource
                 ->values()
                 ->all(),
 
-            'allowed_games' => $this->whenLoaded('gamesActive', function () {
+            'allowed_games' => $this->whenLoaded('gamesActive', function() {
                 return $this->gamesActive
                     ->pluck('id')
                     ->values()
@@ -51,7 +51,7 @@ class ManagerSellerResource extends JsonResource
             // form de edición usa 'currency'/'other_currencies'/'allowed_games'
             // (solo IDs) arriba, esto es para mostrar, no para el <select>.
             // Mismo patrón que AdminCommerceResource::currencies_detail/games_detail.
-            'currencies_detail' => $this->whenLoaded('currenciesActive', function () {
+            'currencies_detail' => $this->whenLoaded('currenciesActive', function() {
                 return $this->currenciesActive->map(fn ($c) => [
                     'id' => $c->id,
                     'symbol' => $c->symbol,
@@ -59,7 +59,7 @@ class ManagerSellerResource extends JsonResource
                     'level' => (int) $c->pivot->level,
                 ])->values()->all();
             }),
-            'games_detail' => $this->whenLoaded('gamesActive', function () {
+            'games_detail' => $this->whenLoaded('gamesActive', function() {
                 return $this->gamesActive->map(fn ($g) => [
                     'id' => $g->id,
                     'name' => $g->name,

@@ -18,59 +18,11 @@ class AdminTreasurerRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
-     *
-     * @return bool
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         // Solo permite usuarios con prefix "admin"
         return PermissionService::checkPrefix('admin');
-    }
-
-    /**
-     * Reglas de validación dinámicas.
-     *
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        // Resuelve el modelo Treasurer manualmente desde el route parameter
-        $commerce = $this->resolveTreasurer();
-
-        $commerceId = $commerce?->id;
-        $isUpdate   = $commerce !== null;
-        $userId     = $commerce?->user_id;
-
-        $rules = [
-            'commission'     => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
-            'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
-            'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
-            'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
-            'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
-            'other_currencies'   => ['sometimes', 'array'],
-            'other_currencies.*' => ['string', 'exists:currencies,id'],
-            'allowed_games'      => ['required', 'array'],
-            'allowed_games.*'    => ['string', 'exists:games,id'],
-        ];
-
-        // Regla unique para phone (excluye el tesorero actual en update)
-        $rules['phone'][] = $commerceId
-            ? Rule::unique('treasurers', 'phone')->ignore($commerceId)
-            : Rule::unique('treasurers', 'phone');
-
-        // Reglas para username y email
-        if ($isUpdate) {
-            // En update: validar solo si se envían, excluyendo el usuario actual
-            $rules['username'] = ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)];
-            $rules['email']    = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
-        } else {
-            // En creación: obligatorios y únicos
-            $rules['username'] = ['required', 'string', 'max:20', Rule::unique('users', 'username')];
-            $rules['email']    = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
-        }
-
-        return $rules;
     }
 
     /**
@@ -78,18 +30,18 @@ class AdminTreasurerRequest extends BaseRequest
      *
      * @return array<string, string>
      */
-    public function messages(): array
+    public function messages() : array
     {
         return [
             'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique'   => 'El nombre de usuario no está disponible.',
-            'email.required'    => 'El correo electrónico es obligatorio.',
-            'email.email'       => 'El correo electrónico debe ser válido.',
-            'email.unique'      => 'Este correo ya está registrado.',
-            'phone.required'    => 'El teléfono es obligatorio.',
-            'phone.unique'      => 'El número ya está registrado.',
-            'name.required'     => 'El nombre del comercio es obligatorio.',
-            'country.required'  => 'El país es obligatorio.',
+            'username.unique' => 'El nombre de usuario no está disponible.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.unique' => 'El número ya está registrado.',
+            'name.required' => 'El nombre del comercio es obligatorio.',
+            'country.required' => 'El país es obligatorio.',
             'currency.required' => 'La moneda principal es obligatoria.',
             'time_zone.required' => 'La zona horaria es obligatoria.',
             'commission.required' => 'La comisión es obligatoria.',
@@ -104,13 +56,59 @@ class AdminTreasurerRequest extends BaseRequest
     }
 
     /**
+     * Reglas de validación dinámicas.
+     *
+     * @return array<string, mixed>
+     */
+    public function rules() : array
+    {
+        // Resuelve el modelo Treasurer manualmente desde el route parameter
+        $commerce = $this->resolveTreasurer();
+
+        $commerceId = $commerce?->id;
+        $isUpdate = $commerce !== null;
+        $userId = $commerce?->user_id;
+
+        $rules = [
+            'commission' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
+            'country' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
+            'currency' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
+            'time_zone' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
+            'phone' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string'],
+            'other_currencies' => ['sometimes', 'array'],
+            'other_currencies.*' => ['string', 'exists:currencies,id'],
+            'allowed_games' => ['required', 'array'],
+            'allowed_games.*' => ['string', 'exists:games,id'],
+        ];
+
+        // Regla unique para phone (excluye el tesorero actual en update)
+        $rules['phone'][] = $commerceId
+            ? Rule::unique('treasurers', 'phone')->ignore($commerceId)
+            : Rule::unique('treasurers', 'phone');
+
+        // Reglas para username y email
+        if ($isUpdate) {
+            // En update: validar solo si se envían, excluyendo el usuario actual
+            $rules['username'] = ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)];
+            $rules['email'] = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
+        } else {
+            // En creación: obligatorios y únicos
+            $rules['username'] = ['required', 'string', 'max:20', Rule::unique('users', 'username')];
+            $rules['email'] = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
+        }
+
+        return $rules;
+    }
+
+    /**
      * Resuelve el modelo Treasurer desde el parámetro de ruta.
      *
      * El route model binding no está disponible durante la validación,
      * por lo que debemos resolver el modelo manualmente usando el
      * método resolveRouteBinding del modelo.
      */
-    protected function resolveTreasurer(): ?Treasurer
+    protected function resolveTreasurer() : ?Treasurer
     {
         // Intentar obtener el parámetro por varios nombres posibles
         $routeParam = $this->route('commerce') ?? $this->route('id');
@@ -125,6 +123,6 @@ class AdminTreasurerRequest extends BaseRequest
         }
 
         // Resolver manualmente usando el método del modelo (soporta Hashids)
-        return (new Treasurer())->resolveRouteBinding($routeParam);
+        return (new Treasurer)->resolveRouteBinding($routeParam);
     }
 }

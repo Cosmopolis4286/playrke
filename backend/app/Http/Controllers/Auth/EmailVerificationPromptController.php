@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Currency;
 use App\Models\Country;
+use App\Models\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,10 +16,9 @@ class EmailVerificationPromptController extends Controller
     /**
      * Display the email verification prompt.
      */
-    public function __invoke(Request $request): RedirectResponse|Response
+    public function __invoke(Request $request) : RedirectResponse|Response
     {
         if ($request->user()->hasVerifiedEmail()) {
-
             $isoCode = Country::getValue(Auth::user()->country, 'iso_code_2');
             $currency = encrypt(Currency::getValueByCountry(Auth::user()->country, 'id'));
 
@@ -30,11 +29,11 @@ class EmailVerificationPromptController extends Controller
             $request->session()->put('currency', $currency);
 
             return redirect()->intended(route('dashboard', absolute: false));
-        } else {
-            return Inertia::render('Auth/VerifyEmail', [
-                'verificationSendUrl' => route('verification.send'),
-                'logoutUrl' => route('logout'),
-            ]);
         }
+
+        return Inertia::render('Auth/VerifyEmail', [
+            'verificationSendUrl' => route('verification.send'),
+            'logoutUrl' => route('logout'),
+        ]);
     }
 }

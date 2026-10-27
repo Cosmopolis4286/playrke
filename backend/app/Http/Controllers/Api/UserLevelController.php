@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\User\UserLevelService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Solo lectura del nivel/XP del propio usuario. Otorgar/quitar XP o
@@ -22,10 +22,11 @@ use Illuminate\Http\JsonResponse;
 class UserLevelController extends Controller
 {
     public function __construct(
-        private UserLevelService $userLevelService
-    ) {}
+        private UserLevelService $userLevelService,
+    ) {
+    }
 
-    public function getUserLevel(Request $request): JsonResponse
+    public function getUserLevel(Request $request) : JsonResponse
     {
         $user = $request->user();
         $levelInfo = $this->userLevelService->getUserLevelInfo($user);

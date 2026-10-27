@@ -25,22 +25,12 @@ use Inertia\Response;
  */
 class PaymentOrderAdminController extends Controller
 {
-    private const DEFAULT_PER_PAGE = 20;
-
     private const ADMIN_RELATIONS = ['user', 'paymentProduct'];
+    private const DEFAULT_PER_PAGE = 20;
 
     public function __construct(
         private readonly BlockchainWatcherService $watcher,
     ) {
-    }
-
-    public function index(): Response
-    {
-        $this->authorize('viewAny', PaymentOrder::class);
-
-        return Inertia::render('Payments/Admin/Index', [
-            'title' => 'Órdenes de pago USDT-TRC20',
-        ]);
     }
 
     /**
@@ -48,11 +38,11 @@ class PaymentOrderAdminController extends Controller
      * search matchea order_id (exacto), deposit_address (exacto), o
      * nombre/email del usuario (like).
      */
-    public function fetchList(Request $request): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
         $this->authorize('viewAny', PaymentOrder::class);
 
-        return $this->handleServiceJson(function () use ($request) {
+        return $this->handleServiceJson(function() use ($request) {
             $perPage = (int) $request->query('per_page', self::DEFAULT_PER_PAGE);
 
             $query = PaymentOrder::with(self::ADMIN_RELATIONS)->orderByDesc('created_at');
@@ -62,7 +52,7 @@ class PaymentOrderAdminController extends Controller
             }
 
             if ($search = $request->query('search')) {
-                $query->where(function ($q) use ($search) {
+                $query->where(function($q) use ($search) {
                     $q->where('id', $search)
                         ->orWhere('deposit_address', $search)
                         ->orWhereHas('user', fn ($u) => $u->where('email', 'like', "%{$search}%")
@@ -76,15 +66,38 @@ class PaymentOrderAdminController extends Controller
                 'data' => collect($paginator->items())->map(fn (PaymentOrder $o) => $this->mapOrder($o)),
                 'meta' => [
                     'current_page' => $paginator->currentPage(),
-                    'last_page'    => $paginator->lastPage(),
-                    'total'        => $paginator->total(),
-                    'per_page'     => $paginator->perPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'total' => $paginator->total(),
+                    'per_page' => $paginator->perPage(),
                 ],
             ];
         });
     }
 
-    public function show(PaymentOrder $order): JsonResponse
+    public function index() : Response
+    {
+        $this->authorize('viewAny', PaymentOrder::class);
+
+        return Inertia::render('Payments/Admin/Index', [
+            'title' => 'Órdenes de pago USDT-TRC20',
+        ]);
+    }
+
+    /**
+     * POST /admin/payments/orders/{order}/reevaluate
+     */
+    public function reevaluate(PaymentOrder $order) : JsonResponse
+    {
+        $this->authorize('reevaluate', $order);
+
+        return $this->handleServiceJson(function() use ($order) {
+            $reevaluated = $this->watcher->evaluate($order);
+
+            return ['data' => $this->mapOrder($reevaluated->load(self::ADMIN_RELATIONS))];
+        });
+    }
+
+    public function show(PaymentOrder $order) : JsonResponse
     {
         $this->authorize('view', $order);
 
@@ -104,21 +117,7 @@ class PaymentOrderAdminController extends Controller
         ]);
     }
 
-    /**
-     * POST /admin/payments/orders/{order}/reevaluate
-     */
-    public function reevaluate(PaymentOrder $order): JsonResponse
-    {
-        $this->authorize('reevaluate', $order);
-
-        return $this->handleServiceJson(function () use ($order) {
-            $reevaluated = $this->watcher->evaluate($order);
-
-            return ['data' => $this->mapOrder($reevaluated->load(self::ADMIN_RELATIONS))];
-        });
-    }
-
-    private function mapOrder(PaymentOrder $order): array
+    private function mapOrder(PaymentOrder $order) : array
     {
         return [
             'id' => (string) $order->id,
@@ -140,14 +139,14 @@ class PaymentOrderAdminController extends Controller
         ];
     }
 
-    private function mapUser($user): ?array
+    private function mapUser($user) : ?array
     {
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
         return [
-            'id'   => (string) $user->id,
+            'id' => (string) $user->id,
             'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? $user->email),
         ];
     }

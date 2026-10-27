@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class PaymentOrderResource extends JsonResource
 {
-    public function toArray(Request $request): array
+    public function toArray(Request $request) : array
     {
         return [
             'id' => (string) $this->id,

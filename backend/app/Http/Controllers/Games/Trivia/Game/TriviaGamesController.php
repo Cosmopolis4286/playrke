@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Http\Controllers\Controller;
-use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Services\Auth\RoleAuthorizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,15 +24,15 @@ final class TriviaGamesController extends Controller
      * Listado paginado de partidas con filtros.
      * GET /trivia/games
      */
-    public function index(Request $request): Response
+    public function index(Request $request) : Response
     {
         $pgsql = DB::connection('pgsql_trivia');
 
-        $status     = $request->get('status', '');
-        $search     = $request->get('search', '');
-        $dateFrom   = $request->get('date_from', '');
-        $dateTo     = $request->get('date_to', '');
-        $perPage    = 20;
+        $status = $request->get('status', '');
+        $search = $request->get('search', '');
+        $dateFrom = $request->get('date_from', '');
+        $dateTo = $request->get('date_to', '');
+        $perPage = 20;
 
         // ── Query principal: games + rooms ────────────────────────────────────
         $query = $pgsql->table('trivia_games as g')
@@ -54,7 +53,7 @@ final class TriviaGamesController extends Controller
                 'r.id as room_id',
                 'r.code as room_code',
                 'r.title as room_title',
-                'r.max_players'
+                'r.max_players',
             );
 
         if ($status !== '') {
@@ -62,10 +61,10 @@ final class TriviaGamesController extends Controller
         }
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
+            $query->where(function($q) use ($search) {
                 $q->where('g.game_code', 'ilike', "%{$search}%")
-                  ->orWhere('r.title', 'ilike', "%{$search}%")
-                  ->orWhere('r.code', 'ilike', "%{$search}%");
+                    ->orWhere('r.title', 'ilike', "%{$search}%")
+                    ->orWhere('r.code', 'ilike', "%{$search}%");
             });
         }
 
@@ -88,7 +87,7 @@ final class TriviaGamesController extends Controller
             ->all();
 
         $winners = [];
-        if (!empty($winnerIds)) {
+        if (! empty($winnerIds)) {
             $winners = DB::table('users')
                 ->whereIn('id', $winnerIds)
                 ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
@@ -99,7 +98,7 @@ final class TriviaGamesController extends Controller
         $gameIds = collect($games->items())->pluck('id')->all();
 
         $topScores = [];
-        if (!empty($gameIds)) {
+        if (! empty($gameIds)) {
             $topScores = $pgsql->table('trivia_scores')
                 ->whereNull('deleted_at')
                 ->whereIn('game_id', $gameIds)
@@ -111,10 +110,11 @@ final class TriviaGamesController extends Controller
         }
 
         // Inyectar datos en cada ítem
-        $items = collect($games->items())->map(function ($game) use ($winners, $topScores) {
+        $items = collect($games->items())->map(function($game) use ($winners, $topScores) {
             $score = $topScores[$game->id] ?? null;
+
             return (object) array_merge((array) $game, [
-                'winner_name'  => $game->winner_user_id ? ($winners[$game->winner_user_id] ?? 'Usuario #' . substr($game->winner_user_id, 0, 6)) : null,
+                'winner_name' => $game->winner_user_id ? ($winners[$game->winner_user_id] ?? 'Usuario #' . substr($game->winner_user_id, 0, 6)) : null,
                 'winner_score' => $score ? (int) $score->final_score : null,
                 'duration_min' => ($game->started_at && $game->ended_at)
                     ? round((strtotime($game->ended_at) - strtotime($game->started_at)) / 60, 1)
@@ -124,15 +124,15 @@ final class TriviaGamesController extends Controller
 
         // ── Stats para cards ──────────────────────────────────────────────────
         $stats = [
-            'total'     => $pgsql->table('trivia_games')->whereNull('deleted_at')->count(),
-            'playing'   => $pgsql->table('trivia_games')->whereNull('deleted_at')->where('status', 'playing')->count(),
-            'finished'  => $pgsql->table('trivia_games')->whereNull('deleted_at')->where('status', 'finished')->count(),
+            'total' => $pgsql->table('trivia_games')->whereNull('deleted_at')->count(),
+            'playing' => $pgsql->table('trivia_games')->whereNull('deleted_at')->where('status', 'playing')->count(),
+            'finished' => $pgsql->table('trivia_games')->whereNull('deleted_at')->where('status', 'finished')->count(),
             'cancelled' => $pgsql->table('trivia_games')->whereNull('deleted_at')->where('status', 'cancelled')->count(),
         ];
 
         return Inertia::render('Games/Trivia/Games', [
-            'games'   => array_merge($games->toArray(), ['data' => $items->values()->all()]),
-            'stats'   => $stats,
+            'games' => array_merge($games->toArray(), ['data' => $items->values()->all()]),
+            'stats' => $stats,
             'filters' => compact('status', 'search', 'dateFrom', 'dateTo'),
         ]);
     }
@@ -141,7 +141,7 @@ final class TriviaGamesController extends Controller
      * Detalle de una partida.
      * GET /trivia/games/{id}
      */
-    public function show(string $id): Response
+    public function show(string $id) : Response
     {
         $pgsql = DB::connection('pgsql_trivia');
 
@@ -154,11 +154,11 @@ final class TriviaGamesController extends Controller
                 'r.code as room_code',
                 'r.title as room_title',
                 'r.max_players',
-                'r.question_count as room_question_count'
+                'r.question_count as room_question_count',
             )
             ->first();
 
-        abort_if(!$game, 404, 'Partida no encontrada');
+        abort_if(! $game, 404, 'Partida no encontrada');
 
         // ── Scores + nombres de jugadores ─────────────────────────────────────
         $scores = $pgsql->table('trivia_scores')
@@ -182,18 +182,18 @@ final class TriviaGamesController extends Controller
             ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
             ->get()->pluck('display_name', 'id')->all();
 
-        $scoreboard = $scores->map(function ($s) use ($users) {
+        $scoreboard = $scores->map(function($s) use ($users) {
             return [
-                'player_id'           => $s->player_id,
-                'name'                => $users[$s->player_id] ?? 'Jugador #' . substr($s->player_id, 0, 6),
-                'position'            => $s->position,
-                'final_score'         => (int) $s->final_score,
-                'correct_answers'     => (int) $s->correct_answers,
-                'wrong_answers'       => (int) $s->wrong_answers,
-                'max_streak'          => (int) $s->max_streak,
-                'avg_response_ms'     => (int) $s->average_response_time_ms,
-                'is_winner'           => (bool) $s->is_winner,
-                'total_questions'     => (int) $s->total_questions,
+                'player_id' => $s->player_id,
+                'name' => $users[$s->player_id] ?? 'Jugador #' . substr($s->player_id, 0, 6),
+                'position' => $s->position,
+                'final_score' => (int) $s->final_score,
+                'correct_answers' => (int) $s->correct_answers,
+                'wrong_answers' => (int) $s->wrong_answers,
+                'max_streak' => (int) $s->max_streak,
+                'avg_response_ms' => (int) $s->average_response_time_ms,
+                'is_winner' => (bool) $s->is_winner,
+                'total_questions' => (int) $s->total_questions,
             ];
         })->values()->all();
 
@@ -216,10 +216,10 @@ final class TriviaGamesController extends Controller
                 'q.category',
                 'q.difficulty',
                 'q.options',
-                'q.correct_option_index'
+                'q.correct_option_index',
             )
             ->get()
-            ->map(function ($q) {
+            ->map(function($q) {
                 return array_merge((array) $q, [
                     'options' => is_string($q->options) ? json_decode($q->options, true) : $q->options,
                 ]);
@@ -242,12 +242,12 @@ final class TriviaGamesController extends Controller
             : null;
 
         return Inertia::render('Games/Trivia/GameShow', [
-            'game'        => array_merge((array) $game, [
+            'game' => array_merge((array) $game, [
                 'winner_name' => $winnerName,
                 'duration_min' => $duration,
             ]),
-            'scoreboard'  => $scoreboard,
-            'questions'   => $questions,
+            'scoreboard' => $scoreboard,
+            'questions' => $questions,
         ]);
     }
 }

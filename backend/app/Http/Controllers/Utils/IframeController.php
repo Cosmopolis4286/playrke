@@ -12,13 +12,26 @@ use App\Traits\Users\UserTrait;
 
 class IframeController extends Controller
 {
-    use UserTrait, CustomerTrait;
+    use CustomerTrait, UserTrait;
+
+    public function getRouteGameRooms($userToken)
+    {
+        $user = $this->user(['id']);
+
+        if (! $user || ! $user->roles->contains('prefix', 'customer')) {
+            return redirect()->back();
+        }
+
+        $customerId = Customer::getValueByUserId($user->id, 'customer_id');
+
+        return ['route' => route('bingo-rooms.index-customer', ['customer' => $customerId, 'user' => $userToken])];
+    }
 
     public function index()
     {
         $user = $this->user(['id']);
 
-        if (!$user || !$user->roles->contains('prefix', 'customer')) {
+        if (! $user || ! $user->roles->contains('prefix', 'customer')) {
             return redirect()->back();
         }
 
@@ -32,35 +45,22 @@ class IframeController extends Controller
                     [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',
-                        'creatorId' => encrypt($customer->id)
-                    ]
-                )
+                        'creatorId' => encrypt($customer->id),
+                    ],
+                ),
             ],
             [
                 'title' => 'Salas de Juego Vista',
                 'route' => route(
                     'bingo-rooms.index-customer',
-                    ['customer' => $customer->customer_id, 'user' => 'available-rooms']
+                    ['customer' => $customer->customer_id, 'user' => 'available-rooms'],
                 ),
             ],
         ];
 
         return view('modules.all.iframe.index')->with([
             'title' => 'Iframes',
-            'iframes' => $iframes
+            'iframes' => $iframes,
         ]);
-    }
-
-    public function getRouteGameRooms($userToken)
-    {
-        $user = $this->user(['id']);
-
-        if (!$user || !$user->roles->contains('prefix', 'customer')) {
-            return redirect()->back();
-        }
-
-        $customerId = Customer::getValueByUserId($user->id, 'customer_id');
-
-        return ['route' => route('bingo-rooms.index-customer', ['customer' => $customerId, 'user' => $userToken])];
     }
 }

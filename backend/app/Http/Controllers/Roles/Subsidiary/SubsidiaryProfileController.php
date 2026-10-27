@@ -26,20 +26,21 @@ final class SubsidiaryProfileController extends Controller
 
     public function __construct(
         private readonly SubsidiaryProfileService $service,
-    ) {}
+    ) {
+    }
 
-    public function show(Request $request): Response
+    public function show(Request $request) : Response
     {
         $targetUserId = $this->resolveTargetUserId($request);
 
         return Inertia::render('Roles/Subsidiary/Profile/Index', [
-            'title'       => 'Mi Agencia',
-            'subsidiary'  => $this->service->showOwn($targetUserId),
+            'title' => 'Mi Agencia',
+            'subsidiary' => $this->service->showOwn($targetUserId),
             'isAdminView' => $targetUserId !== null,
         ]);
     }
 
-    public function update(SubsidiaryProfileRequest $request): JsonResponse
+    public function update(SubsidiaryProfileRequest $request) : JsonResponse
     {
         $this->service->updateOwn($request->validated(), $this->resolveTargetUserId($request));
 
