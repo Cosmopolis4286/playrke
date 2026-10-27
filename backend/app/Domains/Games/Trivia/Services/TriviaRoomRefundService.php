@@ -6,25 +6,14 @@ namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Wallet\Models\WalletMovement;
-use App\Services\NotificationService;
 use App\Domains\Wallet\Services\WalletService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Reembolsa la entrada pagada por cada participante confirmado de una sala
- * de Trivia. Compartido por dos casos de uso:
- *
- *  - CancelStaleTriviaRoomsCommand: salas 'waiting' abandonadas (cron).
- *  - TriviaRoomAdminController::forceClose()/destroy(): un admin cierra una
- *    sala manualmente. Antes de este servicio, estos dos endpoints solo
- *    actualizaban el status y limpiaban Redis, sin reembolsar el entry fee
- *    ya cobrado — un admin forzando el cierre de una sala 'playing' con
- *    jugadores que ya pagaron dejaba ese dinero cobrado sin partida jugada
- *    y sin ningún mecanismo de recuperación, ni siquiera manual.
- *
- * Extraído de CancelStaleTriviaRoomsCommand (ver ese comando para el caso
- * de salas abandonadas por scheduling).
+ * de Trivia. Los reembolsos son idempotentes para permitir reintentos seguros.
  */
 class TriviaRoomRefundService
 {
@@ -34,16 +23,7 @@ class TriviaRoomRefundService
     ) {}
 
     /**
-     * Reembolsa a cada participante confirmado con paid_amount > 0.
-     * Transacción por participante (no por lote completo): un fallo en un
-     * participante no debe afectar los reembolsos ya aplicados a otros.
-     * trivia_participants vive en la conexión pgsql_trivia (cross-database,
-     * mismo patrón que JoinRoomAction).
-     *
-     * No cambia el status de la sala — el llamador decide a qué estado pasa
-     * (cancelled, closed, etc.) según su propio caso de uso.
-     *
-     * @return int Cantidad de participantes reembolsados.
+     * @return int Cantidad de reembolsos nuevos aplicados.
      */
     public function refundConfirmedParticipants(TriviaRoom $room, string $reasonMessage): int
     {
@@ -65,20 +45,18 @@ class TriviaRoomRefundService
                 );
 
                 if (! $wallet) {
-                    Log::warning('[TriviaRoomRefundService] Wallet no disponible para reembolso — se omite este participante', [
+                    Log::warning('[TriviaRoomRefundService] Wallet no disponible para reembolso — la sala no debe finalizar su cancelación', [
                         'room_id' => $room->id,
                         'user_id' => $participant->user_id,
                     ]);
-                    return;
+                    throw new \RuntimeException("No hay wallet activa para reembolsar al participante {$participant->user_id} de la sala {$room->id}.");
                 }
 
-                // La entrada original se registró como TRIVIA_ENTRY con
-                // metadata.bonus_amount (ver WalletService::recordTriviaEntry())
-                // — se devuelve esa misma proporción a bonus_balance para no
-                // convertir bono en saldo retirable al cancelar. Filtrar
-                // también por metadata->room_id: si el mismo usuario pagó la
-                // misma entrada exacta en dos salas distintas, sin este
-                // filtro se podía recuperar el movimiento equivocado.
+                // Identificar el gasto exacto para conservar la separación entre
+                // bonus_balance y saldo retirable. Sin el movimiento original no
+                // se puede inferir la porción de bono de forma segura: fallar y
+                // dejar la sala en cancelling es preferible a convertir bono en
+                // dinero retirable.
                 $originalEntry = WalletMovement::where('user_id', $participant->user_id)
                     ->where('type', WalletMovement::TYPE_TRIVIA_ENTRY)
                     ->where('amount', $participant->paid_amount)
@@ -86,29 +64,42 @@ class TriviaRoomRefundService
                     ->latest('created_at')
                     ->first();
 
-                $bonusPortion = (float) ($originalEntry?->metadata['bonus_amount'] ?? 0.0);
+                if (! $originalEntry || ! array_key_exists('bonus_amount', $originalEntry->metadata ?? [])) {
+                    Log::error('[TriviaRoomRefundService] No se encontró el movimiento original completo; se detiene el reembolso', [
+                        'room_id' => $room->id,
+                        'user_id' => $participant->user_id,
+                        'paid_amount' => (float) $participant->paid_amount,
+                    ]);
+                    throw new \RuntimeException("No se pudo verificar la composición de la entrada del participante {$participant->user_id} en la sala {$room->id}.");
+                }
 
-                $this->walletService->recordRefund(
-                    wallet:       $wallet,
-                    amount:       (float) $participant->paid_amount,
-                    gameId:       (string) $room->id,
-                    description:  "Reembolso Trivia: sala {$room->title} ({$room->code})",
+                $bonusPortion = (float) $originalEntry->metadata['bonus_amount'];
+
+                $movement = $this->walletService->recordRefund(
+                    wallet: $wallet,
+                    amount: (float) $participant->paid_amount,
+                    gameId: (string) $room->id,
+                    description: "Reembolso Trivia: sala {$room->title} ({$room->code})",
                     bonusPortion: $bonusPortion,
+                    idempotencyKey: "trivia_refund:{$room->id}:{$participant->user_id}",
                 );
 
-                $this->notificationService->create(
-                    userId: (string) $participant->user_id,
-                    type: 'SYSTEM',
-                    title: '↩️ Trivia cancelada — reembolso aplicado',
-                    message: $reasonMessage,
-                    data: [
-                        'room_id'   => (string) $room->id,
-                        'room_code' => $room->code,
-                        'amount'    => (float) $participant->paid_amount,
-                    ],
-                );
+                // Notificar y contar únicamente cuando se creó el movimiento.
+                if ($movement->wasRecentlyCreated) {
+                    $this->notificationService->create(
+                        userId: (string) $participant->user_id,
+                        type: 'SYSTEM',
+                        title: '↩️ Trivia cancelada — reembolso aplicado',
+                        message: $reasonMessage,
+                        data: [
+                            'room_id' => (string) $room->id,
+                            'room_code' => $room->code,
+                            'amount' => (float) $participant->paid_amount,
+                        ],
+                    );
 
-                $refundedCount++;
+                    $refundedCount++;
+                }
             });
         }
 
