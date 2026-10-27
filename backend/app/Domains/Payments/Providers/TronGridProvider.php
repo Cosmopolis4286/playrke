@@ -34,17 +34,7 @@ final class TronGridProvider implements BlockchainProviderInterface
     ) {
     }
 
-    public function network(): string
-    {
-        return 'TRON';
-    }
-
-    public function tokenContract(): string
-    {
-        return config('payments.tron.usdt_contract');
-    }
-
-    public function deriveAddress(int $derivationIndex): string
+    public function deriveAddress(int $derivationIndex) : string
     {
         $xpub = config('payments.tron.xpub');
 
@@ -56,11 +46,56 @@ final class TronGridProvider implements BlockchainProviderInterface
         // todavía ninguna operación real que justifique el error.
         if (empty($xpub)) {
             throw new PaymentsProviderMisconfiguredException(
-                'PAYMENTS_TRON_XPUB no configurado — TronGridProvider no puede derivar direcciones reales.'
+                'PAYMENTS_TRON_XPUB no configurado — TronGridProvider no puede derivar direcciones reales.',
             );
         }
 
         return $this->derivation->deriveAddress($xpub, $derivationIndex);
+    }
+
+    public function getConfirmations(string $txHash) : ?int
+    {
+        try {
+            $infoResponse = $this->client()->retry(3, 500, throw: false)
+                ->post('/wallet/gettransactioninfobyid', ['value' => $txHash]);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::channel('slack')->error('payments.tron_grid.connection_failed', [
+                'endpoint' => 'gettransactioninfobyid',
+                'tx_hash' => $txHash,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if ($infoResponse->failed() || empty($infoResponse->json('blockNumber'))) {
+            return null;
+        }
+
+        $txBlock = (int) $infoResponse->json('blockNumber');
+
+        try {
+            $nowBlockResponse = $this->client()->retry(3, 500, throw: false)->post('/wallet/getnowblock');
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::channel('slack')->error('payments.tron_grid.connection_failed', [
+                'endpoint' => 'getnowblock',
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if ($nowBlockResponse->failed()) {
+            return null;
+        }
+
+        $currentBlock = (int) $nowBlockResponse->json('block_header.raw_data.number');
+
+        if ($currentBlock <= 0 || $txBlock <= 0) {
+            return null;
+        }
+
+        return max(0, $currentBlock - $txBlock + 1);
     }
 
     /**
@@ -75,7 +110,7 @@ final class TronGridProvider implements BlockchainProviderInterface
      * pago real: el retry() de abajo minimiza que un rate-limit puntual de
      * TronGrid se confunda con ausencia real de pago en un solo tick.
      */
-    public function getIncomingTransactions(string $address, ?int $sinceBlock = null): array
+    public function getIncomingTransactions(string $address, ?int $sinceBlock = null) : array
     {
         try {
             $response = $this->client()
@@ -123,7 +158,7 @@ final class TronGridProvider implements BlockchainProviderInterface
             $amount = ((float) $rawValue) / (10 ** $decimals);
 
             $txHash = $entry['transaction_id'] ?? null;
-            if (!$txHash) {
+            if (! $txHash) {
                 continue;
             }
 
@@ -144,49 +179,14 @@ final class TronGridProvider implements BlockchainProviderInterface
         return $transactions;
     }
 
-    public function getConfirmations(string $txHash): ?int
+    public function network() : string
     {
-        try {
-            $infoResponse = $this->client()->retry(3, 500, throw: false)
-                ->post('/wallet/gettransactioninfobyid', ['value' => $txHash]);
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::channel('slack')->error('payments.tron_grid.connection_failed', [
-                'endpoint' => 'gettransactioninfobyid',
-                'tx_hash' => $txHash,
-                'error' => $e->getMessage(),
-            ]);
+        return 'TRON';
+    }
 
-            return null;
-        }
-
-        if ($infoResponse->failed() || empty($infoResponse->json('blockNumber'))) {
-            return null;
-        }
-
-        $txBlock = (int) $infoResponse->json('blockNumber');
-
-        try {
-            $nowBlockResponse = $this->client()->retry(3, 500, throw: false)->post('/wallet/getnowblock');
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::channel('slack')->error('payments.tron_grid.connection_failed', [
-                'endpoint' => 'getnowblock',
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
-
-        if ($nowBlockResponse->failed()) {
-            return null;
-        }
-
-        $currentBlock = (int) $nowBlockResponse->json('block_header.raw_data.number');
-
-        if ($currentBlock <= 0 || $txBlock <= 0) {
-            return null;
-        }
-
-        return max(0, $currentBlock - $txBlock + 1);
+    public function tokenContract() : string
+    {
+        return config('payments.tron.usdt_contract');
     }
 
     private function client()
@@ -196,7 +196,7 @@ final class TronGridProvider implements BlockchainProviderInterface
             ->timeout(15);
 
         $apiKey = config('payments.tron.api_key');
-        if (!empty($apiKey)) {
+        if (! empty($apiKey)) {
             $request = $request->withHeaders(['TRON-PRO-API-KEY' => $apiKey]);
         }
 

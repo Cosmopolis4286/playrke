@@ -9,8 +9,8 @@ use App\Domains\Marketplace\Crypto\Exceptions\InvalidCryptoTransactionException;
 use App\Domains\Marketplace\Crypto\Models\CryptoDeposit;
 use App\Domains\Marketplace\Crypto\Models\CryptoTransaction;
 use App\Domains\Marketplace\Crypto\Models\DepositAddress;
-use App\Models\Currency;
 use App\Domains\Wallet\Services\WalletService;
+use App\Models\Currency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -38,10 +38,10 @@ final class DepositWatcher
     }
 
     /**
-     * @throws InvalidCryptoTransactionException Si la transacción no pasa
-     *   alguna validación — nunca se acredita nada en ese caso.
+     * @throws InvalidCryptoTransactionException si la transacción no pasa
+     *                                           alguna validación — nunca se acredita nada en ese caso
      */
-    public function process(RawCryptoTransaction $raw): CryptoDeposit
+    public function process(RawCryptoTransaction $raw) : CryptoDeposit
     {
         $this->assertNetworkAllowed($raw->network);
         $this->assertTokenAllowed($raw->token, $raw->network);
@@ -51,9 +51,9 @@ final class DepositWatcher
             ->active()
             ->first();
 
-        if (!$depositAddress) {
+        if (! $depositAddress) {
             throw new InvalidCryptoTransactionException(
-                "La dirección destino '{$raw->toAddress}' no está asignada a ningún usuario."
+                "La dirección destino '{$raw->toAddress}' no está asignada a ningún usuario.",
             );
         }
 
@@ -73,32 +73,32 @@ final class DepositWatcher
         }
 
         $currency = Currency::where('iso_code', strtoupper($raw->token))->first();
-        if (!$currency) {
+        if (! $currency) {
             throw new InvalidCryptoTransactionException("Token '{$raw->token}' sin moneda configurada en el sistema.");
         }
 
         $wallet = $this->walletService->findActiveWallet((string) $depositAddress->user_id, (string) $currency->id);
-        if (!$wallet) {
+        if (! $wallet) {
             throw new InvalidCryptoTransactionException(
-                "El usuario {$depositAddress->user_id} no tiene una billetera activa en {$raw->token}."
+                "El usuario {$depositAddress->user_id} no tiene una billetera activa en {$raw->token}.",
             );
         }
 
         try {
-            return DB::transaction(function () use ($raw, $depositAddress, $wallet) {
+            return DB::transaction(function() use ($raw, $depositAddress, $wallet) {
                 $transaction = CryptoTransaction::create([
-                    'tx_hash'       => $raw->txHash,
-                    'network'       => $raw->network,
-                    'token'         => strtoupper($raw->token),
-                    'direction'     => CryptoTransaction::DIRECTION_DEPOSIT,
-                    'from_address'  => $raw->fromAddress,
-                    'to_address'    => $raw->toAddress,
-                    'amount'        => $raw->amount,
-                    'status'        => CryptoTransaction::STATUS_CONFIRMED,
+                    'tx_hash' => $raw->txHash,
+                    'network' => $raw->network,
+                    'token' => strtoupper($raw->token),
+                    'direction' => CryptoTransaction::DIRECTION_DEPOSIT,
+                    'from_address' => $raw->fromAddress,
+                    'to_address' => $raw->toAddress,
+                    'amount' => $raw->amount,
+                    'status' => CryptoTransaction::STATUS_CONFIRMED,
                     'confirmations' => $raw->confirmations,
-                    'user_id'       => $depositAddress->user_id,
-                    'wallet_id'     => $wallet->id,
-                    'confirmed_at'  => now(),
+                    'user_id' => $depositAddress->user_id,
+                    'wallet_id' => $wallet->id,
+                    'confirmed_at' => now(),
                 ]);
 
                 $deposit = CryptoDeposit::create([
@@ -116,11 +116,11 @@ final class DepositWatcher
                 $transaction->update(['status' => CryptoTransaction::STATUS_CREDITED]);
 
                 Log::info('[DepositWatcher] Depósito cripto acreditado', [
-                    'tx_hash'    => $raw->txHash,
-                    'user_id'    => $depositAddress->user_id,
-                    'amount'     => $raw->amount,
-                    'token'      => $raw->token,
-                    'network'    => $raw->network,
+                    'tx_hash' => $raw->txHash,
+                    'user_id' => $depositAddress->user_id,
+                    'amount' => $raw->amount,
+                    'token' => $raw->token,
+                    'network' => $raw->network,
                 ]);
 
                 return $deposit->fresh();
@@ -135,38 +135,39 @@ final class DepositWatcher
                     }
                 }
             }
+
             throw $e;
         }
     }
 
-    private function assertNetworkAllowed(string $network): void
-    {
-        $allowedNetworks = array_column(config('crypto.tokens', []), 'network');
-
-        if (!in_array($network, $allowedNetworks, true)) {
-            throw new InvalidCryptoTransactionException("Red '{$network}' no está en la whitelist configurada.");
-        }
-    }
-
-    private function assertTokenAllowed(string $token, string $network): void
-    {
-        $tokens = config('crypto.tokens', []);
-        $tokenConfig = $tokens[strtolower($token)] ?? null;
-
-        if (!$tokenConfig || $tokenConfig['network'] !== $network) {
-            throw new InvalidCryptoTransactionException(
-                "Token '{$token}' no está permitido en la red '{$network}' según la configuración."
-            );
-        }
-    }
-
-    private function assertMinConfirmations(int $confirmations): void
+    private function assertMinConfirmations(int $confirmations) : void
     {
         $min = (int) config('crypto.min_confirmations', 19);
 
         if ($confirmations < $min) {
             throw new InvalidCryptoTransactionException(
-                "Confirmaciones insuficientes: {$confirmations} de {$min} requeridas."
+                "Confirmaciones insuficientes: {$confirmations} de {$min} requeridas.",
+            );
+        }
+    }
+
+    private function assertNetworkAllowed(string $network) : void
+    {
+        $allowedNetworks = array_column(config('crypto.tokens', []), 'network');
+
+        if (! in_array($network, $allowedNetworks, true)) {
+            throw new InvalidCryptoTransactionException("Red '{$network}' no está en la whitelist configurada.");
+        }
+    }
+
+    private function assertTokenAllowed(string $token, string $network) : void
+    {
+        $tokens = config('crypto.tokens', []);
+        $tokenConfig = $tokens[strtolower($token)] ?? null;
+
+        if (! $tokenConfig || $tokenConfig['network'] !== $network) {
+            throw new InvalidCryptoTransactionException(
+                "Token '{$token}' no está permitido en la red '{$network}' según la configuración.",
             );
         }
     }

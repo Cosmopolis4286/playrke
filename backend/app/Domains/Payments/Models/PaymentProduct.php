@@ -19,13 +19,16 @@ class PaymentProduct extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'payment_products';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_ACTIVE   = 'ACTIVE';
+    public const STATUS_ACTIVE = 'ACTIVE';
     public const STATUS_INACTIVE = 'INACTIVE';
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'asset_definition_id' => 'string',
+        'asset_quantity' => 'integer',
+        'price_usdt' => 'float',
+    ];
 
     protected $fillable = [
         'code',
@@ -35,20 +38,17 @@ class PaymentProduct extends Model
         'price_usdt',
         'status',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'                  => 'string',
-        'asset_definition_id' => 'string',
-        'asset_quantity'      => 'integer',
-        'price_usdt'          => 'float',
-    ];
+    protected $table = 'payment_products';
 
-    public function assetDefinition(): BelongsTo
+    public function assetDefinition() : BelongsTo
     {
         return $this->belongsTo(AssetDefinition::class, 'asset_definition_id');
     }
 
-    public function isActive(): bool
+    public function isActive() : bool
     {
         return $this->status === self::STATUS_ACTIVE;
     }

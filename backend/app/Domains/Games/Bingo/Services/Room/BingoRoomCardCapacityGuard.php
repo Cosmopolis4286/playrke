@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
@@ -32,9 +34,9 @@ final class BingoRoomCardCapacityGuard
      * Verifica que la sala tenga cupo para $cardCount cartones más.
      * Debe llamarse DENTRO de DB::transaction() con lockForUpdate() activo.
      *
-     * @throws BingoRoomException si la compra excedería el tope de la sala.
+     * @throws BingoRoomException si la compra excedería el tope de la sala
      */
-    public static function assertHasCapacityFor(BingoRoom $room, int $cardCount): void
+    public static function assertHasCapacityFor(BingoRoom $room, int $cardCount) : void
     {
         $room->loadMissing('config');
         $maxCards = $room->config?->max_cards_to_start ?? null;
@@ -52,6 +54,7 @@ final class BingoRoomCardCapacityGuard
 
         if ((int) $current + $cardCount > (int) $maxCards) {
             $remaining = max(0, (int) $maxCards - (int) $current);
+
             throw BingoRoomException::cardLimitExceeded($remaining, $cardCount);
         }
     }

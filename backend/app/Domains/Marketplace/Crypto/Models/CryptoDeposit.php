@@ -12,35 +12,35 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CryptoDeposit extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'crypto_deposits';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
+
+    protected $casts = [
+        'id' => 'string',
+        'crypto_transaction_id' => 'string',
+        'wallet_movement_id' => 'string',
+    ];
 
     protected $fillable = [
         'crypto_transaction_id',
         'wallet_movement_id',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'                     => 'string',
-        'crypto_transaction_id'  => 'string',
-        'wallet_movement_id'     => 'string',
-    ];
+    protected $table = 'crypto_deposits';
 
-    public function cryptoTransaction(): BelongsTo
+    public function cryptoTransaction() : BelongsTo
     {
         return $this->belongsTo(CryptoTransaction::class, 'crypto_transaction_id');
     }
 
-    public function walletMovement(): BelongsTo
-    {
-        return $this->belongsTo(WalletMovement::class, 'wallet_movement_id');
-    }
-
-    public function isCredited(): bool
+    public function isCredited() : bool
     {
         return $this->wallet_movement_id !== null;
+    }
+
+    public function walletMovement() : BelongsTo
+    {
+        return $this->belongsTo(WalletMovement::class, 'wallet_movement_id');
     }
 }

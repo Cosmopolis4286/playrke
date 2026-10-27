@@ -12,118 +12,107 @@ use Illuminate\Database\Eloquent\Collection;
 interface BingoRoomUserRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Obtiene un jugador por sala, usuario creador y jugador
-     *
-     * @param mixed $roomId ID de la sala
-     * @param mixed $creatorUserId ID del usuario creador
-     * @param mixed $playerUserId ID del jugador
-     * @param array $fields Campos a seleccionar
-     * @return BingoRoomUser|null
-     */
-    public function getByPlayerUser($roomId, $creatorUserId, $playerUserId, array $fields = ['*']): ?BingoRoomUser;
-
-    /**
-     * Obtiene un valor específico por jugador
-     *
-     * @param mixed $roomId ID de la sala
-     * @param mixed $creatorUserId ID del usuario creador
-     * @param mixed $playerUserId ID del jugador
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByPlayerUser($roomId, $creatorUserId, $playerUserId, string $field = 'id');
-
-    /**
-     * Cuenta jugadores por sala con condición
-     *
-     * @param mixed $roomId ID de la sala
-     * @param array $condition Condición [operador, valor]
-     * @return int
-     */
-    public function getPlayerCountByRoom($roomId, array $condition = ['!=', '']): int;
-
-    /**
-     * Cuenta ganadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return int
-     */
-    public function getWinnersCountByRoom($roomId): int;
-
-    /**
-     * Cuenta no ganadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return int
-     */
-    public function getNonWinnersCountByRoom($roomId): int;
-
-    /**
      * Verifica si un jugador existe en una sala
      *
-     * @param mixed $roomId ID de la sala
+     * @param mixed $roomId  ID de la sala
      * @param array $creator Array [campo, valor] del creador
-     * @param array $player Array [campo, valor] del jugador
-     * @return bool
+     * @param array $player  Array [campo, valor] del jugador
      */
-    public function existsPlayerInRoom($roomId, array $creator, array $player): bool;
-
-    /**
-     * Obtiene jugadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return Collection
-     */
-    public function getByRoom($roomId): Collection;
-
-    /**
-     * Obtiene ganadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return Collection
-     */
-    public function getWinnersByRoom($roomId): Collection;
-
-    /**
-     * Obtiene no ganadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return Collection
-     */
-    public function getNonWinnersByRoom($roomId): Collection;
+    public function existsPlayerInRoom($roomId, array $creator, array $player) : bool;
 
     /**
      * Obtiene jugadores por usuario creador
      *
      * @param mixed $creatorUserId ID del usuario creador
-     * @return Collection
      */
-    public function getByCreatorUser($creatorUserId): Collection;
+    public function getByCreatorUser($creatorUserId) : Collection;
 
     /**
-     * Actualiza estado de ganador
+     * Obtiene un jugador por sala, usuario creador y jugador
      *
-     * @param mixed $id ID del jugador en sala
-     * @param string $winner Estado ganador ('Y' o 'N')
-     * @return bool
+     * @param mixed $roomId        ID de la sala
+     * @param mixed $creatorUserId ID del usuario creador
+     * @param mixed $playerUserId  ID del jugador
+     * @param array $fields        Campos a seleccionar
      */
-    public function updateWinnerStatus($id, string $winner): bool;
+    public function getByPlayerUser($roomId, $creatorUserId, $playerUserId, array $fields = ['*']) : ?BingoRoomUser;
 
     /**
-     * Actualiza cantidad de cartones
+     * Obtiene jugadores por sala
      *
-     * @param mixed $id ID del jugador en sala
-     * @param int $cardCount Cantidad de cartones
-     * @return bool
+     * @param mixed $roomId ID de la sala
      */
-    public function updateCartonCount($id, int $cardCount): bool;
+    public function getByRoom($roomId) : Collection;
+
+    /**
+     * Obtiene no ganadores por sala
+     *
+     * @param mixed $roomId ID de la sala
+     */
+    public function getNonWinnersByRoom($roomId) : Collection;
+
+    /**
+     * Cuenta no ganadores por sala
+     *
+     * @param mixed $roomId ID de la sala
+     */
+    public function getNonWinnersCountByRoom($roomId) : int;
+
+    /**
+     * Cuenta jugadores por sala con condición
+     *
+     * @param mixed $roomId    ID de la sala
+     * @param array $condition Condición [operador, valor]
+     */
+    public function getPlayerCountByRoom($roomId, array $condition = ['!=', '']) : int;
+
+    /**
+     * Obtiene un valor específico por jugador
+     *
+     * @param mixed  $roomId        ID de la sala
+     * @param mixed  $creatorUserId ID del usuario creador
+     * @param mixed  $playerUserId  ID del jugador
+     * @param string $field         Campo a obtener
+     *
+     * @return mixed
+     */
+    public function getValueByPlayerUser($roomId, $creatorUserId, $playerUserId, string $field = 'id');
+
+    /**
+     * Obtiene ganadores por sala
+     *
+     * @param mixed $roomId ID de la sala
+     */
+    public function getWinnersByRoom($roomId) : Collection;
+
+    /**
+     * Cuenta ganadores por sala
+     *
+     * @param mixed $roomId ID de la sala
+     */
+    public function getWinnersCountByRoom($roomId) : int;
 
     /**
      * Actualiza automarcador
      *
-     * @param mixed $id ID del jugador en sala
+     * @param mixed      $id         ID del jugador en sala
      * @param float|null $automarker Valor del automarcador
-     * @return bool
      */
-    public function updateAutomarker($id, ?float $automarker): bool;
+    public function updateAutomarker($id, ?float $automarker) : bool;
+
+    /**
+     * Actualiza cantidad de cartones
+     *
+     * @param mixed $id        ID del jugador en sala
+     * @param int   $cardCount Cantidad de cartones
+     */
+    public function updateCartonCount($id, int $cardCount) : bool;
+
+    /**
+     * Actualiza estado de ganador
+     *
+     * @param mixed  $id     ID del jugador en sala
+     * @param string $winner Estado ganador ('Y' o 'N')
+     */
+    public function updateWinnerStatus($id, string $winner) : bool;
 }

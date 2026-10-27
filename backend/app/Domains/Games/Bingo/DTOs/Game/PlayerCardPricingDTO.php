@@ -10,8 +10,9 @@ final class PlayerCardPricingDTO
 {
     public function __construct(
         public readonly string $currencySymbol,
-        public readonly ?int   $currencyId,
-        public readonly float  $exchangeRate,
-        public readonly float  $cardPrice,
-    ) {}
+        public readonly ?int $currencyId,
+        public readonly float $exchangeRate,
+        public readonly float $cardPrice,
+    ) {
+    }
 }

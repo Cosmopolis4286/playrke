@@ -2,17 +2,19 @@
 
 namespace App\Domains\Games\Bingo\Services\Card;
 
-use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
-use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
-use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
-use App\Domains\Games\Bingo\Services\Card\BingoCardManagementService;
+use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
+use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Servicio especializado en la generación de cartones de bingo.
@@ -20,22 +22,22 @@ use Illuminate\Support\Facades\Log;
  * Encapsula la lógica de generación de cartones que estaba en BingoTrait,
  * proporcionando una interfaz limpia y desacoplada.
  *
- * @package App\Domains\Games\Bingo\Services\Card
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 final class BingoCardGenerationService
 {
-    private RoomUserRegistrationService $roomUserRegistration;
+    private BingoCardManagementService $cardManagement;
     private CommissionCalculationService $commissionCalculation;
     private RoomMetricsService $roomMetrics;
-    private BingoCardManagementService $cardManagement;
+    private RoomUserRegistrationService $roomUserRegistration;
 
     public function __construct(
         RoomUserRegistrationService $roomUserRegistration,
         CommissionCalculationService $commissionCalculation,
         RoomMetricsService $roomMetrics,
-        BingoCardManagementService $cardManagement
+        BingoCardManagementService $cardManagement,
     ) {
         $this->roomUserRegistration = $roomUserRegistration;
         $this->commissionCalculation = $commissionCalculation;
@@ -47,10 +49,12 @@ final class BingoCardGenerationService
      * Genera cartones de bingo usando el flujo simplificado para jugadores.
      *
      * @param array $cardOrder Array con los datos necesarios para generar cartones
+     *
      * @return array Resultado de la generación con room_user o error
-     * @throws \DomainException Si hay errores en el proceso
+     *
+     * @throws DomainException Si hay errores en el proceso
      */
-    public function generateCards(array $cardOrder): array
+    public function generateCards(array $cardOrder) : array
     {
         $roomId = $cardOrder['roomId'];
 
@@ -59,16 +63,16 @@ final class BingoCardGenerationService
             $room = BingoRoom::with(['status', 'config'])
                 ->where('id', $roomId)
                 ->first();
-        } catch (\Throwable $e) {
-            throw new \DomainException('Error al cargar sala: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            throw new DomainException('Error al cargar sala: ' . $e->getMessage());
         }
 
-        if (!$room) {
-            throw new \DomainException('Sala no encontrada con ID: ' . $roomId);
+        if (! $room) {
+            throw new DomainException('Sala no encontrada con ID: ' . $roomId);
         }
 
-        if (!in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'])) {
-            throw new \DomainException('Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
+        if (! in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'])) {
+            throw new DomainException('Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
         }
 
         // Sala DEMO (de prueba, sin dinero real): el cartón es gratis sin
@@ -76,9 +80,9 @@ final class BingoCardGenerationService
         // y el canal 'demo' hace que RoomMetricsService solo cuente cartones
         // (sin RKE, jackpot, bote, venta del creador ni deuda del comercio).
         if ($room->isDemo()) {
-            $cardOrder['cardPrice']     = 0;
+            $cardOrder['cardPrice'] = 0;
             $cardOrder['saleAmountUsd'] = 0;
-            $cardOrder['saleChannel']   = 'demo';
+            $cardOrder['saleChannel'] = 'demo';
         }
 
         try {
@@ -97,8 +101,8 @@ final class BingoCardGenerationService
 
             $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($cardOrder);
 
-            if (!$roomUserResult) {
-                throw new \DomainException('Error al registrar usuario en la sala');
+            if (! $roomUserResult) {
+                throw new DomainException('Error al registrar usuario en la sala');
             }
 
             $roomUserId = $roomUserResult['id'];
@@ -120,7 +124,7 @@ final class BingoCardGenerationService
             $sellerSaleCommn = $networkSplit['seller_amount'] ?? 0;
             $cardOrder['networkCommission'] = [
                 'subsidiary' => (float) ($networkSplit['subsidiary_amount'] ?? 0),
-                'commerce'   => (float) ($networkSplit['commerce_amount'] ?? 0),
+                'commerce' => (float) ($networkSplit['commerce_amount'] ?? 0),
             ];
 
             // Verificar tope de cartones ANTES de tocar total_cards — debe ir
@@ -135,8 +139,8 @@ final class BingoCardGenerationService
             // Se guarda en el lote para poder revertir la venta si se reembolsa.
             $cardOrder['financialBreakdown'] = $saleBreakdown;
 
-            if (!$updateRoomMetrics) {
-                throw new \DomainException('Error al actualizar los valores de la sala');
+            if (! $updateRoomMetrics) {
+                throw new DomainException('Error al actualizar los valores de la sala');
             }
 
             // Verificar cupo antes de registrar nuevo jugador (dentro de la transacción con lock).
@@ -148,8 +152,8 @@ final class BingoCardGenerationService
             // Validar que el usuario autenticado exista en la tabla users
             $authenticatedUserId = auth()->id();
             $sellerExists = \DB::table('users')->where('id', $authenticatedUserId)->exists();
-            if (!$sellerExists) {
-                throw new \DomainException('El usuario autenticado no existe en el sistema');
+            if (! $sellerExists) {
+                throw new DomainException('El usuario autenticado no existe en el sistema');
             }
 
             // Usar el usuario autenticado como seller_user_id
@@ -166,9 +170,9 @@ final class BingoCardGenerationService
             // Porciones de agencia/comercializadora + snapshot de a quién
             // correspondían al vender (el vendedor puede reasignarse después).
             $cardOrder['subsidiaryCommissionAmount'] = $networkSplit['subsidiary_amount'] ?? 0;
-            $cardOrder['commerceCommissionAmount']   = $networkSplit['commerce_amount'] ?? 0;
-            $cardOrder['networkSubsidiaryId']        = $networkSplit['subsidiary_id'] ?? null;
-            $cardOrder['networkCommerceId']          = $networkSplit['commerce_id'] ?? null;
+            $cardOrder['commerceCommissionAmount'] = $networkSplit['commerce_amount'] ?? 0;
+            $cardOrder['networkSubsidiaryId'] = $networkSplit['subsidiary_id'] ?? null;
+            $cardOrder['networkCommerceId'] = $networkSplit['commerce_id'] ?? null;
 
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCardLot($cardOrder, $saleAmount);
@@ -229,23 +233,22 @@ final class BingoCardGenerationService
             // se ejecuta en la práctica y se eliminó para no mantener una ruta muerta.
 
             // Registrar moneda en la sala si aún no existe
-            if ($gameModeId && !CurrencyGameRoom::existsCurrencyGameRoom($currency, $roomId, 'BINGO', $gameModeId)) {
+            if ($gameModeId && ! CurrencyGameRoom::existsCurrencyGameRoom($currency, $roomId, 'BINGO', $gameModeId)) {
                 CurrencyGameRoom::createNewCurrencyInRoom(
                     ['name' => 'BINGO', 'game_mode' => $gameModeId],
                     $roomId,
-                    $currency
+                    $currency,
                 );
             }
 
             return ['room_user_id' => $roomUserId];
-
         } catch (\App\Exceptions\Domain\DomainException $e) {
             // Errores de dominio con código propio (comprobante, capacidad,
             // etc.) se propagan intactos para que el usuario vea su mensaje
             // traducido — el catch genérico de abajo los ocultaba.
             throw $e;
-        } catch (\Throwable $e) {
-            throw new \DomainException('Error en generación de cartones: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            throw new DomainException('Error en generación de cartones: ' . $e->getMessage());
         }
     }
 
@@ -253,32 +256,24 @@ final class BingoCardGenerationService
      * Genera cartones dentro de una transacción de base de datos.
      *
      * @param array $cardOrder Datos para generación
+     *
      * @return array Resultado con room_user
-     * @throws \DomainException
+     *
+     * @throws DomainException
      */
-    public function generateInTransaction(array $cardOrder): array
+    public function generateInTransaction(array $cardOrder) : array
     {
         return DB::transaction(fn () => $this->generateCards($cardOrder));
-    }
-
-    private function toUsdAmount(float $amount, float $exchangeRate): float
-    {
-        if ($exchangeRate <= 0) {
-            throw new \DomainException('Tasa de cambio inválida para convertir el monto a USD.');
-        }
-
-        return round($amount / $exchangeRate, 3);
     }
 
     /**
      * Crear registro de pago para cartones de jugadores externos.
      *
-     * @param array $cardOrder Datos de generación de cartones
-     * @param int $roomUserId ID del usuario en la sala
-     * @param int $lotID ID del lote de cartones
-     * @return void
+     * @param array $cardOrder  Datos de generación de cartones
+     * @param int   $roomUserId ID del usuario en la sala
+     * @param int   $lotID      ID del lote de cartones
      */
-    private function createCardPayment(array $cardOrder, int $roomUserId, int $lotID): void
+    private function createCardPayment(array $cardOrder, int $roomUserId, int $lotID) : void
     {
         $paymentProof = null;
 
@@ -297,8 +292,8 @@ final class BingoCardGenerationService
                     BingoCardPayment::PROOF_DISK,
                 );
 
-                if (!$paymentProof) {
-                    throw new \RuntimeException('No se pudo almacenar el comprobante.');
+                if (! $paymentProof) {
+                    throw new RuntimeException('No se pudo almacenar el comprobante.');
                 }
             }
 
@@ -315,39 +310,48 @@ final class BingoCardGenerationService
             // estados COMPLETED/FAILED fuera del enum: el INSERT fallaba SIEMPRE,
             // el error se tragaba, y sin fila PENDING los cartones quedaban
             // jugables sin que nadie revisara el comprobante.
-            $isExternalPlayerPayment = !empty($cardOrder['externalPlayerId']);
+            $isExternalPlayerPayment = ! empty($cardOrder['externalPlayerId']);
 
             BingoCardPayment::create([
                 // cash | mobile_payment | bank_transfer (elegido en el punto de
                 // venta). Antes siempre 'seller_cash', aunque se exigiera comprobante.
-                'payment_method'        => $cardOrder['paymentMethod'] ?? 'cash',
-                'description'           => 'Venta de ' . $cardOrder['cardCount'] . ' cartón(es) por vendedor',
-                'room_id'               => $cardOrder['roomId'],
-                'seller_user_id'        => $cardOrder['seller_user_id'],
-                'user_id'               => $cardOrder['seller_user_id'] ?? null,
-                'external_player_id'    => $cardOrder['externalPlayerId'] ?? null,
-                'currency_id'           => $cardOrder['currency'],
-                'card_lot_id'           => $lotID,
-                'payment_amount'        => round($cardOrder['cardPrice'] * $cardOrder['cardCount'], 2),
-                'payment_proof'         => $paymentProof ?? '',
-                'payment_status'        => $isExternalPlayerPayment ? 'PENDING' : 'APPROVED',
-                'processed_at'          => $isExternalPlayerPayment ? null : now(),
+                'payment_method' => $cardOrder['paymentMethod'] ?? 'cash',
+                'description' => 'Venta de ' . $cardOrder['cardCount'] . ' cartón(es) por vendedor',
+                'room_id' => $cardOrder['roomId'],
+                'seller_user_id' => $cardOrder['seller_user_id'],
+                'user_id' => $cardOrder['seller_user_id'] ?? null,
+                'external_player_id' => $cardOrder['externalPlayerId'] ?? null,
+                'currency_id' => $cardOrder['currency'],
+                'card_lot_id' => $lotID,
+                'payment_amount' => round($cardOrder['cardPrice'] * $cardOrder['cardCount'], 2),
+                'payment_proof' => $paymentProof ?? '',
+                'payment_status' => $isExternalPlayerPayment ? 'PENDING' : 'APPROVED',
+                'processed_at' => $isExternalPlayerPayment ? null : now(),
                 'transaction_reference' => $cardOrder['receiptNumber'] ?? null,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             if ($paymentProof) {
                 \Illuminate\Support\Facades\Storage::disk(BingoCardPayment::PROOF_DISK)->delete($paymentProof);
             }
 
             Log::error('Error creating card payment', [
-                'error'        => $e->getMessage(),
+                'error' => $e->getMessage(),
                 'room_user_id' => $roomUserId,
-                'lot_id'       => $lotID,
+                'lot_id' => $lotID,
             ]);
 
             // Sin registro de pago no hay revisión: la venta completa se revierte
             // (estamos dentro de la transacción de generateCards()).
             throw \App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException::paymentRecordFailed();
         }
+    }
+
+    private function toUsdAmount(float $amount, float $exchangeRate) : float
+    {
+        if ($exchangeRate <= 0) {
+            throw new DomainException('Tasa de cambio inválida para convertir el monto a USD.');
+        }
+
+        return round($amount / $exchangeRate, 3);
     }
 }

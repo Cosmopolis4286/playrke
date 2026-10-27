@@ -23,9 +23,15 @@ class EscrowStatusChanged implements ShouldBroadcastNow
         public readonly string $buyerId,
         public readonly string $sellerId,
         public readonly string $status,
-    ) {}
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'marketplace.escrow.status_changed';
+    }
+
+    public function broadcastOn() : array
     {
         return [
             new PrivateChannel("App.Models.User.{$this->buyerId}"),
@@ -33,16 +39,11 @@ class EscrowStatusChanged implements ShouldBroadcastNow
         ];
     }
 
-    public function broadcastAs(): string
-    {
-        return 'marketplace.escrow.status_changed';
-    }
-
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'escrow_id' => $this->escrowId,
-            'status'    => $this->status,
+            'status' => $this->status,
         ];
     }
 }

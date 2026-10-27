@@ -2,7 +2,6 @@
 
 namespace App\Domains\Games\Bingo\Models\Card;
 
-use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
 use App\Models\User;
@@ -14,7 +13,17 @@ class BingoLotRefundFailure extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_lot_refund_failures';
+    protected $casts = [
+        'id' => 'string',
+        'room_id' => 'string',
+        'lot_id' => 'string',
+        'user_id' => 'string',
+        'currency_id' => 'string',
+        'amount' => 'decimal:4',
+        'attempts' => 'integer',
+        'last_attempted_at' => 'datetime',
+        'resolved_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'room_id', 'lot_id', 'user_id', 'currency_id',
@@ -22,40 +31,30 @@ class BingoLotRefundFailure extends Model
         'last_attempted_at', 'resolved_at',
     ];
 
-    protected $casts = [
-        'id'                => 'string',
-        'room_id'           => 'string',
-        'lot_id'            => 'string',
-        'user_id'           => 'string',
-        'currency_id'       => 'string',
-        'amount'            => 'decimal:4',
-        'attempts'          => 'integer',
-        'last_attempted_at' => 'datetime',
-        'resolved_at'       => 'datetime',
-    ];
+    protected $table = 'bingo_lot_refund_failures';
 
-    public function room(): BelongsTo
+    public function currency() : BelongsTo
     {
-        return $this->belongsTo(BingoRoom::class, 'room_id');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function lot(): BelongsTo
+    public function lot() : BelongsTo
     {
         return $this->belongsTo(BingoCardLot::class, 'lot_id');
     }
 
-    public function user(): BelongsTo
+    public function room() : BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function currency(): BelongsTo
-    {
-        return $this->belongsTo(Currency::class, 'currency_id');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
     public function scopePending($query)
     {
         return $query->where('status', 'PENDING');
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

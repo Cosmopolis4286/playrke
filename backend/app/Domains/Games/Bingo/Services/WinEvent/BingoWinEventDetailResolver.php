@@ -15,33 +15,32 @@ use App\Domains\Platform\WinEvent\Support\WinEventDetailSection as Section;
  */
 final class BingoWinEventDetailResolver implements WinEventDetailResolver
 {
-    private const PRIZE_STATUS_VARIANTS = [
-        'waiting'    => 'warning',
-        'processing' => 'info',
-        'claimed'    => 'success',
-        'cancelled'  => 'secondary',
-        'suspended'  => 'danger',
-        'disputed'   => 'danger',
-    ];
-
     private const PAYMENT_STATUS_VARIANTS = [
-        'pending'   => 'warning',
+        'pending' => 'warning',
         'completed' => 'success',
-        'failed'    => 'danger',
+        'failed' => 'danger',
         'cancelled' => 'secondary',
     ];
+    private const PRIZE_STATUS_VARIANTS = [
+        'waiting' => 'warning',
+        'processing' => 'info',
+        'claimed' => 'success',
+        'cancelled' => 'secondary',
+        'suspended' => 'danger',
+        'disputed' => 'danger',
+    ];
 
-    public function gameSlug(): string
-    {
-        return 'bingo';
-    }
-
-    public function consumedMetadataKeys(): array
+    public function consumedMetadataKeys() : array
     {
         return ['room_id', 'pattern'];
     }
 
-    public function resolve(WinEvent $winEvent): array
+    public function gameSlug() : string
+    {
+        return 'bingo';
+    }
+
+    public function resolve(WinEvent $winEvent) : array
     {
         $prize = $winEvent->source_reference
             ? BingoCardPrize::withTrashed()
@@ -67,7 +66,43 @@ final class BingoWinEventDetailResolver implements WinEventDetailResolver
         ]));
     }
 
-    private function prizeSection(WinEvent $winEvent, ?BingoCardPrize $prize): Section
+    private function cardSection(BingoCardPrize $prize) : Section
+    {
+        $card = $prize->winningCard;
+        $numbers = $card->card_numbers;
+
+        // BingoCardManagementService guarda json_encode() sobre un cast 'array':
+        // según el origen del cartón puede volver como string JSON.
+        if (is_string($numbers)) {
+            $numbers = json_decode($numbers, true);
+        }
+
+        return Section::make('bingo-card', 'Cartón ganador', 'fas fa-th')
+            ->item('Serial', $card->serial_number, Section::TYPE_CODE)
+            ->item('Estado', $card->getCardStatusDescription(), Section::TYPE_BADGE, 'success')
+            ->item('Cartón personalizado', $card->is_custom_card ? 'Sí' : null)
+            ->item('Números', is_array($numbers) && $numbers !== [] ? $numbers : null, Section::TYPE_NUMBERS);
+    }
+
+    private function paymentsSection(BingoCardPrize $prize) : Section
+    {
+        return Section::make('bingo-payments', 'Pagos del premio', 'fas fa-money-check-alt')
+            ->table('Intentos de pago', [
+                'method' => 'Método',
+                'amount' => 'Monto',
+                'status' => 'Estado',
+                'reference' => 'Referencia',
+                'processed' => 'Procesado',
+            ], $prize->payments->map(fn (BingoCardPrizePayment $p) => [
+                'method' => $p->payment_method_description,
+                'amount' => ($prize->currency?->symbol ?? '') . number_format((float) $p->payment_amount, (int) ($prize->currency?->decimal_places ?? 2)),
+                'status' => ['value' => $p->payment_status_description, 'variant' => self::PAYMENT_STATUS_VARIANTS[$p->payment_status] ?? 'secondary'],
+                'reference' => $p->transaction_reference,
+                'processed' => $p->processed_at?->toISOString(),
+            ])->all());
+    }
+
+    private function prizeSection(WinEvent $winEvent, ?BingoCardPrize $prize) : Section
     {
         $section = Section::make('bingo-prize', 'Premio de Bingo', 'fas fa-trophy')
             ->item('Patrón ganador', $prize?->round?->bingoPattern?->name ?? $prize?->winning_pattern ?? $winEvent->metadata['pattern'] ?? null);
@@ -92,7 +127,7 @@ final class BingoWinEventDetailResolver implements WinEventDetailResolver
             ->item('ID del premio', (string) $prize->id, Section::TYPE_CODE);
     }
 
-    private function roomSection(BingoRoom $room): Section
+    private function roomSection(BingoRoom $room) : Section
     {
         return Section::make('bingo-room', 'Sala', 'fas fa-door-open')
             ->item('Código de sala', $room->uuid_code, Section::TYPE_CODE)
@@ -104,41 +139,5 @@ final class BingoWinEventDetailResolver implements WinEventDetailResolver
             ->item('Publicada', $room->published_at?->toISOString(), Section::TYPE_DATETIME)
             ->item('Finalizada', $room->finished_at?->toISOString(), Section::TYPE_DATETIME)
             ->item('ID de sala', (string) $room->id, Section::TYPE_CODE);
-    }
-
-    private function cardSection(BingoCardPrize $prize): Section
-    {
-        $card = $prize->winningCard;
-        $numbers = $card->card_numbers;
-
-        // BingoCardManagementService guarda json_encode() sobre un cast 'array':
-        // según el origen del cartón puede volver como string JSON.
-        if (is_string($numbers)) {
-            $numbers = json_decode($numbers, true);
-        }
-
-        return Section::make('bingo-card', 'Cartón ganador', 'fas fa-th')
-            ->item('Serial', $card->serial_number, Section::TYPE_CODE)
-            ->item('Estado', $card->getCardStatusDescription(), Section::TYPE_BADGE, 'success')
-            ->item('Cartón personalizado', $card->is_custom_card ? 'Sí' : null)
-            ->item('Números', is_array($numbers) && $numbers !== [] ? $numbers : null, Section::TYPE_NUMBERS);
-    }
-
-    private function paymentsSection(BingoCardPrize $prize): Section
-    {
-        return Section::make('bingo-payments', 'Pagos del premio', 'fas fa-money-check-alt')
-            ->table('Intentos de pago', [
-                'method'    => 'Método',
-                'amount'    => 'Monto',
-                'status'    => 'Estado',
-                'reference' => 'Referencia',
-                'processed' => 'Procesado',
-            ], $prize->payments->map(fn (BingoCardPrizePayment $p) => [
-                'method'    => $p->payment_method_description,
-                'amount'    => ($prize->currency?->symbol ?? '') . number_format((float) $p->payment_amount, (int) ($prize->currency?->decimal_places ?? 2)),
-                'status'    => ['value' => $p->payment_status_description, 'variant' => self::PAYMENT_STATUS_VARIANTS[$p->payment_status] ?? 'secondary'],
-                'reference' => $p->transaction_reference,
-                'processed' => $p->processed_at?->toISOString(),
-            ])->all());
     }
 }

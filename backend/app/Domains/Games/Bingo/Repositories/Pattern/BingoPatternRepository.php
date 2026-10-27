@@ -2,9 +2,9 @@
 
 namespace App\Domains\Games\Bingo\Repositories\Pattern;
 
+use App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Repositories\BaseRepository;
-use App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -21,35 +21,17 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
     }
 
     /**
-     * {@inheritDoc}
+     * Crear nuevo patrón
      */
-    public function getByUserAndDefault(string $userId, array $fields = ['*'], ?string $status = null): Collection
+    public function createPattern(array $patternData) : BingoPattern
     {
-        $query = $this->model
-            ->where(function ($q) use ($userId) {
-                $q->where('user_id', $userId)
-                    ->orWhere('default_pattern', 'Y');
-            });
-
-        if (!empty($fields)) {
-            $query->select($fields);
-        }
-
-        if (!empty($status)) {
-            $query->where('status', $status);
-        }
-
-        return $query->get();
+        return $this->create($patternData);
     }
 
     /**
      * Verificar si existe un patrón por nombre y usuario
-     *
-     * @param string $name
-     * @param string $userId
-     * @return bool
      */
-    public function existsByNameAndUser(string $name, string $userId): bool
+    public function existsByNameAndUser(string $name, string $userId) : bool
     {
         return $this->model->where('name', $name)
             ->where('user_id', $userId)
@@ -57,24 +39,31 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
     }
 
     /**
-     * Crear nuevo patrón
-     *
-     * @param array $patternData
-     * @return BingoPattern
+     * {@inheritDoc}
      */
-    public function createPattern(array $patternData): BingoPattern
+    public function getByUserAndDefault(string $userId, array $fields = ['*'], ?string $status = null) : Collection
     {
-        return $this->create($patternData);
+        $query = $this->model
+            ->where(function($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhere('default_pattern', 'Y');
+            });
+
+        if (! empty($fields)) {
+            $query->select($fields);
+        }
+
+        if (! empty($status)) {
+            $query->where('status', $status);
+        }
+
+        return $query->get();
     }
 
     /**
      * Actualizar patrón
-     *
-     * @param string $patternId
-     * @param array $updateData
-     * @return bool
      */
-    public function updatePattern(string $patternId, array $updateData): bool
+    public function updatePattern(string $patternId, array $updateData) : bool
     {
         return $this->model->where('id', $patternId)
             ->update($updateData) > 0;
@@ -82,12 +71,8 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
 
     /**
      * Actualizar estado de patrón
-     *
-     * @param string $patternId
-     * @param string $newStatus
-     * @return bool
      */
-    public function updatePatternStatus(string $patternId, string $newStatus): bool
+    public function updatePatternStatus(string $patternId, string $newStatus) : bool
     {
         return $this->updatePattern($patternId, ['status' => $newStatus]);
     }

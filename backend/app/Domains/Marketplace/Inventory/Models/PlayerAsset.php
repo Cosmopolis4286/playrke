@@ -23,16 +23,22 @@ class PlayerAsset extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'player_assets';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_AVAILABLE  = 'AVAILABLE';
-    public const STATUS_LOCKED     = 'LOCKED';
-    public const STATUS_CONSUMED   = 'CONSUMED';
+    public const STATUS_AVAILABLE = 'AVAILABLE';
+    public const STATUS_CONSUMED = 'CONSUMED';
+    public const STATUS_EXPIRED = 'EXPIRED';
+    public const STATUS_LOCKED = 'LOCKED';
     public const STATUS_TRANSFERRED = 'TRANSFERRED';
-    public const STATUS_EXPIRED    = 'EXPIRED';
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'asset_definition_id' => 'string',
+        'owner_id' => 'string',
+        'locked_by_escrow_id' => 'string',
+        'quantity' => 'integer',
+        'metadata' => 'array',
+        'expires_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'asset_definition_id',
@@ -45,35 +51,29 @@ class PlayerAsset extends Model
         'metadata',
         'expires_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'                   => 'string',
-        'asset_definition_id'  => 'string',
-        'owner_id'             => 'string',
-        'locked_by_escrow_id'  => 'string',
-        'quantity'             => 'integer',
-        'metadata'             => 'array',
-        'expires_at'           => 'datetime',
-    ];
+    protected $table = 'player_assets';
 
-    public function assetDefinition(): BelongsTo
+    public function assetDefinition() : BelongsTo
     {
         return $this->belongsTo(AssetDefinition::class, 'asset_definition_id');
     }
 
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'owner_id');
-    }
-
-    public function isAvailable(): bool
+    public function isAvailable() : bool
     {
         return $this->status === self::STATUS_AVAILABLE;
     }
 
-    public function isLocked(): bool
+    public function isLocked() : bool
     {
         return $this->status === self::STATUS_LOCKED;
+    }
+
+    public function owner() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function scopeAvailable($query)

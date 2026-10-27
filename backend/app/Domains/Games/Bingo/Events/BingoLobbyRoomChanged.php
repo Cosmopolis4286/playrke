@@ -23,63 +23,20 @@ final class BingoLobbyRoomChanged implements ShouldBroadcast
 {
     use SerializesModels;
 
-    public const ACTION_ACTIVATED   = 'activated';
-    public const ACTION_UPDATED     = 'updated';
+    public const ACTION_ACTIVATED = 'activated';
     public const ACTION_DEACTIVATED = 'deactivated';
+    public const ACTION_UPDATED = 'updated';
 
     public function __construct(
         public readonly BingoRoom $room,
         /** activated | updated | deactivated */
         public readonly string $action,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel('bingo.lobby');
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'RoomChanged';
-    }
-
-    public function broadcastWith(): array
-    {
-        $room = $this->room;
-        $config = $room->config;
-
-        return [
-            'action' => $this->action,
-            'room' => [
-                'id'              => $room->getRouteKey(),
-                'uuid_code'       => $room->uuid_code,
-                'prize_pool'      => (float) $room->prize_pool,
-                'total_players'   => (int) $room->total_players,
-                'total_cards'     => (int) $room->total_cards,
-                'creator_user_id' => (string) $room->creator_user_id,
-                'room_type'       => $config?->roomType?->code ?? 'PUBLIC',
-                'game_mode'       => $config?->connectionType?->code,
-                'status_code'     => $room->status?->code ?? 'ACTIVE',
-                'rounds_count'    => $room->rounds()->count(),
-                'config' => $config ? [
-                    'room_id'            => $config->room_id,
-                    'card_price_usd'     => (float) $config->card_price_usd,
-                    // Código (ACCUMULATIVE/FIXED/MIXED/PRIZE), igual que BingoGameRoomsDTO:
-                    // el lobby reemplaza el config de la sala con este payload y
-                    // isAccumulatedPrize() compara contra el código. Antes se mandaba
-                    // (int) del snowflake — número inútil para el front (y además
-                    // supera MAX_SAFE_INTEGER en JS).
-                    'prize_pool_type'    => $config->prizePoolType?->code,
-                    'unix_date'          => $config->unix_date,
-                    'date'               => $config->date?->toDateString(),
-                    'time'               => $config->time,
-                    'min_cards_to_start' => $config->min_cards_to_start,
-                    'max_cards_to_start' => $config->max_cards_to_start,
-                    'max_players'        => $config->max_players,
-                    'min_players'        => $config->min_players,
-                ] : null,
-            ],
-        ];
     }
 
     /**
@@ -88,5 +45,49 @@ final class BingoLobbyRoomChanged implements ShouldBroadcast
     public function broadcastConnection()
     {
         return 'reverb';
+    }
+
+    public function broadcastOn() : Channel
+    {
+        return new Channel('bingo.lobby');
+    }
+
+    public function broadcastWith() : array
+    {
+        $room = $this->room;
+        $config = $room->config;
+
+        return [
+            'action' => $this->action,
+            'room' => [
+                'id' => $room->getRouteKey(),
+                'uuid_code' => $room->uuid_code,
+                'prize_pool' => (float) $room->prize_pool,
+                'total_players' => (int) $room->total_players,
+                'total_cards' => (int) $room->total_cards,
+                'creator_user_id' => (string) $room->creator_user_id,
+                'room_type' => $config?->roomType?->code ?? 'PUBLIC',
+                'game_mode' => $config?->connectionType?->code,
+                'status_code' => $room->status?->code ?? 'ACTIVE',
+                'rounds_count' => $room->rounds()->count(),
+                'config' => $config ? [
+                    'room_id' => $config->room_id,
+                    'card_price_usd' => (float) $config->card_price_usd,
+                    // Código (ACCUMULATIVE/FIXED/MIXED/PRIZE), igual que BingoGameRoomsDTO:
+                    // el lobby reemplaza el config de la sala con este payload y
+                    // isAccumulatedPrize() compara contra el código. Antes se mandaba
+                    // (int) del snowflake — número inútil para el front (y además
+                    // supera MAX_SAFE_INTEGER en JS).
+                    'prize_pool_type' => $config->prizePoolType?->code,
+                    'unix_date' => $config->unix_date,
+                    'date' => $config->date?->toDateString(),
+                    'time' => $config->time,
+                    'min_cards_to_start' => $config->min_cards_to_start,
+                    'max_cards_to_start' => $config->max_cards_to_start,
+                    'max_players' => $config->max_players,
+                    'min_players' => $config->min_players,
+                ] : null,
+            ],
+        ];
     }
 }

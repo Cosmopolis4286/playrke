@@ -15,19 +15,16 @@ class BingoRoomInvitation extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_room_invitations';
-
-    protected $fillable = ['room_id', 'user_id', 'phone', 'phone_key', 'label', 'invited_by_user_id'];
-
     protected $casts = [
-        'id'                 => 'string',
-        'room_id'            => 'string',
-        'user_id'            => 'string',
+        'id' => 'string',
+        'room_id' => 'string',
+        'user_id' => 'string',
         'invited_by_user_id' => 'string',
     ];
 
-    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
-    public function user(): BelongsTo { return $this->belongsTo(User::class, 'user_id'); }
+    protected $fillable = ['room_id', 'user_id', 'phone', 'phone_key', 'label', 'invited_by_user_id'];
+
+    protected $table = 'bingo_room_invitations';
 
     /**
      * Clave de comparación de un teléfono: sus últimos 10 dígitos. Los
@@ -35,10 +32,20 @@ class BingoRoomInvitation extends Model
      * "+584141234567", "04141234567") y todos comparten esos 10 dígitos.
      * null si no tiene al menos 7 dígitos (no es un teléfono usable).
      */
-    public static function phoneKey(?string $phone): ?string
+    public static function phoneKey(?string $phone) : ?string
     {
         $digits = preg_replace('/\D/', '', (string) $phone);
 
         return strlen($digits) >= 7 ? substr($digits, -10) : null;
+    }
+
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

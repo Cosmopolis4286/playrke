@@ -12,6 +12,7 @@ use App\Domains\Payments\Models\PaymentOrder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Evalúa cada PaymentOrder activa contra el proveedor de blockchain y avanza
@@ -34,30 +35,7 @@ final class BlockchainWatcherService
     ) {
     }
 
-    /**
-     * Evalúa todas las órdenes activas (no terminales) y expira las vencidas
-     * antes de consultar la blockchain — nunca acredita una orden que ya
-     * pasó su expires_at, sin importar qué reporte el proveedor.
-     */
-    public function watchAll(): void
-    {
-        $this->expireOverdueOrders();
-
-        PaymentOrder::active()->chunkById(100, function ($orders) {
-            foreach ($orders as $order) {
-                try {
-                    $this->evaluate($order);
-                } catch (\Throwable $e) {
-                    Log::channel('slack')->error('payments.watcher.evaluate_failed', [
-                        'payment_order_id' => $order->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-        });
-    }
-
-    public function evaluate(PaymentOrder $order): PaymentOrder
+    public function evaluate(PaymentOrder $order) : PaymentOrder
     {
         if ($order->isTerminal()) {
             return $order;
@@ -66,22 +44,23 @@ final class BlockchainWatcherService
         $incoming = $this->blockchain->getIncomingTransactions($order->deposit_address);
 
         $match = collect($incoming)->first(
-            fn ($tx) => $tx->tokenContract === $order->token_contract
+            fn ($tx) => $tx->tokenContract === $order->token_contract,
         );
 
-        if (!$match) {
+        if (! $match) {
             return $order;
         }
 
         // tx_hash ya usado por OTRA orden -> nunca se reasigna (segunda
         // capa de defensa contra doble-acreditación, además del unique en
         // crypto_transactions.tx_hash).
-        $alreadyLinked = PaymentOrder::where('crypto_transaction_id', function ($query) use ($match) {
+        $alreadyLinked = PaymentOrder::where('crypto_transaction_id', function($query) use ($match) {
             $query->select('id')->from('crypto_transactions')->where('tx_hash', $match->txHash);
         })->where('id', '!=', $order->id)->exists();
 
         if ($alreadyLinked) {
             $this->logAttempt($order, $match->txHash, PaymentAttempt::ACTION_DETECT, PaymentAttempt::RESULT_REJECTED, 'tx_hash ya asociado a otra orden');
+
             return $order;
         }
 
@@ -95,35 +74,51 @@ final class BlockchainWatcherService
         if ($confirmations < $required) {
             $this->transitionTo($order, PaymentOrder::STATUS_CONFIRMING);
             $this->logAttempt($order, $match->txHash, PaymentAttempt::ACTION_CONFIRM, PaymentAttempt::RESULT_REJECTED, "confirmaciones {$confirmations}/{$required}");
+
             return $order->fresh();
         }
 
         return $this->confirmAndDeliver($order, $match);
     }
 
-    private function markDetected(PaymentOrder $order, $match): PaymentOrder
+    /**
+     * Evalúa todas las órdenes activas (no terminales) y expira las vencidas
+     * antes de consultar la blockchain — nunca acredita una orden que ya
+     * pasó su expires_at, sin importar qué reporte el proveedor.
+     */
+    public function watchAll() : void
     {
-        $affected = PaymentOrder::where('id', $order->id)
-            ->where('status', PaymentOrder::STATUS_PENDING)
-            ->update([
-                'status' => PaymentOrder::STATUS_DETECTED,
-                'detected_at' => now(),
-                'received_amount' => $match->amount,
-            ]);
+        $this->expireOverdueOrders();
 
-        if ($affected > 0) {
-            $this->logAttempt($order, $match->txHash, PaymentAttempt::ACTION_DETECT, PaymentAttempt::RESULT_SUCCESS, null);
-            $this->broadcastUpdate($order->fresh());
-        }
-
-        return $order->fresh();
+        PaymentOrder::active()->chunkById(100, function($orders) {
+            foreach ($orders as $order) {
+                try {
+                    $this->evaluate($order);
+                } catch (Throwable $e) {
+                    Log::channel('slack')->error('payments.watcher.evaluate_failed', [
+                        'payment_order_id' => $order->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        });
     }
 
-    private function confirmAndDeliver(PaymentOrder $order, $match): PaymentOrder
+    private function broadcastUpdate(PaymentOrder $order) : void
+    {
+        try {
+            event(new PaymentOrderUpdated($order));
+        } catch (Throwable $e) {
+            Log::warning('payments.broadcast_failed', ['payment_order_id' => $order->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function confirmAndDeliver(PaymentOrder $order, $match) : PaymentOrder
     {
         if (bccomp((string) $match->amount, (string) $order->expected_amount, 8) < 0) {
             $this->transitionTo($order, PaymentOrder::STATUS_UNDERPAID);
             $this->logAttempt($order, $match->txHash, PaymentAttempt::ACTION_CONFIRM, PaymentAttempt::RESULT_REJECTED, 'monto insuficiente');
+
             return $order->fresh();
         }
 
@@ -131,6 +126,7 @@ final class BlockchainWatcherService
             $this->transitionTo($order, PaymentOrder::STATUS_OVERPAID);
             $this->logAttempt($order, $match->txHash, PaymentAttempt::ACTION_CONFIRM, PaymentAttempt::RESULT_REJECTED, 'monto excede lo esperado — requiere revisión manual');
             Log::channel('slack')->warning('payments.overpaid', ['payment_order_id' => $order->id, 'tx_hash' => $match->txHash]);
+
             return $order->fresh();
         }
 
@@ -169,7 +165,51 @@ final class BlockchainWatcherService
         return $order->fresh();
     }
 
-    private function persistCryptoTransaction(PaymentOrder $order, $match): CryptoTransaction
+    private function expireOverdueOrders() : void
+    {
+        PaymentOrder::active()
+            ->where('expires_at', '<', now())
+            ->chunkById(200, function($orders) {
+                foreach ($orders as $order) {
+                    PaymentOrder::where('id', $order->id)
+                        ->whereNotIn('status', PaymentOrder::TERMINAL_STATUSES)
+                        ->update(['status' => PaymentOrder::STATUS_EXPIRED]);
+
+                    $this->broadcastUpdate($order->fresh());
+                }
+            });
+    }
+
+    private function logAttempt(PaymentOrder $order, ?string $txHash, string $action, string $result, ?string $reason) : void
+    {
+        PaymentAttempt::create([
+            'payment_order_id' => $order->id,
+            'tx_hash' => $txHash,
+            'attempted_action' => $action,
+            'result' => $result,
+            'reason' => $reason,
+        ]);
+    }
+
+    private function markDetected(PaymentOrder $order, $match) : PaymentOrder
+    {
+        $affected = PaymentOrder::where('id', $order->id)
+            ->where('status', PaymentOrder::STATUS_PENDING)
+            ->update([
+                'status' => PaymentOrder::STATUS_DETECTED,
+                'detected_at' => now(),
+                'received_amount' => $match->amount,
+            ]);
+
+        if ($affected > 0) {
+            $this->logAttempt($order, $match->txHash, PaymentAttempt::ACTION_DETECT, PaymentAttempt::RESULT_SUCCESS, null);
+            $this->broadcastUpdate($order->fresh());
+        }
+
+        return $order->fresh();
+    }
+
+    private function persistCryptoTransaction(PaymentOrder $order, $match) : CryptoTransaction
     {
         return DB::transaction(fn () => CryptoTransaction::create([
             'tx_hash' => $match->txHash,
@@ -186,7 +226,7 @@ final class BlockchainWatcherService
         ]));
     }
 
-    private function transitionTo(PaymentOrder $order, string $status): void
+    private function transitionTo(PaymentOrder $order, string $status) : void
     {
         if ($order->status === $status) {
             return;
@@ -198,41 +238,6 @@ final class BlockchainWatcherService
 
         if ($affected > 0) {
             $this->broadcastUpdate($order->fresh());
-        }
-    }
-
-    private function expireOverdueOrders(): void
-    {
-        PaymentOrder::active()
-            ->where('expires_at', '<', now())
-            ->chunkById(200, function ($orders) {
-                foreach ($orders as $order) {
-                    PaymentOrder::where('id', $order->id)
-                        ->whereNotIn('status', PaymentOrder::TERMINAL_STATUSES)
-                        ->update(['status' => PaymentOrder::STATUS_EXPIRED]);
-
-                    $this->broadcastUpdate($order->fresh());
-                }
-            });
-    }
-
-    private function logAttempt(PaymentOrder $order, ?string $txHash, string $action, string $result, ?string $reason): void
-    {
-        PaymentAttempt::create([
-            'payment_order_id' => $order->id,
-            'tx_hash' => $txHash,
-            'attempted_action' => $action,
-            'result' => $result,
-            'reason' => $reason,
-        ]);
-    }
-
-    private function broadcastUpdate(PaymentOrder $order): void
-    {
-        try {
-            event(new PaymentOrderUpdated($order));
-        } catch (\Throwable $e) {
-            Log::warning('payments.broadcast_failed', ['payment_order_id' => $order->id, 'error' => $e->getMessage()]);
         }
     }
 }

@@ -11,11 +11,12 @@ use App\Domains\Games\Trivia\Exceptions\Room\TriviaRoomException;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Wallet\Services\WalletService;
 use App\Models\ExchangeRate;
-use App\Models\User;
 use App\Models\Games\Trivia\TriviaParticipant;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Throwable;
 
 /**
  * Action: Unirse a Sala.
@@ -147,10 +148,10 @@ class JoinRoomAction
             $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
             $room = $this->roomService->getRoom($roomId);
             $players = $this->roomService->listPlayers($roomId);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             \Illuminate\Support\Facades\Log::warning(
                 '[Trivia JoinRoomAction] Participant persisted but realtime sync failed.',
-                ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e]
+                ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e],
             );
 
             $player = ['id' => $playerId, 'name' => $nickname, 'roomId' => $roomId];
@@ -161,10 +162,10 @@ class JoinRoomAction
 
         try {
             $this->createTriviaNotification($roomId, $playerId);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             \Illuminate\Support\Facades\Log::warning(
                 '[Trivia JoinRoomAction] Registration notification failed.',
-                ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e]
+                ['room_id' => $roomId, 'user_id' => $playerId, 'exception' => $e],
             );
         }
 

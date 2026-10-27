@@ -30,23 +30,28 @@ final class PaymentOrderService
     ) {
     }
 
-    public function create(string $userId, string $paymentProductCode): PaymentOrder
+    public function create(string $userId, string $paymentProductCode) : PaymentOrder
     {
         $product = PaymentProduct::where('code', $paymentProductCode)->active()->first();
 
-        if (!$product) {
+        if (! $product) {
             throw new PaymentProductNotAvailableException(
-                "El producto '{$paymentProductCode}' no existe o no está disponible."
+                "El producto '{$paymentProductCode}' no existe o no está disponible.",
             );
         }
 
         return $this->createWithRetry($userId, $product);
     }
 
-    private function createWithRetry(string $userId, PaymentProduct $product, int $attempt = 0): PaymentOrder
+    public function findForUser(string $orderId, string $userId) : ?PaymentOrder
+    {
+        return PaymentOrder::where('id', $orderId)->where('user_id', $userId)->first();
+    }
+
+    private function createWithRetry(string $userId, PaymentProduct $product, int $attempt = 0) : PaymentOrder
     {
         try {
-            return DB::transaction(function () use ($userId, $product) {
+            return DB::transaction(function() use ($userId, $product) {
                 $derivationIndex = ((int) PaymentOrder::max('derivation_index')) + 1;
                 $depositAddress = $this->blockchain->deriveAddress($derivationIndex);
 
@@ -70,12 +75,8 @@ final class PaymentOrderService
             if (str_contains($e->getMessage(), 'derivation_index') && $attempt < 3) {
                 return $this->createWithRetry($userId, $product, $attempt + 1);
             }
+
             throw $e;
         }
-    }
-
-    public function findForUser(string $orderId, string $userId): ?PaymentOrder
-    {
-        return PaymentOrder::where('id', $orderId)->where('user_id', $userId)->first();
     }
 }

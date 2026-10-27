@@ -3,7 +3,6 @@
 namespace App\Domains\Games\Bingo\DTOs\Room\Automatic;
 
 use App\DTOs\ContextDTO;
-
 use Illuminate\Support\Collection;
 
 final class BingoRoomAutomaticSummaryDTO implements ContextDTO
@@ -18,9 +17,10 @@ final class BingoRoomAutomaticSummaryDTO implements ContextDTO
         public readonly Collection $connectionTypes,
         public readonly Collection $roomTypes,
         public readonly Collection $gameModeCatalog,
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
             'title' => 'Salas de Bingo',

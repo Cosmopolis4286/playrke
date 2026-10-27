@@ -27,107 +27,45 @@ use Illuminate\Support\Facades\Redis;
  */
 class ScoreService implements ScoreServiceInterface
 {
-    private const KEY_PREFIX     = 'trivia:score:';
+    private const KEY_PREFIX = 'trivia:score:';
     private const LEADERBOARD_KEY = 'trivia:leaderboard:';
     private const TTL = 3600; // 1 hora
 
     /**
-     * Actualizar puntuación de jugador.
+     * Obtener todas las puntuaciones.
      *
-     * Antes: updateScore llamaba recalculatePositions() que hacía 2N round-trips
-     * a Redis (hget + hset por cada jugador en el sorted set) en cada respuesta.
-     * Ahora: solo 3 round-trips totales independientemente del número de jugadores
-     * (hget, hset+expire, zadd+expire).
+     * Antes: Redis::keys() — O(N) bloqueante sobre todo el keyspace.
+     * Ahora: Redis::scan() con cursor — no bloqueante, O(1) por iteración.
      */
-    public function updateScore(
-        string $gameId,
-        string $playerId,
-        int $points,
-        array $metadata = []
-    ): ScoreDTO {
-        $key = self::KEY_PREFIX . "{$gameId}:{$playerId}";
-
-        // Obtener score actual o crear nuevo
-        $existingData = Redis::hget($key, 'data');
-        $existing     = $existingData ? json_decode($existingData, true) : null;
-
-        $score = new ScoreDTO(
-            playerId: $playerId,
-            gameId: $gameId,
-            totalScore: $points,
-            correctAnswers: $metadata['correct_answers'] ?? ($existing['correct_answers'] ?? 0),
-            wrongAnswers: $metadata['wrong_answers'] ?? ($existing['wrong_answers'] ?? 0),
-            averageResponseTimeMs: $metadata['average_response_time_ms'] ?? ($existing['average_response_time_ms'] ?? 0),
-            // position se deriva de ZREVRANK en el sorted set — no se persiste en el hash
-            // para evitar el bucle N+1 de recalculatePositions que antes se ejecutaba aquí.
-            position: 0,
-            streak: $metadata['streak'] ?? ($existing['streak'] ?? 0),
-            maxStreak: $metadata['max_streak'] ?? ($existing['max_streak'] ?? 0),
-            answerHistory: $existing['answer_history'] ?? []
-        );
-
-        // Guardar score (sin position — se calcula en lectura).
-        // Redis::pipeline() no se usa aquí: solo PhpRedisConnection lo
-        // implementa — bajo predis cae al __call() genérico de Connection,
-        // que lo trata como un comando Redis literal inexistente y no ejecuta
-        // nada dentro del closure (ver ScoreServiceTest::test_can_reset_scores,
-        // que expuso el mismo problema en resetScores()).
-        Redis::hset($key, 'data', json_encode($score->toArray()));
-        Redis::expire($key, self::TTL);
-        Redis::zadd(self::LEADERBOARD_KEY . $gameId, $points, $playerId);
-        Redis::expire(self::LEADERBOARD_KEY . $gameId, self::TTL);
-
-        return $score;
-    }
-
-    /**
-     * Registrar respuesta correcta con tiempo.
-     */
-    public function recordCorrectAnswer(
-        string $gameId,
-        string $playerId,
-        float $responseTimeMs,
-        int $basePoints = 100
-    ): int {
-        $timeBonus   = max(0, 1 - ($responseTimeMs / 10000));
-        $totalPoints = (int) ($basePoints * (1 + ($timeBonus * 0.5)));
-
-        return min($totalPoints, $basePoints * 2);
-    }
-
-    /**
-     * Obtener puntuación de jugador.
-     * Position se asigna desde ZREVRANK — O(log N), un solo round-trip.
-     */
-    public function getPlayerScore(string $gameId, string $playerId): ScoreDTO
+    public function getAllScores(string $gameId) : array
     {
-        $key  = self::KEY_PREFIX . "{$gameId}:{$playerId}";
-        $data = Redis::hget($key, 'data');
+        $pattern = self::KEY_PREFIX . "{$gameId}:*";
+        $keys = $this->scanKeys($pattern);
 
-        if ($data) {
-            $dto = ScoreDTO::fromArray(json_decode($data, true));
-            return $dto->withPosition($this->getPlayerPosition($gameId, $playerId));
+        if (empty($keys)) {
+            return [];
         }
 
-        return new ScoreDTO(
-            playerId: $playerId,
-            gameId: $gameId,
-            totalScore: 0,
-            correctAnswers: 0,
-            wrongAnswers: 0,
-            averageResponseTimeMs: 0,
-            position: 0,
-            streak: 0,
-            maxStreak: 0,
-            answerHistory: []
-        );
+        $rawScores = [];
+        foreach ($keys as $key) {
+            $rawScores[] = Redis::hget($key, 'data');
+        }
+
+        $scores = [];
+        foreach ($rawScores as $raw) {
+            if ($raw) {
+                $scores[] = ScoreDTO::fromArray(json_decode($raw, true));
+            }
+        }
+
+        return $scores;
     }
 
     /**
      * Obtener leaderboard completo — 1 zrevrange + N hget secuenciales
      * (ver nota de pipeline en updateScore() sobre por qué no se agrupan).
      */
-    public function getLeaderboard(string $gameId): LeaderboardDTO
+    public function getLeaderboard(string $gameId) : LeaderboardDTO
     {
         $playerIds = Redis::zrevrange(self::LEADERBOARD_KEY . $gameId, 0, -1);
 
@@ -137,7 +75,7 @@ class ScoreService implements ScoreServiceInterface
                 scores: [],
                 totalPlayers: 0,
                 updatedAt: time(),
-                isFinal: false
+                isFinal: false,
             );
         }
 
@@ -161,7 +99,7 @@ class ScoreService implements ScoreServiceInterface
                     position: 0,
                     streak: 0,
                     maxStreak: 0,
-                    answerHistory: []
+                    answerHistory: [],
                 );
 
             $scores[] = $dto->withPosition($i + 1);
@@ -172,14 +110,14 @@ class ScoreService implements ScoreServiceInterface
             scores: $scores,
             totalPlayers: count($scores),
             updatedAt: time(),
-            isFinal: false
+            isFinal: false,
         );
     }
 
     /**
      * Obtener posición de jugador — O(log N), un solo round-trip.
      */
-    public function getPlayerPosition(string $gameId, string $playerId): int
+    public function getPlayerPosition(string $gameId, string $playerId) : int
     {
         $rank = Redis::zrevrank(self::LEADERBOARD_KEY . $gameId, $playerId);
 
@@ -187,33 +125,47 @@ class ScoreService implements ScoreServiceInterface
     }
 
     /**
-     * Obtener todas las puntuaciones.
-     *
-     * Antes: Redis::keys() — O(N) bloqueante sobre todo el keyspace.
-     * Ahora: Redis::scan() con cursor — no bloqueante, O(1) por iteración.
+     * Obtener puntuación de jugador.
+     * Position se asigna desde ZREVRANK — O(log N), un solo round-trip.
      */
-    public function getAllScores(string $gameId): array
+    public function getPlayerScore(string $gameId, string $playerId) : ScoreDTO
     {
-        $pattern = self::KEY_PREFIX . "{$gameId}:*";
-        $keys    = $this->scanKeys($pattern);
+        $key = self::KEY_PREFIX . "{$gameId}:{$playerId}";
+        $data = Redis::hget($key, 'data');
 
-        if (empty($keys)) {
-            return [];
+        if ($data) {
+            $dto = ScoreDTO::fromArray(json_decode($data, true));
+
+            return $dto->withPosition($this->getPlayerPosition($gameId, $playerId));
         }
 
-        $rawScores = [];
-        foreach ($keys as $key) {
-            $rawScores[] = Redis::hget($key, 'data');
-        }
+        return new ScoreDTO(
+            playerId: $playerId,
+            gameId: $gameId,
+            totalScore: 0,
+            correctAnswers: 0,
+            wrongAnswers: 0,
+            averageResponseTimeMs: 0,
+            position: 0,
+            streak: 0,
+            maxStreak: 0,
+            answerHistory: [],
+        );
+    }
 
-        $scores = [];
-        foreach ($rawScores as $raw) {
-            if ($raw) {
-                $scores[] = ScoreDTO::fromArray(json_decode($raw, true));
-            }
-        }
+    /**
+     * Registrar respuesta correcta con tiempo.
+     */
+    public function recordCorrectAnswer(
+        string $gameId,
+        string $playerId,
+        float $responseTimeMs,
+        int $basePoints = 100,
+    ) : int {
+        $timeBonus = max(0, 1 - ($responseTimeMs / 10000));
+        $totalPoints = (int) ($basePoints * (1 + ($timeBonus * 0.5)));
 
-        return $scores;
+        return min($totalPoints, $basePoints * 2);
     }
 
     /**
@@ -222,7 +174,7 @@ class ScoreService implements ScoreServiceInterface
      * Antes: Redis::keys() bloqueante + del individual.
      * Ahora: scan no bloqueante + del secuencial (ver nota de pipeline en updateScore()).
      */
-    public function resetScores(string $gameId): void
+    public function resetScores(string $gameId) : void
     {
         $keys = $this->scanKeys(self::KEY_PREFIX . "{$gameId}:*");
 
@@ -233,12 +185,61 @@ class ScoreService implements ScoreServiceInterface
     }
 
     /**
+     * Actualizar puntuación de jugador.
+     *
+     * Antes: updateScore llamaba recalculatePositions() que hacía 2N round-trips
+     * a Redis (hget + hset por cada jugador en el sorted set) en cada respuesta.
+     * Ahora: solo 3 round-trips totales independientemente del número de jugadores
+     * (hget, hset+expire, zadd+expire).
+     */
+    public function updateScore(
+        string $gameId,
+        string $playerId,
+        int $points,
+        array $metadata = [],
+    ) : ScoreDTO {
+        $key = self::KEY_PREFIX . "{$gameId}:{$playerId}";
+
+        // Obtener score actual o crear nuevo
+        $existingData = Redis::hget($key, 'data');
+        $existing = $existingData ? json_decode($existingData, true) : null;
+
+        $score = new ScoreDTO(
+            playerId: $playerId,
+            gameId: $gameId,
+            totalScore: $points,
+            correctAnswers: $metadata['correct_answers'] ?? ($existing['correct_answers'] ?? 0),
+            wrongAnswers: $metadata['wrong_answers'] ?? ($existing['wrong_answers'] ?? 0),
+            averageResponseTimeMs: $metadata['average_response_time_ms'] ?? ($existing['average_response_time_ms'] ?? 0),
+            // position se deriva de ZREVRANK en el sorted set — no se persiste en el hash
+            // para evitar el bucle N+1 de recalculatePositions que antes se ejecutaba aquí.
+            position: 0,
+            streak: $metadata['streak'] ?? ($existing['streak'] ?? 0),
+            maxStreak: $metadata['max_streak'] ?? ($existing['max_streak'] ?? 0),
+            answerHistory: $existing['answer_history'] ?? [],
+        );
+
+        // Guardar score (sin position — se calcula en lectura).
+        // Redis::pipeline() no se usa aquí: solo PhpRedisConnection lo
+        // implementa — bajo predis cae al __call() genérico de Connection,
+        // que lo trata como un comando Redis literal inexistente y no ejecuta
+        // nada dentro del closure (ver ScoreServiceTest::test_can_reset_scores,
+        // que expuso el mismo problema en resetScores()).
+        Redis::hset($key, 'data', json_encode($score->toArray()));
+        Redis::expire($key, self::TTL);
+        Redis::zadd(self::LEADERBOARD_KEY . $gameId, $points, $playerId);
+        Redis::expire(self::LEADERBOARD_KEY . $gameId, self::TTL);
+
+        return $score;
+    }
+
+    /**
      * Escanear claves por patrón sin bloquear Redis.
      * Reemplaza Redis::keys() (O(N) bloqueante) con SCAN iterativo (O(1) por tick).
      *
      * @return string[]
      */
-    private function scanKeys(string $pattern): array
+    private function scanKeys(string $pattern) : array
     {
         // Redis::scan($cursor, $options) — $options debe ser el array asociativo
         // ['match' => ..., 'count' => ...] que Illuminate\Redis\Connections
@@ -253,7 +254,7 @@ class ScoreService implements ScoreServiceInterface
         // que Laravel prefija automáticamente. Sin anteponerlo aquí, match
         // nunca encuentra nada aunque las claves existan.
         $prefix = (string) config('database.redis.options.prefix');
-        $keys   = [];
+        $keys = [];
 
         // Bug confirmado en Laravel\Redis\Connections\PhpRedisConnection::scan():
         // llama $this->client->scan($cursor, ...) SIN pasar $cursor por

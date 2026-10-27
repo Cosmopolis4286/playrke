@@ -31,9 +31,12 @@ use Illuminate\Support\Facades\Log;
  * por uniqueFor segundos (75 min) y el draw quedaría congelado sin posibilidad de
  * retoma automática.
  */
-final class StartBingoDrawJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
+final class StartBingoDrawJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /** Segundos entre reintentos — da tiempo al sistema a recuperarse. */
+    public int $backoff = 30;
 
     /** Sin límite de tiempo — el sorteo completo puede tardar varios minutos. */
     public int $timeout = 0;
@@ -45,9 +48,6 @@ final class StartBingoDrawJob implements ShouldQueue, ShouldBeUniqueUntilProcess
      */
     public int $tries = 3;
 
-    /** Segundos entre reintentos — da tiempo al sistema a recuperarse. */
-    public int $backoff = 30;
-
     /**
      * Ventana de unicidad: cubre el tiempo máximo que el job puede pasar en cola
      * esperando a ser procesado. Con ShouldBeUniqueUntilProcessing el lock se libera
@@ -56,31 +56,29 @@ final class StartBingoDrawJob implements ShouldQueue, ShouldBeUniqueUntilProcess
      */
     public int $uniqueFor = 3600;
 
-    public function __construct(private readonly string $roomId) {}
-
-    /** Clave única por sala — impide encolar dos sorteos para la misma sala. */
-    public function uniqueId(): string
+    public function __construct(private readonly string $roomId)
     {
-        return $this->roomId;
     }
 
-    public function handle(BingoDrawService $drawService, BingoRoomHealthCheckService $healthCheck): void
+    public function handle(BingoDrawService $drawService, BingoRoomHealthCheckService $healthCheck) : void
     {
         $room = BingoRoom::with(['status', 'config', 'rounds'])->find($this->roomId);
 
-        if (!$room) {
+        if (! $room) {
             Log::warning('[StartBingoDrawJob] Sala no encontrada', ['room_id' => $this->roomId]);
+
             return;
         }
 
         $errors = $healthCheck->collectErrors($room);
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             Log::warning('[StartBingoDrawJob] Sala no está lista para sorteo — omitiendo', [
                 'room_id' => $room->id,
-                'status'  => $room->status?->code,
-                'errors'  => $errors,
+                'status' => $room->status?->code,
+                'errors' => $errors,
             ]);
+
             return;
         }
 
@@ -90,5 +88,11 @@ final class StartBingoDrawJob implements ShouldQueue, ShouldBeUniqueUntilProcess
         Log::info('[StartBingoDrawJob] Iniciando/retomando sorteo autónomo', ['room_id' => $room->id]);
 
         $drawService->startDraw($room);
+    }
+
+    /** Clave única por sala — impide encolar dos sorteos para la misma sala. */
+    public function uniqueId() : string
+    {
+        return $this->roomId;
     }
 }

@@ -262,7 +262,7 @@ class RoomService implements RoomServiceInterface
         $activeCount = null;
         $hasPersistedParticipant = false;
 
-        DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $playerId, &$roomStatus, &$activeCount, &$hasPersistedParticipant) {
+        DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerId, &$roomStatus, &$activeCount, &$hasPersistedParticipant) {
             $room = DB::connection('pgsql_trivia')
                 ->table('trivia_rooms')
                 ->where('id', $roomId)
@@ -331,7 +331,7 @@ class RoomService implements RoomServiceInterface
 
             $remainingPlayerIds = array_values(array_filter(
                 $roomDto->playerIds,
-                fn ($id) => (string) $id !== $playerId
+                fn ($id) => (string) $id !== $playerId,
             ));
 
             // Si hay participantes persistidos, PostgreSQL define el conteo.

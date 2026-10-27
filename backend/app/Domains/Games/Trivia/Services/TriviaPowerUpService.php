@@ -52,26 +52,6 @@ class TriviaPowerUpService
     }
 
     /**
-     * Reserva atómicamente la activación de un power-up que deja un flag
-     * por pregunta. Evita que requests repetidos consuman varios usos para
-     * un único efecto. El valor pending no concede el efecto al jugador.
-     */
-    public function reserveActivation(string $gameId, string $userId, string $questionId, string $type): bool
-    {
-        $key = $this->key($gameId, $userId, $questionId, $type);
-
-        $reserved = Redis::set($key, 'pending', 'EX', self::REDIS_TTL_SECONDS, 'NX');
-
-        return $reserved !== false && $reserved !== null;
-    }
-
-    /** Libera una reserva si el consumo del power-up no pudo completarse. */
-    public function releaseActivation(string $gameId, string $userId, string $questionId, string $type): void
-    {
-        Redis::del($this->key($gameId, $userId, $questionId, $type));
-    }
-
-    /**
      * Activa double_points para la próxima respuesta del jugador a esta
      * pregunta específica. TriviaAnswerController::store() lo consulta y
      * consume al calcular los puntos.
@@ -90,6 +70,14 @@ class TriviaPowerUpService
     }
 
     /**
+     * Borra el flag después de que la respuesta y la puntuación se confirmen.
+     */
+    public function clearDoublePointsFlag(string $gameId, string $userId, string $questionId) : void
+    {
+        Redis::del($this->key($gameId, $userId, $questionId, 'double_points'));
+    }
+
+    /**
      * Consume un power-up del participante: primero el uso gratis por
      * partida (power_ups_used, Postgres); si ya se agotó, intenta consumir
      * un PlayerAsset del Marketplace (TRIVIA_HINT_TICKET) como fallback —
@@ -102,7 +90,7 @@ class TriviaPowerUpService
         // Serialize all free-use balance updates for this participant. Without
         // the row lock, two concurrent activations of different power-up types
         // can read the same JSON counter and overwrite each other's update.
-        return DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $userId, $type): TriviaParticipant {
+        return DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $userId, $type) : TriviaParticipant {
             $participant = TriviaParticipant::where('room_id', $roomId)
                 ->where('user_id', $userId)
                 ->whereNull('deleted_at')
@@ -134,24 +122,6 @@ class TriviaPowerUpService
     }
 
     /**
-     * Consulta el flag de double_points sin consumirlo. La respuesta debe
-     * quedar persistida antes de borrar el flag, para que un request duplicado
-     * o un fallo de PostgreSQL no haga perder un power-up ya pagado.
-     */
-    public function hasDoublePointsFlag(string $gameId, string $userId, string $questionId) : bool
-    {
-        return Redis::get($this->key($gameId, $userId, $questionId, 'double_points')) === '1';
-    }
-
-    /**
-     * Borra el flag después de que la respuesta y la puntuación se confirmen.
-     */
-    public function clearDoublePointsFlag(string $gameId, string $userId, string $questionId) : void
-    {
-        Redis::del($this->key($gameId, $userId, $questionId, 'double_points'));
-    }
-
-    /**
      * Compatibilidad para consumidores existentes: consulta y consume el flag.
      * El flujo de respuesta debe usar hasDoublePointsFlag() y clear...() tras
      * confirmar la transacción.
@@ -178,6 +148,36 @@ class TriviaPowerUpService
         return Redis::get($this->key($gameId, $userId, $questionId, 'extra_time')) === '1'
             ? self::EXTRA_TIME_BONUS_MS
             : 0;
+    }
+
+    /**
+     * Consulta el flag de double_points sin consumirlo. La respuesta debe
+     * quedar persistida antes de borrar el flag, para que un request duplicado
+     * o un fallo de PostgreSQL no haga perder un power-up ya pagado.
+     */
+    public function hasDoublePointsFlag(string $gameId, string $userId, string $questionId) : bool
+    {
+        return Redis::get($this->key($gameId, $userId, $questionId, 'double_points')) === '1';
+    }
+
+    /** Libera una reserva si el consumo del power-up no pudo completarse. */
+    public function releaseActivation(string $gameId, string $userId, string $questionId, string $type) : void
+    {
+        Redis::del($this->key($gameId, $userId, $questionId, $type));
+    }
+
+    /**
+     * Reserva atómicamente la activación de un power-up que deja un flag
+     * por pregunta. Evita que requests repetidos consuman varios usos para
+     * un único efecto. El valor pending no concede el efecto al jugador.
+     */
+    public function reserveActivation(string $gameId, string $userId, string $questionId, string $type) : bool
+    {
+        $key = $this->key($gameId, $userId, $questionId, $type);
+
+        $reserved = Redis::set($key, 'pending', 'EX', self::REDIS_TTL_SECONDS, 'NX');
+
+        return $reserved !== false && $reserved !== null;
     }
 
     /**

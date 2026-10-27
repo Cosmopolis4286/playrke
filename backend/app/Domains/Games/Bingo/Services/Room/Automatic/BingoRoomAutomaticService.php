@@ -4,8 +4,8 @@ namespace App\Domains\Games\Bingo\Services\Room\Automatic;
 
 use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticUpdateDTO;
-use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
+use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
 
 final class BingoRoomAutomaticService
 {
@@ -13,28 +13,73 @@ final class BingoRoomAutomaticService
         private readonly BingoRoomAutomaticContextService $contextService,
         private readonly BingoRoomAutomaticCrudService $crudService,
         private readonly \App\Services\Security\UserContextService $userContext,
-    ) {}
+    ) {
+    }
 
     /**
      * Resolver contexto para BingoRoomAutomatic.
      *
-     * @param string $context
-     * @param int|null $userId
-     * @return array
      * @throws \BingoRoomAutomaticException Si el contexto no es válido
      */
-    public function context(string $context, ?int $userId = null): array
+    public function context(string $context, ?int $userId = null) : array
     {
         return $this->contextService->context($context, $userId)->toView();
     }
 
     /**
+     * Copiar una sala de bingo existente (status INACTIVE).
+     *
+     * @param BingoRoomAutomatic $room Model
+     */
+    public function copy(BingoRoomAutomatic $room) : bool
+    {
+        return $this->crudService->copyRoom($room);
+    }
+
+    /**
+     * Crear una nueva sala de bingo con su configuración y creador.
+     */
+    public function create(BingoRoomAutomaticCreateDTO $dto) : bool
+    {
+        return $this->crudService->saveRoom($dto);
+    }
+
+    /**
+     * Eliminar una sala de bingo (soft delete).
+     *
+     * @param BingoRoomAutomatic $room Model
+     *
+     * @throws BingoRoomAutomaticException Si falla la eliminación
+     */
+    public function delete(BingoRoomAutomatic $room) : bool
+    {
+        return $this->crudService->delete($room);
+    }
+
+    /**
+     * Eliminar una sala de bingo permanentemente (hard delete).
+     */
+    public function destroy(BingoRoomAutomatic $room) : bool
+    {
+        return $room->forceDelete();
+    }
+
+    /**
      * Obtener listado de salas filtrado por contexto del usuario.
      */
-    public function fetchList(): array
+    public function fetchList() : array
     {
         $userId = $this->userContext->resolveUserId();
+
         return $this->contextService->context('fetch', $userId);
+    }
+
+    /**
+     * Mostrar detalle de una sala de bingo.
+     */
+    public function show(BingoRoomAutomatic $room) : BingoRoomAutomaticResource
+    {
+        return $this->crudService->show($room);
     }
 
     /**
@@ -50,85 +95,32 @@ final class BingoRoomAutomaticService
      *     currency_id?: string,
      * } $filters
      */
-    public function summaryData(int $page, int $perPage, array $filters): array
+    public function summaryData(int $page, int $perPage, array $filters) : array
     {
         $userId = $this->userContext->resolveUserId();
+
         return $this->contextService->summaryDataForRefetch($userId, $page, $perPage, $filters);
-    }
-
-    /**
-     * Mostrar detalle de una sala de bingo.
-     */
-    public function show(BingoRoomAutomatic $room): BingoRoomAutomaticResource
-    {
-        return $this->crudService->show($room);
-    }
-
-    /**
-     * Crear una nueva sala de bingo con su configuración y creador.
-     *
-     * @param BingoRoomAutomaticCreateDTO $dto
-     * @return bool
-     */
-    public function create(BingoRoomAutomaticCreateDTO $dto): bool
-    {
-        return $this->crudService->saveRoom($dto);
-    }
-
-    /**
-     * Actualizar una sala de bingo existente.
-     *
-     * @param BingoRoomAutomatic $room Model
-     * @param BingoRoomAutomaticUpdateDTO $dto
-     * @return bool
-     */
-    public function update(BingoRoomAutomatic $room, BingoRoomAutomaticUpdateDTO $dto): bool
-    {
-        return $this->crudService->saveRoom($room, $dto);
-    }
-
-    /**
-     * Copiar una sala de bingo existente (status INACTIVE).
-     *
-     * @param BingoRoomAutomatic $room Model
-     * @return bool
-     */
-    public function copy(BingoRoomAutomatic $room): bool
-    {
-        return $this->crudService->copyRoom($room);
-    }
-
-    /**
-     * Eliminar una sala de bingo (soft delete).
-     *
-     * @param BingoRoomAutomatic $room Model
-     * @return bool
-     *
-     * @throws BingoRoomAutomaticException Si falla la eliminación
-     */
-    public function delete(BingoRoomAutomatic $room): bool
-    {
-        return $this->crudService->delete($room);
     }
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
      *
      * @param BingoRoomAutomatic $room Model
-     * @return bool
      *
      * @throws BingoRoomException Si falla el cambio de estado
      */
-    public function toggleStatus(BingoRoomAutomatic $room): bool
+    public function toggleStatus(BingoRoomAutomatic $room) : bool
     {
         return $this->crudService->toggleStatus($room);
     }
 
     /**
-     * Eliminar una sala de bingo permanentemente (hard delete).
+     * Actualizar una sala de bingo existente.
+     *
+     * @param BingoRoomAutomatic $room Model
      */
-    public function destroy(BingoRoomAutomatic $room): bool
+    public function update(BingoRoomAutomatic $room, BingoRoomAutomaticUpdateDTO $dto) : bool
     {
-        return $room->forceDelete();
+        return $this->crudService->saveRoom($room, $dto);
     }
 }

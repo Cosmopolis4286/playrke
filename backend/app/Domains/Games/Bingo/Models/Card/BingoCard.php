@@ -2,11 +2,10 @@
 
 namespace App\Domains\Games\Bingo\Models\Card;
 
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
-use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Models\Currency;
-use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -18,13 +17,6 @@ class BingoCard extends Model
 {
     use SnowflakeId, SoftDeletes;
 
-    protected $table = 'bingo_cards';
-
-    public const STATUS_ACTIVE    = 1;
-    public const STATUS_INACTIVE  = 2;
-    public const STATUS_WINNER    = 3;
-    public const STATUS_CANCELLED = 4;
-
     public const CARD_STATUSES = [
         1 => 'Activo',
         2 => 'Inactivo',
@@ -34,69 +26,61 @@ class BingoCard extends Model
 
     public const COLUMNS = ['B', 'I', 'N', 'G', 'O'];
 
+    public const STATUS_ACTIVE = 1;
+    public const STATUS_CANCELLED = 4;
+    public const STATUS_INACTIVE = 2;
+    public const STATUS_WINNER = 3;
+
+    protected $casts = [
+        'status' => 'integer',
+        'card_numbers' => 'array',
+        'is_validated' => 'boolean',
+        'validated_at' => 'datetime',
+        'is_custom_card' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+    ];
+
     protected $fillable = [
         'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'room_user_id',
         'card_lot_id', 'currency_id', 'serial_number', 'card_numbers',
         'card_hash', 'status', 'is_validated', 'validated_at', 'is_custom_card',
     ];
 
-    protected $casts = [
-        'status'         => 'integer',
-        'card_numbers'   => 'array',
-        'is_validated'   => 'boolean',
-        'validated_at'   => 'datetime',
-        'is_custom_card' => 'boolean',
-        'created_at'     => 'datetime',
-        'updated_at'     => 'datetime',
-        'deleted_at'     => 'datetime',
-    ];
+    protected $table = 'bingo_cards';
 
-    public function room(): BelongsTo
-    {
-        return $this->belongsTo(BingoRoom::class, 'room_id');
-    }
-
-    public function creatorUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'creator_user_id');
-    }
-
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'seller_user_id');
-    }
-
-    public function roomUser(): BelongsTo
-    {
-        return $this->belongsTo(BingoRoomUser::class, 'room_user_id');
-    }
-
-    public function cardLot(): BelongsTo
+    public function cardLot() : BelongsTo
     {
         return $this->belongsTo(BingoCardLot::class, 'card_lot_id');
     }
 
-    public function currency(): BelongsTo
+    public function creatorUser() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
+    }
+
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function prizes(): HasMany
-    {
-        return $this->hasMany(BingoCardPrize::class, 'winning_card_id');
-    }
-
-    public function getCardMatrix(): array
+    public function getCardMatrix() : array
     {
         return $this->card_numbers ?? [];
     }
 
-    public function getColumnNumbers(string $letter): array
+    public function getCardStatusDescription() : string
+    {
+        return self::CARD_STATUSES[(int) $this->status] ?? (string) $this->status;
+    }
+
+    public function getColumnNumbers(string $letter) : array
     {
         return $this->card_numbers[strtoupper($letter)] ?? [];
     }
 
-    public function hasNumber(int $number): bool
+    public function hasNumber(int $number) : bool
     {
         // Itera las claves reales del JSON en lugar de COLUMNS fijo — soporta BINGO_90
         // (columnas '1'..'9') y cualquier variante futura sin modificar este método.
@@ -105,37 +89,74 @@ class BingoCard extends Model
                 return true;
             }
         }
+
         return false;
     }
 
-    public function getCardStatusDescription(): string
+    public function isActive() : bool
     {
-        return self::CARD_STATUSES[(int)$this->status] ?? (string)$this->status;
+        return (int) $this->status === self::STATUS_ACTIVE;
     }
 
-    public function isActive(): bool { return (int)$this->status === self::STATUS_ACTIVE; }
-    public function isWinner(): bool { return (int)$this->status === self::STATUS_WINNER; }
+    public function isWinner() : bool
+    {
+        return (int) $this->status === self::STATUS_WINNER;
+    }
 
-    public function scopeActive($query) { return $query->where('status', self::STATUS_ACTIVE); }
-    public function scopeWinners($query) { return $query->where('status', self::STATUS_WINNER); }
-    public function scopeValidated($query) { return $query->where('is_validated', true); }
+    public function prizes() : HasMany
+    {
+        return $this->hasMany(BingoCardPrize::class, 'winning_card_id');
+    }
 
-    public function scopeCustom($query) { return $query->where('is_custom_card', true); }
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
 
-    public function toFrontendFormat(): array
+    public function roomUser() : BelongsTo
+    {
+        return $this->belongsTo(BingoRoomUser::class, 'room_user_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function scopeCustom($query)
+    {
+        return $query->where('is_custom_card', true);
+    }
+
+    public function scopeValidated($query)
+    {
+        return $query->where('is_validated', true);
+    }
+
+    public function scopeWinners($query)
+    {
+        return $query->where('status', self::STATUS_WINNER);
+    }
+
+    public function seller() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seller_user_id');
+    }
+
+    public function toFrontendFormat() : array
     {
         return [
-            'id'           => (string) $this->id,
-            'roomId'       => (string) $this->room_id,
-            'userId'       => $this->roomUser?->user_id,
+            'id' => (string) $this->id,
+            'roomId' => (string) $this->room_id,
+            'userId' => $this->roomUser?->user_id,
             'serialNumber' => $this->serial_number,
-            'cardMatrix'   => $this->card_numbers ?? [],
-            'isActive'     => (int)$this->status === self::STATUS_ACTIVE,
+            'cardMatrix' => $this->card_numbers ?? [],
+            'isActive' => (int) $this->status === self::STATUS_ACTIVE,
             'isCustomCard' => (bool) $this->is_custom_card,
             'purchaseDate' => $this->created_at,
-            'price'        => 0,
-            'currencyId'   => $this->currency_id,
-            'lot'          => $this->cardLot ? ['id' => $this->cardLot->id] : null,
+            'price' => 0,
+            'currencyId' => $this->currency_id,
+            'lot' => $this->cardLot ? ['id' => $this->cardLot->id] : null,
         ];
     }
 }

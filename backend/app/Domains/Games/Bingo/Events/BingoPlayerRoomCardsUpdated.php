@@ -32,30 +32,31 @@ final class BingoPlayerRoomCardsUpdated implements ShouldBroadcast
         public readonly ?float $cardPrice = null,
         /** Símbolo de la moneda del usuario (null para commerce/seller) */
         public readonly ?string $currencySymbol = null,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new PrivateChannel("bingo.player.{$this->userId}");
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'PlayerCardsUpdated';
-    }
-
-    public function broadcastWith(): array
-    {
-        return [
-            'room_id'         => $this->roomId,
-            'card_count'      => $this->cardCount,
-            'card_price'      => $this->cardPrice,
-            'currency_symbol' => $this->currencySymbol,
-        ];
     }
 
     public function broadcastConnection()
     {
         return 'reverb';
+    }
+
+    public function broadcastOn() : Channel
+    {
+        return new PrivateChannel("bingo.player.{$this->userId}");
+    }
+
+    public function broadcastWith() : array
+    {
+        return [
+            'room_id' => $this->roomId,
+            'card_count' => $this->cardCount,
+            'card_price' => $this->cardPrice,
+            'currency_symbol' => $this->currencySymbol,
+        ];
     }
 }

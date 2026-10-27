@@ -25,8 +25,9 @@ final class BingoWinnerDetectionService
     public function __construct(
         private readonly BingoDrawService $drawService,
         private readonly AntiCheatService $antiCheat,
-        private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver()
-    ) {}
+        private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver,
+    ) {
+    }
 
     /**
      * Verifica si un cartón cumple el patrón activo de la ronda.
@@ -42,40 +43,25 @@ final class BingoWinnerDetectionService
      * (solo relevante para variantes con casilla libre; en BINGO_90 null significa
      * "celda vacía estructural", no libre, así que $hasFreeCell lo excluye).
      */
-    public function checkBingo(BingoCard $card, array $drawnNumbers, array $patternPositions, string $variant = BingoVariant::BINGO_75): bool
+    public function checkBingo(BingoCard $card, array $drawnNumbers, array $patternPositions, string $variant = BingoVariant::BINGO_75) : bool
     {
-        $drawnSet    = array_flip($drawnNumbers);
-        $matrix      = $card->card_numbers ?? [];
+        $drawnSet = array_flip($drawnNumbers);
+        $matrix = $card->card_numbers ?? [];
         $hasFreeCell = BingoVariant::hasFreeCell($variant);
 
         foreach ($patternPositions as $cell) {
             $num = $matrix[$cell['col']][$cell['row']] ?? null;
 
-            if ($cell['free'] || ($hasFreeCell && $num === null)) continue;
+            if ($cell['free'] || ($hasFreeCell && $num === null)) {
+                continue;
+            }
 
-            if ($num === null || !isset($drawnSet[$num])) {
+            if ($num === null || ! isset($drawnSet[$num])) {
                 return false;
             }
         }
 
         return true;
-    }
-
-    /**
-     * Verifica bingo para un usuario específico en una sala.
-     * Usa el patrón de la ronda activa y la variante de la sala.
-     */
-    public function checkWinnerForUser(BingoRoom $room, int $userId): ?array
-    {
-        $cards = BingoCard::where('room_id', (string) $room->id)
-            ->where('status', BingoCard::STATUS_ACTIVE)
-            ->where(fn ($q) => $q
-                ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))
-                ->orWhere('creator_user_id', (string) $userId)
-            )
-            ->get();
-
-        return $this->checkWinnerForCards($room, $cards, antiCheatUserId: (string) $userId);
     }
 
     /**
@@ -89,7 +75,7 @@ final class BingoWinnerDetectionService
      * AntiCheatFlag — esa tabla tiene FK real a `users.id`, que un
      * ExternalPlayer no tiene.
      */
-    public function checkWinnerForExternalPlayer(BingoRoom $room, int|string $externalPlayerId): ?array
+    public function checkWinnerForExternalPlayer(BingoRoom $room, int|string $externalPlayerId) : ?array
     {
         $cardIds = \App\Models\Roles\Player\External\ExternalPlayerParticipation::participableIdsFor(
             $externalPlayerId,
@@ -118,6 +104,24 @@ final class BingoWinnerDetectionService
     }
 
     /**
+     * Verifica bingo para un usuario específico en una sala.
+     * Usa el patrón de la ronda activa y la variante de la sala.
+     */
+    public function checkWinnerForUser(BingoRoom $room, int $userId) : ?array
+    {
+        $cards = BingoCard::where('room_id', (string) $room->id)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->where(
+                fn ($q) => $q
+                    ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))
+                    ->orWhere('creator_user_id', (string) $userId),
+            )
+            ->get();
+
+        return $this->checkWinnerForCards($room, $cards, antiCheatUserId: (string) $userId);
+    }
+
+    /**
      * Lógica compartida de detección de bingo: patrón activo, gate
      * anti-fraude de timing, y reclamo del premio — independiente de cómo
      * se resolvieron los $cards del jugador (por user_id o por
@@ -125,13 +129,13 @@ final class BingoWinnerDetectionService
      *
      * @param \Illuminate\Support\Collection<int, BingoCard> $cards
      */
-    private function checkWinnerForCards(BingoRoom $room, \Illuminate\Support\Collection $cards, ?string $antiCheatUserId): ?array
+    private function checkWinnerForCards(BingoRoom $room, \Illuminate\Support\Collection $cards, ?string $antiCheatUserId) : ?array
     {
         if ($cards->isEmpty()) {
             return null;
         }
 
-        if (!$room->relationLoaded('config')) {
+        if (! $room->relationLoaded('config')) {
             $room->load('config');
         }
 
@@ -139,7 +143,7 @@ final class BingoWinnerDetectionService
 
         $drawnNumbers = BingoDraw::where('room_id', $room->id)
             ->pluck('chip')
-            ->map(fn($chip) => (int) $chip)
+            ->map(fn ($chip) => (int) $chip)
             ->toArray();
 
         if (empty($drawnNumbers)) {
@@ -152,7 +156,7 @@ final class BingoWinnerDetectionService
             ->orderBy('round')
             ->first();
 
-        if (!$round) {
+        if (! $round) {
             return null;
         }
 
@@ -160,21 +164,21 @@ final class BingoWinnerDetectionService
             ? BingoPattern::find($round->bingo_pattern_id)
             : null;
 
-        if (!$pattern) {
+        if (! $pattern) {
             return null;
         }
 
         $patternPositions = $this->patternResolver->resolve($pattern, $variant);
 
         $lastDraw = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
-        if (!$lastDraw) {
+        if (! $lastDraw) {
             return null;
         }
         $lastDrawId = (int) $lastDraw->id;
 
         // Gate anti-fraude de timing: nadie puede reclamar bingo antes de que
         // sea humanamente posible ver la ficha cantada y confirmar el patrón.
-        $elapsedMs  = $lastDraw->created_at->diffInMilliseconds(now());
+        $elapsedMs = $lastDraw->created_at->diffInMilliseconds(now());
         $minDelayMs = (int) config('anticheat.bingo.min_claim_delay_ms', 400);
 
         if ($elapsedMs < $minDelayMs) {
@@ -185,17 +189,17 @@ final class BingoWinnerDetectionService
                     signal: AntiCheatSignalType::IMPOSSIBLE_CLAIM_TIMING,
                     gameId: (string) $room->id,
                     metadata: [
-                        'last_draw_id'    => $lastDrawId,
-                        'last_draw_at'    => $lastDraw->created_at->toIso8601String(),
-                        'elapsed_ms'      => $elapsedMs,
+                        'last_draw_id' => $lastDrawId,
+                        'last_draw_at' => $lastDraw->created_at->toIso8601String(),
+                        'elapsed_ms' => $elapsedMs,
                         'min_required_ms' => $minDelayMs,
                     ],
                 );
             }
 
             Log::warning('[BingoWinnerDetection] Timing de reclamo sospechoso — bloqueado', [
-                'room_id'    => $room->id,
-                'user_id'    => $antiCheatUserId,
+                'room_id' => $room->id,
+                'user_id' => $antiCheatUserId,
                 'elapsed_ms' => $elapsedMs,
             ]);
 
@@ -205,10 +209,10 @@ final class BingoWinnerDetectionService
         }
 
         $remainingChips = BingoVariant::totalChips($variant) - count($drawnNumbers);
-        $isLuckyWinner  = $remainingChips <= BingoDrawService::LUCKY_WINNER_REMAINING_THRESHOLD;
+        $isLuckyWinner = $remainingChips <= BingoDrawService::LUCKY_WINNER_REMAINING_THRESHOLD;
 
         foreach ($cards as $card) {
-            if (!$this->checkBingo($card, $drawnNumbers, $patternPositions, $variant)) {
+            if (! $this->checkBingo($card, $drawnNumbers, $patternPositions, $variant)) {
                 continue;
             }
 
@@ -224,7 +228,7 @@ final class BingoWinnerDetectionService
                 'room_id' => $room->id,
                 'variant' => $variant,
                 'pattern' => $pattern->name,
-                'winner'  => $winnerData,
+                'winner' => $winnerData,
             ]);
 
             return $winnerData;

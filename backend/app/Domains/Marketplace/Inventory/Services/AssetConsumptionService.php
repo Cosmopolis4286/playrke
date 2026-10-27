@@ -31,16 +31,34 @@ final class AssetConsumptionService
     }
 
     /**
+     * Cuántas unidades disponibles tiene el usuario de un AssetDefinition,
+     * sin consumir nada — para que la UI del juego muestre "te quedan N"
+     * antes de intentar usarlo.
+     */
+    public function availableQuantity(string $userId, string $assetDefinitionCode) : int
+    {
+        $definition = AssetDefinition::catalog()->get($assetDefinitionCode);
+        if (! $definition) {
+            return 0;
+        }
+
+        return (int) PlayerAsset::where('owner_id', $userId)
+            ->where('asset_definition_id', $definition->id)
+            ->where('status', PlayerAsset::STATUS_AVAILABLE)
+            ->sum('quantity');
+    }
+
+    /**
      * Consume una unidad (o $quantity) de la primera instancia AVAILABLE
      * del usuario para el AssetDefinition indicado por code. Lanza
      * AssetNotAvailableException si el usuario no posee ninguna instancia
      * disponible — el juego decide qué hacer con eso (bloquear la acción,
      * mostrar "no tienes este booster").
      *
-     * @param string|null $expectedGameGroup Si se indica, valida que la
-     *   definición pertenezca a ese game_group — evita consumos cruzados
-     *   entre juegos por error de código, sin acoplar este servicio a
-     *   ningún juego en particular.
+     * @param string|null $expectedGameGroup si se indica, valida que la
+     *                                       definición pertenezca a ese game_group — evita consumos cruzados
+     *                                       entre juegos por error de código, sin acoplar este servicio a
+     *                                       ningún juego en particular
      */
     public function consumeByCode(
         string $userId,
@@ -48,10 +66,10 @@ final class AssetConsumptionService
         int $quantity = 1,
         ?string $expectedGameGroup = null,
         ?string $gameRoomId = null,
-    ): void {
+    ) : void {
         $definition = AssetDefinition::catalog()->get($assetDefinitionCode);
 
-        if (!$definition || !$definition->consumable) {
+        if (! $definition || ! $definition->consumable) {
             throw new AssetNotAvailableException("El activo '{$assetDefinitionCode}' no existe o no es consumible.");
         }
 
@@ -65,29 +83,11 @@ final class AssetConsumptionService
             ->where('quantity', '>=', $quantity)
             ->first();
 
-        if (!$asset) {
+        if (! $asset) {
             throw new AssetNotAvailableException("No tienes suficiente '{$assetDefinitionCode}' disponible para usar.");
         }
 
         $this->inventoryService->consume($asset, $quantity);
-    }
-
-    /**
-     * Cuántas unidades disponibles tiene el usuario de un AssetDefinition,
-     * sin consumir nada — para que la UI del juego muestre "te quedan N"
-     * antes de intentar usarlo.
-     */
-    public function availableQuantity(string $userId, string $assetDefinitionCode): int
-    {
-        $definition = AssetDefinition::catalog()->get($assetDefinitionCode);
-        if (!$definition) {
-            return 0;
-        }
-
-        return (int) PlayerAsset::where('owner_id', $userId)
-            ->where('asset_definition_id', $definition->id)
-            ->where('status', PlayerAsset::STATUS_AVAILABLE)
-            ->sum('quantity');
     }
 
     /**
@@ -103,10 +103,10 @@ final class AssetConsumptionService
         int $quantity,
         string $acquiredReference,
         string $acquiredVia = 'GAME_PRIZE',
-    ): PlayerAsset {
+    ) : PlayerAsset {
         $definition = AssetDefinition::catalog()->get($assetDefinitionCode);
 
-        if (!$definition) {
+        if (! $definition) {
             throw new AssetNotAvailableException("El activo '{$assetDefinitionCode}' no existe.");
         }
 

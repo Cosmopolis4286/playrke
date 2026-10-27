@@ -11,102 +11,92 @@ use Illuminate\Database\Eloquent\Collection;
 interface BingoRoomWinnerRepositoryContract extends BaseRepositoryInterface
 {
     /**
-     * Obtiene ganadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return Collection
-     */
-    public function getByRoom($roomId): Collection;
-
-    /**
-     * Obtiene ganadores por ronda
-     *
-     * @param mixed $roundId ID de la ronda
-     * @return Collection
-     */
-    public function getByRound($roundId): Collection;
-
-    /**
-     * Obtiene ganadores por jugador (room_user)
-     *
-     * @param mixed $roomUserId ID del jugador en sala
-     * @return Collection
-     */
-    public function getByRoomUser($roomUserId): Collection;
-
-    /**
-     * Obtiene ganadores por estado de pago
-     *
-     * @param string $awardStatus Estado del premio ('WAITING', 'PAID')
-     * @return Collection
-     */
-    public function getByAwardStatus(string $awardStatus): Collection;
-
-    /**
-     * Obtiene ganadores por sala y estado
-     *
-     * @param mixed $roomId ID de la sala
-     * @param string $awardStatus Estado del premio
-     * @return Collection
-     */
-    public function getByRoomAndStatus($roomId, string $awardStatus): Collection;
-
-    /**
-     * Obtiene ganadores por ronda y estado
-     *
-     * @param mixed $roundId ID de la ronda
-     * @param string $awardStatus Estado del premio
-     * @return Collection
-     */
-    public function getByRoundAndStatus($roundId, string $awardStatus): Collection;
-
-    /**
      * Cuenta ganadores por sala
      *
      * @param mixed $roomId ID de la sala
-     * @return int
      */
-    public function countByRoom($roomId): int;
+    public function countByRoom($roomId) : int;
 
     /**
      * Cuenta ganadores por ronda
      *
      * @param mixed $roundId ID de la ronda
-     * @return int
      */
-    public function countByRound($roundId): int;
+    public function countByRound($roundId) : int;
 
     /**
      * Cuenta ganadores por estado
      *
      * @param string $awardStatus Estado del premio
-     * @return int
      */
-    public function countByStatus(string $awardStatus): int;
+    public function countByStatus(string $awardStatus) : int;
 
     /**
-     * Actualiza estado de premio
+     * Obtiene ganadores por estado de pago
      *
-     * @param mixed $id ID del ganador
-     * @param string $awardStatus Nuevo estado
-     * @return bool
+     * @param string $awardStatus Estado del premio ('WAITING', 'PAID')
      */
-    public function updateAwardStatus($id, string $awardStatus): bool;
+    public function getByAwardStatus(string $awardStatus) : Collection;
 
     /**
-     * Marca múltiples ganadores como pagados
+     * Obtiene ganadores por sala
      *
-     * @param array $ids Array de IDs de ganadores
-     * @return int Número de registros actualizados
+     * @param mixed $roomId ID de la sala
      */
-    public function markAsPaid(array $ids): int;
+    public function getByRoom($roomId) : Collection;
+
+    /**
+     * Obtiene ganadores por sala y estado
+     *
+     * @param mixed  $roomId      ID de la sala
+     * @param string $awardStatus Estado del premio
+     */
+    public function getByRoomAndStatus($roomId, string $awardStatus) : Collection;
+
+    /**
+     * Obtiene ganadores por jugador (room_user)
+     *
+     * @param mixed $roomUserId ID del jugador en sala
+     */
+    public function getByRoomUser($roomUserId) : Collection;
+
+    /**
+     * Obtiene ganadores por ronda
+     *
+     * @param mixed $roundId ID de la ronda
+     */
+    public function getByRound($roundId) : Collection;
+
+    /**
+     * Obtiene ganadores por ronda y estado
+     *
+     * @param mixed  $roundId     ID de la ronda
+     * @param string $awardStatus Estado del premio
+     */
+    public function getByRoundAndStatus($roundId, string $awardStatus) : Collection;
 
     /**
      * Verifica si un jugador ya ganó en una ronda
      *
      * @param mixed $roomUserId ID del jugador en sala
-     * @param mixed $roundId ID de la ronda
-     * @return bool
+     * @param mixed $roundId    ID de la ronda
      */
-    public function hasWonInRound($roomUserId, $roundId): bool;
+    public function hasWonInRound($roomUserId, $roundId) : bool;
+
+    /**
+     * Marca múltiples ganadores como pagados
+     *
+     * @param array $ids Array de IDs de ganadores
+     *
+     * @return int Número de registros actualizados
+     */
+    public function markAsPaid(array $ids) : int;
+
+    /**
+     * Actualiza estado de premio
+     *
+     * @param mixed  $id          ID del ganador
+     * @param string $awardStatus Nuevo estado
+     */
+    public function updateAwardStatus($id, string $awardStatus) : bool;
 }

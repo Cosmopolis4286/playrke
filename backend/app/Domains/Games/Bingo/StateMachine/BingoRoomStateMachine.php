@@ -20,36 +20,36 @@ use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 final class BingoRoomStateMachine
 {
     private const TRANSITIONS = [
-        'INACTIVE'    => ['ACTIVE', 'DELETED'],
-        'ACTIVE'      => ['INACTIVE', 'IN_PROGRESS', 'CANCELLED'],
+        'INACTIVE' => ['ACTIVE', 'DELETED'],
+        'ACTIVE' => ['INACTIVE', 'IN_PROGRESS', 'CANCELLED'],
         'IN_PROGRESS' => ['FINISHED', 'CANCELLED'],
-        'FINISHED'    => [],
-        'CANCELLED'   => [],
-        'DELETED'     => [],
+        'FINISHED' => [],
+        'CANCELLED' => [],
+        'DELETED' => [],
     ];
-
-    public static function canTransitionTo(string $from, string $to): bool
-    {
-        return in_array($to, self::TRANSITIONS[$from] ?? [], true);
-    }
 
     /**
      * Valida la transición y lanza BingoRoomException si no es válida.
      */
-    public static function assertTransition(string $from, string $to): void
+    public static function assertTransition(string $from, string $to) : void
     {
-        if (!self::canTransitionTo($from, $to)) {
+        if (! self::canTransitionTo($from, $to)) {
             throw BingoRoomException::invalidStatusChange();
         }
     }
 
-    public static function validStates(): array
+    public static function canTransitionTo(string $from, string $to) : bool
     {
-        return array_keys(self::TRANSITIONS);
+        return in_array($to, self::TRANSITIONS[$from] ?? [], true);
     }
 
-    public static function isTerminal(string $state): bool
+    public static function isTerminal(string $state) : bool
     {
         return self::TRANSITIONS[$state] === [];
+    }
+
+    public static function validStates() : array
+    {
+        return array_keys(self::TRANSITIONS);
     }
 }

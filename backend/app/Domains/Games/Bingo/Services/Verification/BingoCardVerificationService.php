@@ -19,26 +19,39 @@ use Illuminate\Auth\Access\AuthorizationException;
  */
 final class BingoCardVerificationService
 {
-    public function verify(string $serialNumber, string $phoneLast4): array
+    public function verify(string $serialNumber, string $phoneLast4) : array
     {
         $card = BingoCard::where('serial_number', $serialNumber)
             ->with(['room.config', 'prizes' => fn ($q) => $q->latest('created_at')])
             ->first();
 
-        if (!$card || !$this->phoneMatches($card, $phoneLast4)) {
+        if (! $card || ! $this->phoneMatches($card, $phoneLast4)) {
             throw new AuthorizationException('Cartón o teléfono no coinciden.');
         }
 
         return $this->toPayload($card);
     }
 
-    private function phoneMatches(BingoCard $card, string $phoneLast4): bool
+    private function externalPlayerPhone(BingoCard $card) : ?string
+    {
+        $externalPlayerId = ExternalPlayerParticipation::ofParticipable(BingoCard::class)
+            ->where('participable_id', (string) $card->id)
+            ->value('external_player_id');
+
+        if (! $externalPlayerId) {
+            return null;
+        }
+
+        return ExternalPlayer::find($externalPlayerId)?->phone;
+    }
+
+    private function phoneMatches(BingoCard $card, string $phoneLast4) : bool
     {
         $phone = $card->creator_user_id
             ? PhoneNumber::where('user_id', $card->creator_user_id)->active()->value('phone_number')
             : $this->externalPlayerPhone($card);
 
-        if (!$phone) {
+        if (! $phone) {
             return false;
         }
 
@@ -47,37 +60,24 @@ final class BingoCardVerificationService
         return substr($cleanPhone, -4) === $phoneLast4;
     }
 
-    private function externalPlayerPhone(BingoCard $card): ?string
-    {
-        $externalPlayerId = ExternalPlayerParticipation::ofParticipable(BingoCard::class)
-            ->where('participable_id', (string) $card->id)
-            ->value('external_player_id');
-
-        if (!$externalPlayerId) {
-            return null;
-        }
-
-        return ExternalPlayer::find($externalPlayerId)?->phone;
-    }
-
-    private function toPayload(BingoCard $card): array
+    private function toPayload(BingoCard $card) : array
     {
         $prize = $card->prizes->first();
 
         return [
             'serial_number' => $card->serial_number,
-            'card_numbers'  => $card->card_numbers ?? [],
-            'status'        => $card->status,
-            'status_label'  => $card->getCardStatusDescription(),
-            'room'          => [
+            'card_numbers' => $card->card_numbers ?? [],
+            'status' => $card->status,
+            'status_label' => $card->getCardStatusDescription(),
+            'room' => [
                 'name' => $card->room?->uuid_code,
                 'date' => $card->room?->config?->date?->format('d/m/Y'),
                 'time' => $card->room?->config?->start_time?->format('H:i'),
             ],
             'prize' => $prize ? [
-                'type_label'   => $prize->prize_type_description,
+                'type_label' => $prize->prize_type_description,
                 'status_label' => $prize->prize_status_description,
-                'amount_usd'   => (float) $prize->usd_amount,
+                'amount_usd' => (float) $prize->usd_amount,
             ] : null,
         ];
     }

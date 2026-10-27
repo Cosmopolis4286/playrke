@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Room;
@@ -20,7 +21,7 @@ final class BingoRoomStatsAggregator
     /**
      * Calcula y guarda (upsert) las estadísticas de una sala.
      */
-    public function aggregate(BingoRoom $room): BingoRoomStat
+    public function aggregate(BingoRoom $room) : BingoRoomStat
     {
         $roomId = (string) $room->id;
 
@@ -41,8 +42,8 @@ final class BingoRoomStatsAggregator
             ->withCount('winners')
             ->get(['id', 'status']);
 
-        $totalRounds   = $roundStats->count();
-        $winningRounds = $roundStats->filter(fn($r) => ($r->winners_count ?? 0) > 0)->count();
+        $totalRounds = $roundStats->count();
+        $winningRounds = $roundStats->filter(fn ($r) => ($r->winners_count ?? 0) > 0)->count();
 
         // Duración del sorteo: MIN/MAX atómico — evita race condition entre dos queries separadas
         $drawTimes = BingoDraw::where('room_id', $roomId)
@@ -58,20 +59,20 @@ final class BingoRoomStatsAggregator
         $stat = BingoRoomStat::updateOrCreate(
             ['room_id' => $roomId],
             [
-                'total_lots'            => (int) ($lotStats?->total_lots ?? 0),
-                'total_cards'           => (int) ($lotStats?->total_cards ?? 0),
-                'total_players'         => (int) ($room->total_players ?? 0),
-                'total_revenue'         => (float) ($lotStats?->total_revenue ?? 0),
-                'total_revenue_usd'     => (float) ($room->metrics_by_currency
+                'total_lots' => (int) ($lotStats?->total_lots ?? 0),
+                'total_cards' => (int) ($lotStats?->total_cards ?? 0),
+                'total_players' => (int) ($room->total_players ?? 0),
+                'total_revenue' => (float) ($lotStats?->total_revenue ?? 0),
+                'total_revenue_usd' => (float) ($room->metrics_by_currency
                     ? array_sum(array_column((array) $room->metrics_by_currency, 'revenue_usd'))
                     : 0),
-                'prize_pool_final'      => (float) ($room->prize_pool ?? 0),
-                'total_chips_drawn'     => $totalChipsDrawn,
-                'total_rounds'          => $totalRounds,
-                'winning_rounds'        => $winningRounds,
+                'prize_pool_final' => (float) ($room->prize_pool ?? 0),
+                'total_chips_drawn' => $totalChipsDrawn,
+                'total_rounds' => $totalRounds,
+                'winning_rounds' => $winningRounds,
                 'draw_duration_seconds' => $drawDuration,
-                'calculated_at'         => now(),
-            ]
+                'calculated_at' => now(),
+            ],
         );
 
         return $stat;

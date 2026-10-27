@@ -25,13 +25,6 @@ class WalletMovementPolicy extends BaseRolePolicy
             && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
     }
 
-    public function reject(User $user, WalletMovement $movement) : bool
-    {
-        return $this->hasAccess($user)
-            && $movement->status === WalletMovement::STATUS_PENDING
-            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
-    }
-
     /**
      * Tomar/liberar un movimiento PENDING como "en revisión propia" — acción
      * de dominio con regla propia (no CRUD genérico), mismo criterio que
@@ -44,6 +37,13 @@ class WalletMovementPolicy extends BaseRolePolicy
     public function assign(User $user, WalletMovement $movement) : bool
     {
         return $this->hasAccess($user) && $movement->status === WalletMovement::STATUS_PENDING;
+    }
+
+    public function reject(User $user, WalletMovement $movement) : bool
+    {
+        return $this->hasAccess($user)
+            && $movement->status === WalletMovement::STATUS_PENDING
+            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
     }
 
     protected function requiredRole() : string|array

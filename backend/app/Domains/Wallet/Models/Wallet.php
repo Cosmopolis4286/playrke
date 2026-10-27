@@ -40,19 +40,6 @@ class Wallet extends Model
     use \App\Traits\SnowflakeId, HasFactory;
 
     /**
-     * HasFactory resuelve por convención Database\Factories\{namespace tras
-     * App\}\{Modelo}Factory — para este modelo eso sería
-     * Database\Factories\Domains\Wallet\Models\WalletFactory, que no existe:
-     * la factory real vive en Database\Factories\WalletFactory (namespace
-     * plano, nunca actualizado al mover el modelo a app/Domains/Wallet/).
-     * Sobreescribir newFactory() evita depender de esa convención rota.
-     */
-    protected static function newFactory(): Factory
-    {
-        return WalletFactory::new();
-    }
-
-    /**
      * Estados de wallet disponibles
      */
     public const STATUSES = [
@@ -103,6 +90,19 @@ class Wallet extends Model
      * Nombre de la tabla en la base de datos
      */
     protected $table = 'wallets';
+
+    /**
+     * HasFactory resuelve por convención Database\Factories\{namespace tras
+     * App\}\{Modelo}Factory — para este modelo eso sería
+     * Database\Factories\Domains\Wallet\Models\WalletFactory, que no existe:
+     * la factory real vive en Database\Factories\WalletFactory (namespace
+     * plano, nunca actualizado al mover el modelo a app/Domains/Wallet/).
+     * Sobreescribir newFactory() evita depender de esa convención rota.
+     */
+    protected static function newFactory() : Factory
+    {
+        return WalletFactory::new();
+    }
 
     /**
      * Relación con la moneda

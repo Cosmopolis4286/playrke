@@ -3,7 +3,6 @@
 namespace App\Domains\Games\Bingo\DTOs\Room;
 
 use App\DTOs\ContextDTO;
-
 use Illuminate\Support\Collection;
 
 final class BingoRoomSummaryDTO implements ContextDTO
@@ -23,9 +22,10 @@ final class BingoRoomSummaryDTO implements ContextDTO
         public readonly array $commerces = [],
         /** KPIs por estado de la cabecera — ver BingoRoomContextService::statusCounts(). */
         public readonly array $statusCounts = [],
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
             'title' => 'Salas de Juego',

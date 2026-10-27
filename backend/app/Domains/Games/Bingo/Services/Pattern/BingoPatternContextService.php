@@ -15,12 +15,13 @@ final class BingoPatternContextService
     public function __construct(
         private readonly BingoPatternRepositoryInterface $repository,
         private readonly RoleUserService $roleUserService,
-    ) {}
+    ) {
+    }
 
     /**
      * Resolver contexto para BingoPattern.
      */
-    public function context(string $context, ?int $userId): mixed
+    public function context(string $context, ?int $userId) : mixed
     {
         return match ($context) {
             'index' => $this->resolve($userId),
@@ -29,7 +30,21 @@ final class BingoPatternContextService
         };
     }
 
-    private function resolve(?int $userId): BingoPatternDTO
+    /**
+     * Retorna lista de patrones para el usuario (usado en fetchList).
+     */
+    public function fetchList(?int $userId) : array
+    {
+        $patterns = $this->repository->getByUserAndDefault((string) $userId);
+
+        return $this->processCollectionTableData(
+            $patterns,
+            labels: ['Nombre', 'Tipo', 'Casillas', 'Por defecto', 'Estado'],
+            rowKeys: ['name', 'type_description', 'boxes_count', 'default_pattern', 'status'],
+        )['rows'];
+    }
+
+    private function resolve(?int $userId) : BingoPatternDTO
     {
         $patterns = $this->repository->getByUserAndDefault((string) $userId);
 
@@ -42,8 +57,9 @@ final class BingoPatternContextService
         // Inyectar default_pattern en cada fila como metadato oculto.
         // No forma parte de las columnas visibles pero el frontend lo necesita
         // para controlar permisos (botones Editar/Eliminar/Visualizar).
-        $tableData['rows'] = array_map(function (array $row, int $i) use ($patterns) {
+        $tableData['rows'] = array_map(function(array $row, int $i) use ($patterns) {
             $row['default_pattern'] = $patterns->values()->get($i)?->default_pattern ?? 'N';
+
             return $row;
         }, $tableData['rows'], array_keys($tableData['rows']));
 
@@ -54,19 +70,5 @@ final class BingoPatternContextService
             rows: $tableData['rows'],
             roleUser: $userRolePrefix,
         );
-    }
-
-    /**
-     * Retorna lista de patrones para el usuario (usado en fetchList).
-     */
-    public function fetchList(?int $userId): array
-    {
-        $patterns = $this->repository->getByUserAndDefault((string) $userId);
-
-        return $this->processCollectionTableData(
-            $patterns,
-            labels: ['Nombre', 'Tipo', 'Casillas', 'Por defecto', 'Estado'],
-            rowKeys: ['name', 'type_description', 'boxes_count', 'default_pattern', 'status'],
-        )['rows'];
     }
 }

@@ -9,6 +9,7 @@ use App\Domains\Marketplace\Exceptions\InvalidListingException;
 use App\Domains\Marketplace\Exceptions\ListingNoLongerAvailableException;
 use App\Domains\Marketplace\Models\Listing;
 use App\Domains\Marketplace\Models\Order;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -32,7 +33,7 @@ final class OrderService
     ) {
     }
 
-    public function buy(Listing $listing, string $buyerId, int $quantity): Order
+    public function buy(Listing $listing, string $buyerId, int $quantity) : Order
     {
         if ($this->fraudService->isSelfTrade($buyerId, (string) $listing->seller_id)) {
             throw new InvalidListingException('No puedes comprar tu propio listing.');
@@ -44,7 +45,7 @@ final class OrderService
             throw new InvalidListingException('La cantidad solicitada excede la publicada.');
         }
 
-        $order = DB::transaction(function () use ($listing, $buyerId, $quantity) {
+        $order = DB::transaction(function() use ($listing, $buyerId, $quantity) {
             $affected = Listing::where('id', $listing->id)
                 ->where('status', Listing::STATUS_ACTIVE)
                 ->update(['status' => Listing::STATUS_RESERVED]);
@@ -55,15 +56,15 @@ final class OrderService
 
             $fresh = $listing->fresh();
             $totalAmount = round($fresh->price * $quantity, 2);
-            $feeAmount   = $this->feeService->calculate($fresh, $totalAmount);
+            $feeAmount = $this->feeService->calculate($fresh, $totalAmount);
 
             return Order::create([
-                'listing_id'  => $fresh->id,
-                'buyer_id'    => $buyerId,
-                'quantity'    => $quantity,
-                'price'       => $fresh->price,
-                'fee_amount'  => $feeAmount,
-                'status'      => Order::STATUS_PENDING,
+                'listing_id' => $fresh->id,
+                'buyer_id' => $buyerId,
+                'quantity' => $quantity,
+                'price' => $fresh->price,
+                'fee_amount' => $feeAmount,
+                'status' => Order::STATUS_PENDING,
             ]);
         });
 
@@ -94,15 +95,15 @@ final class OrderService
      * revierte el listing a ACTIVE. Una vez que la Order avanza a ESCROW,
      * la cancelación pasa por EscrowService::cancel()/refund(), no por aquí.
      */
-    public function cancel(Order $order): Order
+    public function cancel(Order $order) : Order
     {
-        return DB::transaction(function () use ($order) {
+        return DB::transaction(function() use ($order) {
             $affected = Order::where('id', $order->id)
                 ->where('status', Order::STATUS_PENDING)
                 ->update(['status' => Order::STATUS_CANCELLED]);
 
             if ($affected === 0) {
-                throw new \DomainException('La orden ya no está pendiente.');
+                throw new DomainException('La orden ya no está pendiente.');
             }
 
             Listing::where('id', $order->listing_id)

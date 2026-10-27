@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Payment;
@@ -11,6 +12,7 @@ use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Pagos de cartón (comprador externo, vía vendedor) que siguen PENDIENTES
@@ -34,26 +36,24 @@ use Illuminate\Support\Facades\Log;
  */
 final class BingoPendingPaymentStartService
 {
+    public const AUTO_REJECT_NOTE = 'Rechazado automáticamente: el sorteo inició sin que se aprobara el pago.';
     /** Solo se avisa del inicio si la sala inició hace menos de esto. */
     private const NOTIFY_STARTED_WITHIN_SECONDS = 3600;
-
-    public const AUTO_REJECT_NOTE = 'Rechazado automáticamente: el sorteo inició sin que se aprobara el pago.';
 
     public function __construct(
         private readonly BingoCardPaymentReviewService $review,
         private readonly NotificationService $notifications,
-    ) {}
+    ) {
+    }
 
-    /** @return array{alerted: int, rejected: int, kept: int, failed: int} */
-    public function run(?int $now = null): array
+    /** Mismo corte que la venta del vendedor (BingoCardGenerateService::sellerSalesCutoffMinutes). */
+    public function alertMinutes() : int
     {
-        $now ??= now()->timestamp;
-
-        return ['alerted' => $this->alertUpcoming($now)] + $this->handleStarted($now);
+        return max(1, (int) config('app.bingo_seller_sales_cutoff_minutes', 5));
     }
 
     /** Aviso previo a la comercializadora: su sala está por iniciar con pagos sin revisar. */
-    public function alertUpcoming(int $now): int
+    public function alertUpcoming(int $now) : int
     {
         $payments = $this->pending()
             ->whereNull('start_alert_sent_at')
@@ -66,11 +66,14 @@ final class BingoPendingPaymentStartService
 
         foreach ($this->groupByReviewer($payments) as $reviewerUserId => $byRoom) {
             foreach ($byRoom as $roomPayments) {
-                $room    = $roomPayments->first()->room;
+                $room = $roomPayments->first()->room;
                 $minutes = max(1, (int) ceil(((int) $room->config->unix_date - $now) / 60));
-                $this->notify($reviewerUserId, 'Pagos por revisar antes del sorteo',
+                $this->notify(
+                    $reviewerUserId,
+                    'Pagos por revisar antes del sorteo',
                     "La sala #{$room->uuid_code} inicia en {$minutes} min y tiene {$roomPayments->count()} pago(s) sin revisar. "
-                    . 'Si no los apruebas, esos compradores no podrán jugar.');
+                    . 'Si no los apruebas, esos compradores no podrán jugar.',
+                );
             }
         }
 
@@ -82,7 +85,7 @@ final class BingoPendingPaymentStartService
     }
 
     /** @return array{rejected: int, kept: int, failed: int} */
-    public function handleStarted(int $now): array
+    public function handleStarted(int $now) : array
     {
         // Iniciada = ya en juego/terminada, o su hora programada ya pasó.
         $payments = $this->pending()
@@ -106,13 +109,14 @@ final class BingoPendingPaymentStartService
 
                     if ($policy !== Commerce::PENDING_POLICY_REJECT) {
                         $kept++;
+
                         continue;
                     }
 
                     try {
                         $this->review->reject($payment->fresh(), self::AUTO_REJECT_NOTE);
                         $rejected++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         // Ej. el lote ya tiene un premio: queda en revisión para resolver a mano.
                         $failed++;
                         Log::warning('[BingoPendingPaymentStart] No se pudo rechazar automáticamente', [
@@ -122,12 +126,12 @@ final class BingoPendingPaymentStartService
                 }
 
                 $result['rejected'] += $rejected;
-                $result['kept']     += $kept;
-                $result['failed']   += $failed;
+                $result['kept'] += $kept;
+                $result['failed'] += $failed;
 
                 // Salas que iniciaron hace rato (ej. pagos viejos al desplegar
                 // esto): se marcan y se aplica la regla, pero sin avisar.
-                $room     = $roomPayments->first()->room;
+                $room = $roomPayments->first()->room;
                 $unixDate = $room?->config?->unix_date;
                 if ($unixDate === null || (int) $unixDate >= $now - self::NOTIFY_STARTED_WITHIN_SECONDS) {
                     $this->notify($reviewerUserId, 'Sorteo iniciado con pagos sin revisar', $this->startedMessage($room?->uuid_code, $rejected, $kept, $failed));
@@ -138,36 +142,22 @@ final class BingoPendingPaymentStartService
         return $result;
     }
 
-    /** Mismo corte que la venta del vendedor (BingoCardGenerateService::sellerSalesCutoffMinutes). */
-    public function alertMinutes(): int
+    /** @return array{alerted: int, rejected: int, kept: int, failed: int} */
+    public function run(?int $now = null) : array
     {
-        return max(1, (int) config('app.bingo_seller_sales_cutoff_minutes', 5));
-    }
+        $now ??= now()->timestamp;
 
-    private function startedMessage(?string $roomCode, int $rejected, int $kept, int $failed): string
-    {
-        $parts = [];
-        if ($rejected) $parts[] = "{$rejected} rechazado(s) con reembolso — el vendedor debe devolver el dinero";
-        if ($kept)     $parts[] = "{$kept} siguen en revisión — si los apruebas, el comprador ya perdió las bolas cantadas";
-        if ($failed)   $parts[] = "{$failed} no se pudieron rechazar (tienen premio) y quedan en revisión";
-
-        return "La sala #{$roomCode} inició con pagos sin revisar: " . implode('; ', $parts) . '.';
-    }
-
-    private function pending(): Builder
-    {
-        return BingoCardPayment::query()
-            ->where('payment_status', 'PENDING')
-            ->whereNotNull('card_lot_id');
+        return ['alerted' => $this->alertUpcoming($now)] + $this->handleStarted($now);
     }
 
     /**
      * Agrupa por comercializadora que revisa (la de la red del vendedor) y sala.
      *
      * @param Collection<int, BingoCardPayment> $payments
+     *
      * @return array<string, Collection<string, Collection<int, BingoCardPayment>>>
      */
-    private function groupByReviewer(Collection $payments): array
+    private function groupByReviewer(Collection $payments) : array
     {
         $grouped = [];
 
@@ -185,8 +175,26 @@ final class BingoPendingPaymentStartService
         );
     }
 
+    private function notify(string|int $userId, string $title, string $message) : void
+    {
+        $userId = (string) $userId;
+
+        try {
+            $this->notifications->create($userId, 'GAME_ALERT', $title, $message, ['url' => '/bingo/card-payments']);
+        } catch (Throwable $e) {
+            Log::warning('[BingoPendingPaymentStart] No se pudo notificar', ['user_id' => $userId, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function pending() : Builder
+    {
+        return BingoCardPayment::query()
+            ->where('payment_status', 'PENDING')
+            ->whereNotNull('card_lot_id');
+    }
+
     /** user_id de la comercializadora de la red del vendedor (snapshot del lote, o la actual). */
-    private function reviewerUserId(BingoCardPayment $payment): ?string
+    private function reviewerUserId(BingoCardPayment $payment) : ?string
     {
         $commerceId = BingoCardLot::whereKey($payment->card_lot_id)->value('commerce_id');
         if ($commerceId) {
@@ -201,14 +209,19 @@ final class BingoPendingPaymentStartService
         return $commerce?->user_id ? (string) $commerce->user_id : null;
     }
 
-    private function notify(string|int $userId, string $title, string $message): void
+    private function startedMessage(?string $roomCode, int $rejected, int $kept, int $failed) : string
     {
-        $userId = (string) $userId;
-
-        try {
-            $this->notifications->create($userId, 'GAME_ALERT', $title, $message, ['url' => '/bingo/card-payments']);
-        } catch (\Throwable $e) {
-            Log::warning('[BingoPendingPaymentStart] No se pudo notificar', ['user_id' => $userId, 'error' => $e->getMessage()]);
+        $parts = [];
+        if ($rejected) {
+            $parts[] = "{$rejected} rechazado(s) con reembolso — el vendedor debe devolver el dinero";
         }
+        if ($kept) {
+            $parts[] = "{$kept} siguen en revisión — si los apruebas, el comprador ya perdió las bolas cantadas";
+        }
+        if ($failed) {
+            $parts[] = "{$failed} no se pudieron rechazar (tienen premio) y quedan en revisión";
+        }
+
+        return "La sala #{$roomCode} inició con pagos sin revisar: " . implode('; ', $parts) . '.';
     }
 }

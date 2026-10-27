@@ -55,7 +55,7 @@ final class WalletReservationService
             throw WalletDomainException::holdCaptureExceedsReservedAmount();
         }
 
-        $movement = DB::transaction(function () use ($hold, $movementType, $amount, $description) {
+        $movement = DB::transaction(function() use ($hold, $movementType, $amount, $description) {
             $lockedHold = WalletHold::where('id', $hold->id)->lockForUpdate()->firstOrFail();
 
             if (! $lockedHold->isActive()) {
@@ -128,7 +128,7 @@ final class WalletReservationService
      */
     public function release(WalletHold $hold) : WalletHold
     {
-        return DB::transaction(function () use ($hold) {
+        return DB::transaction(function() use ($hold) {
             $lockedHold = WalletHold::where('id', $hold->id)->lockForUpdate()->firstOrFail();
 
             if (! $lockedHold->isActive()) {

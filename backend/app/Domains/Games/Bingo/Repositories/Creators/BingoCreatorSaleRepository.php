@@ -4,8 +4,8 @@ namespace App\Domains\Games\Bingo\Repositories\Creators;
 
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
-use App\Repositories\BaseRepository;
 use App\Domains\Games\Bingo\Repositories\Creators\Contracts\BingoCreatorSaleRepositoryContract;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,16 +15,14 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para las ventas y comisiones de creadores de salas de bingo.
  *
- * @package App\Repositories\Bingo\Creators
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorSaleRepositoryContract
 {
     /**
      * Constructor del repositorio
-     *
-     * @param BingoCreatorSale $model
      */
     public function __construct(BingoCreatorSale $model)
     {
@@ -32,30 +30,9 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     }
 
     /**
-     * Obtener venta por sala, creador y moneda
-     *
-     * @param string $roomId
-     * @param string $creatorUserId
-     * @param string $currency
-     * @return BingoCreatorSale|null
-     */
-    public function findByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, string $currency): ?BingoCreatorSale
-    {
-        return $this->model->where('room_id', $roomId)
-            ->where('creator_user_id', $creatorUserId)
-            ->where('currency_id', $currency)
-            ->first();
-    }
-
-    /**
      * Verificar si existe una venta para sala, creador y moneda específicos
-     *
-     * @param string $roomId
-     * @param string $creatorUserId
-     * @param string|null $currency
-     * @return bool
      */
-    public function existsByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, ?string $currency = null): bool
+    public function existsByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, ?string $currency = null) : bool
     {
         $query = $this->model->where('room_id', $roomId)
             ->where('creator_user_id', $creatorUserId);
@@ -68,23 +45,47 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     }
 
     /**
-     * Obtener todas las ventas por sala
-     *
-     * @param string $roomId
-     * @return Collection<int, BingoCreatorSale>
+     * Obtener venta por sala, creador y moneda
      */
-    public function getByRoom(string $roomId): Collection
+    public function findByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, string $currency) : ?BingoCreatorSale
     {
-        return $this->model->where('room_id', $roomId)->get();
+        return $this->model->where('room_id', $roomId)
+            ->where('creator_user_id', $creatorUserId)
+            ->where('currency_id', $currency)
+            ->first();
+    }
+
+    /**
+     * Obtener promedio de comisiones por tipo
+     *
+     * @return array{
+     *     avg_rke_commission: float,
+     *     avg_room_commission: float,
+     *     avg_seller_commission: float
+     * }
+     */
+    public function getAverageCommissions() : array
+    {
+        $averages = $this->model->selectRaw('
+                AVG(rke_commission) as avg_rke_commission,
+                AVG(room_commission) as avg_room_commission,
+                AVG(seller_commission) as avg_seller_commission
+            ')
+            ->first();
+
+        return [
+            'avg_rke_commission' => (float) ($averages->avg_rke_commission ?? 0),
+            'avg_room_commission' => (float) ($averages->avg_room_commission ?? 0),
+            'avg_seller_commission' => (float) ($averages->avg_seller_commission ?? 0),
+        ];
     }
 
     /**
      * Obtener todas las ventas por creador
      *
-     * @param string $creatorUserId
      * @return Collection<int, BingoCreatorSale>
      */
-    public function getByCreatorUser(string $creatorUserId): Collection
+    public function getByCreatorUser(string $creatorUserId) : Collection
     {
         return $this->model->where('creator_user_id', $creatorUserId)->get();
     }
@@ -92,324 +93,39 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     /**
      * Obtener todas las ventas por moneda
      *
-     * @param string $currency
      * @return Collection<int, BingoCreatorSale>
      */
-    public function getByCurrency(string $currency): Collection
+    public function getByCurrency(string $currency) : Collection
     {
         return $this->model->where('currency_id', $currency)->get();
     }
 
     /**
-     * Obtener total del premio acumulado por sala y moneda
-     *
-     * @param string $roomId
-     * @param string $currency
-     * @return float
-     */
-    public function getPrizePoolAmountByRoomAndCurrency(string $roomId, string $currency): float
-    {
-        return (float) $this->model->where('room_id', $roomId)
-            ->where('currency_id', $currency)
-            ->sum('prize_pool_amount');
-    }
-
-    /**
-     * Obtener total de ventas por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalSalesByRoom(string $roomId): float
-    {
-        return (float) $this->model->where('room_id', $roomId)->sum('sale_amount');
-    }
-
-    /**
-     * Obtener total de comisiones RKE por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalRkeCommissionByRoom(string $roomId): float
-    {
-        return (float) $this->model->where('room_id', $roomId)->sum('rke_commission');
-    }
-
-    /**
-     * Obtener total de comisiones de sala por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalRoomCommissionByRoom(string $roomId): float
-    {
-        return (float) $this->model->where('room_id', $roomId)->sum('room_commission');
-    }
-
-    /**
-     * Obtener total de comisiones de vendedor por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalSellerCommissionByRoom(string $roomId): float
-    {
-        return (float) $this->model->where('room_id', $roomId)->sum('seller_commission');
-    }
-
-    /**
-     * Obtener total de ventas por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalSalesByCreator(string $creatorUserId): float
-    {
-        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('sale_amount');
-    }
-
-    /**
-     * Obtener total de comisiones RKE por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalRkeCommissionByCreator(string $creatorUserId): float
-    {
-        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('rke_commission');
-    }
-
-    /**
-     * Obtener total de comisiones de sala por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalRoomCommissionByCreator(string $creatorUserId): float
-    {
-        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('room_commission');
-    }
-
-    /**
-     * Obtener total de comisiones de vendedor por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalSellerCommissionByCreator(string $creatorUserId): float
-    {
-        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('seller_commission');
-    }
-
-    /**
-     * Obtener estadísticas de ventas por sala
-     *
-     * @param string $roomId
-     * @return array{
-     *     total_sales: float,
-     *     total_rke_commission: float,
-     *     total_room_commission: float,
-     *     total_seller_commission: float,
-     *     total_prize_pool: float,
-     *     by_currency: array
-     * }
-     */
-    public function getSalesStatsByRoom(string $roomId): array
-    {
-        $totalSales = $this->getTotalSalesByRoom($roomId);
-        $totalRkeCommission = $this->getTotalRkeCommissionByRoom($roomId);
-        $totalRoomCommission = $this->getTotalRoomCommissionByRoom($roomId);
-        $totalSellerCommission = $this->getTotalSellerCommissionByRoom($roomId);
-        $totalPrizePool = (float) $this->model->where('room_id', $roomId)->sum('prize_pool_amount');
-
-        $byCurrency = $this->model->where('room_id', $roomId)
-            ->selectRaw('currency_id, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
-            ->groupBy('currency_id')
-            ->get()
-            ->keyBy('currency_id')
-            ->toArray();
-
-        return [
-            'total_sales' => $totalSales,
-            'total_rke_commission' => $totalRkeCommission,
-            'total_room_commission' => $totalRoomCommission,
-            'total_seller_commission' => $totalSellerCommission,
-            'total_prize_pool' => $totalPrizePool,
-            'by_currency' => $byCurrency
-        ];
-    }
-
-    /**
-     * Obtener estadísticas de ventas por creador
-     *
-     * @param string $creatorUserId
-     * @return array{
-     *     total_sales: float,
-     *     total_rke_commission: float,
-     *     total_room_commission: float,
-     *     total_seller_commission: float,
-     *     total_prize_pool: float,
-     *     room_count: int,
-     *     by_currency: array
-     * }
-     */
-    public function getSalesStatsByCreator(string $creatorUserId): array
-    {
-        $totalSales = $this->getTotalSalesByCreator($creatorUserId);
-        $totalRkeCommission = $this->getTotalRkeCommissionByCreator($creatorUserId);
-        $totalRoomCommission = $this->getTotalRoomCommissionByCreator($creatorUserId);
-        $totalSellerCommission = $this->getTotalSellerCommissionByCreator($creatorUserId);
-        $totalPrizePool = (float) $this->model->where('creator_user_id', $creatorUserId)->sum('prize_pool_amount');
-        $roomCount = $this->model->where('creator_user_id', $creatorUserId)->distinct('room_id')->count('room_id');
-
-        $byCurrency = $this->model->where('creator_user_id', $creatorUserId)
-            ->selectRaw('currency_id, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
-            ->groupBy('currency_id')
-            ->get()
-            ->keyBy('currency_id')
-            ->toArray();
-
-        return [
-            'total_sales' => $totalSales,
-            'total_rke_commission' => $totalRkeCommission,
-            'total_room_commission' => $totalRoomCommission,
-            'total_seller_commission' => $totalSellerCommission,
-            'total_prize_pool' => $totalPrizePool,
-            'room_count' => $roomCount,
-            'by_currency' => $byCurrency
-        ];
-    }
-
-    /**
-     * Obtener ventas con mayor volumen
-     *
-     * @param int $limit
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function getTopSalesByVolume(int $limit = 10): Collection
-    {
-        return $this->model->orderByDesc('sale_amount')->limit($limit)->get();
-    }
-
-    /**
-     * Obtener creadores con mayores ventas
-     *
-     * @param int $limit
-     * @return Collection
-     */
-    public function getTopCreatorsBySales(int $limit = 10): Collection
-    {
-        return $this->model->selectRaw('creator_user_id, SUM(sale_amount) as total_sales')
-            ->groupBy('creator_user_id')
-            ->orderByDesc('total_sales')
-            ->limit($limit)
-            ->get();
-    }
-
-    /**
-     * Obtener salas con mayores ventas
-     *
-     * @param int $limit
-     * @return Collection
-     */
-    public function getTopRoomsBySales(int $limit = 10): Collection
-    {
-        return $this->model->selectRaw('room_id, SUM(sale_amount) as total_sales')
-            ->groupBy('room_id')
-            ->orderByDesc('total_sales')
-            ->limit($limit)
-            ->get();
-    }
-
-    /**
-     * Crear o actualizar una venta
-     *
-     * @param string $roomId
-     * @param string $creatorUserId
-     * @param string $currency
-     * @param float $amount
-     * @param float|null $sellerCommission
-     * @return BingoCreatorSale
-     */
-    public function updateOrCreateSale(string $roomId, string $creatorUserId, string $currency, float $amount, ?float $sellerCommission = null): BingoCreatorSale
-    {
-        // Obtener configuración de la sala
-        $roomConfig = BingoRoomConfig::where('room_id', $roomId)->first(['rke_commission', 'room_commission']);
-
-        $rkeCommission = round($amount * (($roomConfig->rke_commission ?? 0) / 100), 3);
-        $roomCommission = round($amount * (($roomConfig->room_commission ?? 0) / 100), 3);
-        $sellerCommission = round($sellerCommission ?? 0, 3);
-        $prizePool = round($amount - $rkeCommission - $roomCommission - $sellerCommission, 3);
-
-        $sale = $this->model->firstOrCreate(
-            [
-                'room_id' => $roomId,
-                'creator_user_id' => $creatorUserId,
-                'currency_id' => $currency
-            ],
-            [
-                'sale_amount' => $amount,
-                'rke_commission' => $rkeCommission,
-                'room_commission' => $roomCommission,
-                'seller_commission' => $sellerCommission,
-                'prize_pool_amount' => $prizePool
-            ]
-        );
-
-        if (!$sale->wasRecentlyCreated && $amount > 0) {
-            $sale->increment('sale_amount', $amount);
-            $sale->increment('rke_commission', $rkeCommission);
-            $sale->increment('room_commission', $roomCommission);
-            $sale->increment('seller_commission', $sellerCommission);
-            $sale->increment('prize_pool_amount', $prizePool);
-        }
-
-        return $sale;
-    }
-
-    /**
-     * Incrementar monto de venta existente
-     *
-     * @param string $saleId
-     * @param float $amount
-     * @param float $rkeCommission
-     * @param float $roomCommission
-     * @param float $sellerCommission
-     * @param float $prizePoolAmount
-     * @return bool
-     */
-    public function incrementSaleAmounts(string $saleId, float $amount, float $rkeCommission, float $roomCommission, float $sellerCommission, float $prizePoolAmount): bool
-    {
-        return $this->model->where('id', $saleId)->update([
-            'sale_amount' => DB::raw("sale_amount + {$amount}"),
-            'rke_commission' => DB::raw("rke_commission + {$rkeCommission}"),
-            'room_commission' => DB::raw("room_commission + {$roomCommission}"),
-            'seller_commission' => DB::raw("seller_commission + {$sellerCommission}"),
-            'prize_pool_amount' => DB::raw("prize_pool_amount + {$prizePoolAmount}")
-        ]) > 0;
-    }
-
-    /**
      * Obtener ventas por rango de fechas
      *
-     * @param string $startDate
-     * @param string $endDate
      * @return Collection<int, BingoCreatorSale>
      */
-    public function getByDateRange(string $startDate, string $endDate): Collection
+    public function getByDateRange(string $startDate, string $endDate) : Collection
     {
         return $this->model->whereBetween('created_at', [$startDate, $endDate])->get();
     }
 
     /**
-     * Obtener ventas por rango de montos
+     * Obtener todas las ventas por sala
      *
-     * @param float $minAmount
-     * @param float $maxAmount
      * @return Collection<int, BingoCreatorSale>
      */
-    public function getBySaleAmountRange(float $minAmount, float $maxAmount): Collection
+    public function getByRoom(string $roomId) : Collection
+    {
+        return $this->model->where('room_id', $roomId)->get();
+    }
+
+    /**
+     * Obtener ventas por rango de montos
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getBySaleAmountRange(float $minAmount, float $maxAmount) : Collection
     {
         return $this->model->whereBetween('sale_amount', [$minAmount, $maxAmount])->get();
     }
@@ -417,7 +133,6 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     /**
      * Obtener resumen diario de ventas
      *
-     * @param string $date
      * @return array{
      *     total_sales: float,
      *     total_transactions: int,
@@ -425,7 +140,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      *     total_prize_pool: float
      * }
      */
-    public function getDailySummary(string $date): array
+    public function getDailySummary(string $date) : array
     {
         $summary = $this->model->whereDate('created_at', $date)
             ->selectRaw('
@@ -440,15 +155,13 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             'total_sales' => (float) ($summary->total_sales ?? 0),
             'total_transactions' => (int) ($summary->total_transactions ?? 0),
             'total_commission' => (float) ($summary->total_commission ?? 0),
-            'total_prize_pool' => (float) ($summary->total_prize_pool ?? 0)
+            'total_prize_pool' => (float) ($summary->total_prize_pool ?? 0),
         ];
     }
 
     /**
      * Obtener resumen mensual de ventas
      *
-     * @param int $year
-     * @param int $month
      * @return array{
      *     total_sales: float,
      *     total_transactions: int,
@@ -457,7 +170,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      *     daily_breakdown: array
      * }
      */
-    public function getMonthlySummary(int $year, int $month): array
+    public function getMonthlySummary(int $year, int $month) : array
     {
         $monthlySummary = $this->model->whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
@@ -486,31 +199,24 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             'total_transactions' => (int) ($monthlySummary->total_transactions ?? 0),
             'total_commission' => (float) ($monthlySummary->total_commission ?? 0),
             'total_prize_pool' => (float) ($monthlySummary->total_prize_pool ?? 0),
-            'daily_breakdown' => $dailyBreakdown
+            'daily_breakdown' => $dailyBreakdown,
         ];
     }
 
     /**
-     * Buscar ventas por término de búsqueda
-     *
-     * @param string $searchTerm
-     * @return Collection<int, BingoCreatorSale>
+     * Obtener total del premio acumulado por sala y moneda
      */
-    public function searchSales(string $searchTerm): Collection
+    public function getPrizePoolAmountByRoomAndCurrency(string $roomId, string $currency) : float
     {
-        return $this->model->where(function ($query) use ($searchTerm) {
-            $query->where('room_id', 'like', "%{$searchTerm}%")
-                ->orWhere('creator_user_id', 'like', "%{$searchTerm}%")
-                ->orWhere('currency_id', 'like', "%{$searchTerm}%");
-        })->get();
+        return (float) $this->model->where('room_id', $roomId)
+            ->where('currency_id', $currency)
+            ->sum('prize_pool_amount');
     }
 
     /**
      * Obtener ventas agrupadas por moneda
-     *
-     * @return Collection
      */
-    public function getSalesGroupedByCurrency(): Collection
+    public function getSalesGroupedByCurrency() : Collection
     {
         return $this->model->selectRaw('
                 currency_id,
@@ -524,41 +230,255 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     }
 
     /**
-     * Obtener promedio de comisiones por tipo
+     * Obtener estadísticas de ventas por creador
      *
      * @return array{
-     *     avg_rke_commission: float,
-     *     avg_room_commission: float,
-     *     avg_seller_commission: float
+     *     total_sales: float,
+     *     total_rke_commission: float,
+     *     total_room_commission: float,
+     *     total_seller_commission: float,
+     *     total_prize_pool: float,
+     *     room_count: int,
+     *     by_currency: array
      * }
      */
-    public function getAverageCommissions(): array
+    public function getSalesStatsByCreator(string $creatorUserId) : array
     {
-        $averages = $this->model->selectRaw('
-                AVG(rke_commission) as avg_rke_commission,
-                AVG(room_commission) as avg_room_commission,
-                AVG(seller_commission) as avg_seller_commission
-            ')
-            ->first();
+        $totalSales = $this->getTotalSalesByCreator($creatorUserId);
+        $totalRkeCommission = $this->getTotalRkeCommissionByCreator($creatorUserId);
+        $totalRoomCommission = $this->getTotalRoomCommissionByCreator($creatorUserId);
+        $totalSellerCommission = $this->getTotalSellerCommissionByCreator($creatorUserId);
+        $totalPrizePool = (float) $this->model->where('creator_user_id', $creatorUserId)->sum('prize_pool_amount');
+        $roomCount = $this->model->where('creator_user_id', $creatorUserId)->distinct('room_id')->count('room_id');
+
+        $byCurrency = $this->model->where('creator_user_id', $creatorUserId)
+            ->selectRaw('currency_id, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
+            ->groupBy('currency_id')
+            ->get()
+            ->keyBy('currency_id')
+            ->toArray();
 
         return [
-            'avg_rke_commission' => (float) ($averages->avg_rke_commission ?? 0),
-            'avg_room_commission' => (float) ($averages->avg_room_commission ?? 0),
-            'avg_seller_commission' => (float) ($averages->avg_seller_commission ?? 0)
+            'total_sales' => $totalSales,
+            'total_rke_commission' => $totalRkeCommission,
+            'total_room_commission' => $totalRoomCommission,
+            'total_seller_commission' => $totalSellerCommission,
+            'total_prize_pool' => $totalPrizePool,
+            'room_count' => $roomCount,
+            'by_currency' => $byCurrency,
         ];
     }
 
     /**
-     * Verificar integridad de datos de venta
+     * Obtener estadísticas de ventas por sala
      *
-     * @param string $saleId
-     * @return bool
+     * @return array{
+     *     total_sales: float,
+     *     total_rke_commission: float,
+     *     total_room_commission: float,
+     *     total_seller_commission: float,
+     *     total_prize_pool: float,
+     *     by_currency: array
+     * }
      */
-    public function validateSaleIntegrity(string $saleId): bool
+    public function getSalesStatsByRoom(string $roomId) : array
+    {
+        $totalSales = $this->getTotalSalesByRoom($roomId);
+        $totalRkeCommission = $this->getTotalRkeCommissionByRoom($roomId);
+        $totalRoomCommission = $this->getTotalRoomCommissionByRoom($roomId);
+        $totalSellerCommission = $this->getTotalSellerCommissionByRoom($roomId);
+        $totalPrizePool = (float) $this->model->where('room_id', $roomId)->sum('prize_pool_amount');
+
+        $byCurrency = $this->model->where('room_id', $roomId)
+            ->selectRaw('currency_id, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
+            ->groupBy('currency_id')
+            ->get()
+            ->keyBy('currency_id')
+            ->toArray();
+
+        return [
+            'total_sales' => $totalSales,
+            'total_rke_commission' => $totalRkeCommission,
+            'total_room_commission' => $totalRoomCommission,
+            'total_seller_commission' => $totalSellerCommission,
+            'total_prize_pool' => $totalPrizePool,
+            'by_currency' => $byCurrency,
+        ];
+    }
+
+    /**
+     * Obtener creadores con mayores ventas
+     */
+    public function getTopCreatorsBySales(int $limit = 10) : Collection
+    {
+        return $this->model->selectRaw('creator_user_id, SUM(sale_amount) as total_sales')
+            ->groupBy('creator_user_id')
+            ->orderByDesc('total_sales')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Obtener salas con mayores ventas
+     */
+    public function getTopRoomsBySales(int $limit = 10) : Collection
+    {
+        return $this->model->selectRaw('room_id, SUM(sale_amount) as total_sales')
+            ->groupBy('room_id')
+            ->orderByDesc('total_sales')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Obtener ventas con mayor volumen
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getTopSalesByVolume(int $limit = 10) : Collection
+    {
+        return $this->model->orderByDesc('sale_amount')->limit($limit)->get();
+    }
+
+    /**
+     * Obtener total de comisiones RKE por creador
+     */
+    public function getTotalRkeCommissionByCreator(string $creatorUserId) : float
+    {
+        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('rke_commission');
+    }
+
+    /**
+     * Obtener total de comisiones RKE por sala
+     */
+    public function getTotalRkeCommissionByRoom(string $roomId) : float
+    {
+        return (float) $this->model->where('room_id', $roomId)->sum('rke_commission');
+    }
+
+    /**
+     * Obtener total de comisiones de sala por creador
+     */
+    public function getTotalRoomCommissionByCreator(string $creatorUserId) : float
+    {
+        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('room_commission');
+    }
+
+    /**
+     * Obtener total de comisiones de sala por sala
+     */
+    public function getTotalRoomCommissionByRoom(string $roomId) : float
+    {
+        return (float) $this->model->where('room_id', $roomId)->sum('room_commission');
+    }
+
+    /**
+     * Obtener total de ventas por creador
+     */
+    public function getTotalSalesByCreator(string $creatorUserId) : float
+    {
+        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('sale_amount');
+    }
+
+    /**
+     * Obtener total de ventas por sala
+     */
+    public function getTotalSalesByRoom(string $roomId) : float
+    {
+        return (float) $this->model->where('room_id', $roomId)->sum('sale_amount');
+    }
+
+    /**
+     * Obtener total de comisiones de vendedor por creador
+     */
+    public function getTotalSellerCommissionByCreator(string $creatorUserId) : float
+    {
+        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('seller_commission');
+    }
+
+    /**
+     * Obtener total de comisiones de vendedor por sala
+     */
+    public function getTotalSellerCommissionByRoom(string $roomId) : float
+    {
+        return (float) $this->model->where('room_id', $roomId)->sum('seller_commission');
+    }
+
+    /**
+     * Incrementar monto de venta existente
+     */
+    public function incrementSaleAmounts(string $saleId, float $amount, float $rkeCommission, float $roomCommission, float $sellerCommission, float $prizePoolAmount) : bool
+    {
+        return $this->model->where('id', $saleId)->update([
+            'sale_amount' => DB::raw("sale_amount + {$amount}"),
+            'rke_commission' => DB::raw("rke_commission + {$rkeCommission}"),
+            'room_commission' => DB::raw("room_commission + {$roomCommission}"),
+            'seller_commission' => DB::raw("seller_commission + {$sellerCommission}"),
+            'prize_pool_amount' => DB::raw("prize_pool_amount + {$prizePoolAmount}"),
+        ]) > 0;
+    }
+
+    /**
+     * Buscar ventas por término de búsqueda
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function searchSales(string $searchTerm) : Collection
+    {
+        return $this->model->where(function($query) use ($searchTerm) {
+            $query->where('room_id', 'like', "%{$searchTerm}%")
+                ->orWhere('creator_user_id', 'like', "%{$searchTerm}%")
+                ->orWhere('currency_id', 'like', "%{$searchTerm}%");
+        })->get();
+    }
+
+    /**
+     * Crear o actualizar una venta
+     */
+    public function updateOrCreateSale(string $roomId, string $creatorUserId, string $currency, float $amount, ?float $sellerCommission = null) : BingoCreatorSale
+    {
+        // Obtener configuración de la sala
+        $roomConfig = BingoRoomConfig::where('room_id', $roomId)->first(['rke_commission', 'room_commission']);
+
+        $rkeCommission = round($amount * (($roomConfig->rke_commission ?? 0) / 100), 3);
+        $roomCommission = round($amount * (($roomConfig->room_commission ?? 0) / 100), 3);
+        $sellerCommission = round($sellerCommission ?? 0, 3);
+        $prizePool = round($amount - $rkeCommission - $roomCommission - $sellerCommission, 3);
+
+        $sale = $this->model->firstOrCreate(
+            [
+                'room_id' => $roomId,
+                'creator_user_id' => $creatorUserId,
+                'currency_id' => $currency,
+            ],
+            [
+                'sale_amount' => $amount,
+                'rke_commission' => $rkeCommission,
+                'room_commission' => $roomCommission,
+                'seller_commission' => $sellerCommission,
+                'prize_pool_amount' => $prizePool,
+            ],
+        );
+
+        if (! $sale->wasRecentlyCreated && $amount > 0) {
+            $sale->increment('sale_amount', $amount);
+            $sale->increment('rke_commission', $rkeCommission);
+            $sale->increment('room_commission', $roomCommission);
+            $sale->increment('seller_commission', $sellerCommission);
+            $sale->increment('prize_pool_amount', $prizePool);
+        }
+
+        return $sale;
+    }
+
+    /**
+     * Verificar integridad de datos de venta
+     */
+    public function validateSaleIntegrity(string $saleId) : bool
     {
         $sale = $this->find($saleId);
 
-        if (!$sale) {
+        if (! $sale) {
             return false;
         }
 

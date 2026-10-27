@@ -27,16 +27,18 @@ use App\Domains\Payments\DTOs\InboundTransaction;
 interface BlockchainProviderInterface
 {
     /**
-     * Identificador de red que expone este proveedor (ej. "TRON").
-     */
-    public function network(): string;
-
-    /**
      * Deriva la dirección pública en el índice indicado, a partir del XPUB
      * configurado para este proveedor. Nunca requiere ni tiene acceso a la
      * clave privada/seed.
      */
-    public function deriveAddress(int $derivationIndex): string;
+    public function deriveAddress(int $derivationIndex) : string;
+
+    /**
+     * Confirmaciones actuales de una transacción ya observada por su hash.
+     * Devuelve null si la transacción no existe (nunca lanzada como error:
+     * "no encontrada todavía" es un resultado válido durante el polling).
+     */
+    public function getConfirmations(string $txHash) : ?int;
 
     /**
      * Transacciones entrantes del token configurado (ej. USDT-TRC20)
@@ -45,14 +47,12 @@ interface BlockchainProviderInterface
      *
      * @return InboundTransaction[]
      */
-    public function getIncomingTransactions(string $address, ?int $sinceBlock = null): array;
+    public function getIncomingTransactions(string $address, ?int $sinceBlock = null) : array;
 
     /**
-     * Confirmaciones actuales de una transacción ya observada por su hash.
-     * Devuelve null si la transacción no existe (nunca lanzada como error:
-     * "no encontrada todavía" es un resultado válido durante el polling).
+     * Identificador de red que expone este proveedor (ej. "TRON").
      */
-    public function getConfirmations(string $txHash): ?int;
+    public function network() : string;
 
     /**
      * Contrato del token que este proveedor está observando (ej. dirección
@@ -60,5 +60,5 @@ interface BlockchainProviderInterface
      * recibida corresponde exactamente al token esperado, nunca inferido por
      * símbolo/nombre.
      */
-    public function tokenContract(): string;
+    public function tokenContract() : string;
 }

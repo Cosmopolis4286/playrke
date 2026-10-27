@@ -27,33 +27,38 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TriviaRoomPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    /** Crear/gestionar salas: exclusivo admin/superadmin, nunca un player. */
+    public function create(User $user) : bool
     {
-        return ['superadmin', 'admin', 'player'];
+        return $this->hasElevatedRole($user);
     }
 
-    protected function hasElevatedRole(User $user): bool
+    public function delete(User $user, Model $model) : bool
     {
-        return app(RoleAuthorizationService::class)->hasAnyRole($user, ['superadmin', 'admin']);
+        return $this->hasElevatedRole($user);
+    }
+
+    /**
+     * Forzar cierre de sala — acción de dominio (no CRUD estándar), separada
+     * de delete() porque cierra salas en curso (playing/waiting), no solo
+     * las ya finalizadas.
+     */
+    public function forceClose(User $user, TriviaRoom $room) : bool
+    {
+        return $this->hasElevatedRole($user);
     }
 
     /**
      * Iniciar la partida: el host de la sala, o admin/superadmin.
      * Antes vivía inline en TriviaStartController::__invoke().
      */
-    public function start(User $user, TriviaRoom $room): bool
+    public function start(User $user, TriviaRoom $room) : bool
     {
         if ($this->hasElevatedRole($user)) {
             return true;
         }
 
         return (string) $user->id === (string) $room->host_id;
-    }
-
-    /** Crear/gestionar salas: exclusivo admin/superadmin, nunca un player. */
-    public function create(User $user): bool
-    {
-        return $this->hasElevatedRole($user);
     }
 
     /**
@@ -64,23 +69,18 @@ class TriviaRoomPolicy extends BaseRolePolicy
      * ya confirmado en runtime dos veces en este mismo proyecto: ver
      * AdminSubsidiaryPolicy::delete() y BingoRoomAutomaticPolicy::update()).
      */
-    public function update(User $user, Model $model): bool
+    public function update(User $user, Model $model) : bool
     {
         return $this->hasElevatedRole($user);
     }
 
-    public function delete(User $user, Model $model): bool
+    protected function hasElevatedRole(User $user) : bool
     {
-        return $this->hasElevatedRole($user);
+        return app(RoleAuthorizationService::class)->hasAnyRole($user, ['superadmin', 'admin']);
     }
 
-    /**
-     * Forzar cierre de sala — acción de dominio (no CRUD estándar), separada
-     * de delete() porque cierra salas en curso (playing/waiting), no solo
-     * las ya finalizadas.
-     */
-    public function forceClose(User $user, TriviaRoom $room): bool
+    protected function requiredRole() : string|array
     {
-        return $this->hasElevatedRole($user);
+        return ['superadmin', 'admin', 'player'];
     }
 }

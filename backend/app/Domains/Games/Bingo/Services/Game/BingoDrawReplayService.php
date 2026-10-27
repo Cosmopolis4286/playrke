@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Game;
@@ -15,7 +16,6 @@ use App\Domains\Games\Bingo\Models\Round\BingoRound;
 final class BingoDrawReplayService
 {
     /**
-     * @param BingoRoom $room
      * @return array{
      *   room_id: string,
      *   status:  string,
@@ -27,7 +27,7 @@ final class BingoDrawReplayService
      *   }>
      * }
      */
-    public function replay(BingoRoom $room): array
+    public function replay(BingoRoom $room) : array
     {
         $roomId = (string) $room->id;
 
@@ -47,25 +47,25 @@ final class BingoDrawReplayService
 
         foreach ($rounds as $round) {
             $chips = $round->draws->values()->map(fn ($d, int $idx) => [
-                'order'    => $idx + 1,
-                'chip'     => (int) $d->chip,
-                'code'     => (string) $d->code,
+                'order' => $idx + 1,
+                'chip' => (int) $d->chip,
+                'code' => (string) $d->code,
                 'drawn_at' => $d->created_at?->toISOString(),
             ])->all();
 
             $result[] = [
-                'round'    => (int) $round->round,
+                'round' => (int) $round->round,
                 'round_id' => (string) $round->id,
-                'status'   => $round->status,
-                'pattern'  => $round->bingoPattern?->name,
-                'chips'    => $chips,
+                'status' => $round->status,
+                'pattern' => $round->bingoPattern?->name,
+                'chips' => $chips,
             ];
         }
 
         return [
             'room_id' => $roomId,
-            'status'  => $room->status?->code ?? 'UNKNOWN',
-            'rounds'  => $result,
+            'status' => $room->status?->code ?? 'UNKNOWN',
+            'rounds' => $result,
         ];
     }
 }

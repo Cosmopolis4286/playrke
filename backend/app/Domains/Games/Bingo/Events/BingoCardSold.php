@@ -2,7 +2,6 @@
 
 namespace App\Domains\Games\Bingo\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Queue\SerializesModels;
@@ -37,9 +36,15 @@ class BingoCardSold implements ShouldBroadcastNow
          * nunca recibía sus propias ventas.
          */
         public readonly ?string $sellerUserId = null,
-    ) {}
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'card.sold';
+    }
+
+    public function broadcastOn() : array
     {
         $channels = [new PrivateChannel('admins.activity')];
 
@@ -55,17 +60,12 @@ class BingoCardSold implements ShouldBroadcastNow
         return $channels;
     }
 
-    public function broadcastAs(): string
-    {
-        return 'card.sold';
-    }
-
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
-            'room_id'    => $this->roomId,
-            'room_name'  => $this->roomName,
-            'quantity'   => $this->quantity,
+            'room_id' => $this->roomId,
+            'room_name' => $this->roomName,
+            'quantity' => $this->quantity,
             'amount_usd' => $this->amountUsd,
         ];
     }
