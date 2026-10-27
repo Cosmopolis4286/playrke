@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests\Games\Bingo\Room\Automatic;
 
-use App\Http\Requests\BaseRequest;
-use App\Models\Game;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomCapacityRules;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
+use App\Http\Requests\BaseRequest;
+use App\Models\Game;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
@@ -19,14 +19,126 @@ use App\Services\Auth\PermissionService;
  */
 class BingoRoomAutomaticRequest extends BaseRequest
 {
+    private ?PrizePoolType $prizePoolTypeCache = null;
+
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
-     *
-     * @return bool
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['admin', 'commerce', 'customer']);
+    }
+
+    /**
+     * Mensajes de error personalizados.
+     *
+     * @return array<string, string>
+     */
+    public function messages() : array
+    {
+        return [
+            'days.required' => 'Debe seleccionar al menos un día de publicación.',
+            'days.array' => 'Los días deben ser un listado válido.',
+            'days.min' => 'Debe seleccionar al menos un día de publicación.',
+            'days.*.in' => 'Uno o más días seleccionados no son válidos.',
+
+            'date.required' => 'La fecha es obligatoria.',
+            'date.after_or_equal' => 'La fecha debe ser hoy o posterior.',
+
+            'time.required' => 'La hora es obligatoria.',
+            'time.date_format' => 'La hora debe tener formato HH:mm.',
+
+            'roomType.required' => 'El tipo de sala es obligatorio.',
+            'roomType.exists' => 'El tipo de sala seleccionado no es válido.',
+
+            'connectionType.required' => 'El tipo de conexión es obligatorio.',
+            'connectionType.exists' => 'El tipo de conexión seleccionado no es válido.',
+
+            'gameMode.required' => 'El modo de juego es obligatorio.',
+            'gameMode.exists' => 'El modo de juego seleccionado no es válido.',
+
+            'prizePoolType.required' => 'El tipo de bote es obligatorio.',
+            'prizePoolType.exists' => 'El tipo de bote seleccionado no es válido.',
+
+            'jackpotType.exists' => 'El jackpot seleccionado no es válido.',
+            'jackpotType.required_with' => 'Elija un tipo de jackpot para usar el % de jackpot.',
+            'jackpotPct.required_with' => 'Ingrese el % de jackpot o quite el tipo de jackpot.',
+            'jackpotPct.min' => 'El % de jackpot no puede ser menor a 1.',
+            'jackpotPct.max' => 'El % de jackpot no puede ser mayor a 15.',
+            'amountAddedPrizePool.min' => 'El valor fijo/extra no puede ser menor a 20.',
+            'amountAddedPrizePool.max' => 'El valor fijo/extra no puede ser mayor a 10.000.',
+
+            'accessCode.required_if' => 'El código de acceso es obligatorio para salas privadas.',
+            'accessCode.min' => 'El código de acceso debe tener al menos 4 caracteres.',
+            'accessCode.max' => 'El código de acceso no puede superar 20 caracteres.',
+
+            'roomPassword.required_if' => 'La contraseña es obligatoria para salas privadas.',
+            'roomPassword.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'roomPassword.max' => 'La contraseña no puede superar 100 caracteres.',
+
+            'hostUserId.required_if' => 'El anfitrión es obligatorio para salas privadas.',
+            'hostUserId.exists' => 'El usuario anfitrión seleccionado no es válido.',
+
+            'cardPriceUsd.required' => 'El precio del cartón en USD es obligatorio.',
+            'cardPriceUsd.min' => 'El precio del cartón no puede ser menor a 0.5.',
+            'cardPriceUsd.max' => 'El precio del cartón no puede ser mayor a 500.',
+
+            'allowedCurrencies.required' => 'Debe seleccionar al menos una moneda.',
+            'allowedCurrencies.min' => 'Debe seleccionar al menos una moneda.',
+            'allowedCurrencies.*.exists' => 'La moneda seleccionada no es válida.',
+
+            'cardPriceByCurrency.array' => 'Los precios por moneda deben venir en formato válido.',
+            'cardPriceByCurrency.*.numeric' => 'El precio del cartón por moneda debe ser numérico.',
+            'cardPriceByCurrency.*.min' => 'El precio del cartón por moneda no puede ser menor a 1.',
+            'cardPriceByCurrency.*.max' => 'El precio del cartón por moneda no puede ser mayor a 5000.',
+
+            'roomCommn.required' => 'La comisión de sala es obligatoria.',
+            'roomCommn.min' => 'La comisión de sala no puede ser menor a 10.',
+            'roomCommn.max' => 'La comisión de sala no puede ser mayor a 50.',
+
+            'timeChip.required' => 'El tiempo de ficha es obligatorio.',
+
+            'rounds.required' => 'El número de rondas es obligatorio.',
+
+            'serialsPct.required_if' => 'El porcentaje de seriales es obligatorio cuando se usan seriales.',
+            'serialsPct.min' => 'El porcentaje de seriales no puede ser menor a 2.',
+            'serialsPct.max' => 'El porcentaje de seriales no puede ser mayor a 35.',
+
+            'numSerials.required_if' => 'El número de seriales es obligatorio cuando se usan seriales.',
+            'numSerials.min' => 'El número de seriales debe ser al menos 1.',
+            'numSerials.max' => 'El número de seriales no puede ser mayor a 30.',
+
+            'minCardsToStart.required' => 'Indique el mínimo de cartones para iniciar el sorteo.',
+
+            'minCardsToStart.integer' => 'El mínimo de cartones debe ser un número entero.',
+            'minCardsToStart.min' => 'El mínimo de cartones debe ser al menos 1.',
+            'minCardsToStart.max' => 'El mínimo de cartones no puede superar 10.000.',
+
+            'maxCardsToStart.integer' => 'El máximo de cartones debe ser un número entero.',
+            'maxCardsToStart.min' => 'El máximo de cartones debe ser al menos 1.',
+            'maxCardsToStart.max' => 'El máximo de cartones no puede superar 10.000.',
+
+            'maxPlayers.integer' => 'El cupo máximo de jugadores debe ser un número entero.',
+            'maxPlayers.min' => 'El cupo máximo de jugadores debe ser al menos 1.',
+            'maxPlayers.max' => 'El cupo máximo de jugadores no puede superar 100000.',
+
+            'minPlayers.required' => 'Indique el mínimo de jugadores para iniciar el sorteo.',
+
+            'minPlayers.integer' => 'El mínimo de jugadores debe ser un número entero.',
+            'minPlayers.min' => 'El mínimo de jugadores debe ser al menos 1.',
+            'minPlayers.max' => 'El mínimo de jugadores no puede superar 100000.',
+
+            'salesStartOffsetDays.integer' => 'Los días de anticipación deben ser un número entero.',
+            'salesStartOffsetDays.min' => 'Los días de anticipación deben ser al menos 1.',
+            'salesStartOffsetDays.max' => 'Los días de anticipación no pueden superar 30.',
+
+            'customCardMode.required_if' => 'Debe seleccionar una modalidad de cartón personalizado.',
+            'customCardMode.in' => 'La modalidad de cartón personalizado no es válida.',
+            'customCardPricePct.required_if' => 'El % del precio del cartón personalizado es obligatorio.',
+            'customCardEveryX.required_if' => 'La cantidad de cartones para el cartón gratuito es obligatoria.',
+            'customCardEveryX.min' => 'Debe ser cada 2 cartones o más.',
+            'customCardEveryX.max' => 'No puede ser cada más de 10 cartones.',
+        ];
     }
 
     /**
@@ -34,23 +146,23 @@ class BingoRoomAutomaticRequest extends BaseRequest
      *
      * @return array<string, mixed>
      */
-    public function rules(): array
+    public function rules() : array
     {
         return [
-            'activateRoom'                => ['boolean'],
-            'days'                        => ['required', 'array', 'min:1'],
-            'days.*'                      => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
-            'date'                        => ['nullable', 'date', 'after_or_equal:today'],
-            'time'                        => ['required', 'date_format:H:i'],
-            'roomType'                    => ['required', 'exists:room_types,id'],
-            'connectionType'              => ['required', 'exists:connection_types,id'],
-            'gameMode'                    => ['required', 'exists:game_modes,id'],
-            'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
+            'activateRoom' => ['boolean'],
+            'days' => ['required', 'array', 'min:1'],
+            'days.*' => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
+            'date' => ['nullable', 'date', 'after_or_equal:today'],
+            'time' => ['required', 'date_format:H:i'],
+            'roomType' => ['required', 'exists:room_types,id'],
+            'connectionType' => ['required', 'exists:connection_types,id'],
+            'gameMode' => ['required', 'exists:game_modes,id'],
+            'prizePoolType' => ['required', 'exists:prize_pool_types,id'],
 
             // Sala privada (solo aplica cuando roomType = tipo de sala PRIVATE)
-            'accessCode'                  => [$this->requiredIfPrivateRoom(), 'nullable', 'string', 'min:4', 'max:20'],
-            'roomPassword'                => [$this->requiredIfPrivateRoom(create: true), 'nullable', 'string', 'min:6', 'max:100'],
-            'hostUserId'                  => [$this->requiredIfPrivateRoom(), 'nullable', 'exists:users,id'],
+            'accessCode' => [$this->requiredIfPrivateRoom(), 'nullable', 'string', 'min:4', 'max:20'],
+            'roomPassword' => [$this->requiredIfPrivateRoom(create: true), 'nullable', 'string', 'min:6', 'max:100'],
+            'hostUserId' => [$this->requiredIfPrivateRoom(), 'nullable', 'exists:users,id'],
 
             // Precio base del cartón en USD:
             // - Si useBaseUsd = true → cardPriceUsd es obligatorio
@@ -59,148 +171,81 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'cardPriceUsd' => ['required_if:useBaseUsd,true', 'nullable', 'numeric', 'min:0.5', 'max:500'],
 
             // Incremento de redondeo para conversión USD (null = sin redondeo)
-            'usdExchangeRoundStep'         => ['nullable', 'numeric', 'min:0.01', 'max:100'],
+            'usdExchangeRoundStep' => ['nullable', 'numeric', 'min:0.01', 'max:100'],
 
             // Monedas permitidas
-            'allowedCurrencies'           => ['required', 'array', 'min:1'],
-            'allowedCurrencies.*'         => ['required', 'exists:currencies,id'],
+            'allowedCurrencies' => ['required', 'array', 'min:1'],
+            'allowedCurrencies.*' => ['required', 'exists:currencies,id'],
 
             // Si hay 2+ monedas permitidas: generar una sala independiente por cada moneda
-            'roomsPerCurrency'            => ['sometimes', 'boolean'],
+            'roomsPerCurrency' => ['sometimes', 'boolean'],
 
             // Precios por moneda
             // NOTA: la validación fuerte se hace en withValidator()
-            'cardPriceByCurrency'          => ['required_if:useBaseUsd,false', 'nullable', 'array'],
-            'cardPriceByCurrency.*'        => ['nullable', 'numeric', 'min:1', 'max:5000'],
+            'cardPriceByCurrency' => ['required_if:useBaseUsd,false', 'nullable', 'array'],
+            'cardPriceByCurrency.*' => ['nullable', 'numeric', 'min:1', 'max:5000'],
 
             // Pool de premios
-            'amountAddedPrizePool'        => ['nullable', 'numeric', 'min:20', 'max:10000'],
+            'amountAddedPrizePool' => ['nullable', 'numeric', 'min:20', 'max:10000'],
 
             // Comisiones
-            'roomCommn'                   => ['required', 'numeric', 'min:10', 'max:50'],
+            'roomCommn' => ['required', 'numeric', 'min:10', 'max:50'],
             // Jackpot: tipo y % van juntos (ver BingoRoomRequest).
-            'jackpotPct'                  => ['required_with:jackpotType', 'nullable', 'numeric', 'min:1', 'max:15'],
-            'jackpotType'                 => ['required_with:jackpotPct', 'nullable', 'exists:jackpot_types,id'],
+            'jackpotPct' => ['required_with:jackpotType', 'nullable', 'numeric', 'min:1', 'max:15'],
+            'jackpotType' => ['required_with:jackpotPct', 'nullable', 'exists:jackpot_types,id'],
 
             // Configuración general del juego
-            'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],
-            'rounds'                      => ['required', 'integer', 'min:1', 'max:15'],
-            'roundsPct'                   => ['nullable', 'numeric', 'min:5', 'max:90'],
-            'useSerials'                  => ['boolean'],
-            'serialsPct'                  => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
-            'numSerials'                  => ['required_if:useSerials,true', 'nullable', 'integer', 'min:1', 'max:30'],
+            'timeChip' => ['required', 'integer', 'min:3', 'max:10'],
+            'rounds' => ['required', 'integer', 'min:1', 'max:15'],
+            'roundsPct' => ['nullable', 'numeric', 'min:5', 'max:90'],
+            'useSerials' => ['boolean'],
+            'serialsPct' => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
+            'numSerials' => ['required_if:useSerials,true', 'nullable', 'integer', 'min:1', 'max:30'],
 
             // Configuración de rondas
-            'roundsConfig'                                  => ['nullable', 'array'],
-            'roundsConfig.*.prizeType'                      => ['required_with:roundsConfig', 'in:percentage,fixed,prize'],
-            'roundsConfig.*.bingoPattern'                   => ['nullable', 'exists:bingo_patterns,id'],
-            'roundsConfig.*.prizeValue'                     => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'roundsConfig.*.prizeValueByCurrency'           => ['nullable', 'array'],
-            'roundsConfig.*.prizeValueByCurrency.*'         => ['nullable', 'numeric', 'min:0', 'max:1000000'],
-            'roundsConfig.*.prizeId'                        => ['nullable', 'exists:prizes,id'],
-            'roundsConfig.*.prizeName'                      => ['nullable', 'string', 'max:255'],
+            'roundsConfig' => ['nullable', 'array'],
+            'roundsConfig.*.prizeType' => ['required_with:roundsConfig', 'in:percentage,fixed,prize'],
+            'roundsConfig.*.bingoPattern' => ['nullable', 'exists:bingo_patterns,id'],
+            'roundsConfig.*.prizeValue' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'roundsConfig.*.prizeValueByCurrency' => ['nullable', 'array'],
+            'roundsConfig.*.prizeValueByCurrency.*' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
+            'roundsConfig.*.prizeId' => ['nullable', 'exists:prizes,id'],
+            'roundsConfig.*.prizeName' => ['nullable', 'string', 'max:255'],
 
             // Nuevos campos de programación avanzada
-            'recurrenceType'             => ['nullable', 'string', 'in:DAILY,WEEKLY,MONTHLY,CUSTOM'],
-            'recurrenceDays'               => ['nullable', 'array'],
-            'recurrenceDays.*'             => ['integer', 'min:0', 'max:6'], // 0=domingo, 6=sábado
-            'gameTime'                     => ['nullable', 'date_format:H:i'],
-            'startDate'                    => ['nullable', 'date', 'after_or_equal:today'],
-            'endDate'                      => ['nullable', 'date', 'after_or_equal:startDate'],
-            'defaultConfig'                => ['nullable', 'array'],
-            'defaultCardPrice'             => ['nullable', 'numeric', 'min:0.5', 'max:500'],
-            'defaultCurrencyId'            => ['nullable', 'exists:currencies,id'],
-            'autoCreateRoom'             => ['boolean'],
-            'maxRoomsPerDay'             => ['nullable', 'integer', 'min:1', 'max:100'],
+            'recurrenceType' => ['nullable', 'string', 'in:DAILY,WEEKLY,MONTHLY,CUSTOM'],
+            'recurrenceDays' => ['nullable', 'array'],
+            'recurrenceDays.*' => ['integer', 'min:0', 'max:6'], // 0=domingo, 6=sábado
+            'gameTime' => ['nullable', 'date_format:H:i'],
+            'startDate' => ['nullable', 'date', 'after_or_equal:today'],
+            'endDate' => ['nullable', 'date', 'after_or_equal:startDate'],
+            'defaultConfig' => ['nullable', 'array'],
+            'defaultCardPrice' => ['nullable', 'numeric', 'min:0.5', 'max:500'],
+            'defaultCurrencyId' => ['nullable', 'exists:currencies,id'],
+            'autoCreateRoom' => ['boolean'],
+            'maxRoomsPerDay' => ['nullable', 'integer', 'min:1', 'max:100'],
 
             // Capacidad (ver BingoRoomCapacityRules): mínimos obligatorios,
             // máximos opcionales. Las salas generadas heredan estos valores.
-            'minCardsToStart'            => ['required', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_CARDS],
-            'maxCardsToStart'            => ['nullable', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_CARDS],
-            'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_PLAYERS],
-            'minPlayers'                  => ['required', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_PLAYERS],
+            'minCardsToStart' => ['required', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_CARDS],
+            'maxCardsToStart' => ['nullable', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_CARDS],
+            'maxPlayers' => ['nullable', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_PLAYERS],
+            'minPlayers' => ['required', 'integer', 'min:1', 'max:' . BingoRoomCapacityRules::MAX_PLAYERS],
 
             // Días de anticipación para publicar la sala antes del inicio del juego
             // null = mismo día; 1..30 = la sala se publica N días antes
-            'salesStartOffsetDays'       => ['nullable', 'integer', 'min:1', 'max:30'],
+            'salesStartOffsetDays' => ['nullable', 'integer', 'min:1', 'max:30'],
 
             // Cartón personalizado
-            'allowCustomCard'             => ['boolean'],
-            'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,by_range,every_x,free'],
-            'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
-            'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:10'],
-            'moveFreeSpaceMode'           => ['nullable', 'in:paid,by_range,free'],
-            'moveFreeSpacePricePct'       => ['required_if:moveFreeSpaceMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
-            'allowSpecialCard'            => ['boolean'],
-            'maxSpecialCards'             => ['nullable', 'integer', 'min:1', 'max:5'],
+            'allowCustomCard' => ['boolean'],
+            'customCardMode' => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,by_range,every_x,free'],
+            'customCardPricePct' => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
+            'customCardEveryX' => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:10'],
+            'moveFreeSpaceMode' => ['nullable', 'in:paid,by_range,free'],
+            'moveFreeSpacePricePct' => ['required_if:moveFreeSpaceMode,paid', 'nullable', 'numeric', 'min:1', 'max:5'],
+            'allowSpecialCard' => ['boolean'],
+            'maxSpecialCards' => ['nullable', 'integer', 'min:1', 'max:5'],
         ];
-    }
-
-    /**
-     * Regla `required_if:roomType,<id>` resuelta contra el id real del RoomType
-     * con código PRIVATE (roomType viaja como snowflake id, no como código).
-     *
-     * @param bool $create Si true, y estamos en creación, la regla es más estricta
-     *                      (usada por roomPassword: obligatoria solo al crear, opcional
-     *                      al editar para no forzar cambiarla cada vez).
-     */
-    private function requiredIfPrivateRoom(bool $create = false): string
-    {
-        if ($create && $this->route('room') !== null) {
-            return 'nullable';
-        }
-
-        $privateRoomTypeId = RoomType::where('code', 'PRIVATE')->value('id');
-
-        return $privateRoomTypeId ? "required_if:roomType,{$privateRoomTypeId}" : 'nullable';
-    }
-
-    /**
-     * Con bote acumulativo el "Valor Fijo/Extra" no aplica — se descarta para
-     * no guardar en la plantilla un monto residual que luego heredarían todas
-     * las salas autogeneradas.
-     */
-    protected function prepareForValidation(): void
-    {
-        if ($this->resolvedPrizePoolType() && !$this->usesInitialAmount()) {
-            $this->merge(['amountAddedPrizePool' => null]);
-        }
-    }
-
-    private ?PrizePoolType $prizePoolTypeCache = null;
-
-    private function resolvedPrizePoolType(): ?PrizePoolType
-    {
-        $id = $this->input('prizePoolType');
-        if ($id === null || $id === '') return null;
-        if ($this->prizePoolTypeCache?->id !== (string) $id) {
-            $this->prizePoolTypeCache = PrizePoolType::find($id);
-        }
-        return $this->prizePoolTypeCache;
-    }
-
-    /**
-     * ¿Aplica el "Valor Fijo/Extra"? No en bote acumulativo ni en Premio/Servicio
-     * puro (sin rondas %: no hay bote en dinero que sembrar). Ver BingoRoomPrizeRules.
-     */
-    private function usesInitialAmount(): bool
-    {
-        return BingoRoomPrizeRules::usesInitialAmount(
-            $this->resolvedPrizePoolType()?->code,
-            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
-        );
-    }
-
-    /** Coherencia tipo de bote ↔ rondas (Premio/Servicio puro o híbrido). */
-    private function validatePrizeRounds($validator): void
-    {
-        $error = BingoRoomPrizeRules::roundsError(
-            $this->resolvedPrizePoolType()?->code,
-            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
-        );
-        if ($error && !$validator->errors()->has('prizePoolType')) {
-            $validator->errors()->add('prizePoolType', $error);
-        }
     }
 
     /**
@@ -210,9 +255,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
      * `if ($useBaseUsd) return;` (el modo por defecto) salteaba la suma de %
      * y los premios fijos por moneda en casi todas las plantillas.
      */
-    public function withValidator($validator): void
+    public function withValidator($validator) : void
     {
-        $validator->after(function ($validator) {
+        $validator->after(function($validator) {
             $this->validateGameMode($validator);
             $this->validateMoveFreeSpace($validator);
             $this->validateCapacityPairs($validator);
@@ -226,39 +271,59 @@ class BingoRoomAutomaticRequest extends BaseRequest
     }
 
     /**
-     * gameMode: el exists:game_modes,id no verifica que el modo pertenezca al
-     * juego Bingo — GameMode es un catálogo compartido entre juegos (Trivia, etc.)
-     * y aceptar un id de otro juego dejaría la sala con un modo incoherente.
+     * Con bote acumulativo el "Valor Fijo/Extra" no aplica — se descarta para
+     * no guardar en la plantilla un monto residual que luego heredarían todas
+     * las salas autogeneradas.
      */
-    private function validateGameMode($validator): void
+    protected function prepareForValidation() : void
     {
-        $gameMode = $this->input('gameMode');
-        if ($gameMode === null || $validator->errors()->has('gameMode')) return;
-
-        $bingoGameId = Game::where('name', 'BINGO')->value('id');
-        $mode = GameMode::find($gameMode);
-
-        if (!$mode || (string) $mode->game_id !== (string) $bingoGameId) {
-            $validator->errors()->add('gameMode', 'El modo de juego seleccionado no es válido para Bingo.');
+        if ($this->resolvedPrizePoolType() && ! $this->usesInitialAmount()) {
+            $this->merge(['amountAddedPrizePool' => null]);
         }
     }
 
     /**
-     * Mover casilla libre: solo tiene sentido junto con cartón personalizado.
-     * Las salas automáticas no exponen un campo gameVariant editable en este
-     * request (hereda BINGO_75 por defecto en el DTO), así que solo se valida
-     * la dependencia con allowCustomCard.
+     * Regla `required_if:roomType,<id>` resuelta contra el id real del RoomType
+     * con código PRIVATE (roomType viaja como snowflake id, no como código).
+     *
+     * @param bool $create si true, y estamos en creación, la regla es más estricta
+     *                     (usada por roomPassword: obligatoria solo al crear, opcional
+     *                     al editar para no forzar cambiarla cada vez)
      */
-    private function validateMoveFreeSpace($validator): void
+    private function requiredIfPrivateRoom(bool $create = false) : string
     {
-        if ($this->input('moveFreeSpaceMode') !== null
-            && !filter_var($this->input('allowCustomCard', false), FILTER_VALIDATE_BOOLEAN)
-        ) {
-            $validator->errors()->add(
-                'moveFreeSpaceMode',
-                'Mover la casilla libre requiere permitir cartón personalizado.'
-            );
+        if ($create && $this->route('room') !== null) {
+            return 'nullable';
         }
+
+        $privateRoomTypeId = RoomType::where('code', 'PRIVATE')->value('id');
+
+        return $privateRoomTypeId ? "required_if:roomType,{$privateRoomTypeId}" : 'nullable';
+    }
+
+    private function resolvedPrizePoolType() : ?PrizePoolType
+    {
+        $id = $this->input('prizePoolType');
+        if ($id === null || $id === '') {
+            return null;
+        }
+        if ($this->prizePoolTypeCache?->id !== (string) $id) {
+            $this->prizePoolTypeCache = PrizePoolType::find($id);
+        }
+
+        return $this->prizePoolTypeCache;
+    }
+
+    /**
+     * ¿Aplica el "Valor Fijo/Extra"? No en bote acumulativo ni en Premio/Servicio
+     * puro (sin rondas %: no hay bote en dinero que sembrar). Ver BingoRoomPrizeRules.
+     */
+    private function usesInitialAmount() : bool
+    {
+        return BingoRoomPrizeRules::usesInitialAmount(
+            $this->resolvedPrizePoolType()?->code,
+            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
+        );
     }
 
     /**
@@ -267,12 +332,13 @@ class BingoRoomAutomaticRequest extends BaseRequest
      * plantilla — estos campos viven en la raíz de BingoRoomAutomatic (no hay
      * relación `config` como en salas manuales).
      */
-    private function validateCapacityPairs($validator): void
+    private function validateCapacityPairs($validator) : void
     {
         $currentRoom = $this->route('room');
 
-        $value = function (string $key, string $column) use ($currentRoom): ?int {
+        $value = function(string $key, string $column) use ($currentRoom) : ?int {
             $raw = $this->has($key) ? $this->input($key) : ($currentRoom?->{$column} ?? null);
+
             return is_numeric($raw) ? (int) $raw : null;
         };
 
@@ -288,34 +354,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
         );
 
         foreach ($errors as $field => $message) {
-            if (!$validator->errors()->has($field)) {
+            if (! $validator->errors()->has($field)) {
                 $validator->errors()->add($field, $message);
             }
-        }
-    }
-
-    /** Igual que en BingoRoomRequest: un jackpot desactivado no debe poder recibir nuevos aportes. */
-    private function validateJackpotActive($validator): void
-    {
-        $jackpotTypeId = $this->input('jackpotType');
-        if ($jackpotTypeId === null || $validator->errors()->has('jackpotType')) return;
-
-        $jackpotType = \App\Models\Games\Common\Jackpot\JackpotType::find($jackpotTypeId);
-        if (!$jackpotType || !$jackpotType->isActive()) {
-            $validator->errors()->add('jackpotType', 'El jackpot seleccionado no está activo.');
-        }
-    }
-
-    /** Valor Fijo/Extra: obligatorio en todo bote no acumulativo (en el acumulativo ya se descartó en prepareForValidation()). */
-    private function validatePrizePoolAmount($validator): void
-    {
-        $prizePoolType = $this->resolvedPrizePoolType();
-        if (
-            $prizePoolType && $this->usesInitialAmount()
-            && $this->input('amountAddedPrizePool') === null
-            && !$validator->errors()->has('amountAddedPrizePool')
-        ) {
-            $validator->errors()->add('amountAddedPrizePool', "El valor fijo/extra es obligatorio para \"{$prizePoolType->label}\".");
         }
     }
 
@@ -327,7 +368,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
      *
      * @return array<int, string|int>
      */
-    private function validateCurrencies($validator): array
+    private function validateCurrencies($validator) : array
     {
         $allowedCurrencies = $this->input('allowedCurrencies');
         $cardPriceByCurrency = $this->input('cardPriceByCurrency');
@@ -338,7 +379,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
         if ($allowedCurrencies === null) {
             $allowedCurrencies = $this->route('room')?->allowed_currencies ?? [];
         }
-        if (!is_array($allowedCurrencies)) {
+        if (! is_array($allowedCurrencies)) {
             $allowedCurrencies = [];
         }
 
@@ -351,11 +392,12 @@ class BingoRoomAutomaticRequest extends BaseRequest
             return $allowedCurrencies;
         }
 
-        if (!is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
+        if (! is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
             $validator->errors()->add(
                 'cardPriceByCurrency',
-                'Debe indicar el precio del cartón por cada moneda permitida.'
+                'Debe indicar el precio del cartón por cada moneda permitida.',
             );
+
             return $allowedCurrencies;
         }
 
@@ -363,13 +405,13 @@ class BingoRoomAutomaticRequest extends BaseRequest
             $key = (string) $currencyId;
 
             if (
-                !array_key_exists($key, $cardPriceByCurrency)
+                ! array_key_exists($key, $cardPriceByCurrency)
                 || $cardPriceByCurrency[$key] === null
                 || $cardPriceByCurrency[$key] === ''
             ) {
                 $validator->errors()->add(
                     "cardPriceByCurrency.$key",
-                    "Falta el precio del cartón para la moneda $key."
+                    "Falta el precio del cartón para la moneda $key.",
                 );
             }
         }
@@ -378,10 +420,12 @@ class BingoRoomAutomaticRequest extends BaseRequest
     }
 
     /** prizeValueByCurrency obligatorio (> 0) por cada moneda en rondas con tipo 'fixed'. */
-    private function validateFixedRoundPrizes($validator, array $allowedCurrencies): void
+    private function validateFixedRoundPrizes($validator, array $allowedCurrencies) : void
     {
         $roundsConfig = $this->input('roundsConfig', []);
-        if (!is_array($roundsConfig)) return;
+        if (! is_array($roundsConfig)) {
+            return;
+        }
 
         foreach ($roundsConfig as $i => $config) {
             if (($config['prizeType'] ?? '') !== 'fixed') {
@@ -391,147 +435,112 @@ class BingoRoomAutomaticRequest extends BaseRequest
             foreach ($allowedCurrencies as $currencyId) {
                 $key = (string) $currencyId;
                 if (
-                    !array_key_exists($key, $byCurrency)
+                    ! array_key_exists($key, $byCurrency)
                     || $byCurrency[$key] === null
                     || $byCurrency[$key] === ''
                     || (float) $byCurrency[$key] <= 0
                 ) {
                     $validator->errors()->add(
                         "roundsConfig.$i.prizeValueByCurrency.$key",
-                        "Falta el valor fijo de la ronda " . ($i + 1) . " para la moneda $key."
+                        'Falta el valor fijo de la ronda ' . ($i + 1) . " para la moneda $key.",
                     );
                 }
             }
         }
     }
 
-    /** %Sala + %Jackpot + %Seriales + %Rondas no puede superar 100. */
-    private function validatePercentageSum($validator): void
+    /**
+     * gameMode: el exists:game_modes,id no verifica que el modo pertenezca al
+     * juego Bingo — GameMode es un catálogo compartido entre juegos (Trivia, etc.)
+     * y aceptar un id de otro juego dejaría la sala con un modo incoherente.
+     */
+    private function validateGameMode($validator) : void
     {
-        $useSerials  = filter_var($this->input('useSerials', false), FILTER_VALIDATE_BOOLEAN);
-        $roomCommn   = (float) ($this->input('roomCommn')  ?? 0);
-        $jackpotPct  = (float) ($this->input('jackpotPct') ?? 0);
-        $serialsPct  = $useSerials ? (float) ($this->input('serialsPct') ?? 0) : 0;
-        $roundsPct   = (float) ($this->input('roundsPct')  ?? 0);
-        $totalPct    = $roomCommn + $jackpotPct + $serialsPct + $roundsPct;
+        $gameMode = $this->input('gameMode');
+        if ($gameMode === null || $validator->errors()->has('gameMode')) {
+            return;
+        }
 
-        if ($totalPct > 100) {
-            $validator->errors()->add(
-                'percentageSum',
-                "La suma de porcentajes ({$totalPct}%) no puede exceder el 100%."
-            );
+        $bingoGameId = Game::where('name', 'BINGO')->value('id');
+        $mode = GameMode::find($gameMode);
+
+        if (! $mode || (string) $mode->game_id !== (string) $bingoGameId) {
+            $validator->errors()->add('gameMode', 'El modo de juego seleccionado no es válido para Bingo.');
+        }
+    }
+
+    /** Igual que en BingoRoomRequest: un jackpot desactivado no debe poder recibir nuevos aportes. */
+    private function validateJackpotActive($validator) : void
+    {
+        $jackpotTypeId = $this->input('jackpotType');
+        if ($jackpotTypeId === null || $validator->errors()->has('jackpotType')) {
+            return;
+        }
+
+        $jackpotType = \App\Models\Games\Common\Jackpot\JackpotType::find($jackpotTypeId);
+        if (! $jackpotType || ! $jackpotType->isActive()) {
+            $validator->errors()->add('jackpotType', 'El jackpot seleccionado no está activo.');
         }
     }
 
     /**
-     * Mensajes de error personalizados.
-     *
-     * @return array<string, string>
+     * Mover casilla libre: solo tiene sentido junto con cartón personalizado.
+     * Las salas automáticas no exponen un campo gameVariant editable en este
+     * request (hereda BINGO_75 por defecto en el DTO), así que solo se valida
+     * la dependencia con allowCustomCard.
      */
-    public function messages(): array
+    private function validateMoveFreeSpace($validator) : void
     {
-        return [
-            'days.required'                   => 'Debe seleccionar al menos un día de publicación.',
-            'days.array'                      => 'Los días deben ser un listado válido.',
-            'days.min'                        => 'Debe seleccionar al menos un día de publicación.',
-            'days.*.in'                       => 'Uno o más días seleccionados no son válidos.',
+        if ($this->input('moveFreeSpaceMode') !== null
+            && ! filter_var($this->input('allowCustomCard', false), FILTER_VALIDATE_BOOLEAN)
+        ) {
+            $validator->errors()->add(
+                'moveFreeSpaceMode',
+                'Mover la casilla libre requiere permitir cartón personalizado.',
+            );
+        }
+    }
 
-            'date.required'                   => 'La fecha es obligatoria.',
-            'date.after_or_equal'             => 'La fecha debe ser hoy o posterior.',
+    /** %Sala + %Jackpot + %Seriales + %Rondas no puede superar 100. */
+    private function validatePercentageSum($validator) : void
+    {
+        $useSerials = filter_var($this->input('useSerials', false), FILTER_VALIDATE_BOOLEAN);
+        $roomCommn = (float) ($this->input('roomCommn') ?? 0);
+        $jackpotPct = (float) ($this->input('jackpotPct') ?? 0);
+        $serialsPct = $useSerials ? (float) ($this->input('serialsPct') ?? 0) : 0;
+        $roundsPct = (float) ($this->input('roundsPct') ?? 0);
+        $totalPct = $roomCommn + $jackpotPct + $serialsPct + $roundsPct;
 
-            'time.required'                   => 'La hora es obligatoria.',
-            'time.date_format'                => 'La hora debe tener formato HH:mm.',
+        if ($totalPct > 100) {
+            $validator->errors()->add(
+                'percentageSum',
+                "La suma de porcentajes ({$totalPct}%) no puede exceder el 100%.",
+            );
+        }
+    }
 
-            'roomType.required'               => 'El tipo de sala es obligatorio.',
-            'roomType.exists'                 => 'El tipo de sala seleccionado no es válido.',
+    /** Valor Fijo/Extra: obligatorio en todo bote no acumulativo (en el acumulativo ya se descartó en prepareForValidation()). */
+    private function validatePrizePoolAmount($validator) : void
+    {
+        $prizePoolType = $this->resolvedPrizePoolType();
+        if (
+            $prizePoolType && $this->usesInitialAmount()
+            && $this->input('amountAddedPrizePool') === null
+            && ! $validator->errors()->has('amountAddedPrizePool')
+        ) {
+            $validator->errors()->add('amountAddedPrizePool', "El valor fijo/extra es obligatorio para \"{$prizePoolType->label}\".");
+        }
+    }
 
-            'connectionType.required'         => 'El tipo de conexión es obligatorio.',
-            'connectionType.exists'           => 'El tipo de conexión seleccionado no es válido.',
-
-            'gameMode.required'               => 'El modo de juego es obligatorio.',
-            'gameMode.exists'                 => 'El modo de juego seleccionado no es válido.',
-
-            'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
-            'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',
-
-            'jackpotType.exists'              => 'El jackpot seleccionado no es válido.',
-            'jackpotType.required_with'       => 'Elija un tipo de jackpot para usar el % de jackpot.',
-            'jackpotPct.required_with'        => 'Ingrese el % de jackpot o quite el tipo de jackpot.',
-            'jackpotPct.min'                  => 'El % de jackpot no puede ser menor a 1.',
-            'jackpotPct.max'                  => 'El % de jackpot no puede ser mayor a 15.',
-            'amountAddedPrizePool.min'        => 'El valor fijo/extra no puede ser menor a 20.',
-            'amountAddedPrizePool.max'        => 'El valor fijo/extra no puede ser mayor a 10.000.',
-
-            'accessCode.required_if'          => 'El código de acceso es obligatorio para salas privadas.',
-            'accessCode.min'                  => 'El código de acceso debe tener al menos 4 caracteres.',
-            'accessCode.max'                  => 'El código de acceso no puede superar 20 caracteres.',
-
-            'roomPassword.required_if'        => 'La contraseña es obligatoria para salas privadas.',
-            'roomPassword.min'                => 'La contraseña debe tener al menos 6 caracteres.',
-            'roomPassword.max'                => 'La contraseña no puede superar 100 caracteres.',
-
-            'hostUserId.required_if'          => 'El anfitrión es obligatorio para salas privadas.',
-            'hostUserId.exists'               => 'El usuario anfitrión seleccionado no es válido.',
-
-            'cardPriceUsd.required'            => 'El precio del cartón en USD es obligatorio.',
-            'cardPriceUsd.min'                 => 'El precio del cartón no puede ser menor a 0.5.',
-            'cardPriceUsd.max'                 => 'El precio del cartón no puede ser mayor a 500.',
-
-            'allowedCurrencies.required'      => 'Debe seleccionar al menos una moneda.',
-            'allowedCurrencies.min'           => 'Debe seleccionar al menos una moneda.',
-            'allowedCurrencies.*.exists'      => 'La moneda seleccionada no es válida.',
-
-            'cardPriceByCurrency.array'        => 'Los precios por moneda deben venir en formato válido.',
-            'cardPriceByCurrency.*.numeric'    => 'El precio del cartón por moneda debe ser numérico.',
-            'cardPriceByCurrency.*.min'        => 'El precio del cartón por moneda no puede ser menor a 1.',
-            'cardPriceByCurrency.*.max'        => 'El precio del cartón por moneda no puede ser mayor a 5000.',
-
-            'roomCommn.required'              => 'La comisión de sala es obligatoria.',
-            'roomCommn.min'                   => 'La comisión de sala no puede ser menor a 10.',
-            'roomCommn.max'                   => 'La comisión de sala no puede ser mayor a 50.',
-
-            'timeChip.required'               => 'El tiempo de ficha es obligatorio.',
-
-            'rounds.required'                 => 'El número de rondas es obligatorio.',
-
-            'serialsPct.required_if'          => 'El porcentaje de seriales es obligatorio cuando se usan seriales.',
-            'serialsPct.min'                  => 'El porcentaje de seriales no puede ser menor a 2.',
-            'serialsPct.max'                  => 'El porcentaje de seriales no puede ser mayor a 35.',
-
-            'numSerials.required_if'          => 'El número de seriales es obligatorio cuando se usan seriales.',
-            'numSerials.min'                  => 'El número de seriales debe ser al menos 1.',
-            'numSerials.max'                  => 'El número de seriales no puede ser mayor a 30.',
-
-            'minCardsToStart.required'        => 'Indique el mínimo de cartones para iniciar el sorteo.',
-
-            'minCardsToStart.integer'         => 'El mínimo de cartones debe ser un número entero.',
-            'minCardsToStart.min'             => 'El mínimo de cartones debe ser al menos 1.',
-            'minCardsToStart.max'             => 'El mínimo de cartones no puede superar 10.000.',
-
-            'maxCardsToStart.integer'         => 'El máximo de cartones debe ser un número entero.',
-            'maxCardsToStart.min'             => 'El máximo de cartones debe ser al menos 1.',
-            'maxCardsToStart.max'             => 'El máximo de cartones no puede superar 10.000.',
-
-            'maxPlayers.integer'              => 'El cupo máximo de jugadores debe ser un número entero.',
-            'maxPlayers.min'                  => 'El cupo máximo de jugadores debe ser al menos 1.',
-            'maxPlayers.max'                  => 'El cupo máximo de jugadores no puede superar 100000.',
-
-            'minPlayers.required'             => 'Indique el mínimo de jugadores para iniciar el sorteo.',
-
-            'minPlayers.integer'              => 'El mínimo de jugadores debe ser un número entero.',
-            'minPlayers.min'                  => 'El mínimo de jugadores debe ser al menos 1.',
-            'minPlayers.max'                  => 'El mínimo de jugadores no puede superar 100000.',
-
-            'salesStartOffsetDays.integer'    => 'Los días de anticipación deben ser un número entero.',
-            'salesStartOffsetDays.min'        => 'Los días de anticipación deben ser al menos 1.',
-            'salesStartOffsetDays.max'        => 'Los días de anticipación no pueden superar 30.',
-
-            'customCardMode.required_if'      => 'Debe seleccionar una modalidad de cartón personalizado.',
-            'customCardMode.in'               => 'La modalidad de cartón personalizado no es válida.',
-            'customCardPricePct.required_if'  => 'El % del precio del cartón personalizado es obligatorio.',
-            'customCardEveryX.required_if'    => 'La cantidad de cartones para el cartón gratuito es obligatoria.',
-            'customCardEveryX.min'            => 'Debe ser cada 2 cartones o más.',
-            'customCardEveryX.max'            => 'No puede ser cada más de 10 cartones.',
-        ];
+    /** Coherencia tipo de bote ↔ rondas (Premio/Servicio puro o híbrido). */
+    private function validatePrizeRounds($validator) : void
+    {
+        $error = BingoRoomPrizeRules::roundsError(
+            $this->resolvedPrizePoolType()?->code,
+            BingoRoomPrizeRules::roundTypes($this->input('roundsConfig')),
+        );
+        if ($error && ! $validator->errors()->has('prizePoolType')) {
+            $validator->errors()->add('prizePoolType', $error);
+        }
     }
 }

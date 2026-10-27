@@ -30,35 +30,18 @@ final class KycAdminController extends Controller
     private const ALLOWED_IMAGE_TYPES = ['front', 'back', 'selfie'];
 
     public function __construct(
-        private readonly AdminKycService $service
-    ) {}
-
-    public function index(Request $request): Response
-    {
-        $this->authorize('viewAny', KycPolicy::class);
-
-        return $this->handleServiceInertia(function () use ($request) {
-            $filters = $request->only(['status', 'document_type', 'search']);
-
-            return Inertia::render('Roles/Admin/Kyc/Index', [
-                'documents' => $this->service->fetchList($filters),
-                'stats'     => $this->service->stats(),
-            ]);
-        });
+        private readonly AdminKycService $service,
+    ) {
     }
 
-    public function fetchList(Request $request): JsonResponse
+    public function approve(KycDocument $document) : JsonResponse
     {
-        $this->authorize('viewAny', KycPolicy::class);
+        $this->authorize('manage', KycPolicy::class);
 
-        return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['status', 'document_type', 'search']);
-            $page    = (int) $request->get('page', 1);
+        return $this->handleServiceJson(function() use ($document) {
+            $this->service->approve($document);
 
-            return [
-                'data'  => $this->service->fetchList($filters, $page),
-                'stats' => $this->service->stats(),
-            ];
+            return ['message' => 'Documento aprobado. Verificación del jugador actualizada.'];
         });
     }
 
@@ -67,13 +50,13 @@ final class KycAdminController extends Controller
      * actuales (sin límite de paginación) — mismo patrón que
      * AdminPlayerController::export().
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         $this->authorize('viewAny', KycPolicy::class);
 
         $filters = $request->only(['status', 'document_type', 'search']);
 
-        return response()->streamDownload(function () use ($filters) {
+        return response()->streamDownload(function() use ($filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Jugador', 'Username', 'Email', 'Tipo documento', 'Número documento', 'Estado', 'Enviado', 'Revisado']);
 
@@ -96,13 +79,19 @@ final class KycAdminController extends Controller
         ]);
     }
 
-    public function show(KycDocument $document): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
-        $this->authorize('view', KycPolicy::class);
+        $this->authorize('viewAny', KycPolicy::class);
 
-        return $this->handleServiceJson(
-            fn() => ['data' => $this->service->show($document)]
-        );
+        return $this->handleServiceJson(function() use ($request) {
+            $filters = $request->only(['status', 'document_type', 'search']);
+            $page = (int) $request->get('page', 1);
+
+            return [
+                'data' => $this->service->fetchList($filters, $page),
+                'stats' => $this->service->stats(),
+            ];
+        });
     }
 
     /**
@@ -112,7 +101,7 @@ final class KycAdminController extends Controller
      * cada request pasa por este endpoint autenticado (mismo patrón que la
      * ruta wallet/receipt/{filename}, ver routes/modules/wallets.php).
      */
-    public function image(KycDocument $document, string $type): BinaryFileResponse
+    public function image(KycDocument $document, string $type) : BinaryFileResponse
     {
         $this->authorize('view', KycPolicy::class);
 
@@ -130,27 +119,39 @@ final class KycAdminController extends Controller
         return response()->file($path);
     }
 
-    public function approve(KycDocument $document): JsonResponse
+    public function index(Request $request) : Response
     {
-        $this->authorize('manage', KycPolicy::class);
+        $this->authorize('viewAny', KycPolicy::class);
 
-        return $this->handleServiceJson(function () use ($document) {
-            $this->service->approve($document);
+        return $this->handleServiceInertia(function() use ($request) {
+            $filters = $request->only(['status', 'document_type', 'search']);
 
-            return ['message' => 'Documento aprobado. Verificación del jugador actualizada.'];
+            return Inertia::render('Roles/Admin/Kyc/Index', [
+                'documents' => $this->service->fetchList($filters),
+                'stats' => $this->service->stats(),
+            ]);
         });
     }
 
-    public function reject(KycDocument $document, Request $request): JsonResponse
+    public function reject(KycDocument $document, Request $request) : JsonResponse
     {
         $this->authorize('manage', KycPolicy::class);
 
         $request->validate(['reason' => 'required|string|max:500']);
 
-        return $this->handleServiceJson(function () use ($document, $request) {
+        return $this->handleServiceJson(function() use ($document, $request) {
             $this->service->reject($document, $request->input('reason'));
 
             return ['message' => 'Documento rechazado.'];
         });
+    }
+
+    public function show(KycDocument $document) : JsonResponse
+    {
+        $this->authorize('view', KycPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => ['data' => $this->service->show($document)],
+        );
     }
 }

@@ -12,17 +12,31 @@ use Illuminate\Http\JsonResponse;
  */
 final class FailedJobController extends Controller
 {
-    public function __construct(private readonly FailedJobService $service) {}
-
-    public function index(): JsonResponse
+    public function __construct(private readonly FailedJobService $service)
     {
+    }
+
+    public function forget(string $uuid) : JsonResponse
+    {
+        $forgotten = $this->service->forget($uuid);
+
         return response()->json([
-            'success' => true,
-            'data'    => $this->service->list(),
+            'success' => $forgotten,
+            'message' => $forgotten
+                ? 'Job descartado correctamente.'
+                : 'No se pudo descartar el job (puede que ya no exista).',
         ]);
     }
 
-    public function retry(string $uuid): JsonResponse
+    public function index() : JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->list(),
+        ]);
+    }
+
+    public function retry(string $uuid) : JsonResponse
     {
         $retried = $this->service->retry($uuid);
 
@@ -34,25 +48,13 @@ final class FailedJobController extends Controller
         ]);
     }
 
-    public function retryAll(): JsonResponse
+    public function retryAll() : JsonResponse
     {
         $count = $this->service->retryAll();
 
         return response()->json([
             'success' => true,
             'message' => "{$count} job(s) reencolado(s) correctamente.",
-        ]);
-    }
-
-    public function forget(string $uuid): JsonResponse
-    {
-        $forgotten = $this->service->forget($uuid);
-
-        return response()->json([
-            'success' => $forgotten,
-            'message' => $forgotten
-                ? 'Job descartado correctamente.'
-                : 'No se pudo descartar el job (puede que ya no exista).',
         ]);
     }
 }

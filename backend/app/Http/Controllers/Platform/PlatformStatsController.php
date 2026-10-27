@@ -13,9 +13,10 @@ class PlatformStatsController extends Controller
 {
     public function __construct(
         private readonly PlatformStatsService $platformStats,
-    ) {}
+    ) {
+    }
 
-    public function index(): JsonResponse
+    public function index() : JsonResponse
     {
         return $this->handleServiceJson(fn () => $this->platformStats->summary());
     }

@@ -22,20 +22,21 @@ final class TreasurerProfileController extends Controller
 
     public function __construct(
         private readonly TreasurerProfileService $service,
-    ) {}
+    ) {
+    }
 
-    public function show(Request $request): Response
+    public function show(Request $request) : Response
     {
         $targetUserId = $this->resolveTargetUserId($request);
 
         return Inertia::render('Roles/Treasurer/Profile/Index', [
-            'title'       => 'Mi Tesorería',
-            'treasurer'   => $this->service->showOwn($targetUserId),
+            'title' => 'Mi Tesorería',
+            'treasurer' => $this->service->showOwn($targetUserId),
             'isAdminView' => $targetUserId !== null,
         ]);
     }
 
-    public function update(TreasurerProfileRequest $request): JsonResponse
+    public function update(TreasurerProfileRequest $request) : JsonResponse
     {
         $this->service->updateOwn($request->validated(), $this->resolveTargetUserId($request));
 

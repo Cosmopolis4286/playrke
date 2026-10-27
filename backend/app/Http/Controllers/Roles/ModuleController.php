@@ -17,9 +17,10 @@ final class ModuleController extends Controller
 {
     public function __construct(
         protected readonly ModuleService $service,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(): JsonResponse
+    public function fetchList() : JsonResponse
     {
         $this->authorize('viewAny', Module::class);
 
@@ -28,7 +29,7 @@ final class ModuleController extends Controller
         ]);
     }
 
-    public function toggleStatus(string $module): JsonResponse
+    public function toggleStatus(string $module) : JsonResponse
     {
         $moduleModel = Module::findOrFail($module);
         $this->authorize('update', $moduleModel);
@@ -37,7 +38,7 @@ final class ModuleController extends Controller
 
         return response()->json([
             'message' => 'Módulo actualizado correctamente',
-            'module'  => $updated,
+            'module' => $updated,
         ]);
     }
 }

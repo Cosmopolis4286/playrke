@@ -21,29 +21,62 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 final class AdminUserController extends Controller
 {
     public function __construct(
-        protected readonly AdminUserService $service
-    ) {}
+        protected readonly AdminUserService $service,
+    ) {
+    }
 
     /**
-     * Listado paginado de usuarios (JSON). Server-side real: search, role_name,
-     * country_name, status y has_specific_permissions filtran contra TODO el
-     * catálogo de usuarios, no solo la página cargada en memoria.
+     * Historial de auditoría paginado del usuario (botón "Cargar más" en la
+     * ficha, más allá del tope inicial que trae show()).
      */
-    public function fetchList(Request $request): JsonResponse
+    public function auditHistory(User $user, Request $request) : JsonResponse
     {
-        $this->authorize('viewAny', AdminUserPolicy::class);
+        $this->authorize('view', AdminUserPolicy::class);
 
-        return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions', 'last_login_before']);
-            $page    = (int) $request->get('page', 1);
+        return $this->handleServiceJson(
+            fn () => $this->service->getUserAuditHistory($user, (int) $request->get('page', 1)),
+        );
+    }
 
-            $result = $this->service->fetchList($filters, $page);
+    /**
+     * Eliminación lógica (soft delete).
+     */
+    public function delete(User $user) : JsonResponse
+    {
+        $this->authorize('delete', AdminUserPolicy::class);
 
-            return [
-                'data' => $result['rows'],
-                'meta' => $result['pagination'],
-            ];
-        });
+        return $this->handleServiceJson(
+            fn () => $this->service->delete($user),
+        );
+    }
+
+    /**
+     * Eliminación lógica de varios usuarios en una sola transacción.
+     */
+    public function deleteBulk(Request $request) : JsonResponse
+    {
+        $this->authorize('delete', AdminUserPolicy::class);
+
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->deleteBulk($request->input('ids')),
+        );
+    }
+
+    /**
+     * Eliminación definitiva (hard delete).
+     */
+    public function destroy(User $user) : JsonResponse
+    {
+        $this->authorize('delete', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->destroy($user),
+        );
     }
 
     /**
@@ -51,13 +84,13 @@ final class AdminUserController extends Controller
      * (sin límite de paginación) — mismo patrón que
      * ExternalPlayerAdminController::export().
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         $this->authorize('viewAny', AdminUserPolicy::class);
 
         $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions']);
 
-        return response()->streamDownload(function () use ($filters) {
+        return response()->streamDownload(function() use ($filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Nombre', 'Apellido', 'Username', 'Email', 'Rol', 'País', 'Estado', 'Permisos individuales', 'Registrado', 'Última conexión']);
 
@@ -83,28 +116,138 @@ final class AdminUserController extends Controller
     }
 
     /**
-     * Ficha consolidada de un usuario (datos básicos, wallet, nivel/XP,
-     * últimos eventos de auditoría) para el modal de detalle.
+     * Listado paginado de usuarios (JSON). Server-side real: search, role_name,
+     * country_name, status y has_specific_permissions filtran contra TODO el
+     * catálogo de usuarios, no solo la página cargada en memoria.
      */
-    public function show(User $user): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
+    {
+        $this->authorize('viewAny', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(function() use ($request) {
+            $filters = $request->only(['search', 'role_name', 'country_name', 'status', 'has_specific_permissions', 'last_login_before']);
+            $page = (int) $request->get('page', 1);
+
+            $result = $this->service->fetchList($filters, $page);
+
+            return [
+                'data' => $result['rows'],
+                'meta' => $result['pagination'],
+            ];
+        });
+    }
+
+    /**
+     * Obtener balance de wallet del usuario.
+     */
+    public function getWalletBalance(User $user) : JsonResponse
     {
         $this->authorize('view', AdminUserPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => $this->service->getUserDetail($user)
+            fn () => $this->service->getWalletBalance($user),
         );
     }
 
     /**
-     * Historial de auditoría paginado del usuario (botón "Cargar más" en la
-     * ficha, más allá del tope inicial que trae show()).
+     * Otorgar XP manualmente al usuario.
      */
-    public function auditHistory(User $user, Request $request): JsonResponse
+    public function grantXp(User $user) : JsonResponse
+    {
+        $this->authorize('edit', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->grantXp(
+                $user,
+                (int) request('amount'),
+                request('reason'),
+            ),
+        );
+    }
+
+    /**
+     * Cargar saldo en wallet del usuario.
+     */
+    public function loadWalletBalance(User $user) : JsonResponse
+    {
+        $this->authorize('edit', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => [
+                'message' => $this->service->loadWalletBalance(
+                    $user,
+                    request('amount'),
+                    request('reason'),
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Resetear contraseña.
+     */
+    public function resetPassword(User $user) : JsonResponse
+    {
+        $this->authorize('edit', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => [
+                'password' => $this->service->resetPassword($user),
+            ],
+        );
+    }
+
+    /**
+     * Ficha consolidada de un usuario (datos básicos, wallet, nivel/XP,
+     * últimos eventos de auditoría) para el modal de detalle.
+     */
+    public function show(User $user) : JsonResponse
     {
         $this->authorize('view', AdminUserPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => $this->service->getUserAuditHistory($user, (int) $request->get('page', 1))
+            fn () => $this->service->getUserDetail($user),
+        );
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE).
+     */
+    public function toggleStatus(User $user) : JsonResponse
+    {
+        $this->authorize('edit', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->toggleStatus($user),
+        );
+    }
+
+    /**
+     * Alternar estado de varios usuarios en una sola transacción.
+     */
+    public function toggleStatusBulk(Request $request) : JsonResponse
+    {
+        $this->authorize('edit', AdminUserPolicy::class);
+
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->toggleStatusBulk($request->input('ids')),
+        );
+    }
+
+    /**
+     * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
+     */
+    public function update(AdminUserUpdateRequest $request, User $user) : JsonResponse
+    {
+        $this->authorize('edit', AdminUserPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->update($user, $request->toDTO(AdminUserUpdateDTO::class)),
         );
     }
 
@@ -112,154 +255,12 @@ final class AdminUserController extends Controller
      * Historial de movimientos de billetera paginado del usuario (botón
      * "Cargar más" en la sección Billetera de la ficha).
      */
-    public function walletHistory(User $user, Request $request): JsonResponse
+    public function walletHistory(User $user, Request $request) : JsonResponse
     {
         $this->authorize('view', AdminUserPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => $this->service->getWalletMovementHistory($user, (int) $request->get('page', 1))
-        );
-    }
-
-    /**
-     * Actualizar datos básicos (y opcionalmente el rol) de un usuario.
-     */
-    public function update(AdminUserUpdateRequest $request, User $user): JsonResponse
-    {
-        $this->authorize('edit', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->update($user, $request->toDTO(AdminUserUpdateDTO::class))
-        );
-    }
-
-    /**
-     * Alternar estado (ACTIVE / INACTIVE).
-     */
-    public function toggleStatus(User $user): JsonResponse
-    {
-        $this->authorize('edit', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->toggleStatus($user)
-        );
-    }
-
-    /**
-     * Alternar estado de varios usuarios en una sola transacción.
-     */
-    public function toggleStatusBulk(Request $request): JsonResponse
-    {
-        $this->authorize('edit', AdminUserPolicy::class);
-
-        $request->validate([
-            'ids' => 'required|array|min:1',
-            'ids.*' => 'string',
-        ]);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->toggleStatusBulk($request->input('ids'))
-        );
-    }
-
-    /**
-     * Eliminación lógica de varios usuarios en una sola transacción.
-     */
-    public function deleteBulk(Request $request): JsonResponse
-    {
-        $this->authorize('delete', AdminUserPolicy::class);
-
-        $request->validate([
-            'ids' => 'required|array|min:1',
-            'ids.*' => 'string',
-        ]);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->deleteBulk($request->input('ids'))
-        );
-    }
-
-    /**
-     * Eliminación lógica (soft delete).
-     */
-    public function delete(User $user): JsonResponse
-    {
-        $this->authorize('delete', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->delete($user)
-        );
-    }
-
-    /**
-     * Eliminación definitiva (hard delete).
-     */
-    public function destroy(User $user): JsonResponse
-    {
-        $this->authorize('delete', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->destroy($user)
-        );
-    }
-
-    /**
-     * Resetear contraseña.
-     */
-    public function resetPassword(User $user): JsonResponse
-    {
-        $this->authorize('edit', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => [
-                'password' => $this->service->resetPassword($user),
-            ]
-        );
-    }
-
-    /**
-     * Cargar saldo en wallet del usuario.
-     */
-    public function loadWalletBalance(User $user): JsonResponse
-    {
-        $this->authorize('edit', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => [
-                'message' => $this->service->loadWalletBalance(
-                    $user,
-                    request('amount'),
-                    request('reason'),
-                )
-            ]
-        );
-    }
-
-    /**
-     * Obtener balance de wallet del usuario.
-     */
-    public function getWalletBalance(User $user): JsonResponse
-    {
-        $this->authorize('view', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->getWalletBalance($user)
-        );
-    }
-
-    /**
-     * Otorgar XP manualmente al usuario.
-     */
-    public function grantXp(User $user): JsonResponse
-    {
-        $this->authorize('edit', AdminUserPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->grantXp(
-                $user,
-                (int) request('amount'),
-                request('reason'),
-            )
+            fn () => $this->service->getWalletMovementHistory($user, (int) $request->get('page', 1)),
         );
     }
 }

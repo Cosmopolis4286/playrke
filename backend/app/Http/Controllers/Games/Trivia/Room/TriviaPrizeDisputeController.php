@@ -22,9 +22,10 @@ final class TriviaPrizeDisputeController extends Controller
 {
     public function __construct(
         private readonly GamePrizeService $gamePrizeService,
-    ) {}
+    ) {
+    }
 
-    public function store(Request $request, string $roomId, string $participantId): RedirectResponse
+    public function store(Request $request, string $roomId, string $participantId) : RedirectResponse
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:10', 'max:500'],

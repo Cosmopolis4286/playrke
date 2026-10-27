@@ -34,12 +34,32 @@ class ExchangeRateRequest extends BaseRequest
      * 'treasurer' no tiene entidad propia (no está en RoleEntityResolver) —
      * gestiona la tasa OFICIAL igual que admin/superadmin, ver
      * ExchangeRateCrudService::repo().
-     *
-     * @return bool
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['admin', 'superadmin', 'treasurer', 'commerce', 'customer']);
+    }
+
+    /**
+     * Mensajes de error personalizados.
+     *
+     * @return array<string, string>
+     */
+    public function messages() : array
+    {
+        return [
+            'token.exists' => 'El token no es válido o está inactivo.',
+
+            'currency_id.required' => 'La moneda es obligatoria.',
+            'currency_id.size' => 'La moneda debe tener exactamente 3 caracteres.',
+            'currency_id.exists' => 'La moneda seleccionada no es válida.',
+
+            'amount.required' => 'El valor de cambio es obligatorio.',
+            'amount.numeric' => 'El valor de cambio debe ser numérico.',
+            'amount.gt' => 'El valor de cambio debe ser mayor a cero.',
+
+            'status.required' => 'El status es obligatorio.',
+        ];
     }
 
     /**
@@ -49,7 +69,7 @@ class ExchangeRateRequest extends BaseRequest
      *
      * @return array<string, mixed>
      */
-    public function rules(): array
+    public function rules() : array
     {
         $isUpdate = $this->isUpdate();
         $token = $this->input('token');
@@ -63,7 +83,7 @@ class ExchangeRateRequest extends BaseRequest
             'size:3',
         ];
 
-        /**
+        /*
          * Si el token es distinto de admin,
          * la moneda debe existir en la tabla currencies.
          */
@@ -71,11 +91,11 @@ class ExchangeRateRequest extends BaseRequest
             $currencyRules[] = 'exists:currencies,iso_code';
         }
 
-        /**
+        /*
          * Para creación, verificar que no exista una tasa de cambio para esta moneda
          */
-        if (!$isUpdate) {
-            $currencyRules[] = function ($attribute, $value, $fail) {
+        if (! $isUpdate) {
+            $currencyRules[] = function($attribute, $value, $fail) {
                 $exists = \App\Models\ExchangeRate::where('currency_id', $value)->exists();
                 if ($exists) {
                     $fail('Ya existe una tasa de cambio registrada para esta moneda.');
@@ -84,23 +104,23 @@ class ExchangeRateRequest extends BaseRequest
         }
 
         return [
-            /**
+            /*
              * Rol de usuario al que aplica la tasa de cambio.
              */
             'token' => [
                 'sometimes',
                 'string',
-                Rule::exists('public_tokens', 'token_hash')->where(function ($query) {
+                Rule::exists('public_tokens', 'token_hash')->where(function($query) {
                     $query->where('status', 'ACTIVE');
                 }),
             ],
 
-            /**
+            /*
              * Código de moneda ISO 4217 (ej: USD, EUR).
              */
             'currency_id' => $currencyRules,
 
-            /**
+            /*
              * Valor de la tasa de cambio. gt:0 ya lo cubre BaseModel::
              * setAmountAttribute() (rango 0.0001–999999.9999), pero esa
              * excepción es un InvalidArgumentException genérico que llega al
@@ -109,7 +129,7 @@ class ExchangeRateRequest extends BaseRequest
              */
             'amount' => ['required', 'numeric', 'gt:0', 'max:999999.9999'],
 
-            /**
+            /*
              * Estatus de la tasa de cambio — Rule::in() contra el enum real
              * de la migración (antes solo 'string': cualquier valor pasaba
              * la validación HTTP y solo fallaba al chocar con el enum de
@@ -125,9 +145,9 @@ class ExchangeRateRequest extends BaseRequest
      * rules(), así que $this->currency_id/amount ya pasaron su propia
      * validación individual acá.
      */
-    public function withValidator($validator): void
+    public function withValidator($validator) : void
     {
-        $validator->after(function ($validator) {
+        $validator->after(function($validator) {
             $this->validateAmountJump($validator);
         });
     }
@@ -141,12 +161,12 @@ class ExchangeRateRequest extends BaseRequest
      * confirm_large_jump=true para pedir una segunda confirmación explícita
      * (ver useExchangeRateForm.ts) — sin ese flag, un salto >50% falla acá.
      */
-    private function validateAmountJump($validator): void
+    private function validateAmountJump($validator) : void
     {
         $amount = $this->input('amount');
         $currencyId = $this->input('currency_id');
 
-        if (!$amount || !$currencyId || $this->boolean('confirm_large_jump')) {
+        if (! $amount || ! $currencyId || $this->boolean('confirm_large_jump')) {
             return;
         }
 
@@ -155,7 +175,7 @@ class ExchangeRateRequest extends BaseRequest
             ->latest('updated_at')
             ->first();
 
-        if (!$current || (float) $current->amount <= 0) {
+        if (! $current || (float) $current->amount <= 0) {
             return;
         }
 
@@ -167,31 +187,9 @@ class ExchangeRateRequest extends BaseRequest
                 sprintf(
                     'El nuevo valor difiere %.0f%% del vigente (%s). Si es correcto, confírmalo explícitamente.',
                     $changePercent,
-                    $current->amount
-                )
+                    $current->amount,
+                ),
             );
         }
-    }
-
-    /**
-     * Mensajes de error personalizados.
-     *
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'token.exists' => 'El token no es válido o está inactivo.',
-
-            'currency_id.required' => 'La moneda es obligatoria.',
-            'currency_id.size' => 'La moneda debe tener exactamente 3 caracteres.',
-            'currency_id.exists' => 'La moneda seleccionada no es válida.',
-
-            'amount.required' => 'El valor de cambio es obligatorio.',
-            'amount.numeric' => 'El valor de cambio debe ser numérico.',
-            'amount.gt' => 'El valor de cambio debe ser mayor a cero.',
-
-            'status.required' => 'El status es obligatorio.',
-        ];
     }
 }

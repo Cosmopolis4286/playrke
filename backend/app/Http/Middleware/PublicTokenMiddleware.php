@@ -11,9 +11,6 @@ class PublicTokenMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @param  string  $scope
      * @return mixed
      */
     public function handle(Request $request, Closure $next, string $scope)
@@ -26,7 +23,7 @@ class PublicTokenMiddleware
         // Token por query (iframe-friendly)
         $token = $request->query('token');
 
-        if (!$token || !is_string($token)) {
+        if (! $token || ! is_string($token)) {
             abort(401, 'Public token requerido');
         }
 
@@ -39,7 +36,7 @@ class PublicTokenMiddleware
             ->with('user')
             ->first();
 
-        if (!$publicToken || !$publicToken->user) {
+        if (! $publicToken || ! $publicToken->user) {
             abort(403, 'Public token inválido o expirado');
         }
 

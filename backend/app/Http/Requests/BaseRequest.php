@@ -8,23 +8,6 @@ use InvalidArgumentException;
 abstract class BaseRequest extends FormRequest
 {
     /**
-     * Determina si la acción actual corresponde a una actualización.
-     *
-     * Se considera "update" si alguno de los parámetros de ruta existe.
-     *
-     * Ejemplos:
-     *  - isUpdate('id')
-     *  - isUpdate(['commerce', 'user'])
-     *
-     * @param  string|array<string>  $params
-     * @return bool
-     */
-    public function isUpdate(string|array $params = 'id'): bool
-    {
-        return $this->hasRouteParameter($params);
-    }
-
-    /**
      * Obtiene el ID o valor asociado a un parámetro de ruta.
      *
      * Soporta:
@@ -36,13 +19,27 @@ abstract class BaseRequest extends FormRequest
      *  - getId('commerce', 'id')
      *  - getId(['commerce', 'id'])
      *
-     * @param  string|array<string>  $params
-     * @param  string|null  $property
-     * @return int|string|null
+     * @param string|array<string> $params
      */
-    public function getId(string|array $params = 'id', ?string $property = 'id'): int|string|null
+    public function getId(string|array $params = 'id', ?string $property = 'id') : int|string|null
     {
         return $this->getRouteParameter($params, $property);
+    }
+
+    /**
+     * Determina si la acción actual corresponde a una actualización.
+     *
+     * Se considera "update" si alguno de los parámetros de ruta existe.
+     *
+     * Ejemplos:
+     *  - isUpdate('id')
+     *  - isUpdate(['commerce', 'user'])
+     *
+     * @param string|array<string> $params
+     */
+    public function isUpdate(string|array $params = 'id') : bool
+    {
+        return $this->hasRouteParameter($params);
     }
 
     /**
@@ -52,37 +49,21 @@ abstract class BaseRequest extends FormRequest
      *
      * @template T of object
      *
-     * @param  class-string<T>  $dtoClass
+     * @param class-string<T> $dtoClass
+     *
      * @return T
      *
      * @throws InvalidArgumentException
      */
-    public function toDTO(string $dtoClass): object
+    public function toDTO(string $dtoClass) : object
     {
-        if (!method_exists($dtoClass, 'fromArray')) {
+        if (! method_exists($dtoClass, 'fromArray')) {
             throw new InvalidArgumentException(
-                sprintf('La clase %s debe implementar el método estático fromArray(array $data).', $dtoClass)
+                sprintf('La clase %s debe implementar el método estático fromArray(array $data).', $dtoClass),
             );
         }
 
         return $dtoClass::fromArray($this->validated());
-    }
-
-    /**
-     * Determina si existe alguno de los parámetros de ruta indicados.
-     *
-     * @param  string|array<string>  $params
-     * @return bool
-     */
-    protected function hasRouteParameter(string|array $params): bool
-    {
-        foreach ((array) $params as $param) {
-            if ($this->route($param) !== null) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -96,11 +77,11 @@ abstract class BaseRequest extends FormRequest
      *  - getRouteParameter('commerce', 'id')
      *  - getRouteParameter(['commerce', 'id'])
      *
-     * @param  string|array<string>  $params
-     * @param  string|null  $property
+     * @param string|array<string> $params
+     *
      * @return mixed|null
      */
-    protected function getRouteParameter(string|array $params, ?string $property = null): mixed
+    protected function getRouteParameter(string|array $params, ?string $property = null) : mixed
     {
         foreach ((array) $params as $param) {
             $value = $this->route($param);
@@ -117,5 +98,21 @@ abstract class BaseRequest extends FormRequest
         }
 
         return null;
+    }
+
+    /**
+     * Determina si existe alguno de los parámetros de ruta indicados.
+     *
+     * @param string|array<string> $params
+     */
+    protected function hasRouteParameter(string|array $params) : bool
+    {
+        foreach ((array) $params as $param) {
+            if ($this->route($param) !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

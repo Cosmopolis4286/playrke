@@ -21,11 +21,11 @@ use Vinkla\Hashids\Facades\Hashids;
  */
 trait ResolvesTargetUserId
 {
-    private function resolveTargetUserId(Request $request): ?string
+    private function resolveTargetUserId(Request $request) : ?string
     {
         $target = $request->input('target_user_id') ?? $request->query('target_user_id');
 
-        if (!$target) {
+        if (! $target) {
             return null;
         }
 

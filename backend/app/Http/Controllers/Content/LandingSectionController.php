@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Content;
 
 use App\DTOs\Content\LandingSectionDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Content\LandingSectionRequest;
 use App\Http\Requests\Content\LandingSectionReorderRequest;
+use App\Http\Requests\Content\LandingSectionRequest;
 use App\Http\Resources\Content\LandingSectionResource;
 use App\Models\Content\LandingSection;
 use App\Services\Content\LandingSectionCrudService;
@@ -16,14 +16,14 @@ use Inertia\Response;
 final class LandingSectionController extends Controller
 {
     public function __construct(
-        private readonly LandingSectionCrudService $service
+        private readonly LandingSectionCrudService $service,
     ) {
         $this->authorizeResource(LandingSection::class, 'landingSection');
     }
 
-    public function index(): Response
+    public function index() : Response
     {
-        return $this->handleServiceInertia(function () {
+        return $this->handleServiceInertia(function() {
             return Inertia::render('Content/LandingSections/Index', [
                 // ->resolve() en vez de pasar la resource collection directa:
                 // Inertia espera props ya "planas" (array), pero
@@ -35,20 +35,25 @@ final class LandingSectionController extends Controller
         });
     }
 
-    public function update(LandingSectionRequest $request, LandingSection $landingSection): JsonResponse
+    public function reorder(LandingSectionReorderRequest $request) : JsonResponse
     {
-        return $this->handleServiceJson(fn () => [
-            'data' => new LandingSectionResource(
-                $this->service->updateContent($landingSection, $request->toDTO(LandingSectionDTO::class))
-            ),
-        ]);
+        $this->authorize('reorder', LandingSection::class);
+
+        return $this->handleServiceJson(function() use ($request) {
+            $this->service->reorder($request->validated('ordered_keys'));
+
+            // ->resolve(): una ResourceCollection anidada dentro de un array
+            // igual hereda el auto-wrapping "data" de Laravel al serializarse,
+            // dejando la respuesta final como {data: {data: [...]}}.
+            return ['data' => LandingSectionResource::collection($this->service->list())->resolve()];
+        });
     }
 
     /**
      * 'toggleStatus' no es una acción resource estándar — authorizeResource()
      * del constructor no la cubre automáticamente.
      */
-    public function toggleStatus(LandingSection $landingSection): JsonResponse
+    public function toggleStatus(LandingSection $landingSection) : JsonResponse
     {
         $this->authorize('toggleStatus', $landingSection);
 
@@ -57,17 +62,12 @@ final class LandingSectionController extends Controller
         ]);
     }
 
-    public function reorder(LandingSectionReorderRequest $request): JsonResponse
+    public function update(LandingSectionRequest $request, LandingSection $landingSection) : JsonResponse
     {
-        $this->authorize('reorder', LandingSection::class);
-
-        return $this->handleServiceJson(function () use ($request) {
-            $this->service->reorder($request->validated('ordered_keys'));
-
-            // ->resolve(): una ResourceCollection anidada dentro de un array
-            // igual hereda el auto-wrapping "data" de Laravel al serializarse,
-            // dejando la respuesta final como {data: {data: [...]}}.
-            return ['data' => LandingSectionResource::collection($this->service->list())->resolve()];
-        });
+        return $this->handleServiceJson(fn () => [
+            'data' => new LandingSectionResource(
+                $this->service->updateContent($landingSection, $request->toDTO(LandingSectionDTO::class)),
+            ),
+        ]);
     }
 }

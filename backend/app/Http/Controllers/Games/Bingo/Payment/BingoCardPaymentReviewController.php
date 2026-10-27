@@ -10,8 +10,8 @@ use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Services\Roles\Dashboard\NetworkDashboardService;
 use App\Services\Roles\RoleUserService;
-use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -43,30 +43,18 @@ final class BingoCardPaymentReviewController extends Controller
     public function __construct(
         private readonly BingoCardPaymentReviewService $reviewService,
         private readonly RoleUserService $roleUserService,
-    ) {}
-
-    /**
-     * user_ids de vendedores cuyos pagos puede revisar el usuario actual, o
-     * null si puede revisarlos todos (admin/superadmin).
-     *
-     * @return string[]|null
-     */
-    private function reviewableSellerUserIds(): ?array
-    {
-        $userId = (string) Auth::id();
-
-        return match ($this->roleUserService->getActiveUserRolePrefix((int) $userId)) {
-            'superadmin', 'admin' => null,
-            'commerce'            => Commerce::where('user_id', $userId)->first()?->networkUserIds() ?? [],
-            default               => [],
-        };
+    ) {
     }
 
-    private function assertCanReview(BingoCardPayment $payment): void
+    public function approve(Request $request, BingoCardPayment $payment) : JsonResponse
     {
-        $allowed = $this->reviewableSellerUserIds();
+        $this->assertCanReview($payment);
 
-        abort_if($allowed !== null && !in_array((string) $payment->seller_user_id, $allowed, true), 403);
+        return $this->handleServiceJson(function() use ($request, $payment) {
+            $updated = $this->reviewService->approve($payment, $request->input('admin_notes'), $request->boolean('confirm_late'));
+
+            return ['data' => $updated];
+        });
     }
 
     /**
@@ -77,7 +65,7 @@ final class BingoCardPaymentReviewController extends Controller
      * Va completa (hasta MAX_QUEUE) para que la tabla filtre y busque en el
      * cliente: es una cola de trabajo, no un histórico.
      */
-    public function index(NetworkDashboardService $network): Response
+    public function index(NetworkDashboardService $network) : Response
     {
         $allowed = $this->reviewableSellerUserIds();
 
@@ -111,46 +99,46 @@ final class BingoCardPaymentReviewController extends Controller
 
         $now = now()->timestamp;
 
-        $payments = $items->map(function (BingoCardPayment $p) use ($sellers, $now) {
-            $seller   = $sellers->get((string) $p->seller_user_id);
+        $payments = $items->map(function(BingoCardPayment $p) use ($sellers, $now) {
+            $seller = $sellers->get((string) $p->seller_user_id);
             $commerce = $seller?->resolveCommerce();
             $startsAt = $p->room?->config?->unix_date ? (int) $p->room->config->unix_date : null;
 
             return [
-                'id'                 => (string) $p->id,
-                'room_uuid_code'     => $p->room?->uuid_code,
-                'room_short_code'    => $p->room?->uuid_code ? strtoupper(substr((string) $p->room->uuid_code, 0, 8)) : null,
-                'room_status'        => $p->room?->status?->code,
-                'room_status_label'  => $p->room?->status?->label ?? $p->room?->status?->code,
-                'room_starts_at'     => $startsAt ? Carbon::createFromTimestamp($startsAt)->toIso8601String() : null,
-                'room_started'       => (bool) $p->room?->hasStarted($now),
-                'seller_name'        => $seller?->name
+                'id' => (string) $p->id,
+                'room_uuid_code' => $p->room?->uuid_code,
+                'room_short_code' => $p->room?->uuid_code ? strtoupper(substr((string) $p->room->uuid_code, 0, 8)) : null,
+                'room_status' => $p->room?->status?->code,
+                'room_status_label' => $p->room?->status?->label ?? $p->room?->status?->code,
+                'room_starts_at' => $startsAt ? Carbon::createFromTimestamp($startsAt)->toIso8601String() : null,
+                'room_started' => (bool) $p->room?->hasStarted($now),
+                'seller_name' => $seller?->name
                     ?: (trim("{$p->seller?->first_name} {$p->seller?->last_name}") ?: $p->seller?->username),
-                'seller_network'     => $seller?->subsidiary_id ? $seller->subsidiary?->name : null,
-                'commerce_name'      => $commerce?->name,
-                'pending_policy'     => $commerce?->pending_payment_policy ?? Commerce::PENDING_POLICY_KEEP,
-                'external_player'    => $p->externalPlayer ? [
-                    'name'  => trim("{$p->externalPlayer->first_name} {$p->externalPlayer->last_name}"),
+                'seller_network' => $seller?->subsidiary_id ? $seller->subsidiary?->name : null,
+                'commerce_name' => $commerce?->name,
+                'pending_policy' => $commerce?->pending_payment_policy ?? Commerce::PENDING_POLICY_KEEP,
+                'external_player' => $p->externalPlayer ? [
+                    'name' => trim("{$p->externalPlayer->first_name} {$p->externalPlayer->last_name}"),
                     'phone' => $p->externalPlayer->phone,
                 ] : null,
-                'card_count'         => $p->cardLot?->card_count,
-                'payment_amount'     => (float) $p->payment_amount,
-                'currency_code'      => $p->currency?->iso_code,
-                'amount_label'       => $p->currency
+                'card_count' => $p->cardLot?->card_count,
+                'payment_amount' => (float) $p->payment_amount,
+                'currency_code' => $p->currency?->iso_code,
+                'amount_label' => $p->currency
                     ? trim(($p->currency->symbol ?? '') . ' ' . $p->currency->formatAmount((float) $p->payment_amount))
                     : number_format((float) $p->payment_amount, 2, ',', '.'),
                 'transaction_reference' => $p->transaction_reference,
                 // cash → sin comprobante: el revisor confirma que recibió el efectivo.
-                'payment_method'     => $p->payment_method,
+                'payment_method' => $p->payment_method,
                 'payment_method_label' => match ($p->payment_method) {
                     'cash', 'seller_cash' => 'Efectivo',
-                    'mobile_payment'      => 'Pago móvil',
-                    'bank_transfer'       => 'Transferencia',
-                    default               => (string) $p->payment_method,
+                    'mobile_payment' => 'Pago móvil',
+                    'bank_transfer' => 'Transferencia',
+                    default => (string) $p->payment_method,
                 },
                 // Ruta autenticada (proof()), no URL pública del disco.
-                'payment_proof_url'  => $p->payment_proof ? route('bingo-card-payments.proof', ['payment' => $p]) : null,
-                'created_at'         => $p->created_at?->toIso8601String(),
+                'payment_proof_url' => $p->payment_proof ? route('bingo-card-payments.proof', ['payment' => $p]) : null,
+                'created_at' => $p->created_at?->toIso8601String(),
                 'pending_at_start_at' => $p->pending_at_start_at?->toIso8601String(),
             ];
         })->values();
@@ -168,27 +156,27 @@ final class BingoCardPaymentReviewController extends Controller
             ->limit(50)
             ->get()
             ->map(fn (BingoLotRefundFailure $f) => [
-                'id'                => (string) $f->id,
-                'room_uuid_code'    => $f->room?->uuid_code,
-                'amount'            => (float) $f->amount,
-                'amount_label'      => $network->formatAmount($f->currency_id, (float) $f->amount),
-                'status'            => $f->status,
-                'attempts'          => $f->attempts,
-                'error_message'     => $f->error_message,
+                'id' => (string) $f->id,
+                'room_uuid_code' => $f->room?->uuid_code,
+                'amount' => (float) $f->amount,
+                'amount_label' => $network->formatAmount($f->currency_id, (float) $f->amount),
+                'status' => $f->status,
+                'attempts' => $f->attempts,
+                'error_message' => $f->error_message,
                 'last_attempted_at' => $f->last_attempted_at?->toIso8601String(),
             ])
             ->values();
 
         return Inertia::render('Roles/Admin/BingoCardPayments/Index', [
-            'title'          => 'Pagos de Bingo pendientes de revisión',
-            'payments'       => $payments,
+            'title' => 'Pagos de Bingo pendientes de revisión',
+            'payments' => $payments,
             'refundFailures' => $refundFailures,
             // Regla editable solo por la comercializadora (la suya); admin ve la de cada fila.
-            'policy'         => $this->ownCommerce()?->pending_payment_policy,
-            'summary'        => [
-                'total'     => $total = $pending()->count(),
+            'policy' => $this->ownCommerce()?->pending_payment_policy,
+            'summary' => [
+                'total' => $total = $pending()->count(),
                 // Moneda principal + "N más" (nunca se suman monedas distintas).
-                'amount'    => $network->currencySummary($pending(), 'payment_amount')['amount'],
+                'amount' => $network->currencySummary($pending(), 'payment_amount')['amount'],
                 'truncated' => $total > self::MAX_QUEUE,
             ],
         ]);
@@ -198,7 +186,7 @@ final class BingoCardPaymentReviewController extends Controller
      * Imagen del comprobante, servida desde el disco privado solo a quien
      * puede revisar ese pago. no-store: no debe quedar en cachés intermedias.
      */
-    public function proof(BingoCardPayment $payment): SymfonyResponse
+    public function proof(BingoCardPayment $payment) : SymfonyResponse
     {
         $this->assertCanReview($payment);
 
@@ -207,27 +195,16 @@ final class BingoCardPaymentReviewController extends Controller
         abort_unless($payment->payment_proof && $disk->exists($payment->payment_proof), 404);
 
         return $disk->response($payment->payment_proof, null, [
-            'Cache-Control'          => 'private, no-store',
+            'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
-    public function approve(Request $request, BingoCardPayment $payment): JsonResponse
+    public function reject(Request $request, BingoCardPayment $payment) : JsonResponse
     {
         $this->assertCanReview($payment);
 
-        return $this->handleServiceJson(function () use ($request, $payment) {
-            $updated = $this->reviewService->approve($payment, $request->input('admin_notes'), $request->boolean('confirm_late'));
-
-            return ['data' => $updated];
-        });
-    }
-
-    public function reject(Request $request, BingoCardPayment $payment): JsonResponse
-    {
-        $this->assertCanReview($payment);
-
-        return $this->handleServiceJson(function () use ($request, $payment) {
+        return $this->handleServiceJson(function() use ($request, $payment) {
             $updated = $this->reviewService->reject($payment, $request->input('admin_notes'));
 
             return ['data' => $updated];
@@ -239,7 +216,7 @@ final class BingoCardPaymentReviewController extends Controller
      * cuando inicia el sorteo (BingoPendingPaymentStartService):
      * rechazarlos con reembolso o mantenerlos en revisión.
      */
-    public function updatePolicy(Request $request): JsonResponse
+    public function updatePolicy(Request $request) : JsonResponse
     {
         $commerce = $this->ownCommerce();
         abort_unless($commerce, 403);
@@ -248,19 +225,43 @@ final class BingoCardPaymentReviewController extends Controller
             'policy' => ['required', Rule::in([Commerce::PENDING_POLICY_REJECT, Commerce::PENDING_POLICY_KEEP])],
         ]);
 
-        return $this->handleServiceJson(function () use ($commerce, $data) {
+        return $this->handleServiceJson(function() use ($commerce, $data) {
             $commerce->update(['pending_payment_policy' => $data['policy']]);
 
             return ['policy' => $commerce->pending_payment_policy];
         });
     }
 
-    private function ownCommerce(): ?Commerce
+    private function assertCanReview(BingoCardPayment $payment) : void
+    {
+        $allowed = $this->reviewableSellerUserIds();
+
+        abort_if($allowed !== null && ! in_array((string) $payment->seller_user_id, $allowed, true), 403);
+    }
+
+    private function ownCommerce() : ?Commerce
     {
         $userId = (int) Auth::id();
 
         return $this->roleUserService->getActiveUserRolePrefix($userId) === 'commerce'
             ? Commerce::where('user_id', $userId)->first()
             : null;
+    }
+
+    /**
+     * user_ids de vendedores cuyos pagos puede revisar el usuario actual, o
+     * null si puede revisarlos todos (admin/superadmin).
+     *
+     * @return string[]|null
+     */
+    private function reviewableSellerUserIds() : ?array
+    {
+        $userId = (string) Auth::id();
+
+        return match ($this->roleUserService->getActiveUserRolePrefix((int) $userId)) {
+            'superadmin', 'admin' => null,
+            'commerce' => Commerce::where('user_id', $userId)->first()?->networkUserIds() ?? [],
+            default => [],
+        };
     }
 }

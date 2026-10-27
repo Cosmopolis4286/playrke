@@ -10,40 +10,12 @@ use Illuminate\Validation\Validator;
 
 class UpdateRoomRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return true;
     }
 
-    public function rules(): array
-    {
-        return [
-            'title'              => ['required', 'string', 'max:255'],
-            'description'        => ['nullable', 'string', 'max:1000'],
-            'category'           => ['nullable', 'string', 'max:50'],
-            'max_players'        => ['required', 'integer', 'min:2', 'max:500'],
-            'entry_fee'          => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
-            'entry_currency_id'  => ['nullable', 'string', 'exists:currencies,id'],
-            'fee_by_currency'                => ['nullable', 'array'],
-            'fee_by_currency.*'              => ['numeric', 'min:0.01', 'max:999999.99'],
-            'prize_type'         => ['nullable', 'in:fixed,accumulated'],
-            'prize_amount'       => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
-            'prize_currency_id'  => ['nullable', 'string', 'exists:currencies,id'],
-            'prize_model'           => ['nullable', 'in:guaranteed,pool'],
-            'sponsor_prize'         => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
-            'platform_rake_percent' => ['nullable', 'numeric', 'min:0', 'max:30'],
-            'prize_payouts'                 => ['nullable', 'array'],
-            'prize_payouts.*.rank'          => ['required_with:prize_payouts', 'integer', 'min:1'],
-            'prize_payouts.*.percent'       => ['required_with:prize_payouts', 'numeric', 'min:0', 'max:1'],
-            'scheduled_at'       => ['nullable', 'date', 'after:now'],
-            'settings'           => ['nullable', 'array'],
-            'settings.allow_powerups'   => ['nullable', 'boolean'],
-            'settings.show_leaderboard' => ['nullable', 'boolean'],
-            'settings.pause_disconnect_threshold_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
-        ];
-    }
-
-    public function messages(): array
+    public function messages() : array
     {
         return [
             'title.required' => 'El título es obligatorio.',
@@ -73,12 +45,40 @@ class UpdateRoomRequest extends FormRequest
         ];
     }
 
+    public function rules() : array
+    {
+        return [
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'category' => ['nullable', 'string', 'max:50'],
+            'max_players' => ['required', 'integer', 'min:2', 'max:500'],
+            'entry_fee' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'entry_currency_id' => ['nullable', 'string', 'exists:currencies,id'],
+            'fee_by_currency' => ['nullable', 'array'],
+            'fee_by_currency.*' => ['numeric', 'min:0.01', 'max:999999.99'],
+            'prize_type' => ['nullable', 'in:fixed,accumulated'],
+            'prize_amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'prize_currency_id' => ['nullable', 'string', 'exists:currencies,id'],
+            'prize_model' => ['nullable', 'in:guaranteed,pool'],
+            'sponsor_prize' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'platform_rake_percent' => ['nullable', 'numeric', 'min:0', 'max:30'],
+            'prize_payouts' => ['nullable', 'array'],
+            'prize_payouts.*.rank' => ['required_with:prize_payouts', 'integer', 'min:1'],
+            'prize_payouts.*.percent' => ['required_with:prize_payouts', 'numeric', 'min:0', 'max:1'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'settings' => ['nullable', 'array'],
+            'settings.allow_powerups' => ['nullable', 'boolean'],
+            'settings.show_leaderboard' => ['nullable', 'boolean'],
+            'settings.pause_disconnect_threshold_percent' => ['nullable', 'integer', 'min:0', 'max:100'],
+        ];
+    }
+
     /**
      * Validaciones adicionales que dependen de la combinación de varios campos.
      */
-    public function withValidator(ValidatorContract|Validator $validator): void
+    public function withValidator(ValidatorContract|Validator $validator) : void
     {
-        $validator->after(function (Validator $validator) {
+        $validator->after(function(Validator $validator) {
             $feeByCurrency = collect($this->input('fee_by_currency', []))
                 ->filter(fn ($v) => $v !== null && $v !== '');
 
@@ -91,11 +91,12 @@ class UpdateRoomRequest extends FormRequest
                     ->all();
 
                 foreach ($feeByCurrency->keys() as $currencyId) {
-                    if (!in_array($currencyId, $validIds, true)) {
+                    if (! in_array($currencyId, $validIds, true)) {
                         $validator->errors()->add(
                             'fee_by_currency',
-                            'Una de las monedas de entrada seleccionadas no está disponible.'
+                            'Una de las monedas de entrada seleccionadas no está disponible.',
                         );
+
                         break;
                     }
                 }
@@ -105,26 +106,26 @@ class UpdateRoomRequest extends FormRequest
             $prizeType = $this->input('prize_type', 'accumulated');
             $prizeAmount = (float) $this->input('prize_amount', 0);
 
-            if ($prizeType === 'fixed' && $prizeAmount > 0 && !$this->filled('prize_currency_id')) {
+            if ($prizeType === 'fixed' && $prizeAmount > 0 && ! $this->filled('prize_currency_id')) {
                 $validator->errors()->add(
                     'prize_currency_id',
-                    'Selecciona la moneda del premio cuando defines un premio fijo.'
+                    'Selecciona la moneda del premio cuando defines un premio fijo.',
                 );
             }
 
-            if ($prizeAmount > 0 && !$this->filled('prize_currency_id')) {
+            if ($prizeAmount > 0 && ! $this->filled('prize_currency_id')) {
                 $validator->errors()->add(
                     'prize_currency_id',
-                    'Selecciona la moneda del premio cuando indicas un monto.'
+                    'Selecciona la moneda del premio cuando indicas un monto.',
                 );
             }
 
             // Si se define un aporte de sponsor, exigir moneda de premio
             $sponsorPrize = (float) $this->input('sponsor_prize', 0);
-            if ($sponsorPrize > 0 && !$this->filled('prize_currency_id')) {
+            if ($sponsorPrize > 0 && ! $this->filled('prize_currency_id')) {
                 $validator->errors()->add(
                     'prize_currency_id',
-                    'Selecciona la moneda del premio cuando defines un aporte de sponsor.'
+                    'Selecciona la moneda del premio cuando defines un aporte de sponsor.',
                 );
             }
 
@@ -133,13 +134,13 @@ class UpdateRoomRequest extends FormRequest
             if (is_array($prizePayouts) && count($prizePayouts) > 0) {
                 $totalPercent = array_sum(array_map(
                     fn ($p) => (float) ($p['percent'] ?? 0),
-                    $prizePayouts
+                    $prizePayouts,
                 ));
 
                 if (abs($totalPercent - 1.0) > 0.01) {
                     $validator->errors()->add(
                         'prize_payouts',
-                        'La suma de los porcentajes de premio debe ser 100%.'
+                        'La suma de los porcentajes de premio debe ser 100%.',
                     );
                 }
             }

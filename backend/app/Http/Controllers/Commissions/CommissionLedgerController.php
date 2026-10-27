@@ -24,30 +24,20 @@ final class CommissionLedgerController extends Controller
 
     public function __construct(
         private readonly CommissionLedgerService $service,
-    ) {}
-
-    public function index(Request $request): Response
-    {
-        Gate::authorize('commissions.viewOwn');
-
-        return Inertia::render('Commissions/Index', [
-            'title'   => 'Mis Comisiones',
-            'ledger'  => $this->service->forUser(Auth::user(), $this->filters($request)),
-            'filters' => $this->filters($request),
-        ]);
+    ) {
     }
 
-    public function data(Request $request): JsonResponse
+    public function data(Request $request) : JsonResponse
     {
         Gate::authorize('commissions.viewOwn');
 
         return response()->json([
             'success' => true,
-            'data'    => $this->service->forUser(Auth::user(), $this->filters($request)),
+            'data' => $this->service->forUser(Auth::user(), $this->filters($request)),
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         Gate::authorize('commissions.viewOwn');
 
@@ -72,19 +62,30 @@ final class CommissionLedgerController extends Controller
         );
     }
 
+    public function index(Request $request) : Response
+    {
+        Gate::authorize('commissions.viewOwn');
+
+        return Inertia::render('Commissions/Index', [
+            'title' => 'Mis Comisiones',
+            'ledger' => $this->service->forUser(Auth::user(), $this->filters($request)),
+            'filters' => $this->filters($request),
+        ]);
+    }
+
     /** @return array{from: ?string, to: ?string, source: ?string, status: ?string} */
-    private function filters(Request $request): array
+    private function filters(Request $request) : array
     {
         $data = $request->validate([
-            'from'   => ['nullable', 'date'],
-            'to'     => ['nullable', 'date'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
             'source' => ['nullable', 'in:seller,subsidiary,network,room'],
             'status' => ['nullable', 'in:paid,pending,refunded'],
         ]);
 
         return [
-            'from'   => $data['from'] ?? null,
-            'to'     => $data['to'] ?? null,
+            'from' => $data['from'] ?? null,
+            'to' => $data['to'] ?? null,
             'source' => $data['source'] ?? null,
             'status' => $data['status'] ?? null,
         ];

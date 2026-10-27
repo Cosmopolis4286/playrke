@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Games\Bingo\Config;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Games\Bingo\Config\BingoConfigRequest;
-use App\Http\Requests\Games\Bingo\Config\BingoConfigImageRequest;
 use App\Domains\Games\Bingo\Services\Config\BingoConfigService;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Games\Bingo\Config\BingoConfigImageRequest;
+use App\Http\Requests\Games\Bingo\Config\BingoConfigRequest;
 use App\Services\Security\UserContextService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -24,15 +24,16 @@ final class BingoConfigController extends Controller
     public function __construct(
         private readonly BingoConfigService $service,
         private readonly UserContextService $userContext,
-    ) {}
+    ) {
+    }
 
     /**
      * Renderiza la página de configuración del bingo.
      */
-    public function index(): Response
+    public function index() : Response
     {
-        return $this->handleServiceInertia(function () {
-            $userId   = $this->userContext->resolveUserId();
+        return $this->handleServiceInertia(function() {
+            $userId = $this->userContext->resolveUserId();
             $response = $this->service->context('index', $userId);
 
             return Inertia::render('Games/Bingo/Config/Index', $response);
@@ -40,35 +41,35 @@ final class BingoConfigController extends Controller
     }
 
     /**
-     * Guarda solo el texto del reglamento.
+     * Guarda solo la imagen del reglamento.
      */
-    public function saveRules(BingoConfigRequest $request): JsonResponse
+    public function saveImage(BingoConfigImageRequest $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
-            $this->service->saveRules(
+        return $this->handleServiceJson(function() use ($request) {
+            $imagePath = $this->service->saveImage(
                 userId: $this->userContext->resolveUserId(),
-                rules:  $request->input('rules'),
+                image: $request->file('image'),
             );
 
-            return ['message' => 'Reglamento guardado exitosamente.'];
+            return [
+                'message' => 'Imagen guardada exitosamente.',
+                'image_path' => $imagePath,
+            ];
         });
     }
 
     /**
-     * Guarda solo la imagen del reglamento.
+     * Guarda solo el texto del reglamento.
      */
-    public function saveImage(BingoConfigImageRequest $request): JsonResponse
+    public function saveRules(BingoConfigRequest $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
-            $imagePath = $this->service->saveImage(
+        return $this->handleServiceJson(function() use ($request) {
+            $this->service->saveRules(
                 userId: $this->userContext->resolveUserId(),
-                image:  $request->file('image'),
+                rules: $request->input('rules'),
             );
 
-            return [
-                'message'    => 'Imagen guardada exitosamente.',
-                'image_path' => $imagePath,
-            ];
+            return ['message' => 'Reglamento guardado exitosamente.'];
         });
     }
 }

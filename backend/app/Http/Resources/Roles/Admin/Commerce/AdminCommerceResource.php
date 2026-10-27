@@ -6,7 +6,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class AdminCommerceResource extends JsonResource
 {
-    public function toArray($request): array
+    public function toArray($request) : array
     {
         return [
             'id' => $this->hashed_id,
@@ -29,7 +29,7 @@ class AdminCommerceResource extends JsonResource
             // Jerarquía real Comercializadora → Agencia → Vendedor — mismo
             // criterio de campos que CommerceHierarchyService (dashboard
             // SuperAdmin), aplicado a este único comercio.
-            'hierarchy' => $this->whenLoaded('subsidiaries', function () {
+            'hierarchy' => $this->whenLoaded('subsidiaries', function() {
                 $directSellers = $this->sellers->whereNull('subsidiary_id')->values();
                 $subsidiarySellersCount = $this->subsidiaries->sum(fn ($s) => $s->sellers->count());
 
@@ -91,7 +91,7 @@ class AdminCommerceResource extends JsonResource
                 ->values()
                 ->all(),
 
-            'allowed_games' => $this->whenLoaded('gamesActive', function () {
+            'allowed_games' => $this->whenLoaded('gamesActive', function() {
                 return $this->gamesActive
                     ->pluck('id')
                     ->values()
@@ -101,7 +101,7 @@ class AdminCommerceResource extends JsonResource
             // Detalle con nombre/símbolo para la ficha de solo lectura — el
             // form de edición usa 'currency'/'other_currencies'/'allowed_games'
             // (solo IDs) arriba, esto es para mostrar, no para el <select>.
-            'currencies_detail' => $this->whenLoaded('currenciesActive', function () {
+            'currencies_detail' => $this->whenLoaded('currenciesActive', function() {
                 return $this->currenciesActive->map(fn ($c) => [
                     'id' => $c->id,
                     'symbol' => $c->symbol,
@@ -109,7 +109,7 @@ class AdminCommerceResource extends JsonResource
                     'level' => (int) $c->pivot->level,
                 ])->values()->all();
             }),
-            'games_detail' => $this->whenLoaded('gamesActive', function () {
+            'games_detail' => $this->whenLoaded('gamesActive', function() {
                 return $this->gamesActive->map(fn ($g) => [
                     'id' => $g->id,
                     'name' => $g->name,

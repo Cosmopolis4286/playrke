@@ -23,10 +23,8 @@ final class PagoMovilRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
-     *
-     * @return bool
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         // Debe reflejar exactamente los roles admitidos por la ruta
         // (routes/modules/payments.php, grupo 'directory') — antes le
@@ -38,115 +36,11 @@ final class PagoMovilRequest extends BaseRequest
     }
 
     /**
-     * Prepara los datos antes de la validación.
-     * Convierte IDs numéricos a strings para compatibilidad con Snowflake.
-     *
-     * @return void
-     */
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'holder_name' => $this->input('holder_name')
-                ? trim((string) $this->input('holder_name'))
-                : null,
-            'document_type_id' => $this->input('document_type_id')
-                ? (string) $this->input('document_type_id')
-                : null,
-            'bank_id' => $this->input('bank_id')
-                ? (string) $this->input('bank_id')
-                : null,
-            'document_number' => $this->input('document_number')
-                ? (string) $this->input('document_number')
-                : null,
-            'phone' => $this->input('phone')
-                ? (string) $this->input('phone')
-                : null,
-        ]);
-    }
-
-    /**
-     * Reglas de validación para el directorio de Pago Móvil.
-     *
-     * Valida:
-     * - Tipo de documento (V, E, J)
-     * - Número de documento/cédula
-     * - Teléfono en formato venezolano
-     * - Banco venezolano válido
-     *
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        $isUpdate = $this->isUpdate();
-
-        return [
-            /**
-             * Nombre del titular de la cuenta.
-             */
-            'holder_name' => [
-                $isUpdate ? 'sometimes' : 'required',
-                'string',
-                'max:100',
-            ],
-
-            /**
-             * ID del tipo de documento (V, E, J).
-             * Debe existir en la tabla document_types.
-             */
-            'document_type_id' => [
-                $isUpdate ? 'sometimes' : 'required',
-                'string',
-                'exists:document_types,id',
-            ],
-
-            /**
-             * Número de documento/cédula (sin letras).
-             * Formato: 7-8 dígitos numéricos.
-             */
-            'document_number' => [
-                $isUpdate ? 'sometimes' : 'required',
-                'string',
-                'regex:/^\d{7,8}$/',
-            ],
-
-            /**
-             * Teléfono venezolano.
-             * Formato permitido: 04XX1234567 o 04XX-1234567
-             */
-            'phone' => [
-                $isUpdate ? 'sometimes' : 'required',
-                'string',
-                'regex:/^(04|02)\d{2}-?\d{7}$/',
-            ],
-
-            /**
-             * ID del banco venezolano.
-             * Debe existir en la tabla banks_venezuela.
-             */
-            'bank_id' => [
-                $isUpdate ? 'sometimes' : 'required',
-                'string',
-                'exists:banks_venezuela,id',
-            ],
-
-            /**
-             * Código ISO del país (opcional, por defecto VE).
-             */
-            'country_code' => [
-                'sometimes',
-                'string',
-                'size:2',
-                'in:VE',
-            ],
-        ];
-    }
-
-    /**
      * Mensajes de error personalizados.
      *
      * @return array<string, string>
      */
-    public function messages(): array
+    public function messages() : array
     {
         return [
             'holder_name.required' => 'El nombre del titular es obligatorio.',
@@ -166,5 +60,107 @@ final class PagoMovilRequest extends BaseRequest
 
             'country_code.in' => 'Solo se admite el país Venezuela (VE).',
         ];
+    }
+
+    /**
+     * Reglas de validación para el directorio de Pago Móvil.
+     *
+     * Valida:
+     * - Tipo de documento (V, E, J)
+     * - Número de documento/cédula
+     * - Teléfono en formato venezolano
+     * - Banco venezolano válido
+     *
+     * @return array<string, mixed>
+     */
+    public function rules() : array
+    {
+        $isUpdate = $this->isUpdate();
+
+        return [
+            /*
+             * Nombre del titular de la cuenta.
+             */
+            'holder_name' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'max:100',
+            ],
+
+            /*
+             * ID del tipo de documento (V, E, J).
+             * Debe existir en la tabla document_types.
+             */
+            'document_type_id' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'exists:document_types,id',
+            ],
+
+            /*
+             * Número de documento/cédula (sin letras).
+             * Formato: 7-8 dígitos numéricos.
+             */
+            'document_number' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'regex:/^\d{7,8}$/',
+            ],
+
+            /*
+             * Teléfono venezolano.
+             * Formato permitido: 04XX1234567 o 04XX-1234567
+             */
+            'phone' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'regex:/^(04|02)\d{2}-?\d{7}$/',
+            ],
+
+            /*
+             * ID del banco venezolano.
+             * Debe existir en la tabla banks_venezuela.
+             */
+            'bank_id' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'exists:banks_venezuela,id',
+            ],
+
+            /*
+             * Código ISO del país (opcional, por defecto VE).
+             */
+            'country_code' => [
+                'sometimes',
+                'string',
+                'size:2',
+                'in:VE',
+            ],
+        ];
+    }
+
+    /**
+     * Prepara los datos antes de la validación.
+     * Convierte IDs numéricos a strings para compatibilidad con Snowflake.
+     */
+    protected function prepareForValidation() : void
+    {
+        $this->merge([
+            'holder_name' => $this->input('holder_name')
+                ? trim((string) $this->input('holder_name'))
+                : null,
+            'document_type_id' => $this->input('document_type_id')
+                ? (string) $this->input('document_type_id')
+                : null,
+            'bank_id' => $this->input('bank_id')
+                ? (string) $this->input('bank_id')
+                : null,
+            'document_number' => $this->input('document_number')
+                ? (string) $this->input('document_number')
+                : null,
+            'phone' => $this->input('phone')
+                ? (string) $this->input('phone')
+                : null,
+        ]);
     }
 }

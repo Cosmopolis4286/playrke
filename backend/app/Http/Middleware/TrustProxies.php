@@ -20,6 +20,10 @@ use Illuminate\Http\Request;
 class TrustProxies extends Middleware
 {
     /**
+     * @var int
+     */
+    protected $headers = Request::HEADER_X_FORWARDED_ALL;
+    /**
      * @var array<int, string>|string|null
      */
     protected $proxies = [
@@ -48,9 +52,4 @@ class TrustProxies extends Middleware
         '2a06:98c0::/29',
         '2c0f:f248::/32',
     ];
-
-    /**
-     * @var int
-     */
-    protected $headers = Request::HEADER_X_FORWARDED_ALL;
 }

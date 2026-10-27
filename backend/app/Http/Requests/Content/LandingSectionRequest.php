@@ -14,12 +14,12 @@ use App\Services\Auth\PermissionService;
  */
 class LandingSectionRequest extends BaseRequest
 {
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['superadmin', 'admin']);
     }
 
-    public function rules(): array
+    public function rules() : array
     {
         return [
             'content' => ['required', 'array'],
@@ -27,7 +27,7 @@ class LandingSectionRequest extends BaseRequest
         ];
     }
 
-    private function contentRules(): array
+    private function contentRules() : array
     {
         /** @var LandingSection|null $section */
         $section = $this->route('landingSection');

@@ -20,42 +20,43 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 final class AdminPlayerController extends Controller
 {
     public function __construct(
-        protected readonly AdminPlayerService $service
-    ) {}
+        protected readonly AdminPlayerService $service,
+    ) {
+    }
 
-    public function store(AdminPlayerRequest $request): JsonResponse
+    public function delete(User $player) : JsonResponse
     {
-        $this->authorize('create', AdminPlayerPolicy::class);
+        $this->authorize('delete', AdminPlayerPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => [
-                'password' => $this->service->create(
-                    $request->toDTO(AdminPlayerDTO::class)
-                ),
-            ]
+            fn () => $this->service->delete($player),
         );
     }
 
     /**
-     * Listado paginado de jugadores (JSON). Server-side real: search,
-     * country_name y status filtran contra TODO el catálogo de jugadores,
-     * no solo la página cargada en memoria.
+     * Eliminación lógica de varios jugadores en una sola transacción.
      */
-    public function fetchList(Request $request): JsonResponse
+    public function deleteBulk(Request $request) : JsonResponse
     {
-        $this->authorize('viewAny', AdminPlayerPolicy::class);
+        $this->authorize('delete', AdminPlayerPolicy::class);
 
-        return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['search', 'country_name', 'status']);
-            $page    = (int) $request->get('page', 1);
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
 
-            $result = $this->service->fetchList($filters, $page);
+        return $this->handleServiceJson(
+            fn () => $this->service->deleteBulk($request->input('ids')),
+        );
+    }
 
-            return [
-                'data' => $result['rows'],
-                'meta' => $result['pagination'],
-            ];
-        });
+    public function destroy(User $player) : JsonResponse
+    {
+        $this->authorize('delete', AdminPlayerPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->destroy($player),
+        );
     }
 
     /**
@@ -63,13 +64,13 @@ final class AdminPlayerController extends Controller
      * actuales (sin límite de paginación) — mismo patrón que
      * AdminUserController::export().
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         $this->authorize('viewAny', AdminPlayerPolicy::class);
 
         $filters = $request->only(['search', 'country_name', 'status']);
 
-        return response()->streamDownload(function () use ($filters) {
+        return response()->streamDownload(function() use ($filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Nombre', 'Apellido', 'Username', 'Email', 'País', 'Teléfono', 'Estado', 'Registrado']);
 
@@ -92,58 +93,74 @@ final class AdminPlayerController extends Controller
         ]);
     }
 
-    public function show(User $player): JsonResponse
+    /**
+     * Listado paginado de jugadores (JSON). Server-side real: search,
+     * country_name y status filtran contra TODO el catálogo de jugadores,
+     * no solo la página cargada en memoria.
+     */
+    public function fetchList(Request $request) : JsonResponse
+    {
+        $this->authorize('viewAny', AdminPlayerPolicy::class);
+
+        return $this->handleServiceJson(function() use ($request) {
+            $filters = $request->only(['search', 'country_name', 'status']);
+            $page = (int) $request->get('page', 1);
+
+            $result = $this->service->fetchList($filters, $page);
+
+            return [
+                'data' => $result['rows'],
+                'meta' => $result['pagination'],
+            ];
+        });
+    }
+
+    public function resetPassword(User $player) : JsonResponse
+    {
+        $this->authorize('resetPassword', AdminPlayerPolicy::class);
+
+        return $this->handleServiceJson(
+            fn () => [
+                'password' => $this->service->resetPassword($player),
+            ],
+        );
+    }
+
+    public function show(User $player) : JsonResponse
     {
         $this->authorize('view', AdminPlayerPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => ['data' => $this->service->show($player)]
+            fn () => ['data' => $this->service->show($player)],
         );
     }
 
-    public function update(AdminPlayerRequest $request, User $player): JsonResponse
+    public function store(AdminPlayerRequest $request) : JsonResponse
     {
-        $this->authorize('update', AdminPlayerPolicy::class);
+        $this->authorize('create', AdminPlayerPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => $this->service->update(
-                $player,
-                $request->toDTO(AdminPlayerDTO::class)
-            )
+            fn () => [
+                'password' => $this->service->create(
+                    $request->toDTO(AdminPlayerDTO::class),
+                ),
+            ],
         );
     }
 
-    public function delete(User $player): JsonResponse
-    {
-        $this->authorize('delete', AdminPlayerPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->delete($player)
-        );
-    }
-
-    public function destroy(User $player): JsonResponse
-    {
-        $this->authorize('delete', AdminPlayerPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->destroy($player)
-        );
-    }
-
-    public function toggleStatus(User $player): JsonResponse
+    public function toggleStatus(User $player) : JsonResponse
     {
         $this->authorize('toggleStatus', AdminPlayerPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => $this->service->toggleStatus($player)
+            fn () => $this->service->toggleStatus($player),
         );
     }
 
     /**
      * Alternar estado de varios jugadores en una sola transacción.
      */
-    public function toggleStatusBulk(Request $request): JsonResponse
+    public function toggleStatusBulk(Request $request) : JsonResponse
     {
         $this->authorize('toggleStatus', AdminPlayerPolicy::class);
 
@@ -153,35 +170,19 @@ final class AdminPlayerController extends Controller
         ]);
 
         return $this->handleServiceJson(
-            fn() => $this->service->toggleStatusBulk($request->input('ids'))
+            fn () => $this->service->toggleStatusBulk($request->input('ids')),
         );
     }
 
-    /**
-     * Eliminación lógica de varios jugadores en una sola transacción.
-     */
-    public function deleteBulk(Request $request): JsonResponse
+    public function update(AdminPlayerRequest $request, User $player) : JsonResponse
     {
-        $this->authorize('delete', AdminPlayerPolicy::class);
-
-        $request->validate([
-            'ids' => 'required|array|min:1',
-            'ids.*' => 'string',
-        ]);
+        $this->authorize('update', AdminPlayerPolicy::class);
 
         return $this->handleServiceJson(
-            fn() => $this->service->deleteBulk($request->input('ids'))
-        );
-    }
-
-    public function resetPassword(User $player): JsonResponse
-    {
-        $this->authorize('resetPassword', AdminPlayerPolicy::class);
-
-        return $this->handleServiceJson(
-            fn() => [
-                'password' => $this->service->resetPassword($player),
-            ]
+            fn () => $this->service->update(
+                $player,
+                $request->toDTO(AdminPlayerDTO::class),
+            ),
         );
     }
 }

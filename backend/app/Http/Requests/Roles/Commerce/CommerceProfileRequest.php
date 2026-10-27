@@ -10,12 +10,12 @@ use App\Models\Roles\Commerce;
  */
 class CommerceProfileRequest extends RoleProfileRequest
 {
-    protected function entityClass(): string
+    protected function entityClass() : string
     {
         return Commerce::class;
     }
 
-    protected function ownerPrefix(): string
+    protected function ownerPrefix() : string
     {
         return 'commerce';
     }

@@ -9,6 +9,7 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
@@ -19,19 +20,20 @@ use App\Services\Roles\Player\External\ExternalPlayerLinkService;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\UserTrait;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Controller;
 
 class SellerController extends Controller
 {
-    use EncryptTrait, UserTrait, FiltersTrait;
+    use EncryptTrait, FiltersTrait, UserTrait;
 
     public function __construct(
         private readonly CurrencyRepositoryInterface $currencies,
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRates,
         private readonly ExternalPlayerLinkService $externalPlayerLink,
-    ) {}
+    ) {
+    }
 
     public function getAvailableCountriesBySeller($roomId)
     {
@@ -49,7 +51,7 @@ class SellerController extends Controller
         $currenciesAvailable = array_values(array_intersect(
             array_map('strval', $sellerCurrencies),
             array_map('strval', $commerceCurrencies),
-            $allowedCurrenciesRoom
+            $allowedCurrenciesRoom,
         ));
 
         // Eliminamos '1' si existe
@@ -72,7 +74,7 @@ class SellerController extends Controller
             ->select('id', 'prize_pool')
             ->find($roomId);
 
-        if (!$room) {
+        if (! $room) {
             return response()->json(['type' => 'info', 'message' => 'Sala no encontrada']);
         }
 
@@ -84,7 +86,7 @@ class SellerController extends Controller
             'currency' => 'USDT',
             'price' => $room->config?->card_price_usd,
             'countries' => $countriesCurrencies['countries'],
-            'USDT' => $countriesCurrencies['USDT']
+            'USDT' => $countriesCurrencies['USDT'],
         ]);
     }
 
@@ -92,7 +94,7 @@ class SellerController extends Controller
     {
         // Obtener moneda según el país
         $currency = $this->currencies->getCurrencyByCountry($country, ['id', 'symbol']);
-        if (!$currency) {
+        if (! $currency) {
             return response()->json(['error' => 'Moneda no encontrada'], 404);
         }
 
@@ -102,7 +104,7 @@ class SellerController extends Controller
         $seller = Seller::where('user_id', Auth::id())->first(['id', 'manager_user_id', 'subsidiary_id']);
         $commerce = $seller?->resolveCommerce();
         $commerceId = $commerce?->id;
-        if (!$commerceId) {
+        if (! $commerceId) {
             return response()->json(['error' => 'Comercio no encontrado'], 404);
         }
 
@@ -142,6 +144,26 @@ class SellerController extends Controller
         ]);
     }
 
+    public function getPaymentCommerceDetails($currency)
+    {
+        try {
+            $user = Commerce::getValueById($this->seller('commerce_id')->commerce, 'user');
+
+            // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda decriptada
+            $data = $this->getPaymentDetailsByUserId($user, decrypt($currency));
+
+            // Verificar si se obtuvieron datos y retornar una respuesta JSON adecuada
+            if (! isset($data['error'])) {
+                return response()->json($data);
+            }
+
+            return response()->json(['error' => 'El comercio no ha cargado los datos bancarios']);
+        } catch (Exception $e) {
+            // Manejar cualquier excepción que ocurra y retornar un error del servidor
+            return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
+        }
+    }
+
     public function getPlayer(Request $request)
     {
         switch ($request->game) {
@@ -154,7 +176,7 @@ class SellerController extends Controller
                 $seller = $this->seller(['id', 'manager_user_id', 'subsidiary_id']);
                 $commerceUserId = $seller?->resolveCommerce()?->user_id;
 
-                if (!$commerceUserId) {
+                if (! $commerceUserId) {
                     return response()->json(['response' => false]);
                 }
 
@@ -164,7 +186,7 @@ class SellerController extends Controller
                     ->notDemo()
                     ->find($request->room);
 
-                if (!$room) {
+                if (! $room) {
                     return response()->json(['response' => false]);
                 }
 
@@ -178,7 +200,9 @@ class SellerController extends Controller
                     ->whereIn('seller_user_id', $this->externalPlayerLink->actorNetworkUserIds(Auth::id()))
                     ->first();
 
-                if (!$player) return response()->json(['response' => false]);
+                if (! $player) {
+                    return response()->json(['response' => false]);
+                }
 
                 $route = $this->externalPlayerLink->resolveGameUrl($player->link);
                 $cardsPlayer = BingoRoomUser::where('id', $player->room_user_id)->value('cards_purchased') ?? 0;
@@ -186,31 +210,11 @@ class SellerController extends Controller
                 return response()->json([
                     'response' => true,
                     'infoPlayer' => $player,
-                    'cardsLink' => [$cardsPlayer, $player->link, $route]
+                    'cardsLink' => [$cardsPlayer, $player->link, $route],
                 ]);
 
             default:
                 return response()->json(['response' => false]);
-        }
-    }
-
-    public function getPaymentCommerceDetails($currency)
-    {
-        try {
-            $user = Commerce::getValueById($this->seller('commerce_id')->commerce, 'user');
-
-            // Obtener detalles de pago por comercio usando el ID del usuario autenticado y la moneda decriptada
-            $data = $this->getPaymentDetailsByUserId($user, decrypt($currency));
-
-            // Verificar si se obtuvieron datos y retornar una respuesta JSON adecuada
-            if (!isset($data['error'])) {
-                return response()->json($data);
-            } else {
-                return response()->json(['error' => 'El comercio no ha cargado los datos bancarios']);
-            }
-        } catch (\Exception $e) {
-            // Manejar cualquier excepción que ocurra y retornar un error del servidor
-            return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
     }
 
@@ -224,7 +228,7 @@ class SellerController extends Controller
         $seller = $this->seller(['id', 'manager_user_id', 'subsidiary_id']);
         $commerceUserId = $seller?->resolveCommerce()?->user_id;
 
-        if (!$commerceUserId) {
+        if (! $commerceUserId) {
             return json_encode(null);
         }
 
@@ -234,6 +238,8 @@ class SellerController extends Controller
         $player = ExternalPlayer::where('link', $playerLink)
             ->whereIn('seller_user_id', $this->externalPlayerLink->actorNetworkUserIds(Auth::id()))
             ->select(['identification', 'phone'])->first();
-        if ($player) return json_encode($player);
+        if ($player) {
+            return json_encode($player);
+        }
     }
 }

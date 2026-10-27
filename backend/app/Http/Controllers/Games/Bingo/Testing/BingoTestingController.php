@@ -3,13 +3,11 @@
 namespace App\Http\Controllers\Games\Bingo\Testing;
 
 use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use Illuminate\Http\JsonResponse;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /**
  * Controlador de administración del juego de Bingo.
@@ -34,17 +32,13 @@ final class BingoTestingController extends Controller
 
     /**
      * Generar cartones de bingo para un jugador (rol seller).
-     *
-     * @param BingoCardGenerateRequest $request
-     * @return JsonResponse
      */
-    public function generateCard(BingoCardGenerateRequest $request): JsonResponse
+    public function generateCard(BingoCardGenerateRequest $request) : JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->generateService->generate(
-                $request->toDTO(BingoCardGenerateDTO::class)
-            )
+            fn () => $this->generateService->generate(
+                $request->toDTO(BingoCardGenerateDTO::class),
+            ),
         );
     }
-
 }

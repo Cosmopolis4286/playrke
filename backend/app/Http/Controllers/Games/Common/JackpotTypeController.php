@@ -7,6 +7,7 @@ use App\Http\Requests\Games\Common\JackpotTypeRequest;
 use App\Services\Games\Common\Jackpot\JackpotTypeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * Administración del catálogo de tipos de jackpot (JackpotType), específico
@@ -17,9 +18,24 @@ final class JackpotTypeController extends Controller
 {
     public function __construct(
         private readonly JackpotTypeService $service,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(Request $request): JsonResponse
+    public function delete(string $id) : JsonResponse
+    {
+        try {
+            $this->service->delete($id);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Jackpot eliminado exitosamente',
+        ]);
+    }
+
+    public function fetchList(Request $request) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -27,7 +43,7 @@ final class JackpotTypeController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(string $id) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -35,11 +51,11 @@ final class JackpotTypeController extends Controller
         ]);
     }
 
-    public function store(JackpotTypeRequest $request): JsonResponse
+    public function store(JackpotTypeRequest $request) : JsonResponse
     {
         try {
             $jackpotType = $this->service->create($request->validated());
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
@@ -50,22 +66,7 @@ final class JackpotTypeController extends Controller
         ]);
     }
 
-    public function update(JackpotTypeRequest $request, string $id): JsonResponse
-    {
-        try {
-            $jackpotType = $this->service->update($id, $request->validated());
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Jackpot actualizado exitosamente',
-            'data' => $jackpotType,
-        ]);
-    }
-
-    public function toggleStatus(string $id): JsonResponse
+    public function toggleStatus(string $id) : JsonResponse
     {
         $jackpotType = $this->service->toggleStatus($id);
 
@@ -76,17 +77,18 @@ final class JackpotTypeController extends Controller
         ]);
     }
 
-    public function delete(string $id): JsonResponse
+    public function update(JackpotTypeRequest $request, string $id) : JsonResponse
     {
         try {
-            $this->service->delete($id);
-        } catch (\InvalidArgumentException $e) {
+            $jackpotType = $this->service->update($id, $request->validated());
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Jackpot eliminado exitosamente',
+            'message' => 'Jackpot actualizado exitosamente',
+            'data' => $jackpotType,
         ]);
     }
 }

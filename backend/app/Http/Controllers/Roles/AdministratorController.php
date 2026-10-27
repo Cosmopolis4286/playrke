@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\Admin\Administrator\AdministratorStoreRequest;
 use App\Http\Requests\Roles\Admin\Administrator\AdministratorUpdateRequest;
 use App\Models\User;
-use App\Services\Roles\Admin\AdministratorService;
 use App\Services\Roles\Admin\AdministratorContextService;
+use App\Services\Roles\Admin\AdministratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,25 +28,32 @@ final class AdministratorController extends Controller
 {
     public function __construct(
         protected readonly AdministratorService $service,
-        protected readonly AdministratorContextService $contextService
-    ) {}
+        protected readonly AdministratorContextService $contextService,
+    ) {
+    }
 
     /**
-     * Mostrar vista de administradores.
+     * Eliminación lógica (soft delete) de administrador.
      */
-    public function index(): Response
+    public function delete(User $user) : JsonResponse
     {
-        $context = $this->contextService->administratorContext();
+        $this->authorize('manageAdministrator', $user);
 
-        return Inertia::render('Roles/Admin/Administrator/Index', [
-            'admins'    => [
-                'rows'       => $context->admins['rows'] ?? [],
-                'columns'    => $context->admins['columns'] ?? [],
-                'pagination' => $context->pagination,
-            ],
-            'countries' => $context->countries,
-            'roles'     => $context->roles,
-        ]);
+        return $this->handleServiceJson(
+            fn () => $this->service->delete($user),
+        );
+    }
+
+    /**
+     * Eliminación definitiva (hard delete) de administrador.
+     */
+    public function destroy(User $user) : JsonResponse
+    {
+        $this->authorize('manageAdministrator', $user);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->destroy($user),
+        );
     }
 
     /**
@@ -54,11 +61,11 @@ final class AdministratorController extends Controller
      * role_name, country_name y status filtran contra todo el catálogo de
      * administradores, no solo la página cargada en memoria.
      */
-    public function fetchList(Request $request): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
+        return $this->handleServiceJson(function() use ($request) {
             $filters = $request->only(['search', 'role_name', 'country_name', 'status']);
-            $page    = (int) $request->get('page', 1);
+            $page = (int) $request->get('page', 1);
 
             $result = $this->service->fetchList($filters, $page);
 
@@ -70,76 +77,70 @@ final class AdministratorController extends Controller
     }
 
     /**
-     * Alta de un nuevo administrador.
+     * Mostrar vista de administradores.
      */
-    public function store(AdministratorStoreRequest $request): JsonResponse
+    public function index() : Response
     {
+        $context = $this->contextService->administratorContext();
+
+        return Inertia::render('Roles/Admin/Administrator/Index', [
+            'admins' => [
+                'rows' => $context->admins['rows'] ?? [],
+                'columns' => $context->admins['columns'] ?? [],
+                'pagination' => $context->pagination,
+            ],
+            'countries' => $context->countries,
+            'roles' => $context->roles,
+        ]);
+    }
+
+    /**
+     * Restablecer contraseña de administrador.
+     */
+    public function resetPassword(User $user) : JsonResponse
+    {
+        $this->authorize('manageAdministrator', $user);
+
         return $this->handleServiceJson(
-            fn() => [
-                'message' => 'Administrador registrado correctamente',
-                'user'    => $this->service->store($request->toDTO(AdministratorStoreDTO::class)),
-            ]
+            fn () => ['password' => $this->service->resetPassword($user)],
         );
     }
 
     /**
-     * Actualizar datos básicos de un administrador.
+     * Alta de un nuevo administrador.
      */
-    public function update(AdministratorUpdateRequest $request, User $user): JsonResponse
+    public function store(AdministratorStoreRequest $request) : JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => [
-                'message' => 'Administrador actualizado correctamente',
-                'user'    => tap($user, fn($u) => $this->service->update($u, $request->toDTO(AdministratorUpdateDTO::class))),
-            ]
+            fn () => [
+                'message' => 'Administrador registrado correctamente',
+                'user' => $this->service->store($request->toDTO(AdministratorStoreDTO::class)),
+            ],
         );
     }
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) de administrador.
      */
-    public function toggleStatus(User $user): JsonResponse
+    public function toggleStatus(User $user) : JsonResponse
     {
         $this->authorize('manageAdministrator', $user);
 
         return $this->handleServiceJson(
-            fn() => $this->service->toggleStatus($user)
+            fn () => $this->service->toggleStatus($user),
         );
     }
 
     /**
-     * Eliminación lógica (soft delete) de administrador.
+     * Actualizar datos básicos de un administrador.
      */
-    public function delete(User $user): JsonResponse
+    public function update(AdministratorUpdateRequest $request, User $user) : JsonResponse
     {
-        $this->authorize('manageAdministrator', $user);
-
         return $this->handleServiceJson(
-            fn() => $this->service->delete($user)
-        );
-    }
-
-    /**
-     * Eliminación definitiva (hard delete) de administrador.
-     */
-    public function destroy(User $user): JsonResponse
-    {
-        $this->authorize('manageAdministrator', $user);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->destroy($user)
-        );
-    }
-
-    /**
-     * Restablecer contraseña de administrador.
-     */
-    public function resetPassword(User $user): JsonResponse
-    {
-        $this->authorize('manageAdministrator', $user);
-
-        return $this->handleServiceJson(
-            fn() => ['password' => $this->service->resetPassword($user)]
+            fn () => [
+                'message' => 'Administrador actualizado correctamente',
+                'user' => tap($user, fn ($u) => $this->service->update($u, $request->toDTO(AdministratorUpdateDTO::class))),
+            ],
         );
     }
 }

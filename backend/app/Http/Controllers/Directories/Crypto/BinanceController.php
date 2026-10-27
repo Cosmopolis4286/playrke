@@ -6,6 +6,7 @@ use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Traits\Users\UserTrait;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,14 +18,7 @@ class BinanceController extends Controller
 
     public function __construct(
         private readonly BinanceAccountsRepositoryInterface $binanceAccounts,
-    ) {}
-
-    public function index()
-    {
-        $accounts = $this->binanceAccounts->getByUserId(Auth::id());
-        $accountTypes = BinanceAccount::getAccountTypes();
-
-        return view('all.directory.usdt.index', compact('accounts', 'accountTypes'));
+    ) {
     }
 
     public function create(Request $request)
@@ -55,14 +49,59 @@ class BinanceController extends Controller
                 'message' => 'Registro con éxito',
                 'type' => 'success',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Ha ocurrido un error al registrar datos de Binance: ' . $e->getMessage());
+
             return redirect()->back()->with([
                 'message' => 'Ocurrió un error',
                 'type' => 'warning',
             ]);
         }
+    }
+
+    public function delete(Request $request)
+    {
+        DB::beginTransaction();
+
+        try {
+            $accountId = decrypt($request->id);
+            $account = $this->binanceAccounts->find($accountId);
+
+            if (! $account || (string) $account->user_id !== (string) Auth::id()) {
+                abort(404);
+            }
+
+            $this->binanceAccounts->delete($accountId);
+            DB::commit();
+
+            return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar registro de cuenta Binance: ' . $e->getMessage());
+
+            return redirect()->back()->with('message', 'Ha ocurrido un error al eliminar el registro')->with('type', 'warning');
+        }
+    }
+
+    public function getInfo($id)
+    {
+        $accountId = decrypt($id);
+        $account = $this->binanceAccounts->find($accountId, ['id', 'user_id', 'account_type', 'data_value']);
+
+        if (! $account || (string) $account->user_id !== (string) Auth::id()) {
+            abort(404);
+        }
+
+        return $account->only(['account_type', 'data_value']);
+    }
+
+    public function index()
+    {
+        $accounts = $this->binanceAccounts->getByUserId(Auth::id());
+        $accountTypes = BinanceAccount::getAccountTypes();
+
+        return view('all.directory.usdt.index', compact('accounts', 'accountTypes'));
     }
 
     public function update(Request $request, $id)
@@ -83,7 +122,7 @@ class BinanceController extends Controller
             $accountId = decrypt($id);
             $account = $this->binanceAccounts->find($accountId);
 
-            if (!$account || (string) $account->user_id !== (string) Auth::id()) {
+            if (! $account || (string) $account->user_id !== (string) Auth::id()) {
                 abort(404);
             }
 
@@ -98,7 +137,7 @@ class BinanceController extends Controller
                 'message' => 'Registro actualizado con éxito',
                 'type' => 'success',
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Ha ocurrido un error al actulizar los datos de Binance: ' . $e->getMessage());
 
@@ -107,39 +146,5 @@ class BinanceController extends Controller
                 'type' => 'warning',
             ]);
         }
-    }
-
-    public function delete(Request $request)
-    {
-        DB::beginTransaction();
-
-        try {
-            $accountId = decrypt($request->id);
-            $account = $this->binanceAccounts->find($accountId);
-
-            if (!$account || (string) $account->user_id !== (string) Auth::id()) {
-                abort(404);
-            }
-
-            $this->binanceAccounts->delete($accountId);
-            DB::commit();
-            return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al eliminar registro de cuenta Binance: ' . $e->getMessage());
-            return redirect()->back()->with('message', 'Ha ocurrido un error al eliminar el registro')->with('type', 'warning');
-        }
-    }
-
-    public function getInfo($id)
-    {
-        $accountId = decrypt($id);
-        $account = $this->binanceAccounts->find($accountId, ['id', 'user_id', 'account_type', 'data_value']);
-
-        if (!$account || (string) $account->user_id !== (string) Auth::id()) {
-            abort(404);
-        }
-
-        return $account->only(['account_type', 'data_value']);
     }
 }

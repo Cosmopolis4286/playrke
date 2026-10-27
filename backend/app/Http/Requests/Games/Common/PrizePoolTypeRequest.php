@@ -6,22 +6,12 @@ use App\Http\Requests\BaseRequest;
 
 class PrizePoolTypeRequest extends BaseRequest
 {
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return true;
     }
 
-    public function rules(): array
-    {
-        return [
-            'game_id' => ['required', 'exists:games,id'],
-            'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9_]+$/'],
-            'label' => ['required', 'string', 'max:50'],
-            'status' => ['nullable', 'in:ACTIVE,INACTIVE'],
-        ];
-    }
-
-    public function messages(): array
+    public function messages() : array
     {
         return [
             'game_id.required' => 'El juego es requerido.',
@@ -29,6 +19,16 @@ class PrizePoolTypeRequest extends BaseRequest
             'code.required' => 'El código es requerido.',
             'code.regex' => 'El código solo puede contener letras, números y guiones bajos.',
             'label.required' => 'La etiqueta es requerida.',
+        ];
+    }
+
+    public function rules() : array
+    {
+        return [
+            'game_id' => ['required', 'exists:games,id'],
+            'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9_]+$/'],
+            'label' => ['required', 'string', 'max:50'],
+            'status' => ['nullable', 'in:ACTIVE,INACTIVE'],
         ];
     }
 }

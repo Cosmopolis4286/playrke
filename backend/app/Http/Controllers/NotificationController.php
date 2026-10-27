@@ -13,15 +13,46 @@ final class NotificationController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Eliminar todas las notificaciones del usuario
+     */
+    public function clearAll() : JsonResponse
+    {
+        $deletedCount = $this->notificationService->clearAll();
+
+        return response()->json([
+            'message' => 'Notificaciones eliminadas',
+            'deleted_count' => $deletedCount,
+            'unread_count' => 0,
+        ]);
+    }
+
+    /**
+     * Eliminar una notificación
+     */
+    public function destroy(string $id) : JsonResponse
+    {
+        $success = $this->notificationService->delete($id);
+
+        if (! $success) {
+            return response()->json([
+                'message' => 'Notificación no encontrada o no autorizada',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Notificación eliminada',
+            'unread_count' => $this->notificationService->getUnreadCount(),
+        ]);
+    }
 
     /**
      * Obtener notificaciones del usuario autenticado
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request) : JsonResponse
     {
         $filters = $request->only(['type', 'is_read']);
         $limit = min($request->get('limit', 20), 50); // máximo 50
@@ -36,12 +67,42 @@ final class NotificationController extends Controller
     }
 
     /**
-     * Obtener notificaciones no leídas
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Marcar todas las notificaciones como leídas
      */
-    public function unread(Request $request): JsonResponse
+    public function markAllAsRead() : JsonResponse
+    {
+        $markedCount = $this->notificationService->markAllAsRead();
+
+        return response()->json([
+            'message' => 'Todas las notificaciones marcadas como leídas',
+            'marked_count' => $markedCount,
+            'unread_count' => $this->notificationService->getUnreadCount(),
+        ]);
+    }
+
+    /**
+     * Marcar una notificación como leída
+     */
+    public function markAsRead(string $id) : JsonResponse
+    {
+        $success = $this->notificationService->markAsRead($id);
+
+        if (! $success) {
+            return response()->json([
+                'message' => 'Notificación no encontrada o no autorizada',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Notificación marcada como leída',
+            'unread_count' => $this->notificationService->getUnreadCount(),
+        ]);
+    }
+
+    /**
+     * Obtener notificaciones no leídas
+     */
+    public function unread(Request $request) : JsonResponse
     {
         $limit = min($request->get('limit', 20), 50);
 
@@ -55,87 +116,9 @@ final class NotificationController extends Controller
     }
 
     /**
-     * Marcar una notificación como leída
-     *
-     * @param string $id
-     * @return JsonResponse
-     */
-    public function markAsRead(string $id): JsonResponse
-    {
-        $success = $this->notificationService->markAsRead($id);
-
-        if (!$success) {
-            return response()->json([
-                'message' => 'Notificación no encontrada o no autorizada',
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => 'Notificación marcada como leída',
-            'unread_count' => $this->notificationService->getUnreadCount(),
-        ]);
-    }
-
-    /**
-     * Marcar todas las notificaciones como leídas
-     *
-     * @return JsonResponse
-     */
-    public function markAllAsRead(): JsonResponse
-    {
-        $markedCount = $this->notificationService->markAllAsRead();
-
-        return response()->json([
-            'message' => 'Todas las notificaciones marcadas como leídas',
-            'marked_count' => $markedCount,
-            'unread_count' => $this->notificationService->getUnreadCount(),
-        ]);
-    }
-
-    /**
-     * Eliminar una notificación
-     *
-     * @param string $id
-     * @return JsonResponse
-     */
-    public function destroy(string $id): JsonResponse
-    {
-        $success = $this->notificationService->delete($id);
-
-        if (!$success) {
-            return response()->json([
-                'message' => 'Notificación no encontrada o no autorizada',
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => 'Notificación eliminada',
-            'unread_count' => $this->notificationService->getUnreadCount(),
-        ]);
-    }
-
-    /**
-     * Eliminar todas las notificaciones del usuario
-     *
-     * @return JsonResponse
-     */
-    public function clearAll(): JsonResponse
-    {
-        $deletedCount = $this->notificationService->clearAll();
-
-        return response()->json([
-            'message'       => 'Notificaciones eliminadas',
-            'deleted_count' => $deletedCount,
-            'unread_count'  => 0,
-        ]);
-    }
-
-    /**
      * Obtener contador de notificaciones no leídas
-     *
-     * @return JsonResponse
      */
-    public function unreadCount(): JsonResponse
+    public function unreadCount() : JsonResponse
     {
         return response()->json([
             'unread_count' => $this->notificationService->getUnreadCount(),

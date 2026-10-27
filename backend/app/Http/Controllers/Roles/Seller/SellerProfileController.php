@@ -26,20 +26,21 @@ final class SellerProfileController extends Controller
 
     public function __construct(
         private readonly SellerProfileService $service,
-    ) {}
+    ) {
+    }
 
-    public function show(Request $request): Response
+    public function show(Request $request) : Response
     {
         $targetUserId = $this->resolveTargetUserId($request);
 
         return Inertia::render('Roles/Seller/Profile/Index', [
-            'title'       => 'Mi Perfil de Vendedor',
-            'seller'      => $this->service->showOwn($targetUserId),
+            'title' => 'Mi Perfil de Vendedor',
+            'seller' => $this->service->showOwn($targetUserId),
             'isAdminView' => $targetUserId !== null,
         ]);
     }
 
-    public function update(SellerProfileRequest $request): JsonResponse
+    public function update(SellerProfileRequest $request) : JsonResponse
     {
         $this->service->updateOwn($request->validated(), $this->resolveTargetUserId($request));
 
