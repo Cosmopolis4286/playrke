@@ -13,23 +13,24 @@ class TriviaGameFinished implements ShouldBroadcastNow
     public function __construct(
         public readonly string $roomId,
         public readonly string $gameId,
-        public readonly array  $leaderboard, // [{player_id, name, score, position}]
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel("trivia.room.{$this->roomId}");
+        public readonly array $leaderboard, // [{player_id, name, score, position}]
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'trivia.game.finished';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : Channel
+    {
+        return new Channel("trivia.room.{$this->roomId}");
+    }
+
+    public function broadcastWith() : array
     {
         return [
-            'game_id'     => $this->gameId,
+            'game_id' => $this->gameId,
             'leaderboard' => $this->leaderboard,
         ];
     }

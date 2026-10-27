@@ -22,34 +22,30 @@ use Illuminate\Database\Eloquent\Model;
  */
 class RolePolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    public function delete(User $user, Model $model) : bool
     {
-        return ['superadmin', 'admin'];
+        return $this->update($user, $model);
     }
 
     /**
-     * @param Model $model Tipado como Model (no Role) para mantener la firma
-     *   compatible con BaseRolePolicy::update() — PHP no permite estrechar
-     *   el tipo de un parámetro en un override.
+     * @param Model $model tipado como Model (no Role) para mantener la firma
+     *                     compatible con BaseRolePolicy::update() — PHP no permite estrechar
+     *                     el tipo de un parámetro en un override
      */
-    public function update(User $user, Model $model): bool
+    public function update(User $user, Model $model) : bool
     {
-        if (!$this->hasAccess($user) || $model->name === 'superadmin') {
+        if (! $this->hasAccess($user) || $model->name === 'superadmin') {
             return false;
         }
 
         // Un admin (no superadmin) no puede gestionar el rol 'admin' —
         // mismo criterio que AdminUserService::guardMutation() aplica a
         // usuarios individuales, aquí aplicado al ROL en sí.
-        if ($model->name === 'admin' && !$user->hasRole('superadmin')) {
-            return false;
-        }
-
-        return true;
+        return ! ($model->name === 'admin' && ! $user->hasRole('superadmin'));
     }
 
-    public function delete(User $user, Model $model): bool
+    protected function requiredRole() : string|array
     {
-        return $this->update($user, $model);
+        return ['superadmin', 'admin'];
     }
 }

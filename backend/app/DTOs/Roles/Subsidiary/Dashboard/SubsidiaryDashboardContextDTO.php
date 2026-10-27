@@ -36,24 +36,25 @@ final class SubsidiaryDashboardContextDTO implements ContextDTO
         public readonly array $networkPayments = ['pending_count' => 0, 'pending_amount' => null, 'oldest_pending_at' => null, 'rejected_count' => 0],
         /** Premios de cartones de su red aún sin entregar */
         public readonly array $prizesToDeliver = ['count' => 0, 'amount' => null],
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'           => $this->userName,
-            'stats'              => $this->stats,
-            'recentActivity'     => $this->recentActivity,
-            'reportsTo'          => $this->reportsTo,
-            'salesTrend'         => $this->salesTrend,
-            'salesBySeller'      => $this->salesBySeller,
-            'wallets'            => $this->wallets,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
+            'recentActivity' => $this->recentActivity,
+            'reportsTo' => $this->reportsTo,
+            'salesTrend' => $this->salesTrend,
+            'salesBySeller' => $this->salesBySeller,
+            'wallets' => $this->wallets,
             'pendingWalletCount' => $this->pendingWalletCount,
-            'period'             => $this->period,
-            'canManageRooms'     => $this->canManageRooms,
-            'networkHealth'      => $this->networkHealth,
-            'networkPayments'    => $this->networkPayments,
-            'prizesToDeliver'    => $this->prizesToDeliver,
+            'period' => $this->period,
+            'canManageRooms' => $this->canManageRooms,
+            'networkHealth' => $this->networkHealth,
+            'networkPayments' => $this->networkPayments,
+            'prizesToDeliver' => $this->prizesToDeliver,
         ];
     }
 }

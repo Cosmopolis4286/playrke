@@ -12,16 +12,15 @@ use Throwable;
 
 class StartScheduledTriviaRoomsCommand extends Command
 {
+    protected $description = 'Inicia automáticamente las salas de trivia cuya scheduled_at ha llegado';
     protected $signature = 'trivia:start-scheduled-rooms';
 
-    protected $description = 'Inicia automáticamente las salas de trivia cuya scheduled_at ha llegado';
-
-    public function handle(): void
+    public function handle() : void
     {
-        $status       = 'SUCCESS';
+        $status = 'SUCCESS';
         $startedCount = 0;
         $skippedCount = 0;
-        $errorCount   = 0;
+        $errorCount = 0;
 
         try {
             // Buscar salas que deben iniciarse ahora.
@@ -35,6 +34,7 @@ class StartScheduledTriviaRoomsCommand extends Command
                 $output = 'No hay salas programadas pendientes de inicio.';
                 $this->logExecutionSafely($output, $status);
                 $this->info($output);
+
                 return;
             }
 
@@ -52,49 +52,48 @@ class StartScheduledTriviaRoomsCommand extends Command
                         ->whereNull('deleted_at')
                         ->whereIn('status', ['confirmed', 'registered'])
                         ->pluck('user_id')
-                        ->map(fn($id) => (string) $id)
+                        ->map(fn ($id) => (string) $id)
                         ->all();
 
                     if (empty($playerIds)) {
                         $skippedCount++;
                         Log::info("[Trivia:Scheduled] Sala {$room->code} sin jugadores inscritos — omitida.", [
-                            'room_id'      => $roomId,
+                            'room_id' => $roomId,
                             'scheduled_at' => $room->scheduled_at,
                         ]);
                         $this->warn("  ⚠ Sala {$room->code}: sin jugadores, omitida.");
+
                         continue;
                     }
 
                     // ── Iniciar via StartGameAction (incluye sendNextQuestion) ───
                     $gameState = $startAction->execute(
-                        roomId:    $roomId,
-                        hostId:    (string) $room->host_id,
+                        roomId: $roomId,
+                        hostId: (string) $room->host_id,
                         playerIds: $playerIds,
                     );
 
                     $startedCount++;
                     Log::info("[Trivia:Scheduled] Sala {$room->code} iniciada automáticamente.", [
-                        'room_id'      => $roomId,
-                        'game_id'      => $gameState->gameId,
-                        'players'      => count($playerIds),
+                        'room_id' => $roomId,
+                        'game_id' => $gameState->gameId,
+                        'players' => count($playerIds),
                         'scheduled_at' => $room->scheduled_at,
                     ]);
                     $this->info("  ✓ Sala {$room->code} iniciada (game: {$gameState->gameId}, {$room->scheduled_at}).");
-
                 } catch (Throwable $e) {
                     $errorCount++;
                     Log::error("[Trivia:Scheduled] Error al iniciar sala {$room->code}.", [
                         'room_id' => $roomId,
-                        'error'   => $e->getMessage(),
-                        'trace'   => $e->getTraceAsString(),
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
                     $this->warn("  ✗ Error en sala {$room->code}: {$e->getMessage()}");
                 }
             }
 
-            $total  = $rooms->count();
+            $total = $rooms->count();
             $output = "Salas programadas: {$total} encontradas — {$startedCount} iniciadas, {$skippedCount} omitidas (sin jugadores), {$errorCount} con errores.";
-
         } catch (Throwable $e) {
             $status = 'ERROR';
             $output = "Error general: {$e->getMessage()} en {$e->getFile()}:{$e->getLine()}";
@@ -116,7 +115,7 @@ class StartScheduledTriviaRoomsCommand extends Command
      * porque este comando registra el resultado desde 2 puntos distintos
      * (salida temprana sin salas + flujo normal).
      */
-    private function logExecutionSafely(string $output, string $status): void
+    private function logExecutionSafely(string $output, string $status) : void
     {
         try {
             app(CommandService::class)->logCommandExecution($this->signature, $output, $status);

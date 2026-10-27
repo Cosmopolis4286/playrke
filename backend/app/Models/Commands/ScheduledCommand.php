@@ -27,11 +27,16 @@ class ScheduledCommand extends Model
 {
     use \App\Traits\SnowflakeId;
     use Auditable;
-
-    protected $table = 'scheduled_commands';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
+
+    protected $casts = [
+        'is_enabled' => 'boolean',
+        'disabled_at' => 'datetime',
+        'disabled_by' => 'string',
+        'min_interval_seconds' => 'integer',
+        'frequency_updated_by' => 'string',
+        'frequency_updated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'command',
@@ -45,29 +50,24 @@ class ScheduledCommand extends Model
         'frequency_updated_by',
         'frequency_updated_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'is_enabled'            => 'boolean',
-        'disabled_at'           => 'datetime',
-        'disabled_by'           => 'string',
-        'min_interval_seconds'  => 'integer',
-        'frequency_updated_by'  => 'string',
-        'frequency_updated_at'  => 'datetime',
-    ];
+    protected $table = 'scheduled_commands';
 
-    public function disabledBy(): BelongsTo
+    public function disabledBy() : BelongsTo
     {
         return $this->belongsTo(User::class, 'disabled_by');
     }
 
-    public function frequencyUpdatedBy(): BelongsTo
+    public function frequencyUpdatedBy() : BelongsTo
     {
         return $this->belongsTo(User::class, 'frequency_updated_by');
     }
 
-    public function scopeEnabled($query)
+    public function scopeByCommand($query, string $command)
     {
-        return $query->where('is_enabled', true);
+        return $query->where('command', $command);
     }
 
     public function scopeDisabled($query)
@@ -75,8 +75,8 @@ class ScheduledCommand extends Model
         return $query->where('is_enabled', false);
     }
 
-    public function scopeByCommand($query, string $command)
+    public function scopeEnabled($query)
     {
-        return $query->where('command', $command);
+        return $query->where('is_enabled', true);
     }
 }

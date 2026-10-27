@@ -20,16 +20,14 @@ interface CommerceRepositoryInterface extends RoleEntityRepositoryInterface
      * Obtiene comercios por moneda
      *
      * @param mixed $currencyId ID de la moneda
-     * @return Collection
      */
-    public function getByCurrency($currencyId): Collection;
+    public function getByCurrency($currencyId) : Collection;
 
     /**
      * Actualiza comisión de un comercio
      *
-     * @param mixed $id ID del comercio
+     * @param mixed $id         ID del comercio
      * @param float $commission Nueva comisión
-     * @return bool
      */
-    public function updateCommission($id, float $commission): bool;
+    public function updateCommission($id, float $commission) : bool;
 }

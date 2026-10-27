@@ -10,38 +10,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CommerceExchangeRate extends BaseModel
 {
     /**
-     * Tabla asociada.
-     */
-    protected $table = 'commerces_exchange_rates';
-
-    /**
-     * Clave primaria.
-     */
-    protected $primaryKey = 'id';
-
-    /**
      * Snowflake no es autoincremental.
      */
     public $incrementing = false;
 
     /**
-     * Tipo de la clave primaria.
-     *
-     * Aunque el id sea bigint en base de datos, se maneja como string
-     * para evitar problemas de precisión (JS/JSON/PHP).
+     * Indica que el modelo usa timestamps.
      */
-    protected $keyType = 'string';
-
-    /**
-     * Atributos asignables masivos.
-     */
-    protected $fillable = [
-        'commerce_id',
-        'currency_id',
-        'amount',
-        'percentage',
-        'status',
-    ];
+    public $timestamps = true;
 
     /**
      * Atributos calculados que deben incluirse en la serialización.
@@ -63,22 +39,37 @@ class CommerceExchangeRate extends BaseModel
     ];
 
     /**
-     * Indica que el modelo usa timestamps.
+     * Atributos asignables masivos.
      */
-    public $timestamps = true;
+    protected $fillable = [
+        'commerce_id',
+        'currency_id',
+        'amount',
+        'percentage',
+        'status',
+    ];
 
     /**
-     * Accessor para el nombre de la moneda.
+     * Tipo de la clave primaria.
+     *
+     * Aunque el id sea bigint en base de datos, se maneja como string
+     * para evitar problemas de precisión (JS/JSON/PHP).
      */
-    public function getCurrencyNameAttribute(): string
-    {
-        return $this->currency?->name ?? 'Moneda no disponible';
-    }
+    protected $keyType = 'string';
+
+    /**
+     * Clave primaria.
+     */
+    protected $primaryKey = 'id';
+    /**
+     * Tabla asociada.
+     */
+    protected $table = 'commerces_exchange_rates';
 
     /**
      * Relación con el comercio.
      */
-    public function commerce(): BelongsTo
+    public function commerce() : BelongsTo
     {
         return $this->belongsTo(Commerce::class, 'commerce_id');
     }
@@ -86,8 +77,16 @@ class CommerceExchangeRate extends BaseModel
     /**
      * Relación con la moneda.
      */
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    /**
+     * Accessor para el nombre de la moneda.
+     */
+    public function getCurrencyNameAttribute() : string
+    {
+        return $this->currency?->name ?? 'Moneda no disponible';
     }
 }

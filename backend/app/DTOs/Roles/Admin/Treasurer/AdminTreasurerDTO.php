@@ -12,20 +12,7 @@ namespace App\DTOs\Roles\Admin\Treasurer;
  */
 final class AdminTreasurerDTO
 {
-    public function __construct(
-        public readonly ?string $username,
-        public readonly ?string $email,
-        public readonly ?string $commission,
-        public readonly ?string $country,
-        public readonly ?string $timeZone,
-        public readonly ?string $currency,
-        public readonly ?string $phone,
-        public readonly ?string $name,
-        public readonly ?array $otherCurrencies,
-        public readonly ?array $allowedGames,
-    ) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         return new self(
             $data['username'] ?? null,
@@ -45,20 +32,34 @@ final class AdminTreasurerDTO
         );
     }
 
-    public function toArray(): array
+    public function __construct(
+        public readonly ?string $username,
+        public readonly ?string $email,
+        public readonly ?string $commission,
+        public readonly ?string $country,
+        public readonly ?string $timeZone,
+        public readonly ?string $currency,
+        public readonly ?string $phone,
+        public readonly ?string $name,
+        public readonly ?array $otherCurrencies,
+        public readonly ?array $allowedGames,
+    ) {
+    }
+
+    public function toArray() : array
     {
         return array_filter([
-            'username'         => $this->username,
-            'email'            => $this->email,
-            'commission'       => $this->commission,
-            'country'          => $this->country,
-            'time_zone'        => $this->timeZone,
-            'currency'         => $this->currency,
-            'phone'            => $this->phone,
-            'name'             => $this->name,
+            'username' => $this->username,
+            'email' => $this->email,
+            'commission' => $this->commission,
+            'country' => $this->country,
+            'time_zone' => $this->timeZone,
+            'currency' => $this->currency,
+            'phone' => $this->phone,
+            'name' => $this->name,
             'other_currencies' => $this->otherCurrencies,
-            'allowed_games'    => $this->allowedGames,
-        ], static function ($value) {
+            'allowed_games' => $this->allowedGames,
+        ], static function($value) {
             if ($value === null) {
                 return false;
             }

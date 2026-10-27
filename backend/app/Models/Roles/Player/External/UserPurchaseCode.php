@@ -12,7 +12,10 @@ class UserPurchaseCode extends Model
 {
     use SnowflakeId;
 
-    protected $table = "user_purchase_codes";
+    protected $casts = [
+        'status' => 'string',
+        'expiration_date' => 'datetime',
+    ];
 
     protected $fillable = [
         'first_name',
@@ -21,14 +24,10 @@ class UserPurchaseCode extends Model
         'phone',
         'purchase_code',
         'status',
-        'expiration_date'
+        'expiration_date',
     ];
 
-    protected $casts = [
-        'status' => 'string',
-        'expiration_date' => 'datetime'
-    ];
-
+    protected $table = 'user_purchase_codes';
 
     public static function existsPurchaseCode($code)
     {

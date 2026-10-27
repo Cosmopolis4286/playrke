@@ -2,7 +2,6 @@
 
 namespace App\Contracts;
 
-use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -15,219 +14,239 @@ use Illuminate\Database\Eloquent\Collection;
 interface TimeZoneRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Obtiene una zona horaria por ID con campos específicos.
+     * Activa una zona horaria específica.
      *
-     * @param string $id ID de la zona horaria
-     * @param array $fields Campos a obtener
-     * @return mixed Zona horaria encontrada o null
+     * @param string $timeZoneId ID de la zona horaria
+     *
+     * @return bool True si se activó correctamente
      */
-    public function getByIdWithFields(string $id, array $fields = ['*']): mixed;
+    public function activateTimeZone(string $timeZoneId) : bool;
 
     /**
-     * Obtiene todas las zonas horarias por país.
+     * Crea zonas horarias en lote.
      *
-     * @param string $countryId ID del país
-     * @return Collection<TimeZone> Colección de zonas horarias del país
+     * @param array $timeZonesData Array de datos de zonas horarias
+     *
+     * @return Collection<TimeZone> Zonas horarias creadas
      */
-    public function getByCountry(string $countryId): Collection;
+    public function createBulkTimeZones(array $timeZonesData) : Collection;
+
+    /**
+     * Crea una nueva zona horaria.
+     *
+     * @param array $data Datos de la zona horaria
+     *
+     * @return mixed Zona horaria creada
+     */
+    public function createTimeZone(array $data) : mixed;
+
+    /**
+     * Desactiva una zona horaria específica.
+     *
+     * @param string $timeZoneId ID de la zona horaria
+     *
+     * @return bool True si se desactivó correctamente
+     */
+    public function deactivateTimeZone(string $timeZoneId) : bool;
+
+    /**
+     * Elimina una zona horaria específica.
+     *
+     * @param string $timeZoneId ID de la zona horaria
+     *
+     * @return bool True si se eliminó correctamente
+     */
+    public function deleteTimeZone(string $timeZoneId) : bool;
 
     /**
      * Obtiene las zonas horarias activas.
      *
      * @return Collection<TimeZone> Colección de zonas horarias activas
      */
-    public function getActive(): Collection;
+    public function getActive() : Collection;
 
     /**
-     * Obtiene las zonas horarias inactivas.
+     * Obtiene todas las zonas horarias por país.
      *
-     * @return Collection<TimeZone> Colección de zonas horarias inactivas
-     */
-    public function getInactive(): Collection;
-
-    /**
-     * Obtiene zonas horarias por nombre (búsqueda parcial).
+     * @param string $countryId ID del país
      *
-     * @param string $name Nombre a buscar
-     * @return Collection<TimeZone> Zonas horarias que coinciden
+     * @return Collection<TimeZone> Colección de zonas horarias del país
      */
-    public function getByName(string $name): Collection;
+    public function getByCountry(string $countryId) : Collection;
 
     /**
      * Obtiene zona horaria por nombre exacto.
      *
      * @param string $name Nombre exacto
+     *
      * @return mixed Zona horaria encontrada o null
      */
-    public function getByExactName(string $name): mixed;
+    public function getByExactName(string $name) : mixed;
+
+    /**
+     * Obtiene una zona horaria por ID con campos específicos.
+     *
+     * @param string $id     ID de la zona horaria
+     * @param array  $fields Campos a obtener
+     *
+     * @return mixed Zona horaria encontrada o null
+     */
+    public function getByIdWithFields(string $id, array $fields = ['*']) : mixed;
+
+    /**
+     * Obtiene zonas horarias por nombre (búsqueda parcial).
+     *
+     * @param string $name Nombre a buscar
+     *
+     * @return Collection<TimeZone> Zonas horarias que coinciden
+     */
+    public function getByName(string $name) : Collection;
 
     /**
      * Obtiene zonas horarias por offset UTC.
      *
      * @param string $utcOffset Offset UTC (ej: "+05:00", "-03:00")
+     *
      * @return Collection<TimeZone> Zonas horarias con el offset
      */
-    public function getByUtcOffset(string $utcOffset): Collection;
+    public function getByUtcOffset(string $utcOffset) : Collection;
 
     /**
      * Obtiene zonas horarias en un rango de offset UTC.
      *
      * @param string $minOffset Offset mínimo
      * @param string $maxOffset Offset máximo
+     *
      * @return Collection<TimeZone> Zonas horarias en el rango
      */
-    public function getByUtcRange(string $minOffset, string $maxOffset): Collection;
-
-    /**
-     * Crea una nueva zona horaria.
-     *
-     * @param array $data Datos de la zona horaria
-     * @return mixed Zona horaria creada
-     */
-    public function createTimeZone(array $data): mixed;
-
-    /**
-     * Actualiza una zona horaria.
-     *
-     * @param string $timeZoneId ID de la zona horaria
-     * @param array $data Datos a actualizar
-     * @return bool True si se actualizó correctamente
-     */
-    public function updateTimeZone(string $timeZoneId, array $data): bool;
-
-    /**
-     * Actualiza el estado de una zona horaria.
-     *
-     * @param string $timeZoneId ID de la zona horaria
-     * @param bool $status Nuevo estado
-     * @return bool True si se actualizó correctamente
-     */
-    public function updateStatus(string $timeZoneId, bool $status): bool;
-
-    /**
-     * Activa una zona horaria específica.
-     *
-     * @param string $timeZoneId ID de la zona horaria
-     * @return bool True si se activó correctamente
-     */
-    public function activateTimeZone(string $timeZoneId): bool;
-
-    /**
-     * Desactiva una zona horaria específica.
-     *
-     * @param string $timeZoneId ID de la zona horaria
-     * @return bool True si se desactivó correctamente
-     */
-    public function deactivateTimeZone(string $timeZoneId): bool;
-
-    /**
-     * Elimina una zona horaria específica.
-     *
-     * @param string $timeZoneId ID de la zona horaria
-     * @return bool True si se eliminó correctamente
-     */
-    public function deleteTimeZone(string $timeZoneId): bool;
-
-    /**
-     * Obtiene estadísticas de zonas horarias.
-     *
-     * @return array Estadísticas de zonas horarias
-     */
-    public function getTimeZoneStats(): array;
+    public function getByUtcRange(string $minOffset, string $maxOffset) : Collection;
 
     /**
      * Obtiene estadísticas de zonas horarias por país.
      *
      * @param string $countryId ID del país
+     *
      * @return array Estadísticas del país específico
      */
-    public function getCountryTimeZoneStats(string $countryId): array;
+    public function getCountryTimeZoneStats(string $countryId) : array;
 
     /**
      * Obtiene la distribución de zonas horarias por país.
      *
      * @return array Distribución por país
      */
-    public function getDistributionByCountry(): array;
+    public function getDistributionByCountry() : array;
 
     /**
      * Obtiene la distribución de zonas horarias por offset UTC.
      *
      * @return array Distribución por offset UTC
      */
-    public function getDistributionByUtc(): array;
-
-    /**
-     * Valida los datos de una zona horaria antes de crear/actualizar.
-     *
-     * @param array $data Datos a validar
-     * @param string|null $excludeId ID a excluir de validaciones de unicidad
-     * @return array Array de errores de validación
-     */
-    public function validateTimeZoneData(array $data, ?string $excludeId = null): array;
-
-    /**
-     * Obtiene zonas horarias ordenadas por nombre.
-     *
-     * @param string $direction Dirección del ordenamiento ('asc' o 'desc')
-     * @param bool $activeOnly Solo zonas horarias activas
-     * @return Collection<TimeZone> Zonas horarias ordenadas
-     */
-    public function getOrderedByName(string $direction = 'asc', bool $activeOnly = false): Collection;
-
-    /**
-     * Obtiene zonas horarias ordenadas por offset UTC.
-     *
-     * @param string $direction Dirección del ordenamiento ('asc' o 'desc')
-     * @param bool $activeOnly Solo zonas horarias activas
-     * @return Collection<TimeZone> Zonas horarias ordenadas
-     */
-    public function getOrderedByUtc(string $direction = 'asc', bool $activeOnly = false): Collection;
-
-    /**
-     * Busca zonas horarias por múltiples criterios.
-     *
-     * @param array $criteria Criterios de búsqueda
-     * @return Collection<TimeZone> Zonas horarias que coinciden
-     */
-    public function searchByCriteria(array $criteria): Collection;
+    public function getDistributionByUtc() : array;
 
     /**
      * Obtiene zonas horarias para uso en select/dropdown.
      *
-     * @param bool $activeOnly Solo zonas horarias activas
+     * @param bool        $activeOnly    Solo zonas horarias activas
      * @param string|null $countryFilter Filtrar por país específico
+     *
      * @return array Array para select [id => nombre]
      */
-    public function getForSelect(bool $activeOnly = true, ?string $countryFilter = null): array;
+    public function getForSelect(bool $activeOnly = true, ?string $countryFilter = null) : array;
 
     /**
-     * Verifica si una zona horaria está en uso.
+     * Obtiene las zonas horarias inactivas.
      *
-     * @param string $timeZoneId ID de la zona horaria
-     * @return bool True si está en uso
+     * @return Collection<TimeZone> Colección de zonas horarias inactivas
      */
-    public function isTimeZoneInUse(string $timeZoneId): bool;
+    public function getInactive() : Collection;
 
     /**
      * Obtiene la zona horaria más común.
      *
      * @return mixed Zona horaria más utilizada
      */
-    public function getMostUsedTimeZone(): mixed;
+    public function getMostUsedTimeZone() : mixed;
+
+    /**
+     * Obtiene zonas horarias ordenadas por nombre.
+     *
+     * @param string $direction  Dirección del ordenamiento ('asc' o 'desc')
+     * @param bool   $activeOnly Solo zonas horarias activas
+     *
+     * @return Collection<TimeZone> Zonas horarias ordenadas
+     */
+    public function getOrderedByName(string $direction = 'asc', bool $activeOnly = false) : Collection;
+
+    /**
+     * Obtiene zonas horarias ordenadas por offset UTC.
+     *
+     * @param string $direction  Dirección del ordenamiento ('asc' o 'desc')
+     * @param bool   $activeOnly Solo zonas horarias activas
+     *
+     * @return Collection<TimeZone> Zonas horarias ordenadas
+     */
+    public function getOrderedByUtc(string $direction = 'asc', bool $activeOnly = false) : Collection;
+
+    /**
+     * Obtiene estadísticas de zonas horarias.
+     *
+     * @return array Estadísticas de zonas horarias
+     */
+    public function getTimeZoneStats() : array;
 
     /**
      * Obtiene zonas horarias sin uso.
      *
      * @return Collection<TimeZone> Zonas horarias no utilizadas
      */
-    public function getUnusedTimeZones(): Collection;
+    public function getUnusedTimeZones() : Collection;
 
     /**
-     * Crea zonas horarias en lote.
+     * Verifica si una zona horaria está en uso.
      *
-     * @param array $timeZonesData Array de datos de zonas horarias
-     * @return Collection<TimeZone> Zonas horarias creadas
+     * @param string $timeZoneId ID de la zona horaria
+     *
+     * @return bool True si está en uso
      */
-    public function createBulkTimeZones(array $timeZonesData): Collection;
+    public function isTimeZoneInUse(string $timeZoneId) : bool;
+
+    /**
+     * Busca zonas horarias por múltiples criterios.
+     *
+     * @param array $criteria Criterios de búsqueda
+     *
+     * @return Collection<TimeZone> Zonas horarias que coinciden
+     */
+    public function searchByCriteria(array $criteria) : Collection;
+
+    /**
+     * Actualiza el estado de una zona horaria.
+     *
+     * @param string $timeZoneId ID de la zona horaria
+     * @param bool   $status     Nuevo estado
+     *
+     * @return bool True si se actualizó correctamente
+     */
+    public function updateStatus(string $timeZoneId, bool $status) : bool;
+
+    /**
+     * Actualiza una zona horaria.
+     *
+     * @param string $timeZoneId ID de la zona horaria
+     * @param array  $data       Datos a actualizar
+     *
+     * @return bool True si se actualizó correctamente
+     */
+    public function updateTimeZone(string $timeZoneId, array $data) : bool;
+
+    /**
+     * Valida los datos de una zona horaria antes de crear/actualizar.
+     *
+     * @param array       $data      Datos a validar
+     * @param string|null $excludeId ID a excluir de validaciones de unicidad
+     *
+     * @return array Array de errores de validación
+     */
+    public function validateTimeZoneData(array $data, ?string $excludeId = null) : array;
 }

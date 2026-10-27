@@ -21,6 +21,7 @@ use Illuminate\Console\Command;
  */
 class ProcessCryptoDepositCommand extends Command
 {
+    protected $description = 'Procesa un depósito cripto ya detectado (Fase 6, sin listener real de blockchain todavía)';
     protected $signature = 'marketplace:process-crypto-deposit
         {--tx-hash= : Hash de la transacción on-chain}
         {--network= : Red, ej. TRON}
@@ -30,12 +31,11 @@ class ProcessCryptoDepositCommand extends Command
         {--amount= : Monto}
         {--confirmations=0 : Confirmaciones actuales}';
 
-    protected $description = 'Procesa un depósito cripto ya detectado (Fase 6, sin listener real de blockchain todavía)';
-
-    public function handle(DepositWatcher $watcher): int
+    public function handle(DepositWatcher $watcher) : int
     {
-        if (!config('crypto.deposits_enabled')) {
+        if (! config('crypto.deposits_enabled')) {
             $this->error('Los depósitos cripto no están habilitados (crypto.deposits_enabled=false).');
+
             return self::FAILURE;
         }
 
@@ -52,9 +52,11 @@ class ProcessCryptoDepositCommand extends Command
         try {
             $deposit = $watcher->process($raw);
             $this->info("Depósito procesado: crypto_deposit_id={$deposit->id}, credited=" . ($deposit->isCredited() ? 'yes' : 'no'));
+
             return self::SUCCESS;
         } catch (InvalidCryptoTransactionException $e) {
             $this->error('Transacción rechazada: ' . $e->getMessage());
+
             return self::FAILURE;
         }
     }

@@ -18,13 +18,13 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class EscrowPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
-    {
-        return ['superadmin', 'admin'];
-    }
-
-    public function resolve(User $user, Escrow $escrow): bool
+    public function resolve(User $user, Escrow $escrow) : bool
     {
         return $this->hasAccess($user) && $escrow->status === Escrow::STATUS_DISPUTED;
+    }
+
+    protected function requiredRole() : string|array
+    {
+        return ['superadmin', 'admin'];
     }
 }

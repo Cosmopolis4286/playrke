@@ -11,17 +11,17 @@ use Illuminate\Database\Eloquent\Collection;
 interface GameCatalogRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Registros de un juego (activos e inactivos).
+     * Verificar si existe un registro con ese código dentro del juego.
      */
-    public function getByGame(string $gameId): Collection;
+    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null) : bool;
 
     /**
      * Registros activos de un juego, para selects/formularios.
      */
-    public function getActiveByGame(string $gameId): Collection;
+    public function getActiveByGame(string $gameId) : Collection;
 
     /**
-     * Verificar si existe un registro con ese código dentro del juego.
+     * Registros de un juego (activos e inactivos).
      */
-    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null): bool;
+    public function getByGame(string $gameId) : Collection;
 }

@@ -25,14 +25,15 @@ class WalletMovementsSummaryMail extends Mailable
     ) {
     }
 
-    public function envelope(): Envelope
+    public function attachments() : array
     {
-        return new Envelope(
-            subject: '📊 Resumen semanal de movimientos de billetera',
-        );
+        return [
+            Attachment::fromData(fn () => $this->csvContent, 'movimientos-billetera-' . now()->format('Y-m-d') . '.csv')
+                ->withMime('text/csv'),
+        ];
     }
 
-    public function content(): Content
+    public function content() : Content
     {
         return new Content(
             markdown: 'emails.wallet-movements-summary',
@@ -40,11 +41,10 @@ class WalletMovementsSummaryMail extends Mailable
         );
     }
 
-    public function attachments(): array
+    public function envelope() : Envelope
     {
-        return [
-            Attachment::fromData(fn () => $this->csvContent, 'movimientos-billetera-' . now()->format('Y-m-d') . '.csv')
-                ->withMime('text/csv'),
-        ];
+        return new Envelope(
+            subject: '📊 Resumen semanal de movimientos de billetera',
+        );
     }
 }

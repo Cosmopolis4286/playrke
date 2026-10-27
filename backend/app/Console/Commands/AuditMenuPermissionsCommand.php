@@ -112,16 +112,17 @@ class AuditMenuPermissionsCommand extends Command
         'sellers.manage-own', // 'Generar Cartón': solo seller, aunque la ruta también admite games.bingo/game_rooms (más amplio, sirve también a compra de jugador)
     ];
 
-    protected $signature = 'menu:audit-permissions {--verbose-info : Mostrar también los casos INFO (role: vs permiso, sin comparación automática)}';
-
     protected $description = 'Audita que el permiso de cada ítem del sidebar coincida con el middleware real de su ruta';
 
-    public function handle(SidebarMenuService $menuService): int
+    protected $signature = 'menu:audit-permissions {--verbose-info : Mostrar también los casos INFO (role: vs permiso, sin comparación automática)}';
+
+    public function handle(SidebarMenuService $menuService) : int
     {
         $items = $this->extractMenuItems($menuService->menuStructure);
 
         if (empty($items)) {
             $this->warn('No se encontraron ítems de menú con ruta — revisa SidebarMenuService::$menuStructure.');
+
             return self::SUCCESS;
         }
 
@@ -146,7 +147,7 @@ class AuditMenuPermissionsCommand extends Command
         $this->reportFindings('⚠️  DESALINEADOS (permiso del menú no coincide con el de la ruta)', $misaligned);
         $this->reportFindings('🚨 RUTAS ABIERTAS (menú exige permiso, ruta no tiene ninguno detectable)', $openRoutes);
 
-        if ($this->option('verbose-info') && !empty($infoCases)) {
+        if ($this->option('verbose-info') && ! empty($infoCases)) {
             $this->reportFindings('ℹ️  INFO (ruta usa role: — requiere confirmación manual)', $infoCases);
         }
 
@@ -157,13 +158,14 @@ class AuditMenuPermissionsCommand extends Command
 
         if ($totalIssues === 0) {
             $this->info('✔ Sin desincronizaciones detectadas entre sidebar, rutas y permisos de admin.');
+
             return self::SUCCESS;
         }
 
         $this->newLine();
         $this->error(sprintf(
             '✘ %d problema(s) encontrado(s). Antes de "arreglar" un RUTA_ABIERTA, confirma leyendo el controller: puede tener $this->authorize(...) inline (ver docblock de esta clase).',
-            $totalIssues
+            $totalIssues,
         ));
 
         return self::FAILURE;
@@ -176,13 +178,14 @@ class AuditMenuPermissionsCommand extends Command
      * (*.manage-own).
      *
      * @param array<string, array{route: string, permission: string|null}> $items
+     *
      * @return array<int, array{item: string, permission: string}>
      */
-    private function auditAdminBlindSpots(array $items): array
+    private function auditAdminBlindSpots(array $items) : array
     {
         $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->first();
 
-        if (!$adminRole) {
+        if (! $adminRole) {
             return [];
         }
 
@@ -191,7 +194,7 @@ class AuditMenuPermissionsCommand extends Command
         foreach ($items as $itemKey => $info) {
             $permission = $info['permission'];
 
-            if (!$permission) {
+            if (! $permission) {
                 continue;
             }
             if (str_ends_with($permission, '.manage-own')) {
@@ -211,56 +214,18 @@ class AuditMenuPermissionsCommand extends Command
     }
 
     /**
-     * @param array<int, array{item: string, permission: string}> $blindSpots
-     */
-    private function reportAdminBlindSpots(array $blindSpots): void
-    {
-        if (empty($blindSpots)) {
-            return;
-        }
-
-        $this->line('<fg=yellow>👁️  ADMIN_SIN_ACCESO (superadmin ve el ítem vía bypass, admin no tiene el permiso)</>');
-
-        foreach ($blindSpots as $spot) {
-            $this->line(sprintf('  %-40s requiere \'%s\' — admin no lo tiene', $spot['item'], $spot['permission']));
-        }
-
-        $this->newLine();
-    }
-
-    /**
-     * @return array<string, array{route: string, permission: string|null}>
-     */
-    private function extractMenuItems(array $structure): array
-    {
-        $items = [];
-
-        foreach ($structure as $key => $item) {
-            if (!empty($item['route'])) {
-                $items[$key] = ['route' => $item['route'], 'permission' => $item['permission'] ?? null];
-            }
-            foreach ($item['submenu'] ?? [] as $subKey => $subItem) {
-                if (!empty($subItem['route'])) {
-                    $items["{$key}.{$subKey}"] = ['route' => $subItem['route'], 'permission' => $subItem['permission'] ?? null];
-                }
-            }
-        }
-
-        return $items;
-    }
-
-    /**
      * @param array{route: string, permission: string|null} $info
+     *
      * @return array{type: string, item: string, route: string, menu_permission: string|null, route_permissions: array<int, string>, roles: array<int, string>}
      */
-    private function auditItem(string $itemKey, array $info): array
+    private function auditItem(string $itemKey, array $info) : array
     {
         $routeName = $info['route'];
         $menuPerm = $info['permission'];
 
         $route = Route::getRoutes()->getByName($routeName);
 
-        if (!$route) {
+        if (! $route) {
             return [
                 'type' => 'RUTA_ABIERTA',
                 'item' => $itemKey,
@@ -277,11 +242,11 @@ class AuditMenuPermissionsCommand extends Command
 
         if ($menuPerm && in_array($menuPerm, self::MENU_INTENTIONALLY_STRICTER, true)) {
             // Deliberadamente más estricto que la ruta — no comparar (ver docblock de la constante).
-        } elseif ($menuPerm && $permissions && !in_array($menuPerm, $permissions, true)) {
+        } elseif ($menuPerm && $permissions && ! in_array($menuPerm, $permissions, true)) {
             $type = 'DESALINEADO';
-        } elseif ($menuPerm && !$permissions && !$roles) {
+        } elseif ($menuPerm && ! $permissions && ! $roles) {
             $type = 'RUTA_ABIERTA';
-        } elseif ($menuPerm && $roles && !$permissions) {
+        } elseif ($menuPerm && $roles && ! $permissions) {
             $type = 'INFO';
         }
 
@@ -296,10 +261,32 @@ class AuditMenuPermissionsCommand extends Command
     }
 
     /**
+     * @return array<string, array{route: string, permission: string|null}>
+     */
+    private function extractMenuItems(array $structure) : array
+    {
+        $items = [];
+
+        foreach ($structure as $key => $item) {
+            if (! empty($item['route'])) {
+                $items[$key] = ['route' => $item['route'], 'permission' => $item['permission'] ?? null];
+            }
+            foreach ($item['submenu'] ?? [] as $subKey => $subItem) {
+                if (! empty($subItem['route'])) {
+                    $items["{$key}.{$subKey}"] = ['route' => $subItem['route'], 'permission' => $subItem['permission'] ?? null];
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /**
      * @param array<int, string> $middleware
+     *
      * @return array{0: array<int, string>, 1: array<int, string>}
      */
-    private function parseMiddleware(array $middleware): array
+    private function parseMiddleware(array $middleware) : array
     {
         $permissions = [];
         $roles = [];
@@ -318,9 +305,27 @@ class AuditMenuPermissionsCommand extends Command
     }
 
     /**
+     * @param array<int, array{item: string, permission: string}> $blindSpots
+     */
+    private function reportAdminBlindSpots(array $blindSpots) : void
+    {
+        if (empty($blindSpots)) {
+            return;
+        }
+
+        $this->line('<fg=yellow>👁️  ADMIN_SIN_ACCESO (superadmin ve el ítem vía bypass, admin no tiene el permiso)</>');
+
+        foreach ($blindSpots as $spot) {
+            $this->line(sprintf('  %-40s requiere \'%s\' — admin no lo tiene', $spot['item'], $spot['permission']));
+        }
+
+        $this->newLine();
+    }
+
+    /**
      * @param array<int, array{item: string, route: string, menu_permission: string|null, route_permissions: array<int, string>, roles: array<int, string>}> $findings
      */
-    private function reportFindings(string $title, array $findings): void
+    private function reportFindings(string $title, array $findings) : void
     {
         if (empty($findings)) {
             return;
@@ -339,7 +344,7 @@ class AuditMenuPermissionsCommand extends Command
                 $finding['route'],
                 $menuPermStr,
                 $routePermStr,
-                $rolesStr ? "role={$rolesStr}" : ''
+                $rolesStr ? "role={$rolesStr}" : '',
             ));
         }
 

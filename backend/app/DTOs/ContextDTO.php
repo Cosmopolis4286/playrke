@@ -9,5 +9,5 @@ interface ContextDTO
      *
      * @return array<string, mixed>
      */
-    public function toView(): array;
+    public function toView() : array;
 }

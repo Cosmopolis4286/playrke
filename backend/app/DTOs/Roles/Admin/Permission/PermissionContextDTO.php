@@ -8,5 +8,6 @@ final class PermissionContextDTO
         public array $permissions,
         public array $roles,
         public array $pagination,
-    ) {}
+    ) {
+    }
 }

@@ -9,26 +9,31 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Catálogo de misiones diarias — ver DailyMissionService para la lógica de
  * progreso/desbloqueo. Modelo delgado a propósito, sin lógica de negocio.
  *
- * @property string $id
- * @property string $code
- * @property string $name
+ * @property string      $id
+ * @property string      $code
+ * @property string      $name
  * @property string|null $description
- * @property string $requirement_type games_played | games_won
- * @property int $target
- * @property int $xp_reward
- * @property bool $is_active
+ * @property string      $requirement_type games_played | games_won
+ * @property int         $target
+ * @property int         $xp_reward
+ * @property bool        $is_active
  */
 class DailyMission extends Model
 {
     use \App\Traits\SnowflakeId;
 
-    protected $table = 'daily_missions';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     public const REQUIREMENT_GAMES_PLAYED = 'games_played';
-    public const REQUIREMENT_GAMES_WON    = 'games_won';
+    public const REQUIREMENT_GAMES_WON = 'games_won';
+    public $incrementing = false;
+
+    protected $casts = [
+        'target' => 'integer',
+        'xp_reward' => 'integer',
+        'is_active' => 'boolean',
+        'sort_order' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'code',
@@ -40,17 +45,12 @@ class DailyMission extends Model
         'is_active',
         'sort_order',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'target'     => 'integer',
-        'xp_reward'  => 'integer',
-        'is_active'  => 'boolean',
-        'sort_order' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    protected $table = 'daily_missions';
 
-    public function progress(): HasMany
+    public function progress() : HasMany
     {
         return $this->hasMany(UserDailyMissionProgress::class, 'daily_mission_id');
     }

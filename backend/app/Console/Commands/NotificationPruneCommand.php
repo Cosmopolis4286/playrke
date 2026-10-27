@@ -16,26 +16,25 @@ use Throwable;
  */
 class NotificationPruneCommand extends Command
 {
-    protected $signature = 'notifications:prune';
-
-    protected $description = 'Purga notificaciones in-app leídas más antiguas que 90 días';
-
-    private const RETENTION_DAYS = 90;
-
     /** Mismo tamaño de lote que AuditPruneCommand — evita un DELETE masivo bloqueante. */
     private const CHUNK_SIZE = 1000;
 
-    public function handle(): void
+    private const RETENTION_DAYS = 90;
+
+    protected $description = 'Purga notificaciones in-app leídas más antiguas que 90 días';
+    protected $signature = 'notifications:prune';
+
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
         try {
-            $cutoff  = now()->subDays(self::RETENTION_DAYS);
+            $cutoff = now()->subDays(self::RETENTION_DAYS);
             $deleted = 0;
 
             Notification::where('created_at', '<', $cutoff)
                 ->whereNotNull('read_at')
-                ->chunkById(self::CHUNK_SIZE, function ($notifications) use (&$deleted) {
+                ->chunkById(self::CHUNK_SIZE, function($notifications) use (&$deleted) {
                     $ids = $notifications->pluck('id');
                     Notification::whereIn('id', $ids)->delete();
                     $deleted += $ids->count();
@@ -48,7 +47,7 @@ class NotificationPruneCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

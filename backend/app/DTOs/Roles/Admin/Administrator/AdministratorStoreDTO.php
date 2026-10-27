@@ -8,17 +8,7 @@ namespace App\DTOs\Roles\Admin\Administrator;
  */
 final class AdministratorStoreDTO
 {
-    public function __construct(
-        public readonly string $firstName,
-        public readonly string $lastName,
-        public readonly string $username,
-        public readonly string $email,
-        public readonly string $password,
-        public readonly string $countryId,
-        public readonly ?string $phoneNumber,
-    ) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         return new self(
             $data['first_name'],
@@ -29,5 +19,16 @@ final class AdministratorStoreDTO
             $data['country_id'],
             $data['phone_number'] ?? null,
         );
+    }
+
+    public function __construct(
+        public readonly string $firstName,
+        public readonly string $lastName,
+        public readonly string $username,
+        public readonly string $email,
+        public readonly string $password,
+        public readonly string $countryId,
+        public readonly ?string $phoneNumber,
+    ) {
     }
 }

@@ -15,10 +15,10 @@ use Throwable;
  */
 class HandlePendingBingoPaymentsAtStartCommand extends Command
 {
-    protected $signature   = 'bingo:handle-pending-payments-at-start';
     protected $description = 'Avisa y resuelve los pagos de cartones que siguen pendientes al iniciar el sorteo';
+    protected $signature = 'bingo:handle-pending-payments-at-start';
 
-    public function handle(BingoPendingPaymentStartService $service): void
+    public function handle(BingoPendingPaymentStartService $service) : void
     {
         $status = 'SUCCESS';
 

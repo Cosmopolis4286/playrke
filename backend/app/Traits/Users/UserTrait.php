@@ -2,144 +2,47 @@
 
 namespace App\Traits\Users;
 
+use App\Domains\Wallet\Models\Wallet;
 use App\Models\Country;
 use App\Models\Currency;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
+use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\SellerCurrency;
 use App\Models\Roles\Treasurer\Treasurer;
 use App\Models\User;
-use App\Domains\Wallet\Models\Wallet;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
+use Throwable;
 
 trait UserTrait
 {
-    public function user(array $fields = ['*'])
-    {
-        $userId = Auth::id();
-
-        if (!$userId) return null;
-
-        return User::select($fields)->find($userId);
-    }
-
-    public function wallet($userId = null)
-    {
-        return Wallet::with('Currency')->where('user_id', $userId ?? Auth::id())->first();
-    }
-
-    public function commerce($fields = ['*'])
-    {
-        return Commerce::select($fields)->where('user_id', Auth::id())->first();
-    }
-
-    public function customer($fields = ['*'])
-    {
-        return Customer::select($fields)->where('user_id', Auth::id())->first();
-    }
-
-    public function treasurer($fields = ['*'])
-    {
-        return Treasurer::select($fields)->where('user_id', Auth::id())->first();
-    }
-
-    public function seller($fields = ['*'])
-    {
-        return Seller::select($fields)->where('user_id', Auth::id())->first();
-    }
-
-    public function getAvailableCountries($user)
-    {
-        // Obtener el usuario con sus roles
-        $userModel = User::with('roles')->find($user);
-        $userRole = $userModel->roles->first()?->prefix ?? 'user';
-
-        $countries = [];
-
-        switch ($userRole) {
-            case 'user': // Jugador
-                $countries = [User::getValueById($user, 'country_id')];
-                break;
-            case 'admin': // Admin
-                # code...
-                break;
-            case 'commerce': // Comercio
-                $commerce = Commerce::getValueByUserId($user, 'id');
-                $countries = CommerceCurrency::getAvailableCountries($commerce);
-                break;
-            case 'seller': // Vendedor
-                $seller = Seller::getValueByUserId($user, 'id');
-                $countries = SellerCurrency::getAvailableCountries($seller);
-                break;
-            case 'customer': // Cliente
-                //$customer = Customer::getValueByUserId($user, 'id');
-                //$countries = CustomerExchangeRate::getAvailableCountries($customer) ?? [];
-                break;
-            default:
-                break;
-        }
-
-        return $countries;
-    }
-
-    public function getAvailableCurrencies($user)
-    {
-        // Obtener el usuario con sus roles
-        $userModel = User::with('roles')->find($user);
-        $userRole = $userModel->roles->first()?->prefix ?? 'user';
-
-        switch ($userRole) {
-            case 'user': // Jugador
-                $currencies = [User::getValueById($user, 'country_id')];
-                break;
-            case 'admin': // Admin
-                # code...
-                break;
-            case 'commerce': // Comercio
-                $commerce = Commerce::getValueByUserId($user, 'id');
-                $currencies = CommerceCurrency::getAvailableCurrencies($commerce);
-                break;
-            case 'seller': // Vendedor
-                $seller = Seller::getValueByUserId($user, 'id');
-                $currencies = SellerCurrency::getAvailableCurrencies($seller);
-                break;
-            case 'customer': // Cliente
-                $seller = Seller::getValueByUserId($user, 'id');
-                $currencies = SellerCurrency::getAvailableCurrencies($seller);
-                break;
-            default:
-                $currencies = [];
-                break;
-        }
-
-        return $currencies;
-    }
-
     public function checkBankDirectoriesExistence($currencies)
     {
         $user = User::getCreatorUser(Auth::id(), false, true);
         $currencyModels = Currency::getCurrenciesById($currencies, ['id', 'iso_code']);
 
-        $currenciesWithoutDirectories = collect($currencyModels)->filter(function ($currency) use ($user) {
+        $currenciesWithoutDirectories = collect($currencyModels)->filter(function($currency) use ($user) {
             return match ($currency->iso_code) {
-                'VES' => !PagoMovil::where('user_id', $user['userId'])->exists(),
-                'BRL' => !PixKey::where('user_id', $user['userId'])->exists(),
+                'VES' => ! PagoMovil::where('user_id', $user['userId'])->exists(),
+                'BRL' => ! PixKey::where('user_id', $user['userId'])->exists(),
                 'COP' => true,
-                default => throw new \InvalidArgumentException("Tipo de moneda no soportado: {$currency->iso_code}"),
+                default => throw new InvalidArgumentException("Tipo de moneda no soportado: {$currency->iso_code}"),
             };
         })->pluck('id')->all();
 
-        if (!in_array($user['type'], ['commerce', 'admin'])) return;
+        if (! in_array($user['type'], ['commerce', 'admin'])) {
+            return;
+        }
 
         DB::beginTransaction();
 
         try {
-
             $commerceId = Commerce::getValueByUserId($user['userId'], 'id');
 
             // Obtener los IDs más recientes de cada moneda (currency)
@@ -164,10 +67,95 @@ trait UserTrait
             }
 
             DB::commit();
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
             Log::error("Error al actualizar monedas sin directorios: {$th->getMessage()}");
         }
+    }
+
+    public function commerce($fields = ['*'])
+    {
+        return Commerce::select($fields)->where('user_id', Auth::id())->first();
+    }
+
+    public function customer($fields = ['*'])
+    {
+        return Customer::select($fields)->where('user_id', Auth::id())->first();
+    }
+
+    public function getAvailableCountries($user)
+    {
+        // Obtener el usuario con sus roles
+        $userModel = User::with('roles')->find($user);
+        $userRole = $userModel->roles->first()?->prefix ?? 'user';
+
+        $countries = [];
+
+        switch ($userRole) {
+            case 'user': // Jugador
+                $countries = [User::getValueById($user, 'country_id')];
+
+                break;
+            case 'admin': // Admin
+                // code...
+                break;
+            case 'commerce': // Comercio
+                $commerce = Commerce::getValueByUserId($user, 'id');
+                $countries = CommerceCurrency::getAvailableCountries($commerce);
+
+                break;
+            case 'seller': // Vendedor
+                $seller = Seller::getValueByUserId($user, 'id');
+                $countries = SellerCurrency::getAvailableCountries($seller);
+
+                break;
+            case 'customer': // Cliente
+                // $customer = Customer::getValueByUserId($user, 'id');
+                // $countries = CustomerExchangeRate::getAvailableCountries($customer) ?? [];
+                break;
+            default:
+                break;
+        }
+
+        return $countries;
+    }
+
+    public function getAvailableCurrencies($user)
+    {
+        // Obtener el usuario con sus roles
+        $userModel = User::with('roles')->find($user);
+        $userRole = $userModel->roles->first()?->prefix ?? 'user';
+
+        switch ($userRole) {
+            case 'user': // Jugador
+                $currencies = [User::getValueById($user, 'country_id')];
+
+                break;
+            case 'admin': // Admin
+                // code...
+                break;
+            case 'commerce': // Comercio
+                $commerce = Commerce::getValueByUserId($user, 'id');
+                $currencies = CommerceCurrency::getAvailableCurrencies($commerce);
+
+                break;
+            case 'seller': // Vendedor
+                $seller = Seller::getValueByUserId($user, 'id');
+                $currencies = SellerCurrency::getAvailableCurrencies($seller);
+
+                break;
+            case 'customer': // Cliente
+                $seller = Seller::getValueByUserId($user, 'id');
+                $currencies = SellerCurrency::getAvailableCurrencies($seller);
+
+                break;
+            default:
+                $currencies = [];
+
+                break;
+        }
+
+        return $currencies;
     }
 
     public function getPaymentDetailsByUserId($user, $currency)
@@ -176,7 +164,7 @@ trait UserTrait
             // Obtener el usuario con sus roles
             $userModel = User::with('roles')->find($user);
 
-            if (!$userModel) {
+            if (! $userModel) {
                 return response()->json(['error' => 'Usuario no encontrado.'], 404);
             }
 
@@ -184,19 +172,19 @@ trait UserTrait
             $userRole = $userModel->roles->first()?->prefix ?? 'user';
 
             // Verificar si el rol es válido para pagos
-            if (!in_array($userRole, ['commerce', 'seller', 'customer'])) {
+            if (! in_array($userRole, ['commerce', 'seller', 'customer'])) {
                 return response()->json(['error' => 'Tipo de usuario no válido.'], 400);
             }
 
             $currencyInfo = Currency::getById($currency, ['country', 'symbol']);
 
-            if (!$currencyInfo) {
+            if (! $currencyInfo) {
                 return response()->json(['error' => 'Moneda no válida.'], 404);
             }
 
             $isoCode = Country::getValue($currencyInfo->country, 'iso_code_2');
 
-            if (!$isoCode) {
+            if (! $isoCode) {
                 return response()->json(['error' => 'Código ISO del país no encontrado.'], 404);
             }
 
@@ -210,24 +198,28 @@ trait UserTrait
                     // Bs (Venezuela) PagoMovil
                     $pagomovil = PagoMovil::with(['Bank', 'DocumentType'])->where('user_id', $userId)->first();
 
-                    if (!$pagomovil) $error = true;
+                    if (! $pagomovil) {
+                        $error = true;
+                    }
 
                     $paymentMethod = [
                         '0' => ["({$pagomovil->Bank->code}) {$pagomovil->Bank->name}"],
                         '1' => ["{$pagomovil->DocumentType->value}-{$pagomovil->document}"],
-                        '2' => [$pagomovil->phone]
+                        '2' => [$pagomovil->phone],
                     ];
-                    break;
 
+                    break;
                 case 'BR':
                     // R$ (Brasil) Pix
                     $pix = PixKey::where('user_id', $userId)->first();
 
-                    if (!$pix) $error = true;
+                    if (! $pix) {
+                        $error = true;
+                    }
 
                     $paymentMethod = ['0' => ["{$pix->chave_pix}: {$pix->pix_key_value}"]];
-                    break;
 
+                    break;
                 default:
                     return ['error' => 'Tipo de moneda no soportado'];
             }
@@ -239,10 +231,11 @@ trait UserTrait
             return [
                 'paymentMethod' => $paymentMethod,
                 'code' => $isoCode,
-                'currency' => $currencyInfo->symbol
+                'currency' => $currencyInfo->symbol,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Ha ocurrido un error al procesar la solicitud: ' . $e->getMessage());
+
             return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
     }
@@ -256,14 +249,14 @@ trait UserTrait
         $primaryRelation = $relation[0] ?? null;
         $secondaryRelation = $relation[1] ?? null;
 
-        if (!$primaryRelation) {
+        if (! $primaryRelation) {
             return collect(); // No hay relación principal
         }
 
         // Construcción de la consulta principal
         $query = CommerceCurrency::select('id', 'currency')
             ->with($primaryRelation)
-            ->whereHas($primaryRelation, function ($subquery) use (
+            ->whereHas($primaryRelation, function($subquery) use (
                 $userId,
                 $userColumn,
                 $dateFilter,
@@ -321,80 +314,33 @@ trait UserTrait
             case 'commerce':
                 $commerce = $this->commerce(['id', 'user_id']);
                 $userRoleId = $commerce->id;
+
                 break;
             case 'customer':
                 $customer = $this->customer(['id', 'user_id']);
                 $userRoleId = $customer->id;
+
                 break;
             case 'seller':
                 $seller = $this->seller(['id', 'user_id']);
                 $userRoleId = $seller->id;
+
                 break;
             default:
                 $userRoleId = $userId;
+
                 break;
         }
 
         return ['type' => $userRole, 'id' => $userRoleId, 'userId' => $userId];
     }
 
-    public function insertOtherCurrencies($creatorUser, $otherCurrencies)
-    {
-        if (empty($otherCurrencies) || !is_array($otherCurrencies)) return;
-
-        $creatorId = $creatorUser['id'];
-        $modelName = $creatorUser['model'];
-        $userColumn = strtolower($modelName);
-        $model = app("App\\Models\\{$modelName}CountriesCurrencies");
-
-        $otherCurrencies = Currency::getCurrenciesById($otherCurrencies, ['id', 'country']);
-        $currenciesToCreate = [];
-        $currencyIds = [];
-        $timestamp = now();
-
-        foreach ($otherCurrencies as $currency) {
-            $currencyIds[] = $currency->id;
-            $currenciesToCreate[] = [
-                $userColumn => $creatorId,
-                'country' => $currency->country,
-                'currency' => $currency->id,
-                'level' => '2',
-                'creator_user_id' => $creatorUser['userId'],
-                'status' => 1,
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp
-            ];
-        }
-
-        DB::transaction(function () use ($model, $userColumn, $creatorId, $currenciesToCreate, $currencyIds) {
-            try {
-                foreach ($currenciesToCreate as $currencyData) {
-                    $model::firstOrCreate(
-                        [$userColumn => $creatorId, 'currency' => $currencyData['currency']],
-                        $currencyData
-                    );
-                }
-
-                $model::where($userColumn, $creatorId)
-                    ->whereIn('currency', $currencyIds)
-                    ->update(['status' => 1]);
-
-                $model::where($userColumn, $creatorId)
-                    ->where('level', '2')->whereNotIn('currency', $currencyIds)
-                    ->update(['status' => 0]); // monedas no seleccionadas = inactivas
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error("Error al insertar monedas para el $userColumn: " . $e->getMessage());
-                throw $e;
-            }
-        });
-    }
-
     public function handleUserGamePermission($creatorUser, $allowedGames)
     {
         return;
-        if (empty($allowedGames) || !is_array($allowedGames)) return;
+        if (empty($allowedGames) || ! is_array($allowedGames)) {
+            return;
+        }
 
         $creatorId = $creatorUser['id'];
         $modelName = $creatorUser['model'];
@@ -416,16 +362,16 @@ trait UserTrait
                 'creator_user_id' => $creatorUser['userId'],
                 'status' => 1,
                 'created_at' => $timestamp,
-                'updated_at' => $timestamp
+                'updated_at' => $timestamp,
             ];
         }
 
-        DB::transaction(function () use ($model, $userColumn, $creatorId, $currenciesToCreate, $currencyIds) {
+        DB::transaction(function() use ($model, $userColumn, $creatorId, $currenciesToCreate, $currencyIds) {
             try {
                 foreach ($currenciesToCreate as $currencyData) {
                     $model::firstOrCreate(
                         [$userColumn => $creatorId, 'currency' => $currencyData['currency']],
-                        $currencyData
+                        $currencyData,
                     );
                 }
 
@@ -436,12 +382,93 @@ trait UserTrait
                 $model::where($userColumn, $creatorId)
                     ->where('level', '2')->whereNotIn('currency', $currencyIds)
                     ->update(['status' => 0]); // monedas no seleccionadas = inactivas
-
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
                 Log::error("Error al insertar monedas para el $userColumn: " . $e->getMessage());
+
                 throw $e;
             }
         });
+    }
+
+    public function insertOtherCurrencies($creatorUser, $otherCurrencies)
+    {
+        if (empty($otherCurrencies) || ! is_array($otherCurrencies)) {
+            return;
+        }
+
+        $creatorId = $creatorUser['id'];
+        $modelName = $creatorUser['model'];
+        $userColumn = strtolower($modelName);
+        $model = app("App\\Models\\{$modelName}CountriesCurrencies");
+
+        $otherCurrencies = Currency::getCurrenciesById($otherCurrencies, ['id', 'country']);
+        $currenciesToCreate = [];
+        $currencyIds = [];
+        $timestamp = now();
+
+        foreach ($otherCurrencies as $currency) {
+            $currencyIds[] = $currency->id;
+            $currenciesToCreate[] = [
+                $userColumn => $creatorId,
+                'country' => $currency->country,
+                'currency' => $currency->id,
+                'level' => '2',
+                'creator_user_id' => $creatorUser['userId'],
+                'status' => 1,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+        }
+
+        DB::transaction(function() use ($model, $userColumn, $creatorId, $currenciesToCreate, $currencyIds) {
+            try {
+                foreach ($currenciesToCreate as $currencyData) {
+                    $model::firstOrCreate(
+                        [$userColumn => $creatorId, 'currency' => $currencyData['currency']],
+                        $currencyData,
+                    );
+                }
+
+                $model::where($userColumn, $creatorId)
+                    ->whereIn('currency', $currencyIds)
+                    ->update(['status' => 1]);
+
+                $model::where($userColumn, $creatorId)
+                    ->where('level', '2')->whereNotIn('currency', $currencyIds)
+                    ->update(['status' => 0]); // monedas no seleccionadas = inactivas
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::error("Error al insertar monedas para el $userColumn: " . $e->getMessage());
+
+                throw $e;
+            }
+        });
+    }
+
+    public function seller($fields = ['*'])
+    {
+        return Seller::select($fields)->where('user_id', Auth::id())->first();
+    }
+
+    public function treasurer($fields = ['*'])
+    {
+        return Treasurer::select($fields)->where('user_id', Auth::id())->first();
+    }
+
+    public function user(array $fields = ['*'])
+    {
+        $userId = Auth::id();
+
+        if (! $userId) {
+            return null;
+        }
+
+        return User::select($fields)->find($userId);
+    }
+
+    public function wallet($userId = null)
+    {
+        return Wallet::with('Currency')->where('user_id', $userId ?? Auth::id())->first();
     }
 }

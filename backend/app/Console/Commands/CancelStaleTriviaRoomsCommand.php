@@ -16,13 +16,12 @@ use Throwable;
  */
 class CancelStaleTriviaRoomsCommand extends Command
 {
-    protected $signature = 'trivia:cancel-stale-rooms';
-
-    protected $description = 'Cancela salas de trivia "waiting" abandonadas y reembolsa a los participantes confirmados';
-
     private const STALE_AFTER_MINUTES = 30;
 
-    public function handle(TriviaRoomRefundService $refundService): void
+    protected $description = 'Cancela salas de trivia "waiting" abandonadas y reembolsa a los participantes confirmados';
+    protected $signature = 'trivia:cancel-stale-rooms';
+
+    public function handle(TriviaRoomRefundService $refundService) : void
     {
         $status = 'SUCCESS';
         $cancelled = 0;
@@ -34,13 +33,13 @@ class CancelStaleTriviaRoomsCommand extends Command
 
             // 'cancelling' es recuperable: si una ejecución anterior se interrumpió,
             // el próximo cron vuelve a intentar los reembolsos idempotentes.
-            $rooms = TriviaRoom::where(function ($q) use ($cutoff) {
+            $rooms = TriviaRoom::where(function($q) use ($cutoff) {
                 $q->where('status', 'cancelling')
-                    ->orWhere(function ($waiting) use ($cutoff) {
+                    ->orWhere(function($waiting) use ($cutoff) {
                         $waiting->where('status', 'waiting')
-                            ->where(function ($stale) use ($cutoff) {
+                            ->where(function($stale) use ($cutoff) {
                                 $stale->where('scheduled_at', '<=', $cutoff)
-                                    ->orWhere(function ($manual) use ($cutoff) {
+                                    ->orWhere(function($manual) use ($cutoff) {
                                         $manual->whereNull('scheduled_at')
                                             ->where('created_at', '<=', $cutoff);
                                     });
@@ -54,7 +53,7 @@ class CancelStaleTriviaRoomsCommand extends Command
                 try {
                     // Reclamar y confirmar el estado en PostgreSQL antes de escribir
                     // en la wallet MySQL. El estado impide que la partida arranque.
-                    $claimed = DB::connection('pgsql_trivia')->transaction(function () use ($roomId, $cutoff) {
+                    $claimed = DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $cutoff) {
                         $room = DB::connection('pgsql_trivia')
                             ->table('trivia_rooms')
                             ->where('id', $roomId)
@@ -107,7 +106,7 @@ class CancelStaleTriviaRoomsCommand extends Command
 
                     // Finalizar en una transacción corta. Si falla, la sala queda
                     // en 'cancelling' y el siguiente cron repetirá sin duplicar saldo.
-                    $finalized = DB::connection('pgsql_trivia')->transaction(function () use ($roomId) {
+                    $finalized = DB::connection('pgsql_trivia')->transaction(function() use ($roomId) {
                         $locked = DB::connection('pgsql_trivia')
                             ->table('trivia_rooms')
                             ->where('id', $roomId)
@@ -148,7 +147,7 @@ class CancelStaleTriviaRoomsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

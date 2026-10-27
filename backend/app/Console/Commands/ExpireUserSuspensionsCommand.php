@@ -9,11 +9,10 @@ use Throwable;
 
 class ExpireUserSuspensionsCommand extends Command
 {
+    protected $description = 'Reactiva usuarios cuya suspensión temporal (UserSuspension.expires_at) ya venció, sin esperar acción manual de un admin';
     protected $signature = 'suspensions:expire-temporary';
 
-    protected $description = 'Reactiva usuarios cuya suspensión temporal (UserSuspension.expires_at) ya venció, sin esperar acción manual de un admin';
-
-    public function handle(UserSuspensionExpiryService $service): void
+    public function handle(UserSuspensionExpiryService $service) : void
     {
         $status = 'SUCCESS';
 
@@ -26,7 +25,7 @@ class ExpireUserSuspensionsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

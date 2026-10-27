@@ -2,11 +2,15 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Domains\Games\Bingo\Events\BingoRoomUpdated;
+use Illuminate\Console\Command;
 
 class BroadcastTest extends Command
 {
+    /**
+     * Descripción del comando.
+     */
+    protected $description = 'Envía un evento de prueba a un canal de bingo para verificar broadcasting';
     /**
      * Nombre y firma del comando.
      * Permite pasar un roomId opcional.
@@ -16,11 +20,6 @@ class BroadcastTest extends Command
                             {--prize=150.75 : Valor del prize pool}
                             {--players=8 : Cantidad de jugadores}
                             {--price=2.50 : Precio del cartón en USD}';
-
-    /**
-     * Descripción del comando.
-     */
-    protected $description = 'Envía un evento de prueba a un canal de bingo para verificar broadcasting';
 
     /**
      * Ejecuta el comando.
@@ -36,13 +35,13 @@ class BroadcastTest extends Command
             roomId: $roomId,
             prizePool: $prizePool,
             totalPlayers: $totalPlayers,
-            cardPriceUsd: $cardPriceUsd
+            cardPriceUsd: $cardPriceUsd,
         );
 
         broadcast($event);
 
         $this->info("✅ Evento enviado a bingo.room.$roomId");
         $this->info("   prizePool: $prizePool, totalPlayers: $totalPlayers, cardPriceUsd: $cardPriceUsd");
-        $this->info("📱 Revisa la consola del navegador para confirmar recepción del evento");
+        $this->info('📱 Revisa la consola del navegador para confirmar recepción del evento');
     }
 }

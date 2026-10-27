@@ -17,10 +17,18 @@ use BradieTilley\Snowflake\Snowflake;
  */
 trait SnowflakeId
 {
-    public function initializeSnowflakeId(): void
+    public static function generateSnowflakeId() : string
     {
-        $this->keyType    = 'string';
-        $this->incrementing = false;
+        return (string) (new Snowflake)->id();
+    }
+
+    protected static function bootSnowflakeId() : void
+    {
+        static::creating(function($model) {
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = (string) (new Snowflake)->id();
+            }
+        });
     }
 
     /**
@@ -28,22 +36,14 @@ trait SnowflakeId
      * getCasts() es el método que Eloquent llama internamente para aplicar
      * casts en toArray(), toJson() y JsonResponse.
      */
-    public function getCasts(): array
+    public function getCasts() : array
     {
         return array_merge(parent::getCasts(), ['id' => 'string']);
     }
 
-    protected static function bootSnowflakeId(): void
+    public function initializeSnowflakeId() : void
     {
-        static::creating(function ($model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = (string) (new Snowflake())->id();
-            }
-        });
-    }
-
-    public static function generateSnowflakeId(): string
-    {
-        return (string) (new Snowflake())->id();
+        $this->keyType = 'string';
+        $this->incrementing = false;
     }
 }

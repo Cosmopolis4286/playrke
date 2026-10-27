@@ -23,15 +23,15 @@ use Throwable;
  */
 class AutoFinishStaleTriviaGamesCommand extends Command
 {
-    protected $signature   = 'trivia:auto-finish-stale-games';
     protected $description = 'Finaliza automáticamente partidas de trivia inactivas (sin actividad por 5 min) y reintenta reanudar pausas automáticas';
+    protected $signature = 'trivia:auto-finish-stale-games';
 
-    public function handle(FinishGameAction $finishGameAction, TriviaPauseService $pauseService): void
+    public function handle(FinishGameAction $finishGameAction, TriviaPauseService $pauseService) : void
     {
-        $status   = 'SUCCESS';
+        $status = 'SUCCESS';
         $finished = 0;
-        $resumed  = 0;
-        $errors   = 0;
+        $resumed = 0;
+        $errors = 0;
 
         try {
             $games = TriviaGame::active()->get(['id']);
@@ -48,7 +48,7 @@ class AutoFinishStaleTriviaGamesCommand extends Command
                     $errors++;
                     Log::error("[Trivia:AutoFinish] Error al finalizar juego {$gameId}.", [
                         'game_id' => $gameId,
-                        'error'   => $e->getMessage(),
+                        'error' => $e->getMessage(),
                     ]);
                     $this->warn("  ✗ Error en juego {$gameId}: {$e->getMessage()}");
                 }
@@ -72,7 +72,7 @@ class AutoFinishStaleTriviaGamesCommand extends Command
                     $errors++;
                     Log::error("[Trivia:AutoFinish] Error al intentar reanudar juego {$gameId}.", [
                         'game_id' => $gameId,
-                        'error'   => $e->getMessage(),
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -84,7 +84,7 @@ class AutoFinishStaleTriviaGamesCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

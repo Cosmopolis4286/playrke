@@ -18,13 +18,13 @@ use Illuminate\Support\Facades\Log;
  */
 class LogFailedQueueJobListener
 {
-    public function handle(JobFailed $event): void
+    public function handle(JobFailed $event) : void
     {
         Log::error(sprintf(
             '[queue:%s] %s: %s',
             $event->connectionName,
             $event->job->resolveName(),
-            $event->exception->getMessage()
+            $event->exception->getMessage(),
         ));
     }
 }

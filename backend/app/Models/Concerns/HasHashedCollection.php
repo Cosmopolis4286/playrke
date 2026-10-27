@@ -15,12 +15,11 @@ trait HasHashedCollection
     /**
      * Devuelve un array de IDs hasheados alineados con la colección.
      *
-     * @param  Collection $rows
      * @return string[]
      */
-    protected function hashCollectionIds(Collection $rows): array
+    protected function hashCollectionIds(Collection $rows) : array
     {
-        return $rows->map(function ($model) {
+        return $rows->map(function($model) {
             return method_exists($model, 'getHashedIdAttribute')
                 ? $model->hashed_id
                 : (string) $model->getKey();
@@ -30,14 +29,13 @@ trait HasHashedCollection
     /**
      * Devuelve un map id => hash (útil para Vue / Alpine).
      *
-     * @param  Collection $rows
      * @return array<string, string>
      */
-    protected function mapHashedCollectionIds(Collection $rows): array
+    protected function mapHashedCollectionIds(Collection $rows) : array
     {
-        return $rows->mapWithKeys(function ($model) {
+        return $rows->mapWithKeys(function($model) {
             return [
-                (string) $model->getKey() => $model->hashed_id
+                (string) $model->getKey() => $model->hashed_id,
             ];
         })->toArray();
     }

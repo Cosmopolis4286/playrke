@@ -13,35 +13,35 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SellerGame extends BasePivot
 {
     public $incrementing = false;
-    protected $primaryKey = null;
-    protected $keyType = 'string';
-
-    protected $table = 'sellers_games';
-
-    protected $fillable = [
-        'seller_id',
-        'game_id',
-        'status'
-    ];
 
     protected $casts = [
         'seller_id' => 'string',
         'game_id' => 'string',
     ];
 
-    /**
-     * Relación con el comercio
-     */
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(Seller::class, 'seller_id');
-    }
+    protected $fillable = [
+        'seller_id',
+        'game_id',
+        'status',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = null;
+
+    protected $table = 'sellers_games';
 
     /**
      * Relación con el juego
      */
-    public function game(): BelongsTo
+    public function game() : BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');
+    }
+
+    /**
+     * Relación con el comercio
+     */
+    public function seller() : BelongsTo
+    {
+        return $this->belongsTo(Seller::class, 'seller_id');
     }
 }

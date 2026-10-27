@@ -2,13 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Roles\Customer\HandleTransactions;
 use App\Services\Commands\CommandService;
+use App\Services\Roles\Customer\HandleTransactions;
 use Illuminate\Console\Command;
 use Throwable;
 
 class ValidateTransactionsCommand extends Command
 {
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Recorrer y procesar transacciones pendientes';
     /**
      * The name and signature of the console command.
      *
@@ -17,18 +23,9 @@ class ValidateTransactionsCommand extends Command
     protected $signature = 'validate:transactions';
 
     /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Recorrer y procesar transacciones pendientes';
-
-    /**
      * Execute the console command.
-     *
-     * @return void
      */
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -43,7 +40,7 @@ class ValidateTransactionsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
 
             $this->error($output); // Imprime el error en la consola

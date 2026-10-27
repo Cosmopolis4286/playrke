@@ -21,43 +21,42 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CustomerExchangeRate extends BaseModel
 {
-    protected $table = 'customers_exchange_rates';
-
-    protected $primaryKey = 'id';
-
     public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    protected $fillable = [
-        'customer_id',
-        'currency_id',
-        'amount',
-        'percentage',
-        'status'
-    ];
 
     protected $casts = [
         'id' => 'string',
         'customer_id' => 'string',
         'currency_id' => 'string',
         'amount' => 'decimal:4',
-        'percentage' => 'float'
+        'percentage' => 'float',
     ];
 
-    /**
-     * Relación con el cliente
-     */
-    public function customer(): BelongsTo
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
-    }
+    protected $fillable = [
+        'customer_id',
+        'currency_id',
+        'amount',
+        'percentage',
+        'status',
+    ];
+
+    protected $keyType = 'string';
+
+    protected $primaryKey = 'id';
+    protected $table = 'customers_exchange_rates';
 
     /**
      * Relación con la moneda
      */
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    /**
+     * Relación con el cliente
+     */
+    public function customer() : BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 }

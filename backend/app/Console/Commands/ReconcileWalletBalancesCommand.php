@@ -2,18 +2,17 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Commands\CommandService;
 use App\Domains\Wallet\Services\WalletBalanceReconciliationService;
+use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;
 
 class ReconcileWalletBalancesCommand extends Command
 {
+    protected $description = 'Alerta wallets cuyo balance no coincide con el balance_after de su último movimiento (drift entre balance y el ledger)';
     protected $signature = 'wallet:reconcile-balances';
 
-    protected $description = 'Alerta wallets cuyo balance no coincide con el balance_after de su último movimiento (drift entre balance y el ledger)';
-
-    public function handle(WalletBalanceReconciliationService $service): void
+    public function handle(WalletBalanceReconciliationService $service) : void
     {
         $status = 'SUCCESS';
 
@@ -32,7 +31,7 @@ class ReconcileWalletBalancesCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }
@@ -43,7 +42,7 @@ class ReconcileWalletBalancesCommand extends Command
             $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
 
-        if ($status === 'SUCCESS' && (!isset($count) || $count === 0)) {
+        if ($status === 'SUCCESS' && (! isset($count) || $count === 0)) {
             $this->info($output);
         }
     }

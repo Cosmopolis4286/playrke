@@ -14,26 +14,27 @@ class TriviaGameStarted implements ShouldBroadcastNow
         public readonly string $roomId,
         public readonly string $roomCode,
         public readonly string $gameId,
-        public readonly int    $totalQuestions,
-        public readonly int    $timePerQuestion,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel("trivia.room.{$this->roomId}");
+        public readonly int $totalQuestions,
+        public readonly int $timePerQuestion,
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'trivia.game.started';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : Channel
+    {
+        return new Channel("trivia.room.{$this->roomId}");
+    }
+
+    public function broadcastWith() : array
     {
         return [
-            'game_id'           => $this->gameId,
-            'room_code'         => $this->roomCode,
-            'total_questions'   => $this->totalQuestions,
+            'game_id' => $this->gameId,
+            'room_code' => $this->roomCode,
+            'total_questions' => $this->totalQuestions,
             'time_per_question' => $this->timePerQuestion,
         ];
     }

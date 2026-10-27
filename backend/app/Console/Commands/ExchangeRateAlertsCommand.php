@@ -13,10 +13,10 @@ use Throwable;
  */
 class ExchangeRateAlertsCommand extends Command
 {
-    protected $signature   = 'exchange-rates:alerts';
     protected $description = 'Avisa cambios de tasa a la red y tasas propias desactualizadas o alejadas de la oficial';
+    protected $signature = 'exchange-rates:alerts';
 
-    public function handle(ExchangeRateAlertService $service): void
+    public function handle(ExchangeRateAlertService $service) : void
     {
         $status = 'SUCCESS';
 

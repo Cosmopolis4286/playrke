@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
-use App\Services\Commands\CommandService;
-use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
+use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
+use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -25,10 +25,10 @@ use Throwable;
  */
 class RetryFailedBingoPrizePayoutsCommand extends Command
 {
-    protected $signature   = 'bingo:retry-failed-prize-payouts';
     protected $description = 'Reintenta acreditar a la wallet los premios de bingo cuyo pago automático falló';
+    protected $signature = 'bingo:retry-failed-prize-payouts';
 
-    public function handle(BingoPrizePayoutService $payoutService): void
+    public function handle(BingoPrizePayoutService $payoutService) : void
     {
         $status = 'SUCCESS';
         $retried = 0;
@@ -48,9 +48,9 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
                 ->whereRaw(
                     '(SELECT COUNT(*) FROM bingo_card_prize_payments WHERE bingo_card_prize_payments.card_prize_id = bingo_card_prizes.id AND bingo_card_prize_payments.deleted_at IS NULL) < ?',
-                    [PrizePayoutRetryPolicy::MAX_ATTEMPTS]
+                    [PrizePayoutRetryPolicy::MAX_ATTEMPTS],
                 )
-                ->chunkById(50, function ($chunk) use ($payoutService, &$retried, &$skipped) {
+                ->chunkById(50, function($chunk) use ($payoutService, &$retried, &$skipped) {
                     foreach ($chunk as $cardPrize) {
                         // Cargar solo el último payment de cada modelo individualmente:
                         // limit(1) en eager-load HasMany es un pitfall conocido de Laravel
@@ -58,10 +58,11 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                         // 1 por modelo — todos los demás modelos verían payments vacíos y
                         // bypassearían el backoff.
                         $lastPayment = $cardPrize->payments()->latest('created_at')->first();
-                        $attempts    = $cardPrize->payments()->count();
+                        $attempts = $cardPrize->payments()->count();
 
-                        if (!PrizePayoutRetryPolicy::isReadyToRetry($lastPayment?->created_at, $attempts)) {
+                        if (! PrizePayoutRetryPolicy::isReadyToRetry($lastPayment?->created_at, $attempts)) {
                             $skipped++;
+
                             continue;
                         }
 
@@ -85,7 +86,7 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
 
             $this->error($output);

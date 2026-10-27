@@ -28,14 +28,14 @@ class DatabaseLogHandler extends AbstractProcessingHandler
         parent::__construct($level, bubble: true);
     }
 
-    protected function write(LogRecord $record): void
+    protected function write(LogRecord $record) : void
     {
         try {
             $exception = $record->context['exception'] ?? null;
             $meta = $record->context;
             unset($meta['exception']);
 
-            /**
+            /*
              * Usuario autenticado al momento del error, cuando exista — sin
              * esto, /logs no tiene forma de correlacionar un error con "qué
              * hizo este usuario justo antes" en /audit.
@@ -74,13 +74,13 @@ class DatabaseLogHandler extends AbstractProcessingHandler
 
             try {
                 SystemLog::create([
-                    'level'        => $level,
-                    'message'      => $record->message,
-                    'context'      => $record->channel,
-                    'stack'        => $stack,
-                    'meta'         => $meta ?: null,
-                    'fingerprint'  => $fingerprint,
-                    'occurrences'  => 1,
+                    'level' => $level,
+                    'message' => $record->message,
+                    'context' => $record->channel,
+                    'stack' => $stack,
+                    'meta' => $meta ?: null,
+                    'fingerprint' => $fingerprint,
+                    'occurrences' => 1,
                     'last_seen_at' => now(),
                 ]);
             } catch (QueryException $e) {
@@ -99,7 +99,30 @@ class DatabaseLogHandler extends AbstractProcessingHandler
         }
     }
 
-    private function isUniqueConstraintViolation(QueryException $e): bool
+    /**
+     * Hash de agrupación: nivel + mensaje + primera línea "propia" del stack
+     * (no vendor/) — dos errores con el mismo mensaje pero orígenes de código
+     * distintos no deben agruparse entre sí.
+     */
+    private function fingerprint(string $level, string $message, ?string $stack) : string
+    {
+        $originLine = '';
+
+        if ($stack !== null) {
+            foreach (explode("\n", $stack) as $line) {
+                if (str_contains($line, '/vendor/')) {
+                    continue;
+                }
+                $originLine = trim($line);
+
+                break;
+            }
+        }
+
+        return hash('sha256', $level . '|' . $message . '|' . $originLine);
+    }
+
+    private function isUniqueConstraintViolation(QueryException $e) : bool
     {
         // 23000 = SQLSTATE de integridad referencial/unicidad en MySQL/MariaDB/SQLite.
         return $e->getCode() === '23000';
@@ -113,36 +136,14 @@ class DatabaseLogHandler extends AbstractProcessingHandler
      * Warning tiene su propio valor; la columna ya es string(10), que cabe
      * el más largo ('emergency').
      */
-    private function mapLevel(Level $level): string
+    private function mapLevel(Level $level) : string
     {
         return match (true) {
             $level->value >= Level::Emergency->value => 'emergency',
-            $level->value >= Level::Alert->value     => 'alert',
-            $level->value >= Level::Critical->value  => 'critical',
-            $level->value >= Level::Error->value     => 'error',
-            default                                  => 'warn',
+            $level->value >= Level::Alert->value => 'alert',
+            $level->value >= Level::Critical->value => 'critical',
+            $level->value >= Level::Error->value => 'error',
+            default => 'warn',
         };
-    }
-
-    /**
-     * Hash de agrupación: nivel + mensaje + primera línea "propia" del stack
-     * (no vendor/) — dos errores con el mismo mensaje pero orígenes de código
-     * distintos no deben agruparse entre sí.
-     */
-    private function fingerprint(string $level, string $message, ?string $stack): string
-    {
-        $originLine = '';
-
-        if ($stack !== null) {
-            foreach (explode("\n", $stack) as $line) {
-                if (str_contains($line, '/vendor/')) {
-                    continue;
-                }
-                $originLine = trim($line);
-                break;
-            }
-        }
-
-        return hash('sha256', $level . '|' . $message . '|' . $originLine);
     }
 }

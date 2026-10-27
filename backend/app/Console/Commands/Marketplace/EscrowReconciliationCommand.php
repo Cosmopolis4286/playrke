@@ -21,11 +21,10 @@ use Throwable;
  */
 class EscrowReconciliationCommand extends Command
 {
+    protected $description = 'Alerta escrows vencidos sin liberar/reembolsar (posible fallo del cron de expiración)';
     protected $signature = 'marketplace:reconcile-escrows';
 
-    protected $description = 'Alerta escrows vencidos sin liberar/reembolsar (posible fallo del cron de expiración)';
-
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -43,8 +42,8 @@ class EscrowReconciliationCommand extends Command
             } else {
                 foreach ($staleEscrows as $escrow) {
                     Log::warning('[EscrowReconciliation] Escrow vencido sin resolver', [
-                        'escrow_id'  => $escrow->id,
-                        'status'     => $escrow->status,
+                        'escrow_id' => $escrow->id,
+                        'status' => $escrow->status,
                         'expires_at' => $escrow->expires_at?->toIso8601String(),
                     ]);
                 }
@@ -57,7 +56,7 @@ class EscrowReconciliationCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }
@@ -68,7 +67,7 @@ class EscrowReconciliationCommand extends Command
             $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
 
-        if ($status === 'SUCCESS' && (!isset($staleEscrows) || $staleEscrows->isEmpty())) {
+        if ($status === 'SUCCESS' && (! isset($staleEscrows) || $staleEscrows->isEmpty())) {
             $this->info($output);
         }
     }

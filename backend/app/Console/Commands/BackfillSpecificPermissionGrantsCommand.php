@@ -15,11 +15,10 @@ use Illuminate\Console\Command;
  */
 class BackfillSpecificPermissionGrantsCommand extends Command
 {
+    protected $description = 'Migra users.specific_permissions (JSON) a la tabla user_specific_permission_grants';
     protected $signature = 'permissions:backfill-specific-grants';
 
-    protected $description = 'Migra users.specific_permissions (JSON) a la tabla user_specific_permission_grants';
-
-    public function handle(): int
+    public function handle() : int
     {
         $users = User::whereNotNull('specific_permissions')->get(['id', 'specific_permissions']);
         $migrated = 0;

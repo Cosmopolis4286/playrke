@@ -21,30 +21,8 @@ use Throwable;
 final class ScheduledCommandGate
 {
     private const CACHE_KEY = 'scheduled_commands.flags';
-    private const CRON_CACHE_KEY = 'scheduled_commands.cron';
     private const CACHE_TTL = 60;
-
-    public static function isEnabled(string $command): bool
-    {
-        try {
-            $flags = Cache::remember(
-                self::CACHE_KEY,
-                self::CACHE_TTL,
-                fn () => ScheduledCommand::query()->pluck('is_enabled', 'command')
-            );
-
-            // Comando sin registro en BD (agregado en código pero el seeder
-            // aún no corrió) — default activo, mismo principio fail-open.
-            return (bool) ($flags[$command] ?? true);
-        } catch (Throwable $e) {
-            Log::warning('ScheduledCommandGate: no se pudo resolver el estado, se asume activo.', [
-                'command' => $command,
-                'error'   => $e->getMessage(),
-            ]);
-
-            return true;
-        }
-    }
+    private const CRON_CACHE_KEY = 'scheduled_commands.cron';
 
     /**
      * Cron expression editada desde la UI para este comando, o null si el
@@ -52,20 +30,20 @@ final class ScheduledCommandGate
      * original, ej. ->everyMinute(), como fallback). Fail-open igual que
      * isEnabled(): un error aquí nunca debe tumbar el schedule completo.
      */
-    public static function cronFor(string $command): ?string
+    public static function cronFor(string $command) : ?string
     {
         try {
             $overrides = Cache::remember(
                 self::CRON_CACHE_KEY,
                 self::CACHE_TTL,
-                fn () => ScheduledCommand::query()->whereNotNull('cron_expression')->pluck('cron_expression', 'command')
+                fn () => ScheduledCommand::query()->whereNotNull('cron_expression')->pluck('cron_expression', 'command'),
             );
 
             return $overrides[$command] ?? null;
         } catch (Throwable $e) {
             Log::warning('ScheduledCommandGate: no se pudo resolver cron_expression, se usa el default de código.', [
                 'command' => $command,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -77,9 +55,31 @@ final class ScheduledCommandGate
      * tick del scheduler (máximo 1 minuto, por cómo corre schedule:run)
      * refleja el cambio sin esperar el TTL completo.
      */
-    public static function flushCache(): void
+    public static function flushCache() : void
     {
         Cache::forget(self::CACHE_KEY);
         Cache::forget(self::CRON_CACHE_KEY);
+    }
+
+    public static function isEnabled(string $command) : bool
+    {
+        try {
+            $flags = Cache::remember(
+                self::CACHE_KEY,
+                self::CACHE_TTL,
+                fn () => ScheduledCommand::query()->pluck('is_enabled', 'command'),
+            );
+
+            // Comando sin registro en BD (agregado en código pero el seeder
+            // aún no corrió) — default activo, mismo principio fail-open.
+            return (bool) ($flags[$command] ?? true);
+        } catch (Throwable $e) {
+            Log::warning('ScheduledCommandGate: no se pudo resolver el estado, se asume activo.', [
+                'command' => $command,
+                'error' => $e->getMessage(),
+            ]);
+
+            return true;
+        }
     }
 }

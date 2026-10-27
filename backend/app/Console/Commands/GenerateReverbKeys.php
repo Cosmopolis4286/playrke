@@ -7,9 +7,8 @@ use Illuminate\Support\Str;
 
 class GenerateReverbKeys extends Command
 {
-    protected $signature = 'reverb:generate-keys';
-
     protected $description = 'Genera un APP_ID, APP_KEY y APP_SECRET para Reverb/Soketi';
+    protected $signature = 'reverb:generate-keys';
 
     public function handle()
     {
@@ -20,11 +19,11 @@ class GenerateReverbKeys extends Command
         $appKey = Str::random(32);
         $appSecret = Str::random(32);
 
-        $this->info("Llaves generadas para Reverb/Soketi:");
+        $this->info('Llaves generadas para Reverb/Soketi:');
         $this->line("REVERB_APP_ID={$appId}");
         $this->line("REVERB_APP_KEY={$appKey}");
         $this->line("REVERB_APP_SECRET={$appSecret}");
 
-        $this->info("Ahora copia estas líneas en tu archivo .env");
+        $this->info('Ahora copia estas líneas en tu archivo .env');
     }
 }

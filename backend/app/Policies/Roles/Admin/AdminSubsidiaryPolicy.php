@@ -20,13 +20,64 @@ use Illuminate\Database\Eloquent\Model;
 class AdminSubsidiaryPolicy extends BaseRolePolicy
 {
     /**
-     * Roles requeridos para operar sobre sucursales.
+     * Eliminar (soft delete) la sucursal — acción de dominio 'delete', no
+     * 'destroy' (el hard delete, ya cubierto por authorizeResource()).
      *
-     * @return string|string[]
+     * Tipo del segundo parámetro forzado a Model (no Subsidiary): este
+     * método SÍ sobrescribe BaseRolePolicy::delete(User, Model), a
+     * diferencia de toggleStatus()/resetPassword() (métodos propios, sin
+     * equivalente en la clase base) — estrechar el tipo aquí rompe PHP por
+     * contravarianza (fatal error en el bootstrap de CUALQUIER request, no
+     * solo los que llaman authorize('delete', ...), confirmado en runtime).
      */
-    protected function requiredRole(): string|array
+    public function delete(User $user, Model $model) : bool
     {
-        return ['admin', 'commerce'];
+        return $this->hasAccess($user)
+            && $this->canMutate($model)
+            && $this->ownsSubsidiary($user, $model);
+    }
+
+    public function forceDelete(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->ownsSubsidiary($user, $model);
+    }
+
+    /**
+     * Cambiar contraseña asociada a la sucursal.
+     *
+     * Acción de dominio (no CRUD estándar).
+     */
+    public function resetPassword(User $user, Subsidiary $subsidiary) : bool
+    {
+        return $this->hasAccess($user)
+            && $this->canMutate($subsidiary)
+            && $this->ownsSubsidiary($user, $subsidiary);
+    }
+
+    /**
+     * Cambiar estado de la sucursal.
+     *
+     * Acción de dominio (no CRUD estándar) — el nombre debe coincidir
+     * exactamente con la acción del controller (toggleStatus()), ya que
+     * authorizeResource() no la cubre automáticamente y por lo tanto
+     * requiere un $this->authorize('toggleStatus', ...) explícito que
+     * resuelve este método por nombre.
+     */
+    public function toggleStatus(User $user, Subsidiary $subsidiary) : bool
+    {
+        return $this->hasAccess($user)
+            && $this->canMutate($subsidiary)
+            && $this->ownsSubsidiary($user, $subsidiary);
+    }
+
+    public function update(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsSubsidiary($user, $model);
+    }
+
+    public function view(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->ownsSubsidiary($user, $model);
     }
 
     /**
@@ -34,9 +85,19 @@ class AdminSubsidiaryPolicy extends BaseRolePolicy
      *
      * @return string[]
      */
-    protected function forbiddenStatuses(): array
+    protected function forbiddenStatuses() : array
     {
         return ['DELETED', 'BLOCKED'];
+    }
+
+    /**
+     * Roles requeridos para operar sobre sucursales.
+     *
+     * @return string|string[]
+     */
+    protected function requiredRole() : string|array
+    {
+        return ['admin', 'commerce'];
     }
 
     /**
@@ -57,7 +118,7 @@ class AdminSubsidiaryPolicy extends BaseRolePolicy
      *   borrar o cambiar el estado de cualquier sucursal).
      * - commerce: dueño si Subsidiary::commerce()->user_id es este user.
      */
-    private function ownsSubsidiary(User $user, Subsidiary $subsidiary): bool
+    private function ownsSubsidiary(User $user, Subsidiary $subsidiary) : bool
     {
         if (app(RoleAuthorizationService::class)->hasAnyRole($user, 'admin')) {
             return true;
@@ -65,82 +126,10 @@ class AdminSubsidiaryPolicy extends BaseRolePolicy
 
         if ($user->hasRole('commerce')) {
             $subsidiary->loadMissing('commerce');
+
             return (string) $subsidiary->commerce?->user_id === (string) $user->id;
         }
 
         return false;
-    }
-
-    public function view(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->ownsSubsidiary($user, $model);
-    }
-
-    public function update(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsSubsidiary($user, $model);
-    }
-
-    public function forceDelete(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->ownsSubsidiary($user, $model);
-    }
-
-    /**
-     * Cambiar estado de la sucursal.
-     *
-     * Acción de dominio (no CRUD estándar) — el nombre debe coincidir
-     * exactamente con la acción del controller (toggleStatus()), ya que
-     * authorizeResource() no la cubre automáticamente y por lo tanto
-     * requiere un $this->authorize('toggleStatus', ...) explícito que
-     * resuelve este método por nombre.
-     *
-     * @param User $user
-     * @param Subsidiary $subsidiary
-     * @return bool
-     */
-    public function toggleStatus(User $user, Subsidiary $subsidiary): bool
-    {
-        return $this->hasAccess($user)
-            && $this->canMutate($subsidiary)
-            && $this->ownsSubsidiary($user, $subsidiary);
-    }
-
-    /**
-     * Eliminar (soft delete) la sucursal — acción de dominio 'delete', no
-     * 'destroy' (el hard delete, ya cubierto por authorizeResource()).
-     *
-     * Tipo del segundo parámetro forzado a Model (no Subsidiary): este
-     * método SÍ sobrescribe BaseRolePolicy::delete(User, Model), a
-     * diferencia de toggleStatus()/resetPassword() (métodos propios, sin
-     * equivalente en la clase base) — estrechar el tipo aquí rompe PHP por
-     * contravarianza (fatal error en el bootstrap de CUALQUIER request, no
-     * solo los que llaman authorize('delete', ...), confirmado en runtime).
-     *
-     * @param User $user
-     * @param Model $model
-     * @return bool
-     */
-    public function delete(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user)
-            && $this->canMutate($model)
-            && $this->ownsSubsidiary($user, $model);
-    }
-
-    /**
-     * Cambiar contraseña asociada a la sucursal.
-     *
-     * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Subsidiary $subsidiary
-     * @return bool
-     */
-    public function resetPassword(User $user, Subsidiary $subsidiary): bool
-    {
-        return $this->hasAccess($user)
-            && $this->canMutate($subsidiary)
-            && $this->ownsSubsidiary($user, $subsidiary);
     }
 }

@@ -8,33 +8,33 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface ConnectionTypeRepositoryInterface extends BaseRepositoryInterface
 {
-    public function getActiveConnectionTypes(): Collection;
+    public function activateConnectionType($connectionTypeId) : bool;
 
-    public function getInactiveConnectionTypes(): Collection;
+    public function bulkActivateConnectionTypes(array $connectionTypeIds) : int;
 
-    public function getByLabel(string $label): ?ConnectionType;
+    public function bulkDeactivateConnectionTypes(array $connectionTypeIds) : int;
 
-    public function searchByLabel(string $searchTerm): Collection;
+    public function createConnectionType(string $code, string $label, bool $isActive = true) : ConnectionType;
 
-    public function activateConnectionType($connectionTypeId): bool;
+    public function deactivateConnectionType($connectionTypeId) : bool;
 
-    public function deactivateConnectionType($connectionTypeId): bool;
+    public function existsByLabel(string $label) : bool;
 
-    public function createConnectionType(string $code, string $label, bool $isActive = true): ConnectionType;
+    public function getActiveConnectionTypes() : Collection;
 
-    public function updateConnectionType($connectionTypeId, array $data): bool;
+    public function getByLabel(string $label) : ?ConnectionType;
 
-    public function existsByLabel(string $label): bool;
+    public function getConnectionTypesByStatus(bool $isActive = true) : Collection;
 
-    public function getConnectionTypesByStatus(bool $isActive = true): Collection;
+    public function getConnectionTypeStatistics() : array;
 
-    public function toggleConnectionTypeStatus($connectionTypeId): bool;
+    public function getInactiveConnectionTypes() : Collection;
 
-    public function bulkActivateConnectionTypes(array $connectionTypeIds): int;
+    public function getRecentlyCreatedConnectionTypes(int $days = 30) : Collection;
 
-    public function bulkDeactivateConnectionTypes(array $connectionTypeIds): int;
+    public function searchByLabel(string $searchTerm) : Collection;
 
-    public function getConnectionTypeStatistics(): array;
+    public function toggleConnectionTypeStatus($connectionTypeId) : bool;
 
-    public function getRecentlyCreatedConnectionTypes(int $days = 30): Collection;
+    public function updateConnectionType($connectionTypeId, array $data) : bool;
 }

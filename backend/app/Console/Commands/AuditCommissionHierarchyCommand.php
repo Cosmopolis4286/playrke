@@ -30,11 +30,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AuditCommissionHierarchyCommand extends Command
 {
+    protected $description = 'Lista comisiones fuera de tope (vendedor ≤ agencia ≤ comercializadora) y vendedores sin comercializadora';
     protected $signature = 'commissions:audit-hierarchy';
 
-    protected $description = 'Lista comisiones fuera de tope (vendedor ≤ agencia ≤ comercializadora) y vendedores sin comercializadora';
-
-    public function handle(CommissionHierarchyGuard $guard): int
+    public function handle(CommissionHierarchyGuard $guard) : int
     {
         $violations = $guard->findViolations();
         $orphans = $this->findOrphans();
@@ -68,13 +67,13 @@ class AuditCommissionHierarchyCommand extends Command
     }
 
     /** @return list<array{0: string, 1: string, 2: string, 3: string, 4: string}> */
-    private function findOrphans(): array
+    private function findOrphans() : array
     {
         $orphans = [];
 
         Seller::with(['subsidiary:id,commerce_id', 'subsidiary.commerce:id,user_id', 'managerCommerce:id,user_id'])
             ->where('status', '!=', 'DELETED')
-            ->chunkById(500, function ($sellers) use (&$orphans) {
+            ->chunkById(500, function($sellers) use (&$orphans) {
                 foreach ($sellers as $seller) {
                     if ($seller->resolveCommerce() !== null) {
                         continue;

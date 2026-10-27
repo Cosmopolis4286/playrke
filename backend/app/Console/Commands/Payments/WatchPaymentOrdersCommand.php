@@ -15,11 +15,10 @@ use Throwable;
  */
 class WatchPaymentOrdersCommand extends Command
 {
+    protected $description = 'Evalúa las órdenes de pago USDT-TRC20 activas contra la blockchain y avanza su estado';
     protected $signature = 'payments:watch-orders';
 
-    protected $description = 'Evalúa las órdenes de pago USDT-TRC20 activas contra la blockchain y avanza su estado';
-
-    public function handle(BlockchainWatcherService $watcher): void
+    public function handle(BlockchainWatcherService $watcher) : void
     {
         $status = 'SUCCESS';
         $output = 'Órdenes de pago evaluadas correctamente.';
@@ -32,7 +31,7 @@ class WatchPaymentOrdersCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

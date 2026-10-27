@@ -4,7 +4,6 @@ namespace App\Models\Roles;
 
 use App\Models\BaseModel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Database\Factories\Roles\AdminFactory;
 
 /**
  * Modelo para administradores del sistema
@@ -12,6 +11,11 @@ use Database\Factories\Roles\AdminFactory;
 class Admin extends BaseModel
 {
     use HasFactory;
+
+    protected $casts = [
+        'permissions' => 'array',
+        'last_login_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -22,27 +26,6 @@ class Admin extends BaseModel
         'permissions',
         'last_login_at',
     ];
-
-    protected $casts = [
-        'permissions' => 'array',
-        'last_login_at' => 'datetime',
-    ];
-
-    /**
-     * Obtiene el usuario asociado al administrador
-     */
-    public function user()
-    {
-        return $this->belongsTo(\App\Models\User::class);
-    }
-
-    /**
-     * Obtiene el código único asociado al administrador
-     */
-    public function uniqueCode()
-    {
-        return $this->belongsTo(\App\Models\UniqueCode::class, 'unique_code_id');
-    }
 
     /**
      * Obtiene el país del administrador
@@ -61,9 +44,17 @@ class Admin extends BaseModel
     }
 
     /**
+     * Verifica si el administrador tiene un permiso específico
+     */
+    public function hasPermission(string $permission) : bool
+    {
+        return in_array($permission, $this->permissions ?? []);
+    }
+
+    /**
      * Verifica si el administrador está activo
      */
-    public function isActive(): bool
+    public function isActive() : bool
     {
         return $this->status === 'ACTIVE';
     }
@@ -71,16 +62,24 @@ class Admin extends BaseModel
     /**
      * Verifica si el administrador está bloqueado
      */
-    public function isBlocked(): bool
+    public function isBlocked() : bool
     {
         return $this->status === 'BLOCKED';
     }
 
     /**
-     * Verifica si el administrador tiene un permiso específico
+     * Obtiene el código único asociado al administrador
      */
-    public function hasPermission(string $permission): bool
+    public function uniqueCode()
     {
-        return in_array($permission, $this->permissions ?? []);
+        return $this->belongsTo(\App\Models\UniqueCode::class, 'unique_code_id');
+    }
+
+    /**
+     * Obtiene el usuario asociado al administrador
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
     }
 }

@@ -26,52 +26,50 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Roles\Seller::class => \App\Policies\Roles\Seller\Manager\ManagerSellerPolicy::class,
         \App\Models\Prize::class => \App\Policies\Prizes\PrizePolicy::class,
         \App\Models\Content\LandingSection::class => \App\Policies\Content\LandingSectionPolicy::class,
-        \App\Models\Game::class                                    => \App\Policies\Games\GamePolicy::class,
-        \App\Models\AppParameter::class                            => \App\Policies\AppParameterPolicy::class,
-        \App\Domains\Games\Bingo\Models\Room\BingoRoom::class     => \App\Domains\Games\Bingo\Policies\BingoRoomPolicy::class,
+        \App\Models\Game::class => \App\Policies\Games\GamePolicy::class,
+        \App\Models\AppParameter::class => \App\Policies\AppParameterPolicy::class,
+        \App\Domains\Games\Bingo\Models\Room\BingoRoom::class => \App\Domains\Games\Bingo\Policies\BingoRoomPolicy::class,
         \App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic::class => \App\Domains\Games\Bingo\Policies\BingoRoomAutomaticPolicy::class,
-        \App\Domains\Games\Trivia\Models\TriviaRoom::class        => \App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class,
-        \App\Domains\Wallet\Models\WalletMovement::class       => \App\Domains\Wallet\Policies\WalletMovementPolicy::class,
-        \App\Domains\Marketplace\Escrow\Models\Escrow::class   => \App\Policies\Marketplace\EscrowPolicy::class,
-        \App\Domains\Payments\Models\PaymentOrder::class       => \App\Policies\Payments\PaymentOrderPolicy::class,
-        \App\Models\Permission::class                         => \App\Policies\Roles\Admin\PermissionPolicy::class,
-        \App\Models\Module::class                             => \App\Policies\Roles\Admin\ModulePolicy::class,
-        \App\Models\SidebarMenuVisibility::class               => \App\Policies\Roles\Admin\SidebarMenuVisibilityPolicy::class,
-        \App\Models\DashboardWidgetVisibility::class           => \App\Policies\Roles\Admin\DashboardWidgetVisibilityPolicy::class,
-        \App\Models\Role::class                                => \App\Policies\Roles\Admin\RolePolicy::class,
+        \App\Domains\Games\Trivia\Models\TriviaRoom::class => \App\Domains\Games\Trivia\Policies\TriviaRoomPolicy::class,
+        \App\Domains\Wallet\Models\WalletMovement::class => \App\Domains\Wallet\Policies\WalletMovementPolicy::class,
+        \App\Domains\Marketplace\Escrow\Models\Escrow::class => \App\Policies\Marketplace\EscrowPolicy::class,
+        \App\Domains\Payments\Models\PaymentOrder::class => \App\Policies\Payments\PaymentOrderPolicy::class,
+        \App\Models\Permission::class => \App\Policies\Roles\Admin\PermissionPolicy::class,
+        \App\Models\Module::class => \App\Policies\Roles\Admin\ModulePolicy::class,
+        \App\Models\SidebarMenuVisibility::class => \App\Policies\Roles\Admin\SidebarMenuVisibilityPolicy::class,
+        \App\Models\DashboardWidgetVisibility::class => \App\Policies\Roles\Admin\DashboardWidgetVisibilityPolicy::class,
+        \App\Models\Role::class => \App\Policies\Roles\Admin\RolePolicy::class,
         \App\Models\Roles\Player\External\ExternalPlayer::class => \App\Policies\Roles\Admin\ExternalPlayerPolicy::class,
-        \App\Models\User::class                               => \App\Policies\UserPolicy::class,
+        \App\Models\User::class => \App\Policies\UserPolicy::class,
         // JobsCenterPolicy no tiene un Model Eloquent único (vista compuesta
         // sobre scheduled_commands + jobs + failed_jobs) — se registra contra
         // su propia clase para poder usar $this->authorize('manage', JobsCenterPolicy::class).
-        \App\Policies\System\JobsCenterPolicy::class          => \App\Policies\System\JobsCenterPolicy::class,
+        \App\Policies\System\JobsCenterPolicy::class => \App\Policies\System\JobsCenterPolicy::class,
         // KycPolicy: mismo criterio (vista compuesta sobre KycDocument, no
         // un Model único por acción) — registrada contra su propia clase.
-        \App\Policies\Roles\Admin\KycPolicy::class            => \App\Policies\Roles\Admin\KycPolicy::class,
+        \App\Policies\Roles\Admin\KycPolicy::class => \App\Policies\Roles\Admin\KycPolicy::class,
         // AdminUserPolicy: distinta de UserPolicy (esa sirve al flujo /admins,
         // requiredRole()='superadmin' puro) — este es el flujo /admin/user/*,
         // permission-based (users.view/edit/delete), accesible también a
         // 'admin' no-superadmin. Registrada contra su propia clase, mismo
         // criterio que KycPolicy/JobsCenterPolicy.
-        \App\Policies\Roles\Admin\AdminUserPolicy::class      => \App\Policies\Roles\Admin\AdminUserPolicy::class,
+        \App\Policies\Roles\Admin\AdminUserPolicy::class => \App\Policies\Roles\Admin\AdminUserPolicy::class,
         // AdminPlayerPolicy: mismo criterio — Player = User sin Policy propia
         // hoy, y App\Models\User::class ya está tomado por UserPolicy.
-        \App\Policies\Roles\Admin\AdminPlayerPolicy::class    => \App\Policies\Roles\Admin\AdminPlayerPolicy::class,
+        \App\Policies\Roles\Admin\AdminPlayerPolicy::class => \App\Policies\Roles\Admin\AdminPlayerPolicy::class,
         \App\Domains\Platform\WinEvent\Models\WinEvent::class => \App\Policies\Roles\Admin\AdminWinEventPolicy::class,
         \App\Domains\Games\Trivia\Models\TriviaQuestion::class => \App\Domains\Games\Trivia\Policies\TriviaQuestionPolicy::class,
-        \App\Models\Games\Trivia\TriviaParticipant::class     => \App\Policies\Games\Trivia\TriviaPrizeDisputePolicy::class,
+        \App\Models\Games\Trivia\TriviaParticipant::class => \App\Policies\Games\Trivia\TriviaPrizeDisputePolicy::class,
     ];
 
     /**
      * Registra políticas y gates.
-     *
-     * @return void
      */
-    public function boot(): void
+    public function boot() : void
     {
         $this->registerPolicies();
 
-        $this->app->booted(function () {
+        $this->app->booted(function() {
             $this->defineRoleGate('admin');
             $this->defineRoleGate('commerce', ['commerce', 'admin']);
             $this->defineRoleGate('treasurer', ['treasurer', 'admin']);
@@ -91,17 +89,16 @@ class AuthServiceProvider extends ServiceProvider
     /**
      * Define un gate para un rol o múltiples roles.
      *
-     * @param string $gateName Nombre del gate
+     * @param string        $gateName        Nombre del gate
      * @param string[]|null $allowedPrefixes Prefijos de rol permitidos (por defecto solo el gateName)
-     * @return void
      */
-    protected function defineRoleGate(string $gateName, array|null $allowedPrefixes = null): void
+    protected function defineRoleGate(string $gateName, ?array $allowedPrefixes = null) : void
     {
         $prefixes = $allowedPrefixes ?? [$gateName];
 
         Gate::define(
             $gateName,
-            fn ($user) => app(RoleAuthorizationService::class)->hasAnyRole($user, $prefixes)
+            fn ($user) => app(RoleAuthorizationService::class)->hasAnyRole($user, $prefixes),
         );
     }
 }

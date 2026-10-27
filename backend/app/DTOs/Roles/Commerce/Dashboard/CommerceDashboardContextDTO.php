@@ -37,26 +37,27 @@ final class CommerceDashboardContextDTO implements ContextDTO
         public readonly array $prizesToDeliver = ['count' => 0, 'amount' => null],
         /** Próximas salas propias (hoy y mañana) con su ocupación */
         public readonly array $upcomingRooms = [],
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'           => $this->userName,
-            'stats'              => $this->stats,
-            'recentActivity'     => $this->recentActivity,
-            'entityCounts'       => $this->entityCounts,
-            'salesTrend'         => $this->salesTrend,
-            'salesBySeller'      => $this->salesBySeller,
-            'wallets'            => $this->wallets,
-            'configuration'      => $this->configuration,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
+            'recentActivity' => $this->recentActivity,
+            'entityCounts' => $this->entityCounts,
+            'salesTrend' => $this->salesTrend,
+            'salesBySeller' => $this->salesBySeller,
+            'wallets' => $this->wallets,
+            'configuration' => $this->configuration,
             'pendingWalletCount' => $this->pendingWalletCount,
-            'period'             => $this->period,
-            'rkeReceivables'     => $this->rkeReceivables,
-            'networkHealth'      => $this->networkHealth,
-            'networkPayments'    => $this->networkPayments,
-            'prizesToDeliver'    => $this->prizesToDeliver,
-            'upcomingRooms'      => $this->upcomingRooms,
+            'period' => $this->period,
+            'rkeReceivables' => $this->rkeReceivables,
+            'networkHealth' => $this->networkHealth,
+            'networkPayments' => $this->networkPayments,
+            'prizesToDeliver' => $this->prizesToDeliver,
+            'upcomingRooms' => $this->upcomingRooms,
         ];
     }
 }

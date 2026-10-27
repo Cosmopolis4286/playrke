@@ -8,33 +8,33 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface DocumentTypeRepositoryInterface extends BaseRepositoryInterface
 {
-    public function getByCountry(int $countryId): Collection;
+    public function activateDocumentType(int $documentTypeId) : bool;
 
-    public function getActiveByCountry(int $countryId): Collection;
+    public function createDocumentType(int $countryId, string $code, string $description, bool $isActive = true) : DocumentType;
 
-    public function getByCode(string $code): ?DocumentType;
+    public function deactivateDocumentType(int $documentTypeId) : bool;
 
-    public function getByCountryAndCode(int $countryId, string $code): ?DocumentType;
+    public function existsByCode(string $code, ?int $countryId = null) : bool;
 
-    public function getActiveDocumentTypes(): Collection;
+    public function getActiveByCountry(int $countryId) : Collection;
 
-    public function getInactiveDocumentTypes(): Collection;
+    public function getActiveDocumentTypes() : Collection;
 
-    public function searchByDescription(string $searchTerm): Collection;
+    public function getByCode(string $code) : ?DocumentType;
 
-    public function activateDocumentType(int $documentTypeId): bool;
+    public function getByCountry(int $countryId) : Collection;
 
-    public function deactivateDocumentType(int $documentTypeId): bool;
+    public function getByCountryAndCode(int $countryId, string $code) : ?DocumentType;
 
-    public function existsByCode(string $code, ?int $countryId = null): bool;
+    public function getCountrySpecificDocumentTypes(int $countryId) : Collection;
 
-    public function createDocumentType(int $countryId, string $code, string $description, bool $isActive = true): DocumentType;
+    public function getDocumentTypesByStatus(bool $isActive = true) : Collection;
 
-    public function updateDocumentType(int $documentTypeId, array $data): bool;
+    public function getGlobalDocumentTypes() : Collection;
 
-    public function getDocumentTypesByStatus(bool $isActive = true): Collection;
+    public function getInactiveDocumentTypes() : Collection;
 
-    public function getGlobalDocumentTypes(): Collection;
+    public function searchByDescription(string $searchTerm) : Collection;
 
-    public function getCountrySpecificDocumentTypes(int $countryId): Collection;
+    public function updateDocumentType(int $documentTypeId, array $data) : bool;
 }

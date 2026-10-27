@@ -6,7 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class TosVersion extends Model
 {
-    protected $table = 'tos_versions';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_ARCHIVED = 'archived';
+
+    public const STATUS_DRAFT = 'draft';
+
+    protected $casts = [
+        'effective_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'version',
@@ -16,23 +23,16 @@ class TosVersion extends Model
         'status',
         'effective_at',
     ];
+    protected $table = 'tos_versions';
 
-    protected $casts = [
-        'effective_at' => 'datetime',
-    ];
-
-    public const STATUS_DRAFT    = 'draft';
-    public const STATUS_ACTIVE   = 'active';
-    public const STATUS_ARCHIVED = 'archived';
-
-    public static function current(): ?self
+    public static function current() : ?self
     {
         return static::where('status', self::STATUS_ACTIVE)
             ->orderByDesc('effective_at')
             ->first();
     }
 
-    public function isActive(): bool
+    public function isActive() : bool
     {
         return $this->status === self::STATUS_ACTIVE;
     }

@@ -12,14 +12,14 @@ use App\DTOs\ContextDTO;
 final class DirectoryContextDTO implements ContextDTO
 {
     /**
-     * @param string       $roleUser        Rol del usuario (ej. 'commerce', 'customer').
-     * @param mixed        $banks           Lista de bancos (venezolanos o brasileños según país).
-     * @param mixed        $directories     Lista de directorios del usuario.
-     * @param mixed        $documentTypes   Lista de tipos de documento.
-     * @param string|null  $tokenId         Token de usuario conectado por API (opcional).
-     * @param mixed        $currencies      Monedas disponibles con información de país.
-     * @param bool         $isImpersonation True si un admin/superadmin está viendo el directorio de otro usuario.
-     * @param array|null   $viewingUser     {id, username, email} del usuario dueño del directorio cuando isImpersonation=true — permite a la UI mostrar "Viendo el directorio de X".
+     * @param string      $roleUser        Rol del usuario (ej. 'commerce', 'customer').
+     * @param mixed       $banks           lista de bancos (venezolanos o brasileños según país)
+     * @param mixed       $directories     lista de directorios del usuario
+     * @param mixed       $documentTypes   lista de tipos de documento
+     * @param string|null $tokenId         token de usuario conectado por API (opcional)
+     * @param mixed       $currencies      monedas disponibles con información de país
+     * @param bool        $isImpersonation true si un admin/superadmin está viendo el directorio de otro usuario
+     * @param array|null  $viewingUser     {id, username, email} del usuario dueño del directorio cuando isImpersonation=true — permite a la UI mostrar "Viendo el directorio de X"
      */
     public function __construct(
         public readonly string $roleUser,
@@ -30,24 +30,25 @@ final class DirectoryContextDTO implements ContextDTO
         public readonly mixed $currencies = [],
         public readonly bool $isImpersonation = false,
         public readonly ?array $viewingUser = null,
-    ) {}
+    ) {
+    }
 
     /**
      * Convierte el DTO en un array para la vista.
      *
      * @return array<string, mixed>
      */
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'banks'           => $this->banks,
-            'directories'     => $this->directories,
-            'documentTypes'   => $this->documentTypes,
-            'roleUser'        => $this->roleUser,
-            'tokenId'         => $this->tokenId,
-            'currencies'      => $this->currencies,
+            'banks' => $this->banks,
+            'directories' => $this->directories,
+            'documentTypes' => $this->documentTypes,
+            'roleUser' => $this->roleUser,
+            'tokenId' => $this->tokenId,
+            'currencies' => $this->currencies,
             'isImpersonation' => $this->isImpersonation,
-            'viewingUser'     => $this->viewingUser,
+            'viewingUser' => $this->viewingUser,
         ];
     }
 }

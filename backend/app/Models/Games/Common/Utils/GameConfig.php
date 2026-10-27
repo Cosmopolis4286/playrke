@@ -23,25 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class GameConfig extends Model
 {
     use SnowflakeId;
-
-    // ========================
-    // Configuración de la tabla
-    // ========================
-    protected $table = 'game_configs';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    // ========================
-    // Campos asignables
-    // ========================
-    protected $fillable = [
-        'game_id',
-        'param',
-        'value',
-        'description',
-        'status',
-    ];
 
     // ========================
     // Casting de tipos
@@ -56,15 +38,73 @@ class GameConfig extends Model
     ];
 
     // ========================
+    // Campos asignables
+    // ========================
+    protected $fillable = [
+        'game_id',
+        'param',
+        'value',
+        'description',
+        'status',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+
+    // ========================
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'game_configs';
+
+    // ========================
     // Relaciones
     // ========================
 
     /**
      * Relación: una configuración pertenece a un juego
      */
-    public function game(): BelongsTo
+    public function game() : BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');
+    }
+
+    /**
+     * Obtener el valor como booleano
+     */
+    public function getBoolValueAttribute() : bool
+    {
+        return in_array(strtolower($this->value), ['true', '1', 'yes', 'on', 'enabled']);
+    }
+
+    /**
+     * Obtener descripción o parámetro como fallback
+     */
+    public function getDescriptionOrParamAttribute() : string
+    {
+        return $this->description ?: $this->param;
+    }
+
+    /**
+     * Obtener nombre para mostrar
+     */
+    public function getDisplayNameAttribute() : string
+    {
+        return "{$this->param}: {$this->value}";
+    }
+
+    /**
+     * Obtener el valor como flotante
+     */
+    public function getFloatValueAttribute() : float
+    {
+        return (float) $this->value;
+    }
+
+    /**
+     * Obtener el valor como entero
+     */
+    public function getIntValueAttribute() : int
+    {
+        return (int) $this->value;
     }
 
     // ========================
@@ -74,57 +114,17 @@ class GameConfig extends Model
     /**
      * Verificar si la configuración está activa
      */
-    public function getIsActiveStatusAttribute(): bool
+    public function getIsActiveStatusAttribute() : bool
     {
         return $this->status === true;
     }
 
     /**
-     * Obtener nombre para mostrar
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        return "{$this->param}: {$this->value}";
-    }
-
-    /**
-     * Obtener el valor como entero
-     */
-    public function getIntValueAttribute(): int
-    {
-        return (int) $this->value;
-    }
-
-    /**
-     * Obtener el valor como flotante
-     */
-    public function getFloatValueAttribute(): float
-    {
-        return (float) $this->value;
-    }
-
-    /**
-     * Obtener el valor como booleano
-     */
-    public function getBoolValueAttribute(): bool
-    {
-        return in_array(strtolower($this->value), ['true', '1', 'yes', 'on', 'enabled']);
-    }
-
-    /**
      * Verificar si el valor es numérico
      */
-    public function getIsNumericValueAttribute(): bool
+    public function getIsNumericValueAttribute() : bool
     {
         return is_numeric($this->value);
-    }
-
-    /**
-     * Obtener descripción o parámetro como fallback
-     */
-    public function getDescriptionOrParamAttribute(): string
-    {
-        return $this->description ?: $this->param;
     }
 
     // ========================
@@ -140,19 +140,11 @@ class GameConfig extends Model
     }
 
     /**
-     * Scope para configuraciones inactivas
+     * Scope para valores booleanos
      */
-    public function scopeInactive($query)
+    public function scopeBooleanValues($query)
     {
-        return $query->where('status', false);
-    }
-
-    /**
-     * Scope para buscar por juego
-     */
-    public function scopeForGame($query, string $gameId)
-    {
-        return $query->where('game_id', $gameId);
+        return $query->whereIn('value', ['true', 'false', '1', '0', 'yes', 'no', 'on', 'off', 'enabled', 'disabled']);
     }
 
     /**
@@ -172,6 +164,38 @@ class GameConfig extends Model
     }
 
     /**
+     * Scope para buscar por juego
+     */
+    public function scopeForGame($query, string $gameId)
+    {
+        return $query->where('game_id', $gameId);
+    }
+
+    /**
+     * Scope para buscar por juego y parámetro
+     */
+    public function scopeGameParam($query, string $gameId, string $param)
+    {
+        return $query->where('game_id', $gameId)->where('param', $param);
+    }
+
+    /**
+     * Scope para configuraciones inactivas
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', false);
+    }
+
+    /**
+     * Scope para valores numéricos
+     */
+    public function scopeNumericValues($query)
+    {
+        return $query->whereRaw('value REGEXP \'^[0-9]+(\.[0-9]+)?$\'');
+    }
+
+    /**
      * Scope para ordenar por parámetro
      */
     public function scopeOrderedByParam($query)
@@ -188,14 +212,6 @@ class GameConfig extends Model
     }
 
     /**
-     * Scope para buscar por juego y parámetro
-     */
-    public function scopeGameParam($query, string $gameId, string $param)
-    {
-        return $query->where('game_id', $gameId)->where('param', $param);
-    }
-
-    /**
      * Scope para buscar en descripción
      */
     public function scopeSearchDescription($query, string $search)
@@ -209,21 +225,5 @@ class GameConfig extends Model
     public function scopeWithGame($query)
     {
         return $query->with('game');
-    }
-
-    /**
-     * Scope para valores booleanos
-     */
-    public function scopeBooleanValues($query)
-    {
-        return $query->whereIn('value', ['true', 'false', '1', '0', 'yes', 'no', 'on', 'off', 'enabled', 'disabled']);
-    }
-
-    /**
-     * Scope para valores numéricos
-     */
-    public function scopeNumericValues($query)
-    {
-        return $query->whereRaw('value REGEXP \'^[0-9]+(\.[0-9]+)?$\'');
     }
 }

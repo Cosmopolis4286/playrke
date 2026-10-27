@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class PublicToken extends Model
 {
+    protected $casts = [
+        'scopes' => 'array',
+        'expires_at' => 'datetime',
+    ];
     protected $fillable = [
         'user_id',
         'token_hash',
@@ -15,17 +18,12 @@ class PublicToken extends Model
         'status',
     ];
 
-    protected $casts = [
-        'scopes'     => 'array',
-        'expires_at' => 'datetime',
-    ];
-
     // Scope para tokens válidos (activos y no expirados)
     public function scopeValid($query)
     {
         return $query
             ->where('status', 'ACTIVE')
-            ->where(function ($q) {
+            ->where(function($q) {
                 $q->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
             });

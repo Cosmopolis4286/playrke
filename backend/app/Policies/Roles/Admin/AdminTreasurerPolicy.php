@@ -17,33 +17,11 @@ use App\Policies\Roles\BaseRolePolicy;
 class AdminTreasurerPolicy extends BaseRolePolicy
 {
     /**
-     * Rol requerido para operar sobre tesoreros.
-     */
-    protected function requiredRole(): string
-    {
-        return 'admin';
-    }
-
-    /**
-     * Estados que bloquean operaciones mutables.
-     *
-     * @return string[]
-     */
-    protected function forbiddenStatuses(): array
-    {
-        return ['DELETED', 'BLOCKED'];
-    }
-
-    /**
      * Cambiar estado del tesorero.
      *
      * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Treasurer $treasurer
-     * @return bool
      */
-    public function changeStatus(User $user, Treasurer $treasurer): bool
+    public function changeStatus(User $user, Treasurer $treasurer) : bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($treasurer);
@@ -53,14 +31,28 @@ class AdminTreasurerPolicy extends BaseRolePolicy
      * Cambiar contraseña asociada al tesorero.
      *
      * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Treasurer $treasurer
-     * @return bool
      */
-    public function resetPassword(User $user, Treasurer $treasurer): bool
+    public function resetPassword(User $user, Treasurer $treasurer) : bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($treasurer);
+    }
+
+    /**
+     * Estados que bloquean operaciones mutables.
+     *
+     * @return string[]
+     */
+    protected function forbiddenStatuses() : array
+    {
+        return ['DELETED', 'BLOCKED'];
+    }
+
+    /**
+     * Rol requerido para operar sobre tesoreros.
+     */
+    protected function requiredRole() : string
+    {
+        return 'admin';
     }
 }

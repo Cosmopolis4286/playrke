@@ -39,18 +39,98 @@ use Illuminate\Database\Eloquent\Model;
 abstract class BaseRolePolicy
 {
     /**
-     * Rol o roles requeridos para operar sobre el recurso.
-     *
-     * Puede retornar:
-     * - Un string: 'admin'
-     * - Un array: ['admin', 'treasurer']
-     *
-     * Esto permite reutilizar la lógica de autorización en policies hijas
-     * sin duplicar validaciones.
-     *
-     * @return string|string[]
+     * Autoriza la creación de un nuevo recurso.
      */
-    abstract protected function requiredRole(): string|array;
+    public function create(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
+     * Autoriza la eliminación lógica (soft delete) del recurso.
+     *
+     * Por convención, se reutiliza la misma regla de update.
+     */
+    public function delete(User $user, Model $model) : bool
+    {
+        return $this->update($user, $model);
+    }
+
+    /**
+     * Autoriza la visualización de una lista filtrada de recursos.
+     */
+    public function fetchList(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
+     * Autoriza la eliminación definitiva (hard delete).
+     */
+    public function forceDelete(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
+     * Autoriza la restauración de un recurso eliminado.
+     */
+    public function restore(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
+     * Autoriza la actualización de un recurso existente.
+     *
+     * Solo se permite si:
+     * - El usuario tiene acceso por rol
+     * - El modelo está en un estado mutable
+     */
+    public function update(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->canMutate($model);
+    }
+
+    /**
+     * Autoriza la visualización de una entidad específica.
+     */
+    public function view(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
+     * Autoriza la visualización del listado de recursos.
+     *
+     * Equivalente a "viewAny" en policies Laravel estándar.
+     */
+    public function viewAny(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
+     * Determina si un modelo puede ser modificado según su estado actual.
+     *
+     * Si el modelo no posee el atributo `status`, se asume que es mutable.
+     *
+     * Esto evita errores en entidades que no manejan estados.
+     */
+    protected function canMutate(Model $model) : bool
+    {
+        // Si el modelo no tiene el atributo status, no se aplican restricciones
+        if (! array_key_exists('status', $model->getAttributes())) {
+            return true;
+        }
+
+        // Bloquear mutación si el status está en la lista de prohibidos
+        return ! in_array(
+            $model->status,
+            $this->forbiddenStatuses(),
+            true,
+        );
+    }
 
     /**
      * Estados del modelo que bloquean operaciones mutables (update/delete/etc).
@@ -62,7 +142,7 @@ abstract class BaseRolePolicy
      *
      * @return string[]
      */
-    protected function forbiddenStatuses(): array
+    protected function forbiddenStatuses() : array
     {
         return ['DELETED'];
     }
@@ -73,138 +153,23 @@ abstract class BaseRolePolicy
      * Delega en RoleAuthorizationService, la misma fuente de verdad que
      * usan middleware y gates, para que todas las capas de autorización
      * evalúen exactamente la misma regla.
-     *
-     * @param User $user
-     * @return bool
      */
-    protected function hasAccess(User $user): bool
+    protected function hasAccess(User $user) : bool
     {
         return app(RoleAuthorizationService::class)->hasAnyRole($user, $this->requiredRole());
     }
 
     /**
-     * Determina si un modelo puede ser modificado según su estado actual.
+     * Rol o roles requeridos para operar sobre el recurso.
      *
-     * Si el modelo no posee el atributo `status`, se asume que es mutable.
+     * Puede retornar:
+     * - Un string: 'admin'
+     * - Un array: ['admin', 'treasurer']
      *
-     * Esto evita errores en entidades que no manejan estados.
+     * Esto permite reutilizar la lógica de autorización en policies hijas
+     * sin duplicar validaciones.
      *
-     * @param Model $model
-     * @return bool
+     * @return string|string[]
      */
-    protected function canMutate(Model $model): bool
-    {
-        // Si el modelo no tiene el atributo status, no se aplican restricciones
-        if (!array_key_exists('status', $model->getAttributes())) {
-            return true;
-        }
-
-        // Bloquear mutación si el status está en la lista de prohibidos
-        return !in_array(
-            $model->status,
-            $this->forbiddenStatuses(),
-            true
-        );
-    }
-
-    /**
-     * Autoriza la visualización del listado de recursos.
-     *
-     * Equivalente a "viewAny" en policies Laravel estándar.
-     *
-     * @param User $user
-     * @return bool
-     */
-    public function viewAny(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    /**
-     * Autoriza la visualización de una entidad específica.
-     *
-     * @param User $user
-     * @param Model $model
-     * @return bool
-     */
-    public function view(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    /**
-     * Autoriza la visualización de una lista filtrada de recursos.
-     *
-     * @param User $user
-     * @return bool
-     */
-    public function fetchList(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    /**
-     * Autoriza la creación de un nuevo recurso.
-     *
-     * @param User $user
-     * @return bool
-     */
-    public function create(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    /**
-     * Autoriza la actualización de un recurso existente.
-     *
-     * Solo se permite si:
-     * - El usuario tiene acceso por rol
-     * - El modelo está en un estado mutable
-     *
-     * @param User $user
-     * @param Model $model
-     * @return bool
-     */
-    public function update(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->canMutate($model);
-    }
-
-    /**
-     * Autoriza la eliminación lógica (soft delete) del recurso.
-     *
-     * Por convención, se reutiliza la misma regla de update.
-     *
-     * @param User $user
-     * @param Model $model
-     * @return bool
-     */
-    public function delete(User $user, Model $model): bool
-    {
-        return $this->update($user, $model);
-    }
-
-    /**
-     * Autoriza la restauración de un recurso eliminado.
-     *
-     * @param User $user
-     * @param Model $model
-     * @return bool
-     */
-    public function restore(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    /**
-     * Autoriza la eliminación definitiva (hard delete).
-     *
-     * @param User $user
-     * @param Model $model
-     * @return bool
-     */
-    public function forceDelete(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user);
-    }
+    abstract protected function requiredRole() : string|array;
 }

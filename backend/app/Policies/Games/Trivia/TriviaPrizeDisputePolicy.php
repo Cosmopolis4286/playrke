@@ -22,7 +22,7 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class TriviaPrizeDisputePolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    protected function requiredRole() : string|array
     {
         return ['superadmin', 'admin'];
     }

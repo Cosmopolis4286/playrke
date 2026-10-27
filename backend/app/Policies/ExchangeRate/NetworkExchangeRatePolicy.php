@@ -13,7 +13,7 @@ class NetworkExchangeRatePolicy
 {
     public const ROLES = ['commerce', 'subsidiary', 'seller', 'customer', 'admin', 'superadmin', 'treasurer'];
 
-    public function view(User $user): bool
+    public function view(User $user) : bool
     {
         return $user->checkPermissionTo('exchange.view-network') && $user->hasRole(self::ROLES);
     }

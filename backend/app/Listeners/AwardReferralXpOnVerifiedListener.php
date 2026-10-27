@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\User\UserLevelService;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Otorga el XP de referido al referente SOLO cuando el referido verifica su
@@ -34,16 +35,16 @@ class AwardReferralXpOnVerifiedListener
     /** Máximo de referidos por los que un mismo referente recibe XP en un día. */
     private const MAX_DAILY_REFERRAL_XP = 10;
 
-    public function handle(Verified $event): void
+    public function handle(Verified $event) : void
     {
         $user = $event->user;
 
-        if (!$user instanceof User || !$user->referred_by_user_id) {
+        if (! $user instanceof User || ! $user->referred_by_user_id) {
             return;
         }
 
         $referrer = User::find($user->referred_by_user_id);
-        if (!$referrer || !$referrer->isActive()) {
+        if (! $referrer || ! $referrer->isActive()) {
             return;
         }
 
@@ -57,6 +58,7 @@ class AwardReferralXpOnVerifiedListener
                 'referrer_id' => (string) $referrer->id,
                 'verified_user_id' => (string) $user->id,
             ]);
+
             return;
         }
 
@@ -71,7 +73,7 @@ class AwardReferralXpOnVerifiedListener
                 'xp_amount' => $xp,
                 'referred_registration_ip' => $user->registration_ip,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('[AwardReferralXpOnVerifiedListener] No se pudo otorgar XP de referido: ' . $e->getMessage(), [
                 'referrer_id' => (string) $referrer->id,
                 'verified_user_id' => (string) $user->id,

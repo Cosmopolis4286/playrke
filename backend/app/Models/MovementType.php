@@ -22,13 +22,17 @@ class MovementType extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'movement_types';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     private const CACHE_KEY = 'movement_types:catalog';
     private const CACHE_TTL = 86400; // 24 h — invalidado por forgetCatalogCache() al editar desde admin
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'is_credit' => 'boolean',
+        'requires_approval' => 'boolean',
+        'is_system' => 'boolean',
+        'visible_roles' => 'array',
+    ];
 
     protected $fillable = [
         'code',
@@ -43,16 +47,28 @@ class MovementType extends Model
         'game_group',
         'sort_order',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id' => 'string',
-        'is_credit' => 'boolean',
-        'requires_approval' => 'boolean',
-        'is_system' => 'boolean',
-        'visible_roles' => 'array',
-    ];
+    protected $table = 'movement_types';
 
-    public function movements(): HasMany
+    /**
+     * Catálogo completo cacheado, indexado por code. Se llama desde
+     * WalletMovement::isCredit()/isDebit() sobre instancias que no siempre
+     * vienen de una query con eager-load, por eso se cachea el catálogo
+     * entero en vez de depender de la relación.
+     */
+    public static function catalog() : Collection
+    {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => self::query()->get()->keyBy('code'));
+    }
+
+    public static function forgetCatalogCache() : void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    public function movements() : HasMany
     {
         return $this->hasMany(WalletMovement::class, 'type', 'code');
     }
@@ -68,26 +84,10 @@ class MovementType extends Model
      */
     public function scopeVisibleTo($query, ?string $rolePrefix)
     {
-        return $query->where(function ($q) use ($rolePrefix) {
+        return $query->where(function($q) use ($rolePrefix) {
             $q->whereNull('visible_roles')
                 ->orWhereJsonLength('visible_roles', 0)
                 ->when($rolePrefix, fn ($q2) => $q2->orWhereJsonContains('visible_roles', $rolePrefix));
         });
-    }
-
-    /**
-     * Catálogo completo cacheado, indexado por code. Se llama desde
-     * WalletMovement::isCredit()/isDebit() sobre instancias que no siempre
-     * vienen de una query con eager-load, por eso se cachea el catálogo
-     * entero en vez de depender de la relación.
-     */
-    public static function catalog(): Collection
-    {
-        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => self::query()->get()->keyBy('code'));
-    }
-
-    public static function forgetCatalogCache(): void
-    {
-        Cache::forget(self::CACHE_KEY);
     }
 }

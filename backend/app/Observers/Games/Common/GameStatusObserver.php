@@ -3,6 +3,7 @@
 namespace App\Observers\Games\Common;
 
 use App\Models\Games\Common\Utils\GameStatus;
+use BadMethodCallException;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -15,26 +16,26 @@ use Illuminate\Support\Facades\Cache;
  */
 class GameStatusObserver
 {
-    public function created(GameStatus $_status): void
+    public function created(GameStatus $_status) : void
     {
         $this->flushCodesMapCache();
     }
 
-    public function updated(GameStatus $_status): void
+    public function deleted(GameStatus $_status) : void
     {
         $this->flushCodesMapCache();
     }
 
-    public function deleted(GameStatus $_status): void
+    public function updated(GameStatus $_status) : void
     {
         $this->flushCodesMapCache();
     }
 
-    private function flushCodesMapCache(): void
+    private function flushCodesMapCache() : void
     {
         try {
             Cache::tags(['game_status'])->flush();
-        } catch (\BadMethodCallException) {
+        } catch (BadMethodCallException) {
             // Driver sin soporte de tags — la invalidación ocurre por TTL (60 s).
         }
     }

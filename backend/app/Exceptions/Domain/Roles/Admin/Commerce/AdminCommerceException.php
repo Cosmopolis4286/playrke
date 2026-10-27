@@ -17,82 +17,50 @@ use App\Exceptions\Domain\DomainException;
 final class AdminCommerceException extends DomainException
 {
     /**
-     * Fallo genérico en la creación del comercio.
-     */
-    public static function creationFailed(): self
-    {
-        return new self('ADMIN_COMMERCE_CREATION_FAILED', 422);
-    }
-
-    /**
-     * Fallo genérico en la actualización del comercio.
-     */
-    public static function updateFailed(): self
-    {
-        return new self('ADMIN_COMMERCE_UPDATE_FAILED', 422);
-    }
-
-    /**
-     * Fallo genérico en la eliminación lógica del comercio.
-     */
-    public static function deleteFailed(): self
-    {
-        return new self('ADMIN_COMMERCE_DELETE_FAILED', 422);
-    }
-
-    /**
-     * Fallo al resetear la contraseña del comercio.
-     */
-    public static function passwordResetFailed(): self
-    {
-        return new self('ADMIN_COMMERCE_PASSWORD_RESET_FAILED', 422);
-    }
-
-    /**
-     * Solo se puede resetear la contraseña de comercios activos.
-     */
-    public static function passwordResetRequiresActiveStatus(): self
-    {
-        return new self('ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
-    }
-
-    /**
      * El comercio ya se encuentra eliminado.
      */
-    public static function alreadyDeleted(): self
+    public static function alreadyDeleted() : self
     {
         return new self('ADMIN_COMMERCE_ALREADY_DELETED', 409);
     }
 
     /**
-     * Intento de cambiar el estado de un comercio eliminado.
+     * Fallo genérico en la creación del comercio.
      */
-    public static function invalidStatusChange(): self
+    public static function creationFailed() : self
     {
-        return new self('ADMIN_COMMERCE_INVALID_STATUS_CHANGE', 409);
+        return new self('ADMIN_COMMERCE_CREATION_FAILED', 422);
     }
 
     /**
-     * El comercio no existe o no pertenece al contexto actual.
+     * Fallo genérico en la eliminación lógica del comercio.
      */
-    public static function notFound(): self
+    public static function deleteFailed() : self
     {
-        return new self('ADMIN_COMMERCE_NOT_FOUND', 404);
+        return new self('ADMIN_COMMERCE_DELETE_FAILED', 422);
     }
 
     /**
      * Intento de eliminación física inválida.
      */
-    public static function destroyNotAllowed(): self
+    public static function destroyNotAllowed() : self
     {
         return new self('ADMIN_COMMERCE_DESTROY_NOT_ALLOWED', 409);
+    }
+
+    /**
+     * Intento de cambiar el estado de un comercio eliminado.
+     */
+    public static function invalidStatusChange() : self
+    {
+        return new self('ADMIN_COMMERCE_INVALID_STATUS_CHANGE', 409);
     }
 
     /**
      * El comercio está marcado como principal/vinculado a la app — debe
      * reasignarse la marca a otro comercio antes de bloquearlo o eliminarlo.
      */
-    public static function isDefaultCommerce(): self
+    public static function isDefaultCommerce() : self
     {
         return new self('ADMIN_COMMERCE_IS_DEFAULT', 409);
     }
@@ -101,8 +69,40 @@ final class AdminCommerceException extends DomainException
      * Intento de desmarcar como principal un comercio que no es el
      * marcado actualmente (la marca cambió mientras tanto).
      */
-    public static function notDefaultCommerce(): self
+    public static function notDefaultCommerce() : self
     {
         return new self('ADMIN_COMMERCE_NOT_DEFAULT', 409);
+    }
+
+    /**
+     * El comercio no existe o no pertenece al contexto actual.
+     */
+    public static function notFound() : self
+    {
+        return new self('ADMIN_COMMERCE_NOT_FOUND', 404);
+    }
+
+    /**
+     * Fallo al resetear la contraseña del comercio.
+     */
+    public static function passwordResetFailed() : self
+    {
+        return new self('ADMIN_COMMERCE_PASSWORD_RESET_FAILED', 422);
+    }
+
+    /**
+     * Solo se puede resetear la contraseña de comercios activos.
+     */
+    public static function passwordResetRequiresActiveStatus() : self
+    {
+        return new self('ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
+    }
+
+    /**
+     * Fallo genérico en la actualización del comercio.
+     */
+    public static function updateFailed() : self
+    {
+        return new self('ADMIN_COMMERCE_UPDATE_FAILED', 422);
     }
 }

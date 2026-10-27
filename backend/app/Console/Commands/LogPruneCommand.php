@@ -11,11 +11,10 @@ use Throwable;
 class LogPruneCommand extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
-     * @var string
+     * Tamaño de lote de borrado — evita un DELETE masivo que bloquee la
+     * tabla `system_logs` mientras el sistema sigue escribiendo logs.
      */
-    protected $signature = 'logs:prune';
+    private const CHUNK_SIZE = 1000;
 
     /**
      * The console command description.
@@ -23,14 +22,14 @@ class LogPruneCommand extends Command
      * @var string
      */
     protected $description = 'Purgar registros de system_logs más antiguos que el retention configurado (system_log_retention_days)';
-
     /**
-     * Tamaño de lote de borrado — evita un DELETE masivo que bloquee la
-     * tabla `system_logs` mientras el sistema sigue escribiendo logs.
+     * The name and signature of the console command.
+     *
+     * @var string
      */
-    private const CHUNK_SIZE = 1000;
+    protected $signature = 'logs:prune';
 
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -40,7 +39,7 @@ class LogPruneCommand extends Command
             $deleted = 0;
 
             SystemLog::where('created_at', '<', $cutoff)
-                ->chunkById(self::CHUNK_SIZE, function ($logs) use (&$deleted) {
+                ->chunkById(self::CHUNK_SIZE, function($logs) use (&$deleted) {
                     $ids = $logs->pluck('id');
                     SystemLog::whereIn('id', $ids)->delete();
                     $deleted += $ids->count();
@@ -53,7 +52,7 @@ class LogPruneCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
 
             $this->error($output);

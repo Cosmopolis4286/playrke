@@ -10,9 +10,19 @@ class KycDocument extends Model
 {
     use SnowflakeId;
 
-    protected $table    = 'kyc_documents';
-    public    $incrementing = false;
-    protected $keyType  = 'string';
+    public const DOCUMENT_TYPES = ['dni', 'passport', 'driving_license', 'residence_permit'];
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_REJECTED = 'rejected';
+    public $incrementing = false;
+
+    protected $casts = [
+        'reviewed_at' => 'datetime',
+        'id' => 'string',
+        'user_id' => 'string',
+        'reviewed_by' => 'string',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -26,21 +36,11 @@ class KycDocument extends Model
         'reviewed_by',
         'reviewed_at',
     ];
+    protected $keyType = 'string';
 
-    protected $casts = [
-        'reviewed_at' => 'datetime',
-        'id'          => 'string',
-        'user_id'     => 'string',
-        'reviewed_by' => 'string',
-    ];
+    protected $table = 'kyc_documents';
 
-    public const STATUS_PENDING  = 'pending';
-    public const STATUS_APPROVED = 'approved';
-    public const STATUS_REJECTED = 'rejected';
-
-    public const DOCUMENT_TYPES = ['dni', 'passport', 'driving_license', 'residence_permit'];
-
-    public function user(): BelongsTo
+    public function user() : BelongsTo
     {
         return $this->belongsTo(User::class);
     }

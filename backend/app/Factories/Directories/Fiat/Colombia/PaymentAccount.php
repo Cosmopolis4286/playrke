@@ -18,11 +18,24 @@ class PaymentAccount extends Model
     use SnowflakeId;
 
     /**
-     * Nombre de la tabla asociada al modelo.
+     * Mapeo de códigos de gateway a nombres legibles.
      *
-     * @var string
+     * @var array<string, string>
      */
-    protected $table = 'payment_accounts_co';
+    protected static array $gatewayNames = [
+        'BANCOLOMBIA' => 'Bancolombia',
+        'DAVIPLATA' => 'Daviplata',
+        'NEQUI' => 'Nequi',
+    ];
+
+    /**
+     * Los atributos que deben ser casteados a tipos nativos.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'status' => 'boolean',
+    ];
 
     /**
      * Los campos que se pueden asignar masivamente.
@@ -39,177 +52,18 @@ class PaymentAccount extends Model
     ];
 
     /**
-     * Los atributos que deben ser casteados a tipos nativos.
+     * Nombre de la tabla asociada al modelo.
      *
-     * @var array<string, string>
+     * @var string
      */
-    protected $casts = [
-        'status' => 'boolean',
-    ];
-
-    /**
-     * Mapeo de códigos de gateway a nombres legibles.
-     *
-     * @var array<string, string>
-     */
-    protected static array $gatewayNames = [
-        'BANCOLOMBIA' => 'Bancolombia',
-        'DAVIPLATA' => 'Daviplata',
-        'NEQUI' => 'Nequi'
-    ];
-
-    /**
-     * Relación con el usuario propietario.
-     *
-     * @return BelongsTo
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    /**
-     * Accessor para obtener el nombre legible del gateway.
-     *
-     * @return string
-     */
-    public function getGatewayNameAttribute(): string
-    {
-        return self::$gatewayNames[$this->gateway] ?? 'Desconocido';
-    }
-
-    /**
-     * Scope para filtrar por usuario.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $userId
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByUser($query, string $userId)
-    {
-        return $query->where('user_id', $userId);
-    }
-
-    /**
-     * Scope para filtrar por gateway.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $gateway
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByGateway($query, string $gateway)
-    {
-        return $query->where('gateway', $gateway);
-    }
-
-    /**
-     * Scope para obtener cuentas activas.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', true);
-    }
-
-    /**
-     * Scope para filtrar por número de documento.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $documentNumber
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByDocument($query, string $documentNumber)
-    {
-        return $query->where('document_number', $documentNumber);
-    }
-
-    /**
-     * Scope para filtrar por número de cuenta.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $accountNumber
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByAccountNumber($query, string $accountNumber)
-    {
-        return $query->where('account_number', $accountNumber);
-    }
-
-    /**
-     * Obtener la información completa de la cuenta formateada.
-     *
-     * @return string
-     */
-    public function getFormattedInfo(): string
-    {
-        return sprintf(
-            '%s - %s (%s) - Doc: %s',
-            $this->gateway_name,
-            $this->user_name,
-            $this->account_number,
-            $this->document_number
-        );
-    }
-
-    /**
-     * Verificar si la cuenta pertenece a un usuario específico.
-     *
-     * @param string $userId ID del usuario
-     * @return bool
-     */
-    public function belongsToUser(string $userId): bool
-    {
-        return $this->user_id === $userId;
-    }
-
-    /**
-     * Verificar si la cuenta está activa.
-     *
-     * @return bool
-     */
-    public function isActive(): bool
-    {
-        return $this->status === true;
-    }
-
-    /**
-     * Verificar si es una cuenta de Bancolombia.
-     *
-     * @return bool
-     */
-    public function isBancolombia(): bool
-    {
-        return $this->gateway === 'BANCOLOMBIA';
-    }
-
-    /**
-     * Verificar si es una cuenta de Daviplata.
-     *
-     * @return bool
-     */
-    public function isDaviplata(): bool
-    {
-        return $this->gateway === 'DAVIPLATA';
-    }
-
-    /**
-     * Verificar si es una cuenta de Nequi.
-     *
-     * @return bool
-     */
-    public function isNequi(): bool
-    {
-        return $this->gateway === 'NEQUI';
-    }
+    protected $table = 'payment_accounts_co';
 
     /**
      * Obtener todos los gateways disponibles.
      *
      * @return array<string, string>
      */
-    public static function getAvailableGateways(): array
+    public static function getAvailableGateways() : array
     {
         return self::$gatewayNames;
     }
@@ -218,10 +72,141 @@ class PaymentAccount extends Model
      * Validar si un gateway es válido.
      *
      * @param string $gateway Gateway a validar
-     * @return bool
      */
-    public static function isValidGateway(string $gateway): bool
+    public static function isValidGateway(string $gateway) : bool
     {
         return array_key_exists($gateway, self::$gatewayNames);
+    }
+
+    /**
+     * Verificar si la cuenta pertenece a un usuario específico.
+     *
+     * @param string $userId ID del usuario
+     */
+    public function belongsToUser(string $userId) : bool
+    {
+        return $this->user_id === $userId;
+    }
+
+    /**
+     * Obtener la información completa de la cuenta formateada.
+     */
+    public function getFormattedInfo() : string
+    {
+        return sprintf(
+            '%s - %s (%s) - Doc: %s',
+            $this->gateway_name,
+            $this->user_name,
+            $this->account_number,
+            $this->document_number,
+        );
+    }
+
+    /**
+     * Accessor para obtener el nombre legible del gateway.
+     */
+    public function getGatewayNameAttribute() : string
+    {
+        return self::$gatewayNames[$this->gateway] ?? 'Desconocido';
+    }
+
+    /**
+     * Verificar si la cuenta está activa.
+     */
+    public function isActive() : bool
+    {
+        return $this->status === true;
+    }
+
+    /**
+     * Verificar si es una cuenta de Bancolombia.
+     */
+    public function isBancolombia() : bool
+    {
+        return $this->gateway === 'BANCOLOMBIA';
+    }
+
+    /**
+     * Verificar si es una cuenta de Daviplata.
+     */
+    public function isDaviplata() : bool
+    {
+        return $this->gateway === 'DAVIPLATA';
+    }
+
+    /**
+     * Verificar si es una cuenta de Nequi.
+     */
+    public function isNequi() : bool
+    {
+        return $this->gateway === 'NEQUI';
+    }
+
+    /**
+     * Scope para obtener cuentas activas.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', true);
+    }
+
+    /**
+     * Scope para filtrar por número de cuenta.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByAccountNumber($query, string $accountNumber)
+    {
+        return $query->where('account_number', $accountNumber);
+    }
+
+    /**
+     * Scope para filtrar por número de documento.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByDocument($query, string $documentNumber)
+    {
+        return $query->where('document_number', $documentNumber);
+    }
+
+    /**
+     * Scope para filtrar por gateway.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByGateway($query, string $gateway)
+    {
+        return $query->where('gateway', $gateway);
+    }
+
+    /**
+     * Scope para filtrar por usuario.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByUser($query, string $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Relación con el usuario propietario.
+     */
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

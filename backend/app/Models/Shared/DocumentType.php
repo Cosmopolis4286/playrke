@@ -11,25 +11,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DocumentType extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'document_types';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    protected $fillable = [
-        'code',
-        'description',
-        'country_id',
-        'status'
-    ];
 
     protected $casts = [
         'id' => 'string',
         'status' => AsActiveStatusEnum::class,
     ];
 
-    public function country(): BelongsTo
+    protected $fillable = [
+        'code',
+        'description',
+        'country_id',
+        'status',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+
+    protected $table = 'document_types';
+
+    public function country() : BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
     }

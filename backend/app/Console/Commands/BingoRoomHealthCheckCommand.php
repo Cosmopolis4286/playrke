@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -9,16 +10,17 @@ use Illuminate\Console\Command;
 
 final class BingoRoomHealthCheckCommand extends Command
 {
-    protected $signature   = 'bingo:health-check {room : ID de la sala a verificar}';
     protected $description = 'Verifica si una sala de bingo está lista para iniciar el sorteo';
+    protected $signature = 'bingo:health-check {room : ID de la sala a verificar}';
 
-    public function handle(BingoRoomHealthCheckService $healthCheck): int
+    public function handle(BingoRoomHealthCheckService $healthCheck) : int
     {
         $roomId = (string) $this->argument('room');
-        $room   = BingoRoom::with(['rounds', 'config', 'status'])->find($roomId);
+        $room = BingoRoom::with(['rounds', 'config', 'status'])->find($roomId);
 
-        if (!$room) {
+        if (! $room) {
             $this->error("Sala #{$roomId} no encontrada.");
+
             return self::FAILURE;
         }
 
@@ -28,6 +30,7 @@ final class BingoRoomHealthCheckCommand extends Command
 
         if (empty($errors)) {
             $this->info('La sala está lista para sortear. Todas las verificaciones pasaron.');
+
             return self::SUCCESS;
         }
 

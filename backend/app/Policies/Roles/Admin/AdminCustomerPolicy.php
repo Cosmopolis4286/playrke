@@ -17,21 +17,14 @@ use App\Policies\Roles\BaseRolePolicy;
 class AdminCustomerPolicy extends BaseRolePolicy
 {
     /**
-     * Rol requerido para operar sobre comercios.
-     */
-    protected function requiredRole(): string
-    {
-        return 'admin';
-    }
-
-    /**
-     * Estados que bloquean operaciones mutables.
+     * Cambiar contraseña asociada al comercio.
      *
-     * @return string[]
+     * Acción de dominio (no CRUD estándar).
      */
-    protected function forbiddenStatuses(): array
+    public function resetPassword(User $user, Customer $commerce) : bool
     {
-        return ['DELETED', 'BLOCKED'];
+        return $this->hasAccess($user)
+            && $this->canMutate($commerce);
     }
 
     /**
@@ -44,29 +37,28 @@ class AdminCustomerPolicy extends BaseRolePolicy
      * controller): un admin podía cambiar estado/contraseña/key de un
      * Customer sin pasar por canMutate(), es decir, incluso si estaba
      * DELETED/BLOCKED.
-     *
-     * @param User $user
-     * @param Customer $commerce
-     * @return bool
      */
-    public function toggleStatus(User $user, Customer $commerce): bool
+    public function toggleStatus(User $user, Customer $commerce) : bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($commerce);
     }
 
     /**
-     * Cambiar contraseña asociada al comercio.
+     * Estados que bloquean operaciones mutables.
      *
-     * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Customer $commerce
-     * @return bool
+     * @return string[]
      */
-    public function resetPassword(User $user, Customer $commerce): bool
+    protected function forbiddenStatuses() : array
     {
-        return $this->hasAccess($user)
-            && $this->canMutate($commerce);
+        return ['DELETED', 'BLOCKED'];
+    }
+
+    /**
+     * Rol requerido para operar sobre comercios.
+     */
+    protected function requiredRole() : string
+    {
+        return 'admin';
     }
 }

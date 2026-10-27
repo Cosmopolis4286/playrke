@@ -17,16 +17,17 @@ final class TreasurerDashboardContextDTO implements ContextDTO
         public readonly array $receivables,
         /** Período activo (e.g. "Octubre 2026") */
         public readonly string $period,
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'      => $this->userName,
-            'stats'         => $this->stats,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
             'exchangeRates' => $this->exchangeRates,
-            'receivables'   => $this->receivables,
-            'period'        => $this->period,
+            'receivables' => $this->receivables,
+            'period' => $this->period,
         ];
     }
 }

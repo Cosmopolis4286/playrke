@@ -4,29 +4,15 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserAchievement extends Model
 {
-    use SnowflakeId;
     use Auditable;
-
-    protected $table = 'user_achievements';
-
-    protected $primaryKey = 'id';
+    use SnowflakeId;
 
     public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    protected $fillable = [
-        'user_id',
-        'achievement_id',
-        'unlocked_at',
-        'progress_data',
-        'is_seen',
-    ];
 
     protected $casts = [
         'unlocked_at' => 'datetime',
@@ -36,24 +22,33 @@ class UserAchievement extends Model
         'updated_at' => 'datetime',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
+    protected $fillable = [
+        'user_id',
+        'achievement_id',
+        'unlocked_at',
+        'progress_data',
+        'is_seen',
+    ];
 
-    public function achievement(): BelongsTo
+    protected $keyType = 'string';
+
+    protected $primaryKey = 'id';
+
+    protected $table = 'user_achievements';
+
+    public function achievement() : BelongsTo
     {
         return $this->belongsTo(Achievement::class);
     }
 
-    public function markAsSeen(): bool
+    public function markAsSeen() : bool
     {
         return $this->update(['is_seen' => true]);
     }
 
-    public function scopeUnseen($query)
+    public function scopeByUser($query, $userId)
     {
-        return $query->where('is_seen', false);
+        return $query->where('user_id', $userId);
     }
 
     public function scopeRecentlyUnlocked($query, int $hours = 24)
@@ -61,8 +56,13 @@ class UserAchievement extends Model
         return $query->where('unlocked_at', '>=', now()->subHours($hours));
     }
 
-    public function scopeByUser($query, $userId)
+    public function scopeUnseen($query)
     {
-        return $query->where('user_id', $userId);
+        return $query->where('is_seen', false);
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

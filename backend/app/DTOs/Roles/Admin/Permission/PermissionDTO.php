@@ -12,5 +12,6 @@ final class PermissionDTO
         public bool $status = true,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
-    ) {}
+    ) {
+    }
 }

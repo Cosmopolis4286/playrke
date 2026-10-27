@@ -25,13 +25,13 @@ use Illuminate\Support\ServiceProvider;
  */
 class MarketplaceServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-        $this->app->bind(CryptoGateway::class, TronUsdtProvider::class);
-    }
-
-    public function boot(): void
+    public function boot() : void
     {
         $this->loadMigrationsFrom(database_path('migrations/marketplace'));
+    }
+
+    public function register() : void
+    {
+        $this->app->bind(CryptoGateway::class, TronUsdtProvider::class);
     }
 }

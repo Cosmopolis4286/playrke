@@ -5,6 +5,7 @@ namespace App\Rules;
 use Closure;
 use Cron\CronExpression;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Throwable;
 
 /**
  * Valida que un string sea una expresión cron sintácticamente correcta
@@ -21,15 +22,17 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 final class CronExpressionRule implements ValidationRule
 {
-    public function __construct(private readonly ?int $minIntervalSeconds = null) {}
+    public function __construct(private readonly ?int $minIntervalSeconds = null)
+    {
+    }
 
-    public function validate(string $attribute, mixed $value, Closure $fail): void
+    public function validate(string $attribute, mixed $value, Closure $fail) : void
     {
         $expression = trim((string) $value);
 
         try {
             $cron = new CronExpression($expression);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $fail('La expresión cron no es válida. Usa el formato estándar de 5 campos: minuto hora día mes día-semana.');
 
             return;
@@ -39,7 +42,7 @@ final class CronExpressionRule implements ValidationRule
             return;
         }
 
-        $first  = $cron->getNextRunDate('now', 0, true);
+        $first = $cron->getNextRunDate('now', 0, true);
         $second = $cron->getNextRunDate($first, 0, false);
         $actualIntervalSeconds = $second->getTimestamp() - $first->getTimestamp();
 

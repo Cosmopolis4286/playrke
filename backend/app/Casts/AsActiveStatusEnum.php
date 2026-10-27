@@ -16,12 +16,12 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AsActiveStatusEnum implements CastsAttributes
 {
-    public function get(Model $model, string $key, mixed $value, array $attributes): bool
+    public function get(Model $model, string $key, mixed $value, array $attributes) : bool
     {
         return $value === 'ACTIVE';
     }
 
-    public function set(Model $model, string $key, mixed $value, array $attributes): string
+    public function set(Model $model, string $key, mixed $value, array $attributes) : string
     {
         return $value ? 'ACTIVE' : 'INACTIVE';
     }
