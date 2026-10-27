@@ -16,10 +16,14 @@ class BingoRoomAudit extends Model
     use SnowflakeId;
 
     public const EVENT_CREATED_UNSCHEDULED = 'created_unscheduled';
-    public const EVENT_MANUALLY_ACTIVATED  = 'manually_activated';
-    public const EVENT_START_MODE_CHANGED  = 'start_mode_changed';
+    public const EVENT_MANUALLY_ACTIVATED = 'manually_activated';
+    public const EVENT_START_MODE_CHANGED = 'start_mode_changed';
 
-    protected $table = 'bingo_room_audits';
+    protected $casts = [
+        'room_id' => 'string',
+        'user_id' => 'string',
+        'metadata' => 'array',
+    ];
 
     protected $fillable = [
         'room_id',
@@ -32,18 +36,14 @@ class BingoRoomAudit extends Model
         'user_agent',
     ];
 
-    protected $casts = [
-        'room_id'  => 'string',
-        'user_id'  => 'string',
-        'metadata' => 'array',
-    ];
+    protected $table = 'bingo_room_audits';
 
-    public function room(): BelongsTo
+    public function room() : BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
-    public function user(): BelongsTo
+    public function user() : BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }

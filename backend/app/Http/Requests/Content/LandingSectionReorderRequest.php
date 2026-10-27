@@ -8,12 +8,12 @@ use Illuminate\Validation\Rule;
 
 class LandingSectionReorderRequest extends BaseRequest
 {
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['superadmin', 'admin']);
     }
 
-    public function rules(): array
+    public function rules() : array
     {
         return [
             'ordered_keys' => ['required', 'array'],

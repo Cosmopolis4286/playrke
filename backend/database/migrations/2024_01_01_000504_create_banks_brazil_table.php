@@ -7,13 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down()
+    {
+        Schema::dropIfExists('banks_brazil');
+    }
+
+    /**
      * Run the migrations.
-     *
-     * @return void
      */
     public function up()
     {
-        Schema::create('banks_brazil', function (Blueprint $table) {
+        Schema::create('banks_brazil', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->string('name', 100);
@@ -21,15 +27,5 @@ return new class extends Migration
             $table->string('ispb', 8);
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::dropIfExists('banks_brazil');
     }
 };

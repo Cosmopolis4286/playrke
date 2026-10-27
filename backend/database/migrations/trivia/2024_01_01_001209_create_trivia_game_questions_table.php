@@ -6,13 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_game_questions');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_game_questions')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_game_questions', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_game_questions', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('game_id', 20);
             $table->string('question_id', 20);
@@ -34,10 +39,5 @@ return new class extends Migration
             $table->index(['game_id', 'question_id']); // Útil para debugging y replay
             $table->index('question_id'); // Para buscar en qué juegos se usó una pregunta
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_game_questions');
     }
 };

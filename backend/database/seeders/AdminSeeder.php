@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Roles\Admin;
-use App\Models\User;
 use App\Models\Country;
 use App\Models\Currency;
-use Database\Factories\Roles\AdminFactory;
+use App\Models\Roles\Admin;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,14 +15,14 @@ class AdminSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run() : void
     {
         // Desactivar restricciones de claves foráneas temporalmente
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
+
         // Limpiar tabla admins
         Admin::query()->delete();
-        
+
         // Reactivar restricciones
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
@@ -56,7 +55,7 @@ class AdminSeeder extends Seeder
         foreach ($adminUsers as $userData) {
             $user = User::firstOrCreate(
                 ['email' => $userData['email']],
-                $userData
+                $userData,
             );
 
             // Asignar rol de admin al usuario usando el nombre del rol
@@ -86,7 +85,7 @@ class AdminSeeder extends Seeder
     /**
      * Generar código único para admin
      */
-    private function generateUniqueCode(): string
+    private function generateUniqueCode() : string
     {
         return 'ADM-' . strtoupper(uniqid());
     }
@@ -94,7 +93,7 @@ class AdminSeeder extends Seeder
     /**
      * Obtener permisos según el tipo de admin
      */
-    private function getPermissionsForUser(string $email): array
+    private function getPermissionsForUser(string $email) : array
     {
         return match (true) {
             str_contains($email, 'admin@playrke.com') => [

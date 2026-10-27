@@ -31,9 +31,9 @@ final class DashboardWidgetFilter
         $this->userRoleIds = $user->roles->pluck('id')->map(fn ($id) => (string) $id)->all();
     }
 
-    public function isVisible(string $itemKey, ?string $permission): bool
+    public function isVisible(string $itemKey, ?string $permission) : bool
     {
-        if ($permission !== null && !$this->user->hasPermissionTo($permission)) {
+        if ($permission !== null && ! $this->user->hasPermissionTo($permission)) {
             return false;
         }
 

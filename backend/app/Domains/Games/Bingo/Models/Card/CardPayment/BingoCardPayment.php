@@ -12,14 +12,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class BingoCardPayment extends BaseModel
 {
+    public const PROOF_DIRECTORY = 'private/receipts/bingo';
     /**
      * Comprobantes en disco PRIVADO (storage/app, no servido por la web):
      * solo accesibles vía BingoCardPaymentReviewController::proof().
      */
     public const PROOF_DISK = 'local';
-    public const PROOF_DIRECTORY = 'private/receipts/bingo';
 
-    protected $table = 'bingo_card_payments';
+    protected $casts = [
+        'payment_amount' => 'decimal:2',
+        'processed_at' => 'datetime',
+        'start_alert_sent_at' => 'datetime',
+        'pending_at_start_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'payment_method', 'description', 'room_id', 'creator_user_id', 'seller_user_id',
@@ -28,46 +33,52 @@ final class BingoCardPayment extends BaseModel
         'start_alert_sent_at', 'pending_at_start_at',
     ];
 
-    protected $casts = [
-        'payment_amount' => 'decimal:2',
-        'processed_at'   => 'datetime',
-        'start_alert_sent_at' => 'datetime',
-        'pending_at_start_at' => 'datetime',
-    ];
+    protected $table = 'bingo_card_payments';
 
-    public function room(): BelongsTo
+    public function cardLot() : BelongsTo
     {
-        return $this->belongsTo(BingoRoom::class, 'room_id');
+        return $this->belongsTo(BingoCardLot::class, 'card_lot_id');
     }
 
-    public function creator(): BelongsTo
+    public function creator() : BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_user_id');
     }
 
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'seller_user_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function externalPlayer(): BelongsTo
-    {
-        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
-    }
-
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function cardLot(): BelongsTo
+    public function externalPlayer() : BelongsTo
     {
-        return $this->belongsTo(BingoCardLot::class, 'card_lot_id');
+        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
+    }
+
+    // Estados alineados con el enum real de la columna
+    // (PENDING/APPROVED/REJECTED/CANCELLED) — antes COMPLETED/FAILED, que
+    // MySQL rechazaba.
+    public function markAsCompleted(?string $transactionReference = null) : void
+    {
+        $this->update([
+            'payment_status' => 'APPROVED',
+            'processed_at' => now(),
+            'transaction_reference' => $transactionReference ?? $this->transaction_reference,
+        ]);
+    }
+
+    public function markAsFailed(?string $reason = null) : void
+    {
+        $this->update([
+            'payment_status' => 'REJECTED',
+            'processed_at' => now(),
+            'description' => $reason ? $this->description . ' - Fallo: ' . $reason : $this->description,
+        ]);
+    }
+
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
     public function scopeByExternalPlayer($query, string $id)
@@ -75,24 +86,13 @@ final class BingoCardPayment extends BaseModel
         return $query->where('external_player_id', $id);
     }
 
-    // Estados alineados con el enum real de la columna
-    // (PENDING/APPROVED/REJECTED/CANCELLED) — antes COMPLETED/FAILED, que
-    // MySQL rechazaba.
-    public function markAsCompleted(?string $transactionReference = null): void
+    public function seller() : BelongsTo
     {
-        $this->update([
-            'payment_status'          => 'APPROVED',
-            'processed_at'            => now(),
-            'transaction_reference'   => $transactionReference ?? $this->transaction_reference,
-        ]);
+        return $this->belongsTo(User::class, 'seller_user_id');
     }
 
-    public function markAsFailed(?string $reason = null): void
+    public function user() : BelongsTo
     {
-        $this->update([
-            'payment_status' => 'REJECTED',
-            'processed_at'   => now(),
-            'description'    => $reason ? $this->description . ' - Fallo: ' . $reason : $this->description,
-        ]);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

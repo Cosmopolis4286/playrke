@@ -23,23 +23,22 @@ class UserTimezoneService
     private const CACHE_TTL_SECONDS = 300;
 
     /**
-     * @param int $userId
-     * @return string Nombre de timezone IANA, o 'UTC' si el usuario no existe
-     *                 o no tiene timezone configurado (nunca falla la carga
-     *                 de la página por un dato de perfil faltante).
+     * @return string nombre de timezone IANA, o 'UTC' si el usuario no existe
+     *                o no tiene timezone configurado (nunca falla la carga
+     *                de la página por un dato de perfil faltante)
      */
-    public function resolve(int $userId): string
+    public function resolve(int $userId) : string
     {
         return Cache::remember(
             "user-timezone:{$userId}",
             self::CACHE_TTL_SECONDS,
-            function () use ($userId): string {
+            function() use ($userId) : string {
                 $tzName = User::where('users.id', $userId)
                     ->join('time_zones', 'users.time_zone_id', '=', 'time_zones.id')
                     ->value('time_zones.name');
 
                 return $tzName ?? 'UTC';
-            }
+            },
         );
     }
 }

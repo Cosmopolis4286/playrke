@@ -25,22 +25,17 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class PaymentOrder extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'payment_orders';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_PENDING    = 'PENDING';
-    public const STATUS_DETECTED   = 'DETECTED';
+    public const STATUS_CANCELLED = 'CANCELLED';
+    public const STATUS_CONFIRMED = 'CONFIRMED';
     public const STATUS_CONFIRMING = 'CONFIRMING';
-    public const STATUS_CONFIRMED  = 'CONFIRMED';
-    public const STATUS_UNDERPAID  = 'UNDERPAID';
-    public const STATUS_OVERPAID   = 'OVERPAID';
-    public const STATUS_EXPIRED    = 'EXPIRED';
-    public const STATUS_FAILED     = 'FAILED';
-    public const STATUS_CANCELLED  = 'CANCELLED';
-    public const STATUS_CREDITED   = 'CREDITED';
+    public const STATUS_CREDITED = 'CREDITED';
+    public const STATUS_DETECTED = 'DETECTED';
+    public const STATUS_EXPIRED = 'EXPIRED';
+    public const STATUS_FAILED = 'FAILED';
+    public const STATUS_OVERPAID = 'OVERPAID';
+
+    public const STATUS_PENDING = 'PENDING';
+    public const STATUS_UNDERPAID = 'UNDERPAID';
 
     /** Estados en los que la orden ya no puede recibir más transiciones. */
     public const TERMINAL_STATUSES = [
@@ -48,6 +43,21 @@ class PaymentOrder extends Model
         self::STATUS_FAILED,
         self::STATUS_CANCELLED,
         self::STATUS_CREDITED,
+    ];
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'user_id' => 'string',
+        'payment_product_id' => 'string',
+        'derivation_index' => 'integer',
+        'crypto_transaction_id' => 'string',
+        'expected_amount' => 'float',
+        'received_amount' => 'float',
+        'detected_at' => 'datetime',
+        'confirmed_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     protected $fillable = [
@@ -67,58 +77,48 @@ class PaymentOrder extends Model
         'expires_at',
         'metadata',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'                     => 'string',
-        'user_id'                => 'string',
-        'payment_product_id'     => 'string',
-        'derivation_index'       => 'integer',
-        'crypto_transaction_id'  => 'string',
-        'expected_amount'        => 'float',
-        'received_amount'        => 'float',
-        'detected_at'            => 'datetime',
-        'confirmed_at'           => 'datetime',
-        'expires_at'             => 'datetime',
-        'metadata'               => 'array',
-    ];
+    protected $table = 'payment_orders';
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function paymentProduct(): BelongsTo
-    {
-        return $this->belongsTo(PaymentProduct::class, 'payment_product_id');
-    }
-
-    public function cryptoTransaction(): BelongsTo
-    {
-        return $this->belongsTo(CryptoTransaction::class, 'crypto_transaction_id');
-    }
-
-    public function attempts(): HasMany
+    public function attempts() : HasMany
     {
         return $this->hasMany(PaymentAttempt::class, 'payment_order_id');
     }
 
-    public function purchase(): HasOne
+    public function cryptoTransaction() : BelongsTo
     {
-        return $this->hasOne(Purchase::class, 'payment_order_id');
+        return $this->belongsTo(CryptoTransaction::class, 'crypto_transaction_id');
     }
 
-    public function isTerminal(): bool
+    public function isExpired() : bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    public function isTerminal() : bool
     {
         return in_array($this->status, self::TERMINAL_STATUSES, true);
     }
 
-    public function isExpired(): bool
+    public function paymentProduct() : BelongsTo
     {
-        return $this->expires_at !== null && $this->expires_at->isPast();
+        return $this->belongsTo(PaymentProduct::class, 'payment_product_id');
+    }
+
+    public function purchase() : HasOne
+    {
+        return $this->hasOne(Purchase::class, 'payment_order_id');
     }
 
     public function scopeActive($query)
     {
         return $query->whereNotIn('status', self::TERMINAL_STATUSES);
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

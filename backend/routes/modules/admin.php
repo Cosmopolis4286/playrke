@@ -1,29 +1,28 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Roles\AdminController;
+use App\Http\Controllers\Audit\AuditController;
+use App\Http\Controllers\Audit\SystemLogController;
 use App\Http\Controllers\Roles\Admin\AdminCommerceController;
 use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminSubsidiaryController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
-use App\Http\Controllers\Roles\Admin\ExternalPlayerAdminController;
-use App\Http\Controllers\Roles\Admin\KycAdminController;
-use App\Http\Controllers\Roles\Admin\AntiCheatAdminController;
-use App\Http\Controllers\Roles\Admin\ImpersonationController;
-use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
-use App\Http\Controllers\Roles\AdministratorController;
-use App\Http\Controllers\Roles\PermissionController;
-use App\Http\Controllers\Roles\ModuleController;
-use App\Http\Controllers\Roles\SidebarMenuVisibilityController;
-use App\Http\Controllers\Roles\DashboardWidgetVisibilityController;
-use App\Http\Controllers\Roles\RoleController;
-use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
-use App\Http\Controllers\Audit\AuditController;
-use App\Http\Controllers\Audit\SystemLogController;
 use App\Http\Controllers\Roles\Admin\AdminWinEventController;
+use App\Http\Controllers\Roles\Admin\AntiCheatAdminController;
+use App\Http\Controllers\Roles\Admin\ExternalPlayerAdminController;
+use App\Http\Controllers\Roles\Admin\ImpersonationController;
+use App\Http\Controllers\Roles\Admin\KycAdminController;
+use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
+use App\Http\Controllers\Roles\AdminController;
+use App\Http\Controllers\Roles\AdministratorController;
+use App\Http\Controllers\Roles\DashboardWidgetVisibilityController;
+use App\Http\Controllers\Roles\ModuleController;
+use App\Http\Controllers\Roles\PermissionController;
+use App\Http\Controllers\Roles\RoleController;
+use App\Http\Controllers\Roles\SidebarMenuVisibilityController;
 use App\Http\Controllers\System\JobsCenterController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,9 +32,8 @@ use App\Http\Controllers\System\JobsCenterController;
 | Todas protegidas por auth + role:admin salvo excepciones.
 */
 
-Route::middleware('auth')->group(function () {
-
-    /**
+Route::middleware('auth')->group(function() {
+    /*
      * =========================================================
      * PANEL ADMINISTRATIVO
      * =========================================================
@@ -47,40 +45,40 @@ Route::middleware('auth')->group(function () {
         [
             'customers' => [
                 'method' => 'get',
-                'uri'    => 'customers',
+                'uri' => 'customers',
                 'action' => 'customers',
             ],
             'commerces' => [
                 'method' => 'get',
-                'uri'    => 'commerces',
+                'uri' => 'commerces',
                 'action' => 'commerces',
             ],
             'players' => [
                 'method' => 'get',
-                'uri'    => 'players',
+                'uri' => 'players',
                 'action' => 'players',
             ],
             'sellers' => [
                 'method' => 'get',
-                'uri'    => 'sellers',
+                'uri' => 'sellers',
                 'action' => 'sellers',
             ],
             'treasurers' => [
                 'method' => 'get',
-                'uri'    => 'treasurers',
+                'uri' => 'treasurers',
                 'action' => 'treasurers',
             ],
             'users' => [
                 'method' => 'get',
-                'uri'    => 'users',
+                'uri' => 'users',
                 'action' => 'users',
             ],
             'getUserInfo' => [
                 'method' => 'get',
-                'uri'    => 'get-user-info/{userRole}/{exclude?}',
+                'uri' => 'get-user-info/{userRole}/{exclude?}',
                 'action' => 'getUserInfo',
             ],
-        ]
+        ],
     );
 
     /**
@@ -91,44 +89,44 @@ Route::middleware('auth')->group(function () {
     $adminCrudRoutes = [
         'store' => [
             'method' => 'post',
-            'uri'    => '',
+            'uri' => '',
             'action' => 'store',
         ],
         'fetchList' => [
             'method' => 'get',
-            'uri'    => 'fetch-list',
+            'uri' => 'fetch-list',
             'action' => 'fetchList',
         ],
         'show' => [
             'method' => 'get',
-            'uri'    => '{id}/show',
+            'uri' => '{id}/show',
             'action' => 'show',
         ],
         'update' => [
             'method' => 'put',
-            'uri'    => '{id}/update',
+            'uri' => '{id}/update',
             'action' => 'update',
         ],
         'delete' => [
             'method' => 'put',
-            'uri'    => '{id}/delete',
+            'uri' => '{id}/delete',
             'action' => 'delete',
         ],
         'destroy' => [
             'method' => 'delete',
-            'uri'    => '{id}',
+            'uri' => '{id}',
             'action' => 'destroy',
         ],
         'toggleStatus' => [
             'method' => 'put',
-            'uri'    => '{id}/status',
+            'uri' => '{id}/status',
             'action' => 'toggleStatus',
         ],
         'resetPassword' => [
             'method' => 'put',
-            'uri'    => '{id}/reset-password',
+            'uri' => '{id}/reset-password',
             'action' => 'resetPassword',
-        ]
+        ],
     ];
 
     /**
@@ -144,24 +142,24 @@ Route::middleware('auth')->group(function () {
      * con customer/treasurer (deben seguir bajo role:admin, sin tocar).
      */
     $commerceRoutes = array_replace_recursive($adminCrudRoutes, [
-        'fetchList'     => ['middleware' => 'multiPermission:commerces.view'],
-        'show'          => ['middleware' => 'multiPermission:commerces.view'],
-        'store'         => ['middleware' => 'multiPermission:commerces.create'],
-        'update'        => ['middleware' => 'multiPermission:commerces.edit'],
-        'toggleStatus'  => ['middleware' => 'multiPermission:commerces.edit'],
+        'fetchList' => ['middleware' => 'multiPermission:commerces.view'],
+        'show' => ['middleware' => 'multiPermission:commerces.view'],
+        'store' => ['middleware' => 'multiPermission:commerces.create'],
+        'update' => ['middleware' => 'multiPermission:commerces.edit'],
+        'toggleStatus' => ['middleware' => 'multiPermission:commerces.edit'],
         'resetPassword' => ['middleware' => 'multiPermission:commerces.edit'],
-        'delete'        => ['middleware' => 'multiPermission:commerces.delete'],
-        'destroy'       => ['middleware' => 'multiPermission:commerces.delete'],
+        'delete' => ['middleware' => 'multiPermission:commerces.delete'],
+        'destroy' => ['middleware' => 'multiPermission:commerces.delete'],
     ]) + [
-        'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:commerces.view'],
+        'export' => ['method' => 'get', 'uri' => 'export',      'action' => 'export', 'middleware' => 'multiPermission:commerces.view'],
         'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.edit']],
-        'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.delete']],
+        'deleteBulk' => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:commerces.delete']],
         // commerces.set-default es exclusivo de superadmin (declarado en
         // PermissionSeeder, deliberadamente NO asignado a admin en
         // RolePermissionSeeder) — marcar/desmarcar el comercio vinculado a
         // toda la app es más sensible que una edición normal de comercio.
-        'setAsDefault'     => ['method' => 'put',  'uri' => '{id}/set-as-default', 'action' => 'setAsDefault', 'middleware' => 'multiPermission:commerces.set-default'],
-        'unsetAsDefault'   => ['method' => 'put',  'uri' => '{id}/unset-as-default', 'action' => 'unsetAsDefault', 'middleware' => 'multiPermission:commerces.set-default'],
+        'setAsDefault' => ['method' => 'put',  'uri' => '{id}/set-as-default', 'action' => 'setAsDefault', 'middleware' => 'multiPermission:commerces.set-default'],
+        'unsetAsDefault' => ['method' => 'put',  'uri' => '{id}/unset-as-default', 'action' => 'unsetAsDefault', 'middleware' => 'multiPermission:commerces.set-default'],
     ];
 
     // Rol vacío ([]): role_protected_routes ya antepone 'auth' siempre, y
@@ -170,7 +168,7 @@ Route::middleware('auth')->group(function () {
     // acción individual (ej. store exigiría view Y create a la vez).
     role_protected_routes([], 'admin/commerce', AdminCommerceController::class, $commerceRoutes, 'commerce');
 
-    role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
+    role_protected_routes(['role:admin'], 'admin/customer', AdminCustomerController::class, $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'treasurer');
 
     /**
@@ -181,14 +179,14 @@ Route::middleware('auth')->group(function () {
      * + AdminSubsidiaryContextService).
      */
     $subsidiaryRoutes = array_replace_recursive($adminCrudRoutes, [
-        'fetchList'     => ['middleware' => 'multiPermission:subsidiaries.view'],
-        'show'          => ['middleware' => 'multiPermission:subsidiaries.view'],
-        'store'         => ['middleware' => 'multiPermission:subsidiaries.create'],
-        'update'        => ['middleware' => 'multiPermission:subsidiaries.edit'],
-        'toggleStatus'  => ['middleware' => 'multiPermission:subsidiaries.edit'],
+        'fetchList' => ['middleware' => 'multiPermission:subsidiaries.view'],
+        'show' => ['middleware' => 'multiPermission:subsidiaries.view'],
+        'store' => ['middleware' => 'multiPermission:subsidiaries.create'],
+        'update' => ['middleware' => 'multiPermission:subsidiaries.edit'],
+        'toggleStatus' => ['middleware' => 'multiPermission:subsidiaries.edit'],
         'resetPassword' => ['middleware' => 'multiPermission:subsidiaries.edit'],
-        'delete'        => ['middleware' => 'multiPermission:subsidiaries.delete'],
-        'destroy'       => ['middleware' => 'multiPermission:subsidiaries.delete'],
+        'delete' => ['middleware' => 'multiPermission:subsidiaries.delete'],
+        'destroy' => ['middleware' => 'multiPermission:subsidiaries.delete'],
     ]);
 
     role_protected_routes([], 'admin/subsidiary', AdminSubsidiaryController::class, $subsidiaryRoutes, 'subsidiary');
@@ -210,9 +208,9 @@ Route::middleware('auth')->group(function () {
      * porque Laravel resuelve por segmento literal antes que por parámetro).
      */
     $playerRoutes = $adminCrudRoutes + [
-        'export'           => ['method' => 'get', 'uri' => 'export',      'action' => 'export'],
+        'export' => ['method' => 'get', 'uri' => 'export',      'action' => 'export'],
         'toggleStatusBulk' => ['method' => 'put',  'uri' => 'bulk/status', 'action' => 'toggleStatusBulk', 'middleware' => 'throttle:admin-users-bulk'],
-        'deleteBulk'       => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
+        'deleteBulk' => ['method' => 'put',  'uri' => 'bulk/delete', 'action' => 'deleteBulk', 'middleware' => 'throttle:admin-users-bulk'],
     ];
     role_protected_routes(['role:admin'], 'admin/player', AdminPlayerController::class, $playerRoutes, 'player');
 
@@ -222,22 +220,22 @@ Route::middleware('auth')->group(function () {
     // edit/delete/manage ya estaban sembrados en PermissionSeeder pero nunca se
     // usaban como middleware real.
     $userRoutes = [
-        'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index', 'middleware' => 'multiPermission:users.view'],
-        'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList', 'middleware' => 'multiPermission:users.view'],
-        'export'        => ['method' => 'get',    'uri' => 'export',        'action' => 'export', 'middleware' => 'multiPermission:users.view'],
-        'show'          => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show', 'middleware' => 'multiPermission:users.view'],
-        'auditHistory'  => ['method' => 'get',    'uri' => '{user}/audit-history', 'action' => 'auditHistory', 'middleware' => 'multiPermission:users.view'],
+        'index' => ['method' => 'get',    'uri' => '',              'action' => 'index', 'middleware' => 'multiPermission:users.view'],
+        'fetch-list' => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList', 'middleware' => 'multiPermission:users.view'],
+        'export' => ['method' => 'get',    'uri' => 'export',        'action' => 'export', 'middleware' => 'multiPermission:users.view'],
+        'show' => ['method' => 'get',    'uri' => '{user}/show',   'action' => 'show', 'middleware' => 'multiPermission:users.view'],
+        'auditHistory' => ['method' => 'get',    'uri' => '{user}/audit-history', 'action' => 'auditHistory', 'middleware' => 'multiPermission:users.view'],
         'walletHistory' => ['method' => 'get',    'uri' => '{user}/wallet-history', 'action' => 'walletHistory', 'middleware' => 'multiPermission:users.view'],
-        'update'        => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update', 'middleware' => 'multiPermission:users.edit'],
-        'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus', 'middleware' => 'multiPermission:users.edit'],
+        'update' => ['method' => 'patch',  'uri' => '{user}',        'action' => 'update', 'middleware' => 'multiPermission:users.edit'],
+        'toggleStatus' => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus', 'middleware' => 'multiPermission:users.edit'],
         'toggleStatusBulk' => ['method' => 'put', 'uri' => 'bulk/status',   'action' => 'toggleStatusBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:users.edit']],
-        'deleteBulk'    => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:users.delete']],
-        'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete', 'middleware' => 'multiPermission:users.delete'],
-        'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy', 'middleware' => 'multiPermission:users.delete'],
-        'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword', 'middleware' => 'multiPermission:users.edit'],
-        'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance','action' => 'loadWalletBalance', 'middleware' => 'multiPermission:users.edit'],
-        'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance', 'middleware' => 'multiPermission:users.view'],
-        'grantXp'       => ['method' => 'put',    'uri' => '{user}/grant-xp', 'action' => 'grantXp', 'middleware' => ['throttle:admin-grant-xp', 'multiPermission:users.edit']],
+        'deleteBulk' => ['method' => 'put',    'uri' => 'bulk/delete',   'action' => 'deleteBulk', 'middleware' => ['throttle:admin-users-bulk', 'multiPermission:users.delete']],
+        'delete' => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete', 'middleware' => 'multiPermission:users.delete'],
+        'destroy' => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy', 'middleware' => 'multiPermission:users.delete'],
+        'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password', 'action' => 'resetPassword', 'middleware' => 'multiPermission:users.edit'],
+        'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance', 'action' => 'loadWalletBalance', 'middleware' => 'multiPermission:users.edit'],
+        'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance', 'action' => 'getWalletBalance', 'middleware' => 'multiPermission:users.view'],
+        'grantXp' => ['method' => 'put',    'uri' => '{user}/grant-xp', 'action' => 'grantXp', 'middleware' => ['throttle:admin-grant-xp', 'multiPermission:users.edit']],
     ];
     // Rol vacío ([]): role_protected_routes ya antepone 'auth' siempre, y cada
     // entrada de $userRoutes ya trae su propio multiPermission — un permiso a
@@ -245,7 +243,7 @@ Route::middleware('auth')->group(function () {
     // view Y edit a la vez), redundante.
     role_protected_routes([], 'admin/user', AdminUserController::class, $userRoutes, 'user');
 
-    /**
+    /*
      * =========================================================
      * JUGADORES EXTERNOS (permisos external-players.*)
      * =========================================================
@@ -259,25 +257,25 @@ Route::middleware('auth')->group(function () {
      * acción vive en ExternalPlayerPolicy.
      */
     role_protected_routes(['multiPermission:external-players.view'], 'admin/external-players', ExternalPlayerAdminController::class, [
-        'index'           => ['method' => 'get', 'uri' => '',              'action' => 'index'],
-        'fetchList'       => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
-        'export'          => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
+        'index' => ['method' => 'get', 'uri' => '',              'action' => 'index'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'export' => ['method' => 'get', 'uri' => 'export',       'action' => 'export', 'middleware' => 'multiPermission:external-players.export'],
         // Rutas literales (fetch-list/export) van ANTES que cualquier ruta
         // con {externalPlayer} — un registro al revés hace que Laravel
         // capture "fetch-list"/"export" como valor del parámetro en vez de
         // matchear la ruta literal (ya mordió al proyecto 2 veces, ver
         // memoria feedback_route_order_literal_vs_param).
-        'show'            => ['method' => 'get', 'uri' => '{externalPlayer}',                   'action' => 'show'],
+        'show' => ['method' => 'get', 'uri' => '{externalPlayer}',                   'action' => 'show'],
         'purchaseHistory' => ['method' => 'get', 'uri' => '{externalPlayer}/purchase-history',   'action' => 'purchaseHistory'],
-        'prizeHistory'    => ['method' => 'get', 'uri' => '{externalPlayer}/prize-history',      'action' => 'prizeHistory'],
-        'auditHistory'    => ['method' => 'get', 'uri' => '{externalPlayer}/audit-history',      'action' => 'auditHistory'],
-        'toggleBlock'     => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
-        'regenerateLink'  => ['method' => 'put', 'uri' => '{externalPlayer}/regenerate-link', 'action' => 'regenerateLink', 'middleware' => 'multiPermission:external-players.manage'],
-        'reactivate'      => ['method' => 'put', 'uri' => '{externalPlayer}/reactivate', 'action' => 'reactivate', 'middleware' => 'multiPermission:external-players.manage'],
-        'convertToUser'   => ['method' => 'put', 'uri' => '{externalPlayer}/convert-to-user', 'action' => 'convertToUser', 'middleware' => 'multiPermission:external-players.manage'],
+        'prizeHistory' => ['method' => 'get', 'uri' => '{externalPlayer}/prize-history',      'action' => 'prizeHistory'],
+        'auditHistory' => ['method' => 'get', 'uri' => '{externalPlayer}/audit-history',      'action' => 'auditHistory'],
+        'toggleBlock' => ['method' => 'put', 'uri' => '{externalPlayer}/toggle-block', 'action' => 'toggleBlock', 'middleware' => 'multiPermission:external-players.block'],
+        'regenerateLink' => ['method' => 'put', 'uri' => '{externalPlayer}/regenerate-link', 'action' => 'regenerateLink', 'middleware' => 'multiPermission:external-players.manage'],
+        'reactivate' => ['method' => 'put', 'uri' => '{externalPlayer}/reactivate', 'action' => 'reactivate', 'middleware' => 'multiPermission:external-players.manage'],
+        'convertToUser' => ['method' => 'put', 'uri' => '{externalPlayer}/convert-to-user', 'action' => 'convertToUser', 'middleware' => 'multiPermission:external-players.manage'],
     ], 'externalPlayer');
 
-    /**
+    /*
      * =========================================================
      * PERMISOS ESPECÍFICOS POR USUARIO (SOLO SUPERADMIN)
      * =========================================================
@@ -291,38 +289,38 @@ Route::middleware('auth')->group(function () {
         // prefijo admin/user.*): 'index'/'update' ya existen ahí y
         // route_group() reasignaría el nombre a la última ruta definida,
         // rompiendo route('admin.user.index') del listado de usuarios.
-        'permissions.show'   => ['method' => 'get', 'uri' => '{user}/permissions', 'action' => 'index'],
+        'permissions.show' => ['method' => 'get', 'uri' => '{user}/permissions', 'action' => 'index'],
         'permissions.update' => ['method' => 'put', 'uri' => '{user}/permissions', 'action' => 'update'],
     ], 'user');
 
-    /**
+    /*
      * =========================================================
      * GESTIÓN DE ADMINISTRADORES (SOLO SUPERADMIN)
      * =========================================================
      */
     role_protected_routes(['role:superadmin'], 'admins', AdministratorController::class, [
-        'index'         => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
-        'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
-        'store'         => ['method' => 'post',   'uri' => '',                     'action' => 'store'],
-        'update'        => ['method' => 'patch',  'uri' => '{user}',               'action' => 'update'],
-        'toggleStatus'  => ['method' => 'patch', 'uri' => '{user}/toggle-status',  'action' => 'toggleStatus'],
-        'delete'        => ['method' => 'delete', 'uri' => '{user}',               'action' => 'delete'],
-        'destroy'       => ['method' => 'delete', 'uri' => '{user}/force-delete',     'action' => 'destroy'],
+        'index' => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
+        'fetchList' => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
+        'store' => ['method' => 'post',   'uri' => '',                     'action' => 'store'],
+        'update' => ['method' => 'patch',  'uri' => '{user}',               'action' => 'update'],
+        'toggleStatus' => ['method' => 'patch', 'uri' => '{user}/toggle-status',  'action' => 'toggleStatus'],
+        'delete' => ['method' => 'delete', 'uri' => '{user}',               'action' => 'delete'],
+        'destroy' => ['method' => 'delete', 'uri' => '{user}/force-delete',     'action' => 'destroy'],
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password', 'action' => 'resetPassword'],
     ], 'user');
 
-    /**
+    /*
      * =========================================================
      * PERMISOS (Solo SuperAdmin)
      * =========================================================
      */
     role_protected_routes(['role:superadmin'], 'permissions', PermissionController::class, [
-        'index'                => ['method' => 'get',    'uri' => '',                          'action' => 'index'],
-        'fetchList'            => ['method' => 'get',    'uri' => 'fetch-list',                'action' => 'fetchList'],
-        'getRolePermissions'   => ['method' => 'get',    'uri' => 'roles/{role}/permissions',  'action' => 'getRolePermissions'],
-        'assignPermissions'    => ['method' => 'post',   'uri' => 'roles/{role}/assign',       'action' => 'assignPermissions'],
-        'revokePermissions'    => ['method' => 'post',   'uri' => 'roles/{role}/revoke',       'action' => 'revokePermissions'],
-        'store'                => ['method' => 'post',   'uri' => '',                          'action' => 'store'],
+        'index' => ['method' => 'get',    'uri' => '',                          'action' => 'index'],
+        'fetchList' => ['method' => 'get',    'uri' => 'fetch-list',                'action' => 'fetchList'],
+        'getRolePermissions' => ['method' => 'get',    'uri' => 'roles/{role}/permissions',  'action' => 'getRolePermissions'],
+        'assignPermissions' => ['method' => 'post',   'uri' => 'roles/{role}/assign',       'action' => 'assignPermissions'],
+        'revokePermissions' => ['method' => 'post',   'uri' => 'roles/{role}/revoke',       'action' => 'revokePermissions'],
+        'store' => ['method' => 'post',   'uri' => '',                          'action' => 'store'],
         'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
         // saveMatrix (PATCH 'matrix') debe declararse ANTES que update/delete
         // (PATCH/DELETE '{permission}') — {permission} es un wildcard que
@@ -330,23 +328,23 @@ Route::middleware('auth')->group(function () {
         // ruta que coincide por orden de declaración. Con el orden anterior,
         // PATCH /permissions/matrix se resolvía como update() con
         // {permission}="matrix" (nunca existe) -> 404 en vez de saveMatrix().
-        'saveMatrix'           => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix', 'middleware' => 'throttle:admin-permissions-matrix'],
-        'update'               => ['method' => 'patch',  'uri' => '{permission}',             'action' => 'update'],
-        'delete'               => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
-        'copyToRole'           => ['method' => 'post',   'uri' => 'roles/{role}/copy-from/{sourceRole}', 'action' => 'copyToRole'],
+        'saveMatrix' => ['method' => 'patch',  'uri' => 'matrix',                    'action' => 'saveMatrix', 'middleware' => 'throttle:admin-permissions-matrix'],
+        'update' => ['method' => 'patch',  'uri' => '{permission}',             'action' => 'update'],
+        'delete' => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
+        'copyToRole' => ['method' => 'post',   'uri' => 'roles/{role}/copy-from/{sourceRole}', 'action' => 'copyToRole'],
     ], 'permission');
 
-    /**
+    /*
      * =========================================================
      * MÓDULOS DEL SISTEMA (Solo SuperAdmin)
      * =========================================================
      */
     role_protected_routes(['role:superadmin'], 'modules', ModuleController::class, [
-        'fetchList'    => ['method' => 'get', 'uri' => 'fetch-list',     'action' => 'fetchList'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',     'action' => 'fetchList'],
         'toggleStatus' => ['method' => 'put', 'uri' => '{module}/status', 'action' => 'toggleStatus'],
     ], 'module');
 
-    /**
+    /*
      * =========================================================
      * VISIBILIDAD DEL SIDEBAR POR ROL
      * =========================================================
@@ -358,24 +356,24 @@ Route::middleware('auth')->group(function () {
      * role:superadmin puro (riesgo de escalada de privilegios).
      */
     role_protected_routes(['multiPermission:sidebar-menu.view,sidebar-menu.manage'], 'sidebar-menu', SidebarMenuVisibilityController::class, [
-        'index'       => ['method' => 'get',  'uri' => '',           'action' => 'index'],
-        'fetchList'   => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
+        'index' => ['method' => 'get',  'uri' => '',           'action' => 'index'],
+        'fetchList' => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
         'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges', 'middleware' => 'multiPermission:sidebar-menu.manage'],
     ], 'sidebar-menu');
 
-    /**
+    /*
      * =========================================================
      * VISIBILIDAD DE WIDGETS DEL DASHBOARD POR ROL
      * =========================================================
      * Mismo criterio que sidebar-menu arriba.
      */
     role_protected_routes(['multiPermission:dashboard-widgets.view,dashboard-widgets.manage'], 'dashboard-widgets', DashboardWidgetVisibilityController::class, [
-        'index'       => ['method' => 'get',  'uri' => '',           'action' => 'index'],
-        'fetchList'   => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
+        'index' => ['method' => 'get',  'uri' => '',           'action' => 'index'],
+        'fetchList' => ['method' => 'get',  'uri' => 'fetch-list', 'action' => 'fetchList'],
         'saveChanges' => ['method' => 'post', 'uri' => 'save',       'action' => 'saveChanges', 'middleware' => 'multiPermission:dashboard-widgets.manage'],
     ], 'dashboard-widgets');
 
-    /**
+    /*
      * =========================================================
      * CONTENIDO EDITORIAL DE LA LANDING PÚBLICA (Admin y SuperAdmin)
      * Sin create/destroy: el catálogo de 8 section_key es fijo por diseño,
@@ -385,22 +383,22 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      */
     role_protected_routes(['role:admin,superadmin'], 'admin/landing-sections', \App\Http\Controllers\Content\LandingSectionController::class, [
-        'reorder'      => ['method' => 'put', 'uri' => 'reorder',              'action' => 'reorder'],
-        'index'        => ['method' => 'get', 'uri' => ''],
-        'update'       => ['method' => 'put', 'uri' => '{landingSection}/update'],
+        'reorder' => ['method' => 'put', 'uri' => 'reorder',              'action' => 'reorder'],
+        'index' => ['method' => 'get', 'uri' => ''],
+        'update' => ['method' => 'put', 'uri' => '{landingSection}/update'],
         'toggleStatus' => ['method' => 'put', 'uri' => '{landingSection}/status', 'action' => 'toggleStatus'],
     ], 'landingSection');
 
-    /**
+    /*
      * =========================================================
      * ROLES (SuperAdmin y Admin — Admin no puede tocar 'superadmin' ni
      * 'admin' mismo, ver RolePolicy::guardMutation())
      * =========================================================
      */
     role_protected_routes(['role:superadmin,admin'], 'roles-admin', RoleController::class, [
-        'fetchList'    => ['method' => 'get',   'uri' => 'fetch-list',    'action' => 'fetchList'],
-        'hierarchy'    => ['method' => 'get',   'uri' => 'hierarchy',     'action' => 'hierarchy'],
-        'update'       => ['method' => 'patch', 'uri' => '{role}',        'action' => 'update'],
+        'fetchList' => ['method' => 'get',   'uri' => 'fetch-list',    'action' => 'fetchList'],
+        'hierarchy' => ['method' => 'get',   'uri' => 'hierarchy',     'action' => 'hierarchy'],
+        'update' => ['method' => 'patch', 'uri' => '{role}',        'action' => 'update'],
         'toggleStatus' => ['method' => 'put',   'uri' => '{role}/status', 'action' => 'toggleStatus'],
     ], 'role');
 
@@ -409,37 +407,37 @@ Route::middleware('auth')->group(function () {
         ->post('admin/customer/generate-key', [AdminCustomerController::class, 'generateKey'])
         ->name('admin.customer.generate-key');
 
-    /**
+    /*
      * =========================================================
      * AUDITORÍA (SuperAdmin y Admin)
      * =========================================================
      */
     role_protected_routes(['multiPermission:audit.view'], 'audit', AuditController::class, [
-        'index'              => ['method' => 'get', 'uri' => '',                    'action' => 'index'],
-        'fetchList'          => ['method' => 'get', 'uri' => 'fetch-list',          'action' => 'fetchList'],
-        'export'             => ['method' => 'get', 'uri' => 'export',              'action' => 'export', 'middleware' => 'multiPermission:audit.export'],
-        'mostChangedFields'  => ['method' => 'get', 'uri' => 'most-changed-fields', 'action' => 'mostChangedFields'],
-        'show'               => ['method' => 'get', 'uri' => '{id}/show',           'action' => 'show'],
+        'index' => ['method' => 'get', 'uri' => '',                    'action' => 'index'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',          'action' => 'fetchList'],
+        'export' => ['method' => 'get', 'uri' => 'export',              'action' => 'export', 'middleware' => 'multiPermission:audit.export'],
+        'mostChangedFields' => ['method' => 'get', 'uri' => 'most-changed-fields', 'action' => 'mostChangedFields'],
+        'show' => ['method' => 'get', 'uri' => '{id}/show',           'action' => 'show'],
     ]);
 
-    /**
+    /*
      * =========================================================
      * LOGS DEL SISTEMA (SuperAdmin — permiso protegido system.logs)
      * =========================================================
      */
     role_protected_routes(['multiPermission:system.logs'], 'logs', SystemLogController::class, [
-        'index'          => ['method' => 'get', 'uri' => '',                'action' => 'index'],
-        'fetchList'      => ['method' => 'get', 'uri' => 'fetch-list',      'action' => 'fetchList'],
-        'export'         => ['method' => 'get', 'uri' => 'export',         'action' => 'export'],
-        'checkNew'       => ['method' => 'get', 'uri' => 'check-new',      'action' => 'checkNew'],
-        'show'           => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
-        'relatedLogs'    => ['method' => 'get', 'uri' => '{id}/related',    'action' => 'relatedLogs'],
+        'index' => ['method' => 'get', 'uri' => '',                'action' => 'index'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',      'action' => 'fetchList'],
+        'export' => ['method' => 'get', 'uri' => 'export',         'action' => 'export'],
+        'checkNew' => ['method' => 'get', 'uri' => 'check-new',      'action' => 'checkNew'],
+        'show' => ['method' => 'get', 'uri' => '{id}/show',       'action' => 'show'],
+        'relatedLogs' => ['method' => 'get', 'uri' => '{id}/related',    'action' => 'relatedLogs'],
         'toggleReviewed' => ['method' => 'put', 'uri' => '{id}/reviewed',   'action' => 'toggleReviewed'],
-        'toggleIgnored'  => ['method' => 'put', 'uri' => '{id}/ignored',    'action' => 'toggleIgnored'],
-        'assign'         => ['method' => 'put', 'uri' => '{id}/assign',    'action' => 'assign'],
+        'toggleIgnored' => ['method' => 'put', 'uri' => '{id}/ignored',    'action' => 'toggleIgnored'],
+        'assign' => ['method' => 'put', 'uri' => '{id}/assign',    'action' => 'assign'],
     ]);
 
-    /**
+    /*
      * =========================================================
      * KYC (verificación de identidad de jugadores) — view/manage separados:
      * cualquiera con kyc.view o kyc.manage puede ver la cola/detalle, pero
@@ -448,21 +446,21 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      */
     role_protected_routes(['multiPermission:kyc.view,kyc.manage'], 'admin/kyc', KycAdminController::class, [
-        'index'     => ['method' => 'get', 'uri' => '',                 'action' => 'index'],
+        'index' => ['method' => 'get', 'uri' => '',                 'action' => 'index'],
         'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',       'action' => 'fetchList'],
-        'export'    => ['method' => 'get', 'uri' => 'export',          'action' => 'export'],
-        'show'      => ['method' => 'get', 'uri' => '{document}/show',  'action' => 'show'],
-        'image'     => ['method' => 'get', 'uri' => '{document}/image/{type}', 'action' => 'image'],
+        'export' => ['method' => 'get', 'uri' => 'export',          'action' => 'export'],
+        'show' => ['method' => 'get', 'uri' => '{document}/show',  'action' => 'show'],
+        'image' => ['method' => 'get', 'uri' => '{document}/image/{type}', 'action' => 'image'],
     ], 'document');
 
     Route::middleware(['auth', 'multiPermission:kyc.manage', 'throttle:30,1'])
         ->prefix('admin/kyc')
-        ->group(function () {
+        ->group(function() {
             Route::post('{document}/approve', [KycAdminController::class, 'approve'])->name('admin.kyc.approve');
-            Route::post('{document}/reject',  [KycAdminController::class, 'reject'])->name('admin.kyc.reject');
+            Route::post('{document}/reject', [KycAdminController::class, 'reject'])->name('admin.kyc.reject');
         });
 
-    /**
+    /*
      * =========================================================
      * ANTI-CHEAT (flags y suspensiones de jugadores) — mismo criterio
      * view/manage que KYC: cualquiera con anticheat.view puede ver flags/
@@ -471,18 +469,18 @@ Route::middleware('auth')->group(function () {
      */
     Route::middleware(['auth', 'multiPermission:anticheat.view,anticheat.manage'])
         ->prefix('admin/anticheat')
-        ->group(function () {
+        ->group(function() {
             Route::get('users/{user}/flags', [AntiCheatAdminController::class, 'flagsForUser'])->name('admin.anticheat.flags');
         });
 
     Route::middleware(['auth', 'multiPermission:anticheat.manage', 'throttle:30,1'])
         ->prefix('admin/anticheat')
-        ->group(function () {
+        ->group(function() {
             Route::post('suspensions/{suspension}/resolve', [AntiCheatAdminController::class, 'resolveSuspension'])->name('admin.anticheat.resolveSuspension');
             Route::post('users/{user}/suspend', [AntiCheatAdminController::class, 'suspendManually'])->name('admin.anticheat.suspendManually');
         });
 
-    /**
+    /*
      * =========================================================
      * IMPERSONACIÓN (soporte a jugadores/seller/commerce/subsidiary) — Solo
      * SuperAdmin puede INICIARLA (mismo criterio que /logs: role:superadmin
@@ -506,12 +504,12 @@ Route::middleware('auth')->group(function () {
         ->post('admin/impersonation/stop', [ImpersonationController::class, 'stop'])
         ->name('admin.impersonation.stop');
 
-    Route::middleware(['auth', 'role:superadmin'])->prefix('admin/impersonation')->group(function () {
-        Route::get('history',      [ImpersonationController::class, 'historyPage'])->name('admin.impersonation.history.page');
+    Route::middleware(['auth', 'role:superadmin'])->prefix('admin/impersonation')->group(function() {
+        Route::get('history', [ImpersonationController::class, 'historyPage'])->name('admin.impersonation.history.page');
         Route::get('history/data', [ImpersonationController::class, 'history'])->name('admin.impersonation.history');
     });
 
-    /**
+    /*
      * =========================================================
      * JOBS Y SCHEDULER (SuperAdmin — permiso protegido system.jobs)
      * =========================================================
@@ -521,31 +519,31 @@ Route::middleware('auth')->group(function () {
      * frontend debe encodeURIComponent() ese segmento.
      */
     role_protected_routes(['multiPermission:system.jobs'], 'system/jobs', JobsCenterController::class, [
-        'index'                  => ['method' => 'get',    'uri' => '',                            'action' => 'index'],
-        'scheduledCommands'      => ['method' => 'get',    'uri' => 'scheduler',                   'action' => 'scheduledCommands'],
+        'index' => ['method' => 'get',    'uri' => '',                            'action' => 'index'],
+        'scheduledCommands' => ['method' => 'get',    'uri' => 'scheduler',                   'action' => 'scheduledCommands'],
         'toggleScheduledCommand' => ['method' => 'put',    'uri' => 'scheduler/{id}/toggle',        'action' => 'toggleScheduledCommand'],
-        'runScheduledCommand'    => ['method' => 'post',   'uri' => 'scheduler/{id}/run',           'action' => 'runScheduledCommand'],
+        'runScheduledCommand' => ['method' => 'post',   'uri' => 'scheduler/{id}/run',           'action' => 'runScheduledCommand'],
         'updateScheduledCommandFrequency' => ['method' => 'put', 'uri' => 'scheduler/{id}/frequency', 'action' => 'updateScheduledCommandFrequency'],
-        'resetScheduledCommandFrequency'  => ['method' => 'delete', 'uri' => 'scheduler/{id}/frequency', 'action' => 'resetScheduledCommandFrequency'],
-        'previewScheduledCommandFrequency'=> ['method' => 'post', 'uri' => 'scheduler/{id}/frequency/preview', 'action' => 'previewScheduledCommandFrequency'],
-        'scheduledCommandHistory'=> ['method' => 'get',    'uri' => 'scheduler/{command}/history',  'action' => 'scheduledCommandHistory'],
-        'pendingJobs'            => ['method' => 'get',    'uri' => 'pending',                      'action' => 'pendingJobs'],
-        'pendingJobsByQueue'     => ['method' => 'get',    'uri' => 'pending/{queue}',              'action' => 'pendingJobsByQueue'],
-        'failedJobs'             => ['method' => 'get',    'uri' => 'failed',                       'action' => 'failedJobs'],
-        'retryFailedJob'         => ['method' => 'post',   'uri' => 'failed/{uuid}/retry',          'action' => 'retryFailedJob'],
-        'retryAllFailedJobs'     => ['method' => 'post',   'uri' => 'failed/retry-all',             'action' => 'retryAllFailedJobs'],
-        'forgetFailedJob'        => ['method' => 'delete', 'uri' => 'failed/{uuid}',                'action' => 'forgetFailedJob'],
+        'resetScheduledCommandFrequency' => ['method' => 'delete', 'uri' => 'scheduler/{id}/frequency', 'action' => 'resetScheduledCommandFrequency'],
+        'previewScheduledCommandFrequency' => ['method' => 'post', 'uri' => 'scheduler/{id}/frequency/preview', 'action' => 'previewScheduledCommandFrequency'],
+        'scheduledCommandHistory' => ['method' => 'get',    'uri' => 'scheduler/{command}/history',  'action' => 'scheduledCommandHistory'],
+        'pendingJobs' => ['method' => 'get',    'uri' => 'pending',                      'action' => 'pendingJobs'],
+        'pendingJobsByQueue' => ['method' => 'get',    'uri' => 'pending/{queue}',              'action' => 'pendingJobsByQueue'],
+        'failedJobs' => ['method' => 'get',    'uri' => 'failed',                       'action' => 'failedJobs'],
+        'retryFailedJob' => ['method' => 'post',   'uri' => 'failed/{uuid}/retry',          'action' => 'retryFailedJob'],
+        'retryAllFailedJobs' => ['method' => 'post',   'uri' => 'failed/retry-all',             'action' => 'retryAllFailedJobs'],
+        'forgetFailedJob' => ['method' => 'delete', 'uri' => 'failed/{uuid}',                'action' => 'forgetFailedJob'],
     ]);
 
-    /**
+    /*
      * =========================================================
      * EVENTOS DE GANANCIA — registro manual (premios físicos/objetos/servicios)
      * =========================================================
      */
     role_protected_routes(['role:superadmin,admin'], 'admin/win-event', AdminWinEventController::class, [
-        'index'     => ['method' => 'get',  'uri' => '',            'action' => 'index'],
-        'store'     => ['method' => 'post', 'uri' => '',            'action' => 'store'],
+        'index' => ['method' => 'get',  'uri' => '',            'action' => 'index'],
+        'store' => ['method' => 'post', 'uri' => '',            'action' => 'store'],
         'fetchList' => ['method' => 'get',  'uri' => 'fetch-list',  'action' => 'fetchList'],
-        'show'      => ['method' => 'get',  'uri' => '{id}/show',   'action' => 'show'],
+        'show' => ['method' => 'get',  'uri' => '{id}/show',   'action' => 'show'],
     ]);
 });

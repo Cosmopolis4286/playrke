@@ -20,15 +20,33 @@ use Inertia\Response;
 class PublicController extends Controller
 {
     private const LANDING_ROOMS_LIMIT = 3;
-    private const LANDING_WINS_WINDOW_MINUTES = 5;
     private const LANDING_WINS_LIMIT = 6;
+    private const LANDING_WINS_WINDOW_MINUTES = 5;
 
     /**
      * Inyecta el repositorio en el constructor
      */
     public function __construct(
-        protected AppParameterRepositoryInterface $settings
-    ) {}
+        protected AppParameterRepositoryInterface $settings,
+    ) {
+    }
+
+    /**
+     * Vitrina pública de salas de Bingo (sin sesión) — mismo catálogo/métricas
+     * que el lobby autenticado (venta, pozo, top de compras) pero sin botón
+     * de compra real: el CTA lleva a login/registro. Decisión de producto:
+     * no exponer compra sin cuenta (KYC/fraude, ver análisis de riesgo).
+     */
+    public function gameRoomsShowcase(
+        \App\Domains\Games\Bingo\Services\Room\BingoRoomContextService $contextService,
+        JackpotPublicStatsService $jackpotStats,
+    ) : Response {
+        $dto = $contextService->publicShowcase();
+
+        return Inertia::render('Public/GameRoomsShowcase', array_merge($dto->toView(), [
+            'initialJackpots' => $jackpotStats->list(),
+        ]));
+    }
 
     /**
      * Landing pública — punto de entrada del sitio para visitantes sin
@@ -44,7 +62,7 @@ class PublicController extends Controller
         WinEventLeaderboardService $leaderboardService,
         JackpotPublicStatsService $jackpotStats,
         LandingSectionCrudService $landingSections,
-    ): Response {
+    ) : Response {
         $register = $this->settings->getParameterStatus('REGISTER');
 
         $showcase = $contextService->publicShowcase()->toView();
@@ -57,15 +75,15 @@ class PublicController extends Controller
             ->limit(self::LANDING_WINS_LIMIT)
             ->get()
             ->map(fn (WinEvent $e) => [
-                'id'              => (string) $e->id,
-                'game'            => $e->game_name,
-                'game_slug'       => $e->game_slug,
-                'winner_name'     => $e->maskedWinnerName(),
-                'prize_kind'      => $e->prize_kind,
-                'prize_label'     => $e->prize_label,
-                'amount'          => $e->amount_usd !== null ? (float) $e->amount_usd : null,
+                'id' => (string) $e->id,
+                'game' => $e->game_name,
+                'game_slug' => $e->game_slug,
+                'winner_name' => $e->maskedWinnerName(),
+                'prize_kind' => $e->prize_kind,
+                'prize_label' => $e->prize_label,
+                'amount' => $e->amount_usd !== null ? (float) $e->amount_usd : null,
                 'currency_symbol' => $e->currency?->symbol ?? '$',
-                'timestamp'       => $e->created_at?->toISOString(),
+                'timestamp' => $e->created_at?->toISOString(),
             ])
             ->values();
 
@@ -84,25 +102,8 @@ class PublicController extends Controller
      * Página pública "Verificar mi cartón" — buscador por serial + teléfono,
      * sin sesión (ver App\Http\Controllers\Platform\BingoCardVerifyController).
      */
-    public function verifyCard(): Response
+    public function verifyCard() : Response
     {
         return Inertia::render('Public/VerifyCard');
-    }
-
-    /**
-     * Vitrina pública de salas de Bingo (sin sesión) — mismo catálogo/métricas
-     * que el lobby autenticado (venta, pozo, top de compras) pero sin botón
-     * de compra real: el CTA lleva a login/registro. Decisión de producto:
-     * no exponer compra sin cuenta (KYC/fraude, ver análisis de riesgo).
-     */
-    public function gameRoomsShowcase(
-        \App\Domains\Games\Bingo\Services\Room\BingoRoomContextService $contextService,
-        JackpotPublicStatsService $jackpotStats,
-    ): Response {
-        $dto = $contextService->publicShowcase();
-
-        return Inertia::render('Public/GameRoomsShowcase', array_merge($dto->toView(), [
-            'initialJackpots' => $jackpotStats->list(),
-        ]));
     }
 }

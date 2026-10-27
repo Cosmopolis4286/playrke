@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'banks_venezuela'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('banks_venezuela');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'banks_venezuela'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('banks_venezuela', function (Blueprint $table) {
+        Schema::create('banks_venezuela', function(Blueprint $table) {
             // ID Snowflake para consistencia y seguridad
             $table->snowflake('id')->primary()->comment('ID único del banco');
 
@@ -29,13 +37,5 @@ return new class extends Migration
             // Índices para búsquedas rápidas
             $table->index('name', 'idx_banks_name');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'banks_venezuela'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('banks_venezuela');
     }
 };

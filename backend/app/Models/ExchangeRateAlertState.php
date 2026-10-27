@@ -12,7 +12,12 @@ class ExchangeRateAlertState extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'exchange_rate_alert_states';
+    protected $casts = [
+        'currency_id' => 'string',
+        'last_amount' => 'float',
+        'stale_notified_at' => 'datetime',
+        'deviation_notified_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'owner_key',
@@ -22,10 +27,5 @@ class ExchangeRateAlertState extends Model
         'deviation_notified_at',
     ];
 
-    protected $casts = [
-        'currency_id'           => 'string',
-        'last_amount'           => 'float',
-        'stale_notified_at'     => 'datetime',
-        'deviation_notified_at' => 'datetime',
-    ];
+    protected $table = 'exchange_rate_alert_states';
 }

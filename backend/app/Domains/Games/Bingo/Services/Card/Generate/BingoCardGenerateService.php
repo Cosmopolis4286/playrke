@@ -2,35 +2,42 @@
 
 namespace App\Domains\Games\Bingo\Services\Card\Generate;
 
-use App\Domains\Games\Bingo\DTOs\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
-use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
+use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
+use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateContexDTO;
+use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO;
 use App\Domains\Games\Bingo\Events\BingoCardSold;
+use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Models\Roles\Commerce;
-use App\Models\Roles\Seller;
-use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
-use App\Domains\Games\Bingo\Services\Card\BingoCardPriceCalculator;
 use App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService;
+use App\Domains\Games\Bingo\Services\Card\BingoCardPriceCalculator;
+use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Domains\Wallet\Services\WalletService;
+use App\Models\Game;
+use App\Models\Roles\Commerce;
+use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Seller;
 use App\Services\Roles\Player\External\ExternalPlayerLinkService;
-use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
-use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
-use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\Game;
+use Throwable;
 
 /**
  * Servicio para la generación de cartones de Bingo.
- *
  */
 final class BingoCardGenerateService
 {
+    /**
+     * Recargo máximo permitido para cartón personalizado: nunca más del 5% del
+     * precio base del cartón, sin importar la modalidad ni la moneda.
+     */
+    private const MAX_CUSTOM_CARD_SURCHARGE_PCT = 5.0;
+
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
@@ -55,612 +62,17 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly \App\Services\NotificationService $notificationService,
         private readonly CommissionCalculationInterface $commissionCalculation,
-    ) {}
-
-    /**
-     * Resolver contexto la vista de generar cartones de bingo.
-     *
-     * @param int $userId ID del usuario
-     * @return BingoCardGenerateContexDTO
-     */
-    public function viewContext(int $userId): BingoCardGenerateContexDTO
-    {
-        [$canSell, $blockedMessage] = $this->resolveSellAvailability($userId);
-
-        return new BingoCardGenerateContexDTO(
-            gameModes: $this->connectionTypes->getActiveConnectionTypes(),
-            roomTypes: $this->roomTypes->getActiveTypes(),
-            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
-            canSell: $canSell,
-            blockedMessage: $blockedMessage,
-        );
-    }
-
-    /**
-     * Determina si el usuario puede vender cartones desde esta vista.
-     *
-     * Equivale al `$status == 1` de la vista Blade legacy: se evalúa al cargar
-     * la página para mostrar el aviso de inmediato, en lugar de que el vendedor
-     * llene el formulario y solo reciba el 409 (hierarchyNotActive) al consultar
-     * el precio o al generar. Mismo criterio que generate(): Seller ACTIVE +
-     * agencia/comercio padre ACTIVE (Seller::hasActiveHierarchy()).
-     *
-     * @return array{0: bool, 1: string|null} [canSell, blockedMessage]
-     */
-    private function resolveSellAvailability(int $userId): array
-    {
-        if ($this->roleUserService->getActiveUserRolePrefix($userId) !== 'seller') {
-            // BingoCardGenerateRequest::authorize() solo admite 'seller'.
-            return [false, 'Solo los vendedores pueden generar cartones.'];
-        }
-
-        $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id', 'status']);
-
-        if (!$seller || !$seller->hasActiveHierarchy()) {
-            return [false, '¡No puedes vender cartones, contacta a tu gestor!'];
-        }
-
-        return [true, null];
-    }
-
-    /**
-     * Todas las salas vendibles de una fecha en una sola llamada, con los IDs
-     * de tipo de sala / conexión / bote para que el punto de venta filtre en
-     * el cliente (chips).
-     *
-     * Visibilidad: ACTIVE, propias del comercio o PUBLIC, de la fecha pedida.
-     * Las salas de inicio manual (sin fecha ni hora) se listan en "hoy",
-     * vendibles hasta que el admin las inicie.
-     *
-     * Cada sala trae sales_close_at / sales_open (ver findSellableRoom()):
-     * las que ya pasaron el cierre se listan igual, marcadas, para que el
-     * vendedor entienda por qué no puede venderlas.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function listSellableRooms(string $date): array
-    {
-        $creatorUserId = $this->resolveCreatorOrManagerUserId();
-        $owners = $this->sellableRoomOwners($creatorUserId);
-        $isToday = $date === now()->toDateString();
-
-        return BingoRoom::query()
-            ->active()
-            ->sellableBy($owners)
-            ->notDemo()
-            ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
-            ->leftJoin('room_types', 'room_types.id', '=', 'bingo_rooms_config.room_type_id')
-            ->where(function ($q) use ($date, $isToday) {
-                $q->whereDate('bingo_rooms_config.date', $date);
-
-                if ($isToday) {
-                    $q->orWhere(fn ($m) => $m
-                        ->whereNull('bingo_rooms_config.date')
-                        ->where('bingo_rooms_config.start_mode', 'MANUAL'));
-                }
-            })
-            ->orderBy('bingo_rooms_config.time')
-            ->get([
-                'bingo_rooms.id',
-                'bingo_rooms.uuid_code',
-                'bingo_rooms.prize_pool',
-                'bingo_rooms.total_players',
-                'bingo_rooms.total_cards',
-                'bingo_rooms.creator_user_id',
-                'bingo_rooms_config.date',
-                'bingo_rooms_config.time',
-                'bingo_rooms_config.unix_date',
-                'bingo_rooms_config.start_mode',
-                'bingo_rooms_config.card_price_usd',
-                'bingo_rooms_config.max_players',
-                'bingo_rooms_config.room_type_id',
-                'bingo_rooms_config.connection_type_id',
-                'bingo_rooms_config.prize_pool_type_id',
-                'room_types.code as room_type_code',
-            ])
-            ->map(function (BingoRoom $room) use ($owners) {
-                $unixDate = $room->getAttribute('unix_date') !== null ? (int) $room->getAttribute('unix_date') : null;
-                $closeAt  = $this->sellerSalesCloseAt($unixDate);
-
-                return $this->sellableRoomPayload($room, $owners) + [
-                    // VIP: el vendedor solo puede venderle a teléfonos de la lista de invitados.
-                    'is_vip'         => $room->getAttribute('room_type_code') === 'VIP',
-                    'is_manual'      => $unixDate === null,
-                    'starts_at'      => $unixDate ? Carbon::createFromTimestamp($unixDate)->toISOString() : null,
-                    'sales_close_at' => $closeAt ? Carbon::createFromTimestamp($closeAt)->toISOString() : null,
-                    'sales_open'     => $this->isOpenForSellerSales('ACTIVE', $unixDate),
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @param string[] $owners Dueños "propios" (comercializadora y, si aplica, agencia del vendedor).
-     * @return array<string, mixed>
-     */
-    private function sellableRoomPayload(BingoRoom $room, array $owners): array
-    {
-        return [
-            'id'                 => $room->hashed_id,
-            'uuid_code'          => $room->uuid_code,
-            'prize_pool'         => (float) $room->prize_pool,
-            'total_players'      => (int) $room->total_players,
-            'total_cards'        => (int) $room->total_cards,
-            'is_own'             => in_array((string) $room->creator_user_id, $owners, true),
-            'date'               => $room->getAttribute('date'),
-            'time'               => $room->getAttribute('time'),
-            'card_price_usd'     => (float) $room->getAttribute('card_price_usd'),
-            'max_players'        => $room->getAttribute('max_players') !== null ? (int) $room->getAttribute('max_players') : null,
-            'room_type_id'       => $room->getAttribute('room_type_id') !== null ? (string) $room->getAttribute('room_type_id') : null,
-            'connection_type_id' => $room->getAttribute('connection_type_id') !== null ? (string) $room->getAttribute('connection_type_id') : null,
-            'prize_pool_type_id' => $room->getAttribute('prize_pool_type_id') !== null ? (string) $room->getAttribute('prize_pool_type_id') : null,
-        ];
-    }
-
-    /**
-     * Obtener países disponibles para el usuario según su rol y la sala de bingo.
-     *
-     * Lógica de intersección:
-     * 1. Monedas activas de la entidad del usuario (commerce o seller).
-     * 2. Si el usuario es seller, además intersecta con las monedas activas
-     *    de su manager (commerce padre), ya que el seller opera dentro del
-     *    catálogo del commerce que lo gestiona.
-     * 3. Monedas permitidas en la sala (campo JSON `allowed_currencies`
-     *    en `bingo_rooms_config`).
-     *
-     * El resultado son los países cuya moneda queda en la intersección final.
-     *
-     * @param string $roomId ID de la sala de bingo
-     * @param string $userId ID del usuario autenticado (puede ser commerce o seller)
-     * @return array{countries: \Illuminate\Database\Eloquent\Collection} Países disponibles con id, name e iso_code_2
-     *
-     * @throws BingoCardGenerateException Si el rol no tiene soporte de monedas
-     */
-    public function getAvailableCountries(string $roomId, string $userId): array
-    {
-        // Determinar el prefijo de rol activo del usuario (ej. 'commerce', 'seller')
-        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        // Monedas explícitamente permitidas en la sala (JSON nullable → fallback a [])
-        $allowedCurrenciesRoom = BingoRoomConfig::where('room_id', $roomId)->value('allowed_currencies') ?? [];
-        $allowedCurrenciesRoom = array_map('strval', $allowedCurrenciesRoom);
-
-        // superadmin / admin: ven todos los países de las monedas permitidas en la sala
-        if (in_array($role, ['superadmin', 'admin'], true)) {
-            $countriesIdsAvailable = $this->currencies->getCountriesByCurrencies($allowedCurrenciesRoom);
-            $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
-            return ['countries' => $countries];
-        }
-
-        // Obtener el ID de la entidad (commerce_id, seller_id, etc.) asociada al usuario
-        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
-
-        // Monedas activas habilitadas para esta entidad según su rol
-        $entityCurrencies = $this->resolveEntityCurrencies($entityId, $role);
-
-        // Para sellers: también se requiere la intersección con las monedas
-        // del commerce que los gestiona (manager_user_id → commerce).
-        // Esto evita que un seller ofrezca monedas que su commerce no opera.
-        $managerCurrencies = null;
-        if ($role === 'seller') {
-            // manager_user_id es el user_id del commerce padre del seller
-            $managerUserId   = $this->resolveCreatorOrManagerUserId();
-            $managerRole     = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
-            $managerEntityId = $this->roleEntityResolver->resolveEntityId($managerUserId, $managerRole);
-
-            // Monedas activas del commerce manager
-            $managerCurrencies = $this->resolveEntityCurrencies($managerEntityId, $managerRole);
-        }
-
-        // Construir los conjuntos a intersectar (todos como strings para evitar
-        // comparaciones fallidas por tipo int vs string en los IDs)
-        $sets = [
-            array_map('strval', $entityCurrencies),
-            $allowedCurrenciesRoom,
-        ];
-
-        if ($managerCurrencies !== null) {
-            $sets[] = array_map('strval', $managerCurrencies);
-        }
-
-        // Monedas que pasan los tres filtros: entidad + sala [+ manager si es seller]
-        $currenciesAllowedInTheRoom = array_values(array_intersect(...$sets));
-
-        // Obtener los country_id de cada moneda resultante
-        $countriesIdsAvailable = $this->currencies->getCountriesByCurrencies($currenciesAllowedInTheRoom);
-
-        // Hidratar los modelos de país con los campos mínimos necesarios para la vista
-        $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
-
-        return ['countries' => $countries];
-    }
-
-    /**
-     * Resuelve las monedas activas disponibles para una entidad según su rol.
-     *
-     * Centraliza el despacho a los repositorios correctos para no duplicar
-     * el bloque match en `getAvailableCountries` (usado tanto para la entidad
-     * propia como para el manager del seller).
-     *
-     * @param string $entityId ID de la entidad (commerce_id o seller_id)
-     * @param string $role     Prefijo de rol ('commerce' | 'seller')
-     * @return array<int, string> Array de IDs de monedas activas
-     *
-     * @throws BingoCardGenerateException Si el rol no tiene soporte de monedas implementado
-     */
-    private function resolveEntityCurrencies(string $entityId, string $role): array
-    {
-        return match ($role) {
-            // getAvailableCurrenciesIds filtra por status = 'ACTIVE' internamente
-            'commerce'   => $this->commerceCurrencyRepository->getAvailableCurrenciesIds($entityId),
-            // segundo parámetro true = solo relaciones activas (status = 1)
-            'seller'     => $this->sellerCurrencyRepository->getAvailableCurrencies($entityId, true),
-            // Subsidiary no tiene tabla de monedas propia — opera con las
-            // monedas de su Commerce padre (la agencia hereda el catálogo
-            // de la comercializadora que la administra).
-            'subsidiary' => $this->resolveSubsidiaryCurrencies($entityId),
-            default      => throw BingoCardGenerateException::unsupportedCurrencyRole($role),
-        };
-    }
-
-    /**
-     * Monedas activas del Commerce padre de una Subsidiary. Devuelve array
-     * vacío (sin lanzar excepción) si la Subsidiary no tiene commerce_id —
-     * el intersect() de arriba simplemente no dejará pasar ninguna moneda,
-     * lo cual es el comportamiento correcto para una agencia mal configurada.
-     */
-    private function resolveSubsidiaryCurrencies(string $subsidiaryId): array
-    {
-        $commerceId = $this->subsidiaryRepository->getValueById($subsidiaryId, 'commerce_id');
-
-        if (!$commerceId) {
-            return [];
-        }
-
-        return $this->commerceCurrencyRepository->getAvailableCurrenciesIds($commerceId);
-    }
-
-    /**
-     * Obtiene el precio de un cartón para una sala y país específicos.
-     *
-     * Lógica:
-     * 1. Resuelve el rol y la entidad del usuario autenticado.
-     * 2. Deriva el commerce responsable (propio si es commerce, del manager si es seller).
-     * 3. Obtiene la moneda del país y la tasa de cambio del commerce.
-     * 4. Busca precio personalizado en bingo_card_prices; si no existe, usa precio base USD × tasa.
-     * 5. Retorna comisión de la entidad autenticada (commerce.commission o seller.commission).
-     *
-     * @param string $roomId    ID real de la sala de bingo (decodificado por route model binding).
-     * @param string $userId    ID del usuario autenticado.
-     * @param string $countryId ID del país seleccionado (Snowflake como string).
-     *
-     * @return array{
-     *     card_price: float,
-     *     currency_symbol: string,
-     *     exchange_rate: float,
-     *     exchange_rate_source: string,
-     *     is_custom_price: bool,
-     *     seller_commission: float
-     * }
-     *
-     * @throws BingoCardGenerateException Si la moneda, el commerce o la tasa no se encuentran.
-     */
-    public function getCardPrice(string $roomId, string $userId, string $countryId): array
-    {
-        // 1. Rol y entidad del usuario autenticado
-        $role     = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        // superadmin / admin: precio base de la sala en USD (sin entidad ni tasa)
-        if (in_array($role, ['superadmin', 'admin'], true)) {
-            $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
-            $room           = BingoRoom::select('id')->with('config:id,room_id,card_price_usd')->find($roomId);
-            $cardPrice      = $room?->config?->card_price_usd ?? 0;
-
-            return [
-                'card_price'        => (float) $cardPrice,
-                'currency_symbol'   => (string) ($currencySymbol ?? 'USD'),
-                'exchange_rate'     => 1.0,
-                'exchange_rate_source' => 'usd',
-                'is_custom_price'   => false,
-                'seller_commission' => 0.0,
-            ];
-        }
-
-        // 2. Commerce responsable y user_id de su creador (para filtrar bingo_card_prices)
-        [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
-
-        // 3. Sala vendible por este comercio y moneda habilitada — mismas
-        //    validaciones que generate(), para que la vista previa nunca
-        //    muestre un precio de algo que luego no se podrá vender.
-        $this->findSellableRoom($roomId, $creatorUserId);
-        $this->assertCountryAllowed($roomId, $userId, $countryId);
-
-        $currencyId     = $this->currencies->getValueByCountry($countryId, 'id');
-        $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
-
-        if (!$currencyId) {
-            throw BingoCardGenerateException::currencyNotAvailable();
-        }
-
-        // 4-5. Tasa y precio — MISMOS helpers que generate().
-        $exchangeRate = $this->saleExchangeRate($currencyId, $creatorUserId);
-        $price        = $this->resolveUnitCardPrice($roomId, $currencyId, $creatorUserId, $exchangeRate);
-
-        // 6. Comisión: para el vendedor, la tasa EFECTIVA que se aplicará en
-        //    la venta (especial de la sala o base, + bono progresivo).
-        $commission = $role === 'seller'
-            ? $this->commissionCalculation->sellerCommissionRate(
-                (string) $this->sellerRepository->getValueByUserId($userId, 'id'),
-                $roomId,
-            )
-            : $this->resolveEntityCommission($userId, $role);
-
-        return [
-            'card_price'        => $price['card_price'],
-            'currency_symbol'   => (string) ($currencySymbol ?? ''),
-            'exchange_rate'     => $exchangeRate,
-            // De dónde sale la tasa: para que el punto de venta muestre
-            // "1 USD = X (tasa propia / oficial)" — ver saleExchangeRateSource().
-            'exchange_rate_source' => $this->saleExchangeRateSource($currencyId, $creatorUserId),
-            'is_custom_price'   => $price['is_custom_price'],
-            'seller_commission' => $commission,
-        ];
-    }
-
-    /**
-     * Tasa de cambio de una venta: la del COMERCIO dueño del negocio (su tasa
-     * propia si la tiene, si no la oficial — ver ExchangeRateDomainService),
-     * redondeada a 2 decimales.
-     *
-     * Única fuente de la tasa para vista previa y cobro. Antes la vista
-     * previa del vendedor la resolvía con el user_id del VENDEDOR (que nunca
-     * tiene tasa propia → siempre la oficial) y sin redondear, mientras
-     * generate() usaba la del comercio redondeada: si el comercio tenía tasa
-     * propia, el precio que veía el vendedor no era el que se registraba.
-     */
-    /**
-     * 'usd' (moneda base, sin conversión), 'own' (tasa propia del dueño de la
-     * sala) u 'official' (la de la plataforma) — mismo criterio que saleExchangeRate().
-     */
-    private function saleExchangeRateSource(int|string $currencyId, int|string $rateOwnerUserId): string
-    {
-        if ((string) $currencyId === (string) \App\Models\Currency::usdId()) {
-            return 'usd';
-        }
-
-        return $this->exchangeRateDomain->ownRate($currencyId, $rateOwnerUserId) !== null ? 'own' : 'official';
-    }
-
-    private function saleExchangeRate(int|string $currencyId, int|string $rateOwnerUserId): float
-    {
-        return round(
-            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $rateOwnerUserId),
-            2,
-        );
-    }
-
-    /**
-     * Precio unitario del cartón en moneda local: precio personalizado del
-     * comercio (bingo_card_prices) o, si no hay, precio base USD de la sala ×
-     * tasa. Usado por vista previa y cobro.
-     *
-     * @return array{card_price: float, is_custom_price: bool}
-     */
-    private function resolveUnitCardPrice(string $roomId, int|string $currencyId, int|string $creatorUserId, float $exchangeRate): array
-    {
-        $customPrice = BingoCardPrice::byRoom($roomId)
-            ->byCurrency($currencyId)
-            ->where('creator_user_id', $creatorUserId)
-            ->value('card_price');
-
-        if ($customPrice !== null) {
-            return [
-                'card_price'      => (float) $this->priceCalculator->calculate($customPrice, true, $exchangeRate),
-                'is_custom_price' => true,
-            ];
-        }
-
-        $roomCardPrice = BingoRoomConfig::where('room_id', $roomId)->value('card_price_usd') ?? 0;
-
-        return [
-            'card_price'      => (float) $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate),
-            'is_custom_price' => false,
-        ];
-    }
-
-    /**
-     * Sala en la que este comercio (y su red) puede vender, propia del
-     * comercio o PUBLIC. Una sala inexistente o ajena responde "no disponible"
-     * (404) sin distinguir ambos casos, para no revelar salas de otros.
-     *
-     * Plazo de venta del vendedor: solo ACTIVE y hasta
-     * sellerSalesCutoffMinutes() antes del inicio. Su pago nace PENDING y los
-     * cartones no juegan hasta que el comercio aprueba el comprobante: vender
-     * con el sorteo encima (o ya en curso, IN_PROGRESS) dejaba al comprador
-     * pagando por una partida que no llegaba a jugar. La compra del jugador
-     * con billetera (playerBuyFromGameRooms) no pasa por
-     * aquí: su pago es inmediato y sigue admitiendo IN_PROGRESS.
-     */
-    /**
-     * Dueños cuyas salas (PRIVATE incluidas) puede vender el usuario
-     * autenticado: su comercializadora y, si es vendedor de agencia, también
-     * su agencia — las agencias no crean salas por defecto, pero una con
-     * permiso individual games.bingo.manage sí, y sus vendedores deben poder
-     * venderlas.
-     *
-     * @return string[]
-     */
-    private function sellableRoomOwners(int|string $commerceUserId): array
-    {
-        $seller = Seller::where('user_id', Auth::id())->first(['id', 'manager_user_id', 'subsidiary_id']);
-
-        return array_values(array_unique(array_merge([(string) $commerceUserId], $seller?->roomOwnerUserIds() ?? [])));
-    }
-
-    private function findSellableRoom(string $roomId, int|string $creatorUserId): BingoRoom
-    {
-        $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
-            ->with(['status:id,code', 'config:id,room_id,unix_date'])
-            ->whereKey($roomId)
-            ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->sellableBy($this->sellableRoomOwners($creatorUserId))
-            // DEMO: solo creador/admin la juegan, nunca la red de venta.
-            ->notDemo()
-            ->first();
-
-        if (!$room) {
-            throw BingoCardGenerateException::roomNotAvailable();
-        }
-
-        $unixDate = $room->config?->unix_date;
-
-        if (!$this->isOpenForSellerSales($room->status?->code, $unixDate !== null ? (int) $unixDate : null)) {
-            throw BingoCardGenerateException::salesClosed($this->sellerSalesCutoffMinutes());
-        }
-
-        return $room;
-    }
-
-    /** Minutos antes del inicio en que cierra la venta del vendedor (parámetro de la app). */
-    private function sellerSalesCutoffMinutes(): int
-    {
-        return max(0, (int) config('app.bingo_seller_sales_cutoff_minutes', 5));
-    }
-
-    /**
-     * Momento (unix UTC) en que cierra la venta del vendedor; null en salas
-     * de inicio manual (sin horario): se venden mientras sigan ACTIVE.
-     */
-    private function sellerSalesCloseAt(?int $unixDate): ?int
-    {
-        return $unixDate ? $unixDate - $this->sellerSalesCutoffMinutes() * 60 : null;
-    }
-
-    private function isOpenForSellerSales(?string $statusCode, ?int $unixDate): bool
-    {
-        if ($statusCode !== 'ACTIVE') {
-            return false;
-        }
-
-        $closeAt = $this->sellerSalesCloseAt($unixDate);
-
-        return $closeAt === null || now()->timestamp < $closeAt;
-    }
-
-    /**
-     * El país (y con él la moneda) debe estar entre los habilitados para esta
-     * sala y este usuario — misma intersección que ya arma el selector de
-     * países (getAvailableCountries). Antes solo se validaba en el frontend.
-     */
-    private function assertCountryAllowed(string $roomId, int|string $userId, string $countryId): void
-    {
-        $allowed = collect($this->getAvailableCountries($roomId, (string) $userId)['countries'] ?? [])
-            ->map(fn ($country) => (string) (is_array($country) ? $country['id'] : $country->id));
-
-        if (!$allowed->contains($countryId)) {
-            throw BingoCardGenerateException::currencyNotAvailable();
-        }
-    }
-
-    /**
-     * Normaliza un número de comprobante para comparar duplicados: sin
-     * espacios y en mayúsculas ("ab 123" y "AB123" son el mismo pago).
-     */
-    private function normalizeReceiptNumber(string $receiptNumber): string
-    {
-        return strtoupper((string) preg_replace('/\s+/', '', trim($receiptNumber)));
-    }
-
-    /**
-     * Resuelve el commerce_id y el creator_user_id (user_id del commerce) según el rol.
-     *
-     * - commerce: el propio commerce; creator_user_id = $userId.
-     * - seller:   el commerce real del vendedor, resuelto vía
-     *   Seller::resolveCommerce() — directo (manager_user_id → Commerce) o a
-     *   través de una agencia intermedia (subsidiary_id → Subsidiary →
-     *   Commerce). creator_user_id = user_id del Commerce resuelto, NUNCA
-     *   manager_user_id crudo: resolveCommerce() es la fuente de verdad de la
-     *   jerarquía (subsidiary_id prevalece sobre manager_user_id).
-     *
-     * @param string $userId ID del usuario autenticado.
-     * @param string $role   Rol activo ('commerce' | 'seller').
-     *
-     * @return array{0: string, 1: string} [commerce_id, creator_user_id]
-     *
-     * @throws BingoCardGenerateException Si el commerce no existe.
-     */
-    private function resolveCommerceContext(string $userId, string $role): array
-    {
-        return match ($role) {
-            'commerce' => (function () use ($userId): array {
-                $commerceModel = Commerce::where('user_id', $userId)->first(['id', 'user_id', 'status']);
-
-                if (!$commerceModel) {
-                    throw BingoCardGenerateException::commerceNotFound();
-                }
-
-                // Un commerce BLOCKED/INACTIVE no debe poder comprar/vender
-                // para sí mismo — mismo criterio que la rama 'seller' aplica
-                // vía Seller::hasActiveHierarchy() más abajo.
-                if ($commerceModel->status !== 'ACTIVE') {
-                    throw BingoCardGenerateException::hierarchyNotActive();
-                }
-
-                return [$commerceModel->id, $userId];
-            })(),
-            'seller' => (function () use ($userId): array {
-                $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id', 'status']);
-
-                if (!$seller || !$seller->hasActiveHierarchy()) {
-                    throw BingoCardGenerateException::hierarchyNotActive();
-                }
-
-                $commerce = $seller->resolveCommerce();
-
-                if (!$commerce) {
-                    throw BingoCardGenerateException::commerceNotFound();
-                }
-
-                return [$commerce->id, $commerce->user_id];
-            })(),
-            default => throw BingoCardGenerateException::unsupportedCommerceRole($role),
-        };
-    }
-
-    /**
-     * Resuelve la comisión de la entidad autenticada según su rol.
-     *
-     * Cada entidad (commerce, seller) almacena su propia comisión en la columna
-     * `commission` de su tabla correspondiente.
-     *
-     * @param string $userId ID del usuario autenticado.
-     * @param string $role   Rol activo ('commerce' | 'seller').
-     *
-     * @return float Porcentaje de comisión (ej: 5.00 = 5%).
-     *
-     * @throws BingoCardGenerateException Si el rol no tiene soporte de comisión.
-     */
-    private function resolveEntityCommission(string $userId, string $role): float
-    {
-        $commission = match ($role) {
-            'commerce'              => $this->commerceRepository->getValueByUserId($userId, 'commission'),
-            'seller'                => $this->sellerRepository->getValueByUserId($userId, 'commission'),
-            'superadmin', 'admin'   => 0,
-            default                 => throw BingoCardGenerateException::unsupportedCommissionRole($role),
-        };
-
-        return (float) ($commission ?? 0);
+    ) {
     }
 
     /**
      * Genera cartones de bingo para un jugador, operado por un vendedor.
      *
-     * @param BingoCardGenerateDTO $dto
      * @return array{type: string, message: string, playerLink: string}
+     *
      * @throws BingoCardGenerateException
      */
-    public function generate(BingoCardGenerateDTO $dto): array
+    public function generate(BingoCardGenerateDTO $dto) : array
     {
         // 1. Obtener seller autenticado
         // resolveCommerce() resuelve el Commerce real sin importar si el
@@ -673,13 +85,13 @@ final class BingoCardGenerateService
             ->where('user_id', Auth::id())
             ->first();
 
-        if (!$seller) {
+        if (! $seller) {
             throw BingoCardGenerateException::sellerNotFound();
         }
 
         $commerceModel = $seller->resolveCommerce();
 
-        if (!$commerceModel) {
+        if (! $commerceModel) {
             throw BingoCardGenerateException::commerceNotFound();
         }
 
@@ -687,19 +99,19 @@ final class BingoCardGenerateService
         // desactivaba automáticamente a sus Sellers subordinados — sin esta
         // validación, un seller ACTIVE seguía vendiendo con normalidad
         // aunque su comercio/agencia estuviera BLOCKED/INACTIVE.
-        if (!$seller->hasActiveHierarchy()) {
+        if (! $seller->hasActiveHierarchy()) {
             throw BingoCardGenerateException::hierarchyNotActive();
         }
 
         $creatorUser = $commerceModel->user_id;
-        $commerce    = $commerceModel->id;
+        $commerce = $commerceModel->id;
 
         // 2. Sala vendible por este comercio (estado + propia o PUBLIC).
         $room = $this->findSellableRoom($dto->roomId, $creatorUser);
 
         // 2b. Sala VIP: solo a compradores cuyo teléfono está en la lista de
         // invitados (cubre el punto de venta y la compra con código).
-        if ($room->isVip() && !app(\App\Domains\Games\Bingo\Services\Room\BingoRoomInvitationService::class)->isPhoneInvited((string) $room->id, $dto->playerPhone)) {
+        if ($room->isVip() && ! app(\App\Domains\Games\Bingo\Services\Room\BingoRoomInvitationService::class)->isPhoneInvited((string) $room->id, $dto->playerPhone)) {
             throw BingoCardGenerateException::vipBuyerNotInvited();
         }
 
@@ -708,13 +120,13 @@ final class BingoCardGenerateService
 
         $currency = $this->currencies->getValueByCountry($dto->countryId, 'id');
 
-        if (!$currency) {
+        if (! $currency) {
             throw BingoCardGenerateException::currencyNotAvailable();
         }
 
         // 4-5. Tasa y precio — MISMOS helpers que la vista previa (getCardPrice).
         $exchangeRate = $this->saleExchangeRate($currency, $creatorUser);
-        $cardPrice    = $this->resolveUnitCardPrice((string) $room->id, $currency, $creatorUser, $exchangeRate)['card_price'];
+        $cardPrice = $this->resolveUnitCardPrice((string) $room->id, $currency, $creatorUser, $exchangeRate)['card_price'];
 
         // El vendedor cobró según el precio que vio: si cambió desde entonces
         // (tasa o precio personalizado actualizado), no se registra la venta a
@@ -745,23 +157,23 @@ final class BingoCardGenerateService
         $gameId = Game::getValueByName('BINGO', 'id');
 
         $cardOrder = [
-            'gameId'        => $gameId,
-            'roomId'        => $room->id,
-            'creator'       => ['id' => $creatorUser, 'type' => 'user_id'],
-            'seller'        => $seller->id,
-            'commerce'      => $commerce,
-            'currency'      => $currency,
-            'cardCount'     => $dto->cardCount,
-            'cardPrice'     => $cardPrice,
-            'cardPriceUsd'  => $cardPriceUsd,
+            'gameId' => $gameId,
+            'roomId' => $room->id,
+            'creator' => ['id' => $creatorUser, 'type' => 'user_id'],
+            'seller' => $seller->id,
+            'commerce' => $commerce,
+            'currency' => $currency,
+            'cardCount' => $dto->cardCount,
+            'cardPrice' => $cardPrice,
+            'cardPriceUsd' => $cardPriceUsd,
             'saleAmountUsd' => round($cardPriceUsd * $dto->cardCount, 3),
-            'country'       => $dto->countryId,
-            'playerPhone'   => $dto->playerPhone,
-            'playerName'    => $dto->playerName,
+            'country' => $dto->countryId,
+            'playerPhone' => $dto->playerPhone,
+            'playerName' => $dto->playerName,
             'playerLastName' => $dto->playerLastName,
-            'exchangeRate'  => $exchangeRate,
+            'exchangeRate' => $exchangeRate,
             'receiptNumber' => $receiptNumber,
-            'receiptImage'  => $dto->receiptImage,
+            'receiptImage' => $dto->receiptImage,
             'paymentMethod' => $dto->paymentMethod,
         ];
 
@@ -780,7 +192,7 @@ final class BingoCardGenerateService
             $networkUserIds = $commerceModel->networkUserIds();
             $lock = Cache::lock('bingo:receipt:' . $commerce . ':' . sha1($receiptNumber), 30);
 
-            if (!$lock->get()) {
+            if (! $lock->get()) {
                 throw BingoCardGenerateException::duplicateReceipt();
             }
 
@@ -817,10 +229,10 @@ final class BingoCardGenerateService
                 subsidiaryUserId: $subsidiaryUserId ? (string) $subsidiaryUserId : null,
                 sellerUserId: (string) Auth::id(),
             ));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('BingoCardSold: no se pudo emitir la venta del punto de venta', [
                 'room_id' => (string) $room->id,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
 
@@ -828,145 +240,170 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Un comprobante solo puede respaldar UNA venta vigente (pendiente o
-     * aprobada) dentro de la red comercial. Uno rechazado/cancelado sí puede
-     * reutilizarse (reenvío corregido de una venta anulada).
+     * Obtener países disponibles para el usuario según su rol y la sala de bingo.
      *
-     * @param string[] $networkUserIds
+     * Lógica de intersección:
+     * 1. Monedas activas de la entidad del usuario (commerce o seller).
+     * 2. Si el usuario es seller, además intersecta con las monedas activas
+     *    de su manager (commerce padre), ya que el seller opera dentro del
+     *    catálogo del commerce que lo gestiona.
+     * 3. Monedas permitidas en la sala (campo JSON `allowed_currencies`
+     *    en `bingo_rooms_config`).
+     *
+     * El resultado son los países cuya moneda queda en la intersección final.
+     *
+     * @param string $roomId ID de la sala de bingo
+     * @param string $userId ID del usuario autenticado (puede ser commerce o seller)
+     *
+     * @return array{countries: \Illuminate\Database\Eloquent\Collection} Países disponibles con id, name e iso_code_2
+     *
+     * @throws BingoCardGenerateException Si el rol no tiene soporte de monedas
      */
-    private function assertReceiptNotUsed(string $receiptNumber, array $networkUserIds): void
+    public function getAvailableCountries(string $roomId, string $userId) : array
     {
-        $used = BingoCardPayment::query()
-            ->where('transaction_reference', $receiptNumber)
-            ->whereIn('payment_status', ['PENDING', 'APPROVED'])
-            ->whereIn('seller_user_id', $networkUserIds)
-            ->exists();
+        // Determinar el prefijo de rol activo del usuario (ej. 'commerce', 'seller')
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if ($used) {
-            throw BingoCardGenerateException::duplicateReceipt();
+        // Monedas explícitamente permitidas en la sala (JSON nullable → fallback a [])
+        $allowedCurrenciesRoom = BingoRoomConfig::where('room_id', $roomId)->value('allowed_currencies') ?? [];
+        $allowedCurrenciesRoom = array_map('strval', $allowedCurrenciesRoom);
+
+        // superadmin / admin: ven todos los países de las monedas permitidas en la sala
+        if (in_array($role, ['superadmin', 'admin'], true)) {
+            $countriesIdsAvailable = $this->currencies->getCountriesByCurrencies($allowedCurrenciesRoom);
+            $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
+
+            return ['countries' => $countries];
         }
+
+        // Obtener el ID de la entidad (commerce_id, seller_id, etc.) asociada al usuario
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+        // Monedas activas habilitadas para esta entidad según su rol
+        $entityCurrencies = $this->resolveEntityCurrencies($entityId, $role);
+
+        // Para sellers: también se requiere la intersección con las monedas
+        // del commerce que los gestiona (manager_user_id → commerce).
+        // Esto evita que un seller ofrezca monedas que su commerce no opera.
+        $managerCurrencies = null;
+        if ($role === 'seller') {
+            // manager_user_id es el user_id del commerce padre del seller
+            $managerUserId = $this->resolveCreatorOrManagerUserId();
+            $managerRole = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+            $managerEntityId = $this->roleEntityResolver->resolveEntityId($managerUserId, $managerRole);
+
+            // Monedas activas del commerce manager
+            $managerCurrencies = $this->resolveEntityCurrencies($managerEntityId, $managerRole);
+        }
+
+        // Construir los conjuntos a intersectar (todos como strings para evitar
+        // comparaciones fallidas por tipo int vs string en los IDs)
+        $sets = [
+            array_map('strval', $entityCurrencies),
+            $allowedCurrenciesRoom,
+        ];
+
+        if ($managerCurrencies !== null) {
+            $sets[] = array_map('strval', $managerCurrencies);
+        }
+
+        // Monedas que pasan los tres filtros: entidad + sala [+ manager si es seller]
+        $currenciesAllowedInTheRoom = array_values(array_intersect(...$sets));
+
+        // Obtener los country_id de cada moneda resultante
+        $countriesIdsAvailable = $this->currencies->getCountriesByCurrencies($currenciesAllowedInTheRoom);
+
+        // Hidratar los modelos de país con los campos mínimos necesarios para la vista
+        $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
+
+        return ['countries' => $countries];
     }
 
     /**
-     * @return array{type: string, message: string, playerLink: string|null, paymentStatus: string}
+     * Obtiene el precio de un cartón para una sala y país específicos.
+     *
+     * Lógica:
+     * 1. Resuelve el rol y la entidad del usuario autenticado.
+     * 2. Deriva el commerce responsable (propio si es commerce, del manager si es seller).
+     * 3. Obtiene la moneda del país y la tasa de cambio del commerce.
+     * 4. Busca precio personalizado en bingo_card_prices; si no existe, usa precio base USD × tasa.
+     * 5. Retorna comisión de la entidad autenticada (commerce.commission o seller.commission).
+     *
+     * @param string $roomId    ID real de la sala de bingo (decodificado por route model binding)
+     * @param string $userId    ID del usuario autenticado
+     * @param string $countryId ID del país seleccionado (Snowflake como string)
+     *
+     * @return array{
+     *     card_price: float,
+     *     currency_symbol: string,
+     *     exchange_rate: float,
+     *     exchange_rate_source: string,
+     *     is_custom_price: bool,
+     *     seller_commission: float
+     * }
+     *
+     * @throws BingoCardGenerateException si la moneda, el commerce o la tasa no se encuentran
      */
-    private function runSaleTransaction(array $cardOrder): array
+    public function getCardPrice(string $roomId, string $userId, string $countryId) : array
     {
-        return DB::transaction(function () use ($cardOrder) {
-            // Resolver/crear el ExternalPlayer ANTES de generar los cartones —
-            // external_players.room_user_id ahora es nullable/informativo
-            // (ver create_external_players_table), así que no depende de que
-            // el BingoRoomUser ya exista. Necesitamos su ID ya en este punto
-            // para vincular cada cartón individual vía
-            // ExternalPlayerParticipation (ver BingoCardGenerationService),
-            // sin lo cual todos los compradores externos de este vendedor en
-            // esta sala quedarían indistinguibles entre sí.
-            $cardOrder = $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
+        // 1. Rol y entidad del usuario autenticado
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-            $roomUser = $this->cardGenerationService->generateCards($cardOrder);
+        // superadmin / admin: precio base de la sala en USD (sin entidad ni tasa)
+        if (in_array($role, ['superadmin', 'admin'], true)) {
+            $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
+            $room = BingoRoom::select('id')->with('config:id,room_id,card_price_usd')->find($roomId);
+            $cardPrice = $room?->config?->card_price_usd ?? 0;
 
-            if (!$roomUser) {
-                throw BingoCardGenerateException::cardGenerationFailed();
-            }
-
-            $this->externalPlayerLink->updateRoomUser($cardOrder['externalPlayerId'], $roomUser['room_user_id']);
-
-            $playerLink = $this->externalPlayerLink->resolveGameUrl($cardOrder['externalPlayerId']);
-
-            // Venta a comprador externo: el pago nace PENDING y los cartones
-            // no son jugables hasta que el comercio apruebe el comprobante —
-            // el vendedor debe saberlo para avisarle al comprador.
             return [
-                'type'          => 'success',
-                'message'       => 'Cartones generados. El pago quedó en revisión: el comprador podrá jugar cuando el comercio apruebe el comprobante.',
-                'playerLink'    => $playerLink,
-                'paymentStatus' => 'PENDING',
+                'card_price' => (float) $cardPrice,
+                'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
+                'exchange_rate' => 1.0,
+                'exchange_rate_source' => 'usd',
+                'is_custom_price' => false,
+                'seller_commission' => 0.0,
             ];
-        });
-    }
-
-    /**
-     * Recarga la sala con sus métricas frescas tras una compra de cartones y emite el
-     * broadcast `BingoRoomUpdated` (canal público de la sala). Devuelve la sala fresca
-     * para que el caller pueda usar su prize_pool actualizado en la respuesta HTTP.
-     *
-     * Se llama siempre fuera de la transacción de compra, para garantizar que el commit
-     * ya ocurrió y los datos emitidos por WebSocket coinciden con lo persistido.
-     */
-    private function broadcastRoomUpdated(string $roomId, bool $toOthers = false): ?BingoRoom
-    {
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
-            ->with('config:id,room_id,card_price_usd')
-            ->find($roomId);
-
-        if (!$fresh) {
-            Log::warning('BingoRoomUpdated: No se encontró la sala fresca tras la compra', ['room_id' => $roomId]);
-            return null;
         }
 
-        // hashed_id es el ID que el frontend usa en rooms[].id (listSellableRooms / game-rooms).
-        // El canal y el payload deben usar el mismo valor para que patchRoom() encuentre la sala.
-        $event = new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
-            roomId:       $fresh->hashed_id,
-            prizePool:    (float)  $fresh->prize_pool,
-            totalPlayers: (int)    $fresh->total_players,
-            cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-            totalCards:   (int)    $fresh->total_cards,
-        );
+        // 2. Commerce responsable y user_id de su creador (para filtrar bingo_card_prices)
+        [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
 
-        $toOthers ? broadcast($event)->toOthers() : broadcast($event);
+        // 3. Sala vendible por este comercio y moneda habilitada — mismas
+        //    validaciones que generate(), para que la vista previa nunca
+        //    muestre un precio de algo que luego no se podrá vender.
+        $this->findSellableRoom($roomId, $creatorUserId);
+        $this->assertCountryAllowed($roomId, $userId, $countryId);
 
-        return $fresh;
-    }
+        $currencyId = $this->currencies->getValueByCountry($countryId, 'id');
+        $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
 
-    /**
-     * Notifica al comprador (canal privado `bingo.player.{userId}`) su nuevo total de
-     * cartones en la sala, junto con el precio/moneda vigentes, para que el frontend
-     * actualice sin recargar la página.
-     */
-    private function broadcastPlayerCardsUpdated(string $roomId, int|string $userId, float $cardPrice, string $currencySymbol): void
-    {
-        $totalCards = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->value('cards_purchased');
-
-        if ($totalCards === null) {
-            return;
+        if (! $currencyId) {
+            throw BingoCardGenerateException::currencyNotAvailable();
         }
 
-        // El frontend usa hashed_id en rooms[].id — el payload debe usar el mismo valor
-        // para que la búsqueda findIndex(r => r.id === payload.room_id) encuentre la sala.
-        $room = \App\Domains\Games\Bingo\Models\Room\BingoRoom::select('id')->find($roomId);
-        $hashedRoomId = $room?->hashed_id ?? $roomId;
+        // 4-5. Tasa y precio — MISMOS helpers que generate().
+        $exchangeRate = $this->saleExchangeRate($currencyId, $creatorUserId);
+        $price = $this->resolveUnitCardPrice($roomId, $currencyId, $creatorUserId, $exchangeRate);
 
-        broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayerRoomCardsUpdated(
-            userId:         (string) $userId,
-            roomId:         $hashedRoomId,
-            cardCount:      (int) $totalCards,
-            cardPrice:      $cardPrice,
-            currencySymbol: $currencySymbol,
-        ));
-    }
+        // 6. Comisión: para el vendedor, la tasa EFECTIVA que se aplicará en
+        //    la venta (especial de la sala o base, + bono progresivo).
+        $commission = $role === 'seller'
+            ? $this->commissionCalculation->sellerCommissionRate(
+                (string) $this->sellerRepository->getValueByUserId($userId, 'id'),
+                $roomId,
+            )
+            : $this->resolveEntityCommission($userId, $role);
 
-    /**
-     * Resuelve el creator_user_id/manager_user_id según rol activo.
-     */
-    private function resolveCreatorOrManagerUserId(): int
-    {
-        $userId = $this->userContext->resolveUserId();
-        $role   = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        return match ($role) {
-            'commerce', 'customer' => $userId,
-            // Commerce real vía resolveCommerce() (fuente de verdad de la
-            // jerarquía, cubre sellers directos y de agencia).
-            'seller' => (int) (Seller::where('user_id', $userId)
-                ->first(['id', 'manager_user_id', 'subsidiary_id'])
-                ?->resolveCommerce()
-                ?->user_id
-                ?? throw BingoCardGenerateException::commerceNotFound()),
-            default => throw BingoCardGenerateException::invalidManagerRole(),
-        };
+        return [
+            'card_price' => $price['card_price'],
+            'currency_symbol' => (string) ($currencySymbol ?? ''),
+            'exchange_rate' => $exchangeRate,
+            // De dónde sale la tasa: para que el punto de venta muestre
+            // "1 USD = X (tasa propia / oficial)" — ver saleExchangeRateSource().
+            'exchange_rate_source' => $this->saleExchangeRateSource($currencyId, $creatorUserId),
+            'is_custom_price' => $price['is_custom_price'],
+            'seller_commission' => $commission,
+        ];
     }
 
     /**
@@ -977,16 +414,15 @@ final class BingoCardGenerateService
      *
      * @param string $roomId ID de la sala
      * @param int    $userId ID del usuario
-     * @return array
      */
-    public function getPlayerCardPrice(string $roomId, int $userId): array
+    public function getPlayerCardPrice(string $roomId, int $userId) : array
     {
         // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
         // room_type_id es necesario para el chequeo de acceso por tipo de sala.
         $room = BingoRoom::with('config:id,room_id,room_type_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,move_free_space_mode,move_free_space_price_pct')
             ->find($roomId);
 
-        if (!$room) {
+        if (! $room) {
             throw BingoCardGenerateException::roomNotAvailable();
         }
 
@@ -995,7 +431,7 @@ final class BingoCardGenerateService
         $this->bingoRoomCrud->assertPlayerCanAccessRoom($room);
 
         // Obtener la billetera activa del jugador
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['currency_id']);
 
         if ($activeWallets->isEmpty()) {
             throw BingoCardGenerateException::noActiveWallet();
@@ -1073,10 +509,11 @@ final class BingoCardGenerateService
      * el lobby, que resuelve el precio de cada sala activa en un mismo request).
      *
      * @param string[] $roomIds
+     *
      * @return array<string, array> Precio por sala, indexado por room_id. Las
-     *   salas sin billetera/tasa resolvible simplemente no aparecen en el resultado.
+     *                              salas sin billetera/tasa resolvible simplemente no aparecen en el resultado.
      */
-    public function getPlayerCardPricesForRooms(array $roomIds, int $userId): array
+    public function getPlayerCardPricesForRooms(array $roomIds, int $userId) : array
     {
         if (empty($roomIds)) {
             return [];
@@ -1110,7 +547,7 @@ final class BingoCardGenerateService
         foreach ($roomIds as $roomId) {
             $room = $rooms->get($roomId);
 
-            if (!$room) {
+            if (! $room) {
                 continue;
             }
 
@@ -1137,124 +574,75 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Máximo de cartones personalizables permitidos en una compra de `$cardCount`
-     * cartones cuando la sala usa custom_card_mode = 'every_x': por cada ciclo
-     * de (X normales + 1 personalizable) solo el último cartón del ciclo puede
-     * personalizarse. Ej. X=3 → de cada 4 cartones consecutivos, 1 personalizable
-     * (posiciones 4, 8, 12...). La regla es por proceso de compra — no se basa
-     * en el histórico acumulado del jugador en la sala.
+     * Todas las salas vendibles de una fecha en una sola llamada, con los IDs
+     * de tipo de sala / conexión / bote para que el punto de venta filtre en
+     * el cliente (chips).
+     *
+     * Visibilidad: ACTIVE, propias del comercio o PUBLIC, de la fecha pedida.
+     * Las salas de inicio manual (sin fecha ni hora) se listan en "hoy",
+     * vendibles hasta que el admin las inicie.
+     *
+     * Cada sala trae sales_close_at / sales_open (ver findSellableRoom()):
+     * las que ya pasaron el cierre se listan igual, marcadas, para que el
+     * vendedor entienda por qué no puede venderlas.
+     *
+     * @return array<int, array<string, mixed>>
      */
-    private function maxCustomCardsAllowed(int $everyX, int $cardCount): int
+    public function listSellableRooms(string $date) : array
     {
-        if ($everyX < 1) {
-            return $cardCount;
-        }
+        $creatorUserId = $this->resolveCreatorOrManagerUserId();
+        $owners = $this->sellableRoomOwners($creatorUserId);
+        $isToday = $date === now()->toDateString();
 
-        return intdiv($cardCount, $everyX + 1);
-    }
+        return BingoRoom::query()
+            ->active()
+            ->sellableBy($owners)
+            ->notDemo()
+            ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
+            ->leftJoin('room_types', 'room_types.id', '=', 'bingo_rooms_config.room_type_id')
+            ->where(function($q) use ($date, $isToday) {
+                $q->whereDate('bingo_rooms_config.date', $date);
 
-    /**
-     * Recargo máximo permitido para cartón personalizado: nunca más del 5% del
-     * precio base del cartón, sin importar la modalidad ni la moneda.
-     */
-    private const MAX_CUSTOM_CARD_SURCHARGE_PCT = 5.0;
-
-    /**
-     * Calcula el monto total a cobrar por los `$customCount` cartones personalizados
-     * de esta compra, según la modalidad configurada en la sala (custom_card_mode):
-     *
-     * - 'paid' (o sin modo, retrocompatibilidad): recargo custom_card_price_pct (%)
-     *   sobre el precio base, aplicado a todos los cartones personalizados.
-     * - 'by_range': recargo % calculado automáticamente según el precio base del
-     *   cartón en USD (ver resolveSmartCustomCardPct), sin que el admin configure
-     *   un valor manual.
-     * - 'free' / 'every_x': sin recargo — precio base por cartón. En 'every_x' el
-     *   límite de cuántos cartones pueden personalizarse ya se validó antes de
-     *   llegar aquí (ver maxCustomCardsAllowed).
-     *
-     * Los `$movedFreeSpaceCount` cartones (subconjunto de los personalizados que
-     * además movieron la casilla libre) pagan, adicionalmente, el recargo de
-     * move_free_space_mode — independiente y sumado al recargo de personalización.
-     *
-     * En todos los casos con recargo, cada % efectivo se acota individualmente a
-     * MAX_CUSTOM_CARD_SURCHARGE_PCT como salvaguarda dura, independiente de lo
-     * que tenga guardado la configuración de la sala.
-     */
-    private function resolveCustomCardsTotal(
-        BingoRoom $room,
-        float $basePrice,
-        int $customCount,
-        int $movedFreeSpaceCount = 0,
-        ?float $cardPriceUsd = null,
-    ): float {
-        $mode = $room->config?->custom_card_mode;
-
-        $customPct = match (true) {
-            $mode === 'free' || $mode === 'every_x' => 0.0,
-            $mode === 'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice),
-            default => (float) ($room->config?->custom_card_price_pct ?? 0),
-        };
-        $customPct = min($customPct, self::MAX_CUSTOM_CARD_SURCHARGE_PCT);
-
-        $moveFreeSpaceMode = $room->config?->move_free_space_mode;
-        $moveFreeSpacePct = match ($moveFreeSpaceMode) {
-            'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice),
-            'paid' => (float) ($room->config?->move_free_space_price_pct ?? 0),
-            default => 0.0, // 'free' o null: sin recargo adicional
-        };
-        $moveFreeSpacePct = min($moveFreeSpacePct, self::MAX_CUSTOM_CARD_SURCHARGE_PCT);
-
-        $regularCustomCount = $customCount - $movedFreeSpaceCount;
-
-        $regularCustomPrice = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
-        $movedFreeSpacePrice = round($basePrice * (1 + ($customPct + $moveFreeSpacePct) / 100), 4);
-
-        return round($regularCustomPrice * $regularCustomCount + $movedFreeSpacePrice * $movedFreeSpaceCount, 4);
-    }
-
-    /**
-     * Cuenta cuántas de las `$matrices` (cartones personalizados) tienen su única
-     * casilla libre en una posición distinta a la fija de la variante — es decir,
-     * cuántas efectivamente movieron la libre (mover es opcional, aunque la sala
-     * lo permita, el jugador puede dejarla en su sitio de siempre).
-     *
-     * @param array<int, array<string, array<int, int|null>>> $matrices
-     */
-    private function countMovedFreeSpaceCards(string $variant, array $matrices): int
-    {
-        $columns = BingoVariant::columns($variant);
-        $count = 0;
-
-        foreach ($matrices as $matrix) {
-            foreach ($columns as $col) {
-                $freeRowInMatrix = array_search(null, $matrix[$col['label']] ?? [], true);
-                if ($freeRowInMatrix === false) {
-                    continue;
+                if ($isToday) {
+                    $q->orWhere(fn ($m) => $m
+                        ->whereNull('bingo_rooms_config.date')
+                        ->where('bingo_rooms_config.start_mode', 'MANUAL'));
                 }
-                if ($col['freeRow'] !== $freeRowInMatrix) {
-                    $count++;
-                }
-                break; // ya se encontró el único null del cartón
-            }
-        }
+            })
+            ->orderBy('bingo_rooms_config.time')
+            ->get([
+                'bingo_rooms.id',
+                'bingo_rooms.uuid_code',
+                'bingo_rooms.prize_pool',
+                'bingo_rooms.total_players',
+                'bingo_rooms.total_cards',
+                'bingo_rooms.creator_user_id',
+                'bingo_rooms_config.date',
+                'bingo_rooms_config.time',
+                'bingo_rooms_config.unix_date',
+                'bingo_rooms_config.start_mode',
+                'bingo_rooms_config.card_price_usd',
+                'bingo_rooms_config.max_players',
+                'bingo_rooms_config.room_type_id',
+                'bingo_rooms_config.connection_type_id',
+                'bingo_rooms_config.prize_pool_type_id',
+                'room_types.code as room_type_code',
+            ])
+            ->map(function(BingoRoom $room) use ($owners) {
+                $unixDate = $room->getAttribute('unix_date') !== null ? (int) $room->getAttribute('unix_date') : null;
+                $closeAt = $this->sellerSalesCloseAt($unixDate);
 
-        return $count;
-    }
-
-    /**
-     * Modalidad 'by_range': determina el % de recargo automáticamente según el
-     * precio base del cartón en USD (referencia estable entre monedas). A menor
-     * precio del cartón, mayor es el % relativo permitido (dentro del techo de
-     * 5%) porque un monto fijo pequeño representaría un porcentaje irrisorio;
-     * a mayor precio, el % baja para no encarecer demasiado el cartón.
-     */
-    private function resolveSmartCustomCardPct(float $cardPriceUsd): float
-    {
-        return match (true) {
-            $cardPriceUsd <= 10.0 => 2.0,
-            $cardPriceUsd <= 50.0 => 1.5,
-            default => 1.0,
-        };
+                return $this->sellableRoomPayload($room, $owners) + [
+                    // VIP: el vendedor solo puede venderle a teléfonos de la lista de invitados.
+                    'is_vip' => $room->getAttribute('room_type_code') === 'VIP',
+                    'is_manual' => $unixDate === null,
+                    'starts_at' => $unixDate ? Carbon::createFromTimestamp($unixDate)->toISOString() : null,
+                    'sales_close_at' => $closeAt ? Carbon::createFromTimestamp($closeAt)->toISOString() : null,
+                    'sales_open' => $this->isOpenForSellerSales('ACTIVE', $unixDate),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -1263,15 +651,14 @@ final class BingoCardGenerateService
      * @param string     $roomId         ID de la sala
      * @param int        $cardCount      Número de cartones
      * @param array|null $customMatrices Array de matrices, una por cartón. Si se envía,
-     *   count($customMatrices) debe ser === $cardCount. Cada elemento es el mismo shape
-     *   que BingoVariant::generateCardMatrix. Se valida cada matriz individualmente.
-     * @return array
+     *                                   count($customMatrices) debe ser === $cardCount. Cada elemento es el mismo shape
+     *                                   que BingoVariant::generateCardMatrix. Se valida cada matriz individualmente.
      */
-    public function playerBuyFromGameRooms(string $roomId, int $cardCount, ?array $customMatrices = null): array
+    public function playerBuyFromGameRooms(string $roomId, int $cardCount, ?array $customMatrices = null) : array
     {
         $userId = $this->userContext->resolveUserId();
 
-        if (!$this->userContext->userHasRole('player')) {
+        if (! $this->userContext->userHasRole('player')) {
             throw BingoCardGenerateException::unauthorized();
         }
 
@@ -1287,7 +674,7 @@ final class BingoCardGenerateService
         $movedFreeSpaceCount = 0;
 
         if ($customCount > 0) {
-            if (!$room->config?->allow_custom_card) {
+            if (! $room->config?->allow_custom_card) {
                 throw BingoCardGenerateException::customCardsNotAllowed();
             }
 
@@ -1323,8 +710,8 @@ final class BingoCardGenerateService
         }
 
         // Obtener precio para jugador
-        $priceInfo  = $this->getPlayerCardPrice($roomId, $userId);
-        $basePrice  = $priceInfo['card_price'];
+        $priceInfo = $this->getPlayerCardPrice($roomId, $userId);
+        $basePrice = $priceInfo['card_price'];
 
         // Precio de cartones personalizados según la modalidad configurada en la sala
         // (custom_card_mode). Solo aplica a cartones con matrices enviadas (los sin
@@ -1338,7 +725,7 @@ final class BingoCardGenerateService
         $totalAmount = round($basePrice * $regularCount + $customTotal, 4);
 
         // Obtener billetera activa del jugador con saldo
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
 
         if ($activeWallets->isEmpty()) {
             throw BingoCardGenerateException::noActiveWallet();
@@ -1356,35 +743,36 @@ final class BingoCardGenerateService
 
         if (! $isDemo && ! $playerWallet->hasSufficientPlayableBalance($totalAmount)) {
             $currentBalance = (float) $playerWallet->getPlayableBalance();
+
             throw BingoCardGenerateException::insufficientBalance($currentBalance, $totalAmount);
         }
 
         // Preparar array para cartonStore. El descuento de billetera no ocurre en
         // generateCards() — lo hace recordCardPurchase() abajo, con lock sobre la wallet.
         $cardOrder = [
-            'roomId'         => $roomId,
-            'creator'        => ['id' => $userId, 'type' => 'player'],
-            'seller'         => null,
-            'seller_type'    => 'USER',
-            'currency'       => $currencyId,
-            'cardCount'      => $cardCount,
-            'cardPrice'      => $basePrice,   // precio unitario base (el lote usa sale_amount para el total)
-            'country'        => null,
-            'playerPhone'    => '',
-            'playerName'     => '',
+            'roomId' => $roomId,
+            'creator' => ['id' => $userId, 'type' => 'player'],
+            'seller' => null,
+            'seller_type' => 'USER',
+            'currency' => $currencyId,
+            'cardCount' => $cardCount,
+            'cardPrice' => $basePrice,   // precio unitario base (el lote usa sale_amount para el total)
+            'country' => null,
+            'playerPhone' => '',
+            'playerName' => '',
             'playerLastName' => '',
-            'initials'       => '',
-            'cardPriceUsd'   => $priceInfo['card_price_usd'],
-            'saleAmountUsd'  => round($totalAmount / max($priceInfo['exchange_rate'], 0.0001), 3),
-            'exchangeRate'   => $priceInfo['exchange_rate'],
-            'playerUser'     => null,
-            'playerLink'     => true,
-            'gameVariant'    => $room->config?->game_variant ?? BingoVariant::BINGO_75,
+            'initials' => '',
+            'cardPriceUsd' => $priceInfo['card_price_usd'],
+            'saleAmountUsd' => round($totalAmount / max($priceInfo['exchange_rate'], 0.0001), 3),
+            'exchangeRate' => $priceInfo['exchange_rate'],
+            'playerUser' => null,
+            'playerLink' => true,
+            'gameVariant' => $room->config?->game_variant ?? BingoVariant::BINGO_75,
             'customCardNumbers' => $customMatrices,
             // Pagado con la billetera del jugador (recordCardPurchase abajo): el
             // dinero está en el sistema, así que el RKE se acredita al vender y
             // la comisión del creador se le paga al cerrar la sala.
-            'saleChannel'    => $isDemo ? 'demo' : 'wallet',
+            'saleChannel' => $isDemo ? 'demo' : 'wallet',
         ];
 
         // Generar cartones y debitar wallet en una sola transacción atómica.
@@ -1392,10 +780,11 @@ final class BingoCardGenerateService
         // no queda con cartones sin pago.
         $description = "Compra de {$cardCount} cartón(es) — Sala {$room->uuid_code}";
         $newBalance = null;
-        DB::transaction(function () use ($cardOrder, $playerWallet, $totalAmount, $description, $roomId, $userId, $isDemo, &$newBalance) {
+        DB::transaction(function() use ($cardOrder, $playerWallet, $totalAmount, $description, $roomId, $userId, $isDemo, &$newBalance) {
             $this->cardGenerationService->generateInTransaction($cardOrder);
             if ($isDemo) {
                 $newBalance = (float) $playerWallet->getPlayableBalance();
+
                 return;
             }
             $purchase = $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
@@ -1438,33 +827,652 @@ final class BingoCardGenerateService
         // en este método: broadcasts best-effort).
         try {
             $this->notificationService->createCardPurchaseNotification(
-                userId:         (string) $userId,
-                roomUuidCode:   (string) $room->uuid_code,
-                cardCount:      $cardCount,
-                amount:         $totalAmount,
+                userId: (string) $userId,
+                roomUuidCode: (string) $room->uuid_code,
+                cardCount: $cardCount,
+                amount: $totalAmount,
                 currencySymbol: (string) $priceInfo['currency_symbol'],
-                roomId:         (string) $room->id,
+                roomId: (string) $room->id,
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('No se pudo crear la notificación de compra de cartones', [
                 'user_id' => $userId,
                 'room_id' => $roomId,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
 
         return [
-            'message'        => 'Cartones generados exitosamente',
-            'type'           => 'success',
-            'card_count'     => $cardCount,
-            'prize_pool'     => $fresh?->prize_pool ?? $room->prize_pool,
-            'currency'       => $priceInfo['currency_symbol'],
-            'exchange_rate'  => $priceInfo['exchange_rate'],
+            'message' => 'Cartones generados exitosamente',
+            'type' => 'success',
+            'card_count' => $cardCount,
+            'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
+            'currency' => $priceInfo['currency_symbol'],
+            'exchange_rate' => $priceInfo['exchange_rate'],
             'wallet_balance' => $newBalance,
         ];
     }
 
-    private function toUsdAmount(float $amount, float $exchangeRate): float
+    /**
+     * Resolver contexto la vista de generar cartones de bingo.
+     *
+     * @param int $userId ID del usuario
+     */
+    public function viewContext(int $userId) : BingoCardGenerateContexDTO
+    {
+        [$canSell, $blockedMessage] = $this->resolveSellAvailability($userId);
+
+        return new BingoCardGenerateContexDTO(
+            gameModes: $this->connectionTypes->getActiveConnectionTypes(),
+            roomTypes: $this->roomTypes->getActiveTypes(),
+            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
+            canSell: $canSell,
+            blockedMessage: $blockedMessage,
+        );
+    }
+
+    /**
+     * El país (y con él la moneda) debe estar entre los habilitados para esta
+     * sala y este usuario — misma intersección que ya arma el selector de
+     * países (getAvailableCountries). Antes solo se validaba en el frontend.
+     */
+    private function assertCountryAllowed(string $roomId, int|string $userId, string $countryId) : void
+    {
+        $allowed = collect($this->getAvailableCountries($roomId, (string) $userId)['countries'] ?? [])
+            ->map(fn ($country) => (string) (is_array($country) ? $country['id'] : $country->id));
+
+        if (! $allowed->contains($countryId)) {
+            throw BingoCardGenerateException::currencyNotAvailable();
+        }
+    }
+
+    /**
+     * Un comprobante solo puede respaldar UNA venta vigente (pendiente o
+     * aprobada) dentro de la red comercial. Uno rechazado/cancelado sí puede
+     * reutilizarse (reenvío corregido de una venta anulada).
+     *
+     * @param string[] $networkUserIds
+     */
+    private function assertReceiptNotUsed(string $receiptNumber, array $networkUserIds) : void
+    {
+        $used = BingoCardPayment::query()
+            ->where('transaction_reference', $receiptNumber)
+            ->whereIn('payment_status', ['PENDING', 'APPROVED'])
+            ->whereIn('seller_user_id', $networkUserIds)
+            ->exists();
+
+        if ($used) {
+            throw BingoCardGenerateException::duplicateReceipt();
+        }
+    }
+
+    /**
+     * Notifica al comprador (canal privado `bingo.player.{userId}`) su nuevo total de
+     * cartones en la sala, junto con el precio/moneda vigentes, para que el frontend
+     * actualice sin recargar la página.
+     */
+    private function broadcastPlayerCardsUpdated(string $roomId, int|string $userId, float $cardPrice, string $currencySymbol) : void
+    {
+        $totalCards = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->value('cards_purchased');
+
+        if ($totalCards === null) {
+            return;
+        }
+
+        // El frontend usa hashed_id en rooms[].id — el payload debe usar el mismo valor
+        // para que la búsqueda findIndex(r => r.id === payload.room_id) encuentre la sala.
+        $room = \App\Domains\Games\Bingo\Models\Room\BingoRoom::select('id')->find($roomId);
+        $hashedRoomId = $room?->hashed_id ?? $roomId;
+
+        broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayerRoomCardsUpdated(
+            userId: (string) $userId,
+            roomId: $hashedRoomId,
+            cardCount: (int) $totalCards,
+            cardPrice: $cardPrice,
+            currencySymbol: $currencySymbol,
+        ));
+    }
+
+    /**
+     * Recarga la sala con sus métricas frescas tras una compra de cartones y emite el
+     * broadcast `BingoRoomUpdated` (canal público de la sala). Devuelve la sala fresca
+     * para que el caller pueda usar su prize_pool actualizado en la respuesta HTTP.
+     *
+     * Se llama siempre fuera de la transacción de compra, para garantizar que el commit
+     * ya ocurrió y los datos emitidos por WebSocket coinciden con lo persistido.
+     */
+    private function broadcastRoomUpdated(string $roomId, bool $toOthers = false) : ?BingoRoom
+    {
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
+            ->with('config:id,room_id,card_price_usd')
+            ->find($roomId);
+
+        if (! $fresh) {
+            Log::warning('BingoRoomUpdated: No se encontró la sala fresca tras la compra', ['room_id' => $roomId]);
+
+            return null;
+        }
+
+        // hashed_id es el ID que el frontend usa en rooms[].id (listSellableRooms / game-rooms).
+        // El canal y el payload deben usar el mismo valor para que patchRoom() encuentre la sala.
+        $event = new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
+            roomId: $fresh->hashed_id,
+            prizePool: (float) $fresh->prize_pool,
+            totalPlayers: (int) $fresh->total_players,
+            cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+            totalCards: (int) $fresh->total_cards,
+        );
+
+        $toOthers ? broadcast($event)->toOthers() : broadcast($event);
+
+        return $fresh;
+    }
+
+    /**
+     * Cuenta cuántas de las `$matrices` (cartones personalizados) tienen su única
+     * casilla libre en una posición distinta a la fija de la variante — es decir,
+     * cuántas efectivamente movieron la libre (mover es opcional, aunque la sala
+     * lo permita, el jugador puede dejarla en su sitio de siempre).
+     *
+     * @param array<int, array<string, array<int, int|null>>> $matrices
+     */
+    private function countMovedFreeSpaceCards(string $variant, array $matrices) : int
+    {
+        $columns = BingoVariant::columns($variant);
+        $count = 0;
+
+        foreach ($matrices as $matrix) {
+            foreach ($columns as $col) {
+                $freeRowInMatrix = array_search(null, $matrix[$col['label']] ?? [], true);
+                if ($freeRowInMatrix === false) {
+                    continue;
+                }
+                if ($col['freeRow'] !== $freeRowInMatrix) {
+                    $count++;
+                }
+
+                break; // ya se encontró el único null del cartón
+            }
+        }
+
+        return $count;
+    }
+
+    private function findSellableRoom(string $roomId, int|string $creatorUserId) : BingoRoom
+    {
+        $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
+            ->with(['status:id,code', 'config:id,room_id,unix_date'])
+            ->whereKey($roomId)
+            ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
+            ->sellableBy($this->sellableRoomOwners($creatorUserId))
+            // DEMO: solo creador/admin la juegan, nunca la red de venta.
+            ->notDemo()
+            ->first();
+
+        if (! $room) {
+            throw BingoCardGenerateException::roomNotAvailable();
+        }
+
+        $unixDate = $room->config?->unix_date;
+
+        if (! $this->isOpenForSellerSales($room->status?->code, $unixDate !== null ? (int) $unixDate : null)) {
+            throw BingoCardGenerateException::salesClosed($this->sellerSalesCutoffMinutes());
+        }
+
+        return $room;
+    }
+
+    private function isOpenForSellerSales(?string $statusCode, ?int $unixDate) : bool
+    {
+        if ($statusCode !== 'ACTIVE') {
+            return false;
+        }
+
+        $closeAt = $this->sellerSalesCloseAt($unixDate);
+
+        return $closeAt === null || now()->timestamp < $closeAt;
+    }
+
+    /**
+     * Máximo de cartones personalizables permitidos en una compra de `$cardCount`
+     * cartones cuando la sala usa custom_card_mode = 'every_x': por cada ciclo
+     * de (X normales + 1 personalizable) solo el último cartón del ciclo puede
+     * personalizarse. Ej. X=3 → de cada 4 cartones consecutivos, 1 personalizable
+     * (posiciones 4, 8, 12...). La regla es por proceso de compra — no se basa
+     * en el histórico acumulado del jugador en la sala.
+     */
+    private function maxCustomCardsAllowed(int $everyX, int $cardCount) : int
+    {
+        if ($everyX < 1) {
+            return $cardCount;
+        }
+
+        return intdiv($cardCount, $everyX + 1);
+    }
+
+    /**
+     * Normaliza un número de comprobante para comparar duplicados: sin
+     * espacios y en mayúsculas ("ab 123" y "AB123" son el mismo pago).
+     */
+    private function normalizeReceiptNumber(string $receiptNumber) : string
+    {
+        return strtoupper((string) preg_replace('/\s+/', '', trim($receiptNumber)));
+    }
+
+    /**
+     * Resuelve el commerce_id y el creator_user_id (user_id del commerce) según el rol.
+     *
+     * - commerce: el propio commerce; creator_user_id = $userId.
+     * - seller:   el commerce real del vendedor, resuelto vía
+     *   Seller::resolveCommerce() — directo (manager_user_id → Commerce) o a
+     *   través de una agencia intermedia (subsidiary_id → Subsidiary →
+     *   Commerce). creator_user_id = user_id del Commerce resuelto, NUNCA
+     *   manager_user_id crudo: resolveCommerce() es la fuente de verdad de la
+     *   jerarquía (subsidiary_id prevalece sobre manager_user_id).
+     *
+     * @param string $userId ID del usuario autenticado
+     * @param string $role   rol activo ('commerce' | 'seller')
+     *
+     * @return array{0: string, 1: string} [commerce_id, creator_user_id]
+     *
+     * @throws BingoCardGenerateException si el commerce no existe
+     */
+    private function resolveCommerceContext(string $userId, string $role) : array
+    {
+        return match ($role) {
+            'commerce' => (function() use ($userId) : array {
+                $commerceModel = Commerce::where('user_id', $userId)->first(['id', 'user_id', 'status']);
+
+                if (! $commerceModel) {
+                    throw BingoCardGenerateException::commerceNotFound();
+                }
+
+                // Un commerce BLOCKED/INACTIVE no debe poder comprar/vender
+                // para sí mismo — mismo criterio que la rama 'seller' aplica
+                // vía Seller::hasActiveHierarchy() más abajo.
+                if ($commerceModel->status !== 'ACTIVE') {
+                    throw BingoCardGenerateException::hierarchyNotActive();
+                }
+
+                return [$commerceModel->id, $userId];
+            })(),
+            'seller' => (function() use ($userId) : array {
+                $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id', 'status']);
+
+                if (! $seller || ! $seller->hasActiveHierarchy()) {
+                    throw BingoCardGenerateException::hierarchyNotActive();
+                }
+
+                $commerce = $seller->resolveCommerce();
+
+                if (! $commerce) {
+                    throw BingoCardGenerateException::commerceNotFound();
+                }
+
+                return [$commerce->id, $commerce->user_id];
+            })(),
+            default => throw BingoCardGenerateException::unsupportedCommerceRole($role),
+        };
+    }
+
+    /**
+     * Resuelve el creator_user_id/manager_user_id según rol activo.
+     */
+    private function resolveCreatorOrManagerUserId() : int
+    {
+        $userId = $this->userContext->resolveUserId();
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        return match ($role) {
+            'commerce', 'customer' => $userId,
+            // Commerce real vía resolveCommerce() (fuente de verdad de la
+            // jerarquía, cubre sellers directos y de agencia).
+            'seller' => (int) (Seller::where('user_id', $userId)
+                ->first(['id', 'manager_user_id', 'subsidiary_id'])
+                ?->resolveCommerce()
+                ?->user_id
+                ?? throw BingoCardGenerateException::commerceNotFound()),
+            default => throw BingoCardGenerateException::invalidManagerRole(),
+        };
+    }
+
+    /**
+     * Calcula el monto total a cobrar por los `$customCount` cartones personalizados
+     * de esta compra, según la modalidad configurada en la sala (custom_card_mode):
+     *
+     * - 'paid' (o sin modo, retrocompatibilidad): recargo custom_card_price_pct (%)
+     *   sobre el precio base, aplicado a todos los cartones personalizados.
+     * - 'by_range': recargo % calculado automáticamente según el precio base del
+     *   cartón en USD (ver resolveSmartCustomCardPct), sin que el admin configure
+     *   un valor manual.
+     * - 'free' / 'every_x': sin recargo — precio base por cartón. En 'every_x' el
+     *   límite de cuántos cartones pueden personalizarse ya se validó antes de
+     *   llegar aquí (ver maxCustomCardsAllowed).
+     *
+     * Los `$movedFreeSpaceCount` cartones (subconjunto de los personalizados que
+     * además movieron la casilla libre) pagan, adicionalmente, el recargo de
+     * move_free_space_mode — independiente y sumado al recargo de personalización.
+     *
+     * En todos los casos con recargo, cada % efectivo se acota individualmente a
+     * MAX_CUSTOM_CARD_SURCHARGE_PCT como salvaguarda dura, independiente de lo
+     * que tenga guardado la configuración de la sala.
+     */
+    private function resolveCustomCardsTotal(
+        BingoRoom $room,
+        float $basePrice,
+        int $customCount,
+        int $movedFreeSpaceCount = 0,
+        ?float $cardPriceUsd = null,
+    ) : float {
+        $mode = $room->config?->custom_card_mode;
+
+        $customPct = match (true) {
+            $mode === 'free' || $mode === 'every_x' => 0.0,
+            $mode === 'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice),
+            default => (float) ($room->config?->custom_card_price_pct ?? 0),
+        };
+        $customPct = min($customPct, self::MAX_CUSTOM_CARD_SURCHARGE_PCT);
+
+        $moveFreeSpaceMode = $room->config?->move_free_space_mode;
+        $moveFreeSpacePct = match ($moveFreeSpaceMode) {
+            'by_range' => $this->resolveSmartCustomCardPct($cardPriceUsd ?? $basePrice),
+            'paid' => (float) ($room->config?->move_free_space_price_pct ?? 0),
+            default => 0.0, // 'free' o null: sin recargo adicional
+        };
+        $moveFreeSpacePct = min($moveFreeSpacePct, self::MAX_CUSTOM_CARD_SURCHARGE_PCT);
+
+        $regularCustomCount = $customCount - $movedFreeSpaceCount;
+
+        $regularCustomPrice = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
+        $movedFreeSpacePrice = round($basePrice * (1 + ($customPct + $moveFreeSpacePct) / 100), 4);
+
+        return round($regularCustomPrice * $regularCustomCount + $movedFreeSpacePrice * $movedFreeSpaceCount, 4);
+    }
+
+    /**
+     * Resuelve la comisión de la entidad autenticada según su rol.
+     *
+     * Cada entidad (commerce, seller) almacena su propia comisión en la columna
+     * `commission` de su tabla correspondiente.
+     *
+     * @param string $userId ID del usuario autenticado
+     * @param string $role   rol activo ('commerce' | 'seller')
+     *
+     * @return float Porcentaje de comisión (ej: 5.00 = 5%).
+     *
+     * @throws BingoCardGenerateException si el rol no tiene soporte de comisión
+     */
+    private function resolveEntityCommission(string $userId, string $role) : float
+    {
+        $commission = match ($role) {
+            'commerce' => $this->commerceRepository->getValueByUserId($userId, 'commission'),
+            'seller' => $this->sellerRepository->getValueByUserId($userId, 'commission'),
+            'superadmin', 'admin' => 0,
+            default => throw BingoCardGenerateException::unsupportedCommissionRole($role),
+        };
+
+        return (float) ($commission ?? 0);
+    }
+
+    /**
+     * Resuelve las monedas activas disponibles para una entidad según su rol.
+     *
+     * Centraliza el despacho a los repositorios correctos para no duplicar
+     * el bloque match en `getAvailableCountries` (usado tanto para la entidad
+     * propia como para el manager del seller).
+     *
+     * @param string $entityId ID de la entidad (commerce_id o seller_id)
+     * @param string $role     Prefijo de rol ('commerce' | 'seller')
+     *
+     * @return array<int, string> Array de IDs de monedas activas
+     *
+     * @throws BingoCardGenerateException Si el rol no tiene soporte de monedas implementado
+     */
+    private function resolveEntityCurrencies(string $entityId, string $role) : array
+    {
+        return match ($role) {
+            // getAvailableCurrenciesIds filtra por status = 'ACTIVE' internamente
+            'commerce' => $this->commerceCurrencyRepository->getAvailableCurrenciesIds($entityId),
+            // segundo parámetro true = solo relaciones activas (status = 1)
+            'seller' => $this->sellerCurrencyRepository->getAvailableCurrencies($entityId, true),
+            // Subsidiary no tiene tabla de monedas propia — opera con las
+            // monedas de su Commerce padre (la agencia hereda el catálogo
+            // de la comercializadora que la administra).
+            'subsidiary' => $this->resolveSubsidiaryCurrencies($entityId),
+            default => throw BingoCardGenerateException::unsupportedCurrencyRole($role),
+        };
+    }
+
+    /**
+     * Determina si el usuario puede vender cartones desde esta vista.
+     *
+     * Equivale al `$status == 1` de la vista Blade legacy: se evalúa al cargar
+     * la página para mostrar el aviso de inmediato, en lugar de que el vendedor
+     * llene el formulario y solo reciba el 409 (hierarchyNotActive) al consultar
+     * el precio o al generar. Mismo criterio que generate(): Seller ACTIVE +
+     * agencia/comercio padre ACTIVE (Seller::hasActiveHierarchy()).
+     *
+     * @return array{0: bool, 1: string|null} [canSell, blockedMessage]
+     */
+    private function resolveSellAvailability(int $userId) : array
+    {
+        if ($this->roleUserService->getActiveUserRolePrefix($userId) !== 'seller') {
+            // BingoCardGenerateRequest::authorize() solo admite 'seller'.
+            return [false, 'Solo los vendedores pueden generar cartones.'];
+        }
+
+        $seller = Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id', 'status']);
+
+        if (! $seller || ! $seller->hasActiveHierarchy()) {
+            return [false, '¡No puedes vender cartones, contacta a tu gestor!'];
+        }
+
+        return [true, null];
+    }
+
+    /**
+     * Modalidad 'by_range': determina el % de recargo automáticamente según el
+     * precio base del cartón en USD (referencia estable entre monedas). A menor
+     * precio del cartón, mayor es el % relativo permitido (dentro del techo de
+     * 5%) porque un monto fijo pequeño representaría un porcentaje irrisorio;
+     * a mayor precio, el % baja para no encarecer demasiado el cartón.
+     */
+    private function resolveSmartCustomCardPct(float $cardPriceUsd) : float
+    {
+        return match (true) {
+            $cardPriceUsd <= 10.0 => 2.0,
+            $cardPriceUsd <= 50.0 => 1.5,
+            default => 1.0,
+        };
+    }
+
+    /**
+     * Monedas activas del Commerce padre de una Subsidiary. Devuelve array
+     * vacío (sin lanzar excepción) si la Subsidiary no tiene commerce_id —
+     * el intersect() de arriba simplemente no dejará pasar ninguna moneda,
+     * lo cual es el comportamiento correcto para una agencia mal configurada.
+     */
+    private function resolveSubsidiaryCurrencies(string $subsidiaryId) : array
+    {
+        $commerceId = $this->subsidiaryRepository->getValueById($subsidiaryId, 'commerce_id');
+
+        if (! $commerceId) {
+            return [];
+        }
+
+        return $this->commerceCurrencyRepository->getAvailableCurrenciesIds($commerceId);
+    }
+
+    /**
+     * Precio unitario del cartón en moneda local: precio personalizado del
+     * comercio (bingo_card_prices) o, si no hay, precio base USD de la sala ×
+     * tasa. Usado por vista previa y cobro.
+     *
+     * @return array{card_price: float, is_custom_price: bool}
+     */
+    private function resolveUnitCardPrice(string $roomId, int|string $currencyId, int|string $creatorUserId, float $exchangeRate) : array
+    {
+        $customPrice = BingoCardPrice::byRoom($roomId)
+            ->byCurrency($currencyId)
+            ->where('creator_user_id', $creatorUserId)
+            ->value('card_price');
+
+        if ($customPrice !== null) {
+            return [
+                'card_price' => (float) $this->priceCalculator->calculate($customPrice, true, $exchangeRate),
+                'is_custom_price' => true,
+            ];
+        }
+
+        $roomCardPrice = BingoRoomConfig::where('room_id', $roomId)->value('card_price_usd') ?? 0;
+
+        return [
+            'card_price' => (float) $this->priceCalculator->calculate($roomCardPrice, false, $exchangeRate),
+            'is_custom_price' => false,
+        ];
+    }
+
+    /**
+     * @return array{type: string, message: string, playerLink: string|null, paymentStatus: string}
+     */
+    private function runSaleTransaction(array $cardOrder) : array
+    {
+        return DB::transaction(function() use ($cardOrder) {
+            // Resolver/crear el ExternalPlayer ANTES de generar los cartones —
+            // external_players.room_user_id ahora es nullable/informativo
+            // (ver create_external_players_table), así que no depende de que
+            // el BingoRoomUser ya exista. Necesitamos su ID ya en este punto
+            // para vincular cada cartón individual vía
+            // ExternalPlayerParticipation (ver BingoCardGenerationService),
+            // sin lo cual todos los compradores externos de este vendedor en
+            // esta sala quedarían indistinguibles entre sí.
+            $cardOrder = $this->externalPlayerLink->resolveOrCreatePlayer($cardOrder);
+
+            $roomUser = $this->cardGenerationService->generateCards($cardOrder);
+
+            if (! $roomUser) {
+                throw BingoCardGenerateException::cardGenerationFailed();
+            }
+
+            $this->externalPlayerLink->updateRoomUser($cardOrder['externalPlayerId'], $roomUser['room_user_id']);
+
+            $playerLink = $this->externalPlayerLink->resolveGameUrl($cardOrder['externalPlayerId']);
+
+            // Venta a comprador externo: el pago nace PENDING y los cartones
+            // no son jugables hasta que el comercio apruebe el comprobante —
+            // el vendedor debe saberlo para avisarle al comprador.
+            return [
+                'type' => 'success',
+                'message' => 'Cartones generados. El pago quedó en revisión: el comprador podrá jugar cuando el comercio apruebe el comprobante.',
+                'playerLink' => $playerLink,
+                'paymentStatus' => 'PENDING',
+            ];
+        });
+    }
+
+    private function saleExchangeRate(int|string $currencyId, int|string $rateOwnerUserId) : float
+    {
+        return round(
+            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $rateOwnerUserId),
+            2,
+        );
+    }
+
+    /**
+     * Tasa de cambio de una venta: la del COMERCIO dueño del negocio (su tasa
+     * propia si la tiene, si no la oficial — ver ExchangeRateDomainService),
+     * redondeada a 2 decimales.
+     *
+     * Única fuente de la tasa para vista previa y cobro. Antes la vista
+     * previa del vendedor la resolvía con el user_id del VENDEDOR (que nunca
+     * tiene tasa propia → siempre la oficial) y sin redondear, mientras
+     * generate() usaba la del comercio redondeada: si el comercio tenía tasa
+     * propia, el precio que veía el vendedor no era el que se registraba.
+     */
+    /**
+     * 'usd' (moneda base, sin conversión), 'own' (tasa propia del dueño de la
+     * sala) u 'official' (la de la plataforma) — mismo criterio que saleExchangeRate().
+     */
+    private function saleExchangeRateSource(int|string $currencyId, int|string $rateOwnerUserId) : string
+    {
+        if ((string) $currencyId === (string) \App\Models\Currency::usdId()) {
+            return 'usd';
+        }
+
+        return $this->exchangeRateDomain->ownRate($currencyId, $rateOwnerUserId) !== null ? 'own' : 'official';
+    }
+
+    /**
+     * Sala en la que este comercio (y su red) puede vender, propia del
+     * comercio o PUBLIC. Una sala inexistente o ajena responde "no disponible"
+     * (404) sin distinguir ambos casos, para no revelar salas de otros.
+     *
+     * Plazo de venta del vendedor: solo ACTIVE y hasta
+     * sellerSalesCutoffMinutes() antes del inicio. Su pago nace PENDING y los
+     * cartones no juegan hasta que el comercio aprueba el comprobante: vender
+     * con el sorteo encima (o ya en curso, IN_PROGRESS) dejaba al comprador
+     * pagando por una partida que no llegaba a jugar. La compra del jugador
+     * con billetera (playerBuyFromGameRooms) no pasa por
+     * aquí: su pago es inmediato y sigue admitiendo IN_PROGRESS.
+     */
+    /**
+     * Dueños cuyas salas (PRIVATE incluidas) puede vender el usuario
+     * autenticado: su comercializadora y, si es vendedor de agencia, también
+     * su agencia — las agencias no crean salas por defecto, pero una con
+     * permiso individual games.bingo.manage sí, y sus vendedores deben poder
+     * venderlas.
+     *
+     * @return string[]
+     */
+    private function sellableRoomOwners(int|string $commerceUserId) : array
+    {
+        $seller = Seller::where('user_id', Auth::id())->first(['id', 'manager_user_id', 'subsidiary_id']);
+
+        return array_values(array_unique(array_merge([(string) $commerceUserId], $seller?->roomOwnerUserIds() ?? [])));
+    }
+
+    /**
+     * @param string[] $owners dueños "propios" (comercializadora y, si aplica, agencia del vendedor)
+     *
+     * @return array<string, mixed>
+     */
+    private function sellableRoomPayload(BingoRoom $room, array $owners) : array
+    {
+        return [
+            'id' => $room->hashed_id,
+            'uuid_code' => $room->uuid_code,
+            'prize_pool' => (float) $room->prize_pool,
+            'total_players' => (int) $room->total_players,
+            'total_cards' => (int) $room->total_cards,
+            'is_own' => in_array((string) $room->creator_user_id, $owners, true),
+            'date' => $room->getAttribute('date'),
+            'time' => $room->getAttribute('time'),
+            'card_price_usd' => (float) $room->getAttribute('card_price_usd'),
+            'max_players' => $room->getAttribute('max_players') !== null ? (int) $room->getAttribute('max_players') : null,
+            'room_type_id' => $room->getAttribute('room_type_id') !== null ? (string) $room->getAttribute('room_type_id') : null,
+            'connection_type_id' => $room->getAttribute('connection_type_id') !== null ? (string) $room->getAttribute('connection_type_id') : null,
+            'prize_pool_type_id' => $room->getAttribute('prize_pool_type_id') !== null ? (string) $room->getAttribute('prize_pool_type_id') : null,
+        ];
+    }
+
+    /**
+     * Momento (unix UTC) en que cierra la venta del vendedor; null en salas
+     * de inicio manual (sin horario): se venden mientras sigan ACTIVE.
+     */
+    private function sellerSalesCloseAt(?int $unixDate) : ?int
+    {
+        return $unixDate ? $unixDate - $this->sellerSalesCutoffMinutes() * 60 : null;
+    }
+
+    /** Minutos antes del inicio en que cierra la venta del vendedor (parámetro de la app). */
+    private function sellerSalesCutoffMinutes() : int
+    {
+        return max(0, (int) config('app.bingo_seller_sales_cutoff_minutes', 5));
+    }
+
+    private function toUsdAmount(float $amount, float $exchangeRate) : float
     {
         if ($exchangeRate <= 0) {
             throw BingoCardGenerateException::invalidExchangeRate();
@@ -1473,4 +1481,3 @@ final class BingoCardGenerateService
         return round($amount / $exchangeRate, 3);
     }
 }
-

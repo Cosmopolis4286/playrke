@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 class Audit extends Model
 {
-    protected $table = 'audits';
+    protected $casts = [
+        'auditable_id' => 'array',
+        'old_values' => 'array',
+        'new_values' => 'array',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -22,31 +26,27 @@ class Audit extends Model
         'ip_address',
         'user_agent',
     ];
+    protected $table = 'audits';
 
-    protected $casts = [
-        'auditable_id' => 'array',
-        'old_values'   => 'array',
-        'new_values'   => 'array',
-    ];
-
-    public function user(): BelongsTo
+    /** Nombre legible de la clase auditada (sin namespace) */
+    public function getAuditableNameAttribute() : string
     {
-        return $this->belongsTo(User::class, 'user_id');
+        if (! $this->auditable_type) {
+            return '—';
+        }
+        $parts = explode('\\', $this->auditable_type);
+
+        return end($parts);
     }
 
-    public function scopeOfEvent(Builder $query, string $event): Builder
+    public function scopeForUser(Builder $query, int|string $userId) : Builder
     {
-        return $query->where('event', $event);
+        return $query->where('user_id', $userId);
     }
 
-    public function scopeOfActor(Builder $query, string $actorType): Builder
+    public function scopeOfActor(Builder $query, string $actorType) : Builder
     {
         return $query->where('actor_type', $actorType);
-    }
-
-    public function scopeOfModel(Builder $query, string $modelClass): Builder
-    {
-        return $query->where('auditable_type', $modelClass);
     }
 
     /**
@@ -58,25 +58,25 @@ class Audit extends Model
      * columna JSON no matchea (MySQL normaliza el JSON almacenado). Se
      * compara con JSON_UNQUOTE() para obtener el valor escalar real.
      */
-    public function scopeOfAuditable(Builder $query, string $modelClass, int|string $id): Builder
+    public function scopeOfAuditable(Builder $query, string $modelClass, int|string $id) : Builder
     {
         return $query
             ->where('auditable_type', $modelClass)
             ->whereRaw('JSON_UNQUOTE(auditable_id) = ?', [(string) $id]);
     }
 
-    public function scopeForUser(Builder $query, int|string $userId): Builder
+    public function scopeOfEvent(Builder $query, string $event) : Builder
     {
-        return $query->where('user_id', $userId);
+        return $query->where('event', $event);
     }
 
-    /** Nombre legible de la clase auditada (sin namespace) */
-    public function getAuditableNameAttribute(): string
+    public function scopeOfModel(Builder $query, string $modelClass) : Builder
     {
-        if (!$this->auditable_type) {
-            return '—';
-        }
-        $parts = explode('\\', $this->auditable_type);
-        return end($parts);
+        return $query->where('auditable_type', $modelClass);
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

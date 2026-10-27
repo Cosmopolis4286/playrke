@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Catálogo de misiones diarias — ver progreso/estrategia-producto-plan.md,
  * Fase 6. No existía ningún concepto de "progreso con ventana de tiempo":
  * Achievement/UserAchievement son logros de una sola vez para siempre
@@ -21,9 +21,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('daily_missions', function (Blueprint $table) {
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE daily_missions DROP CHECK chk_daily_missions_target_positive');
+        }
+
+        Schema::dropIfExists('daily_missions');
+    }
+
+    public function up() : void
+    {
+        Schema::create('daily_missions', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la misión');
 
             $table->string('code', 50)->unique()->comment('Identificador estable, ej. play_3_games');
@@ -45,14 +54,5 @@ return new class extends Migration
         if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
             \Illuminate\Support\Facades\DB::statement('ALTER TABLE daily_missions ADD CONSTRAINT chk_daily_missions_target_positive CHECK (target > 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
-            \Illuminate\Support\Facades\DB::statement('ALTER TABLE daily_missions DROP CHECK chk_daily_missions_target_positive');
-        }
-
-        Schema::dropIfExists('daily_missions');
     }
 };

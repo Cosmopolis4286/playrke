@@ -17,32 +17,32 @@ use Illuminate\Support\Facades\Route;
 /**
  * Define un grupo de rutas con un controlador específico
  *
- * @param string $prefix Prefijo de la URI
- * @param string $name Prefijo de nombres de rutas
- * @param array $middleware Middlewares a aplicar
+ * @param string $prefix     Prefijo de la URI
+ * @param string $name       Prefijo de nombres de rutas
+ * @param array  $middleware Middlewares a aplicar
  * @param string $controller Controlador de las rutas
- * @param array $routes Lista de rutas
- *   [
- *     'route-name' => [
- *        'method' => 'get',
- *        'uri' => 'foo',
- *        'action' => 'methodName', // opcional
- *        'middleware' => []
- *     ]
- *   ]
+ * @param array  $routes     Lista de rutas
+ *                           [
+ *                           'route-name' => [
+ *                           'method' => 'get',
+ *                           'uri' => 'foo',
+ *                           'action' => 'methodName', // opcional
+ *                           'middleware' => []
+ *                           ]
+ *                           ]
  */
 function route_group(
     string $prefix,
     string $name,
     array $middleware,
     string $controller,
-    array $routes
-): void {
+    array $routes,
+) : void {
     Route::prefix($prefix)
         ->as($name)
         ->middleware($middleware)
         ->controller($controller)
-        ->group(function () use ($routes) {
+        ->group(function() use ($routes) {
             foreach ($routes as $routeName => $config) {
                 $method = strtolower($config['method'] ?? 'get');
                 $uri = $config['uri'] ?? $routeName;
@@ -51,13 +51,13 @@ function route_group(
 
                 $route = Route::$method($uri, $action)->name($routeName);
 
-                if (!empty($config['defaults']) && is_array($config['defaults'])) {
+                if (! empty($config['defaults']) && is_array($config['defaults'])) {
                     foreach ($config['defaults'] as $key => $value) {
                         $route->defaults($key, $value);
                     }
                 }
 
-                if (!empty($routeMiddlewares)) {
+                if (! empty($routeMiddlewares)) {
                     $route->middleware($routeMiddlewares);
                 }
             }
@@ -67,26 +67,26 @@ function route_group(
 /**
  * Define un CRUD estándar para un controlador (convención Laravel)
  *
- * @param string $prefix Prefijo de la URI
+ * @param string $prefix     Prefijo de la URI
  * @param string $controller Nombre del controlador
- * @param array $middleware Middlewares a aplicar
- * @param array $except Rutas a excluir ['index', 'store', ...]
- * @param string $param Nombre del parámetro para Route Model Binding
+ * @param array  $middleware Middlewares a aplicar
+ * @param array  $except     Rutas a excluir ['index', 'store', ...]
+ * @param string $param      Nombre del parámetro para Route Model Binding
  */
 function crud_routes(
     string $prefix,
     string $controller,
     array $middleware = ['auth'],
     array $except = [],
-    string $param = 'id'
-): void {
+    string $param = 'id',
+) : void {
     $paramUri = '{' . $param . '}';
 
     $routes = [
-        'index'   => ['method' => 'get',    'uri' => '',            'action' => 'index'],
-        'store'   => ['method' => 'post',   'uri' => '',            'action' => 'store'],
-        'show'    => ['method' => 'get',    'uri' => $paramUri,     'action' => 'show'],
-        'update'  => ['method' => 'put',    'uri' => $paramUri,     'action' => 'update'],
+        'index' => ['method' => 'get',    'uri' => '',            'action' => 'index'],
+        'store' => ['method' => 'post',   'uri' => '',            'action' => 'store'],
+        'show' => ['method' => 'get',    'uri' => $paramUri,     'action' => 'show'],
+        'update' => ['method' => 'put',    'uri' => $paramUri,     'action' => 'update'],
         'destroy' => ['method' => 'delete', 'uri' => $paramUri,     'action' => 'destroy'],
     ];
 
@@ -99,19 +99,19 @@ function crud_routes(
  * Define rutas con múltiples middlewares organizados
  *
  * @param string $prefix Prefijo de la URI
- * @param string $name Prefijo de nombres de rutas
- * @param array $groups
- *   [
- *     [
- *       'controller' => Controller::class,
- *       'middleware' => [],
- *       'routes' => []
- *     ]
- *   ]
+ * @param string $name   Prefijo de nombres de rutas
+ * @param array  $groups
+ *                       [
+ *                       [
+ *                       'controller' => Controller::class,
+ *                       'middleware' => [],
+ *                       'routes' => []
+ *                       ]
+ *                       ]
  */
-function multi_middleware_routes(string $prefix, string $name, array $groups): void
+function multi_middleware_routes(string $prefix, string $name, array $groups) : void
 {
-    Route::prefix($prefix)->as($name)->group(function () use ($groups) {
+    Route::prefix($prefix)->as($name)->group(function() use ($groups) {
         foreach ($groups as $group) {
             $controller = $group['controller'];
             $middlewares = $group['middleware'] ?? [];
@@ -119,7 +119,7 @@ function multi_middleware_routes(string $prefix, string $name, array $groups): v
 
             Route::middleware($middlewares)
                 ->controller($controller)
-                ->group(function () use ($routes) {
+                ->group(function() use ($routes) {
                     foreach ($routes as $routeName => $config) {
                         $method = strtolower($config['method'] ?? 'get');
                         $uri = $config['uri'] ?? $routeName;
@@ -127,7 +127,7 @@ function multi_middleware_routes(string $prefix, string $name, array $groups): v
 
                         $route = Route::$method($uri, $action)->name($routeName);
 
-                        if (!empty($config['middleware'])) {
+                        if (! empty($config['middleware'])) {
                             $route->middleware($config['middleware']);
                         }
                     }
@@ -139,20 +139,20 @@ function multi_middleware_routes(string $prefix, string $name, array $groups): v
 /**
  * Define rutas de API RESTful
  *
- * @param string $resource Nombre del recurso
+ * @param string $resource   Nombre del recurso
  * @param string $controller Controlador
- * @param array $middleware Middlewares a aplicar
+ * @param array  $middleware Middlewares a aplicar
  */
 function api_resource(
     string $resource,
     string $controller,
-    array $middleware = ['auth:sanctum']
-): void {
+    array $middleware = ['auth:sanctum'],
+) : void {
     Route::prefix("api/{$resource}")
         ->as("api.{$resource}.")
         ->middleware($middleware)
         ->controller($controller)
-        ->group(function () {
+        ->group(function() {
             Route::get('', 'index')->name('index');
             Route::post('', 'store')->name('store');
             Route::get('{id}', 'show')->name('show');
@@ -164,19 +164,19 @@ function api_resource(
 /**
  * Define rutas protegidas por roles específicos
  *
- * @param array $roles Middlewares de roles
- * @param string $prefix Prefijo de la URI
+ * @param array  $roles      Middlewares de roles
+ * @param string $prefix     Prefijo de la URI
  * @param string $controller Controlador
- * @param array $routes Rutas del grupo
- * @param string $param Nombre del parámetro de binding
+ * @param array  $routes     Rutas del grupo
+ * @param string $param      Nombre del parámetro de binding
  */
 function role_protected_routes(
     array $roles,
     string $prefix,
     string $controller,
     array $routes,
-    string $param = 'id'
-): void {
+    string $param = 'id',
+) : void {
     $middleware = array_merge(['auth'], $roles);
     $namePrefix = str_replace('/', '.', trim($prefix, '/')) . '.';
 
@@ -196,39 +196,39 @@ function role_protected_routes(
         $namePrefix,
         $middleware,
         $controller,
-        $processedRoutes
+        $processedRoutes,
     );
 }
 
 /**
  * Define rutas accesibles mediante tokens públicos con scopes
  *
- * @param string $prefix Prefijo de la URI
- * @param string $name Prefijo de nombres de rutas
+ * @param string $prefix     Prefijo de la URI
+ * @param string $name       Prefijo de nombres de rutas
  * @param string $controller Controlador
- * @param array $routes Rutas del grupo
- * @param string $scope Scope requerido para acceder
+ * @param array  $routes     Rutas del grupo
+ * @param string $scope      Scope requerido para acceder
  */
 function route_public(
     string $prefix,
     string $name,
     string $controller,
     array $routes,
-    string $scope
-): void {
+    string $scope,
+) : void {
     Route::prefix($prefix)
         ->as($name)
         ->middleware("publicToken:{$scope}")
         ->controller($controller)
-        ->group(function () use ($routes) {
+        ->group(function() use ($routes) {
             foreach ($routes as $routeName => $config) {
                 $method = strtolower($config['method'] ?? 'get');
-                $uri    = $config['uri'] ?? $routeName;
+                $uri = $config['uri'] ?? $routeName;
                 $action = $config['action'] ?? $routeName;
 
                 $route = Route::$method($uri, $action)->name($routeName);
 
-                if (!empty($config['middleware'])) {
+                if (! empty($config['middleware'])) {
                     $route->middleware($config['middleware']);
                 }
             }
@@ -238,10 +238,10 @@ function route_public(
 /**
  * Define rutas condicionales por entorno
  *
- * @param array $environments Entornos permitidos ['local','staging']
+ * @param array    $environments    Entornos permitidos ['local','staging']
  * @param callable $routeDefinition Closure que define las rutas
  */
-function env_routes(array $environments, callable $routeDefinition): void
+function env_routes(array $environments, callable $routeDefinition) : void
 {
     if (app()->environment($environments)) {
         $routeDefinition();
@@ -251,12 +251,14 @@ function env_routes(array $environments, callable $routeDefinition): void
 /**
  * Helper para generar nombres de rutas consistentes a partir de URIs
  *
- * @param string $uri URI de la ruta
+ * @param string      $uri    URI de la ruta
  * @param string|null $prefix Prefijo opcional
+ *
  * @return string Nombre de ruta generado
  */
-function route_name(string $uri, ?string $prefix = null): string
+function route_name(string $uri, ?string $prefix = null) : string
 {
     $name = str_replace('/', '.', trim($uri, '/'));
+
     return $prefix ? "{$prefix}.{$name}" : $name;
 }

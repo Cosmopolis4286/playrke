@@ -10,18 +10,13 @@ interface CommissionCalculationInterface
     /**
      * Calcular la comisión del vendedor
      *
-     * @param float $saleAmount Monto de la venta
-     * @param string|null $sellerId ID del vendedor
-     * @param string|null $roomId ID de la sala
+     * @param float       $saleAmount Monto de la venta
+     * @param string|null $sellerId   ID del vendedor
+     * @param string|null $roomId     ID de la sala
+     *
      * @return float Comisión calculada
      */
-    public function calculateSellerCommission(float $saleAmount, ?string $sellerId = null, ?string $roomId = null): float;
-
-    /**
-     * Tasa (%) de comisión efectiva del vendedor en una sala (especial de la
-     * sala o base, + bono progresivo) — misma que usa calculateSellerCommission().
-     */
-    public function sellerCommissionRate(?string $sellerId, ?string $roomId = null): float;
+    public function calculateSellerCommission(float $saleAmount, ?string $sellerId = null, ?string $roomId = null) : float;
 
     /**
      * Reparto en cascada de la comisión de la red comercial para una venta
@@ -34,5 +29,11 @@ interface CommissionCalculationInterface
      *     subsidiary_id: ?string, commerce_id: ?string
      * }
      */
-    public function networkSplit(float $saleAmount, ?string $sellerId, ?string $roomId = null): array;
+    public function networkSplit(float $saleAmount, ?string $sellerId, ?string $roomId = null) : array;
+
+    /**
+     * Tasa (%) de comisión efectiva del vendedor en una sala (especial de la
+     * sala o base, + bono progresivo) — misma que usa calculateSellerCommission().
+     */
+    public function sellerCommissionRate(?string $sellerId, ?string $roomId = null) : float;
 }

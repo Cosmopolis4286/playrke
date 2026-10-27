@@ -24,21 +24,14 @@ final class BingoRoomCapacityRules
 {
     public const GAME_MODE_SOLO = 'SOLO';
 
+    public const MAX_CARDS = 10000;
+    public const MAX_PLAYERS = 100000;
+
     /** Piso de jugadores en modos competitivos (MULTI, RANKING…). */
     public const MIN_PLAYERS_FLOOR = 2;
 
     /** Piso de jugadores en modo Solitario. */
     public const MIN_PLAYERS_FLOOR_SOLO = 1;
-
-    public const MAX_CARDS   = 10000;
-    public const MAX_PLAYERS = 100000;
-
-    public static function minPlayersFloor(?string $gameModeCode): int
-    {
-        return $gameModeCode === self::GAME_MODE_SOLO
-            ? self::MIN_PLAYERS_FLOOR_SOLO
-            : self::MIN_PLAYERS_FLOOR;
-    }
 
     /**
      * Errores de coherencia entre los 4 límites, como [campo => mensaje].
@@ -46,7 +39,7 @@ final class BingoRoomCapacityRules
      *
      * @return array<string, string>
      */
-    public static function crossErrors(?int $minCards, ?int $maxCards, ?int $minPlayers, ?int $maxPlayers, ?string $gameModeCode): array
+    public static function crossErrors(?int $minCards, ?int $maxCards, ?int $minPlayers, ?int $maxPlayers, ?string $gameModeCode) : array
     {
         $errors = [];
         $floor = self::minPlayersFloor($gameModeCode);
@@ -69,10 +62,17 @@ final class BingoRoomCapacityRules
             $errors['maxPlayers'] = 'El máximo de jugadores debe ser mayor o igual al mínimo.';
         }
 
-        if (!isset($errors['maxCardsToStart']) && $maxCards !== null && $maxPlayers !== null && $maxCards < $maxPlayers) {
+        if (! isset($errors['maxCardsToStart']) && $maxCards !== null && $maxPlayers !== null && $maxCards < $maxPlayers) {
             $errors['maxCardsToStart'] = 'El máximo de cartones no puede ser menor al máximo de jugadores: parte del cupo no podría comprar.';
         }
 
         return $errors;
+    }
+
+    public static function minPlayersFloor(?string $gameModeCode) : int
+    {
+        return $gameModeCode === self::GAME_MODE_SOLO
+            ? self::MIN_PLAYERS_FLOOR_SOLO
+            : self::MIN_PLAYERS_FLOOR;
     }
 }

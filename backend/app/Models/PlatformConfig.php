@@ -24,20 +24,20 @@ class PlatformConfig extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'platform_config';
+    protected $casts = [
+        'default_commerce_id' => 'string',
+    ];
 
     protected $fillable = [
         'default_commerce_id',
     ];
 
-    protected $casts = [
-        'default_commerce_id' => 'string',
-    ];
+    protected $table = 'platform_config';
 
     /**
      * Comercio marcado como principal/vinculado a la app.
      */
-    public function defaultCommerce(): BelongsTo
+    public function defaultCommerce() : BelongsTo
     {
         return $this->belongsTo(Commerce::class, 'default_commerce_id');
     }

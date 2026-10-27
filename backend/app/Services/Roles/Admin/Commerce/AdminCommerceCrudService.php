@@ -13,8 +13,8 @@ use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Game;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
-use App\Models\User;
 use App\Models\Roles\Commerce;
+use App\Models\User;
 use App\Services\Platform\PlatformConfigService;
 use App\Services\Roles\CommissionHierarchyGuard;
 use App\Services\UserService;
@@ -41,20 +41,19 @@ final class AdminCommerceCrudService
         private readonly CommerceRepositoryInterface $commerceRepository,
         private readonly PlatformConfigService $platformConfig,
         private readonly CommissionHierarchyGuard $commissionGuard,
-    ) {}
+    ) {
+    }
 
     /**
      * Crear un comercio completo (User + Commerce + Wallet).
      *
-     * @param AdminCommerceDTO $dto
      * @return string Contraseña generada para el comercio
      *
      * @throws AdminCommerceException
      */
-    public function create(AdminCommerceDTO $dto): string
+    public function create(AdminCommerceDTO $dto) : string
     {
-        return DB::transaction(function () use ($dto) {
-
+        return DB::transaction(function() use ($dto) {
             $plainPassword = bin2hex(random_bytes(4));
 
             // 1. Usuario
@@ -66,12 +65,12 @@ final class AdminCommerceCrudService
 
             // 3. Comercio
             $commerce = $this->commerceRepository->create([
-                'name'           => $dto->name,
-                'phone'          => $dto->phone,
-                'commission'     => $dto->commission,
-                'country_id'     => $dto->country,
-                'status'         => 'ACTIVE',
-                'user_id'        => $user->id,
+                'name' => $dto->name,
+                'phone' => $dto->phone,
+                'commission' => $dto->commission,
+                'country_id' => $dto->country,
+                'status' => 'ACTIVE',
+                'user_id' => $user->id,
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
@@ -85,7 +84,7 @@ final class AdminCommerceCrudService
 
             // 5. Wallet principal
             $this->walletRepository->create([
-                'user_id'     => $user->id,
+                'user_id' => $user->id,
                 'currency_id' => $dto->currency,
             ]);
 
@@ -102,12 +101,108 @@ final class AdminCommerceCrudService
     }
 
     /**
-     * Obtener comercio para visualización.
+     * Eliminación lógica (soft delete) del comercio.
+     * También marca el usuario asociado como DELETED.
      *
-     * @param Commerce $commerce
-     * @return AdminCommerceResource
+     * @return bool True si la eliminación fue exitosa
+     *
+     * @throws RuntimeException Si el comercio ya está eliminado
      */
-    public function show(Commerce $commerce): AdminCommerceResource
+    public function delete(Commerce $commerce) : bool
+    {
+        if ($commerce->status === 'DELETED') {
+            throw AdminCommerceException::alreadyDeleted();
+        }
+
+        if ($this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::isDefaultCommerce();
+        }
+
+        // Usa softDelete con userRelation para sincronizar Commerce y User
+        return $this->commerceRepository->softDelete(
+            model: $commerce,
+            status: 'DELETED',
+            relationsToDetach: [],
+            userRelation: 'user',
+        );
+    }
+
+    /**
+     * Eliminación lógica (soft delete) de varios comercios en una sola
+     * transacción. Mismo criterio de omisión que toggleStatusBulk().
+     *
+     * @param array<int, string> $commerceIds
+     *
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function deleteBulk(array $commerceIds) : array
+    {
+        return DB::transaction(function() use ($commerceIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (Commerce::whereIn('id', $commerceIds)->get() as $commerce) {
+                try {
+                    $this->delete($commerce);
+                    $updated++;
+                } catch (AdminCommerceException $e) {
+                    $skipped[] = [
+                        'id' => (string) $commerce->id,
+                        'name' => $commerce->name,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
+     * Eliminación definitiva del comercio y su usuario asociado.
+     *
+     *
+     * @throws AdminCommerceException
+     */
+    public function destroy(Commerce $commerce) : void
+    {
+        if ($this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::isDefaultCommerce();
+        }
+
+        DB::transaction(function() use ($commerce) {
+            $commerce->loadMissing(['currencies', 'games', 'user']);
+
+            // Desvincula relaciones
+            $commerce->currencies()->detach();
+            $commerce->games()->detach();
+
+            // Elimina wallets del usuario
+            $this->walletRepository->deleteByUserId($commerce->user_id);
+
+            // Guarda referencia al usuario antes de eliminar el comercio
+            $user = $commerce->user;
+            $userId = $commerce->user_id;
+
+            // Elimina definitivamente el comercio
+            $commerce->forceDelete();
+
+            // Verifica si el usuario tiene otros comercios activos
+            $hasOtherCommerces = Commerce::where('user_id', $userId)
+                ->where('id', '!=', $commerce->id)
+                ->exists();
+
+            // Si no tiene otros comercios, elimina el usuario
+            if (! $hasOtherCommerces && $user) {
+                $user->forceDelete();
+            }
+        });
+    }
+
+    /**
+     * Obtener comercio para visualización.
+     */
+    public function show(Commerce $commerce) : AdminCommerceResource
     {
         $commerce->load([
             'country:id,name',
@@ -164,14 +259,69 @@ final class AdminCommerceCrudService
     }
 
     /**
+     * Alternar estado del comercio (ACTIVE / INACTIVE).
+     * También sincroniza el estado del usuario asociado.
+     *
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws RuntimeException Si el comercio está eliminado
+     */
+    public function toggleStatus(Commerce $commerce) : bool
+    {
+        if ($commerce->status === 'DELETED') {
+            throw AdminCommerceException::invalidStatusChange();
+        }
+
+        if ($commerce->status === 'ACTIVE' && $this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
+            throw AdminCommerceException::isDefaultCommerce();
+        }
+
+        // Usa changeStatus con userRelation para sincronizar Commerce y User
+        $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        return $this->commerceRepository->changeStatus($commerce, $newStatus, 'user');
+    }
+
+    /**
+     * Alternar estado ACTIVE/INACTIVE de varios comercios en una sola
+     * transacción — mismo patrón que AdminPlayerCrudService::toggleStatusBulk():
+     * un comercio inválido (ej. ya eliminado) no aborta el lote completo, se
+     * omite y se reporta en 'skipped'.
+     *
+     * @param array<int, string> $commerceIds
+     *
+     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
+     */
+    public function toggleStatusBulk(array $commerceIds) : array
+    {
+        return DB::transaction(function() use ($commerceIds) {
+            $updated = 0;
+            $skipped = [];
+
+            foreach (Commerce::whereIn('id', $commerceIds)->get() as $commerce) {
+                try {
+                    $this->toggleStatus($commerce);
+                    $updated++;
+                } catch (AdminCommerceException $e) {
+                    $skipped[] = [
+                        'id' => (string) $commerce->id,
+                        'name' => $commerce->name,
+                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
+                    ];
+                }
+            }
+
+            return ['updated' => $updated, 'skipped' => $skipped];
+        });
+    }
+
+    /**
      * Actualizar comercio y relaciones.
      *
-     * @param Commerce $commerce
-     * @param AdminCommerceDTO $dto
      *
      * @throws AdminCommerceException
      */
-    public function update(Commerce $commerce, AdminCommerceDTO $dto): void
+    public function update(Commerce $commerce, AdminCommerceDTO $dto) : void
     {
         // Tope: la comercializadora no puede quedar por debajo de su red
         // (reparto en cascada). Solo si la tasa CAMBIA: AdminCommerceForm
@@ -181,18 +331,17 @@ final class AdminCommerceCrudService
             $this->commissionGuard->assertCommerceRate((float) $dto->commission, $commerce);
         }
 
-        DB::transaction(function () use ($commerce, $dto) {
-
+        DB::transaction(function() use ($commerce, $dto) {
             // Solo null/'' = "sin cambios": array_filter() sin callback
             // descartaba commission "0".
             $this->commerceRepository->update(
                 $commerce->id,
                 array_filter([
-                    'name'       => $dto->name,
-                    'phone'      => $dto->phone,
+                    'name' => $dto->name,
+                    'phone' => $dto->phone,
                     'commission' => $dto->commission,
                     'country_id' => $dto->country,
-                ], static fn ($value) => $value !== null && $value !== '')
+                ], static fn ($value) => $value !== null && $value !== ''),
             );
 
             $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
@@ -200,7 +349,7 @@ final class AdminCommerceCrudService
 
             if ($dto->email !== null || $dto->username !== null) {
                 $commerce->user()->update(array_filter([
-                    'email'    => $dto->email,
+                    'email' => $dto->email,
                     'username' => $dto->username,
                 ]));
             }
@@ -210,13 +359,13 @@ final class AdminCommerceCrudService
     /**
      * Sincroniza monedas del comercio.
      */
-    protected function syncCurrencies(
+    private function syncCurrencies(
         Commerce $commerce,
         ?int $principalCurrencyId,
-        ?array $secondaryCurrencyIds
-    ): void {
+        ?array $secondaryCurrencyIds,
+    ) : void {
         $secondaryCurrencyIds = collect($secondaryCurrencyIds ?? [])
-            ->map(fn($id) => (int) $id)
+            ->map(fn ($id) => (int) $id)
             ->unique()
             ->values()
             ->all();
@@ -227,8 +376,8 @@ final class AdminCommerceCrudService
                 ['commerce_id' => $commerce->id, 'level' => 1],
                 [
                     'currency_id' => $principalCurrencyId,
-                    'status'      => 'ACTIVE',
-                ]
+                    'status' => 'ACTIVE',
+                ],
             );
         }
 
@@ -254,14 +403,14 @@ final class AdminCommerceCrudService
 
         if ($missing) {
             CommerceCurrency::insert(
-                array_map(fn($id) => [
+                array_map(fn ($id) => [
                     'commerce_id' => $commerce->id,
                     'currency_id' => $id,
-                    'level'       => 2,
-                    'status'      => 'ACTIVE',
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ], $missing)
+                    'level' => 2,
+                    'status' => 'ACTIVE',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], $missing),
             );
         }
     }
@@ -269,21 +418,21 @@ final class AdminCommerceCrudService
     /**
      * Sincroniza juegos permitidos y actualiza permisos específicos del usuario.
      */
-    protected function syncGames(
+    private function syncGames(
         Commerce $commerce,
-        ?array $activeGameIds
-    ): void {
+        ?array $activeGameIds,
+    ) : void {
         $activeGameIds = collect($activeGameIds ?? [])
-            ->map(fn($id) => (int) $id)
+            ->map(fn ($id) => (int) $id)
             ->unique()
             ->values()
             ->all();
 
         // Obtener nombres de juegos para crear permisos
         $gamePermissions = [];
-        if (!empty($activeGameIds)) {
+        if (! empty($activeGameIds)) {
             $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
-            $gamePermissions = $games->map(fn($game) => 'games.' . strtolower($game->name))
+            $gamePermissions = $games->map(fn ($game) => 'games.' . strtolower($game->name))
                 ->values()
                 ->all();
         }
@@ -299,7 +448,7 @@ final class AdminCommerceCrudService
                 ->all();
 
             $toRevoke = array_diff($currentGamePermissions, $gamePermissions);
-            $toGrant  = array_diff($gamePermissions, $currentGamePermissions);
+            $toGrant = array_diff($gamePermissions, $currentGamePermissions);
 
             if ($toRevoke !== []) {
                 $user->revokeSpecificPermission($toRevoke);
@@ -325,172 +474,14 @@ final class AdminCommerceCrudService
 
         if ($missing) {
             CommerceGame::insert(
-                array_map(fn($id) => [
+                array_map(fn ($id) => [
                     'commerce_id' => $commerce->id,
-                    'game_id'     => $id,
-                    'status'      => 'ACTIVE',
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ], $missing)
+                    'game_id' => $id,
+                    'status' => 'ACTIVE',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], $missing),
             );
         }
-    }
-
-    /**
-     * Alternar estado del comercio (ACTIVE / INACTIVE).
-     * También sincroniza el estado del usuario asociado.
-     *
-     * @param Commerce $commerce
-     * @return bool True si el cambio fue exitoso
-     *
-     * @throws RuntimeException Si el comercio está eliminado
-     */
-    public function toggleStatus(Commerce $commerce): bool
-    {
-        if ($commerce->status === 'DELETED') {
-            throw AdminCommerceException::invalidStatusChange();
-        }
-
-        if ($commerce->status === 'ACTIVE' && $this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
-            throw AdminCommerceException::isDefaultCommerce();
-        }
-
-        // Usa changeStatus con userRelation para sincronizar Commerce y User
-        $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-        return $this->commerceRepository->changeStatus($commerce, $newStatus, 'user');
-    }
-
-    /**
-     * Eliminación lógica (soft delete) del comercio.
-     * También marca el usuario asociado como DELETED.
-     *
-     * @param Commerce $commerce
-     * @return bool True si la eliminación fue exitosa
-     *
-     * @throws RuntimeException Si el comercio ya está eliminado
-     */
-    public function delete(Commerce $commerce): bool
-    {
-        if ($commerce->status === 'DELETED') {
-            throw AdminCommerceException::alreadyDeleted();
-        }
-
-        if ($this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
-            throw AdminCommerceException::isDefaultCommerce();
-        }
-
-        // Usa softDelete con userRelation para sincronizar Commerce y User
-        return $this->commerceRepository->softDelete(
-            model: $commerce,
-            status: 'DELETED',
-            relationsToDetach: [],
-            userRelation: 'user'
-        );
-    }
-
-    /**
-     * Alternar estado ACTIVE/INACTIVE de varios comercios en una sola
-     * transacción — mismo patrón que AdminPlayerCrudService::toggleStatusBulk():
-     * un comercio inválido (ej. ya eliminado) no aborta el lote completo, se
-     * omite y se reporta en 'skipped'.
-     *
-     * @param array<int, string> $commerceIds
-     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
-     */
-    public function toggleStatusBulk(array $commerceIds): array
-    {
-        return DB::transaction(function () use ($commerceIds) {
-            $updated = 0;
-            $skipped = [];
-
-            foreach (Commerce::whereIn('id', $commerceIds)->get() as $commerce) {
-                try {
-                    $this->toggleStatus($commerce);
-                    $updated++;
-                } catch (AdminCommerceException $e) {
-                    $skipped[] = [
-                        'id'     => (string) $commerce->id,
-                        'name'   => $commerce->name,
-                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
-                    ];
-                }
-            }
-
-            return ['updated' => $updated, 'skipped' => $skipped];
-        });
-    }
-
-    /**
-     * Eliminación lógica (soft delete) de varios comercios en una sola
-     * transacción. Mismo criterio de omisión que toggleStatusBulk().
-     *
-     * @param array<int, string> $commerceIds
-     * @return array{updated: int, skipped: array<int, array{id: string, name: string, reason: string}>}
-     */
-    public function deleteBulk(array $commerceIds): array
-    {
-        return DB::transaction(function () use ($commerceIds) {
-            $updated = 0;
-            $skipped = [];
-
-            foreach (Commerce::whereIn('id', $commerceIds)->get() as $commerce) {
-                try {
-                    $this->delete($commerce);
-                    $updated++;
-                } catch (AdminCommerceException $e) {
-                    $skipped[] = [
-                        'id'     => (string) $commerce->id,
-                        'name'   => $commerce->name,
-                        'reason' => trans("errors.{$e->getMessage()}") ?: $e->getMessage(),
-                    ];
-                }
-            }
-
-            return ['updated' => $updated, 'skipped' => $skipped];
-        });
-    }
-
-    /**
-     * Eliminación definitiva del comercio y su usuario asociado.
-     *
-     * @param Commerce $commerce
-     *
-     * @throws AdminCommerceException
-     */
-    public function destroy(Commerce $commerce): void
-    {
-        if ($this->platformConfig->isDefaultCommerce((string) $commerce->id)) {
-            throw AdminCommerceException::isDefaultCommerce();
-        }
-
-        DB::transaction(function () use ($commerce) {
-
-            $commerce->loadMissing(['currencies', 'games', 'user']);
-
-            // Desvincula relaciones
-            $commerce->currencies()->detach();
-            $commerce->games()->detach();
-
-            // Elimina wallets del usuario
-            $this->walletRepository->deleteByUserId($commerce->user_id);
-
-            // Guarda referencia al usuario antes de eliminar el comercio
-            $user = $commerce->user;
-            $userId = $commerce->user_id;
-
-            // Elimina definitivamente el comercio
-            $commerce->forceDelete();
-
-            // Verifica si el usuario tiene otros comercios activos
-            $hasOtherCommerces = Commerce::where('user_id', $userId)
-                ->where('id', '!=', $commerce->id)
-                ->exists();
-
-            // Si no tiene otros comercios, elimina el usuario
-            if (! $hasOtherCommerces && $user) {
-                $user->forceDelete();
-            }
-        });
     }
 }

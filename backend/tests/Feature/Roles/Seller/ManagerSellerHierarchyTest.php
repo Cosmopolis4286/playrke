@@ -6,7 +6,6 @@ use App\DTOs\Roles\Admin\Subsidiary\AdminSubsidiaryDTO;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Exceptions\Domain\Roles\CommissionHierarchyException;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
-use App\Services\Roles\CommissionHierarchyGuard;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Role;
@@ -16,6 +15,7 @@ use App\Models\Roles\Subsidiary;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use App\Services\Roles\Admin\Subsidiary\AdminSubsidiaryCrudService;
+use App\Services\Roles\CommissionHierarchyGuard;
 use App\Services\Roles\Seller\Manager\ManagerSellerService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -46,131 +46,134 @@ class ManagerSellerHierarchyTest extends TestCase
     private Country $country;
     private Currency $currency;
 
-    private function nextId(): string
-    {
-        return (string) (430000000000000000 + (++self::$idCounter));
-    }
-
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
         $this->currency = Currency::firstOrCreate(
             ['iso_code' => 'USD'],
-            ['symbol' => '$', 'name' => 'US Dollar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE']
+            ['symbol' => '$', 'name' => 'US Dollar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE'],
         );
         $this->country = Country::firstOrCreate(
             ['iso_code_2' => 'TC'],
-            ['name' => 'Test Country', 'iso_code_3' => 'TCO', 'status' => 'ACTIVE']
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO', 'status' => 'ACTIVE'],
         );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         foreach (['admin', 'commerce', 'subsidiary', 'seller', 'customer'] as $name) {
-            if (!Role::where('name', $name)->where('guard_name', 'web')->exists()) {
+            if (! Role::where('name', $name)->where('guard_name', 'web')->exists()) {
                 // App\Models\Role (SnowflakeId) — ver
                 // feedback-tests-roles-snowflake-y-corridas-paralelas.
-                (new Role())->forceFill(['name' => $name, 'guard_name' => 'web', 'prefix' => $name])->save();
+                (new Role)->forceFill(['name' => $name, 'guard_name' => 'web', 'prefix' => $name])->save();
             }
         }
     }
 
-    // ─── Fixtures ────────────────────────────────────────────────────────────
-
-    private function makeUserWithRole(string $role): User
+    public function test_agency_and_commerce_rates_respect_their_network() : void
     {
-        $user = User::factory()->create(['country_id' => $this->country->id]);
-        $user->assignRole($role);
+        [, $commerce] = $this->makeCommerce();                 // 5%
+        [, $subsidiary] = $this->makeSubsidiary($commerce);    // 4%
+        $this->makeSeller($commerce, $subsidiary);             // 3%
 
-        return $user;
+        $guard = app(CommissionHierarchyGuard::class);
+
+        // Válidos: dentro de los topes.
+        $guard->assertSubsidiaryRate(3.0, (string) $commerce->id, (string) $subsidiary->id);
+        $guard->assertCommerceRate(4.0, $commerce);
+
+        $cases = [
+            'agencia sobre su comercializadora' => fn () => $guard->assertSubsidiaryRate(5.5, (string) $commerce->id, (string) $subsidiary->id),
+            'agencia bajo su vendedor' => fn () => $guard->assertSubsidiaryRate(2.5, (string) $commerce->id, (string) $subsidiary->id),
+            'comercializadora bajo su agencia' => fn () => $guard->assertCommerceRate(3.5, $commerce),
+        ];
+
+        foreach ($cases as $label => $case) {
+            try {
+                $case();
+                $this->fail("Debió rechazar: {$label}");
+            } catch (CommissionHierarchyException) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
-    /** @return array{0: User, 1: Commerce} */
-    private function makeCommerce(): array
+    // ─── Agencia "sin comisión" (de paso) ────────────────────────────────────
+
+    public function test_agency_without_commission_is_pass_through_not_a_zero_cap() : void
     {
-        $user = $this->makeUserWithRole('commerce');
+        [$ownUser, $ownCommerce] = $this->makeCommerce(); // 5%
+        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce);
+        $subsidiary->update(['commission' => 0]);
+        $seller = $this->makeSeller($ownCommerce); // 3%
 
-        $commerce = Commerce::create([
-            'name'           => 'Comercio ' . $user->id,
-            'country_id'     => $this->country->id,
-            'phone'          => '+58414' . random_int(1000000, 9999999),
-            'user_id'        => $user->id,
-            'unique_code_id' => UniqueCode::create([
-                'rke_code'  => 'RKE-' . $this->nextId(),
-                'uuid_code' => (string) Str::uuid(),
-                'user_id'   => $user->id,
-                'status'    => 'ACTIVE',
-            ])->id,
-            'commission'     => 5.00,
-            'status'         => 'ACTIVE',
-        ]);
+        $this->actingAs($ownUser);
 
-        return [$user, $commerce];
+        // Mover un vendedor de 3% a una agencia sin comisión: su tope es la
+        // comercializadora (5%), no 0%.
+        $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
+        $this->assertSame((string) $subsidiary->id, (string) $seller->fresh()->subsidiary_id);
+
+        // Pero sigue sin poder superar a la comercializadora.
+        $this->expectException(CommissionHierarchyException::class);
+        $this->service()->update($seller->fresh(), $this->dto(commission: '6'));
     }
 
-    /** @return array{0: User, 1: Subsidiary} */
-    private function makeSubsidiary(Commerce $commerce): array
+    // ─── Auditoría y huérfanos ───────────────────────────────────────────────
+
+    public function test_audit_command_reports_cap_violations_and_orphan_sellers() : void
     {
-        $user = $this->makeUserWithRole('subsidiary');
+        [, $commerce] = $this->makeCommerce(); // 5%
+        $overCap = $this->makeSeller($commerce);
+        DB::table('sellers')->where('id', $overCap->id)->update(['commission' => 9.00, 'name' => 'Vendedor Fuera De Tope']);
 
-        $subsidiary = Subsidiary::create([
-            'name'        => 'Agencia ' . $user->id,
-            'commerce_id' => $commerce->id,
-            'user_id'     => $user->id,
-            'country_id'  => $this->country->id,
-            'currency_id' => $this->currency->id,
-            // Topes vendedor (3) ≤ agencia (4) ≤ comercializadora (5).
-            'commission'  => 4.00,
-            'phone'       => '+58414' . random_int(1000000, 9999999),
-            'status'      => 'ACTIVE',
-        ]);
+        // Huérfano legado: creado por un customer (manager_user_id = customer).
+        $customer = $this->makeUserWithRole('customer');
+        $orphan = $this->makeSeller($commerce);
+        DB::table('sellers')->where('id', $orphan->id)->update(['manager_user_id' => $customer->id, 'name' => 'Vendedor Huerfano']);
 
-        return [$user, $subsidiary];
+        $this->artisan('commissions:audit-hierarchy')
+            ->expectsOutputToContain('Vendedor Fuera De Tope')
+            ->expectsOutputToContain('Vendedor Huerfano')
+            ->assertExitCode(1);
+
+        $this->assertStringContainsString('Sin comercializadora', $orphan->fresh()->manager_role_badge);
     }
 
-    /** Seller con los mismos datos que persiste ManagerSellerService. */
-    private function makeSeller(Commerce $commerce, ?Subsidiary $subsidiary = null): Seller
-    {
-        $user = $this->makeUserWithRole('seller');
+    // ─── update(): reasignación dentro del propio árbol ──────────────────────
 
-        return Seller::create([
-            'id'              => $this->nextId(),
-            'name'            => 'Vendedor ' . $user->id,
-            'phone'           => '+58424' . random_int(1000000, 9999999),
-            'commission'      => 3.00,
-            'user_id'         => $user->id,
-            'country_id'      => $this->country->id,
-            'manager_user_id' => $commerce->user_id,
-            'subsidiary_id'   => $subsidiary?->id,
-            'status'          => 'ACTIVE',
-        ]);
+    public function test_commerce_can_move_own_seller_to_own_subsidiary() : void
+    {
+        [$ownUser, $ownCommerce] = $this->makeCommerce();
+        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce);
+        $seller = $this->makeSeller($ownCommerce);
+
+        $this->actingAs($ownUser);
+
+        $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
+
+        $seller->refresh();
+        $this->assertSame((string) $subsidiary->id, (string) $seller->subsidiary_id);
+        // manager_user_id sigue siendo el Commerce raíz, nunca la agencia.
+        $this->assertSame((string) $ownUser->id, (string) $seller->manager_user_id);
     }
 
-    private function dto(?string $managerUserId = null, ?string $commission = null): ManagerSellerDTO
-    {
-        return new ManagerSellerDTO(
-            username: null,
-            email: null,
-            commission: $commission,
-            country: null,
-            timeZone: null,
-            currency: null,
-            phone: null,
-            name: null,
-            otherCurrencies: null,
-            allowedGames: null,
-            managerUserId: $managerUserId,
-        );
-    }
+    // ─── Topes de comisión: vendedor ≤ agencia ≤ comercializadora ────────────
 
-    private function service(): ManagerSellerService
+    public function test_commerce_cannot_create_seller_above_its_own_commission() : void
     {
-        return app(ManagerSellerService::class);
+        [$ownUser] = $this->makeCommerce(); // 5%
+
+        $this->actingAs($ownUser);
+
+        $this->expectException(CommissionHierarchyException::class);
+
+        $this->service()->create($this->dto(commission: '6'));
     }
 
     // ─── create(): destino explícito validado contra el actor ────────────────
 
-    public function test_commerce_cannot_create_seller_under_another_commerce(): void
+    public function test_commerce_cannot_create_seller_under_another_commerce() : void
     {
         [$ownUser] = $this->makeCommerce();
         [$foreignUser] = $this->makeCommerce();
@@ -186,7 +189,7 @@ class ManagerSellerHierarchyTest extends TestCase
         }
     }
 
-    public function test_commerce_cannot_create_seller_under_another_commerces_subsidiary(): void
+    public function test_commerce_cannot_create_seller_under_another_commerces_subsidiary() : void
     {
         [$ownUser] = $this->makeCommerce();
         [, $foreignCommerce] = $this->makeCommerce();
@@ -203,40 +206,7 @@ class ManagerSellerHierarchyTest extends TestCase
         }
     }
 
-    public function test_customer_cannot_create_sellers(): void
-    {
-        $customer = $this->makeUserWithRole('customer');
-
-        $this->actingAs($customer);
-
-        $this->expectException(ManagerSellerException::class);
-
-        try {
-            $this->service()->create($this->dto());
-        } finally {
-            $this->assertSame(0, Seller::where('manager_user_id', $customer->id)->count());
-        }
-    }
-
-    // ─── update(): reasignación dentro del propio árbol ──────────────────────
-
-    public function test_commerce_can_move_own_seller_to_own_subsidiary(): void
-    {
-        [$ownUser, $ownCommerce] = $this->makeCommerce();
-        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce);
-        $seller = $this->makeSeller($ownCommerce);
-
-        $this->actingAs($ownUser);
-
-        $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
-
-        $seller->refresh();
-        $this->assertSame((string) $subsidiary->id, (string) $seller->subsidiary_id);
-        // manager_user_id sigue siendo el Commerce raíz, nunca la agencia.
-        $this->assertSame((string) $ownUser->id, (string) $seller->manager_user_id);
-    }
-
-    public function test_commerce_cannot_move_own_seller_to_foreign_subsidiary(): void
+    public function test_commerce_cannot_move_own_seller_to_foreign_subsidiary() : void
     {
         [$ownUser, $ownCommerce] = $this->makeCommerce();
         [, $foreignCommerce] = $this->makeCommerce();
@@ -256,125 +226,31 @@ class ManagerSellerHierarchyTest extends TestCase
         }
     }
 
-    public function test_subsidiary_cannot_reassign_its_seller(): void
+    public function test_customer_cannot_create_sellers() : void
     {
-        [, $commerce] = $this->makeCommerce();
-        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($commerce);
-        $seller = $this->makeSeller($commerce, $subsidiary);
+        $customer = $this->makeUserWithRole('customer');
 
-        $this->actingAs($subsidiaryUser);
+        $this->actingAs($customer);
 
-        // Intento de "subir" el seller al Commerce padre: se ignora.
-        $this->service()->update($seller, $this->dto((string) $commerce->user_id));
-
-        $seller->refresh();
-        $this->assertSame((string) $subsidiary->id, (string) $seller->subsidiary_id);
-    }
-
-    // ─── Topes de comisión: vendedor ≤ agencia ≤ comercializadora ────────────
-
-    public function test_commerce_cannot_create_seller_above_its_own_commission(): void
-    {
-        [$ownUser] = $this->makeCommerce(); // 5%
-
-        $this->actingAs($ownUser);
-
-        $this->expectException(CommissionHierarchyException::class);
-
-        $this->service()->create($this->dto(commission: '6'));
-    }
-
-    public function test_seller_cannot_be_moved_to_an_agency_with_lower_commission(): void
-    {
-        [$ownUser, $ownCommerce] = $this->makeCommerce();
-        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce); // 4%
-        $seller = $this->makeSeller($ownCommerce);
-        $seller->update(['commission' => 4.50]);
-
-        $this->actingAs($ownUser);
-
-        $this->expectException(CommissionHierarchyException::class);
+        $this->expectException(ManagerSellerException::class);
 
         try {
-            $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
+            $this->service()->create($this->dto());
         } finally {
-            $this->assertNull($seller->fresh()->subsidiary_id);
+            $this->assertSame(0, Seller::where('manager_user_id', $customer->id)->count());
         }
     }
 
-    public function test_seller_commission_cannot_exceed_its_agency_on_update(): void
+    public function test_customer_no_longer_reaches_seller_management() : void
     {
-        [$ownUser, $ownCommerce] = $this->makeCommerce();
-        [, $subsidiary] = $this->makeSubsidiary($ownCommerce); // 4%
-        $seller = $this->makeSeller($ownCommerce, $subsidiary);
+        $customer = $this->makeUserWithRole('customer');
 
-        $this->actingAs($ownUser);
-
-        $this->expectException(CommissionHierarchyException::class);
-
-        $this->service()->update($seller, $this->dto(commission: '4.5'));
-    }
-
-    public function test_agency_and_commerce_rates_respect_their_network(): void
-    {
-        [, $commerce] = $this->makeCommerce();                 // 5%
-        [, $subsidiary] = $this->makeSubsidiary($commerce);    // 4%
-        $this->makeSeller($commerce, $subsidiary);             // 3%
-
-        $guard = app(CommissionHierarchyGuard::class);
-
-        // Válidos: dentro de los topes.
-        $guard->assertSubsidiaryRate(3.0, (string) $commerce->id, (string) $subsidiary->id);
-        $guard->assertCommerceRate(4.0, $commerce);
-
-        $cases = [
-            'agencia sobre su comercializadora' => fn () => $guard->assertSubsidiaryRate(5.5, (string) $commerce->id, (string) $subsidiary->id),
-            'agencia bajo su vendedor'          => fn () => $guard->assertSubsidiaryRate(2.5, (string) $commerce->id, (string) $subsidiary->id),
-            'comercializadora bajo su agencia'  => fn () => $guard->assertCommerceRate(3.5, $commerce),
-        ];
-
-        foreach ($cases as $label => $case) {
-            try {
-                $case();
-                $this->fail("Debió rechazar: {$label}");
-            } catch (CommissionHierarchyException) {
-                $this->addToAssertionCount(1);
-            }
-        }
-    }
-
-    // ─── Mover una agencia de Commerce ───────────────────────────────────────
-
-    public function test_moving_subsidiary_to_another_commerce_resyncs_its_sellers(): void
-    {
-        [$oldUser, $oldCommerce] = $this->makeCommerce();
-        [$newUser, $newCommerce] = $this->makeCommerce();
-        [, $subsidiary] = $this->makeSubsidiary($oldCommerce);
-
-        $active = $this->makeSeller($oldCommerce, $subsidiary);
-        $trashed = $this->makeSeller($oldCommerce, $subsidiary);
-        $trashed->delete();
-        $direct = $this->makeSeller($oldCommerce);
-
-        app(AdminSubsidiaryCrudService::class)->update(
-            $subsidiary,
-            AdminSubsidiaryDTO::fromArray(['commerce' => (string) $newCommerce->id])
-        );
-
-        $this->assertSame((string) $newCommerce->id, (string) $subsidiary->fresh()->commerce_id);
-        $this->assertSame((string) $newUser->id, (string) $active->fresh()->manager_user_id);
-        $this->assertSame((string) $newUser->id, (string) Seller::withTrashed()->find($trashed->id)->manager_user_id);
-        // Un seller directo del Commerce anterior no se toca.
-        $this->assertSame((string) $oldUser->id, (string) $direct->fresh()->manager_user_id);
-
-        // La red del Commerce anterior ya no incluye a los sellers de la agencia.
-        $this->assertNotContains((string) $active->user_id, $oldCommerce->fresh()->networkUserIds());
-        $this->assertContains((string) $active->user_id, $newCommerce->fresh()->networkUserIds());
+        $this->actingAs($customer)->getJson('/sellers/fetch-list')->assertForbidden();
     }
 
     // ─── Registros legados fuera de tope ─────────────────────────────────────
 
-    public function test_legacy_seller_above_cap_stays_editable_when_rate_and_parent_are_resent_unchanged(): void
+    public function test_legacy_seller_above_cap_stays_editable_when_rate_and_parent_are_resent_unchanged() : void
     {
         [$ownUser, $ownCommerce] = $this->makeCommerce(); // 5%
         $seller = $this->makeSeller($ownCommerce);
@@ -402,28 +278,7 @@ class ManagerSellerHierarchyTest extends TestCase
         $this->assertEqualsWithDelta(5.00, (float) $seller->fresh()->commission, 0.001);
     }
 
-    // ─── Agencia "sin comisión" (de paso) ────────────────────────────────────
-
-    public function test_agency_without_commission_is_pass_through_not_a_zero_cap(): void
-    {
-        [$ownUser, $ownCommerce] = $this->makeCommerce(); // 5%
-        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce);
-        $subsidiary->update(['commission' => 0]);
-        $seller = $this->makeSeller($ownCommerce); // 3%
-
-        $this->actingAs($ownUser);
-
-        // Mover un vendedor de 3% a una agencia sin comisión: su tope es la
-        // comercializadora (5%), no 0%.
-        $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
-        $this->assertSame((string) $subsidiary->id, (string) $seller->fresh()->subsidiary_id);
-
-        // Pero sigue sin poder superar a la comercializadora.
-        $this->expectException(CommissionHierarchyException::class);
-        $this->service()->update($seller->fresh(), $this->dto(commission: '6'));
-    }
-
-    public function test_moving_pass_through_agency_under_a_lower_commerce_is_rejected(): void
+    public function test_moving_pass_through_agency_under_a_lower_commerce_is_rejected() : void
     {
         [, $commerce] = $this->makeCommerce();          // 5%
         [, $lowCommerce] = $this->makeCommerce();
@@ -440,31 +295,176 @@ class ManagerSellerHierarchyTest extends TestCase
         }
     }
 
-    // ─── Auditoría y huérfanos ───────────────────────────────────────────────
+    // ─── Mover una agencia de Commerce ───────────────────────────────────────
 
-    public function test_audit_command_reports_cap_violations_and_orphan_sellers(): void
+    public function test_moving_subsidiary_to_another_commerce_resyncs_its_sellers() : void
     {
-        [, $commerce] = $this->makeCommerce(); // 5%
-        $overCap = $this->makeSeller($commerce);
-        DB::table('sellers')->where('id', $overCap->id)->update(['commission' => 9.00, 'name' => 'Vendedor Fuera De Tope']);
+        [$oldUser, $oldCommerce] = $this->makeCommerce();
+        [$newUser, $newCommerce] = $this->makeCommerce();
+        [, $subsidiary] = $this->makeSubsidiary($oldCommerce);
 
-        // Huérfano legado: creado por un customer (manager_user_id = customer).
-        $customer = $this->makeUserWithRole('customer');
-        $orphan = $this->makeSeller($commerce);
-        DB::table('sellers')->where('id', $orphan->id)->update(['manager_user_id' => $customer->id, 'name' => 'Vendedor Huerfano']);
+        $active = $this->makeSeller($oldCommerce, $subsidiary);
+        $trashed = $this->makeSeller($oldCommerce, $subsidiary);
+        $trashed->delete();
+        $direct = $this->makeSeller($oldCommerce);
 
-        $this->artisan('commissions:audit-hierarchy')
-            ->expectsOutputToContain('Vendedor Fuera De Tope')
-            ->expectsOutputToContain('Vendedor Huerfano')
-            ->assertExitCode(1);
+        app(AdminSubsidiaryCrudService::class)->update(
+            $subsidiary,
+            AdminSubsidiaryDTO::fromArray(['commerce' => (string) $newCommerce->id]),
+        );
 
-        $this->assertStringContainsString('Sin comercializadora', $orphan->fresh()->manager_role_badge);
+        $this->assertSame((string) $newCommerce->id, (string) $subsidiary->fresh()->commerce_id);
+        $this->assertSame((string) $newUser->id, (string) $active->fresh()->manager_user_id);
+        $this->assertSame((string) $newUser->id, (string) Seller::withTrashed()->find($trashed->id)->manager_user_id);
+        // Un seller directo del Commerce anterior no se toca.
+        $this->assertSame((string) $oldUser->id, (string) $direct->fresh()->manager_user_id);
+
+        // La red del Commerce anterior ya no incluye a los sellers de la agencia.
+        $this->assertNotContains((string) $active->user_id, $oldCommerce->fresh()->networkUserIds());
+        $this->assertContains((string) $active->user_id, $newCommerce->fresh()->networkUserIds());
     }
 
-    public function test_customer_no_longer_reaches_seller_management(): void
+    public function test_seller_cannot_be_moved_to_an_agency_with_lower_commission() : void
     {
-        $customer = $this->makeUserWithRole('customer');
+        [$ownUser, $ownCommerce] = $this->makeCommerce();
+        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($ownCommerce); // 4%
+        $seller = $this->makeSeller($ownCommerce);
+        $seller->update(['commission' => 4.50]);
 
-        $this->actingAs($customer)->getJson('/sellers/fetch-list')->assertForbidden();
+        $this->actingAs($ownUser);
+
+        $this->expectException(CommissionHierarchyException::class);
+
+        try {
+            $this->service()->update($seller, $this->dto((string) $subsidiaryUser->id));
+        } finally {
+            $this->assertNull($seller->fresh()->subsidiary_id);
+        }
+    }
+
+    public function test_seller_commission_cannot_exceed_its_agency_on_update() : void
+    {
+        [$ownUser, $ownCommerce] = $this->makeCommerce();
+        [, $subsidiary] = $this->makeSubsidiary($ownCommerce); // 4%
+        $seller = $this->makeSeller($ownCommerce, $subsidiary);
+
+        $this->actingAs($ownUser);
+
+        $this->expectException(CommissionHierarchyException::class);
+
+        $this->service()->update($seller, $this->dto(commission: '4.5'));
+    }
+
+    public function test_subsidiary_cannot_reassign_its_seller() : void
+    {
+        [, $commerce] = $this->makeCommerce();
+        [$subsidiaryUser, $subsidiary] = $this->makeSubsidiary($commerce);
+        $seller = $this->makeSeller($commerce, $subsidiary);
+
+        $this->actingAs($subsidiaryUser);
+
+        // Intento de "subir" el seller al Commerce padre: se ignora.
+        $this->service()->update($seller, $this->dto((string) $commerce->user_id));
+
+        $seller->refresh();
+        $this->assertSame((string) $subsidiary->id, (string) $seller->subsidiary_id);
+    }
+
+    private function dto(?string $managerUserId = null, ?string $commission = null) : ManagerSellerDTO
+    {
+        return new ManagerSellerDTO(
+            username: null,
+            email: null,
+            commission: $commission,
+            country: null,
+            timeZone: null,
+            currency: null,
+            phone: null,
+            name: null,
+            otherCurrencies: null,
+            allowedGames: null,
+            managerUserId: $managerUserId,
+        );
+    }
+
+    /** @return array{0: User, 1: Commerce} */
+    private function makeCommerce() : array
+    {
+        $user = $this->makeUserWithRole('commerce');
+
+        $commerce = Commerce::create([
+            'name' => 'Comercio ' . $user->id,
+            'country_id' => $this->country->id,
+            'phone' => '+58414' . random_int(1000000, 9999999),
+            'user_id' => $user->id,
+            'unique_code_id' => UniqueCode::create([
+                'rke_code' => 'RKE-' . $this->nextId(),
+                'uuid_code' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'status' => 'ACTIVE',
+            ])->id,
+            'commission' => 5.00,
+            'status' => 'ACTIVE',
+        ]);
+
+        return [$user, $commerce];
+    }
+
+    /** Seller con los mismos datos que persiste ManagerSellerService. */
+    private function makeSeller(Commerce $commerce, ?Subsidiary $subsidiary = null) : Seller
+    {
+        $user = $this->makeUserWithRole('seller');
+
+        return Seller::create([
+            'id' => $this->nextId(),
+            'name' => 'Vendedor ' . $user->id,
+            'phone' => '+58424' . random_int(1000000, 9999999),
+            'commission' => 3.00,
+            'user_id' => $user->id,
+            'country_id' => $this->country->id,
+            'manager_user_id' => $commerce->user_id,
+            'subsidiary_id' => $subsidiary?->id,
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    /** @return array{0: User, 1: Subsidiary} */
+    private function makeSubsidiary(Commerce $commerce) : array
+    {
+        $user = $this->makeUserWithRole('subsidiary');
+
+        $subsidiary = Subsidiary::create([
+            'name' => 'Agencia ' . $user->id,
+            'commerce_id' => $commerce->id,
+            'user_id' => $user->id,
+            'country_id' => $this->country->id,
+            'currency_id' => $this->currency->id,
+            // Topes vendedor (3) ≤ agencia (4) ≤ comercializadora (5).
+            'commission' => 4.00,
+            'phone' => '+58414' . random_int(1000000, 9999999),
+            'status' => 'ACTIVE',
+        ]);
+
+        return [$user, $subsidiary];
+    }
+
+    // ─── Fixtures ────────────────────────────────────────────────────────────
+
+    private function makeUserWithRole(string $role) : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id]);
+        $user->assignRole($role);
+
+        return $user;
+    }
+
+    private function nextId() : string
+    {
+        return (string) (430000000000000000 + (++self::$idCounter));
+    }
+
+    private function service() : ManagerSellerService
+    {
+        return app(ManagerSellerService::class);
     }
 }

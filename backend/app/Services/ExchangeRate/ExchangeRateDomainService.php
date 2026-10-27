@@ -24,7 +24,9 @@ final class ExchangeRateDomainService
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         private readonly CurrencyExchangeRateService $officialExchangeRate,
         private readonly CustomerExchangeRateRepositoryInterface $customerExchangeRate,
-    ) {}
+    ) {
+    }
+
     /**
      * Calcula la variación porcentual entre un monto anterior y uno nuevo.
      *
@@ -37,13 +39,13 @@ final class ExchangeRateDomainService
      *   resultado = 10.00
      *
      * @param float $old Monto anterior (base del cálculo). Debe ser mayor a 0.
-     * @param float $new Monto nuevo a comparar.
+     * @param float $new monto nuevo a comparar
      *
-     * @return float Variación porcentual redondeada a 2 decimales.
+     * @return float variación porcentual redondeada a 2 decimales
      *
-     * @throws ExchangeRateException Si el monto anterior es menor o igual a cero.
+     * @throws ExchangeRateException si el monto anterior es menor o igual a cero
      */
-    public function calculatePercentage(float $old, float $new): float
+    public function calculatePercentage(float $old, float $new) : float
     {
         if ($old <= 0) {
             throw ExchangeRateException::invalidPreviousAmount();
@@ -57,16 +59,41 @@ final class ExchangeRateDomainService
      * activo del usuario: primero su tasa propia (ej. comercio), y si no
      * existe, la oficial de la plataforma (exchange_rates).
      *
-     * @param int $currencyId ID de la moneda para la cual se desea obtener el tipo de cambio.
-     * @param int $userId ID del usuario para contextos específicos.
+     * @param int $currencyId ID de la moneda para la cual se desea obtener el tipo de cambio
+     * @param int $userId     ID del usuario para contextos específicos
      *
-     * @return float Tipo de cambio aplicable para la moneda especificada.
+     * @return float tipo de cambio aplicable para la moneda especificada
      *
-     * @throws ExchangeRateException Si no hay tasa propia del rol ni oficial para la moneda.
+     * @throws ExchangeRateException si no hay tasa propia del rol ni oficial para la moneda
      */
-    public function getExchangeRateByCurrency(int $currencyId, int $userId): float
+    public function getExchangeRateByCurrency(int $currencyId, int $userId) : float
     {
         return $this->resolveExchangeRateByRole((string) $userId, $currencyId);
+    }
+
+    /**
+     * Tasa propia ACTIVA (> 0) del dueño de las salas para esa moneda, o null
+     * si no tiene (o su rol no tiene tasas propias):
+     *  - commerce: commerces_exchange_rates;
+     *  - customer: customers_exchange_rates.
+     */
+    public function ownRate(int|string $currencyId, int|string $userId) : ?float
+    {
+        $role = $this->roleUserService->getActiveUserRolePrefix((int) $userId);
+        if (! in_array($role, ['commerce', 'customer'], true)) {
+            return null;
+        }
+
+        $entityId = $this->roleEntityResolver->resolveEntityId((int) $userId, $role);
+        if (! $entityId) {
+            return null;
+        }
+
+        $rate = $role === 'commerce'
+            ? $this->commerceExchangeRate->getCommerceCurrencyValue($entityId, $currencyId)
+            : $this->customerExchangeRate->getCustomerCurrencyValue($entityId, (string) $currencyId);
+
+        return $rate !== null && (float) $rate > 0 ? (float) $rate : null;
     }
 
     /**
@@ -76,14 +103,14 @@ final class ExchangeRateDomainService
      *   en ambos casos, sin tasa propia (o desactivada) hereda la oficial.
      * - cualquier otro rol (admin, etc.): directamente la oficial.
      *
-     * @param string $userId ID del usuario para contextos específicos.
-     * @param int|string $currencyId ID de la moneda para la cual se desea obtener el tipo de cambio.
+     * @param string     $userId     ID del usuario para contextos específicos
+     * @param int|string $currencyId ID de la moneda para la cual se desea obtener el tipo de cambio
      *
-     * @return float Tipo de cambio para la moneda especificada.
+     * @return float tipo de cambio para la moneda especificada
      *
-     * @throws ExchangeRateException Si no hay tasa propia del rol ni oficial para la moneda.
+     * @throws ExchangeRateException si no hay tasa propia del rol ni oficial para la moneda
      */
-    protected function resolveExchangeRateByRole(string $userId, int|string $currencyId): float
+    private function resolveExchangeRateByRole(string $userId, int|string $currencyId) : float
     {
         $ownRate = $this->ownRate($currencyId, $userId);
         if ($ownRate !== null) {
@@ -93,30 +120,5 @@ final class ExchangeRateDomainService
         // Sin tasa propia del rol (o rol sin tasa personalizada): heredar la oficial.
         // Lanza ExchangeRateException si tampoco existe ahí.
         return $this->officialExchangeRate->getActiveRate($currencyId);
-    }
-
-    /**
-     * Tasa propia ACTIVA (> 0) del dueño de las salas para esa moneda, o null
-     * si no tiene (o su rol no tiene tasas propias):
-     *  - commerce: commerces_exchange_rates;
-     *  - customer: customers_exchange_rates.
-     */
-    public function ownRate(int|string $currencyId, int|string $userId): ?float
-    {
-        $role = $this->roleUserService->getActiveUserRolePrefix((int) $userId);
-        if (!in_array($role, ['commerce', 'customer'], true)) {
-            return null;
-        }
-
-        $entityId = $this->roleEntityResolver->resolveEntityId((int) $userId, $role);
-        if (!$entityId) {
-            return null;
-        }
-
-        $rate = $role === 'commerce'
-            ? $this->commerceExchangeRate->getCommerceCurrencyValue($entityId, $currencyId)
-            : $this->customerExchangeRate->getCustomerCurrencyValue($entityId, (string) $currencyId);
-
-        return $rate !== null && (float) $rate > 0 ? (float) $rate : null;
     }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Visibilidad por rol de items del sidebar (padres y submenús de
  * SidebarMenuService::$menuStructure). Reemplaza el array hardcodeado
  * `exclude_roles` como mecanismo de decisión — no es una capa adicional.
@@ -21,9 +21,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('sidebar_menu_visibilities', function (Blueprint $table) {
+        Schema::dropIfExists('sidebar_menu_visibilities');
+    }
+
+    public function up() : void
+    {
+        Schema::create('sidebar_menu_visibilities', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             // Coincide con la clave del item en $menuStructure: 'games_bingo'
@@ -42,10 +47,5 @@ return new class extends Migration
             $table->unique(['item_key', 'role_id']);
             $table->index('item_key');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('sidebar_menu_visibilities');
     }
 };

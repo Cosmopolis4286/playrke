@@ -17,33 +17,11 @@ use App\Policies\Roles\BaseRolePolicy;
 class AdminCommercePolicy extends BaseRolePolicy
 {
     /**
-     * Rol requerido para operar sobre comercios.
-     */
-    protected function requiredRole(): string
-    {
-        return 'admin';
-    }
-
-    /**
-     * Estados que bloquean operaciones mutables.
-     *
-     * @return string[]
-     */
-    protected function forbiddenStatuses(): array
-    {
-        return ['DELETED', 'BLOCKED'];
-    }
-
-    /**
      * Cambiar estado del comercio.
      *
      * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Commerce $commerce
-     * @return bool
      */
-    public function changeStatus(User $user, Commerce $commerce): bool
+    public function changeStatus(User $user, Commerce $commerce) : bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($commerce);
@@ -53,14 +31,28 @@ class AdminCommercePolicy extends BaseRolePolicy
      * Cambiar contraseña asociada al comercio.
      *
      * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Commerce $commerce
-     * @return bool
      */
-    public function resetPassword(User $user, Commerce $commerce): bool
+    public function resetPassword(User $user, Commerce $commerce) : bool
     {
         return $this->hasAccess($user)
             && $this->canMutate($commerce);
+    }
+
+    /**
+     * Estados que bloquean operaciones mutables.
+     *
+     * @return string[]
+     */
+    protected function forbiddenStatuses() : array
+    {
+        return ['DELETED', 'BLOCKED'];
+    }
+
+    /**
+     * Rol requerido para operar sobre comercios.
+     */
+    protected function requiredRole() : string
+    {
+        return 'admin';
     }
 }

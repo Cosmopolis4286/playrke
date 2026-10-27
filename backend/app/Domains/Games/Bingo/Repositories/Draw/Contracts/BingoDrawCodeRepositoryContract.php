@@ -12,104 +12,106 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * los códigos de sorteo (número y símbolo) asociados a las salas de bingo.
  *
- * @package App\Repositories\Bingo\Draw\Contracts
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 interface BingoDrawCodeRepositoryContract extends BaseRepositoryInterface
 {
     /**
-     * Obtener código por sala
+     * Limpiar códigos huérfanos (sin sala asociada)
      *
-     * @param string $roomId
-     * @return BingoDrawCode|null
+     * @return int Número de registros eliminados
      */
-    public function findByRoom(string $roomId): ?BingoDrawCode;
+    public function cleanOrphanedCodes() : int;
+
+    /**
+     * Contar códigos por número
+     */
+    public function countByNumber(string $num) : int;
+
+    /**
+     * Contar códigos por sala
+     */
+    public function countByRoom(string $roomId) : int;
+
+    /**
+     * Contar códigos por símbolo
+     */
+    public function countBySymbol(string $sym) : int;
+
+    /**
+     * Crear código para sala
+     */
+    public function createCodeForRoom(string $roomId, string $num, string $sym) : BingoDrawCode;
+
+    /**
+     * Eliminar código de sala
+     */
+    public function deleteRoomCode(string $roomId) : bool;
+
+    /**
+     * Verificar si existe un código para una sala
+     */
+    public function existsByRoom(string $roomId) : bool;
+
+    /**
+     * Exportar códigos en formato específico
+     *
+     * @param string $format 'json'|'csv'|'array'
+     *
+     * @return mixed
+     */
+    public function exportCodes(string $format = 'array');
+
+    /**
+     * Obtener código específico por número y símbolo
+     */
+    public function findByNumberAndSymbol(string $num, string $sym) : ?BingoDrawCode;
+
+    /**
+     * Obtener código por sala
+     */
+    public function findByRoom(string $roomId) : ?BingoDrawCode;
+
+    /**
+     * Generar código único para sala
+     *
+     * @return array{num: string, sym: string}
+     */
+    public function generateUniqueCode(string $roomId) : array;
 
     /**
      * Obtener códigos por número específico
      *
-     * @param string $num
      * @return Collection<int, BingoDrawCode>
      */
-    public function getByNumber(string $num): Collection;
+    public function getByNumber(string $num) : Collection;
+
+    /**
+     * Obtener códigos por patrón de número
+     *
+     * @param string $pattern Patrón regex o LIKE
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function getByNumberPattern(string $pattern) : Collection;
 
     /**
      * Obtener códigos por símbolo específico
      *
-     * @param string $sym
      * @return Collection<int, BingoDrawCode>
      */
-    public function getBySymbol(string $sym): Collection;
+    public function getBySymbol(string $sym) : Collection;
 
     /**
-     * Obtener código específico por número y símbolo
+     * Obtener códigos por patrón de símbolo
      *
-     * @param string $num
-     * @param string $sym
-     * @return BingoDrawCode|null
-     */
-    public function findByNumberAndSymbol(string $num, string $sym): ?BingoDrawCode;
-
-    /**
-     * Verificar si existe un código para una sala
+     * @param string $pattern Patrón regex o LIKE
      *
-     * @param string $roomId
-     * @return bool
+     * @return Collection<int, BingoDrawCode>
      */
-    public function existsByRoom(string $roomId): bool;
-
-    /**
-     * Obtener todos los números únicos
-     *
-     * @return Collection
-     */
-    public function getUniqueNumbers(): Collection;
-
-    /**
-     * Obtener todos los símbolos únicos
-     *
-     * @return Collection
-     */
-    public function getUniqueSymbols(): Collection;
-
-    /**
-     * Obtener códigos agrupados por número
-     *
-     * @return Collection
-     */
-    public function getGroupedByNumber(): Collection;
-
-    /**
-     * Obtener códigos agrupados por símbolo
-     *
-     * @return Collection
-     */
-    public function getGroupedBySymbol(): Collection;
-
-    /**
-     * Contar códigos por sala
-     *
-     * @param string $roomId
-     * @return int
-     */
-    public function countByRoom(string $roomId): int;
-
-    /**
-     * Contar códigos por número
-     *
-     * @param string $num
-     * @return int
-     */
-    public function countByNumber(string $num): int;
-
-    /**
-     * Contar códigos por símbolo
-     *
-     * @param string $sym
-     * @return int
-     */
-    public function countBySymbol(string $sym): int;
+    public function getBySymbolPattern(string $pattern) : Collection;
 
     /**
      * Obtener estadísticas de códigos
@@ -122,130 +124,71 @@ interface BingoDrawCodeRepositoryContract extends BaseRepositoryInterface
      *     codes_per_room: float
      * }
      */
-    public function getCodeStats(): array;
-
-    /**
-     * Buscar códigos por término de búsqueda
-     *
-     * @param string $searchTerm
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function searchCodes(string $searchTerm): Collection;
+    public function getCodeStats() : array;
 
     /**
      * Obtener códigos duplicados (mismo número y símbolo)
      *
      * @return Collection<int, BingoDrawCode>
      */
-    public function getDuplicateCodes(): Collection;
+    public function getDuplicateCodes() : Collection;
 
     /**
-     * Validar integridad de código
-     *
-     * @param string $codeId
-     * @return bool
+     * Obtener códigos agrupados por número
      */
-    public function validateCodeIntegrity(string $codeId): bool;
+    public function getGroupedByNumber() : Collection;
 
     /**
-     * Crear código para sala
-     *
-     * @param string $roomId
-     * @param string $num
-     * @param string $sym
-     * @return BingoDrawCode
+     * Obtener códigos agrupados por símbolo
      */
-    public function createCodeForRoom(string $roomId, string $num, string $sym): BingoDrawCode;
+    public function getGroupedBySymbol() : Collection;
 
     /**
-     * Actualizar código de sala
-     *
-     * @param string $roomId
-     * @param string $newNum
-     * @param string $newSym
-     * @return bool
+     * Obtener códigos más utilizados
      */
-    public function updateRoomCode(string $roomId, string $newNum, string $newSym): bool;
-
-    /**
-     * Eliminar código de sala
-     *
-     * @param string $roomId
-     * @return bool
-     */
-    public function deleteRoomCode(string $roomId): bool;
-
-    /**
-     * Obtener códigos por patrón de número
-     *
-     * @param string $pattern Patrón regex o LIKE
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getByNumberPattern(string $pattern): Collection;
-
-    /**
-     * Obtener códigos por patrón de símbolo
-     *
-     * @param string $pattern Patrón regex o LIKE
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getBySymbolPattern(string $pattern): Collection;
-
-    /**
-     * Generar código único para sala
-     *
-     * @param string $roomId
-     * @return array{num: string, sym: string}
-     */
-    public function generateUniqueCode(string $roomId): array;
-
-    /**
-     * Verificar si un código está en uso
-     *
-     * @param string $num
-     * @param string $sym
-     * @param string|null $excludeRoomId
-     * @return bool
-     */
-    public function isCodeInUse(string $num, string $sym, ?string $excludeRoomId = null): bool;
+    public function getMostUsedCodes(int $limit = 10) : Collection;
 
     /**
      * Obtener historial de códigos por sala
      *
-     * @param string $roomId
      * @return Collection<int, BingoDrawCode>
      */
-    public function getRoomCodeHistory(string $roomId): Collection;
+    public function getRoomCodeHistory(string $roomId) : Collection;
 
     /**
-     * Exportar códigos en formato específico
-     *
-     * @param string $format 'json'|'csv'|'array'
-     * @return mixed
+     * Obtener todos los números únicos
      */
-    public function exportCodes(string $format = 'array');
+    public function getUniqueNumbers() : Collection;
 
     /**
-     * Limpiar códigos huérfanos (sin sala asociada)
-     *
-     * @return int Número de registros eliminados
+     * Obtener todos los símbolos únicos
      */
-    public function cleanOrphanedCodes(): int;
+    public function getUniqueSymbols() : Collection;
 
     /**
-     * Obtener códigos más utilizados
-     *
-     * @param int $limit
-     * @return Collection
+     * Verificar si un código está en uso
      */
-    public function getMostUsedCodes(int $limit = 10): Collection;
+    public function isCodeInUse(string $num, string $sym, ?string $excludeRoomId = null) : bool;
+
+    /**
+     * Buscar códigos por término de búsqueda
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function searchCodes(string $searchTerm) : Collection;
+
+    /**
+     * Actualizar código de sala
+     */
+    public function updateRoomCode(string $roomId, string $newNum, string $newSym) : bool;
 
     /**
      * Validar formato de código
-     *
-     * @param string $num
-     * @param string $sym
-     * @return bool
      */
-    public function validateCodeFormat(string $num, string $sym): bool;
+    public function validateCodeFormat(string $num, string $sym) : bool;
+
+    /**
+     * Validar integridad de código
+     */
+    public function validateCodeIntegrity(string $codeId) : bool;
 }

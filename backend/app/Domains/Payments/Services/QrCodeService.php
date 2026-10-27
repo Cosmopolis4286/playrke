@@ -23,10 +23,10 @@ use Endroid\QrCode\Writer\PngWriter;
  */
 final class QrCodeService
 {
-    public function pngForAddress(string $address): string
+    public function pngForAddress(string $address) : string
     {
-        $result = (new Builder())->build(
-            writer: new PngWriter(),
+        $result = (new Builder)->build(
+            writer: new PngWriter,
             data: $address,
             size: 320,
             margin: 10,

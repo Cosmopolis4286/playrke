@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------
     | Red y proveedor de blockchain
@@ -46,5 +45,4 @@ return [
     */
 
     'order_expiration_minutes' => (int) env('PAYMENTS_ORDER_EXPIRATION_MINUTES', 30),
-
 ];

@@ -15,14 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class GameMode extends Model
 {
-    use SnowflakeId, HasActiveStatusScope;
-
-    protected $fillable = [
-        'game_id',
-        'code',
-        'label',
-        'status',
-    ];
+    use HasActiveStatusScope, SnowflakeId;
 
     protected $casts = [
         'id' => 'string',
@@ -32,7 +25,14 @@ class GameMode extends Model
         'status' => 'string',
     ];
 
-    public function game(): BelongsTo
+    protected $fillable = [
+        'game_id',
+        'code',
+        'label',
+        'status',
+    ];
+
+    public function game() : BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');
     }

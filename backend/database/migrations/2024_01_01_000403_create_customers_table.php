@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'customers'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('customers');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'customers'.
      *
      * Tabla principal para almacenar información de clientes que se conectan
@@ -18,9 +26,9 @@ return new class extends Migration
      * - BelongsToMany: Currency (otras monedas via customers_currencies)
      * - BelongsToMany: Game (juegos permitidos via customers_games)
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('customers', function(Blueprint $table) {
             // ============================================
             // PRIMARY KEY
             // ============================================
@@ -92,13 +100,5 @@ return new class extends Migration
             $table->index(['status', 'country_id'], 'idx_customer_status_country');
             $table->index(['user_id', 'status'], 'idx_customer_user_status');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'customers'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('customers');
     }
 };

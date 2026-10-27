@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function down() : void
+    {
+        Schema::dropIfExists('directory_audits');
+    }
+
     /**
      * Bitácora de eventos sobre registros de directorio de pago
      * (PagoMovil Venezuela, PixKey Brasil) — quién creó/editó/desactivó/
@@ -18,9 +23,9 @@ return new class extends Migration
      * corto ('pago_movil' | 'pix_key') en vez de una morph real para no
      * acoplar esta tabla a los nombres de clase concretos.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('directory_audits', function (Blueprint $table) {
+        Schema::create('directory_audits', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único del registro de auditoría');
 
             $table->string('record_type', 20)
@@ -65,10 +70,5 @@ return new class extends Migration
             $table->index('owner_user_id', 'idx_directory_audits_owner');
             $table->index('is_impersonation', 'idx_directory_audits_impersonation');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('directory_audits');
     }
 };

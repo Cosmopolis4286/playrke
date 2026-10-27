@@ -10,6 +10,7 @@ use App\Domains\Wallet\Services\WalletService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 /**
  * Reembolsa la entrada pagada por cada participante confirmado de una sala
@@ -20,12 +21,13 @@ class TriviaRoomRefundService
     public function __construct(
         private readonly WalletService $walletService,
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
 
     /**
-     * @return int Cantidad de reembolsos nuevos aplicados.
+     * @return int cantidad de reembolsos nuevos aplicados
      */
-    public function refundConfirmedParticipants(TriviaRoom $room, string $reasonMessage): int
+    public function refundConfirmedParticipants(TriviaRoom $room, string $reasonMessage) : int
     {
         $participants = DB::connection('pgsql_trivia')
             ->table('trivia_participants')
@@ -38,7 +40,7 @@ class TriviaRoomRefundService
         $refundedCount = 0;
 
         foreach ($participants as $participant) {
-            DB::transaction(function () use ($room, $participant, $reasonMessage, &$refundedCount) {
+            DB::transaction(function() use ($room, $participant, $reasonMessage, &$refundedCount) {
                 $wallet = $this->walletService->findActiveWallet(
                     (string) $participant->user_id,
                     (string) $participant->paid_currency_id,
@@ -49,7 +51,8 @@ class TriviaRoomRefundService
                         'room_id' => $room->id,
                         'user_id' => $participant->user_id,
                     ]);
-                    throw new \RuntimeException("No hay wallet activa para reembolsar al participante {$participant->user_id} de la sala {$room->id}.");
+
+                    throw new RuntimeException("No hay wallet activa para reembolsar al participante {$participant->user_id} de la sala {$room->id}.");
                 }
 
                 // Identificar el gasto exacto para conservar la separación entre
@@ -70,7 +73,8 @@ class TriviaRoomRefundService
                         'user_id' => $participant->user_id,
                         'paid_amount' => (float) $participant->paid_amount,
                     ]);
-                    throw new \RuntimeException("No se pudo verificar la composición de la entrada del participante {$participant->user_id} en la sala {$room->id}.");
+
+                    throw new RuntimeException("No se pudo verificar la composición de la entrada del participante {$participant->user_id} en la sala {$room->id}.");
                 }
 
                 $bonusPortion = (float) $originalEntry->metadata['bonus_amount'];

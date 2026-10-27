@@ -10,9 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 /**
  * Company model
  *
- * @property int $id
- * @property string $name
- * @property string $slug
+ * @property int                                      $id
+ * @property string                                   $name
+ * @property string                                   $slug
  * @property \Illuminate\Database\Eloquent\Collection $users
  */
 class Company extends Model
@@ -24,7 +24,7 @@ class Company extends Model
     /**
      * Usuarios asociados a esta empresa
      */
-    public function users(): BelongsToMany
+    public function users() : BelongsToMany
     {
         return $this->belongsToMany(User::class)
             ->withPivot('role_id')

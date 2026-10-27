@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla de usuarios
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('users');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla de usuarios optimizada
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('users', function(Blueprint $table) {
             // Clave primaria Snowflake
             $table->snowflake('id')->primary()->comment('ID único del usuario');
 
@@ -116,13 +124,5 @@ return new class extends Migration
             $table->index('kyc_level');
             $table->index('kyc_status');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla de usuarios
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('users');
     }
 };

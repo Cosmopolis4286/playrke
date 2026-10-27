@@ -19,9 +19,9 @@ final class UserSuspensionExpiryService
      * ACTIVE solo si no queda otra suspensión activa) — aquí solo se
      * decide A QUIÉN aplicarla y con qué actor (null = automático).
      *
-     * @return int Cantidad de suspensiones expiradas en esta corrida.
+     * @return int cantidad de suspensiones expiradas en esta corrida
      */
-    public function expireDueSuspensions(): int
+    public function expireDueSuspensions() : int
     {
         $expired = UserSuspension::query()->expired()->get();
 

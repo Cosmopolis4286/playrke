@@ -17,11 +17,10 @@ use Throwable;
  */
 class MarketplaceReconciliationCommand extends Command
 {
+    protected $description = 'Alerta inconsistencias entre listings y orders del marketplace';
     protected $signature = 'marketplace:reconcile';
 
-    protected $description = 'Alerta inconsistencias entre listings y orders del marketplace';
-
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -62,7 +61,7 @@ class MarketplaceReconciliationCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }
@@ -73,7 +72,7 @@ class MarketplaceReconciliationCommand extends Command
             $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
 
-        if ($status === 'SUCCESS' && (!isset($total) || $total === 0)) {
+        if ($status === 'SUCCESS' && (! isset($total) || $total === 0)) {
             $this->info($output);
         }
     }

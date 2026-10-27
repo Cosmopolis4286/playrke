@@ -30,11 +30,11 @@ class BingoFinancialSettlementTest extends TestCase
     use DatabaseTransactions;
 
     private static int $seq = 0;
-    private string $previousSqlMode = '';
+    private string $creatorId = '950000000000000002';
     private string $currencyId = '950000000000000001';
-    private string $creatorId  = '950000000000000002';
+    private string $previousSqlMode = '';
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
@@ -44,14 +44,261 @@ class BingoFinancialSettlementTest extends TestCase
         \App\Models\Country::firstOrCreate(['iso_code_2' => 'VE'], ['name' => 'Venezuela', 'iso_code_3' => 'VEN']);
     }
 
-    protected function tearDown(): void
+    protected function tearDown() : void
     {
         DB::statement('SET SESSION sql_mode = ?', [$this->previousSqlMode]);
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         parent::tearDown();
     }
 
-    private function makeRoom(): BingoRoom
+    #[Test]
+    public function al_cerrar_la_sala_se_paga_al_creador_solo_lo_vendido_con_billetera() : void
+    {
+        $room = $this->makeRoom();
+        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
+
+        $this->sellLot($room, 100.0, 'wallet');   // comisión 10 → se paga
+        $this->sellLot($room, 200.0, 'offline');  // el comercio ya tiene el dinero → no se paga
+        $refunded = $this->sellLot($room, 50.0, 'wallet');
+        $refunded->update(['status' => 'REFUNDED']); // reembolsado → no cuenta
+
+        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
+
+        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
+        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_CREATOR_COMMISSION)->where('wallet_id', $wallet->id)->exists());
+
+        // Idempotente: reintentar el cierre no paga dos veces.
+        app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
+    }
+
+    /** Sala de la plataforma (creada por un admin): lo del creador va a la billetera de plataforma. */
+    #[Test]
+    public function en_sala_de_la_plataforma_la_comision_del_creador_va_a_la_plataforma() : void
+    {
+        $role = \App\Models\Role::where('name', 'admin')->where('guard_name', 'web')->first()
+            ?? tap((new \App\Models\Role)->forceFill(['name' => 'admin', 'guard_name' => 'web', 'prefix' => 'admin']))->save();
+        $admin = \App\Models\User::factory()->create();
+        $admin->assignRole('admin');
+        $this->creatorId = (string) $admin->id;
+
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'wallet');
+
+        $before = $this->platformBalance();
+        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
+
+        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
+        $this->assertEqualsWithDelta($before + 10.0, $this->platformBalance(), 0.001);
+        $this->assertFalse(Wallet::where('user_id', $admin->id)->where('balance', '>', 0)->exists(), 'No se acredita al usuario admin');
+    }
+
+    #[Test]
+    public function en_sala_propia_la_comision_del_creador_no_entra_en_la_deuda() : void
+    {
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'offline');
+
+        $debt = PlatformReceivable::firstOrFail();
+        $this->assertEqualsWithDelta(0.0, (float) $debt->creator_amount, 0.001);
+        $this->assertNull($debt->creator_payee_user_id);
+        $this->assertEqualsWithDelta(90.0, (float) $debt->amount, 0.001);
+    }
+
+    #[Test]
+    public function job_de_reembolso_no_acredita_al_comercio_lo_que_ya_tiene_en_efectivo() : void
+    {
+        $room = $this->makeRoom();
+        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
+        $lot = $this->sellLot($room, 100.0, 'offline'); // pago pendiente / rechazado: deuda sin cobrar
+
+        (new \App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob((string) $lot->id, (string) $room->id))
+            ->handle(app(\App\Domains\Wallet\Services\WalletService::class), app(\App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger::class));
+
+        $this->assertSame('REFUNDED', $lot->fresh()->status);
+        // Antes se le acreditaba el total (100) aunque el efectivo ya lo tenía — o
+        // nunca lo cobró, si el comprobante era falso.
+        $this->assertEqualsWithDelta(0.0, (float) $wallet->fresh()->balance, 0.001);
+        $this->assertSame('CANCELLED', PlatformReceivable::first()->status);
+    }
+
+    /**
+     * Venta cruzada: la comisión del creador (custodiada en la deuda del
+     * comercio vendedor) se le paga cuando la deuda está cobrada Y la sala
+     * cerró — en cualquier orden — y una sola vez.
+     */
+    #[Test]
+    public function la_comision_custodiada_se_paga_al_creador_al_cobrar_con_la_sala_cerrada() : void
+    {
+        $otherCommerce = '950000000000000099';
+        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
+        $payout = app(BingoRoomCreatorPayoutService::class);
+
+        // 1) Cobro antes del cierre: todavía no se paga; al cerrar, sí.
+        $open = $this->makeRoom();
+        $this->sellLot($open, 100.0, 'offline', [], $otherCommerce);
+        app(PlatformReceivableService::class)->settle($otherCommerce, $this->currencyId, '1');
+
+        $this->assertEqualsWithDelta(0.0, (float) $wallet->fresh()->balance, 0.001, 'Sala abierta: aún no se paga');
+        $this->assertNull(PlatformReceivable::firstOrFail()->creator_paid_at);
+
+        $paid = $payout->payoutOnClose($this->finish($open));
+        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
+        $this->assertNotNull(PlatformReceivable::firstOrFail()->creator_paid_at);
+
+        $payout->payoutOnClose($open->fresh());
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001, 'No paga dos veces');
+
+        // 2) Cierre antes del cobro: se paga al cobrar.
+        $closed = $this->finish($this->makeRoom());
+        $this->sellLot($closed, 50.0, 'offline', [], $otherCommerce);
+        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001, 'Deuda sin cobrar: no se paga');
+
+        app(PlatformReceivableService::class)->settle($otherCommerce, $this->currencyId, '1');
+        $this->assertEqualsWithDelta(15.0, (float) $wallet->fresh()->balance, 0.001, '10 + 5 (10% de 50)');
+    }
+
+    #[Test]
+    public function la_comision_de_agencia_y_comercializadora_no_forma_parte_de_la_deuda() : void
+    {
+        $room = $this->makeRoom();
+        // Agencia 3 + comercializadora 2: se las queda la red, salen del bote.
+        $this->sellLot($room, 100.0, 'offline', ['subsidiary' => 3, 'commerce' => 2]);
+
+        $debt = PlatformReceivable::firstOrFail();
+        $this->assertEqualsWithDelta(5.0, (float) $debt->rke_amount, 0.001);
+        $this->assertEqualsWithDelta(80.0, (float) $debt->prize_pool_amount, 0.001); // 100 - 5 - 10 - 3 - 2
+        $this->assertEqualsWithDelta(85.0, (float) $debt->amount, 0.001);
+    }
+
+    #[Test]
+    public function reembolso_de_deuda_ya_cobrada_le_devuelve_al_comercio_lo_cobrado() : void
+    {
+        $room = $this->makeRoom();
+        $lot = $this->sellLot($room, 100.0, 'offline');
+        app(PlatformReceivableService::class)->settle($this->creatorId, $this->currencyId, '1');
+        $this->assertEqualsWithDelta(90.0, $this->platformBalance(), 0.001);
+
+        $result = app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
+
+        $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001);
+        $this->assertEqualsWithDelta(90.0, $result['refund_to_seller'], 0.001);
+    }
+
+    #[Test]
+    public function reembolso_de_venta_fuera_del_sistema_anula_la_deuda_pendiente() : void
+    {
+        $room = $this->makeRoom();
+        $lot = $this->sellLot($room, 100.0, 'offline');
+
+        $result = app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
+
+        $this->assertSame('CANCELLED', PlatformReceivable::first()->status);
+        $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001);
+        $this->assertSame(0.0, $result['refund_to_seller'], 'El comercio tiene todo el efectivo: no se le acredita nada');
+        $this->assertEquals(0, FinancialReconciliationItem::count());
+    }
+
+    #[Test]
+    public function si_el_creador_no_tiene_billetera_queda_alerta_de_pago_fallido() : void
+    {
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'wallet');
+
+        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
+
+        $this->assertSame([], $paid);
+        $this->assertSame(FinancialReconciliationItem::TYPE_CREATOR_PAYOUT_FAILED, FinancialReconciliationItem::firstOrFail()->type);
+    }
+
+    #[Test]
+    public function si_la_plataforma_ya_retiro_el_rke_queda_una_alerta_de_conciliacion() : void
+    {
+        $room = $this->makeRoom();
+        $lot = $this->sellLot($room, 100.0, 'wallet');
+        app(PlatformWalletService::class)->withdraw($this->currencyId, 5.0, 'Retiro de prueba');
+
+        app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
+
+        $alert = FinancialReconciliationItem::firstOrFail();
+        $this->assertSame(FinancialReconciliationItem::TYPE_RKE_REVERSAL_FAILED, $alert->type);
+        $this->assertSame('OPEN', $alert->status);
+        $this->assertEqualsWithDelta(5.0, (float) $alert->amount, 0.001);
+    }
+
+    #[Test]
+    public function venta_con_billetera_acredita_rke_al_vender() : void
+    {
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'wallet');
+
+        $this->assertEqualsWithDelta(5.0, $this->platformBalance(), 0.001);
+        $this->assertEquals(0, PlatformReceivable::count());
+    }
+
+    #[Test]
+    public function venta_cruzada_suma_la_comision_del_creador_a_la_deuda() : void
+    {
+        $room = $this->makeRoom(); // creada por $this->creatorId
+        $otherCommerce = '950000000000000099';
+
+        $this->sellLot($room, 100.0, 'offline', [], $otherCommerce);
+
+        $debt = PlatformReceivable::firstOrFail();
+        $this->assertSame($otherCommerce, $debt->debtor_user_id, 'Debe quien cobró el efectivo');
+        $this->assertEqualsWithDelta(10.0, (float) $debt->creator_amount, 0.001, 'El 10% del creador no es del que vende');
+        $this->assertSame($this->creatorId, $debt->creator_payee_user_id);
+        $this->assertEqualsWithDelta(100.0, (float) $debt->amount, 0.001); // RKE 5 + bote 85 + creador 10
+        $this->assertNull($debt->creator_paid_at);
+    }
+
+    #[Test]
+    public function venta_fuera_del_sistema_no_acredita_rke_y_queda_como_deuda_hasta_cobrarse() : void
+    {
+        $room = $this->makeRoom();
+        $this->sellLot($room, 100.0, 'offline');
+
+        $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001, 'El dinero lo tiene el comercio: nada en la wallet de plataforma');
+        $this->assertEquals(1, PlatformReceivable::where('status', 'PENDING')->count());
+
+        // Resumen agrupado por comercio y moneda (panel de Conciliación / dashboard del comercio).
+        DB::table('users')->insert(['id' => $this->creatorId, 'username' => 'comercio_fin', 'email' => 'fin@test.local', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('currencies')->insert(['id' => $this->currencyId, 'iso_code' => 'VES', 'symbol' => 'Bs', 'name' => 'Bolívar', 'created_at' => now(), 'updated_at' => now()]);
+        $summary = app(PlatformReceivableService::class)->pendingSummary($this->creatorId);
+        $this->assertCount(1, $summary);
+        $this->assertSame('comercio_fin', $summary[0]['debtor']);
+        $this->assertSame('VES', $summary[0]['currency']);
+        $this->assertSame(1, $summary[0]['sales']);
+        // 100 - 5 (RKE) - 10 (creador) = 85 al bote → el comercio debe RKE + bote = 90.
+        $this->assertEqualsWithDelta(90.0, $summary[0]['total'], 0.001);
+        $this->assertEqualsWithDelta(5.0, $summary[0]['rke'], 0.001);
+        $this->assertEqualsWithDelta(85.0, $summary[0]['prize_pool'], 0.001);
+
+        // El superadmin marca cobrado → recién ahí entra a la wallet de plataforma
+        // (RKE como comisión, bote como fondeo de premios).
+        $result = app(PlatformReceivableService::class)->settle($this->creatorId, $this->currencyId, '1');
+        $this->assertSame(1, $result['count']);
+        $this->assertEqualsWithDelta(90.0, $this->platformBalance(), 0.001);
+        $this->assertSame('SETTLED', PlatformReceivable::first()->status);
+        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_RKE_COMMISSION)->where('amount', 5)->exists());
+        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_BINGO_POOL_FUNDING)->where('amount', 85)->exists());
+    }
+
+    private function finish(BingoRoom $room) : BingoRoom
+    {
+        \App\Models\Games\Common\Utils\GameStatus::forgetCache();
+        if (! \App\Models\Games\Common\Utils\GameStatus::where('code', 'FINISHED')->exists()) {
+            \App\Models\Games\Common\Utils\GameStatus::create(['code' => 'FINISHED', 'label' => 'FINISHED']);
+        }
+        DB::table('bingo_rooms')->where('id', $room->id)
+            ->update(['status_id' => \App\Models\Games\Common\Utils\GameStatus::where('code', 'FINISHED')->value('id')]);
+
+        return $room->fresh();
+    }
+
+    private function makeRoom() : BingoRoom
     {
         $n = ++self::$seq;
         $typeId = (string) (950000000000000100 + $n);
@@ -85,7 +332,13 @@ class BingoFinancialSettlementTest extends TestCase
             'id' => (string) ((int) $roomId + 1000), 'room_id' => $roomId, 'prize_pool_type_id' => $existingTypeId,
             'rke_commission' => 5, 'room_commission' => 10, 'created_at' => now(), 'updated_at' => now(),
         ]);
+
         return BingoRoom::find($roomId);
+    }
+
+    private function platformBalance() : float
+    {
+        return (float) (app(PlatformWalletService::class)->resolveWallet($this->currencyId)?->fresh()->balance ?? 0);
     }
 
     /** Vende y crea el lote con su desglose (como BingoCardGenerationService). */
@@ -93,15 +346,17 @@ class BingoFinancialSettlementTest extends TestCase
      * @param string|null $sellerCommerceId Comercio que vende (default: el creador de la
      *                                      sala). Otro id = venta cruzada en sala pública ajena.
      */
-    private function sellLot(BingoRoom $room, float $amount, string $channel, array $networkCommission = [], ?string $sellerCommerceId = null): BingoCardLot
+    private function sellLot(BingoRoom $room, float $amount, string $channel, array $networkCommission = [], ?string $sellerCommerceId = null) : BingoCardLot
     {
         $seller = $sellerCommerceId ?? $this->creatorId;
         $breakdown = null;
         $this->assertTrue(app(RoomMetricsService::class)->updateRoomMetricsWithCommissions(
             $room->fresh(),
             ['cardCount' => 1, 'currency' => $this->currencyId, 'creator' => ['id' => $seller], 'saleChannel' => $channel,
-             'networkCommission' => $networkCommission],
-            $amount, 0, $breakdown,
+                'networkCommission' => $networkCommission],
+            $amount,
+            0,
+            $breakdown,
         ));
 
         $lot = BingoCardLot::create([
@@ -112,262 +367,15 @@ class BingoFinancialSettlementTest extends TestCase
 
         if (is_array($breakdown['receivable_local'] ?? null)) {
             app(PlatformReceivableService::class)->record(
-                $seller, $this->currencyId, $breakdown['receivable_local'], (string) $room->id, (string) $lot->id,
+                $seller,
+                $this->currencyId,
+                $breakdown['receivable_local'],
+                (string) $room->id,
+                (string) $lot->id,
                 creatorPayeeUserId: $breakdown['room_creator_user_id'] ?? null,
             );
         }
+
         return $lot;
-    }
-
-    #[Test]
-    public function venta_cruzada_suma_la_comision_del_creador_a_la_deuda(): void
-    {
-        $room = $this->makeRoom(); // creada por $this->creatorId
-        $otherCommerce = '950000000000000099';
-
-        $this->sellLot($room, 100.0, 'offline', [], $otherCommerce);
-
-        $debt = PlatformReceivable::firstOrFail();
-        $this->assertSame($otherCommerce, $debt->debtor_user_id, 'Debe quien cobró el efectivo');
-        $this->assertEqualsWithDelta(10.0, (float) $debt->creator_amount, 0.001, 'El 10% del creador no es del que vende');
-        $this->assertSame($this->creatorId, $debt->creator_payee_user_id);
-        $this->assertEqualsWithDelta(100.0, (float) $debt->amount, 0.001); // RKE 5 + bote 85 + creador 10
-        $this->assertNull($debt->creator_paid_at);
-    }
-
-    #[Test]
-    public function en_sala_propia_la_comision_del_creador_no_entra_en_la_deuda(): void
-    {
-        $room = $this->makeRoom();
-        $this->sellLot($room, 100.0, 'offline');
-
-        $debt = PlatformReceivable::firstOrFail();
-        $this->assertEqualsWithDelta(0.0, (float) $debt->creator_amount, 0.001);
-        $this->assertNull($debt->creator_payee_user_id);
-        $this->assertEqualsWithDelta(90.0, (float) $debt->amount, 0.001);
-    }
-
-    private function platformBalance(): float
-    {
-        return (float) (app(PlatformWalletService::class)->resolveWallet($this->currencyId)?->fresh()->balance ?? 0);
-    }
-
-    #[Test]
-    public function venta_fuera_del_sistema_no_acredita_rke_y_queda_como_deuda_hasta_cobrarse(): void
-    {
-        $room = $this->makeRoom();
-        $this->sellLot($room, 100.0, 'offline');
-
-        $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001, 'El dinero lo tiene el comercio: nada en la wallet de plataforma');
-        $this->assertEquals(1, PlatformReceivable::where('status', 'PENDING')->count());
-
-        // Resumen agrupado por comercio y moneda (panel de Conciliación / dashboard del comercio).
-        DB::table('users')->insert(['id' => $this->creatorId, 'username' => 'comercio_fin', 'email' => 'fin@test.local', 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('currencies')->insert(['id' => $this->currencyId, 'iso_code' => 'VES', 'symbol' => 'Bs', 'name' => 'Bolívar', 'created_at' => now(), 'updated_at' => now()]);
-        $summary = app(PlatformReceivableService::class)->pendingSummary($this->creatorId);
-        $this->assertCount(1, $summary);
-        $this->assertSame('comercio_fin', $summary[0]['debtor']);
-        $this->assertSame('VES', $summary[0]['currency']);
-        $this->assertSame(1, $summary[0]['sales']);
-        // 100 - 5 (RKE) - 10 (creador) = 85 al bote → el comercio debe RKE + bote = 90.
-        $this->assertEqualsWithDelta(90.0, $summary[0]['total'], 0.001);
-        $this->assertEqualsWithDelta(5.0, $summary[0]['rke'], 0.001);
-        $this->assertEqualsWithDelta(85.0, $summary[0]['prize_pool'], 0.001);
-
-        // El superadmin marca cobrado → recién ahí entra a la wallet de plataforma
-        // (RKE como comisión, bote como fondeo de premios).
-        $result = app(PlatformReceivableService::class)->settle($this->creatorId, $this->currencyId, '1');
-        $this->assertSame(1, $result['count']);
-        $this->assertEqualsWithDelta(90.0, $this->platformBalance(), 0.001);
-        $this->assertSame('SETTLED', PlatformReceivable::first()->status);
-        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_RKE_COMMISSION)->where('amount', 5)->exists());
-        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_BINGO_POOL_FUNDING)->where('amount', 85)->exists());
-    }
-
-    #[Test]
-    public function la_comision_de_agencia_y_comercializadora_no_forma_parte_de_la_deuda(): void
-    {
-        $room = $this->makeRoom();
-        // Agencia 3 + comercializadora 2: se las queda la red, salen del bote.
-        $this->sellLot($room, 100.0, 'offline', ['subsidiary' => 3, 'commerce' => 2]);
-
-        $debt = PlatformReceivable::firstOrFail();
-        $this->assertEqualsWithDelta(5.0, (float) $debt->rke_amount, 0.001);
-        $this->assertEqualsWithDelta(80.0, (float) $debt->prize_pool_amount, 0.001); // 100 - 5 - 10 - 3 - 2
-        $this->assertEqualsWithDelta(85.0, (float) $debt->amount, 0.001);
-    }
-
-    #[Test]
-    public function venta_con_billetera_acredita_rke_al_vender(): void
-    {
-        $room = $this->makeRoom();
-        $this->sellLot($room, 100.0, 'wallet');
-
-        $this->assertEqualsWithDelta(5.0, $this->platformBalance(), 0.001);
-        $this->assertEquals(0, PlatformReceivable::count());
-    }
-
-    #[Test]
-    public function reembolso_de_venta_fuera_del_sistema_anula_la_deuda_pendiente(): void
-    {
-        $room = $this->makeRoom();
-        $lot = $this->sellLot($room, 100.0, 'offline');
-
-        $result = app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
-
-        $this->assertSame('CANCELLED', PlatformReceivable::first()->status);
-        $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001);
-        $this->assertSame(0.0, $result['refund_to_seller'], 'El comercio tiene todo el efectivo: no se le acredita nada');
-        $this->assertEquals(0, FinancialReconciliationItem::count());
-    }
-
-    #[Test]
-    public function reembolso_de_deuda_ya_cobrada_le_devuelve_al_comercio_lo_cobrado(): void
-    {
-        $room = $this->makeRoom();
-        $lot = $this->sellLot($room, 100.0, 'offline');
-        app(PlatformReceivableService::class)->settle($this->creatorId, $this->currencyId, '1');
-        $this->assertEqualsWithDelta(90.0, $this->platformBalance(), 0.001);
-
-        $result = app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
-
-        $this->assertEqualsWithDelta(0.0, $this->platformBalance(), 0.001);
-        $this->assertEqualsWithDelta(90.0, $result['refund_to_seller'], 0.001);
-    }
-
-    #[Test]
-    public function job_de_reembolso_no_acredita_al_comercio_lo_que_ya_tiene_en_efectivo(): void
-    {
-        $room = $this->makeRoom();
-        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
-        $lot = $this->sellLot($room, 100.0, 'offline'); // pago pendiente / rechazado: deuda sin cobrar
-
-        (new \App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob((string) $lot->id, (string) $room->id))
-            ->handle(app(\App\Domains\Wallet\Services\WalletService::class), app(\App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger::class));
-
-        $this->assertSame('REFUNDED', $lot->fresh()->status);
-        // Antes se le acreditaba el total (100) aunque el efectivo ya lo tenía — o
-        // nunca lo cobró, si el comprobante era falso.
-        $this->assertEqualsWithDelta(0.0, (float) $wallet->fresh()->balance, 0.001);
-        $this->assertSame('CANCELLED', PlatformReceivable::first()->status);
-    }
-
-    #[Test]
-    public function si_la_plataforma_ya_retiro_el_rke_queda_una_alerta_de_conciliacion(): void
-    {
-        $room = $this->makeRoom();
-        $lot = $this->sellLot($room, 100.0, 'wallet');
-        app(PlatformWalletService::class)->withdraw($this->currencyId, 5.0, 'Retiro de prueba');
-
-        app(BingoLotSaleReversalService::class)->reverse($lot->fresh(), $room->fresh());
-
-        $alert = FinancialReconciliationItem::firstOrFail();
-        $this->assertSame(FinancialReconciliationItem::TYPE_RKE_REVERSAL_FAILED, $alert->type);
-        $this->assertSame('OPEN', $alert->status);
-        $this->assertEqualsWithDelta(5.0, (float) $alert->amount, 0.001);
-    }
-
-    #[Test]
-    public function al_cerrar_la_sala_se_paga_al_creador_solo_lo_vendido_con_billetera(): void
-    {
-        $room = $this->makeRoom();
-        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
-
-        $this->sellLot($room, 100.0, 'wallet');   // comisión 10 → se paga
-        $this->sellLot($room, 200.0, 'offline');  // el comercio ya tiene el dinero → no se paga
-        $refunded = $this->sellLot($room, 50.0, 'wallet');
-        $refunded->update(['status' => 'REFUNDED']); // reembolsado → no cuenta
-
-        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
-
-        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
-        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
-        $this->assertTrue(WalletMovement::where('type', WalletMovement::TYPE_CREATOR_COMMISSION)->where('wallet_id', $wallet->id)->exists());
-
-        // Idempotente: reintentar el cierre no paga dos veces.
-        app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
-        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
-    }
-
-    #[Test]
-    public function si_el_creador_no_tiene_billetera_queda_alerta_de_pago_fallido(): void
-    {
-        $room = $this->makeRoom();
-        $this->sellLot($room, 100.0, 'wallet');
-
-        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
-
-        $this->assertSame([], $paid);
-        $this->assertSame(FinancialReconciliationItem::TYPE_CREATOR_PAYOUT_FAILED, FinancialReconciliationItem::firstOrFail()->type);
-    }
-
-    private function finish(BingoRoom $room): BingoRoom
-    {
-        \App\Models\Games\Common\Utils\GameStatus::forgetCache();
-        if (!\App\Models\Games\Common\Utils\GameStatus::where('code', 'FINISHED')->exists()) {
-            \App\Models\Games\Common\Utils\GameStatus::create(['code' => 'FINISHED', 'label' => 'FINISHED']);
-        }
-        DB::table('bingo_rooms')->where('id', $room->id)
-            ->update(['status_id' => \App\Models\Games\Common\Utils\GameStatus::where('code', 'FINISHED')->value('id')]);
-
-        return $room->fresh();
-    }
-
-    /**
-     * Venta cruzada: la comisión del creador (custodiada en la deuda del
-     * comercio vendedor) se le paga cuando la deuda está cobrada Y la sala
-     * cerró — en cualquier orden — y una sola vez.
-     */
-    #[Test]
-    public function la_comision_custodiada_se_paga_al_creador_al_cobrar_con_la_sala_cerrada(): void
-    {
-        $otherCommerce = '950000000000000099';
-        $wallet = Wallet::create(['user_id' => $this->creatorId, 'currency_id' => $this->currencyId, 'balance' => 0, 'status' => 'ACTIVE']);
-        $payout = app(BingoRoomCreatorPayoutService::class);
-
-        // 1) Cobro antes del cierre: todavía no se paga; al cerrar, sí.
-        $open = $this->makeRoom();
-        $this->sellLot($open, 100.0, 'offline', [], $otherCommerce);
-        app(PlatformReceivableService::class)->settle($otherCommerce, $this->currencyId, '1');
-
-        $this->assertEqualsWithDelta(0.0, (float) $wallet->fresh()->balance, 0.001, 'Sala abierta: aún no se paga');
-        $this->assertNull(PlatformReceivable::firstOrFail()->creator_paid_at);
-
-        $paid = $payout->payoutOnClose($this->finish($open));
-        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
-        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001);
-        $this->assertNotNull(PlatformReceivable::firstOrFail()->creator_paid_at);
-
-        $payout->payoutOnClose($open->fresh());
-        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001, 'No paga dos veces');
-
-        // 2) Cierre antes del cobro: se paga al cobrar.
-        $closed = $this->finish($this->makeRoom());
-        $this->sellLot($closed, 50.0, 'offline', [], $otherCommerce);
-        $this->assertEqualsWithDelta(10.0, (float) $wallet->fresh()->balance, 0.001, 'Deuda sin cobrar: no se paga');
-
-        app(PlatformReceivableService::class)->settle($otherCommerce, $this->currencyId, '1');
-        $this->assertEqualsWithDelta(15.0, (float) $wallet->fresh()->balance, 0.001, '10 + 5 (10% de 50)');
-    }
-
-    /** Sala de la plataforma (creada por un admin): lo del creador va a la billetera de plataforma. */
-    #[Test]
-    public function en_sala_de_la_plataforma_la_comision_del_creador_va_a_la_plataforma(): void
-    {
-        $role = \App\Models\Role::where('name', 'admin')->where('guard_name', 'web')->first()
-            ?? tap((new \App\Models\Role())->forceFill(['name' => 'admin', 'guard_name' => 'web', 'prefix' => 'admin']))->save();
-        $admin = \App\Models\User::factory()->create();
-        $admin->assignRole('admin');
-        $this->creatorId = (string) $admin->id;
-
-        $room = $this->makeRoom();
-        $this->sellLot($room, 100.0, 'wallet');
-
-        $before = $this->platformBalance();
-        $paid = app(BingoRoomCreatorPayoutService::class)->payoutOnClose($room->fresh());
-
-        $this->assertEqualsWithDelta(10.0, $paid[$this->currencyId], 0.001);
-        $this->assertEqualsWithDelta($before + 10.0, $this->platformBalance(), 0.001);
-        $this->assertFalse(Wallet::where('user_id', $admin->id)->where('balance', '>', 0)->exists(), 'No se acredita al usuario admin');
     }
 }

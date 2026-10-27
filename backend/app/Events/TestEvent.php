@@ -19,23 +19,24 @@ class TestEvent implements ShouldBroadcast
         Log::info('TestEvent creado', ['message' => $message]);
     }
 
+    public function broadcastAs()
+    {
+        return 'TestEvent';
+    }
+
     // Canal público para pruebas
     public function broadcastOn()
     {
         Log::info('TestEvent broadcastOn llamado', ['channel' => 'test-channel']);
-        return new Channel('test-channel');
-    }
 
-    public function broadcastAs()
-    {
-        return 'TestEvent';
+        return new Channel('test-channel');
     }
 
     public function broadcastWith()
     {
         return [
             'message' => $this->message,
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toISOString(),
         ];
     }
 }

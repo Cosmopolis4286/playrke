@@ -21,19 +21,35 @@ trait HasHashedRouteKey
     protected static array $hashedRouteKeyCache = [];
 
     /**
-     * Nombre de la clave primaria.
+     * Accessor del ID hasheado con cache global por request.
      */
-    public function getRouteKeyName(): string
+    public function getHashedIdAttribute() : string
     {
-        return 'id';
+        $class = static::class;
+        $key = (string) $this->getKey();
+
+        if (isset(self::$hashedRouteKeyCache[$class][$key])) {
+            return self::$hashedRouteKeyCache[$class][$key];
+        }
+
+        return self::$hashedRouteKeyCache[$class][$key] =
+            Hashids::connection('main')->encode($key);
     }
 
     /**
      * Valor usado en URLs.
      */
-    public function getRouteKey(): string
+    public function getRouteKey() : string
     {
         return $this->getHashedIdAttribute();
+    }
+
+    /**
+     * Nombre de la clave primaria.
+     */
+    public function getRouteKeyName() : string
+    {
+        return 'id';
     }
 
     /**
@@ -50,21 +66,5 @@ trait HasHashedRouteKey
         return static::query()
             ->whereKey($decoded[0])
             ->first();
-    }
-
-    /**
-     * Accessor del ID hasheado con cache global por request.
-     */
-    public function getHashedIdAttribute(): string
-    {
-        $class = static::class;
-        $key   = (string) $this->getKey();
-
-        if (isset(self::$hashedRouteKeyCache[$class][$key])) {
-            return self::$hashedRouteKeyCache[$class][$key];
-        }
-
-        return self::$hashedRouteKeyCache[$class][$key] =
-            Hashids::connection('main')->encode($key);
     }
 }

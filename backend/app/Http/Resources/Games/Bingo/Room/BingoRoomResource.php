@@ -12,41 +12,62 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BingoRoomResource extends JsonResource
 {
-    public function toArray($request): array
+    /** Eventos de la bitácora de la sala más recientes primero (bingo_room_audits). */
+    private const TIMELINE_LABELS = [
+        BingoRoomAuditLogger::EVENT_STATUS_CHANGED => 'Cambio de estado',
+        BingoRoomAuditLogger::EVENT_CANCELLED => 'Sala cancelada',
+        BingoRoomAuditLogger::EVENT_REFUND_INITIATED => 'Reembolso iniciado',
+        BingoRoomAuditLogger::EVENT_REFUND_COMPLETED => 'Reembolso acreditado',
+        BingoRoomAuditLogger::EVENT_REFUND_FAILED => 'Reembolso fallido',
+        BingoRoomAuditLogger::EVENT_DRAW_STARTED => 'Sorteo iniciado',
+        BingoRoomAuditLogger::EVENT_DRAW_FINISHED => 'Sorteo finalizado',
+        BingoRoomAuditLogger::EVENT_WINNER_DECLARED => 'Ganador declarado',
+        BingoRoomAuditLogger::EVENT_CREATED_UNSCHEDULED => 'Creada sin horario',
+        BingoRoomAuditLogger::EVENT_MANUALLY_ACTIVATED => 'Iniciada manualmente',
+        BingoRoomAuditLogger::EVENT_START_MODE_CHANGED => 'Cambio de modo de inicio',
+        BingoRoomAuditLogger::EVENT_PRIZE_CREATED => 'Premio registrado',
+        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_COMPLETED => 'Premio pagado',
+        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_FAILED => 'Pago de premio fallido',
+        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_SUSPENDED => 'Pago de premio suspendido',
+    ];
+
+    private const TIMELINE_LIMIT = 30;
+
+    public function toArray($request) : array
     {
-        $config  = $this->config;
-        $userId  = $request->user()?->id;
+        $config = $this->config;
+        $userId = $request->user()?->id;
 
         return [
-            'id'                 => $this->hashed_id,
-            'uuid_code'          => $this->uuid_code,
-            'status'             => $this->status->code,
-            'can_activate_now'   => $this->resolveCanActivateNow($request, $config, $userId),
-            'paid_prizes'        => $this->paid_prizes,
-            'prize_pool'         => $this->prize_pool,
-            'total_players'      => $this->total_players,
-            'total_cards'        => $this->total_cards,
-            'total_sales'        => $this->total_sales,
-            'is_closed'          => $this->is_closed,
-            'total_commissions'  => $this->total_commissions,
+            'id' => $this->hashed_id,
+            'uuid_code' => $this->uuid_code,
+            'status' => $this->status->code,
+            'can_activate_now' => $this->resolveCanActivateNow($request, $config, $userId),
+            'paid_prizes' => $this->paid_prizes,
+            'prize_pool' => $this->prize_pool,
+            'total_players' => $this->total_players,
+            'total_cards' => $this->total_cards,
+            'total_sales' => $this->total_sales,
+            'is_closed' => $this->is_closed,
+            'total_commissions' => $this->total_commissions,
             'metrics_by_currency' => $this->metrics_by_currency ?? [],
-            'created_at'         => $this->created_at?->toISOString(),
-            'updated_at'         => $this->updated_at?->toISOString(),
-            'created_by'         => $this->whenLoaded('creator', fn() => $this->creator ? [
-                'user_id'  => (string) $this->creator_user_id,
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
+            'created_by' => $this->whenLoaded('creator', fn () => $this->creator ? [
+                'user_id' => (string) $this->creator_user_id,
                 'username' => $this->creator->username,
             ] : null),
-            'last_updated_by'    => $this->resolveLastUpdatedBy(),
-            'edit_count'         => $this->resolveEditCount(),
-            'last_activated_by'   => $this->resolveLastStatusChange('ACTIVE'),
+            'last_updated_by' => $this->resolveLastUpdatedBy(),
+            'edit_count' => $this->resolveEditCount(),
+            'last_activated_by' => $this->resolveLastStatusChange('ACTIVE'),
             'last_deactivated_by' => $this->resolveLastStatusChange('INACTIVE'),
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
 
             // Modal de detalles: bitácora de la sala y, si se canceló, el
             // motivo y el estado de los reembolsos.
-            'timeline'           => $this->resolveTimeline(),
-            'cancellation'       => $this->resolveCancellation(),
+            'timeline' => $this->resolveTimeline(),
+            'cancellation' => $this->resolveCancellation(),
 
             // Monedas con al menos un cartón vendido (BingoCardLot ACTIVE) — el formulario de
             // edición las usa para advertir/impedir que se quiten de "monedas permitidas".
@@ -57,35 +78,36 @@ class BingoRoomResource extends JsonResource
                 ->pluck('currency_id')
                 ->values(),
 
-            'card_price_by_currency' => $this->whenLoaded('cardPrices', function () {
-                return $this->cardPrices->mapWithKeys(fn($p) => [
-                    $p->currency_id => $p->card_price
+            'card_price_by_currency' => $this->whenLoaded('cardPrices', function() {
+                return $this->cardPrices->mapWithKeys(fn ($p) => [
+                    $p->currency_id => $p->card_price,
                 ]);
             }),
 
-            'rounds_config' => $this->whenLoaded('rounds', function () {
+            'rounds_config' => $this->whenLoaded('rounds', function() {
                 $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
-                return $this->rounds->map(function ($r) use ($prizeTypeMap) {
-                    $prizeType  = $prizeTypeMap[$r->prize_type] ?? 'percentage';
-                    $prizes     = $r->relationLoaded('prizes') ? $r->prizes : collect();
-                    $pctPrize   = $prizes->first(); // PCT tiene un único registro
+
+                return $this->rounds->map(function($r) use ($prizeTypeMap) {
+                    $prizeType = $prizeTypeMap[$r->prize_type] ?? 'percentage';
+                    $prizes = $r->relationLoaded('prizes') ? $r->prizes : collect();
+                    $pctPrize = $prizes->first(); // PCT tiene un único registro
 
                     $entry = [
-                        'prizeType'    => $prizeType,
+                        'prizeType' => $prizeType,
                         'bingoPattern' => $r->bingo_pattern_id,
-                        'prizeValue'   => $prizeType === 'percentage' ? (float) ($pctPrize?->prize_value ?? 0) : null,
+                        'prizeValue' => $prizeType === 'percentage' ? (float) ($pctPrize?->prize_value ?? 0) : null,
                     ];
 
                     if ($prizeType === 'fixed') {
                         $entry['prizeValueByCurrency'] = $prizes
                             ->pluck('prize_value', 'currency_id')
-                            ->map(fn($v) => (float) $v)
+                            ->map(fn ($v) => (float) $v)
                             ->toArray();
                     }
 
                     if ($prizeType === 'prize' && $pctPrize) {
-                        $entry['prizeId']    = $pctPrize->prize_id;
-                        $entry['prizeName']  = $pctPrize->relationLoaded('prize') ? $pctPrize->prize?->name : null;
+                        $entry['prizeId'] = $pctPrize->prize_id;
+                        $entry['prizeName'] = $pctPrize->relationLoaded('prize') ? $pctPrize->prize?->name : null;
                         $entry['prizeValue'] = $pctPrize->relationLoaded('prize') && $pctPrize->prize
                             ? (float) $pctPrize->prize->price
                             : null;
@@ -97,67 +119,67 @@ class BingoRoomResource extends JsonResource
 
             'winners' => $this->when(
                 $this->relationLoaded('cardPrizes'),
-                fn() => $this->cardPrizes->map(fn($cp) => [
-                    'id'              => (string) $cp->id,
-                    'user_id'         => (string) $cp->creator_user_id,
-                    'username'        => $cp->creatorUser?->username,
-                    'round_id'        => (string) $cp->round_id,
-                    'round_number'    => $cp->round?->round ?? null,
+                fn () => $this->cardPrizes->map(fn ($cp) => [
+                    'id' => (string) $cp->id,
+                    'user_id' => (string) $cp->creator_user_id,
+                    'username' => $cp->creatorUser?->username,
+                    'round_id' => (string) $cp->round_id,
+                    'round_number' => $cp->round?->round ?? null,
                     'winning_card_id' => (string) $cp->winning_card_id,
-                    'serial_number'   => $cp->winningCard?->serial_number ?? null,
+                    'serial_number' => $cp->winningCard?->serial_number ?? null,
                     'winning_pattern' => $cp->winning_pattern,
-                    'prize_type'      => $cp->prize_type,
-                    'usd_amount'      => (float) $cp->usd_amount,
-                    'local_amount'    => (float) $cp->local_amount,
-                    'currency_id'     => $cp->currency_id !== null ? (string) $cp->currency_id : null,
-                    'prize_status'    => $cp->prize_status,
-                    'created_at'      => $cp->created_at?->toISOString(),
-                ])->values()
+                    'prize_type' => $cp->prize_type,
+                    'usd_amount' => (float) $cp->usd_amount,
+                    'local_amount' => (float) $cp->local_amount,
+                    'currency_id' => $cp->currency_id !== null ? (string) $cp->currency_id : null,
+                    'prize_status' => $cp->prize_status,
+                    'created_at' => $cp->created_at?->toISOString(),
+                ])->values(),
             ),
 
             'config' => $config ? [
-                'room_type_id'            => $config->room_type_id,
+                'room_type_id' => $config->room_type_id,
                 // Sala privada: el código se expone para que el admin pueda compartirlo;
                 // la contraseña NUNCA sale del backend (ni en texto plano ni el hash) —
                 // solo un booleano indicando si ya tiene una configurada.
-                'access_code'             => $config->access_code,
-                'has_password'            => (bool) $config->room_password,
-                'host_user_id'            => $config->host_user_id,
-                'host_user_label'         => $config->relationLoaded('hostUser') ? $config->hostUser?->username : null,
-                'start_mode'              => $config->start_mode,
-                'min_cards_to_start'      => $config->min_cards_to_start,
-                'max_cards_to_start'      => $config->max_cards_to_start,
-                'max_players'             => $config->max_players,
-                'min_players'             => $config->min_players,
-                'date'                    => $config->date?->format('Y-m-d'),
-                'time'                    => $config->time,
-                'connection_type_id'      => $config->connection_type_id,
-                'game_mode_id'            => $config->game_mode_id,
-                'game_variant'            => $config->game_variant ?? 'BINGO_75',
-                'prize_pool_type_id'      => $config->prize_pool_type_id,
+                'access_code' => $config->access_code,
+                'has_password' => (bool) $config->room_password,
+                'host_user_id' => $config->host_user_id,
+                'host_user_label' => $config->relationLoaded('hostUser') ? $config->hostUser?->username : null,
+                'start_mode' => $config->start_mode,
+                'min_cards_to_start' => $config->min_cards_to_start,
+                'max_cards_to_start' => $config->max_cards_to_start,
+                'max_players' => $config->max_players,
+                'min_players' => $config->min_players,
+                'date' => $config->date?->format('Y-m-d'),
+                'time' => $config->time,
+                'connection_type_id' => $config->connection_type_id,
+                'game_mode_id' => $config->game_mode_id,
+                'game_variant' => $config->game_variant ?? 'BINGO_75',
+                'prize_pool_type_id' => $config->prize_pool_type_id,
                 'amount_added_prize_pool' => $config->amount_added_prize_pool,
-                'room_commission'         => $config->room_commission,
-                'rke_commission'          => $config->rke_commission,
-                'use_base_usd'            => $config->use_base_usd,
-                'card_price_usd'          => $config->card_price_usd,
+                'room_commission' => $config->room_commission,
+                'rke_commission' => $config->rke_commission,
+                'use_base_usd' => $config->use_base_usd,
+                'card_price_usd' => $config->card_price_usd,
                 'usd_exchange_round_step' => $config->usd_exchange_round_step,
-                'jackpot_pct'             => $config->jackpot_pct,
-                'jackpot_type_id'         => $config->jackpot_type_id,
-                'time_chip'               => $config->time_chip,
-                'rounds'                  => $config->rounds,
-                'rounds_pct'              => $config->rounds_pct,
-                'use_serials'             => $config->use_serials,
-                'serials_pct'             => $config->serials_pct,
-                'num_serials'             => $config->num_serials,
-                'in_live'                 => $config->in_live,
-                'allow_custom_card'       => $config->allow_custom_card,
-                'custom_card_price_pct'   => $config->custom_card_price_pct,
-                'custom_card_mode'        => $config->custom_card_mode,
-                'custom_card_every_x'     => $config->custom_card_every_x,
-                'move_free_space_mode'    => $config->move_free_space_mode,
+                'jackpot_pct' => $config->jackpot_pct,
+                'jackpot_type_id' => $config->jackpot_type_id,
+                'time_chip' => $config->time_chip,
+                'rounds' => $config->rounds,
+                'rounds_pct' => $config->rounds_pct,
+                'use_serials' => $config->use_serials,
+                'serials_pct' => $config->serials_pct,
+                'num_serials' => $config->num_serials,
+                'in_live' => $config->in_live,
+                'allow_custom_card' => $config->allow_custom_card,
+                'custom_card_price_pct' => $config->custom_card_price_pct,
+                'custom_card_mode' => $config->custom_card_mode,
+                'custom_card_every_x' => $config->custom_card_every_x,
+                'move_free_space_mode' => $config->move_free_space_mode,
                 'move_free_space_price_pct' => $config->move_free_space_price_pct,
-                'allow_special_card'      => $config->allow_special_card,
-                'max_special_cards'       => $config->max_special_cards,
+                'allow_special_card' => $config->allow_special_card,
+                'max_special_cards' => $config->max_special_cards,
             ] : null,
         ];
     }
@@ -167,11 +189,11 @@ class BingoRoomResource extends JsonResource
      * solo aplica a salas sin horario (start_mode = MANUAL), en estado ACTIVE,
      * y solo para el creador de la sala o un admin/superadmin.
      */
-    private function resolveCanActivateNow(Request $request, ?BingoRoomConfig $config, mixed $userId): bool
+    private function resolveCanActivateNow(Request $request, ?BingoRoomConfig $config, mixed $userId) : bool
     {
         $user = $request->user();
 
-        if (!$user || !$config || $config->start_mode !== 'MANUAL') {
+        if (! $user || ! $config || $config->start_mode !== 'MANUAL') {
             return false;
         }
 
@@ -185,120 +207,14 @@ class BingoRoomResource extends JsonResource
     }
 
     /**
-     * Último usuario que editó la sala, según la tabla `audits` (evento 'updated').
-     * bingo_rooms no tiene columna updated_by propia — solo creator_user_id (autor
-     * original) — así que el último editor real se deriva de la bitácora genérica
-     * que activa el trait Auditable (ver App\Traits\Auditable) sobre BaseModel.
-     * Null si nunca se editó vía HTTP (solo creación) o si el actor fue el sistema.
-     */
-    private function resolveLastUpdatedBy(): ?array
-    {
-        $audit = Audit::ofAuditable(BingoRoom::class, $this->id)
-            ->ofEvent('updated')
-            ->whereNotNull('user_id')
-            ->with('user:id,username')
-            ->latest('id')
-            ->first();
-
-        if (!$audit || !$audit->user) {
-            return null;
-        }
-
-        return [
-            'user_id'  => (string) $audit->user_id,
-            'username' => $audit->user->username,
-            'at'       => $audit->created_at?->toISOString(),
-        ];
-    }
-
-    /**
-     * Cantidad de ediciones registradas (evento 'updated' en `audits`) para esta
-     * sala. Da contexto de cuánto se ha tocado la configuración desde su creación.
-     */
-    private function resolveEditCount(): int
-    {
-        return Audit::ofAuditable(BingoRoom::class, $this->id)
-            ->ofEvent('updated')
-            ->count();
-    }
-
-    /**
-     * Última vez que la sala pasó al estado dado ('ACTIVE'/'INACTIVE') vía
-     * BingoRoomCrudService::toggleStatus(), y quién lo hizo — de
-     * bingo_room_audits (evento 'status_changed', metadata.new_status),
-     * bitácora de dominio propia de Bingo, distinta de la tabla `audits`
-     * genérica que usa resolveLastUpdatedBy().
-     */
-    private function resolveLastStatusChange(string $newStatus): ?array
-    {
-        $audit = BingoRoomAudit::where('room_id', $this->id)
-            ->where('event', BingoRoomAuditLogger::EVENT_STATUS_CHANGED)
-            ->whereJsonContains('metadata->new_status', $newStatus)
-            ->with('user:id,username')
-            ->latest('id')
-            ->first();
-
-        if (!$audit) {
-            return null;
-        }
-
-        return [
-            'user_id'  => $audit->user_id,
-            'username' => $audit->user?->username,
-            'at'       => $audit->created_at?->toISOString(),
-        ];
-    }
-
-    /** Eventos de la bitácora de la sala más recientes primero (bingo_room_audits). */
-    private const TIMELINE_LABELS = [
-        BingoRoomAuditLogger::EVENT_STATUS_CHANGED          => 'Cambio de estado',
-        BingoRoomAuditLogger::EVENT_CANCELLED               => 'Sala cancelada',
-        BingoRoomAuditLogger::EVENT_REFUND_INITIATED        => 'Reembolso iniciado',
-        BingoRoomAuditLogger::EVENT_REFUND_COMPLETED        => 'Reembolso acreditado',
-        BingoRoomAuditLogger::EVENT_REFUND_FAILED           => 'Reembolso fallido',
-        BingoRoomAuditLogger::EVENT_DRAW_STARTED            => 'Sorteo iniciado',
-        BingoRoomAuditLogger::EVENT_DRAW_FINISHED           => 'Sorteo finalizado',
-        BingoRoomAuditLogger::EVENT_WINNER_DECLARED         => 'Ganador declarado',
-        BingoRoomAuditLogger::EVENT_CREATED_UNSCHEDULED     => 'Creada sin horario',
-        BingoRoomAuditLogger::EVENT_MANUALLY_ACTIVATED      => 'Iniciada manualmente',
-        BingoRoomAuditLogger::EVENT_START_MODE_CHANGED      => 'Cambio de modo de inicio',
-        BingoRoomAuditLogger::EVENT_PRIZE_CREATED           => 'Premio registrado',
-        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_COMPLETED => 'Premio pagado',
-        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_FAILED    => 'Pago de premio fallido',
-        BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_SUSPENDED => 'Pago de premio suspendido',
-    ];
-
-    private const TIMELINE_LIMIT = 30;
-
-    /** @return array<int, array<string, mixed>> */
-    private function resolveTimeline(): array
-    {
-        return BingoRoomAudit::where('room_id', $this->id)
-            ->with('user:id,username')
-            ->latest('created_at')
-            ->limit(self::TIMELINE_LIMIT)
-            ->get(['id', 'room_id', 'user_id', 'event', 'actor_role', 'description', 'created_at'])
-            ->map(fn (BingoRoomAudit $a) => [
-                'id'          => (string) $a->id,
-                'event'       => $a->event,
-                'label'       => self::TIMELINE_LABELS[$a->event] ?? $a->event,
-                'description' => $a->description ?: null,
-                'actor'       => $a->user?->username ?? ($a->actor_role === 'system' ? 'Sistema' : $a->actor_role),
-                'created_at'  => $a->created_at?->toISOString(),
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
      * Sala cancelada: cuándo, por quién, motivo, y cómo van los reembolsos
      * de sus lotes (REFUNDED vs. aún activos) y los que fallaron.
      *
      * @return array<string, mixed>|null
      */
-    private function resolveCancellation(): ?array
+    private function resolveCancellation() : ?array
     {
-        if (!in_array($this->status?->code, ['CANCELLED', 'REFUND'], true)) {
+        if (! in_array($this->status?->code, ['CANCELLED', 'REFUND'], true)) {
             return null;
         }
 
@@ -323,14 +239,99 @@ class BingoRoomResource extends JsonResource
             ->first();
 
         return [
-            'at'               => $event?->created_at?->toISOString() ?? $this->updated_at?->toISOString(),
-            'by'               => $event?->user?->username ?? ($event?->actor_role === 'system' ? 'Sistema' : $event?->actor_role),
-            'reason'           => $event?->description ?: null,
-            'refunded_lots'    => (int) ($lots->get('REFUNDED')->lots ?? 0),
-            'refunded_cards'   => (int) ($lots->get('REFUNDED')->cards ?? 0),
-            'pending_lots'     => (int) ($lots->get('ACTIVE')->lots ?? 0),
-            'failed_pending'   => (int) ($failures->pending ?? 0),
+            'at' => $event?->created_at?->toISOString() ?? $this->updated_at?->toISOString(),
+            'by' => $event?->user?->username ?? ($event?->actor_role === 'system' ? 'Sistema' : $event?->actor_role),
+            'reason' => $event?->description ?: null,
+            'refunded_lots' => (int) ($lots->get('REFUNDED')->lots ?? 0),
+            'refunded_cards' => (int) ($lots->get('REFUNDED')->cards ?? 0),
+            'pending_lots' => (int) ($lots->get('ACTIVE')->lots ?? 0),
+            'failed_pending' => (int) ($failures->pending ?? 0),
             'failed_abandoned' => (int) ($failures->abandoned ?? 0),
         ];
+    }
+
+    /**
+     * Cantidad de ediciones registradas (evento 'updated' en `audits`) para esta
+     * sala. Da contexto de cuánto se ha tocado la configuración desde su creación.
+     */
+    private function resolveEditCount() : int
+    {
+        return Audit::ofAuditable(BingoRoom::class, $this->id)
+            ->ofEvent('updated')
+            ->count();
+    }
+
+    /**
+     * Última vez que la sala pasó al estado dado ('ACTIVE'/'INACTIVE') vía
+     * BingoRoomCrudService::toggleStatus(), y quién lo hizo — de
+     * bingo_room_audits (evento 'status_changed', metadata.new_status),
+     * bitácora de dominio propia de Bingo, distinta de la tabla `audits`
+     * genérica que usa resolveLastUpdatedBy().
+     */
+    private function resolveLastStatusChange(string $newStatus) : ?array
+    {
+        $audit = BingoRoomAudit::where('room_id', $this->id)
+            ->where('event', BingoRoomAuditLogger::EVENT_STATUS_CHANGED)
+            ->whereJsonContains('metadata->new_status', $newStatus)
+            ->with('user:id,username')
+            ->latest('id')
+            ->first();
+
+        if (! $audit) {
+            return null;
+        }
+
+        return [
+            'user_id' => $audit->user_id,
+            'username' => $audit->user?->username,
+            'at' => $audit->created_at?->toISOString(),
+        ];
+    }
+
+    /**
+     * Último usuario que editó la sala, según la tabla `audits` (evento 'updated').
+     * bingo_rooms no tiene columna updated_by propia — solo creator_user_id (autor
+     * original) — así que el último editor real se deriva de la bitácora genérica
+     * que activa el trait Auditable (ver App\Traits\Auditable) sobre BaseModel.
+     * Null si nunca se editó vía HTTP (solo creación) o si el actor fue el sistema.
+     */
+    private function resolveLastUpdatedBy() : ?array
+    {
+        $audit = Audit::ofAuditable(BingoRoom::class, $this->id)
+            ->ofEvent('updated')
+            ->whereNotNull('user_id')
+            ->with('user:id,username')
+            ->latest('id')
+            ->first();
+
+        if (! $audit || ! $audit->user) {
+            return null;
+        }
+
+        return [
+            'user_id' => (string) $audit->user_id,
+            'username' => $audit->user->username,
+            'at' => $audit->created_at?->toISOString(),
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function resolveTimeline() : array
+    {
+        return BingoRoomAudit::where('room_id', $this->id)
+            ->with('user:id,username')
+            ->latest('created_at')
+            ->limit(self::TIMELINE_LIMIT)
+            ->get(['id', 'room_id', 'user_id', 'event', 'actor_role', 'description', 'created_at'])
+            ->map(fn (BingoRoomAudit $a) => [
+                'id' => (string) $a->id,
+                'event' => $a->event,
+                'label' => self::TIMELINE_LABELS[$a->event] ?? $a->event,
+                'description' => $a->description ?: null,
+                'actor' => $a->user?->username ?? ($a->actor_role === 'system' ? 'Sistema' : $a->actor_role),
+                'created_at' => $a->created_at?->toISOString(),
+            ])
+            ->values()
+            ->all();
     }
 }

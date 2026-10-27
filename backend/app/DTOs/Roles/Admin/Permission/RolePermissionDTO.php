@@ -9,5 +9,6 @@ final class RolePermissionDTO
         public string $roleName,
         public string $rolePrefix,
         public array $permissions,
-    ) {}
+    ) {
+    }
 }

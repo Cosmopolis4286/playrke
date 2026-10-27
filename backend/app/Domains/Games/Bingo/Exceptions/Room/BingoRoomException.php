@@ -20,60 +20,78 @@ use App\Exceptions\Domain\DomainException;
 final class BingoRoomException extends DomainException
 {
     /**
-     * Fallo genérico en la creación de la sala de bingo.
+     * El usuario no es el creador de la sala ni tiene rol admin/superadmin.
      */
-    public static function creationFailed(): self
+    public static function activationForbidden() : self
     {
-        return new self('BINGO_ROOM_CREATION_FAILED', 422);
+        return new self('BINGO_ROOM_ACTIVATION_FORBIDDEN', 403);
     }
 
     /**
-     * Fallo genérico en la actualización de la sala de bingo.
+     * La sala no está en un estado válido para ser activada manualmente.
      */
-    public static function updateFailed(): self
+    public static function activationInvalidState() : self
     {
-        return new self('BINGO_ROOM_UPDATE_FAILED', 422);
+        return new self('BINGO_ROOM_ACTIVATION_INVALID_STATE', 409);
     }
 
     /**
-     * Fallo genérico en la eliminación lógica de la sala de bingo.
+     * Intento de activación manual sobre una sala con horario programado.
      */
-    public static function deleteFailed(): self
+    public static function activationNotAllowed() : self
     {
-        return new self('BINGO_ROOM_DELETE_FAILED', 422);
+        return new self('BINGO_ROOM_ACTIVATION_NOT_ALLOWED', 422);
     }
 
     /**
      * La sala de bingo ya se encuentra eliminada.
      */
-    public static function alreadyDeleted(): self
+    public static function alreadyDeleted() : self
     {
         return new self('BINGO_ROOM_ALREADY_DELETED', 409);
     }
 
     /**
-     * Intento de cambiar el estado de una sala de bingo eliminada.
+     * La compra solicitada excedería el tope de cartones configurado para la
+     * sala (max_cards_to_start) — ver BingoRoomCardCapacityGuard.
      */
-    public static function invalidStatusChange(): self
+    public static function cardLimitExceeded(int $remaining, int $requested) : static
     {
-        return new self('BINGO_ROOM_INVALID_STATUS_CHANGE', 409);
+        if ($remaining > 0) {
+            return new self('BINGO_ROOM_CARD_LIMIT_PARTIAL', 409, replacements: [
+                'remaining' => $remaining,
+                'requested' => $requested,
+            ]);
+        }
+
+        return new self('BINGO_ROOM_CARD_LIMIT_EXHAUSTED', 409);
     }
 
     /**
-     * El comercio no existe o no pertenece al contexto actual.
+     * Fallo genérico en la creación de la sala de bingo.
      */
-    public static function notFound(): self
+    public static function creationFailed() : self
     {
-        return new self('BINGO_ROOM_NOT_FOUND', 404);
+        return new self('BINGO_ROOM_CREATION_FAILED', 422);
     }
 
     /**
-     * Intento de comprar/generar cartones en una sala privada sin haber
-     * verificado antes el código de acceso y la contraseña.
+     * Intento de quitar de "monedas permitidas" una moneda que ya tiene
+     * cartones vendidos en la sala (dejaría ventas existentes huérfanas).
      */
-    public static function privateRoomNotVerified(): self
+    public static function currencyRemovalWithSalesNotAllowed(string $currencyLabels) : self
     {
-        return new self('BINGO_ROOM_PRIVATE_NOT_VERIFIED', 403);
+        return new self('BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED', 409, replacements: [
+            'currencies' => $currencyLabels,
+        ]);
+    }
+
+    /**
+     * Fallo genérico en la eliminación lógica de la sala de bingo.
+     */
+    public static function deleteFailed() : self
+    {
+        return new self('BINGO_ROOM_DELETE_FAILED', 422);
     }
 
     /**
@@ -82,118 +100,121 @@ final class BingoRoomException extends DomainException
      * cascadea hacia tablas financieras (premios, pagos, comisiones,
      * reembolsos) y destruiría esa evidencia de forma irreversible.
      */
-    public static function destroyNotAllowed(): self
+    public static function destroyNotAllowed() : self
     {
         return new self('BINGO_ROOM_DESTROY_NOT_ALLOWED', 409);
     }
 
-    public static function invalidRoomType(): self
-    {
-        return new self('BINGO_ROOM_INVALID_ROOM_TYPE', 422);
-    }
-
-    public static function invalidGameMode(): self
-    {
-        return new self('BINGO_ROOM_INVALID_GAME_MODE', 422);
-    }
-
-    public static function invalidPrizePoolType(): self
-    {
-        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE', 422);
-    }
-
-    public static function expiredRoomStatusLocked(): self
+    public static function expiredRoomStatusLocked() : self
     {
         return new self('BINGO_ROOM_EXPIRED_STATUS_LOCKED', 409);
     }
 
-    public static function roomHasPlayers(): self
+    /**
+     * Con cartones ya vendidos no se puede cambiar lo que el jugador "compró":
+     * bote, rondas y premios, seriales, variante ni precio del cartón.
+     *
+     * @param string[] $fields etiquetas legibles de los campos que se intentó cambiar
+     */
+    public static function fieldsLockedBySales(array $fields) : self
     {
-        return new self('BINGO_ROOM_HAS_PLAYERS', 409);
+        return new self('BINGO_ROOM_FIELDS_LOCKED_BY_SALES', 409, replacements: [
+            'fields' => implode(', ', $fields),
+        ]);
+    }
+
+    public static function invalidGameMode() : self
+    {
+        return new self('BINGO_ROOM_INVALID_GAME_MODE', 422);
+    }
+
+    public static function invalidPrizePoolType() : self
+    {
+        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE', 422);
+    }
+
+    public static function invalidRoomType() : self
+    {
+        return new self('BINGO_ROOM_INVALID_ROOM_TYPE', 422);
     }
 
     /**
-     * Intento de activación manual sobre una sala con horario programado.
+     * Intento de cambiar el estado de una sala de bingo eliminada.
      */
-    public static function activationNotAllowed(): self
+    public static function invalidStatusChange() : self
     {
-        return new self('BINGO_ROOM_ACTIVATION_NOT_ALLOWED', 422);
+        return new self('BINGO_ROOM_INVALID_STATUS_CHANGE', 409);
     }
 
-    /**
-     * El usuario no es el creador de la sala ni tiene rol admin/superadmin.
-     */
-    public static function activationForbidden(): self
+    /** Ese jugador o teléfono ya está en la lista de invitados. */
+    public static function invitationAlreadyExists() : self
     {
-        return new self('BINGO_ROOM_ACTIVATION_FORBIDDEN', 403);
+        return new self('BINGO_ROOM_INVITATION_ALREADY_EXISTS', 409);
     }
 
-    /**
-     * La sala no está en un estado válido para ser activada manualmente.
-     */
-    public static function activationInvalidState(): self
+    /** El teléfono no tiene suficientes dígitos para identificar al invitado. */
+    public static function invitationInvalidPhone() : self
     {
-        return new self('BINGO_ROOM_ACTIVATION_INVALID_STATE', 409);
+        return new self('BINGO_ROOM_INVITATION_INVALID_PHONE', 422);
     }
 
-    /**
-     * La fecha/hora indicada para programar el inicio no es válida (pasada o muy próxima).
-     */
-    public static function scheduleStartInvalidDate(): self
+    /** La lista de invitados solo aplica a salas VIP. */
+    public static function invitationsOnlyForVip() : self
     {
-        return new self('BINGO_ROOM_SCHEDULE_START_INVALID_DATE', 422);
+        return new self('BINGO_ROOM_INVITATIONS_ONLY_VIP', 422);
+    }
+
+    /** No existe un jugador registrado con ese usuario o email. */
+    public static function invitedPlayerNotFound() : self
+    {
+        return new self('BINGO_ROOM_INVITED_PLAYER_NOT_FOUND', 404);
     }
 
     /**
      * La sala tiene configurada una cantidad mínima de cartones a vender
      * y aún no se ha alcanzado, por lo que el sorteo no puede iniciar.
      */
-    public static function minCardsNotReached(int $required, int $current): self
+    public static function minCardsNotReached(int $required, int $current) : self
     {
         return new self('BINGO_ROOM_MIN_CARDS_NOT_REACHED', 422, replacements: [
             'required' => $required,
-            'current'  => $current,
+            'current' => $current,
         ]);
     }
 
-    public static function minPlayersNotReached(int $required, int $current): self
+    public static function minPlayersNotReached(int $required, int $current) : self
     {
         return new self('BINGO_ROOM_MIN_PLAYERS_NOT_REACHED', 422, replacements: [
             'required' => $required,
-            'current'  => $current,
+            'current' => $current,
         ]);
     }
 
-    public static function roomFull(): static
+    /**
+     * El comercio no existe o no pertenece al contexto actual.
+     */
+    public static function notFound() : self
+    {
+        return new self('BINGO_ROOM_NOT_FOUND', 404);
+    }
+
+    /**
+     * Intento de comprar/generar cartones en una sala privada sin haber
+     * verificado antes el código de acceso y la contraseña.
+     */
+    public static function privateRoomNotVerified() : self
+    {
+        return new self('BINGO_ROOM_PRIVATE_NOT_VERIFIED', 403);
+    }
+
+    public static function roomFull() : static
     {
         return new static('BINGO_ROOM_FULL', 409);
     }
 
-    /**
-     * La compra solicitada excedería el tope de cartones configurado para la
-     * sala (max_cards_to_start) — ver BingoRoomCardCapacityGuard.
-     */
-    public static function cardLimitExceeded(int $remaining, int $requested): static
+    public static function roomHasPlayers() : self
     {
-        if ($remaining > 0) {
-            return new static('BINGO_ROOM_CARD_LIMIT_PARTIAL', 409, replacements: [
-                'remaining' => $remaining,
-                'requested' => $requested,
-            ]);
-        }
-
-        return new static('BINGO_ROOM_CARD_LIMIT_EXHAUSTED', 409);
-    }
-
-    /**
-     * Intento de quitar de "monedas permitidas" una moneda que ya tiene
-     * cartones vendidos en la sala (dejaría ventas existentes huérfanas).
-     */
-    public static function currencyRemovalWithSalesNotAllowed(string $currencyLabels): self
-    {
-        return new self('BINGO_ROOM_CURRENCY_REMOVAL_WITH_SALES_NOT_ALLOWED', 409, replacements: [
-            'currencies' => $currencyLabels,
-        ]);
+        return new self('BINGO_ROOM_HAS_PLAYERS', 409);
     }
 
     /**
@@ -205,50 +226,29 @@ final class BingoRoomException extends DomainException
      * Sala restringida (VIP sin invitación, DEMO) — se responde como "no
      * encontrada" para no revelar que la sala existe.
      */
-    public static function roomNotAccessible(): self
+    public static function roomNotAccessible() : self
     {
         return new self('BINGO_ROOM_NOT_ACCESSIBLE', 404);
     }
 
-    /** La lista de invitados solo aplica a salas VIP. */
-    public static function invitationsOnlyForVip(): self
-    {
-        return new self('BINGO_ROOM_INVITATIONS_ONLY_VIP', 422);
-    }
-
-    /** No existe un jugador registrado con ese usuario o email. */
-    public static function invitedPlayerNotFound(): self
-    {
-        return new self('BINGO_ROOM_INVITED_PLAYER_NOT_FOUND', 404);
-    }
-
-    /** Ese jugador o teléfono ya está en la lista de invitados. */
-    public static function invitationAlreadyExists(): self
-    {
-        return new self('BINGO_ROOM_INVITATION_ALREADY_EXISTS', 409);
-    }
-
-    /** El teléfono no tiene suficientes dígitos para identificar al invitado. */
-    public static function invitationInvalidPhone(): self
-    {
-        return new self('BINGO_ROOM_INVITATION_INVALID_PHONE', 422);
-    }
-
-    public static function roomNotEditableStatus(): self
+    public static function roomNotEditableStatus() : self
     {
         return new self('BINGO_ROOM_NOT_EDITABLE_STATUS', 409);
     }
 
     /**
-     * Con cartones ya vendidos no se puede cambiar lo que el jugador "compró":
-     * bote, rondas y premios, seriales, variante ni precio del cartón.
-     *
-     * @param string[] $fields Etiquetas legibles de los campos que se intentó cambiar.
+     * La fecha/hora indicada para programar el inicio no es válida (pasada o muy próxima).
      */
-    public static function fieldsLockedBySales(array $fields): self
+    public static function scheduleStartInvalidDate() : self
     {
-        return new self('BINGO_ROOM_FIELDS_LOCKED_BY_SALES', 409, replacements: [
-            'fields' => implode(', ', $fields),
-        ]);
+        return new self('BINGO_ROOM_SCHEDULE_START_INVALID_DATE', 422);
+    }
+
+    /**
+     * Fallo genérico en la actualización de la sala de bingo.
+     */
+    public static function updateFailed() : self
+    {
+        return new self('BINGO_ROOM_UPDATE_FAILED', 422);
     }
 }

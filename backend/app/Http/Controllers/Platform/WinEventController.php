@@ -14,19 +14,20 @@ use Illuminate\Http\JsonResponse;
  */
 class WinEventController extends Controller
 {
-    private const WINDOW_MINUTES = 5;
     private const LIMIT = 10;
+    private const WINDOW_MINUTES = 5;
 
     public function __construct(
         private readonly WinEventService $winEventService,
         private readonly WinEventLeaderboardService $leaderboardService,
-    ) {}
+    ) {
+    }
 
     /**
      * Ranking semanal de mayores ganadores en dinero, para la sección
      * "Ganadores" de la landing pública.
      */
-    public function leaderboard(): JsonResponse
+    public function leaderboard() : JsonResponse
     {
         return $this->handleServiceJson(fn () => [
             'leaderboard' => $this->leaderboardService->weeklyTopWinners(),
@@ -37,9 +38,9 @@ class WinEventController extends Controller
      * Últimos eventos de ganancia, usados para sembrar el ticker antes de
      * que lleguen eventos en tiempo real por WebSocket.
      */
-    public function recent(): JsonResponse
+    public function recent() : JsonResponse
     {
-        return $this->handleServiceJson(function () {
+        return $this->handleServiceJson(function() {
             $events = WinEvent::query()
                 ->with(['user:id,first_name,last_name,username', 'currency:id,iso_code,symbol,decimal_places'])
                 ->recent(self::WINDOW_MINUTES)
@@ -58,9 +59,9 @@ class WinEventController extends Controller
      * proveedor de loterías, etc). Protegido por publicToken con scope
      * 'win-events.report' (ver routes/modules/public.php).
      */
-    public function reportExternal(ReportExternalWinEventRequest $request): JsonResponse
+    public function reportExternal(ReportExternalWinEventRequest $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
+        return $this->handleServiceJson(function() use ($request) {
             $data = $request->validated();
 
             $winEvent = $data['prize_kind'] === WinEvent::PRIZE_MONEY
@@ -92,24 +93,24 @@ class WinEventController extends Controller
         });
     }
 
-    private function toPayload(WinEvent $e): array
+    private function toPayload(WinEvent $e) : array
     {
         $currency = $e->currency;
 
         return [
-            'id'              => (string) $e->id,
-            'game'            => $e->game_name,
-            'game_slug'       => $e->game_slug,
-            'winner_name'     => $e->maskedWinnerName(),
-            'prize_kind'      => $e->prize_kind,
-            'prize_label'     => $e->prize_label,
-            'amount'          => $e->amount_usd !== null ? (float) $e->amount_usd : null,
-            'currency'        => $currency?->iso_code ?? 'USD',
+            'id' => (string) $e->id,
+            'game' => $e->game_name,
+            'game_slug' => $e->game_slug,
+            'winner_name' => $e->maskedWinnerName(),
+            'prize_kind' => $e->prize_kind,
+            'prize_label' => $e->prize_label,
+            'amount' => $e->amount_usd !== null ? (float) $e->amount_usd : null,
+            'currency' => $currency?->iso_code ?? 'USD',
             'currency_symbol' => $currency?->symbol ?? '$',
-            'is_usd'          => ($currency?->iso_code ?? 'USD') === 'USD',
-            'local_amount'    => $e->amount_local !== null ? (float) $e->amount_local : null,
-            'decimal_places'  => $currency?->decimal_places ?? 2,
-            'timestamp'       => $e->created_at?->toISOString(),
+            'is_usd' => ($currency?->iso_code ?? 'USD') === 'USD',
+            'local_amount' => $e->amount_local !== null ? (float) $e->amount_local : null,
+            'decimal_places' => $currency?->decimal_places ?? 2,
+            'timestamp' => $e->created_at?->toISOString(),
         ];
     }
 }

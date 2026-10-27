@@ -21,7 +21,43 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
         $this->model = $model;
     }
 
-    public function getAllExchangeRatesByCurrency($customerId, string $currencyId): Collection
+    public function activateRate($customerId, string $currencyId) : bool
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
+            ->update(['status' => 'ACTIVE']) > 0;
+    }
+
+    public function deactivateRate($customerId, string $currencyId) : bool
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
+            ->update(['status' => 'INACTIVE']) > 0;
+    }
+
+    public function existsCurrencyByCustomer($customerId, string $currencyId) : bool
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
+            ->exists();
+    }
+
+    public function getActiveRates($customerId) : Collection
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('status', 'ACTIVE')
+            ->get();
+    }
+
+    public function getAllExchangeRates($customerId) : Collection
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->get(['currency_id', 'amount']);
+    }
+
+    public function getAllExchangeRatesByCurrency($customerId, string $currencyId) : Collection
     {
         return $this->model->where('customer_id', $customerId)
             ->where('currency_id', $currencyId)
@@ -29,7 +65,34 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->get(['currency_id', 'amount', 'percentage']);
     }
 
-    public function getByCustomerCurrency($customerId, string $currencyId): ?CustomerExchangeRate
+    public function getAvailableCurrenciesIsoCodes($customerId) : array
+    {
+        return $this->model
+            ->join('currencies', 'currencies.id', '=', 'customers_exchange_rates.currency_id')
+            ->where('customers_exchange_rates.customer_id', $customerId)
+            ->where('customers_exchange_rates.status', 'ACTIVE')
+            ->distinct()
+            ->pluck('currencies.iso_code')
+            ->toArray();
+    }
+
+    public function getAvailableExchangeRates($customerId) : Collection
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('status', '<>', 'INACTIVE')
+            ->get();
+    }
+
+    public function getBestRateForCustomer($customerId, string $currencyId) : ?CustomerExchangeRate
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderBy('amount', 'asc')
+            ->first();
+    }
+
+    public function getByCustomerCurrency($customerId, string $currencyId) : ?CustomerExchangeRate
     {
         return $this->model->where('customer_id', $customerId)
             ->where('currency_id', $currencyId)
@@ -37,19 +100,29 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->first();
     }
 
-    public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'amount')
+    public function getCurrenciesByCustomer($customerId, string $status = 'ACTIVE') : array
     {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderByDesc('id')
-            ->value($column);
+        $query = $this->model->select('currency_id')->where('customer_id', $customerId);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        return $query->distinct()->pluck('currency_id')->toArray();
+    }
+
+    public function getCurrenciesIDsByCustomer($customerId, string $status = 'ACTIVE') : Collection
+    {
+        return $this->model->select('id', 'currency_id')
+            ->where('customer_id', $customerId)
+            ->where('status', $status)
+            ->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getCurrentRatesBatch($customerId, array $currencyIds): array
+    public function getCurrentRatesBatch($customerId, array $currencyIds) : array
     {
         if (empty($currencyIds)) {
             return [];
@@ -65,7 +138,7 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
         $result = [];
         foreach ($rows as $row) {
             $key = (string) $row->currency_id;
-            if (!isset($result[$key])) {
+            if (! isset($result[$key])) {
                 $result[$key] = (float) $row->amount;
             }
         }
@@ -73,66 +146,46 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
         return $result;
     }
 
-    public function getAllExchangeRates($customerId): Collection
+    public function getCustomerCurrencyValue($customerId, string $currencyId, string $column = 'amount')
     {
         return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
             ->orderByDesc('id')
-            ->get(['currency_id', 'amount']);
+            ->value($column);
     }
 
-    public function getValuesByCurrency(string $currencyId): Collection
+    public function getInactiveRates($customerId) : Collection
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('status', 'INACTIVE')
+            ->get();
+    }
+
+    public function getLatestRateByCustomerCurrency($customerId, string $currencyId) : ?CustomerExchangeRate
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
+            ->latest()
+            ->first();
+    }
+
+    public function getRateHistory($customerId, string $currencyId) : Collection
+    {
+        return $this->model->where('customer_id', $customerId)
+            ->where('currency_id', $currencyId)
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    public function getValuesByCurrency(string $currencyId) : Collection
     {
         return $this->model->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
             ->pluck('amount');
     }
 
-    public function getAvailableExchangeRates($customerId): Collection
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('status', '<>', 'INACTIVE')
-            ->get();
-    }
-
-    public function getAvailableCurrenciesIsoCodes($customerId): array
-    {
-        return $this->model
-            ->join('currencies', 'currencies.id', '=', 'customers_exchange_rates.currency_id')
-            ->where('customers_exchange_rates.customer_id', $customerId)
-            ->where('customers_exchange_rates.status', 'ACTIVE')
-            ->distinct()
-            ->pluck('currencies.iso_code')
-            ->toArray();
-    }
-
-    public function getCurrenciesByCustomer($customerId, string $status = 'ACTIVE'): array
-    {
-        $query = $this->model->select('currency_id')->where('customer_id', $customerId);
-
-        if ($status) {
-            $query->where('status', $status);
-        }
-
-        return $query->distinct()->pluck('currency_id')->toArray();
-    }
-
-    public function getCurrenciesIDsByCustomer($customerId, string $status = 'ACTIVE'): Collection
-    {
-        return $this->model->select('id', 'currency_id')
-            ->where('customer_id', $customerId)
-            ->where('status', $status)
-            ->get();
-    }
-
-    public function existsCurrencyByCustomer($customerId, string $currencyId): bool
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->exists();
-    }
-
-    public function updateOrCreateExchangeRate($customerId, string $currencyId, float $amount, float $percentage = 0): CustomerExchangeRate
+    public function updateOrCreateExchangeRate($customerId, string $currencyId, float $amount, float $percentage = 0) : CustomerExchangeRate
     {
         $lastRate = $this->model->where('customer_id', $customerId)
             ->where('currency_id', $currencyId)
@@ -140,7 +193,7 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->orderByDesc('id')
             ->first();
 
-        if (!$lastRate || $lastRate->amount != $amount) {
+        if (! $lastRate || $lastRate->amount != $amount) {
             if ($lastRate) {
                 $lastRate->update(['status' => 'INACTIVE']);
             }
@@ -150,63 +203,10 @@ class CustomerExchangeRateRepository extends RoleExchangeRateRepository implemen
                 'currency_id' => $currencyId,
                 'amount' => $amount,
                 'percentage' => $percentage,
-                'status' => 'ACTIVE'
+                'status' => 'ACTIVE',
             ]);
         }
 
         return $lastRate;
-    }
-
-    public function getActiveRates($customerId): Collection
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('status', 'ACTIVE')
-            ->get();
-    }
-
-    public function getInactiveRates($customerId): Collection
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('status', 'INACTIVE')
-            ->get();
-    }
-
-    public function activateRate($customerId, string $currencyId): bool
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->update(['status' => 'ACTIVE']) > 0;
-    }
-
-    public function deactivateRate($customerId, string $currencyId): bool
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->update(['status' => 'INACTIVE']) > 0;
-    }
-
-    public function getLatestRateByCustomerCurrency($customerId, string $currencyId): ?CustomerExchangeRate
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->latest()
-            ->first();
-    }
-
-    public function getRateHistory($customerId, string $currencyId): Collection
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->orderByDesc('created_at')
-            ->get();
-    }
-
-    public function getBestRateForCustomer($customerId, string $currencyId): ?CustomerExchangeRate
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderBy('amount', 'asc')
-            ->first();
     }
 }

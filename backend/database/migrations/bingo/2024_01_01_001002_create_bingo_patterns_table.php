@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_patterns');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_patterns', function (Blueprint $table) {
+        Schema::create('bingo_patterns', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del patrón');
             $table->enum('default_pattern', ['Y', 'N'])->default('N')->comment('Patrón por defecto del sistema');
@@ -36,13 +44,5 @@ return new class extends Migration
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
             $table->index(['user_id', 'num_id'], 'idx_bingo_patterns_user_numid');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_patterns');
     }
 };

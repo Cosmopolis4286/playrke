@@ -29,9 +29,15 @@ use App\Models\BaseModel;
  */
 class TriviaQuestion extends BaseModel
 {
+    protected $casts = [
+        'options' => 'array',
+        'correct_option_index' => 'integer',
+        'time_limit_seconds' => 'integer',
+        'points' => 'integer',
+        'times_used' => 'integer',
+        'is_active' => 'boolean',
+    ];
     protected $connection = 'pgsql_trivia';
-
-    protected $table = 'trivia_questions';
 
     protected $fillable = [
         'question_text',
@@ -46,33 +52,26 @@ class TriviaQuestion extends BaseModel
         'difficulty',
     ];
 
-    protected $casts = [
-        'options'              => 'array',
-        'correct_option_index' => 'integer',
-        'time_limit_seconds'   => 'integer',
-        'points'               => 'integer',
-        'times_used'           => 'integer',
-        'is_active'            => 'boolean',
-    ];
-
     protected $hidden = [
         'correct_option_index', // no se expone al jugador durante el juego
     ];
 
-    /**
-     * Verificar si el índice de opción enviado es correcto.
-     */
-    public function isCorrect(int $optionIndex): bool
-    {
-        return $optionIndex === $this->correct_option_index;
-    }
+    protected $table = 'trivia_questions';
 
     /**
      * Obtener la opción correcta como texto.
      */
-    public function correctOptionText(): ?string
+    public function correctOptionText() : ?string
     {
         return $this->options[$this->correct_option_index] ?? null;
+    }
+
+    /**
+     * Verificar si el índice de opción enviado es correcto.
+     */
+    public function isCorrect(int $optionIndex) : bool
+    {
+        return $optionIndex === $this->correct_option_index;
     }
 
     /**

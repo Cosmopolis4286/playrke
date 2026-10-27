@@ -17,7 +17,7 @@ class WalletLimitSeeder extends Seeder
      *            1 = email + teléfono verificados
      *            2 = documento de identidad verificado (KYC completo)
      */
-    public function run(): void
+    public function run() : void
     {
         $limits = [
             ['kyc_level' => 0, 'min_deposit' => 1, 'max_deposit' => 100,   'min_per_transaction' => 1, 'max_per_transaction' => 50,   'max_daily' => 50,    'max_weekly' => 100,   'max_monthly' => 200],
@@ -56,7 +56,7 @@ class WalletLimitSeeder extends Seeder
      * que corre justo antes en DatabaseSeeder::run()) — si falta, se omite
      * esa moneda con un aviso en vez de fallar todo el seeder completo.
      */
-    private function seedPerCurrencyLimits(): void
+    private function seedPerCurrencyLimits() : void
     {
         $service = app(WalletLimitService::class);
         $currencies = Currency::query()->active()->get(['id', 'iso_code']);
@@ -75,13 +75,14 @@ class WalletLimitSeeder extends Seeder
                     $recommended = $service->recommend((string) $currency->id, $kycLevel);
                 } catch (ExchangeRateException $e) {
                     $this->command->warn("⚠ Sin tasa de cambio activa para {$currency->iso_code} — omitido límite KYC {$kycLevel} (ejecuta ExchangeRateSeeder primero).");
+
                     continue;
                 }
 
                 WalletLimit::create(array_merge($recommended, [
                     'currency_id' => $currency->id,
-                    'kyc_level'   => $kycLevel,
-                    'is_active'   => true,
+                    'kyc_level' => $kycLevel,
+                    'is_active' => true,
                 ]));
 
                 $this->command->info("  ✔ Límite {$currency->iso_code} KYC {$kycLevel}");

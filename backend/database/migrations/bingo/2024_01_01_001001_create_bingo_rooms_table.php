@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_rooms'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_rooms');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'bingo_rooms'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_rooms', function (Blueprint $table) {
+        Schema::create('bingo_rooms', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sala');
 
@@ -80,13 +88,5 @@ return new class extends Migration
             $table->index(['paid_prizes', 'finished_at'], 'idx_paid_prizes_finished');
             // NOTA: índice en updated_at eliminado - Laravel ya gestiona timestamps eficientemente
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_rooms'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_rooms');
     }
 };

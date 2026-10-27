@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_refunds');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_refunds', function (Blueprint $table) {
+        Schema::create('bingo_card_refunds', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del reembolso');
 
@@ -120,13 +128,5 @@ return new class extends Migration
             // Evita múltiples reembolsos para el mismo cartón
             $table->unique(['card_id'], 'unique_refund_per_card');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_refunds');
     }
 };

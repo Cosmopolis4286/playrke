@@ -12,18 +12,7 @@ namespace App\DTOs\Roles\Admin\Subsidiary;
  */
 final class AdminSubsidiaryDTO
 {
-    public function __construct(
-        public readonly ?string $username,
-        public readonly ?string $email,
-        public readonly ?string $name,
-        public readonly ?string $commerce,
-        public readonly ?string $country,
-        public readonly ?string $currency,
-        public readonly ?string $phone,
-        public readonly ?string $commission,
-    ) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         return new self(
             $data['username'] ?? null,
@@ -37,18 +26,30 @@ final class AdminSubsidiaryDTO
         );
     }
 
-    public function toArray(): array
+    public function __construct(
+        public readonly ?string $username,
+        public readonly ?string $email,
+        public readonly ?string $name,
+        public readonly ?string $commerce,
+        public readonly ?string $country,
+        public readonly ?string $currency,
+        public readonly ?string $phone,
+        public readonly ?string $commission,
+    ) {
+    }
+
+    public function toArray() : array
     {
         return array_filter([
-            'username'    => $this->username,
-            'email'       => $this->email,
-            'name'        => $this->name,
-            'commerce'    => $this->commerce,
-            'country'     => $this->country,
-            'currency'    => $this->currency,
-            'phone'       => $this->phone,
-            'commission'  => $this->commission,
-        ], static function ($value) {
+            'username' => $this->username,
+            'email' => $this->email,
+            'name' => $this->name,
+            'commerce' => $this->commerce,
+            'country' => $this->country,
+            'currency' => $this->currency,
+            'phone' => $this->phone,
+            'commission' => $this->commission,
+        ], static function($value) {
             if ($value === null) {
                 return false;
             }

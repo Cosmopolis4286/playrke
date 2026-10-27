@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'user_purchase_codes'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('user_purchase_codes');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'user_purchase_codes'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('user_purchase_codes', function (Blueprint $table) {
+        Schema::create('user_purchase_codes', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del código de compra');
 
@@ -42,13 +50,5 @@ return new class extends Migration
             // Índices útiles para consultas
             $table->index(['country_id', 'status'], 'idx_country_status');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'user_purchase_codes'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('user_purchase_codes');
     }
 };

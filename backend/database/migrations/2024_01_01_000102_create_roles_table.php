@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('roles');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create('roles', function(Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->string('name')->unique();
             $table->string('guard_name')->default('web');
@@ -24,13 +32,5 @@ return new class extends Migration
             $table->string('color', 20)->nullable()->comment('Color hex/token para el organigrama, ej. #7c3aed');
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('roles');
     }
 };

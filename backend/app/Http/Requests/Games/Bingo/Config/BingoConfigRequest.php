@@ -10,24 +10,24 @@ use App\Services\Auth\PermissionService;
  */
 class BingoConfigRequest extends BaseRequest
 {
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return PermissionService::checkPrefix(['admin', 'superadmin', 'commerce']);
     }
 
-    public function rules(): array
-    {
-        return [
-            'rules' => ['required', 'string', 'min:10', 'max:10000'],
-        ];
-    }
-
-    public function messages(): array
+    public function messages() : array
     {
         return [
             'rules.required' => 'El reglamento es obligatorio.',
-            'rules.min'      => 'El reglamento debe tener al menos 10 caracteres.',
-            'rules.max'      => 'El reglamento no puede superar los 10.000 caracteres.',
+            'rules.min' => 'El reglamento debe tener al menos 10 caracteres.',
+            'rules.max' => 'El reglamento no puede superar los 10.000 caracteres.',
+        ];
+    }
+
+    public function rules() : array
+    {
+        return [
+            'rules' => ['required', 'string', 'min:10', 'max:10000'],
         ];
     }
 }

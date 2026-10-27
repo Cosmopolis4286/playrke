@@ -39,56 +39,6 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeRoom(): BingoRoom
-    {
-        $country = Country::firstOrCreate(
-            ['iso_code_2' => 'TC'],
-            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
-        );
-
-        $user = User::factory()->create(['country_id' => $country->id]);
-
-        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
-        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        // El tipo de bote no altera el reparto de la venta (ver RoomMetricsService:
-        // todos los tipos, incluido PRIZE, acumulan comisiones y bote).
-        // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder) —
-        // sin este Game::firstOrCreate() previo, el insert falla con
-        // "Field 'game_id' doesn't have a default value".
-        $game = \App\Models\Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
-        $prizePoolType = PrizePoolType::firstOrCreate(
-            ['game_id' => $game->id, 'code' => 'STANDARD'],
-            ['label' => 'Estándar', 'is_accumulative' => false],
-        );
-        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
-
-        $room = BingoRoom::create([
-            'uuid_code'       => (string) Str::uuid(),
-            'status_id'       => $status->id,
-            'creator_user_id' => $user->id,
-            'total_cards'     => 0,
-            'total_sales'     => 0,
-            'prize_pool'      => 0,
-            'rke_commission'  => 0,
-            'room_commission' => 0,
-        ]);
-
-        BingoRoomConfig::create([
-            'room_id'            => $room->id,
-            'room_type_id'       => $roomType->id,
-            'creator_user_id'    => $user->id,
-            'connection_type_id' => $connectionType->id,
-            'prize_pool_type_id' => $prizePoolType->id,
-            'rke_commission'     => 5,
-            'room_commission'    => 10,
-        ]);
-
-        $this->currencyId = $currency->id;
-
-        return $room;
-    }
-
     private int|string $currencyId;
 
     /** @test */
@@ -128,5 +78,55 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         // sobre el total real ($50), no solo sobre la última venta procesada ($30).
         $this->assertEqualsWithDelta(2.5, (float) $fresh->rke_commission, 0.01, 'rke_commission debe acumular ambas ventas.');
         $this->assertEqualsWithDelta(5.0, (float) $fresh->room_commission, 0.01, 'room_commission debe acumular ambas ventas.');
+    }
+
+    private function makeRoom() : BingoRoom
+    {
+        $country = Country::firstOrCreate(
+            ['iso_code_2' => 'TC'],
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
+        );
+
+        $user = User::factory()->create(['country_id' => $country->id]);
+
+        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
+        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        // El tipo de bote no altera el reparto de la venta (ver RoomMetricsService:
+        // todos los tipos, incluido PRIZE, acumulan comisiones y bote).
+        // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder) —
+        // sin este Game::firstOrCreate() previo, el insert falla con
+        // "Field 'game_id' doesn't have a default value".
+        $game = \App\Models\Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
+        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
+
+        $room = BingoRoom::create([
+            'uuid_code' => (string) Str::uuid(),
+            'status_id' => $status->id,
+            'creator_user_id' => $user->id,
+            'total_cards' => 0,
+            'total_sales' => 0,
+            'prize_pool' => 0,
+            'rke_commission' => 0,
+            'room_commission' => 0,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id' => $room->id,
+            'room_type_id' => $roomType->id,
+            'creator_user_id' => $user->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'rke_commission' => 5,
+            'room_commission' => 10,
+        ]);
+
+        $this->currencyId = $currency->id;
+
+        return $room;
     }
 }

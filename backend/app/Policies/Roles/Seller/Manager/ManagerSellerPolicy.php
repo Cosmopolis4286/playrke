@@ -20,12 +20,57 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ManagerSellerPolicy extends BaseRolePolicy
 {
+    public function forceDelete(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->ownsSeller($user, $model);
+    }
+
+    /**
+     * Cambiar contraseña asociada al vendedor.
+     */
+    public function resetPassword(User $user, Seller $seller) : bool
+    {
+        return $this->hasAccess($user)
+            && $this->canMutate($seller)
+            && $this->ownsSeller($user, $seller);
+    }
+
+    /**
+     * Alternar estado del vendedor.
+     */
+    public function toggleStatus(User $user, Seller $seller) : bool
+    {
+        return $this->hasAccess($user)
+            && $this->canMutate($seller)
+            && $this->ownsSeller($user, $seller);
+    }
+
+    public function update(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsSeller($user, $model);
+    }
+
+    public function view(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->ownsSeller($user, $model);
+    }
+
+    /**
+     * Estados que bloquean operaciones mutables.
+     *
+     * @return string[]
+     */
+    protected function forbiddenStatuses() : array
+    {
+        return ['DELETED', 'BLOCKED'];
+    }
+
     /**
      * Roles requeridos para operar sobre vendedores.
      *
      * @return string|string[]
      */
-    protected function requiredRole(): string|array
+    protected function requiredRole() : string|array
     {
         // 'admin' agregado: gestiona el árbol completo de vendedores desde
         // /admin/sellers — antes solo pasaba hasAccess() un commerce/
@@ -37,16 +82,6 @@ class ManagerSellerPolicy extends BaseRolePolicy
         // legados (huérfanos) daban 403 — los reasigna admin (ver
         // commissions:audit-hierarchy).
         return ['commerce', 'subsidiary', 'admin'];
-    }
-
-    /**
-     * Estados que bloquean operaciones mutables.
-     *
-     * @return string[]
-     */
-    protected function forbiddenStatuses(): array
-    {
-        return ['DELETED', 'BLOCKED'];
     }
 
     /**
@@ -70,7 +105,7 @@ class ManagerSellerPolicy extends BaseRolePolicy
      * - customer: rama independiente sin sellers propios (ver docblock de
      *   Customer) — nunca es dueño de ningún Seller.
      */
-    private function ownsSeller(User $user, Seller $seller): bool
+    private function ownsSeller(User $user, Seller $seller) : bool
     {
         if (app(RoleAuthorizationService::class)->hasAnyRole($user, 'admin')) {
             return true;
@@ -81,7 +116,7 @@ class ManagerSellerPolicy extends BaseRolePolicy
         }
 
         if ($user->hasRole('subsidiary')) {
-            if (!$seller->subsidiary_id) {
+            if (! $seller->subsidiary_id) {
                 return false;
             }
 
@@ -91,40 +126,5 @@ class ManagerSellerPolicy extends BaseRolePolicy
         }
 
         return false;
-    }
-
-    public function view(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->ownsSeller($user, $model);
-    }
-
-    public function update(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsSeller($user, $model);
-    }
-
-    public function forceDelete(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->ownsSeller($user, $model);
-    }
-
-    /**
-     * Alternar estado del vendedor.
-     */
-    public function toggleStatus(User $user, Seller $seller): bool
-    {
-        return $this->hasAccess($user)
-            && $this->canMutate($seller)
-            && $this->ownsSeller($user, $seller);
-    }
-
-    /**
-     * Cambiar contraseña asociada al vendedor.
-     */
-    public function resetPassword(User $user, Seller $seller): bool
-    {
-        return $this->hasAccess($user)
-            && $this->canMutate($seller)
-            && $this->ownsSeller($user, $seller);
     }
 }

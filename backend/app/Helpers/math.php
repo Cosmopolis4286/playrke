@@ -1,18 +1,20 @@
 <?php
-# Funciones de cálculo, truncar, redondeos, porcentajes
 
-if (!function_exists('truncate')) {
+// Funciones de cálculo, truncar, redondeos, porcentajes
+
+if (! function_exists('truncate')) {
     /**
      * Truncar un número sin redondear.
      */
     function truncate($number, $decimals = 2)
     {
-        $factor = pow(10, $decimals);
+        $factor = 10 ** $decimals;
+
         return floor($number * $factor) / $factor;
     }
 }
 
-if (!function_exists('percent')) {
+if (! function_exists('percent')) {
     /**
      * Calcular porcentaje.
      */

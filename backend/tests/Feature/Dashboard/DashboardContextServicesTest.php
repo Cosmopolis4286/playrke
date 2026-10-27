@@ -37,17 +37,12 @@ class DashboardContextServicesTest extends TestCase
 {
     use DatabaseTransactions;
 
+    private static int $idCounter = 0;
+
     protected Country $country;
     protected Currency $currency;
 
-    private static int $idCounter = 0;
-
-    private function nextId(): string
-    {
-        return (string) (400000000000000000 + (++self::$idCounter));
-    }
-
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -57,129 +52,25 @@ class DashboardContextServicesTest extends TestCase
 
         $this->currency = Currency::firstOrCreate(
             ['iso_code' => 'USD'],
-            ['symbol' => '$', 'name' => 'US Dollar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE']
+            ['symbol' => '$', 'name' => 'US Dollar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE'],
         );
 
         $this->country = Country::firstOrCreate(
             ['iso_code_2' => 'TC'],
-            ['name' => 'Test Country', 'iso_code_3' => 'TCO', 'status' => 'ACTIVE']
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO', 'status' => 'ACTIVE'],
         );
     }
 
-    protected function tearDown(): void
+    protected function tearDown() : void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         parent::tearDown();
     }
 
-    // ─── Fixtures compartidas ────────────────────────────────────────────────
-
-    private function seedRoles(): void
-    {
-        foreach (['superadmin', 'admin', 'commerce', 'seller', 'player', 'treasurer', 'customer'] as $name) {
-            if (!Role::where('name', $name)->where('guard_name', 'web')->exists()) {
-                $role = new Role([
-                    'name' => $name,
-                    'guard_name' => 'web',
-                    'prefix' => $name,
-                    'type' => 'web',
-                ]);
-                $role->id = $this->nextId();
-                $role->save();
-            }
-        }
-    }
-
-    private function makeUserWithRole(string $role): User
-    {
-        $user = User::factory()->create(['country_id' => $this->country->id]);
-        $user->assignRole($role);
-
-        return $user;
-    }
-
-    private function makeUniqueCode(User $user): UniqueCode
-    {
-        return UniqueCode::create([
-            'rke_code'  => 'RKE-' . $this->nextId(),
-            'uuid_code' => (string) \Illuminate\Support\Str::uuid(),
-            'user_id'   => $user->id,
-            'status'    => 'ACTIVE',
-        ]);
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = $this->makeUserWithRole('admin');
-        $uniqueCode = $this->makeUniqueCode($user);
-
-        Admin::create([
-            'user_id'        => $user->id,
-            'unique_code_id' => $uniqueCode->id,
-            'country_id'     => $this->country->id,
-            'currency_id'    => $this->currency->id,
-            'status'         => 'ACTIVE',
-        ]);
-
-        return $user;
-    }
-
-    private function makeCommerce(): User
-    {
-        $user = $this->makeUserWithRole('commerce');
-        $uniqueCode = $this->makeUniqueCode($user);
-
-        Commerce::create([
-            'name'           => 'Comercio de prueba',
-            'country_id'     => $this->country->id,
-            'phone'          => '+58414' . random_int(1000000, 9999999),
-            'user_id'        => $user->id,
-            'unique_code_id' => $uniqueCode->id,
-            'commission'     => 5.00,
-            'status'         => 'ACTIVE',
-        ]);
-
-        return $user;
-    }
-
-    private function makeSeller(User $manager): User
-    {
-        $user = $this->makeUserWithRole('seller');
-
-        Seller::create([
-            'id'              => $this->nextId(),
-            'name'            => 'Vendedor de prueba',
-            'phone'           => '+58424' . random_int(1000000, 9999999),
-            'commission'      => 3.00,
-            'user_id'         => $user->id,
-            'country_id'      => $this->country->id,
-            'manager_user_id' => $manager->id,
-            'status'          => 'ACTIVE',
-        ]);
-
-        return $user;
-    }
-
-    // ─── SuperAdmin ─────────────────────────────────────────────────────────
-
-    /** @test */
-    public function superadmin_dashboard_context_resolves_with_expected_keys(): void
-    {
-        $superadmin = $this->makeUserWithRole('superadmin');
-        Auth::login($superadmin);
-
-        $view = app(SuperAdminDashboardContextService::class)->dashboardContext()->toView();
-
-        $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'adminActivity', 'entityCounts', 'systemHealth', 'salesTrend', 'pendingWalletCount', 'allowedQuickLinks', 'period'],
-            array_keys($view)
-        );
-    }
-
     // ─── Admin ──────────────────────────────────────────────────────────────
 
     /** @test */
-    public function admin_dashboard_context_resolves_with_expected_keys(): void
+    public function admin_dashboard_context_resolves_with_expected_keys() : void
     {
         $admin = $this->makeAdmin();
         Auth::login($admin);
@@ -188,14 +79,14 @@ class DashboardContextServicesTest extends TestCase
 
         $this->assertEqualsCanonicalizing(
             ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'rkeTotals', 'pendingWalletCount', 'allowedQuickLinks', 'period', 'operationalAlerts'],
-            array_keys($view)
+            array_keys($view),
         );
     }
 
     // ─── Commerce ───────────────────────────────────────────────────────────
 
     /** @test */
-    public function commerce_dashboard_context_resolves_with_expected_keys(): void
+    public function commerce_dashboard_context_resolves_with_expected_keys() : void
     {
         $commerceUser = $this->makeCommerce();
         Auth::login($commerceUser);
@@ -204,36 +95,36 @@ class DashboardContextServicesTest extends TestCase
 
         $this->assertEqualsCanonicalizing(
             ['userName', 'stats', 'recentActivity', 'entityCounts', 'salesTrend', 'salesBySeller', 'wallets', 'configuration', 'pendingWalletCount', 'period', 'rkeReceivables', 'networkHealth', 'networkPayments', 'prizesToDeliver', 'upcomingRooms'],
-            array_keys($view)
+            array_keys($view),
         );
     }
 
     /** @test */
-    public function commerce_sales_are_normalized_to_usd_and_exclude_refunded_lots(): void
+    public function commerce_sales_are_normalized_to_usd_and_exclude_refunded_lots() : void
     {
         $commerceUser = $this->makeCommerce();
-        $sellerUser   = $this->makeSeller($commerceUser);
-        $commerceId   = Commerce::where('user_id', $commerceUser->id)->value('id');
+        $sellerUser = $this->makeSeller($commerceUser);
+        $commerceId = Commerce::where('user_id', $commerceUser->id)->value('id');
 
         $local = Currency::firstOrCreate(
             ['iso_code' => 'TVS'],
-            ['symbol' => 'Bs', 'name' => 'Test Local', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE']
+            ['symbol' => 'Bs', 'name' => 'Test Local', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE'],
         );
 
         $lot = fn (Currency $currency, float $rate, float $amount, string $status = 'ACTIVE') => BingoCardLot::create([
-            'room_id'           => '1',
-            'user_id'           => $commerceUser->id,
-            'seller_user_id'    => $sellerUser->id,
-            'seller_type'       => 'SELLER',
-            'room_user_id'      => '1',
-            'currency_id'       => $currency->id,
-            'card_count'        => 1,
-            'card_price'        => $amount,
-            'exchange_rate'     => $rate,
-            'sale_amount'       => $amount,
+            'room_id' => '1',
+            'user_id' => $commerceUser->id,
+            'seller_user_id' => $sellerUser->id,
+            'seller_type' => 'SELLER',
+            'room_user_id' => '1',
+            'currency_id' => $currency->id,
+            'card_count' => 1,
+            'card_price' => $amount,
+            'exchange_rate' => $rate,
+            'sale_amount' => $amount,
             'commission_amount' => 0,
-            'commerce_id'       => $commerceId,
-            'status'            => $status,
+            'commerce_id' => $commerceId,
+            'status' => $status,
         ]);
 
         $lot($this->currency, 1, 5);           // US$ 5
@@ -250,11 +141,26 @@ class DashboardContextServicesTest extends TestCase
     }
 
     /** @test */
-    public function network_health_flags_sellers_without_recent_sales(): void
+    public function customer_dashboard_context_resolves_with_expected_keys() : void
+    {
+        Auth::login($this->makeUserWithRole('customer'));
+
+        $view = app(\App\Services\Roles\ContextResolverService::class)->resolve('customer_dashboard')->toView();
+
+        $this->assertEqualsCanonicalizing(
+            ['userName', 'stats', 'upcomingRooms', 'salesTrend', 'recentActivity', 'wallets', 'period'],
+            array_keys($view),
+        );
+        $this->assertSame('US$ 0,00', $view['stats']['salesThisMonth']['value']);
+        $this->assertSame([], $view['upcomingRooms']);
+    }
+
+    /** @test */
+    public function network_health_flags_sellers_without_recent_sales() : void
     {
         $commerceUser = $this->makeCommerce();
         $activeSeller = $this->makeSeller($commerceUser);
-        $idleSeller   = $this->makeSeller($commerceUser);
+        $idleSeller = $this->makeSeller($commerceUser);
 
         BingoCardLot::create([
             'room_id' => '1', 'user_id' => $commerceUser->id, 'seller_user_id' => $activeSeller->id,
@@ -273,20 +179,75 @@ class DashboardContextServicesTest extends TestCase
         $this->assertNull($health['idle'][0]['days']); // nunca vendió
     }
 
+    /** @test */
+    public function operational_alerts_flag_stale_payments_as_critical() : void
+    {
+        $commerceUser = $this->makeCommerce();
+        $sellerUser = $this->makeSeller($commerceUser);
+
+        $payment = fn (string $createdAt) => tap(BingoCardPayment::create([
+            'payment_method' => 'mobile_payment',
+            'room_id' => '1',
+            'creator_user_id' => $commerceUser->id,
+            'seller_user_id' => $sellerUser->id,
+            'currency_id' => $this->currency->id,
+            'card_lot_id' => '1',
+            'payment_amount' => 10,
+            'payment_proof' => 'private/receipts/bingo/test.png',
+            'payment_status' => 'PENDING',
+            'transaction_reference' => uniqid('REF'),
+        ]), function(BingoCardPayment $p) use ($createdAt) {
+            // created_at no es fillable: se fija a mano para simular antigüedad.
+            $p->forceFill(['created_at' => $createdAt])->saveQuietly();
+        });
+
+        $service = app(\App\Services\Roles\Dashboard\OperationalAlertsService::class);
+        $before = collect($service->alerts())->firstWhere('code', 'payments_pending');
+
+        $payment(now()->subMinutes(10)->toDateTimeString());
+        $fresh = collect($service->alerts())->firstWhere('code', 'payments_pending');
+        $this->assertSame(($before['count'] ?? 0) + 1, $fresh['count']);
+
+        $payment(now()->subHours(3)->toDateTimeString());
+        $stale = collect($service->alerts())->firstWhere('code', 'payments_pending');
+        $this->assertSame('critical', $stale['severity']);
+        $this->assertSame('/bingo/card-payments', $stale['href']);
+    }
+
+    // ─── Player ─────────────────────────────────────────────────────────────
+
+    /** @test */
+    public function player_dashboard_context_resolves_with_expected_keys() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        Auth::login($player);
+
+        $view = app(PlayerDashboardContextService::class)->dashboardContext()->toView();
+
+        $this->assertEqualsCanonicalizing(
+            ['userName', 'stats', 'recentActivity', 'prizesWon', 'triviaActivity', 'kycStatus', 'showCrossGameBridge', 'period', 'upcomingGames'],
+            array_keys($view),
+        );
+
+        // Jugador recién creado, sin documento KYC enviado ni partidas.
+        $this->assertNull($view['kycStatus']);
+        $this->assertSame([], $view['upcomingGames']);
+    }
+
     // ─── Seller ─────────────────────────────────────────────────────────────
 
     /** @test */
-    public function seller_dashboard_context_resolves_with_expected_keys(): void
+    public function seller_dashboard_context_resolves_with_expected_keys() : void
     {
         $commerceUser = $this->makeCommerce();
-        $sellerUser   = $this->makeSeller($commerceUser);
+        $sellerUser = $this->makeSeller($commerceUser);
         Auth::login($sellerUser);
 
         $view = app(SellerDashboardContextService::class)->dashboardContext()->toView();
 
         $this->assertEqualsCanonicalizing(
             ['userName', 'commission', 'stats', 'recentActivity', 'reportsTo', 'roomCommissions', 'salesTrend', 'ranking', 'period', 'paymentReview', 'closingRooms', 'purchaseCodes', 'prizesToDeliver'],
-            array_keys($view)
+            array_keys($view),
         );
 
         // reportsTo debe resolver al Commerce recién creado (reporte directo, sin agencia).
@@ -303,23 +264,23 @@ class DashboardContextServicesTest extends TestCase
     }
 
     /** @test */
-    public function seller_pending_actions_count_only_own_payments_by_status(): void
+    public function seller_pending_actions_count_only_own_payments_by_status() : void
     {
         $commerceUser = $this->makeCommerce();
-        $sellerUser   = $this->makeSeller($commerceUser);
-        $otherSeller  = $this->makeSeller($commerceUser);
+        $sellerUser = $this->makeSeller($commerceUser);
+        $otherSeller = $this->makeSeller($commerceUser);
 
         $payment = fn (User $seller, string $status, float $amount, ?string $processedAt = null) => BingoCardPayment::create([
-            'payment_method'        => 'mobile_payment',
-            'room_id'               => '1',
-            'creator_user_id'       => $commerceUser->id,
-            'seller_user_id'        => $seller->id,
-            'currency_id'           => $this->currency->id,
-            'card_lot_id'           => '1',
-            'payment_amount'        => $amount,
-            'payment_proof'         => 'private/receipts/bingo/test.png',
-            'payment_status'        => $status,
-            'processed_at'          => $processedAt,
+            'payment_method' => 'mobile_payment',
+            'room_id' => '1',
+            'creator_user_id' => $commerceUser->id,
+            'seller_user_id' => $seller->id,
+            'currency_id' => $this->currency->id,
+            'card_lot_id' => '1',
+            'payment_amount' => $amount,
+            'payment_proof' => 'private/receipts/bingo/test.png',
+            'payment_status' => $status,
+            'processed_at' => $processedAt,
             'transaction_reference' => uniqid('REF'),
         ]);
 
@@ -339,39 +300,20 @@ class DashboardContextServicesTest extends TestCase
         $this->assertSame(['count' => 0, 'amount' => null], $view['prizesToDeliver']);
     }
 
+    // ─── SuperAdmin ─────────────────────────────────────────────────────────
+
     /** @test */
-    public function operational_alerts_flag_stale_payments_as_critical(): void
+    public function superadmin_dashboard_context_resolves_with_expected_keys() : void
     {
-        $commerceUser = $this->makeCommerce();
-        $sellerUser   = $this->makeSeller($commerceUser);
+        $superadmin = $this->makeUserWithRole('superadmin');
+        Auth::login($superadmin);
 
-        $payment = fn (string $createdAt) => tap(BingoCardPayment::create([
-            'payment_method'        => 'mobile_payment',
-            'room_id'               => '1',
-            'creator_user_id'       => $commerceUser->id,
-            'seller_user_id'        => $sellerUser->id,
-            'currency_id'           => $this->currency->id,
-            'card_lot_id'           => '1',
-            'payment_amount'        => 10,
-            'payment_proof'         => 'private/receipts/bingo/test.png',
-            'payment_status'        => 'PENDING',
-            'transaction_reference' => uniqid('REF'),
-        ]), function (BingoCardPayment $p) use ($createdAt) {
-            // created_at no es fillable: se fija a mano para simular antigüedad.
-            $p->forceFill(['created_at' => $createdAt])->saveQuietly();
-        });
+        $view = app(SuperAdminDashboardContextService::class)->dashboardContext()->toView();
 
-        $service = app(\App\Services\Roles\Dashboard\OperationalAlertsService::class);
-        $before  = collect($service->alerts())->firstWhere('code', 'payments_pending');
-
-        $payment(now()->subMinutes(10)->toDateTimeString());
-        $fresh = collect($service->alerts())->firstWhere('code', 'payments_pending');
-        $this->assertSame(($before['count'] ?? 0) + 1, $fresh['count']);
-
-        $payment(now()->subHours(3)->toDateTimeString());
-        $stale = collect($service->alerts())->firstWhere('code', 'payments_pending');
-        $this->assertSame('critical', $stale['severity']);
-        $this->assertSame('/bingo/card-payments', $stale['href']);
+        $this->assertEqualsCanonicalizing(
+            ['userName', 'stats', 'recentActivity', 'adminActivity', 'entityCounts', 'systemHealth', 'salesTrend', 'pendingWalletCount', 'allowedQuickLinks', 'period'],
+            array_keys($view),
+        );
     }
 
     // ─── Treasurer / Customer ───────────────────────────────────────────────
@@ -379,7 +321,7 @@ class DashboardContextServicesTest extends TestCase
     // inexistente (Roles/Treasurer|Customer/Dashboard/Index).
 
     /** @test */
-    public function treasurer_dashboard_context_resolves_with_expected_keys(): void
+    public function treasurer_dashboard_context_resolves_with_expected_keys() : void
     {
         Auth::login($this->makeUserWithRole('treasurer'));
 
@@ -390,38 +332,96 @@ class DashboardContextServicesTest extends TestCase
         $this->assertArrayHasKey('rates', $view['exchangeRates']);
     }
 
-    /** @test */
-    public function customer_dashboard_context_resolves_with_expected_keys(): void
+    private function makeAdmin() : User
     {
-        Auth::login($this->makeUserWithRole('customer'));
+        $user = $this->makeUserWithRole('admin');
+        $uniqueCode = $this->makeUniqueCode($user);
 
-        $view = app(\App\Services\Roles\ContextResolverService::class)->resolve('customer_dashboard')->toView();
+        Admin::create([
+            'user_id' => $user->id,
+            'unique_code_id' => $uniqueCode->id,
+            'country_id' => $this->country->id,
+            'currency_id' => $this->currency->id,
+            'status' => 'ACTIVE',
+        ]);
 
-        $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'upcomingRooms', 'salesTrend', 'recentActivity', 'wallets', 'period'],
-            array_keys($view)
-        );
-        $this->assertSame('US$ 0,00', $view['stats']['salesThisMonth']['value']);
-        $this->assertSame([], $view['upcomingRooms']);
+        return $user;
     }
 
-    // ─── Player ─────────────────────────────────────────────────────────────
-
-    /** @test */
-    public function player_dashboard_context_resolves_with_expected_keys(): void
+    private function makeCommerce() : User
     {
-        $player = $this->makeUserWithRole('player');
-        Auth::login($player);
+        $user = $this->makeUserWithRole('commerce');
+        $uniqueCode = $this->makeUniqueCode($user);
 
-        $view = app(PlayerDashboardContextService::class)->dashboardContext()->toView();
+        Commerce::create([
+            'name' => 'Comercio de prueba',
+            'country_id' => $this->country->id,
+            'phone' => '+58414' . random_int(1000000, 9999999),
+            'user_id' => $user->id,
+            'unique_code_id' => $uniqueCode->id,
+            'commission' => 5.00,
+            'status' => 'ACTIVE',
+        ]);
 
-        $this->assertEqualsCanonicalizing(
-            ['userName', 'stats', 'recentActivity', 'prizesWon', 'triviaActivity', 'kycStatus', 'showCrossGameBridge', 'period', 'upcomingGames'],
-            array_keys($view)
-        );
+        return $user;
+    }
 
-        // Jugador recién creado, sin documento KYC enviado ni partidas.
-        $this->assertNull($view['kycStatus']);
-        $this->assertSame([], $view['upcomingGames']);
+    private function makeSeller(User $manager) : User
+    {
+        $user = $this->makeUserWithRole('seller');
+
+        Seller::create([
+            'id' => $this->nextId(),
+            'name' => 'Vendedor de prueba',
+            'phone' => '+58424' . random_int(1000000, 9999999),
+            'commission' => 3.00,
+            'user_id' => $user->id,
+            'country_id' => $this->country->id,
+            'manager_user_id' => $manager->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        return $user;
+    }
+
+    private function makeUniqueCode(User $user) : UniqueCode
+    {
+        return UniqueCode::create([
+            'rke_code' => 'RKE-' . $this->nextId(),
+            'uuid_code' => (string) \Illuminate\Support\Str::uuid(),
+            'user_id' => $user->id,
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    private function makeUserWithRole(string $role) : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id]);
+        $user->assignRole($role);
+
+        return $user;
+    }
+
+    private function nextId() : string
+    {
+        return (string) (400000000000000000 + (++self::$idCounter));
+    }
+
+    // ─── Fixtures compartidas ────────────────────────────────────────────────
+
+    private function seedRoles() : void
+    {
+        foreach (['superadmin', 'admin', 'commerce', 'seller', 'player', 'treasurer', 'customer'] as $name) {
+            if (! Role::where('name', $name)->where('guard_name', 'web')->exists()) {
+                $role = new Role([
+                    'name' => $name,
+                    'guard_name' => 'web',
+                    'prefix' => $name,
+                    'type' => 'web',
+                ]);
+                $role->id = $this->nextId();
+                $role->save();
+            }
+        }
     }
 }

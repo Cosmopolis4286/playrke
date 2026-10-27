@@ -7,14 +7,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down()
+    {
+        Schema::dropIfExists('personal_access_tokens');
+    }
+
+    /**
      * Run the migrations.
-     *
-     * @return void
      */
     public function up()
     {
-        if (!Schema::hasTable('personal_access_tokens')) {
-            Schema::create('personal_access_tokens', function (Blueprint $table) {
+        if (! Schema::hasTable('personal_access_tokens')) {
+            Schema::create('personal_access_tokens', function(Blueprint $table) {
                 $table->id();
                 $table->morphs('tokenable');
                 $table->string('name');
@@ -25,15 +31,5 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::dropIfExists('personal_access_tokens');
     }
 };

@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('achievements');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('achievements', function (Blueprint $table) {
+        Schema::create('achievements', function(Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('code')->unique(); // Código único del logro
             $table->string('name'); // Nombre del logro
@@ -29,13 +37,5 @@ return new class extends Migration
             $table->index(['category', 'is_active']);
             $table->index(['is_active', 'sort_order']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('achievements');
     }
 };

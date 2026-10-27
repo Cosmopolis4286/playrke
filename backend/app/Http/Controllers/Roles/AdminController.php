@@ -20,17 +20,17 @@ class AdminController extends Controller
     /**
      * Constructor con inyección de dependencias
      */
-    public function __construct(protected AdminService $service) {}
+    public function __construct(protected AdminService $service)
+    {
+    }
 
     /**
      * Muestra el listado de comercializadoras usando Inertia.
-     *
-     * @return Response
      */
-    public function commerces(): Response
+    public function commerces() : Response
     {
         return $this->handleServiceInertia(
-            function () {
+            function() {
                 $response = $this->service->context('commerces');
 
                 $response['title'] = 'Comercializadoras';
@@ -40,19 +40,17 @@ class AdminController extends Controller
 
                 return Inertia::render('Roles/Admin/Commerce/Index', $response);
             },
-            'No se pudo cargar la lista de comercializadoras.'
+            'No se pudo cargar la lista de comercializadoras.',
         );
     }
 
     /**
      * Muestra el listado de clientes usando Inertia.
-     *
-     * @return Response
      */
-    public function customers(): Response
+    public function customers() : Response
     {
         return $this->handleServiceInertia(
-            function () {
+            function() {
                 $response = $this->service->context('customers');
 
                 $response['title'] = 'Clientes';
@@ -60,106 +58,7 @@ class AdminController extends Controller
 
                 return Inertia::render('Roles/Admin/Customer/Index', $response);
             },
-            'No se pudo cargar la lista de clientes.'
-        );
-    }
-
-    /**
-     * Muestra el listado de jugadores usando Inertia.
-     *
-     * @return Response
-     */
-    public function players(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context('players');
-
-                $response['title'] = 'Jugadores';
-                $response['openId'] = request('open');
-
-                return Inertia::render('Roles/Admin/Player/Index', $response);
-            },
-            'No se pudo cargar la lista de jugadores.'
-        );
-    }
-
-    /**
-     * Muestra el listado de vendedores usando Inertia.
-     *
-     * @return Response
-     */
-    public function sellers(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context('sellers');
-
-                $response['title'] = 'Vendedores';
-                $response['openId'] = request('open');
-
-                return Inertia::render('Roles/Seller/Manager/Index', $response);
-            },
-            'No se pudo cargar la lista de vendedores.'
-        );
-    }
-
-    /**
-     * Muestra el listado de tesoreros usando Inertia.
-     *
-     * @return Response
-     */
-    public function treasurers(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context('treasurers');
-
-                $response['title'] = 'Tesoreros';
-                $response['openId'] = request('open');
-
-                return Inertia::render('Roles/Admin/Treasurer/Index', $response);
-            },
-            'No se pudo cargar la lista de tesoreros.'
-        );
-    }
-
-    /**
-     * Muestra el listado de sucursales usando Inertia.
-     *
-     * @return Response
-     */
-    public function subsidiaries(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context('subsidiaries');
-
-                $response['title'] = 'Sucursales';
-                $response['openId'] = request('open');
-
-                return Inertia::render('Roles/Admin/Subsidiary/Index', $response);
-            },
-            'No se pudo cargar la lista de sucursales.'
-        );
-    }
-
-    /**
-     * Muestra el listado de todos los usuarios usando Inertia.
-     *
-     * @return Response
-     */
-    public function users(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context('users');
-
-                $response['title'] = 'Usuarios';
-
-                return Inertia::render('Roles/Admin/User/Index', $response);
-            },
-            'No se pudo cargar la lista de usuarios.'
+            'No se pudo cargar la lista de clientes.',
         );
     }
 
@@ -168,10 +67,98 @@ class AdminController extends Controller
      *
      * @param string $userRole Rol del usuario (commerce, customer, treasurer...)
      * @param string $exclude  Modelo a excluir (opcional)
-     * @return JsonResponse
      */
-    public function getUserInfo(string $userRole, string $exclude = ''): JsonResponse
+    public function getUserInfo(string $userRole, string $exclude = '') : JsonResponse
     {
         return $this->service->getUserInfo($userRole, $exclude);
+    }
+
+    /**
+     * Muestra el listado de jugadores usando Inertia.
+     */
+    public function players() : Response
+    {
+        return $this->handleServiceInertia(
+            function() {
+                $response = $this->service->context('players');
+
+                $response['title'] = 'Jugadores';
+                $response['openId'] = request('open');
+
+                return Inertia::render('Roles/Admin/Player/Index', $response);
+            },
+            'No se pudo cargar la lista de jugadores.',
+        );
+    }
+
+    /**
+     * Muestra el listado de vendedores usando Inertia.
+     */
+    public function sellers() : Response
+    {
+        return $this->handleServiceInertia(
+            function() {
+                $response = $this->service->context('sellers');
+
+                $response['title'] = 'Vendedores';
+                $response['openId'] = request('open');
+
+                return Inertia::render('Roles/Seller/Manager/Index', $response);
+            },
+            'No se pudo cargar la lista de vendedores.',
+        );
+    }
+
+    /**
+     * Muestra el listado de sucursales usando Inertia.
+     */
+    public function subsidiaries() : Response
+    {
+        return $this->handleServiceInertia(
+            function() {
+                $response = $this->service->context('subsidiaries');
+
+                $response['title'] = 'Sucursales';
+                $response['openId'] = request('open');
+
+                return Inertia::render('Roles/Admin/Subsidiary/Index', $response);
+            },
+            'No se pudo cargar la lista de sucursales.',
+        );
+    }
+
+    /**
+     * Muestra el listado de tesoreros usando Inertia.
+     */
+    public function treasurers() : Response
+    {
+        return $this->handleServiceInertia(
+            function() {
+                $response = $this->service->context('treasurers');
+
+                $response['title'] = 'Tesoreros';
+                $response['openId'] = request('open');
+
+                return Inertia::render('Roles/Admin/Treasurer/Index', $response);
+            },
+            'No se pudo cargar la lista de tesoreros.',
+        );
+    }
+
+    /**
+     * Muestra el listado de todos los usuarios usando Inertia.
+     */
+    public function users() : Response
+    {
+        return $this->handleServiceInertia(
+            function() {
+                $response = $this->service->context('users');
+
+                $response['title'] = 'Usuarios';
+
+                return Inertia::render('Roles/Admin/User/Index', $response);
+            },
+            'No se pudo cargar la lista de usuarios.',
+        );
     }
 }

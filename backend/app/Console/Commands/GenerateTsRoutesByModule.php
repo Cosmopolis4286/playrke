@@ -2,16 +2,16 @@
 
 namespace App\Console\Commands;
 
+use DateTime;
+use DateTimeZone;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Route;
 
 class GenerateTsRoutesByModule extends Command
 {
-    protected $signature = 'make:ts-routes-modules';
     protected $description = 'Genera archivos TS separados por módulo (prefix) con rutas';
 
-    /** @var Filesystem */
     protected Filesystem $fs;
 
     /** Lista de módulos/prefijos a generar */
@@ -43,11 +43,12 @@ class GenerateTsRoutesByModule extends Command
         'treasurer',
         'wallet',
     ];
+    protected $signature = 'make:ts-routes-modules';
 
     public function __construct()
     {
         parent::__construct();
-        $this->fs = new Filesystem();
+        $this->fs = new Filesystem;
     }
 
     /**
@@ -61,12 +62,13 @@ class GenerateTsRoutesByModule extends Command
             $varName = $this->kebabToCamelCase($prefix) . 'Routes';
 
             $filtered = $routes
-                ->filter(fn($route) => $this->uriStartsWithPrefix($route->uri(), $prefix))
-                ->mapWithKeys(fn($route) => $this->mapRoute($route, $prefix))
+                ->filter(fn ($route) => $this->uriStartsWithPrefix($route->uri(), $prefix))
+                ->mapWithKeys(fn ($route) => $this->mapRoute($route, $prefix))
                 ->toArray();
 
             if (empty($filtered)) {
                 $this->warn("No se encontraron rutas para el módulo '{$prefix}'");
+
                 continue;
             }
 
@@ -81,38 +83,44 @@ class GenerateTsRoutesByModule extends Command
     }
 
     /**
-     * Convierte un string kebab-case a camelCase.
+     * Genera el contenido del archivo TS con solo la constante exportada,
+     * con claves sin comillas y valores entre comillas dobles.
      *
-     * @param string $string
-     * @return string
+     * @param array<string, string> $routes
      */
-    protected function kebabToCamelCase(string $string): string
+    protected function generateTsFileContent(string $varName, array $routes) : string
+    {
+        $lines = [];
+        foreach ($routes as $key => $value) {
+            // Escapa comillas dobles dentro del valor si existieran (normalmente no)
+            $escapedValue = addslashes($value);
+            $lines[] = "  {$key}: \"{$escapedValue}\",";
+        }
+        $objectBody = implode("\n", $lines);
+
+        $date = (new DateTime('now', new DateTimeZone('GMT')))->format('Y-m-d\TH:i:s\Z');
+
+        return <<<TS
+        // ======================================================
+        // Archivo: resources/js/routes/{$varName}.ts
+        // Descripción: Rutas del módulo {$varName}
+        // Fecha de actualización (GMT): {$date}
+        // Generado automáticamente con make:ts-routes-modules
+        // ======================================================
+
+        export const {$varName} = {
+        {$objectBody}
+        } as const;
+
+        TS;
+    }
+
+    /**
+     * Convierte un string kebab-case a camelCase.
+     */
+    protected function kebabToCamelCase(string $string) : string
     {
         return lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $string))));
-    }
-
-    /**
-     * Convierte snake_case o kebab-case a camelCase.
-     *
-     * @param string $string
-     * @return string
-     */
-    protected function toCamelCase(string $string): string
-    {
-        $string = str_replace(['-', '_'], ' ', $string);
-        return lcfirst(str_replace(' ', '', ucwords($string)));
-    }
-
-    /**
-     * Verifica si la URI comienza con el prefijo o es igual.
-     *
-     * @param string $uri
-     * @param string $prefix
-     * @return bool
-     */
-    protected function uriStartsWithPrefix(string $uri, string $prefix): bool
-    {
-        return $uri === $prefix || str_starts_with($uri, "{$prefix}/");
     }
 
     /**
@@ -120,14 +128,14 @@ class GenerateTsRoutesByModule extends Command
      * Quita el prefijo del nombre si corresponde y convierte a camelCase.
      *
      * @param \Illuminate\Routing\Route $route
-     * @param string $prefix
+     *
      * @return array<string, string>
      */
-    protected function mapRoute($route, string $prefix): array
+    protected function mapRoute($route, string $prefix) : array
     {
         $name = $route->getName();
 
-        if (!$name) {
+        if (! $name) {
             // Si no hay nombre, generar uno desde URI, pero quitando prefijo y slash
             $uri = $route->uri();
             if ($this->uriStartsWithPrefix($uri, $prefix)) {
@@ -150,37 +158,20 @@ class GenerateTsRoutesByModule extends Command
     }
 
     /**
-     * Genera el contenido del archivo TS con solo la constante exportada,
-     * con claves sin comillas y valores entre comillas dobles.
-     *
-     * @param string $varName
-     * @param array<string, string> $routes
-     * @return string
+     * Convierte snake_case o kebab-case a camelCase.
      */
-    protected function generateTsFileContent(string $varName, array $routes): string
+    protected function toCamelCase(string $string) : string
     {
-        $lines = [];
-        foreach ($routes as $key => $value) {
-            // Escapa comillas dobles dentro del valor si existieran (normalmente no)
-            $escapedValue = addslashes($value);
-            $lines[] = "  {$key}: \"{$escapedValue}\",";
-        }
-        $objectBody = implode("\n", $lines);
+        $string = str_replace(['-', '_'], ' ', $string);
 
-        $date = (new \DateTime('now', new \DateTimeZone('GMT')))->format('Y-m-d\TH:i:s\Z');
+        return lcfirst(str_replace(' ', '', ucwords($string)));
+    }
 
-        return <<<TS
-        // ======================================================
-        // Archivo: resources/js/routes/{$varName}.ts
-        // Descripción: Rutas del módulo {$varName}
-        // Fecha de actualización (GMT): {$date}
-        // Generado automáticamente con make:ts-routes-modules
-        // ======================================================
-
-        export const {$varName} = {
-        {$objectBody}
-        } as const;
-
-        TS;
+    /**
+     * Verifica si la URI comienza con el prefijo o es igual.
+     */
+    protected function uriStartsWithPrefix(string $uri, string $prefix) : bool
+    {
+        return $uri === $prefix || str_starts_with($uri, "{$prefix}/");
     }
 }

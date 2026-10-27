@@ -13,7 +13,7 @@ use Illuminate\Database\Seeder;
  */
 class LandingSectionSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $sections = [
             [
@@ -125,7 +125,7 @@ class LandingSectionSeeder extends Seeder
                     'sort_order' => $section['sort_order'],
                     'status' => 'ACTIVE',
                     'is_removable' => false,
-                ]
+                ],
             );
         }
     }

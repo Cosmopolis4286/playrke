@@ -18,8 +18,16 @@ interface WinEventDetailResolver
 {
     public const TAG = 'win-event.detail-resolvers';
 
+    /**
+     * Claves de metadata ya representadas en las secciones — se omiten del
+     * bloque genérico "Datos adicionales" para no duplicar información.
+     *
+     * @return string[]
+     */
+    public function consumedMetadataKeys() : array;
+
     /** game_slug que atiende este resolver (el mismo que se pasa a WinEventService). */
-    public function gameSlug(): string;
+    public function gameSlug() : string;
 
     /**
      * Secciones de detalle del juego a partir de source_reference/metadata.
@@ -27,13 +35,5 @@ interface WinEventDetailResolver
      *
      * @return WinEventDetailSection[]
      */
-    public function resolve(WinEvent $winEvent): array;
-
-    /**
-     * Claves de metadata ya representadas en las secciones — se omiten del
-     * bloque genérico "Datos adicionales" para no duplicar información.
-     *
-     * @return string[]
-     */
-    public function consumedMetadataKeys(): array;
+    public function resolve(WinEvent $winEvent) : array;
 }

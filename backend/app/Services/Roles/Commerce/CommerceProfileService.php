@@ -34,21 +34,10 @@ final class CommerceProfileService
         private readonly AdminProfileAccessService $adminAccess,
         private readonly RoleProfileEnrichmentService $enrichment,
         private readonly Insights $insights,
-    ) {}
-
-    private function ownCommerceOrFail(?string $targetUserId = null): Commerce
-    {
-        $actorId = $this->userContext->resolveUserId();
-        $access = $this->adminAccess->resolve($actorId, $targetUserId);
-
-        $commerce = Commerce::where('user_id', $access['owner_user_id'])->first();
-
-        abort_if(!$commerce, 404, 'No se encontró un comercio asociado a este usuario.');
-
-        return $commerce;
+    ) {
     }
 
-    public function showOwn(?string $targetUserId = null): array
+    public function showOwn(?string $targetUserId = null) : array
     {
         $commerce = $this->ownCommerceOrFail($targetUserId);
         $commerce->load(['country:id,name', 'user:id,username,email']);
@@ -77,22 +66,22 @@ final class CommerceProfileService
             ->orWhere(fn (Builder $legacy) => $legacy->whereNull('commerce_id')->whereIn('seller_user_id', $networkUserIds));
 
         return [
-            'role'         => 'commerce',
-            'id'           => $commerce->hashed_id,
-            'name'         => $commerce->name,
-            'phone'        => $commerce->phone,
-            'status'       => $commerce->status,
+            'role' => 'commerce',
+            'id' => $commerce->hashed_id,
+            'name' => $commerce->name,
+            'phone' => $commerce->phone,
+            'status' => $commerce->status,
             'status_badge' => $commerce->status_badge,
-            'country'      => $commerce->country?->name,
-            'user'         => ['username' => $commerce->user->username, 'email' => $commerce->user->email],
-            'commission'   => $rate,
+            'country' => $commerce->country?->name,
+            'user' => ['username' => $commerce->user->username, 'email' => $commerce->user->email],
+            'commission' => $rate,
 
             'network' => [
-                'subsidiaries_count'   => $subsidiaries->count(),
-                'sellers_count'        => $sellersCount,
+                'subsidiaries_count' => $subsidiaries->count(),
+                'sellers_count' => $sellersCount,
                 'direct_sellers_count' => $directSellers->count(),
-                'subsidiaries'         => $this->subsidiaryRows($subsidiaries),
-                'top_sellers'          => $this->topSellers($networkUserIds),
+                'subsidiaries' => $this->subsidiaryRows($subsidiaries),
+                'top_sellers' => $this->topSellers($networkUserIds),
             ],
 
             // Regla de cobro en cascada: la comercializadora cobra Z − max(X, Y)
@@ -103,20 +92,20 @@ final class CommerceProfileService
                 ],
                 'children_rate_range' => $this->rateRange(
                     $subsidiaries->pluck('commission')->filter(fn ($r) => (float) $r > 0)
-                        ->merge($directSellers->pluck('commission'))
+                        ->merge($directSellers->pluck('commission')),
                 ),
             ],
 
             'currencies' => $commerce->currenciesActive()->pluck('iso_code')->all(),
-            'games'      => $commerce->gamesActive()->pluck('name')->all(),
+            'games' => $commerce->gamesActive()->pluck('name')->all(),
 
-            'performance'      => $this->insights->performance($lotScope, 'commerce_commission_amount'),
-            'receivables'      => $this->pendingReceivables((string) $commerce->user_id),
-            'alerts'           => $this->alerts($commerce, $subsidiaries, $directSellers, $sellersCount),
-            'security'         => $this->insights->security((string) $commerce->user_id),
-            'wallets'          => $this->enrichment->wallets($commerce->user),
+            'performance' => $this->insights->performance($lotScope, 'commerce_commission_amount'),
+            'receivables' => $this->pendingReceivables((string) $commerce->user_id),
+            'alerts' => $this->alerts($commerce, $subsidiaries, $directSellers, $sellersCount),
+            'security' => $this->insights->security((string) $commerce->user_id),
+            'wallets' => $this->enrichment->wallets($commerce->user),
             'recent_movements' => $this->enrichment->recentMovements($commerce->user),
-            'account_meta'     => $this->enrichment->accountMeta((string) $commerce->user_id),
+            'account_meta' => $this->enrichment->accountMeta((string) $commerce->user_id),
         ];
     }
 
@@ -128,15 +117,97 @@ final class CommerceProfileService
      *
      * @param array{name?: string, phone?: string} $data
      */
-    public function updateOwn(array $data, ?string $targetUserId = null): void
+    public function updateOwn(array $data, ?string $targetUserId = null) : void
     {
         $commerce = $this->ownCommerceOrFail($targetUserId);
         $commerce->update(array_intersect_key($data, array_flip(['name', 'phone'])));
     }
 
+    private function alerts(Commerce $commerce, $subsidiaries, $directSellers, int $sellersCount) : array
+    {
+        $alerts = [];
+        $rate = (float) $commerce->commission;
+
+        if ($commerce->status !== 'ACTIVE') {
+            $alerts[] = Insights::alert(
+                'danger',
+                'fa-ban',
+                'Comercio no activo',
+                'Tu comercializadora está ' . strtolower($commerce->status) . ': ni tú ni tu red pueden vender. Contacta a soporte.',
+            );
+        }
+
+        $agenciesAbove = $subsidiaries->filter(fn ($s) => (float) $s->commission > $rate + 0.001)->count();
+        $sellersAbove = $directSellers->filter(fn ($s) => (float) $s->commission > $rate + 0.001)->count();
+
+        if ($agenciesAbove + $sellersAbove > 0) {
+            $alerts[] = Insights::alert(
+                'warning',
+                'fa-scale-unbalanced',
+                'Comisiones por encima de la tuya',
+                sprintf('%d agencia(s) y %d vendedor(es) directo(s) tienen comisión mayor a tu %s%%: no recibes margen sobre sus ventas.', $agenciesAbove, $sellersAbove, rtrim(rtrim(number_format($rate, 2), '0'), '.')),
+                'Revisar vendedores',
+                '/sellers',
+            );
+        }
+
+        if ($sellersCount === 0) {
+            $alerts[] = Insights::alert(
+                'info',
+                'fa-user-plus',
+                'Aún no tienes vendedores',
+                'Crea tu primer vendedor (taquilla) para empezar a vender cartones a jugadores.',
+                'Crear vendedor',
+                '/sellers',
+            );
+        }
+
+        return $alerts;
+    }
+
+    private function ownCommerceOrFail(?string $targetUserId = null) : Commerce
+    {
+        $actorId = $this->userContext->resolveUserId();
+        $access = $this->adminAccess->resolve($actorId, $targetUserId);
+
+        $commerce = Commerce::where('user_id', $access['owner_user_id'])->first();
+
+        abort_if(! $commerce, 404, 'No se encontró un comercio asociado a este usuario.');
+
+        return $commerce;
+    }
+
+    /**
+     * Deuda pendiente con la plataforma por ventas fuera del sistema (RKE +
+     * jackpot + bote que el comercio cobró en mano — ver PlatformReceivable).
+     */
+    private function pendingReceivables(string $userId) : array
+    {
+        $rows = PlatformReceivable::where('debtor_user_id', $userId)
+            ->where('status', PlatformReceivable::STATUS_PENDING)
+            ->groupBy('currency_id')
+            ->get(['currency_id', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as items')]);
+
+        $currencies = Currency::whereIn('id', $rows->pluck('currency_id'))->get(['id', 'iso_code', 'symbol'])->keyBy(fn ($c) => (string) $c->id);
+
+        return $rows->map(fn ($row) => [
+            'currency' => $currencies[(string) $row->currency_id]->iso_code ?? '—',
+            'symbol' => $currencies[(string) $row->currency_id]->symbol ?? '',
+            'amount' => round((float) $row->total, 2),
+            'items' => (int) $row->items,
+        ])->values()->all();
+    }
+
+    private function rateRange($rates) : ?array
+    {
+        $rates = collect($rates)->map(fn ($r) => (float) $r);
+
+        return $rates->isEmpty() ? null : ['min' => $rates->min(), 'max' => $rates->max()];
+    }
+
     // -------------------------------------------------------------------------
 
-    private function subsidiaryRows($subsidiaries): array
+    private function subsidiaryRows($subsidiaries) : array
     {
         $sellerUserIdsBySubsidiary = Seller::whereIn('subsidiary_id', $subsidiaries->pluck('id'))
             ->get(['subsidiary_id', 'user_id'])
@@ -147,11 +218,11 @@ final class CommerceProfileService
 
         return $subsidiaries
             ->map(fn (Subsidiary $s) => [
-                'name'          => $s->name,
-                'commission'    => (float) $s->commission,
-                'status'        => $s->status,
+                'name' => $s->name,
+                'commission' => (float) $s->commission,
+                'status' => $s->status,
                 'sellers_count' => (int) $s->sellers_count,
-                'month_cards'   => array_sum(array_intersect_key($monthCards, array_flip($sellerUserIdsBySubsidiary[(string) $s->id] ?? []))),
+                'month_cards' => array_sum(array_intersect_key($monthCards, array_flip($sellerUserIdsBySubsidiary[(string) $s->id] ?? []))),
             ])
             ->sortByDesc('month_cards')
             ->take(self::NETWORK_LIST_LIMIT)
@@ -160,7 +231,7 @@ final class CommerceProfileService
     }
 
     /** @param string[] $networkUserIds */
-    private function topSellers(array $networkUserIds): array
+    private function topSellers(array $networkUserIds) : array
     {
         $monthCards = $this->insights->monthCardsBySeller($networkUserIds);
         arsort($monthCards);
@@ -178,67 +249,11 @@ final class CommerceProfileService
         return collect($top)
             ->filter(fn ($cards, $userId) => $sellers->has($userId))
             ->map(fn ($cards, $userId) => [
-                'name'       => $sellers[$userId]->name,
+                'name' => $sellers[$userId]->name,
                 'subsidiary' => $sellers[$userId]->subsidiary?->name,
-                'cards'      => $cards,
+                'cards' => $cards,
             ])
             ->values()
             ->all();
-    }
-
-    private function rateRange($rates): ?array
-    {
-        $rates = collect($rates)->map(fn ($r) => (float) $r);
-
-        return $rates->isEmpty() ? null : ['min' => $rates->min(), 'max' => $rates->max()];
-    }
-
-    /**
-     * Deuda pendiente con la plataforma por ventas fuera del sistema (RKE +
-     * jackpot + bote que el comercio cobró en mano — ver PlatformReceivable).
-     */
-    private function pendingReceivables(string $userId): array
-    {
-        $rows = PlatformReceivable::where('debtor_user_id', $userId)
-            ->where('status', PlatformReceivable::STATUS_PENDING)
-            ->groupBy('currency_id')
-            ->get(['currency_id', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as items')]);
-
-        $currencies = Currency::whereIn('id', $rows->pluck('currency_id'))->get(['id', 'iso_code', 'symbol'])->keyBy(fn ($c) => (string) $c->id);
-
-        return $rows->map(fn ($row) => [
-            'currency' => $currencies[(string) $row->currency_id]->iso_code ?? '—',
-            'symbol'   => $currencies[(string) $row->currency_id]->symbol ?? '',
-            'amount'   => round((float) $row->total, 2),
-            'items'    => (int) $row->items,
-        ])->values()->all();
-    }
-
-    private function alerts(Commerce $commerce, $subsidiaries, $directSellers, int $sellersCount): array
-    {
-        $alerts = [];
-        $rate = (float) $commerce->commission;
-
-        if ($commerce->status !== 'ACTIVE') {
-            $alerts[] = Insights::alert('danger', 'fa-ban', 'Comercio no activo',
-                'Tu comercializadora está ' . strtolower($commerce->status) . ': ni tú ni tu red pueden vender. Contacta a soporte.');
-        }
-
-        $agenciesAbove = $subsidiaries->filter(fn ($s) => (float) $s->commission > $rate + 0.001)->count();
-        $sellersAbove  = $directSellers->filter(fn ($s) => (float) $s->commission > $rate + 0.001)->count();
-
-        if ($agenciesAbove + $sellersAbove > 0) {
-            $alerts[] = Insights::alert('warning', 'fa-scale-unbalanced', 'Comisiones por encima de la tuya',
-                sprintf('%d agencia(s) y %d vendedor(es) directo(s) tienen comisión mayor a tu %s%%: no recibes margen sobre sus ventas.', $agenciesAbove, $sellersAbove, rtrim(rtrim(number_format($rate, 2), '0'), '.')),
-                'Revisar vendedores', '/sellers');
-        }
-
-        if ($sellersCount === 0) {
-            $alerts[] = Insights::alert('info', 'fa-user-plus', 'Aún no tienes vendedores',
-                'Crea tu primer vendedor (taquilla) para empezar a vender cartones a jugadores.',
-                'Crear vendedor', '/sellers');
-        }
-
-        return $alerts;
     }
 }

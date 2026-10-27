@@ -9,11 +9,10 @@ use Throwable;
 
 class GenerateBingoRoomsCommand extends Command
 {
+    protected $description = 'Crea nuevas salas de bingo a partir de plantillas automáticas activas';
     protected $signature = 'generate:bingo-rooms';
 
-    protected $description = 'Crea nuevas salas de bingo a partir de plantillas automáticas activas';
-
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -26,7 +25,7 @@ class GenerateBingoRoomsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

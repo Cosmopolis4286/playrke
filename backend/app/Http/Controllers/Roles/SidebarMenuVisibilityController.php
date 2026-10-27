@@ -21,51 +21,52 @@ final class SidebarMenuVisibilityController extends Controller
 {
     public function __construct(
         protected readonly SidebarMenuVisibilityService $service,
-    ) {}
-
-    /**
-     * Mostrar la página de gestión de visibilidad del sidebar.
-     */
-    public function index(): Response
-    {
-        $this->authorize('viewAny', SidebarMenuVisibility::class);
-
-        return Inertia::render('Roles/Admin/SidebarMenu/Index', [
-            'items'      => $this->service->getMenuItems(),
-            'roles'      => $this->service->getRoles(),
-            'visibility' => $this->service->getVisibilityMatrix(),
-            'sortOrder'  => $this->service->getSortOrderMatrix(),
-        ]);
+    ) {
     }
 
     /**
      * Contexto completo para la matriz (recarga sin reload de página).
      */
-    public function fetchList(): JsonResponse
+    public function fetchList() : JsonResponse
     {
         $this->authorize('viewAny', SidebarMenuVisibility::class);
 
         return response()->json([
-            'items'      => $this->service->getMenuItems(),
-            'roles'      => $this->service->getRoles(),
+            'items' => $this->service->getMenuItems(),
+            'roles' => $this->service->getRoles(),
             'visibility' => $this->service->getVisibilityMatrix(),
-            'sortOrder'  => $this->service->getSortOrderMatrix(),
+            'sortOrder' => $this->service->getSortOrderMatrix(),
+        ]);
+    }
+
+    /**
+     * Mostrar la página de gestión de visibilidad del sidebar.
+     */
+    public function index() : Response
+    {
+        $this->authorize('viewAny', SidebarMenuVisibility::class);
+
+        return Inertia::render('Roles/Admin/SidebarMenu/Index', [
+            'items' => $this->service->getMenuItems(),
+            'roles' => $this->service->getRoles(),
+            'visibility' => $this->service->getVisibilityMatrix(),
+            'sortOrder' => $this->service->getSortOrderMatrix(),
         ]);
     }
 
     /**
      * Guardar un lote de cambios de visibilidad y/o orden.
      */
-    public function saveChanges(Request $request): JsonResponse
+    public function saveChanges(Request $request) : JsonResponse
     {
         $this->authorize('manage', SidebarMenuVisibility::class);
 
         $validated = $request->validate([
-            'changes'                 => 'required|array',
-            'changes.*.item_key'      => 'required|string',
-            'changes.*.role_id'       => 'required|string|exists:roles,id',
-            'changes.*.is_visible'    => 'sometimes|boolean',
-            'changes.*.sort_order'    => 'sometimes|nullable|integer',
+            'changes' => 'required|array',
+            'changes.*.item_key' => 'required|string',
+            'changes.*.role_id' => 'required|string|exists:roles,id',
+            'changes.*.is_visible' => 'sometimes|boolean',
+            'changes.*.sort_order' => 'sometimes|nullable|integer',
         ]);
 
         $this->service->applyChanges($validated['changes']);

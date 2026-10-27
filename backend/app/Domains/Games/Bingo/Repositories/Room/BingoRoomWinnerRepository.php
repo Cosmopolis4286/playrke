@@ -3,8 +3,8 @@
 namespace App\Domains\Games\Bingo\Repositories\Room;
 
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomWinner;
-use App\Repositories\BaseRepository;
 use App\Domains\Games\Bingo\Repositories\Room\Contracts\BingoRoomWinnerRepositoryContract;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -14,8 +14,6 @@ class BingoRoomWinnerRepository extends BaseRepository implements BingoRoomWinne
 {
     /**
      * Constructor del repository
-     *
-     * @param BingoRoomWinner $model
      */
     public function __construct(BingoRoomWinner $model)
     {
@@ -23,84 +21,11 @@ class BingoRoomWinnerRepository extends BaseRepository implements BingoRoomWinne
     }
 
     /**
-     * Obtiene ganadores por sala
-     *
-     * @param mixed $roomId ID de la sala
-     * @return Collection
-     */
-    public function getByRoom($roomId): Collection
-    {
-        return $this->model->where('room_id', $roomId)->get();
-    }
-
-    /**
-     * Obtiene ganadores por ronda
-     *
-     * @param mixed $roundId ID de la ronda
-     * @return Collection
-     */
-    public function getByRound($roundId): Collection
-    {
-        return $this->model->where('round_id', $roundId)->get();
-    }
-
-    /**
-     * Obtiene ganadores por jugador (room_user)
-     *
-     * @param mixed $roomUserId ID del jugador en sala
-     * @return Collection
-     */
-    public function getByRoomUser($roomUserId): Collection
-    {
-        return $this->model->where('room_user_id', $roomUserId)->get();
-    }
-
-    /**
-     * Obtiene ganadores por estado de pago
-     *
-     * @param string $awardStatus Estado del premio ('WAITING', 'PAID')
-     * @return Collection
-     */
-    public function getByAwardStatus(string $awardStatus): Collection
-    {
-        return $this->model->where('award_status', $awardStatus)->get();
-    }
-
-    /**
-     * Obtiene ganadores por sala y estado
-     *
-     * @param mixed $roomId ID de la sala
-     * @param string $awardStatus Estado del premio
-     * @return Collection
-     */
-    public function getByRoomAndStatus($roomId, string $awardStatus): Collection
-    {
-        return $this->model->where('room_id', $roomId)
-            ->where('award_status', $awardStatus)
-            ->get();
-    }
-
-    /**
-     * Obtiene ganadores por ronda y estado
-     *
-     * @param mixed $roundId ID de la ronda
-     * @param string $awardStatus Estado del premio
-     * @return Collection
-     */
-    public function getByRoundAndStatus($roundId, string $awardStatus): Collection
-    {
-        return $this->model->where('round_id', $roundId)
-            ->where('award_status', $awardStatus)
-            ->get();
-    }
-
-    /**
      * Cuenta ganadores por sala
      *
      * @param mixed $roomId ID de la sala
-     * @return int
      */
-    public function countByRoom($roomId): int
+    public function countByRoom($roomId) : int
     {
         return $this->model->where('room_id', $roomId)->count();
     }
@@ -109,9 +34,8 @@ class BingoRoomWinnerRepository extends BaseRepository implements BingoRoomWinne
      * Cuenta ganadores por ronda
      *
      * @param mixed $roundId ID de la ronda
-     * @return int
      */
-    public function countByRound($roundId): int
+    public function countByRound($roundId) : int
     {
         return $this->model->where('round_id', $roundId)->count();
     }
@@ -120,49 +44,113 @@ class BingoRoomWinnerRepository extends BaseRepository implements BingoRoomWinne
      * Cuenta ganadores por estado
      *
      * @param string $awardStatus Estado del premio
-     * @return int
      */
-    public function countByStatus(string $awardStatus): int
+    public function countByStatus(string $awardStatus) : int
     {
         return $this->model->where('award_status', $awardStatus)->count();
     }
 
     /**
-     * Actualiza estado de premio
+     * Obtiene ganadores por estado de pago
      *
-     * @param mixed $id ID del ganador
-     * @param string $awardStatus Nuevo estado
-     * @return bool
+     * @param string $awardStatus Estado del premio ('WAITING', 'PAID')
      */
-    public function updateAwardStatus($id, string $awardStatus): bool
+    public function getByAwardStatus(string $awardStatus) : Collection
     {
-        return $this->model->where('id', $id)
-            ->update(['award_status' => $awardStatus]) > 0;
+        return $this->model->where('award_status', $awardStatus)->get();
     }
 
     /**
-     * Marca múltiples ganadores como pagados
+     * Obtiene ganadores por sala
      *
-     * @param array $ids Array de IDs de ganadores
-     * @return int Número de registros actualizados
+     * @param mixed $roomId ID de la sala
      */
-    public function markAsPaid(array $ids): int
+    public function getByRoom($roomId) : Collection
     {
-        return $this->model->whereIn('id', $ids)
-            ->update(['award_status' => 'PAID']);
+        return $this->model->where('room_id', $roomId)->get();
+    }
+
+    /**
+     * Obtiene ganadores por sala y estado
+     *
+     * @param mixed  $roomId      ID de la sala
+     * @param string $awardStatus Estado del premio
+     */
+    public function getByRoomAndStatus($roomId, string $awardStatus) : Collection
+    {
+        return $this->model->where('room_id', $roomId)
+            ->where('award_status', $awardStatus)
+            ->get();
+    }
+
+    /**
+     * Obtiene ganadores por jugador (room_user)
+     *
+     * @param mixed $roomUserId ID del jugador en sala
+     */
+    public function getByRoomUser($roomUserId) : Collection
+    {
+        return $this->model->where('room_user_id', $roomUserId)->get();
+    }
+
+    /**
+     * Obtiene ganadores por ronda
+     *
+     * @param mixed $roundId ID de la ronda
+     */
+    public function getByRound($roundId) : Collection
+    {
+        return $this->model->where('round_id', $roundId)->get();
+    }
+
+    /**
+     * Obtiene ganadores por ronda y estado
+     *
+     * @param mixed  $roundId     ID de la ronda
+     * @param string $awardStatus Estado del premio
+     */
+    public function getByRoundAndStatus($roundId, string $awardStatus) : Collection
+    {
+        return $this->model->where('round_id', $roundId)
+            ->where('award_status', $awardStatus)
+            ->get();
     }
 
     /**
      * Verifica si un jugador ya ganó en una ronda
      *
      * @param mixed $roomUserId ID del jugador en sala
-     * @param mixed $roundId ID de la ronda
-     * @return bool
+     * @param mixed $roundId    ID de la ronda
      */
-    public function hasWonInRound($roomUserId, $roundId): bool
+    public function hasWonInRound($roomUserId, $roundId) : bool
     {
         return $this->model->where('room_user_id', $roomUserId)
             ->where('round_id', $roundId)
             ->exists();
+    }
+
+    /**
+     * Marca múltiples ganadores como pagados
+     *
+     * @param array $ids Array de IDs de ganadores
+     *
+     * @return int Número de registros actualizados
+     */
+    public function markAsPaid(array $ids) : int
+    {
+        return $this->model->whereIn('id', $ids)
+            ->update(['award_status' => 'PAID']);
+    }
+
+    /**
+     * Actualiza estado de premio
+     *
+     * @param mixed  $id          ID del ganador
+     * @param string $awardStatus Nuevo estado
+     */
+    public function updateAwardStatus($id, string $awardStatus) : bool
+    {
+        return $this->model->where('id', $id)
+            ->update(['award_status' => $awardStatus]) > 0;
     }
 }

@@ -8,7 +8,7 @@ use Tests\TestCase;
 
 class BingoPublicBroadcastSecurityTest extends TestCase
 {
-    public function test_game_ended_public_payload_does_not_expose_winner_or_card_details(): void
+    public function test_game_ended_public_payload_does_not_expose_winner_or_card_details() : void
     {
         $event = new BingoGameEnded(
             roomId: 123,
@@ -38,7 +38,7 @@ class BingoPublicBroadcastSecurityTest extends TestCase
         $this->assertStringNotContainsString('SERIAL-SECRET', json_encode($payload));
     }
 
-    public function test_winner_declared_public_payload_does_not_identify_the_winner(): void
+    public function test_winner_declared_public_payload_does_not_identify_the_winner() : void
     {
         $event = new BingoWinnerDeclared(
             roomId: 123,

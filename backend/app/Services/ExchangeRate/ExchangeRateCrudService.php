@@ -8,8 +8,8 @@ use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Exceptions\Domain\Roles\RoleResolutionException;
-use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
+use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Models\ExchangeRate;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
@@ -27,8 +27,6 @@ use Illuminate\Support\Facades\Log;
  * - Delegar operaciones a repositorios según rol
  *
  * NO maneja autenticación ni lógica HTTP.
- *
- * @final
  */
 final class ExchangeRateCrudService
 {
@@ -42,26 +40,50 @@ final class ExchangeRateCrudService
         private readonly RoleUserService $roleUserService,
         private readonly RoleEntityResolver $roleEntityResolver,
         private readonly ExchangeRateDeviationCap $deviationCap,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Alternar estado activo/inactivo.
+     *
+     * @throws RoleResolutionException
+     */
+    public function changeStatusByRole(string $id, int $userId) : bool
+    {
+        [$repo, $role] = $this->resolveContext($userId);
+
+        $model = $repo->findOrFail($id);
+
+        // Activar una tasa propia que hoy queda fuera del tope tampoco se permite.
+        if (! in_array($role, ['admin', 'superadmin', 'treasurer'], true) && $model->status !== 'ACTIVE') {
+            $this->deviationCap->assert($model->currency_id, (float) $model->amount);
+        }
+
+        $result = $repo->toggleStatus($model);
+
+        $this->forgetActiveRateCache($model->currency_id);
+
+        return $result;
+    }
 
     /**
      * Crear una tasa de cambio para el rol activo.
      *
      * @throws RoleResolutionException
      */
-    public function create(ExchangeRateDTO $dto, int $userId): bool
+    public function create(ExchangeRateDTO $dto, int $userId) : bool
     {
         [$repo, $role, $entityId] = $this->resolveContext($userId);
 
         // For admin/superadmin/treasurer role (tasa oficial), save user_id for tracking
         if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
-            $result = DB::transaction(function () use ($repo, $dto, $role, $userId) {
+            $result = DB::transaction(function() use ($repo, $dto, $role, $userId) {
                 $repo->create($dto->toArray() + ['user_id' => $userId]);
 
                 Log::info('ExchangeRate creado', [
-                    'role'        => $role,
+                    'role' => $role,
                     'currency_id' => $dto->currencyId,
-                    'user_id'     => $userId,
+                    'user_id' => $userId,
                 ]);
 
                 return true;
@@ -80,11 +102,11 @@ final class ExchangeRateCrudService
         $model = $repo->getModel();
         $foreignKey = $this->foreignKeyData($entityId, $model);
 
-        $result = DB::transaction(function () use ($repo, $dto, $role, $foreignKey) {
+        $result = DB::transaction(function() use ($repo, $dto, $role, $foreignKey) {
             $repo->create($dto->toArray() + $foreignKey);
 
             Log::info('ExchangeRate creado', [
-                'role'        => $role,
+                'role' => $role,
                 'currency_id' => $dto->currencyId,
             ]);
 
@@ -97,21 +119,49 @@ final class ExchangeRateCrudService
     }
 
     /**
+     * Eliminar una tasa de cambio según rol.
+     *
+     * @throws ExchangeRateException
+     */
+    public function deleteByRole(string $id, int $userId) : bool
+    {
+        [$repo] = $this->resolveContext($userId);
+
+        $exchangeRate = $repo->find($id);
+
+        if (! $exchangeRate) {
+            throw ExchangeRateException::notFound($id);
+        }
+
+        $result = $repo->delete($id);
+
+        // Antes no invalidaba el caché — a diferencia de create/update/
+        // toggleStatus (que sí lo hacen), eliminar la única tasa ACTIVE de
+        // una moneda dejaba CurrencyExchangeRateService::getActiveRate()
+        // sirviendo el valor viejo cacheado hasta por 5 minutos.
+        if ($result) {
+            $this->forgetActiveRateCache($exchangeRate->currency_id);
+        }
+
+        return $result;
+    }
+
+    /**
      * Obtener una tasa de cambio para visualización.
      *
      * @throws ExchangeRateException
      */
-    public function show(string $exchangeRateId, int $userId): ExchangeRateResource|AdminExchangeRateResource
+    public function show(string $exchangeRateId, int $userId) : ExchangeRateResource|AdminExchangeRateResource
     {
         [$repo] = $this->resolveContext($userId);
 
         $exchangeRate = $repo->findWithRelations(
             ['currency:id,iso_code'],
             $exchangeRateId,
-            ['id', 'currency_id', 'amount', 'status']
+            ['id', 'currency_id', 'amount', 'status'],
         );
 
-        if (!$exchangeRate) {
+        if (! $exchangeRate) {
             throw ExchangeRateException::notFound($exchangeRateId);
         }
 
@@ -123,16 +173,16 @@ final class ExchangeRateCrudService
      *
      * @throws ExchangeRateException
      */
-    public function update(ExchangeRateDTO $dto, int $userId): bool
+    public function update(ExchangeRateDTO $dto, int $userId) : bool
     {
-        if (!$dto->id) {
+        if (! $dto->id) {
             throw ExchangeRateException::idRequired();
         }
 
         [$repo, $role] = $this->resolveContext($userId);
 
         if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
-            $result = DB::transaction(function () use ($repo, $dto, $userId) {
+            $result = DB::transaction(function() use ($repo, $dto, $userId) {
                 $oldAmount = $repo->getValueById($dto->id, 'amount');
 
                 if (is_null($oldAmount)) {
@@ -157,18 +207,18 @@ final class ExchangeRateCrudService
                 // conservaba ese origen aunque ahora la haya tocado un
                 // usuario real.
                 $repo->update($dto->id, [
-                    'amount'     => $dto->amount,
+                    'amount' => $dto->amount,
                     'percentage' => $percentage,
-                    'user_id'    => $userId,
-                    'source'     => ExchangeRate::SOURCE_USER,
+                    'user_id' => $userId,
+                    'source' => ExchangeRate::SOURCE_USER,
                 ]);
 
                 Log::info('ExchangeRate actualizado', [
-                    'id'         => $dto->id,
+                    'id' => $dto->id,
                     'old_amount' => (float) $oldAmount,
                     'new_amount' => $dto->amount,
                     'percentage' => $percentage,
-                    'user_id'    => $userId,
+                    'user_id' => $userId,
                 ]);
 
                 return true;
@@ -183,7 +233,7 @@ final class ExchangeRateCrudService
             $this->deviationCap->assert($dto->currencyId, $dto->amount);
         }
 
-        $result = DB::transaction(function () use ($repo, $dto) {
+        $result = DB::transaction(function() use ($repo, $dto) {
             $oldAmount = $repo->getValueById($dto->id, 'amount');
 
             if (is_null($oldAmount)) {
@@ -198,12 +248,12 @@ final class ExchangeRateCrudService
 
             $repo->create(array_merge($old, [
                 'percentage' => $this->domain->calculatePercentage($oldAmount, $dto->amount),
-                'amount'     => $dto->amount,
-                'status'     => $dto->status,
+                'amount' => $dto->amount,
+                'status' => $dto->status,
             ]));
 
             Log::info('ExchangeRate actualizado', [
-                'old_id'     => $dto->id,
+                'old_id' => $dto->id,
                 'old_amount' => (float) $oldAmount,
                 'new_amount' => $dto->amount,
             ]);
@@ -217,54 +267,36 @@ final class ExchangeRateCrudService
     }
 
     /**
-     * Eliminar una tasa de cambio según rol.
-     *
-     * @throws ExchangeRateException
+     * Invalida el caché de "tasa activa" que CurrencyExchangeRateService
+     * mantiene por moneda (TTL 5 min) — sin esto, crear/editar/activar una
+     * tasa admin/superadmin podía tardar hasta 5 minutos en reflejarse para
+     * cualquier consumidor de getActiveRate() (ej. BingoRoomContextService
+     * armando el lobby), o peor: si un jugador cargó el lobby ANTES de que
+     * existiera la tasa, el resultado "sin tasa" (null) quedaba cacheado y
+     * seguía lanzando ExchangeRateException incluso después de que el admin
+     * ya la hubiera activado.
      */
-    public function deleteByRole(string $id, int $userId): bool
+    private function forgetActiveRateCache(mixed $currencyId) : void
     {
-        [$repo] = $this->resolveContext($userId);
-
-        $exchangeRate = $repo->find($id);
-
-        if (!$exchangeRate) {
-            throw ExchangeRateException::notFound($id);
+        if ($currencyId) {
+            Cache::forget("exchange_rate:active:{$currencyId}");
         }
-
-        $result = $repo->delete($id);
-
-        // Antes no invalidaba el caché — a diferencia de create/update/
-        // toggleStatus (que sí lo hacen), eliminar la única tasa ACTIVE de
-        // una moneda dejaba CurrencyExchangeRateService::getActiveRate()
-        // sirviendo el valor viejo cacheado hasta por 5 minutos.
-        if ($result) {
-            $this->forgetActiveRateCache($exchangeRate->currency_id);
-        }
-
-        return $result;
     }
 
     /**
-     * Alternar estado activo/inactivo.
+     * Retorna el repositorio correspondiente según el rol.
      *
      * @throws RoleResolutionException
      */
-    public function changeStatusByRole(string $id, int $userId): bool
-    {
-        [$repo, $role] = $this->resolveContext($userId);
-
-        $model = $repo->findOrFail($id);
-
-        // Activar una tasa propia que hoy queda fuera del tope tampoco se permite.
-        if (!in_array($role, ['admin', 'superadmin', 'treasurer'], true) && $model->status !== 'ACTIVE') {
-            $this->deviationCap->assert($model->currency_id, (float) $model->amount);
-        }
-
-        $result = $repo->toggleStatus($model);
-
-        $this->forgetActiveRateCache($model->currency_id);
-
-        return $result;
+    private function repo(
+        string $role,
+    ) : CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface {
+        return match ($role) {
+            'commerce' => $this->commerce,
+            'customer' => $this->customer,
+            'admin', 'superadmin', 'treasurer' => $this->admin,
+            default => throw RoleResolutionException::unsupportedRole($role),
+        };
     }
 
     /* =====================================================
@@ -278,57 +310,24 @@ final class ExchangeRateCrudService
      *
      * @throws RoleResolutionException
      */
-    private function resolveContext(int $userId): array
+    private function resolveContext(int $userId) : array
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (!$role) {
+        if (! $role) {
             throw RoleResolutionException::unresolvedRoleForUser($userId);
         }
 
         $entityId = null;
 
-        if (!in_array($role, ['admin', 'superadmin', 'treasurer'])) {
+        if (! in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
-            if (!$entityId) {
+            if (! $entityId) {
                 throw RoleResolutionException::entityNotFoundForRole($role);
             }
         }
 
         return [$this->repo($role), $role, $entityId];
-    }
-
-    /**
-     * Invalida el caché de "tasa activa" que CurrencyExchangeRateService
-     * mantiene por moneda (TTL 5 min) — sin esto, crear/editar/activar una
-     * tasa admin/superadmin podía tardar hasta 5 minutos en reflejarse para
-     * cualquier consumidor de getActiveRate() (ej. BingoRoomContextService
-     * armando el lobby), o peor: si un jugador cargó el lobby ANTES de que
-     * existiera la tasa, el resultado "sin tasa" (null) quedaba cacheado y
-     * seguía lanzando ExchangeRateException incluso después de que el admin
-     * ya la hubiera activado.
-     */
-    private function forgetActiveRateCache(mixed $currencyId): void
-    {
-        if ($currencyId) {
-            Cache::forget("exchange_rate:active:{$currencyId}");
-        }
-    }
-
-    /**
-     * Retorna el repositorio correspondiente según el rol.
-     *
-     * @throws RoleResolutionException
-     */
-    private function repo(
-        string $role
-    ): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface {
-        return match ($role) {
-            'commerce'                         => $this->commerce,
-            'customer'                         => $this->customer,
-            'admin', 'superadmin', 'treasurer' => $this->admin,
-            default                            => throw RoleResolutionException::unsupportedRole($role),
-        };
     }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Registro mínimo cross-game de "partida jugada / ganada" por usuario.
  *
  * Bingo y Trivia guardan su propio detalle de partida en tablas y (en el caso
@@ -16,9 +16,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('game_participations', function (Blueprint $table) {
+        Schema::dropIfExists('game_participations');
+    }
+
+    public function up() : void
+    {
+        Schema::create('game_participations', function(Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
             $table->string('game', 20); // 'bingo' | 'trivia'
@@ -30,10 +35,5 @@ return new class extends Migration
             $table->index(['user_id', 'game']);
             $table->index(['user_id', 'won']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('game_participations');
     }
 };

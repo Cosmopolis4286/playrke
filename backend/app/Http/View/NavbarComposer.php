@@ -21,16 +21,17 @@ class NavbarComposer
     ) {
     }
 
-    public function compose(View $view): void
+    public function compose(View $view) : void
     {
         if (! Auth::check()) {
             $view->with([
-                'navWallet'              => null,
-                'navUser'                => null,
-                'navBreadcrumb'          => [],
-                'navPendingCount'        => 0,
-                'navMissionsPending'     => 0,
+                'navWallet' => null,
+                'navUser' => null,
+                'navBreadcrumb' => [],
+                'navPendingCount' => 0,
+                'navMissionsPending' => 0,
             ]);
+
             return;
         }
 
@@ -65,11 +66,11 @@ class NavbarComposer
         }
 
         $view->with([
-            'navWallet'          => $wallet,
-            'navUser'            => $user,
-            'navUserLevel'       => $isPlayer ? $user->userLevel : null,
-            'navBreadcrumb'      => $this->menuService->getBreadcrumb(),
-            'navPendingCount'    => $user->hasRole(self::ROLES_PENDING_MOVEMENTS)
+            'navWallet' => $wallet,
+            'navUser' => $user,
+            'navUserLevel' => $isPlayer ? $user->userLevel : null,
+            'navBreadcrumb' => $this->menuService->getBreadcrumb(),
+            'navPendingCount' => $user->hasRole(self::ROLES_PENDING_MOVEMENTS)
                 ? $this->menuService->pendingWalletMovementsCount()
                 : 0,
             'navMissionsPending' => $missionsPending,

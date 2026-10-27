@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('currencies', function (Blueprint $table) {
+        Schema::dropIfExists('currencies');
+    }
+
+    public function up() : void
+    {
+        Schema::create('currencies', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->string('iso_code', 10)
@@ -59,10 +64,5 @@ return new class extends Migration
             // Índice compuesto para búsquedas frecuentes por tipo y estado
             $table->index(['type', 'status']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('currencies');
     }
 };

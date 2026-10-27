@@ -17,79 +17,31 @@ class SystemLogController extends Controller
     private const LIST_FILTER_KEYS = ['level', 'context', 'date_from', 'date_to', 'search', 'assigned_to_user_id', 'ignored', 'reviewed'];
 
     public function __construct(
-        private SystemLogService $service
-    ) {}
-
-    public function index(Request $request): Response
-    {
-        return $this->handleServiceInertia(function () {
-            return Inertia::render('SystemLogs/Index', [
-                'logs'            => $this->service->getTableData(),
-                'stats'           => $this->service->stats(),
-                'contexts'        => $this->service->contexts(),
-                'assignableUsers' => $this->service->assignableUsers(),
-                'retention'       => [
-                    'days'                => SystemLogRetentionSettings::retentionDays(),
-                    'alertThreshold'      => LogAlertSettings::errorThreshold(),
-                    'alertWindowMinutes'  => LogAlertSettings::windowMinutes(),
-                ],
-            ]);
-        });
+        private SystemLogService $service,
+    ) {
     }
 
-    public function fetchList(Request $request): JsonResponse
-    {
-        return $this->handleServiceJson(function () use ($request) {
-            $filters   = $request->only(self::LIST_FILTER_KEYS);
-            $page      = (int) $request->get('page', 1);
-            $sort      = $request->get('sort');
-            $direction = (string) $request->get('direction', 'desc');
-
-            return ['data' => $this->service->fetchList($filters, $page, $sort, $direction)];
-        });
-    }
-
-    public function show(Request $request, string $id): JsonResponse
-    {
-        return $this->handleServiceJson(function () use ($id) {
-            return ['data' => $this->service->show($id)];
-        });
-    }
-
-    /**
-     * Otros logs del mismo usuario (meta.user_id) cerca en el tiempo del
-     * log actual — contexto de diagnóstico sin necesidad de guardar un
-     * historial de cada ocurrencia individual.
-     */
-    public function relatedLogs(Request $request, string $id): JsonResponse
-    {
-        return $this->handleServiceJson(function () use ($id) {
-            return ['data' => $this->service->relatedLogs($id)];
-        });
-    }
-
-    public function toggleReviewed(Request $request, string $id): JsonResponse
-    {
-        return $this->handleServiceJson(function () use ($id) {
-            return ['data' => $this->service->toggleReviewed($id)];
-        });
-    }
-
-    public function toggleIgnored(Request $request, string $id): JsonResponse
-    {
-        return $this->handleServiceJson(function () use ($id) {
-            return ['data' => $this->service->toggleIgnored($id)];
-        });
-    }
-
-    public function assign(Request $request, string $id): JsonResponse
+    public function assign(Request $request, string $id) : JsonResponse
     {
         $validated = $request->validate([
             'user_id' => ['nullable', 'string'],
         ]);
 
-        return $this->handleServiceJson(function () use ($id, $validated) {
+        return $this->handleServiceJson(function() use ($id, $validated) {
             return ['data' => $this->service->assign($id, $validated['user_id'] ?? null)];
+        });
+    }
+
+    /**
+     * Cuenta cuántos logs nuevos hay desde $since — usado por el polling del
+     * frontend (banner "hay N errores nuevos") sin repedir la tabla completa.
+     */
+    public function checkNew(Request $request) : JsonResponse
+    {
+        return $this->handleServiceJson(function() use ($request) {
+            $since = (string) $request->get('since');
+
+            return ['data' => ['count' => $since !== '' ? $this->service->countSince($since) : 0]];
         });
     }
 
@@ -97,11 +49,11 @@ class SystemLogController extends Controller
      * Exporta a CSV todos los logs que coincidan con los filtros actuales
      * (sin límite de paginación) — mismo patrón que AuditController::export().
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         $filters = $request->only(self::LIST_FILTER_KEYS);
 
-        return response()->streamDownload(function () use ($filters) {
+        return response()->streamDownload(function() use ($filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Fecha', 'Nivel', 'Mensaje', 'Contexto', 'Ocurrencias', 'Revisado']);
 
@@ -122,16 +74,65 @@ class SystemLogController extends Controller
         ]);
     }
 
-    /**
-     * Cuenta cuántos logs nuevos hay desde $since — usado por el polling del
-     * frontend (banner "hay N errores nuevos") sin repedir la tabla completa.
-     */
-    public function checkNew(Request $request): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
-            $since = (string) $request->get('since');
+        return $this->handleServiceJson(function() use ($request) {
+            $filters = $request->only(self::LIST_FILTER_KEYS);
+            $page = (int) $request->get('page', 1);
+            $sort = $request->get('sort');
+            $direction = (string) $request->get('direction', 'desc');
 
-            return ['data' => ['count' => $since !== '' ? $this->service->countSince($since) : 0]];
+            return ['data' => $this->service->fetchList($filters, $page, $sort, $direction)];
+        });
+    }
+
+    public function index(Request $request) : Response
+    {
+        return $this->handleServiceInertia(function() {
+            return Inertia::render('SystemLogs/Index', [
+                'logs' => $this->service->getTableData(),
+                'stats' => $this->service->stats(),
+                'contexts' => $this->service->contexts(),
+                'assignableUsers' => $this->service->assignableUsers(),
+                'retention' => [
+                    'days' => SystemLogRetentionSettings::retentionDays(),
+                    'alertThreshold' => LogAlertSettings::errorThreshold(),
+                    'alertWindowMinutes' => LogAlertSettings::windowMinutes(),
+                ],
+            ]);
+        });
+    }
+
+    /**
+     * Otros logs del mismo usuario (meta.user_id) cerca en el tiempo del
+     * log actual — contexto de diagnóstico sin necesidad de guardar un
+     * historial de cada ocurrencia individual.
+     */
+    public function relatedLogs(Request $request, string $id) : JsonResponse
+    {
+        return $this->handleServiceJson(function() use ($id) {
+            return ['data' => $this->service->relatedLogs($id)];
+        });
+    }
+
+    public function show(Request $request, string $id) : JsonResponse
+    {
+        return $this->handleServiceJson(function() use ($id) {
+            return ['data' => $this->service->show($id)];
+        });
+    }
+
+    public function toggleIgnored(Request $request, string $id) : JsonResponse
+    {
+        return $this->handleServiceJson(function() use ($id) {
+            return ['data' => $this->service->toggleIgnored($id)];
+        });
+    }
+
+    public function toggleReviewed(Request $request, string $id) : JsonResponse
+    {
+        return $this->handleServiceJson(function() use ($id) {
+            return ['data' => $this->service->toggleReviewed($id)];
         });
     }
 }

@@ -22,26 +22,25 @@ use Illuminate\Support\Facades\File;
  */
 class MigratePgsqlCommand extends Command
 {
+    /** Mapea conexión → [rutas de migraciones, seeders opcionales] para dominios conocidos. */
+    private const KNOWN_DOMAINS = [
+        'pgsql_trivia' => [
+            'paths' => ['database/migrations/trivia'],
+            'seeders' => [\Database\Seeders\Trivia\TriviaQuestionSeeder::class],
+        ],
+    ];
+
+    protected $description = 'Migra (opcionalmente fresh + seed) solo las migraciones que pertenecen a una conexión Postgres aislada (ej. pgsql_trivia), sin arrastrar el resto del schema de la app';
     protected $signature = 'db:migrate-pgsql
         {connection? : Nombre de la conexión Postgres a migrar (ej. pgsql_trivia). Si se omite, se listan las disponibles}
         {--fresh : Elimina todas las tablas de la conexión antes de migrar}
         {--seed : Ejecuta los seeders del dominio después de migrar, si existen}';
 
-    protected $description = 'Migra (opcionalmente fresh + seed) solo las migraciones que pertenecen a una conexión Postgres aislada (ej. pgsql_trivia), sin arrastrar el resto del schema de la app';
-
-    /** Mapea conexión → [rutas de migraciones, seeders opcionales] para dominios conocidos. */
-    private const KNOWN_DOMAINS = [
-        'pgsql_trivia' => [
-            'paths'   => ['database/migrations/trivia'],
-            'seeders' => [\Database\Seeders\Trivia\TriviaQuestionSeeder::class],
-        ],
-    ];
-
-    public function handle(): int
+    public function handle() : int
     {
         $connection = $this->argument('connection') ?: $this->promptForConnection();
 
-        if (!$connection) {
+        if (! $connection) {
             return self::FAILURE;
         }
 
@@ -49,6 +48,7 @@ class MigratePgsqlCommand extends Command
 
         if (empty($paths)) {
             $this->error("No se encontraron migraciones que usen Schema::connection('{$connection}').");
+
             return self::FAILURE;
         }
 
@@ -56,12 +56,13 @@ class MigratePgsqlCommand extends Command
 
         $exitCode = $this->call($this->option('fresh') ? 'migrate:fresh' : 'migrate', [
             '--database' => $connection,
-            '--path'     => $paths,
-            '--force'    => true,
+            '--path' => $paths,
+            '--force' => true,
         ]);
 
         if ($exitCode !== 0) {
             $this->error("Falló la migración de la conexión '{$connection}'.");
+
             return $exitCode;
         }
 
@@ -72,7 +73,29 @@ class MigratePgsqlCommand extends Command
         }
 
         $this->info("Migración de '{$connection}' completada exitosamente.");
+
         return self::SUCCESS;
+    }
+
+    /** Lista las conexiones pgsql configuradas y pide al usuario elegir una. */
+    private function promptForConnection() : ?string
+    {
+        $connections = collect(config('database.connections'))
+            ->filter(fn (array $cfg) => ($cfg['driver'] ?? null) === 'pgsql')
+            ->keys()
+            ->all();
+
+        if (empty($connections)) {
+            $this->error('No hay conexiones con driver pgsql configuradas en config/database.php.');
+
+            return null;
+        }
+
+        if (count($connections) === 1) {
+            return $connections[0];
+        }
+
+        return $this->choice('¿Qué conexión Postgres deseas migrar?', $connections);
     }
 
     /**
@@ -80,7 +103,7 @@ class MigratePgsqlCommand extends Command
      * si no, escanea database/migrations recursivamente buscando archivos
      * que contengan Schema::connection('<conexión>') y agrupa por carpeta.
      */
-    private function resolveMigrationPaths(string $connection): array
+    private function resolveMigrationPaths(string $connection) : array
     {
         if (isset(self::KNOWN_DOMAINS[$connection])) {
             return self::KNOWN_DOMAINS[$connection]['paths'];
@@ -98,27 +121,7 @@ class MigratePgsqlCommand extends Command
 
         return array_map(
             fn (string $dir) => 'database/migrations' . str_replace(str_replace('/', DIRECTORY_SEPARATOR, $base), '', $dir),
-            array_keys($matchingDirs)
+            array_keys($matchingDirs),
         );
-    }
-
-    /** Lista las conexiones pgsql configuradas y pide al usuario elegir una. */
-    private function promptForConnection(): ?string
-    {
-        $connections = collect(config('database.connections'))
-            ->filter(fn (array $cfg) => ($cfg['driver'] ?? null) === 'pgsql')
-            ->keys()
-            ->all();
-
-        if (empty($connections)) {
-            $this->error('No hay conexiones con driver pgsql configuradas en config/database.php.');
-            return null;
-        }
-
-        if (count($connections) === 1) {
-            return $connections[0];
-        }
-
-        return $this->choice('¿Qué conexión Postgres deseas migrar?', $connections);
     }
 }

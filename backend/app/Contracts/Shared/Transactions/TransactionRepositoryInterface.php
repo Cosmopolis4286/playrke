@@ -15,110 +15,122 @@ use Illuminate\Database\Eloquent\Collection;
 interface TransactionRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Obtiene el valor de una transacción por código.
+     * Crea una nueva transacción con validación.
      *
-     * @param string $code Código de la transacción
-     * @param string $field Campo a obtener
-     * @return mixed Valor del campo solicitado
+     * @param array $data Datos de la transacción
+     *
+     * @return mixed Transacción creada
      */
-    public function getValueByCode(string $code, string $field): mixed;
+    public function createTransaction(array $data) : mixed;
 
     /**
      * Verifica si existe una transacción con el código y cliente dados.
      *
-     * @param string $code Código de la transacción
+     * @param string $code     Código de la transacción
      * @param string $customer ID del cliente
+     *
      * @return bool True si existe la transacción
      */
-    public function existsCodeForCustomer(string $code, string $customer): bool;
-
-    /**
-     * Obtiene transacciones por cliente.
-     *
-     * @param string $customerId ID del cliente
-     * @return Collection<Transaction> Transacciones del cliente
-     */
-    public function getByCustomer(string $customerId): Collection;
-
-    /**
-     * Obtiene transacciones por tipo.
-     *
-     * @param string $type Tipo de transacción
-     * @return Collection<Transaction> Transacciones del tipo
-     */
-    public function getByType(string $type): Collection;
-
-    /**
-     * Obtiene transacciones por juego.
-     *
-     * @param string $gameId ID del juego
-     * @return Collection<Transaction> Transacciones del juego
-     */
-    public function getByGame(string $gameId): Collection;
-
-    /**
-     * Obtiene transacciones por moneda.
-     *
-     * @param string $currencyId ID de la moneda
-     * @return Collection<Transaction> Transacciones de la moneda
-     */
-    public function getByCurrency(string $currencyId): Collection;
+    public function existsCodeForCustomer(string $code, string $customer) : bool;
 
     /**
      * Obtiene transacciones en un rango de montos.
      *
      * @param float $minAmount Monto mínimo
      * @param float $maxAmount Monto máximo
+     *
      * @return Collection<Transaction> Transacciones en el rango
      */
-    public function getByAmountRange(float $minAmount, float $maxAmount): Collection;
+    public function getByAmountRange(float $minAmount, float $maxAmount) : Collection;
+
+    /**
+     * Obtiene transacciones por moneda.
+     *
+     * @param string $currencyId ID de la moneda
+     *
+     * @return Collection<Transaction> Transacciones de la moneda
+     */
+    public function getByCurrency(string $currencyId) : Collection;
+
+    /**
+     * Obtiene transacciones por cliente.
+     *
+     * @param string $customerId ID del cliente
+     *
+     * @return Collection<Transaction> Transacciones del cliente
+     */
+    public function getByCustomer(string $customerId) : Collection;
 
     /**
      * Obtiene transacciones en un rango de fechas.
      *
      * @param string $startDate Fecha inicio
-     * @param string $endDate Fecha fin
+     * @param string $endDate   Fecha fin
+     *
      * @return Collection<Transaction> Transacciones en el rango
      */
-    public function getByDateRange(string $startDate, string $endDate): Collection;
+    public function getByDateRange(string $startDate, string $endDate) : Collection;
+
+    /**
+     * Obtiene transacciones por juego.
+     *
+     * @param string $gameId ID del juego
+     *
+     * @return Collection<Transaction> Transacciones del juego
+     */
+    public function getByGame(string $gameId) : Collection;
+
+    /**
+     * Obtiene transacciones por tipo.
+     *
+     * @param string $type Tipo de transacción
+     *
+     * @return Collection<Transaction> Transacciones del tipo
+     */
+    public function getByType(string $type) : Collection;
+
+    /**
+     * Obtiene estadísticas por cliente.
+     *
+     * @param string $customerId ID del cliente
+     *
+     * @return array Estadísticas del cliente
+     */
+    public function getCustomerStats(string $customerId) : array;
 
     /**
      * Obtiene estadísticas de transacciones.
      *
      * @return array Estadísticas generales
      */
-    public function getTransactionStats(): array;
+    public function getTransactionStats() : array;
 
     /**
-     * Obtiene estadísticas por cliente.
+     * Obtiene el valor de una transacción por código.
      *
-     * @param string $customerId ID del cliente
-     * @return array Estadísticas del cliente
-     */
-    public function getCustomerStats(string $customerId): array;
-
-    /**
-     * Crea una nueva transacción con validación.
+     * @param string $code  Código de la transacción
+     * @param string $field Campo a obtener
      *
-     * @param array $data Datos de la transacción
-     * @return mixed Transacción creada
+     * @return mixed Valor del campo solicitado
      */
-    public function createTransaction(array $data): mixed;
+    public function getValueByCode(string $code, string $field) : mixed;
 
     /**
      * Actualiza el estado de una transacción.
      *
      * @param string $transactionId ID de la transacción
-     * @param string $status Nuevo estado
+     * @param string $status        Nuevo estado
+     *
      * @return bool True si se actualizó correctamente
      */
-    public function updateStatus(string $transactionId, string $status): bool;
+    public function updateStatus(string $transactionId, string $status) : bool;
 
     /**
      * Valida los datos de una transacción.
      *
      * @param array $data Datos a validar
+     *
      * @return array Array de errores de validación
      */
-    public function validateTransactionData(array $data): array;
+    public function validateTransactionData(array $data) : array;
 }

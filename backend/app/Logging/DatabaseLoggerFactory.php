@@ -11,7 +11,7 @@ use Monolog\Logger;
  */
 class DatabaseLoggerFactory
 {
-    public function __invoke(array $config): Logger
+    public function __invoke(array $config) : Logger
     {
         $level = Level::fromName(strtoupper($config['level'] ?? 'warning'));
 

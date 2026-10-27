@@ -26,20 +26,21 @@ final class CommerceProfileController extends Controller
 
     public function __construct(
         private readonly CommerceProfileService $service,
-    ) {}
+    ) {
+    }
 
-    public function show(Request $request): Response
+    public function show(Request $request) : Response
     {
         $targetUserId = $this->resolveTargetUserId($request);
 
         return Inertia::render('Roles/Commerce/Profile/Index', [
-            'title'       => 'Mi Comercio',
-            'commerce'    => $this->service->showOwn($targetUserId),
+            'title' => 'Mi Comercio',
+            'commerce' => $this->service->showOwn($targetUserId),
             'isAdminView' => $targetUserId !== null,
         ]);
     }
 
-    public function update(CommerceProfileRequest $request): JsonResponse
+    public function update(CommerceProfileRequest $request) : JsonResponse
     {
         $this->service->updateOwn($request->validated(), $this->resolveTargetUserId($request));
 

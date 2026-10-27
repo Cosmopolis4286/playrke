@@ -21,7 +21,8 @@ final class KycPendingAlertService
 
     public function __construct(
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
 
     /**
      * Notifica a superadmins el conteo de documentos KYC pendientes con más
@@ -30,9 +31,9 @@ final class KycPendingAlertService
      * criterio que logs:alert-threshold, aceptable para la cadencia diaria
      * de este aviso.
      *
-     * @return int Cantidad de documentos pendientes atrasados encontrados.
+     * @return int cantidad de documentos pendientes atrasados encontrados
      */
-    public function notifyStalePending(): int
+    public function notifyStalePending() : int
     {
         $staleCount = KycDocument::where('status', KycDocument::STATUS_PENDING)
             ->where('created_at', '<=', now()->subHours(self::STALE_AFTER_HOURS))
@@ -50,7 +51,7 @@ final class KycPendingAlertService
                 message: "Hay {$staleCount} documento(s) KYC pendientes con más de " . self::STALE_AFTER_HOURS . ' horas sin revisar.',
                 data: [
                     'stale_count' => $staleCount,
-                    'url'         => '/admin/kyc',
+                    'url' => '/admin/kyc',
                 ],
             );
         }

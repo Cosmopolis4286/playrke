@@ -15,52 +15,58 @@ use Illuminate\Database\Eloquent\Collection;
 interface TreasurerRepositoryInterface extends BaseRepositoryInterface
 {
     /**
+     * Crea un nuevo tesorero con validación.
+     *
+     * @param array $data Datos del tesorero
+     *
+     * @return mixed Tesorero creado
+     */
+    public function createTreasurer(array $data) : mixed;
+
+    /**
      * Obtiene tesoreros por país.
      *
      * @param string $countryId ID del país
+     *
      * @return Collection<Treasurer> Tesoreros del país
      */
-    public function getByCountry(string $countryId): Collection;
+    public function getByCountry(string $countryId) : Collection;
 
     /**
      * Obtiene tesoreros por moneda.
      *
      * @param string $currencyId ID de la moneda
+     *
      * @return Collection<Treasurer> Tesoreros de la moneda
      */
-    public function getByCurrency(string $currencyId): Collection;
+    public function getByCurrency(string $currencyId) : Collection;
 
     /**
      * Obtiene un tesorero por código UUID.
      *
      * @param string $uuidCode Código UUID
+     *
      * @return mixed Tesorero encontrado o null
      */
-    public function getByUuidCode(string $uuidCode): mixed;
-
-    /**
-     * Crea un nuevo tesorero con validación.
-     *
-     * @param array $data Datos del tesorero
-     * @return mixed Tesorero creado
-     */
-    public function createTreasurer(array $data): mixed;
+    public function getByUuidCode(string $uuidCode) : mixed;
 
     /**
      * Actualiza el estado de un tesorero.
      *
      * @param string $treasurerId ID del tesorero
-     * @param bool $status Nuevo estado
+     * @param bool   $status      Nuevo estado
+     *
      * @return bool True si se actualizó correctamente
      */
-    public function updateStatus(string $treasurerId, bool $status): bool;
+    public function updateStatus(string $treasurerId, bool $status) : bool;
 
     /**
      * Valida los datos de un tesorero.
      *
-     * @param array $data Datos a validar
+     * @param array       $data      Datos a validar
      * @param string|null $excludeId ID a excluir de validaciones
+     *
      * @return array Array de errores de validación
      */
-    public function validateTreasurerData(array $data, ?string $excludeId = null): array;
+    public function validateTreasurerData(array $data, ?string $excludeId = null) : array;
 }

@@ -2,16 +2,17 @@
 
 namespace App\Domains\Games\Bingo\Services\Room\Metrics;
 
+use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
-use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Services\Jackpot\JackpotLedgerService;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Servicio para la gestión de métricas de salas de bingo
@@ -19,103 +20,52 @@ use Illuminate\Support\Facades\Log;
 class RoomMetricsService implements RoomMetricsInterface
 {
     /**
-     * Actualizar el contador de jugadores en la sala
+     * Obtener métricas actuales de la sala
      *
-     * @param BingoRoom $room Sala a actualizar
-     * @return bool True si se actualizó correctamente
+     * @param BingoRoom $room Sala de la cual obtener métricas
+     *
+     * @return array Array asociativo con todas las métricas
      */
-    public function updatePlayerCount(BingoRoom $room): bool
+    public function getRoomMetrics(BingoRoom $room) : array
     {
         try {
-            return $room->increment('total_players') > 0;
-        } catch (\Throwable $e) {
-            Log::error('Error al actualizar contador de jugadores: ' . $e->getMessage(), [
-                'roomId' => $room->id
-            ]);
-            return false;
-        }
-    }
-
-    /**
-     * Actualizar el contador total de cartones en la sala
-     *
-     * @param BingoRoom $room Sala a actualizar
-     * @param int $additionalCards Cantidad de cartones adicionales
-     * @return bool True si se actualizó correctamente
-     */
-    public function updateTotalCards(BingoRoom $room, int $additionalCards): bool
-    {
-        try {
-            if ($additionalCards <= 0) {
-                return false;
-            }
-
-            return $room->increment('total_cards', $additionalCards) > 0;
-        } catch (\Throwable $e) {
-            Log::error('Error al actualizar total de cartones: ' . $e->getMessage(), [
+            return [
+                'total_players' => $room->total_players ?? 0,
+                'total_cards' => $room->total_cards ?? 0,
+                'total_sales' => $room->total_sales ?? 0,
+                'prize_pool' => $room->prize_pool ?? 0,
+                'full_house_prize' => $room->full_house_prize ?? 0,
+                'room_commission' => $room->room_commission ?? 0,
+                'seller_commission' => $room->seller_commission ?? 0,
+                'rke_commission' => $room->rke_commission ?? 0,
+            ];
+        } catch (Throwable $e) {
+            Log::error('Error al obtener métricas de sala: ' . $e->getMessage(), [
                 'roomId' => $room->id,
-                'additionalCards' => $additionalCards
             ]);
-            return false;
-        }
-    }
 
-    /**
-     * Actualizar el monto total de ventas de la sala
-     *
-     * @param BingoRoom $room Sala a actualizar
-     * @param float $saleAmount Monto de la venta a agregar
-     * @return bool True si se actualizó correctamente
-     */
-    public function updateTotalSales(BingoRoom $room, float $saleAmount): bool
-    {
-        try {
-            if ($saleAmount <= 0) {
-                return false;
-            }
-
-            return $room->increment('total_sales', $saleAmount) > 0;
-        } catch (\Throwable $e) {
-            Log::error('Error al actualizar total de ventas: ' . $e->getMessage(), [
-                'roomId' => $room->id,
-                'saleAmount' => $saleAmount
-            ]);
-            return false;
-        }
-    }
-
-    /**
-     * Actualizar el pozo de premios de la sala
-     *
-     * @param BingoRoom $room Sala a actualizar
-     * @param float $amountToAdd Monto a agregar al pozo
-     * @return bool True si se actualizó correctamente
-     */
-    public function updatePrizePool(BingoRoom $room, float $amountToAdd): bool
-    {
-        try {
-            if ($amountToAdd <= 0) {
-                return false;
-            }
-
-            return $room->increment('prize_pool', $amountToAdd) > 0;
-        } catch (\Throwable $e) {
-            Log::error('Error al actualizar pozo de premios: ' . $e->getMessage(), [
-                'roomId' => $room->id,
-                'amountToAdd' => $amountToAdd
-            ]);
-            return false;
+            return [
+                'total_players' => 0,
+                'total_cards' => 0,
+                'total_sales' => 0,
+                'prize_pool' => 0,
+                'full_house_prize' => 0,
+                'room_commission' => 0,
+                'seller_commission' => 0,
+                'rke_commission' => 0,
+            ];
         }
     }
 
     /**
      * Actualizar todas las métricas de la sala después de una venta
      *
-     * @param BingoRoom $room Sala a actualizar
-     * @param array $saleData Datos de la venta (amount, cards, etc.)
+     * @param BingoRoom $room     Sala a actualizar
+     * @param array     $saleData Datos de la venta (amount, cards, etc.)
+     *
      * @return bool True si se actualizaron todas las métricas correctamente
      */
-    public function updateAllMetrics(BingoRoom $room, array $saleData): bool
+    public function updateAllMetrics(BingoRoom $room, array $saleData) : bool
     {
         try {
             $success = true;
@@ -141,67 +91,79 @@ class RoomMetricsService implements RoomMetricsInterface
             }
 
             return $success;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Error al actualizar todas las métricas: ' . $e->getMessage(), [
                 'roomId' => $room->id,
-                'saleData' => $saleData
+                'saleData' => $saleData,
             ]);
+
             return false;
         }
     }
 
     /**
-     * Obtener métricas actuales de la sala
+     * Actualizar el contador de jugadores en la sala
      *
-     * @param BingoRoom $room Sala de la cual obtener métricas
-     * @return array Array asociativo con todas las métricas
+     * @param BingoRoom $room Sala a actualizar
+     *
+     * @return bool True si se actualizó correctamente
      */
-    public function getRoomMetrics(BingoRoom $room): array
+    public function updatePlayerCount(BingoRoom $room) : bool
     {
         try {
-            return [
-                'total_players' => $room->total_players ?? 0,
-                'total_cards' => $room->total_cards ?? 0,
-                'total_sales' => $room->total_sales ?? 0,
-                'prize_pool' => $room->prize_pool ?? 0,
-                'full_house_prize' => $room->full_house_prize ?? 0,
-                'room_commission' => $room->room_commission ?? 0,
-                'seller_commission' => $room->seller_commission ?? 0,
-                'rke_commission' => $room->rke_commission ?? 0,
-            ];
-        } catch (\Throwable $e) {
-            Log::error('Error al obtener métricas de sala: ' . $e->getMessage(), [
-                'roomId' => $room->id
+            return $room->increment('total_players') > 0;
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar contador de jugadores: ' . $e->getMessage(), [
+                'roomId' => $room->id,
             ]);
-            
-            return [
-                'total_players' => 0,
-                'total_cards' => 0,
-                'total_sales' => 0,
-                'prize_pool' => 0,
-                'full_house_prize' => 0,
-                'room_commission' => 0,
-                'seller_commission' => 0,
-                'rke_commission' => 0,
-            ];
+
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar el pozo de premios de la sala
+     *
+     * @param BingoRoom $room        Sala a actualizar
+     * @param float     $amountToAdd Monto a agregar al pozo
+     *
+     * @return bool True si se actualizó correctamente
+     */
+    public function updatePrizePool(BingoRoom $room, float $amountToAdd) : bool
+    {
+        try {
+            if ($amountToAdd <= 0) {
+                return false;
+            }
+
+            return $room->increment('prize_pool', $amountToAdd) > 0;
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar pozo de premios: ' . $e->getMessage(), [
+                'roomId' => $room->id,
+                'amountToAdd' => $amountToAdd,
+            ]);
+
+            return false;
         }
     }
 
     /**
      * Actualizar métricas de sala con comisiones (método específico para BingoCardGenerationService)
      *
-     * @param BingoRoom $room Sala a actualizar
-     * @param array $saleData Datos de la venta
-     * @param float $saleAmount Monto de la venta
-     * @param float $sellerCommission Comisión del vendedor
-     * @param array|null $breakdown (salida) Desglose exacto de ESTA venta — el
-     *        caller lo persiste en el lote (bingo_card_lots.financial_breakdown)
-     *        para poder revertirlo si el lote se reembolsa (ver BingoLotSaleReversalService).
+     * @param BingoRoom  $room             Sala a actualizar
+     * @param array      $saleData         Datos de la venta
+     * @param float      $saleAmount       Monto de la venta
+     * @param float      $sellerCommission Comisión del vendedor
+     * @param array|null $breakdown        (salida) Desglose exacto de ESTA venta — el
+     *                                     caller lo persiste en el lote (bingo_card_lots.financial_breakdown)
+     *                                     para poder revertirlo si el lote se reembolsa (ver BingoLotSaleReversalService).
+     *
      * @return bool True si se actualizó correctamente
      */
-    public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0, ?array &$breakdown = null): bool
+    public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0, ?array &$breakdown = null) : bool
     {
         $breakdown = null;
+
         try {
             // Releer la fila con lockForUpdate() DENTRO de la transacción ya abierta por
             // el caller (BingoCardGenerationService::generateCards(), siempre envuelto en
@@ -218,6 +180,7 @@ class RoomMetricsService implements RoomMetricsInterface
             // del lote tampoco revierta nada.
             if (($saleData['saleChannel'] ?? null) === 'demo') {
                 $breakdown = ['version' => 1, 'channel' => 'demo'];
+
                 return $room->update([
                     'total_cards' => ($room->total_cards ?? 0) + $saleData['cardCount'],
                 ]);
@@ -226,16 +189,17 @@ class RoomMetricsService implements RoomMetricsInterface
             // Persistir métricas monetarias de bingo_rooms en USD.
             // Los lotes/pagos pueden conservar moneda local; este agregado siempre queda normalizado.
             $exchangeRate = $saleData['exchangeRate'] ?? 1;
-            
+
             // Prevent division by zero
             if ($exchangeRate <= 0) {
                 Log::error('Exchange rate inválido', [
                     'roomId' => $room->id,
-                    'exchangeRate' => $exchangeRate
+                    'exchangeRate' => $exchangeRate,
                 ]);
+
                 return false;
             }
-            
+
             // Montos en moneda local de la venta, antes de normalizar a USD
             // (usados para el desglose por moneda en `metrics_by_currency`).
             $saleAmountLocal = isset($saleData['saleAmountUsd'])
@@ -256,19 +220,20 @@ class RoomMetricsService implements RoomMetricsInterface
             // red (CommissionCalculationService::networkSplit(), moneda local).
             // Salen del mismo lugar que la del vendedor: antes del bote.
             $subsidiaryCommissionLocal = round((float) ($saleData['networkCommission']['subsidiary'] ?? 0), 3);
-            $commerceCommissionLocal   = round((float) ($saleData['networkCommission']['commerce'] ?? 0), 3);
-            $subsidiaryCommission      = round($subsidiaryCommissionLocal / $exchangeRate, 3);
-            $commerceCommission        = round($commerceCommissionLocal / $exchangeRate, 3);
-            $networkOverrideLocal      = $subsidiaryCommissionLocal + $commerceCommissionLocal;
-            $networkOverride           = $subsidiaryCommission + $commerceCommission;
+            $commerceCommissionLocal = round((float) ($saleData['networkCommission']['commerce'] ?? 0), 3);
+            $subsidiaryCommission = round($subsidiaryCommissionLocal / $exchangeRate, 3);
+            $commerceCommission = round($commerceCommissionLocal / $exchangeRate, 3);
+            $networkOverrideLocal = $subsidiaryCommissionLocal + $commerceCommissionLocal;
+            $networkOverride = $subsidiaryCommission + $commerceCommission;
 
             // Obtener configuración de la sala
             $bingoConfig = BingoRoomConfig::where('room_id', $room->id)
                 ->select(['rke_commission', 'room_commission', 'prize_pool_type_id', 'jackpot_pct', 'jackpot_type_id'])
                 ->first();
-            
-            if (!$bingoConfig) {
+
+            if (! $bingoConfig) {
                 Log::error('Configuración de sala no encontrada', ['roomId' => $room->id]);
+
                 return false;
             }
 
@@ -359,16 +324,16 @@ class RoomMetricsService implements RoomMetricsInterface
                         app(PlatformWalletService::class)->creditRke(
                             (string) $currencyId,
                             $rkeCommissionLocal,
-                            'Comisión RKE – Sala #' . $room->uuid_code
+                            'Comisión RKE – Sala #' . $room->uuid_code,
                         );
                         $rkeCreditedLocal = $rkeCommissionLocal;
                     }
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     // No interrumpir la venta si la billetera de plataforma falla
                     Log::warning('PlatformWallet: no se pudo acreditar RKE', [
                         'roomId' => $room->id,
                         'amount' => $rkeCommission,
-                        'error'  => $e->getMessage(),
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -384,11 +349,11 @@ class RoomMetricsService implements RoomMetricsInterface
                         metadata: ['currency_id' => $saleData['currency'] ?? null],
                     );
                     $jackpotCreditedUsd = $jackpotContribution;
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     Log::warning('JackpotLedger: no se pudo acreditar aporte', [
                         'roomId' => $room->id,
                         'amount' => $jackpotContribution,
-                        'error'  => $e->getMessage(),
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -458,6 +423,7 @@ class RoomMetricsService implements RoomMetricsInterface
             // Registrar venta por sala/creador/moneda para el panel de Comisiones RKE
             // (para todo tipo de bote — ver comentario del reparto más arriba).
             $creatorSale = null;
+
             try {
                 // A quién se anota la venta: en venta de la red (offline) al comercio
                 // vendedor — reportes de economía la leen como "ventas de mi red";
@@ -478,8 +444,8 @@ class RoomMetricsService implements RoomMetricsInterface
                     // sale_amount == rke + room + seller + jackpot + prize_pool se mantenga.
                     // prize_pool_amount = lo destinado a premios: bote en dinero, o
                     // fondos del premio físico en salas Premio/Servicio puras.
-                    $finalRkeLocal    = $rkeCommissionLocal;
-                    $finalPrizeLocal  = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal - $networkOverrideLocal - $jackpotContributionLocal, 3);
+                    $finalRkeLocal = $rkeCommissionLocal;
+                    $finalPrizeLocal = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal - $networkOverrideLocal - $jackpotContributionLocal, 3);
 
                     $existing = BingoCreatorSale::where('room_id', $room->id)
                         ->where('creator_user_id', $creatorUserId)
@@ -487,46 +453,46 @@ class RoomMetricsService implements RoomMetricsInterface
                         ->first();
 
                     if ($existing) {
-                        $existing->increment('sale_amount',      $saleAmountLocal);
-                        $existing->increment('rke_commission',   $finalRkeLocal);
-                        $existing->increment('room_commission',  $creatorCommissionLocal);
-                        $existing->increment('seller_commission',$sellerCommissionLocal);
+                        $existing->increment('sale_amount', $saleAmountLocal);
+                        $existing->increment('rke_commission', $finalRkeLocal);
+                        $existing->increment('room_commission', $creatorCommissionLocal);
+                        $existing->increment('seller_commission', $sellerCommissionLocal);
                         $existing->increment('subsidiary_commission', $subsidiaryCommissionLocal);
                         $existing->increment('commerce_commission', $commerceCommissionLocal);
                         $existing->increment('jackpot_contribution', $jackpotContributionLocal);
-                        $existing->increment('prize_pool_amount',$finalPrizeLocal);
+                        $existing->increment('prize_pool_amount', $finalPrizeLocal);
                     } else {
                         BingoCreatorSale::create([
-                            'room_id'           => $room->id,
-                            'creator_user_id'   => $creatorUserId,
-                            'currency_id'       => $currencyIdStr,
-                            'sale_amount'       => $saleAmountLocal,
-                            'rke_commission'    => $finalRkeLocal,
-                            'room_commission'   => $creatorCommissionLocal,
+                            'room_id' => $room->id,
+                            'creator_user_id' => $creatorUserId,
+                            'currency_id' => $currencyIdStr,
+                            'sale_amount' => $saleAmountLocal,
+                            'rke_commission' => $finalRkeLocal,
+                            'room_commission' => $creatorCommissionLocal,
                             'seller_commission' => $sellerCommissionLocal,
                             'subsidiary_commission' => $subsidiaryCommissionLocal,
-                            'commerce_commission'   => $commerceCommissionLocal,
+                            'commerce_commission' => $commerceCommissionLocal,
                             'jackpot_contribution' => $jackpotContributionLocal,
                             'prize_pool_amount' => $finalPrizeLocal,
                         ]);
                     }
 
                     $creatorSale = [
-                        'creator_user_id'      => $creatorUserId,
-                        'sale_amount'          => round($saleAmountLocal, 3),
-                        'rke_commission'       => round($finalRkeLocal, 3),
-                        'room_commission'      => round($creatorCommissionLocal, 3),
-                        'seller_commission'    => round($sellerCommissionLocal, 3),
+                        'creator_user_id' => $creatorUserId,
+                        'sale_amount' => round($saleAmountLocal, 3),
+                        'rke_commission' => round($finalRkeLocal, 3),
+                        'room_commission' => round($creatorCommissionLocal, 3),
+                        'seller_commission' => round($sellerCommissionLocal, 3),
                         'subsidiary_commission' => round($subsidiaryCommissionLocal, 3),
-                        'commerce_commission'   => round($commerceCommissionLocal, 3),
+                        'commerce_commission' => round($commerceCommissionLocal, 3),
                         'jackpot_contribution' => round($jackpotContributionLocal, 3),
-                        'prize_pool_amount'    => $finalPrizeLocal,
+                        'prize_pool_amount' => $finalPrizeLocal,
                     ];
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::warning('No se pudo registrar BingoCreatorSale', [
                     'roomId' => $room->id,
-                    'error'  => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
 
@@ -539,34 +505,34 @@ class RoomMetricsService implements RoomMetricsInterface
             // comercializadora) debe agregarse acá con el MISMO nombre de columna/clave:
             // BingoLotSaleReversalService revierte genéricamente cada clave del desglose.
             $breakdown = [
-                'version'     => 1,
+                'version' => 1,
                 'currency_id' => $currencyId !== '' ? $currencyId : null,
                 'room_usd' => [
-                    'total_sales'       => round($saleAmount, 3),
-                    'total_cards'       => (int) $saleData['cardCount'],
-                    'rke_commission'    => $rkeCommission,
-                    'room_commission'   => $creatorCommission,
+                    'total_sales' => round($saleAmount, 3),
+                    'total_cards' => (int) $saleData['cardCount'],
+                    'rke_commission' => $rkeCommission,
+                    'room_commission' => $creatorCommission,
                     'seller_commission' => isset($saleData['seller']) ? $sellerCommission : 0.0,
                     'subsidiary_commission' => $subsidiaryCommission,
-                    'commerce_commission'   => $commerceCommission,
-                    'prize_pool'        => $accruesMoneyPool ? $prizePool : 0.0,
+                    'commerce_commission' => $commerceCommission,
+                    'prize_pool' => $accruesMoneyPool ? $prizePool : 0.0,
                 ],
                 'room_local' => $currencyId !== '' ? [
-                    'total_sales'          => round($saleAmountLocal, 3),
-                    'total_cards'          => (int) $saleData['cardCount'],
-                    'prize_pool'           => $accruesMoneyPool ? round($prizePoolLocal, 3) : 0.0,
-                    'prize_funding'        => $accruesMoneyPool ? 0.0 : round($prizePoolLocal, 3),
-                    'rke_commission'       => round($rkeCommissionLocal, 3),
-                    'room_commission'      => round($creatorCommissionLocal, 3),
-                    'seller_commission'    => isset($saleData['seller']) ? round($sellerCommissionLocal, 3) : 0.0,
+                    'total_sales' => round($saleAmountLocal, 3),
+                    'total_cards' => (int) $saleData['cardCount'],
+                    'prize_pool' => $accruesMoneyPool ? round($prizePoolLocal, 3) : 0.0,
+                    'prize_funding' => $accruesMoneyPool ? 0.0 : round($prizePoolLocal, 3),
+                    'rke_commission' => round($rkeCommissionLocal, 3),
+                    'room_commission' => round($creatorCommissionLocal, 3),
+                    'seller_commission' => isset($saleData['seller']) ? round($sellerCommissionLocal, 3) : 0.0,
                     'subsidiary_commission' => round($subsidiaryCommissionLocal, 3),
-                    'commerce_commission'   => round($commerceCommissionLocal, 3),
+                    'commerce_commission' => round($commerceCommissionLocal, 3),
                     'jackpot_contribution' => round($jackpotContributionLocal, 3),
                 ] : null,
-                'creator_sale'        => $creatorSale,
-                'channel'             => $saleChannel,
-                'rke_credited_local'  => $rkeCreditedLocal,
-                'rke_receivable_local'=> $rkeReceivableLocal,
+                'creator_sale' => $creatorSale,
+                'channel' => $saleChannel,
+                'rke_credited_local' => $rkeCreditedLocal,
+                'rke_receivable_local' => $rkeReceivableLocal,
                 // Venta fuera del sistema: lo que el comercio retuvo en efectivo y le
                 // debe a la plataforma, que es quien paga los premios a billeteras y
                 // acumula el jackpot. NO incluye las comisiones de la red (vendedor,
@@ -574,31 +540,84 @@ class RoomMetricsService implements RoomMetricsInterface
                 // red. prize_pool solo si la sala acumula bote en dinero (en
                 // Premio/Servicio pura esos fondos son del creador, que pone el premio).
                 'receivable_local' => $saleChannel === 'offline' ? [
-                    'rke'        => round($rkeReceivableLocal, 2),
-                    'jackpot'    => $jackpotCreditedUsd > 0 ? round($jackpotContributionLocal, 2) : 0.0,
+                    'rke' => round($rkeReceivableLocal, 2),
+                    'jackpot' => $jackpotCreditedUsd > 0 ? round($jackpotContributionLocal, 2) : 0.0,
                     'prize_pool' => $accruesMoneyPool ? round(max(0, $prizePoolLocal), 2) : 0.0,
                     // Venta cruzada: un comercio vende cartones de una sala PÚBLICA
                     // creada por otro (o por la plataforma). Cobra en efectivo también
                     // la comisión del creador, que no es suya → entra en la deuda y la
                     // plataforma se la paga al creador (custodia hasta el cierre).
                     // En sus propias salas se la queda, como siempre.
-                    'creator'    => $isCrossSale ? round($creatorCommissionLocal, 2) : 0.0,
+                    'creator' => $isCrossSale ? round($creatorCommissionLocal, 2) : 0.0,
                 ] : null,
                 // A quién le corresponde la parte 'creator' de la deuda.
                 'room_creator_user_id' => $room->creator_user_id ? (string) $room->creator_user_id : null,
-                'jackpot_type_id'     => $jackpotCreditedUsd > 0 ? (string) $bingoConfig->jackpot_type_id : null,
-                'jackpot_credited_usd'=> $jackpotCreditedUsd,
+                'jackpot_type_id' => $jackpotCreditedUsd > 0 ? (string) $bingoConfig->jackpot_type_id : null,
+                'jackpot_credited_usd' => $jackpotCreditedUsd,
             ];
 
             return $result;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Error al actualizar métricas con comisiones: ' . $e->getMessage(), [
                 'roomId' => $room->id,
                 'saleData' => $saleData,
                 'saleAmount' => $saleAmount,
                 'sellerCommission' => $sellerCommission,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar el contador total de cartones en la sala
+     *
+     * @param BingoRoom $room            Sala a actualizar
+     * @param int       $additionalCards Cantidad de cartones adicionales
+     *
+     * @return bool True si se actualizó correctamente
+     */
+    public function updateTotalCards(BingoRoom $room, int $additionalCards) : bool
+    {
+        try {
+            if ($additionalCards <= 0) {
+                return false;
+            }
+
+            return $room->increment('total_cards', $additionalCards) > 0;
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar total de cartones: ' . $e->getMessage(), [
+                'roomId' => $room->id,
+                'additionalCards' => $additionalCards,
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Actualizar el monto total de ventas de la sala
+     *
+     * @param BingoRoom $room       Sala a actualizar
+     * @param float     $saleAmount Monto de la venta a agregar
+     *
+     * @return bool True si se actualizó correctamente
+     */
+    public function updateTotalSales(BingoRoom $room, float $saleAmount) : bool
+    {
+        try {
+            if ($saleAmount <= 0) {
+                return false;
+            }
+
+            return $room->increment('total_sales', $saleAmount) > 0;
+        } catch (Throwable $e) {
+            Log::error('Error al actualizar total de ventas: ' . $e->getMessage(), [
+                'roomId' => $room->id,
+                'saleAmount' => $saleAmount,
+            ]);
+
             return false;
         }
     }

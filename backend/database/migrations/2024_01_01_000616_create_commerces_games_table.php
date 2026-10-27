@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('commerces_games');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('commerces_games', function (Blueprint $table) {
+        Schema::create('commerces_games', function(Blueprint $table) {
             // Comercio
             $table->foreignSnowflake('commerce_id')
                 ->constrained('commerces')
@@ -32,13 +40,5 @@ return new class extends Migration
             // Evita duplicados: un comercio solo puede tener un registro por juego
             $table->unique(['commerce_id', 'game_id'], 'commerce_game_unique');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('commerces_games');
     }
 };

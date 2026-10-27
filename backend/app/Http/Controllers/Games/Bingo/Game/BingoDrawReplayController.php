@@ -11,7 +11,8 @@ final class BingoDrawReplayController extends Controller
 {
     public function __construct(
         private readonly BingoDrawReplayService $replayService,
-    ) {}
+    ) {
+    }
 
     /**
      * GET /bingo-rooms/{room}/draw/replay
@@ -19,7 +20,7 @@ final class BingoDrawReplayController extends Controller
      * Devuelve el historial completo de fichas cantadas, ordenadas por ronda y tiempo.
      * Requiere que la sala esté en estado FINISHED o IN_PROGRESS para tener datos.
      */
-    public function __invoke(BingoRoom $room): JsonResponse
+    public function __invoke(BingoRoom $room) : JsonResponse
     {
         $this->authorize('view', $room);
 

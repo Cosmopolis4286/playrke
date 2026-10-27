@@ -25,15 +25,20 @@ use Illuminate\Support\ServiceProvider;
  */
 class PaymentServiceProvider extends ServiceProvider
 {
-    public function register(): void
+    public function boot() : void
     {
-        $this->app->singleton(BlockchainProviderInterface::class, function () {
+        $this->loadMigrationsFrom(database_path('migrations/payments'));
+    }
+
+    public function register() : void
+    {
+        $this->app->singleton(BlockchainProviderInterface::class, function() {
             $provider = config('payments.tron.provider', 'tron_grid');
 
             if ($provider === 'mock') {
                 if ($this->app->environment('production')) {
                     throw new PaymentsProviderMisconfiguredException(
-                        'PAYMENTS_TRON_PROVIDER=mock no puede usarse en producción.'
+                        'PAYMENTS_TRON_PROVIDER=mock no puede usarse en producción.',
                     );
                 }
 
@@ -42,10 +47,5 @@ class PaymentServiceProvider extends ServiceProvider
 
             return $this->app->make(TronGridProvider::class);
         });
-    }
-
-    public function boot(): void
-    {
-        $this->loadMigrationsFrom(database_path('migrations/payments'));
     }
 }

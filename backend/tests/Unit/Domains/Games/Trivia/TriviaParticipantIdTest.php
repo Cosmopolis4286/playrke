@@ -9,15 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class TriviaParticipantIdTest extends TestCase
 {
-    public function test_generated_participant_ids_fit_the_trivia_schema(): void
-    {
-        $id = TriviaParticipant::generateSnowflakeId();
-
-        $this->assertMatchesRegularExpression('/^\d+$/', $id);
-        $this->assertLessThanOrEqual(20, strlen($id));
-    }
-
-    public function test_generated_participant_ids_are_unique(): void
+    public function test_generated_participant_ids_are_unique() : void
     {
         $ids = [];
 
@@ -26,5 +18,13 @@ final class TriviaParticipantIdTest extends TestCase
         }
 
         $this->assertCount(100, array_unique($ids));
+    }
+
+    public function test_generated_participant_ids_fit_the_trivia_schema() : void
+    {
+        $id = TriviaParticipant::generateSnowflakeId();
+
+        $this->assertMatchesRegularExpression('/^\d+$/', $id);
+        $this->assertLessThanOrEqual(20, strlen($id));
     }
 }

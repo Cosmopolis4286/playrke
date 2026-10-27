@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_card_prize_payments'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_prize_payments');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'bingo_card_prize_payments'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_prize_payments', function (Blueprint $table) {
+        Schema::create('bingo_card_prize_payments', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del pago de premio');
 
@@ -117,13 +125,5 @@ return new class extends Migration
 
             // Nota: Validaciones de integridad se manejan a nivel de aplicación
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_card_prize_payments'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_prize_payments');
     }
 };

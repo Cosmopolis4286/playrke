@@ -27,8 +27,8 @@ require __DIR__ . '/modules/notifications.php';
 // RUTAS POR ROLES DE USUARIO
 // ====================================
 require __DIR__ . '/modules/superadmin.php';
-require __DIR__ . '/modules/admin.php';          
-// require __DIR__ . '/modules/customer.php';      
+require __DIR__ . '/modules/admin.php';
+// require __DIR__ . '/modules/customer.php';
 require __DIR__ . '/modules/commerce.php';
 require __DIR__ . '/modules/subsidiary.php';
 require __DIR__ . '/modules/seller.php';
@@ -57,12 +57,12 @@ require __DIR__ . '/modules/kyc.php';
 // ====================================
 // UTILIDADES Y SERVICIOS
 // ====================================
-// require __DIR__ . '/modules/files.php';           
-require __DIR__ . '/modules/utils.php';           
+// require __DIR__ . '/modules/files.php';
+require __DIR__ . '/modules/utils.php';
 
 // ====================================
 // DESARROLLO Y DEMOS
 // ====================================
 if (app()->environment(['local', 'staging'])) {
-    require __DIR__ . '/modules/dev.php';         
+    require __DIR__ . '/modules/dev.php';
 }

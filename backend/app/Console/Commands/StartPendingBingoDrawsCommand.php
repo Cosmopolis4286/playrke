@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
-use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
 use App\Services\NotificationService;
 use App\Traits\ResolvesSuperadminIds;
@@ -26,9 +26,6 @@ class StartPendingBingoDrawsCommand extends Command
 {
     use ResolvesSuperadminIds;
 
-    protected $signature   = 'bingo:start-pending-draws';
-    protected $description = 'Inicia automáticamente el sorteo de salas de bingo listas (hora cumplida + jugadores) sin depender de clientes conectados';
-
     /**
      * Ventana entre reintentos de recuperación de una misma sala atascada —
      * evita redespachar StartBingoDrawJob en cada corrida del minuto si el
@@ -37,8 +34,11 @@ class StartPendingBingoDrawsCommand extends Command
      * arreglaría). Tras esta ventana, si sigue atascada, se notifica.
      */
     private const STUCK_ROOM_RETRY_WINDOW_MINUTES = 5;
+    protected $description = 'Inicia automáticamente el sorteo de salas de bingo listas (hora cumplida + jugadores) sin depender de clientes conectados';
 
-    public function handle(): void
+    protected $signature = 'bingo:start-pending-draws';
+
+    public function handle() : void
     {
         $status = 'SUCCESS';
         $started = 0;
@@ -49,16 +49,16 @@ class StartPendingBingoDrawsCommand extends Command
             // Todos los agregados necesarios se cargan en una sola query con withCount/withExists
             // para evitar N+1 (antes: 4 queries adicionales por sala dentro del foreach).
             $rooms = BingoRoom::query()
-                ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
+                ->whereHas('status', fn ($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
                 // Las salas sin horario (start_mode = MANUAL, unix_date null) quedan fuera:
                 // su sorteo solo se dispara vía activación manual (BingoRoomCrudService::activateNow).
-                ->whereHas('config', fn($q) => $q->whereNotNull('unix_date')->where('unix_date', '<=', $now))
-                ->whereHas('players', fn($q) => $q->whereIn('role', [
+                ->whereHas('config', fn ($q) => $q->whereNotNull('unix_date')->where('unix_date', '<=', $now))
+                ->whereHas('players', fn ($q) => $q->whereIn('role', [
                     BingoRoomUser::ROLE_PLAYER,
                     BingoRoomUser::ROLE_PLAYER_SELLER,
                 ]))
                 ->withCount([
-                    'players as registered_players_count' => fn($q) => $q->whereIn('role', [
+                    'players as registered_players_count' => fn ($q) => $q->whereIn('role', [
                         BingoRoomUser::ROLE_PLAYER,
                         BingoRoomUser::ROLE_PLAYER_SELLER,
                     ]),
@@ -66,10 +66,10 @@ class StartPendingBingoDrawsCommand extends Command
                     // drawn_count y sequence_count se scopean al round activo/en-progreso
                     // para evitar que los draws de rondas anteriores (ya completadas)
                     // inflen el contador y salten el dispatch de una nueva ronda.
-                    'draws as drawn_count'    => fn($q) => $q->whereHas('round', fn($r) => $r->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])),
-                    'drawCodes as sequence_count' => fn($q) => $q->whereHas('round', fn($r) => $r->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])),
-                    'rounds as active_round_count'   => fn($q) => $q->whereIn('status', ['ACTIVE', 'IN_PROGRESS']),
-                    'rounds as finished_round_count' => fn($q) => $q->where('status', 'FINISHED'),
+                    'draws as drawn_count' => fn ($q) => $q->whereHas('round', fn ($r) => $r->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])),
+                    'drawCodes as sequence_count' => fn ($q) => $q->whereHas('round', fn ($r) => $r->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])),
+                    'rounds as active_round_count' => fn ($q) => $q->whereIn('status', ['ACTIVE', 'IN_PROGRESS']),
+                    'rounds as finished_round_count' => fn ($q) => $q->where('status', 'FINISHED'),
                 ])
                 ->with('config:id,room_id,unix_date,min_cards_to_start,min_players')
                 ->get();
@@ -104,6 +104,7 @@ class StartPendingBingoDrawsCommand extends Command
                             canRetryViaJob: true,
                         );
                     }
+
                     continue;
                 }
 
@@ -120,6 +121,7 @@ class StartPendingBingoDrawsCommand extends Command
                         reason: 'ronda FINISHED existente pero sala sigue ACTIVE/IN_PROGRESS sin cerrar',
                         canRetryViaJob: false,
                     );
+
                     continue;
                 }
 
@@ -139,7 +141,7 @@ class StartPendingBingoDrawsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
 
             $this->error($output);
@@ -160,6 +162,25 @@ class StartPendingBingoDrawsCommand extends Command
         }
     }
 
+    private function notifyStuckRoom(BingoRoom $room, string $reason) : void
+    {
+        $notificationService = app(NotificationService::class);
+
+        foreach ($this->superadminIds() as $superadminId) {
+            $notificationService->create(
+                userId: $superadminId,
+                type: 'SYSTEM',
+                title: '🚨 Sala de Bingo atascada',
+                message: "La sala #{$room->id} quedó atascada ({$reason}) y requiere revisión manual.",
+                data: [
+                    'room_id' => (string) $room->id,
+                    'reason' => $reason,
+                    'url' => '/bingo/game-rooms',
+                ],
+            );
+        }
+    }
+
     /**
      * Sala detectada en estado atascado (ver los dos casos en handle()).
      * Primer intento: redespachar el job de sorteo si es seguro hacerlo
@@ -169,13 +190,13 @@ class StartPendingBingoDrawsCommand extends Command
      * ventana ya se usó (o el caso no admite reintento vía job), notifica
      * a superadmins en vez de solo loguear silenciosamente cada minuto.
      */
-    private function recoverStuckRoom(BingoRoom $room, string $reason, bool $canRetryViaJob): void
+    private function recoverStuckRoom(BingoRoom $room, string $reason, bool $canRetryViaJob) : void
     {
         $cacheKey = "bingo:room:{$room->id}:stuck-retry";
 
         Log::critical("[StartPendingBingoDrawsCommand] Sala atascada: {$reason}", [
-            'room_id'  => $room->id,
-            'drawn'    => $room->drawn_count,
+            'room_id' => $room->id,
+            'drawn' => $room->drawn_count,
             'sequence' => $room->sequence_count,
         ]);
 
@@ -190,28 +211,10 @@ class StartPendingBingoDrawsCommand extends Command
         if ($canRetryViaJob) {
             StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
             $this->warn("Sala #{$room->id} atascada — redespachado sorteo para recuperación automática.");
+
             return;
         }
 
         $this->notifyStuckRoom($room, $reason);
-    }
-
-    private function notifyStuckRoom(BingoRoom $room, string $reason): void
-    {
-        $notificationService = app(NotificationService::class);
-
-        foreach ($this->superadminIds() as $superadminId) {
-            $notificationService->create(
-                userId: $superadminId,
-                type: 'SYSTEM',
-                title: '🚨 Sala de Bingo atascada',
-                message: "La sala #{$room->id} quedó atascada ({$reason}) y requiere revisión manual.",
-                data: [
-                    'room_id' => (string) $room->id,
-                    'reason'  => $reason,
-                    'url'     => '/bingo/game-rooms',
-                ],
-            );
-        }
     }
 }

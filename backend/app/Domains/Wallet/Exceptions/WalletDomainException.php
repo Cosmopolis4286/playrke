@@ -35,6 +35,15 @@ final class WalletDomainException extends DomainException
     }
 
     /**
+     * unassignMovement(): solo el dueño de la asignación o un superadmin
+     * pueden liberar un caso tomado por otro admin.
+     */
+    public static function cannotUnassignOthersMovement(string $adminName) : self
+    {
+        return new self("Este movimiento está siendo revisado por {$adminName}. Solo esa persona o un superadmin puede liberarlo.", 409);
+    }
+
+    /**
      * $remaining es lo que aún puede retirar hoy (0 si ya agotó el tope).
      */
     public static function dailyWithdrawalLimitReached(float $remaining) : self
@@ -145,22 +154,6 @@ final class WalletDomainException extends DomainException
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Validación de monto (WalletService::assertPositiveAmount())
-    // ─────────────────────────────────────────────────────────────────
-
-    /**
-     * assertPositiveAmount(): un método de crédito/débito del núcleo
-     * (recordPrize, recordRefund, recordCryptoDeposit, etc.) recibió un
-     * monto <= 0. Defensa de última línea contra un bug de cálculo en el
-     * caller (juego, marketplace, cripto) — ninguno de esos métodos debe
-     * confiar ciegamente en que el monto ya viene validado.
-     */
-    public static function invalidMovementAmount(float $amount) : self
-    {
-        return new self("El monto del movimiento debe ser mayor a cero (recibido: {$amount}).", 422);
-    }
-
-    // ─────────────────────────────────────────────────────────────────
     // Saldo insuficiente (WalletService)
     // ─────────────────────────────────────────────────────────────────
 
@@ -216,9 +209,51 @@ final class WalletDomainException extends DomainException
         return new self('Saldo insuficiente (bono + real) para esta operación.', 422);
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // Validación de monto (WalletService::assertPositiveAmount())
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * assertPositiveAmount(): un método de crédito/débito del núcleo
+     * (recordPrize, recordRefund, recordCryptoDeposit, etc.) recibió un
+     * monto <= 0. Defensa de última línea contra un bug de cálculo en el
+     * caller (juego, marketplace, cripto) — ninguno de esos métodos debe
+     * confiar ciegamente en que el monto ya viene validado.
+     */
+    public static function invalidMovementAmount(float $amount) : self
+    {
+        return new self("El monto del movimiento debe ser mayor a cero (recibido: {$amount}).", 422);
+    }
+
     public static function monthlyWithdrawalLimitReached(float $remaining) : self
     {
         return new self("Límite mensual de retiro alcanzado. Puedes retirar hasta {$remaining} este mes.", 422);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Movimientos: asignación/lock anti-colisión (WalletService)
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * assignMovement(): el movimiento ya está tomado por OTRO admin y el
+     * lock (assigned_at + ASSIGNMENT_LOCK_MINUTES) sigue vigente — evita que
+     * dos admins trabajen el mismo caso a la vez. Un superadmin puede
+     * forzar la reasignación igualmente (no pasa por este guard).
+     */
+    public static function movementAssignedToAnotherAdmin(string $adminName) : self
+    {
+        return new self("Este movimiento ya está siendo revisado por {$adminName}.", 409);
+    }
+
+    /**
+     * approveDeposit()/approveWithdrawal()/approveGeneric()/rejectDeposit()/
+     * rejectWithdrawal()/rejectGeneric() (individual y bulk): el movimiento
+     * está bloqueado por otro admin — hace que el lock de asignación sea
+     * real y no decorativo.
+     */
+    public static function movementLockedByAnotherAdmin(string $adminName) : self
+    {
+        return new self("Este movimiento está siendo revisado por {$adminName}. Solo esa persona (o un superadmin) puede procesarlo.", 409);
     }
     // ─────────────────────────────────────────────────────────────────
     // Movimientos: aprobación / rechazo (WalletService)
@@ -249,41 +284,6 @@ final class WalletDomainException extends DomainException
     public static function noActiveWalletForCurrency() : self
     {
         return new self('No tienes una billetera activa para esa moneda.', 404);
-    }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Movimientos: asignación/lock anti-colisión (WalletService)
-    // ─────────────────────────────────────────────────────────────────
-
-    /**
-     * assignMovement(): el movimiento ya está tomado por OTRO admin y el
-     * lock (assigned_at + ASSIGNMENT_LOCK_MINUTES) sigue vigente — evita que
-     * dos admins trabajen el mismo caso a la vez. Un superadmin puede
-     * forzar la reasignación igualmente (no pasa por este guard).
-     */
-    public static function movementAssignedToAnotherAdmin(string $adminName) : self
-    {
-        return new self("Este movimiento ya está siendo revisado por {$adminName}.", 409);
-    }
-
-    /**
-     * unassignMovement(): solo el dueño de la asignación o un superadmin
-     * pueden liberar un caso tomado por otro admin.
-     */
-    public static function cannotUnassignOthersMovement(string $adminName) : self
-    {
-        return new self("Este movimiento está siendo revisado por {$adminName}. Solo esa persona o un superadmin puede liberarlo.", 409);
-    }
-
-    /**
-     * approveDeposit()/approveWithdrawal()/approveGeneric()/rejectDeposit()/
-     * rejectWithdrawal()/rejectGeneric() (individual y bulk): el movimiento
-     * está bloqueado por otro admin — hace que el lock de asignación sea
-     * real y no decorativo.
-     */
-    public static function movementLockedByAnotherAdmin(string $adminName) : self
-    {
-        return new self("Este movimiento está siendo revisado por {$adminName}. Solo esa persona (o un superadmin) puede procesarlo.", 409);
     }
 
     /**
@@ -344,11 +344,29 @@ final class WalletDomainException extends DomainException
     }
 
     /**
-     * checkWithdrawalVelocity(): el usuario alcanzó MAX_WITHDRAWALS_PER_DAY.
+     * requestWithdraw(): Hash::check() del PIN recibido contra
+     * withdrawal_pin_hash falló. $remainingAttempts viene de
+     * WalletFraudService::recordWithdrawalPinFailure() — solo se muestra en
+     * el mensaje cuando es bajo, para no facilitar calibrar un ataque de
+     * fuerza bruta contando intentos totales disponibles.
      */
-    public static function withdrawalVelocityExceeded() : self
+    public static function withdrawalPinInvalid(int $remainingAttempts) : self
     {
-        return new self('Has alcanzado el límite de retiros por hoy. Inténtalo mañana.', 429);
+        $suffix = $remainingAttempts <= 2
+            ? " Te quedan {$remainingAttempts} intento(s) antes de un bloqueo temporal."
+            : '';
+
+        return new self("PIN de retiro incorrecto.{$suffix}", 422);
+    }
+
+    /**
+     * checkWithdrawalPinLockout(): se agotaron los intentos de PIN
+     * permitidos en la ventana de tiempo — bloqueado temporalmente,
+     * independiente de si el usuario ahora escribe el PIN correcto.
+     */
+    public static function withdrawalPinLocked(int $minutes) : self
+    {
+        return new self("Demasiados intentos de PIN incorrectos. Vuelve a intentar en {$minutes} minuto(s).", 429);
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -377,28 +395,10 @@ final class WalletDomainException extends DomainException
     }
 
     /**
-     * requestWithdraw(): Hash::check() del PIN recibido contra
-     * withdrawal_pin_hash falló. $remainingAttempts viene de
-     * WalletFraudService::recordWithdrawalPinFailure() — solo se muestra en
-     * el mensaje cuando es bajo, para no facilitar calibrar un ataque de
-     * fuerza bruta contando intentos totales disponibles.
+     * checkWithdrawalVelocity(): el usuario alcanzó MAX_WITHDRAWALS_PER_DAY.
      */
-    public static function withdrawalPinInvalid(int $remainingAttempts) : self
+    public static function withdrawalVelocityExceeded() : self
     {
-        $suffix = $remainingAttempts <= 2
-            ? " Te quedan {$remainingAttempts} intento(s) antes de un bloqueo temporal."
-            : '';
-
-        return new self("PIN de retiro incorrecto.{$suffix}", 422);
-    }
-
-    /**
-     * checkWithdrawalPinLockout(): se agotaron los intentos de PIN
-     * permitidos en la ventana de tiempo — bloqueado temporalmente,
-     * independiente de si el usuario ahora escribe el PIN correcto.
-     */
-    public static function withdrawalPinLocked(int $minutes) : self
-    {
-        return new self("Demasiados intentos de PIN incorrectos. Vuelve a intentar en {$minutes} minuto(s).", 429);
+        return new self('Has alcanzado el límite de retiros por hoy. Inténtalo mañana.', 429);
     }
 }

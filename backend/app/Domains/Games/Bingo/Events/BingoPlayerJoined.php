@@ -10,18 +10,18 @@ use Illuminate\Support\Facades\Log;
 class BingoPlayerJoined implements ShouldBroadcastNow
 {
     use SerializesModels;
-
-    public $roomId;
+    public $currentPlayers;
     public $playerId;
     public $playerName;
-    public $currentPlayers;
+
+    public $roomId;
 
     public function __construct(int $roomId, int $playerId, string $playerName, int $currentPlayers)
     {
         Log::info('Creando evento BingoPlayerJoined', [
             'roomId' => $roomId,
             'playerId' => $playerId,
-            'playerName' => $playerName
+            'playerName' => $playerName,
         ]);
 
         $this->roomId = $roomId;
@@ -30,14 +30,14 @@ class BingoPlayerJoined implements ShouldBroadcastNow
         $this->currentPlayers = $currentPlayers;
     }
 
-    public function broadcastOn()
-    {
-        return new Channel("bingo.room.{$this->roomId}");
-    }
-
     public function broadcastAs()
     {
         return 'PlayerJoined';
+    }
+
+    public function broadcastOn()
+    {
+        return new Channel("bingo.room.{$this->roomId}");
     }
 
     public function broadcastWith()

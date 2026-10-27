@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('game_rules');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('game_rules', function (Blueprint $table) {
+        Schema::create('game_rules', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
@@ -22,13 +30,5 @@ return new class extends Migration
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('game_rules');
     }
 };

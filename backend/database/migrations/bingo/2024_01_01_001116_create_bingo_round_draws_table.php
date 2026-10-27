@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_round_draws');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_round_draws', function (Blueprint $table) {
+        Schema::create('bingo_round_draws', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la relación ronda-sorteo');
 
@@ -38,13 +46,5 @@ return new class extends Migration
             // Evita duplicados: mismo sorteo no puede estar en múltiples rondas
             $table->unique(['round_id', 'draw_id'], 'unique_round_draw');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_round_draws');
     }
 };

@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'history_plays'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('history_plays');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'history_plays'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('history_plays', function (Blueprint $table) {
+        Schema::create('history_plays', function(Blueprint $table) {
             // ID Snowflake único (PRIMARY KEY)
             $table->snowflake('id')->primary()->comment('ID único del historial de juego');
 
@@ -51,13 +59,5 @@ return new class extends Migration
             $table->index(['user_id', 'game_id', 'played_at'], 'idx_user_game_date');
             $table->index(['room_id', 'game_id'], 'idx_room_game');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'history_plays'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('history_plays');
     }
 };

@@ -17,31 +17,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
-    {
-        return 'superadmin';
-    }
-
-    /**
-     * Ver/editar los permisos específicos (specific_permissions) de otro
-     * usuario. Aplica a cualquier usuario del sistema, incluidos otros
-     * admin — EXCEPTO superadmin: esa cuenta ya tiene el permiso
-     * 'superadmin.access' (acceso total, ver PermissionSeeder), así que
-     * otorgarle/quitarle permisos individuales no tiene ningún efecto real
-     * y solo genera confusión sobre qué controla su acceso.
-     *
-     * @param Model $targetUser Tipado como Model (no User) para mantener la
-     *   firma compatible con el resto de métodos de BaseRolePolicy.
-     */
-    public function managePermissions(User $actingUser, Model $targetUser): bool
-    {
-        if (!$this->hasAccess($actingUser)) {
-            return false;
-        }
-
-        return !($targetUser instanceof User && $targetUser->hasRole('superadmin'));
-    }
-
     /**
      * Crear un nuevo administrador (rol 'admin') — pantalla /admins. Solo
      * superadmin: un admin no puede promoverse a sí mismo ni a otros a su
@@ -49,7 +24,7 @@ class UserPolicy extends BaseRolePolicy
      * AdminUserService::guardRoleChange() aplica al cambiar el rol de un
      * usuario existente a 'admin'.
      */
-    public function createAdministrator(User $actingUser): bool
+    public function createAdministrator(User $actingUser) : bool
     {
         return $this->hasAccess($actingUser);
     }
@@ -61,12 +36,12 @@ class UserPolicy extends BaseRolePolicy
      * actualizar su propia ficha (el status, en cambio, nunca se toca por
      * esta vía — ver AdministratorUpdateDTO, que no incluye ese campo).
      *
-     * @param Model $targetUser Tipado como Model para mantener la firma
-     *   compatible con BaseRolePolicy::update().
+     * @param Model $targetUser tipado como Model para mantener la firma
+     *                          compatible con BaseRolePolicy::update()
      */
-    public function editAdministrator(User $actingUser, Model $targetUser): bool
+    public function editAdministrator(User $actingUser, Model $targetUser) : bool
     {
-        if (!$this->hasAccess($actingUser)) {
+        if (! $this->hasAccess($actingUser)) {
             return false;
         }
 
@@ -86,12 +61,12 @@ class UserPolicy extends BaseRolePolicy
      * - El objetivo debe ser realmente un admin o superadmin — evita que este
      *   endpoint se use como atajo para mutar cualquier User del sistema.
      *
-     * @param Model $targetUser Tipado como Model para mantener la firma
-     *   compatible con BaseRolePolicy::update().
+     * @param Model $targetUser tipado como Model para mantener la firma
+     *                          compatible con BaseRolePolicy::update()
      */
-    public function manageAdministrator(User $actingUser, Model $targetUser): bool
+    public function manageAdministrator(User $actingUser, Model $targetUser) : bool
     {
-        if (!$this->hasAccess($actingUser)) {
+        if (! $this->hasAccess($actingUser)) {
             return false;
         }
 
@@ -101,5 +76,30 @@ class UserPolicy extends BaseRolePolicy
 
         return $targetUser instanceof User
             && ($targetUser->hasRole('admin') || $targetUser->hasRole('superadmin'));
+    }
+
+    /**
+     * Ver/editar los permisos específicos (specific_permissions) de otro
+     * usuario. Aplica a cualquier usuario del sistema, incluidos otros
+     * admin — EXCEPTO superadmin: esa cuenta ya tiene el permiso
+     * 'superadmin.access' (acceso total, ver PermissionSeeder), así que
+     * otorgarle/quitarle permisos individuales no tiene ningún efecto real
+     * y solo genera confusión sobre qué controla su acceso.
+     *
+     * @param Model $targetUser tipado como Model (no User) para mantener la
+     *                          firma compatible con el resto de métodos de BaseRolePolicy
+     */
+    public function managePermissions(User $actingUser, Model $targetUser) : bool
+    {
+        if (! $this->hasAccess($actingUser)) {
+            return false;
+        }
+
+        return ! ($targetUser instanceof User && $targetUser->hasRole('superadmin'));
+    }
+
+    protected function requiredRole() : string|array
+    {
+        return 'superadmin';
     }
 }

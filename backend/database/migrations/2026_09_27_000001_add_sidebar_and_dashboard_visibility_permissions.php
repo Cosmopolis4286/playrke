@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-/**
+/*
  * Migración de datos (no seeder): siembra sidebar-menu.view/manage y
  * dashboard-widgets.view/manage, y se los asigna a 'superadmin' (ya los
  * tiene todo permiso vía RolePermissionSeeder en instalaciones frescas,
@@ -30,7 +30,17 @@ use Spatie\Permission\Models\Role;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Permission::whereIn('name', [
+            'sidebar-menu.view',
+            'sidebar-menu.manage',
+            'dashboard-widgets.view',
+            'dashboard-widgets.manage',
+        ])->delete();
+    }
+
+    public function up() : void
     {
         $permissions = [
             ['name' => 'sidebar-menu.view', 'guard_name' => 'web', 'description' => 'Ver la matriz de visibilidad del sidebar por rol'],
@@ -52,15 +62,5 @@ return new class extends Migration
         if ($superadmin) {
             $superadmin->givePermissionTo(Permission::whereIn('name', $names)->get());
         }
-    }
-
-    public function down(): void
-    {
-        Permission::whereIn('name', [
-            'sidebar-menu.view',
-            'sidebar-menu.manage',
-            'dashboard-widgets.view',
-            'dashboard-widgets.manage',
-        ])->delete();
     }
 };

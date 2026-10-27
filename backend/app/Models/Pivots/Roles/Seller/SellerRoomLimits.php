@@ -19,58 +19,35 @@ class SellerRoomLimits extends Pivot
 {
     use SnowflakeId;
 
-    protected $table = "sellers_room_limits";
+    protected $casts = [
+        'game_id' => 'string',
+        'room_id' => 'string',
+        'seller_id' => 'string',
+        'commission' => 'float',
+    ];
 
     protected $fillable = [
         'game_id',
         'room_id',
         'seller_id',
-        'commission'
+        'commission',
     ];
 
-    protected $casts = [
-        'game_id' => 'string',
-        'room_id' => 'string',
-        'seller_id' => 'string',
-        'commission' => 'float'
-    ];
-
-    /**
-     * Relación con la sala de bingo.
-     */
-    public function room(): BelongsTo
-    {
-        return $this->belongsTo(BingoRoom::class, 'room_id');
-    }
-
-    /**
-     * Relación con el vendedor.
-     */
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(Seller::class, 'seller_id');
-    }
-
-    /**
-     * Relación con el juego.
-     */
-    public function game(): BelongsTo
-    {
-        return $this->belongsTo(Game::class, 'game_id');
-    }
+    protected $table = 'sellers_room_limits';
 
     /**
      * Obtener un valor específico de límite de sala por vendedor
      *
-     * @param string $game Nombre del juego
-     * @param string $sellerId ID del vendedor
-     * @param string|null $roomId ID de la sala (sin sala, no hay límite específico que buscar)
-     * @param string $field Campo a obtener
+     * @param string      $game     Nombre del juego
+     * @param string      $sellerId ID del vendedor
+     * @param string|null $roomId   ID de la sala (sin sala, no hay límite específico que buscar)
+     * @param string      $field    Campo a obtener
+     *
      * @return mixed
      */
     public static function getGameRoomValueBySeller(string $game, string $sellerId, ?string $roomId, string $field)
     {
-        if (!$roomId) {
+        if (! $roomId) {
             return null;
         }
 
@@ -80,7 +57,7 @@ class SellerRoomLimits extends Pivot
         // la comisión base del vendedor).
         $gameId = Game::getValueByName($game, 'id');
 
-        if (!$gameId) {
+        if (! $gameId) {
             return null;
         }
 
@@ -88,5 +65,29 @@ class SellerRoomLimits extends Pivot
             ->where('seller_id', $sellerId)
             ->where('room_id', $roomId)
             ->value($field);
+    }
+
+    /**
+     * Relación con el juego.
+     */
+    public function game() : BelongsTo
+    {
+        return $this->belongsTo(Game::class, 'game_id');
+    }
+
+    /**
+     * Relación con la sala de bingo.
+     */
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    /**
+     * Relación con el vendedor.
+     */
+    public function seller() : BelongsTo
+    {
+        return $this->belongsTo(Seller::class, 'seller_id');
     }
 }

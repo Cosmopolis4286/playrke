@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('treasurers', function (Blueprint $table) {
+        Schema::dropIfExists('treasurers');
+    }
+
+    public function up() : void
+    {
+        Schema::create('treasurers', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -45,10 +50,5 @@ return new class extends Migration
             // Índice compuesto si consultas frecuentes por país y estado
             $table->index(['country_id', 'status']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('treasurers');
     }
 };

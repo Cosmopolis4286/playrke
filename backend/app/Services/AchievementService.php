@@ -6,29 +6,114 @@ use App\Models\Achievement;
 use App\Models\GameParticipation;
 use App\Models\User;
 use App\Models\UserAchievement;
+use Exception;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class AchievementService
 {
     public function __construct(
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Verificar y desbloquear logros automáticamente
+     */
+    public function checkAndUnlockAchievements(User $user, array $context = []) : array
+    {
+        $unlockedAchievements = [];
+
+        DB::beginTransaction();
+
+        try {
+            $achievements = Achievement::active()
+                ->whereDoesntHave('users', function($query) use ($user) {
+                    $query->where('users.id', $user->id);
+                })
+                ->get();
+
+            foreach ($achievements as $achievement) {
+                if ($this->shouldUnlockAchievement($user, $achievement, $context)) {
+                    $userAchievement = $achievement->unlockForUser($user);
+                    $unlockedAchievements[] = [
+                        'achievement' => $achievement,
+                        'user_achievement' => $userAchievement,
+                    ];
+                }
+            }
+
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            throw $e;
+        }
+
+        foreach ($unlockedAchievements as $unlocked) {
+            try {
+                $achievement = $unlocked['achievement'];
+                $this->notificationService->createAchievementUnlockedNotification(
+                    $user->id,
+                    $achievement->code,
+                    $achievement->name,
+                    $achievement->xp_reward,
+                );
+            } catch (Throwable $e) {
+                Log::warning('AchievementService: fallo al notificar logro desbloqueado.', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $unlockedAchievements;
+    }
+
+    /**
+     * Obtener logros por categoría
+     */
+    public function getAchievementsByCategory(User $user, string $category) : array
+    {
+        $achievements = Achievement::active()
+            ->byCategory($category)
+            ->orderByOrder()
+            ->get();
+
+        return $achievements->map(function($achievement) use ($user) {
+            $progress = $achievement->getProgressForUser($user);
+
+            return [
+                'id' => $achievement->id,
+                'code' => $achievement->code,
+                'name' => $achievement->name,
+                'description' => $achievement->description,
+                'icon' => $achievement->icon_url,
+                'badge_color' => $achievement->badge_color,
+                'badge_style' => $achievement->badge_style,
+                'xp_reward' => $achievement->xp_reward,
+                'requirements' => $achievement->requirements,
+                'progress' => $progress,
+                'is_unlocked' => $progress['is_unlocked'],
+                'unlocked_at' => $progress['unlocked_at'],
+            ];
+        })->toArray();
+    }
 
     /**
      * Obtener todos los logros con el progreso del usuario
      */
-    public function getAllAchievementsWithProgress(User $user): array
+    public function getAllAchievementsWithProgress(User $user) : array
     {
         $achievements = Achievement::active()
             ->orderByOrder()
             ->get();
 
-        return $achievements->map(function ($achievement) use ($user) {
+        return $achievements->map(function($achievement) use ($user) {
             $progress = $achievement->getProgressForUser($user);
-            
+
             return [
                 'id' => $achievement->id,
                 'code' => $achievement->code,
@@ -49,16 +134,42 @@ class AchievementService
     }
 
     /**
+     * Obtener logros no vistos del usuario
+     */
+    public function getUnseenAchievements(User $user) : array
+    {
+        $achievements = $user->achievements()
+            ->wherePivot('is_seen', false)
+            ->orderBy('pivot_unlocked_at', 'desc')
+            ->get();
+
+        return $achievements->map(function($achievement) {
+            return [
+                'id' => $achievement->id,
+                'code' => $achievement->code,
+                'name' => $achievement->name,
+                'description' => $achievement->description,
+                'icon' => $achievement->icon_url,
+                'badge_color' => $achievement->badge_color,
+                'badge_style' => $achievement->badge_style,
+                'xp_reward' => $achievement->xp_reward,
+                'category' => $achievement->category,
+                'unlocked_at' => $achievement->pivot->unlocked_at,
+            ];
+        })->toArray();
+    }
+
+    /**
      * Obtener logros desbloqueados del usuario
      */
-    public function getUserAchievements(User $user): array
+    public function getUserAchievements(User $user) : array
     {
         $achievements = $user->achievements()
             ->withPivot(['unlocked_at', 'progress_data', 'is_seen'])
             ->orderBy('pivot_unlocked_at', 'desc')
             ->get();
 
-        return $achievements->map(function ($achievement) {
+        return $achievements->map(function($achievement) {
             return [
                 'id' => $achievement->id,
                 'code' => $achievement->code,
@@ -76,57 +187,9 @@ class AchievementService
     }
 
     /**
-     * Obtener logros no vistos del usuario
-     */
-    public function getUnseenAchievements(User $user): array
-    {
-        $achievements = $user->achievements()
-            ->wherePivot('is_seen', false)
-            ->orderBy('pivot_unlocked_at', 'desc')
-            ->get();
-
-        return $achievements->map(function ($achievement) {
-            return [
-                'id' => $achievement->id,
-                'code' => $achievement->code,
-                'name' => $achievement->name,
-                'description' => $achievement->description,
-                'icon' => $achievement->icon_url,
-                'badge_color' => $achievement->badge_color,
-                'badge_style' => $achievement->badge_style,
-                'xp_reward' => $achievement->xp_reward,
-                'category' => $achievement->category,
-                'unlocked_at' => $achievement->pivot->unlocked_at,
-            ];
-        })->toArray();
-    }
-
-    /**
-     * Marcar logros como vistos
-     */
-    public function markAchievementsAsSeen(User $user, ?array $achievementIds = null): int
-    {
-        $query = $user->achievements()->wherePivot('is_seen', false);
-
-        if ($achievementIds) {
-            $query->whereIn('achievements.id', $achievementIds);
-        }
-
-        return $query->newPivotStatement()->update(['is_seen' => true]);
-    }
-
-    /**
-     * Marcar todos los logros como vistos
-     */
-    public function markAllAchievementsAsSeen(User $user): int
-    {
-        return $this->markAchievementsAsSeen($user);
-    }
-
-    /**
      * Obtener estadísticas de logros del usuario
      */
-    public function getUserAchievementStats(User $user): array
+    public function getUserAchievementStats(User $user) : array
     {
         $totalAchievements = Achievement::active()->count();
         $unlockedCount = $user->achievements()->count();
@@ -170,99 +233,43 @@ class AchievementService
     }
 
     /**
-     * Verificar y desbloquear logros automáticamente
+     * Marcar logros como vistos
      */
-    public function checkAndUnlockAchievements(User $user, array $context = []): array
+    public function markAchievementsAsSeen(User $user, ?array $achievementIds = null) : int
     {
-        $unlockedAchievements = [];
+        $query = $user->achievements()->wherePivot('is_seen', false);
 
-        DB::beginTransaction();
-        try {
-            $achievements = Achievement::active()
-                ->whereDoesntHave('users', function ($query) use ($user) {
-                    $query->where('users.id', $user->id);
-                })
-                ->get();
-
-            foreach ($achievements as $achievement) {
-                if ($this->shouldUnlockAchievement($user, $achievement, $context)) {
-                    $userAchievement = $achievement->unlockForUser($user);
-                    $unlockedAchievements[] = [
-                        'achievement' => $achievement,
-                        'user_achievement' => $userAchievement,
-                    ];
-                }
-            }
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
+        if ($achievementIds) {
+            $query->whereIn('achievements.id', $achievementIds);
         }
 
-        foreach ($unlockedAchievements as $unlocked) {
-            try {
-                $achievement = $unlocked['achievement'];
-                $this->notificationService->createAchievementUnlockedNotification(
-                    $user->id,
-                    $achievement->code,
-                    $achievement->name,
-                    $achievement->xp_reward,
-                );
-            } catch (\Throwable $e) {
-                Log::warning('AchievementService: fallo al notificar logro desbloqueado.', [
-                    'user_id' => $user->id,
-                    'error'   => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return $unlockedAchievements;
+        return $query->newPivotStatement()->update(['is_seen' => true]);
     }
 
     /**
-     * Determinar si un logro debe ser desbloqueado
+     * Marcar todos los logros como vistos
      */
-    private function shouldUnlockAchievement(User $user, Achievement $achievement, array $context): bool
+    public function markAllAchievementsAsSeen(User $user) : int
     {
-        $requirements = $achievement->requirements;
-        $type = $requirements['type'] ?? 'count';
-        $target = $requirements['target'] ?? 1;
+        return $this->markAchievementsAsSeen($user);
+    }
 
-        switch ($type) {
-            case 'games_played':
-                return $user->games_played_count >= $target;
+    /**
+     * Desbloquear un logro específico manualmente
+     */
+    public function unlockAchievement(User $user, string $achievementCode) : ?UserAchievement
+    {
+        $achievement = Achievement::where('code', $achievementCode)->first();
 
-            case 'games_won':
-                return $user->games_won_count >= $target;
-
-            case 'total_winnings':
-                return $user->total_winnings >= $target;
-
-            case 'login_streak':
-                return $user->login_streak_days >= $target;
-
-            case 'level_reached':
-                return $user->getCurrentLevel() >= $target;
-
-            case 'referrals':
-                // Solo referidos verificados — mismo criterio que el XP
-                // (AwardReferralXpOnVerifiedListener), evita que el logro se
-                // desbloquee con cuentas creadas pero nunca confirmadas.
-                return $user->referrals()->whereNotNull('email_verified_at')->count() >= $target;
-
-            case 'first_game':
-                return $user->games_played_count >= 1;
-
-            case 'first_win':
-                return $user->games_won_count >= 1;
-
-            case 'custom':
-                return $this->checkCustomRequirement($user, $achievement, $context);
-
-            default:
-                return false;
+        if (! $achievement) {
+            return null;
         }
+
+        if ($user->hasAchievement($achievementCode)) {
+            return null;
+        }
+
+        return $achievement->unlockForUser($user);
     }
 
     /**
@@ -273,7 +280,7 @@ class AchievementService
      * cuando se dispara desde una partida; 'lucky_winner_last_call' solo lo
      * informa BingoDrawService al ganador.
      */
-    private function checkCustomRequirement(User $user, Achievement $achievement, array $context): bool
+    private function checkCustomRequirement(User $user, Achievement $achievement, array $context) : bool
     {
         return match ($achievement->code) {
             // Ganó con el número que se acababa de cantar (última llamada del sorteo).
@@ -297,50 +304,38 @@ class AchievementService
     }
 
     /**
-     * Obtener logros por categoría
+     * Determinar si un logro debe ser desbloqueado
      */
-    public function getAchievementsByCategory(User $user, string $category): array
+    private function shouldUnlockAchievement(User $user, Achievement $achievement, array $context) : bool
     {
-        $achievements = Achievement::active()
-            ->byCategory($category)
-            ->orderByOrder()
-            ->get();
+        $requirements = $achievement->requirements;
+        $type = $requirements['type'] ?? 'count';
+        $target = $requirements['target'] ?? 1;
 
-        return $achievements->map(function ($achievement) use ($user) {
-            $progress = $achievement->getProgressForUser($user);
-            
-            return [
-                'id' => $achievement->id,
-                'code' => $achievement->code,
-                'name' => $achievement->name,
-                'description' => $achievement->description,
-                'icon' => $achievement->icon_url,
-                'badge_color' => $achievement->badge_color,
-                'badge_style' => $achievement->badge_style,
-                'xp_reward' => $achievement->xp_reward,
-                'requirements' => $achievement->requirements,
-                'progress' => $progress,
-                'is_unlocked' => $progress['is_unlocked'],
-                'unlocked_at' => $progress['unlocked_at'],
-            ];
-        })->toArray();
-    }
-
-    /**
-     * Desbloquear un logro específico manualmente
-     */
-    public function unlockAchievement(User $user, string $achievementCode): ?UserAchievement
-    {
-        $achievement = Achievement::where('code', $achievementCode)->first();
-        
-        if (!$achievement) {
-            return null;
+        switch ($type) {
+            case 'games_played':
+                return $user->games_played_count >= $target;
+            case 'games_won':
+                return $user->games_won_count >= $target;
+            case 'total_winnings':
+                return $user->total_winnings >= $target;
+            case 'login_streak':
+                return $user->login_streak_days >= $target;
+            case 'level_reached':
+                return $user->getCurrentLevel() >= $target;
+            case 'referrals':
+                // Solo referidos verificados — mismo criterio que el XP
+                // (AwardReferralXpOnVerifiedListener), evita que el logro se
+                // desbloquee con cuentas creadas pero nunca confirmadas.
+                return $user->referrals()->whereNotNull('email_verified_at')->count() >= $target;
+            case 'first_game':
+                return $user->games_played_count >= 1;
+            case 'first_win':
+                return $user->games_won_count >= 1;
+            case 'custom':
+                return $this->checkCustomRequirement($user, $achievement, $context);
+            default:
+                return false;
         }
-
-        if ($user->hasAchievement($achievementCode)) {
-            return null;
-        }
-
-        return $achievement->unlockForUser($user);
     }
 }

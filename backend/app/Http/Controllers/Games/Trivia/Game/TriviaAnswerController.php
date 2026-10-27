@@ -6,20 +6,22 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
-use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
 use App\Domains\Games\Trivia\Services\TriviaAnswerTiming;
+use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
 use App\Enums\Games\Common\AntiCheatSignalType;
 use App\Enums\Games\Common\GameSlug;
-use App\Http\Controllers\Controller;
 use App\Events\Games\Trivia\TriviaAnswerResult;
+use App\Http\Controllers\Controller;
 use App\Services\Games\AntiCheatService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use Throwable;
 
 /**
  * Recibe y valida las respuestas de los jugadores durante una partida activa.
@@ -33,26 +35,27 @@ use Illuminate\Support\Str;
  */
 final class TriviaAnswerController extends Controller
 {
-    private const POINTS_BASE        = 1000;
+    private const POINTS_BASE = 1000;
     private const POINTS_SPEED_BONUS = 500;
 
     public function __construct(
         private readonly GameStateRepositoryInterface $stateRepository,
-        private readonly GameEngineInterface          $gameEngine,
-        private readonly AntiCheatService              $antiCheat,
-        private readonly TriviaPowerUpService          $powerUps,
-    ) {}
+        private readonly GameEngineInterface $gameEngine,
+        private readonly AntiCheatService $antiCheat,
+        private readonly TriviaPowerUpService $powerUps,
+    ) {
+    }
 
-    public function store(Request $request, string $gameId): JsonResponse
+    public function store(Request $request, string $gameId) : JsonResponse
     {
         $request->validate([
-            'question_id'           => ['required', 'string'],
+            'question_id' => ['required', 'string'],
             'selected_option_index' => ['required', 'integer', 'min:-1', 'max:3'],
-            'response_time_ms'      => ['required', 'integer', 'min:0'],
-            'client_id'             => ['nullable', 'string', 'max:64'],
+            'response_time_ms' => ['required', 'integer', 'min:0'],
+            'client_id' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $pgsql  = DB::connection('pgsql_trivia');
+        $pgsql = DB::connection('pgsql_trivia');
         $userId = (string) Auth::id();
 
         // ── 1. Obtener estado del juego desde Redis ───────────────────────────
@@ -104,9 +107,9 @@ final class TriviaAnswerController extends Controller
             return response()->json(['success' => false, 'message' => 'Ya respondiste esta pregunta.'], 409);
         }
 
-        $selectedOptionIndex  = (int) $request->input('selected_option_index');
-        $correctOptionIndex   = (int) ($questionData['correct_answer'] ?? $questionData['correct_option_index'] ?? 0);
-        $timeLimitMs          = (int) ($questionData['time_limit_seconds'] ?? 20) * 1000;
+        $selectedOptionIndex = (int) $request->input('selected_option_index');
+        $correctOptionIndex = (int) ($questionData['correct_answer'] ?? $questionData['correct_option_index'] ?? 0);
+        $timeLimitMs = (int) ($questionData['time_limit_seconds'] ?? 20) * 1000;
 
         // Power-up "tiempo extra": bonus individual, solo para ESTE jugador
         // en esta pregunta — no afecta el timer visual de los demás ni el
@@ -142,7 +145,7 @@ final class TriviaAnswerController extends Controller
                 microtime(true) * 1000,
                 $effectiveTimeLimitMs,
             );
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             Log::warning('[TriviaAnswerController] Timestamp inválido para la pregunta activa.', [
                 'game_id' => $gameId,
                 'question_id' => $questionId,
@@ -173,7 +176,7 @@ final class TriviaAnswerController extends Controller
 
         // Una respuesta recibida después del plazo se registra como tardía aunque
         // el cliente haya enviado una opción válida. Nunca concede puntos.
-        $isLate    = $selectedOptionIndex === -1 || $isPastDeadline;
+        $isLate = $selectedOptionIndex === -1 || $isPastDeadline;
         $isCorrect = ! $isLate && $selectedOptionIndex === $correctOptionIndex;
 
         // ── 5. Calcular puntos ────────────────────────────────────────────────
@@ -185,7 +188,7 @@ final class TriviaAnswerController extends Controller
         $points = 0;
         if ($isCorrect) {
             $speedFactor = max(0.0, 1.0 - ($responseTimeMs / max(1, $effectiveTimeLimitMs)));
-            $points      = (int) round(self::POINTS_BASE + self::POINTS_SPEED_BONUS * $speedFactor);
+            $points = (int) round(self::POINTS_BASE + self::POINTS_SPEED_BONUS * $speedFactor);
 
             if ($doublePointsActive) {
                 $points *= 2;
@@ -197,7 +200,7 @@ final class TriviaAnswerController extends Controller
         // (game_id, player_id, question_id) es la última defensa ante dos requests
         // simultáneas que pasen el chequeo previo de duplicados.
         try {
-            $pgsql->transaction(function () use (
+            $pgsql->transaction(function() use (
                 $pgsql,
                 $gameId,
                 $userId,
@@ -209,7 +212,7 @@ final class TriviaAnswerController extends Controller
                 $points,
                 $responseTimeMs,
                 $request,
-            ): void {
+            ) : void {
                 // Serialize answer/score writes for the same player. Locking the
                 // participant row also covers the first score insert, when no
                 // trivia_scores row exists yet to lock.
@@ -222,18 +225,18 @@ final class TriviaAnswerController extends Controller
                     ->first();
 
                 $pgsql->table('trivia_answers')->insert([
-                    'id'                    => (string) Str::ulid(),
-                    'game_id'               => $gameId,
-                    'player_id'             => $userId,
-                    'question_id'           => $questionId,
+                    'id' => (string) Str::ulid(),
+                    'game_id' => $gameId,
+                    'player_id' => $userId,
+                    'question_id' => $questionId,
                     'selected_option_index' => $isLate ? -1 : $selectedOptionIndex,
-                    'is_correct'            => $isCorrect,
-                    'points_earned'         => $points,
-                    'response_time_ms'      => $responseTimeMs,
-                    'is_late'               => $isLate,
-                    'client_id'             => $request->input('client_id'),
-                    'created_at'            => now(),
-                    'updated_at'            => now(),
+                    'is_correct' => $isCorrect,
+                    'points_earned' => $points,
+                    'response_time_ms' => $responseTimeMs,
+                    'is_late' => $isLate,
+                    'client_id' => $request->input('client_id'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $this->upsertScore($pgsql, $gameId, $userId, $isCorrect, $points, $responseTimeMs);
@@ -268,15 +271,15 @@ final class TriviaAnswerController extends Controller
         // ── 8. Broadcast resultado al canal privado del jugador ───────────────
         try {
             broadcast(new TriviaAnswerResult(
-                playerId:           $userId,
-                gameId:             $gameId,
-                questionId:         $questionId,
-                isCorrect:          $isCorrect,
-                pointsEarned:       $points,
+                playerId: $userId,
+                gameId: $gameId,
+                questionId: $questionId,
+                isCorrect: $isCorrect,
+                pointsEarned: $points,
                 correctOptionIndex: $correctOptionIndex,
-                currentScore:       $currentScore,
+                currentScore: $currentScore,
             ));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('[TriviaAnswerController] broadcast falló: ' . $e->getMessage());
         }
 
@@ -284,12 +287,12 @@ final class TriviaAnswerController extends Controller
         $this->maybeAdvanceQuestion($gameId, $gameState->roomId, $questionId, $gameState->playerIds, $pgsql);
 
         return response()->json([
-            'success'              => true,
-            'is_correct'           => $isCorrect,
-            'is_late'              => $isLate,
-            'points_earned'        => $points,
+            'success' => true,
+            'is_correct' => $isCorrect,
+            'is_late' => $isLate,
+            'points_earned' => $points,
             'correct_option_index' => $correctOptionIndex,
-            'current_score'        => $currentScore,
+            'current_score' => $currentScore,
         ]);
     }
 
@@ -301,9 +304,9 @@ final class TriviaAnswerController extends Controller
         string $gameId,
         string $roomId,
         string $questionId,
-        array  $playerIds,
+        array $playerIds,
         object $pgsql,
-    ): void {
+    ) : void {
         if (empty($playerIds)) {
             return;
         }
@@ -344,10 +347,10 @@ final class TriviaAnswerController extends Controller
                 // sendNextQuestion devuelve null cuando llama finishGame() internamente
                 Log::info('[TriviaAnswerController] Juego finalizado automáticamente', ['game_id' => $gameId]);
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('[TriviaAnswerController] Error avanzando pregunta', [
                 'game_id' => $gameId,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -356,10 +359,10 @@ final class TriviaAnswerController extends Controller
         object $pgsql,
         string $gameId,
         string $userId,
-        bool   $isCorrect,
-        int    $points,
-        int    $responseTimeMs = 0,
-    ): void {
+        bool $isCorrect,
+        int $points,
+        int $responseTimeMs = 0,
+    ) : void {
         $existing = $pgsql->table('trivia_scores')
             ->where('game_id', $gameId)
             ->where('player_id', $userId)
@@ -368,33 +371,33 @@ final class TriviaAnswerController extends Controller
 
         if ($existing) {
             $answered = $existing->correct_answers + $existing->wrong_answers + 1;
-            $avgTime  = (int) round(
-                (($existing->average_response_time_ms ?? 0) * ($answered - 1) + $responseTimeMs) / $answered
+            $avgTime = (int) round(
+                (($existing->average_response_time_ms ?? 0) * ($answered - 1) + $responseTimeMs) / $answered,
             );
 
             $pgsql->table('trivia_scores')
                 ->where('game_id', $gameId)
                 ->where('player_id', $userId)
                 ->update([
-                    'final_score'              => $existing->final_score + $points,
-                    'correct_answers'          => $existing->correct_answers + ($isCorrect ? 1 : 0),
-                    'wrong_answers'            => $existing->wrong_answers  + ($isCorrect ? 0 : 1),
+                    'final_score' => $existing->final_score + $points,
+                    'correct_answers' => $existing->correct_answers + ($isCorrect ? 1 : 0),
+                    'wrong_answers' => $existing->wrong_answers + ($isCorrect ? 0 : 1),
                     'average_response_time_ms' => $avgTime,
-                    'updated_at'               => now(),
+                    'updated_at' => now(),
                 ]);
         } else {
             $pgsql->table('trivia_scores')->insert([
-                'id'                       => (string) Str::ulid(),
-                'game_id'                  => $gameId,
-                'player_id'               => $userId,
-                'final_score'             => $points,
-                'correct_answers'         => $isCorrect ? 1 : 0,
-                'wrong_answers'           => $isCorrect ? 0 : 1,
-                'average_response_time_ms'=> $responseTimeMs,
-                'max_streak'              => 0,
-                'total_questions'         => 0,
-                'created_at'              => now(),
-                'updated_at'              => now(),
+                'id' => (string) Str::ulid(),
+                'game_id' => $gameId,
+                'player_id' => $userId,
+                'final_score' => $points,
+                'correct_answers' => $isCorrect ? 1 : 0,
+                'wrong_answers' => $isCorrect ? 0 : 1,
+                'average_response_time_ms' => $responseTimeMs,
+                'max_streak' => 0,
+                'total_questions' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Conciliación financiera de Bingo:
  *
  *  - platform_receivables: cuentas por cobrar de la plataforma. En ventas
@@ -26,10 +26,20 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        if (!Schema::hasTable('platform_receivables')) {
-            Schema::create('platform_receivables', function (Blueprint $table) {
+        Schema::dropIfExists('financial_reconciliation_items');
+        Schema::dropIfExists('platform_receivables');
+
+        MovementType::where('code', 'CREATOR_COMMISSION')
+            ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('wallet_movements')->whereColumn('wallet_movements.type', 'movement_types.code'))
+            ->delete();
+    }
+
+    public function up() : void
+    {
+        if (! Schema::hasTable('platform_receivables')) {
+            Schema::create('platform_receivables', function(Blueprint $table) {
                 $table->snowflake('id')->primary();
                 $table->string('source', 30)->default('BINGO_RKE')->comment('Origen de la deuda');
                 $table->foreignSnowflake('debtor_user_id')->constrained('users')->restrictOnDelete()->cascadeOnUpdate()
@@ -64,8 +74,8 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('financial_reconciliation_items')) {
-            Schema::create('financial_reconciliation_items', function (Blueprint $table) {
+        if (! Schema::hasTable('financial_reconciliation_items')) {
+            Schema::create('financial_reconciliation_items', function(Blueprint $table) {
                 $table->snowflake('id')->primary();
                 $table->string('type', 40)->comment('RKE_REVERSAL_FAILED, JACKPOT_REVERSAL_SHORTFALL, CREATOR_PAYOUT_FAILED…');
                 $table->enum('status', ['OPEN', 'RESOLVED'])->default('OPEN');
@@ -88,27 +98,17 @@ return new class extends Migration
         MovementType::firstOrCreate(
             ['code' => 'CREATOR_COMMISSION'],
             [
-                'label'             => 'Comisión de sala (creador)',
-                'icon'              => 'fas fa-hand-holding-dollar',
-                'color'             => '#059669',
-                'is_credit'         => true,
+                'label' => 'Comisión de sala (creador)',
+                'icon' => 'fas fa-hand-holding-dollar',
+                'color' => '#059669',
+                'is_credit' => true,
                 'requires_approval' => false,
-                'game_group'        => 'BINGO',
-                'sort_order'        => 66,
-                'visible_roles'     => null,
-                'is_system'         => true,
-                'status'            => 'ACTIVE',
+                'game_group' => 'BINGO',
+                'sort_order' => 66,
+                'visible_roles' => null,
+                'is_system' => true,
+                'status' => 'ACTIVE',
             ],
         );
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('financial_reconciliation_items');
-        Schema::dropIfExists('platform_receivables');
-
-        MovementType::where('code', 'CREATOR_COMMISSION')
-            ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('wallet_movements')->whereColumn('wallet_movements.type', 'movement_types.code'))
-            ->delete();
     }
 };

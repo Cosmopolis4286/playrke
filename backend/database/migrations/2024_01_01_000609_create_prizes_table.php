@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('prizes', function (Blueprint $table) {
+        Schema::dropIfExists('prizes');
+    }
+
+    public function up() : void
+    {
+        Schema::create('prizes', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -36,10 +41,5 @@ return new class extends Migration
             // Clave única compuesta: evita duplicados de código por usuario
             $table->unique(['user_id', 'code']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('prizes');
     }
 };

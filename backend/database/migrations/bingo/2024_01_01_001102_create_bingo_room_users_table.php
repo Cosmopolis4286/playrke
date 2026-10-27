@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_room_users'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_room_users');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'bingo_room_users'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_room_users', function (Blueprint $table) {
+        Schema::create('bingo_room_users', function(Blueprint $table) {
             // ID único tipo Snowflake
             $table->snowflake('id')->primary()->comment('ID único del jugador en la sala');
 
@@ -49,13 +57,5 @@ return new class extends Migration
             $table->index(['user_id', 'created_at'], 'idx_bingo_room_users_user_created');
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_room_users'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_room_users');
     }
 };

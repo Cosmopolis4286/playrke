@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Solicitud de retiro cripto. Ver MARKETPLACE_ARCHITECTURE_AUDIT.md
  * secciones 14 y 16. El saldo NUNCA disminuye definitivamente antes de un
  * estado coherente: wallet_hold_id apunta al WalletHold que reserva el
@@ -19,9 +19,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('crypto_withdrawals', function (Blueprint $table) {
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE crypto_withdrawals DROP CHECK chk_crypto_withdrawals_amount_positive');
+        }
+
+        Schema::dropIfExists('crypto_withdrawals');
+    }
+
+    public function up() : void
+    {
+        Schema::create('crypto_withdrawals', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('user_id')
@@ -70,14 +79,5 @@ return new class extends Migration
         if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
             \Illuminate\Support\Facades\DB::statement('ALTER TABLE crypto_withdrawals ADD CONSTRAINT chk_crypto_withdrawals_amount_positive CHECK (amount > 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'mysql') {
-            \Illuminate\Support\Facades\DB::statement('ALTER TABLE crypto_withdrawals DROP CHECK chk_crypto_withdrawals_amount_positive');
-        }
-
-        Schema::dropIfExists('crypto_withdrawals');
     }
 };

@@ -13,6 +13,10 @@ class GameRule extends Model
 {
     use SnowflakeId;
 
+    protected $casts = [
+        'status' => AsActiveStatusEnum::class,
+    ];
+
     protected $fillable = [
         'user_id',
         'game_id',
@@ -22,17 +26,13 @@ class GameRule extends Model
         'status',
     ];
 
-    protected $casts = [
-        'status' => AsActiveStatusEnum::class,
-    ];
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function game(): BelongsTo
+    public function game() : BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

@@ -11,11 +11,10 @@ use Throwable;
 class AuditPruneCommand extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
-     * @var string
+     * Tamaño de lote de borrado — evita un DELETE masivo que bloquee la
+     * tabla `audits` mientras el sistema sigue escribiendo auditorías.
      */
-    protected $signature = 'audit:prune';
+    private const CHUNK_SIZE = 1000;
 
     /**
      * The console command description.
@@ -23,14 +22,14 @@ class AuditPruneCommand extends Command
      * @var string
      */
     protected $description = 'Purgar registros de auditoría más antiguos que el retention configurado (audit_retention_days)';
-
     /**
-     * Tamaño de lote de borrado — evita un DELETE masivo que bloquee la
-     * tabla `audits` mientras el sistema sigue escribiendo auditorías.
+     * The name and signature of the console command.
+     *
+     * @var string
      */
-    private const CHUNK_SIZE = 1000;
+    protected $signature = 'audit:prune';
 
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -40,7 +39,7 @@ class AuditPruneCommand extends Command
             $deleted = 0;
 
             Audit::where('created_at', '<', $cutoff)
-                ->chunkById(self::CHUNK_SIZE, function ($audits) use (&$deleted) {
+                ->chunkById(self::CHUNK_SIZE, function($audits) use (&$deleted) {
                     $ids = $audits->pluck('id');
                     Audit::whereIn('id', $ids)->delete();
                     $deleted += $ids->count();
@@ -53,7 +52,7 @@ class AuditPruneCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
 
             $this->error($output);

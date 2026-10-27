@@ -42,6 +42,17 @@ final class DirectoryException extends DomainException
     }
 
     /**
+     * El usuario alcanzó el máximo de registros permitidos para este tipo
+     * de directorio (ver DirectoryLimits::MAX_RECORDS_PER_USER) — límite
+     * antifraude: sin tope, una cuenta comprometida podía acumular cuentas
+     * bancarias/PIX indefinidamente.
+     */
+    public static function limitReached(int $max) : self
+    {
+        return new self("Alcanzaste el máximo de {$max} registros permitidos. Elimina o desactiva alguno antes de agregar otro.", 422);
+    }
+
+    /**
      * El ID del registro es requerido para poder actualizarlo.
      */
     public static function missingId() : self
@@ -83,16 +94,5 @@ final class DirectoryException extends DomainException
     public static function targetUserNotAllowed() : self
     {
         return new self('No tienes permiso para acceder al directorio de otro usuario.', 403);
-    }
-
-    /**
-     * El usuario alcanzó el máximo de registros permitidos para este tipo
-     * de directorio (ver DirectoryLimits::MAX_RECORDS_PER_USER) — límite
-     * antifraude: sin tope, una cuenta comprometida podía acumular cuentas
-     * bancarias/PIX indefinidamente.
-     */
-    public static function limitReached(int $max) : self
-    {
-        return new self("Alcanzaste el máximo de {$max} registros permitidos. Elimina o desactiva alguno antes de agregar otro.", 422);
     }
 }

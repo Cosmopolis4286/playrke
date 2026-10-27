@@ -40,9 +40,9 @@ class Handler extends ExceptionHandler
      * real aquí." en vez del mensaje real.
      *
      * @param array<string, mixed> $replacements Placeholders `:nombre` para
-     *        error-codes con datos dinámicos (ver DomainException::$replacements).
-     *        Ignorado si $errorCode no tiene traducción (mensaje humano directo
-     *        ya lleva sus datos interpolados en el propio string).
+     *                                           error-codes con datos dinámicos (ver DomainException::$replacements).
+     *                                           Ignorado si $errorCode no tiene traducción (mensaje humano directo
+     *                                           ya lleva sus datos interpolados en el propio string).
      */
     public function resolveMessage(string $errorCode, array $replacements = []) : string
     {

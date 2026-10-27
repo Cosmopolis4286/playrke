@@ -24,7 +24,7 @@ class AuthTest extends TestCase
 
     private Country $country;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -40,7 +40,7 @@ class AuthTest extends TestCase
 
         // RegisteredUserController::store() asigna el rol 'player' al usuario
         // recién creado — sin sembrarlo, assignRole('player') falla.
-        if (!Role::where('name', 'player')->where('guard_name', 'web')->exists()) {
+        if (! Role::where('name', 'player')->where('guard_name', 'web')->exists()) {
             $role = new Role([
                 'name' => 'player',
                 'guard_name' => 'web',
@@ -51,6 +51,97 @@ class AuthTest extends TestCase
             $role->id = (string) random_int(500000000000000000, 599999999999999999);
             $role->save();
         }
+    }
+
+    /** @test */
+    public function login_fails_with_incorrect_credentials()
+    {
+        User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson('/login', [
+            'login' => 'test@example.com',
+            'password' => 'wrongpassword',
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['login']);
+        $this->assertGuest();
+    }
+
+    /** @test */
+    public function password_must_be_confirmed()
+    {
+        $response = $this->post('/register', [
+            'username' => 'testuser',
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'differentpassword',
+            'country' => $this->country->id,
+            'terms' => true,
+        ]);
+
+        $response->assertSessionHasErrors(['password']);
+        $this->assertGuest();
+    }
+
+    /** @test */
+    public function registration_requires_all_fields()
+    {
+        $response = $this->post('/register', []);
+
+        $response->assertSessionHasErrors(['email', 'username', 'country', 'password']);
+    }
+
+    /** @test */
+    public function user_can_login_with_email()
+    {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson('/login', [
+            'login' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertOk()->assertJson(['success' => true]);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    /** @test */
+    public function user_can_login_with_username()
+    {
+        $user = User::factory()->create([
+            'username' => 'testuser',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $response = $this->postJson('/login', [
+            'login' => 'testuser',
+            'password' => 'password123',
+        ]);
+
+        $response->assertOk()->assertJson(['success' => true]);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    /** @test */
+    public function user_can_logout()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/logout');
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Sesión cerrada exitosamente',
+            ]);
+
+        $this->assertGuest();
     }
 
     /** @test */
@@ -93,97 +184,6 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['email']);
-        $this->assertGuest();
-    }
-
-    /** @test */
-    public function user_can_login_with_email()
-    {
-        $user = User::factory()->create([
-            'email' => 'test@example.com',
-            'password' => bcrypt('password123'),
-        ]);
-
-        $response = $this->postJson('/login', [
-            'login' => 'test@example.com',
-            'password' => 'password123',
-        ]);
-
-        $response->assertOk()->assertJson(['success' => true]);
-        $this->assertAuthenticatedAs($user);
-    }
-
-    /** @test */
-    public function user_can_login_with_username()
-    {
-        $user = User::factory()->create([
-            'username' => 'testuser',
-            'password' => bcrypt('password123'),
-        ]);
-
-        $response = $this->postJson('/login', [
-            'login' => 'testuser',
-            'password' => 'password123',
-        ]);
-
-        $response->assertOk()->assertJson(['success' => true]);
-        $this->assertAuthenticatedAs($user);
-    }
-
-    /** @test */
-    public function login_fails_with_incorrect_credentials()
-    {
-        User::factory()->create([
-            'email' => 'test@example.com',
-            'password' => bcrypt('password123'),
-        ]);
-
-        $response = $this->postJson('/login', [
-            'login' => 'test@example.com',
-            'password' => 'wrongpassword',
-        ]);
-
-        $response->assertStatus(422)->assertJsonValidationErrors(['login']);
-        $this->assertGuest();
-    }
-
-    /** @test */
-    public function user_can_logout()
-    {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->postJson('/logout');
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Sesión cerrada exitosamente',
-            ]);
-
-        $this->assertGuest();
-    }
-
-    /** @test */
-    public function registration_requires_all_fields()
-    {
-        $response = $this->post('/register', []);
-
-        $response->assertSessionHasErrors(['email', 'username', 'country', 'password']);
-    }
-
-    /** @test */
-    public function password_must_be_confirmed()
-    {
-        $response = $this->post('/register', [
-            'username' => 'testuser',
-            'email' => 'test@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'differentpassword',
-            'country' => $this->country->id,
-            'terms' => true,
-        ]);
-
-        $response->assertSessionHasErrors(['password']);
         $this->assertGuest();
     }
 }

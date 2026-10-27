@@ -11,11 +11,11 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('api/ping', function () {
+Route::get('api/ping', function() {
     return response()->json([
         'status' => 'ok',
         'timestamp' => now()->toISOString(),
-        'version' => '1.0.0'
+        'version' => '1.0.0',
     ]);
 })->name('api.ping');
 

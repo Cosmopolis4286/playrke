@@ -13,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Evento de dominio: Respuesta Enviada.
- * 
+ *
  * Se dispara cuando un jugador envía una respuesta.
  * Emite a todos para actualizar leaderboard en tiempo real.
  */
@@ -22,10 +22,16 @@ class AnswerSubmitted implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public readonly AnswerResultDTO $result
-    ) {}
+        public readonly AnswerResultDTO $result,
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'trivia.answer.submitted';
+    }
+
+    public function broadcastOn() : array
     {
         return [
             new Channel('trivia.game.' . $this->result->gameId),
@@ -34,15 +40,10 @@ class AnswerSubmitted implements ShouldBroadcastNow
         ];
     }
 
-    public function broadcastAs(): string
-    {
-        return 'trivia.answer.submitted';
-    }
-
     /**
      * Datos para broadcast público (sin revelar respuesta correcta).
      */
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return $this->result->forBroadcast();
     }
@@ -50,7 +51,7 @@ class AnswerSubmitted implements ShouldBroadcastNow
     /**
      * Datos para el jugador que respondió.
      */
-    public function forPlayer(): array
+    public function forPlayer() : array
     {
         return $this->result->forPlayer();
     }

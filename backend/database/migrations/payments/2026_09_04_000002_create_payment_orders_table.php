@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Orden de compra de un PaymentProduct pagada en USDT-TRC20. Ver
  * PAYMENTS_USDT_TRC20_DESIGN.md secciones 4 y 6.
  *
@@ -25,9 +25,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('payment_orders', function (Blueprint $table) {
+        Schema::dropIfExists('payment_orders');
+    }
+
+    public function up() : void
+    {
+        Schema::create('payment_orders', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('user_id')
@@ -71,10 +76,5 @@ return new class extends Migration
             $table->index('deposit_address');
             $table->index('expires_at');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('payment_orders');
     }
 };

@@ -17,57 +17,41 @@ use App\Exceptions\Domain\DomainException;
 final class AdminSubsidiaryException extends DomainException
 {
     /**
-     * Fallo genérico en la creación de la sucursal.
-     */
-    public static function creationFailed(): self
-    {
-        return new self('ADMIN_SUBSIDIARY_CREATION_FAILED', 422);
-    }
-
-    /**
-     * Fallo genérico en la actualización de la sucursal.
-     */
-    public static function updateFailed(): self
-    {
-        return new self('ADMIN_SUBSIDIARY_UPDATE_FAILED', 422);
-    }
-
-    /**
-     * Fallo genérico en la eliminación lógica de la sucursal.
-     */
-    public static function deleteFailed(): self
-    {
-        return new self('ADMIN_SUBSIDIARY_DELETE_FAILED', 422);
-    }
-
-    /**
-     * Fallo al resetear la contraseña de la sucursal.
-     */
-    public static function passwordResetFailed(): self
-    {
-        return new self('ADMIN_SUBSIDIARY_PASSWORD_RESET_FAILED', 422);
-    }
-
-    /**
-     * Solo se puede resetear la contraseña de sucursales activas.
-     */
-    public static function passwordResetRequiresActiveStatus(): self
-    {
-        return new self('ADMIN_SUBSIDIARY_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
-    }
-
-    /**
      * La sucursal ya se encuentra eliminada.
      */
-    public static function alreadyDeleted(): self
+    public static function alreadyDeleted() : self
     {
         return new self('ADMIN_SUBSIDIARY_ALREADY_DELETED', 409);
     }
 
     /**
+     * Fallo genérico en la creación de la sucursal.
+     */
+    public static function creationFailed() : self
+    {
+        return new self('ADMIN_SUBSIDIARY_CREATION_FAILED', 422);
+    }
+
+    /**
+     * Fallo genérico en la eliminación lógica de la sucursal.
+     */
+    public static function deleteFailed() : self
+    {
+        return new self('ADMIN_SUBSIDIARY_DELETE_FAILED', 422);
+    }
+
+    /**
+     * Intento de eliminación física inválida.
+     */
+    public static function destroyNotAllowed() : self
+    {
+        return new self('ADMIN_SUBSIDIARY_DESTROY_NOT_ALLOWED', 409);
+    }
+
+    /**
      * Intento de cambiar el estado de una sucursal eliminada.
      */
-    public static function invalidStatusChange(): self
+    public static function invalidStatusChange() : self
     {
         return new self('ADMIN_SUBSIDIARY_INVALID_STATUS_CHANGE', 409);
     }
@@ -75,16 +59,32 @@ final class AdminSubsidiaryException extends DomainException
     /**
      * La sucursal no existe o no pertenece al contexto actual.
      */
-    public static function notFound(): self
+    public static function notFound() : self
     {
         return new self('ADMIN_SUBSIDIARY_NOT_FOUND', 404);
     }
 
     /**
-     * Intento de eliminación física inválida.
+     * Fallo al resetear la contraseña de la sucursal.
      */
-    public static function destroyNotAllowed(): self
+    public static function passwordResetFailed() : self
     {
-        return new self('ADMIN_SUBSIDIARY_DESTROY_NOT_ALLOWED', 409);
+        return new self('ADMIN_SUBSIDIARY_PASSWORD_RESET_FAILED', 422);
+    }
+
+    /**
+     * Solo se puede resetear la contraseña de sucursales activas.
+     */
+    public static function passwordResetRequiresActiveStatus() : self
+    {
+        return new self('ADMIN_SUBSIDIARY_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
+    }
+
+    /**
+     * Fallo genérico en la actualización de la sucursal.
+     */
+    public static function updateFailed() : self
+    {
+        return new self('ADMIN_SUBSIDIARY_UPDATE_FAILED', 422);
     }
 }

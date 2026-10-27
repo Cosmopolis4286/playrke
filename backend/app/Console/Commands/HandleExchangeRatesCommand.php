@@ -13,9 +13,8 @@ use Throwable;
 
 class HandleExchangeRatesCommand extends Command
 {
-    protected $signature = 'handle:exchange-rates';
-
     protected $description = 'Actualiza las tasas de cambio USD para los usuarios con auto-actualización habilitada';
+    protected $signature = 'handle:exchange-rates';
 
     public function __construct(
         private readonly ExchangeRateApiService $apiService,
@@ -25,7 +24,7 @@ class HandleExchangeRatesCommand extends Command
         parent::__construct();
     }
 
-    public function handle(): void
+    public function handle() : void
     {
         $userIds = UserPreference::query()
             ->where('category', UserPreference::CATEGORY_EXCHANGE_RATE)
@@ -33,7 +32,7 @@ class HandleExchangeRatesCommand extends Command
             ->where('value', 'true')
             ->whereNotNull('user_id')
             ->pluck('user_id')
-            ->map(fn($id) => (int) $id)
+            ->map(fn ($id) => (int) $id)
             ->all();
 
         $bcvUserIds = UserPreference::query()
@@ -42,7 +41,7 @@ class HandleExchangeRatesCommand extends Command
             ->where('value', 'true')
             ->whereNotNull('user_id')
             ->pluck('user_id')
-            ->map(fn($id) => (int) $id)
+            ->map(fn ($id) => (int) $id)
             ->all();
 
         // Usuarios que solo activaron BCV (VES) sin la actualización general (Binance).
@@ -73,10 +72,11 @@ class HandleExchangeRatesCommand extends Command
 
         if (empty($userIds) && empty($bcvOnlyUserIds) && empty($isoByUser)) {
             $this->info('Ningún usuario tiene la actualización automática habilitada.');
+
             return;
         }
 
-        $needsRates = !empty($userIds) || !empty($isoByUser);
+        $needsRates = ! empty($userIds) || ! empty($isoByUser);
         $rates = $needsRates ? $this->apiService->fetch() : null;
         $ratesFetchFailed = $needsRates && empty($rates);
 
@@ -84,8 +84,8 @@ class HandleExchangeRatesCommand extends Command
             $this->error('No se pudieron obtener las tasas desde la API externa.');
         }
 
-        $bcvRate = !empty($bcvUserIds) ? $this->bcvApiService->fetch() : null;
-        $bcvFetchFailed = !empty($bcvUserIds) && $bcvRate === null;
+        $bcvRate = ! empty($bcvUserIds) ? $this->bcvApiService->fetch() : null;
+        $bcvFetchFailed = ! empty($bcvUserIds) && $bcvRate === null;
 
         if ($bcvFetchFailed) {
             $this->error('No se pudo obtener la tasa oficial del BCV.');
@@ -93,11 +93,13 @@ class HandleExchangeRatesCommand extends Command
 
         if ($ratesFetchFailed && empty($bcvOnlyUserIds)) {
             $this->logExecutionSafely('No se pudieron obtener las tasas desde la API externa.', 'ERROR');
+
             return;
         }
 
         if (empty($rates) && $bcvFetchFailed) {
             $this->logExecutionSafely('No se pudieron obtener las tasas desde la API externa ni la tasa del BCV.', 'ERROR');
+
             return;
         }
 
@@ -105,7 +107,7 @@ class HandleExchangeRatesCommand extends Command
         $failedUserIds = [];
 
         // Usuarios con actualización general (Binance), sustituyendo VES por BCV si aplica.
-        if (!empty($rates)) {
+        if (! empty($rates)) {
             foreach ($userIds as $userId) {
                 $userRates = $rates;
 
@@ -126,7 +128,7 @@ class HandleExchangeRatesCommand extends Command
 
         // Usuarios con auto-update de monedas individuales (sin el switch
         // global): solo las monedas que activaron explícitamente.
-        if (!empty($rates)) {
+        if (! empty($rates)) {
             foreach ($isoByUser as $userId => $isoCodes) {
                 $userRates = array_intersect_key($rates, array_flip($isoCodes));
 
@@ -154,11 +156,11 @@ class HandleExchangeRatesCommand extends Command
         // detalle de fallos en el propio mensaje `$output`, no como un
         // tercer status que MySQL rechazaría.
         $totalAttempted = count($userIds) + count($bcvOnlyUserIds) + count($isoByUser);
-        $hasPartialFailures = $totalAttempted > 0 && !empty($failedUserIds) && $updatedCount > 0;
+        $hasPartialFailures = $totalAttempted > 0 && ! empty($failedUserIds) && $updatedCount > 0;
         $status = ($totalAttempted > 0 && $updatedCount === 0) ? 'ERROR' : 'SUCCESS';
 
         $output = "Tasas actualizadas para {$updatedCount} de {$totalAttempted} usuario(s).";
-        if (!empty($failedUserIds)) {
+        if (! empty($failedUserIds)) {
             $output .= ' Fallaron: #' . implode(', #', $failedUserIds) . '.';
         }
 
@@ -174,6 +176,22 @@ class HandleExchangeRatesCommand extends Command
     }
 
     /**
+     * Envuelto en try/catch: si logCommandExecution() fallara por cualquier
+     * motivo, el error visible al operador debe ser el original de la
+     * tarea, no uno de logging que lo enmascare. Extraído a método propio
+     * porque este comando registra el resultado desde 3 puntos distintos
+     * (2 salidas tempranas + el flujo normal).
+     */
+    private function logExecutionSafely(string $output, string $status) : void
+    {
+        try {
+            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        } catch (Throwable $logEx) {
+            $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
+        }
+    }
+
+    /**
      * Actualiza un usuario individual dentro del loop, con su propio
      * try/catch — updateRates() ya envuelve la lógica de dominio en su
      * propio try/catch (retorna bool), pero la resolución de rol
@@ -185,7 +203,7 @@ class HandleExchangeRatesCommand extends Command
      * @param-out int $updatedCount
      * @param-out int[] $failedUserIds
      */
-    private function updateOneUser(int $userId, array $userRates, int &$updatedCount, array &$failedUserIds): void
+    private function updateOneUser(int $userId, array $userRates, int &$updatedCount, array &$failedUserIds) : void
     {
         try {
             // source: SOURCE_SYSTEM — este comando ES el cronjob automático
@@ -204,22 +222,6 @@ class HandleExchangeRatesCommand extends Command
         } catch (Throwable $e) {
             $failedUserIds[] = $userId;
             $this->error("Error actualizando usuario #{$userId}: {$e->getMessage()}");
-        }
-    }
-
-    /**
-     * Envuelto en try/catch: si logCommandExecution() fallara por cualquier
-     * motivo, el error visible al operador debe ser el original de la
-     * tarea, no uno de logging que lo enmascare. Extraído a método propio
-     * porque este comando registra el resultado desde 3 puntos distintos
-     * (2 salidas tempranas + el flujo normal).
-     */
-    private function logExecutionSafely(string $output, string $status): void
-    {
-        try {
-            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
-        } catch (Throwable $logEx) {
-            $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
     }
 }

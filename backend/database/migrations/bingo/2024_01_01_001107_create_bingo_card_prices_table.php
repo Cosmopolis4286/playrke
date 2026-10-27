@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_card_prices'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_prices');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'bingo_card_prices'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_prices', function (Blueprint $table) {
+        Schema::create('bingo_card_prices', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID del precio del cartón');
 
@@ -47,13 +55,5 @@ return new class extends Migration
 
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_card_prices'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_prices');
     }
 };

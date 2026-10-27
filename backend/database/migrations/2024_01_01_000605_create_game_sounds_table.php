@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revierte la migración: elimina la tabla 'game_sounds'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('game_sounds');
+    }
+
+    /**
      * Ejecuta la migración: crea la tabla 'game_sounds'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('game_sounds', function (Blueprint $table) {
+        Schema::create('game_sounds', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID del sonido del juego');
 
@@ -27,13 +35,5 @@ return new class extends Migration
 
             $table->timestamps();
         });
-    }
-
-    /**
-     * Revierte la migración: elimina la tabla 'game_sounds'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('game_sounds');
     }
 };

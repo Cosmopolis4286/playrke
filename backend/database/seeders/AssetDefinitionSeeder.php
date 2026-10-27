@@ -12,7 +12,7 @@ use Illuminate\Database\Seeder;
  */
 class AssetDefinitionSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $definitions = [
             [

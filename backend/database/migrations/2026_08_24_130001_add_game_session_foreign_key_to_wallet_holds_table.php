@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Cierra la referencia blanda que wallet_holds.game_session_id dejó anotada
  * en su propia migración de creación ("sin FK física todavía — se agrega en
  * la migración que cree game_sessions"). nullOnDelete(): un hold no debe
@@ -14,6 +14,31 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
+    public function down() : void
+    {
+        if (! $this->foreignKeyExists('wallet_holds', 'wallet_holds_game_session_id_foreign')) {
+            return;
+        }
+
+        Schema::table('wallet_holds', function(Blueprint $table) {
+            $table->dropForeign(['game_session_id']);
+        });
+    }
+
+    public function up() : void
+    {
+        if ($this->foreignKeyExists('wallet_holds', 'wallet_holds_game_session_id_foreign')) {
+            return;
+        }
+
+        Schema::table('wallet_holds', function(Blueprint $table) {
+            $table->foreign('game_session_id')
+                ->references('id')->on('game_sessions')
+                ->nullOnDelete()
+                ->cascadeOnUpdate();
+        });
+    }
+
     /**
      * Guard de idempotencia para constraints — Schema::hasColumn() no
      * aplica (la columna ya existe, solo se agrega la FK). Sin esto, un
@@ -23,7 +48,7 @@ return new class extends Migration
      * tests antes de llegar al seeder — mismo problema ya visto con
      * receipt_hash.
      */
-    private function foreignKeyExists(string $table, string $constraintName): bool
+    private function foreignKeyExists(string $table, string $constraintName) : bool
     {
         return DB::table('information_schema.table_constraints')
             ->where('table_schema', DB::getDatabaseName())
@@ -31,30 +56,5 @@ return new class extends Migration
             ->where('constraint_name', $constraintName)
             ->where('constraint_type', 'FOREIGN KEY')
             ->exists();
-    }
-
-    public function up(): void
-    {
-        if ($this->foreignKeyExists('wallet_holds', 'wallet_holds_game_session_id_foreign')) {
-            return;
-        }
-
-        Schema::table('wallet_holds', function (Blueprint $table) {
-            $table->foreign('game_session_id')
-                ->references('id')->on('game_sessions')
-                ->nullOnDelete()
-                ->cascadeOnUpdate();
-        });
-    }
-
-    public function down(): void
-    {
-        if (! $this->foreignKeyExists('wallet_holds', 'wallet_holds_game_session_id_foreign')) {
-            return;
-        }
-
-        Schema::table('wallet_holds', function (Blueprint $table) {
-            $table->dropForeign(['game_session_id']);
-        });
     }
 };

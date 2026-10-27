@@ -25,34 +25,34 @@ final class ExchangeRateStatus
     ];
 
     /**
+     * Valida si un estado es permitido.
+     *
+     * @param string $status Estado a validar
+     *
+     * @throws InvalidArgumentException Si el estado no es válido
+     */
+    public function assertValid(string $status) : void
+    {
+        if (! in_array($status, self::ALLOWED_STATUSES, true)) {
+            throw new InvalidArgumentException("Estado inválido: {$status}");
+        }
+    }
+
+    /**
      * Alterna entre estados ACTIVE e INACTIVE.
      *
      * @param string $currentStatus Estado actual
+     *
      * @return string Nuevo estado
      *
      * @throws InvalidArgumentException Si el estado actual no es válido
      */
-    public function toggle(string $currentStatus): string
+    public function toggle(string $currentStatus) : string
     {
         $this->assertValid($currentStatus);
 
         return $currentStatus === 'ACTIVE'
             ? 'INACTIVE'
             : 'ACTIVE';
-    }
-
-    /**
-     * Valida si un estado es permitido.
-     *
-     * @param string $status Estado a validar
-     * @return void
-     *
-     * @throws InvalidArgumentException Si el estado no es válido
-     */
-    public function assertValid(string $status): void
-    {
-        if (!in_array($status, self::ALLOWED_STATUSES, true)) {
-            throw new InvalidArgumentException("Estado inválido: {$status}");
-        }
     }
 }

@@ -10,7 +10,7 @@ class TriviaQuestionSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run() : void
     {
         $questions = [
             // ── GEOGRAFÍA ──────────────────────────────────────────────
@@ -377,15 +377,15 @@ class TriviaQuestionSeeder extends Seeder
         $created = 0;
         foreach ($questions as $qData) {
             TriviaQuestion::create([
-                'question_text'        => $qData['question_text'],
-                'options'              => $qData['options'],
+                'question_text' => $qData['question_text'],
+                'options' => $qData['options'],
                 'correct_option_index' => $qData['correct_option_index'],
-                'category'             => $qData['category'],
-                'difficulty'           => $qData['difficulty'],
-                'explanation'          => $qData['explanation'],
-                'time_limit_seconds'   => 15,
-                'points'               => 100,
-                'is_active'            => true,
+                'category' => $qData['category'],
+                'difficulty' => $qData['difficulty'],
+                'explanation' => $qData['explanation'],
+                'time_limit_seconds' => 15,
+                'points' => 100,
+                'is_active' => true,
             ]);
             $created++;
         }

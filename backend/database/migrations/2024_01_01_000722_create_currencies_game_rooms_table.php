@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('currencies_game_rooms', function (Blueprint $table) {
+        Schema::dropIfExists('currencies_game_rooms');
+    }
+
+    public function up() : void
+    {
+        Schema::create('currencies_game_rooms', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -33,10 +38,5 @@ return new class extends Migration
             // Evitar duplicados: misma combinación no debe repetirse
             $table->unique(['game_id', 'connection_type_id', 'room_id', 'currency_id'], 'uniq_connection_type_room_currency');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('currencies_game_rooms');
     }
 };

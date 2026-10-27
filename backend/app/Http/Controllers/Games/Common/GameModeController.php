@@ -7,6 +7,7 @@ use App\Http\Requests\Games\Common\GameModeRequest;
 use App\Services\Games\Common\GameMode\GameModeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * Administración del catálogo de modos de juego (GameMode), específico por
@@ -17,9 +18,24 @@ final class GameModeController extends Controller
 {
     public function __construct(
         private readonly GameModeService $service,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(Request $request): JsonResponse
+    public function delete(string $id) : JsonResponse
+    {
+        try {
+            $this->service->delete($id);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Modo de juego eliminado exitosamente',
+        ]);
+    }
+
+    public function fetchList(Request $request) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -27,7 +43,7 @@ final class GameModeController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(string $id) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -35,11 +51,11 @@ final class GameModeController extends Controller
         ]);
     }
 
-    public function store(GameModeRequest $request): JsonResponse
+    public function store(GameModeRequest $request) : JsonResponse
     {
         try {
             $gameMode = $this->service->create($request->validated());
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
@@ -50,22 +66,7 @@ final class GameModeController extends Controller
         ]);
     }
 
-    public function update(GameModeRequest $request, string $id): JsonResponse
-    {
-        try {
-            $gameMode = $this->service->update($id, $request->validated());
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Modo de juego actualizado exitosamente',
-            'data' => $gameMode,
-        ]);
-    }
-
-    public function toggleStatus(string $id): JsonResponse
+    public function toggleStatus(string $id) : JsonResponse
     {
         $gameMode = $this->service->toggleStatus($id);
 
@@ -76,17 +77,18 @@ final class GameModeController extends Controller
         ]);
     }
 
-    public function delete(string $id): JsonResponse
+    public function update(GameModeRequest $request, string $id) : JsonResponse
     {
         try {
-            $this->service->delete($id);
-        } catch (\InvalidArgumentException $e) {
+            $gameMode = $this->service->update($id, $request->validated());
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Modo de juego eliminado exitosamente',
+            'message' => 'Modo de juego actualizado exitosamente',
+            'data' => $gameMode,
         ]);
     }
 }

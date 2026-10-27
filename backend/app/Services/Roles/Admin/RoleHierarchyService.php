@@ -63,7 +63,7 @@ final class RoleHierarchyService
         'external_player' => 'seller',
     ];
 
-    public function buildTree(): array
+    public function buildTree() : array
     {
         $roles = Role::withCount(['users', 'permissions'])
             ->orderBy('sort_order')
@@ -74,7 +74,7 @@ final class RoleHierarchyService
         $nodesByParent = $this->groupByParent($roles);
         $statusChanges = $this->lastStatusChangeByRoleId();
 
-        $roots = $roles->filter(fn (Role $role) => $this->parentOf($role) === null || !$roles->has($this->parentOf($role)));
+        $roots = $roles->filter(fn (Role $role) => $this->parentOf($role) === null || ! $roles->has($this->parentOf($role)));
 
         return $roots
             ->sortBy('sort_order')
@@ -83,22 +83,81 @@ final class RoleHierarchyService
             ->all();
     }
 
-    private function parentOf(Role $role): ?string
+    /**
+     * Último cambio de `status` por rol, leído de la auditoría (Role usa el
+     * trait Auditable). new_values guarda TODOS los atributos en cada
+     * 'updated' (no solo el campo modificado), así que se filtra en PHP
+     * comparando old_values.status vs new_values.status — el volumen de
+     * roles/audits es bajo (decenas), no amerita una consulta JSON compleja.
+     *
+     * Compartido con RoleService::getAll() (vista en lista de
+     * RoleManagerModal.vue) para que ambas pantallas muestren la misma fecha
+     * sin duplicar la consulta.
+     *
+     * @return array<string, ?\Illuminate\Support\Carbon> role_id (string) => fecha del cambio
+     */
+    public function lastStatusChangeByRoleId() : array
     {
-        return self::DOMAIN_TREE[strtolower((string) $role->prefix)] ?? null;
+        return Audit::ofModel(Role::class)
+            ->ofEvent('updated')
+            ->latest('created_at')
+            ->get(['auditable_id', 'old_values', 'new_values', 'created_at'])
+            ->map(function(Audit $audit) {
+                $audit->old_values = $this->decodeAuditValues($audit->old_values);
+                $audit->new_values = $this->decodeAuditValues($audit->new_values);
+
+                return $audit;
+            })
+            ->filter(
+                fn (Audit $audit) => array_key_exists('status', $audit->old_values ?? [])
+                && array_key_exists('status', $audit->new_values ?? [])
+                && $audit->old_values['status'] !== $audit->new_values['status'],
+            )
+            ->groupBy(fn (Audit $audit) => (string) (is_array($audit->auditable_id) ? ($audit->auditable_id[0] ?? '') : $audit->auditable_id))
+            ->map(fn (SupportCollection $audits) => $audits->first()->created_at)
+            ->all();
+    }
+
+    /**
+     * Decodifica old_values/new_values tolerando audits antiguos guardados
+     * con doble serialización (Auditable::serializeValue() hacía json_encode()
+     * manual sobre columnas que ya tienen cast 'array', ver fix en ese trait)
+     * — esos registros históricos quedaron con un string JSON dentro de la
+     * columna JSON en vez de un objeto, así que el cast del modelo entrega
+     * ese string tal cual y hay que decodificarlo una vez más aquí.
+     */
+    private function decodeAuditValues(mixed $value) : ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        return null;
     }
 
     /**
      * @param Collection<string, Role> $roles
+     *
      * @return Collection<string, Collection<int, Role>>
      */
-    private function groupByParent(Collection $roles): Collection
+    private function groupByParent(Collection $roles) : Collection
     {
         return $roles->groupBy(fn (Role $role) => $this->parentOf($role) ?? '__root__');
     }
 
+    private function parentOf(Role $role) : ?string
+    {
+        return self::DOMAIN_TREE[strtolower((string) $role->prefix)] ?? null;
+    }
+
     /** @param array<string, ?\Illuminate\Support\Carbon> $statusChanges role_id (string) => fecha del último cambio de status */
-    private function serializeNode(Role $role, Collection $nodesByParent, array $statusChanges): array
+    private function serializeNode(Role $role, Collection $nodesByParent, array $statusChanges) : array
     {
         $prefixKey = strtolower((string) $role->prefix);
 
@@ -123,61 +182,5 @@ final class RoleHierarchyService
             'permissions_count' => $role->permissions_count,
             'children' => $children,
         ];
-    }
-
-    /**
-     * Último cambio de `status` por rol, leído de la auditoría (Role usa el
-     * trait Auditable). new_values guarda TODOS los atributos en cada
-     * 'updated' (no solo el campo modificado), así que se filtra en PHP
-     * comparando old_values.status vs new_values.status — el volumen de
-     * roles/audits es bajo (decenas), no amerita una consulta JSON compleja.
-     *
-     * Compartido con RoleService::getAll() (vista en lista de
-     * RoleManagerModal.vue) para que ambas pantallas muestren la misma fecha
-     * sin duplicar la consulta.
-     *
-     * @return array<string, ?\Illuminate\Support\Carbon> role_id (string) => fecha del cambio
-     */
-    public function lastStatusChangeByRoleId(): array
-    {
-        return Audit::ofModel(Role::class)
-            ->ofEvent('updated')
-            ->latest('created_at')
-            ->get(['auditable_id', 'old_values', 'new_values', 'created_at'])
-            ->map(function (Audit $audit) {
-                $audit->old_values = $this->decodeAuditValues($audit->old_values);
-                $audit->new_values = $this->decodeAuditValues($audit->new_values);
-                return $audit;
-            })
-            ->filter(fn (Audit $audit) =>
-                array_key_exists('status', $audit->old_values ?? [])
-                && array_key_exists('status', $audit->new_values ?? [])
-                && $audit->old_values['status'] !== $audit->new_values['status']
-            )
-            ->groupBy(fn (Audit $audit) => (string) (is_array($audit->auditable_id) ? ($audit->auditable_id[0] ?? '') : $audit->auditable_id))
-            ->map(fn (SupportCollection $audits) => $audits->first()->created_at)
-            ->all();
-    }
-
-    /**
-     * Decodifica old_values/new_values tolerando audits antiguos guardados
-     * con doble serialización (Auditable::serializeValue() hacía json_encode()
-     * manual sobre columnas que ya tienen cast 'array', ver fix en ese trait)
-     * — esos registros históricos quedaron con un string JSON dentro de la
-     * columna JSON en vez de un objeto, así que el cast del modelo entrega
-     * ese string tal cual y hay que decodificarlo una vez más aquí.
-     */
-    private function decodeAuditValues(mixed $value): ?array
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            return is_array($decoded) ? $decoded : null;
-        }
-
-        return null;
     }
 }

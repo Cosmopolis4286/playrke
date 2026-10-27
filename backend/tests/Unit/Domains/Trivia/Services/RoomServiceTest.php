@@ -12,9 +12,9 @@ use App\Events\Games\Trivia\TriviaPlayerJoined;
 use App\Events\Games\Trivia\TriviaPlayerLeft;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
@@ -28,41 +28,103 @@ class RoomServiceTest extends TestCase
 
     protected RoomService $service;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
-        $this->service = new RoomService();
+        $this->service = new RoomService;
         Event::fake([TriviaPlayerJoined::class, TriviaPlayerLeft::class]);
         Redis::flushall();
     }
 
     #[Test]
-    public function it_creates_room_with_default_values(): void
+    public function it_allows_player_to_join_room() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
-            'title' => 'Mi Sala de Trivia',
+            'code' => 'JOIN01',
+            'max_players' => 10,
         ]);
 
-        $this->assertInstanceOf(RoomDTO::class, $room);
-        $this->assertEquals('Mi Sala de Trivia', $room->title);
-        $this->assertEquals('waiting', $room->status);
-        $this->assertEquals(100, $room->maxPlayers);
-        $this->assertNotNull($room->code);
-        $this->assertEquals(6, strlen($room->code));
+        $player = $this->service->joinRoom($room->roomId, 'player_456', ['nickname' => 'Jugador Test']);
 
-        // question_count/time_per_question son defaults en BD — RoomDTO no
-        // los expone como propiedades propias, se verifican en la fila real.
-        // trivia_rooms vive en pgsql_trivia, no en la conexión default.
-        $this->assertDatabaseHas('trivia_rooms', [
-            'id' => $room->roomId,
-            'question_count' => 10,
-            'time_per_question' => 15,
-        ], 'pgsql_trivia');
+        $this->assertInstanceOf(PlayerDTO::class, $player);
+        $this->assertEquals('player_456', $player->playerId);
+        $this->assertEquals('Jugador Test', $player->nickname);
+        $this->assertEquals($room->roomId, $player->roomId);
+
+        Event::assertDispatched(TriviaPlayerJoined::class, function($event) use ($room, $player) {
+            return $event->roomId === $room->roomId && $event->playerId === $player->playerId;
+        });
     }
 
     #[Test]
-    public function it_creates_room_with_custom_values(): void
+    public function it_allows_player_to_leave_room() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'code' => 'LEAVE',
+        ]);
+
+        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
+        $this->service->leaveRoom($room->roomId, 'p1');
+
+        Event::assertDispatched(TriviaPlayerLeft::class, function($event) use ($room) {
+            return $event->roomId === $room->roomId && $event->playerId === 'p1';
+        });
+    }
+
+    #[Test]
+    public function it_caches_room_in_redis() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'title' => 'Sala Redis',
+        ]);
+
+        $cached = Redis::hget('trivia:room:' . $room->roomId, 'data');
+        $this->assertNotNull($cached);
+
+        $decoded = json_decode($cached, true);
+        $this->assertEquals($room->roomId, $decoded['room_id']);
+        $this->assertEquals($room->code, $decoded['code']);
+    }
+
+    #[Test]
+    public function it_checks_player_presence_in_room() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'code' => 'CHECK',
+        ]);
+
+        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
+
+        $this->assertTrue($this->service->isPlayerInRoom($room->roomId, 'p1'));
+        $this->assertFalse($this->service->isPlayerInRoom($room->roomId, 'p2'));
+    }
+
+    #[Test]
+    public function it_closes_room() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'code' => 'CLOSE',
+        ]);
+
+        $this->service->closeRoom($room->roomId, 'test');
+
+        $this->assertDatabaseHas('trivia_rooms', [
+            'id' => $room->roomId,
+            'status' => 'closed',
+        ], 'pgsql_trivia');
+        // phpredis (vía Illuminate\Redis\Connections\PhpRedisConnection::__call)
+        // devuelve `false` para HGET sobre una clave inexistente, no `null`
+        // — confirmado también manualmente contra Redis real.
+        $this->assertFalse(Redis::hget('trivia:room:' . $room->roomId, 'data'));
+    }
+
+    #[Test]
+    public function it_creates_room_with_custom_values() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
@@ -87,7 +149,49 @@ class RoomServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_generates_unique_room_code_when_not_provided(): void
+    public function it_creates_room_with_default_values() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'title' => 'Mi Sala de Trivia',
+        ]);
+
+        $this->assertInstanceOf(RoomDTO::class, $room);
+        $this->assertEquals('Mi Sala de Trivia', $room->title);
+        $this->assertEquals('waiting', $room->status);
+        $this->assertEquals(100, $room->maxPlayers);
+        $this->assertNotNull($room->code);
+        $this->assertEquals(6, strlen($room->code));
+
+        // question_count/time_per_question son defaults en BD — RoomDTO no
+        // los expone como propiedades propias, se verifican en la fila real.
+        // trivia_rooms vive en pgsql_trivia, no en la conexión default.
+        $this->assertDatabaseHas('trivia_rooms', [
+            'id' => $room->roomId,
+            'question_count' => 10,
+            'time_per_question' => 15,
+        ], 'pgsql_trivia');
+    }
+
+    #[Test]
+    public function it_decrements_current_players_count_on_leave() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'code' => 'DEC',
+        ]);
+
+        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
+        $this->service->joinRoom($room->roomId, 'p2', ['nickname' => 'Player 2']);
+        $this->assertEquals(2, TriviaRoom::find($room->roomId)->current_players);
+
+        $this->service->leaveRoom($room->roomId, 'p1');
+
+        $this->assertEquals(1, TriviaRoom::find($room->roomId)->current_players);
+    }
+
+    #[Test]
+    public function it_generates_unique_room_code_when_not_provided() : void
     {
         $room1 = $this->service->createRoom(['host_id' => '1']);
         $room2 = $this->service->createRoom(['host_id' => '2']);
@@ -98,41 +202,52 @@ class RoomServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_room_in_database(): void
-    {
-        $roomDto = $this->service->createRoom([
-            'host_id' => '1',
-            'title' => 'Sala Test',
-            'code' => 'TEST01',
-        ]);
-
-        $this->assertDatabaseHas('trivia_rooms', [
-            'id' => $roomDto->roomId,
-            'code' => 'TEST01',
-            'title' => 'Sala Test',
-            'host_id' => '1',
-            'status' => 'waiting',
-        ], 'pgsql_trivia');
-    }
-
-    #[Test]
-    public function it_caches_room_in_redis(): void
+    public function it_increments_current_players_count_on_join() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
-            'title' => 'Sala Redis',
+            'code' => 'COUNT',
         ]);
 
-        $cached = Redis::hget('trivia:room:' . $room->roomId, 'data');
-        $this->assertNotNull($cached);
+        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
 
-        $decoded = json_decode($cached, true);
-        $this->assertEquals($room->roomId, $decoded['room_id']);
-        $this->assertEquals($room->code, $decoded['code']);
+        $updated = TriviaRoom::find($room->roomId);
+        $this->assertEquals(1, $updated->current_players);
     }
 
     #[Test]
-    public function it_retrieves_room_by_id(): void
+    public function it_rejects_update_when_room_is_not_waiting() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'code' => 'PLAYING',
+        ]);
+
+        TriviaRoom::where('id', $room->roomId)->update(['status' => 'playing']);
+
+        $this->expectException(RuntimeException::class);
+
+        $this->service->updateRoomConfig($room->roomId, ['title' => 'No debería aplicar']);
+    }
+
+    #[Test]
+    public function it_reports_room_as_full() : void
+    {
+        $room = $this->service->createRoom([
+            'host_id' => '1',
+            'max_players' => 1,
+            'code' => 'ISFULL',
+        ]);
+
+        $this->assertFalse($this->service->isRoomFull($room->roomId));
+
+        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
+
+        $this->assertTrue($this->service->isRoomFull($room->roomId));
+    }
+
+    #[Test]
+    public function it_retrieves_room_by_id() : void
     {
         $created = $this->service->createRoom([
             'host_id' => '1',
@@ -147,7 +262,7 @@ class RoomServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_retrieves_room_from_redis_cache_on_second_call(): void
+    public function it_retrieves_room_from_redis_cache_on_second_call() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
@@ -166,118 +281,56 @@ class RoomServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_throws_exception_when_room_not_found(): void
-    {
-        $this->expectException(ModelNotFoundException::class);
-
-        $this->service->getRoom('999999999999999999');
-    }
-
-    #[Test]
-    public function it_updates_room_configuration(): void
+    public function it_returns_existing_player_without_error_on_duplicate_join() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
-            'title' => 'Original',
-            'max_players' => 10,
+            'code' => 'DUP',
         ]);
 
-        $updated = $this->service->updateRoomConfig($room->roomId, [
-            'title' => 'Actualizado',
-            'max_players' => 25,
-        ]);
+        $first = $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
+        $second = $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1 Updated']);
 
-        $this->assertEquals('Actualizado', $updated->title);
-        $this->assertEquals(25, $updated->maxPlayers);
+        $this->assertEquals($first->playerId, $second->playerId);
+
+        // No debe duplicarse en el contador de jugadores.
+        $this->assertEquals(1, TriviaRoom::find($room->roomId)->current_players);
     }
 
     #[Test]
-    public function it_rejects_update_when_room_is_not_waiting(): void
+    public function it_sets_room_ttl_in_redis() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
-            'code' => 'PLAYING',
+            'code' => 'TTL',
         ]);
 
-        TriviaRoom::where('id', $room->roomId)->update(['status' => 'playing']);
+        $ttl = Redis::ttl('trivia:room:' . $room->roomId);
 
-        $this->expectException(RuntimeException::class);
-
-        $this->service->updateRoomConfig($room->roomId, ['title' => 'No debería aplicar']);
+        $this->assertGreaterThan(0, $ttl);
+        $this->assertLessThanOrEqual(7200, $ttl); // 2 horas
     }
 
     #[Test]
-    public function it_updates_room_cache_after_update(): void
+    public function it_stores_room_in_database() : void
     {
-        $room = $this->service->createRoom([
+        $roomDto = $this->service->createRoom([
             'host_id' => '1',
-            'code' => 'UPDATE',
+            'title' => 'Sala Test',
+            'code' => 'TEST01',
         ]);
-
-        $this->service->updateRoomConfig($room->roomId, ['title' => 'Nuevo Título']);
-
-        $cached = Redis::hget('trivia:room:' . $room->roomId, 'data');
-        $decoded = json_decode($cached, true);
-        $this->assertEquals('Nuevo Título', $decoded['title']);
-    }
-
-    #[Test]
-    public function it_closes_room(): void
-    {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'code' => 'CLOSE',
-        ]);
-
-        $this->service->closeRoom($room->roomId, 'test');
 
         $this->assertDatabaseHas('trivia_rooms', [
-            'id' => $room->roomId,
-            'status' => 'closed',
+            'id' => $roomDto->roomId,
+            'code' => 'TEST01',
+            'title' => 'Sala Test',
+            'host_id' => '1',
+            'status' => 'waiting',
         ], 'pgsql_trivia');
-        // phpredis (vía Illuminate\Redis\Connections\PhpRedisConnection::__call)
-        // devuelve `false` para HGET sobre una clave inexistente, no `null`
-        // — confirmado también manualmente contra Redis real.
-        $this->assertFalse(Redis::hget('trivia:room:' . $room->roomId, 'data'));
     }
 
     #[Test]
-    public function it_allows_player_to_join_room(): void
-    {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'code' => 'JOIN01',
-            'max_players' => 10,
-        ]);
-
-        $player = $this->service->joinRoom($room->roomId, 'player_456', ['nickname' => 'Jugador Test']);
-
-        $this->assertInstanceOf(PlayerDTO::class, $player);
-        $this->assertEquals('player_456', $player->playerId);
-        $this->assertEquals('Jugador Test', $player->nickname);
-        $this->assertEquals($room->roomId, $player->roomId);
-
-        Event::assertDispatched(TriviaPlayerJoined::class, function ($event) use ($room, $player) {
-            return $event->roomId === $room->roomId && $event->playerId === $player->playerId;
-        });
-    }
-
-    #[Test]
-    public function it_increments_current_players_count_on_join(): void
-    {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'code' => 'COUNT',
-        ]);
-
-        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
-
-        $updated = TriviaRoom::find($room->roomId);
-        $this->assertEquals(1, $updated->current_players);
-    }
-
-    #[Test]
-    public function it_throws_exception_when_joining_full_room(): void
+    public function it_throws_exception_when_joining_full_room() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
@@ -294,7 +347,7 @@ class RoomServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_throws_exception_when_joining_non_waiting_room(): void
+    public function it_throws_exception_when_joining_non_waiting_room() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
@@ -313,57 +366,48 @@ class RoomServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_existing_player_without_error_on_duplicate_join(): void
+    public function it_throws_exception_when_room_not_found() : void
     {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'code' => 'DUP',
-        ]);
+        $this->expectException(ModelNotFoundException::class);
 
-        $first = $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
-        $second = $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1 Updated']);
-
-        $this->assertEquals($first->playerId, $second->playerId);
-
-        // No debe duplicarse en el contador de jugadores.
-        $this->assertEquals(1, TriviaRoom::find($room->roomId)->current_players);
+        $this->service->getRoom('999999999999999999');
     }
 
     #[Test]
-    public function it_allows_player_to_leave_room(): void
+    public function it_updates_room_cache_after_update() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
-            'code' => 'LEAVE',
+            'code' => 'UPDATE',
         ]);
 
-        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
-        $this->service->leaveRoom($room->roomId, 'p1');
+        $this->service->updateRoomConfig($room->roomId, ['title' => 'Nuevo Título']);
 
-        Event::assertDispatched(TriviaPlayerLeft::class, function ($event) use ($room) {
-            return $event->roomId === $room->roomId && $event->playerId === 'p1';
-        });
+        $cached = Redis::hget('trivia:room:' . $room->roomId, 'data');
+        $decoded = json_decode($cached, true);
+        $this->assertEquals('Nuevo Título', $decoded['title']);
     }
 
     #[Test]
-    public function it_decrements_current_players_count_on_leave(): void
+    public function it_updates_room_configuration() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
-            'code' => 'DEC',
+            'title' => 'Original',
+            'max_players' => 10,
         ]);
 
-        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
-        $this->service->joinRoom($room->roomId, 'p2', ['nickname' => 'Player 2']);
-        $this->assertEquals(2, TriviaRoom::find($room->roomId)->current_players);
+        $updated = $this->service->updateRoomConfig($room->roomId, [
+            'title' => 'Actualizado',
+            'max_players' => 25,
+        ]);
 
-        $this->service->leaveRoom($room->roomId, 'p1');
-
-        $this->assertEquals(1, TriviaRoom::find($room->roomId)->current_players);
+        $this->assertEquals('Actualizado', $updated->title);
+        $this->assertEquals(25, $updated->maxPlayers);
     }
 
     #[Test]
-    public function leaving_waiting_room_marks_persisted_participant_abandoned(): void
+    public function leaving_waiting_room_marks_persisted_participant_abandoned() : void
     {
         $room = $this->service->createRoom([
             'host_id' => '1',
@@ -395,49 +439,5 @@ class RoomServiceTest extends TestCase
             'id' => $room->roomId,
             'current_players' => 0,
         ], 'pgsql_trivia');
-    }
-
-    #[Test]
-    public function it_checks_player_presence_in_room(): void
-    {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'code' => 'CHECK',
-        ]);
-
-        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
-
-        $this->assertTrue($this->service->isPlayerInRoom($room->roomId, 'p1'));
-        $this->assertFalse($this->service->isPlayerInRoom($room->roomId, 'p2'));
-    }
-
-    #[Test]
-    public function it_reports_room_as_full(): void
-    {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'max_players' => 1,
-            'code' => 'ISFULL',
-        ]);
-
-        $this->assertFalse($this->service->isRoomFull($room->roomId));
-
-        $this->service->joinRoom($room->roomId, 'p1', ['nickname' => 'Player 1']);
-
-        $this->assertTrue($this->service->isRoomFull($room->roomId));
-    }
-
-    #[Test]
-    public function it_sets_room_ttl_in_redis(): void
-    {
-        $room = $this->service->createRoom([
-            'host_id' => '1',
-            'code' => 'TTL',
-        ]);
-
-        $ttl = Redis::ttl('trivia:room:' . $room->roomId);
-
-        $this->assertGreaterThan(0, $ttl);
-        $this->assertLessThanOrEqual(7200, $ttl); // 2 horas
     }
 }

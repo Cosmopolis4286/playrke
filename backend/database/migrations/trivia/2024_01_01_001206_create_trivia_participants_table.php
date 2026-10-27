@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * prize_status sigue el FSM de GamePrizeContract (waiting → processing →
  * claimed | cancelled | suspended), el mismo que usa bingo_card_prizes —
  * necesario para que GamePrizeService pague premios de Bingo y Trivia con el
@@ -14,13 +14,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_participants');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_participants')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_participants', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_participants', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('room_id', 20);
             $table->foreign('room_id')->references('id')->on('trivia_rooms')->onDelete('cascade');
@@ -73,10 +78,5 @@ return new class extends Migration
             $table->index(['room_id', 'team_id']);
             $table->index('prize_status');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_participants');
     }
 };

@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Shared;
 
-use App\Repositories\BaseRepository;
 use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use App\Models\Shared\DocumentType;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 
 class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepositoryInterface
@@ -14,73 +14,34 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
         $this->model = $model;
     }
 
-    /** ----------------------------------------
-     *  QUERIES BÁSICAS
-     * ---------------------------------------- */
-
-    public function getByCountry(int $countryId): Collection
+    public function activateDocumentType(int $documentTypeId) : bool
     {
-        return $this->model
-            ->where('country_id', $countryId)
-            ->get();
-    }
-
-    public function getActiveByCountry(int $countryId): Collection
-    {
-        return $this->model
-            ->where('country_id', $countryId)
-            ->where('status', true)
-            ->get();
-    }
-
-    public function getByCode(string $code): ?DocumentType
-    {
-        return $this->model
-            ->where('code', $code)
-            ->first();
-    }
-
-    public function getByCountryAndCode(int $countryId, string $code): ?DocumentType
-    {
-        return $this->model
-            ->where('country_id', $countryId)
-            ->where('code', $code)
-            ->first();
+        return $this->updateDocumentType($documentTypeId, ['status' => true]);
     }
 
     /** ----------------------------------------
-     *  FILTROS POR ESTADO
+     *  CRUD
      * ---------------------------------------- */
-
-    public function getActiveDocumentTypes(): Collection
-    {
-        return $this->getDocumentTypesByStatus(true);
+    public function createDocumentType(
+        int $countryId,
+        string $code,
+        string $description,
+        bool $isActive = true,
+    ) : DocumentType {
+        return $this->model->create([
+            'country_id' => $countryId,
+            'code' => $code,
+            'description' => $description,
+            'status' => $isActive,
+        ]);
     }
 
-    public function getInactiveDocumentTypes(): Collection
+    public function deactivateDocumentType(int $documentTypeId) : bool
     {
-        return $this->getDocumentTypesByStatus(false);
+        return $this->updateDocumentType($documentTypeId, ['status' => false]);
     }
 
-    public function getDocumentTypesByStatus(bool $isActive = true): Collection
-    {
-        return $this->model
-            ->where('status', $isActive)
-            ->get();
-    }
-
-    /** ----------------------------------------
-     *  BÚSQUEDAS
-     * ---------------------------------------- */
-
-    public function searchByDescription(string $searchTerm): Collection
-    {
-        return $this->model
-            ->where('description', 'LIKE', "%{$searchTerm}%")
-            ->get();
-    }
-
-    public function existsByCode(string $code, ?int $countryId = null): bool
+    public function existsByCode(string $code, ?int $countryId = null) : bool
     {
         $query = $this->model->where('code', $code);
 
@@ -91,56 +52,90 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
         return $query->exists();
     }
 
-    /** ----------------------------------------
-     *  CRUD
-     * ---------------------------------------- */
-
-    public function createDocumentType(
-        int $countryId,
-        string $code,
-        string $description,
-        bool $isActive = true
-    ): DocumentType {
-        return $this->model->create([
-            'country_id'  => $countryId,
-            'code'        => $code,
-            'description' => $description,
-            'status'   => $isActive,
-        ]);
-    }
-
-    public function updateDocumentType(int $documentTypeId, array $data): bool
+    public function getActiveByCountry(int $countryId) : Collection
     {
         return $this->model
-            ->where('id', $documentTypeId)
-            ->update($data) > 0;
+            ->where('country_id', $countryId)
+            ->where('status', true)
+            ->get();
     }
 
-    public function activateDocumentType(int $documentTypeId): bool
+    /** ----------------------------------------
+     *  FILTROS POR ESTADO
+     * ---------------------------------------- */
+    public function getActiveDocumentTypes() : Collection
     {
-        return $this->updateDocumentType($documentTypeId, ['status' => true]);
+        return $this->getDocumentTypesByStatus(true);
     }
 
-    public function deactivateDocumentType(int $documentTypeId): bool
+    public function getByCode(string $code) : ?DocumentType
     {
-        return $this->updateDocumentType($documentTypeId, ['status' => false]);
+        return $this->model
+            ->where('code', $code)
+            ->first();
+    }
+
+    /** ----------------------------------------
+     *  QUERIES BÁSICAS
+     * ---------------------------------------- */
+    public function getByCountry(int $countryId) : Collection
+    {
+        return $this->model
+            ->where('country_id', $countryId)
+            ->get();
+    }
+
+    public function getByCountryAndCode(int $countryId, string $code) : ?DocumentType
+    {
+        return $this->model
+            ->where('country_id', $countryId)
+            ->where('code', $code)
+            ->first();
+    }
+
+    public function getCountrySpecificDocumentTypes(int $countryId) : Collection
+    {
+        return $this->model
+            ->where('country_id', $countryId)
+            ->get();
+    }
+
+    public function getDocumentTypesByStatus(bool $isActive = true) : Collection
+    {
+        return $this->model
+            ->where('status', $isActive)
+            ->get();
     }
 
     /** ----------------------------------------
      *  ALCANCE GLOBAL VS ESPECÍFICO
      * ---------------------------------------- */
-
-    public function getGlobalDocumentTypes(): Collection
+    public function getGlobalDocumentTypes() : Collection
     {
         return $this->model
             ->whereNull('country_id')
             ->get();
     }
 
-    public function getCountrySpecificDocumentTypes(int $countryId): Collection
+    public function getInactiveDocumentTypes() : Collection
+    {
+        return $this->getDocumentTypesByStatus(false);
+    }
+
+    /** ----------------------------------------
+     *  BÚSQUEDAS
+     * ---------------------------------------- */
+    public function searchByDescription(string $searchTerm) : Collection
     {
         return $this->model
-            ->where('country_id', $countryId)
+            ->where('description', 'LIKE', "%{$searchTerm}%")
             ->get();
+    }
+
+    public function updateDocumentType(int $documentTypeId, array $data) : bool
+    {
+        return $this->model
+            ->where('id', $documentTypeId)
+            ->update($data) > 0;
     }
 }

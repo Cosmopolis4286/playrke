@@ -16,11 +16,11 @@ use Tests\TestCase;
 class PaymentOrderServiceTest extends TestCase
 {
     use RefreshDatabase;
-
-    private PaymentOrderService $service;
     private PaymentProduct $product;
 
-    protected function setUp(): void
+    private PaymentOrderService $service;
+
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -42,7 +42,7 @@ class PaymentOrderServiceTest extends TestCase
         $this->service = app(PaymentOrderService::class);
     }
 
-    public function test_create_derives_a_deposit_address_and_sets_expected_amount(): void
+    public function test_create_derives_a_deposit_address_and_sets_expected_amount() : void
     {
         $user = User::factory()->create();
 
@@ -56,18 +56,7 @@ class PaymentOrderServiceTest extends TestCase
         $this->assertTrue($order->expires_at->isFuture());
     }
 
-    public function test_two_orders_never_share_a_deposit_address(): void
-    {
-        $user = User::factory()->create();
-
-        $first = $this->service->create((string) $user->id, 'TEST_PACK');
-        $second = $this->service->create((string) $user->id, 'TEST_PACK');
-
-        $this->assertNotSame($first->deposit_address, $second->deposit_address);
-        $this->assertNotSame($first->derivation_index, $second->derivation_index);
-    }
-
-    public function test_create_throws_for_inactive_product(): void
+    public function test_create_throws_for_inactive_product() : void
     {
         $this->product->update(['status' => PaymentProduct::STATUS_INACTIVE]);
         $user = User::factory()->create();
@@ -76,7 +65,7 @@ class PaymentOrderServiceTest extends TestCase
         $this->service->create((string) $user->id, 'TEST_PACK');
     }
 
-    public function test_create_throws_for_unknown_product_code(): void
+    public function test_create_throws_for_unknown_product_code() : void
     {
         $user = User::factory()->create();
 
@@ -84,7 +73,7 @@ class PaymentOrderServiceTest extends TestCase
         $this->service->create((string) $user->id, 'DOES_NOT_EXIST');
     }
 
-    public function test_find_for_user_never_returns_another_users_order(): void
+    public function test_find_for_user_never_returns_another_users_order() : void
     {
         $owner = User::factory()->create();
         $other = User::factory()->create();
@@ -92,5 +81,16 @@ class PaymentOrderServiceTest extends TestCase
 
         $this->assertNull($this->service->findForUser($order->id, (string) $other->id));
         $this->assertNotNull($this->service->findForUser($order->id, (string) $owner->id));
+    }
+
+    public function test_two_orders_never_share_a_deposit_address() : void
+    {
+        $user = User::factory()->create();
+
+        $first = $this->service->create((string) $user->id, 'TEST_PACK');
+        $second = $this->service->create((string) $user->id, 'TEST_PACK');
+
+        $this->assertNotSame($first->deposit_address, $second->deposit_address);
+        $this->assertNotSame($first->derivation_index, $second->derivation_index);
     }
 }

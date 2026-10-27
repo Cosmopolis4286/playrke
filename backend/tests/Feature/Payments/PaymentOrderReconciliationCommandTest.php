@@ -6,6 +6,7 @@ use App\Domains\Marketplace\Inventory\Models\AssetDefinition;
 use App\Domains\Payments\Models\PaymentOrder;
 use App\Domains\Payments\Models\PaymentProduct;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
@@ -16,7 +17,7 @@ class PaymentOrderReconciliationCommandTest extends TestCase
 
     private PaymentProduct $product;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -34,7 +35,54 @@ class PaymentOrderReconciliationCommandTest extends TestCase
         ]);
     }
 
-    private function makeOrder(string $status, \DateTimeInterface $updatedAt): PaymentOrder
+    public function test_logs_stale_confirming_order() : void
+    {
+        Log::spy();
+
+        $this->makeOrder(PaymentOrder::STATUS_CONFIRMING, now()->subMinutes(20));
+
+        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
+
+        Log::shouldHaveReceived('warning')->once();
+    }
+
+    public function test_logs_stale_detected_order() : void
+    {
+        Log::spy();
+
+        $this->makeOrder(PaymentOrder::STATUS_DETECTED, now()->subMinutes(30));
+
+        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
+
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->withArgs(fn ($message) => str_contains($message, 'Orden estancada sin avanzar'));
+    }
+
+    public function test_silent_for_terminal_or_pending_orders() : void
+    {
+        Log::spy();
+
+        $this->makeOrder(PaymentOrder::STATUS_CREDITED, now()->subMinutes(30));
+        $this->makeOrder(PaymentOrder::STATUS_PENDING, now()->subMinutes(30));
+
+        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
+
+        Log::shouldNotHaveReceived('warning');
+    }
+
+    public function test_silent_when_recently_updated() : void
+    {
+        Log::spy();
+
+        $this->makeOrder(PaymentOrder::STATUS_DETECTED, now()->subMinutes(2));
+
+        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
+
+        Log::shouldNotHaveReceived('warning');
+    }
+
+    private function makeOrder(string $status, DateTimeInterface $updatedAt) : PaymentOrder
     {
         $user = User::factory()->create();
 
@@ -53,52 +101,5 @@ class PaymentOrderReconciliationCommandTest extends TestCase
         PaymentOrder::where('id', $order->id)->update(['updated_at' => $updatedAt]);
 
         return $order->fresh();
-    }
-
-    public function test_logs_stale_detected_order(): void
-    {
-        Log::spy();
-
-        $this->makeOrder(PaymentOrder::STATUS_DETECTED, now()->subMinutes(30));
-
-        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
-
-        Log::shouldHaveReceived('warning')
-            ->once()
-            ->withArgs(fn ($message) => str_contains($message, 'Orden estancada sin avanzar'));
-    }
-
-    public function test_logs_stale_confirming_order(): void
-    {
-        Log::spy();
-
-        $this->makeOrder(PaymentOrder::STATUS_CONFIRMING, now()->subMinutes(20));
-
-        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
-
-        Log::shouldHaveReceived('warning')->once();
-    }
-
-    public function test_silent_when_recently_updated(): void
-    {
-        Log::spy();
-
-        $this->makeOrder(PaymentOrder::STATUS_DETECTED, now()->subMinutes(2));
-
-        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
-
-        Log::shouldNotHaveReceived('warning');
-    }
-
-    public function test_silent_for_terminal_or_pending_orders(): void
-    {
-        Log::spy();
-
-        $this->makeOrder(PaymentOrder::STATUS_CREDITED, now()->subMinutes(30));
-        $this->makeOrder(PaymentOrder::STATUS_PENDING, now()->subMinutes(30));
-
-        $this->artisan('payments:reconcile-orders')->assertExitCode(0);
-
-        Log::shouldNotHaveReceived('warning');
     }
 }

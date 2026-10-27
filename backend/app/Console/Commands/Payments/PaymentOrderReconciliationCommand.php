@@ -21,13 +21,12 @@ use Throwable;
  */
 class PaymentOrderReconciliationCommand extends Command
 {
-    protected $signature = 'payments:reconcile-orders';
-
-    protected $description = 'Alerta órdenes de pago USDT-TRC20 detectadas/confirmando sin avanzar hace demasiado tiempo';
-
     private const STALE_MINUTES = 15;
 
-    public function handle(): void
+    protected $description = 'Alerta órdenes de pago USDT-TRC20 detectadas/confirmando sin avanzar hace demasiado tiempo';
+    protected $signature = 'payments:reconcile-orders';
+
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -42,12 +41,12 @@ class PaymentOrderReconciliationCommand extends Command
                 foreach ($stale as $order) {
                     Log::warning('[PaymentOrderReconciliation] Orden estancada sin avanzar', [
                         'payment_order_id' => $order->id,
-                        'status'           => $order->status,
-                        'user_id'          => $order->user_id,
-                        'deposit_address'  => $order->deposit_address,
-                        'expected_amount'  => $order->expected_amount,
-                        'received_amount'  => $order->received_amount,
-                        'updated_at'       => $order->updated_at?->toIso8601String(),
+                        'status' => $order->status,
+                        'user_id' => $order->user_id,
+                        'deposit_address' => $order->deposit_address,
+                        'expected_amount' => $order->expected_amount,
+                        'received_amount' => $order->received_amount,
+                        'updated_at' => $order->updated_at?->toIso8601String(),
                     ]);
                 }
                 $output = "Se detectaron {$stale->count()} orden(es) de pago estancadas — ver logs para detalle.";
@@ -59,7 +58,7 @@ class PaymentOrderReconciliationCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }
@@ -70,7 +69,7 @@ class PaymentOrderReconciliationCommand extends Command
             $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
 
-        if ($status === 'SUCCESS' && (!isset($stale) || $stale->isEmpty())) {
+        if ($status === 'SUCCESS' && (! isset($stale) || $stale->isEmpty())) {
             $this->info($output);
         }
     }

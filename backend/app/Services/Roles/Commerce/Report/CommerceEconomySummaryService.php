@@ -9,7 +9,6 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Models\Currency;
 use App\Models\Roles\Commerce;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -32,20 +31,31 @@ use Illuminate\Support\Facades\DB;
 final class CommerceEconomySummaryService
 {
     /**
-     * @param  string      $commerceUserId  user_id del Commerce autenticado.
-     * @param  string|null $startDate       'Y-m-d', null = sin límite inferior.
-     * @param  string|null $endDate         'Y-m-d', null = sin límite superior (hoy).
+     * @param string      $commerceUserId user_id del Commerce autenticado
+     * @param string|null $startDate      'Y-m-d', null = sin límite inferior
+     * @param string|null $endDate        'Y-m-d', null = sin límite superior (hoy)
      */
-    public function getSummary(string $commerceUserId, ?string $startDate = null, ?string $endDate = null): array
+    public function getSummary(string $commerceUserId, ?string $startDate = null, ?string $endDate = null) : array
     {
         $commerce = Commerce::where('user_id', $commerceUserId)->first(['id', 'user_id', 'commission']);
         $networkUserIds = $commerce ? $commerce->networkUserIds() : [$commerceUserId];
 
         return [
-            'by_currency'   => $this->byCurrency($networkUserIds, $startDate, $endDate),
-            'by_seller'     => $this->bySeller($networkUserIds, $startDate, $endDate),
-            'totals'        => $this->totals($networkUserIds, $startDate, $endDate),
+            'by_currency' => $this->byCurrency($networkUserIds, $startDate, $endDate),
+            'by_seller' => $this->bySeller($networkUserIds, $startDate, $endDate),
+            'totals' => $this->totals($networkUserIds, $startDate, $endDate),
         ];
+    }
+
+    private function applyDateRange($query, ?string $startDate, ?string $endDate) : void
+    {
+        if ($startDate) {
+            $query->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+        }
+
+        if ($endDate) {
+            $query->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+        }
     }
 
     /**
@@ -53,7 +63,7 @@ final class CommerceEconomySummaryService
      * seller_commission, ya desglosadas por BingoCreatorSale — no una
      * re-derivación de tasas) agrupadas por moneda, dentro del rango.
      */
-    private function byCurrency(array $networkUserIds, ?string $startDate, ?string $endDate): array
+    private function byCurrency(array $networkUserIds, ?string $startDate, ?string $endDate) : array
     {
         $query = BingoCreatorSale::query()
             ->whereIn('creator_user_id', $networkUserIds)
@@ -73,16 +83,16 @@ final class CommerceEconomySummaryService
             ->get(['id', 'iso_code', 'symbol'])
             ->keyBy('id');
 
-        return $rows->map(function ($row) use ($currencies) {
+        return $rows->map(function($row) use ($currencies) {
             $currency = $currencies->get($row->currency_id);
 
             return [
                 'currency_id' => (string) $row->currency_id,
-                'iso_code'    => $currency?->iso_code ?? 'N/D',
-                'symbol'      => $currency?->symbol ?? '',
-                'income'      => round((float) $row->income, 2),
-                'commission'  => round((float) $row->commission, 2),
-                'prize_pool'  => round((float) $row->prize_pool, 2),
+                'iso_code' => $currency?->iso_code ?? 'N/D',
+                'symbol' => $currency?->symbol ?? '',
+                'income' => round((float) $row->income, 2),
+                'commission' => round((float) $row->commission, 2),
+                'prize_pool' => round((float) $row->prize_pool, 2),
             ];
         })->sortByDesc('income')->values()->all();
     }
@@ -92,7 +102,7 @@ final class CommerceEconomySummaryService
      * CommerceDashboardContextService::buildSalesBySeller(), pero sin límite
      * de 10 filas ni acotado al mes en curso — este es el reporte completo).
      */
-    private function bySeller(array $networkUserIds, ?string $startDate, ?string $endDate): array
+    private function bySeller(array $networkUserIds, ?string $startDate, ?string $endDate) : array
     {
         $query = BingoCardLot::query()
             ->whereIn('user_id', $networkUserIds)
@@ -113,19 +123,19 @@ final class CommerceEconomySummaryService
 
         return $query->orderByDesc(DB::raw('SUM(sale_amount)'))
             ->get()
-            ->map(function (BingoCardLot $row) {
+            ->map(function(BingoCardLot $row) {
                 $sellerName = $row->seller
                     ? trim("{$row->seller->first_name} {$row->seller->last_name}") ?: $row->seller->username
                     : 'Venta directa';
 
                 return [
-                    'seller_user_id'   => $row->seller_user_id ? (string) $row->seller_user_id : null,
-                    'seller_name'      => $sellerName,
-                    'total_sales'      => round((float) $row->total_sales, 2),
-                    'total_cards'      => (int) $row->total_cards,
+                    'seller_user_id' => $row->seller_user_id ? (string) $row->seller_user_id : null,
+                    'seller_name' => $sellerName,
+                    'total_sales' => round((float) $row->total_sales, 2),
+                    'total_cards' => (int) $row->total_cards,
                     'total_commission' => round((float) $row->total_commission, 2),
                     'total_subsidiary_commission' => round((float) $row->total_subsidiary_commission, 2),
-                    'total_commerce_commission'   => round((float) $row->total_commerce_commission, 2),
+                    'total_commerce_commission' => round((float) $row->total_commerce_commission, 2),
                 ];
             })
             ->values()
@@ -141,7 +151,7 @@ final class CommerceEconomySummaryService
      * rke_commission/room_commission/seller_commission del modelo, que aquí
      * son null (no se seleccionaron columnas individuales), dando 0.
      */
-    private function totals(array $networkUserIds, ?string $startDate, ?string $endDate): array
+    private function totals(array $networkUserIds, ?string $startDate, ?string $endDate) : array
     {
         $query = BingoCreatorSale::query()->whereIn('creator_user_id', $networkUserIds);
         $this->applyDateRange($query, $startDate, $endDate);
@@ -154,20 +164,9 @@ final class CommerceEconomySummaryService
         ')->first();
 
         return [
-            'total_income'     => round((float) ($totals->total_income ?? 0), 2),
+            'total_income' => round((float) ($totals->total_income ?? 0), 2),
             'total_commission' => round((float) ($totals->total_commission_sum ?? 0), 2),
             'total_prize_pool' => round((float) ($totals->total_prize_pool ?? 0), 2),
         ];
-    }
-
-    private function applyDateRange($query, ?string $startDate, ?string $endDate): void
-    {
-        if ($startDate) {
-            $query->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
-        }
-
-        if ($endDate) {
-            $query->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
-        }
     }
 }

@@ -2,16 +2,14 @@
 
 namespace App\Models;
 
-use App\Models\Country;
-use App\Models\ExchangeRate;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Seller;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Modelo Currency refactorizado
@@ -27,31 +25,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Currency extends Model
 {
-    use SnowflakeId, HasFactory;
-
-    // ========================
-    // Configuración de la tabla
-    // ========================
-    protected $table = 'currencies';
-    protected $primaryKey = 'id';
+    use HasFactory, SnowflakeId;
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    // ========================
-    // Campos asignables
-    // ========================
-    protected $fillable = [
-        'iso_code',
-        'symbol',
-        'name',
-        'description',
-        'type',
-        'country_id',
-        'decimal_places',
-        'decimal_separator',
-        'thousands_separator',
-        'status',
-    ];
 
     // ========================
     // Casting de tipos
@@ -69,39 +44,51 @@ class Currency extends Model
     ];
 
     // ========================
-    // Relaciones
+    // Campos asignables
     // ========================
+    protected $fillable = [
+        'iso_code',
+        'symbol',
+        'name',
+        'description',
+        'type',
+        'country_id',
+        'decimal_places',
+        'decimal_separator',
+        'thousands_separator',
+        'status',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+
+    // ========================
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'currencies';
 
     /**
-     * Relación: una moneda pertenece a un país
+     * Símbolos de moneda por ID, cacheados 5 min (igual TTL que
+     * CurrencyExchangeRateService — los símbolos cambian aún menos que la
+     * tasa de cambio). Evita resolver `currencies` por request en pantallas
+     * de alto tráfico/polling (p. ej. lobby y sala de espera de Trivia).
+     *
+     * @param array<int, string> $ids
+     *
+     * @return array<string, string> id => symbol
      */
-    public function country(): BelongsTo
+    public static function symbolsByIds(array $ids) : array
     {
-        return $this->belongsTo(Country::class, 'country_id');
-    }
+        $ids = array_values(array_unique(array_map('strval', $ids)));
+        if (empty($ids)) {
+            return [];
+        }
 
-    /**
-     * Relación: una moneda tiene una tasa de cambio actual
-     */
-    public function exchangeRate(): HasOne
-    {
-        return $this->hasOne(ExchangeRate::class, 'currency_id');
-    }
+        sort($ids);
+        $cacheKey = 'currency_symbols_by_ids:' . md5(implode(',', $ids));
 
-    /**
-     * Relación: una moneda tiene muchas tasas de cambio por comercio
-     */
-    public function commerceExchangeRates(): HasMany
-    {
-        return $this->hasMany(CommerceExchangeRate::class, 'currency_id');
-    }
-
-    /**
-     * Relación: una moneda tiene muchos vendedores que la aceptan
-     */
-    public function sellers(): HasMany
-    {
-        return $this->hasMany(Seller::class, 'currency_id');
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function() use ($ids) {
+            return static::whereIn('id', $ids)->pluck('symbol', 'id')->all();
+        });
     }
 
     /**
@@ -112,77 +99,58 @@ class Currency extends Model
      * cual siempre era falso y ocultaba silenciosamente el problema real
      * (ver ExchangeRateException). Usar este helper en su lugar.
      */
-    public static function usdId(): ?string
+    public static function usdId() : ?string
     {
-        return \Illuminate\Support\Facades\Cache::remember('currency_usd_id', 60, function () {
+        return \Illuminate\Support\Facades\Cache::remember('currency_usd_id', 60, function() {
             return static::where('iso_code', 'USD')->value('id');
         });
     }
 
     /**
-     * Símbolos de moneda por ID, cacheados 5 min (igual TTL que
-     * CurrencyExchangeRateService — los símbolos cambian aún menos que la
-     * tasa de cambio). Evita resolver `currencies` por request en pantallas
-     * de alto tráfico/polling (p. ej. lobby y sala de espera de Trivia).
-     *
-     * @param array<int, string> $ids
-     * @return array<string, string> id => symbol
+     * Relación: una moneda tiene muchas tasas de cambio por comercio
      */
-    public static function symbolsByIds(array $ids): array
+    public function commerceExchangeRates() : HasMany
     {
-        $ids = array_values(array_unique(array_map('strval', $ids)));
-        if (empty($ids)) {
-            return [];
-        }
-
-        sort($ids);
-        $cacheKey = 'currency_symbols_by_ids:' . md5(implode(',', $ids));
-
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($ids) {
-            return static::whereIn('id', $ids)->pluck('symbol', 'id')->all();
-        });
+        return $this->hasMany(CommerceExchangeRate::class, 'currency_id');
     }
 
     // ========================
-    // Accessors
+    // Relaciones
     // ========================
 
     /**
-     * Verificar si la moneda está activa
+     * Relación: una moneda pertenece a un país
      */
-    public function getIsActiveStatusAttribute(): bool
+    public function country() : BelongsTo
     {
-        return $this->status === true;
+        return $this->belongsTo(Country::class, 'country_id');
     }
 
     /**
-     * Verificar si es moneda FIAT
+     * Relación: una moneda tiene una tasa de cambio actual
      */
-    public function getIsFiatAttribute(): bool
+    public function exchangeRate() : HasOne
     {
-        return $this->type === 'FIAT';
+        return $this->hasOne(ExchangeRate::class, 'currency_id');
     }
 
     /**
-     * Verificar si es criptomoneda
+     * Formatear valor con decimales correctos
      */
-    public function getIsCryptoAttribute(): bool
+    public function formatAmount(float $amount, ?int $decimals = null) : string
     {
-        return $this->type === 'CRYPTO';
-    }
-
-    /**
-     * Verificar si es token
-     */
-    public function getIsTokenAttribute(): bool
-    {
-        return $this->type === 'TOKEN';
+        return number_format(
+            $amount,
+            $decimals ?? $this->decimal_places ?? 2,
+            $this->decimal_separator ?? ',',
+            $this->thousands_separator ?? '.',
+        );
     }
 
     /**
      * Obtener nombre para mostrar con símbolo
      */
-    public function getDisplayNameAttribute(): string
+    public function getDisplayNameAttribute() : string
     {
         return $this->symbol
             ? "{$this->name} ({$this->symbol})"
@@ -192,22 +160,45 @@ class Currency extends Model
     /**
      * Obtener nombre completo con código ISO
      */
-    public function getFullNameAttribute(): string
+    public function getFullNameAttribute() : string
     {
         return "{$this->name} - {$this->iso_code}";
     }
 
+    // ========================
+    // Accessors
+    // ========================
+
     /**
-     * Formatear valor con decimales correctos
+     * Verificar si la moneda está activa
      */
-    public function formatAmount(float $amount, ?int $decimals = null): string
+    public function getIsActiveStatusAttribute() : bool
     {
-        return number_format(
-            $amount,
-            $decimals ?? $this->decimal_places ?? 2,
-            $this->decimal_separator ?? ',',
-            $this->thousands_separator ?? '.',
-        );
+        return $this->status === true;
+    }
+
+    /**
+     * Verificar si es criptomoneda
+     */
+    public function getIsCryptoAttribute() : bool
+    {
+        return $this->type === 'CRYPTO';
+    }
+
+    /**
+     * Verificar si es moneda FIAT
+     */
+    public function getIsFiatAttribute() : bool
+    {
+        return $this->type === 'FIAT';
+    }
+
+    /**
+     * Verificar si es token
+     */
+    public function getIsTokenAttribute() : bool
+    {
+        return $this->type === 'TOKEN';
     }
 
     // ========================
@@ -220,46 +211,6 @@ class Currency extends Model
     public function scopeActive($query)
     {
         return $query->where('status', true);
-    }
-
-    /**
-     * Scope para monedas inactivas
-     */
-    public function scopeInactive($query)
-    {
-        return $query->where('status', false);
-    }
-
-    /**
-     * Scope para monedas FIAT
-     */
-    public function scopeFiat($query)
-    {
-        return $query->where('type', 'FIAT');
-    }
-
-    /**
-     * Scope para criptomonedas
-     */
-    public function scopeCrypto($query)
-    {
-        return $query->where('type', 'CRYPTO');
-    }
-
-    /**
-     * Scope para tokens
-     */
-    public function scopeTokens($query)
-    {
-        return $query->where('type', 'TOKEN');
-    }
-
-    /**
-     * Scope para ordenar por nombre
-     */
-    public function scopeOrderedByName($query)
-    {
-        return $query->orderBy('name');
     }
 
     /**
@@ -279,19 +230,51 @@ class Currency extends Model
     }
 
     /**
+     * Scope para criptomonedas
+     */
+    public function scopeCrypto($query)
+    {
+        return $query->where('type', 'CRYPTO');
+    }
+
+    /**
+     * Scope para monedas FIAT
+     */
+    public function scopeFiat($query)
+    {
+        return $query->where('type', 'FIAT');
+    }
+
+    /**
+     * Scope para monedas inactivas
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', false);
+    }
+
+    /**
+     * Scope para ordenar por nombre
+     */
+    public function scopeOrderedByName($query)
+    {
+        return $query->orderBy('name');
+    }
+
+    /**
+     * Scope para tokens
+     */
+    public function scopeTokens($query)
+    {
+        return $query->where('type', 'TOKEN');
+    }
+
+    /**
      * Scope para monedas con país asociado
      */
     public function scopeWithCountry($query)
     {
         return $query->whereNotNull('country_id');
-    }
-
-    /**
-     * Scope para monedas sin país asociado
-     */
-    public function scopeWithoutCountry($query)
-    {
-        return $query->whereNull('country_id');
     }
 
     /**
@@ -308,5 +291,21 @@ class Currency extends Model
     public function scopeWithExchangeRate($query)
     {
         return $query->whereHas('exchangeRate');
+    }
+
+    /**
+     * Scope para monedas sin país asociado
+     */
+    public function scopeWithoutCountry($query)
+    {
+        return $query->whereNull('country_id');
+    }
+
+    /**
+     * Relación: una moneda tiene muchos vendedores que la aceptan
+     */
+    public function sellers() : HasMany
+    {
+        return $this->hasMany(Seller::class, 'currency_id');
     }
 }

@@ -19,28 +19,13 @@ class ReconciliationCommandsTest extends TestCase
 
     private Currency $currency;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         $this->currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
     }
 
-    private function makeAsset(User $owner): PlayerAsset
-    {
-        $definition = AssetDefinition::create([
-            'code' => 'TEST_RECON_' . uniqid(), 'name' => 'x',
-            'category' => AssetDefinition::CATEGORY_EQUIPMENT, 'stackable' => false,
-            'tradable' => true, 'transferable' => true, 'consumable' => false,
-            'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
-        ]);
-
-        return PlayerAsset::create([
-            'asset_definition_id' => $definition->id, 'owner_id' => $owner->id,
-            'quantity' => 1, 'status' => PlayerAsset::STATUS_AVAILABLE, 'acquired_via' => 'ADMIN_GRANT',
-        ]);
-    }
-
-    public function test_escrow_reconciliation_logs_stale_escrows(): void
+    public function test_escrow_reconciliation_logs_stale_escrows() : void
     {
         Log::spy();
 
@@ -69,7 +54,7 @@ class ReconciliationCommandsTest extends TestCase
             ->withArgs(fn ($message) => str_contains($message, 'Escrow vencido sin resolver'));
     }
 
-    public function test_escrow_reconciliation_silent_when_nothing_stale(): void
+    public function test_escrow_reconciliation_silent_when_nothing_stale() : void
     {
         Log::spy();
 
@@ -78,7 +63,7 @@ class ReconciliationCommandsTest extends TestCase
         Log::shouldNotHaveReceived('warning');
     }
 
-    public function test_marketplace_reconciliation_detects_sold_listing_without_completed_order(): void
+    public function test_marketplace_reconciliation_detects_sold_listing_without_completed_order() : void
     {
         Log::spy();
 
@@ -101,7 +86,7 @@ class ReconciliationCommandsTest extends TestCase
             ->withArgs(fn ($message) => str_contains($message, 'Listings SOLD sin Order COMPLETED'));
     }
 
-    public function test_marketplace_reconciliation_silent_when_consistent(): void
+    public function test_marketplace_reconciliation_silent_when_consistent() : void
     {
         Log::spy();
 
@@ -120,5 +105,20 @@ class ReconciliationCommandsTest extends TestCase
         $this->artisan('marketplace:reconcile')->assertExitCode(0);
 
         Log::shouldNotHaveReceived('warning');
+    }
+
+    private function makeAsset(User $owner) : PlayerAsset
+    {
+        $definition = AssetDefinition::create([
+            'code' => 'TEST_RECON_' . uniqid(), 'name' => 'x',
+            'category' => AssetDefinition::CATEGORY_EQUIPMENT, 'stackable' => false,
+            'tradable' => true, 'transferable' => true, 'consumable' => false,
+            'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
+        ]);
+
+        return PlayerAsset::create([
+            'asset_definition_id' => $definition->id, 'owner_id' => $owner->id,
+            'quantity' => 1, 'status' => PlayerAsset::STATUS_AVAILABLE, 'acquired_via' => 'ADMIN_GRANT',
+        ]);
     }
 }

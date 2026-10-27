@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'pago_movil_venezuela'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('pago_movil_venezuela');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'pago_movil_venezuela'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('pago_movil_venezuela', function (Blueprint $table) {
+        Schema::create('pago_movil_venezuela', function(Blueprint $table) {
             // ID seguro tipo Snowflake para consistencia con el resto de tablas
             $table->snowflake('id')->primary()->comment('ID único del registro de pago móvil');
 
@@ -56,13 +64,5 @@ return new class extends Migration
             // Índices compuestos opcionales si se consultan frecuentemente por usuario + banco
             $table->index(['user_id', 'bank_id'], 'idx_user_bank');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'pago_movil_venezuela'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('pago_movil_venezuela');
     }
 };

@@ -17,13 +17,15 @@ use Illuminate\Http\Request;
  */
 final class UserPermissionController extends Controller
 {
-    public function __construct(private readonly UserPermissionService $service) {}
+    public function __construct(private readonly UserPermissionService $service)
+    {
+    }
 
     /**
      * Permisos actuales del usuario (heredados por rol + específicos) y
      * catálogo completo de permisos disponibles.
      */
-    public function index(User $user): JsonResponse
+    public function index(User $user) : JsonResponse
     {
         $this->authorize('managePermissions', $user);
 
@@ -36,15 +38,15 @@ final class UserPermissionController extends Controller
      * permanente), por eso 'permissions' es un array de {name, expires_at}
      * en vez de strings planos.
      */
-    public function update(Request $request, User $user): JsonResponse
+    public function update(Request $request, User $user) : JsonResponse
     {
         $this->authorize('managePermissions', $user);
 
         $request->validate([
-            'permissions'               => 'present|array',
-            'permissions.*.name'        => 'required|string',
-            'permissions.*.expires_at'  => 'nullable|date|after:now',
-            'reason'                    => 'nullable|string|max:255',
+            'permissions' => 'present|array',
+            'permissions.*.name' => 'required|string',
+            'permissions.*.expires_at' => 'nullable|date|after:now',
+            'reason' => 'nullable|string|max:255',
         ]);
 
         $this->service->syncSpecificPermissions($user, $request->input('permissions'), $request->input('reason'));

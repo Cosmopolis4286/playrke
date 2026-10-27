@@ -7,6 +7,7 @@ use App\Http\Requests\Games\Common\PrizePoolTypeRequest;
 use App\Services\Games\Common\PrizePool\PrizePoolTypeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 /**
  * Administración del catálogo de tipos de bote (PrizePoolType), específico
@@ -17,9 +18,24 @@ final class PrizePoolTypeController extends Controller
 {
     public function __construct(
         private readonly PrizePoolTypeService $service,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(Request $request): JsonResponse
+    public function delete(string $id) : JsonResponse
+    {
+        try {
+            $this->service->delete($id);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tipo de bote eliminado exitosamente',
+        ]);
+    }
+
+    public function fetchList(Request $request) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -27,7 +43,7 @@ final class PrizePoolTypeController extends Controller
         ]);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(string $id) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -35,11 +51,11 @@ final class PrizePoolTypeController extends Controller
         ]);
     }
 
-    public function store(PrizePoolTypeRequest $request): JsonResponse
+    public function store(PrizePoolTypeRequest $request) : JsonResponse
     {
         try {
             $prizePoolType = $this->service->create($request->validated());
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
@@ -50,22 +66,7 @@ final class PrizePoolTypeController extends Controller
         ]);
     }
 
-    public function update(PrizePoolTypeRequest $request, string $id): JsonResponse
-    {
-        try {
-            $prizePoolType = $this->service->update($id, $request->validated());
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tipo de bote actualizado exitosamente',
-            'data' => $prizePoolType,
-        ]);
-    }
-
-    public function toggleStatus(string $id): JsonResponse
+    public function toggleStatus(string $id) : JsonResponse
     {
         $prizePoolType = $this->service->toggleStatus($id);
 
@@ -76,17 +77,18 @@ final class PrizePoolTypeController extends Controller
         ]);
     }
 
-    public function delete(string $id): JsonResponse
+    public function update(PrizePoolTypeRequest $request, string $id) : JsonResponse
     {
         try {
-            $this->service->delete($id);
-        } catch (\InvalidArgumentException $e) {
+            $prizePoolType = $this->service->update($id, $request->validated());
+        } catch (InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Tipo de bote eliminado exitosamente',
+            'message' => 'Tipo de bote actualizado exitosamente',
+            'data' => $prizePoolType,
         ]);
     }
 }

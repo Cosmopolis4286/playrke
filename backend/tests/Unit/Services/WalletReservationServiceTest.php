@@ -20,54 +20,30 @@ class WalletReservationServiceTest extends TestCase
 
     private WalletReservationService $service;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
         $this->service = app(WalletReservationService::class);
 
-        (new MovementTypeSeeder())->run();
+        (new MovementTypeSeeder)->run();
         MovementType::forgetCatalogCache();
     }
 
-    private function makeWallet(float $balance = 100.0): Wallet
-    {
-        $user     = User::factory()->create();
-        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
-
-        return Wallet::create([
-            'user_id'       => $user->id,
-            'currency_id'   => $currency->id,
-            'balance'       => $balance,
-            'bonus_balance' => 0,
-            'status'        => 'ACTIVE',
-        ]);
-    }
-
-    public function test_hold_creates_active_reservation_and_does_not_touch_balance(): void
+    public function test_capture_amount_exceeding_hold_throws() : void
     {
         $wallet = $this->makeWallet(100.0);
-
-        $hold = $this->service->hold($wallet, 40.0, description: 'test hold');
-
-        $this->assertSame(WalletHold::STATUS_HELD, $hold->status);
-        $this->assertSame(40.0, (float) $hold->amount);
-        $this->assertSame(100.0, (float) $wallet->fresh()->balance);
-    }
-
-    public function test_hold_throws_when_available_balance_insufficient(): void
-    {
-        $wallet = $this->makeWallet(30.0);
+        $hold = $this->service->hold($wallet, 40.0);
 
         $this->expectException(WalletDomainException::class);
 
-        $this->service->hold($wallet, 40.0);
+        $this->service->capture($hold, WalletMovement::TYPE_TRIVIA_ENTRY, amount: 41.0);
     }
 
-    public function test_capture_debits_wallet_and_marks_hold_captured(): void
+    public function test_capture_debits_wallet_and_marks_hold_captured() : void
     {
         $wallet = $this->makeWallet(100.0);
-        $hold   = $this->service->hold($wallet, 40.0);
+        $hold = $this->service->hold($wallet, 40.0);
 
         $movement = $this->service->capture($hold, WalletMovement::TYPE_TRIVIA_ENTRY);
 
@@ -81,10 +57,10 @@ class WalletReservationServiceTest extends TestCase
 
     // ── Bug de carrera: capture()/release() sin lock sobre el propio hold ──
 
-    public function test_capturing_an_already_captured_hold_throws_and_does_not_double_debit(): void
+    public function test_capturing_an_already_captured_hold_throws_and_does_not_double_debit() : void
     {
         $wallet = $this->makeWallet(100.0);
-        $hold   = $this->service->hold($wallet, 40.0);
+        $hold = $this->service->hold($wallet, 40.0);
 
         $this->service->capture($hold, WalletMovement::TYPE_TRIVIA_ENTRY);
 
@@ -100,10 +76,30 @@ class WalletReservationServiceTest extends TestCase
         }
     }
 
-    public function test_release_marks_hold_released_without_movement(): void
+    public function test_hold_creates_active_reservation_and_does_not_touch_balance() : void
     {
         $wallet = $this->makeWallet(100.0);
-        $hold   = $this->service->hold($wallet, 40.0);
+
+        $hold = $this->service->hold($wallet, 40.0, description: 'test hold');
+
+        $this->assertSame(WalletHold::STATUS_HELD, $hold->status);
+        $this->assertSame(40.0, (float) $hold->amount);
+        $this->assertSame(100.0, (float) $wallet->fresh()->balance);
+    }
+
+    public function test_hold_throws_when_available_balance_insufficient() : void
+    {
+        $wallet = $this->makeWallet(30.0);
+
+        $this->expectException(WalletDomainException::class);
+
+        $this->service->hold($wallet, 40.0);
+    }
+
+    public function test_release_marks_hold_released_without_movement() : void
+    {
+        $wallet = $this->makeWallet(100.0);
+        $hold = $this->service->hold($wallet, 40.0);
 
         $released = $this->service->release($hold);
 
@@ -111,10 +107,10 @@ class WalletReservationServiceTest extends TestCase
         $this->assertSame(100.0, (float) $wallet->fresh()->balance);
     }
 
-    public function test_releasing_an_already_released_hold_throws(): void
+    public function test_releasing_an_already_released_hold_throws() : void
     {
         $wallet = $this->makeWallet(100.0);
-        $hold   = $this->service->hold($wallet, 40.0);
+        $hold = $this->service->hold($wallet, 40.0);
 
         $this->service->release($hold);
 
@@ -123,13 +119,17 @@ class WalletReservationServiceTest extends TestCase
         $this->service->release($hold->fresh());
     }
 
-    public function test_capture_amount_exceeding_hold_throws(): void
+    private function makeWallet(float $balance = 100.0) : Wallet
     {
-        $wallet = $this->makeWallet(100.0);
-        $hold   = $this->service->hold($wallet, 40.0);
+        $user = User::factory()->create();
+        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
 
-        $this->expectException(WalletDomainException::class);
-
-        $this->service->capture($hold, WalletMovement::TYPE_TRIVIA_ENTRY, amount: 41.0);
+        return Wallet::create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'balance' => $balance,
+            'bonus_balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
     }
 }

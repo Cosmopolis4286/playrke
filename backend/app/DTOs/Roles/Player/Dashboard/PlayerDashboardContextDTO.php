@@ -25,20 +25,21 @@ final class PlayerDashboardContextDTO implements ContextDTO
         public readonly bool $showCrossGameBridge = false,
         /** Salas no terminadas donde tiene cartones (en juego primero) */
         public readonly array $upcomingGames = [],
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'           => $this->userName,
-            'stats'              => $this->stats,
-            'recentActivity'     => $this->recentActivity,
-            'prizesWon'          => $this->prizesWon,
-            'triviaActivity'     => $this->triviaActivity,
-            'kycStatus'          => $this->kycStatus,
-            'period'             => $this->period,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
+            'recentActivity' => $this->recentActivity,
+            'prizesWon' => $this->prizesWon,
+            'triviaActivity' => $this->triviaActivity,
+            'kycStatus' => $this->kycStatus,
+            'period' => $this->period,
             'showCrossGameBridge' => $this->showCrossGameBridge,
-            'upcomingGames'      => $this->upcomingGames,
+            'upcomingGames' => $this->upcomingGames,
         ];
     }
 }

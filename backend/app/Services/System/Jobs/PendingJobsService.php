@@ -4,6 +4,7 @@ namespace App\Services\System\Jobs;
 
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
+use Throwable;
 
 /**
  * Jobs pendientes (no fallidos) en las colas Redis del proyecto — distingue
@@ -23,40 +24,25 @@ final class PendingJobsService
     private const KNOWN_QUEUES = ['default', 'bingo-draw', 'bingo-refunds'];
 
     /**
-     * @return array<int, array{queue: string, pending: int}>
-     */
-    public function summary(): array
-    {
-        if (config('queue.default') !== 'redis') {
-            return array_map(fn (string $queue) => ['queue' => $queue, 'pending' => 0], self::KNOWN_QUEUES);
-        }
-
-        return array_map(
-            fn (string $queue) => ['queue' => $queue, 'pending' => $this->sizeOf($queue)],
-            self::KNOWN_QUEUES
-        );
-    }
-
-    /**
      * @return array<int, array{job_name: string, attempts: int, available_at: string}>
      */
-    public function list(string $queue, int $limit = 50): array
+    public function list(string $queue, int $limit = 50) : array
     {
         if (config('queue.default') !== 'redis') {
             return [];
         }
 
         $connectionName = config('queue.connections.redis.connection', 'default');
-        $prefix         = config('database.redis.options.prefix', '');
-        $key            = "{$prefix}queues:{$queue}";
+        $prefix = config('database.redis.options.prefix', '');
+        $key = "{$prefix}queues:{$queue}";
 
         return collect(Redis::connection($connectionName)->lrange($key, 0, $limit - 1))
-            ->map(function (string $raw) {
+            ->map(function(string $raw) {
                 $decoded = json_decode($raw, true);
 
                 return [
-                    'job_name'     => $decoded['displayName'] ?? $decoded['job'] ?? 'Job desconocido',
-                    'attempts'     => $decoded['attempts'] ?? 0,
+                    'job_name' => $decoded['displayName'] ?? $decoded['job'] ?? 'Job desconocido',
+                    'attempts' => $decoded['attempts'] ?? 0,
                     'available_at' => isset($decoded['data']['delay']) ? (string) $decoded['data']['delay'] : '—',
                 ];
             })
@@ -64,15 +50,30 @@ final class PendingJobsService
     }
 
     /**
+     * @return array<int, array{queue: string, pending: int}>
+     */
+    public function summary() : array
+    {
+        if (config('queue.default') !== 'redis') {
+            return array_map(fn (string $queue) => ['queue' => $queue, 'pending' => 0], self::KNOWN_QUEUES);
+        }
+
+        return array_map(
+            fn (string $queue) => ['queue' => $queue, 'pending' => $this->sizeOf($queue)],
+            self::KNOWN_QUEUES,
+        );
+    }
+
+    /**
      * size() del driver Redis suma pendientes + delayed + reserved en un
      * único script Lua atómico (Illuminate\Queue\RedisQueue::size()) — más
      * fiable que un LLEN manual, que solo contaría la lista "ready".
      */
-    private function sizeOf(string $queue): int
+    private function sizeOf(string $queue) : int
     {
         try {
             return (int) Queue::connection('redis')->size($queue);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return 0;
         }
     }

@@ -13,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Evento de dominio: Pregunta Enviada.
- * 
+ *
  * Se emite cuando una nueva pregunta está disponible para los jugadores.
  * Incluye temporizador para sincronización de tiempo de respuesta.
  */
@@ -24,25 +24,26 @@ class QuestionSent implements ShouldBroadcastNow
     public function __construct(
         public readonly QuestionDTO $question,
         public readonly string $gameId,
-        public readonly int $serverTimestamp
-    ) {}
+        public readonly int $serverTimestamp,
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'trivia.question.sent';
+    }
+
+    public function broadcastOn() : array
     {
         return [
             new Channel('trivia.game.' . $this->gameId),
         ];
     }
 
-    public function broadcastAs(): string
-    {
-        return 'trivia.question.sent';
-    }
-
     /**
      * Datos enviados a clientes (sin respuesta correcta).
      */
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'game_id' => $this->gameId,

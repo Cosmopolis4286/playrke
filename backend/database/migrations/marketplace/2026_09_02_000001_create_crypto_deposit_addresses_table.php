@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Dirección de depósito derivada asignada a un usuario. Ver
  * MARKETPLACE_ARCHITECTURE_AUDIT.md secciones 10-11 y 21: la aplicación NUNCA
  * calcula `address` a partir de una master key — derivation_index/address
@@ -18,9 +18,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('crypto_deposit_addresses', function (Blueprint $table) {
+        Schema::dropIfExists('crypto_deposit_addresses');
+    }
+
+    public function up() : void
+    {
+        Schema::create('crypto_deposit_addresses', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('user_id')
@@ -47,10 +52,5 @@ return new class extends Migration
             $table->unique(['user_id', 'currency_id', 'network'], 'uniq_deposit_address_user_currency_network');
             $table->index('status');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('crypto_deposit_addresses');
     }
 };

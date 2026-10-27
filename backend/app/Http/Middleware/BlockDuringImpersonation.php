@@ -16,9 +16,10 @@ class BlockDuringImpersonation
 {
     public function __construct(
         private readonly ImpersonationService $impersonationService,
-    ) {}
+    ) {
+    }
 
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next) : Response
     {
         if ($this->impersonationService->isImpersonating($request)) {
             return response()->json([

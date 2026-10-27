@@ -4,15 +4,15 @@ namespace App\Providers;
 
 use App\Domains\Games\Bingo\Contracts\Card\CardLot\BingoCardLotRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Card\CardPrice\BingoCardPriceRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
 use App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Room\BingoRoomAutomaticRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Room\Config\BingoRoomConfigRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Room\User\BingoRoomUserRepositoryInterface;
-use App\Domains\Games\Bingo\Contracts\Round\BingoRoundRepositoryInterface;
-use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
 use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
 use App\Domains\Games\Bingo\Contracts\RoomUserRegistrationInterface;
+use App\Domains\Games\Bingo\Contracts\Round\BingoRoundRepositoryInterface;
 use App\Domains\Games\Bingo\Repositories\Card\CardLot\BingoCardLotRepository;
 use App\Domains\Games\Bingo\Repositories\Card\CardPrice\BingoCardPriceRepository;
 use App\Domains\Games\Bingo\Repositories\Pattern\BingoPatternRepository;
@@ -47,9 +47,22 @@ use Illuminate\Support\ServiceProvider;
 class BingoServiceProvider extends ServiceProvider
 {
     /**
+     * Bootstrap services.
+     */
+    public function boot() : void
+    {
+        // database/migrations/bingo/ no se escanea automáticamente por
+        // artisan migrate/migrate:fresh (Laravel solo mira database/migrations/
+        // en la raíz) — sin este registro, un entorno nuevo (o la BD de test,
+        // que se reconstruye con migrate:fresh en cada corrida de RefreshDatabase)
+        // nunca crea las tablas bingo_* aunque el código las use.
+        $this->loadMigrationsFrom(database_path('migrations/bingo'));
+    }
+
+    /**
      * Register services.
      */
-    public function register(): void
+    public function register() : void
     {
         $this->app->singleton(BingoCardLotRepositoryInterface::class, BingoCardLotRepository::class);
         $this->app->singleton(BingoCardPriceRepositoryInterface::class, BingoCardPriceRepository::class);
@@ -66,18 +79,5 @@ class BingoServiceProvider extends ServiceProvider
 
         // Detalle de ganancias de Bingo en la vista admin de WinEvent.
         $this->app->tag([BingoWinEventDetailResolver::class], WinEventDetailResolver::TAG);
-    }
-
-    /**
-     * Bootstrap services.
-     */
-    public function boot(): void
-    {
-        // database/migrations/bingo/ no se escanea automáticamente por
-        // artisan migrate/migrate:fresh (Laravel solo mira database/migrations/
-        // en la raíz) — sin este registro, un entorno nuevo (o la BD de test,
-        // que se reconstruye con migrate:fresh en cada corrida de RefreshDatabase)
-        // nunca crea las tablas bingo_* aunque el código las use.
-        $this->loadMigrationsFrom(database_path('migrations/bingo'));
     }
 }

@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Escrow: contenedor único de la transacción P2P completa (dinero + activo).
  * 1:1 con marketplace_orders — un order tiene a lo sumo un escrow activo.
  *
@@ -19,9 +19,28 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('escrows', function (Blueprint $table) {
+        Schema::table('marketplace_orders', function(Blueprint $table) {
+            $table->dropForeign(['escrow_id']);
+        });
+
+        Schema::table('player_assets', function(Blueprint $table) {
+            $table->dropForeign(['locked_by_escrow_id']);
+        });
+
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE escrows DROP CHECK chk_escrows_amount_positive');
+            DB::statement('ALTER TABLE escrows DROP CHECK chk_escrows_fee_nonneg');
+            DB::statement('ALTER TABLE escrows DROP CHECK chk_escrows_seller_amount_nonneg');
+        }
+
+        Schema::dropIfExists('escrows');
+    }
+
+    public function up() : void
+    {
+        Schema::create('escrows', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('order_id')
@@ -89,35 +108,16 @@ return new class extends Migration
         // FK física diferida de player_assets.locked_by_escrow_id (creada
         // como columna simple en 2026_08_31_000002 porque escrows no existía
         // todavía) — mismo patrón que wallet_holds.game_session_id.
-        Schema::table('player_assets', function (Blueprint $table) {
+        Schema::table('player_assets', function(Blueprint $table) {
             $table->foreign('locked_by_escrow_id')
                 ->references('id')->on('escrows')
                 ->nullOnDelete();
         });
 
-        Schema::table('marketplace_orders', function (Blueprint $table) {
+        Schema::table('marketplace_orders', function(Blueprint $table) {
             $table->foreign('escrow_id')
                 ->references('id')->on('escrows')
                 ->nullOnDelete();
         });
-    }
-
-    public function down(): void
-    {
-        Schema::table('marketplace_orders', function (Blueprint $table) {
-            $table->dropForeign(['escrow_id']);
-        });
-
-        Schema::table('player_assets', function (Blueprint $table) {
-            $table->dropForeign(['locked_by_escrow_id']);
-        });
-
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE escrows DROP CHECK chk_escrows_amount_positive');
-            DB::statement('ALTER TABLE escrows DROP CHECK chk_escrows_fee_nonneg');
-            DB::statement('ALTER TABLE escrows DROP CHECK chk_escrows_seller_amount_nonneg');
-        }
-
-        Schema::dropIfExists('escrows');
     }
 };

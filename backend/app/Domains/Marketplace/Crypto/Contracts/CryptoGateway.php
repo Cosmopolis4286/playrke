@@ -24,27 +24,27 @@ namespace App\Domains\Marketplace\Crypto\Contracts;
 interface CryptoGateway
 {
     /**
+     * Solicita al Signer que firme y transmita un retiro ya aprobado.
+     * Devuelve el tx_hash de la transacción transmitida.
+     */
+    public function broadcastWithdrawal(string $toAddress, float $amount) : string;
+
+    /**
      * Deriva (o pide al Signer que derive) la siguiente dirección de
      * depósito para un usuario. Devuelve el índice de derivación usado y la
      * dirección pública — nunca ninguna clave.
      *
      * @return array{derivation_index: int, address: string}
      */
-    public function deriveAddress(string $userId): array;
-
-    /**
-     * Solicita al Signer que firme y transmita un retiro ya aprobado.
-     * Devuelve el tx_hash de la transacción transmitida.
-     */
-    public function broadcastWithdrawal(string $toAddress, float $amount): string;
+    public function deriveAddress(string $userId) : array;
 
     /**
      * Confirmaciones actuales de una transacción ya transmitida.
      */
-    public function getConfirmations(string $txHash): int;
+    public function getConfirmations(string $txHash) : int;
 
     /**
      * Identificador de red que expone este gateway (ej. "TRON").
      */
-    public function network(): string;
+    public function network() : string;
 }

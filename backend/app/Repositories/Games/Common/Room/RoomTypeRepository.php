@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Games\Common\Room;
 
+use App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface;
 use App\Models\Games\Common\Room\RoomType;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
@@ -29,39 +29,72 @@ class RoomTypeRepository extends BaseRepository implements RoomTypeRepositoryInt
     /**
      * {@inheritDoc}
      */
-    public function getActiveTypes(): Collection
+    public function activateType(string $typeId) : bool
     {
-        return $this->getByStatus('ACTIVE');
+        return $this->updateStatus($typeId, 'ACTIVE');
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getInactiveTypes(): Collection
+    public function bulkUpdateStatus(array $typeIds, string $status) : int
     {
-        return $this->getByStatus('INACTIVE');
+        return $this->model->whereIn('id', $typeIds)
+            ->update(['status' => $status]);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getByLabel(string $label): ?RoomType
+    public function createBulkTypes(array $labels, string $status = 'ACTIVE') : Collection
     {
-        return $this->model->where('label', $label)->first();
+        $types = collect();
+
+        foreach ($labels as $label) {
+            $normalizedLabel = $this->normalizeLabel($label);
+
+            // Verificar si ya existe antes de crear
+            if (! $this->existsByLabel($normalizedLabel)) {
+                $type = $this->createType(Str::upper(Str::slug($normalizedLabel, '_')), $normalizedLabel, $status);
+                $types->push($type);
+            }
+        }
+
+        return $types;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function searchByLabel(string $searchTerm): Collection
+    public function createType(string $code, string $label, string $status = 'ACTIVE') : RoomType
     {
-        return $this->model->where('label', 'LIKE', "%{$searchTerm}%")->get();
+        return $this->model->create([
+            'code' => $code,
+            'label' => $this->normalizeLabel($label),
+            'status' => $status,
+        ]);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function existsByLabel(string $label, ?string $excludeId = null): bool
+    public function deactivateType(string $typeId) : bool
+    {
+        return $this->updateStatus($typeId, 'INACTIVE');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function deleteType(string $typeId) : bool
+    {
+        return $this->model->where('id', $typeId)->delete() > 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function existsByLabel(string $label, ?string $excludeId = null) : bool
     {
         $query = $this->model->where('label', $label);
 
@@ -75,70 +108,81 @@ class RoomTypeRepository extends BaseRepository implements RoomTypeRepositoryInt
     /**
      * {@inheritDoc}
      */
-    public function createType(string $code, string $label, string $status = 'ACTIVE'): RoomType
+    public function getActiveTypes() : Collection
     {
-        return $this->model->create([
-            'code' => $code,
-            'label' => $this->normalizeLabel($label),
-            'status' => $status
-        ]);
+        return $this->getByStatus('ACTIVE');
     }
 
     /**
      * {@inheritDoc}
      */
-    public function updateLabel(string $typeId, string $label): bool
+    public function getByLabel(string $label) : ?RoomType
     {
-        return $this->model->where('id', $typeId)
-            ->update(['label' => $this->normalizeLabel($label)]) > 0;
+        return $this->model->where('label', $label)->first();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function updateStatus(string $typeId, string $status): bool
+    public function getForSelect(bool $activeOnly = true) : array
     {
-        return $this->model->where('id', $typeId)
-            ->update(['status' => $status]) > 0;
+        $query = $this->model->orderBy('label');
+
+        if ($activeOnly) {
+            $query->where('status', 'ACTIVE');
+        }
+
+        return $query->pluck('label', 'id')->toArray();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function activateType(string $typeId): bool
+    public function getInactiveTypes() : Collection
     {
-        return $this->updateStatus($typeId, 'ACTIVE');
+        return $this->getByStatus('INACTIVE');
     }
 
     /**
      * {@inheritDoc}
      */
-    public function deactivateType(string $typeId): bool
+    public function getLabelSuggestions(string $partialText, int $limit = 5) : Collection
     {
-        return $this->updateStatus($typeId, 'INACTIVE');
+        return $this->model->where('label', 'LIKE', "%{$partialText}%")
+            ->where('status', 'ACTIVE')
+            ->orderBy('label')
+            ->limit($limit)
+            ->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function deleteType(string $typeId): bool
+    public function getOrderedByLabel(bool $activeOnly = false) : Collection
     {
-        return $this->model->where('id', $typeId)->delete() > 0;
+        $query = $this->model->orderBy('label');
+
+        if ($activeOnly) {
+            $query->where('status', 'ACTIVE');
+        }
+
+        return $query->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function bulkUpdateStatus(array $typeIds, string $status): int
+    public function getRecentTypes(int $days = 30) : Collection
     {
-        return $this->model->whereIn('id', $typeIds)
-            ->update(['status' => $status]);
+        return $this->model->where('created_at', '>=', now()->subDays($days))
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getTypeStatistics(): array
+    public function getTypeStatistics() : array
     {
         $total = $this->model->count();
         $active = $this->model->where('status', 'ACTIVE')->count();
@@ -155,65 +199,7 @@ class RoomTypeRepository extends BaseRepository implements RoomTypeRepositoryInt
     /**
      * {@inheritDoc}
      */
-    public function getRecentTypes(int $days = 30): Collection
-    {
-        return $this->model->where('created_at', '>=', now()->subDays($days))
-            ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getOrderedByLabel(bool $activeOnly = false): Collection
-    {
-        $query = $this->model->orderBy('label');
-
-        if ($activeOnly) {
-            $query->where('status', 'ACTIVE');
-        }
-
-        return $query->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function createBulkTypes(array $labels, string $status = 'ACTIVE'): Collection
-    {
-        $types = collect();
-
-        foreach ($labels as $label) {
-            $normalizedLabel = $this->normalizeLabel($label);
-
-            // Verificar si ya existe antes de crear
-            if (!$this->existsByLabel($normalizedLabel)) {
-                $type = $this->createType(Str::upper(Str::slug($normalizedLabel, '_')), $normalizedLabel, $status);
-                $types->push($type);
-            }
-        }
-
-        return $types;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getForSelect(bool $activeOnly = true): array
-    {
-        $query = $this->model->orderBy('label');
-
-        if ($activeOnly) {
-            $query->where('status', 'ACTIVE');
-        }
-
-        return $query->pluck('label', 'id')->toArray();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function isValidLabel(string $label): bool
+    public function isValidLabel(string $label) : bool
     {
         $normalized = $this->normalizeLabel($label);
 
@@ -223,17 +209,13 @@ class RoomTypeRepository extends BaseRepository implements RoomTypeRepositoryInt
         }
 
         // Verificar caracteres válidos (letras, números, espacios, guiones)
-        if (!preg_match('/^[\p{L}\p{N}\s\-_]+$/u', $normalized)) {
-            return false;
-        }
-
-        return true;
+        return ! (! preg_match('/^[\p{L}\p{N}\s\-_]+$/u', $normalized));
     }
 
     /**
      * {@inheritDoc}
      */
-    public function normalizeLabel(string $label): string
+    public function normalizeLabel(string $label) : string
     {
         // Limpiar espacios extra
         $normalized = trim($label);
@@ -250,12 +232,26 @@ class RoomTypeRepository extends BaseRepository implements RoomTypeRepositoryInt
     /**
      * {@inheritDoc}
      */
-    public function getLabelSuggestions(string $partialText, int $limit = 5): Collection
+    public function searchByLabel(string $searchTerm) : Collection
     {
-        return $this->model->where('label', 'LIKE', "%{$partialText}%")
-            ->where('status', 'ACTIVE')
-            ->orderBy('label')
-            ->limit($limit)
-            ->get();
+        return $this->model->where('label', 'LIKE', "%{$searchTerm}%")->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function updateLabel(string $typeId, string $label) : bool
+    {
+        return $this->model->where('id', $typeId)
+            ->update(['label' => $this->normalizeLabel($label)]) > 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function updateStatus(string $typeId, string $status) : bool
+    {
+        return $this->model->where('id', $typeId)
+            ->update(['status' => $status]) > 0;
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Roles\Seller;
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Seller;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,25 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Country extends Model
 {
-    use SnowflakeId, HasFactory;
-
-    // ========================
-    // Configuración de la tabla
-    // ========================
-    protected $table = 'countries';
-    protected $primaryKey = 'id';
+    use HasFactory, SnowflakeId;
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    // ========================
-    // Campos asignables
-    // ========================
-    protected $fillable = [
-        'name',
-        'iso_code_2',
-        'iso_code_3',
-        'status',
-    ];
 
     // ========================
     // Casting de tipos
@@ -54,23 +37,36 @@ class Country extends Model
     ];
 
     // ========================
-    // Relaciones
+    // Campos asignables
     // ========================
+    protected $fillable = [
+        'name',
+        'iso_code_2',
+        'iso_code_3',
+        'status',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    /**
-     * Relación: un país tiene muchos vendedores
-     */
-    public function sellers(): HasMany
-    {
-        return $this->hasMany(Seller::class, 'country_id');
-    }
+    // ========================
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'countries';
 
     /**
      * Relación: un país tiene muchos jugadores externos
      */
-    public function externalPlayers(): HasMany
+    public function externalPlayers() : HasMany
     {
         return $this->hasMany(ExternalPlayer::class, 'country_id');
+    }
+
+    /**
+     * Obtener nombre para mostrar con códigos ISO
+     */
+    public function getDisplayNameAttribute() : string
+    {
+        return "{$this->name} ({$this->iso_code_2})";
     }
 
     // ========================
@@ -80,33 +76,25 @@ class Country extends Model
     /**
      * Verificar si el país está activo
      */
-    public function getIsActiveAttribute(): bool
+    public function getIsActiveAttribute() : bool
     {
         return $this->status === 'ACTIVE';
     }
 
     /**
-     * Verificar si el país está inactivo
-     */
-    public function getIsInactiveAttribute(): bool
-    {
-        return $this->status === 'INACTIVE';
-    }
-
-    /**
      * Verificar si el país está bloqueado
      */
-    public function getIsBlockedAttribute(): bool
+    public function getIsBlockedAttribute() : bool
     {
         return $this->status === 'BLOCKED';
     }
 
     /**
-     * Obtener nombre para mostrar con códigos ISO
+     * Verificar si el país está inactivo
      */
-    public function getDisplayNameAttribute(): string
+    public function getIsInactiveAttribute() : bool
     {
-        return "{$this->name} ({$this->iso_code_2})";
+        return $this->status === 'INACTIVE';
     }
 
     // ========================
@@ -122,14 +110,6 @@ class Country extends Model
     }
 
     /**
-     * Scope para países inactivos
-     */
-    public function scopeInactive($query)
-    {
-        return $query->where('status', 'INACTIVE');
-    }
-
-    /**
      * Scope para países bloqueados
      */
     public function scopeBlocked($query)
@@ -138,11 +118,14 @@ class Country extends Model
     }
 
     /**
-     * Scope para ordenar por nombre
+     * Scope para buscar por código ISO
      */
-    public function scopeOrderedByName($query)
+    public function scopeByIsoCode($query, string $isoCode)
     {
-        return $query->orderBy('name');
+        $isoCode = strtoupper($isoCode);
+
+        return $query->where('iso_code_2', $isoCode)
+            ->orWhere('iso_code_3', $isoCode);
     }
 
     /**
@@ -154,13 +137,27 @@ class Country extends Model
     }
 
     /**
-     * Scope para buscar por código ISO
+     * Scope para países inactivos
      */
-    public function scopeByIsoCode($query, string $isoCode)
+    public function scopeInactive($query)
     {
-        $isoCode = strtoupper($isoCode);
-        return $query->where('iso_code_2', $isoCode)
-                    ->orWhere('iso_code_3', $isoCode);
+        return $query->where('status', 'INACTIVE');
+    }
+
+    /**
+     * Scope para ordenar por nombre
+     */
+    public function scopeOrderedByName($query)
+    {
+        return $query->orderBy('name');
+    }
+
+    /**
+     * Scope para países con jugadores externos
+     */
+    public function scopeWithExternalPlayers($query)
+    {
+        return $query->whereHas('externalPlayers');
     }
 
     /**
@@ -171,11 +168,15 @@ class Country extends Model
         return $query->whereHas('sellers');
     }
 
+    // ========================
+    // Relaciones
+    // ========================
+
     /**
-     * Scope para países con jugadores externos
+     * Relación: un país tiene muchos vendedores
      */
-    public function scopeWithExternalPlayers($query)
+    public function sellers() : HasMany
     {
-        return $query->whereHas('externalPlayers');
+        return $this->hasMany(Seller::class, 'country_id');
     }
 }

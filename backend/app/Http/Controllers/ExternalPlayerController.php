@@ -6,24 +6,26 @@ use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Models\Game;
 use App\Models\Roles\Player\External\ExternalPlayerParticipation;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Vinkla\Hashids\Facades\Hashids;
 
 class ExternalPlayerController extends Controller
 {
-    public function __construct(
-        private readonly ExternalPlayerRepositoryInterface $externalPlayerRepository,
-        private readonly \App\Services\Roles\Player\External\ExternalPlayerLinkService $externalPlayerLink,
-    ) {}
-
     /**
      * Decodificar un ID hasheado usando la misma configuración del trait
      */
-    public static function decodeHashedId(string $hashedId): ?int
+    public static function decodeHashedId(string $hashedId) : ?int
     {
         $decodedIds = Hashids::connection('main')->decode($hashedId);
+
         return empty($decodedIds) ? null : $decodedIds[0];
+    }
+
+    public function __construct(
+        private readonly ExternalPlayerRepositoryInterface $externalPlayerRepository,
+        private readonly \App\Services\Roles\Player\External\ExternalPlayerLinkService $externalPlayerLink,
+    ) {
     }
 
     /**
@@ -32,7 +34,7 @@ class ExternalPlayerController extends Controller
      * BingoCardGenerateFormPlayerSection.vue) para reconocer a un comprador
      * recurrente antes de crear un nuevo registro.
      */
-    public function check(Request $request): JsonResponse
+    public function check(Request $request) : JsonResponse
     {
         $validated = $request->validate([
             'phone' => 'required|string|max:20',
@@ -50,8 +52,8 @@ class ExternalPlayerController extends Controller
         if ($roomId === null) {
             return response()->json([
                 'success' => false,
-                'exists'  => false,
-                'player'  => null,
+                'exists' => false,
+                'player' => null,
                 'message' => 'ID de sala inválido',
             ]);
         }
@@ -68,11 +70,11 @@ class ExternalPlayerController extends Controller
             $this->externalPlayerLink->actorNetworkUserIds($request->user()?->getKey()),
         );
 
-        if (!$externalPlayer) {
+        if (! $externalPlayer) {
             return response()->json([
                 'success' => true,
-                'exists'  => false,
-                'player'  => null,
+                'exists' => false,
+                'player' => null,
                 'message' => 'Jugador no encontrado',
             ]);
         }
@@ -86,13 +88,13 @@ class ExternalPlayerController extends Controller
 
         return response()->json([
             'success' => true,
-            'exists'  => true,
-            'player'  => [
+            'exists' => true,
+            'player' => [
                 'first_name' => $externalPlayer->first_name,
-                'last_name'  => $externalPlayer->last_name,
-                'phone'      => $externalPlayer->phone,
+                'last_name' => $externalPlayer->last_name,
+                'phone' => $externalPlayer->phone,
                 'card_count' => $cardCount,
-                'link'       => route('external-players.game', ['link' => $externalPlayer->link]),
+                'link' => route('external-players.game', ['link' => $externalPlayer->link]),
             ],
             'message' => 'Jugador encontrado',
         ]);

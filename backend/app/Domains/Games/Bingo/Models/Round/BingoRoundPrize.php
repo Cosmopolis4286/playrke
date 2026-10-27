@@ -13,7 +13,13 @@ class BingoRoundPrize extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_round_prizes';
+    protected $casts = [
+        'bingo_round_id' => 'string',
+        'room_id' => 'string',
+        'currency_id' => 'string',
+        'prize_id' => 'string',
+        'prize_value' => 'decimal:6',
+    ];
 
     protected $fillable = [
         'bingo_round_id',
@@ -24,31 +30,25 @@ class BingoRoundPrize extends Model
         'prize_description',
     ];
 
-    protected $casts = [
-        'bingo_round_id' => 'string',
-        'room_id'        => 'string',
-        'currency_id'    => 'string',
-        'prize_id'       => 'string',
-        'prize_value'    => 'decimal:6',
-    ];
+    protected $table = 'bingo_round_prizes';
 
-    public function round(): BelongsTo
-    {
-        return $this->belongsTo(BingoRound::class, 'bingo_round_id');
-    }
-
-    public function room(): BelongsTo
-    {
-        return $this->belongsTo(BingoRoom::class, 'room_id');
-    }
-
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function prize(): BelongsTo
+    public function prize() : BelongsTo
     {
         return $this->belongsTo(Prize::class, 'prize_id');
+    }
+
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    public function round() : BelongsTo
+    {
+        return $this->belongsTo(BingoRound::class, 'bingo_round_id');
     }
 }

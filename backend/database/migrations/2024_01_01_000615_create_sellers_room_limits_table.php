@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('sellers_room_limits');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('sellers_room_limits', function (Blueprint $table) {
+        Schema::create('sellers_room_limits', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
@@ -24,13 +32,5 @@ return new class extends Migration
             $table->index(['game_id', 'room_id'], 'idx_seller_room_limit_game_room');
             $table->index('seller_id', 'idx_seller_room_limit_seller');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('sellers_room_limits');
     }
 };

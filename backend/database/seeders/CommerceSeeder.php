@@ -2,26 +2,25 @@
 
 namespace Database\Seeders;
 
-use App\Models\Roles\Commerce;
-use App\Models\User;
 use App\Models\Country;
 use App\Models\Currency;
-use App\Models\Shared\UniqueCode;
+use App\Models\Roles\Commerce;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Throwable;
 
 class CommerceSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         try {
             // Desactivar restricciones de claves foráneas temporalmente
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            
+
             // Limpiar tabla commerces
             Commerce::query()->delete();
-            
+
             // Reactivar restricciones
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
@@ -29,16 +28,18 @@ class CommerceSeeder extends Seeder
             $country = Country::where('iso_code_2', 'VE')->first();
             $currency = Currency::where('iso_code', 'VES')->first();
 
-            if (!$country || !$currency) {
+            if (! $country || ! $currency) {
                 $this->command->warn('País Venezuela o moneda VES no encontrados. Ejecute CountrySeeder y CurrencySeeder primero.');
+
                 return;
             }
 
             // Buscar usuario commerce
             $user = User::where('email', 'commerce@playrke.com')->first();
 
-            if (!$user) {
+            if (! $user) {
                 $this->command->warn('Usuario commerce@playrke.com no encontrado. Ejecute TestUserSeeder primero.');
+
                 return;
             }
 
@@ -59,9 +60,9 @@ class CommerceSeeder extends Seeder
             $this->command->info("✅ Comercio creado exitosamente: {$commerce->name}");
             $this->command->info("   → Usuario: {$user->email}");
             $this->command->info("   → Código único: {$uniqueCode}");
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->command->error("❌ Error en CommerceSeeder: {$e->getMessage()}");
+
             throw $e;
         }
     }
@@ -69,7 +70,7 @@ class CommerceSeeder extends Seeder
     /**
      * Generar código único para comercio
      */
-    private function generateUniqueCode(): string
+    private function generateUniqueCode() : string
     {
         return 'COM-' . strtoupper(uniqid());
     }

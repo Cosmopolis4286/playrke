@@ -24,37 +24,10 @@ final class CommerceEconomyReportController extends Controller
 
     public function __construct(
         private readonly CommerceEconomySummaryService $service,
-    ) {}
-
-    public function index(Request $request): Response
-    {
-        return Inertia::render('Roles/Commerce/Report/EconomySummary', [
-            'title'   => 'Resumen Financiero',
-            'summary' => $this->service->getSummary(
-                commerceUserId: (string) Auth::id(),
-                startDate: $request->query('start_date'),
-                endDate: $request->query('end_date'),
-            ),
-            'filters' => [
-                'start_date' => $request->query('start_date'),
-                'end_date'   => $request->query('end_date'),
-            ],
-        ]);
+    ) {
     }
 
-    public function fetch(Request $request): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'data'    => $this->service->getSummary(
-                commerceUserId: (string) Auth::id(),
-                startDate: $request->query('start_date'),
-                endDate: $request->query('end_date'),
-            ),
-        ]);
-    }
-
-    public function exportBySeller(Request $request): StreamedResponse
+    public function exportBySeller(Request $request) : StreamedResponse
     {
         $summary = $this->service->getSummary(
             commerceUserId: (string) Auth::id(),
@@ -73,5 +46,33 @@ final class CommerceEconomyReportController extends Controller
                 $row['total_commission'],
             ],
         );
+    }
+
+    public function fetch(Request $request) : JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->service->getSummary(
+                commerceUserId: (string) Auth::id(),
+                startDate: $request->query('start_date'),
+                endDate: $request->query('end_date'),
+            ),
+        ]);
+    }
+
+    public function index(Request $request) : Response
+    {
+        return Inertia::render('Roles/Commerce/Report/EconomySummary', [
+            'title' => 'Resumen Financiero',
+            'summary' => $this->service->getSummary(
+                commerceUserId: (string) Auth::id(),
+                startDate: $request->query('start_date'),
+                endDate: $request->query('end_date'),
+            ),
+            'filters' => [
+                'start_date' => $request->query('start_date'),
+                'end_date' => $request->query('end_date'),
+            ],
+        ]);
     }
 }

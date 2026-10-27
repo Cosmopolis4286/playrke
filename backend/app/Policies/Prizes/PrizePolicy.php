@@ -18,14 +18,27 @@ use Illuminate\Database\Eloquent\Model;
  */
 class PrizePolicy extends BaseRolePolicy
 {
-    /**
-     * Rol requerido para operar sobre premios.
-     *
-     * @return string|string[]
-     */
-    protected function requiredRole(): string|array
+    public function forceDelete(User $user, Model $model) : bool
     {
-        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary', 'treasurer'];
+        return $this->hasAccess($user) && $this->ownsPrize($user, $model);
+    }
+
+    /**
+     * Cambiar estado del premio (ACTIVE / INACTIVE).
+     */
+    public function toggleStatus(User $user, Prize $prize) : bool
+    {
+        return $this->hasAccess($user) && $this->ownsPrize($user, $prize);
+    }
+
+    public function update(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsPrize($user, $model);
+    }
+
+    public function view(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && $this->ownsPrize($user, $model);
     }
 
     /**
@@ -33,9 +46,19 @@ class PrizePolicy extends BaseRolePolicy
      *
      * @return string[]
      */
-    protected function forbiddenStatuses(): array
+    protected function forbiddenStatuses() : array
     {
         return [];
+    }
+
+    /**
+     * Rol requerido para operar sobre premios.
+     *
+     * @return string|string[]
+     */
+    protected function requiredRole() : string|array
+    {
+        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary', 'treasurer'];
     }
 
     /**
@@ -52,35 +75,12 @@ class PrizePolicy extends BaseRolePolicy
      * PrizeService::search() sí filtraban correctamente, confirmando que
      * era un descuido puntual, no diseño intencional.
      */
-    private function ownsPrize(User $user, Prize $prize): bool
+    private function ownsPrize(User $user, Prize $prize) : bool
     {
         if (app(RoleAuthorizationService::class)->hasAnyRole($user, ['superadmin', 'admin'])) {
             return true;
         }
 
         return (string) $prize->user_id === (string) $user->id;
-    }
-
-    public function view(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->ownsPrize($user, $model);
-    }
-
-    public function update(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->canMutate($model) && $this->ownsPrize($user, $model);
-    }
-
-    public function forceDelete(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && $this->ownsPrize($user, $model);
-    }
-
-    /**
-     * Cambiar estado del premio (ACTIVE / INACTIVE).
-     */
-    public function toggleStatus(User $user, Prize $prize): bool
-    {
-        return $this->hasAccess($user) && $this->ownsPrize($user, $prize);
     }
 }

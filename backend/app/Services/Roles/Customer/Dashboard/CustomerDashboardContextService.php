@@ -2,12 +2,12 @@
 
 namespace App\Services\Roles\Customer\Dashboard;
 
-use App\DTOs\Roles\Customer\Dashboard\CustomerDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
+use App\DTOs\Roles\Customer\Dashboard\CustomerDashboardContextDTO;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\NetworkDashboardService;
 use Carbon\Carbon;
@@ -28,36 +28,53 @@ final class CustomerDashboardContextService
     public function __construct(
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly NetworkDashboardService $network,
-    ) {}
+    ) {
+    }
 
-    public function dashboardContext(): CustomerDashboardContextDTO
+    public function dashboardContext() : CustomerDashboardContextDTO
     {
-        $user   = Auth::user();
+        $user = Auth::user();
         $userId = (string) $user?->getKey();
-        $now    = Carbon::now();
+        $now = Carbon::now();
 
         $ownRoomIds = fn () => BingoRoom::query()->select('id')->where('creator_user_id', $userId);
 
         return new CustomerDashboardContextDTO(
-            userName:       $user?->first_name ?? $user?->username ?? 'Cliente',
-            stats:          $this->buildStats($userId, $ownRoomIds, $now),
-            upcomingRooms:  $this->network->upcomingOwnRooms($now),
-            salesTrend:     $this->buildSalesTrend(scope: fn ($q) => $q
+            userName: $user?->first_name ?? $user?->username ?? 'Cliente',
+            stats: $this->buildStats($userId, $ownRoomIds, $now),
+            upcomingRooms: $this->network->upcomingOwnRooms($now),
+            salesTrend: $this->buildSalesTrend(scope: fn ($q) => $q
                 ->whereIn('room_id', $ownRoomIds())
                 ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
             recentActivity: $this->buildRecentActivity($ownRoomIds),
-            wallets:        $this->buildWallets($userId),
-            period:         ucfirst($now->translatedFormat('F Y')),
+            wallets: $this->buildWallets($userId),
+            period: ucfirst($now->translatedFormat('F Y')),
         );
     }
 
-    /** Lotes vendidos (no reembolsados) en sus salas. */
-    private function ownRoomLots(callable $ownRoomIds): Builder
+    private function buildRecentActivity(callable $ownRoomIds) : array
     {
-        return $this->network->soldLots()->whereIn('bingo_card_lots.room_id', $ownRoomIds());
+        return BingoCardLot::whereIn('room_id', $ownRoomIds())
+            ->with(['room:id,uuid_code', 'currency:id,symbol,iso_code'])
+            ->latest()
+            ->limit(10)
+            ->get(['id', 'room_id', 'currency_id', 'card_count', 'sale_amount', 'status', 'created_at'])
+            ->map(fn (BingoCardLot $lot) => [
+                'id' => (string) $lot->getKey(),
+                'type' => 'sale',
+                'title' => "{$lot->card_count} cartón(es) vendidos",
+                'description' => "Sala {$lot->room?->uuid_code}",
+                'timestamp' => $lot->created_at->toIso8601String(),
+                'meta' => [
+                    'status' => strtolower((string) $lot->status),
+                    'price' => $lot->currency?->formatAmount((float) $lot->sale_amount) ?? number_format((float) $lot->sale_amount, 2, ',', '.'),
+                    'currency' => $lot->currency?->iso_code ?? '',
+                ],
+            ])
+            ->all();
     }
 
-    private function buildStats(string $userId, callable $ownRoomIds, Carbon $now): array
+    private function buildStats(string $userId, callable $ownRoomIds, Carbon $now) : array
     {
         $startOfMonth = $now->copy()->startOfMonth();
 
@@ -95,30 +112,30 @@ final class CustomerDashboardContextService
 
         return [
             'activeRooms' => [
-                'label'   => 'Salas activas',
-                'value'   => $activeRooms,
-                'icon'    => 'fas fa-dice',
+                'label' => 'Salas activas',
+                'value' => $activeRooms,
+                'icon' => 'fas fa-dice',
                 'variant' => 'info',
-                'href'    => '/bingo-rooms',
+                'href' => '/bingo-rooms',
             ],
             'cardsToday' => [
-                'label'   => 'Cartones vendidos hoy',
-                'value'   => $cardsToday,
-                'icon'    => 'fas fa-ticket-alt',
+                'label' => 'Cartones vendidos hoy',
+                'value' => $cardsToday,
+                'icon' => 'fas fa-ticket-alt',
                 'variant' => 'success',
             ],
             'salesThisMonth' => [
-                'label'       => 'Ventas del mes',
-                'value'       => 'US$ ' . number_format($salesUsd, 2, ',', '.'),
-                'icon'        => 'fas fa-shopping-cart',
-                'variant'     => 'primary',
+                'label' => 'Ventas del mes',
+                'value' => 'US$ ' . number_format($salesUsd, 2, ',', '.'),
+                'icon' => 'fas fa-shopping-cart',
+                'variant' => 'primary',
                 'description' => 'En tus salas · USD a la tasa de cada venta',
             ],
             'commission' => [
-                'label'       => 'Comisión de sala (mes)',
-                'value'       => $commission['amount'] ?? '—',
-                'icon'        => 'fas fa-percentage',
-                'variant'     => 'secondary',
+                'label' => 'Comisión de sala (mes)',
+                'value' => $commission['amount'] ?? '—',
+                'icon' => 'fas fa-percentage',
+                'variant' => 'secondary',
                 'description' => trim(implode(' · ', array_filter([
                     $commission['count'] > 0 ? 'Lo que ganas como organizador' : 'Sin comisión este mes',
                     $custody['amount'] ? "{$custody['amount']} por cobrar de otras redes" : null,
@@ -127,39 +144,23 @@ final class CustomerDashboardContextService
         ];
     }
 
-    private function buildRecentActivity(callable $ownRoomIds): array
-    {
-        return BingoCardLot::whereIn('room_id', $ownRoomIds())
-            ->with(['room:id,uuid_code', 'currency:id,symbol,iso_code'])
-            ->latest()
-            ->limit(10)
-            ->get(['id', 'room_id', 'currency_id', 'card_count', 'sale_amount', 'status', 'created_at'])
-            ->map(fn (BingoCardLot $lot) => [
-                'id'          => (string) $lot->getKey(),
-                'type'        => 'sale',
-                'title'       => "{$lot->card_count} cartón(es) vendidos",
-                'description' => "Sala {$lot->room?->uuid_code}",
-                'timestamp'   => $lot->created_at->toIso8601String(),
-                'meta'        => [
-                    'status'   => strtolower((string) $lot->status),
-                    'price'    => $lot->currency?->formatAmount((float) $lot->sale_amount) ?? number_format((float) $lot->sale_amount, 2, ',', '.'),
-                    'currency' => $lot->currency?->iso_code ?? '',
-                ],
-            ])
-            ->all();
-    }
-
-    private function buildWallets(string $userId): array
+    private function buildWallets(string $userId) : array
     {
         return $this->walletRepository->getActiveWalletsByUser($userId, ['id', 'currency_id', 'balance', 'bonus_balance'])
             ->load('currency:id,iso_code,symbol')
             ->map(fn ($wallet) => [
                 'currency_code' => $wallet->currency?->iso_code ?? '—',
-                'symbol'        => $wallet->currency?->symbol ?? '',
-                'balance'       => (float) $wallet->balance,
+                'symbol' => $wallet->currency?->symbol ?? '',
+                'balance' => (float) $wallet->balance,
                 'bonus_balance' => (float) $wallet->bonus_balance,
             ])
             ->values()
             ->all();
+    }
+
+    /** Lotes vendidos (no reembolsados) en sus salas. */
+    private function ownRoomLots(callable $ownRoomIds) : Builder
+    {
+        return $this->network->soldLots()->whereIn('bingo_card_lots.room_id', $ownRoomIds());
     }
 }

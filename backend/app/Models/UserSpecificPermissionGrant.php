@@ -13,31 +13,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * de strings sin metadata). Un usuario puede tener a lo sumo un grant ACTIVO
  * (revoked_at null) por permission_name (ver índice único de la migración).
  *
- * @property string $id
- * @property string $user_id
- * @property string $permission_name
- * @property string|null $granted_by
- * @property string|null $reason
+ * @property string              $id
+ * @property string              $user_id
+ * @property string              $permission_name
+ * @property string|null         $granted_by
+ * @property string|null         $reason
  * @property \Carbon\Carbon|null $expires_at
  * @property \Carbon\Carbon|null $revoked_at
- * @property string|null $revoked_reason
+ * @property string|null         $revoked_reason
  * @property \Carbon\Carbon|null $expiring_notified_at
- *
- * @property-read User $user
- * @property-read User|null $grantor
+ * @property User                $user
+ * @property User|null           $grantor
  */
 class UserSpecificPermissionGrant extends Model
 {
     use \App\Traits\SnowflakeId;
     use Auditable;
 
-    protected $table = 'user_specific_permission_grants';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
     public const REVOKED_REASON_EXPIRED = 'EXPIRED';
-    public const REVOKED_REASON_MANUAL  = 'MANUAL';
+    public const REVOKED_REASON_MANUAL = 'MANUAL';
+    public $incrementing = false;
+
+    protected $casts = [
+        'expires_at' => 'datetime',
+        'revoked_at' => 'datetime',
+        'expiring_notified_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -49,29 +50,32 @@ class UserSpecificPermissionGrant extends Model
         'revoked_reason',
         'expiring_notified_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'expires_at'            => 'datetime',
-        'revoked_at'            => 'datetime',
-        'expiring_notified_at'  => 'datetime',
-    ];
+    protected $table = 'user_specific_permission_grants';
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function grantor(): BelongsTo
+    public function grantor() : BelongsTo
     {
         return $this->belongsTo(User::class, 'granted_by');
     }
 
-    public function scopeActive(Builder $query): Builder
+    public function isActive() : bool
+    {
+        return $this->revoked_at === null && ! $this->isExpired();
+    }
+
+    public function isExpired() : bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    public function scopeActive(Builder $query) : Builder
     {
         return $query->whereNull('revoked_at');
     }
 
-    public function scopeExpired(Builder $query): Builder
+    public function scopeExpired(Builder $query) : Builder
     {
         return $query->whereNotNull('expires_at')->where('expires_at', '<=', now());
     }
@@ -81,7 +85,7 @@ class UserSpecificPermissionGrant extends Model
      * y que todavía no recibieron el aviso previo — usado por el job de
      * aviso de expiración próxima.
      */
-    public function scopeExpiringSoon(Builder $query, int $days): Builder
+    public function scopeExpiringSoon(Builder $query, int $days) : Builder
     {
         return $query
             ->whereNotNull('expires_at')
@@ -89,13 +93,8 @@ class UserSpecificPermissionGrant extends Model
             ->whereBetween('expires_at', [now(), now()->addDays($days)]);
     }
 
-    public function isExpired(): bool
+    public function user() : BelongsTo
     {
-        return $this->expires_at !== null && $this->expires_at->isPast();
-    }
-
-    public function isActive(): bool
-    {
-        return $this->revoked_at === null && !$this->isExpired();
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

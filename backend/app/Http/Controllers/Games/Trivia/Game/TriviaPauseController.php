@@ -24,9 +24,10 @@ final class TriviaPauseController extends Controller
 {
     public function __construct(
         private readonly TriviaPauseService $pauseService,
-    ) {}
+    ) {
+    }
 
-    public function pause(Request $request, string $gameId): JsonResponse
+    public function pause(Request $request, string $gameId) : JsonResponse
     {
         $room = $this->authorizeForGame($request, $gameId);
 
@@ -41,7 +42,7 @@ final class TriviaPauseController extends Controller
         return response()->json(['success' => true, 'message' => 'Partida pausada.']);
     }
 
-    public function resume(Request $request, string $gameId): JsonResponse
+    public function resume(Request $request, string $gameId) : JsonResponse
     {
         $room = $this->authorizeForGame($request, $gameId);
 
@@ -61,7 +62,7 @@ final class TriviaPauseController extends Controller
      * TriviaRoomPolicy::start() (host o admin/superadmin) — la misma regla
      * de autorización que iniciar la partida aplica para pausarla/reanudarla.
      */
-    private function authorizeForGame(Request $request, string $gameId): TriviaRoom
+    private function authorizeForGame(Request $request, string $gameId) : TriviaRoom
     {
         $game = TriviaGame::findOrFail($gameId);
         $room = TriviaRoom::findOrFail($game->room_id);

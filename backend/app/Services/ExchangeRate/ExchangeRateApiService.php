@@ -5,6 +5,8 @@ namespace App\Services\ExchangeRate;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Implementación de proveedor de tasas de cambio que obtiene los datos
@@ -27,6 +29,8 @@ final class ExchangeRateApiService
      */
     private const API_URL = 'https://open.er-api.com/v6/latest/USD';
 
+    private const CACHE_KEY = 'exchange_rate:external_api:binance';
+
     /**
      * TTL del caché en segundos. Sin caché, cada apertura del modal
      * "Consultar" (uno por admin/comercio/customer) y cada corrida del
@@ -37,16 +41,15 @@ final class ExchangeRateApiService
      */
     private const CACHE_TTL_SECONDS = 60;
 
-    private const CACHE_KEY = 'exchange_rate:external_api:binance';
-
     /**
      * Realiza la consulta a la API externa y devuelve las tasas de cambio.
      *
      * @param int|null $userId ID del usuario (opcional)
-     * @return array|null Retorna un arreglo con las tasas si la llamada fue exitosa,
-     *                    o null si ocurrió algún error.
+     *
+     * @return array|null retorna un arreglo con las tasas si la llamada fue exitosa,
+     *                    o null si ocurrió algún error
      */
-    public function fetch(?int $userId = null): ?array
+    public function fetch(?int $userId = null) : ?array
     {
         $cached = Cache::get(self::CACHE_KEY);
         if ($cached !== null) {
@@ -59,7 +62,7 @@ final class ExchangeRateApiService
 
             // Si la respuesta no es exitosa (status >= 400), lanza excepción
             if ($response->failed()) {
-                throw new \RuntimeException('API request failed with status ' . $response->status());
+                throw new RuntimeException('API request failed with status ' . $response->status());
             }
 
             // open.er-api.com anida las tasas bajo "rates" (formato
@@ -70,8 +73,8 @@ final class ExchangeRateApiService
             // de la API externa.
             $rates = $response->json('rates');
 
-            if (empty($rates) || !is_array($rates)) {
-                throw new \RuntimeException('La API externa no devolvió tasas válidas.');
+            if (empty($rates) || ! is_array($rates)) {
+                throw new RuntimeException('La API externa no devolvió tasas válidas.');
             }
 
             // Solo se cachean respuestas válidas — un fallo NO se cachea, para
@@ -80,7 +83,7 @@ final class ExchangeRateApiService
             Cache::put(self::CACHE_KEY, $rates, self::CACHE_TTL_SECONDS);
 
             return $rates;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Registra el error para diagnóstico
             Log::error('ExchangeRateApiService error: ' . $e->getMessage());
 

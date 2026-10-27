@@ -20,9 +20,9 @@ final class JackpotPublicStatsService
      * expone con amount=0, no se omite — la vitrina debe listar siempre los
      * mismos jackpots aunque alguno todavía no tenga saldo.
      */
-    public function list(): array
+    public function list() : array
     {
-        return Cache::remember('jackpot:public:list', self::CACHE_TTL_SECONDS, function () {
+        return Cache::remember('jackpot:public:list', self::CACHE_TTL_SECONDS, function() {
             return JackpotType::query()
                 ->active()
                 ->with(['jackpot:id,jackpot_type_id,amount', 'currency:id,iso_code,symbol'])

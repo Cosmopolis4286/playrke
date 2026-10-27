@@ -14,23 +14,24 @@ class TriviaGameCancelled implements ShouldBroadcastNow
         public readonly string $roomId,
         public readonly string $gameId,
         public readonly string $reason,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel("trivia.room.{$this->roomId}");
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'trivia.game.cancelled';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : Channel
+    {
+        return new Channel("trivia.room.{$this->roomId}");
+    }
+
+    public function broadcastWith() : array
     {
         return [
             'game_id' => $this->gameId,
-            'reason'  => $this->reason,
+            'reason' => $this->reason,
         ];
     }
 }

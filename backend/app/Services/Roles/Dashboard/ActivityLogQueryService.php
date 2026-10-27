@@ -4,8 +4,8 @@ namespace App\Services\Roles\Dashboard;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Platform\WinEvent\Models\WinEvent;
-use App\Models\User;
 use App\Domains\Wallet\Models\WalletMovement;
+use App\Models\User;
 use Carbon\Carbon;
 
 /**
@@ -28,7 +28,7 @@ final class ActivityLogQueryService
      *                                  para SuperAdmin en el feed general (mismo
      *                                  criterio que useAdminActivityRealtime.ts).
      */
-    public function since(?Carbon $since, bool $includeWalletEvents): array
+    public function since(?Carbon $since, bool $includeWalletEvents) : array
     {
         $since ??= now()->subMinutes(self::DEFAULT_LOOKBACK_MINUTES);
 
@@ -47,7 +47,24 @@ final class ActivityLogQueryService
         return array_slice($items, 0, self::MAX_ITEMS);
     }
 
-    private function newUsers(Carbon $since): array
+    private function cardSales(Carbon $since) : array
+    {
+        return BingoCardLot::with('room:id,uuid_code')
+            ->where('created_at', '>=', $since)
+            ->latest()
+            ->limit(self::MAX_ITEMS)
+            ->get(['id', 'room_id', 'card_count', 'sale_amount', 'created_at'])
+            ->map(fn (BingoCardLot $lot) => [
+                'id' => "card-lot-{$lot->id}",
+                'type' => 'bingo',
+                'title' => "{$lot->card_count} cartón(es) vendido(s)",
+                'description' => 'Sala ' . ($lot->room?->uuid_code ?? '—') . ' · $' . number_format((float) $lot->sale_amount, 2),
+                'timestamp' => $lot->created_at->toIso8601String(),
+            ])
+            ->all();
+    }
+
+    private function newUsers(Carbon $since) : array
     {
         return User::with('roles:id,name')
             ->excludeSystemAccounts()
@@ -56,52 +73,12 @@ final class ActivityLogQueryService
             ->limit(self::MAX_ITEMS)
             ->get(['id', 'username', 'email', 'status', 'created_at'])
             ->map(fn (User $user) => [
-                'id'          => "user-{$user->id}",
-                'type'        => 'success',
-                'title'       => 'Nuevo ' . ($user->roles->first()?->name ?? 'usuario'),
+                'id' => "user-{$user->id}",
+                'type' => 'success',
+                'title' => 'Nuevo ' . ($user->roles->first()?->name ?? 'usuario'),
                 'description' => "@{$user->username}" . ($user->email ? " · {$user->email}" : ''),
-                'timestamp'   => $user->created_at->toIso8601String(),
+                'timestamp' => $user->created_at->toIso8601String(),
             ])
-            ->all();
-    }
-
-    private function cardSales(Carbon $since): array
-    {
-        return BingoCardLot::with('room:id,uuid_code')
-            ->where('created_at', '>=', $since)
-            ->latest()
-            ->limit(self::MAX_ITEMS)
-            ->get(['id', 'room_id', 'card_count', 'sale_amount', 'created_at'])
-            ->map(fn (BingoCardLot $lot) => [
-                'id'          => "card-lot-{$lot->id}",
-                'type'        => 'bingo',
-                'title'       => "{$lot->card_count} cartón(es) vendido(s)",
-                'description' => 'Sala ' . ($lot->room?->uuid_code ?? '—') . ' · $' . number_format((float) $lot->sale_amount, 2),
-                'timestamp'   => $lot->created_at->toIso8601String(),
-            ])
-            ->all();
-    }
-
-    private function winEvents(Carbon $since): array
-    {
-        return WinEvent::with(['user:id,username,first_name,last_name', 'currency:id,symbol'])
-            ->where('created_at', '>=', $since)
-            ->latest()
-            ->limit(self::MAX_ITEMS)
-            ->get()
-            ->map(function (WinEvent $event) {
-                $prize = $event->prize_kind === WinEvent::PRIZE_MONEY && $event->amount_usd !== null
-                    ? '$' . number_format((float) $event->amount_usd, 2)
-                    : ($event->prize_label ?? 'Premio');
-
-                return [
-                    'id'          => "win-{$event->id}",
-                    'type'        => 'bingo',
-                    'title'       => "🏆 {$event->resolveWinnerName()} ganó en {$event->game_name}",
-                    'description' => $prize,
-                    'timestamp'   => $event->created_at->toIso8601String(),
-                ];
-            })
             ->all();
     }
 
@@ -111,7 +88,7 @@ final class ActivityLogQueryService
      * incluye compras/premios/entradas que nacen ya COMPLETED sin pasar por
      * aprobación manual (esas no tienen processed_at).
      */
-    private function processedMovements(Carbon $since): array
+    private function processedMovements(Carbon $since) : array
     {
         return WalletMovement::whereIn('status', [WalletMovement::STATUS_COMPLETED, WalletMovement::STATUS_REJECTED])
             ->whereIn('type', [WalletMovement::TYPE_DEPOSIT, WalletMovement::TYPE_WITHDRAWAL])
@@ -121,12 +98,35 @@ final class ActivityLogQueryService
             ->limit(self::MAX_ITEMS)
             ->get(['id', 'type', 'status', 'processed_at'])
             ->map(fn (WalletMovement $movement) => [
-                'id'          => "movement-processed-{$movement->id}",
-                'type'        => $movement->status === WalletMovement::STATUS_COMPLETED ? 'success' : 'danger',
-                'title'       => $movement->status === WalletMovement::STATUS_COMPLETED ? 'Movimiento aprobado' : 'Movimiento rechazado',
+                'id' => "movement-processed-{$movement->id}",
+                'type' => $movement->status === WalletMovement::STATUS_COMPLETED ? 'success' : 'danger',
+                'title' => $movement->status === WalletMovement::STATUS_COMPLETED ? 'Movimiento aprobado' : 'Movimiento rechazado',
                 'description' => "Tipo: {$movement->type}",
-                'timestamp'   => $movement->processed_at->toIso8601String(),
+                'timestamp' => $movement->processed_at->toIso8601String(),
             ])
+            ->all();
+    }
+
+    private function winEvents(Carbon $since) : array
+    {
+        return WinEvent::with(['user:id,username,first_name,last_name', 'currency:id,symbol'])
+            ->where('created_at', '>=', $since)
+            ->latest()
+            ->limit(self::MAX_ITEMS)
+            ->get()
+            ->map(function(WinEvent $event) {
+                $prize = $event->prize_kind === WinEvent::PRIZE_MONEY && $event->amount_usd !== null
+                    ? '$' . number_format((float) $event->amount_usd, 2)
+                    : ($event->prize_label ?? 'Premio');
+
+                return [
+                    'id' => "win-{$event->id}",
+                    'type' => 'bingo',
+                    'title' => "🏆 {$event->resolveWinnerName()} ganó en {$event->game_name}",
+                    'description' => $prize,
+                    'timestamp' => $event->created_at->toIso8601String(),
+                ];
+            })
             ->all();
     }
 }

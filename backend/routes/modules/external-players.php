@@ -31,7 +31,7 @@ route_group('external-players', 'external-players.', ['auth'], ExternalPlayerCon
 Route::middleware(['throttle:external-player-game'])
     ->prefix('bingo/external/{link}')
     ->name('external-players.')
-    ->group(function () {
+    ->group(function() {
         Route::get('/', [ExternalPlayerGameController::class, 'game'])->name('game');
         Route::get('/draw-state', [ExternalPlayerGameController::class, 'drawState'])->name('draw-state');
         // Mismo sufijo 'user-cards' que bingo.user-cards (routes/modules/games/bingo.php)

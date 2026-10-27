@@ -26,34 +26,34 @@ route_group(
         // ({id} genérico) o quedan capturadas por él como si "bcv-rate"
         // fuera un id (bug real: GET /exchange-rate/bcv-rate devolvía 404
         // porque show('bcv-rate') no encontraba ninguna tasa con ese id).
-        'index'        => ['method' => 'get', 'uri' => '', 'defaults' => ['inertiaOnly' => false]],
-        'store'        => ['method' => 'post', 'uri' => '', 'middleware' => 'multiPermission:exchange.manage'],
-        'updateAll'    => ['method' => 'put', 'uri' => 'update-all', 'middleware' => 'multiPermission:exchange.manage'],
+        'index' => ['method' => 'get', 'uri' => '', 'defaults' => ['inertiaOnly' => false]],
+        'store' => ['method' => 'post', 'uri' => '', 'middleware' => 'multiPermission:exchange.manage'],
+        'updateAll' => ['method' => 'put', 'uri' => 'update-all', 'middleware' => 'multiPermission:exchange.manage'],
         'getRawRates' => ['method' => 'get', 'uri' => 'raw-rates'],
-        'fetchList'    => ['method' => 'get', 'uri' => 'fetch-list'],
-        'historical'       => ['method' => 'get', 'uri' => 'historical/{id}'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list'],
+        'historical' => ['method' => 'get', 'uri' => 'historical/{id}'],
         'exportHistorical' => ['method' => 'get', 'uri' => 'historical/{id}/export'],
-        'enableCronjob'  => ['method' => 'post', 'uri' => 'cronjob/enable', 'middleware' => 'multiPermission:exchange.manage'],
+        'enableCronjob' => ['method' => 'post', 'uri' => 'cronjob/enable', 'middleware' => 'multiPermission:exchange.manage'],
         'disableCronjob' => ['method' => 'post', 'uri' => 'cronjob/disable', 'middleware' => 'multiPermission:exchange.manage'],
         'getAutoUpdateStatus' => ['method' => 'get', 'uri' => 'cronjob/status'],
         'getBcvRate' => ['method' => 'get', 'uri' => 'bcv-rate'],
-        'enableBcvAutoUpdate'  => ['method' => 'post', 'uri' => 'bcv-cronjob/enable', 'middleware' => 'multiPermission:exchange.manage'],
+        'enableBcvAutoUpdate' => ['method' => 'post', 'uri' => 'bcv-cronjob/enable', 'middleware' => 'multiPermission:exchange.manage'],
         'disableBcvAutoUpdate' => ['method' => 'post', 'uri' => 'bcv-cronjob/disable', 'middleware' => 'multiPermission:exchange.manage'],
         'getBcvAutoUpdateStatus' => ['method' => 'get', 'uri' => 'bcv-cronjob/status'],
         // Auto-update por moneda individual (todas excepto VES, que usa
         // bcv-cronjob/* arriba con la fuente oficial del BCV) — control
         // independiente del switch global de Index.vue, ver
         // ExchangeRateService::enableCurrencyAutoUpdate().
-        'enableCurrencyAutoUpdate'  => ['method' => 'post', 'uri' => 'currency-cronjob/{isoCode}/enable', 'middleware' => 'multiPermission:exchange.manage'],
+        'enableCurrencyAutoUpdate' => ['method' => 'post', 'uri' => 'currency-cronjob/{isoCode}/enable', 'middleware' => 'multiPermission:exchange.manage'],
         'disableCurrencyAutoUpdate' => ['method' => 'post', 'uri' => 'currency-cronjob/{isoCode}/disable', 'middleware' => 'multiPermission:exchange.manage'],
         'getCurrencyAutoUpdateStatus' => ['method' => 'get', 'uri' => 'currency-cronjob/{isoCode}/status'],
         // A partir de aquí, solo rutas con {id} genérico.
-        'show'         => ['method' => 'get', 'uri' => '{id}'],
-        'update'       => ['method' => 'put', 'uri' => '{id}', 'middleware' => 'multiPermission:exchange.manage'],
-        'delete'       => ['method' => 'put', 'uri' => '{id}/delete', 'middleware' => 'multiPermission:exchange.manage'],
-        'destroy'      => ['method' => 'delete', 'uri' => '{id}', 'middleware' => 'multiPermission:exchange.manage'],
+        'show' => ['method' => 'get', 'uri' => '{id}'],
+        'update' => ['method' => 'put', 'uri' => '{id}', 'middleware' => 'multiPermission:exchange.manage'],
+        'delete' => ['method' => 'put', 'uri' => '{id}/delete', 'middleware' => 'multiPermission:exchange.manage'],
+        'destroy' => ['method' => 'delete', 'uri' => '{id}', 'middleware' => 'multiPermission:exchange.manage'],
         'toggleStatus' => ['method' => 'put', 'uri' => '{id}/status', 'middleware' => 'multiPermission:exchange.manage'],
-    ]
+    ],
 );
 
 route_public(
@@ -63,7 +63,7 @@ route_public(
     [
         'index' => ['method' => 'get', 'uri' => ''],
     ],
-    'exchange_rates:read'
+    'exchange_rates:read',
 );
 
 // Tasa vigente para la red del usuario (widget de tableros). Prefijo propio

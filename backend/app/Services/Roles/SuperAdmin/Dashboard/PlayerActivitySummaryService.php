@@ -24,16 +24,29 @@ final class PlayerActivitySummaryService
     private const CACHE_KEY = 'superadmin:player-activity-summary';
     private const CACHE_TTL = 90; // mismo TTL que el resto de agregados del dashboard superadmin
 
-    public function getSummary(): array
+    public function getSummary() : array
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => $this->buildSummary());
     }
 
-    private function buildSummary(): array
+    /**
+     * Jugadores distintos con al menos una participación registrada
+     * (game_participations, cross-juego) en cada ventana.
+     */
+    private function activePlayers() : array
     {
         return [
-            'active_players'          => $this->activePlayers(),
-            'recurring_by_seller'     => $this->recurringBySeller(),
+            'daily' => GameParticipation::where('created_at', '>=', now()->subDay())->distinct('user_id')->count('user_id'),
+            'weekly' => GameParticipation::where('created_at', '>=', now()->subWeek())->distinct('user_id')->count('user_id'),
+            'monthly' => GameParticipation::where('created_at', '>=', now()->subMonth())->distinct('user_id')->count('user_id'),
+        ];
+    }
+
+    private function buildSummary() : array
+    {
+        return [
+            'active_players' => $this->activePlayers(),
+            'recurring_by_seller' => $this->recurringBySeller(),
             'external_player_conversion' => $this->externalPlayerConversion(),
         ];
     }
@@ -46,28 +59,15 @@ final class PlayerActivitySummaryService
      * manual de un admin (ExternalPlayerAdminService::convertToUser()) —
      * esta métrica no distingue el origen, solo mide el resultado.
      */
-    private function externalPlayerConversion(): array
+    private function externalPlayerConversion() : array
     {
         $total = ExternalPlayer::count();
         $converted = ExternalPlayer::whereNotNull('converted_user_id')->count();
 
         return [
             'total_external_players' => $total,
-            'converted'              => $converted,
-            'conversion_rate'        => $total > 0 ? round(($converted / $total) * 100, 1) : 0.0,
-        ];
-    }
-
-    /**
-     * Jugadores distintos con al menos una participación registrada
-     * (game_participations, cross-juego) en cada ventana.
-     */
-    private function activePlayers(): array
-    {
-        return [
-            'daily'   => GameParticipation::where('created_at', '>=', now()->subDay())->distinct('user_id')->count('user_id'),
-            'weekly'  => GameParticipation::where('created_at', '>=', now()->subWeek())->distinct('user_id')->count('user_id'),
-            'monthly' => GameParticipation::where('created_at', '>=', now()->subMonth())->distinct('user_id')->count('user_id'),
+            'converted' => $converted,
+            'conversion_rate' => $total > 0 ? round(($converted / $total) * 100, 1) : 0.0,
         ];
     }
 
@@ -77,7 +77,7 @@ final class PlayerActivitySummaryService
      * jugador externo — ambos cuentan como "cliente" del vendedor, usando
      * COALESCE(user_id, external_player_id) como identidad del comprador.
      */
-    private function recurringBySeller(): array
+    private function recurringBySeller() : array
     {
         $rows = BingoCardPayment::query()
             ->where('payment_status', 'APPROVED')

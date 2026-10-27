@@ -22,18 +22,18 @@ use App\Models\User;
  */
 class KycPolicy
 {
-    public function viewAny(User $user): bool
+    public function manage(User $user) : bool
     {
-        return $user->hasAnyPermission(['kyc.view', 'kyc.manage']);
+        return $user->hasPermissionTo('kyc.manage');
     }
 
-    public function view(User $user): bool
+    public function view(User $user) : bool
     {
         return $this->viewAny($user);
     }
 
-    public function manage(User $user): bool
+    public function viewAny(User $user) : bool
     {
-        return $user->hasPermissionTo('kyc.manage');
+        return $user->hasAnyPermission(['kyc.view', 'kyc.manage']);
     }
 }

@@ -4,9 +4,9 @@ namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
-use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
+use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 
 final class BingoRoomService
 {
@@ -15,30 +15,159 @@ final class BingoRoomService
         private readonly BingoRoomCrudService $crudService,
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly CheckExpiredBingoRoomsService $checkExpired,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Activar manualmente el sorteo de una sala sin horario programado (start_mode = MANUAL).
+     * Solo el creador de la sala o un admin/superadmin pueden ejecutarla.
+     *
+     * @param BingoRoom $room Model
+     *
+     * @throws BingoRoomException Si la sala no admite activación manual o el usuario no está autorizado
+     */
+    public function activateNow(BingoRoom $room) : bool
+    {
+        return $this->crudService->activateNow($room);
+    }
+
+    /**
+     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
+     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
+     *
+     * @param BingoRoom $room Model
+     *
+     * @throws BingoRoomException Si falla la cancelación
+     */
+    public function cancel(BingoRoom $room) : bool
+    {
+        return $this->crudService->cancel($room);
+    }
 
     /**
      * Resolver contexto para BingoRoom.
      *
-     * @param string $context
-     * @param int|null $userId
-     * @return array
      * @throws \BingoRoomException Si el contexto no es válido
      */
-    public function context(string $context, ?int $userId = null): array
+    public function context(string $context, ?int $userId = null) : array
     {
         $this->checkExpired->handle();
+
         return $this->contextService->context($context, $userId)->toView();
+    }
+
+    /**
+     * Copiar una sala de bingo existente (status INACTIVE).
+     *
+     * @param BingoRoom $room Model
+     */
+    public function copy(BingoRoom $room) : bool
+    {
+        return $this->crudService->copyRoom($room);
+    }
+
+    /**
+     * Crear una nueva sala de bingo con su configuración y creador.
+     */
+    public function create(BingoRoomCreateDTO $dto) : bool
+    {
+        return $this->crudService->saveRoomOrSplit($dto);
+    }
+
+    /**
+     * Eliminar una sala de bingo (soft delete).
+     *
+     * @param BingoRoom $room Model
+     *
+     * @throws BingoRoomException Si falla la eliminación
+     */
+    public function delete(BingoRoom $room) : bool
+    {
+        return $this->crudService->delete($room);
+    }
+
+    /**
+     * Eliminar una sala de bingo permanentemente (hard delete).
+     *
+     * @throws \App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException Si la sala tiene historial financiero
+     */
+    public function destroy(BingoRoom $room) : bool
+    {
+        return $this->crudService->destroy($room);
+    }
+
+    /**
+     * Query (sin paginar) del listado admin/commerce de salas bajo los
+     * mismos filtros que summaryData() — usado por BingoRoomController::
+     * export() para el CSV completo.
+     */
+    public function exportQuery(array $filters) : \Illuminate\Database\Eloquent\Builder
+    {
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->contextService->exportQuery($userId, $filters);
     }
 
     /**
      * Obtener listado de salas filtrado por contexto del usuario.
      */
-    public function fetchList(): array
+    public function fetchList() : array
     {
         $this->checkExpired->handle();
         $userId = $this->userContext->resolveUserId();
+
         return $this->contextService->context('fetch-summary', $userId);
+    }
+
+    /**
+     * Refetch paginado/filtrado del listado de salas de juego (game-rooms),
+     * usado por los filtros de fecha/variante del listado de jugador.
+     *
+     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
+     *
+     * @return array{rooms: array, pagination: array, kpis: array}
+     */
+    public function gameRoomsData(int $page, int $perPage, array $filters) : array
+    {
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->contextService->gameRoomsDataForRefetch($userId, $page, $perPage, $filters);
+    }
+
+    /**
+     * Resolver y verificar una sala privada por código de acceso, sin conocer
+     * su ID de antemano ("Tengo un código" en el listado de salas de juego).
+     *
+     * @return array{verified: bool, room_route_key: ?string}
+     */
+    public function joinRoomByCode(string $accessCode, string $password) : array
+    {
+        return $this->crudService->joinRoomByCode($accessCode, $password);
+    }
+
+    /**
+     * Programa la fecha/hora de inicio de una sala sin horario (start_mode = MANUAL),
+     * convirtiéndola en una sala programada (start_mode = SCHEDULED). Solo el creador
+     * de la sala o un admin/superadmin pueden ejecutarla.
+     *
+     * @param BingoRoom $room Model
+     * @param string    $date Fecha en formato Y-m-d
+     * @param string    $time Hora en formato H:i
+     *
+     * @throws BingoRoomException Si la sala no admite programación, el usuario no está
+     *                            autorizado, el estado no es válido, o la fecha/hora es inválida
+     */
+    public function scheduleStart(BingoRoom $room, string $date, string $time) : bool
+    {
+        return $this->crudService->scheduleStart($room, $date, $time);
+    }
+
+    /**
+     * Mostrar detalle de una sala de bingo.
+     */
+    public function show(BingoRoom $room) : BingoRoomResource
+    {
+        return $this->crudService->show($room);
     }
 
     /**
@@ -54,185 +183,24 @@ final class BingoRoomService
      *     currency_id?: string,
      * } $filters
      */
-    public function summaryData(int $page, int $perPage, array $filters): array
+    public function summaryData(int $page, int $perPage, array $filters) : array
     {
         $this->checkExpired->handle();
         $userId = $this->userContext->resolveUserId();
+
         return $this->contextService->summaryDataForRefetch($userId, $page, $perPage, $filters);
-    }
-
-    /**
-     * Query (sin paginar) del listado admin/commerce de salas bajo los
-     * mismos filtros que summaryData() — usado por BingoRoomController::
-     * export() para el CSV completo.
-     */
-    public function exportQuery(array $filters): \Illuminate\Database\Eloquent\Builder
-    {
-        $userId = $this->userContext->resolveUserId();
-        return $this->contextService->exportQuery($userId, $filters);
-    }
-
-    /**
-     * Mostrar detalle de una sala de bingo.
-     */
-    public function show(BingoRoom $room): BingoRoomResource
-    {
-        return $this->crudService->show($room);
-    }
-
-    /**
-     * Crear una nueva sala de bingo con su configuración y creador.
-     *
-     * @param BingoRoomCreateDTO $dto
-     * @return bool
-     */
-    public function create(BingoRoomCreateDTO $dto): bool
-    {
-        return $this->crudService->saveRoomOrSplit($dto);
-    }
-
-    /**
-     * Actualizar una sala de bingo existente.
-     *
-     * @param BingoRoom $room Model
-     * @param BingoRoomUpdateDTO $dto
-     * @return bool
-     */
-    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): bool
-    {
-        return $this->crudService->saveRoom($room, $dto);
-    }
-
-    /**
-     * Copiar una sala de bingo existente (status INACTIVE).
-     *
-     * @param BingoRoom $room Model
-     * @return bool
-     */
-    public function copy(BingoRoom $room): bool
-    {
-        return $this->crudService->copyRoom($room);
-    }
-
-    /**
-     * Eliminar una sala de bingo (soft delete).
-     *
-     * @param BingoRoom $room Model
-     * @return bool
-     *
-     * @throws BingoRoomException Si falla la eliminación
-     */
-    public function delete(BingoRoom $room): bool
-    {
-        return $this->crudService->delete($room);
     }
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
      *
      * @param BingoRoom $room Model
-     * @return bool
      *
      * @throws BingoRoomException Si falla el cambio de estado
      */
-    public function toggleStatus(BingoRoom $room): bool
+    public function toggleStatus(BingoRoom $room) : bool
     {
         return $this->crudService->toggleStatus($room);
-    }
-
-    /**
-     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
-     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
-     *
-     * @param BingoRoom $room Model
-     * @return bool
-     *
-     * @throws BingoRoomException Si falla la cancelación
-     */
-    public function cancel(BingoRoom $room): bool
-    {
-        return $this->crudService->cancel($room);
-    }
-
-    /**
-     * Activar manualmente el sorteo de una sala sin horario programado (start_mode = MANUAL).
-     * Solo el creador de la sala o un admin/superadmin pueden ejecutarla.
-     *
-     * @param BingoRoom $room Model
-     * @return bool
-     *
-     * @throws BingoRoomException Si la sala no admite activación manual o el usuario no está autorizado
-     */
-    public function activateNow(BingoRoom $room): bool
-    {
-        return $this->crudService->activateNow($room);
-    }
-
-    /**
-     * Programa la fecha/hora de inicio de una sala sin horario (start_mode = MANUAL),
-     * convirtiéndola en una sala programada (start_mode = SCHEDULED). Solo el creador
-     * de la sala o un admin/superadmin pueden ejecutarla.
-     *
-     * @param BingoRoom $room Model
-     * @param string $date Fecha en formato Y-m-d
-     * @param string $time Hora en formato H:i
-     * @return bool
-     *
-     * @throws BingoRoomException Si la sala no admite programación, el usuario no está
-     *                            autorizado, el estado no es válido, o la fecha/hora es inválida
-     */
-    public function scheduleStart(BingoRoom $room, string $date, string $time): bool
-    {
-        return $this->crudService->scheduleStart($room, $date, $time);
-    }
-
-    /**
-     * Eliminar una sala de bingo permanentemente (hard delete).
-     *
-     * @throws \App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException Si la sala tiene historial financiero
-     */
-    public function destroy(BingoRoom $room): bool
-    {
-        return $this->crudService->destroy($room);
-    }
-
-    /**
-     * Verificar código/contraseña de acceso a una sala privada. Si la sala no
-     * es privada, siempre retorna verificado. Si es válido, marca la sala como
-     * verificada en la sesión del usuario actual.
-     *
-     * @param BingoRoom $room Model
-     * @param string $accessCode Código de acceso ingresado
-     * @param string $password Contraseña ingresada
-     * @return array{verified: bool}
-     */
-    public function verifyRoomAccess(BingoRoom $room, string $accessCode, string $password): array
-    {
-        return $this->crudService->verifyRoomAccess($room, $accessCode, $password);
-    }
-
-    /**
-     * Resolver y verificar una sala privada por código de acceso, sin conocer
-     * su ID de antemano ("Tengo un código" en el listado de salas de juego).
-     *
-     * @return array{verified: bool, room_route_key: ?string}
-     */
-    public function joinRoomByCode(string $accessCode, string $password): array
-    {
-        return $this->crudService->joinRoomByCode($accessCode, $password);
-    }
-
-    /**
-     * Refetch paginado/filtrado del listado de salas de juego (game-rooms),
-     * usado por los filtros de fecha/variante del listado de jugador.
-     *
-     * @param array{date_from?: string, date_to?: string, variant?: string} $filters
-     * @return array{rooms: array, pagination: array, kpis: array}
-     */
-    public function gameRoomsData(int $page, int $perPage, array $filters): array
-    {
-        $userId = $this->userContext->resolveUserId();
-        return $this->contextService->gameRoomsDataForRefetch($userId, $page, $perPage, $filters);
     }
 
     /**
@@ -241,8 +209,34 @@ final class BingoRoomService
      *
      * @return array<int, array{user_id: string, name: string, avatar_url: ?string, cards_count: int}>
      */
-    public function topBuyers(string $roomId): array
+    public function topBuyers(string $roomId) : array
     {
         return $this->contextService->topBuyers($roomId);
+    }
+
+    /**
+     * Actualizar una sala de bingo existente.
+     *
+     * @param BingoRoom $room Model
+     */
+    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto) : bool
+    {
+        return $this->crudService->saveRoom($room, $dto);
+    }
+
+    /**
+     * Verificar código/contraseña de acceso a una sala privada. Si la sala no
+     * es privada, siempre retorna verificado. Si es válido, marca la sala como
+     * verificada en la sesión del usuario actual.
+     *
+     * @param BingoRoom $room       Model
+     * @param string    $accessCode Código de acceso ingresado
+     * @param string    $password   Contraseña ingresada
+     *
+     * @return array{verified: bool}
+     */
+    public function verifyRoomAccess(BingoRoom $room, string $accessCode, string $password) : array
+    {
+        return $this->crudService->verifyRoomAccess($room, $accessCode, $password);
     }
 }

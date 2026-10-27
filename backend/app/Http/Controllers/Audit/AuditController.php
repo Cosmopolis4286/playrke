@@ -18,36 +18,8 @@ class AuditController extends Controller
     private const LIST_FILTER_KEYS = ['event', 'actor_type', 'entity', 'user_id', 'auditable_id', 'date_from', 'date_to', 'search'];
 
     public function __construct(
-        private AuditService $service
-    ) {}
-
-    public function index(Request $request): Response
-    {
-        return $this->handleServiceInertia(function () use ($request) {
-            $filters       = $request->only(['entity', 'auditable_id', 'user_id']);
-            $tableData     = $this->service->getTableData($filters);
-            $filterOptions = $this->service->filterOptions();
-            $stats         = $this->service->stats();
-
-            return Inertia::render('Audit/Index', [
-                'audits'         => $tableData,
-                'filterOptions'  => $filterOptions,
-                'initialFilters' => $filters,
-                'stats'          => $stats,
-            ]);
-        });
-    }
-
-    public function fetchList(Request $request): JsonResponse
-    {
-        return $this->handleServiceJson(function () use ($request) {
-            $filters   = $request->only(self::LIST_FILTER_KEYS);
-            $page      = (int) $request->get('page', 1);
-            $sort      = $request->get('sort');
-            $direction = (string) $request->get('direction', 'desc');
-
-            return ['data' => $this->service->fetchList($filters, $page, $sort, $direction)];
-        });
+        private AuditService $service,
+    ) {
     }
 
     /**
@@ -55,7 +27,7 @@ class AuditController extends Controller
      * actuales (sin límite de paginación) — usa cursor() vía el service
      * para no materializar el resultado completo en memoria.
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         $filters = $request->only(self::LIST_FILTER_KEYS);
 
@@ -77,10 +49,32 @@ class AuditController extends Controller
         );
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($id) {
-            return ['data' => $this->service->show((int) $id)];
+        return $this->handleServiceJson(function() use ($request) {
+            $filters = $request->only(self::LIST_FILTER_KEYS);
+            $page = (int) $request->get('page', 1);
+            $sort = $request->get('sort');
+            $direction = (string) $request->get('direction', 'desc');
+
+            return ['data' => $this->service->fetchList($filters, $page, $sort, $direction)];
+        });
+    }
+
+    public function index(Request $request) : Response
+    {
+        return $this->handleServiceInertia(function() use ($request) {
+            $filters = $request->only(['entity', 'auditable_id', 'user_id']);
+            $tableData = $this->service->getTableData($filters);
+            $filterOptions = $this->service->filterOptions();
+            $stats = $this->service->stats();
+
+            return Inertia::render('Audit/Index', [
+                'audits' => $tableData,
+                'filterOptions' => $filterOptions,
+                'initialFilters' => $filters,
+                'stats' => $stats,
+            ]);
         });
     }
 
@@ -89,9 +83,9 @@ class AuditController extends Controller
      * dropdown de "Entidad" en el frontend, no se calcula en cada carga de
      * /audit (ver AuditService::mostChangedFields()).
      */
-    public function mostChangedFields(Request $request): JsonResponse
+    public function mostChangedFields(Request $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
+        return $this->handleServiceJson(function() use ($request) {
             $entity = (string) $request->get('entity');
 
             if ($entity === '') {
@@ -99,6 +93,13 @@ class AuditController extends Controller
             }
 
             return ['data' => $this->service->mostChangedFields($entity)];
+        });
+    }
+
+    public function show(Request $request, string $id) : JsonResponse
+    {
+        return $this->handleServiceJson(function() use ($id) {
+            return ['data' => $this->service->show((int) $id)];
         });
     }
 }

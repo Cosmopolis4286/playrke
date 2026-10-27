@@ -15,21 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ReferralXpAward extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'referral_xp_awards';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    protected $fillable = [
-        'referrer_id',
-        'referred_user_id',
-        'xp_amount',
-        'referred_registration_ip',
-        'revoked_at',
-        'revoked_by',
-        'revoked_reason',
-    ];
 
     protected $casts = [
         'id' => 'string',
@@ -40,17 +26,31 @@ class ReferralXpAward extends Model
         'revoked_at' => 'datetime',
     ];
 
-    public function referrer(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'referrer_id');
-    }
+    protected $fillable = [
+        'referrer_id',
+        'referred_user_id',
+        'xp_amount',
+        'referred_registration_ip',
+        'revoked_at',
+        'revoked_by',
+        'revoked_reason',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    public function referredUser(): BelongsTo
+    protected $table = 'referral_xp_awards';
+
+    public function referredUser() : BelongsTo
     {
         return $this->belongsTo(User::class, 'referred_user_id');
     }
 
-    public function revokedByUser(): BelongsTo
+    public function referrer() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referrer_id');
+    }
+
+    public function revokedByUser() : BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by');
     }

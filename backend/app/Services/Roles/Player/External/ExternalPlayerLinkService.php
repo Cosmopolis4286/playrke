@@ -8,7 +8,9 @@ use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Player\External\UserPurchaseCode;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
+use Exception;
 use Illuminate\Support\Str;
+use Log;
 
 /**
  * Ciclo de vida del link de un ExternalPlayer (comprador de cartones sin
@@ -27,7 +29,69 @@ final class ExternalPlayerLinkService
 {
     public function __construct(
         private readonly ExternalPlayerRepositoryInterface $repository,
-    ) {}
+    ) {
+    }
+
+    /**
+     * user_ids de la red comercial a la que pertenece el actor: el Commerce
+     * dueño del negocio + todos sus vendedores (directos y de sus agencias),
+     * vía Commerce::networkUserIds(). El actor puede ser el propio Commerce,
+     * un Seller (Seller::resolveCommerce(), directo o vía agencia) o una
+     * Subsidiary (su Commerce padre).
+     *
+     * Un ExternalPlayer "pertenece" a la red que lo captó (seller_user_id):
+     * cualquier vendedor del mismo comercio puede reconocerlo y venderle, pero
+     * nunca otro comercio — aunque compartan una sala PUBLIC. Sin comercio
+     * resoluble, solo el propio usuario.
+     *
+     * @return string[]
+     */
+    public function actorNetworkUserIds(int|string|null $userId) : array
+    {
+        if ($userId === null) {
+            return [];
+        }
+
+        $userId = (string) $userId;
+
+        $commerce = Commerce::where('user_id', $userId)->first()
+            ?? Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id'])?->resolveCommerce()
+            ?? Subsidiary::where('user_id', $userId)->first(['id', 'commerce_id', 'user_id'])?->commerce;
+
+        return $commerce?->networkUserIds() ?? [$userId];
+    }
+
+    /**
+     * Resuelve la URL PÚBLICA de acceso (sin cuenta) para un ExternalPlayer,
+     * a partir de su `link` o su ID. $playerLink null significa jugador
+     * interno (con cuenta), no requiere resolución.
+     *
+     * Apunta a external-players.game (ruta pública, ver
+     * routes/modules/external-player.php) — NO a bingo.game, que exige
+     * sesión autenticada con rol player y siempre rechazaría a un
+     * ExternalPlayer sin cuenta.
+     */
+    public function resolveGameUrl(int|string|null $playerLink) : ?string
+    {
+        if ($playerLink === null) {
+            return null;
+        }
+
+        // El link en sí (28 chars aleatorios) no es PII — se loguea igual que
+        // cualquier identificador técnico, pero nunca los datos del jugador
+        // asociado (nombre/teléfono).
+        $externalPlayer = is_numeric($playerLink)
+            ? ExternalPlayer::find($playerLink) ?? ExternalPlayer::where('link', $playerLink)->first()
+            : ExternalPlayer::where('link', $playerLink)->first();
+
+        if (! $externalPlayer) {
+            Log::warning('ExternalPlayerLinkService: external player no encontrado', ['player_link_or_id' => $playerLink]);
+
+            throw new Exception('Jugador externo no encontrado');
+        }
+
+        return route('external-players.game', ['link' => $externalPlayer->link]);
+    }
 
     /**
      * Busca un ExternalPlayer existente para esta sala/teléfono; si no
@@ -42,9 +106,9 @@ final class ExternalPlayerLinkService
      * updateRoomUser().
      *
      * @param array $data Requiere: gameId, roomId, playerPhone, country,
-     *   creator, currency. Opcionales: roomUser, playerName, playerLastName.
+     *                    creator, currency. Opcionales: roomUser, playerName, playerLastName.
      */
-    public function resolveOrCreatePlayer(array $data): array
+    public function resolveOrCreatePlayer(array $data) : array
     {
         $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
@@ -59,7 +123,7 @@ final class ExternalPlayerLinkService
             ->whereIn('seller_user_id', $this->actorNetworkUserIds(auth()->id()))
             ->first(['id', 'link']);
 
-        if (!$player) {
+        if (! $player) {
             $playerName = $data['playerName'] ?? null;
             $playerLastName = $data['playerLastName'] ?? null;
             $country = $data['country'];
@@ -79,8 +143,8 @@ final class ExternalPlayerLinkService
                 'status' => 'ACTIVE',
             ])->id;
 
-            if (!$purchaseCode) {
-                throw new \Exception('Error al crear el código de compra');
+            if (! $purchaseCode) {
+                throw new Exception('Error al crear el código de compra');
             }
 
             $playerLink = $this->repository->generateUniqueLink();
@@ -88,7 +152,7 @@ final class ExternalPlayerLinkService
 
             // Log de diagnóstico sin PII: solo tipos/presencia de campos e IDs
             // técnicos, nunca teléfono/nombre del jugador.
-            \Log::info('ExternalPlayerLinkService: creando ExternalPlayer', [
+            Log::info('ExternalPlayerLinkService: creando ExternalPlayer', [
                 'game_id' => $data['gameId'] ?? null,
                 'room_id' => $data['roomId'] ?? null,
                 'seller_user_id' => $sellerUserId,
@@ -97,26 +161,26 @@ final class ExternalPlayerLinkService
             ]);
 
             $dataPlayer = [
-                'game_id' => (string)$data['gameId'],
-                'room_id' => (string)$data['roomId'],
-                'creator_user_id' => is_array($data['creator']) ? (string)($data['creator']['id'] ?? $data['creator']) : (string)$data['creator'],
-                'room_user_id' => $roomUser ? (is_array($roomUser) ? (string)($roomUser['room_user_id'] ?? $roomUser['id'] ?? $roomUser) : (string)$roomUser) : null,
-                'seller_user_id' => (string)$sellerUserId,
-                'country_id' => (string)$country,
-                'currency_id' => is_array($data['currency']) ? (string)($data['currency']['id'] ?? $data['currency']) : (string)$data['currency'],
-                'link' => (string)$playerLink,
-                'first_name' => (string)$playerName,
-                'last_name' => (string)$playerLastName,
+                'game_id' => (string) $data['gameId'],
+                'room_id' => (string) $data['roomId'],
+                'creator_user_id' => is_array($data['creator']) ? (string) ($data['creator']['id'] ?? $data['creator']) : (string) $data['creator'],
+                'room_user_id' => $roomUser ? (is_array($roomUser) ? (string) ($roomUser['room_user_id'] ?? $roomUser['id'] ?? $roomUser) : (string) $roomUser) : null,
+                'seller_user_id' => (string) $sellerUserId,
+                'country_id' => (string) $country,
+                'currency_id' => is_array($data['currency']) ? (string) ($data['currency']['id'] ?? $data['currency']) : (string) $data['currency'],
+                'link' => (string) $playerLink,
+                'first_name' => (string) $playerName,
+                'last_name' => (string) $playerLastName,
                 'identification' => null,
-                'phone' => (string)$playerPhone,
-                'purchase_code_id' => (string)$purchaseCode,
+                'phone' => (string) $playerPhone,
+                'purchase_code_id' => (string) $purchaseCode,
                 'expiration_date' => now()->addDays(ExternalPlayerLinkSettings::expirationDays()),
             ];
 
             $player = ExternalPlayer::create($dataPlayer);
 
-            if (!$player->id) {
-                throw new \Exception('Error al crear la información del jugador');
+            if (! $player->id) {
+                throw new Exception('Error al crear la información del jugador');
             }
         }
 
@@ -129,75 +193,15 @@ final class ExternalPlayerLinkService
     }
 
     /**
-     * user_ids de la red comercial a la que pertenece el actor: el Commerce
-     * dueño del negocio + todos sus vendedores (directos y de sus agencias),
-     * vía Commerce::networkUserIds(). El actor puede ser el propio Commerce,
-     * un Seller (Seller::resolveCommerce(), directo o vía agencia) o una
-     * Subsidiary (su Commerce padre).
-     *
-     * Un ExternalPlayer "pertenece" a la red que lo captó (seller_user_id):
-     * cualquier vendedor del mismo comercio puede reconocerlo y venderle, pero
-     * nunca otro comercio — aunque compartan una sala PUBLIC. Sin comercio
-     * resoluble, solo el propio usuario.
-     *
-     * @return string[]
-     */
-    public function actorNetworkUserIds(int|string|null $userId): array
-    {
-        if ($userId === null) {
-            return [];
-        }
-
-        $userId = (string) $userId;
-
-        $commerce = Commerce::where('user_id', $userId)->first()
-            ?? Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id'])?->resolveCommerce()
-            ?? Subsidiary::where('user_id', $userId)->first(['id', 'commerce_id', 'user_id'])?->commerce;
-
-        return $commerce?->networkUserIds() ?? [$userId];
-    }
-
-    /**
      * Completa/actualiza el room_user_id informativo de un ExternalPlayer
      * una vez que su BingoRoomUser ya existe — llamado después de generar
      * cartones, cuando resolveOrCreatePlayer() se invocó sin `roomUser`
      * disponible todavía.
      */
-    public function updateRoomUser(int|string $externalPlayerId, int|string $roomUserId): void
+    public function updateRoomUser(int|string $externalPlayerId, int|string $roomUserId) : void
     {
         ExternalPlayer::where('id', $externalPlayerId)
             ->whereNull('room_user_id')
             ->update(['room_user_id' => (string) $roomUserId]);
-    }
-
-    /**
-     * Resuelve la URL PÚBLICA de acceso (sin cuenta) para un ExternalPlayer,
-     * a partir de su `link` o su ID. $playerLink null significa jugador
-     * interno (con cuenta), no requiere resolución.
-     *
-     * Apunta a external-players.game (ruta pública, ver
-     * routes/modules/external-player.php) — NO a bingo.game, que exige
-     * sesión autenticada con rol player y siempre rechazaría a un
-     * ExternalPlayer sin cuenta.
-     */
-    public function resolveGameUrl(int|string|null $playerLink): ?string
-    {
-        if ($playerLink === null) {
-            return null;
-        }
-
-        // El link en sí (28 chars aleatorios) no es PII — se loguea igual que
-        // cualquier identificador técnico, pero nunca los datos del jugador
-        // asociado (nombre/teléfono).
-        $externalPlayer = is_numeric($playerLink)
-            ? ExternalPlayer::find($playerLink) ?? ExternalPlayer::where('link', $playerLink)->first()
-            : ExternalPlayer::where('link', $playerLink)->first();
-
-        if (!$externalPlayer) {
-            \Log::warning('ExternalPlayerLinkService: external player no encontrado', ['player_link_or_id' => $playerLink]);
-            throw new \Exception('Jugador externo no encontrado');
-        }
-
-        return route('external-players.game', ['link' => $externalPlayer->link]);
     }
 }

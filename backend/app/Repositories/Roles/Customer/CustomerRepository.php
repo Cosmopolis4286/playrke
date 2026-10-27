@@ -2,11 +2,10 @@
 
 namespace App\Repositories\Roles\Customer;
 
+use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Models\Roles\Customer;
 use App\Repositories\BaseRepository;
-use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Str;
 
 class CustomerRepository extends BaseRepository implements CustomerRepositoryInterface
 {
@@ -15,58 +14,17 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         $this->model = $model;
     }
 
-    public function getByUserId($userId): ?Customer
-    {
-        return $this->model->where('user_id', $userId)->first();
-    }
-
-    public function getByCustomerKey(string $customerKey): ?Customer
-    {
-        return $this->model->where('customer_key', $customerKey)->first();
-    }
-
-    public function existsCustomerById($id): bool
-    {
-        return $this->model->where('id', $id)->exists();
-    }
-
-    public function existsByColumn(string $column, $value): bool
+    public function existsByColumn(string $column, $value) : bool
     {
         return $this->model->where($column, $value)->exists();
     }
 
-    public function getValueByCustomerKey(string $customerKey, string $column)
+    public function existsCustomerById($id) : bool
     {
-        return $this->model->where('customer_key', $customerKey)->value($column);
+        return $this->model->where('id', $id)->exists();
     }
 
-    public function getBlockedCustomers(): Collection
-    {
-        return $this->model->where('status', 'BLOCKED')->get();
-    }
-
-    public function getByCountry($countryId): Collection
-    {
-        return $this->model->where('country_id', $countryId)->get();
-    }
-
-    public function getCustomersWithUser(): Collection
-    {
-        return $this->model->whereNotNull('user_id')->get();
-    }
-
-    public function searchByName(string $searchTerm): Collection
-    {
-        return $this->model->where('name', 'LIKE', "%{$searchTerm}%")->get();
-    }
-
-    public function updateStatus($customerId, string $status): bool
-    {
-        return $this->model->where('id', $customerId)
-            ->update(['status' => $status]) > 0;
-    }
-
-    public function generateUniqueCustomerKey(): string
+    public function generateUniqueCustomerKey() : string
     {
         do {
             $customerKey = bin2hex(random_bytes(32));
@@ -75,10 +33,51 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         return $customerKey;
     }
 
-    public function getCustomersWithCommission(float $minCommission = 0): Collection
+    public function getBlockedCustomers() : Collection
+    {
+        return $this->model->where('status', 'BLOCKED')->get();
+    }
+
+    public function getByCountry($countryId) : Collection
+    {
+        return $this->model->where('country_id', $countryId)->get();
+    }
+
+    public function getByCustomerKey(string $customerKey) : ?Customer
+    {
+        return $this->model->where('customer_key', $customerKey)->first();
+    }
+
+    public function getByUserId($userId) : ?Customer
+    {
+        return $this->model->where('user_id', $userId)->first();
+    }
+
+    public function getCustomersWithCommission(float $minCommission = 0) : Collection
     {
         return $this->model->where('commission', '>=', $minCommission)
             ->whereNotNull('commission')
             ->get();
+    }
+
+    public function getCustomersWithUser() : Collection
+    {
+        return $this->model->whereNotNull('user_id')->get();
+    }
+
+    public function getValueByCustomerKey(string $customerKey, string $column)
+    {
+        return $this->model->where('customer_key', $customerKey)->value($column);
+    }
+
+    public function searchByName(string $searchTerm) : Collection
+    {
+        return $this->model->where('name', 'LIKE', "%{$searchTerm}%")->get();
+    }
+
+    public function updateStatus($customerId, string $status) : bool
+    {
+        return $this->model->where('id', $customerId)
+            ->update(['status' => $status]) > 0;
     }
 }

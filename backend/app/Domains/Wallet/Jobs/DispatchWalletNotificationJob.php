@@ -25,7 +25,7 @@ use Illuminate\Queue\SerializesModels;
  * de forma inequívoca); cuando es null (algún caller legacy que no lo
  * pasa) cae a un hash de los demás campos, mejor que no deduplicar nada.
  */
-class DispatchWalletNotificationJob implements ShouldQueue, ShouldBeUnique
+class DispatchWalletNotificationJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -49,12 +49,6 @@ class DispatchWalletNotificationJob implements ShouldQueue, ShouldBeUnique
     ) {
     }
 
-    public function uniqueId() : string
-    {
-        return $this->movementId
-            ?? md5($this->userId . '|' . $this->movementType . '|' . $this->amount . '|' . ($this->reason ?? ''));
-    }
-
     public function handle(NotificationService $notificationService) : void
     {
         $notificationService->createWalletNotification(
@@ -66,5 +60,11 @@ class DispatchWalletNotificationJob implements ShouldQueue, ShouldBeUnique
             movementId: $this->movementId,
             reason: $this->reason,
         );
+    }
+
+    public function uniqueId() : string
+    {
+        return $this->movementId
+            ?? md5($this->userId . '|' . $this->movementType . '|' . $this->amount . '|' . ($this->reason ?? ''));
     }
 }

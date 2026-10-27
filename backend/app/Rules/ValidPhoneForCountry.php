@@ -29,17 +29,17 @@ final class ValidPhoneForCountry implements ValidationRule
     private readonly ?string $isoCode2;
 
     /**
-     * @param string|null $countryId  ID del país (tabla countries) — se resuelve a iso_code_2 internamente.
-     * @param string|null $isoCode2   ISO-2 directo, si ya se conoce (evita la consulta a countries). Tiene prioridad sobre $countryId.
+     * @param string|null $countryId ID del país (tabla countries) — se resuelve a iso_code_2 internamente
+     * @param string|null $isoCode2  ISO-2 directo, si ya se conoce (evita la consulta a countries). Tiene prioridad sobre $countryId.
      */
     public function __construct(?string $countryId = null, ?string $isoCode2 = null)
     {
         $this->isoCode2 = $isoCode2 ?? ($countryId ? Country::where('id', $countryId)->value('iso_code_2') : null);
     }
 
-    public function validate(string $attribute, mixed $value, Closure $fail): void
+    public function validate(string $attribute, mixed $value, Closure $fail) : void
     {
-        if (!PhonePatterns::matches($value, $this->isoCode2)) {
+        if (! PhonePatterns::matches($value, $this->isoCode2)) {
             $fail('El formato del teléfono no es válido para el país seleccionado.');
         }
     }

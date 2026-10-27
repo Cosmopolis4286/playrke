@@ -9,14 +9,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modelo: Puntuación Final (trivia_scores).
- * 
+ *
  * Guarda resultados finales del juego.
  */
 class TriviaScore extends BaseModel
 {
+    protected $casts = [
+        'final_score' => 'integer',
+        'correct_answers' => 'integer',
+        'wrong_answers' => 'integer',
+        'average_response_time_ms' => 'float',
+        'position' => 'integer',
+        'max_streak' => 'integer',
+        'is_winner' => 'boolean',
+        'total_questions' => 'integer',
+        'total_response_time_ms' => 'integer',
+        'metadata' => 'array',
+    ];
     protected $connection = 'pgsql_trivia';
-
-    protected $table = 'trivia_scores';
 
     protected $fillable = [
         'game_id',
@@ -33,20 +43,9 @@ class TriviaScore extends BaseModel
         'metadata', // JSON con historial detallado
     ];
 
-    protected $casts = [
-        'final_score' => 'integer',
-        'correct_answers' => 'integer',
-        'wrong_answers' => 'integer',
-        'average_response_time_ms' => 'float',
-        'position' => 'integer',
-        'max_streak' => 'integer',
-        'is_winner' => 'boolean',
-        'total_questions' => 'integer',
-        'total_response_time_ms' => 'integer',
-        'metadata' => 'array',
-    ];
+    protected $table = 'trivia_scores';
 
-    public function game(): BelongsTo
+    public function game() : BelongsTo
     {
         return $this->belongsTo(TriviaGame::class, 'game_id');
     }

@@ -13,16 +13,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TriviaPrizePayment extends BaseModel
 {
-    protected $connection = 'pgsql_trivia';
-
-    protected $table = 'trivia_prize_payments';
-
     public const PAYMENT_STATUSES = [
-        'pending'   => 'Pendiente',
+        'pending' => 'Pendiente',
         'completed' => 'Completado',
-        'failed'    => 'Fallido',
+        'failed' => 'Fallido',
         'cancelled' => 'Cancelado',
     ];
+
+    protected $casts = [
+        'payment_amount' => 'decimal:8',
+        'processed_at' => 'datetime',
+    ];
+    protected $connection = 'pgsql_trivia';
 
     protected $fillable = [
         'participant_id',
@@ -36,17 +38,14 @@ class TriviaPrizePayment extends BaseModel
         'payment_notes',
     ];
 
-    protected $casts = [
-        'payment_amount' => 'decimal:8',
-        'processed_at'   => 'datetime',
-    ];
+    protected $table = 'trivia_prize_payments';
 
-    public function participant(): BelongsTo
+    public function participant() : BelongsTo
     {
         return $this->belongsTo(TriviaParticipant::class, 'participant_id');
     }
 
-    public function room(): BelongsTo
+    public function room() : BelongsTo
     {
         return $this->belongsTo(TriviaRoom::class, 'room_id');
     }

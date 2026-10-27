@@ -10,6 +10,10 @@ class SidebarMenuVisibility extends Model
 {
     use SnowflakeId;
 
+    protected $casts = [
+        'is_visible' => 'boolean',
+    ];
+
     protected $fillable = [
         'item_key',
         'role_id',
@@ -17,11 +21,7 @@ class SidebarMenuVisibility extends Model
         'sort_order',
     ];
 
-    protected $casts = [
-        'is_visible' => 'boolean',
-    ];
-
-    public function role(): BelongsTo
+    public function role() : BelongsTo
     {
         return $this->belongsTo(Role::class);
     }

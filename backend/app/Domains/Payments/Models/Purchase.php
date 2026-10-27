@@ -19,11 +19,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Purchase extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'purchases';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
+
+    protected $casts = [
+        'id' => 'string',
+        'user_id' => 'string',
+        'payment_order_id' => 'string',
+        'payment_product_id' => 'string',
+        'player_asset_id' => 'string',
+        'delivered_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -32,33 +37,28 @@ class Purchase extends Model
         'player_asset_id',
         'delivered_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'                 => 'string',
-        'user_id'            => 'string',
-        'payment_order_id'   => 'string',
-        'payment_product_id' => 'string',
-        'player_asset_id'    => 'string',
-        'delivered_at'       => 'datetime',
-    ];
+    protected $table = 'purchases';
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function paymentOrder(): BelongsTo
+    public function paymentOrder() : BelongsTo
     {
         return $this->belongsTo(PaymentOrder::class, 'payment_order_id');
     }
 
-    public function paymentProduct(): BelongsTo
+    public function paymentProduct() : BelongsTo
     {
         return $this->belongsTo(PaymentProduct::class, 'payment_product_id');
     }
 
-    public function playerAsset(): BelongsTo
+    public function playerAsset() : BelongsTo
     {
         return $this->belongsTo(PlayerAsset::class, 'player_asset_id');
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

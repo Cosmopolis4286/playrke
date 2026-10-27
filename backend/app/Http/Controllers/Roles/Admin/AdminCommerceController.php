@@ -23,52 +23,45 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class AdminCommerceController extends Controller
 {
-    /**
-     * @param AdminCommerceService $service
-     */
     public function __construct(
-        protected readonly AdminCommerceService $service
+        protected readonly AdminCommerceService $service,
     ) {
         $this->authorizeResource(Commerce::class, 'commerce');
     }
 
     /**
-     * Crear un comercio.
-     *
-     * @param AdminCommerceRequest $request
-     * @return JsonResponse
+     * Eliminar un comercio (soft delete).
      */
-    public function store(AdminCommerceRequest $request): JsonResponse
+    public function delete(Commerce $commerce) : JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => [
-                'password' => $this->service->create(
-                    $request->toDTO(AdminCommerceDTO::class)
-                ),
-            ]
+            fn () => $this->service->delete($commerce),
         );
     }
 
     /**
-     * Listado paginado de comercios (JSON). Server-side real: search,
-     * country_name y status filtran contra TODO el catálogo, no solo la
-     * página cargada en memoria — mismo patrón que AdminPlayerController::fetchList().
-     *
-     * @return JsonResponse
+     * Eliminación lógica de varios comercios en una sola transacción.
      */
-    public function fetchList(Request $request): JsonResponse
+    public function deleteBulk(Request $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
-            $filters = $request->only(['search', 'country_name', 'status']);
-            $page    = (int) $request->get('page', 1);
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
 
-            $result = $this->service->fetchList($filters, $page);
+        return $this->handleServiceJson(
+            fn () => $this->service->deleteBulk($request->input('ids')),
+        );
+    }
 
-            return [
-                'data' => $result['rows'],
-                'meta' => $result['pagination'],
-            ];
-        });
+    /**
+     * Eliminar un comercio permanentemente (hard delete).
+     */
+    public function destroy(Commerce $commerce) : JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn () => $this->service->destroy($commerce),
+        );
     }
 
     /**
@@ -76,11 +69,11 @@ final class AdminCommerceController extends Controller
      * actuales (sin límite de paginación) — mismo patrón que
      * AdminPlayerController::export().
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request) : StreamedResponse
     {
         $filters = $request->only(['search', 'country_name', 'status']);
 
-        return response()->streamDownload(function () use ($filters) {
+        return response()->streamDownload(function() use ($filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Nombre', 'País', 'Teléfono', 'Email', 'Comisión', 'Estado']);
 
@@ -102,145 +95,119 @@ final class AdminCommerceController extends Controller
     }
 
     /**
-     * Alternar estado de varios comercios en una sola transacción.
+     * Listado paginado de comercios (JSON). Server-side real: search,
+     * country_name y status filtran contra TODO el catálogo, no solo la
+     * página cargada en memoria — mismo patrón que AdminPlayerController::fetchList().
      */
-    public function toggleStatusBulk(Request $request): JsonResponse
+    public function fetchList(Request $request) : JsonResponse
     {
-        $request->validate([
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'string',
-        ]);
+        return $this->handleServiceJson(function() use ($request) {
+            $filters = $request->only(['search', 'country_name', 'status']);
+            $page = (int) $request->get('page', 1);
 
-        return $this->handleServiceJson(
-            fn() => $this->service->toggleStatusBulk($request->input('ids'))
-        );
-    }
+            $result = $this->service->fetchList($filters, $page);
 
-    /**
-     * Eliminación lógica de varios comercios en una sola transacción.
-     */
-    public function deleteBulk(Request $request): JsonResponse
-    {
-        $request->validate([
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'string',
-        ]);
-
-        return $this->handleServiceJson(
-            fn() => $this->service->deleteBulk($request->input('ids'))
-        );
-    }
-
-    /**
-     * Mostrar detalle de un comercio.
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
-     */
-    public function show(Commerce $commerce): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => [
-                'data' => $this->service->show($commerce),
-            ]
-        );
-    }
-
-    /**
-     * Actualizar un comercio.
-     *
-     * @param AdminCommerceRequest $request
-     * @param Commerce $commerce
-     * @return JsonResponse
-     */
-    public function update(AdminCommerceRequest $request, Commerce $commerce): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->update(
-                $commerce,
-                $request->toDTO(AdminCommerceDTO::class)
-            )
-        );
-    }
-
-    /**
-     * Eliminar un comercio (soft delete).
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
-     */
-    public function delete(Commerce $commerce): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->delete($commerce)
-        );
-    }
-
-    /**
-     * Eliminar un comercio permanentemente (hard delete).
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
-     */
-    public function destroy(Commerce $commerce): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->destroy($commerce)
-        );
-    }
-
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) del comercio.
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
-     */
-    public function toggleStatus(Commerce $commerce): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->toggleStatus($commerce)
-        );
+            return [
+                'data' => $result['rows'],
+                'meta' => $result['pagination'],
+            ];
+        });
     }
 
     /**
      * Generar una nueva contraseña para un comercio.
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
      */
-    public function resetPassword(Commerce $commerce): JsonResponse
+    public function resetPassword(Commerce $commerce) : JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => [
+            fn () => [
                 'password' => $this->service->resetPassword($commerce),
-            ]
+            ],
         );
     }
 
     /**
      * Marcar el comercio como principal/vinculado a la app.
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
      */
-    public function setAsDefault(Commerce $commerce): JsonResponse
+    public function setAsDefault(Commerce $commerce) : JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->service->setAsDefault($commerce)
+            fn () => $this->service->setAsDefault($commerce),
+        );
+    }
+
+    /**
+     * Mostrar detalle de un comercio.
+     */
+    public function show(Commerce $commerce) : JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn () => [
+                'data' => $this->service->show($commerce),
+            ],
+        );
+    }
+
+    /**
+     * Crear un comercio.
+     */
+    public function store(AdminCommerceRequest $request) : JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn () => [
+                'password' => $this->service->create(
+                    $request->toDTO(AdminCommerceDTO::class),
+                ),
+            ],
+        );
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) del comercio.
+     */
+    public function toggleStatus(Commerce $commerce) : JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn () => $this->service->toggleStatus($commerce),
+        );
+    }
+
+    /**
+     * Alternar estado de varios comercios en una sola transacción.
+     */
+    public function toggleStatusBulk(Request $request) : JsonResponse
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'string',
+        ]);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->toggleStatusBulk($request->input('ids')),
         );
     }
 
     /**
      * Quitar la marca de comercio principal/vinculado a la app, sin
      * reasignarla a otro comercio.
-     *
-     * @param Commerce $commerce
-     * @return JsonResponse
      */
-    public function unsetAsDefault(Commerce $commerce): JsonResponse
+    public function unsetAsDefault(Commerce $commerce) : JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->service->unsetAsDefault($commerce)
+            fn () => $this->service->unsetAsDefault($commerce),
+        );
+    }
+
+    /**
+     * Actualizar un comercio.
+     */
+    public function update(AdminCommerceRequest $request, Commerce $commerce) : JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn () => $this->service->update(
+                $commerce,
+                $request->toDTO(AdminCommerceDTO::class),
+            ),
         );
     }
 }

@@ -33,23 +33,24 @@ final class SellerDashboardContextDTO implements ContextDTO
         public readonly array $purchaseCodes = ['active' => 0, 'remaining_uses' => 0, 'expiring_soon' => 0],
         /** Premios de sus compradores aún sin entregar */
         public readonly array $prizesToDeliver = ['count' => 0, 'amount' => null],
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'        => $this->userName,
-            'commission'      => $this->commission,
-            'stats'           => $this->stats,
-            'recentActivity'  => $this->recentActivity,
-            'reportsTo'       => $this->reportsTo,
+            'userName' => $this->userName,
+            'commission' => $this->commission,
+            'stats' => $this->stats,
+            'recentActivity' => $this->recentActivity,
+            'reportsTo' => $this->reportsTo,
             'roomCommissions' => $this->roomCommissions,
-            'salesTrend'      => $this->salesTrend,
-            'period'          => $this->period,
-            'ranking'         => $this->ranking,
-            'paymentReview'   => $this->paymentReview,
-            'closingRooms'    => $this->closingRooms,
-            'purchaseCodes'   => $this->purchaseCodes,
+            'salesTrend' => $this->salesTrend,
+            'period' => $this->period,
+            'ranking' => $this->ranking,
+            'paymentReview' => $this->paymentReview,
+            'closingRooms' => $this->closingRooms,
+            'purchaseCodes' => $this->purchaseCodes,
             'prizesToDeliver' => $this->prizesToDeliver,
         ];
     }

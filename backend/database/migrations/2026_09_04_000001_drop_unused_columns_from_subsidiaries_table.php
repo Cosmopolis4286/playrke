@@ -6,6 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function down() : void
+    {
+        if (Schema::hasColumn('subsidiaries', 'token')) {
+            return;
+        }
+
+        Schema::table('subsidiaries', function(Blueprint $table) {
+            $table->string('brand', 20)->nullable()->after('name')->comment('Marca asociada');
+            $table->string('product', 30)->nullable()->after('brand')->comment('Producto principal');
+            $table->string('token', 255)->nullable()->after('product')->comment('Token de autenticación');
+            $table->string('security_key', 255)->nullable()->after('token')->comment('Llave de seguridad');
+            $table->string('link_route', 255)->nullable()->after('security_key')->comment('Ruta de enlace o URL');
+        });
+    }
+
     /**
      * Auditoría del flujo completo de Subsidiary confirmó 5 columnas sin
      * valor real de negocio:
@@ -22,7 +37,7 @@ return new class extends Migration
      * eliminadas junto con sus referencias en
      * modelo/DTO/Request/Resource/formulario/servicios/frontend.
      */
-    public function up(): void
+    public function up() : void
     {
         // Guard de idempotencia — sin esto, un migrate:fresh que corre en
         // paralelo con otra sesión que ya dropeó estas columnas pero sin
@@ -33,23 +48,8 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('subsidiaries', function (Blueprint $table) {
+        Schema::table('subsidiaries', function(Blueprint $table) {
             $table->dropColumn(['token', 'security_key', 'link_route', 'brand', 'product']);
-        });
-    }
-
-    public function down(): void
-    {
-        if (Schema::hasColumn('subsidiaries', 'token')) {
-            return;
-        }
-
-        Schema::table('subsidiaries', function (Blueprint $table) {
-            $table->string('brand', 20)->nullable()->after('name')->comment('Marca asociada');
-            $table->string('product', 30)->nullable()->after('brand')->comment('Producto principal');
-            $table->string('token', 255)->nullable()->after('product')->comment('Token de autenticación');
-            $table->string('security_key', 255)->nullable()->after('token')->comment('Llave de seguridad');
-            $table->string('link_route', 255)->nullable()->after('security_key')->comment('Ruta de enlace o URL');
         });
     }
 };

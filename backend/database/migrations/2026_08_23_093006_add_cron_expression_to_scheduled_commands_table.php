@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Hace la frecuencia de cada comando editable desde el panel Jobs/Scheduler
  * en vez de fija en routes/console.php (->everyMinute(), ->hourly(), etc.).
  * routes/console.php pasa a leer cron_expression vía ScheduledCommandGate
@@ -16,7 +16,19 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        if (! Schema::hasColumn('scheduled_commands', 'cron_expression')) {
+            return;
+        }
+
+        Schema::table('scheduled_commands', function(Blueprint $table) {
+            $table->dropForeign(['frequency_updated_by']);
+            $table->dropColumn(['cron_expression', 'min_interval_seconds', 'frequency_updated_by', 'frequency_updated_at']);
+        });
+    }
+
+    public function up() : void
     {
         // Guard de idempotencia — sin esto, un migrate:fresh que corre en
         // paralelo con otra sesión que ya deja estas columnas físicamente
@@ -27,7 +39,7 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('scheduled_commands', function (Blueprint $table) {
+        Schema::table('scheduled_commands', function(Blueprint $table) {
             $table->string('cron_expression', 100)->nullable()->after('description')
                 ->comment('Expresión cron estándar de 5 campos (min hora dia mes dow). NULL = usa el default de código.');
             $table->unsignedInteger('min_interval_seconds')->nullable()->after('cron_expression')
@@ -40,18 +52,6 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('Superadmin que editó por última vez cron_expression.');
             $table->timestamp('frequency_updated_at')->nullable()->after('frequency_updated_by');
-        });
-    }
-
-    public function down(): void
-    {
-        if (! Schema::hasColumn('scheduled_commands', 'cron_expression')) {
-            return;
-        }
-
-        Schema::table('scheduled_commands', function (Blueprint $table) {
-            $table->dropForeign(['frequency_updated_by']);
-            $table->dropColumn(['cron_expression', 'min_interval_seconds', 'frequency_updated_by', 'frequency_updated_at']);
         });
     }
 };

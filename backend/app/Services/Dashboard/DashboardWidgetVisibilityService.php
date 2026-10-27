@@ -63,7 +63,7 @@ final class DashboardWidgetVisibilityService
         // ── SuperAdmin: StatCards ──
         ['key' => 'superadmin.stat.totalUsers',       'dashboard' => 'superadmin', 'type' => 'stat', 'label' => 'Usuarios totales',      'permission' => null],
         ['key' => 'superadmin.stat.totalAdmins',      'dashboard' => 'superadmin', 'type' => 'stat', 'label' => 'Administradores',       'permission' => null],
-        ['key' => 'superadmin.stat.activeRooms',      'dashboard' => 'superadmin', 'type' => 'stat', 'label' => 'Salas de Bingo activas','permission' => 'games.bingo'],
+        ['key' => 'superadmin.stat.activeRooms',      'dashboard' => 'superadmin', 'type' => 'stat', 'label' => 'Salas de Bingo activas', 'permission' => 'games.bingo'],
         ['key' => 'superadmin.stat.totalPermissions', 'dashboard' => 'superadmin', 'type' => 'stat', 'label' => 'Permisos totales',      'permission' => 'superadmin.access'],
         ['key' => 'superadmin.stat.pendingKyc',       'dashboard' => 'superadmin', 'type' => 'stat', 'label' => 'KYC pendientes',        'permission' => 'kyc.view'],
 
@@ -87,56 +87,15 @@ final class DashboardWidgetVisibilityService
     ];
 
     /**
-     * @return array<int, array{key: string, dashboard: string, type: string, label: string, permission: ?string}>
-     */
-    public function getCatalog(): array
-    {
-        return self::CATALOG;
-    }
-
-    /**
-     * Roles activos, ordenados, para las columnas de la matriz — mismo
-     * criterio que SidebarMenuVisibilityService::getRoles().
-     *
-     * @return array<int, array{id: string, name: string, prefix: string}>
-     */
-    public function getRoles(): array
-    {
-        return Role::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'prefix'])
-            ->map(fn (Role $role) => [
-                'id'     => (string) $role->id,
-                'name'   => $role->name,
-                'prefix' => $role->prefix ?? $role->name,
-            ])
-            ->toArray();
-    }
-
-    /**
-     * item_key => [role_id => bool]. Solo incluye excepciones explícitas.
-     *
-     * @return array<string, array<string, bool>>
-     */
-    public function getVisibilityMatrix(): array
-    {
-        return DashboardWidgetVisibility::query()
-            ->get(['item_key', 'role_id', 'is_visible'])
-            ->groupBy('item_key')
-            ->map(fn ($rows) => $rows->pluck('is_visible', 'role_id')->toArray())
-            ->toArray();
-    }
-
-    /**
      * @param array<int, array{item_key: string, role_id: string, is_visible: bool}> $changes
      */
-    public function applyChanges(array $changes): void
+    public function applyChanges(array $changes) : void
     {
-        DB::transaction(function () use ($changes) {
+        DB::transaction(function() use ($changes) {
             foreach ($changes as $change) {
                 DashboardWidgetVisibility::updateOrCreate(
                     ['item_key' => $change['item_key'], 'role_id' => $change['role_id']],
-                    ['is_visible' => $change['is_visible']]
+                    ['is_visible' => $change['is_visible']],
                 );
             }
         });
@@ -148,8 +107,49 @@ final class DashboardWidgetVisibilityService
      * dashboard completo de ~15-20 entradas) y expone isVisibleFor($user,
      * $itemKey, $permission) con la misma semántica documentada ahí.
      */
-    public function filterFor(User $user): DashboardWidgetFilter
+    public function filterFor(User $user) : DashboardWidgetFilter
     {
         return new DashboardWidgetFilter($user, $this->getVisibilityMatrix());
+    }
+
+    /**
+     * @return array<int, array{key: string, dashboard: string, type: string, label: string, permission: ?string}>
+     */
+    public function getCatalog() : array
+    {
+        return self::CATALOG;
+    }
+
+    /**
+     * Roles activos, ordenados, para las columnas de la matriz — mismo
+     * criterio que SidebarMenuVisibilityService::getRoles().
+     *
+     * @return array<int, array{id: string, name: string, prefix: string}>
+     */
+    public function getRoles() : array
+    {
+        return Role::where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'prefix'])
+            ->map(fn (Role $role) => [
+                'id' => (string) $role->id,
+                'name' => $role->name,
+                'prefix' => $role->prefix ?? $role->name,
+            ])
+            ->toArray();
+    }
+
+    /**
+     * item_key => [role_id => bool]. Solo incluye excepciones explícitas.
+     *
+     * @return array<string, array<string, bool>>
+     */
+    public function getVisibilityMatrix() : array
+    {
+        return DashboardWidgetVisibility::query()
+            ->get(['item_key', 'role_id', 'is_visible'])
+            ->groupBy('item_key')
+            ->map(fn ($rows) => $rows->pluck('is_visible', 'role_id')->toArray())
+            ->toArray();
     }
 }

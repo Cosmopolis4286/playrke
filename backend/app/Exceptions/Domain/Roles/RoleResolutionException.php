@@ -51,6 +51,18 @@ final class RoleResolutionException extends DomainException
     }
 
     /**
+     * AdminProfileAccessService::resolve(): el actor pidió ver/gestionar la
+     * ficha propia (Seller/Commerce/Subsidiary) de otro usuario
+     * (target_user_id) sin tener rol admin/superadmin. Nunca se ignora en
+     * silencio (fallback a la propia ficha) para que un intento de acceso
+     * indebido sea visible como error, no como un comportamiento inesperado.
+     */
+    public static function targetUserNotAllowed() : self
+    {
+        return new self('No tienes permiso para ver la ficha de otro usuario.', 403);
+    }
+
+    /**
      * ExchangeRateCrudService::resolveContext(): RoleUserService no pudo
      * resolver ningún rol activo para el usuario — sin rol, no hay forma
      * de determinar qué repositorio de tasas de cambio usar.
@@ -68,17 +80,5 @@ final class RoleResolutionException extends DomainException
     public static function unsupportedRole(string $role) : self
     {
         return new self("Rol inválido: {$role}", 422);
-    }
-
-    /**
-     * AdminProfileAccessService::resolve(): el actor pidió ver/gestionar la
-     * ficha propia (Seller/Commerce/Subsidiary) de otro usuario
-     * (target_user_id) sin tener rol admin/superadmin. Nunca se ignora en
-     * silencio (fallback a la propia ficha) para que un intento de acceso
-     * indebido sea visible como error, no como un comportamiento inesperado.
-     */
-    public static function targetUserNotAllowed() : self
-    {
-        return new self('No tienes permiso para ver la ficha de otro usuario.', 403);
     }
 }

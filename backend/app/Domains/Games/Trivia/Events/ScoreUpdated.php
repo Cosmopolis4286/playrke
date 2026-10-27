@@ -13,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Evento de dominio: Puntuación Actualizada.
- * 
+ *
  * Se emite cuando el leaderboard cambia para mantener
  * a todos los jugadores sincronizados en tiempo real.
  */
@@ -23,22 +23,23 @@ class ScoreUpdated implements ShouldBroadcastNow
 
     public function __construct(
         public readonly LeaderboardDTO $leaderboard,
-        public readonly ?string $highlightedPlayerId = null
-    ) {}
+        public readonly ?string $highlightedPlayerId = null,
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'trivia.score.updated';
+    }
+
+    public function broadcastOn() : array
     {
         return [
             new Channel('trivia.game.' . $this->leaderboard->gameId),
         ];
     }
 
-    public function broadcastAs(): string
-    {
-        return 'trivia.score.updated';
-    }
-
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'game_id' => $this->leaderboard->gameId,

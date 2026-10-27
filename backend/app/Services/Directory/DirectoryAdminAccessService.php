@@ -28,18 +28,19 @@ final class DirectoryAdminAccessService
 
     public function __construct(
         private readonly RoleUserService $roleUserService,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array{owner_user_id: int, actor_user_id: int, actor_role: string, is_impersonation: bool}
      *
-     * @throws DirectoryException Si se pidió target_user_id sin privilegio admin.
+     * @throws DirectoryException si se pidió target_user_id sin privilegio admin
      */
-    public function resolve(int $actorUserId, ?string $targetUserId): array
+    public function resolve(int $actorUserId, ?string $targetUserId) : array
     {
         $actorRole = $this->roleUserService->getActiveUserRolePrefix($actorUserId);
 
-        if (!$targetUserId || (string) $targetUserId === (string) $actorUserId) {
+        if (! $targetUserId || (string) $targetUserId === (string) $actorUserId) {
             return [
                 'owner_user_id' => $actorUserId,
                 'actor_user_id' => $actorUserId,
@@ -48,7 +49,7 @@ final class DirectoryAdminAccessService
             ];
         }
 
-        if (!in_array($actorRole, self::ADMIN_ROLES, true)) {
+        if (! in_array($actorRole, self::ADMIN_ROLES, true)) {
             throw DirectoryException::targetUserNotAllowed();
         }
 

@@ -21,32 +21,20 @@ use Tests\TestCase;
 class BingoRoomAccessByTypeTest extends TestCase
 {
     private string $creatorId = '960000000000000001';
-    private string $playerId  = '960000000000000002';
+    private string $playerId = '960000000000000002';
 
-    private function room(string $typeCode): BingoRoom
+    #[Test]
+    public function el_creador_siempre_entra_a_su_sala() : void
     {
-        $room = new BingoRoom(['creator_user_id' => $this->creatorId]);
-        $room->id = '960000000000000100';
-        $config = new BingoRoomConfig();
-        $config->setRelation('roomType', new RoomType(['code' => $typeCode]));
-        $room->setRelation('config', $config);
-        return $room;
-    }
+        $this->actAs($this->creatorId);
 
-    private function actAs(string $userId): void
-    {
-        $user = new User();
-        $user->id = $userId;
-        Auth::setUser($user);
-    }
-
-    private function crud(): BingoRoomCrudService
-    {
-        return app(BingoRoomCrudService::class);
+        foreach (['PUBLIC', 'PRIVATE', 'VIP', 'DEMO'] as $type) {
+            $this->assertTrue($this->crud()->canPlayerAccessRoom($this->room($type)), "creador en {$type}");
+        }
     }
 
     #[Test]
-    public function un_jugador_entra_a_publicas_y_a_privadas_solo_verificadas(): void
+    public function un_jugador_entra_a_publicas_y_a_privadas_solo_verificadas() : void
     {
         $this->actAs($this->playerId);
 
@@ -59,7 +47,14 @@ class BingoRoomAccessByTypeTest extends TestCase
     }
 
     #[Test]
-    public function vip_y_demo_quedan_cerradas_para_jugadores_aunque_tengan_el_enlace(): void
+    public function un_tipo_desconocido_queda_cerrado() : void
+    {
+        $this->actAs($this->playerId);
+        $this->assertFalse($this->crud()->canPlayerAccessRoom($this->room('NUEVO_TIPO')));
+    }
+
+    #[Test]
+    public function vip_y_demo_quedan_cerradas_para_jugadores_aunque_tengan_el_enlace() : void
     {
         $this->actAs($this->playerId);
 
@@ -78,20 +73,26 @@ class BingoRoomAccessByTypeTest extends TestCase
         }
     }
 
-    #[Test]
-    public function el_creador_siempre_entra_a_su_sala(): void
+    private function actAs(string $userId) : void
     {
-        $this->actAs($this->creatorId);
-
-        foreach (['PUBLIC', 'PRIVATE', 'VIP', 'DEMO'] as $type) {
-            $this->assertTrue($this->crud()->canPlayerAccessRoom($this->room($type)), "creador en {$type}");
-        }
+        $user = new User;
+        $user->id = $userId;
+        Auth::setUser($user);
     }
 
-    #[Test]
-    public function un_tipo_desconocido_queda_cerrado(): void
+    private function crud() : BingoRoomCrudService
     {
-        $this->actAs($this->playerId);
-        $this->assertFalse($this->crud()->canPlayerAccessRoom($this->room('NUEVO_TIPO')));
+        return app(BingoRoomCrudService::class);
+    }
+
+    private function room(string $typeCode) : BingoRoom
+    {
+        $room = new BingoRoom(['creator_user_id' => $this->creatorId]);
+        $room->id = '960000000000000100';
+        $config = new BingoRoomConfig;
+        $config->setRelation('roomType', new RoomType(['code' => $typeCode]));
+        $room->setRelation('config', $config);
+
+        return $room;
     }
 }

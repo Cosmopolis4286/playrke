@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Games\Bingo\BingoController;
 use App\Http\Controllers\Roles\Seller\ManagerSellerController;
 use App\Http\Controllers\Roles\Seller\SellerProfileController;
 use App\Http\Controllers\Roles\SellerController;
@@ -37,8 +36,8 @@ multi_middleware_routes('sellers', 'manager-seller.', [
             'destroy' => ['method' => 'delete', 'uri' => '{seller}'],
             'toggleStatus' => ['method' => 'put', 'uri' => '{seller}/status'],
             'resetPassword' => ['method' => 'put', 'uri' => '{seller}/reset-password'],
-        ]
-    ]
+        ],
+    ],
 ]);
 
 // ====================================
@@ -61,7 +60,7 @@ multi_middleware_routes('seller', 'seller.', [
             'get-player' => ['method' => 'post', 'uri' => 'bingo/player/search', 'action' => 'getPlayer', 'middleware' => ['throttle:20,1']],
             'payment-details' => ['method' => 'get', 'uri' => 'payment-details/{currency}', 'action' => 'getPaymentCommerceDetails'],
             'sales-report-player' => ['method' => 'get', 'uri' => 'bingo/sales-report/{room}/player/{playerLink}'],
-        ]
+        ],
     ],
 ]);
 
@@ -78,7 +77,7 @@ multi_middleware_routes('seller', 'seller.', [
 // esto, MultiPermissionMiddleware devolvía 302 a dashboard antes de que la
 // request llegara al controlador — el bypass de superadmin tampoco alcanza
 // a un usuario con solo el rol 'admin'.
-Route::middleware(['auth', 'multiPermission:sellers.manage-own,sellers.view'])->group(function () {
+Route::middleware(['auth', 'multiPermission:sellers.manage-own,sellers.view'])->group(function() {
     Route::get('seller/profile', [SellerProfileController::class, 'show'])->name('seller.profile.show');
     Route::put('seller/profile', [SellerProfileController::class, 'update'])->name('seller.profile.update');
 });

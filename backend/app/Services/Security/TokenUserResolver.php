@@ -22,16 +22,16 @@ final class TokenUserResolver
      * En esta implementación básica, el token debe ser un valor numérico
      * representando directamente el ID del usuario.
      *
-     * @param string $token Token de autenticación proporcionado por el cliente.
+     * @param string $token token de autenticación proporcionado por el cliente
      *
-     * @return int ID del usuario resuelto a partir del token.
+     * @return int ID del usuario resuelto a partir del token
      *
-     * @throws DomainException Si el token no es válido o no puede resolverse.
+     * @throws DomainException si el token no es válido o no puede resolverse
      */
-    public function resolve(string $token): int
+    public function resolve(string $token) : int
     {
         // Placeholder → API Key / JWT / DB / Redis
-        if (!is_numeric($token)) {
+        if (! is_numeric($token)) {
             throw new DomainException('Token inválido.');
         }
 

@@ -3,8 +3,8 @@
 namespace App\Domains\Games\Bingo\Repositories\Draw;
 
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
-use App\Repositories\BaseRepository;
 use App\Domains\Games\Bingo\Repositories\Draw\Contracts\BingoDrawRepositoryContract;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -14,24 +14,22 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para los sorteos de bolillas/chips en las salas de bingo.
  *
- * @package App\Repositories\Bingo\Draw
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryContract
 {
+    public const STATUS_ACTIVE = 2;
+    public const STATUS_COMPLETED = 4;
     /**
      * Estados de sorteos
      */
     public const STATUS_PENDING = 1;
-    public const STATUS_ACTIVE = 2;
     public const STATUS_WINNING = 3;
-    public const STATUS_COMPLETED = 4;
 
     /**
      * Constructor del repositorio
-     *
-     * @param BingoDraw $model
      */
     public function __construct(BingoDraw $model)
     {
@@ -39,168 +37,31 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     }
 
     /**
-     * Obtener el chip ganador de una sala
+     * Limpiar sorteos antiguos
      *
-     * @param string $roomId
-     * @return BingoDraw|null
+     * @return int Número de registros eliminados
      */
-    public function getWinningChip(string $roomId): ?BingoDraw
+    public function cleanOldDraws(int $daysOld = 30) : int
     {
-        return $this->model->where('room_id', $roomId)
-            ->where('status', self::STATUS_WINNING)
-            ->orderByDesc('id')
-            ->first();
-    }
+        $cutoffDate = now()->subDays($daysOld);
 
-    /**
-     * Obtener todos los sorteos de una sala
-     *
-     * @param string $roomId
-     * @return Collection<int, BingoDraw>
-     */
-    public function getRoomDraws(string $roomId): Collection
-    {
-        return $this->model->where('room_id', $roomId)->get();
-    }
-
-    /**
-     * Obtener el primer chip sorteado de una sala
-     *
-     * @param string $roomId
-     * @return BingoDraw|null
-     */
-    public function getFirstDrawChip(string $roomId): ?BingoDraw
-    {
-        return $this->model->where('room_id', $roomId)->first();
-    }
-
-    /**
-     * Obtener sorteos por sala y estado
-     *
-     * @param string $roomId
-     * @param int $status
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByRoomAndStatus(string $roomId, int $status): Collection
-    {
-        return $this->model->where('room_id', $roomId)
-            ->where('status', $status)
-            ->get();
-    }
-
-    /**
-     * Obtener sorteos por ronda
-     *
-     * @param string $roomId
-     * @param int $round
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByRound(string $roomId, int $round): Collection
-    {
-        return $this->model->where('room_id', $roomId)
-            ->where('round_id', $round)
-            ->get();
-    }
-
-    /**
-     * Obtener sorteos por código específico
-     *
-     * @param string $code
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByCode(string $code): Collection
-    {
-        return $this->model->where('code', $code)->get();
-    }
-
-    /**
-     * Obtener sorteos por chip específico
-     *
-     * @param string $chip
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByChip(string $chip): Collection
-    {
-        return $this->model->where('chip', $chip)->get();
-    }
-
-    /**
-     * Obtener sorteos activos
-     *
-     * @return Collection<int, BingoDraw>
-     */
-    public function getActiveDraws(): Collection
-    {
-        return $this->getByStatus(self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Obtener sorteos completados
-     *
-     * @return Collection<int, BingoDraw>
-     */
-    public function getCompletedDraws(): Collection
-    {
-        return $this->getByStatus(self::STATUS_COMPLETED);
-    }
-
-    /**
-     * Obtener sorteos pendientes
-     *
-     * @return Collection<int, BingoDraw>
-     */
-    public function getPendingDraws(): Collection
-    {
-        return $this->getByStatus(self::STATUS_PENDING);
-    }
-
-    /**
-     * Obtener último sorteo de una sala
-     *
-     * @param string $roomId
-     * @return BingoDraw|null
-     */
-    public function getLastDraw(string $roomId): ?BingoDraw
-    {
-        return $this->model->where('room_id', $roomId)
-            ->orderByDesc('created_at')
-            ->first();
-    }
-
-    /**
-     * Obtener sorteos por rango de tiempo
-     *
-     * @param string $roomId
-     * @param int $startTime
-     * @param int $endTime
-     * @return Collection<int, BingoDraw>
-     */
-    public function getByTimeRange(string $roomId, int $startTime, int $endTime): Collection
-    {
-        return $this->model->where('room_id', $roomId)
-            ->whereBetween('time', [$startTime, $endTime])
-            ->get();
+        return $this->model->where('created_at', '<', $cutoffDate)
+            ->where('status', self::STATUS_COMPLETED)
+            ->delete();
     }
 
     /**
      * Contar total de sorteos por sala
-     *
-     * @param string $roomId
-     * @return int
      */
-    public function countByRoom(string $roomId): int
+    public function countByRoom(string $roomId) : int
     {
         return $this->model->where('room_id', $roomId)->count();
     }
 
     /**
      * Contar sorteos por estado en una sala
-     *
-     * @param string $roomId
-     * @param int $status
-     * @return int
      */
-    public function countByRoomAndStatus(string $roomId, int $status): int
+    public function countByRoomAndStatus(string $roomId, int $status) : int
     {
         return $this->model->where('room_id', $roomId)
             ->where('status', $status)
@@ -208,13 +69,17 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     }
 
     /**
-     * Verificar si existe un chip específico en una sala
-     *
-     * @param string $roomId
-     * @param string $chip
-     * @return bool
+     * Crear nuevo sorteo
      */
-    public function existsChipInRoom(string $roomId, string $chip): bool
+    public function createDraw(array $drawData) : BingoDraw
+    {
+        return $this->create($drawData);
+    }
+
+    /**
+     * Verificar si existe un chip específico en una sala
+     */
+    public function existsChipInRoom(string $roomId, string $chip) : bool
     {
         return $this->model->where('room_id', $roomId)
             ->where('chip', $chip)
@@ -222,199 +87,42 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     }
 
     /**
-     * Verificar si una ronda está completa
+     * Exportar sorteos de una sala para análisis
      *
-     * @param string $roomId
-     * @param int $round
-     * @return bool
+     * @param string $format 'json'|'csv'|'array'
+     *
+     * @return mixed
      */
-    public function isRoundComplete(string $roomId, int $round): bool
+    public function exportRoomDraws(string $roomId, string $format = 'array')
     {
-        return $this->model->where('room_id', $roomId)
-            ->where('round_id', $round)
-            ->where('status', self::STATUS_COMPLETED)
-            ->exists();
+        $draws = $this->getRoomDraws($roomId);
+
+        switch ($format) {
+            case 'json':
+                return $draws->toJson();
+            case 'csv':
+                // Implementar exportación CSV si es necesario
+                return $draws->toArray();
+            case 'array':
+            default:
+                return $draws->toArray();
+        }
     }
 
     /**
-     * Obtener chips no sorteados de una sala
+     * Obtener sorteos activos
      *
-     * @param string $roomId
-     * @param array $allChips Array con todos los chips posibles
-     * @return array
-     */
-    public function getUndrawnChips(string $roomId, array $allChips): array
-    {
-        $drawnChips = $this->model->where('room_id', $roomId)
-            ->pluck('chip')
-            ->toArray();
-
-        return array_diff($allChips, $drawnChips);
-    }
-
-    /**
-     * Obtener progreso de sorteos por sala
-     *
-     * @param string $roomId
-     * @return array{
-     *     total_draws: int,
-     *     completed_draws: int,
-     *     pending_draws: int,
-     *     winning_draws: int,
-     *     progress_percentage: float
-     * }
-     */
-    public function getDrawProgress(string $roomId): array
-    {
-        $totalDraws = $this->countByRoom($roomId);
-        $completedDraws = $this->countByRoomAndStatus($roomId, self::STATUS_COMPLETED);
-        $pendingDraws = $this->countByRoomAndStatus($roomId, self::STATUS_PENDING);
-        $winningDraws = $this->countByRoomAndStatus($roomId, self::STATUS_WINNING);
-
-        $progressPercentage = $totalDraws > 0 ? ($completedDraws / $totalDraws) * 100 : 0;
-
-        return [
-            'total_draws' => $totalDraws,
-            'completed_draws' => $completedDraws,
-            'pending_draws' => $pendingDraws,
-            'winning_draws' => $winningDraws,
-            'progress_percentage' => round($progressPercentage, 2)
-        ];
-    }
-
-    /**
-     * Obtener estadísticas de sorteos por ronda
-     *
-     * @param string $roomId
-     * @return array{
-     *     rounds: array,
-     *     total_rounds: int,
-     *     avg_draws_per_round: float
-     * }
-     */
-    public function getRoundStats(string $roomId): array
-    {
-        $rounds = $this->model->where('room_id', $roomId)
-            ->selectRaw('round_id, COUNT(*) as draw_count')
-            ->groupBy('round_id')
-            ->orderBy('round_id')
-            ->get()
-            ->toArray();
-
-        $totalRounds = count($rounds);
-        $totalDraws = array_sum(array_column($rounds, 'draw_count'));
-        $avgDrawsPerRound = $totalRounds > 0 ? $totalDraws / $totalRounds : 0;
-
-        return [
-            'rounds' => $rounds,
-            'total_rounds' => $totalRounds,
-            'avg_draws_per_round' => round($avgDrawsPerRound, 2)
-        ];
-    }
-
-    /**
-     * Obtener historial de sorteos con paginación
-     *
-     * @param string $roomId
-     * @param int $page
-     * @param int $perPage
-     * @return array{
-     *     data: Collection,
-     *     current_page: int,
-     *     total: int,
-     *     per_page: int
-     * }
-     */
-    public function getDrawHistory(string $roomId, int $page = 1, int $perPage = 50): array
-    {
-        $offset = ($page - 1) * $perPage;
-        $total = $this->countByRoom($roomId);
-
-        $data = $this->model->where('room_id', $roomId)
-            ->orderByDesc('created_at')
-            ->offset($offset)
-            ->limit($perPage)
-            ->get();
-
-        return [
-            'data' => $data,
-            'current_page' => $page,
-            'total' => $total,
-            'per_page' => $perPage
-        ];
-    }
-
-    /**
-     * Crear nuevo sorteo
-     *
-     * @param array $drawData
-     * @return BingoDraw
-     */
-    public function createDraw(array $drawData): BingoDraw
-    {
-        return $this->create($drawData);
-    }
-
-    /**
-     * Actualizar estado de sorteo
-     *
-     * @param string $drawId
-     * @param int $newStatus
-     * @return bool
-     */
-    public function updateDrawStatus(string $drawId, int $newStatus): bool
-    {
-        return $this->model->where('id', $drawId)
-            ->update(['status' => $newStatus]) > 0;
-    }
-
-    /**
-     * Marcar chip como ganador
-     *
-     * @param string $drawId
-     * @return bool
-     */
-    public function markAsWinning(string $drawId): bool
-    {
-        return $this->updateDrawStatus($drawId, self::STATUS_WINNING);
-    }
-
-    /**
-     * Obtener secuencia de sorteos por sala
-     *
-     * @param string $roomId
      * @return Collection<int, BingoDraw>
      */
-    public function getDrawSequence(string $roomId): Collection
+    public function getActiveDraws() : Collection
     {
-        return $this->model->where('room_id', $roomId)
-            ->orderBy('time')
-            ->orderBy('created_at')
-            ->get();
-    }
-
-    /**
-     * Validar secuencia de sorteos
-     *
-     * @param string $roomId
-     * @return bool
-     */
-    public function validateDrawSequence(string $roomId): bool
-    {
-        $draws = $this->getDrawSequence($roomId);
-        $chips = $draws->pluck('chip')->toArray();
-
-        // Verificar que no hay chips duplicados
-        return count($chips) === count(array_unique($chips));
+        return $this->getByStatus(self::STATUS_ACTIVE);
     }
 
     /**
      * Obtener tiempo promedio entre sorteos
-     *
-     * @param string $roomId
-     * @return float
      */
-    public function getAverageDrawTime(string $roomId): float
+    public function getAverageDrawTime(string $roomId) : float
     {
         $draws = $this->model->where('room_id', $roomId)
             ->orderBy('time')
@@ -434,27 +142,148 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     }
 
     /**
-     * Buscar sorteos por término de búsqueda
+     * Obtener sorteos por chip específico
      *
-     * @param string $searchTerm
      * @return Collection<int, BingoDraw>
      */
-    public function searchDraws(string $searchTerm): Collection
+    public function getByChip(string $chip) : Collection
     {
-        return $this->model->where(function ($query) use ($searchTerm) {
-            $query->where('chip', 'like', "%{$searchTerm}%")
-                ->orWhere('code', 'like', "%{$searchTerm}%")
-                ->orWhere('room_id', 'like', "%{$searchTerm}%");
-        })->get();
+        return $this->model->where('chip', $chip)->get();
+    }
+
+    /**
+     * Obtener sorteos por código específico
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getByCode(string $code) : Collection
+    {
+        return $this->model->where('code', $code)->get();
+    }
+
+    /**
+     * Obtener sorteos por sala y estado
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getByRoomAndStatus(string $roomId, int $status) : Collection
+    {
+        return $this->model->where('room_id', $roomId)
+            ->where('status', $status)
+            ->get();
+    }
+
+    /**
+     * Obtener sorteos por ronda
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getByRound(string $roomId, int $round) : Collection
+    {
+        return $this->model->where('room_id', $roomId)
+            ->where('round_id', $round)
+            ->get();
+    }
+
+    /**
+     * Obtener sorteos por rango de tiempo
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getByTimeRange(string $roomId, int $startTime, int $endTime) : Collection
+    {
+        return $this->model->where('room_id', $roomId)
+            ->whereBetween('time', [$startTime, $endTime])
+            ->get();
+    }
+
+    /**
+     * Obtener sorteos completados
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getCompletedDraws() : Collection
+    {
+        return $this->getByStatus(self::STATUS_COMPLETED);
+    }
+
+    /**
+     * Obtener historial de sorteos con paginación
+     *
+     * @return array{
+     *     data: Collection,
+     *     current_page: int,
+     *     total: int,
+     *     per_page: int
+     * }
+     */
+    public function getDrawHistory(string $roomId, int $page = 1, int $perPage = 50) : array
+    {
+        $offset = ($page - 1) * $perPage;
+        $total = $this->countByRoom($roomId);
+
+        $data = $this->model->where('room_id', $roomId)
+            ->orderByDesc('created_at')
+            ->offset($offset)
+            ->limit($perPage)
+            ->get();
+
+        return [
+            'data' => $data,
+            'current_page' => $page,
+            'total' => $total,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Obtener progreso de sorteos por sala
+     *
+     * @return array{
+     *     total_draws: int,
+     *     completed_draws: int,
+     *     pending_draws: int,
+     *     winning_draws: int,
+     *     progress_percentage: float
+     * }
+     */
+    public function getDrawProgress(string $roomId) : array
+    {
+        $totalDraws = $this->countByRoom($roomId);
+        $completedDraws = $this->countByRoomAndStatus($roomId, self::STATUS_COMPLETED);
+        $pendingDraws = $this->countByRoomAndStatus($roomId, self::STATUS_PENDING);
+        $winningDraws = $this->countByRoomAndStatus($roomId, self::STATUS_WINNING);
+
+        $progressPercentage = $totalDraws > 0 ? ($completedDraws / $totalDraws) * 100 : 0;
+
+        return [
+            'total_draws' => $totalDraws,
+            'completed_draws' => $completedDraws,
+            'pending_draws' => $pendingDraws,
+            'winning_draws' => $winningDraws,
+            'progress_percentage' => round($progressPercentage, 2),
+        ];
+    }
+
+    /**
+     * Obtener secuencia de sorteos por sala
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getDrawSequence(string $roomId) : Collection
+    {
+        return $this->model->where('room_id', $roomId)
+            ->orderBy('time')
+            ->orderBy('created_at')
+            ->get();
     }
 
     /**
      * Obtener sorteos duplicados (mismo chip, sala, ronda)
      *
-     * @param string $roomId
      * @return Collection<int, BingoDraw>
      */
-    public function getDuplicateDraws(string $roomId): Collection
+    public function getDuplicateDraws(string $roomId) : Collection
     {
         return $this->model->where('room_id', $roomId)
             ->select('chip', 'room_id', 'round_id', DB::raw('COUNT(*) as count'))
@@ -464,18 +293,11 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     }
 
     /**
-     * Limpiar sorteos antiguos
-     *
-     * @param int $daysOld
-     * @return int Número de registros eliminados
+     * Obtener el primer chip sorteado de una sala
      */
-    public function cleanOldDraws(int $daysOld = 30): int
+    public function getFirstDrawChip(string $roomId) : ?BingoDraw
     {
-        $cutoffDate = now()->subDays($daysOld);
-
-        return $this->model->where('created_at', '<', $cutoffDate)
-            ->where('status', self::STATUS_COMPLETED)
-            ->delete();
+        return $this->model->where('room_id', $roomId)->first();
     }
 
     /**
@@ -488,7 +310,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      *     most_active_room: string|null
      * }
      */
-    public function getGeneralStats(): array
+    public function getGeneralStats() : array
     {
         $totalDraws = $this->model->count();
         $totalRooms = $this->model->distinct('room_id')->count();
@@ -504,30 +326,145 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
             'total_draws' => $totalDraws,
             'total_rooms' => $totalRooms,
             'avg_draws_per_room' => round($avgDrawsPerRoom, 2),
-            'most_active_room' => $mostActiveRoom->room_id ?? null
+            'most_active_room' => $mostActiveRoom->room_id ?? null,
         ];
     }
 
     /**
-     * Exportar sorteos de una sala para análisis
-     *
-     * @param string $roomId
-     * @param string $format 'json'|'csv'|'array'
-     * @return mixed
+     * Obtener último sorteo de una sala
      */
-    public function exportRoomDraws(string $roomId, string $format = 'array')
+    public function getLastDraw(string $roomId) : ?BingoDraw
     {
-        $draws = $this->getRoomDraws($roomId);
+        return $this->model->where('room_id', $roomId)
+            ->orderByDesc('created_at')
+            ->first();
+    }
 
-        switch ($format) {
-            case 'json':
-                return $draws->toJson();
-            case 'csv':
-                // Implementar exportación CSV si es necesario
-                return $draws->toArray();
-            case 'array':
-            default:
-                return $draws->toArray();
-        }
+    /**
+     * Obtener sorteos pendientes
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getPendingDraws() : Collection
+    {
+        return $this->getByStatus(self::STATUS_PENDING);
+    }
+
+    /**
+     * Obtener todos los sorteos de una sala
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function getRoomDraws(string $roomId) : Collection
+    {
+        return $this->model->where('room_id', $roomId)->get();
+    }
+
+    /**
+     * Obtener estadísticas de sorteos por ronda
+     *
+     * @return array{
+     *     rounds: array,
+     *     total_rounds: int,
+     *     avg_draws_per_round: float
+     * }
+     */
+    public function getRoundStats(string $roomId) : array
+    {
+        $rounds = $this->model->where('room_id', $roomId)
+            ->selectRaw('round_id, COUNT(*) as draw_count')
+            ->groupBy('round_id')
+            ->orderBy('round_id')
+            ->get()
+            ->toArray();
+
+        $totalRounds = count($rounds);
+        $totalDraws = array_sum(array_column($rounds, 'draw_count'));
+        $avgDrawsPerRound = $totalRounds > 0 ? $totalDraws / $totalRounds : 0;
+
+        return [
+            'rounds' => $rounds,
+            'total_rounds' => $totalRounds,
+            'avg_draws_per_round' => round($avgDrawsPerRound, 2),
+        ];
+    }
+
+    /**
+     * Obtener chips no sorteados de una sala
+     *
+     * @param array $allChips Array con todos los chips posibles
+     */
+    public function getUndrawnChips(string $roomId, array $allChips) : array
+    {
+        $drawnChips = $this->model->where('room_id', $roomId)
+            ->pluck('chip')
+            ->toArray();
+
+        return array_diff($allChips, $drawnChips);
+    }
+
+    /**
+     * Obtener el chip ganador de una sala
+     */
+    public function getWinningChip(string $roomId) : ?BingoDraw
+    {
+        return $this->model->where('room_id', $roomId)
+            ->where('status', self::STATUS_WINNING)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Verificar si una ronda está completa
+     */
+    public function isRoundComplete(string $roomId, int $round) : bool
+    {
+        return $this->model->where('room_id', $roomId)
+            ->where('round_id', $round)
+            ->where('status', self::STATUS_COMPLETED)
+            ->exists();
+    }
+
+    /**
+     * Marcar chip como ganador
+     */
+    public function markAsWinning(string $drawId) : bool
+    {
+        return $this->updateDrawStatus($drawId, self::STATUS_WINNING);
+    }
+
+    /**
+     * Buscar sorteos por término de búsqueda
+     *
+     * @return Collection<int, BingoDraw>
+     */
+    public function searchDraws(string $searchTerm) : Collection
+    {
+        return $this->model->where(function($query) use ($searchTerm) {
+            $query->where('chip', 'like', "%{$searchTerm}%")
+                ->orWhere('code', 'like', "%{$searchTerm}%")
+                ->orWhere('room_id', 'like', "%{$searchTerm}%");
+        })->get();
+    }
+
+    /**
+     * Actualizar estado de sorteo
+     */
+    public function updateDrawStatus(string $drawId, int $newStatus) : bool
+    {
+        return $this->model->where('id', $drawId)
+            ->update(['status' => $newStatus]) > 0;
+    }
+
+    /**
+     * Validar secuencia de sorteos
+     */
+    public function validateDrawSequence(string $roomId) : bool
+    {
+        $draws = $this->getDrawSequence($roomId);
+        $chips = $draws->pluck('chip')->toArray();
+
+        // Verificar que no hay chips duplicados
+        return count($chips) === count(array_unique($chips));
     }
 }

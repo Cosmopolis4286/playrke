@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('user_achievements');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('user_achievements', function (Blueprint $table) {
+        Schema::create('user_achievements', function(Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignUuid('achievement_id')->constrained('achievements')->onDelete('cascade');
@@ -24,13 +32,5 @@ return new class extends Migration
             $table->index(['user_id', 'unlocked_at']);
             $table->index(['achievement_id', 'unlocked_at']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('user_achievements');
     }
 };

@@ -15,26 +15,26 @@ class BingoRoomWinner extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_rooms_winners';
-
     protected $fillable = [
         'room_id',
         'room_user_id',
         'round_id',
-        'award_status'
+        'award_status',
     ];
 
-    public function room(): BelongsTo
+    protected $table = 'bingo_rooms_winners';
+
+    public function room() : BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
-    public function roomUser(): BelongsTo
+    public function roomUser() : BelongsTo
     {
         return $this->belongsTo(BingoRoomUser::class, 'room_user_id');
     }
 
-    public function round(): BelongsTo
+    public function round() : BelongsTo
     {
         return $this->belongsTo(BingoRound::class, 'round_id');
     }

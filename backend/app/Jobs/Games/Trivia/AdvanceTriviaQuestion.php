@@ -13,6 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Job: Avanza a la siguiente pregunta si no todos los jugadores respondieron
@@ -27,19 +28,20 @@ use Illuminate\Support\Facades\Log;
 class AdvanceTriviaQuestion implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public int $tries   = 1;
     public int $timeout = 10;
+
+    public int $tries = 1;
 
     public function __construct(
         public readonly string $gameId,
         public readonly string $questionId,
-    ) {}
+    ) {
+    }
 
     public function handle(
         GameStateRepositoryInterface $stateRepository,
-        GameEngineInterface          $gameEngine,
-    ): void {
+        GameEngineInterface $gameEngine,
+    ) : void {
         $state = $stateRepository->getState($this->gameId);
 
         // Juego ya no activo → no hacer nada
@@ -71,19 +73,19 @@ class AdvanceTriviaQuestion implements ShouldQueue
         }
 
         Log::info('[AdvanceTriviaQuestion] Timeout — avanzando pregunta por expiración', [
-            'game_id'      => $this->gameId,
-            'question_id'  => $this->questionId,
-            'answered'     => $answered,
-            'total'        => $total,
+            'game_id' => $this->gameId,
+            'question_id' => $this->questionId,
+            'answered' => $answered,
+            'total' => $total,
         ]);
 
         // Avanzar: los jugadores que no respondieron quedan con 0 puntos para esta ronda
         try {
             $gameEngine->sendNextQuestion($this->gameId, $this->questionId);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('[AdvanceTriviaQuestion] Error al avanzar pregunta', [
                 'game_id' => $this->gameId,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }

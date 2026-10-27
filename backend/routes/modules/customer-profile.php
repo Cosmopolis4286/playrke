@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 | EXCLUSIVAMENTE sobre su propio registro, resuelto server-side por
 | CustomerProfileService. customers.view: vista admin (target_user_id).
 */
-Route::middleware(['auth', 'multiPermission:customers.manage-own,customers.view'])->group(function () {
+Route::middleware(['auth', 'multiPermission:customers.manage-own,customers.view'])->group(function() {
     Route::get('customer/profile', [CustomerProfileController::class, 'show'])->name('customer.profile.show');
     Route::put('customer/profile', [CustomerProfileController::class, 'update'])->name('customer.profile.update');
 });

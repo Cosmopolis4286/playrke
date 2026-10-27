@@ -21,7 +21,7 @@ final class TriviaAnswerTiming
         float $serverTimestampMs,
         float $nowMs,
         int $effectiveTimeLimitMs,
-    ): array {
+    ) : array {
         if (! is_finite($serverTimestampMs) || $serverTimestampMs <= 0) {
             throw new InvalidArgumentException('A valid server timestamp is required.');
         }

@@ -2,9 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Models\User;
-use App\Repositories\BaseRepository;
 use App\Contracts\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Str;
@@ -16,11 +15,35 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $this->model = $model;
     }
 
+    public function countReferrals(string $userId) : int
+    {
+        return $this->model->where('referred_by_user_id', $userId)->count();
+    }
+
+    /* -----------------------------------------------------------------
+     | Verificaciones de existencia
+     ----------------------------------------------------------------- */
+
+    public function existsByEmail(string $email) : bool
+    {
+        return $this->model->where('email', $email)->exists();
+    }
+
+    public function existsByReferralCode(string $referralCode) : bool
+    {
+        return $this->model->where('referral_code', $referralCode)->exists();
+    }
+
+    public function existsByUsername(string $username) : bool
+    {
+        return $this->model->where('username', $username)->exists();
+    }
+
     /* -----------------------------------------------------------------
      | Búsquedas básicas
      ----------------------------------------------------------------- */
 
-    public function findByEmail(string $email, array $columns = ['*']): ?User
+    public function findByEmail(string $email, array $columns = ['*']) : ?User
     {
         return $this->model
             ->select($columns)
@@ -28,15 +51,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ->first();
     }
 
-    public function findByUsername(string $username, array $columns = ['*']): ?User
-    {
-        return $this->model
-            ->select($columns)
-            ->where('username', $username)
-            ->first();
-    }
-
-    public function findByReferralCode(string $referralCode, array $columns = ['*']): ?User
+    public function findByReferralCode(string $referralCode, array $columns = ['*']) : ?User
     {
         return $this->model
             ->select($columns)
@@ -44,11 +59,32 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ->first();
     }
 
+    public function findByUsername(string $username, array $columns = ['*']) : ?User
+    {
+        return $this->model
+            ->select($columns)
+            ->where('username', $username)
+            ->first();
+    }
+
+    /* -----------------------------------------------------------------
+     | Generación de Códigos
+     ----------------------------------------------------------------- */
+
+    public function generateUniqueReferralCode(int $length = 8) : string
+    {
+        do {
+            $code = Str::upper(Str::random($length));
+        } while ($this->existsByReferralCode($code));
+
+        return $code;
+    }
+
     /* -----------------------------------------------------------------
      | Usuarios Demo
      ----------------------------------------------------------------- */
 
-    public function getDemoUsers(array $columns = ['*']): Collection
+    public function getDemoUsers(array $columns = ['*']) : Collection
     {
         return $this->model
             ->select($columns)
@@ -69,82 +105,138 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * refleje la jerarquía real del sistema en cualquier momento sin volver
      * a tocar este archivo cuando cambie un rol.
      */
-    public function getDemoUsersForFrontend(): SupportCollection
+    public function getDemoUsersForFrontend() : SupportCollection
     {
         return $this->model
             ->with(['roles' => fn ($q) => $q->select('roles.id', 'roles.name', 'roles.description', 'roles.icon', 'roles.color', 'roles.sort_order')])
             ->where('is_demo_user', true)
             ->get()
-            ->map(function (User $user) {
+            ->map(function(User $user) {
                 $role = $user->roles->first();
 
                 return [
-                    'id'          => (string) $user->id,
-                    'email'       => $user->email,
-                    'password'    => $user->demo_password ?? 'password123',
-                    'label'       => $user->first_name . ' ' . $user->last_name,
-                    'role'        => $role?->name ?? 'player',
+                    'id' => (string) $user->id,
+                    'email' => $user->email,
+                    'password' => $user->demo_password ?? 'password123',
+                    'label' => $user->first_name . ' ' . $user->last_name,
+                    'role' => $role?->name ?? 'player',
                     'description' => $role?->description ?? 'Usuario de prueba',
-                    'icon'        => $role?->icon,
-                    'color'       => $role?->color,
-                    'sort_order'  => $role?->sort_order ?? 999,
+                    'icon' => $role?->icon,
+                    'color' => $role?->color,
+                    'sort_order' => $role?->sort_order ?? 999,
                 ];
             })
             ->sortBy('sort_order')
             ->values();
     }
 
-    /* -----------------------------------------------------------------
-     | Filtros directos
-     ----------------------------------------------------------------- */
-
-    public function getUsersByStatus(string $status, array $columns = ['*']): Collection
+    public function getRecentActiveUsers(int $days = 30, int $limit = 50) : Collection
     {
-        return $this->model->select($columns)->where('status', $status)->get();
+        return $this->model
+            ->where('last_login_at', '>=', now()->subDays($days))
+            ->orderByDesc('last_login_at')
+            ->limit($limit)
+            ->get();
     }
 
-    public function getUsersByCountry(string $countryId, array $columns = ['*']): Collection
-    {
-        return $this->model->select($columns)->where('country_id', $countryId)->get();
-    }
-
-    public function getReferredUsers(string $userId, array $columns = ['*']): Collection
+    public function getReferredUsers(string $userId, array $columns = ['*']) : Collection
     {
         return $this->model->select($columns)->where('referred_by_user_id', $userId)->get();
     }
 
-    public function getUsersByRole(string $roleName, array $columns = ['*']): Collection
+    public function getUsersByCountry(string $countryId, array $columns = ['*']) : Collection
+    {
+        return $this->model->select($columns)->where('country_id', $countryId)->get();
+    }
+
+    public function getUsersByRole(string $roleName, array $columns = ['*']) : Collection
     {
         return $this->model
             ->select($columns)
-            ->whereHas('roles', fn($q) => $q->where('name', $roleName))
+            ->whereHas('roles', fn ($q) => $q->where('name', $roleName))
             ->get();
     }
 
     /* -----------------------------------------------------------------
-     | Verificaciones de existencia
+     | Filtros directos
      ----------------------------------------------------------------- */
 
-    public function existsByEmail(string $email): bool
+    public function getUsersByStatus(string $status, array $columns = ['*']) : Collection
     {
-        return $this->model->where('email', $email)->exists();
+        return $this->model->select($columns)->where('status', $status)->get();
     }
 
-    public function existsByUsername(string $username): bool
+    public function getUserStats(string $userId) : array
     {
-        return $this->model->where('username', $username)->exists();
+        $user = $this->model
+            ->with(['referrals', 'wallets'])
+            ->find($userId);
+
+        if (! $user) {
+            return [
+                'total_referrals' => 0,
+                'active_wallets' => 0,
+                'last_login' => null,
+                'account_age_days' => 0,
+            ];
+        }
+
+        return [
+            'total_referrals' => $user->referrals->count(),
+            'active_wallets' => $user->wallets->count(),
+            'last_login' => $user->last_login_at,
+            'account_age_days' => $user->created_at->diffInDays(now()),
+        ];
     }
 
-    public function existsByReferralCode(string $referralCode): bool
+    /* -----------------------------------------------------------------
+     | Extras útiles
+     ----------------------------------------------------------------- */
+
+    public function getUsersWithActiveWallets(array $columns = ['*']) : Collection
     {
-        return $this->model->where('referral_code', $referralCode)->exists();
+        return $this->model
+            ->select($columns)
+            ->whereHas('wallets', fn ($q) => $q->where('balance', '>', 0))
+            ->get();
+    }
+
+    public function searchUsers(array $criteria) : Collection
+    {
+        $query = $this->model->query();
+
+        $query->when($criteria['status'] ?? null, function($q, $value) {
+            $q->where('status', $value);
+        });
+
+        $query->when($criteria['country_id'] ?? null, function($q, $value) {
+            $q->where('country_id', $value);
+        });
+
+        $query->when($criteria['role'] ?? null, function($q, $value) {
+            $q->whereHas('roles', fn ($r) => $r->where('name', $value));
+        });
+
+        $query->when($criteria['search'] ?? null, function($q, $value) {
+            $q->where(function($inner) use ($value) {
+                $inner->where('username', 'like', "%{$value}%")
+                    ->orWhere('email', 'like', "%{$value}%")
+                    ->orWhere('first_name', 'like', "%{$value}%")
+                    ->orWhere('last_name', 'like', "%{$value}%");
+            });
+        });
+
+        $query->when($criteria['created_from'] ?? null, fn ($q, $value) => $q->where('created_at', '>=', $value));
+        $query->when($criteria['created_to'] ?? null, fn ($q, $value) => $q->where('created_at', '<=', $value));
+
+        return $query->orderByDesc('created_at')->get();
     }
 
     /* -----------------------------------------------------------------
      | Utilidades
      ----------------------------------------------------------------- */
 
-    public function updateLastLogin(string $userId, string $ip): bool
+    public function updateLastLogin(string $userId, string $ip) : bool
     {
         return $this->model
             ->where('id', $userId)
@@ -154,87 +246,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ]) > 0;
     }
 
-    public function getUserStats(string $userId): array
-    {
-        $user = $this->model
-            ->with(['referrals', 'wallets'])
-            ->find($userId);
-
-        if (!$user) {
-            return [
-                'total_referrals'   => 0,
-                'active_wallets'    => 0,
-                'last_login'        => null,
-                'account_age_days'  => 0,
-            ];
-        }
-
-        return [
-            'total_referrals'   => $user->referrals->count(),
-            'active_wallets'    => $user->wallets->count(),
-            'last_login'        => $user->last_login_at,
-            'account_age_days'  => $user->created_at->diffInDays(now()),
-        ];
-    }
-
-    public function searchUsers(array $criteria): Collection
-    {
-        $query = $this->model->query();
-
-        $query->when($criteria['status'] ?? null, function ($q, $value) {
-            $q->where('status', $value);
-        });
-
-        $query->when($criteria['country_id'] ?? null, function ($q, $value) {
-            $q->where('country_id', $value);
-        });
-
-        $query->when($criteria['role'] ?? null, function ($q, $value) {
-            $q->whereHas('roles', fn($r) => $r->where('name', $value));
-        });
-
-        $query->when($criteria['search'] ?? null, function ($q, $value) {
-            $q->where(function ($inner) use ($value) {
-                $inner->where('username', 'like', "%{$value}%")
-                    ->orWhere('email', 'like', "%{$value}%")
-                    ->orWhere('first_name', 'like', "%{$value}%")
-                    ->orWhere('last_name', 'like', "%{$value}%");
-            });
-        });
-
-        $query->when($criteria['created_from'] ?? null, fn($q, $value) => $q->where('created_at', '>=', $value));
-        $query->when($criteria['created_to'] ?? null, fn($q, $value) => $q->where('created_at', '<=', $value));
-
-        return $query->orderByDesc('created_at')->get();
-    }
-
-    public function getRecentActiveUsers(int $days = 30, int $limit = 50): Collection
-    {
-        return $this->model
-            ->where('last_login_at', '>=', now()->subDays($days))
-            ->orderByDesc('last_login_at')
-            ->limit($limit)
-            ->get();
-    }
-
-    /* -----------------------------------------------------------------
-     | Extras útiles
-     ----------------------------------------------------------------- */
-
-    public function getUsersWithActiveWallets(array $columns = ['*']): Collection
-    {
-        return $this->model
-            ->select($columns)
-            ->whereHas('wallets', fn($q) => $q->where('balance', '>', 0))
-            ->get();
-    }
-
-    public function countReferrals(string $userId): int
-    {
-        return $this->model->where('referred_by_user_id', $userId)->count();
-    }
-
-    public function verifyUserEmail(string $userId): bool
+    public function verifyUserEmail(string $userId) : bool
     {
         return $this->model
             ->where('id', $userId)
@@ -242,18 +254,5 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
                 'email_verified_at' => now(),
                 'status' => 'ACTIVE',
             ]) > 0;
-    }
-
-    /* -----------------------------------------------------------------
-     | Generación de Códigos
-     ----------------------------------------------------------------- */
-
-    public function generateUniqueReferralCode(int $length = 8): string
-    {
-        do {
-            $code = Str::upper(Str::random($length));
-        } while ($this->existsByReferralCode($code));
-
-        return $code;
     }
 }

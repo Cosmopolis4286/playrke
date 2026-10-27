@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function down() : void
+    {
+        Schema::dropIfExists('referral_xp_awards');
+    }
+
     /**
      * Registro estructurado de cada XP otorgado por referido verificado —
      * ver AwardReferralXpOnVerifiedListener. No reemplaza el log genérico de
@@ -19,9 +24,9 @@ return new class extends Migration
      * no automatizada): revoked_at/revoked_by/revoked_reason quedan null
      * hasta que un admin actúe sobre una fila concreta.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('referral_xp_awards', function (Blueprint $table) {
+        Schema::create('referral_xp_awards', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('referrer_id')
@@ -53,10 +58,5 @@ return new class extends Migration
             $table->index(['referrer_id', 'created_at'], 'idx_referrer_created');
             $table->index('referred_registration_ip');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('referral_xp_awards');
     }
 };

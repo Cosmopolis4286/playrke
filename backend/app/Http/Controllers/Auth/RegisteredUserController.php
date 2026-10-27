@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\AppParameterRepositoryInterface;
+use App\Contracts\CurrencyRepositoryInterface;
+use App\Domains\Wallet\Models\Wallet;
 use App\Events\Admin\UserRegistered as UserRegisteredBroadcast;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
-use App\Domains\Wallet\Models\Wallet;
 use App\Repositories\CountryRepository;
 use App\Repositories\UserRepository;
 use App\Services\User\UserLevelService;
@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class RegisteredUserController extends Controller
 {
@@ -31,18 +32,19 @@ class RegisteredUserController extends Controller
     public function __construct(
         protected AppParameterRepositoryInterface $settings,
         protected CurrencyRepositoryInterface $currencies,
-    ) {}
+    ) {
+    }
 
     /**
      * Display the registration view.
      */
-    public function create(): Response|RedirectResponse
+    public function create() : Response|RedirectResponse
     {
         // Obtener países activos con solo id y name
         $countries = app(CountryRepository::class)->getActive(['id', 'name', 'iso_code_2'])->all();
         $register = $this->settings->getParameterStatus('REGISTER');
 
-        if (!$register) {
+        if (! $register) {
             return redirect()->route('login');
         }
 
@@ -65,9 +67,9 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(RegisterRequest $request): JsonResponse
+    public function store(RegisterRequest $request) : JsonResponse
     {
-        $user = DB::transaction(function () use ($request) {
+        $user = DB::transaction(function() use ($request) {
             $userRepository = app(UserRepository::class);
 
             // Código de referido: cookie 'referral' (seteada por
@@ -159,7 +161,7 @@ class RegisteredUserController extends Controller
      * el propio jugador en vez de un admin, y sin generar contraseña
      * temporal (el usuario ya se registró con la suya).
      */
-    private function linkExternalPlayerHistory(User $user, string $phone, string $countryId): void
+    private function linkExternalPlayerHistory(User $user, string $phone, string $countryId) : void
     {
         try {
             $matches = ExternalPlayer::where('phone', $phone)
@@ -185,7 +187,7 @@ class RegisteredUserController extends Controller
                 'user_id' => (string) $user->id,
                 'external_player_ids' => $matches->pluck('id')->map(fn ($id) => (string) $id)->all(),
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('[RegisteredUserController] No se pudo vincular historial de jugador externo: ' . $e->getMessage(), [
                 'user_id' => (string) $user->id,
             ]);

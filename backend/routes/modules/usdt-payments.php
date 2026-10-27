@@ -18,14 +18,14 @@ use Illuminate\Support\Facades\Route;
 | request.
 */
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function() {
     Route::get('payments/orders/{order}', [PaymentOrderController::class, 'page'])
         ->name('payments.orders.page');
 
     // throttle:120,1 (2 req/s): cubre polling normal de usePaymentOrder.ts
     // (cada 5s) con margen amplio, sin dejar status/show/qr abiertos a spam
     // ilimitado por un usuario autenticado.
-    Route::middleware('throttle:120,1')->group(function () {
+    Route::middleware('throttle:120,1')->group(function() {
         Route::get('payments/orders/{order}/show', [PaymentOrderController::class, 'show'])
             ->name('payments.orders.show');
         Route::get('payments/orders/{order}/status', [PaymentOrderController::class, 'status'])
@@ -35,7 +35,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'verified', 'tos', 'throttle:5,1'])->group(function () {
+Route::middleware(['auth', 'verified', 'tos', 'throttle:5,1'])->group(function() {
     Route::post('payments/orders', [PaymentOrderController::class, 'store'])
         ->name('payments.orders.store');
 });
@@ -45,12 +45,12 @@ Route::middleware(['auth', 'verified', 'tos', 'throttle:5,1'])->group(function (
 // Nombre de recurso distinto ("payments-orders", no "payments/orders") para
 // no competir con el wildcard payments/orders/{order} de arriba.
 // ====================================
-Route::middleware(['auth', 'multiPermission:payments.manage'])->group(function () {
-    Route::get('payments-orders',           [PaymentOrderAdminController::class, 'index'])     ->name('payments-orders.index');
-    Route::get('payments-orders/fetch-list', [PaymentOrderAdminController::class, 'fetchList']) ->name('payments-orders.fetch-list');
-    Route::get('payments-orders/{order}',   [PaymentOrderAdminController::class, 'show'])       ->name('payments-orders.show');
+Route::middleware(['auth', 'multiPermission:payments.manage'])->group(function() {
+    Route::get('payments-orders', [PaymentOrderAdminController::class, 'index'])->name('payments-orders.index');
+    Route::get('payments-orders/fetch-list', [PaymentOrderAdminController::class, 'fetchList'])->name('payments-orders.fetch-list');
+    Route::get('payments-orders/{order}', [PaymentOrderAdminController::class, 'show'])->name('payments-orders.show');
 
-    Route::middleware('throttle:30,1')->group(function () {
+    Route::middleware('throttle:30,1')->group(function() {
         Route::post('payments-orders/{order}/reevaluate', [PaymentOrderAdminController::class, 'reevaluate'])
             ->name('payments-orders.reevaluate');
     });

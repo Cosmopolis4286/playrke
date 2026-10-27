@@ -2,9 +2,9 @@
 
 namespace App\Models\Roles\Customer;
 
-use App\Models\Roles\Customer;
 use App\Models\Country;
 use App\Models\Currency;
+use App\Models\Roles\Customer;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +13,9 @@ class CustomerUser extends Model
 {
     use SnowflakeId;
 
-    protected $table = "customers_users";
+    protected $casts = [
+        'last_activity' => 'datetime',
+    ];
 
     protected $fillable = [
         'customer_id',
@@ -22,25 +24,23 @@ class CustomerUser extends Model
         'token',
         'country_code',
         'currency_id',
-        'last_activity'
+        'last_activity',
     ];
 
-    protected $casts = [
-        'last_activity' => 'datetime'
-    ];
+    protected $table = 'customers_users';
 
-    public function customer(): BelongsTo
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
-    }
-
-    public function country(): BelongsTo
+    public function country() : BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_code', 'iso_code');
     }
 
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    public function customer() : BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 }

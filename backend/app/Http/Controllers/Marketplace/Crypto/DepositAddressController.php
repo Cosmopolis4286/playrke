@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * GET /wallet/deposit-address?currency=USDT
@@ -25,9 +26,9 @@ class DepositAddressController extends Controller
     ) {
     }
 
-    public function show(Request $request): JsonResponse
+    public function show(Request $request) : JsonResponse
     {
-        if (!config('crypto.deposits_enabled')) {
+        if (! config('crypto.deposits_enabled')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Los depósitos cripto no están habilitados todavía.',
@@ -42,15 +43,16 @@ class DepositAddressController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'address'  => $address->address,
-                    'network'  => $address->network,
+                    'address' => $address->address,
+                    'network' => $address->network,
                     'currency' => $currencyCode,
                 ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['success' => false, 'message' => "Moneda '{$currencyCode}' no encontrada."], 404);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('[DepositAddressController@show] ' . $e->getMessage(), ['exception' => $e]);
+
             return response()->json(['success' => false, 'message' => 'Error interno al resolver la dirección de depósito.'], 500);
         }
     }

@@ -7,6 +7,7 @@ use App\Events\Platform\WinEventBroadcasted;
 use App\Models\Currency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Único punto de entrada para reportar una ganancia al feed en vivo de la
@@ -20,16 +21,15 @@ final class WinEventService
      * Registra una ganancia monetaria (dinero real acreditado a una wallet,
      * o el equivalente estimado de un premio físico).
      *
-     * @param string|null $userId      Ganador con cuenta en la plataforma (null si no aplica)
+     * @param string|null $userId             Ganador con cuenta en la plataforma (null si no aplica)
      * @param string|null $winnerNameOverride Nombre a mostrar si no hay $userId (premios externos)
-     * @param string      $gameSlug    Identificador corto del origen (bingo, trivia, …)
-     * @param string      $gameName    Nombre legible del origen
-     * @param float       $amountUsd   Monto en USD
-     * @param float       $amountLocal Monto en moneda local
-     * @param string|null $currencyId  Moneda del monto local
-     * @param string      $sourceType  WinEvent::SOURCE_*
-     * @param string|null $sourceReference ID del registro de origen (auditoría)
-     * @param array|null  $metadata
+     * @param string      $gameSlug           Identificador corto del origen (bingo, trivia, …)
+     * @param string      $gameName           Nombre legible del origen
+     * @param float       $amountUsd          Monto en USD
+     * @param float       $amountLocal        Monto en moneda local
+     * @param string|null $currencyId         Moneda del monto local
+     * @param string      $sourceType         WinEvent::SOURCE_*
+     * @param string|null $sourceReference    ID del registro de origen (auditoría)
      */
     public function reportMoney(
         ?string $userId,
@@ -43,7 +43,7 @@ final class WinEventService
         ?string $reportedByUserId = null,
         ?string $sourceReference = null,
         ?array $metadata = null,
-    ): WinEvent {
+    ) : WinEvent {
         $currency = $currencyId ? Currency::find($currencyId) : null;
         $prizeLabel = $currency
             ? "{$currency->symbol}" . number_format($amountLocal, $currency->decimal_places ?? 2)
@@ -80,7 +80,7 @@ final class WinEventService
         ?string $reportedByUserId = null,
         ?string $sourceReference = null,
         ?array $metadata = null,
-    ): WinEvent {
+    ) : WinEvent {
         return $this->report(
             userId: $userId,
             winnerNameOverride: $winnerNameOverride,
@@ -98,6 +98,25 @@ final class WinEventService
         );
     }
 
+    private function broadcast(WinEvent $winEvent) : void
+    {
+        try {
+            $winEvent->loadMissing(['user', 'currency']);
+            $currency = $winEvent->currency;
+
+            broadcast(new WinEventBroadcasted(
+                winEvent: $winEvent,
+                winnerName: $winEvent->maskedWinnerName(),
+                currencySymbol: $currency?->symbol ?? '$',
+                decimalPlaces: $currency?->decimal_places ?? 2,
+            ));
+        } catch (Throwable $e) {
+            Log::warning('[WinEventService] No se pudo emitir el broadcast: ' . $e->getMessage(), [
+                'win_event_id' => $winEvent->id,
+            ]);
+        }
+    }
+
     private function report(
         ?string $userId,
         ?string $winnerNameOverride,
@@ -112,21 +131,21 @@ final class WinEventService
         ?string $reportedByUserId,
         ?string $sourceReference,
         ?array $metadata,
-    ): WinEvent {
+    ) : WinEvent {
         $winEvent = WinEvent::create([
-            'user_id'              => $userId,
+            'user_id' => $userId,
             'winner_name_override' => $winnerNameOverride,
-            'game_slug'            => $gameSlug,
-            'game_name'            => $gameName,
-            'source_type'          => $sourceType,
-            'reported_by_user_id'  => $reportedByUserId,
-            'prize_kind'           => $prizeKind,
-            'prize_label'          => $prizeLabel,
-            'currency_id'          => $currencyId,
-            'amount_usd'           => $amountUsd,
-            'amount_local'         => $amountLocal,
-            'source_reference'     => $sourceReference,
-            'metadata'             => $metadata,
+            'game_slug' => $gameSlug,
+            'game_name' => $gameName,
+            'source_type' => $sourceType,
+            'reported_by_user_id' => $reportedByUserId,
+            'prize_kind' => $prizeKind,
+            'prize_label' => $prizeLabel,
+            'currency_id' => $currencyId,
+            'amount_usd' => $amountUsd,
+            'amount_local' => $amountLocal,
+            'source_reference' => $sourceReference,
+            'metadata' => $metadata,
         ]);
 
         // Solo tras el commit: si el llamador está dentro de una transacción
@@ -136,24 +155,5 @@ final class WinEventService
         DB::afterCommit(fn () => $this->broadcast($winEvent));
 
         return $winEvent;
-    }
-
-    private function broadcast(WinEvent $winEvent): void
-    {
-        try {
-            $winEvent->loadMissing(['user', 'currency']);
-            $currency = $winEvent->currency;
-
-            broadcast(new WinEventBroadcasted(
-                winEvent:       $winEvent,
-                winnerName:     $winEvent->maskedWinnerName(),
-                currencySymbol: $currency?->symbol ?? '$',
-                decimalPlaces:  $currency?->decimal_places ?? 2,
-            ));
-        } catch (\Throwable $e) {
-            Log::warning('[WinEventService] No se pudo emitir el broadcast: ' . $e->getMessage(), [
-                'win_event_id' => $winEvent->id,
-            ]);
-        }
     }
 }

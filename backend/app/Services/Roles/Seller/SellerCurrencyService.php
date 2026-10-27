@@ -15,64 +15,43 @@ class SellerCurrencyService
     }
 
     /**
-     * Cambia el estado activo/inactivo de una relación
-     *
-     * @param string $relationId
-     * @param bool $status
-     * @return bool
-     */
-    public function updateStatus(string $relationId, bool $status): bool
-    {
-        return $this->repository->updateStatus($relationId, $status);
-    }
-
-    /**
      * Elimina una relación por su ID
-     *
-     * @param string $relationId
-     * @return bool
      */
-    public function deleteRelation(string $relationId): bool
+    public function deleteRelation(string $relationId) : bool
     {
         return $this->repository->deleteRelation($relationId);
     }
 
     /**
      * Obtiene monedas disponibles para un vendedor
-     *
-     * @param string $sellerId
-     * @param bool $activeOnly
-     * @return array
      */
-    public function getAvailableCurrencies(string $sellerId, bool $activeOnly = true): array
+    public function getAvailableCurrencies(string $sellerId, bool $activeOnly = true) : array
     {
         return $this->repository->getAvailableCurrencies($sellerId, $activeOnly);
     }
 
     /**
      * Obtiene el nivel de operación para un vendedor en un país y moneda
-     *
-     * @param string $sellerId
-     * @param string $countryId
-     * @param string $currencyId
-     * @return int|null
      */
-    public function getOperationLevel(string $sellerId, string $countryId, string $currencyId): ?int
+    public function getOperationLevel(string $sellerId, string $countryId, string $currencyId) : ?int
     {
         return $this->repository->getOperationLevel($sellerId, $countryId, $currencyId);
     }
 
     /**
+     * Obtiene estadísticas generales de las relaciones
+     */
+    public function getStatistics() : array
+    {
+        return $this->repository->getRelationStatistics();
+    }
+
+    /**
      * Actualiza el nivel de operación para un vendedor en un país y moneda
      *
-     * @param string $sellerId
-     * @param string $countryId
-     * @param string $currencyId
-     * @param int $level
-     * @return bool
      * @throws InvalidArgumentException
      */
-    public function updateOperationLevel(string $sellerId, string $countryId, string $currencyId, int $level): bool
+    public function updateOperationLevel(string $sellerId, string $countryId, string $currencyId, int $level) : bool
     {
         if ($level < 1 || $level > 10) {
             throw new InvalidArgumentException('El nivel debe estar entre 1 y 10');
@@ -82,12 +61,10 @@ class SellerCurrencyService
     }
 
     /**
-     * Obtiene estadísticas generales de las relaciones
-     *
-     * @return array
+     * Cambia el estado activo/inactivo de una relación
      */
-    public function getStatistics(): array
+    public function updateStatus(string $relationId, bool $status) : bool
     {
-        return $this->repository->getRelationStatistics();
+        return $this->repository->updateStatus($relationId, $status);
     }
 }

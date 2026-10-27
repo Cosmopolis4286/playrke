@@ -12,47 +12,29 @@ use Illuminate\Database\Eloquent\Collection;
 interface BingoPatternRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Obtener patrones por usuario y los patrones por defecto
-     *
-     * @param string $userId
-     * @param array $fields
-     * @param string|null $status
-     * @return Collection<int, BingoPattern>
+     * Crear nuevo patrón
      */
-    public function getByUserAndDefault(string $userId, array $fields = ['*'], ?string $status = null): Collection;
+    public function createPattern(array $patternData) : BingoPattern;
 
     /**
      * Verificar si existe un patrón por nombre y usuario
-     *
-     * @param string $name
-     * @param string $userId
-     * @return bool
      */
-    public function existsByNameAndUser(string $name, string $userId): bool;
+    public function existsByNameAndUser(string $name, string $userId) : bool;
 
     /**
-     * Crear nuevo patrón
+     * Obtener patrones por usuario y los patrones por defecto
      *
-     * @param array $patternData
-     * @return BingoPattern
+     * @return Collection<int, BingoPattern>
      */
-    public function createPattern(array $patternData): BingoPattern;
+    public function getByUserAndDefault(string $userId, array $fields = ['*'], ?string $status = null) : Collection;
 
     /**
      * Actualizar patrón
-     *
-     * @param string $patternId
-     * @param array $updateData
-     * @return bool
      */
-    public function updatePattern(string $patternId, array $updateData): bool;
+    public function updatePattern(string $patternId, array $updateData) : bool;
 
     /**
      * Actualizar estado de patrón
-     *
-     * @param string $patternId
-     * @param string $newStatus
-     * @return bool
      */
-    public function updatePatternStatus(string $patternId, string $newStatus): bool;
+    public function updatePatternStatus(string $patternId, string $newStatus) : bool;
 }

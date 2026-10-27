@@ -29,14 +29,6 @@ use Illuminate\Support\Carbon;
  */
 class ExchangeRateSeeder extends Seeder
 {
-    /** Unidades de esa moneda por 1 USD. USD/USDT no necesitan fila: CurrencyExchangeRateService::getActiveRate() ya las trata como 1:1 sin consultar la tabla. */
-    private const RATES = [
-        'USDT' => 1.00,
-        'VES'  => 180.00,
-        'COP'  => 4100.00,
-        'BRL'  => 5.60,
-    ];
-
     /**
      * Histórico sintético previo al valor ACTIVE de RATES, como
      * [días_atrás => amount] — antes una BD recién sembrada solo tenía la
@@ -52,21 +44,30 @@ class ExchangeRateSeeder extends Seeder
         'COP' => [30 => 3950.00, 21 => 4000.00, 14 => 4050.00, 7 => 4080.00],
         'BRL' => [30 => 5.40, 21 => 5.45, 14 => 5.50, 7 => 5.55],
     ];
+    /** Unidades de esa moneda por 1 USD. USD/USDT no necesitan fila: CurrencyExchangeRateService::getActiveRate() ya las trata como 1:1 sin consultar la tabla. */
+    private const RATES = [
+        'USDT' => 1.00,
+        'VES' => 180.00,
+        'COP' => 4100.00,
+        'BRL' => 5.60,
+    ];
 
-    public function run(): void
+    public function run() : void
     {
         $admin = User::where('email', 'superadmin@playrke.com')->first();
 
-        if (!$admin) {
+        if (! $admin) {
             $this->command->warn('⚠ superadmin@playrke.com no encontrado — ExchangeRateSeeder requiere que TestUserSeeder corra primero. Omitido.');
+
             return;
         }
 
         foreach (self::RATES as $isoCode => $amount) {
             $currency = Currency::where('iso_code', $isoCode)->first();
 
-            if (!$currency) {
+            if (! $currency) {
                 $this->command->warn("⚠ Moneda {$isoCode} no encontrada — ejecuta CurrencySeeder primero. Omitido.");
+
                 continue;
             }
 
@@ -82,10 +83,10 @@ class ExchangeRateSeeder extends Seeder
 
             ExchangeRate::create([
                 'currency_id' => $currency->id,
-                'user_id'     => $admin->id,
-                'amount'      => $amount,
-                'percentage'  => $this->percentageVsLastHistory($isoCode, $amount),
-                'status'      => 'ACTIVE',
+                'user_id' => $admin->id,
+                'amount' => $amount,
+                'percentage' => $this->percentageVsLastHistory($isoCode, $amount),
+                'status' => 'ACTIVE',
             ]);
 
             $this->command->info("✔ Tasa de cambio: 1 USD = {$amount} {$isoCode}");
@@ -94,36 +95,7 @@ class ExchangeRateSeeder extends Seeder
         $this->command->info('✅ ExchangeRateSeeder completado.');
     }
 
-    /**
-     * Siembra las filas OLD de HISTORY para esta moneda, con created_at/
-     * updated_at retrofechados — coherente con cómo
-     * ExchangeRateCrudService::update() marca la tasa reemplazada como OLD
-     * en un cambio real, así Historical.vue/el sparkline del dashboard ven
-     * exactamente el mismo shape de datos que producirían ediciones reales.
-     */
-    private function seedHistory(string $isoCode, mixed $currencyId, mixed $adminId): void
-    {
-        $points = self::HISTORY[$isoCode] ?? [];
-        $previousAmount = null;
-
-        foreach ($points as $daysAgo => $amount) {
-            $timestamp = Carbon::now()->subDays($daysAgo);
-
-            ExchangeRate::create([
-                'currency_id' => $currencyId,
-                'user_id'     => $adminId,
-                'amount'      => $amount,
-                'percentage'  => $previousAmount ? round((($amount - $previousAmount) / $previousAmount) * 100, 3) : 0,
-                'status'      => 'OLD',
-                'created_at'  => $timestamp,
-                'updated_at'  => $timestamp,
-            ]);
-
-            $previousAmount = $amount;
-        }
-    }
-
-    private function percentageVsLastHistory(string $isoCode, float $amount): float
+    private function percentageVsLastHistory(string $isoCode, float $amount) : float
     {
         $points = self::HISTORY[$isoCode] ?? [];
 
@@ -134,5 +106,34 @@ class ExchangeRateSeeder extends Seeder
         $lastAmount = end($points);
 
         return round((($amount - $lastAmount) / $lastAmount) * 100, 3);
+    }
+
+    /**
+     * Siembra las filas OLD de HISTORY para esta moneda, con created_at/
+     * updated_at retrofechados — coherente con cómo
+     * ExchangeRateCrudService::update() marca la tasa reemplazada como OLD
+     * en un cambio real, así Historical.vue/el sparkline del dashboard ven
+     * exactamente el mismo shape de datos que producirían ediciones reales.
+     */
+    private function seedHistory(string $isoCode, mixed $currencyId, mixed $adminId) : void
+    {
+        $points = self::HISTORY[$isoCode] ?? [];
+        $previousAmount = null;
+
+        foreach ($points as $daysAgo => $amount) {
+            $timestamp = Carbon::now()->subDays($daysAgo);
+
+            ExchangeRate::create([
+                'currency_id' => $currencyId,
+                'user_id' => $adminId,
+                'amount' => $amount,
+                'percentage' => $previousAmount ? round((($amount - $previousAmount) / $previousAmount) * 100, 3) : 0,
+                'status' => 'OLD',
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ]);
+
+            $previousAmount = $amount;
+        }
     }
 }

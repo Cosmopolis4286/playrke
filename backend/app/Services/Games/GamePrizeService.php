@@ -8,6 +8,8 @@ use App\Domains\Wallet\Services\WalletService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Fuente de verdad para el pago de premios en cualquier juego de la plataforma.
@@ -49,151 +51,7 @@ final class GamePrizeService
 {
     public function __construct(
         private readonly WalletService $walletService,
-    ) {}
-
-    /**
-     * Paga el premio al ganador de forma idempotente y atómica.
-     *
-     * @param  Model&GamePrizeContract  $prizeRecord  El registro del premio (BingoCardPrize, etc.)
-     * @param  string                   $description   Texto que aparecerá en el movimiento de wallet
-     */
-    public function payout(GamePrizeContract $prizeRecord, string $description): void
-    {
-        $locked = DB::transaction(function () use ($prizeRecord): ?GamePrizeContract {
-            /** @var GamePrizeContract $row */
-            $row = $prizeRecord::where('id', $prizeRecord->getKey())
-                ->lockForUpdate()
-                ->first();
-
-            if (!$row) {
-                return null;
-            }
-
-            if ($row->isWaiting() || $row->isProcessing()) {
-                // Reparar antes de (re)intentar: si ya existe un pago completado
-                // la wallet ya fue acreditada — esto cubre tanto el camino normal
-                // (waiting→processing) como un registro que por algún motivo volvió
-                // a 'waiting'/quedó en 'processing' con el pago ya resuelto.
-                if ($row->hasCompletedPayment()) {
-                    Log::warning('[GamePrizeService] Pago completado ya existente — reparando estado', [
-                        'game'     => $row->getGameSlug(),
-                        'prize_id' => $row->getKey(),
-                    ]);
-                    $row->markAsClaimed();
-                    return null;
-                }
-
-                $row->markAsProcessing();
-                return $row;
-            }
-
-            // 'claimed', 'cancelled', 'suspended', 'disputed' — nada que hacer.
-            return null;
-        });
-
-        if ($locked === null) {
-            return;
-        }
-
-        $userId   = $locked->getUserId();
-        $gameSlug = $locked->getGameSlug();
-
-        try {
-            $wallet = $this->walletService->findActiveWallet($userId, $locked->getCurrencyId());
-
-            if (!$wallet) {
-                Log::warning('[GamePrizeService] Ganador sin wallet activa — suspendiendo premio para revisión manual', [
-                    'game'        => $gameSlug,
-                    'prize_id'    => $locked->getKey(),
-                    'user_id'     => $userId,
-                    'currency_id' => $locked->getCurrencyId(),
-                ]);
-                // Wallet inexistente es un error permanente (no transitorio): transicionar
-                // a 'suspended' para que el retry cron no lo intente indefinidamente y
-                // un operador pueda revisarlo manualmente.
-                DB::transaction(function () use ($locked) {
-                    $this->recordPayment($locked, null, 'failed', 'El ganador no tiene billetera activa en la moneda del premio.');
-                    $locked->prize_status = 'suspended';
-                    $locked->save();
-                });
-                return;
-            }
-
-            $amount   = $locked->getLocalAmount();
-
-            // IMPORTANTE: recordPrize() y el registro del payment + markAsClaimed()
-            // NO pueden estar en la misma transacción porque recordPrize() modifica
-            // la wallet (balance externo). Separar las dos operaciones expone una
-            // ventana donde el worker muere entre ambas, pero eso se cubre con el
-            // path de reintento hasCompletedPayment() en la transacción 1 de arriba.
-            //
-            // El riesgo de doble pago existe si dos workers concurrentes pasan la
-            // transacción 1 (markAsProcessing) y ambos llaman recordPrize() antes de
-            // que cualquiera commitee la transacción 2. Para mitigarlo, la transacción 2
-            // re-verifica hasCompletedPayment() con lockForUpdate antes de creditar.
-            $movement = null;
-            DB::transaction(function () use ($locked, $wallet, $amount, $description, $userId, &$movement) {
-                // Re-verificar bajo lock que nadie más completó el pago mientras esperábamos.
-                /** @var \App\Services\Games\GamePrizeContract $row */
-                $row = $locked::where('id', $locked->getKey())->lockForUpdate()->first();
-                if (!$row || $row->hasCompletedPayment()) {
-                    return; // ya pagado por un worker concurrente — no continuar
-                }
-                // Clave de idempotencia POR REGISTRO DE PREMIO (no por sala+usuario):
-                // usar getKey() (card_prize_id / trivia_participant_id) garantiza que:
-                // (a) reintentos del mismo premio nunca generan un segundo movimiento,
-                // (b) dos ganadores distintos en la misma sala NO comparten la clave,
-                // (c) un mismo usuario que gana en dos rondas diferentes tiene claves distintas.
-                $movement = $this->walletService->recordPrize(
-                    wallet:         $wallet,
-                    amount:         $amount,
-                    gameId:         $locked->getGameId(),
-                    description:    $description,
-                    idempotencyKey: sprintf('%s_prize:%s', $locked->getGameSlug(), $locked->getKey()),
-                );
-                $this->recordPayment($locked, (string) $movement->id, 'completed', null);
-                $locked->markAsClaimed();
-            });
-
-            if ($movement === null) {
-                // Otro worker completó el pago concurrentemente — nada más que hacer.
-                return;
-            }
-
-            Log::info('[GamePrizeService] Premio acreditado', [
-                'game'        => $gameSlug,
-                'prize_id'    => $locked->getKey(),
-                'user_id'     => $userId,
-                'wallet_id'   => $wallet->id,
-                'amount'      => $amount,
-                'movement_id' => $movement->id,
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('[GamePrizeService] Falló el pago — prize_status queda en processing para reintento', [
-                'game'     => $gameSlug,
-                'prize_id' => $locked->getKey(),
-                'user_id'  => $userId,
-                'error'    => $e->getMessage(),
-            ]);
-            try {
-                $this->recordPayment($locked, null, 'failed', $e->getMessage());
-            } catch (\Throwable $inner) {
-                Log::error('[GamePrizeService] No se pudo registrar el payment fallido', [
-                    'prize_id' => $locked->getKey(),
-                    'error'    => $inner->getMessage(),
-                ]);
-            }
-        }
-    }
-
-    private function recordPayment(
-        GamePrizeContract $prize,
-        ?string $movementId,
-        string $status,
-        ?string $reason
-    ): void {
-        $attrs = $prize->buildPaymentAttributes($movementId, $status, $reason);
-        $prize->createPayment($attrs);
+    ) {
     }
 
     /**
@@ -207,44 +65,194 @@ final class GamePrizeService
      * fraude, y la wallet debe poder quedar en negativo (ver
      * WalletService::recordPrizeReversal()).
      *
-     * @throws \RuntimeException Si el premio no está en estado 'claimed' o
-     *         el ganador ya no tiene wallet activa en la moneda del premio.
+     * @throws RuntimeException si el premio no está en estado 'claimed' o
+     *                          el ganador ya no tiene wallet activa en la moneda del premio
      */
-    public function disputeAndReverse(GamePrizeContract $prizeRecord, string $reason): void
+    public function disputeAndReverse(GamePrizeContract $prizeRecord, string $reason) : void
     {
-        $locked = DB::transaction(function () use ($prizeRecord): GamePrizeContract {
+        $locked = DB::transaction(function() use ($prizeRecord) : GamePrizeContract {
             /** @var GamePrizeContract $row */
             $row = $prizeRecord::where('id', $prizeRecord->getKey())
                 ->lockForUpdate()
                 ->first();
 
             if (! $row || ! $row->isClaimed()) {
-                throw new \RuntimeException('Solo se puede disputar un premio en estado "claimed".');
+                throw new RuntimeException('Solo se puede disputar un premio en estado "claimed".');
             }
 
             $row->markAsDisputed();
+
             return $row;
         });
 
         $wallet = $this->walletService->findActiveWallet($locked->getUserId(), $locked->getCurrencyId());
         if (! $wallet) {
-            throw new \RuntimeException('El ganador no tiene una billetera activa en la moneda del premio — revertir requiere intervención manual directa en la wallet.');
+            throw new RuntimeException('El ganador no tiene una billetera activa en la moneda del premio — revertir requiere intervención manual directa en la wallet.');
         }
 
         $this->walletService->recordPrizeReversal(
-            wallet:         $wallet,
-            amount:         $locked->getLocalAmount(),
-            gameId:         $locked->getGameId(),
-            description:    "Reversión de premio en disputa — {$locked->getGameSlug()} #{$locked->getKey()}: {$reason}",
+            wallet: $wallet,
+            amount: $locked->getLocalAmount(),
+            gameId: $locked->getGameId(),
+            description: "Reversión de premio en disputa — {$locked->getGameSlug()} #{$locked->getKey()}: {$reason}",
             idempotencyKey: sprintf('%s_prize_reversal:%s', $locked->getGameSlug(), $locked->getKey()),
         );
 
         Log::warning('[GamePrizeService] Premio revertido por disputa', [
-            'game'     => $locked->getGameSlug(),
+            'game' => $locked->getGameSlug(),
             'prize_id' => $locked->getKey(),
-            'user_id'  => $locked->getUserId(),
-            'amount'   => $locked->getLocalAmount(),
-            'reason'   => $reason,
+            'user_id' => $locked->getUserId(),
+            'amount' => $locked->getLocalAmount(),
+            'reason' => $reason,
         ]);
+    }
+
+    /**
+     * Paga el premio al ganador de forma idempotente y atómica.
+     *
+     * @param Model&GamePrizeContract $prizeRecord El registro del premio (BingoCardPrize, etc.)
+     * @param string                  $description Texto que aparecerá en el movimiento de wallet
+     */
+    public function payout(GamePrizeContract $prizeRecord, string $description) : void
+    {
+        $locked = DB::transaction(function() use ($prizeRecord) : ?GamePrizeContract {
+            /** @var GamePrizeContract $row */
+            $row = $prizeRecord::where('id', $prizeRecord->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (! $row) {
+                return null;
+            }
+
+            if ($row->isWaiting() || $row->isProcessing()) {
+                // Reparar antes de (re)intentar: si ya existe un pago completado
+                // la wallet ya fue acreditada — esto cubre tanto el camino normal
+                // (waiting→processing) como un registro que por algún motivo volvió
+                // a 'waiting'/quedó en 'processing' con el pago ya resuelto.
+                if ($row->hasCompletedPayment()) {
+                    Log::warning('[GamePrizeService] Pago completado ya existente — reparando estado', [
+                        'game' => $row->getGameSlug(),
+                        'prize_id' => $row->getKey(),
+                    ]);
+                    $row->markAsClaimed();
+
+                    return null;
+                }
+
+                $row->markAsProcessing();
+
+                return $row;
+            }
+
+            // 'claimed', 'cancelled', 'suspended', 'disputed' — nada que hacer.
+            return null;
+        });
+
+        if ($locked === null) {
+            return;
+        }
+
+        $userId = $locked->getUserId();
+        $gameSlug = $locked->getGameSlug();
+
+        try {
+            $wallet = $this->walletService->findActiveWallet($userId, $locked->getCurrencyId());
+
+            if (! $wallet) {
+                Log::warning('[GamePrizeService] Ganador sin wallet activa — suspendiendo premio para revisión manual', [
+                    'game' => $gameSlug,
+                    'prize_id' => $locked->getKey(),
+                    'user_id' => $userId,
+                    'currency_id' => $locked->getCurrencyId(),
+                ]);
+                // Wallet inexistente es un error permanente (no transitorio): transicionar
+                // a 'suspended' para que el retry cron no lo intente indefinidamente y
+                // un operador pueda revisarlo manualmente.
+                DB::transaction(function() use ($locked) {
+                    $this->recordPayment($locked, null, 'failed', 'El ganador no tiene billetera activa en la moneda del premio.');
+                    $locked->prize_status = 'suspended';
+                    $locked->save();
+                });
+
+                return;
+            }
+
+            $amount = $locked->getLocalAmount();
+
+            // IMPORTANTE: recordPrize() y el registro del payment + markAsClaimed()
+            // NO pueden estar en la misma transacción porque recordPrize() modifica
+            // la wallet (balance externo). Separar las dos operaciones expone una
+            // ventana donde el worker muere entre ambas, pero eso se cubre con el
+            // path de reintento hasCompletedPayment() en la transacción 1 de arriba.
+            //
+            // El riesgo de doble pago existe si dos workers concurrentes pasan la
+            // transacción 1 (markAsProcessing) y ambos llaman recordPrize() antes de
+            // que cualquiera commitee la transacción 2. Para mitigarlo, la transacción 2
+            // re-verifica hasCompletedPayment() con lockForUpdate antes de creditar.
+            $movement = null;
+            DB::transaction(function() use ($locked, $wallet, $amount, $description, &$movement) {
+                // Re-verificar bajo lock que nadie más completó el pago mientras esperábamos.
+                /** @var \App\Services\Games\GamePrizeContract $row */
+                $row = $locked::where('id', $locked->getKey())->lockForUpdate()->first();
+                if (! $row || $row->hasCompletedPayment()) {
+                    return; // ya pagado por un worker concurrente — no continuar
+                }
+                // Clave de idempotencia POR REGISTRO DE PREMIO (no por sala+usuario):
+                // usar getKey() (card_prize_id / trivia_participant_id) garantiza que:
+                // (a) reintentos del mismo premio nunca generan un segundo movimiento,
+                // (b) dos ganadores distintos en la misma sala NO comparten la clave,
+                // (c) un mismo usuario que gana en dos rondas diferentes tiene claves distintas.
+                $movement = $this->walletService->recordPrize(
+                    wallet: $wallet,
+                    amount: $amount,
+                    gameId: $locked->getGameId(),
+                    description: $description,
+                    idempotencyKey: sprintf('%s_prize:%s', $locked->getGameSlug(), $locked->getKey()),
+                );
+                $this->recordPayment($locked, (string) $movement->id, 'completed', null);
+                $locked->markAsClaimed();
+            });
+
+            if ($movement === null) {
+                // Otro worker completó el pago concurrentemente — nada más que hacer.
+                return;
+            }
+
+            Log::info('[GamePrizeService] Premio acreditado', [
+                'game' => $gameSlug,
+                'prize_id' => $locked->getKey(),
+                'user_id' => $userId,
+                'wallet_id' => $wallet->id,
+                'amount' => $amount,
+                'movement_id' => $movement->id,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('[GamePrizeService] Falló el pago — prize_status queda en processing para reintento', [
+                'game' => $gameSlug,
+                'prize_id' => $locked->getKey(),
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            try {
+                $this->recordPayment($locked, null, 'failed', $e->getMessage());
+            } catch (Throwable $inner) {
+                Log::error('[GamePrizeService] No se pudo registrar el payment fallido', [
+                    'prize_id' => $locked->getKey(),
+                    'error' => $inner->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    private function recordPayment(
+        GamePrizeContract $prize,
+        ?string $movementId,
+        string $status,
+        ?string $reason,
+    ) : void {
+        $attrs = $prize->buildPaymentAttributes($movementId, $status, $reason);
+        $prize->createPayment($attrs);
     }
 }

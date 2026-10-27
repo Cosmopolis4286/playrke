@@ -18,10 +18,8 @@ class AdminSubsidiaryRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
-     *
-     * @return bool
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         // admin: gestiona el árbol completo. commerce: gestiona SUS PROPIAS
         // sucursales — el scoping de propiedad real (que no sea de OTRO
@@ -32,19 +30,30 @@ class AdminSubsidiaryRequest extends BaseRequest
     }
 
     /**
-     * AdminSubsidiaryForm envía `commission: null` cuando el toggle
-     * has_commission está apagado ("agencia sin comisión propia", de paso —
-     * ver CommissionHierarchyGuard). Sin normalizarlo, la regla numeric
-     * rechazaba el null (422: toda agencia sin comisión era imposible de
-     * crear/editar desde la UI), y aun pasando, el update lo descartaba como
-     * "sin cambios" (array_filter !== null) en vez de guardar 0. Presente y
-     * vacío = 0; ausente = sin cambios.
+     * Mensajes de error personalizados.
+     *
+     * @return array<string, string>
      */
-    protected function prepareForValidation(): void
+    public function messages() : array
     {
-        if ($this->exists('commission') && ($this->input('commission') === null || $this->input('commission') === '')) {
-            $this->merge(['commission' => '0']);
-        }
+        return [
+            'username.required' => 'El nombre de usuario es obligatorio.',
+            'username.unique' => 'El nombre de usuario no está disponible.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico debe ser válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.unique' => 'El número ya está registrado.',
+            'name.required' => 'El nombre de la sucursal es obligatorio.',
+            'commerce.required' => 'El comercio al que pertenece la sucursal es obligatorio.',
+            'commerce.exists' => 'El comercio seleccionado no existe o no está activo.',
+            'country.required' => 'El país es obligatorio.',
+            'currency.required' => 'La moneda es obligatoria.',
+            'commission.numeric' => 'La comisión debe ser un número.',
+            'commission.min' => 'La comisión no puede ser menor a 0.',
+            'commission.max' => 'La comisión no puede ser mayor a 100.',
+            'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
+        ];
     }
 
     /**
@@ -52,31 +61,31 @@ class AdminSubsidiaryRequest extends BaseRequest
      *
      * @return array<string, mixed>
      */
-    public function rules(): array
+    public function rules() : array
     {
         // Resuelve el modelo Subsidiary manualmente desde el route parameter
         $subsidiary = $this->resolveSubsidiary();
 
         $subsidiaryId = $subsidiary?->id;
-        $isUpdate     = $subsidiary !== null;
-        $userId       = $subsidiary?->user_id;
+        $isUpdate = $subsidiary !== null;
+        $userId = $subsidiary?->user_id;
 
         $rules = [
-            'name'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:30'],
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:30'],
             // status=ACTIVE: sin esto, se podía asignar una sucursal a un
             // comercio ya BLOCKED/DELETED (exists solo valida que el id
             // exista, no su estado), dejando una jerarquía inválida.
-            'commerce'   => [
+            'commerce' => [
                 $isUpdate ? 'sometimes' : 'required', 'string',
                 Rule::exists('commerces', 'id')->where('status', 'ACTIVE'),
             ],
-            'country'    => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
-            'currency'   => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
+            'country' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
+            'currency' => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
             // max:20 (no 14): alineado con Commerce/Customer/Player/Treasurer/
             // Seller — con 14 ningún teléfono VE/BR válido según
             // ValidPhoneForCountry podía pasar esta misma regla (ver columna
             // subsidiaries.phone, ampliada por el mismo motivo).
-            'phone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
+            'phone' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', new ValidPhoneForCountry($this->input('country'))],
             'commission' => ['sometimes', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
         ];
 
@@ -89,41 +98,30 @@ class AdminSubsidiaryRequest extends BaseRequest
         if ($isUpdate) {
             // En update: validar solo si se envían, excluyendo el usuario actual
             $rules['username'] = ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)];
-            $rules['email']    = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
+            $rules['email'] = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
         } else {
             // En creación: obligatorios y únicos
             $rules['username'] = ['required', 'string', 'max:20', Rule::unique('users', 'username')];
-            $rules['email']    = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
+            $rules['email'] = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
         }
 
         return $rules;
     }
 
     /**
-     * Mensajes de error personalizados.
-     *
-     * @return array<string, string>
+     * AdminSubsidiaryForm envía `commission: null` cuando el toggle
+     * has_commission está apagado ("agencia sin comisión propia", de paso —
+     * ver CommissionHierarchyGuard). Sin normalizarlo, la regla numeric
+     * rechazaba el null (422: toda agencia sin comisión era imposible de
+     * crear/editar desde la UI), y aun pasando, el update lo descartaba como
+     * "sin cambios" (array_filter !== null) en vez de guardar 0. Presente y
+     * vacío = 0; ausente = sin cambios.
      */
-    public function messages(): array
+    protected function prepareForValidation() : void
     {
-        return [
-            'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique'   => 'El nombre de usuario no está disponible.',
-            'email.required'    => 'El correo electrónico es obligatorio.',
-            'email.email'       => 'El correo electrónico debe ser válido.',
-            'email.unique'      => 'Este correo ya está registrado.',
-            'phone.required'    => 'El teléfono es obligatorio.',
-            'phone.unique'      => 'El número ya está registrado.',
-            'name.required'     => 'El nombre de la sucursal es obligatorio.',
-            'commerce.required' => 'El comercio al que pertenece la sucursal es obligatorio.',
-            'commerce.exists'   => 'El comercio seleccionado no existe o no está activo.',
-            'country.required'  => 'El país es obligatorio.',
-            'currency.required' => 'La moneda es obligatoria.',
-            'commission.numeric' => 'La comisión debe ser un número.',
-            'commission.min' => 'La comisión no puede ser menor a 0.',
-            'commission.max' => 'La comisión no puede ser mayor a 100.',
-            'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
-        ];
+        if ($this->exists('commission') && ($this->input('commission') === null || $this->input('commission') === '')) {
+            $this->merge(['commission' => '0']);
+        }
     }
 
     /**
@@ -133,7 +131,7 @@ class AdminSubsidiaryRequest extends BaseRequest
      * por lo que debemos resolver el modelo manualmente usando el
      * método resolveRouteBinding del modelo.
      */
-    protected function resolveSubsidiary(): ?Subsidiary
+    protected function resolveSubsidiary() : ?Subsidiary
     {
         $routeParam = $this->route('subsidiary') ?? $this->route('id');
 
@@ -145,6 +143,6 @@ class AdminSubsidiaryRequest extends BaseRequest
             return $routeParam;
         }
 
-        return (new Subsidiary())->resolveRouteBinding($routeParam);
+        return (new Subsidiary)->resolveRouteBinding($routeParam);
     }
 }

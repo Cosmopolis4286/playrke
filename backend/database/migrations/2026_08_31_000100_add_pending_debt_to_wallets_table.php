@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * wallets ya tiene datos reales cuando se escribió esto — migración
  * incremental, mismo patrón que 2026_08_30_200343_add_triggered_by_to_
  * command_logs_table y 2026_08_31_000000_add_disputed_to_bingo_card_
@@ -25,25 +25,7 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
-    {
-        if (Schema::hasColumn('wallets', 'pending_debt')) {
-            return;
-        }
-
-        Schema::table('wallets', function (Blueprint $table) {
-            $table->decimal('pending_debt', 15, 2)
-                ->default(0.00)
-                ->after('bonus_balance')
-                ->comment('Deuda pendiente de cobro (ej. reversión de premio en disputa que excedió el saldo disponible) — se descuenta automáticamente del próximo crédito a la wallet');
-        });
-
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_pending_debt_nonneg CHECK (pending_debt >= 0)');
-        }
-    }
-
-    public function down(): void
+    public function down() : void
     {
         if (! Schema::hasColumn('wallets', 'pending_debt')) {
             return;
@@ -53,8 +35,26 @@ return new class extends Migration
             DB::statement('ALTER TABLE wallets DROP CHECK chk_wallets_pending_debt_nonneg');
         }
 
-        Schema::table('wallets', function (Blueprint $table) {
+        Schema::table('wallets', function(Blueprint $table) {
             $table->dropColumn('pending_debt');
         });
+    }
+
+    public function up() : void
+    {
+        if (Schema::hasColumn('wallets', 'pending_debt')) {
+            return;
+        }
+
+        Schema::table('wallets', function(Blueprint $table) {
+            $table->decimal('pending_debt', 15, 2)
+                ->default(0.00)
+                ->after('bonus_balance')
+                ->comment('Deuda pendiente de cobro (ej. reversión de premio en disputa que excedió el saldo disponible) — se descuenta automáticamente del próximo crédito a la wallet');
+        });
+
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_pending_debt_nonneg CHECK (pending_debt >= 0)');
+        }
     }
 };

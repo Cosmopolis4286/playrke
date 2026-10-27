@@ -8,8 +8,6 @@ use App\Models\Currency;
 use App\Models\Game;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
-use App\Models\Roles\Seller;
-use App\Models\Roles\Subsidiary;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,23 +19,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Commerce extends BaseModel
 {
-    protected $table = 'commerces';
-
-    protected $fillable = [
-        'name',
-        'country_id',
-        'phone',
-        'user_id',
-        'commission',
-        'unique_code_id',
-        'pending_payment_policy',
-        'status'
-    ];
+    /** Pago de cartón pendiente al iniciar el sorteo: sigue en revisión (marcado). */
+    public const PENDING_POLICY_KEEP = 'keep_review';
 
     /** Pago de cartón pendiente al iniciar el sorteo: se rechaza con reembolso. */
     public const PENDING_POLICY_REJECT = 'reject_refund';
-    /** Pago de cartón pendiente al iniciar el sorteo: sigue en revisión (marcado). */
-    public const PENDING_POLICY_KEEP   = 'keep_review';
+
+    // ========================
+    // Accessors computados
+    // ========================
+    protected $appends = ['status_badge'];
 
     protected $casts = [
         'id' => 'string',
@@ -48,15 +39,88 @@ class Commerce extends BaseModel
         'status' => 'string',
     ];
 
-    // ========================
-    // Accessors computados
-    // ========================
-    protected $appends = ['status_badge'];
+    protected $fillable = [
+        'name',
+        'country_id',
+        'phone',
+        'user_id',
+        'commission',
+        'unique_code_id',
+        'pending_payment_policy',
+        'status',
+    ];
+    protected $table = 'commerces';
+
+    /**
+     * Obtener el valor de un campo específico por user_id.
+     */
+    public static function getValueByUserId(string|int $userId, string $field) : mixed
+    {
+        return static::where('user_id', $userId)->value($field);
+    }
+
+    /**
+     * Relación con el país
+     */
+    public function country() : BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    /**
+     * Monedas que maneja el comercio
+     */
+    public function currencies() : BelongsToMany
+    {
+        return $this->belongsToMany(
+            Currency::class,
+            'commerces_currencies',
+            'commerce_id',
+            'currency_id',
+        )
+            ->using(CommerceCurrency::class)
+            ->withPivot(['level', 'status'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Monedas activas que maneja el comercio
+     */
+    public function currenciesActive() : BelongsToMany
+    {
+        return $this->currencies()
+            ->wherePivot('status', 'ACTIVE');
+    }
+
+    /**
+     * Juegos permitidos para el comercio
+     */
+    public function games() : BelongsToMany
+    {
+        return $this->belongsToMany(
+            Game::class,
+            'commerces_games',
+            'commerce_id',
+            'game_id',
+        )
+            ->using(CommerceGame::class)
+            ->withPivot('status')
+            ->withTimestamps();
+    }
+
+    /**
+     * Juegos permitidos activos para el comercio
+     */
+    public function gamesActive() : BelongsToMany
+    {
+        return $this->games()
+            ->wherePivot('status', 'ACTIVE');
+    }
 
     /**
      * Accessor para el status con badge HTML
      */
-    public function getStatusBadgeAttribute(): string
+    public function getStatusBadgeAttribute() : string
     {
         return match ($this->status) {
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',
@@ -65,51 +129,6 @@ class Commerce extends BaseModel
             'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
             default => '<span class="badge badge-warning">Desconocido</span>'
         };
-    }
-
-    /**
-     * Relación con el país
-     */
-    public function country(): BelongsTo
-    {
-        return $this->belongsTo(Country::class, 'country_id');
-    }
-
-    /**
-     * Relación con el usuario
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    /**
-     * Relación con el código único
-     */
-    public function uniqueCode(): BelongsTo
-    {
-        return $this->belongsTo(UniqueCode::class, 'unique_code_id');
-    }
-
-    /**
-     * Relación con los vendedores.
-     *
-     * La FK real vive en el lado de Seller (sellers.manager_user_id → commerces.user_id,
-     * ver Seller::managerCommerce()); no existe columna commerce_id en sellers.
-     */
-    public function sellers(): HasMany
-    {
-        return $this->hasMany(Seller::class, 'manager_user_id', 'user_id');
-    }
-
-    /**
-     * Agencias/sucursales de este comercio (jerarquía real: Comercializadora
-     * → Agencia → Taquilla). FK directa commerce_id, a diferencia de
-     * sellers() que resuelve vía user_id/manager_user_id.
-     */
-    public function subsidiaries(): HasMany
-    {
-        return $this->hasMany(Subsidiary::class, 'commerce_id');
     }
 
     /**
@@ -127,7 +146,7 @@ class Commerce extends BaseModel
      *
      * @return string[]
      */
-    public function networkUserIds(): array
+    public function networkUserIds() : array
     {
         $directSellerIds = $this->sellers()->pluck('user_id')->map(fn ($id) => (string) $id);
 
@@ -144,60 +163,39 @@ class Commerce extends BaseModel
     }
 
     /**
-     * Monedas que maneja el comercio
+     * Relación con los vendedores.
+     *
+     * La FK real vive en el lado de Seller (sellers.manager_user_id → commerces.user_id,
+     * ver Seller::managerCommerce()); no existe columna commerce_id en sellers.
      */
-    public function currencies(): BelongsToMany
+    public function sellers() : HasMany
     {
-        return $this->belongsToMany(
-            Currency::class,
-            'commerces_currencies',
-            'commerce_id',
-            'currency_id'
-        )
-            ->using(CommerceCurrency::class)
-            ->withPivot(['level', 'status'])
-            ->withTimestamps();
+        return $this->hasMany(Seller::class, 'manager_user_id', 'user_id');
     }
 
     /**
-     * Juegos permitidos para el comercio
+     * Agencias/sucursales de este comercio (jerarquía real: Comercializadora
+     * → Agencia → Taquilla). FK directa commerce_id, a diferencia de
+     * sellers() que resuelve vía user_id/manager_user_id.
      */
-    public function games(): BelongsToMany
+    public function subsidiaries() : HasMany
     {
-        return $this->belongsToMany(
-            Game::class,
-            'commerces_games',
-            'commerce_id',
-            'game_id'
-        )
-            ->using(CommerceGame::class)
-            ->withPivot('status')
-            ->withTimestamps();
+        return $this->hasMany(Subsidiary::class, 'commerce_id');
     }
 
     /**
-     * Monedas activas que maneja el comercio
+     * Relación con el código único
      */
-    public function currenciesActive(): BelongsToMany
+    public function uniqueCode() : BelongsTo
     {
-        return $this->currencies()
-            ->wherePivot('status', 'ACTIVE');
+        return $this->belongsTo(UniqueCode::class, 'unique_code_id');
     }
 
     /**
-     * Juegos permitidos activos para el comercio
+     * Relación con el usuario
      */
-    public function gamesActive(): BelongsToMany
+    public function user() : BelongsTo
     {
-        return $this->games()
-            ->wherePivot('status', 'ACTIVE');
-    }
-
-    /**
-     * Obtener el valor de un campo específico por user_id.
-     */
-    public static function getValueByUserId(string|int $userId, string $field): mixed
-    {
-        return static::where('user_id', $userId)->value($field);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

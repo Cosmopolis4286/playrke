@@ -18,7 +18,7 @@ abstract class RoleExchangeRateRepository extends BaseRepository implements Role
 {
     use ResolvesExchangeRateForeignKey;
 
-    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto): Model
+    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto) : Model
     {
         $data = $dto->toArray();
 
@@ -34,6 +34,7 @@ abstract class RoleExchangeRateRepository extends BaseRepository implements Role
         if ($model) {
             $model->trashed() && $model->restore();
             $model->update($data);
+
             return $model;
         }
 

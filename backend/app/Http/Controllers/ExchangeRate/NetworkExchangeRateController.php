@@ -15,9 +15,10 @@ final class NetworkExchangeRateController extends Controller
 {
     public function __construct(
         private readonly NetworkExchangeRateService $service,
-    ) {}
+    ) {
+    }
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request) : JsonResponse
     {
         $this->authorize('exchange.viewNetwork');
 

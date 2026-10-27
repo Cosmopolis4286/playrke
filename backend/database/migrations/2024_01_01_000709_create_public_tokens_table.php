@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('public_tokens');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('public_tokens', function (Blueprint $table) {
+        Schema::create('public_tokens', function(Blueprint $table) {
             $table->id();
 
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -27,13 +35,5 @@ return new class extends Migration
             $table->index(['user_id', 'status']);
             $table->index(['status', 'expires_at']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('public_tokens');
     }
 };

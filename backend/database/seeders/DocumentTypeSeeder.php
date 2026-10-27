@@ -2,23 +2,23 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Shared\DocumentType;
 use App\Repositories\CountryRepository;
+use Illuminate\Database\Seeder;
 
 class DocumentTypeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         // Resolver repositorio de países usando IoC
         $countryRepo = app(CountryRepository::class);
 
         // Obtener países por ISO
-        $brasil    = $countryRepo->getCountryByIsoCode('BR');
+        $brasil = $countryRepo->getCountryByIsoCode('BR');
         $venezuela = $countryRepo->getCountryByIsoCode('VE');
 
         // IDs (si existen)
-        $brasilId    = $brasil?->id;
+        $brasilId = $brasil?->id;
         $venezuelaId = $venezuela?->id;
 
         // Datos a insertar o actualizar
@@ -31,19 +31,19 @@ class DocumentTypeSeeder extends Seeder
 
         // Insertar o actualizar cada tipo de documento de forma idempotente
         foreach ($documentTypes as $type) {
-            if (!$type['country_id']) {
+            if (! $type['country_id']) {
                 continue;
             }
 
             DocumentType::updateOrCreate(
                 [
-                    'code'       => $type['value'],
+                    'code' => $type['value'],
                     'country_id' => $type['country_id'],
                 ],
                 [
                     'description' => $type['description'],
-                    'status'   => $type['status'],
-                ]
+                    'status' => $type['status'],
+                ],
             );
         }
     }

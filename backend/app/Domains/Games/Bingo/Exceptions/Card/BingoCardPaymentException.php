@@ -15,7 +15,7 @@ final class BingoCardPaymentException extends DomainException
      * El sorteo ya inició: aprobar ahora activa cartones que ya perdieron las
      * bolas cantadas. Se exige confirmación explícita (confirm_late).
      */
-    public static function lateApprovalNeedsConfirmation(): self
+    public static function lateApprovalNeedsConfirmation() : self
     {
         return new self('BINGO_PAYMENT_LATE_APPROVAL_CONFIRM', 409);
     }

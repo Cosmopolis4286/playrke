@@ -23,25 +23,26 @@ class UserRegistered implements ShouldBroadcastNow
         public readonly ?string $email,
         public readonly string $roleName,
         public readonly string $createdAt,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new PrivateChannel('admins.activity');
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'user.registered';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : Channel
+    {
+        return new PrivateChannel('admins.activity');
+    }
+
+    public function broadcastWith() : array
     {
         return [
-            'user_id'    => $this->userId,
-            'username'   => $this->username,
-            'email'      => $this->email,
-            'role_name'  => $this->roleName,
+            'user_id' => $this->userId,
+            'username' => $this->username,
+            'email' => $this->email,
+            'role_name' => $this->roleName,
             'created_at' => $this->createdAt,
         ];
     }

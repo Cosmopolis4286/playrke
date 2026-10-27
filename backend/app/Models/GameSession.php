@@ -16,32 +16,40 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * de duración variable. Sin lógica de negocio en el modelo — las
  * transiciones de estado viven en GameSessionService.
  *
- * @property string $id
- * @property string $game
- * @property string $status WAITING | RUNNING | FINISHED | CANCELLED
- * @property float|null $entry_fee
- * @property string|null $currency_id
- * @property float|null $prize_pool
- * @property int|null $max_participants
- * @property int|null $min_level
- * @property string|null $initiator_user_id
+ * @property string              $id
+ * @property string              $game
+ * @property string              $status            WAITING | RUNNING | FINISHED | CANCELLED
+ * @property float|null          $entry_fee
+ * @property string|null         $currency_id
+ * @property float|null          $prize_pool
+ * @property int|null            $max_participants
+ * @property int|null            $min_level
+ * @property string|null         $initiator_user_id
  * @property \Carbon\Carbon|null $started_at
  * @property \Carbon\Carbon|null $finished_at
- * @property array|null $metadata
+ * @property array|null          $metadata
  */
 class GameSession extends Model
 {
     use \App\Traits\SnowflakeId;
-
-    protected $table = 'game_sessions';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_WAITING   = 'WAITING';
-    public const STATUS_RUNNING   = 'RUNNING';
-    public const STATUS_FINISHED  = 'FINISHED';
     public const STATUS_CANCELLED = 'CANCELLED';
+    public const STATUS_FINISHED = 'FINISHED';
+    public const STATUS_RUNNING = 'RUNNING';
+
+    public const STATUS_WAITING = 'WAITING';
+    public $incrementing = false;
+
+    protected $casts = [
+        'entry_fee' => 'float',
+        'prize_pool' => 'float',
+        'max_participants' => 'integer',
+        'min_level' => 'integer',
+        'metadata' => 'array',
+        'started_at' => 'datetime',
+        'finished_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'game',
@@ -56,49 +64,26 @@ class GameSession extends Model
         'finished_at',
         'metadata',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'entry_fee'        => 'float',
-        'prize_pool'       => 'float',
-        'max_participants' => 'integer',
-        'min_level'        => 'integer',
-        'metadata'         => 'array',
-        'started_at'       => 'datetime',
-        'finished_at'      => 'datetime',
-        'created_at'       => 'datetime',
-        'updated_at'       => 'datetime',
-    ];
+    protected $table = 'game_sessions';
 
-    public function initiator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'initiator_user_id');
-    }
-
-    public function currency(): BelongsTo
-    {
-        return $this->belongsTo(Currency::class, 'currency_id');
-    }
-
-    public function holds(): HasMany
-    {
-        return $this->hasMany(WalletHold::class, 'game_session_id');
-    }
-
-    public function participants(): HasMany
-    {
-        return $this->hasMany(GameSessionParticipant::class, 'game_session_id');
-    }
-
-    public function activeParticipants(): HasMany
+    public function activeParticipants() : HasMany
     {
         return $this->participants()->active();
+    }
+
+    public function currency() : BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     /**
      * ¿Tiene cupo para un participante más? true si max_participants es
      * null (sin límite) o si el conteo activo todavía no lo alcanza.
      */
-    public function hasAvailableSlot(): bool
+    public function hasAvailableSlot() : bool
     {
         if ($this->max_participants === null) {
             return true;
@@ -107,9 +92,24 @@ class GameSession extends Model
         return $this->activeParticipants()->count() < $this->max_participants;
     }
 
-    public function isActive(): bool
+    public function holds() : HasMany
+    {
+        return $this->hasMany(WalletHold::class, 'game_session_id');
+    }
+
+    public function initiator() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'initiator_user_id');
+    }
+
+    public function isActive() : bool
     {
         return in_array($this->status, [self::STATUS_WAITING, self::STATUS_RUNNING], true);
+    }
+
+    public function participants() : HasMany
+    {
+        return $this->hasMany(GameSessionParticipant::class, 'game_session_id');
     }
 
     public function scopeActive($query)

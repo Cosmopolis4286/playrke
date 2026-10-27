@@ -9,11 +9,10 @@ use Throwable;
 
 class NotifyExpiringSpecificPermissionGrantsCommand extends Command
 {
+    protected $description = 'Notifica a superadmins los permisos individuales que expirarán pronto, sin revocarlos todavía';
     protected $signature = 'permissions:notify-expiring-specific-grants {--days=3 : Días de anticipación del aviso}';
 
-    protected $description = 'Notifica a superadmins los permisos individuales que expirarán pronto, sin revocarlos todavía';
-
-    public function handle(SpecificPermissionExpiryService $service): void
+    public function handle(SpecificPermissionExpiryService $service) : void
     {
         $status = 'SUCCESS';
         $days = (int) $this->option('days');
@@ -27,7 +26,7 @@ class NotifyExpiringSpecificPermissionGrantsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

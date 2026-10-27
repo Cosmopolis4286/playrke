@@ -20,13 +20,13 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class JobsCenterPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
-    {
-        return 'superadmin';
-    }
-
-    public function manage(User $user): bool
+    public function manage(User $user) : bool
     {
         return $this->hasAccess($user);
+    }
+
+    protected function requiredRole() : string|array
+    {
+        return 'superadmin';
     }
 }

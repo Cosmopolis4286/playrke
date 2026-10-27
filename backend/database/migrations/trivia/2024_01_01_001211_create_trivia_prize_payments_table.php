@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Tabla de intentos de pago de premios de trivia — equivalente a
  * bingo_card_prize_payments, pero en pgsql_trivia. Necesaria para que
  * TriviaParticipant implemente GamePrizeContract (hasCompletedPayment(),
@@ -20,13 +20,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_prize_payments');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_prize_payments')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_prize_payments', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_prize_payments', function(Blueprint $table) {
             $table->string('id', 20)->primary();
 
             $table->string('participant_id', 20);
@@ -52,10 +57,5 @@ return new class extends Migration
             $table->index(['room_id', 'user_id']);
             $table->index('transaction_reference');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_prize_payments');
     }
 };

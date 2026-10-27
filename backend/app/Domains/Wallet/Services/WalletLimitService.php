@@ -29,41 +29,10 @@ final class WalletLimitService
     ];
 
     public function __construct(
-        private readonly CurrencyExchangeRateService $exchangeRateService
+        private readonly CurrencyExchangeRateService $exchangeRateService,
     ) {
     }
 
-    /**
-     * Recomienda los 8 campos de WalletLimit para (moneda, nivel KYC),
-     * escalando el baseline USD por la tasa de cambio ACTIVA de la moneda.
-     * Redondeo: monedas con tasa >= 100 (VES, COP…) se redondean a enteros —
-     * decimales no tienen sentido práctico en esas escalas; el resto conserva
-     * 2 decimales.
-     *
-     * @throws \App\Exceptions\Domain\ExchangeRate\ExchangeRateException Si la moneda no tiene tasa ACTIVE registrada.
-     * @return array<string, float>
-     */
-    public function recommend(string $currencyId, int $kycLevel) : array
-    {
-        $rate = $this->exchangeRateService->getActiveRate($currencyId);
-        $baseline = self::USD_BASELINE_BY_KYC_LEVEL[$kycLevel] ?? self::USD_BASELINE_BY_KYC_LEVEL[0];
-        $decimals = $rate >= 100 ? 0 : 2;
-
-        $recommended = [];
-        foreach ($baseline as $field => $usdAmount) {
-            $recommended[$field] = round($usdAmount * $rate, $decimals);
-        }
-
-        // min_deposit/min_per_transaction a 0 tras redondear (posible con
-        // tasas fraccionarias muy bajas) violaría igual las reglas de
-        // negocio de un mínimo real — se fuerza al menor valor positivo
-        // representable en esa escala de decimales.
-        $floor = $decimals === 0 ? 1 : 0.01;
-        $recommended['min_deposit'] = max($recommended['min_deposit'], $floor);
-        $recommended['min_per_transaction'] = max($recommended['min_per_transaction'], $floor);
-
-        return $recommended;
-    }
     /**
      * Lanza DomainException si el depósito viola algún límite.
      * Se llama desde WalletService::requestDeposit() antes de ejecutar.
@@ -159,6 +128,39 @@ final class WalletLimitService
     }
 
     /**
+     * Recomienda los 8 campos de WalletLimit para (moneda, nivel KYC),
+     * escalando el baseline USD por la tasa de cambio ACTIVA de la moneda.
+     * Redondeo: monedas con tasa >= 100 (VES, COP…) se redondean a enteros —
+     * decimales no tienen sentido práctico en esas escalas; el resto conserva
+     * 2 decimales.
+     *
+     * @return array<string, float>
+     *
+     * @throws \App\Exceptions\Domain\ExchangeRate\ExchangeRateException si la moneda no tiene tasa ACTIVE registrada
+     */
+    public function recommend(string $currencyId, int $kycLevel) : array
+    {
+        $rate = $this->exchangeRateService->getActiveRate($currencyId);
+        $baseline = self::USD_BASELINE_BY_KYC_LEVEL[$kycLevel] ?? self::USD_BASELINE_BY_KYC_LEVEL[0];
+        $decimals = $rate >= 100 ? 0 : 2;
+
+        $recommended = [];
+        foreach ($baseline as $field => $usdAmount) {
+            $recommended[$field] = round($usdAmount * $rate, $decimals);
+        }
+
+        // min_deposit/min_per_transaction a 0 tras redondear (posible con
+        // tasas fraccionarias muy bajas) violaría igual las reglas de
+        // negocio de un mínimo real — se fuerza al menor valor positivo
+        // representable en esa escala de decimales.
+        $floor = $decimals === 0 ? 1 : 0.01;
+        $recommended['min_deposit'] = max($recommended['min_deposit'], $floor);
+        $recommended['min_per_transaction'] = max($recommended['min_per_transaction'], $floor);
+
+        return $recommended;
+    }
+
+    /**
      * Devuelve un resumen de uso de límites para el frontend/perfil.
      */
     public function usage(Wallet $wallet, int $kycLevel) : array
@@ -195,7 +197,7 @@ final class WalletLimitService
      * a medianoche.
      *
      * @return array<string, array{daily: float, weekly: float, monthly: float, transaction_count: int}>
-     *         indexado por "{currency_id|global}:{kyc_level}"
+     *                                                                                                   indexado por "{currency_id|global}:{kyc_level}"
      */
     public function usageSummary() : array
     {
@@ -203,7 +205,7 @@ final class WalletLimitService
         $cacheKey = "wlimit:usage_summary:{$today}";
         $secondsUntilMidnight = Carbon::now()->secondsUntilEndOfDay() + 1;
 
-        return Cache::remember($cacheKey, $secondsUntilMidnight, function () {
+        return Cache::remember($cacheKey, $secondsUntilMidnight, function() {
             $monthStart = Carbon::now()->startOfMonth();
             $weekStart = Carbon::now()->startOfWeek();
             $todayStart = Carbon::today();

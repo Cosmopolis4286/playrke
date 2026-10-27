@@ -25,16 +25,11 @@ use Carbon\Carbon;
  */
 final class SellerCommissionTierService
 {
-    public function isEnabled(): bool
-    {
-        return (bool) config('sellers.progressive_commission_enabled', false);
-    }
-
     /**
      * Bonus porcentual (no la tasa final) correspondiente al volumen dado.
      * Ej. 2.5 significa "+2.5 puntos porcentuales" sobre la comisión base.
      */
-    public function bonusPercentForVolume(float $monthlyVolume): float
+    public function bonusPercentForVolume(float $monthlyVolume) : float
     {
         $tiers = $this->tiers();
         $bonus = 0.0;
@@ -48,13 +43,18 @@ final class SellerCommissionTierService
         return $bonus;
     }
 
+    public function isEnabled() : bool
+    {
+        return (bool) config('sellers.progressive_commission_enabled', false);
+    }
+
     /**
      * Volumen de venta del vendedor en el mes en curso (mismo cálculo que
      * SellerRankingService::buildRanking(), sin pasar por su caché de 90s
      * — este método se usa en el camino de cálculo de comisión de una
      * venta, que necesita el valor más al día posible).
      */
-    public function monthlyVolumeForSeller(string $sellerUserId): float
+    public function monthlyVolumeForSeller(string $sellerUserId) : float
     {
         $startOfMonth = Carbon::now()->startOfMonth();
 
@@ -68,7 +68,7 @@ final class SellerCommissionTierService
      * visibilidad ("te faltan $X para el próximo tramo") sin necesidad de
      * un endpoint nuevo; se consume desde SellerRankingService::getSellerStanding().
      */
-    public function tierProgress(float $monthlyVolume): array
+    public function tierProgress(float $monthlyVolume) : array
     {
         $tiers = $this->tiers();
         $current = $tiers[0] ?? ['min_volume' => 0, 'bonus_percent' => 0.0];
@@ -77,17 +77,19 @@ final class SellerCommissionTierService
         foreach ($tiers as $tier) {
             if ($monthlyVolume >= $tier['min_volume']) {
                 $current = $tier;
+
                 continue;
             }
 
             $next = $tier;
+
             break;
         }
 
         return [
             'current_bonus_percent' => (float) $current['bonus_percent'],
-            'next_tier'             => $next ? [
-                'min_volume'    => (float) $next['min_volume'],
+            'next_tier' => $next ? [
+                'min_volume' => (float) $next['min_volume'],
                 'bonus_percent' => (float) $next['bonus_percent'],
                 'volume_needed' => max(0.0, round((float) $next['min_volume'] - $monthlyVolume, 2)),
             ] : null,
@@ -97,7 +99,7 @@ final class SellerCommissionTierService
     /**
      * @return array<int, array{min_volume: float, bonus_percent: float}>
      */
-    private function tiers(): array
+    private function tiers() : array
     {
         $tiers = config('sellers.progressive_commission_tiers', []);
 

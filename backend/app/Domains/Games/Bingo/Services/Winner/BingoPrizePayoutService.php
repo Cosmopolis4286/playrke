@@ -27,17 +27,19 @@ final class BingoPrizePayoutService
     public function __construct(
         private readonly GamePrizeService $gamePrizeService,
         private readonly BingoRoomAuditLogger $auditLogger,
-    ) {}
+    ) {
+    }
 
-    public function payout(BingoCardPrize $cardPrize): void
+    public function payout(BingoCardPrize $cardPrize) : void
     {
         // Sala DEMO: nunca se acredita (el premio nace 'cancelled' en
         // BingoDrawService; esto cubre reintentos o cambios manuales de estado).
         $cardPrize->loadMissing('room');
         if ($cardPrize->room?->isDemo()) {
-            if (!$cardPrize->isCancelled()) {
+            if (! $cardPrize->isCancelled()) {
                 $cardPrize->update(['prize_status' => 'cancelled']);
             }
+
             return;
         }
 
@@ -49,7 +51,7 @@ final class BingoPrizePayoutService
         $cardPrize->refresh();
         $cardPrize->loadMissing('room');
 
-        if (!$cardPrize->room) {
+        if (! $cardPrize->room) {
             return;
         }
 

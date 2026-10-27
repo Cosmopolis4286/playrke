@@ -25,13 +25,14 @@ use kornrunner\Keccak;
  */
 final class Bip32PublicDerivationService
 {
+    private const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
     private const HARDENED_OFFSET = 0x80000000;
 
-    public function deriveAddress(string $xpub, int $index): string
+    public function deriveAddress(string $xpub, int $index) : string
     {
         if ($index >= self::HARDENED_OFFSET) {
             throw new PaymentsProviderMisconfiguredException(
-                'Derivación hardened solicitada desde un XPUB — imposible sin la clave privada.'
+                'Derivación hardened solicitada desde un XPUB — imposible sin la clave privada.',
             );
         }
 
@@ -53,65 +54,7 @@ final class Bip32PublicDerivationService
         return $this->publicKeyToTronAddress($uncompressed);
     }
 
-    /**
-     * @return array{0: string, 1: string} [chainCode (32 bytes), compressed public key (33 bytes)]
-     */
-    private function decodeXpub(string $xpub): array
-    {
-        $decoded = $this->base58Decode($xpub);
-
-        if (strlen($decoded) !== 82) {
-            throw new PaymentsProviderMisconfiguredException('PAYMENTS_TRON_XPUB inválido: longitud decodificada incorrecta.');
-        }
-
-        $payload = substr($decoded, 0, 78);
-        $checksum = substr($decoded, 78, 4);
-
-        if (substr(hash('sha256', hash('sha256', $payload, true), true), 0, 4) !== $checksum) {
-            throw new PaymentsProviderMisconfiguredException('PAYMENTS_TRON_XPUB inválido: checksum no coincide.');
-        }
-
-        $chainCode = substr($payload, 13, 32);
-        $publicKey = substr($payload, 45, 33);
-
-        return [$chainCode, $publicKey];
-    }
-
-    private function publicKeyToTronAddress(string $uncompressedPublicKey): string
-    {
-        $withoutPrefix = substr($uncompressedPublicKey, 1);
-        $hash = Keccak::hash($withoutPrefix, 256, true);
-        $addressBytes = "\x41" . substr($hash, -20);
-
-        $checksum = substr(hash('sha256', hash('sha256', $addressBytes, true), true), 0, 4);
-
-        return $this->base58Encode($addressBytes . $checksum);
-    }
-
-    private const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-    private function base58Encode(string $bytes): string
-    {
-        $num = gmp_import($bytes);
-        $encoded = '';
-
-        while (gmp_cmp($num, 0) > 0) {
-            [$num, $remainder] = gmp_div_qr($num, 58);
-            $encoded = self::BASE58_ALPHABET[gmp_intval($remainder)] . $encoded;
-        }
-
-        foreach (str_split($bytes) as $byte) {
-            if ($byte === "\x00") {
-                $encoded = '1' . $encoded;
-                continue;
-            }
-            break;
-        }
-
-        return $encoded;
-    }
-
-    private function base58Decode(string $encoded): string
+    private function base58Decode(string $encoded) : string
     {
         $num = gmp_init(0);
 
@@ -134,5 +77,63 @@ final class Bip32PublicDerivationService
         }
 
         return str_repeat("\x00", $leadingZeros) . $bytes;
+    }
+
+    private function base58Encode(string $bytes) : string
+    {
+        $num = gmp_import($bytes);
+        $encoded = '';
+
+        while (gmp_cmp($num, 0) > 0) {
+            [$num, $remainder] = gmp_div_qr($num, 58);
+            $encoded = self::BASE58_ALPHABET[gmp_intval($remainder)] . $encoded;
+        }
+
+        foreach (str_split($bytes) as $byte) {
+            if ($byte === "\x00") {
+                $encoded = '1' . $encoded;
+
+                continue;
+            }
+
+            break;
+        }
+
+        return $encoded;
+    }
+
+    /**
+     * @return array{0: string, 1: string} [chainCode (32 bytes), compressed public key (33 bytes)]
+     */
+    private function decodeXpub(string $xpub) : array
+    {
+        $decoded = $this->base58Decode($xpub);
+
+        if (strlen($decoded) !== 82) {
+            throw new PaymentsProviderMisconfiguredException('PAYMENTS_TRON_XPUB inválido: longitud decodificada incorrecta.');
+        }
+
+        $payload = substr($decoded, 0, 78);
+        $checksum = substr($decoded, 78, 4);
+
+        if (substr(hash('sha256', hash('sha256', $payload, true), true), 0, 4) !== $checksum) {
+            throw new PaymentsProviderMisconfiguredException('PAYMENTS_TRON_XPUB inválido: checksum no coincide.');
+        }
+
+        $chainCode = substr($payload, 13, 32);
+        $publicKey = substr($payload, 45, 33);
+
+        return [$chainCode, $publicKey];
+    }
+
+    private function publicKeyToTronAddress(string $uncompressedPublicKey) : string
+    {
+        $withoutPrefix = substr($uncompressedPublicKey, 1);
+        $hash = Keccak::hash($withoutPrefix, 256, true);
+        $addressBytes = "\x41" . substr($hash, -20);
+
+        $checksum = substr(hash('sha256', hash('sha256', $addressBytes, true), true), 0, 4);
+
+        return $this->base58Encode($addressBytes . $checksum);
     }
 }

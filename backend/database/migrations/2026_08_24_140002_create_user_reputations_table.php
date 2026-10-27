@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Reputación cacheada del jugador (0-100) — primera versión, ver
  * ReputationService para el cálculo. Score persistido (no calculado on the
  * fly en cada query de matchmaking) porque se deriva de agregados sobre
@@ -18,9 +18,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('user_reputations', function (Blueprint $table) {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE user_reputations DROP CHECK chk_user_reputations_score_range');
+        }
+
+        Schema::dropIfExists('user_reputations');
+    }
+
+    public function up() : void
+    {
+        Schema::create('user_reputations', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único del registro de reputación');
 
             $table->foreignSnowflake('user_id')->unique()
@@ -40,14 +49,5 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE user_reputations ADD CONSTRAINT chk_user_reputations_score_range CHECK (score >= 0 AND score <= 100)');
         }
-    }
-
-    public function down(): void
-    {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE user_reputations DROP CHECK chk_user_reputations_score_range');
-        }
-
-        Schema::dropIfExists('user_reputations');
     }
 };

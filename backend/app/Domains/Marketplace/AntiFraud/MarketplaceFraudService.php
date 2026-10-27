@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Domains\Marketplace\AntiFraud;
 
 use App\Domains\Marketplace\Models\Order;
+use DomainException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Carbon;
 
 /**
  * Detección de patrones sospechosos específicos de P2P trading — compone
@@ -26,24 +27,50 @@ final class MarketplaceFraudService
     /** Ventana en la que una recompra del mismo activo entre las mismas dos partes se considera circular. */
     private const CIRCULAR_TRADE_WINDOW_HOURS = 24;
 
-    /** Máximo de listings nuevos por usuario por día antes de señalizar. */
-    private const MAX_LISTINGS_PER_DAY = 50;
-
     /** Ventana anti double-submit al comprar (segundos) — mismo mecanismo que WalletFraudService::checkDoubleSubmit(). */
     private const DOUBLE_SUBMIT_WINDOW_SECONDS = 10;
 
+    /** Máximo de listings nuevos por usuario por día antes de señalizar. */
+    private const MAX_LISTINGS_PER_DAY = 50;
+
     /**
-     * Self-trading: comprador y vendedor son el mismo usuario. Ya bloqueado
-     * en OrderService::buy() por comparación directa de IDs — este método
-     * cubre el caso de cuentas relacionadas por evidencia indirecta (mismo
-     * método de pago, ver nota abajo). Sin infraestructura de verificación
-     * de identidad/KYC-linking hoy, la única señal disponible y confiable
-     * es el ID de usuario — devuelve false explícitamente en vez de
-     * inventar heurísticas sin datos reales que las respalden.
+     * Previene double-submit al comprar: mismo comprador + mismo listing en
+     * una ventana corta — protege contra doble click generando dos Order
+     * antes de que el primer buy() reserve el listing (la reserva atómica
+     * en OrderService ya lo previene a nivel de datos; esto evita el
+     * intento redundante y su mensaje de error confuso al usuario).
      */
-    public function isSelfTrade(string $buyerId, string $sellerId): bool
+    public function checkDoubleSubmit(string $buyerId, string $listingId) : void
     {
-        return $buyerId === $sellerId;
+        $key = "marketplace_fraud:ds:{$buyerId}:{$listingId}";
+
+        if (Cache::has($key)) {
+            throw new DomainException('Solicitud duplicada. Espera unos segundos antes de reintentar.');
+        }
+
+        Cache::put($key, true, self::DOUBLE_SUBMIT_WINDOW_SECONDS);
+    }
+
+    /**
+     * Velocity de listings nuevos por vendedor en el día — mismo mecanismo
+     * de Cache que WalletFraudService::checkDoubleSubmit()/operationCountToday(),
+     * sin duplicar su implementación (esta clase compone, no hereda).
+     */
+    public function checkListingVelocity(string $sellerId) : void
+    {
+        $cacheKey = "marketplace_fraud:listings:{$sellerId}:" . now()->format('Y-m-d');
+        $ttl = Carbon::now()->secondsUntilEndOfDay() + 1;
+
+        $count = (int) Cache::remember($cacheKey, $ttl, function() use ($sellerId) {
+            return DB::table('marketplace_listings')
+                ->where('seller_id', $sellerId)
+                ->where('created_at', '>=', Carbon::today())
+                ->count();
+        });
+
+        if ($count >= self::MAX_LISTINGS_PER_DAY) {
+            throw new DomainException('Has alcanzado el límite de publicaciones por hoy. Inténtalo mañana.');
+        }
     }
 
     /**
@@ -54,7 +81,7 @@ final class MarketplaceFraudService
      * comprador se arrepiente y revende) es indistinguible de wash trading
      * sin más contexto; se expone para revisión de admin.
      */
-    public function detectCircularTrade(Order $order): bool
+    public function detectCircularTrade(Order $order) : bool
     {
         $listing = $order->listing;
         $assetDefinitionId = $listing->playerAsset->asset_definition_id;
@@ -76,7 +103,7 @@ final class MarketplaceFraudService
      * Sin ventas previas no hay base de comparación — nunca bloquea al
      * primer vendedor de un activo nuevo.
      */
-    public function isAnomalousPrice(string $assetDefinitionId, float $price, float $thresholdPercent = 300.0): bool
+    public function isAnomalousPrice(string $assetDefinitionId, float $price, float $thresholdPercent = 300.0) : bool
     {
         $recentPrices = Order::query()
             ->join('marketplace_listings', 'marketplace_listings.id', '=', 'marketplace_orders.listing_id')
@@ -105,42 +132,16 @@ final class MarketplaceFraudService
     }
 
     /**
-     * Velocity de listings nuevos por vendedor en el día — mismo mecanismo
-     * de Cache que WalletFraudService::checkDoubleSubmit()/operationCountToday(),
-     * sin duplicar su implementación (esta clase compone, no hereda).
+     * Self-trading: comprador y vendedor son el mismo usuario. Ya bloqueado
+     * en OrderService::buy() por comparación directa de IDs — este método
+     * cubre el caso de cuentas relacionadas por evidencia indirecta (mismo
+     * método de pago, ver nota abajo). Sin infraestructura de verificación
+     * de identidad/KYC-linking hoy, la única señal disponible y confiable
+     * es el ID de usuario — devuelve false explícitamente en vez de
+     * inventar heurísticas sin datos reales que las respalden.
      */
-    public function checkListingVelocity(string $sellerId): void
+    public function isSelfTrade(string $buyerId, string $sellerId) : bool
     {
-        $cacheKey = "marketplace_fraud:listings:{$sellerId}:" . now()->format('Y-m-d');
-        $ttl = Carbon::now()->secondsUntilEndOfDay() + 1;
-
-        $count = (int) Cache::remember($cacheKey, $ttl, function () use ($sellerId) {
-            return DB::table('marketplace_listings')
-                ->where('seller_id', $sellerId)
-                ->where('created_at', '>=', Carbon::today())
-                ->count();
-        });
-
-        if ($count >= self::MAX_LISTINGS_PER_DAY) {
-            throw new \DomainException('Has alcanzado el límite de publicaciones por hoy. Inténtalo mañana.');
-        }
-    }
-
-    /**
-     * Previene double-submit al comprar: mismo comprador + mismo listing en
-     * una ventana corta — protege contra doble click generando dos Order
-     * antes de que el primer buy() reserve el listing (la reserva atómica
-     * en OrderService ya lo previene a nivel de datos; esto evita el
-     * intento redundante y su mensaje de error confuso al usuario).
-     */
-    public function checkDoubleSubmit(string $buyerId, string $listingId): void
-    {
-        $key = "marketplace_fraud:ds:{$buyerId}:{$listingId}";
-
-        if (Cache::has($key)) {
-            throw new \DomainException('Solicitud duplicada. Espera unos segundos antes de reintentar.');
-        }
-
-        Cache::put($key, true, self::DOUBLE_SUBMIT_WINDOW_SECONDS);
+        return $buyerId === $sellerId;
     }
 }

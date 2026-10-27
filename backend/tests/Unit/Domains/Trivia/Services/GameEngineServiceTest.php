@@ -3,14 +3,15 @@
 namespace Tests\Unit\Domains\Trivia\Services;
 
 use App\Domains\Games\Trivia\DTOs\GameStateDTO;
-use App\Domains\Games\Trivia\Services\GameEngineService;
-use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaQuestion;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Services\GameEngineService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Tests\TestCase;
 
 class GameEngineServiceTest extends TestCase
@@ -25,7 +26,7 @@ class GameEngineServiceTest extends TestCase
 
     private GameEngineService $service;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -44,7 +45,96 @@ class GameEngineServiceTest extends TestCase
         Queue::fake();
     }
 
-    private function createRoomWithQuestions(): TriviaRoom
+    public function test_can_send_next_question() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
+
+        $question = $this->service->sendNextQuestion($gameState->gameId);
+
+        $this->assertNotNull($question);
+        $this->assertEquals(1, $question->questionNumber);
+    }
+
+    public function test_can_start_game() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        // Deliberately stale caller snapshot: the engine must read the locked DB snapshot.
+        $playerIds = ['stale-player'];
+
+        $gameState = $this->service->startGame((string) $room->id, $playerIds);
+
+        $this->assertInstanceOf(GameStateDTO::class, $gameState);
+        $this->assertEquals('active', $gameState->status);
+        $this->assertEquals(3, $gameState->totalQuestions);
+        $this->assertEqualsCanonicalizing(['player-1', 'player-2'], $gameState->playerIds);
+    }
+
+    public function test_can_submit_answer() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
+        $this->service->sendNextQuestion($gameState->gameId);
+
+        // correct_option_index = 0 en createRoomWithQuestions() → la respuesta
+        // correcta se representa como el índice "0" (string), no como letra.
+        $result = $this->service->submitAnswer(
+            $gameState->gameId,
+            'player-1',
+            '0',
+            2000,
+        );
+
+        $this->assertTrue($result->isCorrect);
+        $this->assertGreaterThan(0, $result->pointsEarned);
+    }
+
+    public function test_cannot_start_game_in_non_waiting_room() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $room->update(['status' => 'playing']);
+
+        $this->expectException(RuntimeException::class);
+        $this->service->startGame((string) $room->id, ['player-1']);
+    }
+
+    public function test_cannot_start_game_while_room_is_being_cancelled() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $room->update(['status' => 'cancelling']);
+
+        // The cancellation command claims the same PostgreSQL row under
+        // lockForUpdate(); the engine must reject a start after that claim.
+        $this->expectException(\App\Domains\Games\Trivia\Exceptions\Game\TriviaGameException::class);
+        $this->service->startGame((string) $room->id, ['player-1']);
+    }
+
+    public function test_game_is_active_after_start() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
+
+        $this->assertTrue($this->service->isGameActive($gameState->gameId));
+    }
+
+    public function test_wrong_answer_gets_zero_points() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
+        $this->service->sendNextQuestion($gameState->gameId);
+
+        $result = $this->service->submitAnswer(
+            $gameState->gameId,
+            'player-1',
+            '1',
+            2000,
+        );
+
+        $this->assertFalse($result->isCorrect);
+        $this->assertEquals(0, $result->pointsEarned);
+    }
+
+    private function createRoomWithQuestions() : TriviaRoom
     {
         $room = TriviaRoom::create([
             'code' => 'TEST01',
@@ -79,93 +169,4 @@ class GameEngineServiceTest extends TestCase
 
         return $room;
     }
-
-    public function test_can_start_game(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        // Deliberately stale caller snapshot: the engine must read the locked DB snapshot.
-        $playerIds = ['stale-player'];
-
-        $gameState = $this->service->startGame((string) $room->id, $playerIds);
-
-        $this->assertInstanceOf(GameStateDTO::class, $gameState);
-        $this->assertEquals('active', $gameState->status);
-        $this->assertEquals(3, $gameState->totalQuestions);
-        $this->assertEqualsCanonicalizing(['player-1', 'player-2'], $gameState->playerIds);
-    }
-
-    public function test_game_is_active_after_start(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
-
-        $this->assertTrue($this->service->isGameActive($gameState->gameId));
-    }
-
-    public function test_can_send_next_question(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
-
-        $question = $this->service->sendNextQuestion($gameState->gameId);
-
-        $this->assertNotNull($question);
-        $this->assertEquals(1, $question->questionNumber);
-    }
-
-    public function test_can_submit_answer(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
-        $this->service->sendNextQuestion($gameState->gameId);
-
-        // correct_option_index = 0 en createRoomWithQuestions() → la respuesta
-        // correcta se representa como el índice "0" (string), no como letra.
-        $result = $this->service->submitAnswer(
-            $gameState->gameId,
-            'player-1',
-            '0',
-            2000
-        );
-
-        $this->assertTrue($result->isCorrect);
-        $this->assertGreaterThan(0, $result->pointsEarned);
-    }
-
-    public function test_wrong_answer_gets_zero_points(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
-        $this->service->sendNextQuestion($gameState->gameId);
-
-        $result = $this->service->submitAnswer(
-            $gameState->gameId,
-            'player-1',
-            '1',
-            2000
-        );
-
-        $this->assertFalse($result->isCorrect);
-        $this->assertEquals(0, $result->pointsEarned);
-    }
-
-    public function test_cannot_start_game_in_non_waiting_room(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        $room->update(['status' => 'playing']);
-
-        $this->expectException(\RuntimeException::class);
-        $this->service->startGame((string) $room->id, ['player-1']);
-    }
-    public function test_cannot_start_game_while_room_is_being_cancelled(): void
-    {
-        $room = $this->createRoomWithQuestions();
-        $room->update(['status' => 'cancelling']);
-
-        // The cancellation command claims the same PostgreSQL row under
-        // lockForUpdate(); the engine must reject a start after that claim.
-        $this->expectException(\App\Domains\Games\Trivia\Exceptions\Game\TriviaGameException::class);
-        $this->service->startGame((string) $room->id, ['player-1']);
-    }
-
 }

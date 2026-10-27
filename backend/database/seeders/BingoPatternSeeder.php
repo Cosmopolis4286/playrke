@@ -10,7 +10,7 @@ class BingoPatternSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run() : void
     {
         // num_id identifica cada patrón de forma estable.
         // Los patrones MULTIPLE referencian num_id de otros patrones en su campo boxes:
@@ -21,15 +21,15 @@ class BingoPatternSeeder extends Seeder
         //   DIAGONAL B5-O1   (num_id=16) → patrón UNIQUE
         //   DIAGONALES       (num_id=17) → boxes: '15;16'  (ambas diagonales)
         $patterns = [
-            ['num_id' =>  1, 'type_pattern' => 'UNIQUE',   'name' => 'FULL HOUSE',       'boxes' => 'ALL',              'status' => 'ACTIVE'],
-            ['num_id' =>  2, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B1-B5',      'boxes' => 'B1;B2;B3;B4;B5',  'status' => 'ACTIVE'],
-            ['num_id' =>  3, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA I1-I5',      'boxes' => 'I1;I2;I3;I4;I5',  'status' => 'ACTIVE'],
-            ['num_id' =>  4, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA N1-N5',      'boxes' => 'N1;N2;N4;N5',     'status' => 'ACTIVE'],
-            ['num_id' =>  5, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA G1-G5',      'boxes' => 'G1;G2;G3;G4;G5',  'status' => 'ACTIVE'],
-            ['num_id' =>  6, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA O1-O5',      'boxes' => 'O1;O2;O3;O4;O5',  'status' => 'ACTIVE'],
-            ['num_id' =>  7, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B1-O1',      'boxes' => 'B1;I1;N1;G1;O1',  'status' => 'ACTIVE'],
-            ['num_id' =>  8, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B2-O2',      'boxes' => 'B2;I2;N2;G2;O2',  'status' => 'ACTIVE'],
-            ['num_id' =>  9, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B3-O3',      'boxes' => 'B3;I3;G3;O3',     'status' => 'ACTIVE'],
+            ['num_id' => 1, 'type_pattern' => 'UNIQUE',   'name' => 'FULL HOUSE',       'boxes' => 'ALL',              'status' => 'ACTIVE'],
+            ['num_id' => 2, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B1-B5',      'boxes' => 'B1;B2;B3;B4;B5',  'status' => 'ACTIVE'],
+            ['num_id' => 3, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA I1-I5',      'boxes' => 'I1;I2;I3;I4;I5',  'status' => 'ACTIVE'],
+            ['num_id' => 4, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA N1-N5',      'boxes' => 'N1;N2;N4;N5',     'status' => 'ACTIVE'],
+            ['num_id' => 5, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA G1-G5',      'boxes' => 'G1;G2;G3;G4;G5',  'status' => 'ACTIVE'],
+            ['num_id' => 6, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA O1-O5',      'boxes' => 'O1;O2;O3;O4;O5',  'status' => 'ACTIVE'],
+            ['num_id' => 7, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B1-O1',      'boxes' => 'B1;I1;N1;G1;O1',  'status' => 'ACTIVE'],
+            ['num_id' => 8, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B2-O2',      'boxes' => 'B2;I2;N2;G2;O2',  'status' => 'ACTIVE'],
+            ['num_id' => 9, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B3-O3',      'boxes' => 'B3;I3;G3;O3',     'status' => 'ACTIVE'],
             ['num_id' => 10, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B4-O4',      'boxes' => 'B4;I4;N4;G4;O4',  'status' => 'ACTIVE'],
             ['num_id' => 11, 'type_pattern' => 'UNIQUE',   'name' => 'LINEA B5-O5',      'boxes' => 'B5;I5;N5;G5;O5',  'status' => 'ACTIVE'],
             ['num_id' => 12, 'type_pattern' => 'MULTIPLE', 'name' => 'LINEA VERTICAL',   'boxes' => '2;3;4;5;6',        'status' => 'ACTIVE'],
@@ -47,11 +47,11 @@ class BingoPatternSeeder extends Seeder
                 ['num_id' => $pattern['num_id'], 'user_id' => null],
                 [
                     'default_pattern' => 'Y',
-                    'type_pattern'    => $pattern['type_pattern'],
-                    'name'            => $pattern['name'],
-                    'boxes'           => $pattern['boxes'],
-                    'status'          => $pattern['status'],
-                ]
+                    'type_pattern' => $pattern['type_pattern'],
+                    'name' => $pattern['name'],
+                    'boxes' => $pattern['boxes'],
+                    'status' => $pattern['status'],
+                ],
             );
         }
     }

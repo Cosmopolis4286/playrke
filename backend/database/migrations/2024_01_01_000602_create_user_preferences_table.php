@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'user_preferences'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('user_preferences');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'user_preferences'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('user_preferences', function (Blueprint $table) {
+        Schema::create('user_preferences', function(Blueprint $table) {
             // ID primario auto-incremental
             $table->id();
 
@@ -66,13 +74,5 @@ return new class extends Migration
             $table->index(['status', 'category']);
             $table->index(['key', 'status']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'user_preferences'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('user_preferences');
     }
 };

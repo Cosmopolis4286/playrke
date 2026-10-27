@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Directories\Crypto;
 
+use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Repositories\BaseRepository;
-use App\Contracts\Directories\Crypto\BinanceAccountsRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -19,75 +19,13 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
     }
 
     /**
-     * Obtener cuentas por tipo
-     *
-     * @param string $accountType Tipo de cuenta (E/P/B)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getByAccountType(string $accountType, array $columns = ['*']): Collection
-    {
-        return $this->model->where('account_type', strtoupper($accountType))
-            ->orderBy('created_at', 'desc')
-            ->get($columns);
-    }
-
-    /**
-     * Obtener cuentas por usuario
-     *
-     * @param string $userId ID del usuario
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getByUserId(string $userId, array $columns = ['*']): Collection
-    {
-        return $this->model->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get($columns);
-    }
-
-    /**
-     * Obtener cuentas activas
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getActive(array $columns = ['*']): Collection
-    {
-        return $this->getByStatus('ACTIVE', $columns);
-    }
-
-    /**
-     * Obtener cuentas inactivas
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getInactive(array $columns = ['*']): Collection
-    {
-        return $this->getByStatus('INACTIVE', $columns);
-    }
-
-    /**
-     * Obtener cuentas bloqueadas
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getBlocked(array $columns = ['*']): Collection
-    {
-        return $this->getByStatus('BLOCKED', $columns);
-    }
-
-    /**
      * Verificar si existe una cuenta
      *
-     * @param string $accountType Tipo de cuenta
-     * @param string $dataValue Valor de los datos
+     * @param string      $accountType   Tipo de cuenta
+     * @param string      $dataValue     Valor de los datos
      * @param string|null $excludeUserId ID de usuario a excluir de la búsqueda
-     * @return bool
      */
-    public function existsAccount(string $accountType, string $dataValue, ?string $excludeUserId = null): bool
+    public function existsAccount(string $accountType, string $dataValue, ?string $excludeUserId = null) : bool
     {
         $query = $this->model->where('account_type', strtoupper($accountType))
             ->where('data_value', $dataValue);
@@ -103,136 +41,19 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
      * Buscar cuenta por valor de datos
      *
      * @param string $dataValue Valor de los datos
-     * @param array $columns Columnas a seleccionar
-     * @return BinanceAccount|null
+     * @param array  $columns   Columnas a seleccionar
      */
-    public function findByDataValue(string $dataValue, array $columns = ['*']): ?BinanceAccount
+    public function findByDataValue(string $dataValue, array $columns = ['*']) : ?BinanceAccount
     {
         return $this->model->where('data_value', $dataValue)->first($columns);
-    }
-
-    /**
-     * Buscar cuentas por valor parcial
-     *
-     * @param string $searchTerm Término de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function searchByDataValue(string $searchTerm, array $columns = ['*']): Collection
-    {
-        return $this->model->where('data_value', 'like', "%{$searchTerm}%")
-            ->orderBy('created_at', 'desc')
-            ->get($columns);
-    }
-
-    /**
-     * Obtener cuentas de email
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getEmailAccounts(array $columns = ['*']): Collection
-    {
-        return $this->getByAccountType('E', $columns);
-    }
-
-    /**
-     * Obtener cuentas de teléfono
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getPhoneAccounts(array $columns = ['*']): Collection
-    {
-        return $this->getByAccountType('P', $columns);
-    }
-
-    /**
-     * Obtener cuentas por ID de Binance
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getBinanceIdAccounts(array $columns = ['*']): Collection
-    {
-        return $this->getByAccountType('B', $columns);
-    }
-
-    /**
-     * Obtener cuentas activas por usuario
-     *
-     * @param string $userId ID del usuario
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getActiveByUserId(string $userId, array $columns = ['*']): Collection
-    {
-        return $this->model->where('user_id', $userId)
-            ->where('status', 'ACTIVE')
-            ->orderBy('created_at', 'desc')
-            ->get($columns);
-    }
-
-    /**
-     * Contar cuentas por tipo
-     *
-     * @return array Array con conteo por tipo
-     */
-    public function getCountByType(): array
-    {
-        $counts = $this->model->selectRaw('account_type, COUNT(*) as count')
-            ->groupBy('account_type')
-            ->pluck('count', 'account_type')
-            ->toArray();
-
-        return [
-            'E' => $counts['E'] ?? 0,
-            'P' => $counts['P'] ?? 0,
-            'B' => $counts['B'] ?? 0,
-            'total' => array_sum($counts)
-        ];
-    }
-
-    /**
-     * Contar cuentas por estado
-     *
-     * @return array Array con conteo por estado
-     */
-    public function getCountByStatus(): array
-    {
-        $counts = $this->model->selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
-
-        return [
-            'ACTIVE' => $counts['ACTIVE'] ?? 0,
-            'INACTIVE' => $counts['INACTIVE'] ?? 0,
-            'BLOCKED' => $counts['BLOCKED'] ?? 0,
-            'total' => array_sum($counts)
-        ];
-    }
-
-    /**
-     * Obtener cuentas con usuario eager loaded
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BinanceAccount>
-     */
-    public function getAllWithUser(array $columns = ['*']): Collection
-    {
-        return $this->model->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get($columns);
     }
 
     /**
      * Obtener tipos de cuenta disponibles
      *
      * @param string|null $excludeType Tipo a excluir
-     * @return array
      */
-    public function getAccountTypes(?string $excludeType = null): array
+    public function getAccountTypes(?string $excludeType = null) : array
     {
         $types = BinanceAccount::TYPES;
 
@@ -244,13 +65,110 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
     }
 
     /**
+     * Obtener cuentas activas
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getActive(array $columns = ['*']) : Collection
+    {
+        return $this->getByStatus('ACTIVE', $columns);
+    }
+
+    /**
+     * Obtener cuentas activas por usuario
+     *
+     * @param string $userId  ID del usuario
+     * @param array  $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getActiveByUserId(string $userId, array $columns = ['*']) : Collection
+    {
+        return $this->model->where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->orderBy('created_at', 'desc')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener cuentas con usuario eager loaded
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getAllWithUser(array $columns = ['*']) : Collection
+    {
+        return $this->model->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get($columns);
+    }
+
+    /**
+     * Obtener cuentas por ID de Binance
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getBinanceIdAccounts(array $columns = ['*']) : Collection
+    {
+        return $this->getByAccountType('B', $columns);
+    }
+
+    /**
+     * Obtener cuentas bloqueadas
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getBlocked(array $columns = ['*']) : Collection
+    {
+        return $this->getByStatus('BLOCKED', $columns);
+    }
+
+    /**
+     * Obtener cuentas por tipo
+     *
+     * @param string $accountType Tipo de cuenta (E/P/B)
+     * @param array  $columns     Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getByAccountType(string $accountType, array $columns = ['*']) : Collection
+    {
+        return $this->model->where('account_type', strtoupper($accountType))
+            ->orderBy('created_at', 'desc')
+            ->get($columns);
+    }
+
+    // =================================
+    // Métodos legacy mantenidos temporalmente
+    // =================================
+
+    /**
+     * Obtener cuenta por ID (método legacy)
+     *
+     * @param string $id     ID de la cuenta
+     * @param array  $fields Campos a seleccionar
+     */
+    public function getById(string $id, array $fields = ['*']) : ?BinanceAccount
+    {
+        return $this->find($id, $fields);
+    }
+
+    /**
      * Obtener cuentas por múltiples usuarios
      *
      * @param array $userIds Array de IDs de usuarios
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<BinanceAccount>
      */
-    public function getByMultipleUsers(array $userIds, array $columns = ['*']): Collection
+    public function getByMultipleUsers(array $userIds, array $columns = ['*']) : Collection
     {
         return $this->model->whereIn('user_id', $userIds)
             ->with('user')
@@ -259,23 +177,102 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
     }
 
     /**
-     * Verificar si un usuario tiene cuentas
+     * Obtener cuentas por usuario
      *
-     * @param string $userId ID del usuario
-     * @return bool
+     * @param string $userId  ID del usuario
+     * @param array  $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
      */
-    public function userHasAccounts(string $userId): bool
+    public function getByUserId(string $userId, array $columns = ['*']) : Collection
     {
-        return $this->model->where('user_id', $userId)->exists();
+        return $this->model->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get($columns);
+    }
+
+    /**
+     * Contar cuentas por estado
+     *
+     * @return array Array con conteo por estado
+     */
+    public function getCountByStatus() : array
+    {
+        $counts = $this->model->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        return [
+            'ACTIVE' => $counts['ACTIVE'] ?? 0,
+            'INACTIVE' => $counts['INACTIVE'] ?? 0,
+            'BLOCKED' => $counts['BLOCKED'] ?? 0,
+            'total' => array_sum($counts),
+        ];
+    }
+
+    /**
+     * Contar cuentas por tipo
+     *
+     * @return array Array con conteo por tipo
+     */
+    public function getCountByType() : array
+    {
+        $counts = $this->model->selectRaw('account_type, COUNT(*) as count')
+            ->groupBy('account_type')
+            ->pluck('count', 'account_type')
+            ->toArray();
+
+        return [
+            'E' => $counts['E'] ?? 0,
+            'P' => $counts['P'] ?? 0,
+            'B' => $counts['B'] ?? 0,
+            'total' => array_sum($counts),
+        ];
+    }
+
+    /**
+     * Obtener cuentas de email
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getEmailAccounts(array $columns = ['*']) : Collection
+    {
+        return $this->getByAccountType('E', $columns);
+    }
+
+    /**
+     * Obtener cuentas inactivas
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getInactive(array $columns = ['*']) : Collection
+    {
+        return $this->getByStatus('INACTIVE', $columns);
+    }
+
+    /**
+     * Obtener cuentas de teléfono
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function getPhoneAccounts(array $columns = ['*']) : Collection
+    {
+        return $this->getByAccountType('P', $columns);
     }
 
     /**
      * Obtener estadísticas de cuentas por usuario
      *
      * @param string $userId ID del usuario
-     * @return array
      */
-    public function getUserAccountStats(string $userId): array
+    public function getUserAccountStats(string $userId) : array
     {
         $total = $this->model->where('user_id', $userId)->count();
         $active = $this->model->where('user_id', $userId)->where('status', 'ACTIVE')->count();
@@ -291,19 +288,28 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
         ];
     }
 
-    // =================================
-    // Métodos legacy mantenidos temporalmente
-    // =================================
+    /**
+     * Buscar cuentas por valor parcial
+     *
+     * @param string $searchTerm Término de búsqueda
+     * @param array  $columns    Columnas a seleccionar
+     *
+     * @return Collection<BinanceAccount>
+     */
+    public function searchByDataValue(string $searchTerm, array $columns = ['*']) : Collection
+    {
+        return $this->model->where('data_value', 'like', "%{$searchTerm}%")
+            ->orderBy('created_at', 'desc')
+            ->get($columns);
+    }
 
     /**
-     * Obtener cuenta por ID (método legacy)
+     * Verificar si un usuario tiene cuentas
      *
-     * @param string $id ID de la cuenta
-     * @param array $fields Campos a seleccionar
-     * @return BinanceAccount|null
+     * @param string $userId ID del usuario
      */
-    public function getById(string $id, array $fields = ['*']): ?BinanceAccount
+    public function userHasAccounts(string $userId) : bool
     {
-        return $this->find($id, $fields);
+        return $this->model->where('user_id', $userId)->exists();
     }
 }

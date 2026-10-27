@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('anti_cheat_flags', function (Blueprint $table) {
+        Schema::dropIfExists('anti_cheat_flags');
+    }
+
+    public function up() : void
+    {
+        Schema::create('anti_cheat_flags', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la señal');
 
             $table->foreignSnowflake('user_id')
@@ -35,10 +40,5 @@ return new class extends Migration
             $table->index(['user_id', 'created_at'], 'idx_flags_user_created');
             $table->index(['game_slug', 'signal_type'], 'idx_flags_game_signal');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('anti_cheat_flags');
     }
 };

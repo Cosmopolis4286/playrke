@@ -16,11 +16,12 @@ class BingoCardVerifyController extends Controller
 {
     public function __construct(
         private readonly BingoCardVerificationService $service,
-    ) {}
+    ) {
+    }
 
-    public function verify(VerifyCardRequest $request): JsonResponse
+    public function verify(VerifyCardRequest $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($request) {
+        return $this->handleServiceJson(function() use ($request) {
             $data = $request->validated();
 
             return [

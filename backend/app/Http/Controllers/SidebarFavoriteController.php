@@ -16,25 +16,11 @@ use Illuminate\Http\Request;
  */
 class SidebarFavoriteController extends Controller
 {
-    public function __construct(private readonly SidebarMenuService $menuService) {}
-
-    public function store(Request $request): JsonResponse
+    public function __construct(private readonly SidebarMenuService $menuService)
     {
-        $validated = $request->validate([
-            'item_key' => 'required|string|max:150',
-        ]);
-
-        $maxOrder = UserSidebarFavorite::where('user_id', $request->user()->id)->max('sort_order');
-
-        UserSidebarFavorite::firstOrCreate(
-            ['user_id' => $request->user()->id, 'item_key' => $validated['item_key']],
-            ['sort_order' => ($maxOrder ?? -1) + 1]
-        );
-
-        return response()->json(['success' => true]);
     }
 
-    public function destroy(Request $request, string $itemKey): JsonResponse
+    public function destroy(Request $request, string $itemKey) : JsonResponse
     {
         UserSidebarFavorite::where('user_id', $request->user()->id)
             ->where('item_key', $itemKey)
@@ -57,7 +43,7 @@ class SidebarFavoriteController extends Controller
      * se llama al montar el badge y cada vez que el WebSocket reconecta,
      * para corregir cualquier drift sin depender de un evento perdido.
      */
-    public function pendingWalletMovementsCount(Request $request): JsonResponse
+    public function pendingWalletMovementsCount(Request $request) : JsonResponse
     {
         // Mismo criterio de roles que NavbarComposer::ROLES_PENDING_MOVEMENTS
         // — sin esto, cualquier usuario autenticado (jugador, comercio...)
@@ -69,7 +55,23 @@ class SidebarFavoriteController extends Controller
 
         return response()->json([
             'success' => true,
-            'count'   => $this->menuService->pendingWalletMovementsCount(),
+            'count' => $this->menuService->pendingWalletMovementsCount(),
         ]);
+    }
+
+    public function store(Request $request) : JsonResponse
+    {
+        $validated = $request->validate([
+            'item_key' => 'required|string|max:150',
+        ]);
+
+        $maxOrder = UserSidebarFavorite::where('user_id', $request->user()->id)->max('sort_order');
+
+        UserSidebarFavorite::firstOrCreate(
+            ['user_id' => $request->user()->id, 'item_key' => $validated['item_key']],
+            ['sort_order' => ($maxOrder ?? -1) + 1],
+        );
+
+        return response()->json(['success' => true]);
     }
 }

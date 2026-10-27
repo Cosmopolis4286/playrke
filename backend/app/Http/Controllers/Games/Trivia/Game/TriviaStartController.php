@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * POST /trivia-game/room/{id}/start
@@ -25,10 +26,10 @@ use RuntimeException;
  */
 final class TriviaStartController extends Controller
 {
-    public function __invoke(Request $request, string $id): JsonResponse
+    public function __invoke(Request $request, string $id) : JsonResponse
     {
-        $user        = Auth::user();
-        $userId      = (string) $user->id;
+        $user = Auth::user();
+        $userId = (string) $user->id;
         $startAction = app(StartGameAction::class);
         $roomService = app(RoomService::class);
 
@@ -60,7 +61,7 @@ final class TriviaStartController extends Controller
             ->whereNull('deleted_at')
             ->whereIn('status', ['confirmed', 'registered'])
             ->pluck('user_id')
-            ->map(fn($id) => (string) $id)
+            ->map(fn ($id) => (string) $id)
             ->all();
 
         if (empty($playerIds)) {
@@ -78,20 +79,17 @@ final class TriviaStartController extends Controller
                 'game_id' => $gameState->gameId,
                 'message' => 'Partida iniciada. Redirigiendo a los jugadores...',
             ]);
-
         } catch (DomainException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], $e->httpStatus());
-
         } catch (RuntimeException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('[TriviaStartController] ' . $e->getMessage(), ['room_id' => $roomId]);
 
             return response()->json([

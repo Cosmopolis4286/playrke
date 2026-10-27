@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Log;
 class BingoWinnerDeclared implements ShouldBroadcastNow
 {
     use SerializesModels;
-
-    public $roomId;
-    public $drawId;
-    public $winnerId;
-    public $winnerName;
     public $cardId;
+    public $drawId;
     public $pattern;
     public $prize;
+
+    public $roomId;
+    public $winnerId;
+    public $winnerName;
 
     public function __construct(
         int $roomId,
@@ -26,7 +26,7 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
         string $winnerName,
         int $cardId,
         string $pattern,
-        float $prize
+        float $prize,
     ) {
         // Do not write personal winner/card data to logs unnecessarily.
         Log::info('Creando evento BingoWinnerDeclared', [
@@ -43,14 +43,14 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
         $this->prize = $prize;
     }
 
-    public function broadcastOn(): Channel
-    {
-        return new Channel("bingo.room.{$this->roomId}");
-    }
-
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'WinnerDeclared';
+    }
+
+    public function broadcastOn() : Channel
+    {
+        return new Channel("bingo.room.{$this->roomId}");
     }
 
     /**
@@ -58,7 +58,7 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
      * The winner identity, card, pattern, and prize are returned only by the
      * authorized room-scoped result endpoint.
      */
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'room_id' => $this->roomId,

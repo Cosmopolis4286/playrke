@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_card_payments'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_payments');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'bingo_card_payments'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_payments', function (Blueprint $table) {
+        Schema::create('bingo_card_payments', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del pago');
 
@@ -102,13 +110,5 @@ return new class extends Migration
             // La deduplicación de pagos se controla a nivel de aplicación dado que
             // user_id y external_player_id son nullable (NULL != NULL en unique de MySQL)
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_card_payments'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_payments');
     }
 };

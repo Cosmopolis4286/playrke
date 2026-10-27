@@ -6,7 +6,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class AdminSubsidiaryResource extends JsonResource
 {
-    public function toArray($request): array
+    public function toArray($request) : array
     {
         return [
             'id' => $this->hashed_id,
@@ -40,7 +40,7 @@ class AdminSubsidiaryResource extends JsonResource
             // y hacia abajo (Sellers propios de esta Subsidiary) — mismo
             // criterio de campos que AdminCommerceResource::hierarchy() y
             // ManagerSellerResource (jerarquía inversa).
-            'hierarchy' => $this->whenLoaded('sellers', function () {
+            'hierarchy' => $this->whenLoaded('sellers', function() {
                 return [
                     'sellers' => $this->sellers->map(fn ($s) => [
                         'id' => (string) $s->id,

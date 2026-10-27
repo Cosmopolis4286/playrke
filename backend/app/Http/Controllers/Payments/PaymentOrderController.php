@@ -33,7 +33,7 @@ class PaymentOrderController extends Controller
     ) {
     }
 
-    public function page(string $order): InertiaResponse
+    public function page(string $order) : InertiaResponse
     {
         $order = $this->findOrFail($order);
 
@@ -42,7 +42,35 @@ class PaymentOrderController extends Controller
         ]);
     }
 
-    public function store(CreatePaymentOrderRequest $request): JsonResponse
+    public function qr(string $order) : Response
+    {
+        $order = $this->findOrFail($order);
+
+        $png = $this->qrCodeService->pngForAddress($order->deposit_address);
+
+        return response($png, 200)->header('Content-Type', 'image/png');
+    }
+
+    public function show(string $order) : JsonResponse
+    {
+        $order = $this->findOrFail($order);
+
+        return (new PaymentOrderResource($order->load('paymentProduct')))->response();
+    }
+
+    public function status(string $order) : JsonResponse
+    {
+        $order = $this->findOrFail($order);
+
+        return response()->json([
+            'status' => $order->status,
+            'expected_amount' => $order->expected_amount,
+            'received_amount' => $order->received_amount,
+            'expires_at' => $order->expires_at?->toIso8601String(),
+        ]);
+    }
+
+    public function store(CreatePaymentOrderRequest $request) : JsonResponse
     {
         try {
             $order = $this->orderService->create(
@@ -56,39 +84,11 @@ class PaymentOrderController extends Controller
         }
     }
 
-    public function show(string $order): JsonResponse
-    {
-        $order = $this->findOrFail($order);
-
-        return (new PaymentOrderResource($order->load('paymentProduct')))->response();
-    }
-
-    public function status(string $order): JsonResponse
-    {
-        $order = $this->findOrFail($order);
-
-        return response()->json([
-            'status' => $order->status,
-            'expected_amount' => $order->expected_amount,
-            'received_amount' => $order->received_amount,
-            'expires_at' => $order->expires_at?->toIso8601String(),
-        ]);
-    }
-
-    public function qr(string $order): Response
-    {
-        $order = $this->findOrFail($order);
-
-        $png = $this->qrCodeService->pngForAddress($order->deposit_address);
-
-        return response($png, 200)->header('Content-Type', 'image/png');
-    }
-
-    private function findOrFail(string $orderId): PaymentOrder
+    private function findOrFail(string $orderId) : PaymentOrder
     {
         $order = $this->orderService->findForUser($orderId, (string) Auth::id());
 
-        abort_if(!$order, 404);
+        abort_if(! $order, 404);
 
         return $order;
     }

@@ -18,14 +18,53 @@ use App\Exceptions\Domain\DomainException;
  */
 final class BingoCardGenerateException extends DomainException
 {
-    public static function sellerNotFound(): self
+    public static function cardGenerationFailed() : self
     {
-        return new self('BINGO_CARD_SELLER_NOT_FOUND', 404);
+        return new self('BINGO_CARD_GENERATION_FAILED', 422);
     }
 
-    public static function commerceNotFound(): self
+    public static function commerceNotFound() : self
     {
         return new self('BINGO_CARD_COMMERCE_NOT_FOUND', 404);
+    }
+
+    public static function currencyNotAvailable() : self
+    {
+        return new self('BINGO_CARD_CURRENCY_NOT_AVAILABLE', 422);
+    }
+
+    public static function customCardMatrixInvalid(int $position, string $error) : self
+    {
+        return new self('BINGO_CARD_CUSTOM_MATRIX_INVALID', 422, replacements: [
+            'position' => $position,
+            'error' => $error,
+        ]);
+    }
+
+    public static function customCardsExceedCount() : self
+    {
+        return new self('BINGO_CARD_CUSTOM_EXCEEDS_COUNT', 422);
+    }
+
+    public static function customCardsExceedEveryXLimit(int $maxAllowed) : self
+    {
+        return new self('BINGO_CARD_CUSTOM_EXCEED_EVERY_X_LIMIT', 422, replacements: [
+            'max' => $maxAllowed,
+        ]);
+    }
+
+    public static function customCardsNotAllowed() : self
+    {
+        return new self('BINGO_CARD_CUSTOM_NOT_ALLOWED', 403);
+    }
+
+    /**
+     * El número de comprobante ya respalda otra venta (pendiente o aprobada)
+     * de la misma red comercial — un mismo pago no puede cubrir dos ventas.
+     */
+    public static function duplicateReceipt() : self
+    {
+        return new self('BINGO_CARD_DUPLICATE_RECEIPT', 409);
     }
 
     /**
@@ -33,36 +72,41 @@ final class BingoCardGenerateException extends DomainException
      * ver Seller::hasActiveHierarchy(). 409: no es "no encontrado" (404),
      * es un conflicto de estado de negocio válido pero no operable ahora.
      */
-    public static function hierarchyNotActive(): self
+    public static function hierarchyNotActive() : self
     {
         return new self('BINGO_CARD_HIERARCHY_NOT_ACTIVE', 409);
     }
 
-    public static function roomNotAvailable(): self
+    public static function insufficientBalance(float $currentBalance, float $requiredAmount) : self
     {
-        return new self('BINGO_CARD_ROOM_NOT_AVAILABLE', 404);
+        return new self('BINGO_CARD_INSUFFICIENT_BALANCE', 422, replacements: [
+            'balance' => $currentBalance,
+            'required' => $requiredAmount,
+        ]);
     }
 
-    /** Sala VIP: el teléfono del comprador no está en la lista de invitados. */
-    public static function vipBuyerNotInvited(): self
+    public static function invalidExchangeRate() : self
     {
-        return new self('BINGO_CARD_VIP_BUYER_NOT_INVITED', 403);
+        return new self('BINGO_CARD_INVALID_EXCHANGE_RATE', 422);
+    }
+
+    public static function invalidManagerRole() : self
+    {
+        return new self('BINGO_CARD_INVALID_MANAGER_ROLE', 422);
+    }
+
+    public static function noActiveWallet() : self
+    {
+        return new self('BINGO_CARD_NO_ACTIVE_WALLET', 422);
     }
 
     /**
-     * Venta del vendedor fuera de plazo: la sala empieza en menos de
-     * $minutes minutos (o no está ACTIVE). Su pago nace PENDING y los
-     * cartones no juegan hasta que el comercio lo apruebe, así que vender
-     * sobre la hora deja al comprador pagando por una partida que no juega.
+     * No se pudo registrar el pago de la venta (comprobante/registro). La
+     * venta completa se revierte: sin registro de pago no hay revisión.
      */
-    public static function salesClosed(int $minutes): self
+    public static function paymentRecordFailed() : self
     {
-        return new self('BINGO_CARD_SALES_CLOSED', 409, replacements: ['minutes' => $minutes]);
-    }
-
-    public static function currencyNotAvailable(): self
-    {
-        return new self('BINGO_CARD_CURRENCY_NOT_AVAILABLE', 422);
+        return new self('BINGO_CARD_PAYMENT_RECORD_FAILED', 422);
     }
 
     /**
@@ -71,107 +115,63 @@ final class BingoCardGenerateException extends DomainException
      * revisar el nuevo monto antes de cobrar — nunca se registra una venta a
      * un precio distinto del que vio.
      */
-    public static function priceChanged(float $expected, float $current): self
+    public static function priceChanged(float $expected, float $current) : self
     {
         return new self('BINGO_CARD_PRICE_CHANGED', 409, replacements: [
             'expected' => number_format($expected, 2, ',', '.'),
-            'current'  => number_format($current, 2, ',', '.'),
+            'current' => number_format($current, 2, ',', '.'),
         ]);
     }
 
-    /**
-     * El número de comprobante ya respalda otra venta (pendiente o aprobada)
-     * de la misma red comercial — un mismo pago no puede cubrir dos ventas.
-     */
-    public static function duplicateReceipt(): self
+    public static function roomNotAvailable() : self
     {
-        return new self('BINGO_CARD_DUPLICATE_RECEIPT', 409);
+        return new self('BINGO_CARD_ROOM_NOT_AVAILABLE', 404);
     }
 
     /**
-     * No se pudo registrar el pago de la venta (comprobante/registro). La
-     * venta completa se revierte: sin registro de pago no hay revisión.
+     * Venta del vendedor fuera de plazo: la sala empieza en menos de
+     * $minutes minutos (o no está ACTIVE). Su pago nace PENDING y los
+     * cartones no juegan hasta que el comercio lo apruebe, así que vender
+     * sobre la hora deja al comprador pagando por una partida que no juega.
      */
-    public static function paymentRecordFailed(): self
+    public static function salesClosed(int $minutes) : self
     {
-        return new self('BINGO_CARD_PAYMENT_RECORD_FAILED', 422);
+        return new self('BINGO_CARD_SALES_CLOSED', 409, replacements: ['minutes' => $minutes]);
     }
 
-    public static function cardGenerationFailed(): self
+    public static function sellerNotFound() : self
     {
-        return new self('BINGO_CARD_GENERATION_FAILED', 422);
+        return new self('BINGO_CARD_SELLER_NOT_FOUND', 404);
     }
 
-    public static function unauthorizedRole(string $role): self
-    {
-        return new self('BINGO_CARD_UNAUTHORIZED_ROLE', 403);
-    }
-
-    public static function unsupportedCurrencyRole(string $role): self
-    {
-        return new self('BINGO_CARD_UNSUPPORTED_CURRENCY_ROLE', 422);
-    }
-
-    public static function unsupportedCommerceRole(string $role): self
-    {
-        return new self('BINGO_CARD_UNSUPPORTED_COMMERCE_ROLE', 422);
-    }
-
-    public static function unsupportedCommissionRole(string $role): self
-    {
-        return new self('BINGO_CARD_UNSUPPORTED_COMMISSION_ROLE', 422);
-    }
-
-    public static function invalidManagerRole(): self
-    {
-        return new self('BINGO_CARD_INVALID_MANAGER_ROLE', 422);
-    }
-
-    public static function invalidExchangeRate(): self
-    {
-        return new self('BINGO_CARD_INVALID_EXCHANGE_RATE', 422);
-    }
-
-    public static function unauthorized(): self
+    public static function unauthorized() : self
     {
         return new self('BINGO_CARD_UNAUTHORIZED', 403);
     }
 
-    public static function customCardsNotAllowed(): self
+    public static function unauthorizedRole(string $role) : self
     {
-        return new self('BINGO_CARD_CUSTOM_NOT_ALLOWED', 403);
+        return new self('BINGO_CARD_UNAUTHORIZED_ROLE', 403);
     }
 
-    public static function customCardsExceedCount(): self
+    public static function unsupportedCommerceRole(string $role) : self
     {
-        return new self('BINGO_CARD_CUSTOM_EXCEEDS_COUNT', 422);
+        return new self('BINGO_CARD_UNSUPPORTED_COMMERCE_ROLE', 422);
     }
 
-    public static function customCardsExceedEveryXLimit(int $maxAllowed): self
+    public static function unsupportedCommissionRole(string $role) : self
     {
-        return new self('BINGO_CARD_CUSTOM_EXCEED_EVERY_X_LIMIT', 422, replacements: [
-            'max' => $maxAllowed,
-        ]);
+        return new self('BINGO_CARD_UNSUPPORTED_COMMISSION_ROLE', 422);
     }
 
-    public static function customCardMatrixInvalid(int $position, string $error): self
+    public static function unsupportedCurrencyRole(string $role) : self
     {
-        return new self('BINGO_CARD_CUSTOM_MATRIX_INVALID', 422, replacements: [
-            'position' => $position,
-            'error'    => $error,
-        ]);
+        return new self('BINGO_CARD_UNSUPPORTED_CURRENCY_ROLE', 422);
     }
 
-    public static function noActiveWallet(): self
+    /** Sala VIP: el teléfono del comprador no está en la lista de invitados. */
+    public static function vipBuyerNotInvited() : self
     {
-        return new self('BINGO_CARD_NO_ACTIVE_WALLET', 422);
-    }
-
-    public static function insufficientBalance(float $currentBalance, float $requiredAmount): self
-    {
-        return new self('BINGO_CARD_INSUFFICIENT_BALANCE', 422, replacements: [
-            'balance'  => $currentBalance,
-            'required' => $requiredAmount,
-        ]);
+        return new self('BINGO_CARD_VIP_BUYER_NOT_INVITED', 403);
     }
 }

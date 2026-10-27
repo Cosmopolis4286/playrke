@@ -2,9 +2,10 @@
 
 namespace App\Domains\Games\Bingo\Repositories\Room;
 
+use App\Domains\Games\Bingo\Contracts\Room\BingoRoomAutomaticRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Repositories\BaseRepository;
-use App\Domains\Games\Bingo\Contracts\Room\BingoRoomAutomaticRepositoryInterface;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
@@ -14,8 +15,8 @@ use Illuminate\Support\Carbon;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para las salas de bingo automáticas con configuración programada.
  *
- * @package App\Domains\Games\Bingo\Repositories\Room
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAutomaticRepositoryInterface
@@ -24,19 +25,170 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      * Estados de salas
      */
     public const STATUS_ACTIVE = 'active';
-    public const STATUS_INACTIVE = 'inactive';
-    public const STATUS_SCHEDULED = 'scheduled';
-    public const STATUS_RUNNING = 'running';
     public const STATUS_COMPLETED = 'completed';
+    public const STATUS_INACTIVE = 'inactive';
+    public const STATUS_RUNNING = 'running';
+    public const STATUS_SCHEDULED = 'scheduled';
 
     /**
      * Constructor del repositorio
-     *
-     * @param BingoRoomAutomatic $model
      */
     public function __construct(BingoRoomAutomatic $model)
     {
         $this->model = $model;
+    }
+
+    /**
+     * Activar sala
+     */
+    public function activateRoom(string $roomId) : bool
+    {
+        return $this->updateRoomStatus($roomId, self::STATUS_ACTIVE);
+    }
+
+    /**
+     * Limpiar salas vencidas
+     *
+     * @return int Número de registros eliminados
+     */
+    public function cleanExpiredRooms(int $daysOld = 30) : int
+    {
+        $cutoffDate = Carbon::now()->subDays($daysOld);
+
+        return $this->model->where('date', '<', $cutoffDate->toDateString())
+            ->where('status', self::STATUS_COMPLETED)
+            ->delete();
+    }
+
+    /**
+     * Contar salas por creador
+     */
+    public function countByCreator(string $creatorType, string $creatorId) : int
+    {
+        return $this->model->where('creator_user_id', $creatorId)
+            ->count();
+    }
+
+    /**
+     * Contar salas por estado
+     */
+    public function countByStatus(string $status) : int
+    {
+        return $this->model->where('status', $status)->count();
+    }
+
+    /**
+     * Crear nueva sala automática
+     */
+    public function createAutomaticRoom(array $roomData) : BingoRoomAutomatic
+    {
+        return $this->create($roomData);
+    }
+
+    /**
+     * Desactivar sala
+     */
+    public function deactivateRoom(string $roomId) : bool
+    {
+        return $this->updateRoomStatus($roomId, self::STATUS_INACTIVE);
+    }
+
+    /**
+     * Duplicar configuración de sala
+     */
+    public function duplicateRoom(string $roomId, array $overrideData = []) : BingoRoomAutomatic
+    {
+        $originalRoom = $this->find($roomId);
+
+        if (! $originalRoom) {
+            throw new Exception("Room with ID {$roomId} not found");
+        }
+
+        $duplicateData = $originalRoom->toArray();
+        unset($duplicateData['id'], $duplicateData['created_at'], $duplicateData['updated_at']);
+
+        // Aplicar datos de sobrescritura
+        $duplicateData = array_merge($duplicateData, $overrideData);
+
+        return $this->createAutomaticRoom($duplicateData);
+    }
+
+    /**
+     * Verificar si existe una sala por creador
+     */
+    public function existsByCreator(string $creatorType, string $creatorId) : bool
+    {
+        return $this->model->where('creator_user_id', $creatorId)
+            ->exists();
+    }
+
+    /**
+     * Exportar configuraciones de salas
+     *
+     * @param string $format 'json'|'csv'|'array'
+     *
+     * @return mixed
+     */
+    public function exportRoomConfigs(string $format = 'array')
+    {
+        $rooms = $this->getAll();
+
+        switch ($format) {
+            case 'json':
+                return $rooms->toJson();
+            case 'csv':
+                // Implementar exportación CSV si es necesario
+                return $rooms->toArray();
+            case 'array':
+            default:
+                return $rooms->toArray();
+        }
+    }
+
+    /**
+     * Obtener salas activas
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getActiveRooms() : Collection
+    {
+        return $this->getByStatus(self::STATUS_ACTIVE);
+    }
+
+    /**
+     * Obtener precio promedio de cartas
+     */
+    public function getAverageCardPrice() : float
+    {
+        return (float) $this->model->avg('card_price') ?? 0.0;
+    }
+
+    /**
+     * Obtener rondas promedio
+     */
+    public function getAverageRounds() : float
+    {
+        return (float) $this->model->avg('rounds') ?? 0.0;
+    }
+
+    /**
+     * Obtener salas por patrón de bingo
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getByBingoPattern(string $pattern) : Collection
+    {
+        return $this->model->whereJsonContains('bingo_patterns', $pattern)->get();
+    }
+
+    /**
+     * Obtener salas por rango de precio de carta
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getByCardPriceRange(float $minPrice, float $maxPrice) : Collection
+    {
+        return $this->model->whereBetween('card_price', [$minPrice, $maxPrice])->get();
     }
 
     /**
@@ -47,64 +199,22 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      * compatibilidad con el contrato, sin usarlo como filtro.
      *
      * @param string $creatorType sin uso (ver nota arriba)
-     * @param string $creatorId ID del usuario creador (creator_user_id)
+     * @param string $creatorId   ID del usuario creador (creator_user_id)
+     *
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getByCreator(string $creatorType, string $creatorId): Collection
+    public function getByCreator(string $creatorType, string $creatorId) : Collection
     {
         return $this->model->where('creator_user_id', $creatorId)
             ->get();
     }
 
     /**
-     * Obtener salas activas
-     *
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getActiveRooms(): Collection
-    {
-        return $this->getByStatus(self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Obtener salas inactivas
-     *
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getInactiveRooms(): Collection
-    {
-        return $this->getByStatus(self::STATUS_INACTIVE);
-    }
-
-    /**
-     * Obtener salas por modo de juego
-     *
-     * @param string $gameMode
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getByGameMode(string $gameMode): Collection
-    {
-        return $this->model->where('connection_type_id', $gameMode)->get();
-    }
-
-    /**
-     * Obtener salas por tipo de premio
-     *
-     * @param string $prizePoolType
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getByPrizePoolType(string $prizePoolType): Collection
-    {
-        return $this->model->where('prize_pool_type_id', $prizePoolType)->get();
-    }
-
-    /**
      * Obtener salas por fecha específica
      *
-     * @param string $date
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getByDate(string $date): Collection
+    public function getByDate(string $date) : Collection
     {
         return $this->model->whereDate('date', $date)->get();
     }
@@ -112,56 +222,124 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
     /**
      * Obtener salas por rango de fechas
      *
-     * @param string $startDate
-     * @param string $endDate
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getByDateRange(string $startDate, string $endDate): Collection
+    public function getByDateRange(string $startDate, string $endDate) : Collection
     {
         return $this->model->whereBetween('date', [$startDate, $endDate])->get();
     }
 
     /**
-     * Obtener salas programadas para hoy
-     *
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getTodayScheduledRooms(): Collection
-    {
-        return $this->getByDate(Carbon::today()->toDateString());
-    }
-
-    /**
      * Obtener salas por día de la semana
      *
-     * @param string $day
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getByDay(string $day): Collection
+    public function getByDay(string $day) : Collection
     {
         return $this->model->whereJsonContains('days', $day)->get();
     }
 
     /**
-     * Obtener salas por hora específica
+     * Obtener salas por modo de juego
      *
-     * @param string $time
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getByTime(string $time): Collection
+    public function getByGameMode(string $gameMode) : Collection
     {
-        return $this->model->where('time', $time)->get();
+        return $this->model->where('connection_type_id', $gameMode)->get();
+    }
+
+    /**
+     * Obtener salas por tipo de premio
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getByPrizePoolType(string $prizePoolType) : Collection
+    {
+        return $this->model->where('prize_pool_type_id', $prizePoolType)->get();
     }
 
     /**
      * Obtener salas por tipo de sala
      *
-     * @param string $roomType
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getByRoomType(string $roomType): Collection
+    public function getByRoomType(string $roomType) : Collection
     {
         return $this->model->where('room_type_id', $roomType)->get();
+    }
+
+    /**
+     * Obtener salas por número de rondas
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getByRounds(int $rounds) : Collection
+    {
+        return $this->model->where('rounds', $rounds)->get();
+    }
+
+    /**
+     * Obtener salas que soportan una moneda específica
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getBySupportedCurrency(string $currency) : Collection
+    {
+        return $this->model->whereJsonContains('allowed_currencies', $currency)->get();
+    }
+
+    /**
+     * Obtener salas por hora específica
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getByTime(string $time) : Collection
+    {
+        return $this->model->where('time', $time)->get();
+    }
+
+    /**
+     * Obtener salas agrupadas por día
+     */
+    public function getGroupedByDay() : Collection
+    {
+        return $this->model->selectRaw('DATE(date) as day, COUNT(*) as count')
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get();
+    }
+
+    /**
+     * Obtener salas agrupadas por modo de juego
+     */
+    public function getGroupedByGameMode() : Collection
+    {
+        return $this->model->selectRaw('connection_type_id, COUNT(*) as count')
+            ->groupBy('connection_type_id')
+            ->orderBy('connection_type_id')
+            ->get();
+    }
+
+    /**
+     * Obtener salas agrupadas por tipo de sala
+     */
+    public function getGroupedByRoomType() : Collection
+    {
+        return $this->model->selectRaw('room_type_id, COUNT(*) as count')
+            ->groupBy('room_type_id')
+            ->orderBy('room_type_id')
+            ->get();
+    }
+
+    /**
+     * Obtener salas inactivas
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function getInactiveRooms() : Collection
+    {
+        return $this->getByStatus(self::STATUS_INACTIVE);
     }
 
     /**
@@ -169,109 +347,45 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      *
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function getLiveRooms(): Collection
+    public function getLiveRooms() : Collection
     {
         return $this->model->where('in_live', 'Y')->get();
     }
 
     /**
-     * Obtener salas por rango de precio de carta
-     *
-     * @param float $minPrice
-     * @param float $maxPrice
-     * @return Collection<int, BingoRoomAutomatic>
+     * Obtener horarios más populares
      */
-    public function getByCardPriceRange(float $minPrice, float $maxPrice): Collection
+    public function getMostPopularTimes(int $limit = 10) : Collection
     {
-        return $this->model->whereBetween('card_price', [$minPrice, $maxPrice])->get();
-    }
-
-    /**
-     * Obtener salas que soportan una moneda específica
-     *
-     * @param string $currency
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getBySupportedCurrency(string $currency): Collection
-    {
-        return $this->model->whereJsonContains('allowed_currencies', $currency)->get();
-    }
-
-    /**
-     * Obtener salas por número de rondas
-     *
-     * @param int $rounds
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getByRounds(int $rounds): Collection
-    {
-        return $this->model->where('rounds', $rounds)->get();
-    }
-
-    /**
-     * Obtener salas por patrón de bingo
-     *
-     * @param string $pattern
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getByBingoPattern(string $pattern): Collection
-    {
-        return $this->model->whereJsonContains('bingo_patterns', $pattern)->get();
-    }
-
-    /**
-     * Obtener salas próximas a ejecutarse
-     *
-     * @param int $minutesAhead
-     * @return Collection<int, BingoRoomAutomatic>
-     */
-    public function getUpcomingRooms(int $minutesAhead = 30): Collection
-    {
-        $now = Carbon::now();
-        $futureTime = $now->copy()->addMinutes($minutesAhead);
-
-        return $this->model->where('status', self::STATUS_ACTIVE)
-            ->where('date', '>=', $now->toDateString())
-            ->where('time', '>=', $now->toTimeString())
-            ->where('time', '<=', $futureTime->toTimeString())
+        return $this->model->selectRaw('time, COUNT(*) as count')
+            ->groupBy('time')
+            ->orderByDesc('count')
+            ->limit($limit)
             ->get();
     }
 
     /**
-     * Verificar si existe una sala por creador
-     *
-     * @param string $creatorType
-     * @param string $creatorId
-     * @return bool
+     * Obtener configuración recomendada
      */
-    public function existsByCreator(string $creatorType, string $creatorId): bool
+    public function getRecommendedConfig(string $gameMode) : array
     {
-        return $this->model->where('creator_user_id', $creatorId)
-            ->exists();
-    }
+        $averages = $this->model->where('connection_type_id', $gameMode)
+            ->selectRaw('
+                AVG(card_price) as avg_card_price,
+                AVG(rounds) as avg_rounds,
+                AVG(time_chip) as avg_time_chip,
+                AVG(rke_commission) as avg_rke_commission,
+                AVG(room_commission) as avg_room_commission
+            ')
+            ->first();
 
-    /**
-     * Contar salas por estado
-     *
-     * @param string $status
-     * @return int
-     */
-    public function countByStatus(string $status): int
-    {
-        return $this->model->where('status', $status)->count();
-    }
-
-    /**
-     * Contar salas por creador
-     *
-     * @param string $creatorType
-     * @param string $creatorId
-     * @return int
-     */
-    public function countByCreator(string $creatorType, string $creatorId): int
-    {
-        return $this->model->where('creator_user_id', $creatorId)
-            ->count();
+        return [
+            'recommended_card_price' => round($averages->avg_card_price ?? 1.0, 2),
+            'recommended_rounds' => round($averages->avg_rounds ?? 10),
+            'recommended_time_chip' => round($averages->avg_time_chip ?? 30),
+            'recommended_rke_commission' => round($averages->avg_rke_commission ?? 5.0, 2),
+            'recommended_room_commission' => round($averages->avg_room_commission ?? 10.0, 2),
+        ];
     }
 
     /**
@@ -287,7 +401,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      *     by_room_type: array
      * }
      */
-    public function getRoomStats(): array
+    public function getRoomStats() : array
     {
         $totalRooms = $this->model->count();
         $activeRooms = $this->countByStatus(self::STATUS_ACTIVE);
@@ -312,253 +426,41 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
             'live_rooms' => $liveRooms,
             'scheduled_today' => $scheduledToday,
             'by_game_mode' => $byGameMode,
-            'by_room_type' => $byRoomType
+            'by_room_type' => $byRoomType,
         ];
     }
 
     /**
-     * Buscar salas por término de búsqueda
+     * Obtener salas programadas para hoy
      *
-     * @param string $searchTerm
      * @return Collection<int, BingoRoomAutomatic>
      */
-    public function searchRooms(string $searchTerm): Collection
+    public function getTodayScheduledRooms() : Collection
     {
-        return $this->model->where(function ($query) use ($searchTerm) {
-            $query->where('description', 'like', "%{$searchTerm}%")
-                ->orWhere('room_type', 'like', "%{$searchTerm}%")
-                ->orWhere('creator_user_id', 'like', "%{$searchTerm}%");
-        })->get();
+        return $this->getByDate(Carbon::today()->toDateString());
     }
 
     /**
-     * Crear nueva sala automática
+     * Obtener salas próximas a ejecutarse
      *
-     * @param array $roomData
-     * @return BingoRoomAutomatic
+     * @return Collection<int, BingoRoomAutomatic>
      */
-    public function createAutomaticRoom(array $roomData): BingoRoomAutomatic
+    public function getUpcomingRooms(int $minutesAhead = 30) : Collection
     {
-        return $this->create($roomData);
-    }
+        $now = Carbon::now();
+        $futureTime = $now->copy()->addMinutes($minutesAhead);
 
-    /**
-     * Actualizar configuración de sala
-     *
-     * @param string $roomId
-     * @param array $updateData
-     * @return bool
-     */
-    public function updateRoomConfig(string $roomId, array $updateData): bool
-    {
-        return $this->model->where('id', $roomId)
-            ->update($updateData) > 0;
-    }
-
-    /**
-     * Actualizar estado de sala
-     *
-     * @param string $roomId
-     * @param string $newStatus
-     * @return bool
-     */
-    public function updateRoomStatus(string $roomId, string $newStatus): bool
-    {
-        return $this->updateRoomConfig($roomId, ['status' => $newStatus]);
-    }
-
-    /**
-     * Activar sala
-     *
-     * @param string $roomId
-     * @return bool
-     */
-    public function activateRoom(string $roomId): bool
-    {
-        return $this->updateRoomStatus($roomId, self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Desactivar sala
-     *
-     * @param string $roomId
-     * @return bool
-     */
-    public function deactivateRoom(string $roomId): bool
-    {
-        return $this->updateRoomStatus($roomId, self::STATUS_INACTIVE);
-    }
-
-    /**
-     * Duplicar configuración de sala
-     *
-     * @param string $roomId
-     * @param array $overrideData
-     * @return BingoRoomAutomatic
-     */
-    public function duplicateRoom(string $roomId, array $overrideData = []): BingoRoomAutomatic
-    {
-        $originalRoom = $this->find($roomId);
-
-        if (!$originalRoom) {
-            throw new \Exception("Room with ID {$roomId} not found");
-        }
-
-        $duplicateData = $originalRoom->toArray();
-        unset($duplicateData['id'], $duplicateData['created_at'], $duplicateData['updated_at']);
-
-        // Aplicar datos de sobrescritura
-        $duplicateData = array_merge($duplicateData, $overrideData);
-
-        return $this->createAutomaticRoom($duplicateData);
-    }
-
-    /**
-     * Obtener salas agrupadas por modo de juego
-     *
-     * @return Collection
-     */
-    public function getGroupedByGameMode(): Collection
-    {
-        return $this->model->selectRaw('connection_type_id, COUNT(*) as count')
-            ->groupBy('connection_type_id')
-            ->orderBy('connection_type_id')
-            ->get();
-    }
-
-    /**
-     * Obtener salas agrupadas por tipo de sala
-     *
-     * @return Collection
-     */
-    public function getGroupedByRoomType(): Collection
-    {
-        return $this->model->selectRaw('room_type_id, COUNT(*) as count')
-            ->groupBy('room_type_id')
-            ->orderBy('room_type_id')
-            ->get();
-    }
-
-    /**
-     * Obtener salas agrupadas por día
-     *
-     * @return Collection
-     */
-    public function getGroupedByDay(): Collection
-    {
-        return $this->model->selectRaw('DATE(date) as day, COUNT(*) as count')
-            ->groupBy('day')
-            ->orderBy('day')
-            ->get();
-    }
-
-    /**
-     * Validar configuración de sala
-     *
-     * @param string $roomId
-     * @return bool
-     */
-    public function validateRoomConfig(string $roomId): bool
-    {
-        $room = $this->find($roomId);
-
-        if (!$room) {
-            return false;
-        }
-
-        // Validaciones básicas
-        if (empty($room->description) || empty($room->date) || empty($room->time)) {
-            return false;
-        }
-
-        if ($room->card_price <= 0 || $room->rounds <= 0) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Obtener precio promedio de cartas
-     *
-     * @return float
-     */
-    public function getAverageCardPrice(): float
-    {
-        return (float) $this->model->avg('card_price') ?? 0.0;
-    }
-
-    /**
-     * Obtener rondas promedio
-     *
-     * @return float
-     */
-    public function getAverageRounds(): float
-    {
-        return (float) $this->model->avg('rounds') ?? 0.0;
-    }
-
-    /**
-     * Limpiar salas vencidas
-     *
-     * @param int $daysOld
-     * @return int Número de registros eliminados
-     */
-    public function cleanExpiredRooms(int $daysOld = 30): int
-    {
-        $cutoffDate = Carbon::now()->subDays($daysOld);
-
-        return $this->model->where('date', '<', $cutoffDate->toDateString())
-            ->where('status', self::STATUS_COMPLETED)
-            ->delete();
-    }
-
-    /**
-     * Exportar configuraciones de salas
-     *
-     * @param string $format 'json'|'csv'|'array'
-     * @return mixed
-     */
-    public function exportRoomConfigs(string $format = 'array')
-    {
-        $rooms = $this->getAll();
-
-        switch ($format) {
-            case 'json':
-                return $rooms->toJson();
-            case 'csv':
-                // Implementar exportación CSV si es necesario
-                return $rooms->toArray();
-            case 'array':
-            default:
-                return $rooms->toArray();
-        }
-    }
-
-    /**
-     * Obtener horarios más populares
-     *
-     * @param int $limit
-     * @return Collection
-     */
-    public function getMostPopularTimes(int $limit = 10): Collection
-    {
-        return $this->model->selectRaw('time, COUNT(*) as count')
-            ->groupBy('time')
-            ->orderByDesc('count')
-            ->limit($limit)
+        return $this->model->where('status', self::STATUS_ACTIVE)
+            ->where('date', '>=', $now->toDateString())
+            ->where('time', '>=', $now->toTimeString())
+            ->where('time', '<=', $futureTime->toTimeString())
             ->get();
     }
 
     /**
      * Verificar conflictos de horarios
-     *
-     * @param string $date
-     * @param string $time
-     * @param string|null $excludeRoomId
-     * @return bool
      */
-    public function hasTimeConflict(string $date, string $time, ?string $excludeRoomId = null): bool
+    public function hasTimeConflict(string $date, string $time, ?string $excludeRoomId = null) : bool
     {
         $query = $this->model->where('date', $date)
             ->where('time', $time)
@@ -572,33 +474,6 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
     }
 
     /**
-     * Obtener configuración recomendada
-     *
-     * @param string $gameMode
-     * @return array
-     */
-    public function getRecommendedConfig(string $gameMode): array
-    {
-        $averages = $this->model->where('connection_type_id', $gameMode)
-            ->selectRaw('
-                AVG(card_price) as avg_card_price,
-                AVG(rounds) as avg_rounds,
-                AVG(time_chip) as avg_time_chip,
-                AVG(rke_commission) as avg_rke_commission,
-                AVG(room_commission) as avg_room_commission
-            ')
-            ->first();
-
-        return [
-            'recommended_card_price' => round($averages->avg_card_price ?? 1.0, 2),
-            'recommended_rounds' => round($averages->avg_rounds ?? 10),
-            'recommended_time_chip' => round($averages->avg_time_chip ?? 30),
-            'recommended_rke_commission' => round($averages->avg_rke_commission ?? 5.0, 2),
-            'recommended_room_commission' => round($averages->avg_room_commission ?? 10.0, 2)
-        ];
-    }
-
-    /**
      * {@inheritDoc}
      */
     public function paginateSummaryGameRooms(
@@ -607,8 +482,8 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
         array $conditions,
         array $filters,
         array $relations,
-        array $fields
-    ): \Illuminate\Pagination\LengthAwarePaginator {
+        array $fields,
+    ) : \Illuminate\Pagination\LengthAwarePaginator {
         $query = $this->model->newQuery()
             ->select($fields)
             ->with($relations);
@@ -619,27 +494,77 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
 
         // room_type_id/connection_type_id/prize_pool_type_id/status son columnas propias
         // de bingo_rooms_automatic (no requieren whereHas sobre una relación).
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['room_type_id'])) {
+        if (! empty($filters['room_type_id'])) {
             $query->where('room_type_id', $filters['room_type_id']);
         }
 
-        if (!empty($filters['connection_type_id'])) {
+        if (! empty($filters['connection_type_id'])) {
             $query->where('connection_type_id', $filters['connection_type_id']);
         }
 
-        if (!empty($filters['prize_pool_type_id'])) {
+        if (! empty($filters['prize_pool_type_id'])) {
             $query->where('prize_pool_type_id', $filters['prize_pool_type_id']);
         }
 
-        if (!empty($filters['currency_id'])) {
+        if (! empty($filters['currency_id'])) {
             $query->whereJsonContains('allowed_currencies', (string) $filters['currency_id']);
         }
 
         return $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Buscar salas por término de búsqueda
+     *
+     * @return Collection<int, BingoRoomAutomatic>
+     */
+    public function searchRooms(string $searchTerm) : Collection
+    {
+        return $this->model->where(function($query) use ($searchTerm) {
+            $query->where('description', 'like', "%{$searchTerm}%")
+                ->orWhere('room_type', 'like', "%{$searchTerm}%")
+                ->orWhere('creator_user_id', 'like', "%{$searchTerm}%");
+        })->get();
+    }
+
+    /**
+     * Actualizar configuración de sala
+     */
+    public function updateRoomConfig(string $roomId, array $updateData) : bool
+    {
+        return $this->model->where('id', $roomId)
+            ->update($updateData) > 0;
+    }
+
+    /**
+     * Actualizar estado de sala
+     */
+    public function updateRoomStatus(string $roomId, string $newStatus) : bool
+    {
+        return $this->updateRoomConfig($roomId, ['status' => $newStatus]);
+    }
+
+    /**
+     * Validar configuración de sala
+     */
+    public function validateRoomConfig(string $roomId) : bool
+    {
+        $room = $this->find($roomId);
+
+        if (! $room) {
+            return false;
+        }
+
+        // Validaciones básicas
+        if (empty($room->description) || empty($room->date) || empty($room->time)) {
+            return false;
+        }
+
+        return ! ($room->card_price <= 0 || $room->rounds <= 0);
     }
 }

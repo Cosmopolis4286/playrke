@@ -9,7 +9,6 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Detecta (nunca auto-corrige) drift entre wallets.balance y el ledger de
@@ -46,7 +45,7 @@ final class WalletBalanceReconciliationService
     /**
      * @return Collection<int, array{wallet_id: string, user_id: string, wallet_balance: float, expected_balance: float, last_movement_id: string, last_movement_at: string}>
      */
-    public function findDrifted(): Collection
+    public function findDrifted() : Collection
     {
         // Último movimiento por wallet_id en una sola query (evita N+1 de
         // "por cada wallet, buscar su último movimiento"). created_at puede
@@ -86,16 +85,16 @@ final class WalletBalanceReconciliationService
             }
 
             $expected = round((float) $movement->balance_after, 2);
-            $actual   = round((float) $wallet->balance, 2);
+            $actual = round((float) $wallet->balance, 2);
 
             if ($expected !== $actual) {
                 $drifted->push([
-                    'wallet_id'         => (string) $wallet->id,
-                    'user_id'           => (string) $wallet->user_id,
-                    'wallet_balance'    => $actual,
-                    'expected_balance'  => $expected,
-                    'last_movement_id'  => (string) $movement->id,
-                    'last_movement_at'  => $movement->created_at?->toIso8601String() ?? '',
+                    'wallet_id' => (string) $wallet->id,
+                    'user_id' => (string) $wallet->user_id,
+                    'wallet_balance' => $actual,
+                    'expected_balance' => $expected,
+                    'last_movement_id' => (string) $movement->id,
+                    'last_movement_at' => $movement->created_at?->toIso8601String() ?? '',
                 ]);
             }
         }
@@ -112,7 +111,7 @@ final class WalletBalanceReconciliationService
      *
      * @return int cantidad de wallets con drift detectado
      */
-    public function reconcileAndAlert(): int
+    public function reconcileAndAlert() : int
     {
         $drifted = $this->findDrifted();
 
@@ -127,7 +126,7 @@ final class WalletBalanceReconciliationService
             ->all();
 
         $summary = $drifted->take(10)->map(
-            fn (array $d) => "wallet {$d['wallet_id']}: balance={$d['wallet_balance']} esperado={$d['expected_balance']}"
+            fn (array $d) => "wallet {$d['wallet_id']}: balance={$d['wallet_balance']} esperado={$d['expected_balance']}",
         )->implode('; ');
 
         foreach ($approverIds as $approverId) {
@@ -138,8 +137,8 @@ final class WalletBalanceReconciliationService
                 message: "{$drifted->count()} wallet(s) con balance desincronizado del ledger. {$summary}",
                 data: [
                     'drifted_count' => $drifted->count(),
-                    'wallets'       => $drifted->all(),
-                    'url'           => '/wallet-movements',
+                    'wallets' => $drifted->all(),
+                    'url' => '/wallet-movements',
                 ],
             );
         }

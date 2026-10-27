@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'admins'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('admins');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'admins'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('admins', function (Blueprint $table) {
+        Schema::create('admins', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del administrador');
 
@@ -68,13 +76,5 @@ return new class extends Migration
             $table->index(['country_id', 'status']);
             $table->index(['status', 'last_login_at']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'admins'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('admins');
     }
 };

@@ -20,43 +20,43 @@ use App\Services\Auth\RoleAuthorizationService;
  */
 class AdminPlayerPolicy
 {
-    private function hasAccess(User $user): bool
+    public function create(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    public function delete(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    public function resetPassword(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    public function toggleStatus(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    public function update(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    public function view(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    public function viewAny(User $user) : bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    private function hasAccess(User $user) : bool
     {
         return app(RoleAuthorizationService::class)->hasAnyRole($user, 'admin');
-    }
-
-    public function viewAny(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    public function view(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    public function create(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    public function update(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    public function delete(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    public function toggleStatus(User $user): bool
-    {
-        return $this->hasAccess($user);
-    }
-
-    public function resetPassword(User $user): bool
-    {
-        return $this->hasAccess($user);
     }
 }

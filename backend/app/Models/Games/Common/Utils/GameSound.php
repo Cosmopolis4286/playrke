@@ -10,13 +10,13 @@ class GameSound extends Model
 {
     use SnowflakeId;
 
+    protected $casts = [
+        'status' => AsActiveStatusEnum::class,
+    ];
+
     protected $fillable = [
         'file',
         'description',
         'status',
-    ];
-
-    protected $casts = [
-        'status' => AsActiveStatusEnum::class,
     ];
 }

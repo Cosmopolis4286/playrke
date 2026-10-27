@@ -27,18 +27,18 @@ use App\Models\User;
  */
 class SidebarMenuVisibilityPolicy
 {
-    public function viewAny(User $user): bool
+    public function manage(User $user) : bool
     {
-        return $user->hasAnyPermission(['sidebar-menu.view', 'sidebar-menu.manage']);
+        return $user->hasPermissionTo('sidebar-menu.manage');
     }
 
-    public function view(User $user): bool
+    public function view(User $user) : bool
     {
         return $this->viewAny($user);
     }
 
-    public function manage(User $user): bool
+    public function viewAny(User $user) : bool
     {
-        return $user->hasPermissionTo('sidebar-menu.manage');
+        return $user->hasAnyPermission(['sidebar-menu.view', 'sidebar-menu.manage']);
     }
 }

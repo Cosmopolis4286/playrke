@@ -27,21 +27,22 @@ final class AdminDashboardContextDTO implements ContextDTO
         public readonly array $allowedQuickLinks,
         /** Alertas de dinero: pagos por revisar, reembolsos fallidos, premios trabados, movimientos */
         public readonly array $operationalAlerts = [],
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'           => $this->userName,
-            'stats'              => $this->stats,
-            'recentActivity'     => $this->recentActivity,
-            'entityCounts'       => $this->entityCounts,
-            'salesTrend'         => $this->salesTrend,
-            'rkeTotals'          => $this->rkeTotals,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
+            'recentActivity' => $this->recentActivity,
+            'entityCounts' => $this->entityCounts,
+            'salesTrend' => $this->salesTrend,
+            'rkeTotals' => $this->rkeTotals,
             'pendingWalletCount' => $this->pendingWalletCount,
-            'period'             => $this->period,
-            'allowedQuickLinks'  => $this->allowedQuickLinks,
-            'operationalAlerts'  => $this->operationalAlerts,
+            'period' => $this->period,
+            'allowedQuickLinks' => $this->allowedQuickLinks,
+            'operationalAlerts' => $this->operationalAlerts,
         ];
     }
 }

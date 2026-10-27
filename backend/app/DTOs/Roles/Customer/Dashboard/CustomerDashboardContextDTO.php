@@ -21,18 +21,19 @@ final class CustomerDashboardContextDTO implements ContextDTO
         public readonly array $wallets,
         /** Período activo (e.g. "Octubre 2026") */
         public readonly string $period,
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'       => $this->userName,
-            'stats'          => $this->stats,
-            'upcomingRooms'  => $this->upcomingRooms,
-            'salesTrend'     => $this->salesTrend,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
+            'upcomingRooms' => $this->upcomingRooms,
+            'salesTrend' => $this->salesTrend,
             'recentActivity' => $this->recentActivity,
-            'wallets'        => $this->wallets,
-            'period'         => $this->period,
+            'wallets' => $this->wallets,
+            'period' => $this->period,
         ];
     }
 }

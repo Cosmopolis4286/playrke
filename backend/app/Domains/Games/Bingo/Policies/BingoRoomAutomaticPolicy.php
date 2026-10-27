@@ -25,14 +25,22 @@ use Illuminate\Database\Eloquent\Model;
  */
 class BingoRoomAutomaticPolicy extends BingoBasePolicy
 {
-    protected function isElevated(User $user): bool
-    {
-        return $user->hasRole(['superadmin', 'admin']);
-    }
-
-    public function create(User $user): bool
+    public function create(User $user) : bool
     {
         return $this->isElevated($user);
+    }
+
+    public function delete(User $user, Model $model) : bool
+    {
+        return $this->update($user, $model);
+    }
+
+    /**
+     * Alternar estado de una sala de bingo automática (autogenerable).
+     */
+    public function toggleStatus(User $user, BingoRoomAutomatic $bingoRoom) : bool
+    {
+        return $this->isElevated($user) && $this->canMutate($bingoRoom);
     }
 
     /**
@@ -41,21 +49,13 @@ class BingoRoomAutomaticPolicy extends BingoBasePolicy
      * instancia real de BingoRoomAutomatic en runtime, así que el estrechado
      * de tipo no se pierde en la práctica, solo en la firma declarada.
      */
-    public function update(User $user, Model $model): bool
+    public function update(User $user, Model $model) : bool
     {
         return $this->isElevated($user) && $this->canMutate($model);
     }
 
-    public function delete(User $user, Model $model): bool
+    protected function isElevated(User $user) : bool
     {
-        return $this->update($user, $model);
-    }
-
-    /**
-     * Alternar estado de una sala de bingo automática (autogenerable).
-     */
-    public function toggleStatus(User $user, BingoRoomAutomatic $bingoRoom): bool
-    {
-        return $this->isElevated($user) && $this->canMutate($bingoRoom);
+        return $user->hasRole(['superadmin', 'admin']);
     }
 }

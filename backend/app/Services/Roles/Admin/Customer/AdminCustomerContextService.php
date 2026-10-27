@@ -16,15 +16,14 @@ final class AdminCustomerContextService
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\GameRepositoryInterface $games,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
-        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones
-    ) {}
+        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
+    ) {
+    }
 
     /**
      * Resolver contexto para clientes.
-     *
-     * @return AdminCustomerContextDTO
      */
-    public function customerContext(): AdminCustomerContextDTO
+    public function customerContext() : AdminCustomerContextDTO
     {
         $customerData = $this->resolveCustomers();
 
@@ -34,7 +33,7 @@ final class AdminCustomerContextService
             countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id'])
+            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
         );
     }
 
@@ -43,9 +42,9 @@ final class AdminCustomerContextService
      *
      * @return array [customers, pagination]
      */
-    public function resolveCustomers(): array
+    public function resolveCustomers() : array
     {
-        $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
+        $labels = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->customers->paginateWithRelations(
@@ -53,7 +52,7 @@ final class AdminCustomerContextService
             page: 1,
             relations: ['country:id,name', 'user:id,email'],
             conditions: [],
-            fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+            fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status'],
         );
 
         $collection = $source instanceof LengthAwarePaginator
@@ -62,12 +61,12 @@ final class AdminCustomerContextService
 
         $pagination = $source instanceof LengthAwarePaginator
             ? [
-                'total'        => $source->total(),
-                'per_page'     => $source->perPage(),
+                'total' => $source->total(),
+                'per_page' => $source->perPage(),
                 'current_page' => $source->currentPage(),
-                'last_page'    => $source->lastPage(),
-                'from'         => $source->firstItem(),
-                'to'           => $source->lastItem(),
+                'last_page' => $source->lastPage(),
+                'from' => $source->firstItem(),
+                'to' => $source->lastItem(),
             ]
             : null;
 

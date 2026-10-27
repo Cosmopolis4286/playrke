@@ -19,9 +19,6 @@ use Throwable;
  */
 final class StaleWalletMovementAlertService
 {
-    private const STALE_DEPOSIT_HOURS = 6;
-    /** Retiros: dinero saliendo, umbral más estricto que depósitos. */
-    private const STALE_WITHDRAWAL_HOURS = 2;
     /**
      * Segundo nivel de alerta, más urgente que STALE_*_HOURS — alineado con
      * AGE_CRITICAL_HOURS que la UI ya usa en useMovementFormatters.ts::ageInfo()
@@ -31,10 +28,64 @@ final class StaleWalletMovementAlertService
      * retiro.
      */
     private const CRITICAL_AGE_HOURS = 24;
+    private const STALE_DEPOSIT_HOURS = 6;
+    /** Retiros: dinero saliendo, umbral más estricto que depósitos. */
+    private const STALE_WITHDRAWAL_HOURS = 2;
 
     public function __construct(
         private readonly NotificationService $notificationService,
     ) {
+    }
+
+    /**
+     * Segundo nivel de alerta: PENDING (cualquier tipo) con más de
+     * CRITICAL_AGE_HOURS (24h) de antigüedad. A diferencia de
+     * notifyStalePending(), no distingue depósito/retiro — a las 24h ambos
+     * son igual de urgentes. Notifica in-app (mismo público) y además
+     * dispara un broadcast al canal admins.wallet-movements para reflejo en
+     * tiempo real sin depender de que el admin abra el centro de
+     * notificaciones.
+     *
+     * @return int cantidad de movimientos críticos encontrados
+     */
+    public function notifyCriticalPending() : int
+    {
+        $criticalCount = WalletMovement::where('status', WalletMovement::STATUS_PENDING)
+            ->where('created_at', '<=', now()->subHours(self::CRITICAL_AGE_HOURS))
+            ->count();
+
+        if ($criticalCount === 0) {
+            return 0;
+        }
+
+        $approverIds = User::permission('wallet.movements.manage')
+            ->where('status', 'ACTIVE')
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        foreach ($approverIds as $approverId) {
+            $this->notificationService->create(
+                userId: $approverId,
+                type: 'SYSTEM',
+                title: '🔴 Movimientos CRÍTICOS sin resolver',
+                message: "{$criticalCount} movimiento(s) llevan más de " . self::CRITICAL_AGE_HOURS . 'h pendientes de aprobación. Revisión urgente requerida.',
+                data: [
+                    'critical_count' => $criticalCount,
+                    'url' => '/wallet-movements',
+                ],
+            );
+        }
+
+        // Best-effort — nunca bloquea la notificación in-app si Reverb no
+        // responde, mismo patrón try/catch que el resto de broadcasts de wallet.
+        try {
+            broadcast(new WalletMovementCriticalBacklog($criticalCount));
+        } catch (Throwable $e) {
+            Log::warning('[StaleWalletMovementAlertService] broadcast de critical-backlog falló: ' . $e->getMessage());
+        }
+
+        return $criticalCount;
     }
 
     /**
@@ -86,56 +137,5 @@ final class StaleWalletMovementAlertService
         }
 
         return $staleTotal;
-    }
-
-    /**
-     * Segundo nivel de alerta: PENDING (cualquier tipo) con más de
-     * CRITICAL_AGE_HOURS (24h) de antigüedad. A diferencia de
-     * notifyStalePending(), no distingue depósito/retiro — a las 24h ambos
-     * son igual de urgentes. Notifica in-app (mismo público) y además
-     * dispara un broadcast al canal admins.wallet-movements para reflejo en
-     * tiempo real sin depender de que el admin abra el centro de
-     * notificaciones.
-     *
-     * @return int cantidad de movimientos críticos encontrados
-     */
-    public function notifyCriticalPending() : int
-    {
-        $criticalCount = WalletMovement::where('status', WalletMovement::STATUS_PENDING)
-            ->where('created_at', '<=', now()->subHours(self::CRITICAL_AGE_HOURS))
-            ->count();
-
-        if ($criticalCount === 0) {
-            return 0;
-        }
-
-        $approverIds = User::permission('wallet.movements.manage')
-            ->where('status', 'ACTIVE')
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
-
-        foreach ($approverIds as $approverId) {
-            $this->notificationService->create(
-                userId: $approverId,
-                type: 'SYSTEM',
-                title: '🔴 Movimientos CRÍTICOS sin resolver',
-                message: "{$criticalCount} movimiento(s) llevan más de " . self::CRITICAL_AGE_HOURS . "h pendientes de aprobación. Revisión urgente requerida.",
-                data: [
-                    'critical_count' => $criticalCount,
-                    'url' => '/wallet-movements',
-                ],
-            );
-        }
-
-        // Best-effort — nunca bloquea la notificación in-app si Reverb no
-        // responde, mismo patrón try/catch que el resto de broadcasts de wallet.
-        try {
-            broadcast(new WalletMovementCriticalBacklog($criticalCount));
-        } catch (Throwable $e) {
-            Log::warning('[StaleWalletMovementAlertService] broadcast de critical-backlog falló: ' . $e->getMessage());
-        }
-
-        return $criticalCount;
     }
 }

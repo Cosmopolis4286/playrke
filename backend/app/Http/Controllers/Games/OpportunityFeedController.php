@@ -13,20 +13,21 @@ class OpportunityFeedController extends Controller
 {
     public function __construct(
         private readonly OpportunityFeedService $feed,
-    ) {}
-
-    public function index(): Response
-    {
-        return Inertia::render('Games/Opportunities/Index', [
-            'feed' => $this->feed->getFeed((int) Auth::id()),
-        ]);
+    ) {
     }
 
     /**
      * Refetch JSON — para el botón de refrescar sin recargar la página.
      */
-    public function fetch(): JsonResponse
+    public function fetch() : JsonResponse
     {
         return response()->json($this->feed->getFeed((int) Auth::id()));
+    }
+
+    public function index() : Response
+    {
+        return Inertia::render('Games/Opportunities/Index', [
+            'feed' => $this->feed->getFeed((int) Auth::id()),
+        ]);
     }
 }

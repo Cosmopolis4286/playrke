@@ -44,22 +44,199 @@ class TriviaAuthorizationControllersTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected $connectionsToTransact = ['mysql', 'pgsql_trivia'];
-
     private static int $idCounter = 0;
 
-    protected function setUp(): void
+    protected $connectionsToTransact = ['mysql', 'pgsql_trivia'];
+
+    protected function setUp() : void
     {
         parent::setUp();
         Redis::flushall();
     }
 
-    private function nextId(): string
+    #[Test]
+    public function admin_can_delete_a_trivia_question() : void
     {
-        return (string) (500000000000000000 + (++self::$idCounter));
+        $admin = $this->makeUserWithRole('admin');
+        $question = $this->makeQuestion();
+
+        $response = $this->actingAs($admin)
+            ->delete("/trivia-questions/room/all/{$question->id}");
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertStatus(302);
+        $response->assertSessionMissing('error');
     }
 
-    private function makeRole(string $name): Role
+    #[Test]
+    public function admin_can_destroy_a_trivia_room() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $room = $this->makeRoom();
+
+        $response = $this->actingAs($admin)
+            ->delete("/trivia-rooms/{$room->id}");
+
+        // No debe ser 403 (el guardrail de defensa en profundidad no debe
+        // bloquear al rol que sí tiene acceso legítimo).
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertStatus(302);
+        $response->assertSessionHas('success');
+        $this->assertSame('closed', $room->fresh()->status);
+    }
+
+    #[Test]
+    public function admin_can_toggle_active_a_trivia_question() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $question = $this->makeQuestion();
+
+        $response = $this->actingAs($admin)
+            ->patch("/trivia-questions/room/all/{$question->id}/toggle-active");
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertStatus(302);
+        $this->assertFalse($question->fresh()->is_active);
+    }
+
+    #[Test]
+    public function admin_disputing_a_non_claimed_prize_gets_a_business_error_not_403() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $room = $this->makeRoom();
+        // prize_status distinto de 'claimed' fuerza el RuntimeException de
+        // GamePrizeService::disputeAndReverse() — lo que importa aquí es
+        // que NO sea un 403 (la autorización sí debe dejarlo pasar).
+        $participant = TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $this->nextId(),
+            'status' => 'winner',
+            'prize_status' => 'waiting',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->post("/trivia-rooms/{$room->id}/participants/{$participant->id}/dispute", [
+                'reason' => 'Sospecha de colusión entre jugadores de la sala.',
+            ]);
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertStatus(302);
+        $response->assertSessionHas('error');
+    }
+
+    // ---------------------------------------------------------------
+    // TriviaQuestionController
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function player_cannot_delete_a_trivia_question() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        $question = $this->makeQuestion();
+
+        $response = $this->actingAs($player)
+            ->delete("/trivia-questions/room/all/{$question->id}");
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertNotNull(TriviaQuestion::find($question->id));
+    }
+
+    // ---------------------------------------------------------------
+    // TriviaRoomAdminController
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function player_cannot_destroy_a_trivia_room() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        $room = $this->makeRoom();
+
+        $response = $this->actingAs($player)
+            ->delete("/trivia-rooms/{$room->id}");
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertSame('waiting', $room->fresh()->status);
+    }
+
+    // ---------------------------------------------------------------
+    // TriviaPrizeDisputeController
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function player_cannot_dispute_a_trivia_prize() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        $room = $this->makeRoom();
+        $participant = TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $this->nextId(),
+            'status' => 'winner',
+            'prize_status' => 'claimed',
+        ]);
+
+        $response = $this->actingAs($player)
+            ->post("/trivia-rooms/{$room->id}/participants/{$participant->id}/dispute", [
+                'reason' => 'Sospecha de colusión entre jugadores de la sala.',
+            ]);
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertSame('claimed', $participant->fresh()->prize_status);
+    }
+
+    #[Test]
+    public function player_cannot_force_close_a_trivia_room() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        $room = $this->makeRoom();
+        $room->update(['status' => 'playing']);
+
+        $response = $this->actingAs($player)
+            ->post("/trivia-rooms/{$room->id}/force-close");
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertSame('playing', $room->fresh()->status);
+    }
+
+    #[Test]
+    public function player_cannot_toggle_active_a_trivia_question() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        $question = $this->makeQuestion();
+
+        $response = $this->actingAs($player)
+            ->patch("/trivia-questions/room/all/{$question->id}/toggle-active");
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertTrue($question->fresh()->is_active);
+    }
+
+    #[Test]
+    public function superadmin_can_force_close_a_trivia_room() : void
+    {
+        $superadmin = $this->makeUserWithRole('superadmin');
+        $room = $this->makeRoom();
+        $room->update(['status' => 'playing']);
+
+        $response = $this->actingAs($superadmin)
+            ->post("/trivia-rooms/{$room->id}/force-close");
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertStatus(302);
+        $response->assertSessionHas('success');
+        $this->assertSame('closed', $room->fresh()->status);
+    }
+
+    private function makeQuestion() : TriviaQuestion
+    {
+        return TriviaQuestion::create([
+            'question_text' => '¿Pregunta de prueba?',
+            'options' => ['A', 'B', 'C', 'D'],
+            'correct_option_index' => 0,
+            'is_active' => true,
+        ]);
+    }
+
+    private function makeRole(string $name) : Role
     {
         $role = Role::where('name', $name)->where('guard_name', 'web')->first();
         if ($role) {
@@ -84,16 +261,7 @@ class TriviaAuthorizationControllersTest extends TestCase
         return $role->refresh();
     }
 
-    private function makeUserWithRole(string $roleName): User
-    {
-        $this->makeRole($roleName);
-        $user = User::factory()->create();
-        $user->assignRole($roleName);
-
-        return $user;
-    }
-
-    private function makeRoom(): TriviaRoom
+    private function makeRoom() : TriviaRoom
     {
         return TriviaRoom::create([
             'code' => 'TA' . substr(uniqid(), -6),
@@ -106,185 +274,17 @@ class TriviaAuthorizationControllersTest extends TestCase
         ]);
     }
 
-    private function makeQuestion(): TriviaQuestion
+    private function makeUserWithRole(string $roleName) : User
     {
-        return TriviaQuestion::create([
-            'question_text' => '¿Pregunta de prueba?',
-            'options' => ['A', 'B', 'C', 'D'],
-            'correct_option_index' => 0,
-            'is_active' => true,
-        ]);
+        $this->makeRole($roleName);
+        $user = User::factory()->create();
+        $user->assignRole($roleName);
+
+        return $user;
     }
 
-    // ---------------------------------------------------------------
-    // TriviaRoomAdminController
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function player_cannot_destroy_a_trivia_room(): void
+    private function nextId() : string
     {
-        $player = $this->makeUserWithRole('player');
-        $room = $this->makeRoom();
-
-        $response = $this->actingAs($player)
-            ->delete("/trivia-rooms/{$room->id}");
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertSame('waiting', $room->fresh()->status);
-    }
-
-    #[Test]
-    public function admin_can_destroy_a_trivia_room(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        $room = $this->makeRoom();
-
-        $response = $this->actingAs($admin)
-            ->delete("/trivia-rooms/{$room->id}");
-
-        // No debe ser 403 (el guardrail de defensa en profundidad no debe
-        // bloquear al rol que sí tiene acceso legítimo).
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertStatus(302);
-        $response->assertSessionHas('success');
-        $this->assertSame('closed', $room->fresh()->status);
-    }
-
-    #[Test]
-    public function player_cannot_force_close_a_trivia_room(): void
-    {
-        $player = $this->makeUserWithRole('player');
-        $room = $this->makeRoom();
-        $room->update(['status' => 'playing']);
-
-        $response = $this->actingAs($player)
-            ->post("/trivia-rooms/{$room->id}/force-close");
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertSame('playing', $room->fresh()->status);
-    }
-
-    #[Test]
-    public function superadmin_can_force_close_a_trivia_room(): void
-    {
-        $superadmin = $this->makeUserWithRole('superadmin');
-        $room = $this->makeRoom();
-        $room->update(['status' => 'playing']);
-
-        $response = $this->actingAs($superadmin)
-            ->post("/trivia-rooms/{$room->id}/force-close");
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertStatus(302);
-        $response->assertSessionHas('success');
-        $this->assertSame('closed', $room->fresh()->status);
-    }
-
-    // ---------------------------------------------------------------
-    // TriviaQuestionController
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function player_cannot_delete_a_trivia_question(): void
-    {
-        $player = $this->makeUserWithRole('player');
-        $question = $this->makeQuestion();
-
-        $response = $this->actingAs($player)
-            ->delete("/trivia-questions/room/all/{$question->id}");
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertNotNull(TriviaQuestion::find($question->id));
-    }
-
-    #[Test]
-    public function admin_can_delete_a_trivia_question(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        $question = $this->makeQuestion();
-
-        $response = $this->actingAs($admin)
-            ->delete("/trivia-questions/room/all/{$question->id}");
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertStatus(302);
-        $response->assertSessionMissing('error');
-    }
-
-    #[Test]
-    public function player_cannot_toggle_active_a_trivia_question(): void
-    {
-        $player = $this->makeUserWithRole('player');
-        $question = $this->makeQuestion();
-
-        $response = $this->actingAs($player)
-            ->patch("/trivia-questions/room/all/{$question->id}/toggle-active");
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertTrue($question->fresh()->is_active);
-    }
-
-    #[Test]
-    public function admin_can_toggle_active_a_trivia_question(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        $question = $this->makeQuestion();
-
-        $response = $this->actingAs($admin)
-            ->patch("/trivia-questions/room/all/{$question->id}/toggle-active");
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertStatus(302);
-        $this->assertFalse($question->fresh()->is_active);
-    }
-
-    // ---------------------------------------------------------------
-    // TriviaPrizeDisputeController
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function player_cannot_dispute_a_trivia_prize(): void
-    {
-        $player = $this->makeUserWithRole('player');
-        $room = $this->makeRoom();
-        $participant = TriviaParticipant::create([
-            'room_id' => $room->id,
-            'user_id' => (string) $this->nextId(),
-            'status' => 'winner',
-            'prize_status' => 'claimed',
-        ]);
-
-        $response = $this->actingAs($player)
-            ->post("/trivia-rooms/{$room->id}/participants/{$participant->id}/dispute", [
-                'reason' => 'Sospecha de colusión entre jugadores de la sala.',
-            ]);
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertSame('claimed', $participant->fresh()->prize_status);
-    }
-
-    #[Test]
-    public function admin_disputing_a_non_claimed_prize_gets_a_business_error_not_403(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        $room = $this->makeRoom();
-        // prize_status distinto de 'claimed' fuerza el RuntimeException de
-        // GamePrizeService::disputeAndReverse() — lo que importa aquí es
-        // que NO sea un 403 (la autorización sí debe dejarlo pasar).
-        $participant = TriviaParticipant::create([
-            'room_id' => $room->id,
-            'user_id' => (string) $this->nextId(),
-            'status' => 'winner',
-            'prize_status' => 'waiting',
-        ]);
-
-        $response = $this->actingAs($admin)
-            ->post("/trivia-rooms/{$room->id}/participants/{$participant->id}/dispute", [
-                'reason' => 'Sospecha de colusión entre jugadores de la sala.',
-            ]);
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertStatus(302);
-        $response->assertSessionHas('error');
+        return (string) (500000000000000000 + (++self::$idCounter));
     }
 }

@@ -23,9 +23,9 @@ final class AntiCheatAdminController extends Controller
 {
     private const FLAGS_PAGE_SIZE = 20;
 
-    public function flagsForUser(User $user, Request $request): JsonResponse
+    public function flagsForUser(User $user, Request $request) : JsonResponse
     {
-        return $this->handleServiceJson(function () use ($user, $request) {
+        return $this->handleServiceJson(function() use ($user, $request) {
             $page = (int) $request->get('page', 1);
 
             $paginator = AntiCheatFlag::forUser((string) $user->id)
@@ -35,15 +35,15 @@ final class AntiCheatAdminController extends Controller
             return [
                 'data' => [
                     'rows' => $paginator->getCollection()->map(fn (AntiCheatFlag $flag) => [
-                        'id'                => (string) $flag->id,
-                        'game_slug'         => $flag->game_slug,
-                        'signal_type'       => $flag->signal_type->value,
+                        'id' => (string) $flag->id,
+                        'game_slug' => $flag->game_slug,
+                        'signal_type' => $flag->signal_type->value,
                         'signal_type_label' => $flag->signal_type->label(),
-                        'severity'          => $flag->severity,
+                        'severity' => $flag->severity,
                         'triggered_suspension' => $flag->triggered_suspension,
-                        'created_at'        => $flag->created_at?->format('d/m/Y H:i:s'),
+                        'created_at' => $flag->created_at?->format('d/m/Y H:i:s'),
                     ])->values(),
-                    'has_more'     => $paginator->hasMorePages(),
+                    'has_more' => $paginator->hasMorePages(),
                     'current_page' => $paginator->currentPage(),
                 ],
             ];
@@ -56,11 +56,11 @@ final class AntiCheatAdminController extends Controller
      * ACTIVE si no queda otra suspensión activa), solo faltaba este endpoint
      * que la invocara.
      */
-    public function resolveSuspension(UserSuspension $suspension, Request $request): JsonResponse
+    public function resolveSuspension(UserSuspension $suspension, Request $request) : JsonResponse
     {
         $request->validate(['notes' => 'required|string|max:500']);
 
-        return $this->handleServiceJson(function () use ($suspension, $request) {
+        return $this->handleServiceJson(function() use ($suspension, $request) {
             $suspension->resolve(Auth::user(), $request->input('notes'));
 
             return ['message' => 'Suspensión resuelta. El jugador vuelve a estar activo.'];
@@ -74,20 +74,20 @@ final class AntiCheatAdminController extends Controller
      * sistema anti-cheat (ej. reporte de un usuario, fraude detectado por
      * soporte).
      */
-    public function suspendManually(User $user, Request $request): JsonResponse
+    public function suspendManually(User $user, Request $request) : JsonResponse
     {
         $request->validate(['reason' => 'required|string|max:500']);
 
-        return $this->handleServiceJson(function () use ($user, $request) {
+        return $this->handleServiceJson(function() use ($user, $request) {
             if ($user->status === 'SUSPENDED') {
                 return ['message' => 'El jugador ya está suspendido.'];
             }
 
             UserSuspension::create([
-                'user_id'              => $user->id,
-                'origin'                => UserSuspension::ORIGIN_MANUAL_ADMIN,
-                'reason'                => $request->input('reason'),
-                'suspended_by_user_id'  => Auth::id(),
+                'user_id' => $user->id,
+                'origin' => UserSuspension::ORIGIN_MANUAL_ADMIN,
+                'reason' => $request->input('reason'),
+                'suspended_by_user_id' => Auth::id(),
             ]);
 
             $user->update(['status' => 'SUSPENDED']);

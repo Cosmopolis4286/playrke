@@ -12,7 +12,7 @@ namespace App\Domains\Games\Trivia\Services;
  */
 final class TriviaQuestionAdvanceGuard
 {
-    public static function matchesExpectedQuestion(string $expectedQuestionId, ?array $currentQuestion): bool
+    public static function matchesExpectedQuestion(string $expectedQuestionId, ?array $currentQuestion) : bool
     {
         if ($currentQuestion === null) {
             return false;

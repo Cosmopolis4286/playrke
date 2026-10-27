@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'commerces_currencies'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('commerces_currencies');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'commerces_currencies'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('commerces_currencies', function (Blueprint $table) {
+        Schema::create('commerces_currencies', function(Blueprint $table) {
             // Comercio
             $table->foreignSnowflake('commerce_id')
                 ->constrained('commerces')
@@ -45,13 +53,5 @@ return new class extends Migration
             $table->primary(['commerce_id', 'currency_id']);
             $table->index(['commerce_id', 'currency_id'], 'idx_commerce_currency');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'commerces_currencies'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('commerces_currencies');
     }
 };

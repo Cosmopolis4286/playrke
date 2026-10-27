@@ -12,18 +12,18 @@ class GamePrize extends Model
 {
     use SnowflakeId;
 
-    protected $fillable = [
-        'description',
-        'code',
-        'game_id',
-        'status'
-    ];
-
     protected $casts = [
         'status' => AsActiveStatusEnum::class,
     ];
 
-    public function game(): BelongsTo
+    protected $fillable = [
+        'description',
+        'code',
+        'game_id',
+        'status',
+    ];
+
+    public function game() : BelongsTo
     {
         return $this->belongsTo(Game::class, 'game_id');
     }

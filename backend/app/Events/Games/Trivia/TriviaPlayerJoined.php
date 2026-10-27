@@ -14,26 +14,27 @@ class TriviaPlayerJoined implements ShouldBroadcastNow
         public readonly string $roomId,
         public readonly string $playerId,
         public readonly string $playerName,
-        public readonly int    $currentPlayerCount,
+        public readonly int $currentPlayerCount,
         public readonly ?string $teamId = null,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel("trivia.room.{$this->roomId}");
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'trivia.player.joined';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : Channel
+    {
+        return new Channel("trivia.room.{$this->roomId}");
+    }
+
+    public function broadcastWith() : array
     {
         return [
             'player' => [
-                'id'     => $this->playerId,
-                'name'   => $this->playerName,
+                'id' => $this->playerId,
+                'name' => $this->playerName,
                 'teamId' => $this->teamId,
             ],
             'current_player_count' => $this->currentPlayerCount,

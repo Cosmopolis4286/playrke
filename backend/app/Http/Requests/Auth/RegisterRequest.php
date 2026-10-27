@@ -12,7 +12,7 @@ class RegisterRequest extends FormRequest
     /**
      * Determine if the user is authorized to make this request.
      */
-    public function authorize(): bool
+    public function authorize() : bool
     {
         return true;
     }
@@ -22,7 +22,7 @@ class RegisterRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
      */
-    public function rules(): array
+    public function rules() : array
     {
         return [
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],

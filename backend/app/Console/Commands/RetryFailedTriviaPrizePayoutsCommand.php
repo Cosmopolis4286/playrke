@@ -29,12 +29,12 @@ use Throwable;
  */
 class RetryFailedTriviaPrizePayoutsCommand extends Command
 {
-    protected $signature   = 'trivia:retry-failed-prize-payouts';
     protected $description = 'Reintenta acreditar a la wallet los premios de trivia cuyo pago automático falló';
+    protected $signature = 'trivia:retry-failed-prize-payouts';
 
-    public function handle(PrizeDistributionService $prizeService): void
+    public function handle(PrizeDistributionService $prizeService) : void
     {
-        $status  = 'SUCCESS';
+        $status = 'SUCCESS';
         $retried = 0;
         $skipped = 0;
 
@@ -58,7 +58,7 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
                     continue;
                 }
 
-                $payouts    = $prizeService->resolvePrizePayouts($room, $winnerScores->count());
+                $payouts = $prizeService->resolvePrizePayouts($room, $winnerScores->count());
                 $currencyId = (string) $room->prize_currency_id;
 
                 foreach ($payouts as $payout) {
@@ -98,9 +98,9 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
                     } catch (Throwable $e) {
                         $skipped++;
                         Log::error('[Trivia:RetryPrizePayouts] Error al reintentar pago', [
-                            'room_id'   => (string) $roomId,
+                            'room_id' => (string) $roomId,
                             'player_id' => (string) $score->player_id,
-                            'error'     => $e->getMessage(),
+                            'error' => $e->getMessage(),
                         ]);
                     }
                 }
@@ -113,7 +113,7 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

@@ -16,5 +16,5 @@ interface SubsidiaryRepositoryInterface extends RoleEntityRepositoryInterface
     /**
      * Obtiene agencias por comercio (comercializadora) padre.
      */
-    public function getByCommerce($commerceId): Collection;
+    public function getByCommerce($commerceId) : Collection;
 }

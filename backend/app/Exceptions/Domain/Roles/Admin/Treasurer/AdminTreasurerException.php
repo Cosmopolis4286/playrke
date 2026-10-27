@@ -17,57 +17,41 @@ use App\Exceptions\Domain\DomainException;
 final class AdminTreasurerException extends DomainException
 {
     /**
-     * Fallo genérico en la creación del tesorero.
-     */
-    public static function creationFailed(): self
-    {
-        return new self('ADMIN_TREASURER_CREATION_FAILED', 422);
-    }
-
-    /**
-     * Fallo genérico en la actualización del tesorero.
-     */
-    public static function updateFailed(): self
-    {
-        return new self('ADMIN_TREASURER_UPDATE_FAILED', 422);
-    }
-
-    /**
-     * Fallo genérico en la eliminación lógica del tesorero.
-     */
-    public static function deleteFailed(): self
-    {
-        return new self('ADMIN_TREASURER_DELETE_FAILED', 422);
-    }
-
-    /**
-     * Fallo al resetear la contraseña del tesorero.
-     */
-    public static function passwordResetFailed(): self
-    {
-        return new self('ADMIN_TREASURER_PASSWORD_RESET_FAILED', 422);
-    }
-
-    /**
-     * Solo se puede resetear la contraseña de tesoreros activos.
-     */
-    public static function passwordResetRequiresActiveStatus(): self
-    {
-        return new self('ADMIN_TREASURER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
-    }
-
-    /**
      * El tesorero ya se encuentra eliminado.
      */
-    public static function alreadyDeleted(): self
+    public static function alreadyDeleted() : self
     {
         return new self('ADMIN_TREASURER_ALREADY_DELETED', 409);
     }
 
     /**
+     * Fallo genérico en la creación del tesorero.
+     */
+    public static function creationFailed() : self
+    {
+        return new self('ADMIN_TREASURER_CREATION_FAILED', 422);
+    }
+
+    /**
+     * Fallo genérico en la eliminación lógica del tesorero.
+     */
+    public static function deleteFailed() : self
+    {
+        return new self('ADMIN_TREASURER_DELETE_FAILED', 422);
+    }
+
+    /**
+     * Intento de eliminación física inválida.
+     */
+    public static function destroyNotAllowed() : self
+    {
+        return new self('ADMIN_TREASURER_DESTROY_NOT_ALLOWED', 409);
+    }
+
+    /**
      * Intento de cambiar el estado de un tesorero eliminado.
      */
-    public static function invalidStatusChange(): self
+    public static function invalidStatusChange() : self
     {
         return new self('ADMIN_TREASURER_INVALID_STATUS_CHANGE', 409);
     }
@@ -75,16 +59,32 @@ final class AdminTreasurerException extends DomainException
     /**
      * El tesorero no existe o no pertenece al contexto actual.
      */
-    public static function notFound(): self
+    public static function notFound() : self
     {
         return new self('ADMIN_TREASURER_NOT_FOUND', 404);
     }
 
     /**
-     * Intento de eliminación física inválida.
+     * Fallo al resetear la contraseña del tesorero.
      */
-    public static function destroyNotAllowed(): self
+    public static function passwordResetFailed() : self
     {
-        return new self('ADMIN_TREASURER_DESTROY_NOT_ALLOWED', 409);
+        return new self('ADMIN_TREASURER_PASSWORD_RESET_FAILED', 422);
+    }
+
+    /**
+     * Solo se puede resetear la contraseña de tesoreros activos.
+     */
+    public static function passwordResetRequiresActiveStatus() : self
+    {
+        return new self('ADMIN_TREASURER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS', 422);
+    }
+
+    /**
+     * Fallo genérico en la actualización del tesorero.
+     */
+    public static function updateFailed() : self
+    {
+        return new self('ADMIN_TREASURER_UPDATE_FAILED', 422);
     }
 }

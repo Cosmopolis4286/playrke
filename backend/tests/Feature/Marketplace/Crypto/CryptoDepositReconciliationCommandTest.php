@@ -12,26 +12,7 @@ class CryptoDepositReconciliationCommandTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeTransaction(array $overrides = []): CryptoTransaction
-    {
-        $user = User::factory()->create();
-
-        return CryptoTransaction::create(array_merge([
-            'tx_hash'       => 'tx-' . uniqid(),
-            'network'       => 'TRON',
-            'token'         => 'USDT',
-            'direction'     => CryptoTransaction::DIRECTION_DEPOSIT,
-            'from_address'  => 'from',
-            'to_address'    => 'to',
-            'amount'        => 10.0,
-            'status'        => CryptoTransaction::STATUS_CONFIRMED,
-            'confirmations' => 20,
-            'user_id'       => $user->id,
-            'confirmed_at'  => now()->subMinutes(30),
-        ], $overrides));
-    }
-
-    public function test_logs_stale_confirmed_deposits(): void
+    public function test_logs_stale_confirmed_deposits() : void
     {
         Log::spy();
 
@@ -44,7 +25,18 @@ class CryptoDepositReconciliationCommandTest extends TestCase
             ->withArgs(fn ($message) => str_contains($message, 'Depósito confirmado sin acreditar'));
     }
 
-    public function test_silent_when_deposit_already_credited(): void
+    public function test_silent_when_confirmed_recently() : void
+    {
+        Log::spy();
+
+        $this->makeTransaction(['confirmed_at' => now()->subMinutes(2)]);
+
+        $this->artisan('marketplace:reconcile-crypto-deposits')->assertExitCode(0);
+
+        Log::shouldNotHaveReceived('warning');
+    }
+
+    public function test_silent_when_deposit_already_credited() : void
     {
         Log::spy();
 
@@ -55,14 +47,22 @@ class CryptoDepositReconciliationCommandTest extends TestCase
         Log::shouldNotHaveReceived('warning');
     }
 
-    public function test_silent_when_confirmed_recently(): void
+    private function makeTransaction(array $overrides = []) : CryptoTransaction
     {
-        Log::spy();
+        $user = User::factory()->create();
 
-        $this->makeTransaction(['confirmed_at' => now()->subMinutes(2)]);
-
-        $this->artisan('marketplace:reconcile-crypto-deposits')->assertExitCode(0);
-
-        Log::shouldNotHaveReceived('warning');
+        return CryptoTransaction::create(array_merge([
+            'tx_hash' => 'tx-' . uniqid(),
+            'network' => 'TRON',
+            'token' => 'USDT',
+            'direction' => CryptoTransaction::DIRECTION_DEPOSIT,
+            'from_address' => 'from',
+            'to_address' => 'to',
+            'amount' => 10.0,
+            'status' => CryptoTransaction::STATUS_CONFIRMED,
+            'confirmations' => 20,
+            'user_id' => $user->id,
+            'confirmed_at' => now()->subMinutes(30),
+        ], $overrides));
     }
 }

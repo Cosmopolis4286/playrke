@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -25,14 +25,16 @@ abstract class Controller extends BaseController
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
     /* ====================================================================== */
-    /* Core executor                                                          */
+    /* Core executor */
     /* ====================================================================== */
 
     /**
      * Ejecuta una acción y delega errores al Handler global.
      *
      * @template T
+     *
      * @param callable(): T $callback
+     *
      * @return T
      *
      * @throws Throwable
@@ -43,18 +45,18 @@ abstract class Controller extends BaseController
             return $callback();
         } catch (Throwable $e) {
             $this->logError($e);
+
             throw $e; // ⬅️ clave: dejar que Handler decida
         }
     }
 
     /* ====================================================================== */
-    /* Web                                                                    */
+    /* Web */
     /* ====================================================================== */
 
     /**
      * Maneja servicios web tradicionales (redirect).
      *
-     * @param callable $callback
      * @return mixed|RedirectResponse
      */
     protected function handleService(callable $callback)
@@ -67,18 +69,30 @@ abstract class Controller extends BaseController
     }
 
     /* ====================================================================== */
-    /* JSON / AJAX                                                           */
+    /* Inertia */
+    /* ====================================================================== */
+
+    /**
+     * Maneja servicios Inertia.
+     *
+     * @param callable(): InertiaResponse $callback
+     */
+    protected function handleServiceInertia(callable $callback) : InertiaResponse
+    {
+        return $this->execute($callback);
+    }
+
+    /* ====================================================================== */
+    /* JSON / AJAX */
     /* ====================================================================== */
 
     /**
      * Maneja servicios JSON con estructura estándar.
      *
-     * @param callable $callback
-     * @return JsonResponse
      *
      * @throws Throwable
      */
-    protected function handleServiceJson(callable $callback): JsonResponse
+    protected function handleServiceJson(callable $callback) : JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -87,35 +101,17 @@ abstract class Controller extends BaseController
     }
 
     /* ====================================================================== */
-    /* Inertia                                                               */
-    /* ====================================================================== */
-
-    /**
-     * Maneja servicios Inertia.
-     *
-     * @param callable(): InertiaResponse $callback
-     * @return InertiaResponse
-     */
-    protected function handleServiceInertia(callable $callback): InertiaResponse
-    {
-        return $this->execute($callback);
-    }
-
-    /* ====================================================================== */
-    /* Logging                                                               */
+    /* Logging */
     /* ====================================================================== */
 
     /**
      * Logging centralizado de errores.
-     *
-     * @param Throwable $exception
-     * @return void
      */
-    protected function logError(Throwable $exception): void
+    protected function logError(Throwable $exception) : void
     {
         Log::error($exception->getMessage(), [
             'exception' => $exception,
-            'trace'     => app()->isLocal()
+            'trace' => app()->isLocal()
                 ? $exception->getTraceAsString()
                 : null,
         ]);

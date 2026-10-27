@@ -3,8 +3,8 @@
 namespace App\Domains\Games\Bingo\Repositories\Draw;
 
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
-use App\Repositories\BaseRepository;
 use App\Domains\Games\Bingo\Repositories\Draw\Contracts\BingoDrawCodeRepositoryContract;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -14,16 +14,14 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para los códigos de sorteo (número y símbolo) asociados a las salas de bingo.
  *
- * @package App\Repositories\Bingo\Draw
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRepositoryContract
 {
     /**
      * Constructor del repositorio
-     *
-     * @param BingoDrawCode $model
      */
     public function __construct(BingoDrawCode $model)
     {
@@ -31,344 +29,74 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
     }
 
     /**
-     * Obtener código por sala
+     * Limpiar códigos huérfanos (sin sala asociada)
      *
-     * @param string $roomId
-     * @return BingoDrawCode|null
+     * @return int Número de registros eliminados
      */
-    public function findByRoom(string $roomId): ?BingoDrawCode
+    public function cleanOrphanedCodes() : int
     {
-        return $this->model->where('room_id', $roomId)->first();
-    }
-
-    /**
-     * Obtener códigos por número específico
-     *
-     * @param string $num
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getByNumber(string $num): Collection
-    {
-        return $this->model->where('num', $num)->get();
-    }
-
-    /**
-     * Obtener códigos por símbolo específico
-     *
-     * @param string $sym
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getBySymbol(string $sym): Collection
-    {
-        return $this->model->where('sym', $sym)->get();
-    }
-
-    /**
-     * Obtener código específico por número y símbolo
-     *
-     * @param string $num
-     * @param string $sym
-     * @return BingoDrawCode|null
-     */
-    public function findByNumberAndSymbol(string $num, string $sym): ?BingoDrawCode
-    {
-        return $this->model->where('num', $num)
-            ->where('sym', $sym)
-            ->first();
-    }
-
-    /**
-     * Verificar si existe un código para una sala
-     *
-     * @param string $roomId
-     * @return bool
-     */
-    public function existsByRoom(string $roomId): bool
-    {
-        return $this->model->where('room_id', $roomId)->exists();
-    }
-
-    /**
-     * Obtener todos los números únicos
-     *
-     * @return Collection
-     */
-    public function getUniqueNumbers(): Collection
-    {
-        return $this->model->distinct()->pluck('num');
-    }
-
-    /**
-     * Obtener todos los símbolos únicos
-     *
-     * @return Collection
-     */
-    public function getUniqueSymbols(): Collection
-    {
-        return $this->model->distinct()->pluck('sym');
-    }
-
-    /**
-     * Obtener códigos agrupados por número
-     *
-     * @return Collection
-     */
-    public function getGroupedByNumber(): Collection
-    {
-        return $this->model->selectRaw('num, COUNT(*) as count')
-            ->groupBy('num')
-            ->orderBy('num')
-            ->get();
-    }
-
-    /**
-     * Obtener códigos agrupados por símbolo
-     *
-     * @return Collection
-     */
-    public function getGroupedBySymbol(): Collection
-    {
-        return $this->model->selectRaw('sym, COUNT(*) as count')
-            ->groupBy('sym')
-            ->orderBy('sym')
-            ->get();
-    }
-
-    /**
-     * Contar códigos por sala
-     *
-     * @param string $roomId
-     * @return int
-     */
-    public function countByRoom(string $roomId): int
-    {
-        return $this->model->where('room_id', $roomId)->count();
+        return $this->model->whereNull('room_id')
+            ->orWhere('room_id', '')
+            ->delete();
     }
 
     /**
      * Contar códigos por número
-     *
-     * @param string $num
-     * @return int
      */
-    public function countByNumber(string $num): int
+    public function countByNumber(string $num) : int
     {
         return $this->model->where('num', $num)->count();
     }
 
     /**
-     * Contar códigos por símbolo
-     *
-     * @param string $sym
-     * @return int
+     * Contar códigos por sala
      */
-    public function countBySymbol(string $sym): int
+    public function countByRoom(string $roomId) : int
+    {
+        return $this->model->where('room_id', $roomId)->count();
+    }
+
+    /**
+     * Contar códigos por símbolo
+     */
+    public function countBySymbol(string $sym) : int
     {
         return $this->model->where('sym', $sym)->count();
     }
 
     /**
-     * Obtener estadísticas de códigos
-     *
-     * @return array{
-     *     total_codes: int,
-     *     total_rooms: int,
-     *     unique_numbers: int,
-     *     unique_symbols: int,
-     *     codes_per_room: float
-     * }
-     */
-    public function getCodeStats(): array
-    {
-        $totalCodes = $this->model->count();
-        $totalRooms = $this->model->distinct('room_id')->count('room_id');
-        $uniqueNumbers = $this->getUniqueNumbers()->count();
-        $uniqueSymbols = $this->getUniqueSymbols()->count();
-        $codesPerRoom = $totalRooms > 0 ? $totalCodes / $totalRooms : 0;
-
-        return [
-            'total_codes' => $totalCodes,
-            'total_rooms' => $totalRooms,
-            'unique_numbers' => $uniqueNumbers,
-            'unique_symbols' => $uniqueSymbols,
-            'codes_per_room' => round($codesPerRoom, 2)
-        ];
-    }
-
-    /**
-     * Buscar códigos por término de búsqueda
-     *
-     * @param string $searchTerm
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function searchCodes(string $searchTerm): Collection
-    {
-        return $this->model->where(function ($query) use ($searchTerm) {
-            $query->where('num', 'like', "%{$searchTerm}%")
-                ->orWhere('sym', 'like', "%{$searchTerm}%")
-                ->orWhere('room_id', 'like', "%{$searchTerm}%");
-        })->get();
-    }
-
-    /**
-     * Obtener códigos duplicados (mismo número y símbolo)
-     *
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getDuplicateCodes(): Collection
-    {
-        return $this->model->select('num', 'sym', DB::raw('COUNT(*) as count'))
-            ->groupBy('num', 'sym')
-            ->having('count', '>', 1)
-            ->get();
-    }
-
-    /**
-     * Validar integridad de código
-     *
-     * @param string $codeId
-     * @return bool
-     */
-    public function validateCodeIntegrity(string $codeId): bool
-    {
-        $code = $this->find($codeId);
-
-        if (!$code) {
-            return false;
-        }
-
-        // Validar que tenga número y símbolo
-        if (empty($code->num) || empty($code->sym)) {
-            return false;
-        }
-
-        // Validar formato básico
-        return $this->validateCodeFormat($code->num, $code->sym);
-    }
-
-    /**
      * Crear código para sala
-     *
-     * @param string $roomId
-     * @param string $num
-     * @param string $sym
-     * @return BingoDrawCode
      */
-    public function createCodeForRoom(string $roomId, string $num, string $sym): BingoDrawCode
+    public function createCodeForRoom(string $roomId, string $num, string $sym) : BingoDrawCode
     {
         return $this->create([
             'room_id' => $roomId,
             'num' => $num,
-            'sym' => $sym
+            'sym' => $sym,
         ]);
     }
 
     /**
-     * Actualizar código de sala
-     *
-     * @param string $roomId
-     * @param string $newNum
-     * @param string $newSym
-     * @return bool
-     */
-    public function updateRoomCode(string $roomId, string $newNum, string $newSym): bool
-    {
-        return $this->model->where('room_id', $roomId)
-            ->update([
-                'num' => $newNum,
-                'sym' => $newSym
-            ]) > 0;
-    }
-
-    /**
      * Eliminar código de sala
-     *
-     * @param string $roomId
-     * @return bool
      */
-    public function deleteRoomCode(string $roomId): bool
+    public function deleteRoomCode(string $roomId) : bool
     {
         return $this->model->where('room_id', $roomId)->delete() > 0;
     }
 
     /**
-     * Obtener códigos por patrón de número
-     *
-     * @param string $pattern Patrón regex o LIKE
-     * @return Collection<int, BingoDrawCode>
+     * Verificar si existe un código para una sala
      */
-    public function getByNumberPattern(string $pattern): Collection
+    public function existsByRoom(string $roomId) : bool
     {
-        return $this->model->where('num', 'like', $pattern)->get();
-    }
-
-    /**
-     * Obtener códigos por patrón de símbolo
-     *
-     * @param string $pattern Patrón regex o LIKE
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getBySymbolPattern(string $pattern): Collection
-    {
-        return $this->model->where('sym', 'like', $pattern)->get();
-    }
-
-    /**
-     * Generar código único para sala
-     *
-     * @param string $roomId
-     * @return array{num: string, sym: string}
-     */
-    public function generateUniqueCode(string $roomId): array
-    {
-        // Generar número aleatorio de 4 dígitos
-        do {
-            $num = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-            $sym = chr(rand(65, 90)); // A-Z
-        } while ($this->isCodeInUse($num, $sym, $roomId));
-
-        return [
-            'num' => $num,
-            'sym' => $sym
-        ];
-    }
-
-    /**
-     * Verificar si un código está en uso
-     *
-     * @param string $num
-     * @param string $sym
-     * @param string|null $excludeRoomId
-     * @return bool
-     */
-    public function isCodeInUse(string $num, string $sym, ?string $excludeRoomId = null): bool
-    {
-        $query = $this->model->where('num', $num)->where('sym', $sym);
-
-        if ($excludeRoomId) {
-            $query->where('room_id', '!=', $excludeRoomId);
-        }
-
-        return $query->exists();
-    }
-
-    /**
-     * Obtener historial de códigos por sala
-     *
-     * @param string $roomId
-     * @return Collection<int, BingoDrawCode>
-     */
-    public function getRoomCodeHistory(string $roomId): Collection
-    {
-        return $this->model->where('room_id', $roomId)
-            ->orderByDesc('created_at')
-            ->get();
+        return $this->model->where('room_id', $roomId)->exists();
     }
 
     /**
      * Exportar códigos en formato específico
      *
      * @param string $format 'json'|'csv'|'array'
+     *
      * @return mixed
      */
     public function exportCodes(string $format = 'array')
@@ -388,24 +116,153 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
     }
 
     /**
-     * Limpiar códigos huérfanos (sin sala asociada)
-     *
-     * @return int Número de registros eliminados
+     * Obtener código específico por número y símbolo
      */
-    public function cleanOrphanedCodes(): int
+    public function findByNumberAndSymbol(string $num, string $sym) : ?BingoDrawCode
     {
-        return $this->model->whereNull('room_id')
-            ->orWhere('room_id', '')
-            ->delete();
+        return $this->model->where('num', $num)
+            ->where('sym', $sym)
+            ->first();
+    }
+
+    /**
+     * Obtener código por sala
+     */
+    public function findByRoom(string $roomId) : ?BingoDrawCode
+    {
+        return $this->model->where('room_id', $roomId)->first();
+    }
+
+    /**
+     * Generar código único para sala
+     *
+     * @return array{num: string, sym: string}
+     */
+    public function generateUniqueCode(string $roomId) : array
+    {
+        // Generar número aleatorio de 4 dígitos
+        do {
+            $num = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $sym = chr(rand(65, 90)); // A-Z
+        } while ($this->isCodeInUse($num, $sym, $roomId));
+
+        return [
+            'num' => $num,
+            'sym' => $sym,
+        ];
+    }
+
+    /**
+     * Obtener códigos por número específico
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function getByNumber(string $num) : Collection
+    {
+        return $this->model->where('num', $num)->get();
+    }
+
+    /**
+     * Obtener códigos por patrón de número
+     *
+     * @param string $pattern Patrón regex o LIKE
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function getByNumberPattern(string $pattern) : Collection
+    {
+        return $this->model->where('num', 'like', $pattern)->get();
+    }
+
+    /**
+     * Obtener códigos por símbolo específico
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function getBySymbol(string $sym) : Collection
+    {
+        return $this->model->where('sym', $sym)->get();
+    }
+
+    /**
+     * Obtener códigos por patrón de símbolo
+     *
+     * @param string $pattern Patrón regex o LIKE
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function getBySymbolPattern(string $pattern) : Collection
+    {
+        return $this->model->where('sym', 'like', $pattern)->get();
+    }
+
+    /**
+     * Obtener estadísticas de códigos
+     *
+     * @return array{
+     *     total_codes: int,
+     *     total_rooms: int,
+     *     unique_numbers: int,
+     *     unique_symbols: int,
+     *     codes_per_room: float
+     * }
+     */
+    public function getCodeStats() : array
+    {
+        $totalCodes = $this->model->count();
+        $totalRooms = $this->model->distinct('room_id')->count('room_id');
+        $uniqueNumbers = $this->getUniqueNumbers()->count();
+        $uniqueSymbols = $this->getUniqueSymbols()->count();
+        $codesPerRoom = $totalRooms > 0 ? $totalCodes / $totalRooms : 0;
+
+        return [
+            'total_codes' => $totalCodes,
+            'total_rooms' => $totalRooms,
+            'unique_numbers' => $uniqueNumbers,
+            'unique_symbols' => $uniqueSymbols,
+            'codes_per_room' => round($codesPerRoom, 2),
+        ];
+    }
+
+    /**
+     * Obtener códigos duplicados (mismo número y símbolo)
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function getDuplicateCodes() : Collection
+    {
+        return $this->model->select('num', 'sym', DB::raw('COUNT(*) as count'))
+            ->groupBy('num', 'sym')
+            ->having('count', '>', 1)
+            ->get();
+    }
+
+    /**
+     * Obtener códigos agrupados por número
+     */
+    public function getGroupedByNumber() : Collection
+    {
+        return $this->model->selectRaw('num, COUNT(*) as count')
+            ->groupBy('num')
+            ->orderBy('num')
+            ->get();
+    }
+
+    /**
+     * Obtener códigos agrupados por símbolo
+     */
+    public function getGroupedBySymbol() : Collection
+    {
+        return $this->model->selectRaw('sym, COUNT(*) as count')
+            ->groupBy('sym')
+            ->orderBy('sym')
+            ->get();
     }
 
     /**
      * Obtener códigos más utilizados
-     *
-     * @param int $limit
-     * @return Collection
      */
-    public function getMostUsedCodes(int $limit = 10): Collection
+    public function getMostUsedCodes(int $limit = 10) : Collection
     {
         return $this->model->selectRaw('num, sym, COUNT(*) as usage_count')
             ->groupBy('num', 'sym')
@@ -415,24 +272,104 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
     }
 
     /**
-     * Validar formato de código
+     * Obtener historial de códigos por sala
      *
-     * @param string $num
-     * @param string $sym
-     * @return bool
+     * @return Collection<int, BingoDrawCode>
      */
-    public function validateCodeFormat(string $num, string $sym): bool
+    public function getRoomCodeHistory(string $roomId) : Collection
+    {
+        return $this->model->where('room_id', $roomId)
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Obtener todos los números únicos
+     */
+    public function getUniqueNumbers() : Collection
+    {
+        return $this->model->distinct()->pluck('num');
+    }
+
+    /**
+     * Obtener todos los símbolos únicos
+     */
+    public function getUniqueSymbols() : Collection
+    {
+        return $this->model->distinct()->pluck('sym');
+    }
+
+    /**
+     * Verificar si un código está en uso
+     */
+    public function isCodeInUse(string $num, string $sym, ?string $excludeRoomId = null) : bool
+    {
+        $query = $this->model->where('num', $num)->where('sym', $sym);
+
+        if ($excludeRoomId) {
+            $query->where('room_id', '!=', $excludeRoomId);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Buscar códigos por término de búsqueda
+     *
+     * @return Collection<int, BingoDrawCode>
+     */
+    public function searchCodes(string $searchTerm) : Collection
+    {
+        return $this->model->where(function($query) use ($searchTerm) {
+            $query->where('num', 'like', "%{$searchTerm}%")
+                ->orWhere('sym', 'like', "%{$searchTerm}%")
+                ->orWhere('room_id', 'like', "%{$searchTerm}%");
+        })->get();
+    }
+
+    /**
+     * Actualizar código de sala
+     */
+    public function updateRoomCode(string $roomId, string $newNum, string $newSym) : bool
+    {
+        return $this->model->where('room_id', $roomId)
+            ->update([
+                'num' => $newNum,
+                'sym' => $newSym,
+            ]) > 0;
+    }
+
+    /**
+     * Validar formato de código
+     */
+    public function validateCodeFormat(string $num, string $sym) : bool
     {
         // Validar que el número sea numérico y tenga máximo 4 dígitos
-        if (!is_numeric($num) || strlen($num) > 4) {
+        if (! is_numeric($num) || strlen($num) > 4) {
             return false;
         }
 
         // Validar que el símbolo sea una letra mayúscula
-        if (!preg_match('/^[A-Z]$/', $sym)) {
+        return ! (! preg_match('/^[A-Z]$/', $sym));
+    }
+
+    /**
+     * Validar integridad de código
+     */
+    public function validateCodeIntegrity(string $codeId) : bool
+    {
+        $code = $this->find($codeId);
+
+        if (! $code) {
             return false;
         }
 
-        return true;
+        // Validar que tenga número y símbolo
+        if (empty($code->num) || empty($code->sym)) {
+            return false;
+        }
+
+        // Validar formato básico
+        return $this->validateCodeFormat($code->num, $code->sym);
     }
 }

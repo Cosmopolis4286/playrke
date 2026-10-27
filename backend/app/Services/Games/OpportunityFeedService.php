@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Services\Room\BingoRoomContextService;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Models\Currency;
 use Illuminate\Support\Collection;
+use Throwable;
 
 /**
  * "Opportunity Feed" — combina salas activas de Bingo y Trivia en una sola
@@ -39,9 +40,9 @@ final class OpportunityFeedService
     /**
      * @return array{opportunities: array<int, array>}
      */
-    public function getFeed(int $userId): array
+    public function getFeed(int $userId) : array
     {
-        $bingo  = $this->bingoOpportunities($userId);
+        $bingo = $this->bingoOpportunities($userId);
         $trivia = $this->triviaOpportunities();
 
         $opportunities = $bingo->concat($trivia)
@@ -51,33 +52,33 @@ final class OpportunityFeedService
         return ['opportunities' => $opportunities->all()];
     }
 
-    private function bingoOpportunities(int $userId): Collection
+    private function bingoOpportunities(int $userId) : Collection
     {
         try {
             $dto = $this->bingoRoomContext->context('game-rooms', $userId);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // El contexto de Bingo requiere rol resuelto (player/commerce/admin) —
             // si el usuario no califica para ese contexto, no se muestran
             // oportunidades de Bingo en vez de romper el feed completo.
             return collect();
         }
 
-        return collect($dto->rooms ?? [])->map(function ($room) use ($dto) {
+        return collect($dto->rooms ?? [])->map(function($room) use ($dto) {
             return [
-                'game'          => 'bingo',
-                'game_label'    => 'Bingo',
-                'room_id'       => (string) $room->id,
-                'room_code'     => $room->uuid_code,
-                'entry'         => null, // precio de cartón depende de rol/moneda — no se resuelve aquí, ver docblock de clase
-                'prize'         => (float) ($room->prize_pool ?? $room->full_house_prize ?? 0),
+                'game' => 'bingo',
+                'game_label' => 'Bingo',
+                'room_id' => (string) $room->id,
+                'room_code' => $room->uuid_code,
+                'entry' => null, // precio de cartón depende de rol/moneda — no se resuelve aquí, ver docblock de clase
+                'prize' => (float) ($room->prize_pool ?? $room->full_house_prize ?? 0),
                 'currency_symbol' => $dto->currencySym,
-                'starts_at'     => $room->config?->unix_date,
+                'starts_at' => $room->config?->unix_date,
                 'total_players' => (int) ($room->total_players ?? 0),
             ];
         });
     }
 
-    private function triviaOpportunities(): Collection
+    private function triviaOpportunities() : Collection
     {
         $rooms = TriviaRoom::query()
             ->joinable()
@@ -90,22 +91,22 @@ final class OpportunityFeedService
         }
 
         $currencyIds = $rooms->pluck('prize_currency_id')->merge($rooms->pluck('entry_currency_id'))->filter()->unique();
-        $currencies  = Currency::whereIn('id', $currencyIds)->get(['id', 'symbol'])->keyBy('id');
+        $currencies = Currency::whereIn('id', $currencyIds)->get(['id', 'symbol'])->keyBy('id');
 
-        return $rooms->map(function (TriviaRoom $room) use ($currencies) {
+        return $rooms->map(function(TriviaRoom $room) use ($currencies) {
             return [
-                'game'            => 'trivia',
-                'game_label'      => 'Trivia',
-                'room_id'         => (string) $room->id,
-                'room_code'       => $room->code,
-                'title'           => $room->title,
-                'entry'           => $room->entry_fee !== null ? (float) $room->entry_fee : null,
+                'game' => 'trivia',
+                'game_label' => 'Trivia',
+                'room_id' => (string) $room->id,
+                'room_code' => $room->code,
+                'title' => $room->title,
+                'entry' => $room->entry_fee !== null ? (float) $room->entry_fee : null,
                 'entry_currency_symbol' => $currencies->get($room->entry_currency_id)?->symbol,
-                'prize'           => $room->prize_amount !== null ? (float) $room->prize_amount : null,
+                'prize' => $room->prize_amount !== null ? (float) $room->prize_amount : null,
                 'currency_symbol' => $currencies->get($room->prize_currency_id)?->symbol,
-                'starts_at'       => $room->scheduled_at?->timestamp,
-                'total_players'   => (int) ($room->current_players ?? 0),
-                'max_players'     => $room->max_players,
+                'starts_at' => $room->scheduled_at?->timestamp,
+                'total_players' => (int) ($room->current_players ?? 0),
+                'max_players' => $room->max_players,
             ];
         });
     }

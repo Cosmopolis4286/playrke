@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * users ya tiene datos reales — migración incremental, mismo patrón que
  * 2026_09_02_000001_add_registration_ip_to_users_table y
  * 2026_08_31_000100_add_pending_debt_to_wallets_table.
@@ -30,13 +30,24 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        if (! Schema::hasColumn('users', 'withdrawal_pin_hash')) {
+            return;
+        }
+
+        Schema::table('users', function(Blueprint $table) {
+            $table->dropColumn(['withdrawal_pin_hash', 'withdrawal_pin_set_at']);
+        });
+    }
+
+    public function up() : void
     {
         if (Schema::hasColumn('users', 'withdrawal_pin_hash')) {
             return;
         }
 
-        Schema::table('users', function (Blueprint $table) {
+        Schema::table('users', function(Blueprint $table) {
             $table->string('withdrawal_pin_hash', 255)
                 ->nullable()
                 ->after('password')
@@ -46,17 +57,6 @@ return new class extends Migration
                 ->nullable()
                 ->after('withdrawal_pin_hash')
                 ->comment('Fecha del último cambio de withdrawal_pin_hash');
-        });
-    }
-
-    public function down(): void
-    {
-        if (! Schema::hasColumn('users', 'withdrawal_pin_hash')) {
-            return;
-        }
-
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['withdrawal_pin_hash', 'withdrawal_pin_set_at']);
         });
     }
 };

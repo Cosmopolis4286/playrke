@@ -2,14 +2,13 @@
 
 namespace App\Enums\ExchangeRate;
 
-enum ExchangeRateStatusEnum: string
+enum ExchangeRateStatusEnum : string
 {
-    case ACTIVE = 'ACTIVE';
-    case INACTIVE = 'INACTIVE';
-    case OLD = 'OLD';
-
-    public function isActive(): bool
+    public function isActive() : bool
     {
         return $this === self::ACTIVE;
     }
+    case ACTIVE = 'ACTIVE';
+    case INACTIVE = 'INACTIVE';
+    case OLD = 'OLD';
 }

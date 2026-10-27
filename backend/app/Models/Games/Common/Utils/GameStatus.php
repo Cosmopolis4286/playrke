@@ -3,6 +3,7 @@
 namespace App\Models\Games\Common\Utils;
 
 use App\Traits\SnowflakeId;
+use BadMethodCallException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
@@ -16,12 +17,11 @@ class GameStatus extends Model
 {
     use SnowflakeId;
 
-    /**
-     * Nombre de la tabla en la base de datos.
-     *
-     * @var string
-     */
-    protected $table = 'game_status';
+    protected $casts = [
+        'id' => 'string',
+        'code' => 'string',
+        'label' => 'string',
+    ];
 
     /**
      * Los campos que se pueden asignar masivamente.
@@ -33,47 +33,51 @@ class GameStatus extends Model
         'label', // Etiqueta legible (ej. 'Borrador', 'Activa')
     ];
 
-    protected $casts = [
-        'id' => 'string',
-        'code' => 'string',
-        'label' => 'string'
-    ];
+    /**
+     * Nombre de la tabla en la base de datos.
+     *
+     * @var string
+     */
+    protected $table = 'game_status';
 
     /**
      * Devuelve un mapa code→id cacheado por request (evita N queries por saveRoom/draw/etc.).
      * TTL de 60 s — los códigos de estado no cambian en producción.
      *
-     * @param string[] $codes  Si se omite, devuelve todos los estados.
+     * @param string[] $codes si se omite, devuelve todos los estados
+     *
      * @return array<string,string>
      */
-    public static function codesMap(array $codes = []): array
+    public static function codesMap(array $codes = []) : array
     {
-        $sorted   = $codes;
+        $sorted = $codes;
         sort($sorted);
         $cacheKey = 'game_status_map_' . md5(implode(',', $sorted));
 
         try {
-            return Cache::tags(['game_status'])->remember($cacheKey, 60, function () use ($codes) {
+            return Cache::tags(['game_status'])->remember($cacheKey, 60, function() use ($codes) {
                 $query = static::query();
-                if (!empty($codes)) {
+                if (! empty($codes)) {
                     $query->whereIn('code', $codes);
                 }
+
                 return $query->pluck('id', 'code')->all();
             });
-        } catch (\BadMethodCallException) {
+        } catch (BadMethodCallException) {
             // Driver no soporta tags (file/database/array) — cache sin tag, se invalida por TTL.
-            return Cache::remember($cacheKey, 60, function () use ($codes) {
+            return Cache::remember($cacheKey, 60, function() use ($codes) {
                 $query = static::query();
-                if (!empty($codes)) {
+                if (! empty($codes)) {
                     $query->whereIn('code', $codes);
                 }
+
                 return $query->pluck('id', 'code')->all();
             });
         }
     }
 
     /** Devuelve el ID de un único código de estado. */
-    public static function codeToId(string $code): ?string
+    public static function codeToId(string $code) : ?string
     {
         return static::codesMap([$code])[$code] ?? null;
     }
@@ -85,11 +89,11 @@ class GameStatus extends Model
      * una transacción SQL, así que un ID cacheado en una corrida anterior
      * puede sobrevivir a que la fila real ya no exista (o exista con otro id).
      */
-    public static function forgetCache(): void
+    public static function forgetCache() : void
     {
         try {
             Cache::tags(['game_status'])->flush();
-        } catch (\BadMethodCallException) {
+        } catch (BadMethodCallException) {
             // Driver sin soporte de tags (file/database/array, mismo fallback que
             // codesMap()): la clave del fallback depende de $codes ordenados, así
             // que no hay forma de invalidar selectivamente sin conocer de antemano
@@ -103,10 +107,10 @@ class GameStatus extends Model
      * Scope para buscar por ID del estado de juego.
      *
      * @param \Illuminate\Database\Eloquent\Builder<static> $query
-     * @param string $id
+     *
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */
-    public function scopeById(\Illuminate\Database\Eloquent\Builder $query, string $id): \Illuminate\Database\Eloquent\Builder
+    public function scopeById(\Illuminate\Database\Eloquent\Builder $query, string $id) : \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('id', strtoupper($id));
     }
@@ -115,10 +119,10 @@ class GameStatus extends Model
      * Scope para buscar por descripción parcial.
      *
      * @param \Illuminate\Database\Eloquent\Builder<static> $query
-     * @param string $label
+     *
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */
-    public function scopeByLabel(\Illuminate\Database\Eloquent\Builder $query, string $label): \Illuminate\Database\Eloquent\Builder
+    public function scopeByLabel(\Illuminate\Database\Eloquent\Builder $query, string $label) : \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('label', 'LIKE', "%{$label}%");
     }

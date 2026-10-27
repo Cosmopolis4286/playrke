@@ -18,28 +18,27 @@ use App\Models\User;
  */
 final class TriviaWinEventDetailResolver implements WinEventDetailResolver
 {
+    private const PRIZE_STATUS_VARIANTS = [
+        'waiting' => 'warning',
+        'processing' => 'info',
+        'claimed' => 'success',
+        'cancelled' => 'secondary',
+        'suspended' => 'danger',
+        'disputed' => 'danger',
+    ];
     private const RANKING_LIMIT = 10;
 
-    private const PRIZE_STATUS_VARIANTS = [
-        'waiting'    => 'warning',
-        'processing' => 'info',
-        'claimed'    => 'success',
-        'cancelled'  => 'secondary',
-        'suspended'  => 'danger',
-        'disputed'   => 'danger',
-    ];
-
-    public function gameSlug(): string
-    {
-        return 'trivia';
-    }
-
-    public function consumedMetadataKeys(): array
+    public function consumedMetadataKeys() : array
     {
         return ['room_id', 'room_code'];
     }
 
-    public function resolve(WinEvent $winEvent): array
+    public function gameSlug() : string
+    {
+        return 'trivia';
+    }
+
+    public function resolve(WinEvent $winEvent) : array
     {
         $roomId = $winEvent->metadata['room_id'] ?? null;
         $room = $roomId ? TriviaRoom::find($roomId) : null;
@@ -59,7 +58,33 @@ final class TriviaWinEventDetailResolver implements WinEventDetailResolver
         ]));
     }
 
-    private function performanceSection(TriviaParticipant $p): Section
+    /** Sala referenciada en metadata pero ya inexistente en pgsql_trivia. */
+    private function missingRoomSection(WinEvent $winEvent) : ?Section
+    {
+        $roomId = $winEvent->metadata['room_id'] ?? null;
+        if (! $roomId) {
+            return null;
+        }
+
+        return Section::make('trivia-room', 'Sala de Trivia', 'fas fa-door-open')
+            ->item('Estado', 'Sala no encontrada', Section::TYPE_BADGE, 'secondary')
+            ->item('Código', $winEvent->metadata['room_code'] ?? null, Section::TYPE_CODE)
+            ->item('ID de sala', (string) $roomId, Section::TYPE_CODE);
+    }
+
+    private function movementSection(WalletMovement $m) : Section
+    {
+        return Section::make('trivia-movement', 'Movimiento de billetera', 'fas fa-exchange-alt')
+            ->item('Tipo', $m->type, Section::TYPE_BADGE, 'info')
+            ->item('Estado', $m->status, Section::TYPE_BADGE, $m->status === WalletMovement::STATUS_COMPLETED ? 'success' : 'warning')
+            ->item('Monto', number_format((float) $m->amount, 2), Section::TYPE_MONEY)
+            ->item('Saldo antes', $m->balance_before !== null ? number_format((float) $m->balance_before, 2) : null)
+            ->item('Saldo después', $m->balance_after !== null ? number_format((float) $m->balance_after, 2) : null)
+            ->item('Descripción', $m->description)
+            ->item('ID del movimiento', (string) $m->id, Section::TYPE_CODE);
+    }
+
+    private function performanceSection(TriviaParticipant $p) : Section
     {
         return Section::make('trivia-performance', 'Desempeño del ganador', 'fas fa-brain')
             ->item('Posición final', $p->final_rank ? "#{$p->final_rank}" : null, Section::TYPE_BADGE, 'success')
@@ -71,7 +96,7 @@ final class TriviaWinEventDetailResolver implements WinEventDetailResolver
             ->item('Estado del premio', $p->prize_status, Section::TYPE_BADGE, self::PRIZE_STATUS_VARIANTS[$p->prize_status] ?? 'secondary');
     }
 
-    private function roomSection(TriviaRoom $room, WinEvent $winEvent): Section
+    private function roomSection(TriviaRoom $room, WinEvent $winEvent) : Section
     {
         $ranked = TriviaParticipant::where('room_id', $room->id)
             ->whereNotNull('final_rank')
@@ -95,44 +120,18 @@ final class TriviaWinEventDetailResolver implements WinEventDetailResolver
             ->item('Inicio', $room->started_at?->toISOString(), Section::TYPE_DATETIME)
             ->item('Fin', $room->ended_at?->toISOString(), Section::TYPE_DATETIME)
             ->table('Ranking final', [
-                'rank'    => '#',
-                'player'  => 'Jugador',
+                'rank' => '#',
+                'player' => 'Jugador',
                 'correct' => 'Correctas',
-                'score'   => 'Puntaje',
-                'prize'   => 'Premio',
+                'score' => 'Puntaje',
+                'prize' => 'Premio',
             ], $ranked->map(fn (TriviaParticipant $p) => [
-                'rank'       => $p->final_rank,
-                'player'     => $names[(string) $p->user_id] ?? (string) $p->user_id,
-                'correct'    => $p->correct_answers,
-                'score'      => $p->total_score,
-                'prize'      => $p->prize_won !== null ? number_format((float) $p->prize_won, 2) : '—',
+                'rank' => $p->final_rank,
+                'player' => $names[(string) $p->user_id] ?? (string) $p->user_id,
+                'correct' => $p->correct_answers,
+                'score' => $p->total_score,
+                'prize' => $p->prize_won !== null ? number_format((float) $p->prize_won, 2) : '—',
                 '_highlight' => (string) $p->user_id === (string) $winEvent->user_id,
             ])->all());
-    }
-
-    /** Sala referenciada en metadata pero ya inexistente en pgsql_trivia. */
-    private function missingRoomSection(WinEvent $winEvent): ?Section
-    {
-        $roomId = $winEvent->metadata['room_id'] ?? null;
-        if (! $roomId) {
-            return null;
-        }
-
-        return Section::make('trivia-room', 'Sala de Trivia', 'fas fa-door-open')
-            ->item('Estado', 'Sala no encontrada', Section::TYPE_BADGE, 'secondary')
-            ->item('Código', $winEvent->metadata['room_code'] ?? null, Section::TYPE_CODE)
-            ->item('ID de sala', (string) $roomId, Section::TYPE_CODE);
-    }
-
-    private function movementSection(WalletMovement $m): Section
-    {
-        return Section::make('trivia-movement', 'Movimiento de billetera', 'fas fa-exchange-alt')
-            ->item('Tipo', $m->type, Section::TYPE_BADGE, 'info')
-            ->item('Estado', $m->status, Section::TYPE_BADGE, $m->status === WalletMovement::STATUS_COMPLETED ? 'success' : 'warning')
-            ->item('Monto', number_format((float) $m->amount, 2), Section::TYPE_MONEY)
-            ->item('Saldo antes', $m->balance_before !== null ? number_format((float) $m->balance_before, 2) : null)
-            ->item('Saldo después', $m->balance_after !== null ? number_format((float) $m->balance_after, 2) : null)
-            ->item('Descripción', $m->description)
-            ->item('ID del movimiento', (string) $m->id, Section::TYPE_CODE);
     }
 }

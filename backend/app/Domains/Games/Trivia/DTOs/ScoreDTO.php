@@ -9,20 +9,7 @@ namespace App\Domains\Games\Trivia\DTOs;
  */
 class ScoreDTO
 {
-    public function __construct(
-        public readonly string $playerId,
-        public readonly string $gameId,
-        public readonly int $totalScore,
-        public readonly int $correctAnswers,
-        public readonly int $wrongAnswers,
-        public readonly float $averageResponseTimeMs,
-        public readonly int $position,
-        public readonly int $streak, // respuestas correctas consecutivas
-        public readonly int $maxStreak,
-        public readonly array $answerHistory = []
-    ) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         return new self(
             playerId: $data['player_id'],
@@ -34,30 +21,28 @@ class ScoreDTO
             position: $data['position'] ?? 0,
             streak: $data['streak'] ?? 0,
             maxStreak: $data['max_streak'] ?? 0,
-            answerHistory: $data['answer_history'] ?? []
+            answerHistory: $data['answer_history'] ?? [],
         );
     }
 
-    public function toArray(): array
-    {
-        return [
-            'player_id' => $this->playerId,
-            'game_id' => $this->gameId,
-            'total_score' => $this->totalScore,
-            'correct_answers' => $this->correctAnswers,
-            'wrong_answers' => $this->wrongAnswers,
-            'average_response_time_ms' => $this->averageResponseTimeMs,
-            'position' => $this->position,
-            'streak' => $this->streak,
-            'max_streak' => $this->maxStreak,
-            'answer_history' => $this->answerHistory,
-        ];
+    public function __construct(
+        public readonly string $playerId,
+        public readonly string $gameId,
+        public readonly int $totalScore,
+        public readonly int $correctAnswers,
+        public readonly int $wrongAnswers,
+        public readonly float $averageResponseTimeMs,
+        public readonly int $position,
+        public readonly int $streak, // respuestas correctas consecutivas
+        public readonly int $maxStreak,
+        public readonly array $answerHistory = [],
+    ) {
     }
 
-    public function addPoints(int $points, bool $isCorrect, float $responseTimeMs): self
+    public function addPoints(int $points, bool $isCorrect, float $responseTimeMs) : self
     {
         $newCorrect = $isCorrect ? $this->correctAnswers + 1 : $this->correctAnswers;
-        $newWrong = !$isCorrect ? $this->wrongAnswers + 1 : $this->wrongAnswers;
+        $newWrong = ! $isCorrect ? $this->wrongAnswers + 1 : $this->wrongAnswers;
         $newStreak = $isCorrect ? $this->streak + 1 : 0;
         $newMaxStreak = max($this->maxStreak, $newStreak);
 
@@ -80,11 +65,27 @@ class ScoreDTO
                 'is_correct' => $isCorrect,
                 'points' => $points,
                 'response_time_ms' => $responseTimeMs,
-            ]]
+            ]],
         );
     }
 
-    public function withPosition(int $position): self
+    public function toArray() : array
+    {
+        return [
+            'player_id' => $this->playerId,
+            'game_id' => $this->gameId,
+            'total_score' => $this->totalScore,
+            'correct_answers' => $this->correctAnswers,
+            'wrong_answers' => $this->wrongAnswers,
+            'average_response_time_ms' => $this->averageResponseTimeMs,
+            'position' => $this->position,
+            'streak' => $this->streak,
+            'max_streak' => $this->maxStreak,
+            'answer_history' => $this->answerHistory,
+        ];
+    }
+
+    public function withPosition(int $position) : self
     {
         return new self(
             playerId: $this->playerId,
@@ -96,7 +97,7 @@ class ScoreDTO
             position: $position,
             streak: $this->streak,
             maxStreak: $this->maxStreak,
-            answerHistory: $this->answerHistory
+            answerHistory: $this->answerHistory,
         );
     }
 }

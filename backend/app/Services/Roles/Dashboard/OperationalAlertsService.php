@@ -20,16 +20,18 @@ final class OperationalAlertsService
 
     public function __construct(
         private readonly SidebarMenuService $sidebarMenu,
-    ) {}
+    ) {
+    }
 
     /**
      * Solo las alertas con algo pendiente, de mayor a menor severidad.
      *
-     * @param bool $includeWalletMovements El superadmin ya ve los movimientos
-     *                                     pendientes en su propio panel.
+     * @param bool $includeWalletMovements el superadmin ya ve los movimientos
+     *                                     pendientes en su propio panel
+     *
      * @return array<int, array{code: string, label: string, count: int, severity: 'critical'|'warning', href: ?string, action_label: ?string}>
      */
-    public function alerts(bool $includeWalletMovements = true): array
+    public function alerts(bool $includeWalletMovements = true) : array
     {
         $alerts = [];
 
@@ -87,14 +89,14 @@ final class OperationalAlertsService
     }
 
     /** @return array{code: string, label: string, count: int, severity: 'critical'|'warning', href: ?string, action_label: ?string} */
-    private function alert(string $code, string $label, int $count, string $severity, ?string $href, ?string $actionLabel): array
+    private function alert(string $code, string $label, int $count, string $severity, ?string $href, ?string $actionLabel) : array
     {
         return [
-            'code'         => $code,
-            'label'        => $label,
-            'count'        => $count,
-            'severity'     => $severity,
-            'href'         => $href,
+            'code' => $code,
+            'label' => $label,
+            'count' => $count,
+            'severity' => $severity,
+            'href' => $href,
             'action_label' => $actionLabel,
         ];
     }

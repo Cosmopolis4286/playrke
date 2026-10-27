@@ -19,12 +19,50 @@ use App\Services\Auth\RoleAuthorizationService;
  */
 class ExternalPlayerPolicy
 {
-    private function hasPermission(User $user, string $permission): bool
+    public function create(User $user) : bool
+    {
+        return $this->hasPermission($user, 'external-players.create');
+    }
+
+    public function export(User $user) : bool
+    {
+        return $this->hasPermission($user, 'external-players.export');
+    }
+
+    public function fetchList(User $user) : bool
+    {
+        return $this->hasPermission($user, 'external-players.view');
+    }
+
+    public function toggleBlock(User $user, ExternalPlayer $externalPlayer) : bool
+    {
+        return $this->hasPermission($user, 'external-players.block')
+            && $this->ownsExternalPlayer($user, $externalPlayer);
+    }
+
+    public function update(User $user, ExternalPlayer $externalPlayer) : bool
+    {
+        return $this->hasPermission($user, 'external-players.manage')
+            && $this->ownsExternalPlayer($user, $externalPlayer);
+    }
+
+    public function view(User $user, ExternalPlayer $externalPlayer) : bool
+    {
+        return $this->hasPermission($user, 'external-players.view')
+            && $this->ownsExternalPlayer($user, $externalPlayer);
+    }
+
+    public function viewAny(User $user) : bool
+    {
+        return $this->hasPermission($user, 'external-players.view');
+    }
+
+    private function hasPermission(User $user, string $permission) : bool
     {
         return app(RoleAuthorizationService::class)->hasAnyPermission($user, $permission);
     }
 
-    private function isAdminLike(User $user): bool
+    private function isAdminLike(User $user) : bool
     {
         return $user->hasRole('admin') || $user->hasRole('superadmin');
     }
@@ -50,13 +88,13 @@ class ExternalPlayerPolicy
      *   commerce (sin subsidiary_id) nunca es de una agencia, así que
      *   ninguna subsidiary es "dueña" de esos jugadores.
      */
-    private function ownsExternalPlayer(User $user, ExternalPlayer $externalPlayer): bool
+    private function ownsExternalPlayer(User $user, ExternalPlayer $externalPlayer) : bool
     {
         if ($this->isAdminLike($user)) {
             return true;
         }
 
-        if (!$externalPlayer->seller_user_id) {
+        if (! $externalPlayer->seller_user_id) {
             return false;
         }
 
@@ -75,52 +113,15 @@ class ExternalPlayerPolicy
         }
 
         if ($user->hasRole('subsidiary')) {
-            if (!$seller?->subsidiary_id) {
+            if (! $seller?->subsidiary_id) {
                 return false;
             }
+
             return \App\Models\Roles\Subsidiary::where('id', $seller->subsidiary_id)
                 ->where('user_id', $user->id)
                 ->exists();
         }
 
         return false;
-    }
-
-    public function viewAny(User $user): bool
-    {
-        return $this->hasPermission($user, 'external-players.view');
-    }
-
-    public function view(User $user, ExternalPlayer $externalPlayer): bool
-    {
-        return $this->hasPermission($user, 'external-players.view')
-            && $this->ownsExternalPlayer($user, $externalPlayer);
-    }
-
-    public function fetchList(User $user): bool
-    {
-        return $this->hasPermission($user, 'external-players.view');
-    }
-
-    public function create(User $user): bool
-    {
-        return $this->hasPermission($user, 'external-players.create');
-    }
-
-    public function export(User $user): bool
-    {
-        return $this->hasPermission($user, 'external-players.export');
-    }
-
-    public function update(User $user, ExternalPlayer $externalPlayer): bool
-    {
-        return $this->hasPermission($user, 'external-players.manage')
-            && $this->ownsExternalPlayer($user, $externalPlayer);
-    }
-
-    public function toggleBlock(User $user, ExternalPlayer $externalPlayer): bool
-    {
-        return $this->hasPermission($user, 'external-players.block')
-            && $this->ownsExternalPlayer($user, $externalPlayer);
     }
 }

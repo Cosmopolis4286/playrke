@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Games\Common\PrizePool;
 
+use App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRepositoryInterface
@@ -14,22 +14,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $this->model = $model;
     }
 
-    public function getActiveTypes(): Collection
-    {
-        return $this->model->active()->orderBy('label')->get();
-    }
-
-    public function getByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->orderBy('label')->get();
-    }
-
-    public function getActiveByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->active()->orderBy('label')->get();
-    }
-
-    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null): bool
+    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null) : bool
     {
         $query = $this->model->where('game_id', $gameId)->where('code', $code);
 
@@ -38,5 +23,20 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         }
 
         return $query->exists();
+    }
+
+    public function getActiveByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->active()->orderBy('label')->get();
+    }
+
+    public function getActiveTypes() : Collection
+    {
+        return $this->model->active()->orderBy('label')->get();
+    }
+
+    public function getByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->orderBy('label')->get();
     }
 }

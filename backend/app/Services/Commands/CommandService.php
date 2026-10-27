@@ -3,7 +3,6 @@
 namespace App\Services\Commands;
 
 use App\Models\Commands\CommandLog;
-use App\Models\User;
 use App\Services\NotificationService;
 use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Support\Facades\Context;
@@ -16,7 +15,8 @@ class CommandService
 
     public function __construct(
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
 
     /**
      * Registra la ejecución del comando en la base de datos.
@@ -38,16 +38,16 @@ class CommandService
      * (/system/jobs, ver ScheduledCommandHistoryModal) distingue origen y
      * actor a partir de estas dos columnas.
      */
-    public function logCommandExecution(string $signature, string $output, string $status, ?string $triggeredByUserId = null): void
+    public function logCommandExecution(string $signature, string $output, string $status, ?string $triggeredByUserId = null) : void
     {
         $triggeredByUserId ??= Context::get('command.triggered_by_user_id');
 
         CommandLog::create([
-            'command'              => $signature,
-            'output'               => $output,
-            'status'               => $status,
-            'executed_at'          => now(),
-            'triggered_by'         => $triggeredByUserId ? 'manual' : 'scheduler',
+            'command' => $signature,
+            'output' => $output,
+            'status' => $status,
+            'executed_at' => now(),
+            'triggered_by' => $triggeredByUserId ? 'manual' : 'scheduler',
             'triggered_by_user_id' => $triggeredByUserId,
         ]);
 
@@ -70,8 +70,26 @@ class CommandService
         } catch (Throwable $e) {
             Log::warning('CommandService: no se pudo evaluar/enviar la notificación de fallo, el log ya quedó registrado.', [
                 'command' => $signature,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    private function notifyFailure(string $signature, string $output) : void
+    {
+        $firstLine = mb_strimwidth(strtok($output, "\n") ?: $output, 0, 200, '…');
+
+        foreach ($this->superadminIds() as $superadminId) {
+            $this->notificationService->create(
+                userId: $superadminId,
+                type: 'SYSTEM',
+                title: '⚠️ Comando programado falló',
+                message: "{$signature}: {$firstLine}",
+                data: [
+                    'command' => $signature,
+                    'url' => '/system/jobs',
+                ],
+            );
         }
     }
 
@@ -82,7 +100,7 @@ class CommandService
      * real generaría decenas de notificaciones por hora sin aportar nada
      * nuevo tras la primera.
      */
-    private function notifyIfNewFailure(string $signature, string $output): void
+    private function notifyIfNewFailure(string $signature, string $output) : void
     {
         // orderedByExecution() (por executed_at) no alcanza como único
         // criterio: comandos que corren varias veces dentro del mismo
@@ -102,23 +120,4 @@ class CommandService
 
         $this->notifyFailure($signature, $output);
     }
-
-    private function notifyFailure(string $signature, string $output): void
-    {
-        $firstLine = mb_strimwidth(strtok($output, "\n") ?: $output, 0, 200, '…');
-
-        foreach ($this->superadminIds() as $superadminId) {
-            $this->notificationService->create(
-                userId: $superadminId,
-                type: 'SYSTEM',
-                title: '⚠️ Comando programado falló',
-                message: "{$signature}: {$firstLine}",
-                data: [
-                    'command' => $signature,
-                    'url'     => '/system/jobs',
-                ]
-            );
-        }
-    }
-
 }

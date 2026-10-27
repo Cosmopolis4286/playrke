@@ -22,25 +22,26 @@ class SpecificPermissionExpiredMail extends Mailable
     public function __construct(
         public readonly User $user,
         public readonly UserSpecificPermissionGrant $grant,
-    ) {}
-
-    public function envelope(): Envelope
-    {
-        return new Envelope(
-            subject: 'Un permiso de tu cuenta ha expirado',
-        );
+    ) {
     }
 
-    public function content(): Content
+    public function content() : Content
     {
         return new Content(
             markdown: 'emails.permissions.specific-permission-expired',
             with: [
-                'userName'       => trim("{$this->user->first_name} {$this->user->last_name}") ?: $this->user->username,
+                'userName' => trim("{$this->user->first_name} {$this->user->last_name}") ?: $this->user->username,
                 'permissionName' => $this->grant->permission_name,
-                'grantedAt'      => $this->grant->created_at?->format('d/m/Y'),
-                'expiredAt'      => $this->grant->expires_at?->format('d/m/Y H:i'),
+                'grantedAt' => $this->grant->created_at?->format('d/m/Y'),
+                'expiredAt' => $this->grant->expires_at?->format('d/m/Y H:i'),
             ],
+        );
+    }
+
+    public function envelope() : Envelope
+    {
+        return new Envelope(
+            subject: 'Un permiso de tu cuenta ha expirado',
         );
     }
 }

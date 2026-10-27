@@ -7,28 +7,24 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
-     *
-     * @return void
+     * Reverse the migrations.
      */
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('companies', function (Blueprint $table) {
+        Schema::dropIfExists('companies');
+    }
+
+    /**
+     * Run the migrations.
+     */
+    public function up() : void
+    {
+        Schema::create('companies', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->string('name', 100);
             $table->string('slug', 100)->unique(); // identificador amigable
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('companies');
     }
 };
