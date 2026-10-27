@@ -8,7 +8,7 @@ use App\Models\SidebarMenuVisibility;
 use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
+/*
  * Migración de datos (no seeder; producción solo corre `migrate --force`):
  * tasas de cambio para la red.
  *  - commerce: exchange.view + exchange.manage → entra a "Tasa de Cambio" y
@@ -22,12 +22,30 @@ use Spatie\Permission\PermissionRegistrar;
  */
 return new class extends Migration
 {
-    private const NETWORK_PERMISSION = 'exchange.view-network';
-    private const NETWORK_ROLES = ['commerce', 'subsidiary', 'seller', 'customer', 'admin', 'superadmin', 'treasurer'];
     private const COMMERCE_PERMISSIONS = ['exchange.view', 'exchange.manage'];
     private const MENU_ITEM = 'business.exchange_rates';
+    private const NETWORK_PERMISSION = 'exchange.view-network';
+    private const NETWORK_ROLES = ['commerce', 'subsidiary', 'seller', 'customer', 'admin', 'superadmin', 'treasurer'];
 
-    public function up(): void
+    public function down() : void
+    {
+        foreach (Role::whereIn('name', self::NETWORK_ROLES)->where('guard_name', 'web')->get() as $role) {
+            if ($role->hasPermissionTo(self::NETWORK_PERMISSION)) {
+                $role->revokePermissionTo(self::NETWORK_PERMISSION);
+            }
+        }
+
+        $commerce = Role::where('name', 'commerce')->where('guard_name', 'web')->first();
+        foreach (self::COMMERCE_PERMISSIONS as $name) {
+            if ($commerce?->hasPermissionTo($name)) {
+                $commerce->revokePermissionTo($name);
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function up() : void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -47,24 +65,6 @@ return new class extends Migration
         if ($commerce) {
             $commerce->givePermissionTo(self::COMMERCE_PERMISSIONS);
             SidebarMenuVisibility::where('item_key', self::MENU_ITEM)->where('role_id', $commerce->id)->delete();
-        }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function down(): void
-    {
-        foreach (Role::whereIn('name', self::NETWORK_ROLES)->where('guard_name', 'web')->get() as $role) {
-            if ($role->hasPermissionTo(self::NETWORK_PERMISSION)) {
-                $role->revokePermissionTo(self::NETWORK_PERMISSION);
-            }
-        }
-
-        $commerce = Role::where('name', 'commerce')->where('guard_name', 'web')->first();
-        foreach (self::COMMERCE_PERMISSIONS as $name) {
-            if ($commerce?->hasPermissionTo($name)) {
-                $commerce->revokePermissionTo($name);
-            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

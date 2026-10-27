@@ -7,7 +7,7 @@ use App\Models\Role;
 use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
+/*
  * Migración de datos (no seeder): crea games.bingo.payments.review y lo
  * asigna a admin y commerce — producción no vuelve a correr seeders (ver
  * 2026_09_27_000001_add_sidebar_and_dashboard_visibility_permissions).
@@ -24,7 +24,14 @@ return new class extends Migration
 {
     private const PERMISSION = 'games.bingo.payments.review';
 
-    public function up(): void
+    public function down() : void
+    {
+        Permission::where('name', self::PERMISSION)->where('guard_name', 'web')->delete();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function up() : void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -37,13 +44,6 @@ return new class extends Migration
             Role::where('name', $roleName)->where('guard_name', 'web')->first()
                 ?->givePermissionTo(self::PERMISSION);
         }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function down(): void
-    {
-        Permission::where('name', self::PERMISSION)->where('guard_name', 'web')->delete();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

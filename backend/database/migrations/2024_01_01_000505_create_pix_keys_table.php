@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('pix_keys', function (Blueprint $table) {
+        Schema::dropIfExists('pix_keys');
+    }
+
+    public function up() : void
+    {
+        Schema::create('pix_keys', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -38,10 +43,5 @@ return new class extends Migration
             // Evitar duplicados por clave y usuario
             $table->unique(['pix_key_type', 'pix_key_value', 'user_id'], 'uniq_pix_per_user');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('pix_keys');
     }
 };

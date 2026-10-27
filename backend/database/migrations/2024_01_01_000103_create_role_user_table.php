@@ -7,13 +7,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Eliminar tabla pivote `role_user`.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('role_user');
+    }
+
+    /**
      * Crear tabla pivote `role_user` extendida.
      * Permite auditar asignaciones y agregar expiraciones de roles.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('role_user', function (Blueprint $table) {
-
+        Schema::create('role_user', function(Blueprint $table) {
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
@@ -46,21 +53,13 @@ return new class extends Migration
 
             $table->index(
                 ['user_id', 'status', 'expires_at'],
-                'role_user_active_idx'
+                'role_user_active_idx',
             );
 
             $table->index(
                 ['role_id', 'status'],
-                'role_user_role_active_idx'
+                'role_user_role_active_idx',
             );
         });
-    }
-
-    /**
-     * Eliminar tabla pivote `role_user`.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('role_user');
     }
 };

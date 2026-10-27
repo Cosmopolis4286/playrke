@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\PublicController;
 use App\Http\Controllers\Platform\BingoCardVerifyController;
 use App\Http\Controllers\Platform\JackpotPublicController;
 use App\Http\Controllers\Platform\PlatformStatsController;
 use App\Http\Controllers\Platform\WinEventController;
+use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -20,27 +20,27 @@ use Illuminate\Support\Facades\Route;
 // RUTAS PÚBLICAS
 // ====================================
 
-/**
+/*
  * Landing pública — puerta de entrada del sitio (sin sesión). Muestra
  * salas destacadas, ganancias recientes y acceso al verificador de cartón;
  * login/registro viven en sus propias rutas. Ver PublicController::root().
  */
 Route::get('/', [PublicController::class, 'root'])->name('root')->defaults('inertiaOnly', true);
 
-/**
+/*
  * Página pública "Verificar mi cartón" — sin sesión, como un ticket físico.
  * inertiaOnly=true: usa components.layouts.inertia (sin sidebar/navbar de
  * AdminLTE, pensados para usuario logueado — ver HandleInertiaRequests::rootView()).
  */
 Route::get('/verify-card', [PublicController::class, 'verifyCard'])->name('verify-card')->defaults('inertiaOnly', true);
 
-/**
+/*
  * Vitrina pública de salas de Bingo — sin sesión, catálogo + métricas en
  * vivo (venta, pozo, top de compras), sin compra real (CTA a login/registro).
  */
 Route::get('/game-rooms', [PublicController::class, 'gameRoomsShowcase'])->name('game-rooms.showcase')->defaults('inertiaOnly', true);
 
-/**
+/*
  * Top de compradores de una sala, para la vitrina pública — mismo dato que
  * bingo-game-rooms.top-buyers (autenticado), sin datos sensibles (solo
  * nombre/avatar/cantidad de cartones), por eso se expone también sin sesión.
@@ -49,7 +49,7 @@ Route::get('/game-rooms/{room}/top-buyers', [\App\Http\Controllers\Games\Bingo\R
     ->middleware('throttle:30,1')
     ->name('game-rooms.showcase.top-buyers');
 
-/**
+/*
  * Compra por cuenta propia de compradores RECURRENTES desde el enlace
  * público del vendedor — sin sesión de usuario, con código de compra
  * otorgado por el vendedor (vence por usos o tiempo). Ver
@@ -59,7 +59,7 @@ Route::get('/game-rooms/{room}/top-buyers', [\App\Http\Controllers\Games\Bingo\R
 Route::prefix('comprar/{token}')
     ->name('bingo-buy.')
     ->middleware('throttle:60,1')
-    ->group(function () {
+    ->group(function() {
         Route::get('/', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'show'])
             ->name('show')->defaults('inertiaOnly', true);
         Route::post('/verify', [\App\Http\Controllers\Games\Bingo\Card\PublicBingoBuyController::class, 'verify'])
@@ -71,12 +71,12 @@ Route::prefix('comprar/{token}')
             ->middleware('throttle:10,1')->name('purchase');
     });
 
-/**
+/*
  * Health check para monitoreo externo (uptime monitors, load balancers).
  * Sin autenticación — no expone datos, solo disponibilidad de dependencias
  * críticas. Verifica DB y cache; si alguna falla responde 503.
  */
-Route::get('/health', function () {
+Route::get('/health', function() {
     $checks = [];
     $healthy = true;
 
@@ -108,7 +108,7 @@ Route::get('/health', function () {
 // ====================================
 // API PÚBLICAS
 // ====================================
-Route::prefix('api')->group(function () {
+Route::prefix('api')->group(function() {
     // Feed de ganancias en vivo (seed inicial para el ticker, cualquier juego/premio)
     Route::get('/win-events/recent', [WinEventController::class, 'recent'])->name('api.win-events.recent');
 
@@ -134,6 +134,6 @@ Route::prefix('api')->group(function () {
 });
 
 // API externa para integraciones (POS físico, proveedores externos) — requiere token con scope 'win-events.report'
-Route::middleware('publicToken:win-events.report')->prefix('api/external')->group(function () {
+Route::middleware('publicToken:win-events.report')->prefix('api/external')->group(function() {
     Route::post('/win-events', [WinEventController::class, 'reportExternal'])->name('api.external.win-events.report');
 });

@@ -13,11 +13,21 @@ class AdminFactory extends Factory
     protected $model = Admin::class;
 
     /**
+     * Indicate that the admin is blocked.
+     */
+    public function blocked() : static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'BLOCKED',
+        ]);
+    }
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>
      */
-    public function definition(): array
+    public function definition() : array
     {
         return [
             'user_id' => null, // Will be set in seeder
@@ -29,7 +39,7 @@ class AdminFactory extends Factory
                 'manage_exchange_rates',
                 'manage_users',
                 'view_reports',
-                'system_settings'
+                'system_settings',
             ]),
             'last_login_at' => $this->faker->optional(0.7)->dateTimeBetween('-1 month', 'now'),
         ];
@@ -38,7 +48,7 @@ class AdminFactory extends Factory
     /**
      * Indicate that the admin is inactive.
      */
-    public function inactive(): static
+    public function inactive() : static
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'INACTIVE',
@@ -46,32 +56,9 @@ class AdminFactory extends Factory
     }
 
     /**
-     * Indicate that the admin is blocked.
-     */
-    public function blocked(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'BLOCKED',
-        ]);
-    }
-
-    /**
-     * Admin with limited permissions.
-     */
-    public function withLimitedPermissions(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'permissions' => json_encode([
-                'manage_exchange_rates',
-                'view_reports'
-            ]),
-        ]);
-    }
-
-    /**
      * Admin with full permissions.
      */
-    public function withFullPermissions(): static
+    public function withFullPermissions() : static
     {
         return $this->state(fn (array $attributes) => [
             'permissions' => json_encode([
@@ -82,7 +69,20 @@ class AdminFactory extends Factory
                 'manage_customers',
                 'view_reports',
                 'system_settings',
-                'audit_logs'
+                'audit_logs',
+            ]),
+        ]);
+    }
+
+    /**
+     * Admin with limited permissions.
+     */
+    public function withLimitedPermissions() : static
+    {
+        return $this->state(fn (array $attributes) => [
+            'permissions' => json_encode([
+                'manage_exchange_rates',
+                'view_reports',
             ]),
         ]);
     }

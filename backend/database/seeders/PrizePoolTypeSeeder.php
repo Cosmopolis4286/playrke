@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 
 class PrizePoolTypeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $typesByGame = [
             'BINGO' => [
@@ -21,15 +21,16 @@ class PrizePoolTypeSeeder extends Seeder
 
         foreach ($typesByGame as $gameName => $types) {
             $gameId = Game::where('name', $gameName)->value('id');
-            if (!$gameId) {
+            if (! $gameId) {
                 $this->command->warn("Juego '{$gameName}' no encontrado. Tipos de bote omitidos.");
+
                 continue;
             }
 
             foreach ($types as $type) {
                 PrizePoolType::updateOrCreate(
                     ['game_id' => $gameId, 'code' => $type['code']],
-                    ['label' => $type['label'], 'status' => 'ACTIVE']
+                    ['label' => $type['label'], 'status' => 'ACTIVE'],
                 );
             }
         }

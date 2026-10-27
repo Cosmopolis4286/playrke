@@ -6,7 +6,7 @@ use App\Models\Role;
 use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
+/*
  * Migración de datos (no seeder): las agencias (subsidiary) NO gestionan salas
  * de bingo ni de trivia — las crea su comercializadora; la agencia gestiona su
  * red de vendedores y consulta reportes/ganadores. Producción no vuelve a
@@ -32,7 +32,14 @@ return new class extends Migration
         'games.trivia.questions.manage',
     ];
 
-    public function up(): void
+    public function down() : void
+    {
+        Role::where('name', 'subsidiary')->where('guard_name', 'web')->first()?->givePermissionTo('games.bingo.manage');
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function up() : void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -45,13 +52,6 @@ return new class extends Migration
                 }
             }
         }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function down(): void
-    {
-        Role::where('name', 'subsidiary')->where('guard_name', 'web')->first()?->givePermissionTo('games.bingo.manage');
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

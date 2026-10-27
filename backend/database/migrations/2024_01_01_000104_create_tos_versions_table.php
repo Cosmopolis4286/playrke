@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Catálogo de versiones publicadas de los Términos de Servicio (versionado semántico).
  *
  * Invariantes:
@@ -14,9 +14,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('tos_versions', function (Blueprint $table) {
+        Schema::dropIfExists('tos_versions');
+    }
+
+    public function up() : void
+    {
+        Schema::create('tos_versions', function(Blueprint $table) {
             $table->id();
             // Semver o fecha: "1.0.0", "2025-05-01"
             $table->string('version', 20)->unique();
@@ -31,10 +36,5 @@ return new class extends Migration
             $table->timestamp('effective_at')->useCurrent();
             $table->timestamps();
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('tos_versions');
     }
 };

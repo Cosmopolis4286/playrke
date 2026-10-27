@@ -16,7 +16,7 @@ return [
         'min_players' => 1,
         'max_players' => 1000,
         'max_response_time' => 30, // segundos
-        
+
         // Puntuación
         'base_points_per_question' => 100,
         'time_bonus_multiplier' => 0.5, // 50% extra por rapidez

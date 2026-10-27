@@ -6,13 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_game_events');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_game_events')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_game_events', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_game_events', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('game_id', 20);
             $table->string('type', 30); // question_sent, answer_received, game_started, etc.
@@ -32,10 +37,5 @@ return new class extends Migration
             $table->index(['game_id', 'type']); // Queries por tipo de evento
             $table->index(['game_id', 'sequence']); // Replay determinista
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_game_events');
     }
 };

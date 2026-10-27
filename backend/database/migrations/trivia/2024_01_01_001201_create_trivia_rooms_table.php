@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * prize_model: 'guaranteed' | 'pool'
  *
  *   guaranteed  → El organizador define premios fijos antes de abrir la sala.
@@ -36,13 +36,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_rooms');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_rooms')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_rooms', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_rooms', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('code', 10)->unique();
             $table->string('host_id', 20); // External reference (Laravel), indexado abajo
@@ -83,10 +88,5 @@ return new class extends Migration
             $table->index('prize_model');
             $table->index('game_mode_id');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_rooms');
     }
 };

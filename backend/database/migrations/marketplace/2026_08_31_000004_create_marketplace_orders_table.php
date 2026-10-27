@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Orden de compra sobre un listing. escrow_id queda sin FK física hasta la
  * migración de la Fase 3 (Escrow), mismo patrón que player_assets.locked_by_escrow_id.
  *
@@ -16,9 +16,19 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('marketplace_orders', function (Blueprint $table) {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE marketplace_orders DROP CHECK chk_marketplace_orders_price_nonneg');
+            DB::statement('ALTER TABLE marketplace_orders DROP CHECK chk_marketplace_orders_fee_nonneg');
+        }
+
+        Schema::dropIfExists('marketplace_orders');
+    }
+
+    public function up() : void
+    {
+        Schema::create('marketplace_orders', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('listing_id')
@@ -52,15 +62,5 @@ return new class extends Migration
             DB::statement('ALTER TABLE marketplace_orders ADD CONSTRAINT chk_marketplace_orders_price_nonneg CHECK (price >= 0)');
             DB::statement('ALTER TABLE marketplace_orders ADD CONSTRAINT chk_marketplace_orders_fee_nonneg CHECK (fee_amount >= 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE marketplace_orders DROP CHECK chk_marketplace_orders_price_nonneg');
-            DB::statement('ALTER TABLE marketplace_orders DROP CHECK chk_marketplace_orders_fee_nonneg');
-        }
-
-        Schema::dropIfExists('marketplace_orders');
     }
 };

@@ -4,7 +4,7 @@
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->group(function() {
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index'])->middleware('verified')->name('dashboard');
 

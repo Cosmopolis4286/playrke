@@ -7,15 +7,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('jackpots');
+    }
+
+    /**
      * Run the migrations.
      *
      * Saldo actual acumulado de cada jackpot (un pozo por jackpot_type_id,
      * creado bajo demanda al primer aporte). Análogo a `wallets`, con el
      * historial de movimientos en `jackpot_movements`.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('jackpots', function (Blueprint $table) {
+        Schema::create('jackpots', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del jackpot');
 
             $table->foreignSnowflake('jackpot_type_id')
@@ -29,13 +37,5 @@ return new class extends Migration
 
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('jackpots');
     }
 };

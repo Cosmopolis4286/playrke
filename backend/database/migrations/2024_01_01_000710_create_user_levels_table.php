@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('user_levels');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('user_levels', function (Blueprint $table) {
+        Schema::create('user_levels', function(Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade')->unique();
             $table->integer('current_level')->default(1);
@@ -23,13 +31,5 @@ return new class extends Migration
 
             $table->index(['current_level', 'total_xp']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('user_levels');
     }
 };

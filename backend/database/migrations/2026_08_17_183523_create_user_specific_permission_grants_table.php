@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('user_specific_permission_grants');
+    }
+
+    /**
      * Run the migrations.
      *
      * Reemplaza users.specific_permissions (JSON plano de strings) por una
@@ -14,9 +22,9 @@ return new class extends Migration
      * nullable = permanente), quién lo otorgó y por qué, y revocación
      * explícita sin perder el historial (revoked_at, en vez de un DELETE).
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('user_specific_permission_grants', function (Blueprint $table) {
+        Schema::create('user_specific_permission_grants', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del otorgamiento');
 
             $table->foreignSnowflake('user_id')
@@ -50,13 +58,5 @@ return new class extends Migration
             $table->index(['expires_at', 'revoked_at'], 'uspg_expires_revoked_index');
             $table->index('user_id', 'uspg_user_id_index');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('user_specific_permission_grants');
     }
 };

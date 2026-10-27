@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'commerces'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('commerces');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'commerces'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('commerces', function (Blueprint $table) {
+        Schema::create('commerces', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del comercio');
 
@@ -60,13 +68,5 @@ return new class extends Migration
             $table->index('user_id');
             $table->index(['country_id', 'status']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'commerces'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('commerces');
     }
 };

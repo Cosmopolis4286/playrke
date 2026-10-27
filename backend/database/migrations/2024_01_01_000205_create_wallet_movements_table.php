@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('wallet_movements');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'wallet_movements'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('wallet_movements', function (Blueprint $table) {
+        Schema::create('wallet_movements', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del movimiento');
 
@@ -91,19 +99,11 @@ return new class extends Migration
             $table->index('receipt_hash');
         });
 
-        Schema::table('wallet_movements', function (Blueprint $table) {
+        Schema::table('wallet_movements', function(Blueprint $table) {
             $table->foreign('type')
                 ->references('code')->on('movement_types')
                 ->onDelete('restrict')
                 ->onUpdate('cascade');
         });
-    }
-
-    /**
-     * Revertir la migración.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('wallet_movements');
     }
 };

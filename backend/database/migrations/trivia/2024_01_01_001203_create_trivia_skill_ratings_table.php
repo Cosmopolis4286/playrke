@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Skill rating por jugador — base del sistema de ligas y matchmaking.
  *
  * El rating se actualiza tras cada partida usando un algoritmo ELO simplificado
@@ -23,13 +23,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_skill_ratings');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_skill_ratings')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_skill_ratings', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_skill_ratings', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('user_id');                          // FK lógica → MySQL users.id
             $table->unsignedInteger('rating')->default(1000);
@@ -49,10 +54,5 @@ return new class extends Migration
             $table->index('tier');
             $table->index(['tier', 'rating']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_skill_ratings');
     }
 };

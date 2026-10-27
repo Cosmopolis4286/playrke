@@ -18,7 +18,7 @@ class ScheduledCommandSeeder extends Seeder
      * en un comando de mantenimiento pesado. Se fija en updateOrCreate() solo
      * si el registro es nuevo (no se pisa un valor ya ajustado en producción).
      */
-    public function run(): void
+    public function run() : void
     {
         $commands = [
             ['command' => 'check:expired-bingo-rooms', 'label' => 'Expirar salas de bingo vencidas', 'description' => 'Marca salas de bingo expiradas como INACTIVE o IN_PROGRESS.', 'min_interval_seconds' => 60],
@@ -50,7 +50,7 @@ class ScheduledCommandSeeder extends Seeder
             $scheduled->label = $data['label'];
             $scheduled->description = $data['description'];
 
-            if (!$scheduled->exists) {
+            if (! $scheduled->exists) {
                 $scheduled->min_interval_seconds = $data['min_interval_seconds'];
             }
 

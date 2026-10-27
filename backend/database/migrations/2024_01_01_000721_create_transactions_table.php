@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('transactions');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('transactions', function (Blueprint $table) {
+        Schema::create('transactions', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -48,13 +56,5 @@ return new class extends Migration
             $table->index('status');
             $table->index(['customer_id', 'status']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('transactions');
     }
 };

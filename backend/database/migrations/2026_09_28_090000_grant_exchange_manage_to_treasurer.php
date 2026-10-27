@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\Models\Role;
 
-/**
+/*
  * Migración de datos (no seeder): otorga exchange.manage a 'treasurer' y
  * revoca el permiso huérfano 'exchange.update' que tenía en su lugar.
  *
@@ -30,11 +30,23 @@ use Spatie\Permission\Models\Role;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
         $treasurer = Role::where('name', 'treasurer')->where('guard_name', 'web')->first();
 
-        if (!$treasurer) {
+        if (! $treasurer) {
+            return;
+        }
+
+        $treasurer->revokePermissionTo('exchange.manage');
+        $treasurer->givePermissionTo('exchange.update');
+    }
+
+    public function up() : void
+    {
+        $treasurer = Role::where('name', 'treasurer')->where('guard_name', 'web')->first();
+
+        if (! $treasurer) {
             return;
         }
 
@@ -43,17 +55,5 @@ return new class extends Migration
         if ($treasurer->hasPermissionTo('exchange.update')) {
             $treasurer->revokePermissionTo('exchange.update');
         }
-    }
-
-    public function down(): void
-    {
-        $treasurer = Role::where('name', 'treasurer')->where('guard_name', 'web')->first();
-
-        if (!$treasurer) {
-            return;
-        }
-
-        $treasurer->revokePermissionTo('exchange.manage');
-        $treasurer->givePermissionTo('exchange.update');
     }
 };

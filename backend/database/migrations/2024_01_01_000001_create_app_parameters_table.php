@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'app_parameters'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('app_parameters');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'app_parameters'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('app_parameters', function (Blueprint $table) {
+        Schema::create('app_parameters', function(Blueprint $table) {
             // ID Snowflake con el paquete bradietilley/laravel-snowflake
             $table->snowflake('id')->primary()->comment('ID único del parámetro');
 
@@ -30,13 +38,5 @@ return new class extends Migration
             // Índice opcional por estado para consultas rápidas
             $table->index(['status', 'param']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'app_parameters'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('app_parameters');
     }
 };

@@ -6,7 +6,7 @@ use App\Models\Role;
 use App\Models\SidebarMenuVisibility;
 use Illuminate\Database\Migrations\Migration;
 
-/**
+/*
  * Migración de datos (no seeder): elimina la exclusión de 'subsidiary' en
  * business.my_sellers ("Mis Vendedores").
  *
@@ -27,24 +27,11 @@ use Illuminate\Database\Migrations\Migration;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
         $subsidiary = Role::where('name', 'subsidiary')->first();
 
-        if (!$subsidiary) {
-            return;
-        }
-
-        SidebarMenuVisibility::where('item_key', 'business.my_sellers')
-            ->where('role_id', $subsidiary->id)
-            ->delete();
-    }
-
-    public function down(): void
-    {
-        $subsidiary = Role::where('name', 'subsidiary')->first();
-
-        if (!$subsidiary) {
+        if (! $subsidiary) {
             return;
         }
 
@@ -52,5 +39,18 @@ return new class extends Migration
             ['item_key' => 'business.my_sellers', 'role_id' => $subsidiary->id],
             ['is_visible' => false],
         );
+    }
+
+    public function up() : void
+    {
+        $subsidiary = Role::where('name', 'subsidiary')->first();
+
+        if (! $subsidiary) {
+            return;
+        }
+
+        SidebarMenuVisibility::where('item_key', 'business.my_sellers')
+            ->where('role_id', $subsidiary->id)
+            ->delete();
     }
 };

@@ -8,7 +8,7 @@ use App\Models\SidebarMenuVisibility;
 use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
+/*
  * Migración de datos: el cliente API gestiona su tasa propia
  * (customers_exchange_rates), que ahora sí usan las ventas de sus salas
  * (ExchangeRateDomainService: propia ACTIVA o, si no, la oficial).
@@ -16,10 +16,22 @@ use Spatie\Permission\PermissionRegistrar;
  */
 return new class extends Migration
 {
-    private const PERMISSIONS = ['exchange.view', 'exchange.manage'];
     private const MENU_ITEM = 'business.exchange_rates';
+    private const PERMISSIONS = ['exchange.view', 'exchange.manage'];
 
-    public function up(): void
+    public function down() : void
+    {
+        $customer = Role::where('name', 'customer')->where('guard_name', 'web')->first();
+        foreach (self::PERMISSIONS as $name) {
+            if ($customer?->hasPermissionTo($name)) {
+                $customer->revokePermissionTo($name);
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function up() : void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -31,18 +43,6 @@ return new class extends Migration
         if ($customer) {
             $customer->givePermissionTo(self::PERMISSIONS);
             SidebarMenuVisibility::where('item_key', self::MENU_ITEM)->where('role_id', $customer->id)->delete();
-        }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function down(): void
-    {
-        $customer = Role::where('name', 'customer')->where('guard_name', 'web')->first();
-        foreach (self::PERMISSIONS as $name) {
-            if ($customer?->hasPermissionTo($name)) {
-                $customer->revokePermissionTo($name);
-            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

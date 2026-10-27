@@ -38,27 +38,28 @@ use Illuminate\Database\Seeder;
  */
 class DemoWalletBalanceSeeder extends Seeder
 {
-    private const PLAYER_EMAILS = ['player1@test.com', 'player2@test.com', 'player3@test.com'];
-
     private const AVAILABLE_BALANCE = 1000.00;
     private const PENDING_DEPOSIT = 1500.00;
+    private const PLAYER_EMAILS = ['player1@test.com', 'player2@test.com', 'player3@test.com'];
 
-    public function run(): void
+    public function run() : void
     {
         $walletRepository = app(WalletRepositoryInterface::class);
 
         foreach (self::PLAYER_EMAILS as $email) {
             $user = User::where('email', $email)->first();
 
-            if (!$user) {
+            if (! $user) {
                 $this->command->warn("⚠ {$email} no encontrado — ejecuta TestUserSeeder primero. Omitido.");
+
                 continue;
             }
 
             $wallet = $user->wallets()->first();
 
-            if (!$wallet) {
+            if (! $wallet) {
                 $this->command->warn("⚠ {$email} sin wallet — ejecuta DemoRoleDataSeeder/TestUserSeeder primero. Omitido.");
+
                 continue;
             }
 
@@ -74,29 +75,29 @@ class DemoWalletBalanceSeeder extends Seeder
             $balanceBefore = (float) $wallet->balance;
 
             WalletMovement::create([
-                'wallet_id'      => $wallet->id,
-                'user_id'        => $user->id,
-                'type'           => WalletMovement::TYPE_DEPOSIT,
-                'status'         => WalletMovement::STATUS_COMPLETED,
-                'amount'         => self::AVAILABLE_BALANCE,
+                'wallet_id' => $wallet->id,
+                'user_id' => $user->id,
+                'type' => WalletMovement::TYPE_DEPOSIT,
+                'status' => WalletMovement::STATUS_COMPLETED,
+                'amount' => self::AVAILABLE_BALANCE,
                 'balance_before' => $balanceBefore,
-                'balance_after'  => $balanceBefore + self::AVAILABLE_BALANCE,
-                'description'    => 'Saldo demo inicial',
-                'processed_at'   => now(),
+                'balance_after' => $balanceBefore + self::AVAILABLE_BALANCE,
+                'description' => 'Saldo demo inicial',
+                'processed_at' => now(),
             ]);
 
             $walletRepository->incrementBalance((string) $wallet->id, self::AVAILABLE_BALANCE);
             $wallet->refresh();
 
             WalletMovement::create([
-                'wallet_id'      => $wallet->id,
-                'user_id'        => $user->id,
-                'type'           => WalletMovement::TYPE_DEPOSIT,
-                'status'         => WalletMovement::STATUS_PENDING,
-                'amount'         => self::PENDING_DEPOSIT,
+                'wallet_id' => $wallet->id,
+                'user_id' => $user->id,
+                'type' => WalletMovement::TYPE_DEPOSIT,
+                'status' => WalletMovement::STATUS_PENDING,
+                'amount' => self::PENDING_DEPOSIT,
                 'balance_before' => (float) $wallet->balance,
-                'balance_after'  => (float) $wallet->balance,
-                'description'    => 'Depósito pendiente de confirmación (demo, pendiente de aprobación por superadmin)',
+                'balance_after' => (float) $wallet->balance,
+                'description' => 'Depósito pendiente de confirmación (demo, pendiente de aprobación por superadmin)',
             ]);
 
             $this->command->info("✔ {$email}: saldo +" . self::AVAILABLE_BALANCE . " (balance={$wallet->balance}), depósito pendiente de " . self::PENDING_DEPOSIT);

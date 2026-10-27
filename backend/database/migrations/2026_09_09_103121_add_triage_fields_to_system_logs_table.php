@@ -7,6 +7,24 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración.
+     */
+    public function down() : void
+    {
+        if (! Schema::hasColumn('system_logs', 'ignored_at')) {
+            return;
+        }
+
+        Schema::table('system_logs', function(Blueprint $table) {
+            $table->dropIndex(['ignored_at']);
+            $table->dropIndex(['assigned_to_user_id']);
+            $table->dropConstrainedForeignId('ignored_by_user_id');
+            $table->dropConstrainedForeignId('assigned_to_user_id');
+            $table->dropColumn(['ignored_at', 'alert_sent_at']);
+        });
+    }
+
+    /**
      * Ejecutar la migración: agregar campos de triage a system_logs.
      *
      * - ignored_at/ignored_by_user_id: "conocido, no volver a alertar" —
@@ -19,7 +37,7 @@ return new class extends Migration
      * - alert_sent_at: evita reenviar la alerta de Slack/email en cada
      *   ocurrencia de un fingerprint que ya cruzó el umbral una vez.
      */
-    public function up(): void
+    public function up() : void
     {
         // Guard de idempotencia — sin esto, un migrate:fresh que corre en
         // paralelo con otra sesión que ya deja estas columnas físicamente
@@ -30,7 +48,7 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('system_logs', function (Blueprint $table) {
+        Schema::table('system_logs', function(Blueprint $table) {
             $table->timestamp('ignored_at')->nullable()->after('reviewed_by_user_id');
             $table->foreignSnowflake('ignored_by_user_id')
                 ->nullable()
@@ -50,24 +68,6 @@ return new class extends Migration
 
             $table->index('ignored_at');
             $table->index('assigned_to_user_id');
-        });
-    }
-
-    /**
-     * Revertir la migración.
-     */
-    public function down(): void
-    {
-        if (! Schema::hasColumn('system_logs', 'ignored_at')) {
-            return;
-        }
-
-        Schema::table('system_logs', function (Blueprint $table) {
-            $table->dropIndex(['ignored_at']);
-            $table->dropIndex(['assigned_to_user_id']);
-            $table->dropConstrainedForeignId('ignored_by_user_id');
-            $table->dropConstrainedForeignId('assigned_to_user_id');
-            $table->dropColumn(['ignored_at', 'alert_sent_at']);
         });
     }
 };

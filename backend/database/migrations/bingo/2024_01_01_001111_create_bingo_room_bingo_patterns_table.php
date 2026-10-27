@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_room_bingo_patterns');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_room_bingo_patterns', function (Blueprint $table) {
+        Schema::create('bingo_room_bingo_patterns', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la relación sala-patrón');
 
@@ -35,13 +43,5 @@ return new class extends Migration
             // Evita duplicados de tipo de juego por configuración de sala
             $table->unique(['bingo_room_config_id', 'bingo_pattern_id'], 'bingo_room_config_pattern_unique');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_room_bingo_patterns');
     }
 };

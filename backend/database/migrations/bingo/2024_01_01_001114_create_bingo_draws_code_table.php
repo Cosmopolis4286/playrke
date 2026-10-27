@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_draws_code');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_draws_code', function (Blueprint $table) {
+        Schema::create('bingo_draws_code', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del código de sorteo');
             $table->foreignSnowflake('room_id')
@@ -36,13 +44,5 @@ return new class extends Migration
 
             $table->index(['room_id', 'round_id'], 'idx_bingo_draws_code_room_round');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_draws_code');
     }
 };

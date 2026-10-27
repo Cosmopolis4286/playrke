@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_patterns');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_patterns', function (Blueprint $table) {
+        Schema::create('bingo_card_patterns', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la relación cartón-patrón');
 
@@ -52,13 +60,5 @@ return new class extends Migration
             // Evita duplicados de patrón por cartón
             $table->unique(['card_id', 'bingo_pattern_id', 'round_id'], 'bingo_card_pattern_round_unique');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_patterns');
     }
 };

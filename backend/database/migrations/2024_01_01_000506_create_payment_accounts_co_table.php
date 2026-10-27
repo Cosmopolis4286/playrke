@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('payment_accounts_co', function (Blueprint $table) {
+        Schema::dropIfExists('payment_accounts_co');
+    }
+
+    public function up() : void
+    {
+        Schema::create('payment_accounts_co', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -31,10 +36,5 @@ return new class extends Migration
             // Evitar que un mismo usuario registre la misma cuenta/gateway más de una vez
             $table->unique(['user_id', 'gateway', 'account_number'], 'uniq_user_gateway_acc');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('payment_accounts_co');
     }
 };

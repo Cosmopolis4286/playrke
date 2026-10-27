@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'games'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('games');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'games'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('games', function (Blueprint $table) {
+        Schema::create('games', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del juego');
 
@@ -31,13 +39,5 @@ return new class extends Migration
             // Índice por estado para consultas rápidas
             $table->index(['status', 'name']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'games'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('games');
     }
 };

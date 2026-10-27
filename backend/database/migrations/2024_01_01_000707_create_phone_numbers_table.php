@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('phone_numbers', function (Blueprint $table) {
+        Schema::dropIfExists('phone_numbers');
+    }
+
+    public function up() : void
+    {
+        Schema::create('phone_numbers', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -33,10 +38,5 @@ return new class extends Migration
             $table->index(['user_id', 'status']);
             $table->index(['country_id', 'status']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('phone_numbers');
     }
 };

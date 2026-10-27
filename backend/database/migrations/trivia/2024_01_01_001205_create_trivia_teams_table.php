@@ -6,13 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_teams');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_teams')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_teams', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_teams', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             $table->string('room_id', 20);
             $table->foreign('room_id')->references('id')->on('trivia_rooms')->onDelete('cascade');
@@ -33,10 +38,5 @@ return new class extends Migration
             $table->index('room_id');
             $table->index(['room_id', 'team_number']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_teams');
     }
 };

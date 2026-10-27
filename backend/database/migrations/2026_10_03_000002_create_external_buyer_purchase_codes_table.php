@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Códigos de compra que un vendedor otorga a un comprador RECURRENTE (ya le
  * compró antes) para que compre por su cuenta desde el enlace público de
  * venta del vendedor. Sin un código vigente la solicitud no se procesa.
@@ -20,13 +20,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::dropIfExists('external_buyer_purchase_codes');
+    }
+
+    public function up() : void
     {
         if (Schema::hasTable('external_buyer_purchase_codes')) {
             return;
         }
 
-        Schema::create('external_buyer_purchase_codes', function (Blueprint $table) {
+        Schema::create('external_buyer_purchase_codes', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del código de compra');
 
             $table->foreignSnowflake('seller_user_id')
@@ -52,10 +57,5 @@ return new class extends Migration
 
             $table->index(['seller_user_id', 'phone'], 'idx_ebpc_seller_phone');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('external_buyer_purchase_codes');
     }
 };

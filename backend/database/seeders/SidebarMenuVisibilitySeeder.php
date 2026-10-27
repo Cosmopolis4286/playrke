@@ -29,9 +29,9 @@ class SidebarMenuVisibilitySeeder extends Seeder
      * @var array<string, string[]>
      */
     private const EXCLUSIONS = [
-        'games_bingo.my_games'          => ['admin', 'commerce', 'customer', 'seller', 'subsidiary', 'superadmin'],
-        'games_bingo.bingo_cards_sold'  => ['player'],
-        'business.exchange_rates'       => ['player', 'seller'],
+        'games_bingo.my_games' => ['admin', 'commerce', 'customer', 'seller', 'subsidiary', 'superadmin'],
+        'games_bingo.bingo_cards_sold' => ['player'],
+        'business.exchange_rates' => ['player', 'seller'],
         // subsidiary NO se excluye: el fix 9201ced9 (2026-09-01) le agregó
         // soporte real en ManagerSellerContextService::subsidiaryScopeCondition()
         // (filtra por subsidiary_id, ve solo sus propios vendedores) pero
@@ -39,8 +39,8 @@ class SidebarMenuVisibilitySeeder extends Seeder
         // perfectamente para subsidiary desde entonces, solo el sidebar
         // nunca ofrecía la entrada.
         // customer excluido: no puede tener sellers (ver ManagerSellerPolicy)
-        'business.my_sellers'           => ['admin', 'customer', 'player', 'seller', 'superadmin'],
-        'business.my_subsidiaries'      => ['player', 'seller', 'superadmin'],
+        'business.my_sellers' => ['admin', 'customer', 'player', 'seller', 'superadmin'],
+        'business.my_subsidiaries' => ['player', 'seller', 'superadmin'],
         // my_account.* — antes vivían bajo 'business.*' (ver comentario de
         // clase); el refactor 3c945746 ("Mi Cuenta" separado de "Negocio")
         // movió estos 4 items de parent pero nunca migró estas filas, así
@@ -53,28 +53,28 @@ class SidebarMenuVisibilitySeeder extends Seeder
         // my_profile_subsidiary (ídem); seller NO se excluye de
         // my_profile_seller (ídem) — todo lo demás replica la exclusión
         // original de 'business.*'.
-        'my_account.my_profile_subsidiary'  => ['admin', 'commerce', 'player', 'seller', 'superadmin'],
-        'my_account.my_profile_commerce'    => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
+        'my_account.my_profile_subsidiary' => ['admin', 'commerce', 'player', 'seller', 'superadmin'],
+        'my_account.my_profile_commerce' => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
         'my_account.commerce_economy_summary' => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
-        'my_account.my_profile_seller'      => ['admin', 'commerce', 'player', 'subsidiary', 'superadmin'],
+        'my_account.my_profile_seller' => ['admin', 'commerce', 'player', 'subsidiary', 'superadmin'],
         // Fichas propias de customer/treasurer: solo su propio rol (superadmin
         // tiene todos los permisos y sin esto vería ítems que le dan 404).
-        'my_account.my_profile_customer'    => ['admin', 'commerce', 'player', 'seller', 'subsidiary', 'superadmin', 'treasurer'],
-        'my_account.my_profile_treasurer'   => ['admin', 'commerce', 'customer', 'player', 'seller', 'subsidiary', 'superadmin'],
-        'business.my_external_players'  => ['admin', 'player', 'superadmin'],
+        'my_account.my_profile_customer' => ['admin', 'commerce', 'player', 'seller', 'subsidiary', 'superadmin', 'treasurer'],
+        'my_account.my_profile_treasurer' => ['admin', 'commerce', 'customer', 'player', 'seller', 'subsidiary', 'superadmin'],
+        'business.my_external_players' => ['admin', 'player', 'superadmin'],
         // Mis comisiones: solo roles de negocio (superadmin tiene todos los
         // permisos pero no comisiones propias: le daría 403).
-        'wallet.my_commissions'         => ['admin', 'player', 'superadmin', 'treasurer'],
-        'business.prizes'               => ['player', 'seller'],
-        'business.win_events'           => ['commerce', 'customer', 'player', 'seller'],
-        'system.app-parameters'         => ['commerce', 'customer', 'player', 'seller'],
-        'system.audit'                  => ['commerce', 'customer', 'player', 'seller'],
-        'system.kyc'                    => ['commerce', 'customer', 'player', 'seller'],
-        'system.logs'                   => ['commerce', 'customer', 'player', 'seller'],
-        'system.jobs'                   => ['commerce', 'customer', 'player', 'seller'],
+        'wallet.my_commissions' => ['admin', 'player', 'superadmin', 'treasurer'],
+        'business.prizes' => ['player', 'seller'],
+        'business.win_events' => ['commerce', 'customer', 'player', 'seller'],
+        'system.app-parameters' => ['commerce', 'customer', 'player', 'seller'],
+        'system.audit' => ['commerce', 'customer', 'player', 'seller'],
+        'system.kyc' => ['commerce', 'customer', 'player', 'seller'],
+        'system.logs' => ['commerce', 'customer', 'player', 'seller'],
+        'system.jobs' => ['commerce', 'customer', 'player', 'seller'],
     ];
 
-    public function run(): void
+    public function run() : void
     {
         // name (normalizado a minúsculas por Role::setNameAttribute) => id.
         $roleIdsByName = Role::pluck('id', 'name')->all();
@@ -87,12 +87,13 @@ class SidebarMenuVisibilitySeeder extends Seeder
 
                 if ($roleId === null) {
                     $this->command->warn("  ⚠ Rol '{$roleName}' no encontrado (item: {$itemKey})");
+
                     continue;
                 }
 
                 SidebarMenuVisibility::updateOrCreate(
                     ['item_key' => $itemKey, 'role_id' => $roleId],
-                    ['is_visible' => false]
+                    ['is_visible' => false],
                 );
                 $rows++;
             }

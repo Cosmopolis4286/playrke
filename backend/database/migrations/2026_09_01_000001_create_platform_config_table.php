@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('platform_config');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'platform_config' (singleton de
      * configuración global de la plataforma, con columnas tipadas y FKs
      * reales) y sembrar su única fila.
@@ -18,9 +26,9 @@ return new class extends Migration
      * configuración estructurada que necesita apuntar de forma confiable a
      * otros registros reales (ver PlatformConfig::defaultCommerce()).
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('platform_config', function (Blueprint $table) {
+        Schema::create('platform_config', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             // Comercio marcado como principal/vinculado a la app — sirve de
@@ -41,17 +49,9 @@ return new class extends Migration
         // Fila singleton: el modelo PlatformConfig siempre asume que existe
         // exactamente 1 fila, sin lógica de creación diferida en runtime.
         DB::table('platform_config')->insert([
-            'id'         => (new Snowflake())->id(),
+            'id' => (new Snowflake)->id(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
-
-    /**
-     * Revertir la migración.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('platform_config');
     }
 };

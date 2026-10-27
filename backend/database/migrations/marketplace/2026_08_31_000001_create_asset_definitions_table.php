@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Catálogo de tipos de activo digital, admin-gestionable — mismo rol que
  * movement_types.php respecto a wallet_movements: aquí se define QUÉ es un
  * activo (HUNTER_RADAR, BINGO_BOOSTER_X2...), nunca una instancia poseída
@@ -17,9 +17,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('asset_definitions', function (Blueprint $table) {
+        Schema::dropIfExists('asset_definitions');
+    }
+
+    public function up() : void
+    {
+        Schema::create('asset_definitions', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->string('code', 60)->unique()
@@ -59,10 +64,5 @@ return new class extends Migration
             $table->index(['category', 'status']);
             $table->index('game_group');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('asset_definitions');
     }
 };

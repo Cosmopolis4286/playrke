@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('bingo_round_prizes', function (Blueprint $table) {
+        Schema::dropIfExists('bingo_round_prizes');
+    }
+
+    public function up() : void
+    {
+        Schema::create('bingo_round_prizes', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del premio de ronda');
 
@@ -42,10 +47,5 @@ return new class extends Migration
             $table->index(['room_id', 'bingo_round_id'], 'idx_bingo_round_prizes_room_round');
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_round_prizes');
     }
 };

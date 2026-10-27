@@ -7,15 +7,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'game_modes'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('game_modes');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'game_modes'.
      *
      * Catálogo per-game de modalidades de participación reales (Solitario,
      * Múltiple, Ranking, etc.). Cada modo pertenece a un único juego
      * (game_id NOT NULL) — no se comparten modos entre juegos.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('game_modes', function (Blueprint $table) {
+        Schema::create('game_modes', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del modo de juego');
 
@@ -42,13 +50,5 @@ return new class extends Migration
             // Índice por estado para consultas rápidas
             $table->index(['status', 'label']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'game_modes'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('game_modes');
     }
 };

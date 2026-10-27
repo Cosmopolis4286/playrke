@@ -6,7 +6,7 @@ use App\Models\Role;
 use App\Models\SidebarMenuVisibility;
 use Illuminate\Database\Migrations\Migration;
 
-/**
+/*
  * Migración de datos (no seeder): renombra las item_key huérfanas que dejó
  * el refactor 3c945746 ("Mi Cuenta" separado de "Negocio") en
  * sidebar_menu_visibilities.
@@ -35,8 +35,8 @@ return new class extends Migration
 {
     private const KEY_RENAMES = [
         'business.my_profile_subsidiary' => 'my_account.my_profile_subsidiary',
-        'business.my_profile_commerce'   => 'my_account.my_profile_commerce',
-        'business.my_profile_seller'     => 'my_account.my_profile_seller',
+        'business.my_profile_commerce' => 'my_account.my_profile_commerce',
+        'business.my_profile_seller' => 'my_account.my_profile_seller',
     ];
 
     /** item_key => [role names excluidos] — mismo formato que SidebarMenuVisibilitySeeder::EXCLUSIONS. */
@@ -44,7 +44,24 @@ return new class extends Migration
         'my_account.commerce_economy_summary' => ['admin', 'player', 'seller', 'subsidiary', 'superadmin'],
     ];
 
-    public function up(): void
+    public function down() : void
+    {
+        foreach (self::KEY_RENAMES as $oldKey => $newKey) {
+            SidebarMenuVisibility::where('item_key', $newKey)
+                ->get()
+                ->each(function(SidebarMenuVisibility $row) use ($oldKey) : void {
+                    SidebarMenuVisibility::updateOrCreate(
+                        ['item_key' => $oldKey, 'role_id' => $row->role_id],
+                        ['is_visible' => $row->is_visible],
+                    );
+                    $row->delete();
+                });
+        }
+
+        SidebarMenuVisibility::where('item_key', 'my_account.commerce_economy_summary')->delete();
+    }
+
+    public function up() : void
     {
         foreach (self::KEY_RENAMES as $oldKey => $newKey) {
             // updateOrCreate por (item_key, role_id) — si por algún motivo ya
@@ -53,7 +70,7 @@ return new class extends Migration
             // porque estos items nunca tuvieron override de orden.
             SidebarMenuVisibility::where('item_key', $oldKey)
                 ->get()
-                ->each(function (SidebarMenuVisibility $row) use ($newKey): void {
+                ->each(function(SidebarMenuVisibility $row) use ($newKey) : void {
                     SidebarMenuVisibility::updateOrCreate(
                         ['item_key' => $newKey, 'role_id' => $row->role_id],
                         ['is_visible' => $row->is_visible],
@@ -78,22 +95,5 @@ return new class extends Migration
                 );
             }
         }
-    }
-
-    public function down(): void
-    {
-        foreach (self::KEY_RENAMES as $oldKey => $newKey) {
-            SidebarMenuVisibility::where('item_key', $newKey)
-                ->get()
-                ->each(function (SidebarMenuVisibility $row) use ($oldKey): void {
-                    SidebarMenuVisibility::updateOrCreate(
-                        ['item_key' => $oldKey, 'role_id' => $row->role_id],
-                        ['is_visible' => $row->is_visible],
-                    );
-                    $row->delete();
-                });
-        }
-
-        SidebarMenuVisibility::where('item_key', 'my_account.commerce_economy_summary')->delete();
     }
 };

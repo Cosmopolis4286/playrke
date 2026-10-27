@@ -4,7 +4,7 @@ use App\Support\Scheduling\ScheduledCommandGate;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Support\Facades\Schedule;
 
-/**
+/*
  * Registra un comando programado aplicando, en orden de prioridad:
  *   1. cron_expression editado desde el panel Jobs/Scheduler (BD), si existe.
  *   2. $fallback (método fijo original: ->everyMinute(), ->hourly(), etc.).
@@ -19,8 +19,8 @@ use Illuminate\Support\Facades\Schedule;
  * segundo require de routes/console.php mata la suite completa con un
  * fatal error antes de imprimir un solo resultado.
  */
-if (!function_exists('schedule_dynamic')) {
-    function schedule_dynamic(string $command, callable $fallback): Event
+if (! function_exists('schedule_dynamic')) {
+    function schedule_dynamic(string $command, callable $fallback) : Event
     {
         $event = Schedule::command($command)
             ->when(fn () => ScheduledCommandGate::isEnabled($command))

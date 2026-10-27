@@ -12,7 +12,7 @@ class CountryFactory extends Factory
 {
     protected $model = Country::class;
 
-    public function definition(): array
+    public function definition() : array
     {
         // Faker's unique() only tracks values generated in this process; it
         // does not know about countries or ISO codes already seeded in the DB.

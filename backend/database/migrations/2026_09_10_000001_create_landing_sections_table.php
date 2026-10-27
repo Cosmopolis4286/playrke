@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('landing_sections', function (Blueprint $table) {
+        Schema::dropIfExists('landing_sections');
+    }
+
+    public function up() : void
+    {
+        Schema::create('landing_sections', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la sección de landing');
 
             $table->string('section_key', 30)->unique()->comment('Identificador fijo de la sección (hero, jackpot, salas, verificar, invita, ganadores, cta_final, footer)');
@@ -23,10 +28,5 @@ return new class extends Migration
             $table->index('sort_order', 'idx_landing_sections_sort_order');
             $table->index('status', 'idx_landing_sections_status');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('landing_sections');
     }
 };

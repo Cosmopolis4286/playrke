@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'commerces_exchange_rates'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('commerces_exchange_rates');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'commerces_exchange_rates'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('commerces_exchange_rates', function (Blueprint $table) {
+        Schema::create('commerces_exchange_rates', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la tasa de cambio');
 
@@ -56,13 +64,5 @@ return new class extends Migration
             $table->index(['commerce_id', 'currency_id']);
             $table->index(['commerce_id', 'status']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'commerces_exchange_rates'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('commerces_exchange_rates');
     }
 };

@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_rooms_automatic');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_rooms_automatic', function (Blueprint $table) {
+        Schema::create('bingo_rooms_automatic', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sala automática');
 
@@ -241,13 +249,5 @@ return new class extends Migration
             $table->index('game_mode_id', 'idx_bingo_rooms_automatic_game_mode_id');
             $table->index('host_user_id', 'idx_bingo_rooms_automatic_host_user_id');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_rooms_automatic');
     }
 };

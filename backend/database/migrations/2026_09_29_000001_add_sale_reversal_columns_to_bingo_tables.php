@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Soporte para revertir exactamente una venta de Bingo cuando su lote se
  * reembolsa (sala cancelada o pago rechazado — ver BingoLotSaleReversalService):
  *
@@ -25,51 +25,15 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::table('bingo_card_lots', function (Blueprint $table) {
-            if (!Schema::hasColumn('bingo_card_lots', 'financial_breakdown')) {
-                $table->json('financial_breakdown')->nullable()->after('has_custom_cards');
-            }
-        });
-
-        Schema::table('bingo_creator_sales', function (Blueprint $table) {
-            $table->decimal('sale_amount', 13, 2)->change();
-            $table->decimal('rke_commission', 13, 2)->change();
-            $table->decimal('room_commission', 13, 2)->change();
-            $table->decimal('seller_commission', 13, 2)->nullable()->change();
-
-            if (!Schema::hasColumn('bingo_creator_sales', 'jackpot_contribution')) {
-                $table->decimal('jackpot_contribution', 13, 2)->default(0)->after('seller_commission')->comment('Aporte al jackpot');
-            }
-        });
-
-        MovementType::firstOrCreate(
-            ['code' => 'RKE_COMMISSION_REVERSAL'],
-            [
-                'label'             => 'Reversión comisión RKE',
-                'icon'              => 'fas fa-rotate-left',
-                'color'             => '#b91c1c',
-                'is_credit'         => false,
-                'requires_approval' => false,
-                'game_group'        => null,
-                'sort_order'        => 65,
-                'visible_roles'     => ['admin', 'superadmin'],
-                'is_system'         => true,
-                'status'            => 'ACTIVE',
-            ],
-        );
-    }
-
-    public function down(): void
-    {
-        Schema::table('bingo_card_lots', function (Blueprint $table) {
+        Schema::table('bingo_card_lots', function(Blueprint $table) {
             if (Schema::hasColumn('bingo_card_lots', 'financial_breakdown')) {
                 $table->dropColumn('financial_breakdown');
             }
         });
 
-        Schema::table('bingo_creator_sales', function (Blueprint $table) {
+        Schema::table('bingo_creator_sales', function(Blueprint $table) {
             if (Schema::hasColumn('bingo_creator_sales', 'jackpot_contribution')) {
                 $table->dropColumn('jackpot_contribution');
             }
@@ -80,5 +44,41 @@ return new class extends Migration
         MovementType::where('code', 'RKE_COMMISSION_REVERSAL')
             ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('wallet_movements')->whereColumn('wallet_movements.type', 'movement_types.code'))
             ->delete();
+    }
+
+    public function up() : void
+    {
+        Schema::table('bingo_card_lots', function(Blueprint $table) {
+            if (! Schema::hasColumn('bingo_card_lots', 'financial_breakdown')) {
+                $table->json('financial_breakdown')->nullable()->after('has_custom_cards');
+            }
+        });
+
+        Schema::table('bingo_creator_sales', function(Blueprint $table) {
+            $table->decimal('sale_amount', 13, 2)->change();
+            $table->decimal('rke_commission', 13, 2)->change();
+            $table->decimal('room_commission', 13, 2)->change();
+            $table->decimal('seller_commission', 13, 2)->nullable()->change();
+
+            if (! Schema::hasColumn('bingo_creator_sales', 'jackpot_contribution')) {
+                $table->decimal('jackpot_contribution', 13, 2)->default(0)->after('seller_commission')->comment('Aporte al jackpot');
+            }
+        });
+
+        MovementType::firstOrCreate(
+            ['code' => 'RKE_COMMISSION_REVERSAL'],
+            [
+                'label' => 'Reversión comisión RKE',
+                'icon' => 'fas fa-rotate-left',
+                'color' => '#b91c1c',
+                'is_credit' => false,
+                'requires_approval' => false,
+                'game_group' => null,
+                'sort_order' => 65,
+                'visible_roles' => ['admin', 'superadmin'],
+                'is_system' => true,
+                'status' => 'ACTIVE',
+            ],
+        );
     }
 };

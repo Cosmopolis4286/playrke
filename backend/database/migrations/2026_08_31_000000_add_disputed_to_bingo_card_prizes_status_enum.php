@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * bingo_card_prizes ya tiene datos reales (premios 'claimed') cuando se
  * escribió esto — mismo motivo que 2026_08_30_200343_add_triggered_by_to_
  * command_logs_table: no se puede recrear la tabla desde cero, así que el
@@ -26,20 +26,7 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
-    {
-        if (! Schema::hasTable('bingo_card_prizes')) {
-            return;
-        }
-
-        DB::statement(
-            "ALTER TABLE bingo_card_prizes MODIFY COLUMN prize_status " .
-            "ENUM('waiting', 'processing', 'claimed', 'cancelled', 'suspended', 'disputed') " .
-            "NOT NULL DEFAULT 'waiting'"
-        );
-    }
-
-    public function down(): void
+    public function down() : void
     {
         if (! Schema::hasTable('bingo_card_prizes')) {
             return;
@@ -49,9 +36,22 @@ return new class extends Migration
         // sin acción destructiva; un rollback real requeriría decidir a mano
         // qué hacer con esas filas primero.
         DB::statement(
-            "ALTER TABLE bingo_card_prizes MODIFY COLUMN prize_status " .
+            'ALTER TABLE bingo_card_prizes MODIFY COLUMN prize_status ' .
             "ENUM('waiting', 'processing', 'claimed', 'cancelled', 'suspended') " .
-            "NOT NULL DEFAULT 'waiting'"
+            "NOT NULL DEFAULT 'waiting'",
+        );
+    }
+
+    public function up() : void
+    {
+        if (! Schema::hasTable('bingo_card_prizes')) {
+            return;
+        }
+
+        DB::statement(
+            'ALTER TABLE bingo_card_prizes MODIFY COLUMN prize_status ' .
+            "ENUM('waiting', 'processing', 'claimed', 'cancelled', 'suspended', 'disputed') " .
+            "NOT NULL DEFAULT 'waiting'",
         );
     }
 };

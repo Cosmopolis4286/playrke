@@ -8,13 +8,14 @@ use Illuminate\Database\Seeder;
 
 class GamePrizeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         // Obtener el ID del juego 'BINGO'
         $gameId = Game::where('name', 'BINGO')->value('id');
 
-        if (!$gameId) {
+        if (! $gameId) {
             $this->command->warn("Juego 'BINGO' no encontrado. Seeder GamePrizes omitido.");
+
             return;
         }
 
@@ -28,7 +29,7 @@ class GamePrizeSeeder extends Seeder
         foreach ($prizes as $prize) {
             GamePrize::updateOrCreate(
                 ['code' => $prize['code'], 'game_id' => $prize['game_id']],
-                ['description' => $prize['description'], 'status' => $prize['status']]
+                ['description' => $prize['description'], 'status' => $prize['status']],
             );
         }
     }

@@ -13,7 +13,7 @@ use Illuminate\Database\Seeder;
  */
 class GameModeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $modesByGame = [
             'BINGO' => [
@@ -31,15 +31,16 @@ class GameModeSeeder extends Seeder
 
         foreach ($modesByGame as $gameName => $modes) {
             $gameId = Game::where('name', $gameName)->value('id');
-            if (!$gameId) {
+            if (! $gameId) {
                 $this->command->warn("Juego '{$gameName}' no encontrado. Modos omitidos.");
+
                 continue;
             }
 
             foreach ($modes as $mode) {
                 GameMode::updateOrCreate(
                     ['game_id' => $gameId, 'code' => $mode['code']],
-                    ['label' => $mode['label'], 'status' => 'ACTIVE']
+                    ['label' => $mode['label'], 'status' => 'ACTIVE'],
                 );
             }
         }

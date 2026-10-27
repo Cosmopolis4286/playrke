@@ -14,12 +14,13 @@ use Illuminate\Database\Seeder;
  */
 class PaymentProductSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $hintTicket = AssetDefinition::where('code', 'TRIVIA_HINT_TICKET')->first();
 
-        if (!$hintTicket) {
+        if (! $hintTicket) {
             $this->command?->warn('PaymentProductSeeder: TRIVIA_HINT_TICKET no existe — corre AssetDefinitionSeeder primero.');
+
             return;
         }
 

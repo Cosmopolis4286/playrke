@@ -5,11 +5,10 @@ namespace Database\Seeders\Trivia;
 use App\Domains\Trivia\Models\TriviaQuestion;
 use App\Domains\Trivia\Models\TriviaRoom;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class TriviaRoomSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         // Crear sala de ejemplo
         $room = TriviaRoom::create([
@@ -89,6 +88,6 @@ class TriviaRoomSeeder extends Seeder
             ]));
         }
 
-        $this->command->info("Sala de trivia '{$room->code}' creada con " . count($questions) . " preguntas.");
+        $this->command->info("Sala de trivia '{$room->code}' creada con " . count($questions) . ' preguntas.');
     }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Ledger de "qué se entregó a quién y por qué pago" — separado de
  * wallet_movements y de crypto_transactions (ver
  * PAYMENTS_USDT_TRC20_DESIGN.md sección 4).
@@ -15,9 +15,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('purchases', function (Blueprint $table) {
+        Schema::dropIfExists('purchases');
+    }
+
+    public function up() : void
+    {
+        Schema::create('purchases', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('user_id')
@@ -43,10 +48,5 @@ return new class extends Migration
 
             $table->index('user_id');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('purchases');
     }
 };

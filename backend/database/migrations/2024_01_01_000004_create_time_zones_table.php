@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'time_zones'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('time_zones');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'time_zones'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('time_zones', function (Blueprint $table) {
+        Schema::create('time_zones', function(Blueprint $table) {
             // ID autoincremental estándar
             $table->snowflake('id')->primary()->comment('ID único de la zona horaria');
 
@@ -39,13 +47,5 @@ return new class extends Migration
             // Índice compuesto opcional para búsquedas rápidas por país y estado
             $table->index(['country_id', 'status']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'time_zones'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('time_zones');
     }
 };

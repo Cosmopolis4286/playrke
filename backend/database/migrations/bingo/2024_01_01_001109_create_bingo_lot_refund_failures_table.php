@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('bingo_lot_refund_failures', function (Blueprint $table) {
+        Schema::dropIfExists('bingo_lot_refund_failures');
+    }
+
+    public function up() : void
+    {
+        Schema::create('bingo_lot_refund_failures', function(Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->restrictOnDelete()->cascadeOnUpdate();
             $table->foreignSnowflake('lot_id')->constrained('bingo_card_lots')->restrictOnDelete()->cascadeOnUpdate();
@@ -25,10 +30,5 @@ return new class extends Migration
             $table->index(['status', 'attempts'], 'idx_lot_refund_failures_status');
             $table->index('room_id', 'idx_lot_refund_failures_room');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_lot_refund_failures');
     }
 };

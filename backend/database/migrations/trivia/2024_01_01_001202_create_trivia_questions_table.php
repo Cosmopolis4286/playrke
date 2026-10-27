@@ -6,13 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_questions');
+    }
+
+    public function up() : void
     {
         if (Schema::connection('pgsql_trivia')->hasTable('trivia_questions')) {
             return;
         }
 
-        Schema::connection('pgsql_trivia')->create('trivia_questions', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_questions', function(Blueprint $table) {
             $table->string('id', 20)->primary();
             // Nota: el orden de preguntas en un juego va en game_questions.order_index
             $table->text('question_text');
@@ -34,10 +39,5 @@ return new class extends Migration
             $table->index('created_at'); // Útil para selección aleatoria y últimas preguntas
             $table->index('is_active'); // Filtrado frecuente de preguntas activas
         });
-    }
-
-    public function down(): void
-    {
-        Schema::connection('pgsql_trivia')->dropIfExists('trivia_questions');
     }
 };

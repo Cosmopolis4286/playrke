@@ -7,13 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
-     *
-     * @return void
+     * Reverse the migrations.
      */
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('company_user', function (Blueprint $table) {
+        Schema::dropIfExists('company_user');
+    }
+
+    /**
+     * Run the migrations.
+     */
+    public function up() : void
+    {
+        Schema::create('company_user', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('user_id')->constrained()->cascadeOnDelete();
@@ -23,15 +29,5 @@ return new class extends Migration
 
             $table->unique(['user_id', 'company_id']); // evita duplicados
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('company_user');
     }
 };

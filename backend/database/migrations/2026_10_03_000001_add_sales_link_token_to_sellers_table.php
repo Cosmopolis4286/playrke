@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Enlace público de venta del vendedor (/comprar/{token}) — compra por
  * cuenta propia de compradores recurrentes con código (ver
  * SellerSalesLinkService / ExternalBuyerPurchaseCodeService).
@@ -17,22 +17,22 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::table('sellers', function (Blueprint $table) {
-            if (!Schema::hasColumn('sellers', 'sales_link_token')) {
-                $table->string('sales_link_token', 40)->nullable()->unique()->after('status')
-                    ->comment('Token del enlace público de venta (regenerable)');
+        Schema::table('sellers', function(Blueprint $table) {
+            if (Schema::hasColumn('sellers', 'sales_link_token')) {
+                $table->dropUnique(['sales_link_token']);
+                $table->dropColumn('sales_link_token');
             }
         });
     }
 
-    public function down(): void
+    public function up() : void
     {
-        Schema::table('sellers', function (Blueprint $table) {
-            if (Schema::hasColumn('sellers', 'sales_link_token')) {
-                $table->dropUnique(['sales_link_token']);
-                $table->dropColumn('sales_link_token');
+        Schema::table('sellers', function(Blueprint $table) {
+            if (! Schema::hasColumn('sellers', 'sales_link_token')) {
+                $table->string('sales_link_token', 40)->nullable()->unique()->after('status')
+                    ->comment('Token del enlace público de venta (regenerable)');
             }
         });
     }

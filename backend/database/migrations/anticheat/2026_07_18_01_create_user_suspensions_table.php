@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('user_suspensions', function (Blueprint $table) {
+        Schema::dropIfExists('user_suspensions');
+    }
+
+    public function up() : void
+    {
+        Schema::create('user_suspensions', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la suspensión');
 
             $table->foreignSnowflake('user_id')
@@ -40,10 +45,5 @@ return new class extends Migration
             $table->index(['user_id', 'resolved_at'], 'idx_suspensions_user_active');
             $table->index('origin');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('user_suspensions');
     }
 };

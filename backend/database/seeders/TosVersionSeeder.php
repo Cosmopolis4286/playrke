@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class TosVersionSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         TosVersion::firstOrCreate(
             ['version' => '1.0.0'],

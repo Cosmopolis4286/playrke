@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_rooms_config');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_rooms_config', function (Blueprint $table) {
+        Schema::create('bingo_rooms_config', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID de la configuración de la sala');
 
@@ -231,13 +239,5 @@ return new class extends Migration
             $table->index(['from_house', 'date'], 'idx_bingo_rooms_config_house_date');
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_rooms_config');
     }
 };

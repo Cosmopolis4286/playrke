@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('document_types', function (Blueprint $table) {
+        Schema::dropIfExists('document_types');
+    }
+
+    public function up() : void
+    {
+        Schema::create('document_types', function(Blueprint $table) {
             $table->snowflake('id')->primary(); // ID único Snowflake
             $table->string('code', 25)->comment('Código corto del documento');
             $table->string('description', 100)->comment('Descripción legible del documento');
@@ -28,10 +33,5 @@ return new class extends Migration
             // Índice para consultas frecuentes por país y estado
             $table->index(['country_id', 'status'], 'idx_document_types_country_status');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('document_types');
     }
 };

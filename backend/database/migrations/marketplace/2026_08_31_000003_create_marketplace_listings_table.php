@@ -5,16 +5,26 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Publicación de venta de un PlayerAsset. El precio se copia a
  * marketplace_orders.price al crear la orden — editar un listing ACTIVE no
  * afecta órdenes ya creadas contra él.
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('marketplace_listings', function (Blueprint $table) {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE marketplace_listings DROP CHECK chk_marketplace_listings_price_positive');
+            DB::statement('ALTER TABLE marketplace_listings DROP CHECK chk_marketplace_listings_quantity_positive');
+        }
+
+        Schema::dropIfExists('marketplace_listings');
+    }
+
+    public function up() : void
+    {
+        Schema::create('marketplace_listings', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('seller_id')
@@ -51,15 +61,5 @@ return new class extends Migration
             DB::statement('ALTER TABLE marketplace_listings ADD CONSTRAINT chk_marketplace_listings_price_positive CHECK (price > 0)');
             DB::statement('ALTER TABLE marketplace_listings ADD CONSTRAINT chk_marketplace_listings_quantity_positive CHECK (quantity > 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE marketplace_listings DROP CHECK chk_marketplace_listings_price_positive');
-            DB::statement('ALTER TABLE marketplace_listings DROP CHECK chk_marketplace_listings_quantity_positive');
-        }
-
-        Schema::dropIfExists('marketplace_listings');
     }
 };

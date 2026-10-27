@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('system_logs', function (Blueprint $table) {
+        Schema::dropIfExists('system_logs');
+    }
+
+    public function up() : void
+    {
+        Schema::create('system_logs', function(Blueprint $table) {
             // PK con Snowflake — mismo patrón que command_logs, tabla de
             // sistema de alto volumen poblada automáticamente por el canal
             // de log 'database' (ver App\Logging\DatabaseLogHandler).
@@ -23,7 +28,7 @@ return new class extends Migration
             $table->text('stack')->nullable();
             $table->json('meta')->nullable();
 
-            /**
+            /*
              * Agrupación de errores repetidos (ej. un job en loop generando
              * el mismo error cientos de veces) — sin esto, /logs se llena de
              * filas idénticas en vez de mostrar "este error pasó N veces".
@@ -33,7 +38,7 @@ return new class extends Migration
             $table->unsignedInteger('occurrences')->default(1);
             $table->timestamp('last_seen_at')->nullable();
 
-            /**
+            /*
              * Marcado manual de revisión — distingue "ya lo vi, es conocido"
              * de "nuevo, sin revisar" cuando hay más de un admin mirando logs.
              */
@@ -44,7 +49,7 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->cascadeOnUpdate();
 
-            /**
+            /*
              * "Conocido, no volver a alertar" — a diferencia de reviewed_at
              * (por fila, no sobrevive a una nueva ocurrencia del mismo
              * fingerprint), ignored_at aplica al fingerprint completo:
@@ -75,10 +80,5 @@ return new class extends Migration
             $table->index('ignored_at');
             $table->index('assigned_to_user_id');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('system_logs');
     }
 };

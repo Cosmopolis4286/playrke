@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Columnas necesarias para que MatchmakingService pueda filtrar sesiones
  * por rango de entrada/moneda/cupo con queries SQL normales, en vez de
  * depender de game_sessions.metadata (json, no indexable eficientemente).
@@ -16,7 +16,24 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        if (! Schema::hasColumn('game_sessions', 'entry_fee')) {
+            return;
+        }
+
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE game_sessions DROP CHECK chk_game_sessions_entry_fee_nonneg');
+            DB::statement('ALTER TABLE game_sessions DROP CHECK chk_game_sessions_prize_pool_nonneg');
+        }
+
+        Schema::table('game_sessions', function(Blueprint $table) {
+            $table->dropForeign(['currency_id']);
+            $table->dropColumn(['entry_fee', 'currency_id', 'prize_pool', 'max_participants', 'min_level']);
+        });
+    }
+
+    public function up() : void
     {
         // Guard de idempotencia — mismo patrón que
         // 2026_08_31_000100_add_pending_debt_to_wallets_table: sin esto, un
@@ -28,7 +45,7 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('game_sessions', function (Blueprint $table) {
+        Schema::table('game_sessions', function(Blueprint $table) {
             $table->decimal('entry_fee', 15, 2)->nullable()->after('status')
                 ->comment('Costo de entrada para unirse a esta sesión, en currency_id. Null = sin costo/no aplica.');
 
@@ -52,22 +69,5 @@ return new class extends Migration
             DB::statement('ALTER TABLE game_sessions ADD CONSTRAINT chk_game_sessions_entry_fee_nonneg CHECK (entry_fee IS NULL OR entry_fee >= 0)');
             DB::statement('ALTER TABLE game_sessions ADD CONSTRAINT chk_game_sessions_prize_pool_nonneg CHECK (prize_pool IS NULL OR prize_pool >= 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (! Schema::hasColumn('game_sessions', 'entry_fee')) {
-            return;
-        }
-
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE game_sessions DROP CHECK chk_game_sessions_entry_fee_nonneg');
-            DB::statement('ALTER TABLE game_sessions DROP CHECK chk_game_sessions_prize_pool_nonneg');
-        }
-
-        Schema::table('game_sessions', function (Blueprint $table) {
-            $table->dropForeign(['currency_id']);
-            $table->dropColumn(['entry_fee', 'currency_id', 'prize_pool', 'max_participants', 'min_level']);
-        });
     }
 };

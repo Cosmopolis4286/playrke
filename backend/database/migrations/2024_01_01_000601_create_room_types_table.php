@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('room_types');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('room_types', function (Blueprint $table) {
+        Schema::create('room_types', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del modo de juego');
 
@@ -31,13 +39,5 @@ return new class extends Migration
             $table->index('status', 'idx_room_types_status');
             $table->index('label', 'idx_room_types_label');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('room_types');
     }
 };

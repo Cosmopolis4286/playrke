@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Domains\Wallet\Models\Wallet;
 use App\Models\Currency;
 use App\Models\User;
-use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -14,7 +14,7 @@ class WalletFactory extends Factory
 {
     protected $model = Wallet::class;
 
-    public function definition(): array
+    public function definition() : array
     {
         return [
             'user_id' => User::factory(),

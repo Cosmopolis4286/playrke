@@ -10,7 +10,7 @@ class AchievementSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run() : void
     {
         $achievements = [
             // Logros de Juegos

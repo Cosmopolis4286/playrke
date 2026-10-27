@@ -12,7 +12,7 @@ class CurrencyFactory extends Factory
 {
     protected $model = Currency::class;
 
-    public function definition(): array
+    public function definition() : array
     {
         return [
             'iso_code' => strtoupper(fake()->unique()->lexify('???')),

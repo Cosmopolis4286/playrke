@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Participación EN CURSO en una game_session — distinta de
  * game_participations (que registra el RESULTADO FINAL de una partida, ya
  * poblada por GameCompletionService para Bingo/Trivia).
@@ -20,9 +20,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('game_session_participants', function (Blueprint $table) {
+        Schema::dropIfExists('game_session_participants');
+    }
+
+    public function up() : void
+    {
+        Schema::create('game_session_participants', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la participación en curso');
 
             $table->foreignSnowflake('game_session_id')
@@ -47,10 +52,5 @@ return new class extends Migration
             $table->unique(['game_session_id', 'user_id'], 'game_session_participants_session_user_unique');
             $table->index(['game_session_id', 'status']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('game_session_participants');
     }
 };

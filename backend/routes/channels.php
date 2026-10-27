@@ -16,43 +16,43 @@ use Illuminate\Support\Facades\Gate;
 */
 
 // Private User Channel
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+Broadcast::channel('App.Models.User.{id}', function($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
 // Public Bingo Room Channels (no authentication required)
-Broadcast::channel('bingo.room.{roomId}', function () {
+Broadcast::channel('bingo.room.{roomId}', function() {
     return true; // Public channel - anyone can listen
 });
 
 // Public Bingo Lobby Channel (no authentication required)
 // Notifica activación/desactivación de salas para la vista de game-rooms.
-Broadcast::channel('bingo.lobby', function () {
+Broadcast::channel('bingo.lobby', function() {
     return true; // Public channel - anyone can listen
 });
 
 // Canal público del feed de ganancias en vivo (toda la plataforma, cualquier juego/premio).
-Broadcast::channel('platform.win-events', function () {
+Broadcast::channel('platform.win-events', function() {
     return true; // Public channel - anyone can listen
 });
 
 // Private Bingo Player Channel (authenticated users only)
-Broadcast::channel('bingo.player.{userId}', function ($user, $userId) {
+Broadcast::channel('bingo.player.{userId}', function($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
 // Canal privado para admins/superadmins/tesorería: movimientos de billetera pendientes
-Broadcast::channel('admins.wallet-movements', function ($user) {
+Broadcast::channel('admins.wallet-movements', function($user) {
     return $user->hasRole(['admin', 'superadmin', 'treasurer']);
 });
 
 // Canal privado para admins/superadmins: actividad general del sistema (altas de usuario, ventas)
-Broadcast::channel('admins.activity', function ($user) {
+Broadcast::channel('admins.activity', function($user) {
     return $user->hasRole(['admin', 'superadmin']);
 });
 
 // Canal privado de actividad propia de un seller/commerce (ventas de cartones de sus salas)
-Broadcast::channel('creators.activity.{userId}', function ($user, $userId) {
+Broadcast::channel('creators.activity.{userId}', function($user, $userId) {
     return (string) $user->id === (string) $userId || $user->hasRole(['admin', 'superadmin']);
 });
 
@@ -61,22 +61,22 @@ Broadcast::channel('creators.activity.{userId}', function ($user, $userId) {
 // notifica a quien CREA la sala (Commerce); una Subsidiary nunca crea
 // salas, así que necesita su propio canal alimentado desde el mismo evento
 // BingoCardSold cuando el vendedor pertenece a su agencia.
-Broadcast::channel('subsidiary.activity.{userId}', function ($user, $userId) {
+Broadcast::channel('subsidiary.activity.{userId}', function($user, $userId) {
     return (string) $user->id === (string) $userId || $user->hasRole(['admin', 'superadmin']);
 });
 
 // Canal privado de resultados individuales de Trivia (solo el propio jugador)
-Broadcast::channel('trivia.player.{userId}', function ($user, $userId) {
+Broadcast::channel('trivia.player.{userId}', function($user, $userId) {
     return (string) $user->id === (string) $userId;
 });
 
 // Presence Channel for Bingo Room (shows who's online).
 // El canal es privado: reutiliza la misma policy HTTP que protege el estado
 // de la partida para no revelar nombres/usuarios de salas ajenas.
-Broadcast::channel('bingo.room.{roomId}.presence', function ($user, $roomId) {
+Broadcast::channel('bingo.room.{roomId}.presence', function($user, $roomId) {
     $room = BingoRoom::find($roomId);
 
-    if (!$room || !Gate::forUser($user)->allows('viewGame', $room)) {
+    if (! $room || ! Gate::forUser($user)->allows('viewGame', $room)) {
         return false;
     }
 
@@ -89,9 +89,9 @@ Broadcast::channel('bingo.room.{roomId}.presence', function ($user, $roomId) {
 
 // Presence Channel global: cualquier usuario autenticado se une al cargar la SPA,
 // permite que los dashboards de Admin/SuperAdmin cuenten usuarios en línea en vivo.
-Broadcast::channel('online-users', function ($user) {
+Broadcast::channel('online-users', function($user) {
     return [
-        'id'       => (string) $user->id,
+        'id' => (string) $user->id,
         'username' => $user->username,
     ];
 });

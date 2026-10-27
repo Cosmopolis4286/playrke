@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('command_logs');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('command_logs', function (Blueprint $table) {
+        Schema::create('command_logs', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->string('command'); // Nombre del comando ejecutado
@@ -26,13 +34,5 @@ return new class extends Migration
             $table->foreignSnowflake('triggered_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('command_logs');
     }
 };

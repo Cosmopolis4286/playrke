@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class ModuleSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         // Debe reflejar exactamente las claves raíz de
         // SidebarMenuService::$menuStructure — son el punto de unión entre
@@ -25,7 +25,7 @@ class ModuleSeeder extends Seeder
         foreach ($modules as $data) {
             Module::updateOrCreate(
                 ['key' => $data['key']],
-                ['label' => $data['label']]
+                ['label' => $data['label']],
             );
         }
 

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Tabla wallet_limits: configura los topes de depósito y retiro por moneda y
  * nivel de KYC.  Los valores por defecto reflejan una política conservadora
  * hasta que el usuario verifique su identidad.
@@ -19,9 +19,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('wallet_limits', function (Blueprint $table) {
+        Schema::dropIfExists('wallet_limits');
+    }
+
+    public function up() : void
+    {
+        Schema::create('wallet_limits', function(Blueprint $table) {
             $table->id();
 
             // NULL = aplica a todas las monedas (fallback global)
@@ -46,10 +51,5 @@ return new class extends Migration
             $table->unique(['currency_id', 'kyc_level']);
             $table->index('kyc_level');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('wallet_limits');
     }
 };

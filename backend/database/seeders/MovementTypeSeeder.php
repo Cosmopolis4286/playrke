@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class MovementTypeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         // PRIZE queda con game_group null (transversal a todos los juegos:
         // Bingo, Trivia, etc. otorgan premio con el mismo tipo) — se muestra
