@@ -33,39 +33,38 @@ final class AdminSubsidiaryCrudService
         private readonly UserService $userService,
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
-    ) {}
+    ) {
+    }
 
     /**
      * Crear una sucursal completa (User + Subsidiary + Wallet).
      *
-     * @param AdminSubsidiaryDTO $dto
      * @return string Contraseña generada para la sucursal
      *
      * @throws AdminSubsidiaryException
      */
-    public function create(AdminSubsidiaryDTO $dto): string
+    public function create(AdminSubsidiaryDTO $dto) : string
     {
-        return DB::transaction(function () use ($dto) {
-
+        return DB::transaction(function() use ($dto) {
             $plainPassword = bin2hex(random_bytes(4));
 
             // 1. Usuario (Subsidiary no maneja zona horaria propia — nullable en users)
             $user = $this->userService->createUserFromDTO(
                 (object) ['username' => $dto->username, 'email' => $dto->email, 'country' => $dto->country, 'timeZone' => null],
-                $plainPassword
+                $plainPassword,
             );
             $user->assignRole('subsidiary');
 
             // 2. Sucursal
             $subsidiary = $this->subsidiaryRepository->create([
-                'name'         => $dto->name,
-                'commission'   => $dto->commission ?? 0,
-                'phone'        => $dto->phone,
-                'commerce_id'  => $dto->commerce,
-                'country_id'   => $dto->country,
-                'currency_id'  => $dto->currency,
-                'status'       => 'ACTIVE',
-                'user_id'      => $user->id,
+                'name' => $dto->name,
+                'commission' => $dto->commission ?? 0,
+                'phone' => $dto->phone,
+                'commerce_id' => $dto->commerce,
+                'country_id' => $dto->country,
+                'currency_id' => $dto->currency,
+                'status' => 'ACTIVE',
+                'user_id' => $user->id,
             ]);
 
             if (! $subsidiary) {
@@ -74,7 +73,7 @@ final class AdminSubsidiaryCrudService
 
             // 3. Wallet principal
             $this->walletRepository->create([
-                'user_id'     => $user->id,
+                'user_id' => $user->id,
                 'currency_id' => $dto->currency,
             ]);
 
@@ -91,115 +90,14 @@ final class AdminSubsidiaryCrudService
     }
 
     /**
-     * Obtener sucursal para visualización.
-     *
-     * Carga jerarquía completa (mismo criterio que AdminCommerceCrudService::
-     * show()/ManagerSellerCrudService::show()): hacia arriba (Commerce padre)
-     * y hacia abajo (Sellers propios de esta Subsidiary) — antes solo
-     * cargaba commerce:id,name (sin status), sin sellers, dejando la ficha
-     * sin datos de jerarquía para mostrar.
-     *
-     * @param Subsidiary $subsidiary
-     * @return AdminSubsidiaryResource
-     */
-    public function show(Subsidiary $subsidiary): AdminSubsidiaryResource
-    {
-        $subsidiary->load([
-            'commerce:id,name,status',
-            'country:id,name',
-            'user:id,username,email',
-            'sellers:id,name,phone,status,subsidiary_id',
-        ])->loadCount('sellers');
-
-        return new AdminSubsidiaryResource($subsidiary);
-    }
-
-    /**
-     * Actualizar sucursal.
-     *
-     * @param Subsidiary $subsidiary
-     * @param AdminSubsidiaryDTO $dto
-     *
-     * @throws AdminSubsidiaryException
-     */
-    public function update(Subsidiary $subsidiary, AdminSubsidiaryDTO $dto): void
-    {
-        DB::transaction(function () use ($subsidiary, $dto) {
-
-            $commerceChanged = $dto->commerce !== null
-                && (string) $dto->commerce !== (string) $subsidiary->commerce_id;
-
-            $this->subsidiaryRepository->update(
-                $subsidiary->id,
-                array_filter([
-                    'name'        => $dto->name,
-                    'phone'       => $dto->phone,
-                    'commission'  => $dto->commission,
-                    'commerce_id' => $dto->commerce,
-                    'country_id'  => $dto->country,
-                    'currency_id' => $dto->currency,
-                ], static fn ($value) => $value !== null)
-            );
-
-            // sellers.manager_user_id de los vendedores de agencia apunta al
-            // user_id del Commerce padre (ver ManagerSellerService::
-            // resolveManagerForUser()). Si la agencia cambia de Commerce, sin
-            // esto sus vendedores seguían listados/contados en la red del
-            // Commerce ANTERIOR (Commerce::sellers()/networkUserIds()) y
-            // ausentes del listado del nuevo.
-            if ($commerceChanged) {
-                $newCommerceUserId = Commerce::where('id', $dto->commerce)->value('user_id');
-
-                if (!$newCommerceUserId) {
-                    throw AdminSubsidiaryException::creationFailed();
-                }
-
-                // withTrashed: un seller soft-deleted restaurado después no
-                // debe volver apuntando al Commerce anterior.
-                Seller::withTrashed()
-                    ->where('subsidiary_id', $subsidiary->id)
-                    ->update(['manager_user_id' => $newCommerceUserId]);
-            }
-
-            if ($dto->email !== null || $dto->username !== null) {
-                $subsidiary->user()->update(array_filter([
-                    'email'    => $dto->email,
-                    'username' => $dto->username,
-                ]));
-            }
-        });
-    }
-
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) de la sucursal.
-     * También sincroniza el estado del usuario asociado.
-     *
-     * @param Subsidiary $subsidiary
-     * @return bool True si el cambio fue exitoso
-     *
-     * @throws AdminSubsidiaryException Si la sucursal está eliminada
-     */
-    public function toggleStatus(Subsidiary $subsidiary): bool
-    {
-        if ($subsidiary->status === 'DELETED') {
-            throw AdminSubsidiaryException::invalidStatusChange();
-        }
-
-        $newStatus = $subsidiary->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-        return $this->subsidiaryRepository->changeStatus($subsidiary, $newStatus, 'user');
-    }
-
-    /**
      * Eliminación lógica (soft delete) de la sucursal.
      * También marca el usuario asociado como DELETED.
      *
-     * @param Subsidiary $subsidiary
      * @return bool True si la eliminación fue exitosa
      *
      * @throws AdminSubsidiaryException Si la sucursal ya está eliminada
      */
-    public function delete(Subsidiary $subsidiary): bool
+    public function delete(Subsidiary $subsidiary) : bool
     {
         if ($subsidiary->status === 'DELETED') {
             throw AdminSubsidiaryException::alreadyDeleted();
@@ -209,21 +107,19 @@ final class AdminSubsidiaryCrudService
             model: $subsidiary,
             status: 'DELETED',
             relationsToDetach: [],
-            userRelation: 'user'
+            userRelation: 'user',
         );
     }
 
     /**
      * Eliminación definitiva de la sucursal y su usuario asociado.
      *
-     * @param Subsidiary $subsidiary
      *
      * @throws AdminSubsidiaryException
      */
-    public function destroy(Subsidiary $subsidiary): void
+    public function destroy(Subsidiary $subsidiary) : void
     {
-        DB::transaction(function () use ($subsidiary) {
-
+        DB::transaction(function() use ($subsidiary) {
             $subsidiary->loadMissing(['user']);
 
             // Elimina wallets del usuario
@@ -241,6 +137,99 @@ final class AdminSubsidiaryCrudService
 
             if (! $hasOtherSubsidiaries && $user) {
                 $user->forceDelete();
+            }
+        });
+    }
+
+    /**
+     * Obtener sucursal para visualización.
+     *
+     * Carga jerarquía completa (mismo criterio que AdminCommerceCrudService::
+     * show()/ManagerSellerCrudService::show()): hacia arriba (Commerce padre)
+     * y hacia abajo (Sellers propios de esta Subsidiary) — antes solo
+     * cargaba commerce:id,name (sin status), sin sellers, dejando la ficha
+     * sin datos de jerarquía para mostrar.
+     */
+    public function show(Subsidiary $subsidiary) : AdminSubsidiaryResource
+    {
+        $subsidiary->load([
+            'commerce:id,name,status',
+            'country:id,name',
+            'user:id,username,email',
+            'sellers:id,name,phone,status,subsidiary_id',
+        ])->loadCount('sellers');
+
+        return new AdminSubsidiaryResource($subsidiary);
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) de la sucursal.
+     * También sincroniza el estado del usuario asociado.
+     *
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws AdminSubsidiaryException Si la sucursal está eliminada
+     */
+    public function toggleStatus(Subsidiary $subsidiary) : bool
+    {
+        if ($subsidiary->status === 'DELETED') {
+            throw AdminSubsidiaryException::invalidStatusChange();
+        }
+
+        $newStatus = $subsidiary->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        return $this->subsidiaryRepository->changeStatus($subsidiary, $newStatus, 'user');
+    }
+
+    /**
+     * Actualizar sucursal.
+     *
+     *
+     * @throws AdminSubsidiaryException
+     */
+    public function update(Subsidiary $subsidiary, AdminSubsidiaryDTO $dto) : void
+    {
+        DB::transaction(function() use ($subsidiary, $dto) {
+            $commerceChanged = $dto->commerce !== null
+                && (string) $dto->commerce !== (string) $subsidiary->commerce_id;
+
+            $this->subsidiaryRepository->update(
+                $subsidiary->id,
+                array_filter([
+                    'name' => $dto->name,
+                    'phone' => $dto->phone,
+                    'commission' => $dto->commission,
+                    'commerce_id' => $dto->commerce,
+                    'country_id' => $dto->country,
+                    'currency_id' => $dto->currency,
+                ], static fn ($value) => $value !== null),
+            );
+
+            // sellers.manager_user_id de los vendedores de agencia apunta al
+            // user_id del Commerce padre (ver ManagerSellerService::
+            // resolveManagerForUser()). Si la agencia cambia de Commerce, sin
+            // esto sus vendedores seguían listados/contados en la red del
+            // Commerce ANTERIOR (Commerce::sellers()/networkUserIds()) y
+            // ausentes del listado del nuevo.
+            if ($commerceChanged) {
+                $newCommerceUserId = Commerce::where('id', $dto->commerce)->value('user_id');
+
+                if (! $newCommerceUserId) {
+                    throw AdminSubsidiaryException::creationFailed();
+                }
+
+                // withTrashed: un seller soft-deleted restaurado después no
+                // debe volver apuntando al Commerce anterior.
+                Seller::withTrashed()
+                    ->where('subsidiary_id', $subsidiary->id)
+                    ->update(['manager_user_id' => $newCommerceUserId]);
+            }
+
+            if ($dto->email !== null || $dto->username !== null) {
+                $subsidiary->user()->update(array_filter([
+                    'email' => $dto->email,
+                    'username' => $dto->username,
+                ]));
             }
         });
     }

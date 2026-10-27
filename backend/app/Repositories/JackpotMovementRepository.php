@@ -13,17 +13,17 @@ class JackpotMovementRepository extends BaseRepository implements JackpotMovemen
         $this->model = $model;
     }
 
-    public function record(array $data): JackpotMovement
-    {
-        return $this->model->create($data);
-    }
-
-    public function getByJackpot(string $jackpotId, int $limit = 20): Collection
+    public function getByJackpot(string $jackpotId, int $limit = 20) : Collection
     {
         return $this->model
             ->where('jackpot_id', $jackpotId)
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();
+    }
+
+    public function record(array $data) : JackpotMovement
+    {
+        return $this->model->create($data);
     }
 }

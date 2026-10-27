@@ -2,10 +2,11 @@
 
 namespace App\Repositories\Roles\Treasurer;
 
+use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use App\Models\Roles\Treasurer;
 use App\Repositories\BaseRepository;
-use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 
 /**
  * Repositorio para la gestión de tesoreros.
@@ -17,41 +18,43 @@ class TreasurerRepository extends BaseRepository implements TreasurerRepositoryI
         $this->model = $model;
     }
 
-    public function getByCountry(string $countryId): Collection
+    public function createTreasurer(array $data) : mixed
+    {
+        $errors = $this->validateTreasurerData($data);
+        if (! empty($errors)) {
+            throw new InvalidArgumentException('Datos inválidos: ' . json_encode($errors));
+        }
+
+        return $this->model->create($data);
+    }
+
+    public function getByCountry(string $countryId) : Collection
     {
         return $this->model->where('country', $countryId)->get();
     }
 
-    public function getByCurrency(string $currencyId): Collection
+    public function getByCurrency(string $currencyId) : Collection
     {
         return $this->model->where('currency', $currencyId)->get();
     }
 
-    public function getByUuidCode(string $uuidCode): mixed
+    public function getByUuidCode(string $uuidCode) : mixed
     {
         return $this->model->where('uuid_code', $uuidCode)->first();
     }
 
-    public function createTreasurer(array $data): mixed
-    {
-        $errors = $this->validateTreasurerData($data);
-        if (!empty($errors)) {
-            throw new \InvalidArgumentException('Datos inválidos: ' . json_encode($errors));
-        }
-        return $this->model->create($data);
-    }
-
-    public function updateStatus(string $treasurerId, bool $status): bool
+    public function updateStatus(string $treasurerId, bool $status) : bool
     {
         return $this->model->where('id', $treasurerId)->update(['status' => $status]) > 0;
     }
 
-    public function validateTreasurerData(array $data, ?string $excludeId = null): array
+    public function validateTreasurerData(array $data, ?string $excludeId = null) : array
     {
         $errors = [];
         if (isset($data['name']) && empty(trim($data['name']))) {
             $errors['name'] = 'El nombre es requerido';
         }
+
         return $errors;
     }
 }

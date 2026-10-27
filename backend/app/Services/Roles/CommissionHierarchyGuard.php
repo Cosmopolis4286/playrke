@@ -35,39 +35,26 @@ final class CommissionHierarchyGuard
     /** Tolerancia para comparar tasas decimal(…, 2) leídas como float. */
     private const EPSILON = 0.001;
 
-    public static function rateChanged(mixed $new, mixed $current): bool
+    public static function rateChanged(mixed $new, mixed $current) : bool
     {
         return $new !== null && $new !== ''
             && abs((float) $new - (float) ($current ?? 0)) > self::EPSILON;
     }
 
     /**
-     * Tope de un vendedor: la tasa de su agencia si la agencia cobra comisión
-     * propia; si no (vendedor directo o agencia de paso), la de su
-     * comercializadora.
+     * Tasa de una comercializadora: ≥ cada agencia y cada vendedor de su red
+     * (directos y de agencia — los de una agencia de paso cuelgan de ella).
      */
-    public function sellerCap(?string $subsidiaryId, int|string|null $commerceUserId): ?float
+    public function assertCommerceRate(float $rate, Commerce $commerce) : void
     {
-        if ($subsidiaryId) {
-            $subsidiary = Subsidiary::with('commerce:id,commission')->find($subsidiaryId, ['id', 'commerce_id', 'commission']);
+        $min = $this->maxNetworkRate($commerce);
 
-            if ($subsidiary && (float) $subsidiary->commission > self::EPSILON) {
-                return (float) $subsidiary->commission;
-            }
-
-            if ($subsidiary?->commerce) {
-                return (float) $subsidiary->commerce->commission;
-            }
+        if ($rate + self::EPSILON < $min) {
+            throw CommissionHierarchyException::belowChildren($rate, $min);
         }
-
-        $commerceRate = $commerceUserId !== null
-            ? Commerce::where('user_id', $commerceUserId)->value('commission')
-            : null;
-
-        return $commerceRate !== null ? (float) $commerceRate : null;
     }
 
-    public function assertSellerRate(float $rate, ?string $subsidiaryId, int|string|null $commerceUserId): void
+    public function assertSellerRate(float $rate, ?string $subsidiaryId, int|string|null $commerceUserId) : void
     {
         $max = $this->sellerCap($subsidiaryId, $commerceUserId);
 
@@ -82,7 +69,7 @@ final class CommissionHierarchyGuard
      * quedar ≤ la comercializadora (cubre trasladar una agencia de paso a una
      * comercializadora con tasa menor). $subsidiaryId null en el alta.
      */
-    public function assertSubsidiaryRate(float $rate, int|string $commerceId, ?string $subsidiaryId = null): void
+    public function assertSubsidiaryRate(float $rate, int|string $commerceId, ?string $subsidiaryId = null) : void
     {
         $commerceRate = Commerce::whereKey($commerceId)->value('commission');
         $max = $commerceRate !== null ? (float) $commerceRate : null;
@@ -113,19 +100,86 @@ final class CommissionHierarchyGuard
     }
 
     /**
-     * Tasa de una comercializadora: ≥ cada agencia y cada vendedor de su red
-     * (directos y de agencia — los de una agencia de paso cuelgan de ella).
+     * Registros existentes que violan algún tope — mismas reglas que los
+     * assert*(). Para el comando commissions:audit-hierarchy.
+     *
+     * @return list<array{type: string, id: string, name: string, rate: float, max: float, parent: string}>
      */
-    public function assertCommerceRate(float $rate, Commerce $commerce): void
+    public function findViolations() : array
     {
-        $min = $this->maxNetworkRate($commerce);
+        $violations = [];
 
-        if ($rate + self::EPSILON < $min) {
-            throw CommissionHierarchyException::belowChildren($rate, $min);
+        $subsidiaries = Subsidiary::with('commerce:id,name,commission')
+            ->where('status', '!=', 'DELETED')
+            ->get(['id', 'name', 'commerce_id', 'commission']);
+
+        foreach ($subsidiaries as $subsidiary) {
+            if ($subsidiary->commerce && (float) $subsidiary->commission > (float) $subsidiary->commerce->commission + self::EPSILON) {
+                $violations[] = [
+                    'type' => 'agencia',
+                    'id' => (string) $subsidiary->id,
+                    'name' => $subsidiary->name,
+                    'rate' => (float) $subsidiary->commission,
+                    'max' => (float) $subsidiary->commerce->commission,
+                    'parent' => 'comercializadora ' . $subsidiary->commerce->name,
+                ];
+            }
         }
+
+        Seller::with(['subsidiary:id,name,commerce_id,commission', 'subsidiary.commerce:id,name,commission', 'managerCommerce:id,user_id,name,commission'])
+            ->where('status', '!=', 'DELETED')
+            ->chunkById(500, function($sellers) use (&$violations) {
+                foreach ($sellers as $seller) {
+                    $agencyCharges = $seller->subsidiary && (float) $seller->subsidiary->commission > self::EPSILON;
+                    $commerce = $seller->resolveCommerce();
+
+                    [$max, $parent] = $agencyCharges
+                        ? [(float) $seller->subsidiary->commission, 'agencia ' . $seller->subsidiary->name]
+                        : [$commerce ? (float) $commerce->commission : null, $commerce ? 'comercializadora ' . $commerce->name : null];
+
+                    if ($max !== null && (float) $seller->commission > $max + self::EPSILON) {
+                        $violations[] = [
+                            'type' => 'vendedor',
+                            'id' => (string) $seller->id,
+                            'name' => $seller->name,
+                            'rate' => (float) $seller->commission,
+                            'max' => $max,
+                            'parent' => $parent,
+                        ];
+                    }
+                }
+            });
+
+        return $violations;
     }
 
-    private function maxNetworkRate(Commerce $commerce): float
+    /**
+     * Tope de un vendedor: la tasa de su agencia si la agencia cobra comisión
+     * propia; si no (vendedor directo o agencia de paso), la de su
+     * comercializadora.
+     */
+    public function sellerCap(?string $subsidiaryId, int|string|null $commerceUserId) : ?float
+    {
+        if ($subsidiaryId) {
+            $subsidiary = Subsidiary::with('commerce:id,commission')->find($subsidiaryId, ['id', 'commerce_id', 'commission']);
+
+            if ($subsidiary && (float) $subsidiary->commission > self::EPSILON) {
+                return (float) $subsidiary->commission;
+            }
+
+            if ($subsidiary?->commerce) {
+                return (float) $subsidiary->commerce->commission;
+            }
+        }
+
+        $commerceRate = $commerceUserId !== null
+            ? Commerce::where('user_id', $commerceUserId)->value('commission')
+            : null;
+
+        return $commerceRate !== null ? (float) $commerceRate : null;
+    }
+
+    private function maxNetworkRate(Commerce $commerce) : float
     {
         $subsidiaryIds = Subsidiary::where('commerce_id', $commerce->id)
             ->where('status', '!=', 'DELETED')
@@ -140,59 +194,5 @@ final class CommissionHierarchyGuard
             ->max('commission');
 
         return max((float) ($maxSubsidiary ?? 0), (float) ($maxSeller ?? 0));
-    }
-
-    /**
-     * Registros existentes que violan algún tope — mismas reglas que los
-     * assert*(). Para el comando commissions:audit-hierarchy.
-     *
-     * @return list<array{type: string, id: string, name: string, rate: float, max: float, parent: string}>
-     */
-    public function findViolations(): array
-    {
-        $violations = [];
-
-        $subsidiaries = Subsidiary::with('commerce:id,name,commission')
-            ->where('status', '!=', 'DELETED')
-            ->get(['id', 'name', 'commerce_id', 'commission']);
-
-        foreach ($subsidiaries as $subsidiary) {
-            if ($subsidiary->commerce && (float) $subsidiary->commission > (float) $subsidiary->commerce->commission + self::EPSILON) {
-                $violations[] = [
-                    'type'   => 'agencia',
-                    'id'     => (string) $subsidiary->id,
-                    'name'   => $subsidiary->name,
-                    'rate'   => (float) $subsidiary->commission,
-                    'max'    => (float) $subsidiary->commerce->commission,
-                    'parent' => 'comercializadora ' . $subsidiary->commerce->name,
-                ];
-            }
-        }
-
-        Seller::with(['subsidiary:id,name,commerce_id,commission', 'subsidiary.commerce:id,name,commission', 'managerCommerce:id,user_id,name,commission'])
-            ->where('status', '!=', 'DELETED')
-            ->chunkById(500, function ($sellers) use (&$violations) {
-                foreach ($sellers as $seller) {
-                    $agencyCharges = $seller->subsidiary && (float) $seller->subsidiary->commission > self::EPSILON;
-                    $commerce = $seller->resolveCommerce();
-
-                    [$max, $parent] = $agencyCharges
-                        ? [(float) $seller->subsidiary->commission, 'agencia ' . $seller->subsidiary->name]
-                        : [$commerce ? (float) $commerce->commission : null, $commerce ? 'comercializadora ' . $commerce->name : null];
-
-                    if ($max !== null && (float) $seller->commission > $max + self::EPSILON) {
-                        $violations[] = [
-                            'type'   => 'vendedor',
-                            'id'     => (string) $seller->id,
-                            'name'   => $seller->name,
-                            'rate'   => (float) $seller->commission,
-                            'max'    => $max,
-                            'parent' => $parent,
-                        ];
-                    }
-                }
-            });
-
-        return $violations;
     }
 }

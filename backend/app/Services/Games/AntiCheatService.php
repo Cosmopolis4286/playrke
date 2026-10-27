@@ -30,7 +30,7 @@ final class AntiCheatService
     public function __construct()
     {
         $this->suspensionThreshold = (int) config('anticheat.suspension_threshold', 5);
-        $this->windowMinutes       = (int) config('anticheat.window_minutes', 1440);
+        $this->windowMinutes = (int) config('anticheat.window_minutes', 1440);
     }
 
     /**
@@ -38,7 +38,7 @@ final class AntiCheatService
      * severidad del usuario en la ventana configurada alcanza el umbral,
      * dispara auto-suspensión de forma atómica.
      *
-     * @param  array<string,mixed>  $metadata
+     * @param array<string,mixed> $metadata
      */
     public function flag(
         string $userId,
@@ -47,17 +47,17 @@ final class AntiCheatService
         ?string $gameId = null,
         array $metadata = [],
         ?int $severityOverride = null,
-    ): AntiCheatFlag {
+    ) : AntiCheatFlag {
         $severity = $severityOverride ?? $signal->defaultSeverity();
 
-        $flag = DB::transaction(function () use ($userId, $game, $signal, $gameId, $metadata, $severity) {
+        $flag = DB::transaction(function() use ($userId, $game, $signal, $gameId, $metadata, $severity) {
             $flag = AntiCheatFlag::create([
-                'user_id'     => $userId,
-                'game_slug'   => $game->value,
-                'game_id'     => $gameId,
+                'user_id' => $userId,
+                'game_slug' => $game->value,
+                'game_id' => $gameId,
                 'signal_type' => $signal,
-                'severity'    => $severity,
-                'metadata'    => $metadata,
+                'severity' => $severity,
+                'metadata' => $metadata,
             ]);
 
             $this->evaluateAutoSuspension($userId, $flag);
@@ -66,14 +66,22 @@ final class AntiCheatService
         });
 
         Log::warning('[AntiCheat] Señal registrada', [
-            'user_id'     => $userId,
-            'game'        => $game->value,
+            'user_id' => $userId,
+            'game' => $game->value,
             'signal_type' => $signal->value,
-            'severity'    => $severity,
-            'flag_id'     => $flag->id,
+            'severity' => $severity,
+            'flag_id' => $flag->id,
         ]);
 
         return $flag;
+    }
+
+    /**
+     * ¿Tiene el usuario una suspensión activa (resolved_at IS NULL)?
+     */
+    public function hasActiveSuspension(string $userId) : bool
+    {
+        return UserSuspension::where('user_id', $userId)->whereNull('resolved_at')->exists();
     }
 
     /**
@@ -81,7 +89,7 @@ final class AntiCheatService
      * Agregado CROSS-JUEGO a propósito: un usuario haciendo trampa en Bingo
      * y Trivia con el mismo patrón de bot debe sumar, no resetear por juego.
      */
-    public function recentSeverity(string $userId, ?GameSlug $game = null): int
+    public function recentSeverity(string $userId, ?GameSlug $game = null) : int
     {
         $query = AntiCheatFlag::forUser($userId)->recent($this->windowMinutes);
 
@@ -93,17 +101,9 @@ final class AntiCheatService
     }
 
     /**
-     * ¿Tiene el usuario una suspensión activa (resolved_at IS NULL)?
-     */
-    public function hasActiveSuspension(string $userId): bool
-    {
-        return UserSuspension::where('user_id', $userId)->whereNull('resolved_at')->exists();
-    }
-
-    /**
      * Idempotente: si ya hay una suspensión activa, no crea una segunda.
      */
-    private function evaluateAutoSuspension(string $userId, AntiCheatFlag $triggeringFlag): void
+    private function evaluateAutoSuspension(string $userId, AntiCheatFlag $triggeringFlag) : void
     {
         if ($this->hasActiveSuspension($userId)) {
             return;
@@ -118,20 +118,20 @@ final class AntiCheatService
         $triggeringFlag->update(['triggered_suspension' => true]);
 
         UserSuspension::create([
-            'user_id'            => $userId,
-            'origin'             => UserSuspension::ORIGIN_ANTI_CHEAT,
-            'reason'             => "Umbral de severidad anti-cheat alcanzado ({$total}/{$this->suspensionThreshold}) en {$this->windowMinutes} min.",
+            'user_id' => $userId,
+            'origin' => UserSuspension::ORIGIN_ANTI_CHEAT,
+            'reason' => "Umbral de severidad anti-cheat alcanzado ({$total}/{$this->suspensionThreshold}) en {$this->windowMinutes} min.",
             'triggering_flag_id' => $triggeringFlag->id,
-            'expires_at'         => null,
+            'expires_at' => null,
         ]);
 
         User::where('id', $userId)->update(['status' => 'SUSPENDED']);
 
         Log::critical('[AntiCheat] Usuario auto-suspendido', [
-            'user_id'        => $userId,
+            'user_id' => $userId,
             'total_severity' => $total,
-            'threshold'      => $this->suspensionThreshold,
-            'flag_id'        => $triggeringFlag->id,
+            'threshold' => $this->suspensionThreshold,
+            'flag_id' => $triggeringFlag->id,
         ]);
     }
 }

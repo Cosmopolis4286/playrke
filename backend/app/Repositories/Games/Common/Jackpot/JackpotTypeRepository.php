@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Games\Common\Jackpot;
 
+use App\Contracts\Games\Common\Jackpot\JackpotTypeRepositoryInterface;
 use App\Models\Games\Common\Jackpot\JackpotType;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Common\Jackpot\JackpotTypeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 class JackpotTypeRepository extends BaseRepository implements JackpotTypeRepositoryInterface
@@ -14,22 +14,21 @@ class JackpotTypeRepository extends BaseRepository implements JackpotTypeReposit
         $this->model = $model;
     }
 
-    public function getActiveTypes(): Collection
+    /**
+     * Override: BaseRepository::delete() intenta `status = 'DELETED'` antes
+     * del borrado físico, pero el enum de esta tabla solo admite
+     * ACTIVE/INACTIVE (mismo shape que prize_pool_types) — un borrado
+     * directo es correcto aquí, JackpotTypeService::delete() ya valida que
+     * no esté en uso antes de llegar a este punto.
+     */
+    public function delete(string|int $id) : bool
     {
-        return $this->model->active()->orderBy('label')->get();
+        $model = $this->find($id);
+
+        return $model ? (bool) $model->delete() : false;
     }
 
-    public function getByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->orderBy('label')->get();
-    }
-
-    public function getActiveByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->active()->orderBy('label')->get();
-    }
-
-    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null): bool
+    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null) : bool
     {
         $query = $this->model->where('game_id', $gameId)->where('code', $code);
 
@@ -40,17 +39,18 @@ class JackpotTypeRepository extends BaseRepository implements JackpotTypeReposit
         return $query->exists();
     }
 
-    /**
-     * Override: BaseRepository::delete() intenta `status = 'DELETED'` antes
-     * del borrado físico, pero el enum de esta tabla solo admite
-     * ACTIVE/INACTIVE (mismo shape que prize_pool_types) — un borrado
-     * directo es correcto aquí, JackpotTypeService::delete() ya valida que
-     * no esté en uso antes de llegar a este punto.
-     */
-    public function delete(string|int $id): bool
+    public function getActiveByGame(string $gameId) : Collection
     {
-        $model = $this->find($id);
+        return $this->model->where('game_id', $gameId)->active()->orderBy('label')->get();
+    }
 
-        return $model ? (bool) $model->delete() : false;
+    public function getActiveTypes() : Collection
+    {
+        return $this->model->active()->orderBy('label')->get();
+    }
+
+    public function getByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->orderBy('label')->get();
     }
 }

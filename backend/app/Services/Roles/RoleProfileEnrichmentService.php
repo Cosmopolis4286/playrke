@@ -22,53 +22,6 @@ final class RoleProfileEnrichmentService
     private const RECENT_MOVEMENTS_LIMIT = 5;
 
     /**
-     * Wallets del usuario con su moneda, para la sección "Billetera" de la
-     * ficha — de solo lectura aquí (gestión real vive en /wallet).
-     *
-     * @return array<int, array{currency: string, symbol: string, balance: float, bonus_balance: float}>
-     */
-    public function wallets(User $user): array
-    {
-        return $user->wallets()
-            ->with('currency:id,iso_code,symbol,decimal_places')
-            ->get()
-            ->map(fn ($wallet) => [
-                'currency'      => $wallet->currency?->iso_code ?? '—',
-                'symbol'        => $wallet->currency?->symbol ?? '',
-                'balance'       => (float) $wallet->balance,
-                'bonus_balance' => (float) $wallet->bonus_balance,
-            ])
-            ->all();
-    }
-
-    /**
-     * Últimos movimientos de wallet del usuario (cualquier moneda), para el
-     * timeline de "Actividad reciente" — mismo criterio de campos que
-     * WalletMovementController::mapMovement() pero recortado a lo que la
-     * ficha necesita mostrar.
-     *
-     * @return array<int, array{id: string, type: string, status: string, amount: float, currency: string|null, created_at: string}>
-     */
-    public function recentMovements(User $user): array
-    {
-        return WalletMovement::where('user_id', $user->id)
-            ->with('wallet.currency:id,iso_code,symbol')
-            ->latest('created_at')
-            ->limit(self::RECENT_MOVEMENTS_LIMIT)
-            ->get()
-            ->map(fn (WalletMovement $movement) => [
-                'id'         => (string) $movement->id,
-                'type'       => $movement->type,
-                'type_label' => $movement->getTypeLabel(),
-                'status'     => $movement->status,
-                'amount'     => (float) $movement->amount,
-                'currency'   => $movement->wallet?->currency?->iso_code,
-                'created_at' => $movement->created_at->toIso8601String(),
-            ])
-            ->all();
-    }
-
-    /**
      * Metadatos de cuenta: miembro desde / última conexión — created_at del
      * User (fecha de alta real, no de la entidad de rol) y last_login_at, ya
      * poblado por el flujo de login existente (ver AuthenticatedSessionController).
@@ -82,13 +35,60 @@ final class RoleProfileEnrichmentService
      *
      * @return array{member_since: string, last_login_at: string|null}
      */
-    public function accountMeta(string $userId): array
+    public function accountMeta(string $userId) : array
     {
         $user = User::query()->select(['id', 'created_at', 'last_login_at'])->findOrFail($userId);
 
         return [
-            'member_since'  => $user->created_at->toIso8601String(),
+            'member_since' => $user->created_at->toIso8601String(),
             'last_login_at' => $user->last_login_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Últimos movimientos de wallet del usuario (cualquier moneda), para el
+     * timeline de "Actividad reciente" — mismo criterio de campos que
+     * WalletMovementController::mapMovement() pero recortado a lo que la
+     * ficha necesita mostrar.
+     *
+     * @return array<int, array{id: string, type: string, status: string, amount: float, currency: string|null, created_at: string}>
+     */
+    public function recentMovements(User $user) : array
+    {
+        return WalletMovement::where('user_id', $user->id)
+            ->with('wallet.currency:id,iso_code,symbol')
+            ->latest('created_at')
+            ->limit(self::RECENT_MOVEMENTS_LIMIT)
+            ->get()
+            ->map(fn (WalletMovement $movement) => [
+                'id' => (string) $movement->id,
+                'type' => $movement->type,
+                'type_label' => $movement->getTypeLabel(),
+                'status' => $movement->status,
+                'amount' => (float) $movement->amount,
+                'currency' => $movement->wallet?->currency?->iso_code,
+                'created_at' => $movement->created_at->toIso8601String(),
+            ])
+            ->all();
+    }
+
+    /**
+     * Wallets del usuario con su moneda, para la sección "Billetera" de la
+     * ficha — de solo lectura aquí (gestión real vive en /wallet).
+     *
+     * @return array<int, array{currency: string, symbol: string, balance: float, bonus_balance: float}>
+     */
+    public function wallets(User $user) : array
+    {
+        return $user->wallets()
+            ->with('currency:id,iso_code,symbol,decimal_places')
+            ->get()
+            ->map(fn ($wallet) => [
+                'currency' => $wallet->currency?->iso_code ?? '—',
+                'symbol' => $wallet->currency?->symbol ?? '',
+                'balance' => (float) $wallet->balance,
+                'bonus_balance' => (float) $wallet->bonus_balance,
+            ])
+            ->all();
     }
 }

@@ -9,6 +9,7 @@ use App\Services\AchievementService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Registra cada login exitoso y mantiene la racha de días consecutivos.
@@ -28,11 +29,12 @@ final class LoginStreakService
 {
     public function __construct(
         private readonly AchievementService $achievementService,
-    ) {}
+    ) {
+    }
 
-    public function registerLogin(User $user, ?string $ip = null): void
+    public function registerLogin(User $user, ?string $ip = null) : void
     {
-        DB::transaction(function () use ($user, $ip) {
+        DB::transaction(function() use ($user, $ip) {
             $previousLoginAt = $user->last_login_at;
             $now = Carbon::now();
 
@@ -54,12 +56,12 @@ final class LoginStreakService
             $this->achievementService->checkAndUnlockAchievements($user->fresh(), [
                 'login_streak' => $user->login_streak_days,
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // El login y la racha ya quedaron guardados; un fallo evaluando
             // logros no debe impedir que el usuario entre a la plataforma.
             Log::warning('LoginStreakService: fallo al evaluar logros de racha.', [
                 'user_id' => $user->id,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }

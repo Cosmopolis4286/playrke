@@ -17,42 +17,42 @@ use App\Models\Roles\Commerce;
 final class PlatformConfigService
 {
     /**
-     * Fila singleton de configuración. La migración de creación garantiza
-     * que exista exactamente una fila.
-     */
-    private function config(): PlatformConfig
-    {
-        return PlatformConfig::query()->firstOrFail();
-    }
-
-    public function getDefaultCommerceId(): ?string
-    {
-        return $this->config()->default_commerce_id;
-    }
-
-    public function getDefaultCommerce(): ?Commerce
-    {
-        return $this->config()->defaultCommerce()->first();
-    }
-
-    public function isDefaultCommerce(string $commerceId): bool
-    {
-        return $this->getDefaultCommerceId() === $commerceId;
-    }
-
-    public function setDefaultCommerce(Commerce $commerce): void
-    {
-        $this->config()->update(['default_commerce_id' => $commerce->id]);
-    }
-
-    /**
      * Quita la marca de comercio principal sin reasignarla a otro — la
      * plataforma queda temporalmente sin comercio principal hasta que un
      * superadmin marque uno nuevo. La columna es nullable justo para
      * permitir esto (ver migración de creación de platform_config).
      */
-    public function clearDefaultCommerce(): void
+    public function clearDefaultCommerce() : void
     {
         $this->config()->update(['default_commerce_id' => null]);
+    }
+
+    public function getDefaultCommerce() : ?Commerce
+    {
+        return $this->config()->defaultCommerce()->first();
+    }
+
+    public function getDefaultCommerceId() : ?string
+    {
+        return $this->config()->default_commerce_id;
+    }
+
+    public function isDefaultCommerce(string $commerceId) : bool
+    {
+        return $this->getDefaultCommerceId() === $commerceId;
+    }
+
+    public function setDefaultCommerce(Commerce $commerce) : void
+    {
+        $this->config()->update(['default_commerce_id' => $commerce->id]);
+    }
+
+    /**
+     * Fila singleton de configuración. La migración de creación garantiza
+     * que exista exactamente una fila.
+     */
+    private function config() : PlatformConfig
+    {
+        return PlatformConfig::query()->firstOrFail();
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Directories\Fiat\Venezuela;
 
+use App\Contracts\Directories\Fiat\Venezuela\PagoMovilRepositoryInterface;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Repositories\BaseRepository;
-use App\Contracts\Directories\Fiat\Venezuela\PagoMovilRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -28,15 +28,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     /**
      * {@inheritDoc}
      */
-    public function getByUser(string $userId): Collection
-    {
-        return $this->model->where('user_id', $userId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function countActiveByUser(string $userId): int
+    public function countActiveByUser(string $userId) : int
     {
         return $this->model->where('user_id', $userId)->where('status', '!=', 'DELETED')->count();
     }
@@ -44,7 +36,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     /**
      * {@inheritDoc}
      */
-    public function countActiveByUserForUpdate(string $userId): int
+    public function countActiveByUserForUpdate(string $userId) : int
     {
         return $this->model->where('user_id', $userId)->where('status', '!=', 'DELETED')->lockForUpdate()->count();
     }
@@ -52,67 +44,36 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     /**
      * {@inheritDoc}
      */
-    public function getByBank(string $bankId): Collection
-    {
-        return $this->model->where('bank_id', $bankId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByDocumentType(string $documentTypeId): Collection
-    {
-        return $this->model->where('document_type_id', $documentTypeId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByDocument(string $document): Collection
-    {
-        return $this->model->where('document', $document)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByPhone(string $phone): Collection
-    {
-        return $this->model->where('phone', $phone)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function findByAllParameters(
+    public function createPagoMovil(
         string $documentTypeId,
         string $document,
+        string $phone,
         string $bankId,
-        string $phone
-    ): ?PagoMovil {
-        return $this->model->where([
+        string $userId,
+    ) : PagoMovil {
+        return $this->model->create([
             'document_type_id' => $documentTypeId,
             'document_number' => $document,
-            'bank_id' => $bankId,
             'phone' => $phone,
-        ])->first();
+            'bank_id' => $bankId,
+            'user_id' => $userId,
+        ]);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getUserByPagoMovil(
-        string $documentTypeId,
-        string $document,
-        string $bankId,
-        string $phone
-    ): ?string {
-        return $this->model->where([
-            'document_type_id' => $documentTypeId,
-            'document_number' => $document,
-            'bank_id' => $bankId,
-            'phone' => $phone,
-        ])->value('user_id');
+    public function deleteByUser(string $userId) : int
+    {
+        return $this->model->where('user_id', $userId)->delete();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function deletePagoMovil(string $pagoMovilId) : bool
+    {
+        return $this->model->where('id', $pagoMovilId)->delete() > 0;
     }
 
     /**
@@ -123,8 +84,8 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
         string $document,
         string $bankId,
         string $phone,
-        ?string $excludeUserId = null
-    ): bool {
+        ?string $excludeUserId = null,
+    ) : bool {
         $query = $this->model->where([
             'document_type_id' => $documentTypeId,
             'document_number' => $document,
@@ -142,75 +103,81 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     /**
      * {@inheritDoc}
      */
-    public function createPagoMovil(
+    public function findByAllParameters(
         string $documentTypeId,
         string $document,
-        string $phone,
         string $bankId,
-        string $userId
-    ): PagoMovil {
-        return $this->model->create([
+        string $phone,
+    ) : ?PagoMovil {
+        return $this->model->where([
             'document_type_id' => $documentTypeId,
             'document_number' => $document,
-            'phone' => $phone,
             'bank_id' => $bankId,
-            'user_id' => $userId
-        ]);
+            'phone' => $phone,
+        ])->first();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function updatePhone(string $pagoMovilId, string $phone): bool
+    public function getBankStatistics(string $bankId) : array
     {
-        return $this->model->where('id', $pagoMovilId)
-            ->update(['phone' => $phone]) > 0;
+        $total = $this->model->where('bank_id', $bankId)->count();
+        $uniqueUsers = $this->model->where('bank_id', $bankId)->distinct('user_id')->count();
+        $uniquePhones = $this->model->where('bank_id', $bankId)->distinct('phone')->count();
+
+        return [
+            'total_registrations' => $total,
+            'unique_users' => $uniqueUsers,
+            'unique_phones' => $uniquePhones,
+            'average_registrations_per_user' => $uniqueUsers > 0 ? round($total / $uniqueUsers, 2) : 0,
+        ];
     }
 
     /**
      * {@inheritDoc}
      */
-    public function updateDocument(
-        string $pagoMovilId,
-        string $documentTypeId,
-        string $document
-    ): bool {
-        return $this->model->where('id', $pagoMovilId)
-            ->update([
-                'document_type_id' => $documentTypeId,
-                'document' => $document
-            ]) > 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function updateBank(string $pagoMovilId, string $bankId): bool
+    public function getByBank(string $bankId) : Collection
     {
-        return $this->model->where('id', $pagoMovilId)
-            ->update(['bank_id' => $bankId]) > 0;
+        return $this->model->where('bank_id', $bankId)->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function deletePagoMovil(string $pagoMovilId): bool
+    public function getByDocument(string $document) : Collection
     {
-        return $this->model->where('id', $pagoMovilId)->delete() > 0;
+        return $this->model->where('document', $document)->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function deleteByUser(string $userId): int
+    public function getByDocumentType(string $documentTypeId) : Collection
     {
-        return $this->model->where('user_id', $userId)->delete();
+        return $this->model->where('document_type_id', $documentTypeId)->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getPagoMovilStatistics(): array
+    public function getByPhone(string $phone) : Collection
+    {
+        return $this->model->where('phone', $phone)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getByUser(string $userId) : Collection
+    {
+        return $this->model->where('user_id', $userId)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPagoMovilStatistics() : array
     {
         $total = $this->model->count();
         $uniqueUsers = $this->model->distinct('user_id')->count();
@@ -225,31 +192,67 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
             'unique_phones' => $uniquePhones,
             'unique_documents' => $uniqueDocuments,
             'average_registrations_per_user' => $uniqueUsers > 0 ? round($total / $uniqueUsers, 2) : 0,
-            'phone_reuse_percentage' => $total > 0 ? round((($total - $uniquePhones) / $total) * 100, 2) : 0
+            'phone_reuse_percentage' => $total > 0 ? round((($total - $uniquePhones) / $total) * 100, 2) : 0,
         ];
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getBankStatistics(string $bankId): array
+    public function getRecentRegistrations(int $days = 30) : Collection
     {
-        $total = $this->model->where('bank_id', $bankId)->count();
-        $uniqueUsers = $this->model->where('bank_id', $bankId)->distinct('user_id')->count();
-        $uniquePhones = $this->model->where('bank_id', $bankId)->distinct('phone')->count();
-
-        return [
-            'total_registrations' => $total,
-            'unique_users' => $uniqueUsers,
-            'unique_phones' => $uniquePhones,
-            'average_registrations_per_user' => $uniqueUsers > 0 ? round($total / $uniqueUsers, 2) : 0
-        ];
+        return $this->model->where('created_at', '>=', now()->subDays($days))
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getUserStatistics(string $userId): array
+    public function getUniqueBanks() : Collection
+    {
+        return $this->model->distinct()->pluck('bank_id');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getUniqueDocumentTypes() : Collection
+    {
+        return $this->model->distinct()->pluck('document_type_id');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getUserByPagoMovil(
+        string $documentTypeId,
+        string $document,
+        string $bankId,
+        string $phone,
+    ) : ?string {
+        return $this->model->where([
+            'document_type_id' => $documentTypeId,
+            'document_number' => $document,
+            'bank_id' => $bankId,
+            'phone' => $phone,
+        ])->value('user_id');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getUsersSharingPhone(string $phone) : Collection
+    {
+        return $this->model->where('phone', $phone)
+            ->distinct('user_id')
+            ->pluck('user_id');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getUserStatistics(string $userId) : array
     {
         $total = $this->model->where('user_id', $userId)->count();
         $uniqueBanks = $this->model->where('user_id', $userId)->distinct('bank_id')->count();
@@ -260,56 +263,14 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
             'unique_banks' => $uniqueBanks,
             'unique_phones' => $uniquePhones,
             'has_multiple_banks' => $uniqueBanks > 1,
-            'has_multiple_phones' => $uniquePhones > 1
+            'has_multiple_phones' => $uniquePhones > 1,
         ];
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getRecentRegistrations(int $days = 30): Collection
-    {
-        return $this->model->where('created_at', '>=', now()->subDays($days))
-            ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function searchByPartialDocument(string $partialDocument): Collection
-    {
-        return $this->model->where('document', 'LIKE', "%{$partialDocument}%")->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function searchByPartialPhone(string $partialPhone): Collection
-    {
-        return $this->model->where('phone', 'LIKE', "%{$partialPhone}%")->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getUniqueBanks(): Collection
-    {
-        return $this->model->distinct()->pluck('bank_id');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getUniqueDocumentTypes(): Collection
-    {
-        return $this->model->distinct()->pluck('document_type_id');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function isPhoneUsedByOtherUser(string $phone, ?string $excludeUserId = null): bool
+    public function isPhoneUsedByOtherUser(string $phone, ?string $excludeUserId = null) : bool
     {
         $query = $this->model->where('phone', $phone);
 
@@ -323,10 +284,49 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     /**
      * {@inheritDoc}
      */
-    public function getUsersSharingPhone(string $phone): Collection
+    public function searchByPartialDocument(string $partialDocument) : Collection
     {
-        return $this->model->where('phone', $phone)
-            ->distinct('user_id')
-            ->pluck('user_id');
+        return $this->model->where('document', 'LIKE', "%{$partialDocument}%")->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function searchByPartialPhone(string $partialPhone) : Collection
+    {
+        return $this->model->where('phone', 'LIKE', "%{$partialPhone}%")->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function updateBank(string $pagoMovilId, string $bankId) : bool
+    {
+        return $this->model->where('id', $pagoMovilId)
+            ->update(['bank_id' => $bankId]) > 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function updateDocument(
+        string $pagoMovilId,
+        string $documentTypeId,
+        string $document,
+    ) : bool {
+        return $this->model->where('id', $pagoMovilId)
+            ->update([
+                'document_type_id' => $documentTypeId,
+                'document' => $document,
+            ]) > 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function updatePhone(string $pagoMovilId, string $phone) : bool
+    {
+        return $this->model->where('id', $pagoMovilId)
+            ->update(['phone' => $phone]) > 0;
     }
 }

@@ -2,9 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Models\Game;
-use App\Repositories\BaseRepository;
 use App\Contracts\GameRepositoryInterface;
+use App\Models\Game;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -19,13 +18,39 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
     }
 
     /**
-     * Buscar juego por nombre
+     * Verificar si existe un juego por nombre
      *
      * @param string $name Nombre del juego
-     * @param array $columns Columnas a seleccionar
-     * @return Game|null
      */
-    public function findByName(string $name, array $columns = ['*']): ?Game
+    public function existsByName(string $name) : bool
+    {
+        return $this->model->where('name', strtoupper($name))->exists();
+    }
+
+    /**
+     * Obtener juegos por múltiples nombres
+     *
+     * @param array $names   Array de nombres
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<Game>
+     */
+    public function findByMultipleNames(array $names, array $columns = ['*']) : Collection
+    {
+        $names = array_map('strtoupper', $names);
+
+        return $this->model->whereIn('name', $names)
+            ->orderBy('name')
+            ->get($columns);
+    }
+
+    /**
+     * Buscar juego por nombre
+     *
+     * @param string $name    Nombre del juego
+     * @param array  $columns Columnas a seleccionar
+     */
+    public function findByName(string $name, array $columns = ['*']) : ?Game
     {
         return $this->model->where('name', strtoupper($name))->first($columns);
     }
@@ -34,92 +59,65 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
      * Obtener juegos activos
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getActive(array $columns = ['*']): Collection
+    public function getActive(array $columns = ['*']) : Collection
     {
         return $this->getByStatus('ACTIVE', $columns);
     }
 
     /**
-     * Obtener juegos inactivos
+     * Obtener juegos activos con conteo de elementos relacionados
      *
      * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function getInactive(array $columns = ['*']): Collection
-    {
-        return $this->getByStatus('INACTIVE', $columns);
-    }
-
-    /**
-     * Obtener juegos en mantenimiento
      *
-     * @param array $columns Columnas a seleccionar
      * @return Collection<Game>
      */
-    public function getInMaintenance(array $columns = ['*']): Collection
+    public function getActiveWithCounts(array $columns = ['*']) : Collection
     {
-        return $this->getByStatus('MAINTENANCE', $columns);
-    }
-
-    /**
-     * Buscar juegos por nombre parcial
-     *
-     * @param string $searchTerm Término de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function searchByName(string $searchTerm, array $columns = ['*']): Collection
-    {
-        return $this->model->where('name', 'like', "%{$searchTerm}%")
+        return $this->model->where('status', 'ACTIVE')
             ->orderBy('name')
             ->get($columns);
-    }
-
-    /**
-     * Verificar si existe un juego por nombre
-     *
-     * @param string $name Nombre del juego
-     * @return bool
-     */
-    public function existsByName(string $name): bool
-    {
-        return $this->model->where('name', strtoupper($name))->exists();
     }
 
     /**
      * Obtener juegos ordenados por nombre
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getAllOrderedByName(array $columns = ['*']): Collection
+    public function getAllOrderedByName(array $columns = ['*']) : Collection
     {
         return $this->model->orderBy('name')->get($columns);
-    }
-
-    /**
-     * Obtener valor específico de un juego por nombre
-     *
-     * @param string $name Nombre del juego
-     * @param string $column Columna a obtener
-     * @return mixed
-     */
-    public function getValueByName(string $name, string $column): mixed
-    {
-        return $this->model->where('name', strtoupper($name))->value($column);
     }
 
     /**
      * Obtener juegos disponibles (método legacy)
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getAvailableGames(array $columns = ['*']): Collection
+    public function getAvailableGames(array $columns = ['*']) : Collection
     {
         return $this->getActive($columns);
+    }
+
+    // =================================
+    // Métodos legacy mantenidos temporalmente
+    // =================================
+
+    /**
+     * Obtener juego por ID (método legacy)
+     *
+     * @param string $id     ID del juego
+     * @param array  $fields Campos a seleccionar
+     */
+    public function getById(string $id, array $fields = ['*']) : ?Game
+    {
+        return $this->find($id, $fields);
     }
 
     /**
@@ -127,7 +125,7 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
      *
      * @return array Array con conteo por estado
      */
-    public function getCountByStatus(): array
+    public function getCountByStatus() : array
     {
         $counts = $this->model->selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
@@ -138,46 +136,51 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
             'ACTIVE' => $counts['ACTIVE'] ?? 0,
             'INACTIVE' => $counts['INACTIVE'] ?? 0,
             'MAINTENANCE' => $counts['MAINTENANCE'] ?? 0,
-            'total' => array_sum($counts)
+            'total' => array_sum($counts),
         ];
     }
 
     /**
-     * Obtener juegos por múltiples nombres
+     * Obtener juegos inactivos
      *
-     * @param array $names Array de nombres
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function findByMultipleNames(array $names, array $columns = ['*']): Collection
+    public function getInactive(array $columns = ['*']) : Collection
     {
-        $names = array_map('strtoupper', $names);
-
-        return $this->model->whereIn('name', $names)
-            ->orderBy('name')
-            ->get($columns);
+        return $this->getByStatus('INACTIVE', $columns);
     }
 
     /**
-     * Obtener juegos activos con conteo de elementos relacionados
+     * Obtener juegos en mantenimiento
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getActiveWithCounts(array $columns = ['*']): Collection
+    public function getInMaintenance(array $columns = ['*']) : Collection
     {
-        return $this->model->where('status', 'ACTIVE')
-            ->orderBy('name')
-            ->get($columns);
+        return $this->getByStatus('MAINTENANCE', $columns);
+    }
+
+    /**
+     * Obtener valor específico de un juego por nombre
+     *
+     * @param string $name   Nombre del juego
+     * @param string $column Columna a obtener
+     */
+    public function getValueByName(string $name, string $column) : mixed
+    {
+        return $this->model->where('name', strtoupper($name))->value($column);
     }
 
     /**
      * Verificar si un juego está activo
      *
      * @param string $gameId ID del juego
-     * @return bool
      */
-    public function isActive(string $gameId): bool
+    public function isActive(string $gameId) : bool
     {
         return $this->model->where('id', $gameId)
             ->where('status', 'ACTIVE')
@@ -188,28 +191,26 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
      * Verificar si un juego está en mantenimiento
      *
      * @param string $gameId ID del juego
-     * @return bool
      */
-    public function isInMaintenance(string $gameId): bool
+    public function isInMaintenance(string $gameId) : bool
     {
         return $this->model->where('id', $gameId)
             ->where('status', 'MAINTENANCE')
             ->exists();
     }
 
-    // =================================
-    // Métodos legacy mantenidos temporalmente
-    // =================================
-
     /**
-     * Obtener juego por ID (método legacy)
+     * Buscar juegos por nombre parcial
      *
-     * @param string $id ID del juego
-     * @param array $fields Campos a seleccionar
-     * @return Game|null
+     * @param string $searchTerm Término de búsqueda
+     * @param array  $columns    Columnas a seleccionar
+     *
+     * @return Collection<Game>
      */
-    public function getById(string $id, array $fields = ['*']): ?Game
+    public function searchByName(string $searchTerm, array $columns = ['*']) : Collection
     {
-        return $this->find($id, $fields);
+        return $this->model->where('name', 'like', "%{$searchTerm}%")
+            ->orderBy('name')
+            ->get($columns);
     }
 }

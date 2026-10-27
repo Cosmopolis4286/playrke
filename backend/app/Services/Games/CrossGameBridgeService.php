@@ -23,6 +23,12 @@ final class CrossGameBridgeService
     ) {
     }
 
+    public function awardFirstTriviaBonus(User $user) : void
+    {
+        $xp = $this->userLevelService->calculateXpReward('first_trivia_after_bingo');
+        $this->userLevelService->addXpToUser($user, $xp, 'Primera partida de Trivia (ya jugabas Bingo)');
+    }
+
     /**
      * Debe llamarse ANTES de registrar la GameParticipation de esta partida
      * de Trivia (GameCompletionService::reportParticipation() inserta esa
@@ -30,11 +36,11 @@ final class CrossGameBridgeService
      * contaría al menos 1 fila (la que se está registrando ahora mismo).
      *
      * @return bool true si corresponde otorgar el bonus (llamar
-     *   awardFirstTriviaBonus() después de que la partida ya haya quedado
-     *   registrada, para no otorgar XP de un evento que todavía podría
-     *   fallar antes de persistirse).
+     *              awardFirstTriviaBonus() después de que la partida ya haya quedado
+     *              registrada, para no otorgar XP de un evento que todavía podría
+     *              fallar antes de persistirse)
      */
-    public function qualifiesForFirstTriviaBonus(User $user, string $game): bool
+    public function qualifiesForFirstTriviaBonus(User $user, string $game) : bool
     {
         if ($game !== GameParticipation::GAME_TRIVIA) {
             return false;
@@ -53,11 +59,5 @@ final class CrossGameBridgeService
             ->exists();
 
         return $hasPlayedBingo;
-    }
-
-    public function awardFirstTriviaBonus(User $user): void
-    {
-        $xp = $this->userLevelService->calculateXpReward('first_trivia_after_bingo');
-        $this->userLevelService->addXpToUser($user, $xp, 'Primera partida de Trivia (ya jugabas Bingo)');
     }
 }

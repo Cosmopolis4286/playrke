@@ -31,35 +31,36 @@ final class RoleEntityResolver
         private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
         private readonly UserContextService $userContext,
         private readonly RoleUserService $roleUserService,
-    ) {}
+    ) {
+    }
 
     /**
      * Resuelve el ID de la entidad asociada a un usuario según su rol.
      *
-     * @param int|null    $userId Identificador del usuario.
-     * @param string|null $role   Rol del usuario (ej: "commerce", "customer", "seller").
+     * @param int|null    $userId identificador del usuario
+     * @param string|null $role   rol del usuario (ej: "commerce", "customer", "seller")
      *
-     * @return string ID de la entidad asociada al rol.
+     * @return string ID de la entidad asociada al rol
      *
-     * @throws RoleResolutionException Si el rol no es válido o no está soportado.
+     * @throws RoleResolutionException si el rol no es válido o no está soportado
      */
-    public function resolveEntityId(?int $userId = null, ?string $role = null): string
+    public function resolveEntityId(?int $userId = null, ?string $role = null) : string
     {
-        if (!$userId) {
+        if (! $userId) {
             $userId = $this->userContext->resolveUserId();
         }
 
-        if (!$role) {
+        if (! $role) {
             $role = $this->roleUserService->getActiveUserRolePrefix($userId);
         }
 
         return match ($role) {
             'admin', 'superadmin' => $this->adminRepository->getValueByUserId($userId, 'id'),
-            'commerce'            => $this->commerceRepository->getValueByUserId($userId, 'id'),
-            'subsidiary'          => $this->subsidiaryRepository->getValueByUserId($userId, 'id'),
-            'customer'            => $this->customerRepository->getValueByUserId($userId, 'id'),
-            'seller'              => $this->sellerRepository->getValueByUserId($userId, 'id'),
-            default               => throw RoleResolutionException::unsupportedRole($role),
+            'commerce' => $this->commerceRepository->getValueByUserId($userId, 'id'),
+            'subsidiary' => $this->subsidiaryRepository->getValueByUserId($userId, 'id'),
+            'customer' => $this->customerRepository->getValueByUserId($userId, 'id'),
+            'seller' => $this->sellerRepository->getValueByUserId($userId, 'id'),
+            default => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }

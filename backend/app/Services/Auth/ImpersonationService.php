@@ -25,9 +25,6 @@ use Illuminate\Support\Facades\Log;
  */
 final class ImpersonationService
 {
-    private const SESSION_KEY = 'impersonator_id';
-    private const STARTED_AT_SESSION_KEY = 'impersonation_started_at';
-
     /**
      * Roles que un superadmin puede impersonar para soporte. 'player' es el
      * caso original; seller/commerce/subsidiary se agregaron porque tienen
@@ -38,18 +35,64 @@ final class ImpersonationService
 
     /** Duración máxima de una sesión de soporte antes de restaurarse sola. */
     public const TIMEOUT_MINUTES = 30;
+    private const SESSION_KEY = 'impersonator_id';
+    private const STARTED_AT_SESSION_KEY = 'impersonation_started_at';
+
+    /**
+     * Si la sesión de soporte activa superó TIMEOUT_MINUTES, la termina sola
+     * (mismo camino que stop(), auditoría incluida) y devuelve true. Se
+     * evalúa en cada request vía EnforceImpersonationTimeout — no hay forma
+     * de que un proceso externo (comando scheduled) cierre la sesión HTTP de
+     * otro request, así que el chequeo vive del lado del propio request.
+     */
+    public function checkExpiry(Request $request) : bool
+    {
+        if (! $this->isImpersonating($request)) {
+            return false;
+        }
+
+        $startedAt = $request->session()->get(self::STARTED_AT_SESSION_KEY);
+
+        if (! $startedAt || now()->diffInMinutes(\Carbon\Carbon::parse($startedAt)) < self::TIMEOUT_MINUTES) {
+            return false;
+        }
+
+        $this->stop($request);
+
+        return true;
+    }
+
+    /**
+     * Username del admin real detrás de la sesión impersonada — para el
+     * banner en frontend. Null si no hay impersonación activa.
+     */
+    public function impersonatorName(Request $request) : ?string
+    {
+        $adminId = $request->session()->get(self::SESSION_KEY);
+
+        if (! $adminId) {
+            return null;
+        }
+
+        return User::find($adminId)?->username;
+    }
+
+    public function isImpersonating(Request $request) : bool
+    {
+        return $request->session()->has(self::SESSION_KEY);
+    }
 
     /**
      * Inicia la impersonación: registra quién impersona a quién (auditoría +
      * log crítico, visible en /audit y /logs) y cambia el usuario autenticado.
      */
-    public function start(User $admin, User $target): void
+    public function start(User $admin, User $target) : void
     {
         if ($this->isImpersonating(request())) {
             throw ImpersonationException::alreadyImpersonating();
         }
 
-        if (!$target->hasRole(self::ALLOWED_TARGET_ROLES)) {
+        if (! $target->hasRole(self::ALLOWED_TARGET_ROLES)) {
             throw ImpersonationException::targetRoleNotAllowed();
         }
 
@@ -63,22 +106,22 @@ final class ImpersonationService
         // por higiene de sesión al cambiar el usuario autenticado.
 
         Audit::create([
-            'user_id'        => $admin->id,
-            'actor_type'     => 'user',
+            'user_id' => $admin->id,
+            'actor_type' => 'user',
             'auditable_type' => User::class,
-            'auditable_id'   => $target->id,
-            'event'          => 'impersonation_started',
-            'old_values'     => [],
-            'new_values'     => ['target_username' => $target->username, 'admin_username' => $admin->username],
-            'url'            => request()->fullUrl(),
-            'ip_address'     => request()->ip(),
-            'user_agent'     => request()->userAgent(),
+            'auditable_id' => $target->id,
+            'event' => 'impersonation_started',
+            'old_values' => [],
+            'new_values' => ['target_username' => $target->username, 'admin_username' => $admin->username],
+            'url' => request()->fullUrl(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
         ]);
 
         Log::critical('[Impersonation] Sesión de soporte iniciada', [
-            'admin_id'    => $admin->id,
-            'admin_name'  => $admin->username,
-            'target_id'   => $target->id,
+            'admin_id' => $admin->id,
+            'admin_name' => $admin->username,
+            'target_id' => $target->id,
             'target_name' => $target->username,
         ]);
     }
@@ -86,11 +129,11 @@ final class ImpersonationService
     /**
      * Termina la impersonación activa y restaura al admin original.
      */
-    public function stop(Request $request): User
+    public function stop(Request $request) : User
     {
         $adminId = $request->session()->get(self::SESSION_KEY);
 
-        if (!$adminId) {
+        if (! $adminId) {
             throw ImpersonationException::notImpersonating();
         }
 
@@ -104,67 +147,23 @@ final class ImpersonationService
         $request->session()->regenerate();
 
         Audit::create([
-            'user_id'        => $admin->id,
-            'actor_type'     => 'user',
+            'user_id' => $admin->id,
+            'actor_type' => 'user',
             'auditable_type' => User::class,
-            'auditable_id'   => $impersonatedUser?->id ?? $adminId,
-            'event'          => 'impersonation_ended',
-            'old_values'     => [],
-            'new_values'     => ['target_username' => $impersonatedUser?->username],
-            'url'            => $request->fullUrl(),
-            'ip_address'     => $request->ip(),
-            'user_agent'     => $request->userAgent(),
+            'auditable_id' => $impersonatedUser?->id ?? $adminId,
+            'event' => 'impersonation_ended',
+            'old_values' => [],
+            'new_values' => ['target_username' => $impersonatedUser?->username],
+            'url' => $request->fullUrl(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         Log::critical('[Impersonation] Sesión de soporte finalizada', [
-            'admin_id'  => $admin->id,
+            'admin_id' => $admin->id,
             'target_id' => $impersonatedUser?->id,
         ]);
 
         return $admin;
-    }
-
-    public function isImpersonating(Request $request): bool
-    {
-        return $request->session()->has(self::SESSION_KEY);
-    }
-
-    /**
-     * Si la sesión de soporte activa superó TIMEOUT_MINUTES, la termina sola
-     * (mismo camino que stop(), auditoría incluida) y devuelve true. Se
-     * evalúa en cada request vía EnforceImpersonationTimeout — no hay forma
-     * de que un proceso externo (comando scheduled) cierre la sesión HTTP de
-     * otro request, así que el chequeo vive del lado del propio request.
-     */
-    public function checkExpiry(Request $request): bool
-    {
-        if (!$this->isImpersonating($request)) {
-            return false;
-        }
-
-        $startedAt = $request->session()->get(self::STARTED_AT_SESSION_KEY);
-
-        if (!$startedAt || now()->diffInMinutes(\Carbon\Carbon::parse($startedAt)) < self::TIMEOUT_MINUTES) {
-            return false;
-        }
-
-        $this->stop($request);
-
-        return true;
-    }
-
-    /**
-     * Username del admin real detrás de la sesión impersonada — para el
-     * banner en frontend. Null si no hay impersonación activa.
-     */
-    public function impersonatorName(Request $request): ?string
-    {
-        $adminId = $request->session()->get(self::SESSION_KEY);
-
-        if (!$adminId) {
-            return null;
-        }
-
-        return User::find($adminId)?->username;
     }
 }

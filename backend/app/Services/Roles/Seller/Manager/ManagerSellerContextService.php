@@ -27,33 +27,77 @@ class ManagerSellerContextService
         private readonly RoleUserService $roleUserService,
         private readonly UserContextService $userContext,
         private readonly SubsidiaryRepositoryInterface $subsidiaryRepository,
-    ) {}
+    ) {
+    }
 
     /**
-     * Condición de filtro para un usuario 'subsidiary' — sus sellers se
-     * filtran por subsidiary_id, no por manager_user_id (ver
-     * resolveSellers()). Si por alguna inconsistencia de datos no se
-     * encuentra la Subsidiary propia, NO se debe caer a
-     * ['subsidiary_id' => null]: Eloquent traduce eso a
-     * `WHERE subsidiary_id IS NULL`, que expondría TODOS los sellers sin
-     * agencia (reportando directo a cualquier Commerce) en vez de una lista
-     * vacía — un id inexistente fuerza cero resultados de forma segura.
+     * Obtener todos los vendedores.
+     *
+     * @param int|null $managerUserId ID del usuario manager
      */
-    private function subsidiaryScopeCondition(int $managerUserId): array
+    public function getAll(int $managerUserId) : array
     {
-        $subsidiaryId = $this->subsidiaryRepository->getByUserId($managerUserId, ['id'])?->id;
+        // Resolver rol del usuario manager — superadmin normalizado a admin,
+        // mismo criterio que resolve(): sin esto el listado paginado de un
+        // superadmin filtraba por manager_user_id = su propio id (vacío).
+        $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
 
-        return ['subsidiary_id' => $subsidiaryId ?? '0'];
+        return $this->resolveSellers($role, $managerUserId)['sellers']['rows'] ?? [];
+    }
+
+    /**
+     * Obtener contexto de vendedores del usuario manager.
+     *
+     * @param int|null $managerUserId ID del usuario manager
+     *
+     * @return ManagerSellerContextDTO Contexto de vendedores para la vista Inertia
+     */
+    public function resolve(?int $managerUserId = null) : ManagerSellerContextDTO
+    {
+        // Resolver ID del usuario Manager si no corresponde
+        if (! $managerUserId) {
+            $managerUserId = $this->userContext->resolveUserId();
+        }
+
+        // Resolver rol del usuario manager. 'superadmin' se normaliza a
+        // 'admin' aquí mismo (único punto de entrada de este contexto) — para
+        // toda esta pantalla ambos deben comportarse igual (ven TODOS los
+        // sellers del sistema, con columnas de jerarquía y el select de
+        // reasignación completo). Sin esto, un superadmin real recibía
+        // roleUser: 'superadmin', que no calzaba con ningún chequeo
+        // === 'admin' (backend o frontend), y terminaba viendo la vista
+        // restringida de un commerce/subsidiary sin serlo — sin manager
+        // select, sin columnas de jerarquía, sin la sección de resetPassword
+        // habilitada. RoleAuthorizationService::isSuperadmin() ya trata a
+        // superadmin como con acceso total en toda la app; este es el mismo
+        // criterio aplicado aquí.
+        $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
+
+        $result = $this->resolveSellers($role, $managerUserId);
+
+        return new ManagerSellerContextDTO(
+            sellers: $result['sellers'],
+            pagination: $result['pagination'],
+            countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
+            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
+            games: $this->games->getActive(['id', 'name']),
+            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
+            roleUser: $role,
+        );
     }
 
     /**
      * Resolver listado de vendedores del manager.
      *
-     * @param string   $role
-     * @param int|null $managerUserId
      * @return array{sellers: array, pagination: ?array}
      */
-    private function resolveSellers(string $role, ?int $managerUserId = null): array
+    private function resolveSellers(string $role, ?int $managerUserId = null) : array
     {
         $isAdmin = $role === 'admin';
 
@@ -92,7 +136,7 @@ class ManagerSellerContextService
             page: 1,
             relations: $relations,
             conditions: $conditions,
-            fields: $fields
+            fields: $fields,
         );
 
         $isPaginator = $source instanceof LengthAwarePaginator;
@@ -102,12 +146,12 @@ class ManagerSellerContextService
             : collect($source);
 
         $pagination = $isPaginator ? [
-            'total'        => $source->total(),
-            'per_page'     => $source->perPage(),
+            'total' => $source->total(),
+            'per_page' => $source->perPage(),
             'current_page' => $source->currentPage(),
-            'last_page'    => $source->lastPage(),
-            'from'         => $source->firstItem(),
-            'to'           => $source->lastItem(),
+            'last_page' => $source->lastPage(),
+            'from' => $source->firstItem(),
+            'to' => $source->lastItem(),
         ] : null;
 
         $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
@@ -127,68 +171,25 @@ class ManagerSellerContextService
         unset($row);
 
         return [
-            'sellers'    => $sellers,
+            'sellers' => $sellers,
             'pagination' => $pagination,
         ];
     }
 
     /**
-     * Obtener contexto de vendedores del usuario manager.
-     *
-     * @param int|null $managerUserId ID del usuario manager
-     * @return ManagerSellerContextDTO Contexto de vendedores para la vista Inertia
+     * Condición de filtro para un usuario 'subsidiary' — sus sellers se
+     * filtran por subsidiary_id, no por manager_user_id (ver
+     * resolveSellers()). Si por alguna inconsistencia de datos no se
+     * encuentra la Subsidiary propia, NO se debe caer a
+     * ['subsidiary_id' => null]: Eloquent traduce eso a
+     * `WHERE subsidiary_id IS NULL`, que expondría TODOS los sellers sin
+     * agencia (reportando directo a cualquier Commerce) en vez de una lista
+     * vacía — un id inexistente fuerza cero resultados de forma segura.
      */
-    public function resolve(?int $managerUserId = null): ManagerSellerContextDTO
+    private function subsidiaryScopeCondition(int $managerUserId) : array
     {
-        // Resolver ID del usuario Manager si no corresponde
-        if (!$managerUserId) $managerUserId = $this->userContext->resolveUserId();
+        $subsidiaryId = $this->subsidiaryRepository->getByUserId($managerUserId, ['id'])?->id;
 
-        // Resolver rol del usuario manager. 'superadmin' se normaliza a
-        // 'admin' aquí mismo (único punto de entrada de este contexto) — para
-        // toda esta pantalla ambos deben comportarse igual (ven TODOS los
-        // sellers del sistema, con columnas de jerarquía y el select de
-        // reasignación completo). Sin esto, un superadmin real recibía
-        // roleUser: 'superadmin', que no calzaba con ningún chequeo
-        // === 'admin' (backend o frontend), y terminaba viendo la vista
-        // restringida de un commerce/subsidiary sin serlo — sin manager
-        // select, sin columnas de jerarquía, sin la sección de resetPassword
-        // habilitada. RoleAuthorizationService::isSuperadmin() ya trata a
-        // superadmin como con acceso total en toda la app; este es el mismo
-        // criterio aplicado aquí.
-        $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
-        if ($role === 'superadmin') {
-            $role = 'admin';
-        }
-
-        $result = $this->resolveSellers($role, $managerUserId);
-
-        return new ManagerSellerContextDTO(
-            sellers: $result['sellers'],
-            pagination: $result['pagination'],
-            countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
-            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
-            games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
-            roleUser: $role
-        );
-    }
-
-    /**
-     * Obtener todos los vendedores.
-     *
-     * @param int|null $managerUserId ID del usuario manager
-     * @return array
-     */
-    public function getAll(int $managerUserId): array
-    {
-        // Resolver rol del usuario manager — superadmin normalizado a admin,
-        // mismo criterio que resolve(): sin esto el listado paginado de un
-        // superadmin filtraba por manager_user_id = su propio id (vacío).
-        $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
-        if ($role === 'superadmin') {
-            $role = 'admin';
-        }
-
-        return $this->resolveSellers($role, $managerUserId)['sellers']['rows'] ?? [];
+        return ['subsidiary_id' => $subsidiaryId ?? '0'];
     }
 }

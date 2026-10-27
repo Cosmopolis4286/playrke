@@ -29,24 +29,12 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
         $this->model = $model;
     }
 
-    public function getByLink(string $playerLink): ?ExternalPlayer
+    public function existsByLink(string $link) : bool
     {
-        return $this->model->where('link', $playerLink)->first();
+        return $this->model->where('link', $link)->exists();
     }
 
-    public function getValueByLink(string $link, string $column): mixed
-    {
-        return $this->model->where('link', $link)->value($column);
-    }
-
-    public function getByRoomUser(string $gameId, string $roomUserId): ?ExternalPlayer
-    {
-        return $this->model->where('game_id', $gameId)
-            ->where('room_user_id', $roomUserId)
-            ->first();
-    }
-
-    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId, ?array $sellerUserIds = null): ?ExternalPlayer
+    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId, ?array $sellerUserIds = null) : ?ExternalPlayer
     {
         return $this->model->where('phone', $phone)
             ->where('country_id', $countryId)
@@ -56,90 +44,7 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
             ->first();
     }
 
-    public function getValueByRoomUser(string $gameId, string $roomUserId, string $column): mixed
-    {
-        return $this->model->where('game_id', $gameId)
-            ->where('room_user_id', $roomUserId)
-            ->value($column);
-    }
-
-    public function getByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->get();
-    }
-
-    public function getByRoom(string $roomId): Collection
-    {
-        return $this->model->where('room_id', $roomId)->get();
-    }
-
-    public function getByCreatorUser(string $creatorUserId): Collection
-    {
-        return $this->model->where('creator_user_id', $creatorUserId)->get();
-    }
-
-    public function getBySeller(string $sellerUserId): Collection
-    {
-        return $this->model->where('seller_user_id', $sellerUserId)->get();
-    }
-
-    public function getByCountry(string $countryId): Collection
-    {
-        return $this->model->where('country_id', $countryId)->get();
-    }
-
-    public function getByCurrency(string $currencyId): Collection
-    {
-        return $this->model->where('currency_id', $currencyId)->get();
-    }
-
-    public function getActivePlayersByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->where('status', 'ACTIVE')->get();
-    }
-
-    public function getInactivePlayersByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->where('status', 'INACTIVE')->get();
-    }
-
-    public function getBlockedPlayersByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->where('status', 'BLOCKED')->get();
-    }
-
-    public function searchByIdentification(string $identification): Collection
-    {
-        return $this->model->where('identification', 'LIKE', "%{$identification}%")->get();
-    }
-
-    public function searchByPhone(string $phone): Collection
-    {
-        return $this->model->where('phone', 'LIKE', "%{$phone}%")->get();
-    }
-
-    public function searchByName(string $firstName, ?string $lastName = null): Collection
-    {
-        $query = $this->model->where('first_name', 'LIKE', "%{$firstName}%");
-
-        if ($lastName) {
-            $query->where('last_name', 'LIKE', "%{$lastName}%");
-        }
-
-        return $query->get();
-    }
-
-    public function getPlayersByStatus(string $status = 'ACTIVE'): Collection
-    {
-        return $this->model->where('status', $status)->get();
-    }
-
-    public function updatePlayerStatus(string $playerId, string $status): bool
-    {
-        return $this->model->where('id', $playerId)->update(['status' => $status]) > 0;
-    }
-
-    public function generateUniqueLink(): string
+    public function generateUniqueLink() : string
     {
         do {
             $link = Str::random(self::LINK_LENGTH);
@@ -148,30 +53,66 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
         return $link;
     }
 
-    public function existsByLink(string $link): bool
+    public function getActivePlayersByGame(string $gameId) : Collection
     {
-        return $this->model->where('link', $link)->exists();
+        return $this->model->where('game_id', $gameId)->where('status', 'ACTIVE')->get();
     }
 
-    public function regenerateLink(string $playerId, int $expirationDays): ?ExternalPlayer
+    public function getBlockedPlayersByGame(string $gameId) : Collection
     {
-        $player = $this->model->find($playerId);
-
-        if (!$player) {
-            return null;
-        }
-
-        $player->update([
-            'link' => $this->generateUniqueLink(),
-            'expiration_date' => now()->addDays($expirationDays),
-        ]);
-
-        return $player->fresh();
+        return $this->model->where('game_id', $gameId)->where('status', 'BLOCKED')->get();
     }
 
-    public function getPlayersWithPurchaseCode(string $purchaseCodeId): Collection
+    public function getByCountry(string $countryId) : Collection
     {
-        return $this->model->where('purchase_code_id', $purchaseCodeId)->get();
+        return $this->model->where('country_id', $countryId)->get();
+    }
+
+    public function getByCreatorUser(string $creatorUserId) : Collection
+    {
+        return $this->model->where('creator_user_id', $creatorUserId)->get();
+    }
+
+    public function getByCurrency(string $currencyId) : Collection
+    {
+        return $this->model->where('currency_id', $currencyId)->get();
+    }
+
+    public function getByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->get();
+    }
+
+    public function getByLink(string $playerLink) : ?ExternalPlayer
+    {
+        return $this->model->where('link', $playerLink)->first();
+    }
+
+    public function getByRoom(string $roomId) : Collection
+    {
+        return $this->model->where('room_id', $roomId)->get();
+    }
+
+    public function getByRoomUser(string $gameId, string $roomUserId) : ?ExternalPlayer
+    {
+        return $this->model->where('game_id', $gameId)
+            ->where('room_user_id', $roomUserId)
+            ->first();
+    }
+
+    public function getBySeller(string $sellerUserId) : Collection
+    {
+        return $this->model->where('seller_user_id', $sellerUserId)->get();
+    }
+
+    public function getInactivePlayersByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->where('status', 'INACTIVE')->get();
+    }
+
+    public function getPlayersByStatus(string $status = 'ACTIVE') : Collection
+    {
+        return $this->model->where('status', $status)->get();
     }
 
     /**
@@ -181,7 +122,7 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
      * estado + el total) — mismo resultado, una sola vuelta a la base de
      * datos independientemente de cuántos estados existan.
      */
-    public function getPlayerStatistics(?string $gameId = null, ?array $sellerUserIds = null): array
+    public function getPlayerStatistics(?string $gameId = null, ?array $sellerUserIds = null) : array
     {
         $query = $this->model->newQuery();
 
@@ -197,14 +138,73 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
             "COUNT(*) as total,
              SUM(CASE WHEN status = 'ACTIVE' THEN 1 ELSE 0 END) as active,
              SUM(CASE WHEN status = 'INACTIVE' THEN 1 ELSE 0 END) as inactive,
-             SUM(CASE WHEN status = 'BLOCKED' THEN 1 ELSE 0 END) as blocked"
+             SUM(CASE WHEN status = 'BLOCKED' THEN 1 ELSE 0 END) as blocked",
         )->first();
 
         return [
-            'total'    => (int) $row->total,
-            'active'   => (int) $row->active,
+            'total' => (int) $row->total,
+            'active' => (int) $row->active,
             'inactive' => (int) $row->inactive,
-            'blocked'  => (int) $row->blocked,
+            'blocked' => (int) $row->blocked,
         ];
+    }
+
+    public function getPlayersWithPurchaseCode(string $purchaseCodeId) : Collection
+    {
+        return $this->model->where('purchase_code_id', $purchaseCodeId)->get();
+    }
+
+    public function getValueByLink(string $link, string $column) : mixed
+    {
+        return $this->model->where('link', $link)->value($column);
+    }
+
+    public function getValueByRoomUser(string $gameId, string $roomUserId, string $column) : mixed
+    {
+        return $this->model->where('game_id', $gameId)
+            ->where('room_user_id', $roomUserId)
+            ->value($column);
+    }
+
+    public function regenerateLink(string $playerId, int $expirationDays) : ?ExternalPlayer
+    {
+        $player = $this->model->find($playerId);
+
+        if (! $player) {
+            return null;
+        }
+
+        $player->update([
+            'link' => $this->generateUniqueLink(),
+            'expiration_date' => now()->addDays($expirationDays),
+        ]);
+
+        return $player->fresh();
+    }
+
+    public function searchByIdentification(string $identification) : Collection
+    {
+        return $this->model->where('identification', 'LIKE', "%{$identification}%")->get();
+    }
+
+    public function searchByName(string $firstName, ?string $lastName = null) : Collection
+    {
+        $query = $this->model->where('first_name', 'LIKE', "%{$firstName}%");
+
+        if ($lastName) {
+            $query->where('last_name', 'LIKE', "%{$lastName}%");
+        }
+
+        return $query->get();
+    }
+
+    public function searchByPhone(string $phone) : Collection
+    {
+        return $this->model->where('phone', 'LIKE', "%{$phone}%")->get();
+    }
+
+    public function updatePlayerStatus(string $playerId, string $status) : bool
+    {
+        return $this->model->where('id', $playerId)->update(['status' => $status]) > 0;
     }
 }

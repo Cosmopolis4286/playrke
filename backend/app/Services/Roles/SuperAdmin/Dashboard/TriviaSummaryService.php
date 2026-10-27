@@ -23,12 +23,12 @@ final class TriviaSummaryService
     private const CACHE_KEY = 'superadmin:trivia-summary';
     private const CACHE_TTL = 90;
 
-    public function getSummary(): array
+    public function getSummary() : array
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => $this->buildSummary());
     }
 
-    private function buildSummary(): array
+    private function buildSummary() : array
     {
         $activeRooms = TriviaRoom::whereIn('status', ['waiting', 'playing'])->count();
 
@@ -48,32 +48,32 @@ final class TriviaSummaryService
             ->orderByDesc('created_at')
             ->limit(10)
             ->get(['id', 'title', 'code', 'status', 'commission_percent', 'prize_type', 'prize_amount', 'pool_accumulated', 'created_at'])
-            ->map(function (TriviaRoom $room) use ($participantCounts) {
+            ->map(function(TriviaRoom $room) use ($participantCounts) {
                 $participants = (int) ($participantCounts[$room->id] ?? 0);
-                $prizeAmount  = $room->prize_type === 'accumulated'
+                $prizeAmount = $room->prize_type === 'accumulated'
                     ? (float) $room->pool_accumulated
                     : (float) $room->prize_amount;
                 $commissionAmount = round($prizeAmount * ((float) $room->commission_percent / 100), 2);
 
                 return [
-                    'room_id'            => (string) $room->id,
-                    'title'              => $room->title ?? $room->code,
-                    'status'             => $room->status,
-                    'participant_count'  => $participants,
+                    'room_id' => (string) $room->id,
+                    'title' => $room->title ?? $room->code,
+                    'status' => $room->status,
+                    'participant_count' => $participants,
                     'commission_percent' => (float) $room->commission_percent,
-                    'commission_amount'  => $commissionAmount,
-                    'prize_type'         => $room->prize_type,
-                    'prize_amount'       => $prizeAmount,
-                    'created_at'         => $room->created_at?->toIso8601String(),
+                    'commission_amount' => $commissionAmount,
+                    'prize_type' => $room->prize_type,
+                    'prize_amount' => $prizeAmount,
+                    'created_at' => $room->created_at?->toIso8601String(),
                 ];
             })
             ->values();
 
         return [
             'totals' => [
-                'active_rooms'       => $activeRooms,
+                'active_rooms' => $activeRooms,
                 'total_participants' => $totalParticipants,
-                'total_commission'   => round($rooms->sum('commission_amount'), 2),
+                'total_commission' => round($rooms->sum('commission_amount'), 2),
             ],
             'rooms' => $rooms,
         ];

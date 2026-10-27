@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Games\Common\GameMode;
 
+use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 class GameModeRepository extends BaseRepository implements GameModeRepositoryInterface
@@ -14,17 +14,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
         $this->model = $model;
     }
 
-    public function getByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->orderBy('label')->get();
-    }
-
-    public function getActiveByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->active()->orderBy('label')->get();
-    }
-
-    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null): bool
+    public function existsByGameAndCode(string $gameId, string $code, ?string $excludeId = null) : bool
     {
         $query = $this->model->where('game_id', $gameId)->where('code', $code);
 
@@ -33,5 +23,15 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryInt
         }
 
         return $query->exists();
+    }
+
+    public function getActiveByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->active()->orderBy('label')->get();
+    }
+
+    public function getByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->orderBy('label')->get();
     }
 }

@@ -6,6 +6,7 @@ namespace App\Services\Games;
 
 use App\Models\GameSession;
 use App\Models\User;
+use DomainException;
 
 /**
  * Orquesta el ciclo de vida de una GameSession — ver progreso/game-engine-plan.md.
@@ -20,29 +21,18 @@ use App\Models\User;
 final class GameSessionService
 {
     /**
-     * Crea una sesión en estado WAITING.
+     * Cancela la sesión. Solo válido desde WAITING o RUNNING.
      */
-    public function start(string $game, ?User $initiator = null, array $metadata = []): GameSession
+    public function cancel(GameSession $session) : GameSession
     {
-        return GameSession::create([
-            'game'               => $game,
-            'status'             => GameSession::STATUS_WAITING,
-            'initiator_user_id'  => $initiator?->id,
-            'started_at'         => now(),
-            'metadata'           => $metadata,
-        ]);
-    }
-
-    /**
-     * Transiciona la sesión a RUNNING. Solo válido desde WAITING.
-     */
-    public function run(GameSession $session): GameSession
-    {
-        if ($session->status !== GameSession::STATUS_WAITING) {
-            throw new \DomainException("No se puede iniciar una sesión en estado {$session->status}.");
+        if (! $session->isActive()) {
+            throw new DomainException("No se puede cancelar una sesión en estado {$session->status}.");
         }
 
-        $session->update(['status' => GameSession::STATUS_RUNNING]);
+        $session->update([
+            'status' => GameSession::STATUS_CANCELLED,
+            'finished_at' => now(),
+        ]);
 
         return $session->fresh();
     }
@@ -54,14 +44,14 @@ final class GameSessionService
      * responsabilidad de GameCompletionService/GamePrizeService, llamados
      * por el propio juego con los datos de resultado que solo él conoce.
      */
-    public function finish(GameSession $session): GameSession
+    public function finish(GameSession $session) : GameSession
     {
         if (! $session->isActive()) {
-            throw new \DomainException("No se puede finalizar una sesión en estado {$session->status}.");
+            throw new DomainException("No se puede finalizar una sesión en estado {$session->status}.");
         }
 
         $session->update([
-            'status'      => GameSession::STATUS_FINISHED,
+            'status' => GameSession::STATUS_FINISHED,
             'finished_at' => now(),
         ]);
 
@@ -69,19 +59,30 @@ final class GameSessionService
     }
 
     /**
-     * Cancela la sesión. Solo válido desde WAITING o RUNNING.
+     * Transiciona la sesión a RUNNING. Solo válido desde WAITING.
      */
-    public function cancel(GameSession $session): GameSession
+    public function run(GameSession $session) : GameSession
     {
-        if (! $session->isActive()) {
-            throw new \DomainException("No se puede cancelar una sesión en estado {$session->status}.");
+        if ($session->status !== GameSession::STATUS_WAITING) {
+            throw new DomainException("No se puede iniciar una sesión en estado {$session->status}.");
         }
 
-        $session->update([
-            'status'      => GameSession::STATUS_CANCELLED,
-            'finished_at' => now(),
-        ]);
+        $session->update(['status' => GameSession::STATUS_RUNNING]);
 
         return $session->fresh();
+    }
+
+    /**
+     * Crea una sesión en estado WAITING.
+     */
+    public function start(string $game, ?User $initiator = null, array $metadata = []) : GameSession
+    {
+        return GameSession::create([
+            'game' => $game,
+            'status' => GameSession::STATUS_WAITING,
+            'initiator_user_id' => $initiator?->id,
+            'started_at' => now(),
+            'metadata' => $metadata,
+        ]);
     }
 }

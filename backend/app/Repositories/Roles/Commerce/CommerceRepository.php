@@ -14,8 +14,6 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
 {
     /**
      * Constructor del repository
-     *
-     * @param Commerce $model
      */
     public function __construct(Commerce $model)
     {
@@ -23,27 +21,61 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
     }
 
     /**
-     * Obtiene comercio por ID de usuario
+     * Activa un comercio
      *
-     * @param mixed $userId ID del usuario
-     * @param array $fields Campos a seleccionar
-     * @return Commerce|null
+     * @param mixed $id ID del comercio
      */
-    public function getByUserId($userId, array $fields = ['*']): ?Commerce
+    public function activate($id) : bool
     {
-        return $this->model->select($fields)
-            ->where('user_id', $userId)
-            ->first();
+        return $this->updateStatus($id, 'ACTIVE');
+    }
+
+    /**
+     * Bloquea un comercio
+     *
+     * @param mixed $id ID del comercio
+     */
+    public function block($id) : bool
+    {
+        return $this->updateStatus($id, 'BLOCKED');
+    }
+
+    /**
+     * Desactiva un comercio
+     *
+     * @param mixed $id ID del comercio
+     */
+    public function deactivate($id) : bool
+    {
+        return $this->updateStatus($id, 'INACTIVE');
+    }
+
+    /**
+     * Verifica si existe un valor en una columna
+     *
+     * @param string $column Columna a verificar
+     * @param mixed  $value  Valor a buscar
+     */
+    public function existsValue(string $column, $value) : bool
+    {
+        return $this->model->where($column, $value)->exists();
+    }
+
+    /**
+     * Obtiene comercios bloqueados
+     */
+    public function getBlockedRecords() : Collection
+    {
+        return $this->model->where('status', 'BLOCKED')->get();
     }
 
     /**
      * Obtiene comercio por código UUID
      *
-     * @param string $code Código UUID
-     * @param array $fields Campos a seleccionar
-     * @return Commerce|null
+     * @param string $code   Código UUID
+     * @param array  $fields Campos a seleccionar
      */
-    public function getByCodeUUID(string $code, array $fields = ['*']): ?Commerce
+    public function getByCodeUUID(string $code, array $fields = ['*']) : ?Commerce
     {
         return $this->model->select($fields)
             ->where('unique_code_id', $code)
@@ -51,36 +83,11 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
     }
 
     /**
-     * Obtiene valor por código UUID
-     *
-     * @param string $code Código UUID
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByCodeUUID(string $code, string $field)
-    {
-        return $this->model->where('unique_code_id', $code)->value($field);
-    }
-
-    /**
-     * Verifica si existe un valor en una columna
-     *
-     * @param string $column Columna a verificar
-     * @param mixed $value Valor a buscar
-     * @return bool
-     */
-    public function existsValue(string $column, $value): bool
-    {
-        return $this->model->where($column, $value)->exists();
-    }
-
-    /**
      * Obtiene comercios por país
      *
      * @param mixed $countryId ID del país
-     * @return Collection
      */
-    public function getByCountry($countryId): Collection
+    public function getByCountry($countryId) : Collection
     {
         return $this->model->where('country_id', $countryId)->get();
     }
@@ -91,9 +98,8 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
      * commerces).
      *
      * @param mixed $currencyId ID de la moneda
-     * @return Collection
      */
-    public function getByCurrency($currencyId): Collection
+    public function getByCurrency($currencyId) : Collection
     {
         return $this->model
             ->whereHas('currencies', fn ($q) => $q->where('currencies.id', $currencyId))
@@ -101,81 +107,60 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
     }
 
     /**
-     * Obtiene comercios inactivos
+     * Obtiene comercio por ID de usuario
      *
-     * @return Collection
+     * @param mixed $userId ID del usuario
+     * @param array $fields Campos a seleccionar
      */
-    public function getInactiveRecords(): Collection
+    public function getByUserId($userId, array $fields = ['*']) : ?Commerce
+    {
+        return $this->model->select($fields)
+            ->where('user_id', $userId)
+            ->first();
+    }
+
+    /**
+     * Obtiene comercios inactivos
+     */
+    public function getInactiveRecords() : Collection
     {
         return $this->model->where('status', 'INACTIVE')->get();
     }
 
     /**
-     * Obtiene comercios bloqueados
+     * Obtiene valor por código UUID
      *
-     * @return Collection
-     */
-    public function getBlockedRecords(): Collection
-    {
-        return $this->model->where('status', 'BLOCKED')->get();
-    }
-
-    /**
-     * Actualiza estado de un comercio
+     * @param string $code  Código UUID
+     * @param string $field Campo a obtener
      *
-     * @param mixed $id ID del comercio
-     * @param string $status Nuevo estado
-     * @return bool
+     * @return mixed
      */
-    public function updateStatus($id, string $status): bool
+    public function getValueByCodeUUID(string $code, string $field)
     {
-        return $this->model->where('id', $id)
-            ->update(['status' => $status]) > 0;
-    }
-
-    /**
-     * Activa un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @return bool
-     */
-    public function activate($id): bool
-    {
-        return $this->updateStatus($id, 'ACTIVE');
-    }
-
-    /**
-     * Desactiva un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @return bool
-     */
-    public function deactivate($id): bool
-    {
-        return $this->updateStatus($id, 'INACTIVE');
-    }
-
-    /**
-     * Bloquea un comercio
-     *
-     * @param mixed $id ID del comercio
-     * @return bool
-     */
-    public function block($id): bool
-    {
-        return $this->updateStatus($id, 'BLOCKED');
+        return $this->model->where('unique_code_id', $code)->value($field);
     }
 
     /**
      * Actualiza comisión de un comercio
      *
-     * @param mixed $id ID del comercio
+     * @param mixed $id         ID del comercio
      * @param float $commission Nueva comisión
-     * @return bool
      */
-    public function updateCommission($id, float $commission): bool
+    public function updateCommission($id, float $commission) : bool
     {
         return $this->model->where('id', $id)
             ->update(['commission' => $commission]) > 0;
+    }
+
+    /**
+     * Actualiza estado de un comercio
+     *
+     * @param mixed  $id     ID del comercio
+     * @param string $status Nuevo estado
+     */
+    public function updateStatus($id, string $status) : bool
+    {
+        return $this->model->where('id', $id)
+            ->update(['status' => $status]) > 0;
     }
 }

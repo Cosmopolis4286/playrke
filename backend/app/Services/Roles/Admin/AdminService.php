@@ -4,6 +4,7 @@ namespace App\Services\Roles\Admin;
 
 use App\Services\Roles\ContextResolverService;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class AdminService
 {
@@ -13,7 +14,8 @@ final class AdminService
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customers,
         private readonly \App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface $treasurers,
         private readonly \App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface $subsidiaries,
-    ) {}
+    ) {
+    }
 
     /**
      * Obtiene el contexto preparado para la visualización según rol.
@@ -21,10 +23,11 @@ final class AdminService
      * Para ciertos roles, aplica transformación de tablas con
      * IDs hasheados, columnas y keys normalizadas para frontend.
      *
-     * @param string $rolePrefix Identificador del contexto (ej: 'commerces').
-     * @return array Contexto listo para pasar a la vista Inertia.
+     * @param string $rolePrefix identificador del contexto (ej: 'commerces')
+     *
+     * @return array contexto listo para pasar a la vista Inertia
      */
-    public function context(string $rolePrefix): array
+    public function context(string $rolePrefix) : array
     {
         return $this->context->resolve($rolePrefix)->toView();
     }
@@ -33,7 +36,8 @@ final class AdminService
      * Obtiene información de usuarios según rol
      *
      * @param string $userRole Rol del usuario
-     * @param string $exclude Modelo a excluir (opcional)
+     * @param string $exclude  Modelo a excluir (opcional)
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function getUserInfo(string $userRole, string $exclude = '')
@@ -54,11 +58,11 @@ final class AdminService
             };
 
             return response()->json($users);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Error obteniendo información de usuarios', [
                 'user_role' => $userRole,
                 'exclude' => $exclude,
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
             ]);
 
             return response()->json([], 500);
@@ -69,17 +73,17 @@ final class AdminService
      * Filtra usuarios excluyendo los IDs especificados
      *
      * @param \Illuminate\Database\Eloquent\Collection $users
-     * @param array $excludedUserIds
+     *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    protected function getFilteredUsers($users, array $excludedUserIds)
+    private function getFilteredUsers($users, array $excludedUserIds)
     {
         if (empty($excludedUserIds)) {
             return $users;
         }
 
-        return $users->filter(function ($user) use ($excludedUserIds) {
-            return !in_array($user->user_id ?? null, $excludedUserIds);
+        return $users->filter(function($user) use ($excludedUserIds) {
+            return ! in_array($user->user_id ?? null, $excludedUserIds);
         })->values();
     }
 
@@ -87,31 +91,34 @@ final class AdminService
      * Obtiene usuarios creadores a excluir dinámicamente
      *
      * @param string $model Nombre del modelo
+     *
      * @return array IDs de usuarios a excluir
      */
-    protected function resolveExcludedCreators(string $model): array
+    private function resolveExcludedCreators(string $model) : array
     {
-        if (!$model) {
+        if (! $model) {
             return [];
         }
 
         $modelClass = "App\\Models\\{$model}";
 
-        if (!class_exists($modelClass)) {
+        if (! class_exists($modelClass)) {
             Log::warning("Modelo no existe para exclusión: {$modelClass}");
+
             return [];
         }
 
-        if (!method_exists($modelClass, 'getAllCreatorUser')) {
+        if (! method_exists($modelClass, 'getAllCreatorUser')) {
             return [];
         }
 
         try {
             return $modelClass::getAllCreatorUser();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error("Error obteniendo creadores del modelo {$modelClass}", [
-                'exception' => $e->getMessage()
+                'exception' => $e->getMessage(),
             ]);
+
             return [];
         }
     }

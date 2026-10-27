@@ -22,7 +22,8 @@ final class UserPermissionService
 {
     public function __construct(
         private readonly PermissionService $permissionService,
-    ) {}
+    ) {
+    }
 
     /**
      * Permisos del usuario, distinguiendo origen: heredados por rol
@@ -32,24 +33,24 @@ final class UserPermissionService
      *
      * @return array{via_roles: array<int,string>, specific: array<int,array{name: string, expires_at: ?string, reason: ?string}>, catalog: array}
      */
-    public function getUserPermissions(User $user): array
+    public function getUserPermissions(User $user) : array
     {
         $specific = $user->specificPermissionGrants()
             ->active()
             ->orderBy('permission_name')
             ->get()
             ->map(fn (UserSpecificPermissionGrant $grant) => [
-                'name'       => $grant->permission_name,
+                'name' => $grant->permission_name,
                 'expires_at' => $grant->expires_at?->toISOString(),
-                'reason'     => $grant->reason,
+                'reason' => $grant->reason,
             ])
             ->values()
             ->all();
 
         return [
             'via_roles' => $user->getAllPermissions()->pluck('name')->all(),
-            'specific'  => $specific,
-            'catalog'   => $this->permissionService->getAllForMatrix(),
+            'specific' => $specific,
+            'catalog' => $this->permissionService->getAllForMatrix(),
         ];
     }
 
@@ -73,7 +74,7 @@ final class UserPermissionService
      *
      * @param array<int, array{name: string, expires_at?: string|null}> $permissions
      */
-    public function syncSpecificPermissions(User $user, array $permissions, ?string $reason = null): void
+    public function syncSpecificPermissions(User $user, array $permissions, ?string $reason = null) : void
     {
         $systemPermissionNames = Permission::where('is_system', true)->pluck('name')->all();
 
@@ -84,15 +85,16 @@ final class UserPermissionService
         $current = $user->specificPermissionGrants()->active()->get()->keyBy('permission_name');
 
         $toRevoke = $current->keys()->diff($requested->keys())->values()->all();
-        $toGrant  = $requested->keys()->diff($current->keys())->values()->all();
+        $toGrant = $requested->keys()->diff($current->keys())->values()->all();
 
         // Permisos presentes en ambos: si cambió la expiración, se actualiza
         // in-place (no se trata como revoke+grant, para no perder el
         // granted_by/created_at original del grant).
         $toUpdateExpiry = $requested->keys()->intersect($current->keys())
-            ->filter(function (string $name) use ($requested, $current) {
+            ->filter(function(string $name) use ($requested, $current) {
                 $newExpiresAt = $requested[$name]['expires_at'] ?? null;
                 $currentExpiresAt = $current[$name]->expires_at?->toISOString();
+
                 return $newExpiresAt !== $currentExpiresAt;
             })
             ->values();
@@ -112,17 +114,17 @@ final class UserPermissionService
             $expiresAt = $requested[$name]['expires_at'] ?? null;
             $user->specificPermissionGrants()->create([
                 'permission_name' => $name,
-                'granted_by'      => Auth::id(),
-                'reason'          => $reason,
-                'expires_at'      => $expiresAt ? Carbon::parse($expiresAt) : null,
+                'granted_by' => Auth::id(),
+                'reason' => $reason,
+                'expires_at' => $expiresAt ? Carbon::parse($expiresAt) : null,
             ]);
         }
 
         foreach ($toUpdateExpiry as $name) {
             $expiresAt = $requested[$name]['expires_at'] ?? null;
             $current[$name]->update([
-                'expires_at'            => $expiresAt ? Carbon::parse($expiresAt) : null,
-                'expiring_notified_at'  => null, // nueva fecha: el aviso previo debe poder reenviarse
+                'expires_at' => $expiresAt ? Carbon::parse($expiresAt) : null,
+                'expiring_notified_at' => null, // nueva fecha: el aviso previo debe poder reenviarse
             ]);
         }
 
@@ -138,22 +140,22 @@ final class UserPermissionService
      * (que ya cubren el diff old/new de cada fila) porque el motivo es
      * información de negocio de la operación completa, no un valor de columna.
      */
-    private function logSyncReason(User $user, array $granted, array $revoked, string $reason): void
+    private function logSyncReason(User $user, array $granted, array $revoked, string $reason) : void
     {
         Audit::create([
-            'user_id'        => Auth::id(),
-            'actor_type'     => Auth::check() ? 'user' : 'system',
+            'user_id' => Auth::id(),
+            'actor_type' => Auth::check() ? 'user' : 'system',
             'auditable_type' => User::class,
-            'auditable_id'   => (string) $user->getKey(),
-            'event'          => 'specific_permissions_synced',
+            'auditable_id' => (string) $user->getKey(),
+            'event' => 'specific_permissions_synced',
             // Sin json_encode() manual: old_values/new_values ya tienen cast
             // 'array' en Audit, Eloquent se encarga de (de)serializar — igual
             // que Auditable::auditChanges() (ver ese trait para el porqué).
-            'old_values'     => ['revoked' => array_values($revoked)],
-            'new_values'     => ['granted' => array_values($granted), 'reason' => $reason],
-            'url'            => Request::instance()?->fullUrl(),
-            'ip_address'     => Request::instance()?->ip(),
-            'user_agent'     => Request::instance()?->userAgent(),
+            'old_values' => ['revoked' => array_values($revoked)],
+            'new_values' => ['granted' => array_values($granted), 'reason' => $reason],
+            'url' => Request::instance()?->fullUrl(),
+            'ip_address' => Request::instance()?->ip(),
+            'user_agent' => Request::instance()?->userAgent(),
         ]);
     }
 }

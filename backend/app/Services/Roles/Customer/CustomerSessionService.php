@@ -17,7 +17,7 @@ class CustomerSessionService
             return ['Error' => $customerResponse['Error']];
         }
 
-        if (!$customerResponse) {
+        if (! $customerResponse) {
             return ['Error' => 'Error en la solicitud HTTP'];
         }
 
@@ -25,13 +25,13 @@ class CustomerSessionService
         $country = $customerResponse['Data']['Country'] ?? null;
         $currency = $customerResponse['Data']['DefaultCurrencyCode'];
 
-        if (!CustomerUser::existsUserByCustomer($customerId, $userId)) {
+        if (! CustomerUser::existsUserByCustomer($customerId, $userId)) {
             $this->registerUserByCustomer(
                 $customerId,
                 $userId,
                 $userToken,
                 $country,
-                $currency
+                $currency,
             );
         } else {
             CustomerUser::where('user_id', $userId)->update([
@@ -40,7 +40,7 @@ class CustomerSessionService
                 'token' => $userToken,
                 'country' => $country,
                 'currency' => $currency,
-                'last_activity' => now()
+                'last_activity' => now(),
             ]);
         }
 

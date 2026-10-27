@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Banks;
 
+use App\Contracts\Banks\BankBrazilRepositoryInterface;
 use App\Models\Banks\BankBrazil;
 use App\Repositories\BaseRepository;
-use App\Contracts\Banks\BankBrazilRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -16,8 +16,6 @@ class BankBrazilRepository extends BaseRepository implements BankBrazilRepositor
 {
     /**
      * Constructor
-     *
-     * @param BankBrazil $model
      */
     public function __construct(BankBrazil $model)
     {
@@ -25,90 +23,52 @@ class BankBrazilRepository extends BaseRepository implements BankBrazilRepositor
     }
 
     /**
-     * Buscar banco por código ISPB
-     *
-     * @param string $ispb Código ISPB del banco
-     * @param array $columns Columnas a seleccionar
-     * @return BankBrazil|null
-     */
-    public function findByISPB(string $ispb, array $columns = ['*']): ?BankBrazil
-    {
-        return $this->model->where('ispb', $ispb)->first($columns);
-    }
-
-    /**
-     * Obtener valor específico de un banco por ISPB
-     *
-     * @param string $ispb Código ISPB
-     * @param string $column Columna a obtener
-     * @return mixed
-     */
-    public function getValueByISPB(string $ispb, string $column): mixed
-    {
-        return $this->model->where('ispb', $ispb)->value($column);
-    }
-
-    /**
      * Verificar si existe un banco por ISPB
      *
      * @param string $ispb Código ISPB
-     * @return bool
      */
-    public function existsByISPB(string $ispb): bool
+    public function existsByISPB(string $ispb) : bool
     {
         return $this->model->where('ispb', $ispb)->exists();
     }
 
     /**
-     * Buscar bancos por nombre exacto
+     * Buscar banco por código ISPB
      *
-     * @param string $name Nombre del banco
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BankBrazil>
+     * @param string $ispb    Código ISPB del banco
+     * @param array  $columns Columnas a seleccionar
      */
-    public function findByName(string $name, array $columns = ['*']): Collection
+    public function findByISPB(string $ispb, array $columns = ['*']) : ?BankBrazil
     {
-        return $this->model->where('name', $name)
-            ->orWhere('full_name', $name)
-            ->get($columns);
-    }
-
-    /**
-     * Buscar bancos que contengan el nombre especificado
-     *
-     * @param string $searchTerm Término de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BankBrazil>
-     */
-    public function searchByName(string $searchTerm, array $columns = ['*']): Collection
-    {
-        return $this->model->where('name', 'like', "%{$searchTerm}%")
-            ->orWhere('full_name', 'like', "%{$searchTerm}%")
-            ->orderBy('name')
-            ->get($columns);
-    }
-
-    /**
-     * Obtener todos los bancos ordenados por nombre
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BankBrazil>
-     */
-    public function getAllOrderedByName(array $columns = ['*']): Collection
-    {
-        return $this->model->orderBy('name')->get($columns);
+        return $this->model->where('ispb', $ispb)->first($columns);
     }
 
     /**
      * Buscar por múltiples ISPBs
      *
-     * @param array $ispbs Array de códigos ISPB
+     * @param array $ispbs   Array de códigos ISPB
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<BankBrazil>
      */
-    public function findByMultipleISPBs(array $ispbs, array $columns = ['*']): Collection
+    public function findByMultipleISPBs(array $ispbs, array $columns = ['*']) : Collection
     {
         return $this->model->whereIn('ispb', $ispbs)->get($columns);
+    }
+
+    /**
+     * Buscar bancos por nombre exacto
+     *
+     * @param string $name    Nombre del banco
+     * @param array  $columns Columnas a seleccionar
+     *
+     * @return Collection<BankBrazil>
+     */
+    public function findByName(string $name, array $columns = ['*']) : Collection
+    {
+        return $this->model->where('name', $name)
+            ->orWhere('full_name', $name)
+            ->get($columns);
     }
 
     /**
@@ -117,20 +77,56 @@ class BankBrazilRepository extends BaseRepository implements BankBrazilRepositor
      *
      * @param string $ispb Código ISPB del banco
      * @param array  $data Datos a insertar si no existe (name, full_name, ispb)
-     * @return BankBrazil
      */
-    public function firstOrCreateByISPB(string $ispb, array $data): BankBrazil
+    public function firstOrCreateByISPB(string $ispb, array $data) : BankBrazil
     {
         return $this->model->firstOrCreate(['ispb' => $ispb], $data);
     }
 
     /**
-     * Verifica si la tabla de bancos de Brasil está vacía.
+     * Obtener todos los bancos ordenados por nombre
      *
-     * @return bool
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<BankBrazil>
      */
-    public function isEmpty(): bool
+    public function getAllOrderedByName(array $columns = ['*']) : Collection
     {
-        return !$this->model->exists();
+        return $this->model->orderBy('name')->get($columns);
+    }
+
+    /**
+     * Obtener valor específico de un banco por ISPB
+     *
+     * @param string $ispb   Código ISPB
+     * @param string $column Columna a obtener
+     */
+    public function getValueByISPB(string $ispb, string $column) : mixed
+    {
+        return $this->model->where('ispb', $ispb)->value($column);
+    }
+
+    /**
+     * Verifica si la tabla de bancos de Brasil está vacía.
+     */
+    public function isEmpty() : bool
+    {
+        return ! $this->model->exists();
+    }
+
+    /**
+     * Buscar bancos que contengan el nombre especificado
+     *
+     * @param string $searchTerm Término de búsqueda
+     * @param array  $columns    Columnas a seleccionar
+     *
+     * @return Collection<BankBrazil>
+     */
+    public function searchByName(string $searchTerm, array $columns = ['*']) : Collection
+    {
+        return $this->model->where('name', 'like', "%{$searchTerm}%")
+            ->orWhere('full_name', 'like', "%{$searchTerm}%")
+            ->orderBy('name')
+            ->get($columns);
     }
 }

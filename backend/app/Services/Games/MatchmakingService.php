@@ -7,6 +7,7 @@ namespace App\Services\Games;
 use App\Models\GameSession;
 use App\Models\GameSessionParticipant;
 use App\Models\User;
+use DomainException;
 use Illuminate\Support\Collection;
 
 /**
@@ -40,26 +41,26 @@ final class MatchmakingService
      *
      * @return Collection<int, GameSession>
      */
-    public function findCandidateSessions(string $game, User $user, array $criteria = []): Collection
+    public function findCandidateSessions(string $game, User $user, array $criteria = []) : Collection
     {
         $query = GameSession::query()
             ->forGame($game)
             ->where('status', GameSession::STATUS_WAITING);
 
         if (isset($criteria['min_entry_fee'])) {
-            $query->where(function ($q) use ($criteria) {
+            $query->where(function($q) use ($criteria) {
                 $q->whereNull('entry_fee')->orWhere('entry_fee', '>=', $criteria['min_entry_fee']);
             });
         }
 
         if (isset($criteria['max_entry_fee'])) {
-            $query->where(function ($q) use ($criteria) {
+            $query->where(function($q) use ($criteria) {
                 $q->whereNull('entry_fee')->orWhere('entry_fee', '<=', $criteria['max_entry_fee']);
             });
         }
 
         if (isset($criteria['currency_id'])) {
-            $query->where(function ($q) use ($criteria) {
+            $query->where(function($q) use ($criteria) {
                 $q->whereNull('currency_id')->orWhere('currency_id', $criteria['currency_id']);
             });
         }
@@ -82,7 +83,7 @@ final class MatchmakingService
      * ningún consumidor real pidió con columna indexable; se agrega si hace
      * falta filtrar por rango en SQL más adelante).
      */
-    public function isEligible(GameSession $session, User $user): bool
+    public function isEligible(GameSession $session, User $user) : bool
     {
         if ($session->status !== GameSession::STATUS_WAITING) {
             return false;
@@ -101,11 +102,7 @@ final class MatchmakingService
             return false;
         }
 
-        if ($session->participants()->where('user_id', $user->id)->active()->exists()) {
-            return false;
-        }
-
-        return true;
+        return ! ($session->participants()->where('user_id', $user->id)->active()->exists());
     }
 
     /**
@@ -113,17 +110,17 @@ final class MatchmakingService
      * llamar isEligible() antes si se quiere evitar la excepción (ej. para
      * filtrar una lista sin lanzar por cada una).
      */
-    public function join(GameSession $session, User $user): GameSessionParticipant
+    public function join(GameSession $session, User $user) : GameSessionParticipant
     {
         if (! $this->isEligible($session, $user)) {
-            throw new \DomainException('El jugador no cumple los requisitos para unirse a esta sesión.');
+            throw new DomainException('El jugador no cumple los requisitos para unirse a esta sesión.');
         }
 
         return GameSessionParticipant::create([
             'game_session_id' => $session->id,
-            'user_id'         => $user->id,
-            'status'          => GameSessionParticipant::STATUS_JOINED,
-            'joined_at'       => now(),
+            'user_id' => $user->id,
+            'status' => GameSessionParticipant::STATUS_JOINED,
+            'joined_at' => now(),
         ]);
     }
 
@@ -131,7 +128,7 @@ final class MatchmakingService
      * Marca al jugador como LEFT — no borra la fila (conserva el historial
      * de quién estuvo en la sesión, incluso si salió antes del cierre).
      */
-    public function leave(GameSession $session, User $user): void
+    public function leave(GameSession $session, User $user) : void
     {
         $participant = $session->participants()
             ->where('user_id', $user->id)
@@ -143,7 +140,7 @@ final class MatchmakingService
         }
 
         $participant->update([
-            'status'  => GameSessionParticipant::STATUS_LEFT,
+            'status' => GameSessionParticipant::STATUS_LEFT,
             'left_at' => now(),
         ]);
     }

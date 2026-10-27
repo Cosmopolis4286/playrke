@@ -21,7 +21,8 @@ final class JackpotLedgerService
     public function __construct(
         private readonly JackpotRepositoryInterface $jackpots,
         private readonly JackpotMovementRepositoryInterface $movements,
-    ) {}
+    ) {
+    }
 
     public function contribute(
         string $jackpotTypeId,
@@ -29,7 +30,7 @@ final class JackpotLedgerService
         ?string $roomId = null,
         ?string $description = null,
         ?array $metadata = null,
-    ): void {
+    ) : void {
         if ($amount <= 0) {
             return;
         }
@@ -41,14 +42,14 @@ final class JackpotLedgerService
         $jackpot->refresh();
 
         $this->movements->record([
-            'jackpot_id'     => (string) $jackpot->id,
-            'room_id'        => $roomId,
-            'type'           => JackpotMovement::TYPE_CONTRIBUTION,
-            'amount'         => $amount,
+            'jackpot_id' => (string) $jackpot->id,
+            'room_id' => $roomId,
+            'type' => JackpotMovement::TYPE_CONTRIBUTION,
+            'amount' => $amount,
             'balance_before' => $balanceBefore,
-            'balance_after'  => (float) $jackpot->amount,
-            'description'    => $description ?? 'Aporte por venta de cartón',
-            'metadata'       => $metadata,
+            'balance_after' => (float) $jackpot->amount,
+            'description' => $description ?? 'Aporte por venta de cartón',
+            'metadata' => $metadata,
         ]);
     }
 
@@ -62,7 +63,7 @@ final class JackpotLedgerService
      * faltante para que el caller lo registre en conciliación — nunca deja el
      * pozo en negativo.
      *
-     * @return float Faltante no revertido (0 si se revirtió completo o ya estaba revertido).
+     * @return float faltante no revertido (0 si se revirtió completo o ya estaba revertido)
      */
     public function reverseContribution(
         string $jackpotTypeId,
@@ -70,7 +71,7 @@ final class JackpotLedgerService
         string $idempotencyKey,
         ?string $roomId = null,
         ?string $description = null,
-    ): float {
+    ) : float {
         if ($amount <= 0) {
             return 0.0;
         }
@@ -80,7 +81,7 @@ final class JackpotLedgerService
 
         $jackpot = $this->jackpots->firstOrCreateByType($jackpotTypeId);
 
-        return DB::transaction(function () use ($jackpot, $amount, $idempotencyKey, $roomId, $description) {
+        return DB::transaction(function() use ($jackpot, $amount, $idempotencyKey, $roomId, $description) {
             $locked = Jackpot::where('id', $jackpot->id)->lockForUpdate()->firstOrFail();
             $balanceBefore = (float) $locked->amount;
             $reversible = min($amount, $balanceBefore);
@@ -94,15 +95,15 @@ final class JackpotLedgerService
             $locked->decrement('amount', $reversible);
 
             $this->movements->record([
-                'jackpot_id'      => (string) $locked->id,
-                'room_id'         => $roomId,
-                'type'            => JackpotMovement::TYPE_REVERSAL,
-                'amount'          => $reversible,
-                'balance_before'  => $balanceBefore,
-                'balance_after'   => $balanceBefore - $reversible,
-                'description'     => $description ?? 'Reversión de aporte por reembolso',
+                'jackpot_id' => (string) $locked->id,
+                'room_id' => $roomId,
+                'type' => JackpotMovement::TYPE_REVERSAL,
+                'amount' => $reversible,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceBefore - $reversible,
+                'description' => $description ?? 'Reversión de aporte por reembolso',
                 'idempotency_key' => $idempotencyKey,
-                'metadata'        => $reversible < $amount ? ['shortfall' => round($amount - $reversible, 4)] : null,
+                'metadata' => $reversible < $amount ? ['shortfall' => round($amount - $reversible, 4)] : null,
             ]);
 
             return round($amount - $reversible, 4);

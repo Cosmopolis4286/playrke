@@ -3,16 +3,16 @@
 namespace App\Services\Roles\Seller\Manager;
 
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
-use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
 use App\Models\Game;
-use App\Models\User;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
 use App\Models\Roles\Seller;
+use App\Models\User;
 use App\Services\UserService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,26 +36,26 @@ final class ManagerSellerCrudService
         private readonly UserService $userService,
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly SellerRepositoryInterface $sellerRepository,
-    ) {}
+    ) {
+    }
 
     /**
      * Crear un vendedor completo (User + Seller + Wallet).
      *
-     * @param ManagerSellerDTO $dto
-     * @param int $managerUserId ID del usuario manager al que representa el vendedor
-     *   — siempre el user_id de un Commerce (ver ManagerSellerService::create()),
-     *   nunca el de una Subsidiary directamente.
-     * @param string|null $subsidiaryId Agencia a la que pertenece el vendedor,
-     *   si fue creado por un usuario 'subsidiary'. Null si reporta directo al
-     *   Commerce sin agencia intermedia.
+     * @param int         $managerUserId ID del usuario manager al que representa el vendedor
+     *                                   — siempre el user_id de un Commerce (ver ManagerSellerService::create()),
+     *                                   nunca el de una Subsidiary directamente
+     * @param string|null $subsidiaryId  Agencia a la que pertenece el vendedor,
+     *                                   si fue creado por un usuario 'subsidiary'. Null si reporta directo al
+     *                                   Commerce sin agencia intermedia.
+     *
      * @return string Contraseña generada para el vendedor
      *
      * @throws ManagerSellerException
      */
-    public function create(ManagerSellerDTO $dto, int $managerUserId, ?string $subsidiaryId = null): string
+    public function create(ManagerSellerDTO $dto, int $managerUserId, ?string $subsidiaryId = null) : string
     {
-        return DB::transaction(function () use ($dto, $managerUserId, $subsidiaryId) {
-
+        return DB::transaction(function() use ($dto, $managerUserId, $subsidiaryId) {
             $plainPassword = bin2hex(random_bytes(4));
 
             // 1. Crear usuario
@@ -74,7 +74,7 @@ final class ManagerSellerCrudService
                 'status' => 'ACTIVE',
             ]);
 
-            if (!$seller) {
+            if (! $seller) {
                 throw ManagerSellerException::creationFailed();
             }
 
@@ -84,7 +84,7 @@ final class ManagerSellerCrudService
 
             // 5. Wallet principal
             $this->walletRepository->create([
-                'user_id'     => $user->id,
+                'user_id' => $user->id,
                 'currency_id' => $dto->currency,
             ]);
 
@@ -93,276 +93,14 @@ final class ManagerSellerCrudService
     }
 
     /**
-     * Obtener vendedor para visualización.
-     *
-     * @param Seller $seller
-     * @return ManagerSellerResource
-     */
-    public function show(Seller $seller): ManagerSellerResource
-    {
-        $seller->load([
-            'country:id,name',
-            'user:id,username,email,time_zone_id',
-            'user.timeZone:id,name',
-            'currenciesActive:id,symbol,description',
-            'gamesActive:id,name',
-            // Jerarquía hacia arriba (Vendedor → Agencia → Comercio) — inversa
-            // del enriquecimiento ya aplicado a AdminCommerceCrudService::show()
-            // (que muestra hacia abajo: Comercio → Agencia → Vendedores). Un
-            // Seller es la hoja del árbol, no tiene subordinados propios.
-            'subsidiary:id,user_id,name,status,commerce_id',
-            'subsidiary.commerce:id,name,status',
-            'managerCommerce:id,user_id,name,status',
-        ]);
-
-        // Ficha de solo lectura: atributos dinámicos (no persistidos) que
-        // ManagerSellerResource expone como campos normales — mismo patrón
-        // que AdminCommerceCrudService::show() (is_default_commerce,
-        // directory_accounts), necesario porque este resource se anida
-        // manualmente dentro de response()->json() en el controller.
-        $seller->wallet_balances = $this->walletRepository
-            ->getActiveWalletsByUser((string) $seller->user_id, ['id', 'balance', 'bonus_balance', 'currency_id'])
-            ->load('currency:id,symbol,iso_code')
-            ->map(fn ($wallet) => [
-                'balance'       => (float) $wallet->balance,
-                'bonus_balance' => (float) $wallet->bonus_balance,
-                'currency'      => [
-                    'symbol'   => $wallet->currency?->symbol,
-                    'iso_code' => $wallet->currency?->iso_code,
-                ],
-            ])
-            ->values();
-
-        // Actividad de ventas del mes en curso — BingoCardLot::scopeBySeller()
-        // ya existe y se usa en CommerceDashboardContextService, mismo
-        // criterio aquí a nivel de un único vendedor. Cifras planas (no
-        // separadas por moneda): el objetivo es un vistazo rápido en la
-        // ficha, no un reporte financiero — para eso ya existe /admin/reports.
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $salesThisMonth = BingoCardLot::bySeller((string) $seller->user_id)
-            ->active()
-            ->where('created_at', '>=', $startOfMonth)
-            ->selectRaw('COUNT(*) as lots_count, COALESCE(SUM(card_count), 0) as cards_sold, COALESCE(SUM(sale_amount), 0) as sale_amount, COALESCE(SUM(commission_amount), 0) as commission_amount')
-            ->first();
-
-        $seller->activity = [
-            'lots_count'        => (int) ($salesThisMonth->lots_count ?? 0),
-            'cards_sold'        => (int) ($salesThisMonth->cards_sold ?? 0),
-            'sale_amount'       => (float) ($salesThisMonth->sale_amount ?? 0),
-            'commission_amount' => (float) ($salesThisMonth->commission_amount ?? 0),
-        ];
-
-        return new ManagerSellerResource($seller);
-    }
-
-    /**
-     * Actualizar comercio y relaciones.
-     *
-     * @param Seller $seller
-     * @param ManagerSellerDTO $dto
-     * @param int|null $managerUserId Nuevo Commerce padre (ya resuelto por
-     *   ManagerSellerService::update()) — null si no se reasigna.
-     * @param string|null $subsidiaryId Nueva Subsidiary padre — solo
-     *   relevante cuando $managerUserId también se pasa; puede ser null
-     *   explícito para "mover a reporte directo del Commerce, sin agencia".
-     *
-     * @throws ManagerSellerException
-     */
-    public function update(Seller $seller, ManagerSellerDTO $dto, ?int $managerUserId = null, ?string $subsidiaryId = null): void
-    {
-        DB::transaction(function () use ($seller, $dto, $managerUserId, $subsidiaryId) {
-
-            // Solo null = "sin cambios": array_filter() sin callback también
-            // descartaba commission "0", impidiendo bajar la comisión a 0.
-            $attributes = array_filter([
-                'name'       => $dto->name,
-                'phone'      => $dto->phone,
-                'commission' => $dto->commission,
-                'country_id' => $dto->country,
-            ], static fn ($value) => $value !== null && $value !== '');
-
-            if ($managerUserId !== null) {
-                $attributes['manager_user_id'] = $managerUserId;
-                // subsidiary_id se asigna directo (sin array_filter, que
-                // descartaría un null explícito) — reasignar a un Commerce
-                // sin agencia intermedia es un valor válido, no "sin cambios".
-                $attributes['subsidiary_id'] = $subsidiaryId;
-            }
-
-            $this->sellerRepository->update($seller->id, $attributes);
-
-            $this->syncCurrencies($seller, $dto->currency, $dto->otherCurrencies);
-            $this->syncGames($seller, $dto->allowedGames);
-
-            if ($dto->email !== null || $dto->username !== null) {
-                $seller->user()->update(array_filter([
-                    'email'    => $dto->email,
-                    'username' => $dto->username,
-                ]));
-            }
-        });
-    }
-
-    /**
-     * Sincroniza monedas del comercio.
-     */
-    protected function syncCurrencies(
-        Seller $seller,
-        ?int $principalCurrencyId,
-        ?array $secondaryCurrencyIds
-    ): void {
-        $secondaryCurrencyIds = collect($secondaryCurrencyIds ?? [])
-            ->map(fn($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        // Principal
-        if ($principalCurrencyId) {
-            SellerCurrency::updateOrCreate(
-                ['seller_id' => $seller->id, 'level' => 1],
-                [
-                    'currency_id' => $principalCurrencyId,
-                    'status'      => 'ACTIVE',
-                ]
-            );
-        }
-
-        // Secundarias → inactivar las que sobran
-        SellerCurrency::where('seller_id', $seller->id)
-            ->where('level', 2)
-            ->whereNotIn('currency_id', $secondaryCurrencyIds)
-            ->update(['status' => 'INACTIVE']);
-
-        // Activar existentes
-        SellerCurrency::where('seller_id', $seller->id)
-            ->where('level', 2)
-            ->whereIn('currency_id', $secondaryCurrencyIds)
-            ->update(['status' => 'ACTIVE']);
-
-        // Insertar faltantes
-        $existing = SellerCurrency::where('seller_id', $seller->id)
-            ->where('level', 2)
-            ->pluck('currency_id')
-            ->all();
-
-        $missing = array_diff($secondaryCurrencyIds, $existing);
-
-        if ($missing) {
-            SellerCurrency::insert(
-                array_map(fn($id) => [
-                    'seller_id' => $seller->id,
-                    'currency_id' => $id,
-                    'level'       => 2,
-                    'status'      => 'ACTIVE',
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ], $missing)
-            );
-        }
-    }
-
-    /**
-     * Sincroniza juegos permitidos y actualiza permisos específicos del usuario.
-     */
-    protected function syncGames(
-        Seller $seller,
-        ?array $activeGameIds
-    ): void {
-        $activeGameIds = collect($activeGameIds ?? [])
-            ->map(fn($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        // Obtener nombres de juegos para crear permisos
-        $gamePermissions = [];
-        if (!empty($activeGameIds)) {
-            $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
-            $gamePermissions = $games->map(fn($game) => 'games.' . strtolower($game->name))
-                ->values()
-                ->all();
-        }
-
-        // Actualizar permisos específicos de juego del usuario del seller
-        // (permisos no-juego quedan intactos: solo se tocan los 'games.*').
-        $user = User::find($seller->user_id);
-        if ($user) {
-            $currentGamePermissions = $user->specificPermissionGrants()
-                ->active()
-                ->where('permission_name', 'like', 'games.%')
-                ->pluck('permission_name')
-                ->all();
-
-            $toRevoke = array_diff($currentGamePermissions, $gamePermissions);
-            $toGrant  = array_diff($gamePermissions, $currentGamePermissions);
-
-            if ($toRevoke !== []) {
-                $user->revokeSpecificPermission($toRevoke);
-            }
-            if ($toGrant !== []) {
-                $user->giveSpecificPermission($toGrant);
-            }
-        }
-
-        SellerGame::where('seller_id', $seller->id)
-            ->whereNotIn('game_id', $activeGameIds)
-            ->update(['status' => 'INACTIVE']);
-
-        SellerGame::where('seller_id', $seller->id)
-            ->whereIn('game_id', $activeGameIds)
-            ->update(['status' => 'ACTIVE']);
-
-        $existing = SellerGame::where('seller_id', $seller->id)
-            ->pluck('game_id')
-            ->all();
-
-        $missing = array_diff($activeGameIds, $existing);
-
-        if ($missing) {
-            SellerGame::insert(
-                array_map(fn($id) => [
-                    'seller_id' => $seller->id,
-                    'game_id'     => $id,
-                    'status'      => 'ACTIVE',
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ], $missing)
-            );
-        }
-    }
-
-    /**
-     * Alternar estado del comercio (ACTIVE / INACTIVE).
-     * También sincroniza el estado del usuario asociado.
-     *
-     * @param Seller $seller
-     * @return bool True si el cambio fue exitoso
-     *
-     * @throws RuntimeException Si el comercio está eliminado
-     */
-    public function toggleStatus(Seller $seller): bool
-    {
-        if ($seller->status === 'DELETED') {
-            throw ManagerSellerException::invalidStatusChange();
-        }
-
-        // Usa changeStatus con userRelation para sincronizar Seller y User
-        $newStatus = $seller->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-        return $this->sellerRepository->changeStatus($seller, $newStatus, 'user');
-    }
-
-    /**
      * Eliminación lógica (soft delete) del comercio.
      * También marca el usuario asociado como DELETED.
      *
-     * @param Seller $seller
      * @return bool True si la eliminación fue exitosa
      *
      * @throws RuntimeException Si el comercio ya está eliminado
      */
-    public function delete(Seller $seller): bool
+    public function delete(Seller $seller) : bool
     {
         if ($seller->status === 'DELETED') {
             throw ManagerSellerException::alreadyDeleted();
@@ -373,21 +111,19 @@ final class ManagerSellerCrudService
             model: $seller,
             status: 'DELETED',
             relationsToDetach: [],
-            userRelation: 'user'
+            userRelation: 'user',
         );
     }
 
     /**
      * Eliminación definitiva del comercio y su usuario asociado.
      *
-     * @param Seller $seller
      *
      * @throws ManagerSellerException
      */
-    public function destroy(Seller $seller): void
+    public function destroy(Seller $seller) : void
     {
-        DB::transaction(function () use ($seller) {
-
+        DB::transaction(function() use ($seller) {
             $seller->loadMissing(['currencies', 'games', 'user']);
 
             // Desvincula relaciones
@@ -414,5 +150,259 @@ final class ManagerSellerCrudService
                 $user->forceDelete();
             }
         });
+    }
+
+    /**
+     * Obtener vendedor para visualización.
+     */
+    public function show(Seller $seller) : ManagerSellerResource
+    {
+        $seller->load([
+            'country:id,name',
+            'user:id,username,email,time_zone_id',
+            'user.timeZone:id,name',
+            'currenciesActive:id,symbol,description',
+            'gamesActive:id,name',
+            // Jerarquía hacia arriba (Vendedor → Agencia → Comercio) — inversa
+            // del enriquecimiento ya aplicado a AdminCommerceCrudService::show()
+            // (que muestra hacia abajo: Comercio → Agencia → Vendedores). Un
+            // Seller es la hoja del árbol, no tiene subordinados propios.
+            'subsidiary:id,user_id,name,status,commerce_id',
+            'subsidiary.commerce:id,name,status',
+            'managerCommerce:id,user_id,name,status',
+        ]);
+
+        // Ficha de solo lectura: atributos dinámicos (no persistidos) que
+        // ManagerSellerResource expone como campos normales — mismo patrón
+        // que AdminCommerceCrudService::show() (is_default_commerce,
+        // directory_accounts), necesario porque este resource se anida
+        // manualmente dentro de response()->json() en el controller.
+        $seller->wallet_balances = $this->walletRepository
+            ->getActiveWalletsByUser((string) $seller->user_id, ['id', 'balance', 'bonus_balance', 'currency_id'])
+            ->load('currency:id,symbol,iso_code')
+            ->map(fn ($wallet) => [
+                'balance' => (float) $wallet->balance,
+                'bonus_balance' => (float) $wallet->bonus_balance,
+                'currency' => [
+                    'symbol' => $wallet->currency?->symbol,
+                    'iso_code' => $wallet->currency?->iso_code,
+                ],
+            ])
+            ->values();
+
+        // Actividad de ventas del mes en curso — BingoCardLot::scopeBySeller()
+        // ya existe y se usa en CommerceDashboardContextService, mismo
+        // criterio aquí a nivel de un único vendedor. Cifras planas (no
+        // separadas por moneda): el objetivo es un vistazo rápido en la
+        // ficha, no un reporte financiero — para eso ya existe /admin/reports.
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $salesThisMonth = BingoCardLot::bySeller((string) $seller->user_id)
+            ->active()
+            ->where('created_at', '>=', $startOfMonth)
+            ->selectRaw('COUNT(*) as lots_count, COALESCE(SUM(card_count), 0) as cards_sold, COALESCE(SUM(sale_amount), 0) as sale_amount, COALESCE(SUM(commission_amount), 0) as commission_amount')
+            ->first();
+
+        $seller->activity = [
+            'lots_count' => (int) ($salesThisMonth->lots_count ?? 0),
+            'cards_sold' => (int) ($salesThisMonth->cards_sold ?? 0),
+            'sale_amount' => (float) ($salesThisMonth->sale_amount ?? 0),
+            'commission_amount' => (float) ($salesThisMonth->commission_amount ?? 0),
+        ];
+
+        return new ManagerSellerResource($seller);
+    }
+
+    /**
+     * Alternar estado del comercio (ACTIVE / INACTIVE).
+     * También sincroniza el estado del usuario asociado.
+     *
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws RuntimeException Si el comercio está eliminado
+     */
+    public function toggleStatus(Seller $seller) : bool
+    {
+        if ($seller->status === 'DELETED') {
+            throw ManagerSellerException::invalidStatusChange();
+        }
+
+        // Usa changeStatus con userRelation para sincronizar Seller y User
+        $newStatus = $seller->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        return $this->sellerRepository->changeStatus($seller, $newStatus, 'user');
+    }
+
+    /**
+     * Actualizar comercio y relaciones.
+     *
+     * @param int|null    $managerUserId nuevo Commerce padre (ya resuelto por
+     *                                   ManagerSellerService::update()) — null si no se reasigna
+     * @param string|null $subsidiaryId  nueva Subsidiary padre — solo
+     *                                   relevante cuando $managerUserId también se pasa; puede ser null
+     *                                   explícito para "mover a reporte directo del Commerce, sin agencia"
+     *
+     * @throws ManagerSellerException
+     */
+    public function update(Seller $seller, ManagerSellerDTO $dto, ?int $managerUserId = null, ?string $subsidiaryId = null) : void
+    {
+        DB::transaction(function() use ($seller, $dto, $managerUserId, $subsidiaryId) {
+            // Solo null = "sin cambios": array_filter() sin callback también
+            // descartaba commission "0", impidiendo bajar la comisión a 0.
+            $attributes = array_filter([
+                'name' => $dto->name,
+                'phone' => $dto->phone,
+                'commission' => $dto->commission,
+                'country_id' => $dto->country,
+            ], static fn ($value) => $value !== null && $value !== '');
+
+            if ($managerUserId !== null) {
+                $attributes['manager_user_id'] = $managerUserId;
+                // subsidiary_id se asigna directo (sin array_filter, que
+                // descartaría un null explícito) — reasignar a un Commerce
+                // sin agencia intermedia es un valor válido, no "sin cambios".
+                $attributes['subsidiary_id'] = $subsidiaryId;
+            }
+
+            $this->sellerRepository->update($seller->id, $attributes);
+
+            $this->syncCurrencies($seller, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($seller, $dto->allowedGames);
+
+            if ($dto->email !== null || $dto->username !== null) {
+                $seller->user()->update(array_filter([
+                    'email' => $dto->email,
+                    'username' => $dto->username,
+                ]));
+            }
+        });
+    }
+
+    /**
+     * Sincroniza monedas del comercio.
+     */
+    private function syncCurrencies(
+        Seller $seller,
+        ?int $principalCurrencyId,
+        ?array $secondaryCurrencyIds,
+    ) : void {
+        $secondaryCurrencyIds = collect($secondaryCurrencyIds ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        // Principal
+        if ($principalCurrencyId) {
+            SellerCurrency::updateOrCreate(
+                ['seller_id' => $seller->id, 'level' => 1],
+                [
+                    'currency_id' => $principalCurrencyId,
+                    'status' => 'ACTIVE',
+                ],
+            );
+        }
+
+        // Secundarias → inactivar las que sobran
+        SellerCurrency::where('seller_id', $seller->id)
+            ->where('level', 2)
+            ->whereNotIn('currency_id', $secondaryCurrencyIds)
+            ->update(['status' => 'INACTIVE']);
+
+        // Activar existentes
+        SellerCurrency::where('seller_id', $seller->id)
+            ->where('level', 2)
+            ->whereIn('currency_id', $secondaryCurrencyIds)
+            ->update(['status' => 'ACTIVE']);
+
+        // Insertar faltantes
+        $existing = SellerCurrency::where('seller_id', $seller->id)
+            ->where('level', 2)
+            ->pluck('currency_id')
+            ->all();
+
+        $missing = array_diff($secondaryCurrencyIds, $existing);
+
+        if ($missing) {
+            SellerCurrency::insert(
+                array_map(fn ($id) => [
+                    'seller_id' => $seller->id,
+                    'currency_id' => $id,
+                    'level' => 2,
+                    'status' => 'ACTIVE',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], $missing),
+            );
+        }
+    }
+
+    /**
+     * Sincroniza juegos permitidos y actualiza permisos específicos del usuario.
+     */
+    private function syncGames(
+        Seller $seller,
+        ?array $activeGameIds,
+    ) : void {
+        $activeGameIds = collect($activeGameIds ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        // Obtener nombres de juegos para crear permisos
+        $gamePermissions = [];
+        if (! empty($activeGameIds)) {
+            $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
+            $gamePermissions = $games->map(fn ($game) => 'games.' . strtolower($game->name))
+                ->values()
+                ->all();
+        }
+
+        // Actualizar permisos específicos de juego del usuario del seller
+        // (permisos no-juego quedan intactos: solo se tocan los 'games.*').
+        $user = User::find($seller->user_id);
+        if ($user) {
+            $currentGamePermissions = $user->specificPermissionGrants()
+                ->active()
+                ->where('permission_name', 'like', 'games.%')
+                ->pluck('permission_name')
+                ->all();
+
+            $toRevoke = array_diff($currentGamePermissions, $gamePermissions);
+            $toGrant = array_diff($gamePermissions, $currentGamePermissions);
+
+            if ($toRevoke !== []) {
+                $user->revokeSpecificPermission($toRevoke);
+            }
+            if ($toGrant !== []) {
+                $user->giveSpecificPermission($toGrant);
+            }
+        }
+
+        SellerGame::where('seller_id', $seller->id)
+            ->whereNotIn('game_id', $activeGameIds)
+            ->update(['status' => 'INACTIVE']);
+
+        SellerGame::where('seller_id', $seller->id)
+            ->whereIn('game_id', $activeGameIds)
+            ->update(['status' => 'ACTIVE']);
+
+        $existing = SellerGame::where('seller_id', $seller->id)
+            ->pluck('game_id')
+            ->all();
+
+        $missing = array_diff($activeGameIds, $existing);
+
+        if ($missing) {
+            SellerGame::insert(
+                array_map(fn ($id) => [
+                    'seller_id' => $seller->id,
+                    'game_id' => $id,
+                    'status' => 'ACTIVE',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ], $missing),
+            );
+        }
     }
 }

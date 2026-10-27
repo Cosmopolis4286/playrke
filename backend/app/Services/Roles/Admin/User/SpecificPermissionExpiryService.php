@@ -23,15 +23,16 @@ final class SpecificPermissionExpiryService
 
     public function __construct(
         private readonly NotificationService $notificationService,
-    ) {}
+    ) {
+    }
 
     /**
      * Revoca todos los grants activos ya vencidos (expires_at <= now), y
      * notifica (in-app a superadmins + email al afectado) por cada uno.
      *
-     * @return int Cantidad de grants expirados en esta corrida.
+     * @return int cantidad de grants expirados en esta corrida
      */
-    public function expireDueGrants(): int
+    public function expireDueGrants() : int
     {
         $expired = UserSpecificPermissionGrant::query()
             ->active()
@@ -41,7 +42,7 @@ final class SpecificPermissionExpiryService
 
         foreach ($expired as $grant) {
             $grant->update([
-                'revoked_at'     => now(),
+                'revoked_at' => now(),
                 'revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_EXPIRED,
             ]);
 
@@ -58,9 +59,9 @@ final class SpecificPermissionExpiryService
      * marca expiring_notified_at para no repetir el aviso en la próxima
      * corrida del comando.
      *
-     * @return int Cantidad de grants avisados en esta corrida.
+     * @return int cantidad de grants avisados en esta corrida
      */
-    public function notifyExpiringSoon(int $days): int
+    public function notifyExpiringSoon(int $days) : int
     {
         $expiringSoon = UserSpecificPermissionGrant::query()
             ->active()
@@ -76,10 +77,34 @@ final class SpecificPermissionExpiryService
         return $expiringSoon->count();
     }
 
-    private function notifyExpired(UserSpecificPermissionGrant $grant): void
+    /**
+     * Evento de auditoría manual — el 'updated' automático de
+     * UserSpecificPermissionGrant::Auditable ya cubre el diff de columnas,
+     * pero un evento con nombre propio ('specific_permission_expired')
+     * distingue en el feed de actividad "expiró solo" de "un superadmin lo
+     * revocó a mano" (ambos caen en 'updated' si no se registra aparte).
+     *
+     * actor_type='command': este service corre dentro de un Artisan Command
+     * disparado por el scheduler (schedule:run), no dentro de un job de cola
+     * — Auditable::resolveActorType() solo resuelve 'job' bajo `queue:work`.
+     */
+    private function logExpiredAudit(UserSpecificPermissionGrant $grant) : void
+    {
+        Audit::create([
+            'user_id' => null,
+            'actor_type' => 'command',
+            'auditable_type' => User::class,
+            'auditable_id' => (string) $grant->user_id,
+            'event' => 'specific_permission_expired',
+            'old_values' => ['permission_name' => $grant->permission_name, 'expires_at' => $grant->expires_at?->toISOString()],
+            'new_values' => ['revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_EXPIRED],
+        ]);
+    }
+
+    private function notifyExpired(UserSpecificPermissionGrant $grant) : void
     {
         $user = $grant->user;
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
@@ -100,10 +125,10 @@ final class SpecificPermissionExpiryService
         }
     }
 
-    private function notifyExpiringSoonOne(UserSpecificPermissionGrant $grant): void
+    private function notifyExpiringSoonOne(UserSpecificPermissionGrant $grant) : void
     {
         $user = $grant->user;
-        if (!$user) {
+        if (! $user) {
             return;
         }
 
@@ -119,29 +144,5 @@ final class SpecificPermissionExpiryService
                 expiresAt: $grant->expires_at?->format('d/m/Y H:i'),
             );
         }
-    }
-
-    /**
-     * Evento de auditoría manual — el 'updated' automático de
-     * UserSpecificPermissionGrant::Auditable ya cubre el diff de columnas,
-     * pero un evento con nombre propio ('specific_permission_expired')
-     * distingue en el feed de actividad "expiró solo" de "un superadmin lo
-     * revocó a mano" (ambos caen en 'updated' si no se registra aparte).
-     *
-     * actor_type='command': este service corre dentro de un Artisan Command
-     * disparado por el scheduler (schedule:run), no dentro de un job de cola
-     * — Auditable::resolveActorType() solo resuelve 'job' bajo `queue:work`.
-     */
-    private function logExpiredAudit(UserSpecificPermissionGrant $grant): void
-    {
-        Audit::create([
-            'user_id'        => null,
-            'actor_type'     => 'command',
-            'auditable_type' => User::class,
-            'auditable_id'   => (string) $grant->user_id,
-            'event'          => 'specific_permission_expired',
-            'old_values'     => ['permission_name' => $grant->permission_name, 'expires_at' => $grant->expires_at?->toISOString()],
-            'new_values'     => ['revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_EXPIRED],
-        ]);
     }
 }

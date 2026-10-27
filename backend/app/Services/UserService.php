@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Shared\UniqueCode;
 use App\Contracts\UserRepositoryInterface;
+use App\Models\Shared\UniqueCode;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -14,8 +14,21 @@ final class UserService
      * Contructor
      */
     public function __construct(
-        protected UserRepositoryInterface $repository
-    ) {}
+        private UserRepositoryInterface $repository,
+    ) {
+    }
+
+    /**
+     * Crear código único asociado a un usuario.
+     */
+    public function createUniqueCode(string $userId) : UniqueCode
+    {
+        return UniqueCode::create([
+            'uuid_code' => (string) Str::uuid(),
+            'rke_code' => $this->generateUniqueRkeCode(),
+            'user_id' => $userId,
+        ]);
+    }
 
     /* =====================================================
      | Creación de usuarios y códigos
@@ -23,66 +36,43 @@ final class UserService
 
     /**
      * Crear usuario a partir de un DTO.
-     *
-     * @param object $dto
-     * @param string $plainPassword
-     * @return User
      */
-    public function createUserFromDTO(object $dto, string $plainPassword): User
+    public function createUserFromDTO(object $dto, string $plainPassword) : User
     {
         $user = $this->repository->create([
-            'username'          => $dto->username,
-            'email'             => $dto->email,
-            'password'          => Hash::make($plainPassword),
-            'country_id'        => $dto->country,
-            'time_zone_id'      => $dto->timeZone,
+            'username' => $dto->username,
+            'email' => $dto->email,
+            'password' => Hash::make($plainPassword),
+            'country_id' => $dto->country,
+            'time_zone_id' => $dto->timeZone,
             'email_verified_at' => now(),
-            'referral_code'     => $this->generateUniqueReferralCode(),
-            'status'            => 'ACTIVE',
+            'referral_code' => $this->generateUniqueReferralCode(),
+            'status' => 'ACTIVE',
         ]);
 
         return $user;
     }
 
     /**
-     * Crear código único asociado a un usuario.
-     *
-     * @param string $userId
-     * @return UniqueCode
+     * Generar código de referido único.
      */
-    public function createUniqueCode(string $userId): UniqueCode
-    {
-        return UniqueCode::create([
-            'uuid_code' => (string) Str::uuid(),
-            'rke_code'  => $this->generateUniqueRkeCode(),
-            'user_id'   => $userId,
-        ]);
-    }
-
-    /**
-     * Generar código RKE único.
-     *
-     * @return string
-     */
-    protected function generateUniqueRkeCode(): string
+    private function generateUniqueReferralCode() : string
     {
         do {
-            $code = 'RKE' . strtoupper(Str::random(8));
-        } while (UniqueCode::existsRKECode($code));
+            $code = strtoupper(Str::random(10));
+        } while ($this->repository->existsByField('referral_code', $code));
 
         return $code;
     }
 
     /**
-     * Generar código de referido único.
-     *
-     * @return string
+     * Generar código RKE único.
      */
-    protected function generateUniqueReferralCode(): string
+    private function generateUniqueRkeCode() : string
     {
         do {
-            $code = strtoupper(Str::random(10));
-        } while ($this->repository->existsByField('referral_code', $code));
+            $code = 'RKE' . strtoupper(Str::random(8));
+        } while (UniqueCode::existsRKECode($code));
 
         return $code;
     }

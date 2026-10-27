@@ -12,7 +12,8 @@ final class RoleUserService
 {
     public function __construct(
         private readonly RoleUserRepositoryInterface $roleUserRepository,
-    ) {}
+    ) {
+    }
 
     /**
      * Obtiene el prefijo del rol activo del usuario.
@@ -22,22 +23,22 @@ final class RoleUserService
      *  - Ruteo por contexto
      *  - Resolución de entidades por rol
      *
-     * @param int $userId Identificador del usuario.
+     * @param int $userId identificador del usuario
      *
-     * @return string Prefijo del rol activo en minúsculas.
+     * @return string prefijo del rol activo en minúsculas
      *
-     * @throws RoleResolutionException Si el usuario no tiene un rol activo válido
-     *                         o el rol no define un prefijo.
+     * @throws RoleResolutionException si el usuario no tiene un rol activo válido
+     *                                 o el rol no define un prefijo
      */
-    public function getActiveUserRolePrefix(int $userId): string
+    public function getActiveUserRolePrefix(int $userId) : string
     {
         $role = $this->roleUserRepository
             ->getActiveByUser($userId)
-            ->first(fn($roleUser) => !empty($roleUser->role?->prefix))
+            ->first(fn ($roleUser) => ! empty($roleUser->role?->prefix))
             ?->role
             ?->prefix;
 
-        if (!$role) {
+        if (! $role) {
             throw RoleResolutionException::invalidOrUnidentified();
         }
 

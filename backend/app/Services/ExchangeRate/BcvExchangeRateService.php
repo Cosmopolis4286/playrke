@@ -5,6 +5,8 @@ namespace App\Services\ExchangeRate;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Servicio para obtener la tasa oficial USD/VES publicada
@@ -24,10 +26,7 @@ final class BcvExchangeRateService
      */
     private const BCV_URL = 'https://www.bcv.org.ve/';
 
-    /**
-     * URL de la API de respaldo (DolarApi - tasa oficial Venezuela).
-     */
-    private const FALLBACK_API_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
+    private const CACHE_KEY = 'exchange_rate:external_api:bcv';
 
     /**
      * TTL del caché en segundos. El BCV publica su tasa oficial UNA vez
@@ -38,14 +37,17 @@ final class BcvExchangeRateService
      */
     private const CACHE_TTL_SECONDS = 300;
 
-    private const CACHE_KEY = 'exchange_rate:external_api:bcv';
+    /**
+     * URL de la API de respaldo (DolarApi - tasa oficial Venezuela).
+     */
+    private const FALLBACK_API_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
 
     /**
      * Obtiene la tasa oficial USD/VES publicada por el BCV.
      *
-     * @return float|null Tasa USD/VES o null si no se pudo obtener de ninguna fuente.
+     * @return float|null tasa USD/VES o null si no se pudo obtener de ninguna fuente
      */
-    public function fetch(): ?float
+    public function fetch() : ?float
     {
         $cached = Cache::get(self::CACHE_KEY);
         if ($cached !== null) {
@@ -64,76 +66,13 @@ final class BcvExchangeRateService
     }
 
     /**
-     * Obtiene la tasa USD/VES mediante scraping de la página principal del BCV.
-     *
-     * @return float|null
-     */
-    private function fetchFromBcv(): ?float
-    {
-        try {
-            $response = Http::timeout(8)
-                ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-                ->get(self::BCV_URL);
-
-            if ($response->failed()) {
-                throw new \RuntimeException('Solicitud al BCV falló con estado ' . $response->status());
-            }
-
-            $rate = $this->extractUsdRate($response->body());
-
-            if ($rate === null) {
-                throw new \RuntimeException('No se pudo extraer la tasa USD del BCV.');
-            }
-
-            return $rate;
-        } catch (\Throwable $e) {
-            Log::error('BcvExchangeRateService (BCV) error: ' . $e->getMessage());
-
-            return null;
-        }
-    }
-
-    /**
-     * Obtiene la tasa oficial USD/VES desde la API de respaldo (DolarApi).
-     *
-     * @return float|null
-     */
-    private function fetchFromFallbackApi(): ?float
-    {
-        try {
-            $response = Http::timeout(8)
-                ->acceptJson()
-                ->get(self::FALLBACK_API_URL);
-
-            if ($response->failed()) {
-                throw new \RuntimeException('Solicitud a la API de respaldo falló con estado ' . $response->status());
-            }
-
-            $rate = $response->json('promedio');
-
-            if (!is_numeric($rate)) {
-                throw new \RuntimeException('La API de respaldo no devolvió una tasa válida.');
-            }
-
-            return (float) $rate;
-        } catch (\Throwable $e) {
-            Log::error('BcvExchangeRateService (fallback) error: ' . $e->getMessage());
-
-            return null;
-        }
-    }
-
-    /**
      * Extrae la tasa USD/VES del HTML de la página principal del BCV.
      *
      * Busca primero dentro del bloque con id="dolar" (más robusto ante
      * cambios en el orden de las monedas) y, si no lo encuentra, recurre
      * al patrón genérico basado en la etiqueta "USD".
-     *
-     * @param string $html
-     * @return float|null
      */
-    private function extractUsdRate(string $html): ?float
+    private function extractUsdRate(string $html) : ?float
     {
         $value = null;
 
@@ -156,5 +95,61 @@ final class BcvExchangeRateService
         $value = str_replace(',', '.', $value);
 
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    /**
+     * Obtiene la tasa USD/VES mediante scraping de la página principal del BCV.
+     */
+    private function fetchFromBcv() : ?float
+    {
+        try {
+            $response = Http::timeout(8)
+                ->withUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+                ->get(self::BCV_URL);
+
+            if ($response->failed()) {
+                throw new RuntimeException('Solicitud al BCV falló con estado ' . $response->status());
+            }
+
+            $rate = $this->extractUsdRate($response->body());
+
+            if ($rate === null) {
+                throw new RuntimeException('No se pudo extraer la tasa USD del BCV.');
+            }
+
+            return $rate;
+        } catch (Throwable $e) {
+            Log::error('BcvExchangeRateService (BCV) error: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene la tasa oficial USD/VES desde la API de respaldo (DolarApi).
+     */
+    private function fetchFromFallbackApi() : ?float
+    {
+        try {
+            $response = Http::timeout(8)
+                ->acceptJson()
+                ->get(self::FALLBACK_API_URL);
+
+            if ($response->failed()) {
+                throw new RuntimeException('Solicitud a la API de respaldo falló con estado ' . $response->status());
+            }
+
+            $rate = $response->json('promedio');
+
+            if (! is_numeric($rate)) {
+                throw new RuntimeException('La API de respaldo no devolvió una tasa válida.');
+            }
+
+            return (float) $rate;
+        } catch (Throwable $e) {
+            Log::error('BcvExchangeRateService (fallback) error: ' . $e->getMessage());
+
+            return null;
+        }
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Games\Shared\Utils;
 
+use App\Contracts\Games\Common\Utils\GameRuleRepositoryInterface;
 use App\Models\Games\Common\Utils\GameRule;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Common\Utils\GameRuleRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
@@ -15,63 +15,18 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryInt
         $this->model = $model;
     }
 
-    public function getByUser($userId): Collection
+    public function activateRule($ruleId) : bool
     {
-        return $this->model->where('user_id', $userId)->get();
+        return $this->updateRuleStatus($ruleId, true);
     }
 
-    public function getByGame($gameId): Collection
+    public function bulkUpdateStatus(array $ruleIds, bool $isActive) : int
     {
-        return $this->model->where('game_id', $gameId)->get();
+        return $this->model->whereIn('id', $ruleIds)
+            ->update(['status' => $isActive]);
     }
 
-    public function getByUserAndGame($userId, $gameId): ?GameRule
-    {
-        return $this->model->where('user_id', $userId)
-            ->where('game_id', $gameId)
-            ->first();
-    }
-
-    public function getActiveRules(): Collection
-    {
-        return $this->model->where('status', true)->get();
-    }
-
-    public function getInactiveRules(): Collection
-    {
-        return $this->model->where('status', false)->get();
-    }
-
-    public function getRulesByStatus(bool $isActive): Collection
-    {
-        return $this->model->where('status', $isActive)->get();
-    }
-
-    public function getByEncrypted(string $encrypted): ?GameRule
-    {
-        return $this->model->where('encrypted', $encrypted)->first();
-    }
-
-    public function existsEncrypted(string $encrypted): bool
-    {
-        return $this->model->where('encrypted', $encrypted)->exists();
-    }
-
-    public function getRulesByGameAndStatus($gameId, bool $isActive = true): Collection
-    {
-        return $this->model->where('game_id', $gameId)
-            ->where('status', $isActive)
-            ->get();
-    }
-
-    public function getUserRulesByStatus($userId, bool $isActive = true): Collection
-    {
-        return $this->model->where('user_id', $userId)
-            ->where('status', $isActive)
-            ->get();
-    }
-
-    public function createRule($userId, $gameId, string $rules, string $encrypted, ?string $image = null, bool $isActive = true): GameRule
+    public function createRule($userId, $gameId, string $rules, string $encrypted, ?string $image = null, bool $isActive = true) : GameRule
     {
         return $this->model->create([
             'user_id' => $userId,
@@ -79,67 +34,62 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryInt
             'rules' => $rules,
             'encrypted' => $encrypted,
             'image' => $image,
-            'status' => $isActive
+            'status' => $isActive,
         ]);
     }
 
-    public function updateRuleStatus($ruleId, bool $isActive): bool
-    {
-        return $this->model->where('id', $ruleId)
-            ->update(['status' => $isActive]) > 0;
-    }
-
-    public function activateRule($ruleId): bool
-    {
-        return $this->updateRuleStatus($ruleId, true);
-    }
-
-    public function deactivateRule($ruleId): bool
+    public function deactivateRule($ruleId) : bool
     {
         return $this->updateRuleStatus($ruleId, false);
     }
 
-    public function updateRuleContent($ruleId, string $rules): bool
-    {
-        return $this->model->where('id', $ruleId)
-            ->update(['rules' => $rules]) > 0;
-    }
-
-    public function updateRuleImage($ruleId, ?string $image): bool
-    {
-        return $this->model->where('id', $ruleId)
-            ->update(['image' => $image]) > 0;
-    }
-
-    public function deleteRule($ruleId): bool
+    public function deleteRule($ruleId) : bool
     {
         return $this->model->where('id', $ruleId)->delete() > 0;
     }
 
-    public function bulkUpdateStatus(array $ruleIds, bool $isActive): int
+    public function existsEncrypted(string $encrypted) : bool
     {
-        return $this->model->whereIn('id', $ruleIds)
-            ->update(['status' => $isActive]);
+        return $this->model->where('encrypted', $encrypted)->exists();
     }
 
-    public function getRuleStatistics(): array
+    public function generateUniqueEncrypted() : string
     {
-        $total = $this->model->count();
-        $active = $this->model->where('status', true)->count();
-        $inactive = $this->model->where('status', false)->count();
-        $withImages = $this->model->whereNotNull('image')->count();
+        do {
+            $encrypted = Str::random(12);
+        } while ($this->existsEncrypted($encrypted));
 
-        return [
-            'total_rules' => $total,
-            'active_rules' => $active,
-            'inactive_rules' => $inactive,
-            'rules_with_images' => $withImages,
-            'active_percentage' => $total > 0 ? round(($active / $total) * 100, 2) : 0,
-            'image_percentage' => $total > 0 ? round(($withImages / $total) * 100, 2) : 0
-        ];
+        return $encrypted;
     }
 
-    public function getGameStatistics($gameId): array
+    public function getActiveRules() : Collection
+    {
+        return $this->model->where('status', true)->get();
+    }
+
+    public function getByEncrypted(string $encrypted) : ?GameRule
+    {
+        return $this->model->where('encrypted', $encrypted)->first();
+    }
+
+    public function getByGame($gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->get();
+    }
+
+    public function getByUser($userId) : Collection
+    {
+        return $this->model->where('user_id', $userId)->get();
+    }
+
+    public function getByUserAndGame($userId, $gameId) : ?GameRule
+    {
+        return $this->model->where('user_id', $userId)
+            ->where('game_id', $gameId)
+            ->first();
+    }
+
+    public function getGameStatistics($gameId) : array
     {
         $total = $this->model->where('game_id', $gameId)->count();
         $active = $this->model->where('game_id', $gameId)
@@ -154,11 +104,67 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryInt
             'active_rules' => $active,
             'total_users' => $users,
             'rules_with_images' => $withImages,
-            'average_rules_per_user' => $users > 0 ? round($total / $users, 2) : 0
+            'average_rules_per_user' => $users > 0 ? round($total / $users, 2) : 0,
         ];
     }
 
-    public function getUserStatistics($userId): array
+    public function getInactiveRules() : Collection
+    {
+        return $this->model->where('status', false)->get();
+    }
+
+    public function getRecentRules(int $days = 30) : Collection
+    {
+        return $this->model->where('created_at', '>=', now()->subDays($days))
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function getRulesByGameAndStatus($gameId, bool $isActive = true) : Collection
+    {
+        return $this->model->where('game_id', $gameId)
+            ->where('status', $isActive)
+            ->get();
+    }
+
+    public function getRulesByStatus(bool $isActive) : Collection
+    {
+        return $this->model->where('status', $isActive)->get();
+    }
+
+    public function getRulesByUserWithGames($userId) : Collection
+    {
+        return $this->model->where('user_id', $userId)
+            ->with('game')
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function getRuleStatistics() : array
+    {
+        $total = $this->model->count();
+        $active = $this->model->where('status', true)->count();
+        $inactive = $this->model->where('status', false)->count();
+        $withImages = $this->model->whereNotNull('image')->count();
+
+        return [
+            'total_rules' => $total,
+            'active_rules' => $active,
+            'inactive_rules' => $inactive,
+            'rules_with_images' => $withImages,
+            'active_percentage' => $total > 0 ? round(($active / $total) * 100, 2) : 0,
+            'image_percentage' => $total > 0 ? round(($withImages / $total) * 100, 2) : 0,
+        ];
+    }
+
+    public function getUserRulesByStatus($userId, bool $isActive = true) : Collection
+    {
+        return $this->model->where('user_id', $userId)
+            ->where('status', $isActive)
+            ->get();
+    }
+
+    public function getUserStatistics($userId) : array
     {
         $total = $this->model->where('user_id', $userId)->count();
         $active = $this->model->where('user_id', $userId)
@@ -173,38 +179,32 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryInt
             'active_rules' => $active,
             'total_games' => $games,
             'rules_with_images' => $withImages,
-            'average_rules_per_game' => $games > 0 ? round($total / $games, 2) : 0
+            'average_rules_per_game' => $games > 0 ? round($total / $games, 2) : 0,
         ];
     }
 
-    public function generateUniqueEncrypted(): string
-    {
-        do {
-            $encrypted = Str::random(12);
-        } while ($this->existsEncrypted($encrypted));
-
-        return $encrypted;
-    }
-
-    public function searchRulesByContent(string $searchTerm): Collection
+    public function searchRulesByContent(string $searchTerm) : Collection
     {
         return $this->model->where('rules', 'LIKE', "%{$searchTerm}%")
             ->where('status', true)
             ->get();
     }
 
-    public function getRecentRules(int $days = 30): Collection
+    public function updateRuleContent($ruleId, string $rules) : bool
     {
-        return $this->model->where('created_at', '>=', now()->subDays($days))
-            ->orderBy('created_at', 'desc')
-            ->get();
+        return $this->model->where('id', $ruleId)
+            ->update(['rules' => $rules]) > 0;
     }
 
-    public function getRulesByUserWithGames($userId): Collection
+    public function updateRuleImage($ruleId, ?string $image) : bool
     {
-        return $this->model->where('user_id', $userId)
-            ->with('game')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        return $this->model->where('id', $ruleId)
+            ->update(['image' => $image]) > 0;
+    }
+
+    public function updateRuleStatus($ruleId, bool $isActive) : bool
+    {
+        return $this->model->where('id', $ruleId)
+            ->update(['status' => $isActive]) > 0;
     }
 }

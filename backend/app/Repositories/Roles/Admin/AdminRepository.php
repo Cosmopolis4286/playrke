@@ -14,8 +14,6 @@ class AdminRepository extends BaseRepository implements AdminRepositoryInterface
 {
     /**
      * Constructor del repository
-     *
-     * @param Admin $model
      */
     public function __construct(Admin $model)
     {
@@ -23,27 +21,61 @@ class AdminRepository extends BaseRepository implements AdminRepositoryInterface
     }
 
     /**
-     * Obtiene administrador por ID de usuario
+     * Activa un administrador
      *
-     * @param mixed $userId ID del usuario
-     * @param array $fields Campos a seleccionar
-     * @return Admin|null
+     * @param mixed $id ID del administrador
      */
-    public function getByUserId($userId, array $fields = ['*']): ?Admin
+    public function activate($id) : bool
     {
-        return $this->model->select($fields)
-            ->where('user_id', $userId)
-            ->first();
+        return $this->updateStatus($id, 'ACTIVE');
+    }
+
+    /**
+     * Bloquea un administrador
+     *
+     * @param mixed $id ID del administrador
+     */
+    public function block($id) : bool
+    {
+        return $this->updateStatus($id, 'BLOCKED');
+    }
+
+    /**
+     * Desactiva un administrador
+     *
+     * @param mixed $id ID del administrador
+     */
+    public function deactivate($id) : bool
+    {
+        return $this->updateStatus($id, 'INACTIVE');
+    }
+
+    /**
+     * Verifica si existe un valor en una columna
+     *
+     * @param string $column Columna a verificar
+     * @param mixed  $value  Valor a buscar
+     */
+    public function existsValue(string $column, $value) : bool
+    {
+        return $this->model->where($column, $value)->exists();
+    }
+
+    /**
+     * Obtiene administradores bloqueados
+     */
+    public function getBlockedRecords() : Collection
+    {
+        return $this->model->where('status', 'BLOCKED')->get();
     }
 
     /**
      * Obtiene administrador por código UUID
      *
-     * @param string $code Código UUID
-     * @param array $fields Campos a seleccionar
-     * @return Admin|null
+     * @param string $code   Código UUID
+     * @param array  $fields Campos a seleccionar
      */
-    public function getByCodeUUID(string $code, array $fields = ['*']): ?Admin
+    public function getByCodeUUID(string $code, array $fields = ['*']) : ?Admin
     {
         return $this->model->select($fields)
             ->where('unique_code_id', $code)
@@ -51,10 +83,42 @@ class AdminRepository extends BaseRepository implements AdminRepositoryInterface
     }
 
     /**
+     * Obtiene administradores por país
+     *
+     * @param mixed $countryId ID del país
+     */
+    public function getByCountry($countryId) : Collection
+    {
+        return $this->model->where('country_id', $countryId)->get();
+    }
+
+    /**
+     * Obtiene administrador por ID de usuario
+     *
+     * @param mixed $userId ID del usuario
+     * @param array $fields Campos a seleccionar
+     */
+    public function getByUserId($userId, array $fields = ['*']) : ?Admin
+    {
+        return $this->model->select($fields)
+            ->where('user_id', $userId)
+            ->first();
+    }
+
+    /**
+     * Obtiene administradores inactivos
+     */
+    public function getInactiveRecords() : Collection
+    {
+        return $this->model->where('status', 'INACTIVE')->get();
+    }
+
+    /**
      * Obtiene valor por código UUID
      *
-     * @param string $code Código UUID
+     * @param string $code  Código UUID
      * @param string $field Campo a obtener
+     *
      * @return mixed
      */
     public function getValueByCodeUUID(string $code, string $field)
@@ -63,91 +127,14 @@ class AdminRepository extends BaseRepository implements AdminRepositoryInterface
     }
 
     /**
-     * Verifica si existe un valor en una columna
-     *
-     * @param string $column Columna a verificar
-     * @param mixed $value Valor a buscar
-     * @return bool
-     */
-    public function existsValue(string $column, $value): bool
-    {
-        return $this->model->where($column, $value)->exists();
-    }
-
-    /**
-     * Obtiene administradores por país
-     *
-     * @param mixed $countryId ID del país
-     * @return Collection
-     */
-    public function getByCountry($countryId): Collection
-    {
-        return $this->model->where('country_id', $countryId)->get();
-    }
-
-    /**
-     * Obtiene administradores inactivos
-     *
-     * @return Collection
-     */
-    public function getInactiveRecords(): Collection
-    {
-        return $this->model->where('status', 'INACTIVE')->get();
-    }
-
-    /**
-     * Obtiene administradores bloqueados
-     *
-     * @return Collection
-     */
-    public function getBlockedRecords(): Collection
-    {
-        return $this->model->where('status', 'BLOCKED')->get();
-    }
-
-    /**
      * Actualiza estado de un administrador
      *
-     * @param mixed $id ID del administrador
+     * @param mixed  $id     ID del administrador
      * @param string $status Nuevo estado
-     * @return bool
      */
-    public function updateStatus($id, string $status): bool
+    public function updateStatus($id, string $status) : bool
     {
         return $this->model->where('id', $id)
             ->update(['status' => $status]) > 0;
-    }
-
-    /**
-     * Activa un administrador
-     *
-     * @param mixed $id ID del administrador
-     * @return bool
-     */
-    public function activate($id): bool
-    {
-        return $this->updateStatus($id, 'ACTIVE');
-    }
-
-    /**
-     * Desactiva un administrador
-     *
-     * @param mixed $id ID del administrador
-     * @return bool
-     */
-    public function deactivate($id): bool
-    {
-        return $this->updateStatus($id, 'INACTIVE');
-    }
-
-    /**
-     * Bloquea un administrador
-     *
-     * @param mixed $id ID del administrador
-     * @return bool
-     */
-    public function block($id): bool
-    {
-        return $this->updateStatus($id, 'BLOCKED');
     }
 }
