@@ -5,12 +5,12 @@ namespace Tests\Feature\Console;
 use App\Domains\Games\Trivia\Models\TriviaGame;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaScore;
+use App\Domains\Wallet\Models\Wallet;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Trivia\TriviaParticipant;
 use App\Models\MovementType;
 use App\Models\User;
-use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,7 +29,7 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
 
     protected $connectionsToTransact = ['mysql', 'pgsql_trivia'];
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -49,73 +49,116 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
         }
     }
 
-    private function makeRoom(array $overrides = []): TriviaRoom
-    {
-        return TriviaRoom::create(array_merge([
-            'code' => 'RT' . substr(uniqid(), -6),
-            'title' => 'Sala retry premios',
-            'host_id' => '1',
-            'status' => 'closed',
-            'game_mode' => 'free_for_all',
-            'max_players' => 10,
-            'question_count' => 3,
-            'time_per_question' => 20,
-            'prize_model' => 'guaranteed',
-            'prize_amount' => 10,
-        ], $overrides));
-    }
-
-    private function makeFinishedGame(TriviaRoom $room): TriviaGame
-    {
-        return TriviaGame::create([
-            'room_id' => $room->id,
-            'game_code' => 'GC' . substr(uniqid(), -6),
-            'status' => 'finished',
-            'total_questions' => 3,
-            'time_per_question' => 20,
-            'player_count' => 1,
-        ]);
-    }
-
-    // User::factory() no está disponible (App\Models\User no usa HasFactory
-    // en este proyecto) — se crea directamente igual que el resto de fixtures.
-    private function makeUser(): User
-    {
-        $country = Country::create([
-            'name' => 'Test Country ' . Str::random(6),
-            'iso_code_2' => strtoupper(Str::random(2)),
-            'iso_code_3' => strtoupper(Str::random(3)),
-        ]);
-
-        return User::create([
-            'username' => 'user_' . Str::random(8),
-            'email' => Str::random(10) . '@test.local',
-            'password' => bcrypt('password'),
-            'country_id' => $country->id,
-            'referral_code' => strtoupper(Str::random(8)),
-            'status' => 'ACTIVE',
-        ]);
-    }
-
     #[Test]
-    public function command_is_registered_and_runs_successfully(): void
+    public function command_is_registered_and_runs_successfully() : void
     {
         $this->artisan('trivia:retry-failed-prize-payouts')->assertExitCode(0);
     }
 
     #[Test]
-    public function command_logs_execution_on_success(): void
+    public function command_logs_execution_on_success() : void
     {
         $this->artisan('trivia:retry-failed-prize-payouts');
 
         $this->assertDatabaseHas('command_logs', [
             'command' => 'trivia:retry-failed-prize-payouts',
-            'status'  => 'SUCCESS',
+            'status' => 'SUCCESS',
         ]);
     }
 
     #[Test]
-    public function retries_and_credits_winner_who_never_had_final_rank_set(): void
+    public function does_not_pay_winner_with_zero_correct_answers() : void
+    {
+        $user = $this->makeUser();
+        $currency = Currency::create([
+            'iso_code' => 'TS3', 'name' => 'Test Coin 3', 'type' => 'FIAT', 'country_id' => $user->country_id,
+        ]);
+
+        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
+        $game = $this->makeFinishedGame($room);
+
+        // Posición 1 pero sin ninguna respuesta correcta — el skill gate de
+        // PrizeDistributionService debe excluirlo del pago.
+        TriviaScore::create([
+            'game_id' => (string) $game->id,
+            'player_id' => (string) $user->id,
+            'final_score' => 0,
+            'correct_answers' => 0,
+            'wrong_answers' => 3,
+            'position' => 1,
+            'total_questions' => 3,
+        ]);
+
+        TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $user->id,
+            'status' => 'playing',
+        ]);
+
+        Wallet::create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->artisan('trivia:retry-failed-prize-payouts')
+            ->expectsOutputToContain('acreditados: 0')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseMissing('wallet_movements', [
+            'user_id' => $user->id,
+            'type' => 'PRIZE',
+        ]);
+    }
+
+    #[Test]
+    public function does_not_retry_already_claimed_participant() : void
+    {
+        $user = $this->makeUser();
+        $currency = Currency::create([
+            'iso_code' => 'TS2', 'name' => 'Test Coin 2', 'type' => 'FIAT', 'country_id' => $user->country_id,
+        ]);
+
+        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
+        $game = $this->makeFinishedGame($room);
+
+        TriviaScore::create([
+            'game_id' => (string) $game->id,
+            'player_id' => (string) $user->id,
+            'final_score' => 100,
+            'correct_answers' => 3,
+            'wrong_answers' => 0,
+            'position' => 1,
+            'total_questions' => 3,
+        ]);
+
+        TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $user->id,
+            'status' => 'winner',
+            'final_rank' => 1,
+            'prize_won' => 10,
+            'prize_status' => 'claimed',
+        ]);
+
+        $wallet = Wallet::create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->artisan('trivia:retry-failed-prize-payouts')
+            ->expectsOutputToContain('acreditados: 0')
+            ->assertExitCode(0);
+
+        $wallet->refresh();
+        $this->assertEquals(0.0, (float) $wallet->balance);
+    }
+
+    #[Test]
+    public function retries_and_credits_winner_who_never_had_final_rank_set() : void
     {
         $user = $this->makeUser();
         $currency = Currency::create([
@@ -170,7 +213,7 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
     }
 
     #[Test]
-    public function suspends_without_auto_retry_when_winner_has_no_active_wallet(): void
+    public function suspends_without_auto_retry_when_winner_has_no_active_wallet() : void
     {
         $user = $this->makeUser();
         $currency = Currency::create([
@@ -225,94 +268,51 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
         $this->assertEquals('suspended', $participant->prize_status);
     }
 
-    #[Test]
-    public function does_not_retry_already_claimed_participant(): void
+    private function makeFinishedGame(TriviaRoom $room) : TriviaGame
     {
-        $user = $this->makeUser();
-        $currency = Currency::create([
-            'iso_code' => 'TS2', 'name' => 'Test Coin 2', 'type' => 'FIAT', 'country_id' => $user->country_id,
-        ]);
-
-        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
-        $game = $this->makeFinishedGame($room);
-
-        TriviaScore::create([
-            'game_id' => (string) $game->id,
-            'player_id' => (string) $user->id,
-            'final_score' => 100,
-            'correct_answers' => 3,
-            'wrong_answers' => 0,
-            'position' => 1,
-            'total_questions' => 3,
-        ]);
-
-        TriviaParticipant::create([
+        return TriviaGame::create([
             'room_id' => $room->id,
-            'user_id' => (string) $user->id,
-            'status' => 'winner',
-            'final_rank' => 1,
-            'prize_won' => 10,
-            'prize_status' => 'claimed',
+            'game_code' => 'GC' . substr(uniqid(), -6),
+            'status' => 'finished',
+            'total_questions' => 3,
+            'time_per_question' => 20,
+            'player_count' => 1,
         ]);
-
-        $wallet = Wallet::create([
-            'user_id' => $user->id,
-            'currency_id' => $currency->id,
-            'balance' => 0,
-            'status' => 'ACTIVE',
-        ]);
-
-        $this->artisan('trivia:retry-failed-prize-payouts')
-            ->expectsOutputToContain('acreditados: 0')
-            ->assertExitCode(0);
-
-        $wallet->refresh();
-        $this->assertEquals(0.0, (float) $wallet->balance);
     }
 
-    #[Test]
-    public function does_not_pay_winner_with_zero_correct_answers(): void
+    private function makeRoom(array $overrides = []) : TriviaRoom
     {
-        $user = $this->makeUser();
-        $currency = Currency::create([
-            'iso_code' => 'TS3', 'name' => 'Test Coin 3', 'type' => 'FIAT', 'country_id' => $user->country_id,
+        return TriviaRoom::create(array_merge([
+            'code' => 'RT' . substr(uniqid(), -6),
+            'title' => 'Sala retry premios',
+            'host_id' => '1',
+            'status' => 'closed',
+            'game_mode' => 'free_for_all',
+            'max_players' => 10,
+            'question_count' => 3,
+            'time_per_question' => 20,
+            'prize_model' => 'guaranteed',
+            'prize_amount' => 10,
+        ], $overrides));
+    }
+
+    // User::factory() no está disponible (App\Models\User no usa HasFactory
+    // en este proyecto) — se crea directamente igual que el resto de fixtures.
+    private function makeUser() : User
+    {
+        $country = Country::create([
+            'name' => 'Test Country ' . Str::random(6),
+            'iso_code_2' => strtoupper(Str::random(2)),
+            'iso_code_3' => strtoupper(Str::random(3)),
         ]);
 
-        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
-        $game = $this->makeFinishedGame($room);
-
-        // Posición 1 pero sin ninguna respuesta correcta — el skill gate de
-        // PrizeDistributionService debe excluirlo del pago.
-        TriviaScore::create([
-            'game_id' => (string) $game->id,
-            'player_id' => (string) $user->id,
-            'final_score' => 0,
-            'correct_answers' => 0,
-            'wrong_answers' => 3,
-            'position' => 1,
-            'total_questions' => 3,
-        ]);
-
-        TriviaParticipant::create([
-            'room_id' => $room->id,
-            'user_id' => (string) $user->id,
-            'status' => 'playing',
-        ]);
-
-        Wallet::create([
-            'user_id' => $user->id,
-            'currency_id' => $currency->id,
-            'balance' => 0,
+        return User::create([
+            'username' => 'user_' . Str::random(8),
+            'email' => Str::random(10) . '@test.local',
+            'password' => bcrypt('password'),
+            'country_id' => $country->id,
+            'referral_code' => strtoupper(Str::random(8)),
             'status' => 'ACTIVE',
-        ]);
-
-        $this->artisan('trivia:retry-failed-prize-payouts')
-            ->expectsOutputToContain('acreditados: 0')
-            ->assertExitCode(0);
-
-        $this->assertDatabaseMissing('wallet_movements', [
-            'user_id' => $user->id,
-            'type' => 'PRIZE',
         ]);
     }
 }

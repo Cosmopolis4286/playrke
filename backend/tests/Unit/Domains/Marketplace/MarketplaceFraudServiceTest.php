@@ -11,20 +11,21 @@ use App\Domains\Marketplace\Services\ListingService;
 use App\Domains\Marketplace\Services\OrderService;
 use App\Models\Currency;
 use App\Models\User;
+use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class MarketplaceFraudServiceTest extends TestCase
 {
     use RefreshDatabase;
+    private Currency $currency;
 
     private MarketplaceFraudService $fraudService;
     private InventoryService $inventory;
     private ListingService $listingService;
     private OrderService $orderService;
-    private Currency $currency;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         $this->fraudService = app(MarketplaceFraudService::class);
@@ -34,31 +35,15 @@ class MarketplaceFraudServiceTest extends TestCase
         $this->currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
     }
 
-    private function tradableDefinition(): AssetDefinition
-    {
-        return AssetDefinition::create([
-            'code' => 'TEST_FRAUD_TRADABLE', 'name' => 'Test Tradable',
-            'category' => AssetDefinition::CATEGORY_EQUIPMENT, 'stackable' => false,
-            'tradable' => true, 'transferable' => true, 'consumable' => false,
-            'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
-        ]);
-    }
-
-    public function test_is_self_trade_detects_same_user(): void
-    {
-        $this->assertTrue($this->fraudService->isSelfTrade('1', '1'));
-        $this->assertFalse($this->fraudService->isSelfTrade('1', '2'));
-    }
-
-    public function test_check_double_submit_throws_on_repeated_call(): void
+    public function test_check_double_submit_throws_on_repeated_call() : void
     {
         $this->fraudService->checkDoubleSubmit('user-1', 'listing-1');
 
-        $this->expectException(\DomainException::class);
+        $this->expectException(DomainException::class);
         $this->fraudService->checkDoubleSubmit('user-1', 'listing-1');
     }
 
-    public function test_check_listing_velocity_throws_after_limit(): void
+    public function test_check_listing_velocity_throws_after_limit() : void
     {
         $definition = $this->tradableDefinition();
         $seller = User::factory()->create();
@@ -83,11 +68,11 @@ class MarketplaceFraudServiceTest extends TestCase
         }
         \Illuminate\Support\Facades\DB::table('marketplace_listings')->insert($rows);
 
-        $this->expectException(\DomainException::class);
+        $this->expectException(DomainException::class);
         $this->fraudService->checkListingVelocity((string) $seller->id);
     }
 
-    public function test_detect_circular_trade_finds_buyback_within_window(): void
+    public function test_detect_circular_trade_finds_buyback_within_window() : void
     {
         $definition = $this->tradableDefinition();
         $userA = User::factory()->create();
@@ -107,7 +92,7 @@ class MarketplaceFraudServiceTest extends TestCase
         $this->assertTrue($this->fraudService->detectCircularTrade($order2->fresh(['listing.playerAsset'])));
     }
 
-    public function test_detect_circular_trade_returns_false_without_prior_reverse_sale(): void
+    public function test_detect_circular_trade_returns_false_without_prior_reverse_sale() : void
     {
         $definition = $this->tradableDefinition();
         $seller = User::factory()->create();
@@ -120,10 +105,26 @@ class MarketplaceFraudServiceTest extends TestCase
         $this->assertFalse($this->fraudService->detectCircularTrade($order->fresh(['listing.playerAsset'])));
     }
 
-    public function test_is_anomalous_price_false_without_enough_history(): void
+    public function test_is_anomalous_price_false_without_enough_history() : void
     {
         $definition = $this->tradableDefinition();
 
         $this->assertFalse($this->fraudService->isAnomalousPrice($definition->id, 999999.0));
+    }
+
+    public function test_is_self_trade_detects_same_user() : void
+    {
+        $this->assertTrue($this->fraudService->isSelfTrade('1', '1'));
+        $this->assertFalse($this->fraudService->isSelfTrade('1', '2'));
+    }
+
+    private function tradableDefinition() : AssetDefinition
+    {
+        return AssetDefinition::create([
+            'code' => 'TEST_FRAUD_TRADABLE', 'name' => 'Test Tradable',
+            'category' => AssetDefinition::CATEGORY_EQUIPMENT, 'stackable' => false,
+            'tradable' => true, 'transferable' => true, 'consumable' => false,
+            'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
+        ]);
     }
 }

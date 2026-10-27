@@ -30,12 +30,129 @@ class VisibilityAuthorizationControllersTest extends TestCase
 
     private static int $idCounter = 0;
 
-    private function nextId(): string
+    #[Test]
+    public function admin_without_dashboard_widgets_permission_cannot_save_changes() : void
     {
-        return (string) (700000000000000000 + (++self::$idCounter));
+        $admin = $this->makeUserWithRole('admin');
+        $targetRole = $this->makeRole('player');
+
+        $response = $this->actingAs($admin)->postJson('/dashboard-widgets/save', [
+            'changes' => [
+                ['item_key' => 'total_users', 'role_id' => $targetRole->id, 'is_visible' => false],
+            ],
+        ]);
+
+        $this->assertNotEquals(200, $response->getStatusCode());
     }
 
-    private function makeRole(string $name): Role
+    // ---------------------------------------------------------------
+    // DashboardWidgetVisibilityController
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function admin_without_dashboard_widgets_permission_cannot_view_the_matrix() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+
+        $response = $this->actingAs($admin)->getJson('/dashboard-widgets/fetch-list');
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function admin_without_sidebar_menu_permission_cannot_save_changes() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        $targetRole = $this->makeRole('player');
+
+        $response = $this->actingAs($admin)->postJson('/sidebar-menu/save', [
+            'changes' => [
+                ['item_key' => 'dashboard', 'role_id' => $targetRole->id, 'is_visible' => false],
+            ],
+        ]);
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+    }
+
+    // ---------------------------------------------------------------
+    // SidebarMenuVisibilityController
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function admin_without_sidebar_menu_permission_cannot_view_the_matrix() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+
+        $response = $this->actingAs($admin)->getJson('/sidebar-menu/fetch-list');
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function superadmin_with_permission_can_save_dashboard_widget_changes() : void
+    {
+        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
+        $targetRole = $this->makeRole('player');
+
+        $response = $this->actingAs($superadmin)->postJson('/dashboard-widgets/save', [
+            'changes' => [
+                ['item_key' => 'total_users', 'role_id' => $targetRole->id, 'is_visible' => false],
+            ],
+        ]);
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+        $this->assertDatabaseHas('dashboard_widget_visibilities', [
+            'item_key' => 'total_users',
+            'role_id' => $targetRole->id,
+            'is_visible' => false,
+        ]);
+    }
+
+    #[Test]
+    public function superadmin_with_permission_can_save_sidebar_changes() : void
+    {
+        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
+        $targetRole = $this->makeRole('player');
+
+        $response = $this->actingAs($superadmin)->postJson('/sidebar-menu/save', [
+            'changes' => [
+                ['item_key' => 'dashboard', 'role_id' => $targetRole->id, 'is_visible' => false, 'sort_order' => 5],
+            ],
+        ]);
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+        $this->assertDatabaseHas('sidebar_menu_visibilities', [
+            'item_key' => 'dashboard',
+            'role_id' => $targetRole->id,
+            'is_visible' => false,
+        ]);
+    }
+
+    #[Test]
+    public function superadmin_with_permission_can_view_the_dashboard_widgets_matrix() : void
+    {
+        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
+
+        $response = $this->actingAs($superadmin)->getJson('/dashboard-widgets/fetch-list');
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+    }
+
+    #[Test]
+    public function superadmin_with_permission_can_view_the_sidebar_matrix() : void
+    {
+        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
+
+        $response = $this->actingAs($superadmin)->getJson('/sidebar-menu/fetch-list');
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+    }
+
+    private function makeRole(string $name) : Role
     {
         $role = Role::where('name', $name)->where('guard_name', 'web')->first();
         if ($role) {
@@ -63,16 +180,7 @@ class VisibilityAuthorizationControllersTest extends TestCase
         return $role->refresh();
     }
 
-    private function makeUserWithRole(string $roleName): User
-    {
-        $this->makeRole($roleName);
-        $user = User::factory()->create();
-        $user->assignRole($roleName);
-
-        return $user;
-    }
-
-    private function makeSuperadminWithVisibilityPermissions(): User
+    private function makeSuperadminWithVisibilityPermissions() : User
     {
         $role = $this->makeRole('superadmin');
         // Pasar objetos Permission (no strings) a givePermissionTo(): con
@@ -92,125 +200,17 @@ class VisibilityAuthorizationControllersTest extends TestCase
         return $user;
     }
 
-    // ---------------------------------------------------------------
-    // SidebarMenuVisibilityController
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function admin_without_sidebar_menu_permission_cannot_view_the_matrix(): void
+    private function makeUserWithRole(string $roleName) : User
     {
-        $admin = $this->makeUserWithRole('admin');
+        $this->makeRole($roleName);
+        $user = User::factory()->create();
+        $user->assignRole($roleName);
 
-        $response = $this->actingAs($admin)->getJson('/sidebar-menu/fetch-list');
-
-        $this->assertNotEquals(200, $response->getStatusCode());
+        return $user;
     }
 
-    #[Test]
-    public function admin_without_sidebar_menu_permission_cannot_save_changes(): void
+    private function nextId() : string
     {
-        $admin = $this->makeUserWithRole('admin');
-        $targetRole = $this->makeRole('player');
-
-        $response = $this->actingAs($admin)->postJson('/sidebar-menu/save', [
-            'changes' => [
-                ['item_key' => 'dashboard', 'role_id' => $targetRole->id, 'is_visible' => false],
-            ],
-        ]);
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-    }
-
-    #[Test]
-    public function superadmin_with_permission_can_view_the_sidebar_matrix(): void
-    {
-        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
-
-        $response = $this->actingAs($superadmin)->getJson('/sidebar-menu/fetch-list');
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-    }
-
-    #[Test]
-    public function superadmin_with_permission_can_save_sidebar_changes(): void
-    {
-        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
-        $targetRole = $this->makeRole('player');
-
-        $response = $this->actingAs($superadmin)->postJson('/sidebar-menu/save', [
-            'changes' => [
-                ['item_key' => 'dashboard', 'role_id' => $targetRole->id, 'is_visible' => false, 'sort_order' => 5],
-            ],
-        ]);
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-        $this->assertDatabaseHas('sidebar_menu_visibilities', [
-            'item_key' => 'dashboard',
-            'role_id' => $targetRole->id,
-            'is_visible' => false,
-        ]);
-    }
-
-    // ---------------------------------------------------------------
-    // DashboardWidgetVisibilityController
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function admin_without_dashboard_widgets_permission_cannot_view_the_matrix(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-
-        $response = $this->actingAs($admin)->getJson('/dashboard-widgets/fetch-list');
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-    }
-
-    #[Test]
-    public function admin_without_dashboard_widgets_permission_cannot_save_changes(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        $targetRole = $this->makeRole('player');
-
-        $response = $this->actingAs($admin)->postJson('/dashboard-widgets/save', [
-            'changes' => [
-                ['item_key' => 'total_users', 'role_id' => $targetRole->id, 'is_visible' => false],
-            ],
-        ]);
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-    }
-
-    #[Test]
-    public function superadmin_with_permission_can_view_the_dashboard_widgets_matrix(): void
-    {
-        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
-
-        $response = $this->actingAs($superadmin)->getJson('/dashboard-widgets/fetch-list');
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-    }
-
-    #[Test]
-    public function superadmin_with_permission_can_save_dashboard_widget_changes(): void
-    {
-        $superadmin = $this->makeSuperadminWithVisibilityPermissions();
-        $targetRole = $this->makeRole('player');
-
-        $response = $this->actingAs($superadmin)->postJson('/dashboard-widgets/save', [
-            'changes' => [
-                ['item_key' => 'total_users', 'role_id' => $targetRole->id, 'is_visible' => false],
-            ],
-        ]);
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-        $this->assertDatabaseHas('dashboard_widget_visibilities', [
-            'item_key' => 'total_users',
-            'role_id' => $targetRole->id,
-            'is_visible' => false,
-        ]);
+        return (string) (700000000000000000 + (++self::$idCounter));
     }
 }

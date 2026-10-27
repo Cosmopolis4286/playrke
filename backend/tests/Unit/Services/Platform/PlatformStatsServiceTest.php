@@ -25,56 +25,14 @@ class PlatformStatsServiceTest extends TestCase
 
     private PlatformStatsService $service;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         Cache::flush();
         $this->service = app(PlatformStatsService::class);
     }
 
-    private function makeRoom(string $statusCode, int $totalPlayers): BingoRoom
-    {
-        $country = Country::firstOrCreate(
-            ['iso_code_2' => 'TC'],
-            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
-        );
-        $user = User::factory()->create(['country_id' => $country->id]);
-
-        $status = GameStatus::firstOrCreate(['code' => $statusCode], ['label' => $statusCode]);
-        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
-        $prizePoolType = PrizePoolType::firstOrCreate(
-            ['game_id' => $game->id, 'code' => 'STANDARD'],
-            ['label' => 'Estándar', 'is_accumulative' => false],
-        );
-
-        $room = BingoRoom::create([
-            'uuid_code'       => (string) Str::uuid(),
-            'status_id'       => $status->id,
-            'creator_user_id' => $user->id,
-            'total_cards'     => 0,
-            'total_sales'     => 0,
-            'total_players'   => $totalPlayers,
-            'prize_pool'      => 0,
-            'rke_commission'  => 0,
-            'room_commission' => 0,
-        ]);
-
-        BingoRoomConfig::create([
-            'room_id'            => $room->id,
-            'room_type_id'       => $roomType->id,
-            'creator_user_id'    => $user->id,
-            'connection_type_id' => $connectionType->id,
-            'prize_pool_type_id' => $prizePoolType->id,
-            'rke_commission'     => 5,
-            'room_commission'    => 10,
-        ]);
-
-        return $room;
-    }
-
-    public function test_players_online_sums_only_active_and_in_progress_rooms(): void
+    public function test_players_online_sums_only_active_and_in_progress_rooms() : void
     {
         $this->makeRoom('ACTIVE', 5);
         $this->makeRoom('IN_PROGRESS', 3);
@@ -85,7 +43,7 @@ class PlatformStatsServiceTest extends TestCase
         $this->assertSame(8, $summary['players_online']);
     }
 
-    public function test_rooms_played_count_counts_only_finished_rooms(): void
+    public function test_rooms_played_count_counts_only_finished_rooms() : void
     {
         $this->makeRoom('FINISHED', 0);
         $this->makeRoom('FINISHED', 0);
@@ -96,7 +54,7 @@ class PlatformStatsServiceTest extends TestCase
         $this->assertSame(2, $summary['rooms_played_count']);
     }
 
-    public function test_total_paid_usd_sums_only_money_win_events(): void
+    public function test_total_paid_usd_sums_only_money_win_events() : void
     {
         Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
         $user = User::factory()->create();
@@ -120,5 +78,47 @@ class PlatformStatsServiceTest extends TestCase
         $summary = $this->service->summary();
 
         $this->assertEqualsWithDelta(15.00, $summary['total_paid_usd'], 0.001);
+    }
+
+    private function makeRoom(string $statusCode, int $totalPlayers) : BingoRoom
+    {
+        $country = Country::firstOrCreate(
+            ['iso_code_2' => 'TC'],
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
+        );
+        $user = User::factory()->create(['country_id' => $country->id]);
+
+        $status = GameStatus::firstOrCreate(['code' => $statusCode], ['label' => $statusCode]);
+        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
+
+        $room = BingoRoom::create([
+            'uuid_code' => (string) Str::uuid(),
+            'status_id' => $status->id,
+            'creator_user_id' => $user->id,
+            'total_cards' => 0,
+            'total_sales' => 0,
+            'total_players' => $totalPlayers,
+            'prize_pool' => 0,
+            'rke_commission' => 0,
+            'room_commission' => 0,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id' => $room->id,
+            'room_type_id' => $roomType->id,
+            'creator_user_id' => $user->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'rke_commission' => 5,
+            'room_commission' => 10,
+        ]);
+
+        return $room;
     }
 }

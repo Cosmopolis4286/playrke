@@ -18,17 +18,7 @@ class Bip32PublicDerivationServiceTest extends TestCase
 {
     private const TEST_XPUB = 'xpub6D1AabNHCupeiLM65ZR9UStMhJ1vCpyV4XbZdyhMZBiJXALQtmn9p42VTQckoHVn8WNqS7dqnJokZHAHcHGoaQgmv8D45oNUKx6DZMNZBCd';
 
-    #[DataProvider('knownAddresses')]
-    public function test_derives_the_same_address_as_an_independent_js_implementation(int $index, string $expectedAddress): void
-    {
-        $service = new Bip32PublicDerivationService();
-
-        $address = $service->deriveAddress(self::TEST_XPUB, $index);
-
-        $this->assertSame($expectedAddress, $address);
-    }
-
-    public static function knownAddresses(): array
+    public static function knownAddresses() : array
     {
         return [
             'index 0' => [0, 'TEHBaMgYFRGcbYJwEMtxSwAhY57D2RL5x6'],
@@ -37,9 +27,27 @@ class Bip32PublicDerivationServiceTest extends TestCase
         ];
     }
 
-    public function test_two_different_indexes_never_produce_the_same_address(): void
+    #[DataProvider('knownAddresses')]
+    public function test_derives_the_same_address_as_an_independent_js_implementation(int $index, string $expectedAddress) : void
     {
-        $service = new Bip32PublicDerivationService();
+        $service = new Bip32PublicDerivationService;
+
+        $address = $service->deriveAddress(self::TEST_XPUB, $index);
+
+        $this->assertSame($expectedAddress, $address);
+    }
+
+    public function test_rejects_hardened_index() : void
+    {
+        $service = new Bip32PublicDerivationService;
+
+        $this->expectException(\App\Domains\Payments\Exceptions\PaymentsProviderMisconfiguredException::class);
+        $service->deriveAddress(self::TEST_XPUB, 0x80000000);
+    }
+
+    public function test_two_different_indexes_never_produce_the_same_address() : void
+    {
+        $service = new Bip32PublicDerivationService;
 
         $addresses = array_map(
             fn (int $i) => $service->deriveAddress(self::TEST_XPUB, $i),
@@ -47,13 +55,5 @@ class Bip32PublicDerivationServiceTest extends TestCase
         );
 
         $this->assertCount(10, array_unique($addresses));
-    }
-
-    public function test_rejects_hardened_index(): void
-    {
-        $service = new Bip32PublicDerivationService();
-
-        $this->expectException(\App\Domains\Payments\Exceptions\PaymentsProviderMisconfiguredException::class);
-        $service->deriveAddress(self::TEST_XPUB, 0x80000000);
     }
 }

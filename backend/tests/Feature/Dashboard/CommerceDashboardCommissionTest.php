@@ -32,13 +32,13 @@ use Tests\TestCase;
 class CommerceDashboardCommissionTest extends TestCase
 {
     use RefreshDatabase;
-
-    private Country $country;
-    private Currency $usd;
-    private Currency $eur;
     private User $commerceUser;
 
-    protected function setUp(): void
+    private Country $country;
+    private Currency $eur;
+    private Currency $usd;
+
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -58,102 +58,32 @@ class CommerceDashboardCommissionTest extends TestCase
         $this->commerceUser->assignRole('commerce');
 
         Commerce::create([
-            'name'           => 'Comercio de prueba',
-            'country_id'     => $this->country->id,
-            'phone'          => '+58414' . random_int(1000000, 9999999),
-            'user_id'        => $this->commerceUser->id,
+            'name' => 'Comercio de prueba',
+            'country_id' => $this->country->id,
+            'phone' => '+58414' . random_int(1000000, 9999999),
+            'user_id' => $this->commerceUser->id,
             'unique_code_id' => UniqueCode::create([
-                'rke_code'  => 'RKE-' . random_int(100000, 999999),
+                'rke_code' => 'RKE-' . random_int(100000, 999999),
                 'uuid_code' => (string) Str::uuid(),
-                'user_id'   => $this->commerceUser->id,
-                'status'    => 'ACTIVE',
+                'user_id' => $this->commerceUser->id,
+                'status' => 'ACTIVE',
             ])->id,
             'commission' => 8.00,
-            'status'     => 'ACTIVE',
+            'status' => 'ACTIVE',
         ]);
 
         Auth::login($this->commerceUser);
     }
 
-    private function makeLot(Currency $currency, float $saleAmount, float $commissionAmount): BingoCardLot
+    public function test_commission_stat_shows_dash_when_no_sales_this_month() : void
     {
-        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
-        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
-        $prizePoolType = PrizePoolType::firstOrCreate(
-            ['game_id' => $game->id, 'code' => 'STANDARD'],
-            ['label' => 'Estándar', 'is_accumulative' => false],
-        );
-
-        $room = BingoRoom::create([
-            'uuid_code'       => (string) Str::uuid(),
-            'status_id'       => $status->id,
-            'creator_user_id' => $this->commerceUser->id,
-        ]);
-
-        BingoRoomConfig::create([
-            'room_id'            => $room->id,
-            'room_type_id'       => $roomType->id,
-            'creator_user_id'    => $this->commerceUser->id,
-            'connection_type_id' => $connectionType->id,
-            'prize_pool_type_id' => $prizePoolType->id,
-            'game_variant'       => BingoVariant::BINGO_75,
-        ]);
-
-        $roomUser = BingoRoomUser::create([
-            'room_id'         => $room->id,
-            'user_id'         => $this->commerceUser->id,
-            'cards_purchased' => 1,
-        ]);
-
-        return BingoCardLot::create([
-            'room_id'           => $room->id,
-            'user_id'           => $this->commerceUser->id,
-            'room_user_id'      => $roomUser->id,
-            'currency_id'       => $currency->id,
-            'card_count'        => 1,
-            'card_price'        => $saleAmount,
-            'exchange_rate'     => 1,
-            'sale_amount'       => $saleAmount,
-            'commission_amount' => $commissionAmount,
-        ]);
-    }
-
-    /**
-     * Comisión de SALA del comercio para una venta — fuente real del widget
-     * "Comisión del mes" (bingo_creator_sales, acumulada por
-     * RoomMetricsService). BingoCardLot.commission_amount es la comisión del
-     * VENDEDOR, no la del comercio.
-     */
-    private function makeCreatorSale(Currency $currency, float $saleAmount, float $roomCommission): void
-    {
-        $lot = $this->makeLot($currency, $saleAmount, 0.0);
-
-        \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::create([
-            'room_id'           => $lot->room_id,
-            'creator_user_id'   => $this->commerceUser->id,
-            'currency_id'       => $currency->id,
-            'sale_amount'       => $saleAmount,
-            'rke_commission'    => 0,
-            'room_commission'   => $roomCommission,
-            'seller_commission' => 0,
-            'prize_pool_amount' => $saleAmount - $roomCommission,
-        ]);
-    }
-
-    public function test_commission_stat_shows_real_amount_for_single_currency(): void
-    {
-        $this->makeCreatorSale($this->usd, 100.0, 8.0);
-        $this->makeCreatorSale($this->usd, 50.0, 4.0);
-
         $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
 
-        $this->assertSame('$ 12.00', $view['stats']['commission']['value']);
-        $this->assertStringContainsString('Tasa 8.00%', $view['stats']['commission']['description']);
+        $this->assertSame('—', $view['stats']['commission']['value']);
+        $this->assertSame('Sin comisión este mes', $view['stats']['commission']['description']);
     }
 
-    public function test_commission_stat_shows_primary_currency_and_counts_the_rest(): void
+    public function test_commission_stat_shows_primary_currency_and_counts_the_rest() : void
     {
         $this->makeCreatorSale($this->usd, 100.0, 20.0);
         $this->makeCreatorSale($this->eur, 50.0, 3.0);
@@ -165,15 +95,18 @@ class CommerceDashboardCommissionTest extends TestCase
         $this->assertStringContainsString('+1 moneda(s) más', $view['stats']['commission']['description']);
     }
 
-    public function test_commission_stat_shows_dash_when_no_sales_this_month(): void
+    public function test_commission_stat_shows_real_amount_for_single_currency() : void
     {
+        $this->makeCreatorSale($this->usd, 100.0, 8.0);
+        $this->makeCreatorSale($this->usd, 50.0, 4.0);
+
         $view = app(CommerceDashboardContextService::class)->dashboardContext()->toView();
 
-        $this->assertSame('—', $view['stats']['commission']['value']);
-        $this->assertSame('Sin comisión este mes', $view['stats']['commission']['description']);
+        $this->assertSame('$ 12.00', $view['stats']['commission']['value']);
+        $this->assertStringContainsString('Tasa 8.00%', $view['stats']['commission']['description']);
     }
 
-    public function test_sales_by_seller_includes_total_commission(): void
+    public function test_sales_by_seller_includes_total_commission() : void
     {
         $this->makeLot($this->usd, 100.0, 8.0);
 
@@ -181,5 +114,72 @@ class CommerceDashboardCommissionTest extends TestCase
 
         $this->assertNotEmpty($view['salesBySeller']);
         $this->assertSame(8.0, $view['salesBySeller'][0]['total_commission']);
+    }
+
+    /**
+     * Comisión de SALA del comercio para una venta — fuente real del widget
+     * "Comisión del mes" (bingo_creator_sales, acumulada por
+     * RoomMetricsService). BingoCardLot.commission_amount es la comisión del
+     * VENDEDOR, no la del comercio.
+     */
+    private function makeCreatorSale(Currency $currency, float $saleAmount, float $roomCommission) : void
+    {
+        $lot = $this->makeLot($currency, $saleAmount, 0.0);
+
+        \App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale::create([
+            'room_id' => $lot->room_id,
+            'creator_user_id' => $this->commerceUser->id,
+            'currency_id' => $currency->id,
+            'sale_amount' => $saleAmount,
+            'rke_commission' => 0,
+            'room_commission' => $roomCommission,
+            'seller_commission' => 0,
+            'prize_pool_amount' => $saleAmount - $roomCommission,
+        ]);
+    }
+
+    private function makeLot(Currency $currency, float $saleAmount, float $commissionAmount) : BingoCardLot
+    {
+        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
+        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
+
+        $room = BingoRoom::create([
+            'uuid_code' => (string) Str::uuid(),
+            'status_id' => $status->id,
+            'creator_user_id' => $this->commerceUser->id,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id' => $room->id,
+            'room_type_id' => $roomType->id,
+            'creator_user_id' => $this->commerceUser->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'game_variant' => BingoVariant::BINGO_75,
+        ]);
+
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->commerceUser->id,
+            'cards_purchased' => 1,
+        ]);
+
+        return BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $this->commerceUser->id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $currency->id,
+            'card_count' => 1,
+            'card_price' => $saleAmount,
+            'exchange_rate' => 1,
+            'sale_amount' => $saleAmount,
+            'commission_amount' => $commissionAmount,
+        ]);
     }
 }

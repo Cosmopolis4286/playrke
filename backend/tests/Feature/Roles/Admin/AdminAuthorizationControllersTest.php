@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Roles\Admin;
 
-use App\Domains\Platform\WinEvent\Models\WinEvent;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -34,12 +33,114 @@ class AdminAuthorizationControllersTest extends TestCase
 
     private static int $idCounter = 0;
 
-    private function nextId(): string
+    #[Test]
+    public function admin_can_toggle_status_of_a_player() : void
     {
-        return (string) (600000000000000000 + (++self::$idCounter));
+        $admin = $this->makeUserWithRole('admin');
+        $target = $this->makeUserWithRole('player');
+        $originalStatus = $target->status;
+
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/player/{$target->getRouteKey()}/status");
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+        $this->assertNotEquals($originalStatus, $target->fresh()->status);
     }
 
-    private function makeRole(string $name): Role
+    #[Test]
+    public function admin_can_view_win_event_list() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+
+        $response = $this->actingAs($admin)->getJson('/admin/win-event/fetch-list');
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+    }
+
+    #[Test]
+    public function admin_with_users_edit_permission_can_toggle_another_users_status() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+        Permission::firstOrCreate(['name' => 'users.edit', 'guard_name' => 'web']);
+        Role::where('name', 'admin')->firstOrFail()->givePermissionTo('users.edit');
+
+        $target = $this->makeUserWithRole('player');
+        $originalStatus = $target->status;
+
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/user/{$target->getRouteKey()}/status");
+
+        // No debe ser 403: el nuevo authorize('edit', AdminUserPolicy::class)
+        // no debe bloquear a quien sí tiene el permiso real.
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+        $this->assertNotEquals($originalStatus, $target->fresh()->status);
+    }
+
+    // ---------------------------------------------------------------
+    // AdminPlayerController — role-based (role:admin)
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function player_cannot_toggle_status_of_another_player_via_admin_endpoint() : void
+    {
+        $player = $this->makeUserWithRole('player');
+        $target = $this->makeUserWithRole('player');
+
+        $response = $this->actingAs($player)
+            ->putJson("/admin/player/{$target->getRouteKey()}/status");
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertSame($target->fresh()->status, $target->status);
+    }
+
+    // ---------------------------------------------------------------
+    // AdminWinEventController — role-based (role:superadmin,admin)
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function player_cannot_view_win_event_list() : void
+    {
+        $player = $this->makeUserWithRole('player');
+
+        $response = $this->actingAs($player)->getJson('/admin/win-event/fetch-list');
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function superadmin_can_view_win_event_list() : void
+    {
+        $superadmin = $this->makeUserWithRole('superadmin');
+
+        $response = $this->actingAs($superadmin)->getJson('/admin/win-event/fetch-list');
+
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertOk();
+    }
+
+    // ---------------------------------------------------------------
+    // AdminUserController — permission-based (multiPermission:users.*)
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function user_without_users_edit_permission_cannot_toggle_another_users_status() : void
+    {
+        // Sin el permiso users.edit, ni siquiera pasa el middleware de ruta
+        // (multiPermission:users.edit) — la mutación no debe ocurrir.
+        $actor = $this->makeUserWithRole('player');
+        $target = $this->makeUserWithRole('player');
+
+        $response = $this->actingAs($actor)
+            ->putJson("/admin/user/{$target->getRouteKey()}/status");
+
+        $this->assertNotEquals(200, $response->getStatusCode());
+        $this->assertSame($target->fresh()->status, $target->status);
+    }
+
+    private function makeRole(string $name) : Role
     {
         $role = Role::where('name', $name)->where('guard_name', 'web')->first();
         if ($role) {
@@ -64,7 +165,7 @@ class AdminAuthorizationControllersTest extends TestCase
         return $role->refresh();
     }
 
-    private function makeUserWithRole(string $roleName): User
+    private function makeUserWithRole(string $roleName) : User
     {
         $this->makeRole($roleName);
         $user = User::factory()->create();
@@ -73,110 +174,8 @@ class AdminAuthorizationControllersTest extends TestCase
         return $user;
     }
 
-    // ---------------------------------------------------------------
-    // AdminUserController — permission-based (multiPermission:users.*)
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function user_without_users_edit_permission_cannot_toggle_another_users_status(): void
+    private function nextId() : string
     {
-        // Sin el permiso users.edit, ni siquiera pasa el middleware de ruta
-        // (multiPermission:users.edit) — la mutación no debe ocurrir.
-        $actor = $this->makeUserWithRole('player');
-        $target = $this->makeUserWithRole('player');
-
-        $response = $this->actingAs($actor)
-            ->putJson("/admin/user/{$target->getRouteKey()}/status");
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertSame($target->fresh()->status, $target->status);
-    }
-
-    #[Test]
-    public function admin_with_users_edit_permission_can_toggle_another_users_status(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        Permission::firstOrCreate(['name' => 'users.edit', 'guard_name' => 'web']);
-        Role::where('name', 'admin')->firstOrFail()->givePermissionTo('users.edit');
-
-        $target = $this->makeUserWithRole('player');
-        $originalStatus = $target->status;
-
-        $response = $this->actingAs($admin)
-            ->putJson("/admin/user/{$target->getRouteKey()}/status");
-
-        // No debe ser 403: el nuevo authorize('edit', AdminUserPolicy::class)
-        // no debe bloquear a quien sí tiene el permiso real.
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-        $this->assertNotEquals($originalStatus, $target->fresh()->status);
-    }
-
-    // ---------------------------------------------------------------
-    // AdminPlayerController — role-based (role:admin)
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function player_cannot_toggle_status_of_another_player_via_admin_endpoint(): void
-    {
-        $player = $this->makeUserWithRole('player');
-        $target = $this->makeUserWithRole('player');
-
-        $response = $this->actingAs($player)
-            ->putJson("/admin/player/{$target->getRouteKey()}/status");
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-        $this->assertSame($target->fresh()->status, $target->status);
-    }
-
-    #[Test]
-    public function admin_can_toggle_status_of_a_player(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-        $target = $this->makeUserWithRole('player');
-        $originalStatus = $target->status;
-
-        $response = $this->actingAs($admin)
-            ->putJson("/admin/player/{$target->getRouteKey()}/status");
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-        $this->assertNotEquals($originalStatus, $target->fresh()->status);
-    }
-
-    // ---------------------------------------------------------------
-    // AdminWinEventController — role-based (role:superadmin,admin)
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function player_cannot_view_win_event_list(): void
-    {
-        $player = $this->makeUserWithRole('player');
-
-        $response = $this->actingAs($player)->getJson('/admin/win-event/fetch-list');
-
-        $this->assertNotEquals(200, $response->getStatusCode());
-    }
-
-    #[Test]
-    public function admin_can_view_win_event_list(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-
-        $response = $this->actingAs($admin)->getJson('/admin/win-event/fetch-list');
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
-    }
-
-    #[Test]
-    public function superadmin_can_view_win_event_list(): void
-    {
-        $superadmin = $this->makeUserWithRole('superadmin');
-
-        $response = $this->actingAs($superadmin)->getJson('/admin/win-event/fetch-list');
-
-        $this->assertNotEquals(403, $response->getStatusCode());
-        $response->assertOk();
+        return (string) (600000000000000000 + (++self::$idCounter));
     }
 }

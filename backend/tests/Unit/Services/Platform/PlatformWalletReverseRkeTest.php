@@ -20,7 +20,7 @@ class PlatformWalletReverseRkeTest extends TestCase
 
     private string $currencyId = '940000000000000001';
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
@@ -29,19 +29,14 @@ class PlatformWalletReverseRkeTest extends TestCase
         \App\Models\Country::firstOrCreate(['iso_code_2' => 'VE'], ['name' => 'Venezuela', 'iso_code_3' => 'VEN']);
     }
 
-    protected function tearDown(): void
+    protected function tearDown() : void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         parent::tearDown();
     }
 
-    private function balance(PlatformWalletService $svc): float
-    {
-        return (float) $svc->resolveWallet($this->currencyId)->fresh()->balance;
-    }
-
     #[Test]
-    public function revierte_idempotente_y_sin_saldo_negativo(): void
+    public function revierte_idempotente_y_sin_saldo_negativo() : void
     {
         $svc = app(PlatformWalletService::class);
         $svc->creditRke($this->currencyId, 10.0, 'Comisión RKE – test');
@@ -59,5 +54,10 @@ class PlatformWalletReverseRkeTest extends TestCase
         // Más de lo disponible: no revierte (se loguea para conciliación) y no queda en negativo.
         $this->assertNull($svc->reverseRke($this->currencyId, 100.0, 'test-reversal-2'));
         $this->assertEqualsWithDelta(6.0, $this->balance($svc), 0.001);
+    }
+
+    private function balance(PlatformWalletService $svc) : float
+    {
+        return (float) $svc->resolveWallet($this->currencyId)->fresh()->balance;
     }
 }

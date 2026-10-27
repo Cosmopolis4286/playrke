@@ -7,6 +7,19 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     /**
+     * Nombres de BD esperados en entorno de testing. Si el proceso arrancó sin
+     * exportar .env.testing (p.ej. `docker exec playrke_php php artisan test`
+     * directo, saltándose test-docker.sh), env_file: .env.dev del compose ya
+     * fijó DB_DATABASE=playrke (la real) como variable de entorno del proceso,
+     * y dotenv nunca sobrescribe una variable ya presente en el entorno. El
+     * resultado: los tests correrían — y RefreshDatabase truncaría — la BD
+     * real de desarrollo. Ver incidentes 2026-08-18 y 2026-08-24.
+     */
+    private const EXPECTED_TEST_DATABASES = [
+        'mysql' => 'playrke_testing',
+        'pgsql_trivia' => 'trivia_testing',
+    ];
+    /**
      * RefreshDatabase corre `migrate:fresh` UNA vez por proceso (ver
      * RefreshDatabaseState::$migrated — no por clase de test), y ningún test
      * declaraba $seed/$seeder, así que catálogos base como `permissions`
@@ -30,20 +43,6 @@ abstract class TestCase extends BaseTestCase
     protected $seeder = \Database\Seeders\PermissionSeeder::class;
 
     /**
-     * Nombres de BD esperados en entorno de testing. Si el proceso arrancó sin
-     * exportar .env.testing (p.ej. `docker exec playrke_php php artisan test`
-     * directo, saltándose test-docker.sh), env_file: .env.dev del compose ya
-     * fijó DB_DATABASE=playrke (la real) como variable de entorno del proceso,
-     * y dotenv nunca sobrescribe una variable ya presente en el entorno. El
-     * resultado: los tests correrían — y RefreshDatabase truncaría — la BD
-     * real de desarrollo. Ver incidentes 2026-08-18 y 2026-08-24.
-     */
-    private const EXPECTED_TEST_DATABASES = [
-        'mysql' => 'playrke_testing',
-        'pgsql_trivia' => 'trivia_testing',
-    ];
-
-    /**
      * "drop table t1, t2, ..., t90" en una sola sentencia (RefreshDatabase,
      * primera vez que migra/dropea en el proceso — ver
      * MySqlGrammar::compileDropAllTables) puede deadlockear en este schema
@@ -64,7 +63,7 @@ abstract class TestCase extends BaseTestCase
      * hoy — si un test falla con SQLSTATE 40001, reintentar la corrida
      * (bash test-docker.sh) suele bastar mientras tanto.
      */
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -90,17 +89,17 @@ abstract class TestCase extends BaseTestCase
         \Illuminate\Support\Facades\DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=0');
     }
 
-    private function guardAgainstNonTestDatabase(): void
+    private function guardAgainstNonTestDatabase() : void
     {
         foreach (self::EXPECTED_TEST_DATABASES as $connection => $expectedDatabase) {
             $actualDatabase = config("database.connections.{$connection}.database");
 
             if ($actualDatabase !== $expectedDatabase) {
-                fwrite(STDERR, PHP_EOL."❌ ABORTADO: la conexión '{$connection}' resuelve a la base de datos "
-                    ."'{$actualDatabase}', se esperaba '{$expectedDatabase}'.".PHP_EOL
-                    .'   Esto significa que los tests NO están corriendo con .env.testing aplicado '
-                    .'(probablemente se saltó test-docker.sh). Correr así arriesga truncar datos reales.'
-                    .PHP_EOL.'   Usa: bash test-docker.sh'.PHP_EOL.PHP_EOL);
+                fwrite(STDERR, PHP_EOL . "❌ ABORTADO: la conexión '{$connection}' resuelve a la base de datos "
+                    . "'{$actualDatabase}', se esperaba '{$expectedDatabase}'." . PHP_EOL
+                    . '   Esto significa que los tests NO están corriendo con .env.testing aplicado '
+                    . '(probablemente se saltó test-docker.sh). Correr así arriesga truncar datos reales.'
+                    . PHP_EOL . '   Usa: bash test-docker.sh' . PHP_EOL . PHP_EOL);
 
                 exit(1);
             }

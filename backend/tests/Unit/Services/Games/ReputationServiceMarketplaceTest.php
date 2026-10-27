@@ -19,13 +19,57 @@ class ReputationServiceMarketplaceTest extends TestCase
 
     private ReputationService $service;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         $this->service = app(ReputationService::class);
     }
 
-    private function makeEscrow(User $buyer, User $seller, ?string $resolution): Escrow
+    public function test_cancelled_resolution_does_not_penalize_anyone() : void
+    {
+        $buyer = User::factory()->create();
+        $seller = User::factory()->create();
+        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_CANCELLED);
+
+        $this->assertSame(100, $this->service->recalculate($buyer)->score);
+        $this->assertSame(100, $this->service->recalculate($seller)->score);
+    }
+
+    public function test_lost_dispute_as_buyer_penalizes_score() : void
+    {
+        $buyer = User::factory()->create();
+        $seller = User::factory()->create();
+        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_SELLER_WINS);
+
+        $reputation = $this->service->recalculate($buyer);
+
+        $this->assertSame(95, $reputation->score);
+    }
+
+    public function test_lost_dispute_as_seller_penalizes_score() : void
+    {
+        $buyer = User::factory()->create();
+        $seller = User::factory()->create();
+        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_BUYER_WINS);
+
+        $reputation = $this->service->recalculate($seller);
+
+        $this->assertSame(95, $reputation->score);
+    }
+
+    public function test_won_dispute_does_not_penalize() : void
+    {
+        $buyer = User::factory()->create();
+        $seller = User::factory()->create();
+        // BUYER_WINS no penaliza al buyer, solo al seller.
+        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_BUYER_WINS);
+
+        $reputation = $this->service->recalculate($buyer);
+
+        $this->assertSame(100, $reputation->score);
+    }
+
+    private function makeEscrow(User $buyer, User $seller, ?string $resolution) : Escrow
     {
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
         $definition = AssetDefinition::create([
@@ -53,49 +97,5 @@ class ReputationServiceMarketplaceTest extends TestCase
             'seller_amount' => 50, 'currency_id' => $currency->id, 'status' => Escrow::STATUS_REFUNDED,
             'expires_at' => now(), 'resolution' => $resolution,
         ]);
-    }
-
-    public function test_lost_dispute_as_buyer_penalizes_score(): void
-    {
-        $buyer = User::factory()->create();
-        $seller = User::factory()->create();
-        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_SELLER_WINS);
-
-        $reputation = $this->service->recalculate($buyer);
-
-        $this->assertSame(95, $reputation->score);
-    }
-
-    public function test_lost_dispute_as_seller_penalizes_score(): void
-    {
-        $buyer = User::factory()->create();
-        $seller = User::factory()->create();
-        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_BUYER_WINS);
-
-        $reputation = $this->service->recalculate($seller);
-
-        $this->assertSame(95, $reputation->score);
-    }
-
-    public function test_won_dispute_does_not_penalize(): void
-    {
-        $buyer = User::factory()->create();
-        $seller = User::factory()->create();
-        // BUYER_WINS no penaliza al buyer, solo al seller.
-        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_BUYER_WINS);
-
-        $reputation = $this->service->recalculate($buyer);
-
-        $this->assertSame(100, $reputation->score);
-    }
-
-    public function test_cancelled_resolution_does_not_penalize_anyone(): void
-    {
-        $buyer = User::factory()->create();
-        $seller = User::factory()->create();
-        $this->makeEscrow($buyer, $seller, Escrow::RESOLUTION_CANCELLED);
-
-        $this->assertSame(100, $this->service->recalculate($buyer)->score);
-        $this->assertSame(100, $this->service->recalculate($seller)->score);
     }
 }
