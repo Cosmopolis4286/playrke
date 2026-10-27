@@ -31,20 +31,10 @@ final class TreasurerProfileService
         private readonly AdminProfileAccessService $adminAccess,
         private readonly RoleProfileEnrichmentService $enrichment,
         private readonly Insights $insights,
-    ) {}
-
-    private function ownTreasurerOrFail(?string $targetUserId = null): Treasurer
-    {
-        $access = $this->adminAccess->resolve($this->userContext->resolveUserId(), $targetUserId);
-
-        $treasurer = Treasurer::where('user_id', $access['owner_user_id'])->first();
-
-        abort_if(!$treasurer, 404, 'No se encontró un tesorero asociado a este usuario.');
-
-        return $treasurer;
+    ) {
     }
 
-    public function showOwn(?string $targetUserId = null): array
+    public function showOwn(?string $targetUserId = null) : array
     {
         $treasurer = $this->ownTreasurerOrFail($targetUserId);
         $treasurer->load(['country:id,name', 'user:id,username,email']);
@@ -53,47 +43,97 @@ final class TreasurerProfileService
         $treasury = $this->treasury($userId);
 
         return [
-            'role'         => 'treasurer',
-            'id'           => $treasurer->hashed_id,
-            'name'         => $treasurer->name,
-            'phone'        => $treasurer->phone,
-            'status'       => $treasurer->status,
-            'country'      => $treasurer->country?->name,
-            'user'         => ['username' => $treasurer->user->username, 'email' => $treasurer->user->email],
-            'commission'   => (float) $treasurer->commission,
-            'currencies'   => $treasurer->currenciesActive()->pluck('iso_code')->all(),
-            'games'        => $treasurer->gamesActive()->pluck('name')->all(),
+            'role' => 'treasurer',
+            'id' => $treasurer->hashed_id,
+            'name' => $treasurer->name,
+            'phone' => $treasurer->phone,
+            'status' => $treasurer->status,
+            'country' => $treasurer->country?->name,
+            'user' => ['username' => $treasurer->user->username, 'email' => $treasurer->user->email],
+            'commission' => (float) $treasurer->commission,
+            'currencies' => $treasurer->currenciesActive()->pluck('iso_code')->all(),
+            'games' => $treasurer->gamesActive()->pluck('name')->all(),
 
             'hierarchy' => [
                 'chain' => [['level' => 'treasurer', 'name' => $treasurer->name, 'rate' => (float) $treasurer->commission, 'status' => $treasurer->status, 'is_self' => true]],
             ],
 
-            'treasury'         => $treasury,
-            'alerts'           => $this->alerts($treasurer, $treasury),
-            'security'         => $this->insights->security($userId),
-            'wallets'          => $this->enrichment->wallets($treasurer->user),
+            'treasury' => $treasury,
+            'alerts' => $this->alerts($treasurer, $treasury),
+            'security' => $this->insights->security($userId),
+            'wallets' => $this->enrichment->wallets($treasurer->user),
             'recent_movements' => $this->enrichment->recentMovements($treasurer->user),
-            'account_meta'     => $this->enrichment->accountMeta($userId),
+            'account_meta' => $this->enrichment->accountMeta($userId),
         ];
     }
 
     /** @param array{name?: string, phone?: string} $data */
-    public function updateOwn(array $data, ?string $targetUserId = null): void
+    public function updateOwn(array $data, ?string $targetUserId = null) : void
     {
         $treasurer = $this->ownTreasurerOrFail($targetUserId);
         $treasurer->update(array_intersect_key($data, array_flip(['name', 'phone'])));
+    }
+
+    private function alerts(Treasurer $treasurer, array $treasury) : array
+    {
+        $alerts = [];
+
+        if ($treasurer->status !== 'ACTIVE') {
+            $alerts[] = Insights::alert(
+                'danger',
+                'fa-ban',
+                'Tesorero no activo',
+                'Tu cuenta está ' . strtolower((string) $treasurer->status) . ': no puedes procesar movimientos. Contacta a soporte.',
+            );
+        }
+
+        if ($treasury['queue']['assigned_me'] > 0) {
+            $alerts[] = Insights::alert(
+                'warning',
+                'fa-user-clock',
+                'Tienes casos tomados',
+                "{$treasury['queue']['assigned_me']} movimiento(s) asignados a ti siguen pendientes de resolver.",
+                'Revisar',
+                '/wallet-movements',
+            );
+        }
+
+        if ($treasury['queue']['unassigned'] > 0) {
+            $oldest = $treasury['queue']['oldest_at'] ? ' El más antiguo espera desde ' . Carbon::parse($treasury['queue']['oldest_at'])->locale('es')->diffForHumans() . '.' : '';
+            $alerts[] = Insights::alert(
+                'info',
+                'fa-inbox',
+                'Movimientos por revisar',
+                "{$treasury['queue']['unassigned']} movimiento(s) sin asignar en la cola.{$oldest}",
+                'Ir a la cola',
+                '/wallet-movements',
+            );
+        }
+
+        return $alerts;
+    }
+
+    private function ownTreasurerOrFail(?string $targetUserId = null) : Treasurer
+    {
+        $access = $this->adminAccess->resolve($this->userContext->resolveUserId(), $targetUserId);
+
+        $treasurer = Treasurer::where('user_id', $access['owner_user_id'])->first();
+
+        abort_if(! $treasurer, 404, 'No se encontró un tesorero asociado a este usuario.');
+
+        return $treasurer;
     }
 
     /**
      * Desempeño de revisión: este mes vs. mismo tramo del mes anterior, cola
      * actual, casos tomados, tendencia diaria y tipos más revisados.
      */
-    private function treasury(string $userId): array
+    private function treasury(string $userId) : array
     {
-        $now        = Carbon::now();
+        $now = Carbon::now();
         $monthStart = $now->copy()->startOfMonth();
-        $prevStart  = $monthStart->copy()->subMonthNoOverflow();
-        $prevEnd    = $now->copy()->subMonthNoOverflow();
+        $prevStart = $monthStart->copy()->subMonthNoOverflow();
+        $prevEnd = $now->copy()->subMonthNoOverflow();
 
         $processed = fn (Carbon $from, Carbon $to) => WalletMovement::where('processed_by', $userId)
             ->whereBetween('processed_at', [$from, $to])
@@ -101,10 +141,10 @@ final class TreasurerProfileService
             ->pluck(DB::raw('COUNT(*) as total'), 'status')
             ->map(fn ($n) => (int) $n);
 
-        $current  = $processed($monthStart, $now);
+        $current = $processed($monthStart, $now);
         $previous = $processed($prevStart, $prevEnd);
 
-        $kpi = function (int $value, int $prev): array {
+        $kpi = function(int $value, int $prev) : array {
             return ['value' => $value, 'previous' => $prev, 'change_pct' => $prev > 0 ? (int) round(($value - $prev) / $prev * 100) : null];
         };
 
@@ -141,54 +181,29 @@ final class TreasurerProfileService
             'period_label' => ucfirst($now->copy()->locale('es')->translatedFormat('F Y')),
             'kpis' => [
                 'processed' => $kpi($current->sum(), $previous->sum()),
-                'approved'  => $kpi($approved, (int) ($previous[WalletMovement::STATUS_COMPLETED] ?? 0)),
-                'rejected'  => $kpi($rejected, (int) ($previous[WalletMovement::STATUS_REJECTED] ?? 0)),
+                'approved' => $kpi($approved, (int) ($previous[WalletMovement::STATUS_COMPLETED] ?? 0)),
+                'rejected' => $kpi($rejected, (int) ($previous[WalletMovement::STATUS_REJECTED] ?? 0)),
             ],
             'approval_rate' => ($approved + $rejected) > 0 ? (int) round($approved / ($approved + $rejected) * 100) : null,
             'queue' => [
-                'pending'     => (clone $pending)->count(),
-                'unassigned'  => (clone $pending)->whereNull('assigned_to_user_id')->count(),
+                'pending' => (clone $pending)->count(),
+                'unassigned' => (clone $pending)->whereNull('assigned_to_user_id')->count(),
                 'assigned_me' => (clone $pending)->where('assigned_to_user_id', $userId)->count(),
-                'oldest_at'   => (clone $pending)->min('created_at')
+                'oldest_at' => (clone $pending)->min('created_at')
                     ? Carbon::parse((clone $pending)->min('created_at'))->toIso8601String()
                     : null,
             ],
-            'trend'     => $trend,
+            'trend' => $trend,
             'top_types' => $topTypes->map(fn ($n, $type) => [
-                'type'  => $type,
+                'type' => $type,
                 'label' => $labels[$type] ?? $type,
                 'count' => (int) $n,
             ])->values()->all(),
             'lifetime' => [
                 'processed' => (int) ($lifetime->total ?? 0),
-                'first_at'  => $lifetime?->first_at ? Carbon::parse($lifetime->first_at)->toIso8601String() : null,
-                'last_at'   => $lifetime?->last_at ? Carbon::parse($lifetime->last_at)->toIso8601String() : null,
+                'first_at' => $lifetime?->first_at ? Carbon::parse($lifetime->first_at)->toIso8601String() : null,
+                'last_at' => $lifetime?->last_at ? Carbon::parse($lifetime->last_at)->toIso8601String() : null,
             ],
         ];
-    }
-
-    private function alerts(Treasurer $treasurer, array $treasury): array
-    {
-        $alerts = [];
-
-        if ($treasurer->status !== 'ACTIVE') {
-            $alerts[] = Insights::alert('danger', 'fa-ban', 'Tesorero no activo',
-                'Tu cuenta está ' . strtolower((string) $treasurer->status) . ': no puedes procesar movimientos. Contacta a soporte.');
-        }
-
-        if ($treasury['queue']['assigned_me'] > 0) {
-            $alerts[] = Insights::alert('warning', 'fa-user-clock', 'Tienes casos tomados',
-                "{$treasury['queue']['assigned_me']} movimiento(s) asignados a ti siguen pendientes de resolver.",
-                'Revisar', '/wallet-movements');
-        }
-
-        if ($treasury['queue']['unassigned'] > 0) {
-            $oldest = $treasury['queue']['oldest_at'] ? ' El más antiguo espera desde ' . Carbon::parse($treasury['queue']['oldest_at'])->locale('es')->diffForHumans() . '.' : '';
-            $alerts[] = Insights::alert('info', 'fa-inbox', 'Movimientos por revisar',
-                "{$treasury['queue']['unassigned']} movimiento(s) sin asignar en la cola.{$oldest}",
-                'Ir a la cola', '/wallet-movements');
-        }
-
-        return $alerts;
     }
 }

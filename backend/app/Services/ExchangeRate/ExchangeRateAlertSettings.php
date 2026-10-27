@@ -14,24 +14,24 @@ final class ExchangeRateAlertSettings
     private const CACHE_TTL_SECONDS = 600;
 
     /** Cambio mínimo (%) de una tasa que se avisa a la red. */
-    public static function changePct(): float
+    public static function changePct() : float
     {
         return self::number('exchange_alert_change_pct', 3.0);
     }
 
-    /** Horas sin actualizar una tasa propia para avisar a su dueño. */
-    public static function staleHours(): int
-    {
-        return (int) self::number('exchange_alert_stale_hours', 24.0);
-    }
-
     /** Desvío máximo (%) de la tasa propia respecto a la oficial. */
-    public static function deviationPct(): float
+    public static function deviationPct() : float
     {
         return self::number('exchange_alert_deviation_pct', 10.0);
     }
 
-    private static function number(string $param, float $default): float
+    /** Horas sin actualizar una tasa propia para avisar a su dueño. */
+    public static function staleHours() : int
+    {
+        return (int) self::number('exchange_alert_stale_hours', 24.0);
+    }
+
+    private static function number(string $param, float $default) : float
     {
         $value = Cache::remember(
             "setting:{$param}",

@@ -33,15 +33,15 @@ use Illuminate\Support\Facades\DB;
  */
 final class NetworkExchangeRateService
 {
+    private const CACHE_TTL = 90;
     /** Puntos del sparkline (mismo criterio que ExchangeRateSummaryService). */
     private const HISTORY_POINTS = 7;
-
-    private const CACHE_TTL = 90;
 
     public function __construct(
         private readonly RoleUserService $roleUserService,
         private readonly ExchangeRateDeviationCap $deviationCap,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array{
@@ -51,23 +51,23 @@ final class NetworkExchangeRateService
      *   rates: array<int, array<string, mixed>>
      * }
      */
-    public function forUser(User $user): array
+    public function forUser(User $user) : array
     {
-        $role  = $this->roleUserService->getActiveUserRolePrefix((int) $user->id);
+        $role = $this->roleUserService->getActiveUserRolePrefix((int) $user->id);
         $owner = $this->ownerFor($role, (string) $user->id);
 
         $official = $this->officialRates();
-        $own      = $owner ? $this->ownRates($owner) : collect();
+        $own = $owner ? $this->ownRates($owner) : collect();
 
         // Solo las monedas con las que vende la red (las habilitadas del dueño
         // de las salas + las que tienen tasa propia); sin dueño, todas.
-        $handled     = $owner ? $this->handledCurrencyIds($owner) : null;
+        $handled = $owner ? $this->handledCurrencyIds($owner) : null;
         $currencyIds = $official->keys()
             ->when($handled !== null, fn (Collection $ids) => $ids->intersect($handled))
             ->merge($own->keys())
             ->unique()
             ->values();
-        $currencies  = Currency::whereIn('id', $currencyIds)->get(['id', 'iso_code', 'symbol', 'name'])->keyBy(fn ($c) => (string) $c->id);
+        $currencies = Currency::whereIn('id', $currencyIds)->get(['id', 'iso_code', 'symbol', 'name'])->keyBy(fn ($c) => (string) $c->id);
 
         $rates = $currencyIds
             ->map(fn (string $currencyId) => $this->row($currencyId, $currencies->get($currencyId), $official->get($currencyId), $own->get($currencyId)))
@@ -78,26 +78,14 @@ final class NetworkExchangeRateService
             ->all();
 
         return [
-            'owner'      => $owner
+            'owner' => $owner
                 ? ['type' => $owner instanceof Commerce ? 'commerce' : 'customer', 'name' => $owner->business_name ?? $owner->name]
                 : ['type' => 'platform', 'name' => null],
-            'role'       => $role,
+            'role' => $role,
             // Solo el dueño de las salas fija su tasa propia (ExchangeRateCrudService).
             'can_manage' => in_array($role, ['commerce', 'customer'], true) && $user->checkPermissionTo('exchange.manage'),
-            'rates'      => $rates,
+            'rates' => $rates,
         ];
-    }
-
-    /** Dueño de la tasa que aplica a las salas del usuario (null = la oficial). */
-    private function ownerFor(?string $role, string $userId): Commerce|Customer|null
-    {
-        return match ($role) {
-            'commerce'   => Commerce::where('user_id', $userId)->first(),
-            'customer'   => Customer::where('user_id', $userId)->first(),
-            'subsidiary' => Subsidiary::where('user_id', $userId)->first()?->commerce,
-            'seller'     => Seller::where('user_id', $userId)->first()?->resolveCommerce(),
-            default      => null,
-        };
     }
 
     /**
@@ -106,7 +94,7 @@ final class NetworkExchangeRateService
      *
      * @return string[]|null
      */
-    private function handledCurrencyIds(Commerce|Customer $owner): ?array
+    private function handledCurrencyIds(Commerce|Customer $owner) : ?array
     {
         $ids = $owner instanceof Commerce
             ? DB::table('commerces_currencies')->where('commerce_id', $owner->id)->where('status', 'ACTIVE')->pluck('currency_id')
@@ -117,41 +105,21 @@ final class NetworkExchangeRateService
         return $ids ?: null;
     }
 
-    private function row(string $currencyId, ?Currency $currency, ?array $official, CommerceExchangeRate|CustomerExchangeRate|null $own): ?array
+    /** Últimos N valores oficiales (ACTIVE + OLD), del más antiguo al más reciente. */
+    private function history(string $currencyId) : array
     {
-        if (!$currency || $currencyId === (string) Currency::usdId()) {
-            return null;
-        }
-
-        $ownAmount      = $own ? (float) $own->amount : null;
-        $officialAmount = $official['amount'] ?? null;
-        $useOwn         = $ownAmount !== null && $ownAmount > 0;
-
-        return [
-            'currency_id'   => $currencyId,
-            'currency_code' => $currency->iso_code,
-            'currency_name' => $currency->name,
-            'symbol'        => $currency->symbol ?? '',
-            // Lo que se aplica hoy en las ventas de las salas de la red.
-            'effective'     => $useOwn ? $ownAmount : $officialAmount,
-            'source'        => $useOwn ? 'own' : 'official',
-            'official'      => $official,
-            'own'           => $own ? [
-                'amount'     => $ownAmount,
-                'percentage' => (float) $own->percentage,
-                'updated_at' => $own->updated_at?->toIso8601String(),
-            ] : null,
-            // Cuánto se aleja la tasa propia de la oficial (+ = más cara).
-            'deviation_pct' => $deviation = ($useOwn && $officialAmount
-                ? round(($ownAmount - $officialAmount) / $officialAmount * 100, 2)
-                : null),
-            // Mismos umbrales que las alertas (ExchangeRateAlertService).
-            'deviation_alert' => $deviation !== null && abs($deviation) >= ExchangeRateAlertSettings::deviationPct(),
-            'stale'           => $useOwn && $own->updated_at
-                && $own->updated_at->lt(now()->subHours(ExchangeRateAlertSettings::staleHours())),
-            // Rango permitido para la tasa propia (tope del admin), o null sin tope.
-            'allowed_range'   => $this->deviationCap->range($currencyId),
-        ];
+        return ExchangeRate::where('currency_id', $currencyId)
+            ->whereIn('status', ['ACTIVE', 'OLD'])
+            ->latest('updated_at')
+            ->limit(self::HISTORY_POINTS)
+            ->get(['amount', 'updated_at'])
+            ->sortBy('updated_at')
+            ->values()
+            ->map(fn (ExchangeRate $rate) => [
+                'date' => $rate->updated_at?->toIso8601String(),
+                'amount' => (float) $rate->amount,
+            ])
+            ->all();
     }
 
     /**
@@ -159,24 +127,36 @@ final class NetworkExchangeRateService
      *
      * @return Collection<string, array<string, mixed>>
      */
-    private function officialRates(): Collection
+    private function officialRates() : Collection
     {
         return collect(Cache::remember('exchange-rate:network:official', self::CACHE_TTL, fn () => ExchangeRate::active()
             ->latest('updated_at')
             ->get(['id', 'currency_id', 'amount', 'percentage', 'source', 'updated_at'])
             ->unique('currency_id')
             ->mapWithKeys(fn (ExchangeRate $rate) => [(string) $rate->currency_id => [
-                'amount'     => (float) $rate->amount,
+                'amount' => (float) $rate->amount,
                 'percentage' => (float) $rate->percentage,
-                'source'     => $rate->source ?? ExchangeRate::SOURCE_USER,
+                'source' => $rate->source ?? ExchangeRate::SOURCE_USER,
                 'updated_at' => $rate->updated_at?->toIso8601String(),
-                'history'    => $this->history((string) $rate->currency_id),
+                'history' => $this->history((string) $rate->currency_id),
             ]])
             ->all()));
     }
 
+    /** Dueño de la tasa que aplica a las salas del usuario (null = la oficial). */
+    private function ownerFor(?string $role, string $userId) : Commerce|Customer|null
+    {
+        return match ($role) {
+            'commerce' => Commerce::where('user_id', $userId)->first(),
+            'customer' => Customer::where('user_id', $userId)->first(),
+            'subsidiary' => Subsidiary::where('user_id', $userId)->first()?->commerce,
+            'seller' => Seller::where('user_id', $userId)->first()?->resolveCommerce(),
+            default => null,
+        };
+    }
+
     /** @return Collection<string, CommerceExchangeRate|CustomerExchangeRate> tasa propia ACTIVA más reciente por moneda */
-    private function ownRates(Commerce|Customer $owner): Collection
+    private function ownRates(Commerce|Customer $owner) : Collection
     {
         $query = $owner instanceof Commerce
             ? CommerceExchangeRate::where('commerce_id', $owner->id)
@@ -190,20 +170,40 @@ final class NetworkExchangeRateService
             ->keyBy(fn ($r) => (string) $r->currency_id);
     }
 
-    /** Últimos N valores oficiales (ACTIVE + OLD), del más antiguo al más reciente. */
-    private function history(string $currencyId): array
+    private function row(string $currencyId, ?Currency $currency, ?array $official, CommerceExchangeRate|CustomerExchangeRate|null $own) : ?array
     {
-        return ExchangeRate::where('currency_id', $currencyId)
-            ->whereIn('status', ['ACTIVE', 'OLD'])
-            ->latest('updated_at')
-            ->limit(self::HISTORY_POINTS)
-            ->get(['amount', 'updated_at'])
-            ->sortBy('updated_at')
-            ->values()
-            ->map(fn (ExchangeRate $rate) => [
-                'date'   => $rate->updated_at?->toIso8601String(),
-                'amount' => (float) $rate->amount,
-            ])
-            ->all();
+        if (! $currency || $currencyId === (string) Currency::usdId()) {
+            return null;
+        }
+
+        $ownAmount = $own ? (float) $own->amount : null;
+        $officialAmount = $official['amount'] ?? null;
+        $useOwn = $ownAmount !== null && $ownAmount > 0;
+
+        return [
+            'currency_id' => $currencyId,
+            'currency_code' => $currency->iso_code,
+            'currency_name' => $currency->name,
+            'symbol' => $currency->symbol ?? '',
+            // Lo que se aplica hoy en las ventas de las salas de la red.
+            'effective' => $useOwn ? $ownAmount : $officialAmount,
+            'source' => $useOwn ? 'own' : 'official',
+            'official' => $official,
+            'own' => $own ? [
+                'amount' => $ownAmount,
+                'percentage' => (float) $own->percentage,
+                'updated_at' => $own->updated_at?->toIso8601String(),
+            ] : null,
+            // Cuánto se aleja la tasa propia de la oficial (+ = más cara).
+            'deviation_pct' => $deviation = ($useOwn && $officialAmount
+                ? round(($ownAmount - $officialAmount) / $officialAmount * 100, 2)
+                : null),
+            // Mismos umbrales que las alertas (ExchangeRateAlertService).
+            'deviation_alert' => $deviation !== null && abs($deviation) >= ExchangeRateAlertSettings::deviationPct(),
+            'stale' => $useOwn && $own->updated_at
+                && $own->updated_at->lt(now()->subHours(ExchangeRateAlertSettings::staleHours())),
+            // Rango permitido para la tasa propia (tope del admin), o null sin tope.
+            'allowed_range' => $this->deviationCap->range($currencyId),
+        ];
     }
 }

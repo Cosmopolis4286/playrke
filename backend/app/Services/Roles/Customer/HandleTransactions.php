@@ -4,6 +4,7 @@ namespace App\Services\Roles\Customer;
 
 use App\Models\Shared\Transactions\Transaction;
 use App\Traits\Games\SeamlessWallet;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -28,11 +29,11 @@ class HandleTransactions
             // Verificar si hay transacciones pendientes
             if ($transactions->isEmpty()) {
                 DB::commit(); // Si no hay transacciones, confirmar y salir
+
                 return false;
             }
 
             foreach ($transactions as $transaction) {
-
                 try {
                     // Declarar ID de la transacción
                     $transactionID = $transaction->id;
@@ -43,6 +44,7 @@ class HandleTransactions
                     // Verificar si la respuesta contiene un error
                     if (isset($transferResponse['Error']) && $transferResponse['Error']) {
                         Log::error("Error al procesar la transacción: '{$transactionID}': {$transferResponse['Error']}");
+
                         continue;
                     }
 
@@ -52,20 +54,21 @@ class HandleTransactions
                         'processing_data' => now(),
                         'updated_at' => now(),
                     ]);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Manejo de excepciones inesperadas
                     Log::error("Excepción al procesar la transacción: '{$transactionID}', Error: {$e->getMessage()}");
                     DB::rollBack();  // Si ocurre un error, revertir la transacción
+
                     return ['Error' => 'Ocurrió un error al procesar las transacciones'];
                 }
             }
 
             DB::commit();
-
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Si ocurre un error en el proceso global, hacer rollback
             DB::rollBack();
-            Log::error("Error al procesar todas las transacciones: " . $e->getMessage());
+            Log::error('Error al procesar todas las transacciones: ' . $e->getMessage());
+
             return ['Error' => 'Ocurrió un error al procesar las transacciones'];
         }
     }

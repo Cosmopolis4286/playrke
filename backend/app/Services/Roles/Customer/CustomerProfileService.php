@@ -36,20 +36,10 @@ final class CustomerProfileService
         private readonly AdminProfileAccessService $adminAccess,
         private readonly RoleProfileEnrichmentService $enrichment,
         private readonly Insights $insights,
-    ) {}
-
-    private function ownCustomerOrFail(?string $targetUserId = null): Customer
-    {
-        $access = $this->adminAccess->resolve($this->userContext->resolveUserId(), $targetUserId);
-
-        $customer = Customer::where('user_id', $access['owner_user_id'])->first();
-
-        abort_if(!$customer, 404, 'No se encontró un cliente asociado a este usuario.');
-
-        return $customer;
+    ) {
     }
 
-    public function showOwn(?string $targetUserId = null): array
+    public function showOwn(?string $targetUserId = null) : array
     {
         $customer = $this->ownCustomerOrFail($targetUserId);
         $customer->load(['country:id,name', 'currency:id,iso_code,name,symbol', 'user:id,username,email']);
@@ -63,26 +53,26 @@ final class CustomerProfileService
             ->filter()->unique()->values()->all();
 
         $integratedUsers = CustomerUser::where('customer_id', $customer->id);
-        $usersTotal  = (clone $integratedUsers)->count();
+        $usersTotal = (clone $integratedUsers)->count();
         $usersActive = (clone $integratedUsers)->where('last_activity', '>=', now()->subDays(30))->count();
 
         $activeRooms = BingoRoom::where('creator_user_id', $userId)->active()->count();
-        $totalRooms  = BingoRoom::where('creator_user_id', $userId)->count();
+        $totalRooms = BingoRoom::where('creator_user_id', $userId)->count();
 
         return [
-            'role'          => 'customer',
+            'role' => 'customer',
             // Customer no extiende BaseModel (sin HasHashedRouteKey → sin hashed_id).
-            'id'            => (string) $customer->id,
-            'name'          => $customer->name,
+            'id' => (string) $customer->id,
+            'name' => $customer->name,
             'business_name' => $customer->business_name,
-            'phone'         => $customer->phone,
-            'status'        => $customer->status,
-            'country'       => $customer->country?->name,
-            'currency'      => $customer->currency ? "{$customer->currency->name} ({$customer->currency->symbol})" : null,
-            'user'          => ['username' => $customer->user->username, 'email' => $customer->user->email],
-            'commission'    => (float) $customer->commission,
-            'currencies'    => $currencies,
-            'games'         => $customer->allowedGames()->pluck('name')->unique()->values()->all(),
+            'phone' => $customer->phone,
+            'status' => $customer->status,
+            'country' => $customer->country?->name,
+            'currency' => $customer->currency ? "{$customer->currency->name} ({$customer->currency->symbol})" : null,
+            'user' => ['username' => $customer->user->username, 'email' => $customer->user->email],
+            'commission' => (float) $customer->commission,
+            'currencies' => $currencies,
+            'games' => $customer->allowedGames()->pluck('name')->unique()->values()->all(),
 
             'hierarchy' => [
                 'chain' => [['level' => 'customer', 'name' => $customer->name, 'rate' => (float) $customer->commission, 'status' => $customer->status, 'is_self' => true]],
@@ -91,20 +81,20 @@ final class CustomerProfileService
             // Integración API: la clave nunca viaja completa (solo los últimos
             // 4 caracteres) — se gestiona/rota desde administración.
             'integration' => [
-                'api_route'      => $customer->api_route,
-                'key_hint'       => $customer->customer_key ? '••••' . substr($customer->customer_key, -4) : null,
-                'users_total'    => $usersTotal,
-                'users_active'   => $usersActive,
-                'rooms_active'   => $activeRooms,
-                'rooms_total'    => $totalRooms,
+                'api_route' => $customer->api_route,
+                'key_hint' => $customer->customer_key ? '••••' . substr($customer->customer_key, -4) : null,
+                'users_total' => $usersTotal,
+                'users_active' => $usersActive,
+                'rooms_active' => $activeRooms,
+                'rooms_total' => $totalRooms,
             ],
 
-            'performance'      => $this->insights->performance($lotScope, self::ROOM_COMMISSION_SQL),
-            'alerts'           => $this->alerts($customer, $totalRooms),
-            'security'         => $this->insights->security($userId),
-            'wallets'          => $this->enrichment->wallets($customer->user),
+            'performance' => $this->insights->performance($lotScope, self::ROOM_COMMISSION_SQL),
+            'alerts' => $this->alerts($customer, $totalRooms),
+            'security' => $this->insights->security($userId),
+            'wallets' => $this->enrichment->wallets($customer->user),
             'recent_movements' => $this->enrichment->recentMovements($customer->user),
-            'account_meta'     => $this->enrichment->accountMeta($userId),
+            'account_meta' => $this->enrichment->accountMeta($userId),
         ];
     }
 
@@ -114,31 +104,56 @@ final class CustomerProfileService
      *
      * @param array{name?: string, phone?: string} $data
      */
-    public function updateOwn(array $data, ?string $targetUserId = null): void
+    public function updateOwn(array $data, ?string $targetUserId = null) : void
     {
         $customer = $this->ownCustomerOrFail($targetUserId);
         $customer->update(array_intersect_key($data, array_flip(['name', 'phone'])));
     }
 
-    private function alerts(Customer $customer, int $totalRooms): array
+    private function alerts(Customer $customer, int $totalRooms) : array
     {
         $alerts = [];
 
         if ($customer->status !== 'ACTIVE') {
-            $alerts[] = Insights::alert('danger', 'fa-ban', 'Cuenta de cliente no activa',
-                'Tu cuenta está ' . strtolower((string) $customer->status) . ': la integración API y tus salas quedan suspendidas. Contacta a soporte.');
+            $alerts[] = Insights::alert(
+                'danger',
+                'fa-ban',
+                'Cuenta de cliente no activa',
+                'Tu cuenta está ' . strtolower((string) $customer->status) . ': la integración API y tus salas quedan suspendidas. Contacta a soporte.',
+            );
         }
 
-        if (!$customer->api_route || !$customer->customer_key) {
-            $alerts[] = Insights::alert('warning', 'fa-plug-circle-exclamation', 'Integración API incompleta',
-                'Falta configurar el endpoint o la clave de tu integración. Pídele a soporte que la complete para recibir usuarios por API.');
+        if (! $customer->api_route || ! $customer->customer_key) {
+            $alerts[] = Insights::alert(
+                'warning',
+                'fa-plug-circle-exclamation',
+                'Integración API incompleta',
+                'Falta configurar el endpoint o la clave de tu integración. Pídele a soporte que la complete para recibir usuarios por API.',
+            );
         }
 
         if ($totalRooms === 0) {
-            $alerts[] = Insights::alert('info', 'fa-dice', 'Aún no tienes salas',
-                'Crea tu primera sala de bingo para empezar a generar comisión.', 'Crear sala', '/bingo-rooms');
+            $alerts[] = Insights::alert(
+                'info',
+                'fa-dice',
+                'Aún no tienes salas',
+                'Crea tu primera sala de bingo para empezar a generar comisión.',
+                'Crear sala',
+                '/bingo-rooms',
+            );
         }
 
         return $alerts;
+    }
+
+    private function ownCustomerOrFail(?string $targetUserId = null) : Customer
+    {
+        $access = $this->adminAccess->resolve($this->userContext->resolveUserId(), $targetUserId);
+
+        $customer = Customer::where('user_id', $access['owner_user_id'])->first();
+
+        abort_if(! $customer, 404, 'No se encontró un cliente asociado a este usuario.');
+
+        return $customer;
     }
 }

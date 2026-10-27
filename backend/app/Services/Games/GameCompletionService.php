@@ -10,6 +10,7 @@ use App\Services\AchievementService;
 use App\Services\User\UserLevelService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Punto único donde cualquier juego reporta "un jugador terminó una partida".
@@ -29,20 +30,21 @@ final class GameCompletionService
         private readonly AchievementService $achievementService,
         private readonly DailyMissionService $dailyMissionService,
         private readonly CrossGameBridgeService $crossGameBridge,
-    ) {}
+    ) {
+    }
 
     /**
      * Registra el resultado de una partida para un jugador y otorga sus recompensas.
      *
-     * @param  User    $user     Jugador que participó
-     * @param  string  $game     GameParticipation::GAME_BINGO | GAME_TRIVIA
-     * @param  bool    $won      Si el jugador ganó esta partida
-     * @param  int     $xp       XP a otorgar por esta participación (0 = solo registrar)
-     * @param  string|null  $roomId  ID de la sala/room, para trazabilidad
-     * @param  array   $customContext  Datos extra para logros tipo 'custom' que un
-     *                                 juego específico pueda determinar (ej. Bingo
-     *                                 informando que se ganó con el último número
-     *                                 llamado) — ver Achievement::checkCustomRequirement().
+     * @param User        $user          Jugador que participó
+     * @param string      $game          GameParticipation::GAME_BINGO | GAME_TRIVIA
+     * @param bool        $won           Si el jugador ganó esta partida
+     * @param int         $xp            XP a otorgar por esta participación (0 = solo registrar)
+     * @param string|null $roomId        ID de la sala/room, para trazabilidad
+     * @param array       $customContext Datos extra para logros tipo 'custom' que un
+     *                                   juego específico pueda determinar (ej. Bingo
+     *                                   informando que se ganó con el último número
+     *                                   llamado) — ver Achievement::checkCustomRequirement().
      */
     public function reportParticipation(
         User $user,
@@ -51,18 +53,18 @@ final class GameCompletionService
         int $xp,
         ?string $roomId = null,
         array $customContext = [],
-    ): void {
+    ) : void {
         // Debe evaluarse ANTES de crear la fila de esta partida (más abajo)
         // — de lo contrario "primera vez en Trivia" siempre encontraría al
         // menos 1 fila (la que se está a punto de insertar).
         $qualifiesForBridgeBonus = $this->crossGameBridge->qualifiesForFirstTriviaBonus($user, $game);
 
-        DB::transaction(function () use ($user, $game, $won, $xp, $roomId) {
+        DB::transaction(function() use ($user, $game, $won, $xp, $roomId) {
             GameParticipation::create([
-                'user_id'    => $user->id,
-                'game'       => $game,
-                'room_id'    => $roomId,
-                'won'        => $won,
+                'user_id' => $user->id,
+                'game' => $game,
+                'room_id' => $roomId,
+                'won' => $won,
                 'xp_awarded' => $xp,
             ]);
 
@@ -75,38 +77,38 @@ final class GameCompletionService
         try {
             $this->achievementService->checkAndUnlockAchievements($user->fresh(), array_merge([
                 'game' => $game,
-                'won'  => $won,
-                'at'   => now(),
+                'won' => $won,
+                'at' => now(),
             ], $customContext));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // El resultado de la partida y el XP ya quedaron guardados; que la
             // evaluación de logros falle no debe revertir eso ni tumbar la
             // respuesta del juego.
             Log::warning('GameCompletionService: fallo al evaluar logros.', [
                 'user_id' => $user->id,
-                'game'    => $game,
-                'error'   => $e->getMessage(),
+                'game' => $game,
+                'error' => $e->getMessage(),
             ]);
         }
 
         try {
             $this->dailyMissionService->recordParticipation($user, $won);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('GameCompletionService: fallo al registrar misión diaria.', [
                 'user_id' => $user->id,
-                'game'    => $game,
-                'error'   => $e->getMessage(),
+                'game' => $game,
+                'error' => $e->getMessage(),
             ]);
         }
 
         if ($qualifiesForBridgeBonus) {
             try {
                 $this->crossGameBridge->awardFirstTriviaBonus($user);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::warning('GameCompletionService: fallo al otorgar bonus cross-game.', [
                     'user_id' => $user->id,
-                    'game'    => $game,
-                    'error'   => $e->getMessage(),
+                    'game' => $game,
+                    'error' => $e->getMessage(),
                 ]);
             }
         }

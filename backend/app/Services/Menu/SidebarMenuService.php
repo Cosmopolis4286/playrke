@@ -2,15 +2,26 @@
 
 namespace App\Services\Menu;
 
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Models\Module;
 use App\Models\SidebarMenuVisibility;
 use App\Models\User;
 use App\Models\UserSidebarFavorite;
-use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Support\Collection;
 
 class SidebarMenuService
 {
+    /**
+     * Métodos de este servicio invocables desde `badge_counter` en
+     * $menuStructure — declarar uno nuevo aquí es todo lo que hace falta
+     * para que un subitem muestre un badge dinámico (ver generateMenu()).
+     *
+     * @var array<string, string>
+     */
+    private const BADGE_COUNTERS = [
+        'pendingWalletMovementsCount' => 'pendingWalletMovementsCount',
+        'pendingBingoCardPaymentsCount' => 'pendingBingoCardPaymentsCount',
+    ];
     /**
      * Estructura completa del menú con permisos requeridos
      */
@@ -70,9 +81,9 @@ class SidebarMenuService
                     'badge_counter' => 'pendingBingoCardPaymentsCount',
                 ],
                 'my_games' => [
-                    'title'         => 'Mis Partidas',
-                    'route'         => 'bingo.my-games',
-                    'permission'    => null,
+                    'title' => 'Mis Partidas',
+                    'route' => 'bingo.my-games',
+                    'permission' => null,
                 ],
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
@@ -392,59 +403,92 @@ class SidebarMenuService
     ];
 
     /**
+     * Set de keys de módulos activos, cacheado en memoria por instancia
+     * (una por request vía el container) — evita una query por cada ítem
+     * raíz del menú al recorrer $menuStructure.
+     *
+     * @var array<string, bool>|null
+     */
+    private ?array $activeModuleKeys = null;
+
+    /**
+     * Set de "item_key:role_name" => sort_order, misma forma y mismo query
+     * que $itemRoleVisibility (comparten el resultado de una sola llamada a
+     * loadVisibilityAndOrder()) — null = sin override, usa el orden natural
+     * de $menuStructure.
+     *
+     * @var array<string, int|null>|null
+     */
+    private ?array $itemRoleSortOrder = null;
+
+    /**
+     * Set de "item_key:role_name" => is_visible, cacheado en memoria por
+     * instancia — una sola query total para todo el árbol, sin importar
+     * cuántos items/roles evalúe generateMenu() (mismo patrón que
+     * $activeModuleKeys/isModuleActive()).
+     *
+     * @var array<string, bool>|null
+     */
+    private ?array $itemRoleVisibility = null;
+
+    /**
      * Genera el menú basado en los permisos del usuario actual
      */
-    public function generateMenu(): Collection
+    public function generateMenu() : Collection
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return collect([]);
         }
 
-        $userRoles       = $user->getRoleNames()->toArray();
+        $userRoles = $user->getRoleNames()->toArray();
         $userPermissions = $user->hasRole('superadmin')
             ? null // superadmin no necesita verificar permisos
             : $user->getAllPermissionNames();
 
         return collect($this->menuStructure)
-            ->map(function ($item, $parentKey) use ($userRoles, $userPermissions) {
+            ->map(function($item, $parentKey) use ($userRoles, $userPermissions) {
                 // Filtrar submenús antes de decidir si mostrar el padre
                 if (isset($item['submenu'])) {
                     $item['submenu'] = collect($item['submenu'])
-                        ->filter(function ($subitem, $subKey) use ($parentKey, $userRoles, $userPermissions) {
+                        ->filter(function($subitem, $subKey) use ($parentKey, $userRoles, $userPermissions) {
                             // Visibilidad por rol editable en BD (reemplaza
                             // exclude_roles hardcodeado — ver isVisibleForRoles()).
-                            if (!$this->isVisibleForRoles("{$parentKey}.{$subKey}", $userRoles)) {
+                            if (! $this->isVisibleForRoles("{$parentKey}.{$subKey}", $userRoles)) {
                                 return false;
                             }
                             // superadmin ve todo
                             if ($userPermissions === null) {
                                 return true;
                             }
+
                             return empty($subitem['permission'])
                                 || in_array($subitem['permission'], $userPermissions);
                         })
-                        ->map(function ($subitem, $subKey) use ($parentKey, $userRoles) {
-                            if (!empty($subitem['badge_counter'])) {
+                        ->map(function($subitem, $subKey) use ($parentKey, $userRoles) {
+                            if (! empty($subitem['badge_counter'])) {
                                 $subitem['badge'] = $this->resolveBadgeCounter($subitem['badge_counter']);
                             }
                             // sort_order editable por rol — null = orden
                             // natural del array (ver sortOrderForRoles()).
                             $subitem['_sortOrder'] = $this->sortOrderForRoles("{$parentKey}.{$subKey}", $userRoles);
+
                             return $subitem;
                         })
                         ->sortBy(fn ($subitem) => $subitem['_sortOrder'] ?? PHP_INT_MAX)
-                        ->map(function ($subitem) {
+                        ->map(function($subitem) {
                             unset($subitem['_sortOrder']);
+
                             return $subitem;
                         })
                         ->values()
                         ->toArray();
                 }
+
                 return $item;
             })
-            ->filter(function ($item, $key) use ($userRoles, $userPermissions) {
+            ->filter(function($item, $key) use ($userRoles, $userPermissions) {
                 // Módulo apagado en /permissions → oculto para TODOS,
                 // incluido superadmin (a diferencia de la visibilidad por rol
                 // y de permission, que sí puede saltarse el superadmin). Se
@@ -458,7 +502,7 @@ class SidebarMenuService
                 // hardcodeado — ver isVisibleForRoles()). Se evalúa para
                 // todos los roles sin excepción, incluido superadmin (mismo
                 // criterio que exclude_roles tenía antes).
-                if (!$this->isVisibleForRoles($key, $userRoles)) {
+                if (! $this->isVisibleForRoles($key, $userRoles)) {
                     return false;
                 }
 
@@ -466,27 +510,29 @@ class SidebarMenuService
                 if ($userPermissions === null) {
                     // Ocultar si el submenú quedó vacío tras filtrar
                     if (isset($item['submenu'])) {
-                        return !empty($item['submenu']);
+                        return ! empty($item['submenu']);
                     }
+
                     return true;
                 }
 
                 // Sin permiso requerido → visible siempre
                 if (empty($item['permission'])) {
                     if (isset($item['submenu'])) {
-                        return !empty($item['submenu']);
+                        return ! empty($item['submenu']);
                     }
+
                     return true;
                 }
 
                 // Verificar permiso del padre
-                if (!in_array($item['permission'], $userPermissions)) {
+                if (! in_array($item['permission'], $userPermissions)) {
                     return false;
                 }
 
                 // Si tiene submenú, mostrar solo si quedó al menos un ítem visible
                 if (isset($item['submenu'])) {
-                    return !empty($item['submenu']);
+                    return ! empty($item['submenu']);
                 }
 
                 return true;
@@ -498,13 +544,249 @@ class SidebarMenuService
     }
 
     /**
-     * Set de keys de módulos activos, cacheado en memoria por instancia
-     * (una por request vía el container) — evita una query por cada ítem
-     * raíz del menú al recorrer $menuStructure.
-     *
-     * @var array<string, bool>|null
+     * Construye el rastro de breadcrumbs según la ruta activa. Recorre
+     * $menuStructure recursivamente (vía findActiveTrail()) en vez de
+     * asumir un máximo de 2 niveles fijos — soporta cualquier profundidad
+     * de 'submenu' anidado sin cambios si el árbol crece.
      */
-    private ?array $activeModuleKeys = null;
+    public function getBreadcrumb() : array
+    {
+        $trail = $this->findActiveTrail($this->menuStructure);
+
+        if ($trail === null) {
+            return [['title' => 'Tablero', 'route' => 'dashboard']];
+        }
+
+        return [
+            ['title' => 'Tablero', 'route' => 'dashboard'],
+            ...$trail,
+        ];
+    }
+
+    /**
+     * Accesos directos del usuario para la sección "Favoritos" del sidebar
+     * (ver sidebar-dynamic.blade.php). Resuelve cada item_key guardado
+     * contra el árbol YA FILTRADO de generateMenu() —no contra
+     * $menuStructure crudo— para que un favorito a un item que el usuario
+     * perdió por rol/permiso/módulo desactivado simplemente deje de
+     * aparecer, sin dejar una fila huérfana visible ni requerir limpieza
+     * de la tabla user_sidebar_favorites.
+     *
+     * @return array<int, array{item_key: string, title: string, url: string}>
+     */
+    public function getFavorites(User $user) : array
+    {
+        $favoriteKeys = UserSidebarFavorite::query()
+            ->where('user_id', $user->id)
+            ->orderBy('sort_order')
+            ->pluck('item_key');
+
+        if ($favoriteKeys->isEmpty()) {
+            return [];
+        }
+
+        $visibleByKey = $this->generateMenu()
+            ->flatMap(function(array $item, string $parentKey) {
+                $rows = [];
+                if (! empty($item['route'])) {
+                    $rows[$parentKey] = ['title' => $item['title'], 'route' => $item['route']];
+                }
+                foreach ($item['submenu'] ?? [] as $subKey => $subitem) {
+                    if (! empty($subitem['route'])) {
+                        $rows["{$parentKey}.{$subKey}"] = ['title' => $subitem['title'], 'route' => $subitem['route']];
+                    }
+                }
+
+                return $rows;
+            });
+
+        return $favoriteKeys
+            ->filter(fn (string $key) => $visibleByKey->has($key))
+            ->map(fn (string $key) => [
+                'item_key' => $key,
+                'title' => $visibleByKey[$key]['title'],
+                'url' => route($visibleByKey[$key]['route']),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Árbol de $menuStructure aplanado a una lista de items (padres +
+     * submenús) para la matriz de administración de visibilidad por rol.
+     * `permission` viaja solo como dato informativo de solo lectura — la
+     * matriz no lo edita, solo edita visibilidad por rol.
+     *
+     * @return array<int, array{key: string, parent_key: string|null, title: string, permission: string|null}>
+     */
+    public function getFlatMenuItemsForMatrix() : array
+    {
+        $flat = [];
+
+        foreach ($this->menuStructure as $parentKey => $parentItem) {
+            $flat[] = [
+                'key' => $parentKey,
+                'parent_key' => null,
+                'title' => $parentItem['title'],
+                'permission' => $parentItem['permission'] ?? null,
+            ];
+
+            foreach ($parentItem['submenu'] ?? [] as $subKey => $subItem) {
+                $flat[] = [
+                    'key' => "{$parentKey}.{$subKey}",
+                    'parent_key' => $parentKey,
+                    'title' => $subItem['title'],
+                    'permission' => $subItem['permission'] ?? null,
+                ];
+            }
+        }
+
+        return $flat;
+    }
+
+    /**
+     * Genera las clases CSS para un ítem de menú
+     */
+    public function getMenuItemClasses(string $route) : string
+    {
+        return $this->isActive($route) ? 'nav-link active' : 'nav-link';
+    }
+
+    /**
+     * Obtiene los roles del usuario para mostrar en el sidebar
+     */
+    public function getUserRoleDisplay() : string
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return 'Invitado';
+        }
+
+        $roles = $user->getRoleNames()->map(function($role) {
+            return match ($role) {
+                'superadmin' => 'Super Administrador',
+                'admin' => 'Administrador',
+                'commerce' => 'Comercio',
+                'seller' => 'Vendedor',
+                'treasurer' => 'Tesorero',
+                'provider' => 'Proveedor',
+                'customer' => 'Cliente',
+                'player' => 'Jugador',
+                'external_player' => 'Jugador Externo',
+                default => ucfirst($role),
+            };
+        });
+
+        return $roles->implode(', ');
+    }
+
+    /**
+     * Verifica si un menú padre tiene algún submenu activo.
+     *
+     * @param array $submenu Array de submenús
+     */
+    public function hasActiveSubmenu(array $submenu) : bool
+    {
+        foreach ($submenu as $subitem) {
+            if (! empty($subitem['route']) && $this->isActive($subitem['route'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica si un ítem de menú está activo
+     */
+    public function isActive(string $route) : bool
+    {
+        $currentRoute = request()->route()->getName();
+
+        // Verificación exacta
+        if ($currentRoute === $route) {
+            return true;
+        }
+
+        // Verificación por patrón (ej: admin.* coincide con admin.users)
+        if (str_ends_with($route, '.*')) {
+            $prefix = str_replace('.*', '', $route);
+
+            return str_starts_with($currentRoute, $prefix . '.');
+        }
+
+        return false;
+    }
+
+    /**
+     * Pagos de ventas a jugadores externos esperando revisión, con el mismo
+     * scope que la cola (BingoCardPaymentReviewController): admin/superadmin
+     * cuentan todos; un comercio, solo los de su red comercial.
+     */
+    public function pendingBingoCardPaymentsCount() : int
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return 0;
+        }
+
+        $query = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::where('payment_status', 'PENDING');
+
+        if ($user->hasRole('superadmin') || $user->hasRole('admin')) {
+            return $query->count();
+        }
+
+        $network = \App\Models\Roles\Commerce::where('user_id', $user->id)->first()?->networkUserIds();
+
+        return $network ? $query->whereIn('seller_user_id', $network)->count() : 0;
+    }
+
+    /**
+     * Cuenta los movimientos de billetera pendientes de revisión: cualquier
+     * tipo con requires_approval=true en el catálogo MovementType (incluye
+     * DEPOSIT/WITHDRAWAL y cualquier tipo custom aprobable creado por admin).
+     */
+    public function pendingWalletMovementsCount() : int
+    {
+        $approvableTypes = \App\Models\MovementType::catalog()
+            ->filter(fn ($type) => $type->requires_approval)
+            ->pluck('code');
+
+        return WalletMovement::whereIn('type', $approvableTypes)
+            ->where('status', WalletMovement::STATUS_PENDING)
+            ->count();
+    }
+
+    /**
+     * Busca la ruta activa dentro de un nivel de items (y sus 'submenu'
+     * anidados, si los hay) y devuelve el trail de breadcrumb desde ese
+     * nivel hasta el item activo, o null si ninguno está activo aquí.
+     *
+     * @param array<string, array> $items
+     *
+     * @return array<int, array{title: string, route: string|null}>|null
+     */
+    private function findActiveTrail(array $items) : ?array
+    {
+        foreach ($items as $item) {
+            if (isset($item['submenu'])) {
+                $childTrail = $this->findActiveTrail($item['submenu']);
+                if ($childTrail !== null) {
+                    return [['title' => $item['title'], 'route' => null], ...$childTrail];
+                }
+
+                continue;
+            }
+
+            if (! empty($item['route']) && $item['route'] !== 'dashboard' && $this->isActive($item['route'])) {
+                return [['title' => $item['title'], 'route' => $item['route']]];
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Un módulo sin fila en `modules` (nunca sembrado) se considera activo
@@ -512,7 +794,7 @@ class SidebarMenuService
      * whitelist; así un módulo nuevo en $menuStructure no requiere migración
      * de datos para seguir siendo visible.
      */
-    private function isModuleActive(string $key): bool
+    private function isModuleActive(string $key) : bool
     {
         if ($this->activeModuleKeys === null) {
             $this->activeModuleKeys = Module::pluck('is_active', 'key')->all();
@@ -520,26 +802,6 @@ class SidebarMenuService
 
         return $this->activeModuleKeys[$key] ?? true;
     }
-
-    /**
-     * Set de "item_key:role_name" => is_visible, cacheado en memoria por
-     * instancia — una sola query total para todo el árbol, sin importar
-     * cuántos items/roles evalúe generateMenu() (mismo patrón que
-     * $activeModuleKeys/isModuleActive()).
-     *
-     * @var array<string, bool>|null
-     */
-    private ?array $itemRoleVisibility = null;
-
-    /**
-     * Set de "item_key:role_name" => sort_order, misma forma y mismo query
-     * que $itemRoleVisibility (comparten el resultado de una sola llamada a
-     * loadVisibilityAndOrder()) — null = sin override, usa el orden natural
-     * de $menuStructure.
-     *
-     * @var array<string, int|null>|null
-     */
-    private ?array $itemRoleSortOrder = null;
 
     /**
      * Reemplaza el filtro `exclude_roles` (antes hardcodeado en
@@ -559,7 +821,7 @@ class SidebarMenuService
      *
      * @param string[] $userRoles
      */
-    private function isVisibleForRoles(string $itemKey, array $userRoles): bool
+    private function isVisibleForRoles(string $itemKey, array $userRoles) : bool
     {
         $this->loadVisibilityAndOrder();
 
@@ -572,30 +834,7 @@ class SidebarMenuService
         return false;
     }
 
-    /**
-     * Orden explícito de un item para el usuario actual, o null si ningún
-     * rol del usuario tiene override (queda en el orden natural del array).
-     * Con varios roles y varios overrides, se usa el menor (aparece antes)
-     * — mismo criterio "más permisivo gana" que isVisibleForRoles().
-     *
-     * @param string[] $userRoles
-     */
-    private function sortOrderForRoles(string $itemKey, array $userRoles): ?int
-    {
-        $this->loadVisibilityAndOrder();
-
-        $orders = [];
-        foreach ($userRoles as $roleName) {
-            $order = $this->itemRoleSortOrder["{$itemKey}:{$roleName}"] ?? null;
-            if ($order !== null) {
-                $orders[] = $order;
-            }
-        }
-
-        return $orders === [] ? null : min($orders);
-    }
-
-    private function loadVisibilityAndOrder(): void
+    private function loadVisibilityAndOrder() : void
     {
         if ($this->itemRoleVisibility !== null) {
             return;
@@ -607,7 +846,7 @@ class SidebarMenuService
                 'sidebar_menu_visibilities.item_key',
                 'roles.name',
                 'sidebar_menu_visibilities.is_visible',
-                'sidebar_menu_visibilities.sort_order'
+                'sidebar_menu_visibilities.sort_order',
             )
             ->get();
 
@@ -620,133 +859,7 @@ class SidebarMenuService
             ->all();
     }
 
-    /**
-     * Verifica si un ítem de menú está activo
-     */
-    public function isActive(string $route): bool
-    {
-        $currentRoute = request()->route()->getName();
-        
-        // Verificación exacta
-        if ($currentRoute === $route) {
-            return true;
-        }
-
-        // Verificación por patrón (ej: admin.* coincide con admin.users)
-        if (str_ends_with($route, '.*')) {
-            $prefix = str_replace('.*', '', $route);
-            return str_starts_with($currentRoute, $prefix . '.');
-        }
-
-        return false;
-    }
-
-    /**
-     * Verifica si un menú padre tiene algún submenu activo.
-     *
-     * @param array $submenu Array de submenús
-     * @return bool
-     */
-    public function hasActiveSubmenu(array $submenu): bool
-    {
-        foreach ($submenu as $subitem) {
-            if (!empty($subitem['route']) && $this->isActive($subitem['route'])) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Genera las clases CSS para un ítem de menú
-     */
-    public function getMenuItemClasses(string $route): string
-    {
-        return $this->isActive($route) ? 'nav-link active' : 'nav-link';
-    }
-
-    /**
-     * Obtiene los roles del usuario para mostrar en el sidebar
-     */
-    public function getUserRoleDisplay(): string
-    {
-        $user = auth()->user();
-        
-        if (!$user) {
-            return 'Invitado';
-        }
-
-        $roles = $user->getRoleNames()->map(function ($role) {
-            return match($role) {
-                'superadmin' => 'Super Administrador',
-                'admin' => 'Administrador',
-                'commerce' => 'Comercio',
-                'seller' => 'Vendedor',
-                'treasurer' => 'Tesorero',
-                'provider' => 'Proveedor',
-                'customer' => 'Cliente',
-                'player' => 'Jugador',
-                'external_player' => 'Jugador Externo',
-                default => ucfirst($role),
-            };
-        });
-
-        return $roles->implode(', ');
-    }
-
-    /**
-     * Cuenta los movimientos de billetera pendientes de revisión: cualquier
-     * tipo con requires_approval=true en el catálogo MovementType (incluye
-     * DEPOSIT/WITHDRAWAL y cualquier tipo custom aprobable creado por admin).
-     */
-    public function pendingWalletMovementsCount(): int
-    {
-        $approvableTypes = \App\Models\MovementType::catalog()
-            ->filter(fn ($type) => $type->requires_approval)
-            ->pluck('code');
-
-        return WalletMovement::whereIn('type', $approvableTypes)
-            ->where('status', WalletMovement::STATUS_PENDING)
-            ->count();
-    }
-
-    /**
-     * Métodos de este servicio invocables desde `badge_counter` en
-     * $menuStructure — declarar uno nuevo aquí es todo lo que hace falta
-     * para que un subitem muestre un badge dinámico (ver generateMenu()).
-     *
-     * @var array<string, string>
-     */
-    private const BADGE_COUNTERS = [
-        'pendingWalletMovementsCount'   => 'pendingWalletMovementsCount',
-        'pendingBingoCardPaymentsCount' => 'pendingBingoCardPaymentsCount',
-    ];
-
-    /**
-     * Pagos de ventas a jugadores externos esperando revisión, con el mismo
-     * scope que la cola (BingoCardPaymentReviewController): admin/superadmin
-     * cuentan todos; un comercio, solo los de su red comercial.
-     */
-    public function pendingBingoCardPaymentsCount(): int
-    {
-        $user = auth()->user();
-
-        if (!$user) {
-            return 0;
-        }
-
-        $query = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::where('payment_status', 'PENDING');
-
-        if ($user->hasRole('superadmin') || $user->hasRole('admin')) {
-            return $query->count();
-        }
-
-        $network = \App\Models\Roles\Commerce::where('user_id', $user->id)->first()?->networkUserIds();
-
-        return $network ? $query->whereIn('seller_user_id', $network)->count() : 0;
-    }
-
-    private function resolveBadgeCounter(string $counter): int
+    private function resolveBadgeCounter(string $counter) : int
     {
         $method = self::BADGE_COUNTERS[$counter] ?? null;
 
@@ -754,129 +867,25 @@ class SidebarMenuService
     }
 
     /**
-     * Construye el rastro de breadcrumbs según la ruta activa. Recorre
-     * $menuStructure recursivamente (vía findActiveTrail()) en vez de
-     * asumir un máximo de 2 niveles fijos — soporta cualquier profundidad
-     * de 'submenu' anidado sin cambios si el árbol crece.
-     */
-    public function getBreadcrumb(): array
-    {
-        $trail = $this->findActiveTrail($this->menuStructure);
-
-        if ($trail === null) {
-            return [['title' => 'Tablero', 'route' => 'dashboard']];
-        }
-
-        return [
-            ['title' => 'Tablero', 'route' => 'dashboard'],
-            ...$trail,
-        ];
-    }
-
-    /**
-     * Busca la ruta activa dentro de un nivel de items (y sus 'submenu'
-     * anidados, si los hay) y devuelve el trail de breadcrumb desde ese
-     * nivel hasta el item activo, o null si ninguno está activo aquí.
+     * Orden explícito de un item para el usuario actual, o null si ningún
+     * rol del usuario tiene override (queda en el orden natural del array).
+     * Con varios roles y varios overrides, se usa el menor (aparece antes)
+     * — mismo criterio "más permisivo gana" que isVisibleForRoles().
      *
-     * @param array<string, array> $items
-     * @return array<int, array{title: string, route: string|null}>|null
+     * @param string[] $userRoles
      */
-    private function findActiveTrail(array $items): ?array
+    private function sortOrderForRoles(string $itemKey, array $userRoles) : ?int
     {
-        foreach ($items as $item) {
-            if (isset($item['submenu'])) {
-                $childTrail = $this->findActiveTrail($item['submenu']);
-                if ($childTrail !== null) {
-                    return [['title' => $item['title'], 'route' => null], ...$childTrail];
-                }
-                continue;
-            }
+        $this->loadVisibilityAndOrder();
 
-            if (!empty($item['route']) && $item['route'] !== 'dashboard' && $this->isActive($item['route'])) {
-                return [['title' => $item['title'], 'route' => $item['route']]];
+        $orders = [];
+        foreach ($userRoles as $roleName) {
+            $order = $this->itemRoleSortOrder["{$itemKey}:{$roleName}"] ?? null;
+            if ($order !== null) {
+                $orders[] = $order;
             }
         }
 
-        return null;
-    }
-
-    /**
-     * Árbol de $menuStructure aplanado a una lista de items (padres +
-     * submenús) para la matriz de administración de visibilidad por rol.
-     * `permission` viaja solo como dato informativo de solo lectura — la
-     * matriz no lo edita, solo edita visibilidad por rol.
-     *
-     * @return array<int, array{key: string, parent_key: string|null, title: string, permission: string|null}>
-     */
-    public function getFlatMenuItemsForMatrix(): array
-    {
-        $flat = [];
-
-        foreach ($this->menuStructure as $parentKey => $parentItem) {
-            $flat[] = [
-                'key'        => $parentKey,
-                'parent_key' => null,
-                'title'      => $parentItem['title'],
-                'permission' => $parentItem['permission'] ?? null,
-            ];
-
-            foreach ($parentItem['submenu'] ?? [] as $subKey => $subItem) {
-                $flat[] = [
-                    'key'        => "{$parentKey}.{$subKey}",
-                    'parent_key' => $parentKey,
-                    'title'      => $subItem['title'],
-                    'permission' => $subItem['permission'] ?? null,
-                ];
-            }
-        }
-
-        return $flat;
-    }
-
-    /**
-     * Accesos directos del usuario para la sección "Favoritos" del sidebar
-     * (ver sidebar-dynamic.blade.php). Resuelve cada item_key guardado
-     * contra el árbol YA FILTRADO de generateMenu() —no contra
-     * $menuStructure crudo— para que un favorito a un item que el usuario
-     * perdió por rol/permiso/módulo desactivado simplemente deje de
-     * aparecer, sin dejar una fila huérfana visible ni requerir limpieza
-     * de la tabla user_sidebar_favorites.
-     *
-     * @return array<int, array{item_key: string, title: string, url: string}>
-     */
-    public function getFavorites(User $user): array
-    {
-        $favoriteKeys = UserSidebarFavorite::query()
-            ->where('user_id', $user->id)
-            ->orderBy('sort_order')
-            ->pluck('item_key');
-
-        if ($favoriteKeys->isEmpty()) {
-            return [];
-        }
-
-        $visibleByKey = $this->generateMenu()
-            ->flatMap(function (array $item, string $parentKey) {
-                $rows = [];
-                if (!empty($item['route'])) {
-                    $rows[$parentKey] = ['title' => $item['title'], 'route' => $item['route']];
-                }
-                foreach ($item['submenu'] ?? [] as $subKey => $subitem) {
-                    if (!empty($subitem['route'])) {
-                        $rows["{$parentKey}.{$subKey}"] = ['title' => $subitem['title'], 'route' => $subitem['route']];
-                    }
-                }
-                return $rows;
-            });
-
-        return $favoriteKeys
-            ->filter(fn (string $key) => $visibleByKey->has($key))
-            ->map(fn (string $key) => [
-                'item_key' => $key,
-                'title'    => $visibleByKey[$key]['title'],
-                'url'      => route($visibleByKey[$key]['route']),
-            ])
-            ->values()
-            ->all();
+        return $orders === [] ? null : min($orders);
     }
 }

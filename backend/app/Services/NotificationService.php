@@ -6,7 +6,7 @@ use App\Contracts\NotificationRepositoryInterface;
 use App\Events\Notifications\NotificationCreated;
 use App\Models\MovementType;
 use App\Models\Notification;
-use App\Models\User;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -22,22 +22,53 @@ use InvalidArgumentException;
 final class NotificationService
 {
     private const CACHE_TTL = 300; // 5 minutos
-    private const MAX_LIMIT = 100;
     private const DEFAULT_LIMIT = 20;
+    private const MAX_LIMIT = 100;
 
     public function __construct(
         private readonly NotificationRepositoryInterface $notificationRepository,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Limpiar notificaciones antiguas del sistema
+     *
+     * @param int $days Número de días para conservar
+     *
+     * @return int Número de notificaciones eliminadas
+     */
+    public function cleanupOldNotifications(int $days = 30) : int
+    {
+        return $this->notificationRepository->deleteOldNotifications($days);
+    }
+
+    /**
+     * Eliminar todas las notificaciones del usuario autenticado
+     *
+     * @return int Número de notificaciones eliminadas
+     */
+    public function clearAll() : int
+    {
+        $userId = $this->getCurrentUserId();
+        if (! $userId) {
+            return 0;
+        }
+
+        $result = $this->notificationRepository->deleteAllForUser($userId);
+        $this->clearUserNotificationCache($userId);
+
+        return $result;
+    }
 
     /**
      * Crear una nueva notificación para un usuario
      *
-     * @param string $userId ID del usuario destinatario
-     * @param string $type Tipo de notificación
-     * @param string $title Título de la notificación
+     * @param string $userId  ID del usuario destinatario
+     * @param string $type    Tipo de notificación
+     * @param string $title   Título de la notificación
      * @param string $message Mensaje de la notificación
-     * @param array $data Datos adicionales
-     * @return Notification
+     * @param array  $data    Datos adicionales
+     *
      * @throws InvalidArgumentException
      */
     public function create(
@@ -45,8 +76,8 @@ final class NotificationService
         string $type,
         string $title,
         string $message,
-        array $data = []
-    ): Notification {
+        array $data = [],
+    ) : Notification {
         $this->validateNotificationData($userId, $type, $title, $message);
 
         $notification = $this->notificationRepository->create([
@@ -72,14 +103,326 @@ final class NotificationService
     }
 
     /**
-     * Crear notificación de actualización de billetera
+     * Crear notificación de logro desbloqueado.
+     */
+    public function createAchievementUnlockedNotification(
+        string $userId,
+        string $achievementCode,
+        string $achievementName,
+        int $xpReward,
+    ) : Notification {
+        return $this->create(
+            userId: $userId,
+            type: 'ACHIEVEMENT_UNLOCKED',
+            title: '🏆 ¡Logro Desbloqueado!',
+            message: $xpReward > 0
+                ? "Desbloqueaste \"{$achievementName}\" (+{$xpReward} XP)."
+                : "Desbloqueaste \"{$achievementName}\".",
+            data: [
+                'achievement_code' => $achievementCode,
+                'achievement_name' => $achievementName,
+                'xp_reward' => $xpReward,
+                'url' => '/profile#stats',
+            ],
+        );
+    }
+
+    /**
+     * Aviso al VENDEDOR cuando el comercio (o un admin) revisa el comprobante
+     * de una de sus ventas a un jugador externo. Antes el vendedor no se
+     * enteraba: el comprador veía su link vacío hasta la aprobación, y si el
+     * pago se rechazaba nadie le avisaba que debía devolverle el dinero.
      *
-     * @param string $userId
-     * @param float $balance
-     * @param string $currencySymbol
-     * @param string $movementType
-     * @param float $amount
-     * @return Notification
+     * @param string $status APPROVED | REJECTED
+     */
+    public function createBingoSalePaymentReviewedNotification(
+        string $sellerUserId,
+        string $status,
+        string $roomUuidCode,
+        int $cardCount,
+        float $amount,
+        string $currencySymbol,
+        ?string $buyerName = null,
+        ?string $notes = null,
+    ) : Notification {
+        $approved = $status === 'APPROVED';
+        $buyer = $buyerName ? " de {$buyerName}" : '';
+        $amountLabel = $currencySymbol . number_format($amount, 2, ',', '.');
+
+        $message = $approved
+            ? "Se aprobó el pago{$buyer} ({$cardCount} cartón(es), {$amountLabel}) en la sala #{$roomUuidCode}. Ya puede ver y jugar sus cartones."
+            : "Se rechazó el pago{$buyer} ({$cardCount} cartón(es), {$amountLabel}) en la sala #{$roomUuidCode}. Los cartones se anularon y el monto se te reembolsa: devuélveselo al comprador.";
+
+        if ($notes) {
+            $message .= " Nota: {$notes}";
+        }
+
+        return $this->create(
+            userId: $sellerUserId,
+            type: 'BINGO_SALE_PAYMENT_REVIEWED',
+            title: $approved ? '✅ Pago aprobado' : '❌ Pago rechazado',
+            message: $message,
+            data: [
+                'status' => $status,
+                'room_uuid_code' => $roomUuidCode,
+                'card_count' => $cardCount,
+                'amount' => $amount,
+                'currency_symbol' => $currencySymbol,
+                'url' => '/bingo-card/generate',
+            ],
+        );
+    }
+
+    /**
+     * Crear notificaciones masivas para múltiples usuarios
+     */
+    public function createBulk(
+        array $userIds,
+        string $type,
+        string $title,
+        string $message,
+        array $data = [],
+    ) : Collection {
+        $this->validateNotificationData('', $type, $title, $message);
+
+        $notifications = collect();
+
+        foreach ($userIds as $userId) {
+            try {
+                $notification = $this->create($userId, $type, $title, $message, $data);
+                $notifications->push($notification);
+            } catch (Exception $e) {
+                Log::error('Failed to create bulk notification', [
+                    'user_id' => $userId,
+                    'type' => $type,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $notifications;
+    }
+
+    /**
+     * Notificación al jugador tras comprar cartones de bingo exitosamente.
+     * Antes de esto, una compra solo dejaba rastro en la respuesta HTTP
+     * síncrona y en WebSocket best-effort (ver
+     * BingoCardGenerateService::playerBuyFromGameRooms()) — si el jugador
+     * cerraba la pestaña o Reverb estaba caído, no quedaba ningún registro
+     * accesible después de "compré N cartones en tal sala a tal hora".
+     */
+    public function createCardPurchaseNotification(
+        string $userId,
+        string $roomUuidCode,
+        int $cardCount,
+        float $amount,
+        string $currencySymbol,
+        ?string $roomId = null,
+    ) : Notification {
+        return $this->create(
+            userId: $userId,
+            type: 'BINGO_CARD_PURCHASE',
+            title: '🎟️ Compra confirmada',
+            message: "Compraste {$cardCount} cartón(es) en la sala #{$roomUuidCode} por {$currencySymbol}{$amount}.",
+            data: [
+                'room_id' => $roomId,
+                'room_uuid_code' => $roomUuidCode,
+                'card_count' => $cardCount,
+                'amount' => $amount,
+                'currency_symbol' => $currencySymbol,
+                'url' => $roomId ? '/bingo/my-games' : null,
+            ],
+        );
+    }
+
+    /**
+     * Notificación al usuario cuando su depósito es aprobado o rechazado.
+     */
+    public function createDepositResultNotification(
+        string $userId,
+        string $status,       // COMPLETED | REJECTED
+        float $amount,
+        string $currencySymbol,
+        ?string $adminNotes = null,
+        ?string $movementId = null,
+    ) : Notification {
+        $approved = $status === 'COMPLETED';
+
+        $title = $approved ? '✅ Depósito Aprobado' : '❌ Depósito Rechazado';
+        $message = $approved
+            ? "Tu depósito de {$currencySymbol}{$amount} ha sido acreditado a tu billetera."
+            : "Tu depósito de {$currencySymbol}{$amount} fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+
+        return $this->create(
+            userId: $userId,
+            type: 'WALLET_UPDATED',
+            title: $title,
+            message: $message,
+            data: [
+                'movement_type' => 'DEPOSIT',
+                'movement_status' => $status,
+                'amount' => $amount,
+                'currency_symbol' => $currencySymbol,
+                'admin_notes' => $adminNotes,
+                'movement_id' => $movementId,
+                'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
+            ],
+        );
+    }
+
+    /**
+     * Crear notificación de subida de nivel.
+     */
+    public function createLevelUpNotification(string $userId, int $newLevel, int $totalXp) : Notification
+    {
+        return $this->create(
+            userId: $userId,
+            type: 'LEVEL_UP',
+            title: '⬆️ ¡Subiste de Nivel!',
+            message: "Alcanzaste el nivel {$newLevel}.",
+            data: [
+                'new_level' => $newLevel,
+                'total_xp' => $totalXp,
+                'url' => '/profile#stats',
+            ],
+        );
+    }
+
+    /**
+     * Crear notificación de misión diaria completada.
+     */
+    public function createMissionCompletedNotification(
+        string $userId,
+        string $missionCode,
+        string $missionName,
+        int $xpReward,
+    ) : Notification {
+        return $this->create(
+            userId: $userId,
+            type: 'MISSION_COMPLETED',
+            title: '🎯 ¡Misión Completada!',
+            message: $xpReward > 0
+                ? "Completaste \"{$missionName}\" (+{$xpReward} XP)."
+                : "Completaste \"{$missionName}\".",
+            data: [
+                'mission_code' => $missionCode,
+                'mission_name' => $missionName,
+                'xp_reward' => $xpReward,
+                'url' => '/profile#missions',
+            ],
+        );
+    }
+
+    /**
+     * Notificación genérica al usuario cuando un movimiento de tipo custom
+     * (catálogo MovementType, fuera de DEPOSIT/WITHDRAWAL) es aprobado o
+     * rechazado.
+     */
+    public function createMovementResultNotification(
+        string $userId,
+        string $movementType,
+        string $status,       // COMPLETED | REJECTED
+        float $amount,
+        string $currencySymbol,
+        string $typeLabel,
+        ?string $adminNotes = null,
+        ?string $movementId = null,
+    ) : Notification {
+        $approved = $status === 'COMPLETED';
+
+        $title = $approved ? "✅ {$typeLabel} aprobado" : "❌ {$typeLabel} rechazado";
+        $message = $approved
+            ? "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue procesado exitosamente."
+            : "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+
+        return $this->create(
+            userId: $userId,
+            type: 'WALLET_UPDATED',
+            title: $title,
+            message: $message,
+            data: [
+                'movement_type' => $movementType,
+                'movement_status' => $status,
+                'amount' => $amount,
+                'currency_symbol' => $currencySymbol,
+                'admin_notes' => $adminNotes,
+                'movement_id' => $movementId,
+                'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
+            ],
+        );
+    }
+
+    /**
+     * Notificación in-app a un superadmin cuando un permiso individual de
+     * otro usuario expiró automáticamente (job) o está por expirar.
+     */
+    public function createSpecificPermissionExpiryNotification(
+        string $superadminId,
+        string $affectedUserId,
+        string $affectedUserName,
+        string $permissionName,
+        bool $alreadyExpired,
+        ?string $expiresAt = null,
+    ) : Notification {
+        $title = $alreadyExpired
+            ? '🔒 Permiso individual expirado'
+            : '⏳ Permiso individual por expirar';
+
+        $message = $alreadyExpired
+            ? "El permiso '{$permissionName}' de {$affectedUserName} expiró y fue revocado automáticamente."
+            : "El permiso '{$permissionName}' de {$affectedUserName} expira pronto" . ($expiresAt ? " ({$expiresAt})" : '') . '.';
+
+        return $this->create(
+            userId: $superadminId,
+            type: 'SYSTEM',
+            title: $title,
+            message: $message,
+            data: [
+                'affected_user_id' => $affectedUserId,
+                'affected_user_name' => $affectedUserName,
+                'permission_name' => $permissionName,
+                'expires_at' => $expiresAt,
+                'already_expired' => $alreadyExpired,
+                'url' => "/admin/users?open_permissions={$affectedUserId}",
+            ],
+        );
+    }
+
+    /**
+     * Crear notificación de inscripción a trivia
+     */
+    public function createTriviaRegistrationNotification(
+        string $userId,
+        string $roomTitle,
+        string $roomCode,
+        ?float $entryFee = null,
+        ?string $currencySymbol = null,
+    ) : Notification {
+        $title = '🎮 ¡Inscripción Exitosa!';
+
+        if ($entryFee && $entryFee > 0) {
+            $message = "Te has inscrito a la trivia '{$roomTitle}' ({$roomCode}). Se descontó {$currencySymbol}{$entryFee} de tu billetera.";
+        } else {
+            $message = "Te has inscrito gratuitamente a la trivia '{$roomTitle}' ({$roomCode}).";
+        }
+
+        return $this->create(
+            userId: $userId,
+            type: 'TRIVIA_REGISTRATION',
+            title: $title,
+            message: $message,
+            data: [
+                'room_title' => $roomTitle,
+                'room_code' => $roomCode,
+                'entry_fee' => $entryFee,
+                'currency_symbol' => $currencySymbol,
+                'url' => "/trivia/room/{$roomCode}/lobby",
+            ],
+        );
+    }
+
+    /**
+     * Crear notificación de actualización de billetera
      */
     public function createWalletNotification(
         string $userId,
@@ -89,13 +432,13 @@ final class NotificationService
         float $amount,
         ?string $movementId = null,
         ?string $reason = null,
-    ): Notification {
+    ) : Notification {
         $catalogType = MovementType::catalog()->get($movementType);
-        $label       = $catalogType->label ?? match ($movementType) {
+        $label = $catalogType->label ?? match ($movementType) {
             'CARD_PURCHASE' => 'Compra de cartón',
             default => 'Movimiento de billetera',
         };
-        $isCredit = $catalogType->is_credit ?? !in_array($movementType, ['WITHDRAWAL', 'PURCHASE', 'CARD_PURCHASE', 'TRIVIA_ENTRY'], true);
+        $isCredit = $catalogType->is_credit ?? ! in_array($movementType, ['WITHDRAWAL', 'PURCHASE', 'CARD_PURCHASE', 'TRIVIA_ENTRY'], true);
 
         $title = match ($movementType) {
             'DEPOSIT' => '💰 Depósito Recibido',
@@ -142,255 +485,81 @@ final class NotificationService
                 'movement_id' => $movementId,
                 'reason' => $reason,
                 'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
-            ]
+            ],
         );
     }
 
     /**
-     * Crear notificación de inscripción a trivia
-     *
-     * @param string $userId
-     * @param string $roomTitle
-     * @param string $roomCode
-     * @param float|null $entryFee
-     * @param string|null $currencySymbol
-     * @return Notification
+     * Notificación in-app al propio usuario cuando su PIN de retiro fue
+     * fijado o cambiado — mismo criterio de seguridad que un email de
+     * "tu contraseña fue cambiada": si el cambio no lo hizo el dueño real
+     * de la cuenta (sesión comprometida que ya conocía current_password),
+     * esta es la señal que le permite reaccionar.
      */
-    public function createTriviaRegistrationNotification(
-        string $userId,
-        string $roomTitle,
-        string $roomCode,
-        ?float $entryFee = null,
-        ?string $currencySymbol = null,
-    ): Notification {
-        $title = '🎮 ¡Inscripción Exitosa!';
+    public function createWithdrawalPinChangedNotification(string $userId) : Notification
+    {
+        return $this->create(
+            userId: $userId,
+            type: 'SYSTEM',
+            title: '🔒 PIN de retiro actualizado',
+            message: 'Tu PIN de retiro fue configurado o cambiado. Si no fuiste tú, contacta soporte de inmediato.',
+            data: ['url' => '/profile#security'],
+        );
+    }
 
-        if ($entryFee && $entryFee > 0) {
-            $message = "Te has inscrito a la trivia '{$roomTitle}' ({$roomCode}). Se descontó {$currencySymbol}{$entryFee} de tu billetera.";
-        } else {
-            $message = "Te has inscrito gratuitamente a la trivia '{$roomTitle}' ({$roomCode}).";
-        }
+    /**
+     * Notificación al usuario cuando su retiro es aprobado o rechazado.
+     */
+    public function createWithdrawalResultNotification(
+        string $userId,
+        string $status,       // COMPLETED | REJECTED
+        float $amount,
+        string $currencySymbol,
+        ?string $adminNotes = null,
+        ?string $movementId = null,
+    ) : Notification {
+        $approved = $status === 'COMPLETED';
+
+        $title = $approved ? '✅ Retiro Aprobado' : '↩️ Retiro Rechazado — Saldo Reintegrado';
+        $message = $approved
+            ? "Tu retiro de {$currencySymbol}{$amount} fue procesado exitosamente."
+            : "Tu retiro de {$currencySymbol}{$amount} fue rechazado y el saldo fue devuelto a tu billetera." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
 
         return $this->create(
             userId: $userId,
-            type: 'TRIVIA_REGISTRATION',
+            type: 'WALLET_UPDATED',
             title: $title,
             message: $message,
             data: [
-                'room_title' => $roomTitle,
-                'room_code' => $roomCode,
-                'entry_fee' => $entryFee,
+                'movement_type' => 'WITHDRAWAL',
+                'movement_status' => $status,
+                'amount' => $amount,
                 'currency_symbol' => $currencySymbol,
-                'url' => "/trivia/room/{$roomCode}/lobby",
-            ]
+                'admin_notes' => $adminNotes,
+                'movement_id' => $movementId,
+                'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
+            ],
         );
-    }
-
-    /**
-     * Crear notificación de subida de nivel.
-     */
-    public function createLevelUpNotification(string $userId, int $newLevel, int $totalXp): Notification
-    {
-        return $this->create(
-            userId: $userId,
-            type: 'LEVEL_UP',
-            title: '⬆️ ¡Subiste de Nivel!',
-            message: "Alcanzaste el nivel {$newLevel}.",
-            data: [
-                'new_level' => $newLevel,
-                'total_xp'  => $totalXp,
-                'url'       => '/profile#stats',
-            ]
-        );
-    }
-
-    /**
-     * Crear notificación de logro desbloqueado.
-     */
-    public function createAchievementUnlockedNotification(
-        string $userId,
-        string $achievementCode,
-        string $achievementName,
-        int $xpReward,
-    ): Notification {
-        return $this->create(
-            userId: $userId,
-            type: 'ACHIEVEMENT_UNLOCKED',
-            title: '🏆 ¡Logro Desbloqueado!',
-            message: $xpReward > 0
-                ? "Desbloqueaste \"{$achievementName}\" (+{$xpReward} XP)."
-                : "Desbloqueaste \"{$achievementName}\".",
-            data: [
-                'achievement_code' => $achievementCode,
-                'achievement_name' => $achievementName,
-                'xp_reward'        => $xpReward,
-                'url'              => '/profile#stats',
-            ]
-        );
-    }
-
-    /**
-     * Crear notificación de misión diaria completada.
-     */
-    public function createMissionCompletedNotification(
-        string $userId,
-        string $missionCode,
-        string $missionName,
-        int $xpReward,
-    ): Notification {
-        return $this->create(
-            userId: $userId,
-            type: 'MISSION_COMPLETED',
-            title: '🎯 ¡Misión Completada!',
-            message: $xpReward > 0
-                ? "Completaste \"{$missionName}\" (+{$xpReward} XP)."
-                : "Completaste \"{$missionName}\".",
-            data: [
-                'mission_code' => $missionCode,
-                'mission_name' => $missionName,
-                'xp_reward'    => $xpReward,
-                'url'          => '/profile#missions',
-            ]
-        );
-    }
-
-    /**
-     * Obtener notificaciones del usuario autenticado
-     *
-     * @param array $filters
-     * @param int $limit
-     * @return Collection
-     */
-    public function getUserNotifications(array $filters = [], int $limit = self::DEFAULT_LIMIT): Collection
-    {
-        $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            return collect([]);
-        }
-
-        $limit = min($limit, self::MAX_LIMIT);
-        // Cache key fija (sin hash de parámetros) para poder invalidarla correctamente
-        $cacheKey = "user_notifications_{$userId}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $filters, $limit) {
-            return $this->notificationRepository->getByUser($userId, $filters, $limit);
-        });
-    }
-
-    /**
-     * Obtener notificaciones no leídas del usuario autenticado
-     *
-     * @param int $limit
-     * @return Collection
-     */
-    public function getUnreadNotifications(int $limit = self::DEFAULT_LIMIT): Collection
-    {
-        $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            return collect([]);
-        }
-
-        $limit = min($limit, self::MAX_LIMIT);
-        // Cache key fija para poder invalidarla correctamente
-        $cacheKey = "unread_notifications_{$userId}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $limit) {
-            return $this->notificationRepository->getUnreadByUser($userId, $limit);
-        });
-    }
-
-    /**
-     * Contar notificaciones no leídas del usuario autenticado
-     *
-     * @return int
-     */
-    public function getUnreadCount(): int
-    {
-        $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            return 0;
-        }
-
-        $cacheKey = "unread_count_{$userId}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId) {
-            return $this->notificationRepository->countUnreadByUser($userId);
-        });
-    }
-
-    /**
-     * Marcar una notificación como leída
-     *
-     * @param string $notificationId
-     * @return bool
-     */
-    public function markAsRead(string $notificationId): bool
-    {
-        $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            return false;
-        }
-
-        $notification = $this->notificationRepository->findById($notificationId);
-
-        if (!$notification || $notification->user_id !== $userId) {
-            Log::warning('Unauthorized notification access attempt', [
-                'notification_id' => $notificationId,
-                'user_id' => $userId,
-            ]);
-            return false;
-        }
-
-        $result = $this->notificationRepository->markAsRead($notificationId);
-
-        if ($result) {
-            $this->clearUserNotificationCache($userId);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Marcar todas las notificaciones del usuario como leídas
-     *
-     * @return int Número de notificaciones actualizadas
-     */
-    public function markAllAsRead(): int
-    {
-        $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            return 0;
-        }
-
-        $result = $this->notificationRepository->markAllAsReadForUser($userId);
-
-        if ($result > 0) {
-            $this->clearUserNotificationCache($userId);
-        }
-
-        return $result;
     }
 
     /**
      * Eliminar una notificación
-     *
-     * @param string $notificationId
-     * @return bool
      */
-    public function delete(string $notificationId): bool
+    public function delete(string $notificationId) : bool
     {
         $userId = $this->getCurrentUserId();
-        if (!$userId) {
+        if (! $userId) {
             return false;
         }
 
         $notification = $this->notificationRepository->findById($notificationId);
 
-        if (!$notification || $notification->user_id !== $userId) {
+        if (! $notification || $notification->user_id !== $userId) {
             Log::warning('Unauthorized notification deletion attempt', [
                 'notification_id' => $notificationId,
                 'user_id' => $userId,
             ]);
+
             return false;
         }
 
@@ -404,43 +573,11 @@ final class NotificationService
     }
 
     /**
-     * Eliminar todas las notificaciones del usuario autenticado
-     *
-     * @return int Número de notificaciones eliminadas
-     */
-    public function clearAll(): int
-    {
-        $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            return 0;
-        }
-
-        $result = $this->notificationRepository->deleteAllForUser($userId);
-        $this->clearUserNotificationCache($userId);
-
-        return $result;
-    }
-
-    /**
-     * Limpiar notificaciones antiguas del sistema
-     *
-     * @param int $days Número de días para conservar
-     * @return int Número de notificaciones eliminadas
-     */
-    public function cleanupOldNotifications(int $days = 30): int
-    {
-        return $this->notificationRepository->deleteOldNotifications($days);
-    }
-
-    /**
      * Formatear notificaciones para respuesta JSON
-     *
-     * @param Collection $notifications
-     * @return array
      */
-    public function formatNotifications(Collection $notifications): array
+    public function formatNotifications(Collection $notifications) : array
     {
-        return $notifications->map(function (Notification $notification) {
+        return $notifications->map(function(Notification $notification) {
             return [
                 'id' => $notification->id,
                 'type' => $notification->type,
@@ -458,339 +595,160 @@ final class NotificationService
     }
 
     /**
-     * Notificación al usuario cuando su depósito es aprobado o rechazado.
+     * Contar notificaciones no leídas del usuario autenticado
      */
-    public function createDepositResultNotification(
-        string $userId,
-        string $status,       // COMPLETED | REJECTED
-        float  $amount,
-        string $currencySymbol,
-        ?string $adminNotes = null,
-        ?string $movementId = null,
-    ): Notification {
-        $approved = $status === 'COMPLETED';
-
-        $title   = $approved ? '✅ Depósito Aprobado'   : '❌ Depósito Rechazado';
-        $message = $approved
-            ? "Tu depósito de {$currencySymbol}{$amount} ha sido acreditado a tu billetera."
-            : "Tu depósito de {$currencySymbol}{$amount} fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
-
-        return $this->create(
-            userId:  $userId,
-            type:    'WALLET_UPDATED',
-            title:   $title,
-            message: $message,
-            data:    [
-                'movement_type'   => 'DEPOSIT',
-                'movement_status' => $status,
-                'amount'          => $amount,
-                'currency_symbol' => $currencySymbol,
-                'admin_notes'     => $adminNotes,
-                'movement_id'     => $movementId,
-                'url'             => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
-            ]
-        );
-    }
-
-    /**
-     * Notificación al usuario cuando su retiro es aprobado o rechazado.
-     */
-    public function createWithdrawalResultNotification(
-        string $userId,
-        string $status,       // COMPLETED | REJECTED
-        float  $amount,
-        string $currencySymbol,
-        ?string $adminNotes = null,
-        ?string $movementId = null,
-    ): Notification {
-        $approved = $status === 'COMPLETED';
-
-        $title   = $approved ? '✅ Retiro Aprobado'   : '↩️ Retiro Rechazado — Saldo Reintegrado';
-        $message = $approved
-            ? "Tu retiro de {$currencySymbol}{$amount} fue procesado exitosamente."
-            : "Tu retiro de {$currencySymbol}{$amount} fue rechazado y el saldo fue devuelto a tu billetera." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
-
-        return $this->create(
-            userId:  $userId,
-            type:    'WALLET_UPDATED',
-            title:   $title,
-            message: $message,
-            data:    [
-                'movement_type'   => 'WITHDRAWAL',
-                'movement_status' => $status,
-                'amount'          => $amount,
-                'currency_symbol' => $currencySymbol,
-                'admin_notes'     => $adminNotes,
-                'movement_id'     => $movementId,
-                'url'             => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
-            ]
-        );
-    }
-
-    /**
-     * Notificación al jugador tras comprar cartones de bingo exitosamente.
-     * Antes de esto, una compra solo dejaba rastro en la respuesta HTTP
-     * síncrona y en WebSocket best-effort (ver
-     * BingoCardGenerateService::playerBuyFromGameRooms()) — si el jugador
-     * cerraba la pestaña o Reverb estaba caído, no quedaba ningún registro
-     * accesible después de "compré N cartones en tal sala a tal hora".
-     */
-    public function createCardPurchaseNotification(
-        string $userId,
-        string $roomUuidCode,
-        int    $cardCount,
-        float  $amount,
-        string $currencySymbol,
-        ?string $roomId = null,
-    ): Notification {
-        return $this->create(
-            userId:  $userId,
-            type:    'BINGO_CARD_PURCHASE',
-            title:   '🎟️ Compra confirmada',
-            message: "Compraste {$cardCount} cartón(es) en la sala #{$roomUuidCode} por {$currencySymbol}{$amount}.",
-            data:    [
-                'room_id'         => $roomId,
-                'room_uuid_code'  => $roomUuidCode,
-                'card_count'      => $cardCount,
-                'amount'          => $amount,
-                'currency_symbol' => $currencySymbol,
-                'url'             => $roomId ? "/bingo/my-games" : null,
-            ]
-        );
-    }
-
-    /**
-     * Aviso al VENDEDOR cuando el comercio (o un admin) revisa el comprobante
-     * de una de sus ventas a un jugador externo. Antes el vendedor no se
-     * enteraba: el comprador veía su link vacío hasta la aprobación, y si el
-     * pago se rechazaba nadie le avisaba que debía devolverle el dinero.
-     *
-     * @param string $status APPROVED | REJECTED
-     */
-    public function createBingoSalePaymentReviewedNotification(
-        string  $sellerUserId,
-        string  $status,
-        string  $roomUuidCode,
-        int     $cardCount,
-        float   $amount,
-        string  $currencySymbol,
-        ?string $buyerName = null,
-        ?string $notes = null,
-    ): Notification {
-        $approved = $status === 'APPROVED';
-        $buyer    = $buyerName ? " de {$buyerName}" : '';
-        $amountLabel = $currencySymbol . number_format($amount, 2, ',', '.');
-
-        $message = $approved
-            ? "Se aprobó el pago{$buyer} ({$cardCount} cartón(es), {$amountLabel}) en la sala #{$roomUuidCode}. Ya puede ver y jugar sus cartones."
-            : "Se rechazó el pago{$buyer} ({$cardCount} cartón(es), {$amountLabel}) en la sala #{$roomUuidCode}. Los cartones se anularon y el monto se te reembolsa: devuélveselo al comprador.";
-
-        if ($notes) {
-            $message .= " Nota: {$notes}";
-        }
-
-        return $this->create(
-            userId:  $sellerUserId,
-            type:    'BINGO_SALE_PAYMENT_REVIEWED',
-            title:   $approved ? '✅ Pago aprobado' : '❌ Pago rechazado',
-            message: $message,
-            data:    [
-                'status'          => $status,
-                'room_uuid_code'  => $roomUuidCode,
-                'card_count'      => $cardCount,
-                'amount'          => $amount,
-                'currency_symbol' => $currencySymbol,
-                'url'             => '/bingo-card/generate',
-            ]
-        );
-    }
-
-    /**
-     * Notificación genérica al usuario cuando un movimiento de tipo custom
-     * (catálogo MovementType, fuera de DEPOSIT/WITHDRAWAL) es aprobado o
-     * rechazado.
-     */
-    public function createMovementResultNotification(
-        string $userId,
-        string $movementType,
-        string $status,       // COMPLETED | REJECTED
-        float  $amount,
-        string $currencySymbol,
-        string $typeLabel,
-        ?string $adminNotes = null,
-        ?string $movementId = null,
-    ): Notification {
-        $approved = $status === 'COMPLETED';
-
-        $title   = $approved ? "✅ {$typeLabel} aprobado"   : "❌ {$typeLabel} rechazado";
-        $message = $approved
-            ? "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue procesado exitosamente."
-            : "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
-
-        return $this->create(
-            userId:  $userId,
-            type:    'WALLET_UPDATED',
-            title:   $title,
-            message: $message,
-            data:    [
-                'movement_type'   => $movementType,
-                'movement_status' => $status,
-                'amount'          => $amount,
-                'currency_symbol' => $currencySymbol,
-                'admin_notes'     => $adminNotes,
-                'movement_id'     => $movementId,
-                'url'             => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
-            ]
-        );
-    }
-
-    /**
-     * Notificación in-app a un superadmin cuando un permiso individual de
-     * otro usuario expiró automáticamente (job) o está por expirar.
-     */
-    public function createSpecificPermissionExpiryNotification(
-        string $superadminId,
-        string $affectedUserId,
-        string $affectedUserName,
-        string $permissionName,
-        bool $alreadyExpired,
-        ?string $expiresAt = null,
-    ): Notification {
-        $title = $alreadyExpired
-            ? '🔒 Permiso individual expirado'
-            : '⏳ Permiso individual por expirar';
-
-        $message = $alreadyExpired
-            ? "El permiso '{$permissionName}' de {$affectedUserName} expiró y fue revocado automáticamente."
-            : "El permiso '{$permissionName}' de {$affectedUserName} expira pronto" . ($expiresAt ? " ({$expiresAt})" : '') . '.';
-
-        return $this->create(
-            userId: $superadminId,
-            type: 'SYSTEM',
-            title: $title,
-            message: $message,
-            data: [
-                'affected_user_id'   => $affectedUserId,
-                'affected_user_name' => $affectedUserName,
-                'permission_name'    => $permissionName,
-                'expires_at'         => $expiresAt,
-                'already_expired'    => $alreadyExpired,
-                'url'                => "/admin/users?open_permissions={$affectedUserId}",
-            ]
-        );
-    }
-
-    /**
-     * Notificación in-app al propio usuario cuando su PIN de retiro fue
-     * fijado o cambiado — mismo criterio de seguridad que un email de
-     * "tu contraseña fue cambiada": si el cambio no lo hizo el dueño real
-     * de la cuenta (sesión comprometida que ya conocía current_password),
-     * esta es la señal que le permite reaccionar.
-     */
-    public function createWithdrawalPinChangedNotification(string $userId): Notification
+    public function getUnreadCount() : int
     {
-        return $this->create(
-            userId: $userId,
-            type: 'SYSTEM',
-            title: '🔒 PIN de retiro actualizado',
-            message: 'Tu PIN de retiro fue configurado o cambiado. Si no fuiste tú, contacta soporte de inmediato.',
-            data: ['url' => '/profile#security'],
-        );
+        $userId = $this->getCurrentUserId();
+        if (! $userId) {
+            return 0;
+        }
+
+        $cacheKey = "unread_count_{$userId}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function() use ($userId) {
+            return $this->notificationRepository->countUnreadByUser($userId);
+        });
     }
 
     /**
-     * Crear notificaciones masivas para múltiples usuarios
-     *
-     * @param array $userIds
-     * @param string $type
-     * @param string $title
-     * @param string $message
-     * @param array $data
-     * @return Collection
+     * Obtener notificaciones no leídas del usuario autenticado
      */
-    public function createBulk(
-        array $userIds,
-        string $type,
-        string $title,
-        string $message,
-        array $data = []
-    ): Collection {
-        $this->validateNotificationData('', $type, $title, $message);
-
-        $notifications = collect();
-
-        foreach ($userIds as $userId) {
-            try {
-                $notification = $this->create($userId, $type, $title, $message, $data);
-                $notifications->push($notification);
-            } catch (\Exception $e) {
-                Log::error('Failed to create bulk notification', [
-                    'user_id' => $userId,
-                    'type' => $type,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+    public function getUnreadNotifications(int $limit = self::DEFAULT_LIMIT) : Collection
+    {
+        $userId = $this->getCurrentUserId();
+        if (! $userId) {
+            return collect([]);
         }
 
-        return $notifications;
+        $limit = min($limit, self::MAX_LIMIT);
+        // Cache key fija para poder invalidarla correctamente
+        $cacheKey = "unread_notifications_{$userId}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function() use ($userId, $limit) {
+            return $this->notificationRepository->getUnreadByUser($userId, $limit);
+        });
+    }
+
+    /**
+     * Obtener notificaciones del usuario autenticado
+     */
+    public function getUserNotifications(array $filters = [], int $limit = self::DEFAULT_LIMIT) : Collection
+    {
+        $userId = $this->getCurrentUserId();
+        if (! $userId) {
+            return collect([]);
+        }
+
+        $limit = min($limit, self::MAX_LIMIT);
+        // Cache key fija (sin hash de parámetros) para poder invalidarla correctamente
+        $cacheKey = "user_notifications_{$userId}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function() use ($userId, $filters, $limit) {
+            return $this->notificationRepository->getByUser($userId, $filters, $limit);
+        });
+    }
+
+    /**
+     * Marcar todas las notificaciones del usuario como leídas
+     *
+     * @return int Número de notificaciones actualizadas
+     */
+    public function markAllAsRead() : int
+    {
+        $userId = $this->getCurrentUserId();
+        if (! $userId) {
+            return 0;
+        }
+
+        $result = $this->notificationRepository->markAllAsReadForUser($userId);
+
+        if ($result > 0) {
+            $this->clearUserNotificationCache($userId);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Marcar una notificación como leída
+     */
+    public function markAsRead(string $notificationId) : bool
+    {
+        $userId = $this->getCurrentUserId();
+        if (! $userId) {
+            return false;
+        }
+
+        $notification = $this->notificationRepository->findById($notificationId);
+
+        if (! $notification || $notification->user_id !== $userId) {
+            Log::warning('Unauthorized notification access attempt', [
+                'notification_id' => $notificationId,
+                'user_id' => $userId,
+            ]);
+
+            return false;
+        }
+
+        $result = $this->notificationRepository->markAsRead($notificationId);
+
+        if ($result) {
+            $this->clearUserNotificationCache($userId);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Limpiar cache de notificaciones de usuario
+     */
+    private function clearUserNotificationCache(string $userId) : void
+    {
+        Cache::forget("user_notifications_{$userId}");
+        Cache::forget("unread_notifications_{$userId}");
+        Cache::forget("unread_count_{$userId}");
     }
 
     /**
      * Obtener el ID del usuario autenticado
-     *
-     * @return string|null
      */
-    private function getCurrentUserId(): ?string
+    private function getCurrentUserId() : ?string
     {
         $userId = Auth::id();
+
         return $userId ? (string) $userId : null;
     }
 
     /**
      * Validar datos de notificación
      *
-     * @param string $userId
-     * @param string $type
-     * @param string $title
-     * @param string $message
      * @throws InvalidArgumentException
      */
     private function validateNotificationData(
         string $userId,
         string $type,
         string $title,
-        string $message
-    ): void {
-        if (!empty($userId) && !is_string($userId)) {
+        string $message,
+    ) : void {
+        if (! empty($userId) && ! is_string($userId)) {
             throw new InvalidArgumentException('User ID must be a string');
         }
 
-        if (empty($type) || !is_string($type)) {
+        if (empty($type) || ! is_string($type)) {
             throw new InvalidArgumentException('Type is required and must be a string');
         }
 
-        if (empty($title) || !is_string($title)) {
+        if (empty($title) || ! is_string($title)) {
             throw new InvalidArgumentException('Title is required and must be a string');
         }
 
-        if (empty($message) || !is_string($message)) {
+        if (empty($message) || ! is_string($message)) {
             throw new InvalidArgumentException('Message is required and must be a string');
         }
 
-        if (!array_key_exists($type, Notification::TYPES)) {
+        if (! array_key_exists($type, Notification::TYPES)) {
             Log::warning('Unknown notification type', ['type' => $type]);
         }
-    }
-
-    /**
-     * Limpiar cache de notificaciones de usuario
-     *
-     * @param string $userId
-     */
-    private function clearUserNotificationCache(string $userId): void
-    {
-        Cache::forget("user_notifications_{$userId}");
-        Cache::forget("unread_notifications_{$userId}");
-        Cache::forget("unread_count_{$userId}");
     }
 }

@@ -7,7 +7,6 @@ namespace App\Services\Roles\Seller;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Models\Roles\Seller;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -39,10 +38,11 @@ final class SellerRankingService
     private const MONTHLY_GOAL_COMMISSION = 50.0;
 
     public function __construct(
-        private readonly SellerCommissionTierService $commissionTierService = new SellerCommissionTierService(),
-    ) {}
+        private readonly SellerCommissionTierService $commissionTierService = new SellerCommissionTierService,
+    ) {
+    }
 
-    public function getMonthlyRanking(): array
+    public function getMonthlyRanking() : array
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => $this->buildRanking());
     }
@@ -52,7 +52,7 @@ final class SellerRankingService
      * — para que el propio vendedor consulte "cómo voy" sin exponerle la
      * lista completa de todos los demás.
      */
-    public function getSellerStanding(string $userId): ?array
+    public function getSellerStanding(string $userId) : ?array
     {
         $ranking = $this->getMonthlyRanking();
 
@@ -69,11 +69,11 @@ final class SellerRankingService
 
         return array_merge($row, $tierData, [
             'total_sellers' => $ranking['total_sellers'],
-            'goal'          => self::MONTHLY_GOAL_COMMISSION,
+            'goal' => self::MONTHLY_GOAL_COMMISSION,
         ]);
     }
 
-    private function buildRanking(): array
+    private function buildRanking() : array
     {
         $startOfMonth = Carbon::now()->startOfMonth();
 
@@ -101,32 +101,33 @@ final class SellerRankingService
             ->keyBy('user_id');
 
         $rows = $byUser
-            ->map(function ($row) use ($sellers) {
+            ->map(function($row) use ($sellers) {
                 $seller = $sellers->get($row->seller_user_id);
                 // En USD: comparable entre vendedores de distintas monedas.
                 $commissionAmount = (float) $row->commission_usd;
 
                 return [
-                    'seller_user_id'     => (string) $row->seller_user_id,
-                    'seller_name'        => $seller?->name ?? 'Desconocido',
-                    'cards_sold'         => (int) $row->cards_sold,
-                    'sale_amount'        => round((float) $row->sale_amount, 2),
-                    'commission_amount'  => round($commissionAmount, 2),
-                    'goal_reached'       => $commissionAmount >= self::MONTHLY_GOAL_COMMISSION,
+                    'seller_user_id' => (string) $row->seller_user_id,
+                    'seller_name' => $seller?->name ?? 'Desconocido',
+                    'cards_sold' => (int) $row->cards_sold,
+                    'sale_amount' => round((float) $row->sale_amount, 2),
+                    'commission_amount' => round($commissionAmount, 2),
+                    'goal_reached' => $commissionAmount >= self::MONTHLY_GOAL_COMMISSION,
                 ];
             })
             ->sortByDesc('commission_amount')
             ->values();
 
-        $rows = $rows->map(function (array $row, int $index) {
+        $rows = $rows->map(function(array $row, int $index) {
             $row['rank'] = $index + 1;
+
             return $row;
         });
 
         return [
-            'rows'          => $rows->all(),
+            'rows' => $rows->all(),
             'total_sellers' => $rows->count(),
-            'goal'          => self::MONTHLY_GOAL_COMMISSION,
+            'goal' => self::MONTHLY_GOAL_COMMISSION,
         ];
     }
 }

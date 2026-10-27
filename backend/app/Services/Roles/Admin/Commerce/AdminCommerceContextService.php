@@ -19,26 +19,7 @@ final class AdminCommerceContextService
         private readonly \App\Contracts\GameRepositoryInterface $games,
         private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
         private readonly PlatformConfigService $platformConfig,
-    ) {}
-
-    /**
-     * Resolver contexto para comercios.
-     *
-     * @return AdminCommerceContextDTO
-     */
-    public function commerceContext(): AdminCommerceContextDTO
-    {
-        $commerceData = $this->resolveCommerces();
-
-        return new AdminCommerceContextDTO(
-            commerces: $commerceData['commerces'],
-            pagination: $commerceData['pagination'],
-            countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
-            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
-            games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
-            defaultCommerceId: $this->platformConfig->getDefaultCommerceId()
-        );
+    ) {
     }
 
     /**
@@ -50,29 +31,58 @@ final class AdminCommerceContextService
      * LIKE ni whereHas sobre relaciones anidadas — mismo criterio que
      * AdminPlayerContextService::buildFilteredQuery().
      */
-    public function buildFilteredQuery(array $filters = []): Builder
+    public function buildFilteredQuery(array $filters = []) : Builder
     {
         $query = Commerce::query()->with(['country:id,name', 'user:id,email']);
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $term = $filters['search'];
-            $query->where(function ($q) use ($term) {
+            $query->where(function($q) use ($term) {
                 $q->where('name', 'LIKE', "%{$term}%")
                     ->orWhere('phone', 'LIKE', "%{$term}%")
                     ->orWhereHas('user', fn ($uq) => $uq->where('email', 'LIKE', "%{$term}%"));
             });
         }
 
-        if (!empty($filters['country_name'])) {
+        if (! empty($filters['country_name'])) {
             $countryName = $filters['country_name'];
             $query->whereHas('country', fn ($q) => $q->where('name', $countryName));
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         return $query;
+    }
+
+    /**
+     * Resolver contexto para comercios.
+     */
+    public function commerceContext() : AdminCommerceContextDTO
+    {
+        $commerceData = $this->resolveCommerces();
+
+        return new AdminCommerceContextDTO(
+            commerces: $commerceData['commerces'],
+            pagination: $commerceData['pagination'],
+            countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
+            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
+            games: $this->games->getActive(['id', 'name']),
+            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
+            defaultCommerceId: $this->platformConfig->getDefaultCommerceId(),
+        );
+    }
+
+    /**
+     * Cursor sobre TODOS los comercios que coincidan con los filtros (sin
+     * paginar) — mismo patrón que AdminPlayerContextService::exportForCsv().
+     *
+     * @return LazyCollection<int, Commerce>
+     */
+    public function exportForCsv(array $filters = []) : LazyCollection
+    {
+        return $this->buildFilteredQuery($filters)->cursor();
     }
 
     /**
@@ -81,9 +91,9 @@ final class AdminCommerceContextService
      * sin filtrar (mismo problema que tenía AdminPlayerContextService antes
      * de corregirse).
      */
-    public function resolveCommerces(array $filters = [], int $page = 1, int $perPage = 15): array
+    public function resolveCommerces(array $filters = [], int $page = 1, int $perPage = 15) : array
     {
-        $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
+        $labels = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->buildFilteredQuery($filters)->paginate($perPage, ['*'], 'page', $page);
@@ -91,12 +101,12 @@ final class AdminCommerceContextService
         $collection = $source->getCollection();
 
         $pagination = [
-            'total'        => $source->total(),
-            'per_page'     => $source->perPage(),
+            'total' => $source->total(),
+            'per_page' => $source->perPage(),
             'current_page' => $source->currentPage(),
-            'last_page'    => $source->lastPage(),
-            'from'         => $source->firstItem(),
-            'to'           => $source->lastItem(),
+            'last_page' => $source->lastPage(),
+            'from' => $source->firstItem(),
+            'to' => $source->lastItem(),
         ];
 
         $commerces = $this->processCollectionTableData($collection, $labels, $rowKeys);
@@ -110,25 +120,15 @@ final class AdminCommerceContextService
         // "Impersonar" (admin/impersonation/{player}/start espera el hash de
         // Hashids del User, ver HasHashedRouteKey — no el Snowflake plano).
         $commercesList = $collection->values();
-        $commerces['rows'] = collect($commerces['rows'])->map(function (array $row, int $index) use ($commercesList) {
+        $commerces['rows'] = collect($commerces['rows'])->map(function(array $row, int $index) use ($commercesList) {
             $rowUser = $commercesList->get($index)?->user;
             $row['real_id'] = $commercesList->get($index)?->id;
             $row['user_id'] = $rowUser ? (string) $rowUser->id : null;
             $row['user_hashed_id'] = $rowUser?->getHashedIdAttribute();
+
             return $row;
         })->all();
 
         return ['commerces' => $commerces, 'pagination' => $pagination];
-    }
-
-    /**
-     * Cursor sobre TODOS los comercios que coincidan con los filtros (sin
-     * paginar) — mismo patrón que AdminPlayerContextService::exportForCsv().
-     *
-     * @return LazyCollection<int, Commerce>
-     */
-    public function exportForCsv(array $filters = []): LazyCollection
-    {
-        return $this->buildFilteredQuery($filters)->cursor();
     }
 }

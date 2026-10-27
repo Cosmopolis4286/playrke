@@ -21,12 +21,14 @@ final class PrizeContextService
 
     public function __construct(
         private readonly PrizeRepositoryInterface $prizes,
-    ) {}
+    ) {
+    }
 
     /**
-     * Resolver contexto completo para la página de premios.
+     * Obtener lista de premios con can_create_kit actualizado.
+     * Usado por fetch-list (AJAX) para refrescar el estado sin recargar la página.
      */
-    public function prizeContext(): array
+    public function fetchList() : array
     {
         $prizeData = $this->resolvePrizes();
 
@@ -36,23 +38,42 @@ final class PrizeContextService
             ->count();
 
         return [
-            'prizes'            => $prizeData['prizes'],
+            'prizes' => $prizeData['prizes'],
+            'pagination' => $prizeData['pagination'],
+            'can_create_kit' => $individualCount >= 2,
+        ];
+    }
+
+    /**
+     * Resolver contexto completo para la página de premios.
+     */
+    public function prizeContext() : array
+    {
+        $prizeData = $this->resolvePrizes();
+
+        $individualCount = Prize::where('user_id', Auth::id())
+            ->where('kit', 'N')
+            ->where('status', 'ACTIVE')
+            ->count();
+
+        return [
+            'prizes' => $prizeData['prizes'],
             'prizes_pagination' => $prizeData['pagination'],
-            'can_create_kit'    => $individualCount >= 2,
+            'can_create_kit' => $individualCount >= 2,
         ];
     }
 
     /**
      * Resolver listado de premios paginado.
      */
-    public function resolvePrizes(): array
+    public function resolvePrizes() : array
     {
-        $labels  = ['Código', 'Nombre', 'Tipo', 'Kit', 'Ítems', 'Precio', 'Estado'];
+        $labels = ['Código', 'Nombre', 'Tipo', 'Kit', 'Ítems', 'Precio', 'Estado'];
         $rowKeys = ['code', 'name', 'reward_type', 'kit', 'num_items', 'formatted_price', 'status_badge'];
 
         $source = $this->prizes->getPaginatedPrizes(
             perPage: 15,
-            filters: ['user_id' => Auth::id()]
+            filters: ['user_id' => Auth::id()],
         );
 
         $collection = $source instanceof LengthAwarePaginator
@@ -61,37 +82,17 @@ final class PrizeContextService
 
         $pagination = $source instanceof LengthAwarePaginator
             ? [
-                'total'        => $source->total(),
-                'per_page'     => $source->perPage(),
+                'total' => $source->total(),
+                'per_page' => $source->perPage(),
                 'current_page' => $source->currentPage(),
-                'last_page'    => $source->lastPage(),
-                'from'         => $source->firstItem(),
-                'to'           => $source->lastItem(),
+                'last_page' => $source->lastPage(),
+                'from' => $source->firstItem(),
+                'to' => $source->lastItem(),
             ]
             : null;
 
         $prizes = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
         return ['prizes' => $prizes, 'pagination' => $pagination];
-    }
-
-    /**
-     * Obtener lista de premios con can_create_kit actualizado.
-     * Usado por fetch-list (AJAX) para refrescar el estado sin recargar la página.
-     */
-    public function fetchList(): array
-    {
-        $prizeData = $this->resolvePrizes();
-
-        $individualCount = Prize::where('user_id', Auth::id())
-            ->where('kit', 'N')
-            ->where('status', 'ACTIVE')
-            ->count();
-
-        return [
-            'prizes'         => $prizeData['prizes'],
-            'pagination'     => $prizeData['pagination'],
-            'can_create_kit' => $individualCount >= 2,
-        ];
     }
 }

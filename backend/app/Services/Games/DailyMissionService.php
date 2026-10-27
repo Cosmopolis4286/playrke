@@ -12,6 +12,7 @@ use App\Services\User\UserLevelService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Misiones diarias — ver progreso/estrategia-producto-plan.md, Fase 6.
@@ -38,7 +39,7 @@ final class DailyMissionService
      * mismo día no vuelven a otorgar XP (progress ya no avanza más allá
      * del target).
      */
-    public function recordParticipation(User $user, bool $won): void
+    public function recordParticipation(User $user, bool $won) : void
     {
         $today = now()->toDateString();
 
@@ -56,9 +57,38 @@ final class DailyMissionService
         }
     }
 
-    private function incrementMission(User $user, DailyMission $mission, string $today): void
+    /**
+     * Estado de todas las misiones activas para el usuario, en el día de
+     * hoy — incluye las que todavía no tienen fila de progreso (progress=0).
+     *
+     * @return Collection<int, array{mission: DailyMission, progress: int, target: int, completed: bool}>
+     */
+    public function todayStatus(User $user) : Collection
     {
-        $justCompleted = DB::transaction(function () use ($user, $mission, $today) {
+        $today = now()->toDateString();
+
+        $missions = DailyMission::active()->orderBy('sort_order')->get();
+
+        $progressByMission = UserDailyMissionProgress::where('user_id', $user->id)
+            ->where('date', $today)
+            ->get()
+            ->keyBy('daily_mission_id');
+
+        return $missions->map(function(DailyMission $mission) use ($progressByMission) {
+            $row = $progressByMission->get($mission->id);
+
+            return [
+                'mission' => $mission,
+                'progress' => $row->progress ?? 0,
+                'target' => $mission->target,
+                'completed' => $row?->isCompleted() ?? false,
+            ];
+        });
+    }
+
+    private function incrementMission(User $user, DailyMission $mission, string $today) : void
+    {
+        $justCompleted = DB::transaction(function() use ($user, $mission, $today) {
             $progressRow = UserDailyMissionProgress::where('user_id', $user->id)
                 ->where('daily_mission_id', $mission->id)
                 ->where('date', $today)
@@ -67,10 +97,10 @@ final class DailyMissionService
 
             if (! $progressRow) {
                 $progressRow = UserDailyMissionProgress::create([
-                    'user_id'          => $user->id,
+                    'user_id' => $user->id,
                     'daily_mission_id' => $mission->id,
-                    'date'             => $today,
-                    'progress'         => 0,
+                    'date' => $today,
+                    'progress' => 0,
                 ]);
             }
 
@@ -82,7 +112,7 @@ final class DailyMissionService
             $justCompleted = $newProgress >= $mission->target;
 
             $progressRow->update([
-                'progress'     => min($newProgress, $mission->target),
+                'progress' => min($newProgress, $mission->target),
                 'completed_at' => $justCompleted ? now() : null,
             ]);
 
@@ -108,42 +138,13 @@ final class DailyMissionService
                     $mission->name,
                     $mission->xp_reward,
                 );
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::warning('DailyMissionService: fallo al notificar misión completada.', [
-                    'user_id'      => $user->id,
+                    'user_id' => $user->id,
                     'mission_code' => $mission->code,
-                    'error'        => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
-    }
-
-    /**
-     * Estado de todas las misiones activas para el usuario, en el día de
-     * hoy — incluye las que todavía no tienen fila de progreso (progress=0).
-     *
-     * @return Collection<int, array{mission: DailyMission, progress: int, target: int, completed: bool}>
-     */
-    public function todayStatus(User $user): Collection
-    {
-        $today = now()->toDateString();
-
-        $missions = DailyMission::active()->orderBy('sort_order')->get();
-
-        $progressByMission = UserDailyMissionProgress::where('user_id', $user->id)
-            ->where('date', $today)
-            ->get()
-            ->keyBy('daily_mission_id');
-
-        return $missions->map(function (DailyMission $mission) use ($progressByMission) {
-            $row = $progressByMission->get($mission->id);
-
-            return [
-                'mission'   => $mission,
-                'progress'  => $row->progress ?? 0,
-                'target'    => $mission->target,
-                'completed' => $row?->isCompleted() ?? false,
-            ];
-        });
     }
 }

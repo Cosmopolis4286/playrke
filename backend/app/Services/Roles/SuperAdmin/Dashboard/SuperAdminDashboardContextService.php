@@ -2,9 +2,9 @@
 
 namespace App\Services\Roles\SuperAdmin\Dashboard;
 
-use App\DTOs\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\DTOs\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextDTO;
 use App\Models\Commands\CommandLog;
 use App\Models\KycDocument;
 use App\Models\Roles\Admin;
@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redis;
 use Spatie\Permission\Models\Permission;
+use Throwable;
 
 final class SuperAdminDashboardContextService
 {
@@ -39,43 +40,65 @@ final class SuperAdminDashboardContextService
         private readonly SidebarMenuService $sidebarMenu,
         private readonly DashboardWidgetVisibilityService $widgetVisibility,
         private readonly \App\Services\Roles\Dashboard\OperationalAlertsService $operationalAlerts,
-    ) {}
+    ) {
+    }
 
-    public function dashboardContext(): SuperAdminDashboardContextDTO
+    public function dashboardContext() : SuperAdminDashboardContextDTO
     {
-        $user   = Auth::user();
-        $now    = Carbon::now();
+        $user = Auth::user();
+        $now = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
         // Los agregados crudos se comparten entre todos los superadmins vía
         // cache — el filtrado por permiso/visibilidad ocurre DESPUÉS, fuera
         // del bloque cacheado (mismo criterio que AdminDashboardContextService).
-        $cached = Cache::remember('dashboard:superadmin:aggregates', self::CACHE_TTL_SECONDS, function () {
+        $cached = Cache::remember('dashboard:superadmin:aggregates', self::CACHE_TTL_SECONDS, function() {
             $activeRooms = BingoRoom::active()->count();
 
             return [
-                'stats'          => $this->buildStats($activeRooms),
+                'stats' => $this->buildStats($activeRooms),
                 'recentActivity' => $this->buildRecentActivity(excludeSystemAccounts: true),
-                'adminActivity'  => $this->buildAdminActivity(),
-                'entityCounts'   => $this->buildEntityCounts(),
-                'systemHealth'   => $this->buildSystemHealth($activeRooms),
-                'salesTrend'     => $this->buildSalesTrend(scope: fn ($q) => $q->where('status', '!=', BingoCard::STATUS_CANCELLED)),
+                'adminActivity' => $this->buildAdminActivity(),
+                'entityCounts' => $this->buildEntityCounts(),
+                'systemHealth' => $this->buildSystemHealth($activeRooms),
+                'salesTrend' => $this->buildSalesTrend(scope: fn ($q) => $q->where('status', '!=', BingoCard::STATUS_CANCELLED)),
             ];
         });
 
         $filter = $this->widgetVisibility->filterFor($user);
 
         return new SuperAdminDashboardContextDTO(
-            userName:           $user?->first_name ?? $user?->username ?? 'SuperAdmin',
-            stats:              $this->filterStats($cached['stats'], $filter),
-            recentActivity:     $cached['recentActivity'],
-            adminActivity:      $cached['adminActivity'],
-            entityCounts:       $this->filterEntityCounts($cached['entityCounts'], $filter),
-            systemHealth:       $cached['systemHealth'],
-            salesTrend:         $cached['salesTrend'],
+            userName: $user?->first_name ?? $user?->username ?? 'SuperAdmin',
+            stats: $this->filterStats($cached['stats'], $filter),
+            recentActivity: $cached['recentActivity'],
+            adminActivity: $cached['adminActivity'],
+            entityCounts: $this->filterEntityCounts($cached['entityCounts'], $filter),
+            systemHealth: $cached['systemHealth'],
+            salesTrend: $cached['salesTrend'],
             pendingWalletCount: $this->sidebarMenu->pendingWalletMovementsCount(),
-            period:             $period,
-            allowedQuickLinks:  $this->allowedQuickLinks($filter),
+            period: $period,
+            allowedQuickLinks: $this->allowedQuickLinks($filter),
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Salud del sistema
+    // -------------------------------------------------------------------------
+
+    /**
+     * Versión standalone de buildSystemHealth() para el endpoint de polling
+     * (GET superadmin/system-health) — cacheada aparte con TTL corto (20s),
+     * mismo criterio que checkReverbHealth(): no tiene sentido recalcular
+     * jobs fallidos/sesiones activas/etc. en cada tick del polling (cada
+     * 30s desde el frontend) si dos admins con el dashboard abierto a la
+     * vez duplicarían el trabajo sin este caché.
+     */
+    public function systemHealthForPolling() : array
+    {
+        return Cache::remember(
+            'dashboard:superadmin:system-health-poll',
+            20,
+            fn () => $this->buildSystemHealth(BingoRoom::active()->count()),
         );
     }
 
@@ -85,7 +108,7 @@ final class SuperAdminDashboardContextService
      *
      * @return string[]
      */
-    private function allowedQuickLinks(DashboardWidgetFilter $filter): array
+    private function allowedQuickLinks(DashboardWidgetFilter $filter) : array
     {
         return collect($this->widgetVisibility->getCatalog())
             ->filter(fn ($w) => $w['dashboard'] === 'superadmin' && $w['type'] === 'quicklink')
@@ -95,96 +118,41 @@ final class SuperAdminDashboardContextService
             ->all();
     }
 
-    /**
-     * Claves de $stats coinciden 1:1 con el sufijo de item_key en
-     * DashboardWidgetVisibilityService::CATALOG ('superadmin.stat.{clave}').
-     */
-    private function filterStats(array $stats, DashboardWidgetFilter $filter): array
-    {
-        $permissions = [
-            'totalUsers'       => null,
-            'totalAdmins'      => null,
-            'activeRooms'      => 'games.bingo',
-            'totalPermissions' => 'superadmin.access',
-            'pendingKyc'       => 'kyc.view',
-        ];
-
-        return collect($stats)
-            ->filter(fn ($_, $key) => $filter->isVisible("superadmin.stat.{$key}", $permissions[$key] ?? null))
-            ->all();
-    }
-
-    /**
-     * $entityCounts es una lista indexada — cada entrada trae su propio
-     * 'label', usado como sufijo del item_key ('superadmin.entity.{label}').
-     * Sin permisos adicionales (superadmin ya tiene acceso total), la capa
-     * de visibilidad configurable sigue aplicando igual.
-     */
-    private function filterEntityCounts(array $entityCounts, DashboardWidgetFilter $filter): array
-    {
-        return collect($entityCounts)
-            ->filter(fn ($entity) => $filter->isVisible("superadmin.entity.{$entity['label']}", null))
-            ->values()
-            ->all();
-    }
-
     // -------------------------------------------------------------------------
-    // Stats principales para SuperAdmin
+    // Actividad de administradores
     // -------------------------------------------------------------------------
 
-    private function buildStats(int $activeRooms): array
+    private function buildAdminActivity() : array
     {
-        $totalUsers       = User::excludeSystemAccounts()->count();
-        $totalAdmins      = Admin::count();
-        $totalPermissions = Permission::count();
-        $pendingKyc       = KycDocument::where('status', KycDocument::STATUS_PENDING)->count();
+        return User::with('roles:id,name')
+            ->whereHas('roles', function($q) {
+                $q->whereIn('name', ['admin', 'superadmin']);
+            })
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'first_name', 'last_name', 'username', 'last_login_at', 'created_at'])
+            ->map(function(User $user) {
+                $name = trim("{$user->first_name} {$user->last_name}") ?: $user->username;
 
-        return [
-            'totalUsers' => array_merge([
-                'label'       => 'Usuarios totales',
-                'value'       => $totalUsers,
-                'icon'        => 'fas fa-users',
-                'variant'     => 'primary',
-                'href'        => '/admin/users',
-            ], $this->buildWeeklyTrend(User::excludeSystemAccounts())),
-            'totalAdmins' => [
-                'label'   => 'Administradores',
-                'value'   => $totalAdmins,
-                'icon'    => 'fas fa-user-shield',
-                'variant' => 'danger',
-                'href'    => '/admins',
-            ],
-            'activeRooms' => [
-                'label'       => 'Salas de Bingo activas',
-                'value'       => $activeRooms,
-                'icon'        => 'fas fa-dice',
-                'variant'     => 'info',
-                'description' => $activeRooms > 0 ? 'En operación ahora' : 'Sin salas activas',
-                'href'        => '/bingo-rooms',
-            ],
-            'totalPermissions' => [
-                'label'   => 'Permisos totales',
-                'value'   => $totalPermissions,
-                'icon'    => 'fas fa-key',
-                'variant' => 'warning',
-                'href'    => '/permissions',
-            ],
-            'pendingKyc' => [
-                'label'       => 'KYC pendientes',
-                'value'       => $pendingKyc,
-                'icon'        => 'fas fa-id-card',
-                'variant'     => $pendingKyc > 0 ? 'warning' : 'success',
-                'description' => $pendingKyc > 0 ? 'Esperando revisión' : 'Sin pendientes',
-                'href'        => '/admin/kyc',
-            ],
-        ];
+                return [
+                    'id' => (string) $user->getKey(),
+                    'type' => 'danger',
+                    'title' => "Admin activo: {$name}",
+                    'description' => $user->last_login_at
+                        ? 'Último acceso: ' . $user->last_login_at->diffForHumans()
+                        : 'Sin accesos registrados',
+                    'timestamp' => $user->last_login_at?->toIso8601String() ?? $user->created_at->toIso8601String(),
+                    'actor' => $name,
+                ];
+            })
+            ->all();
     }
 
     // -------------------------------------------------------------------------
     // Conteos de entidades por rol (extendido para SuperAdmin)
     // -------------------------------------------------------------------------
 
-    private function buildEntityCounts(): array
+    private function buildEntityCounts() : array
     {
         return [
             array_merge([
@@ -215,54 +183,55 @@ final class SuperAdminDashboardContextService
     }
 
     // -------------------------------------------------------------------------
-    // Actividad de administradores
+    // Stats principales para SuperAdmin
     // -------------------------------------------------------------------------
 
-    private function buildAdminActivity(): array
+    private function buildStats(int $activeRooms) : array
     {
-        return User::with('roles:id,name')
-            ->whereHas('roles', function ($q) {
-                $q->whereIn('name', ['admin', 'superadmin']);
-            })
-            ->latest()
-            ->limit(5)
-            ->get(['id', 'first_name', 'last_name', 'username', 'last_login_at', 'created_at'])
-            ->map(function (User $user) {
-                $name = trim("{$user->first_name} {$user->last_name}") ?: $user->username;
+        $totalUsers = User::excludeSystemAccounts()->count();
+        $totalAdmins = Admin::count();
+        $totalPermissions = Permission::count();
+        $pendingKyc = KycDocument::where('status', KycDocument::STATUS_PENDING)->count();
 
-                return [
-                    'id'          => (string) $user->getKey(),
-                    'type'        => 'danger',
-                    'title'       => "Admin activo: {$name}",
-                    'description' => $user->last_login_at
-                        ? "Último acceso: " . $user->last_login_at->diffForHumans()
-                        : "Sin accesos registrados",
-                    'timestamp'   => $user->last_login_at?->toIso8601String() ?? $user->created_at->toIso8601String(),
-                    'actor'       => $name,
-                ];
-            })
-            ->all();
-    }
-
-    // -------------------------------------------------------------------------
-    // Salud del sistema
-    // -------------------------------------------------------------------------
-
-    /**
-     * Versión standalone de buildSystemHealth() para el endpoint de polling
-     * (GET superadmin/system-health) — cacheada aparte con TTL corto (20s),
-     * mismo criterio que checkReverbHealth(): no tiene sentido recalcular
-     * jobs fallidos/sesiones activas/etc. en cada tick del polling (cada
-     * 30s desde el frontend) si dos admins con el dashboard abierto a la
-     * vez duplicarían el trabajo sin este caché.
-     */
-    public function systemHealthForPolling(): array
-    {
-        return Cache::remember(
-            'dashboard:superadmin:system-health-poll',
-            20,
-            fn () => $this->buildSystemHealth(BingoRoom::active()->count())
-        );
+        return [
+            'totalUsers' => array_merge([
+                'label' => 'Usuarios totales',
+                'value' => $totalUsers,
+                'icon' => 'fas fa-users',
+                'variant' => 'primary',
+                'href' => '/admin/users',
+            ], $this->buildWeeklyTrend(User::excludeSystemAccounts())),
+            'totalAdmins' => [
+                'label' => 'Administradores',
+                'value' => $totalAdmins,
+                'icon' => 'fas fa-user-shield',
+                'variant' => 'danger',
+                'href' => '/admins',
+            ],
+            'activeRooms' => [
+                'label' => 'Salas de Bingo activas',
+                'value' => $activeRooms,
+                'icon' => 'fas fa-dice',
+                'variant' => 'info',
+                'description' => $activeRooms > 0 ? 'En operación ahora' : 'Sin salas activas',
+                'href' => '/bingo-rooms',
+            ],
+            'totalPermissions' => [
+                'label' => 'Permisos totales',
+                'value' => $totalPermissions,
+                'icon' => 'fas fa-key',
+                'variant' => 'warning',
+                'href' => '/permissions',
+            ],
+            'pendingKyc' => [
+                'label' => 'KYC pendientes',
+                'value' => $pendingKyc,
+                'icon' => 'fas fa-id-card',
+                'variant' => $pendingKyc > 0 ? 'warning' : 'success',
+                'description' => $pendingKyc > 0 ? 'Esperando revisión' : 'Sin pendientes',
+                'href' => '/admin/kyc',
+            ],
+        ];
     }
 
     /**
@@ -273,7 +242,7 @@ final class SuperAdminDashboardContextService
      * propio caché de 20s) para que un ping de red lento no alargue el TTL
      * de 90s del resto del dashboard.
      */
-    private function buildSystemHealth(int $activeRooms): array
+    private function buildSystemHealth(int $activeRooms) : array
     {
         $issues = [];
 
@@ -289,9 +258,9 @@ final class SuperAdminDashboardContextService
 
         // Admins sin login reciente (más de 30 días)
         $inactiveAdminsCount = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))
-            ->where(function ($q) {
+            ->where(function($q) {
                 $q->whereNull('last_login_at')
-                  ->orWhere('last_login_at', '<', Carbon::now()->subDays(30));
+                    ->orWhere('last_login_at', '<', Carbon::now()->subDays(30));
             })
             ->count();
         if ($inactiveAdminsCount > 0) {
@@ -307,7 +276,7 @@ final class SuperAdminDashboardContextService
         $pendingJobsCount = $this->queuePendingCount();
 
         $reverbHealthy = $this->checkReverbHealth();
-        if (!$reverbHealthy) {
+        if (! $reverbHealthy) {
             $issues[] = ['code' => 'reverb_down', 'label' => 'Servidor de WebSockets (Reverb) no responde', 'count' => 1];
         }
 
@@ -316,7 +285,7 @@ final class SuperAdminDashboardContextService
         // routes/console.php) pero fallar silenciosamente corrida tras
         // corrida si nadie mira /system/jobs; esto lo sube al dashboard.
         $failedCommandsCount = CommandLog::query()
-            ->whereIn('id', function ($q) {
+            ->whereIn('id', function($q) {
                 $q->selectRaw('MAX(id)')
                     ->from('command_logs')
                     ->groupBy('command');
@@ -345,27 +314,27 @@ final class SuperAdminDashboardContextService
         $hasCriticalMoneyAlert = collect($moneyAlerts)->contains('severity', 'critical');
 
         $status = 'healthy';
-        $label  = 'Saludable';
+        $label = 'Saludable';
         if ($totalIssues > 5 || $hasCriticalMoneyAlert) {
             $status = 'critical';
-            $label  = 'Crítico';
+            $label = 'Crítico';
         } elseif ($totalIssues > 0) {
             $status = 'warning';
-            $label  = 'Advertencias';
+            $label = 'Advertencias';
         }
 
         return [
-            'status'              => $status,
-            'label'               => $label,
-            'issues'              => $totalIssues,
-            'issueDetails'        => $issues,
-            'failedJobsCount'     => $failedJobsCount,
-            'pendingJobsCount'    => $pendingJobsCount,
+            'status' => $status,
+            'label' => $label,
+            'issues' => $totalIssues,
+            'issueDetails' => $issues,
+            'failedJobsCount' => $failedJobsCount,
+            'pendingJobsCount' => $pendingJobsCount,
             'inactiveAdminsCount' => $inactiveAdminsCount,
-            'broadcastLive'       => $reverbHealthy,
+            'broadcastLive' => $reverbHealthy,
             'failedCommandsCount' => $failedCommandsCount,
             'activeSessionsCount' => $activeSessionsCount,
-            'checkedAt'           => Carbon::now()->toIso8601String(),
+            'checkedAt' => Carbon::now()->toIso8601String(),
         ];
     }
 
@@ -375,28 +344,61 @@ final class SuperAdminDashboardContextService
      * 20s aparte del bloque de 90s del resto del dashboard: un timeout de
      * red no debe alargar la espera de todo dashboardContext().
      */
-    private function checkReverbHealth(): bool
+    private function checkReverbHealth() : bool
     {
         if (config('broadcasting.default') !== 'reverb') {
             return false;
         }
 
-        return Cache::remember('dashboard:superadmin:reverb-health', 20, function () {
+        return Cache::remember('dashboard:superadmin:reverb-health', 20, function() {
             $options = config('broadcasting.connections.reverb.options', []);
-            $host    = $options['host']   ?? null;
-            $port    = $options['port']   ?? 8080;
-            $scheme  = $options['scheme'] ?? 'http';
+            $host = $options['host'] ?? null;
+            $port = $options['port'] ?? 8080;
+            $scheme = $options['scheme'] ?? 'http';
 
-            if (!$host) {
+            if (! $host) {
                 return false;
             }
 
             try {
                 return Http::timeout(2)->get("{$scheme}://{$host}:{$port}/up")->successful();
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 return false;
             }
         });
+    }
+
+    /**
+     * $entityCounts es una lista indexada — cada entrada trae su propio
+     * 'label', usado como sufijo del item_key ('superadmin.entity.{label}').
+     * Sin permisos adicionales (superadmin ya tiene acceso total), la capa
+     * de visibilidad configurable sigue aplicando igual.
+     */
+    private function filterEntityCounts(array $entityCounts, DashboardWidgetFilter $filter) : array
+    {
+        return collect($entityCounts)
+            ->filter(fn ($entity) => $filter->isVisible("superadmin.entity.{$entity['label']}", null))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Claves de $stats coinciden 1:1 con el sufijo de item_key en
+     * DashboardWidgetVisibilityService::CATALOG ('superadmin.stat.{clave}').
+     */
+    private function filterStats(array $stats, DashboardWidgetFilter $filter) : array
+    {
+        $permissions = [
+            'totalUsers' => null,
+            'totalAdmins' => null,
+            'activeRooms' => 'games.bingo',
+            'totalPermissions' => 'superadmin.access',
+            'pendingKyc' => 'kyc.view',
+        ];
+
+        return collect($stats)
+            ->filter(fn ($_, $key) => $filter->isVisible("superadmin.stat.{$key}", $permissions[$key] ?? null))
+            ->all();
     }
 
     /**
@@ -411,7 +413,7 @@ final class SuperAdminDashboardContextService
      * real esto siempre devolvía 0 sin importar cuántos jobs hubiera
      * realmente en la tabla `jobs`.
      */
-    private function queuePendingCount(): int
+    private function queuePendingCount() : int
     {
         if (config('queue.default') === 'database') {
             return (int) DB::table('jobs')->count();
@@ -423,13 +425,12 @@ final class SuperAdminDashboardContextService
 
         try {
             $connection = config('queue.connections.redis.connection', 'default');
-            $queueName  = config('queue.connections.redis.queue', 'default');
-            $prefix     = config("database.redis.options.prefix", '');
+            $queueName = config('queue.connections.redis.queue', 'default');
+            $prefix = config('database.redis.options.prefix', '');
 
             return (int) Redis::connection($connection)->llen("{$prefix}queues:{$queueName}");
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return 0;
         }
     }
-
 }

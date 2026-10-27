@@ -33,9 +33,9 @@ final class DirectoryAuditLogger
         string $event,
         ?string $actorRole = null,
         array $changes = [],
-    ): void {
+    ) : void {
         // En contexto CLI (Jobs, Commands) no hay request HTTP — evitar llamada a Request::ip().
-        $isHttp = !App::runningInConsole();
+        $isHttp = ! App::runningInConsole();
 
         DirectoryAudit::create([
             'record_type' => $recordType,

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * Servicio para obtener bancos de Brasil desde la API externa (BrasilAPI).
@@ -28,25 +29,8 @@ final class BrazilBankApiService
     private const TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private readonly BankBrazilRepositoryInterface $repository
-    ) {}
-
-    /**
-     * Retorna los bancos de Brasil desde la BD.
-     * Si la tabla está vacía, primero sincroniza desde la BrasilAPI.
-     * Siempre retorna desde la BD local.
-     *
-     * @return Collection<int, BankBrazil>
-     *
-     * @throws RuntimeException Si la tabla está vacía y la API no responde.
-     */
-    public function getOrSync(): Collection
-    {
-        if ($this->repository->isEmpty()) {
-            $this->syncFromApi();
-        }
-
-        return $this->repository->getAllOrderedByName(['id', 'name', 'full_name', 'ispb']);
+        private readonly BankBrazilRepositoryInterface $repository,
+    ) {
     }
 
     /**
@@ -56,9 +40,9 @@ final class BrazilBankApiService
      *
      * @return array<int, array{id: string, name: string, full_name: string, ispb: string}>
      *
-     * @throws RuntimeException Si la API no responde o devuelve datos inválidos.
+     * @throws RuntimeException si la API no responde o devuelve datos inválidos
      */
-    public function fetchAndSync(): array
+    public function fetchAndSync() : array
     {
         // Limpiar tabla antes de re-sincronizar para garantizar datos frescos y completos
         DB::table('banks_brazil')->truncate();
@@ -67,14 +51,70 @@ final class BrazilBankApiService
 
         return $this->repository
             ->getAllOrderedByName(['id', 'name', 'full_name', 'ispb'])
-            ->map(fn(BankBrazil $bank) => [
-                'id'        => $bank->id,
-                'name'      => $bank->name,
+            ->map(fn (BankBrazil $bank) => [
+                'id' => $bank->id,
+                'name' => $bank->name,
                 'full_name' => $bank->full_name,
-                'ispb'      => $bank->ispb,
+                'ispb' => $bank->ispb,
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Retorna los bancos de Brasil desde la BD.
+     * Si la tabla está vacía, primero sincroniza desde la BrasilAPI.
+     * Siempre retorna desde la BD local.
+     *
+     * @return Collection<int, BankBrazil>
+     *
+     * @throws RuntimeException si la tabla está vacía y la API no responde
+     */
+    public function getOrSync() : Collection
+    {
+        if ($this->repository->isEmpty()) {
+            $this->syncFromApi();
+        }
+
+        return $this->repository->getAllOrderedByName(['id', 'name', 'full_name', 'ispb']);
+    }
+
+    /**
+     * Llama a la BrasilAPI y retorna el array crudo.
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @throws RuntimeException
+     */
+    private function callApi() : array
+    {
+        try {
+            $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->acceptJson()
+                ->get(self::API_URL);
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'BrasilAPI respondió con status ' . $response->status(),
+                );
+            }
+
+            $data = $response->json();
+
+            if (! is_array($data)) {
+                throw new RuntimeException('BrasilAPI devolvió una respuesta inesperada.');
+            }
+
+            return $data;
+        } catch (RuntimeException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            Log::error('BrazilBankApiService: error al contactar BrasilAPI', [
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('No se pudo contactar la API de bancos de Brasil.');
+        }
     }
 
     /**
@@ -84,7 +124,7 @@ final class BrazilBankApiService
      *
      * @throws RuntimeException
      */
-    private function syncFromApi(): void
+    private function syncFromApi() : void
     {
         $raw = $this->callApi();
 
@@ -99,9 +139,9 @@ final class BrazilBankApiService
             }
 
             $incoming[$ispb] = [
-                'name'      => mb_substr($name, 0, 100),
+                'name' => mb_substr($name, 0, 100),
                 'full_name' => mb_substr(trim($item['fullName'] ?? $name), 0, 150),
-                'ispb'      => $ispb,
+                'ispb' => $ispb,
             ];
         }
 
@@ -117,7 +157,7 @@ final class BrazilBankApiService
             ->all(); // [ispb => true]
 
         // Filtrar solo los nuevos y pre-generar IDs Snowflake
-        $now    = Carbon::now();
+        $now = Carbon::now();
         $toInsert = [];
 
         foreach ($incoming as $ispb => $data) {
@@ -126,10 +166,10 @@ final class BrazilBankApiService
             }
 
             $toInsert[] = [
-                'id'         => BankBrazil::generateSnowflakeId(),
-                'name'       => $data['name'],
-                'full_name'  => $data['full_name'],
-                'ispb'       => $ispb,
+                'id' => BankBrazil::generateSnowflakeId(),
+                'name' => $data['name'],
+                'full_name' => $data['full_name'],
+                'ispb' => $ispb,
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -138,44 +178,6 @@ final class BrazilBankApiService
         // Insert en chunks de 100 para evitar límites de SQL
         foreach (array_chunk($toInsert, 100) as $chunk) {
             DB::table('banks_brazil')->insertOrIgnore($chunk);
-        }
-    }
-
-    /**
-     * Llama a la BrasilAPI y retorna el array crudo.
-     *
-     * @return array<int, array<string, mixed>>
-     *
-     * @throws RuntimeException
-     */
-    private function callApi(): array
-    {
-        try {
-            $response = Http::timeout(self::TIMEOUT_SECONDS)
-                ->acceptJson()
-                ->get(self::API_URL);
-
-            if ($response->failed()) {
-                throw new RuntimeException(
-                    'BrasilAPI respondió con status ' . $response->status()
-                );
-            }
-
-            $data = $response->json();
-
-            if (!is_array($data)) {
-                throw new RuntimeException('BrasilAPI devolvió una respuesta inesperada.');
-            }
-
-            return $data;
-        } catch (RuntimeException $e) {
-            throw $e;
-        } catch (\Throwable $e) {
-            Log::error('BrazilBankApiService: error al contactar BrasilAPI', [
-                'error' => $e->getMessage(),
-            ]);
-
-            throw new RuntimeException('No se pudo contactar la API de bancos de Brasil.');
         }
     }
 }

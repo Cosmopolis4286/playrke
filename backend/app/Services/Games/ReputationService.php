@@ -34,25 +34,39 @@ use App\Models\UserReputation;
  */
 final class ReputationService
 {
+    /** Penalización fija si el usuario tiene una suspensión activa ahora mismo. */
+    private const ACTIVE_SUSPENSION_PENALTY = 40;
+
+    /** Penalización fija por cada disputa de marketplace perdida como comprador o vendedor. */
+    private const LOST_DISPUTE_PENALTY = 5;
     private const MAX_SCORE = 100;
+
+    /** Bonus máximo alcanzable por volumen de partidas limpias. */
+    private const MAX_VOLUME_BONUS = 10;
     private const MIN_SCORE = 0;
 
     /** Cuántos puntos resta cada punto de severidad acumulada de anti-cheat. */
     private const SEVERITY_PENALTY_FACTOR = 2;
 
-    /** Penalización fija si el usuario tiene una suspensión activa ahora mismo. */
-    private const ACTIVE_SUSPENSION_PENALTY = 40;
-
-    /** Bonus máximo alcanzable por volumen de partidas limpias. */
-    private const MAX_VOLUME_BONUS = 10;
-
     /** Partidas necesarias para alcanzar el bonus máximo de volumen. */
     private const VOLUME_BONUS_THRESHOLD = 50;
 
-    /** Penalización fija por cada disputa de marketplace perdida como comprador o vendedor. */
-    private const LOST_DISPUTE_PENALTY = 5;
+    /**
+     * Devuelve el score cacheado sin recalcular. Si el usuario no tiene
+     * registro todavía, lo crea con el score por defecto (no recalcula desde
+     * cero para no penalizar el primer acceso con una query pesada).
+     */
+    public function getScore(User $user) : int
+    {
+        $reputation = UserReputation::firstOrCreate(
+            ['user_id' => $user->id],
+            ['score' => UserReputation::DEFAULT_SCORE],
+        );
 
-    public function recalculate(User $user): UserReputation
+        return $reputation->score;
+    }
+
+    public function recalculate(User $user) : UserReputation
     {
         $score = self::MAX_SCORE;
 
@@ -82,7 +96,7 @@ final class ReputationService
      * SELLER_WINS, como vendedor si BUYER_WINS. CANCELLED no cuenta contra
      * nadie — es una salida neutral, no una disputa perdida.
      */
-    private function lostMarketplaceDisputes(User $user): int
+    private function lostMarketplaceDisputes(User $user) : int
     {
         $lostAsBuyer = Escrow::where('buyer_id', $user->id)
             ->where('resolution', Escrow::RESOLUTION_SELLER_WINS)
@@ -93,20 +107,5 @@ final class ReputationService
             ->count();
 
         return $lostAsBuyer + $lostAsSeller;
-    }
-
-    /**
-     * Devuelve el score cacheado sin recalcular. Si el usuario no tiene
-     * registro todavía, lo crea con el score por defecto (no recalcula desde
-     * cero para no penalizar el primer acceso con una query pesada).
-     */
-    public function getScore(User $user): int
-    {
-        $reputation = UserReputation::firstOrCreate(
-            ['user_id' => $user->id],
-            ['score' => UserReputation::DEFAULT_SCORE],
-        );
-
-        return $reputation->score;
     }
 }

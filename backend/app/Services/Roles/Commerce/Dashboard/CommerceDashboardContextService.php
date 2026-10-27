@@ -2,19 +2,19 @@
 
 namespace App\Services\Roles\Commerce\Dashboard;
 
-use App\DTOs\Roles\Commerce\Dashboard\CommerceDashboardContextDTO;
-use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Wallet\Contracts\WalletRepositoryInterface;
+use App\Domains\Wallet\Models\WalletMovement;
+use App\DTOs\Roles\Commerce\Dashboard\CommerceDashboardContextDTO;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
-use App\Domains\Wallet\Models\WalletMovement;
 use App\Services\Roles\Dashboard\Concerns\BuildsSalesTrend;
 use App\Services\Roles\Dashboard\Concerns\BuildsWeeklyTrend;
 use App\Services\Roles\Dashboard\NetworkDashboardService;
-use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -35,13 +35,14 @@ final class CommerceDashboardContextService
     public function __construct(
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly NetworkDashboardService $network,
-    ) {}
+    ) {
+    }
 
-    public function dashboardContext(): CommerceDashboardContextDTO
+    public function dashboardContext() : CommerceDashboardContextDTO
     {
-        $user   = Auth::user();
+        $user = Auth::user();
         $userId = (string) $user?->getKey();
-        $now    = Carbon::now();
+        $now = Carbon::now();
         $period = ucfirst($now->translatedFormat('F Y'));
 
         $commerce = Commerce::where('user_id', $userId)->first(['id', 'user_id', 'commission']);
@@ -60,138 +61,31 @@ final class CommerceDashboardContextService
         $networkUserIds = $commerce ? $commerce->networkUserIds() : [$userId];
 
         return new CommerceDashboardContextDTO(
-            userName:           $user?->first_name ?? $user?->username ?? 'Comercio',
-            stats:              $this->buildStats($userId, $networkUserIds, $commerce, $now),
-            recentActivity:     $this->buildRecentActivity($networkUserIds),
-            entityCounts:       $this->buildEntityCounts($commerce),
-            salesTrend:         $this->buildSalesTrend(scope: fn ($q) => $q
+            userName: $user?->first_name ?? $user?->username ?? 'Comercio',
+            stats: $this->buildStats($userId, $networkUserIds, $commerce, $now),
+            recentActivity: $this->buildRecentActivity($networkUserIds),
+            entityCounts: $this->buildEntityCounts($commerce),
+            salesTrend: $this->buildSalesTrend(scope: fn ($q) => $q
                 ->whereIn('creator_user_id', $networkUserIds)
                 ->where('status', '!=', BingoCard::STATUS_CANCELLED)),
-            salesBySeller:      $this->network->salesBySellerUsd(
+            salesBySeller: $this->network->salesBySellerUsd(
                 $this->networkLots($commerce, $networkUserIds)->where('bingo_card_lots.created_at', '>=', $now->copy()->startOfMonth()),
                 'Venta directa',
             ),
-            wallets:            $this->buildWallets($userId),
-            configuration:      $this->buildConfiguration($commerce),
+            wallets: $this->buildWallets($userId),
+            configuration: $this->buildConfiguration($commerce),
             pendingWalletCount: WalletMovement::forUser($userId)->where('status', WalletMovement::STATUS_PENDING)->count(),
-            period:             $period,
+            period: $period,
             // Deuda RKE pendiente con la plataforma (ventas cuyo dinero cobró el
             // comercio): la ve para saber cuánto tiene que liquidar.
-            rkeReceivables:     app(\App\Services\Platform\PlatformReceivableService::class)->pendingSummary($userId),
-            networkHealth:      $this->network->networkHealth($this->networkSellers($commerce), $now),
+            rkeReceivables: app(\App\Services\Platform\PlatformReceivableService::class)->pendingSummary($userId),
+            networkHealth: $this->network->networkHealth($this->networkSellers($commerce), $now),
             // El comercio es quien revisa estos pagos (/bingo/card-payments,
             // mismo alcance: vendedores de su red).
-            networkPayments:    $this->network->networkPayments($networkUserIds, $now),
-            prizesToDeliver:    $this->network->prizesToDeliver($networkUserIds),
-            upcomingRooms:      $commerce ? $this->network->upcomingOwnRooms($now) : [],
+            networkPayments: $this->network->networkPayments($networkUserIds, $now),
+            prizesToDeliver: $this->network->prizesToDeliver($networkUserIds),
+            upcomingRooms: $commerce ? $this->network->upcomingOwnRooms($now) : [],
         );
-    }
-
-    // -------------------------------------------------------------------------
-    // Ventas y vendedores de la red
-    // -------------------------------------------------------------------------
-
-    /**
-     * Lotes vendidos (no reembolsados) por la red: por el snapshot
-     * commerce_id del lote y, para lotes anteriores al snapshot, por
-     * user_id (la comercializadora del vendedor al vender).
-     *
-     * @param string[] $networkUserIds
-     */
-    private function networkLots(?Commerce $commerce, array $networkUserIds): Builder
-    {
-        return $this->network->soldLots()->where(function (Builder $q) use ($commerce, $networkUserIds) {
-            if ($commerce) {
-                $q->where('bingo_card_lots.commerce_id', $commerce->id);
-            }
-
-            $q->orWhere(fn (Builder $legacy) => $legacy
-                ->whereNull('bingo_card_lots.commerce_id')
-                ->whereIn('bingo_card_lots.user_id', $networkUserIds));
-        });
-    }
-
-    /** Vendedores directos + los de sus agencias. */
-    private function networkSellers(?Commerce $commerce): \Illuminate\Support\Collection
-    {
-        if (!$commerce) {
-            return collect();
-        }
-
-        return Seller::query()
-            ->where(fn (Builder $q) => $q
-                ->where('manager_user_id', $commerce->user_id)
-                ->orWhereIn('subsidiary_id', $commerce->subsidiaries()->pluck('id')))
-            ->get(['id', 'user_id', 'name', 'phone', 'status']);
-    }
-
-    // -------------------------------------------------------------------------
-    // Stats principales
-    // -------------------------------------------------------------------------
-
-    /** @param string[] $networkUserIds */
-    private function buildStats(string $userId, array $networkUserIds, ?Commerce $commerce, Carbon $now): array
-    {
-        $startOfMonth = $now->copy()->startOfMonth();
-        $startOfDay   = $now->copy()->startOfDay();
-
-        $salesUsd = $this->network->salesUsd(
-            $this->networkLots($commerce, $networkUserIds)->where('bingo_card_lots.created_at', '>=', $startOfMonth),
-        );
-        // Cartones anulados (pago rechazado / sala cancelada) no son venta.
-        $cardsSoldToday = BingoCard::whereIn('creator_user_id', $networkUserIds)
-            ->where('status', '!=', BingoCard::STATUS_CANCELLED)
-            ->where('created_at', '>=', $startOfDay)
-            ->count();
-        $activeRooms = BingoRoom::active()->whereIn('creator_user_id', $networkUserIds)->count();
-        $pendingPayouts = WalletMovement::forUser($userId)
-            ->where('status', WalletMovement::STATUS_PENDING)
-            ->count();
-        $commissionByCurrency = $this->buildCommissionThisMonth($networkUserIds, $startOfMonth, $commerce);
-
-        return [
-            'totalSales' => array_merge([
-                'label'       => 'Ventas del mes',
-                'value'       => 'US$ ' . number_format($salesUsd, 2, ',', '.'),
-                'icon'        => 'fas fa-shopping-cart',
-                'variant'     => 'primary',
-                'description' => 'En USD, a la tasa de cada venta',
-                'href'        => '/bingo/sales-report',
-            ], $this->buildWeeklyTrend($this->networkLots($commerce, $networkUserIds))),
-            'totalRevenue' => [
-                'label'   => 'Cartones vendidos hoy',
-                'value'   => $cardsSoldToday,
-                'icon'    => 'fas fa-ticket-alt',
-                'variant' => 'success',
-            ],
-            'activeGames' => [
-                'label'   => 'Salas activas',
-                'value'   => $activeRooms,
-                'icon'    => 'fas fa-dice',
-                'variant' => 'info',
-                'href'    => '/bingo-rooms',
-            ],
-            'pendingPayouts' => [
-                'label'   => 'Movimientos pendientes',
-                'value'   => $pendingPayouts,
-                'icon'    => 'fas fa-clock',
-                'variant' => 'warning',
-                'href'    => '/wallet-movements',
-            ],
-            'commission' => [
-                'label'       => 'Mi comisión (este mes)',
-                'value'       => $commissionByCurrency['primaryLabel'],
-                'icon'        => 'fas fa-percentage',
-                'variant'     => 'secondary',
-                // El prefijo "Tasa X%" solo se antepone cuando SÍ hubo
-                // comisión que reportar este mes — mostrarlo junto a "Sin
-                // comisión este mes" es información redundante que no aporta
-                // nada cuando no hubo ventas.
-                'description' => ($commerce && $commissionByCurrency['hasCommission'])
-                    ? sprintf('Tasa %s%% · %s', number_format((float) $commerce->commission, 2), $commissionByCurrency['descriptionSuffix'])
-                    : $commissionByCurrency['descriptionSuffix'],
-            ],
-        ];
     }
 
     /**
@@ -211,9 +105,10 @@ final class CommerceDashboardContextService
      * dos ingresos distintos, como organizador y como distribuidor.
      *
      * @param string[] $networkUserIds
+     *
      * @return array{primaryLabel: string, descriptionSuffix: string, hasCommission: bool}
      */
-    private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth, ?Commerce $commerce = null): array
+    private function buildCommissionThisMonth(array $networkUserIds, Carbon $startOfMonth, ?Commerce $commerce = null) : array
     {
         // Alias distinto de "total_commission": BingoCreatorSale tiene un
         // accessor getTotalCommissionAttribute() que lo taparía (y en una
@@ -230,7 +125,7 @@ final class CommerceDashboardContextService
                 ->where('created_at', '>=', $startOfMonth)
                 ->groupBy('currency_id')
                 ->pluck(DB::raw('SUM(commerce_commission_amount) as network_sum'), 'currency_id')
-                ->each(function ($sum, $currencyId) use ($byCurrency) {
+                ->each(function($sum, $currencyId) use ($byCurrency) {
                     $byCurrency[$currencyId] = ($byCurrency[$currencyId] ?? 0) + (float) $sum;
                 });
         }
@@ -247,14 +142,14 @@ final class CommerceDashboardContextService
             (clone $receivables)->where('debtor_user_id', $commerce->user_id)
                 ->groupBy('currency_id')
                 ->pluck(DB::raw('SUM(creator_amount) as custody_sum'), 'currency_id')
-                ->each(function ($sum, $currencyId) use ($byCurrency) {
+                ->each(function($sum, $currencyId) use ($byCurrency) {
                     $byCurrency[$currencyId] = ($byCurrency[$currencyId] ?? 0) - (float) $sum;
                 });
 
             (clone $receivables)->where('creator_payee_user_id', $commerce->user_id)
                 ->groupBy('currency_id')
                 ->pluck(DB::raw('SUM(creator_amount) as owed_sum'), 'currency_id')
-                ->each(function ($sum, $currencyId) use ($byCurrency) {
+                ->each(function($sum, $currencyId) use ($byCurrency) {
                     $byCurrency[$currencyId] = ($byCurrency[$currencyId] ?? 0) + (float) $sum;
                 });
         }
@@ -277,30 +172,12 @@ final class CommerceDashboardContextService
     }
 
     // -------------------------------------------------------------------------
-    // Billeteras propias (saldo por moneda)
-    // -------------------------------------------------------------------------
-
-    private function buildWallets(string $userId): array
-    {
-        return $this->walletRepository->getActiveWalletsByUser($userId, ['id', 'currency_id', 'balance', 'bonus_balance'])
-            ->load('currency:id,iso_code,symbol')
-            ->map(fn ($wallet) => [
-                'currency_code' => $wallet->currency?->iso_code ?? '—',
-                'symbol'        => $wallet->currency?->symbol ?? '',
-                'balance'       => (float) $wallet->balance,
-                'bonus_balance' => (float) $wallet->bonus_balance,
-            ])
-            ->values()
-            ->all();
-    }
-
-    // -------------------------------------------------------------------------
     // Monedas y juegos habilitados
     // -------------------------------------------------------------------------
 
-    private function buildConfiguration(?Commerce $commerce): array
+    private function buildConfiguration(?Commerce $commerce) : array
     {
-        if (!$commerce) {
+        if (! $commerce) {
             return ['currencies' => [], 'games' => []];
         }
 
@@ -320,9 +197,9 @@ final class CommerceDashboardContextService
     // Red propia: vendedores directos + agencias/sucursales
     // -------------------------------------------------------------------------
 
-    private function buildEntityCounts(?Commerce $commerce): array
+    private function buildEntityCounts(?Commerce $commerce) : array
     {
-        if (!$commerce) {
+        if (! $commerce) {
             return [];
         }
 
@@ -331,7 +208,7 @@ final class CommerceDashboardContextService
         // propio en `sellers` (ver Seller::resolveCommerce()), así que se
         // cuentan por separado a través de las subsidiarias del commerce.
         $directSellers = $commerce->sellers()->count();
-        $subsidiaries  = $commerce->subsidiaries()->count();
+        $subsidiaries = $commerce->subsidiaries()->count();
         $subsidiarySellers = $commerce->subsidiaries()
             ->withCount('sellers')
             ->get()
@@ -359,32 +236,157 @@ final class CommerceDashboardContextService
     // -------------------------------------------------------------------------
 
     /** @param string[] $networkUserIds */
-    private function buildRecentActivity(array $networkUserIds): array
+    private function buildRecentActivity(array $networkUserIds) : array
     {
         return BingoCardLot::whereIn('user_id', $networkUserIds)
             ->with(['room:id,uuid_code', 'currency:id,symbol,iso_code', 'seller:id,first_name,last_name,username'])
             ->latest()
             ->limit(10)
             ->get(['id', 'room_id', 'seller_user_id', 'currency_id', 'card_count', 'sale_amount', 'status', 'created_at'])
-            ->map(function (BingoCardLot $lot) {
+            ->map(function(BingoCardLot $lot) {
                 $sellerName = $lot->seller
                     ? trim("{$lot->seller->first_name} {$lot->seller->last_name}") ?: $lot->seller->username
                     : 'Venta directa';
 
                 return [
-                    'id'          => (string) $lot->getKey(),
-                    'type'        => 'sale',
-                    'title'       => "{$lot->card_count} cartón(es) vendidos",
+                    'id' => (string) $lot->getKey(),
+                    'type' => 'sale',
+                    'title' => "{$lot->card_count} cartón(es) vendidos",
                     'description' => "Sala {$lot->room?->uuid_code} · {$sellerName}",
-                    'timestamp'   => $lot->created_at->toIso8601String(),
-                    'actor'       => $sellerName,
-                    'meta'        => [
-                        'status'   => strtolower((string) $lot->status),
-                        'price'    => $lot->currency?->formatAmount((float) $lot->sale_amount) ?? number_format((float) $lot->sale_amount, 2, ',', '.'),
+                    'timestamp' => $lot->created_at->toIso8601String(),
+                    'actor' => $sellerName,
+                    'meta' => [
+                        'status' => strtolower((string) $lot->status),
+                        'price' => $lot->currency?->formatAmount((float) $lot->sale_amount) ?? number_format((float) $lot->sale_amount, 2, ',', '.'),
                         'currency' => $lot->currency?->iso_code ?? '',
                     ],
                 ];
             })
             ->all();
+    }
+
+    // -------------------------------------------------------------------------
+    // Stats principales
+    // -------------------------------------------------------------------------
+
+    /** @param string[] $networkUserIds */
+    private function buildStats(string $userId, array $networkUserIds, ?Commerce $commerce, Carbon $now) : array
+    {
+        $startOfMonth = $now->copy()->startOfMonth();
+        $startOfDay = $now->copy()->startOfDay();
+
+        $salesUsd = $this->network->salesUsd(
+            $this->networkLots($commerce, $networkUserIds)->where('bingo_card_lots.created_at', '>=', $startOfMonth),
+        );
+        // Cartones anulados (pago rechazado / sala cancelada) no son venta.
+        $cardsSoldToday = BingoCard::whereIn('creator_user_id', $networkUserIds)
+            ->where('status', '!=', BingoCard::STATUS_CANCELLED)
+            ->where('created_at', '>=', $startOfDay)
+            ->count();
+        $activeRooms = BingoRoom::active()->whereIn('creator_user_id', $networkUserIds)->count();
+        $pendingPayouts = WalletMovement::forUser($userId)
+            ->where('status', WalletMovement::STATUS_PENDING)
+            ->count();
+        $commissionByCurrency = $this->buildCommissionThisMonth($networkUserIds, $startOfMonth, $commerce);
+
+        return [
+            'totalSales' => array_merge([
+                'label' => 'Ventas del mes',
+                'value' => 'US$ ' . number_format($salesUsd, 2, ',', '.'),
+                'icon' => 'fas fa-shopping-cart',
+                'variant' => 'primary',
+                'description' => 'En USD, a la tasa de cada venta',
+                'href' => '/bingo/sales-report',
+            ], $this->buildWeeklyTrend($this->networkLots($commerce, $networkUserIds))),
+            'totalRevenue' => [
+                'label' => 'Cartones vendidos hoy',
+                'value' => $cardsSoldToday,
+                'icon' => 'fas fa-ticket-alt',
+                'variant' => 'success',
+            ],
+            'activeGames' => [
+                'label' => 'Salas activas',
+                'value' => $activeRooms,
+                'icon' => 'fas fa-dice',
+                'variant' => 'info',
+                'href' => '/bingo-rooms',
+            ],
+            'pendingPayouts' => [
+                'label' => 'Movimientos pendientes',
+                'value' => $pendingPayouts,
+                'icon' => 'fas fa-clock',
+                'variant' => 'warning',
+                'href' => '/wallet-movements',
+            ],
+            'commission' => [
+                'label' => 'Mi comisión (este mes)',
+                'value' => $commissionByCurrency['primaryLabel'],
+                'icon' => 'fas fa-percentage',
+                'variant' => 'secondary',
+                // El prefijo "Tasa X%" solo se antepone cuando SÍ hubo
+                // comisión que reportar este mes — mostrarlo junto a "Sin
+                // comisión este mes" es información redundante que no aporta
+                // nada cuando no hubo ventas.
+                'description' => ($commerce && $commissionByCurrency['hasCommission'])
+                    ? sprintf('Tasa %s%% · %s', number_format((float) $commerce->commission, 2), $commissionByCurrency['descriptionSuffix'])
+                    : $commissionByCurrency['descriptionSuffix'],
+            ],
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Billeteras propias (saldo por moneda)
+    // -------------------------------------------------------------------------
+
+    private function buildWallets(string $userId) : array
+    {
+        return $this->walletRepository->getActiveWalletsByUser($userId, ['id', 'currency_id', 'balance', 'bonus_balance'])
+            ->load('currency:id,iso_code,symbol')
+            ->map(fn ($wallet) => [
+                'currency_code' => $wallet->currency?->iso_code ?? '—',
+                'symbol' => $wallet->currency?->symbol ?? '',
+                'balance' => (float) $wallet->balance,
+                'bonus_balance' => (float) $wallet->bonus_balance,
+            ])
+            ->values()
+            ->all();
+    }
+
+    // -------------------------------------------------------------------------
+    // Ventas y vendedores de la red
+    // -------------------------------------------------------------------------
+
+    /**
+     * Lotes vendidos (no reembolsados) por la red: por el snapshot
+     * commerce_id del lote y, para lotes anteriores al snapshot, por
+     * user_id (la comercializadora del vendedor al vender).
+     *
+     * @param string[] $networkUserIds
+     */
+    private function networkLots(?Commerce $commerce, array $networkUserIds) : Builder
+    {
+        return $this->network->soldLots()->where(function(Builder $q) use ($commerce, $networkUserIds) {
+            if ($commerce) {
+                $q->where('bingo_card_lots.commerce_id', $commerce->id);
+            }
+
+            $q->orWhere(fn (Builder $legacy) => $legacy
+                ->whereNull('bingo_card_lots.commerce_id')
+                ->whereIn('bingo_card_lots.user_id', $networkUserIds));
+        });
+    }
+
+    /** Vendedores directos + los de sus agencias. */
+    private function networkSellers(?Commerce $commerce) : \Illuminate\Support\Collection
+    {
+        if (! $commerce) {
+            return collect();
+        }
+
+        return Seller::query()
+            ->where(fn (Builder $q) => $q
+                ->where('manager_user_id', $commerce->user_id)
+                ->orWhereIn('subsidiary_id', $commerce->subsidiaries()->pluck('id')))
+            ->get(['id', 'user_id', 'name', 'phone', 'status']);
     }
 }

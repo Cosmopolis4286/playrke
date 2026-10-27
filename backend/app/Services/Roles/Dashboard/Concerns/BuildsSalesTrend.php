@@ -13,12 +13,12 @@ use Illuminate\Database\Eloquent\Builder;
 trait BuildsSalesTrend
 {
     /**
-     * @param int $days Tamaño del período (días hacia atrás desde hoy).
+     * @param int                            $days  tamaño del período (días hacia atrás desde hoy)
      * @param (callable(Builder): void)|null $scope Filtro adicional sobre la
-     *   query base (ej. limitar a un creator_user_id/seller_user_id). Sin
-     *   scope, cuenta cartones de todo el sistema (uso de Admin/SuperAdmin).
+     *                                              query base (ej. limitar a un creator_user_id/seller_user_id). Sin
+     *                                              scope, cuenta cartones de todo el sistema (uso de Admin/SuperAdmin).
      */
-    private function buildSalesTrend(int $days = 14, ?callable $scope = null): array
+    private function buildSalesTrend(int $days = 14, ?callable $scope = null) : array
     {
         $startDate = Carbon::now()->subDays($days - 1)->startOfDay();
 
@@ -35,7 +35,7 @@ trait BuildsSalesTrend
         for ($i = 0; $i < $days; $i++) {
             $date = $startDate->copy()->addDays($i)->toDateString();
             $trend[] = [
-                'date'  => $date,
+                'date' => $date,
                 'count' => (int) ($counts[$date] ?? 0),
             ];
         }

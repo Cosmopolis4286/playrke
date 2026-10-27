@@ -11,29 +11,31 @@ class SnowflakeBatchService
     public function __construct()
     {
         // Instancia única de Snowflake
-        $this->snowflake = new Snowflake();
-    }
-
-    /**
-     * Genera un solo ID
-     */
-    public function nextId(): string
-    {
-        return (string) $this->snowflake->id();
+        $this->snowflake = new Snowflake;
     }
 
     /**
      * Genera múltiples IDs en lote
      *
      * @param int $count Cantidad de IDs a generar
+     *
      * @return string[]
      */
-    public function batch(int $count): array
+    public function batch(int $count) : array
     {
         $ids = [];
         for ($i = 0; $i < $count; $i++) {
             $ids[] = (string) $this->snowflake->id();
         }
+
         return $ids;
+    }
+
+    /**
+     * Genera un solo ID
+     */
+    public function nextId() : string
+    {
+        return (string) $this->snowflake->id();
     }
 }

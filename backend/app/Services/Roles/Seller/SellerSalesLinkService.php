@@ -24,9 +24,9 @@ final class SellerSalesLinkService
      *
      * @return array{token: string, url: string}
      */
-    public function linkFor(Seller $seller): array
+    public function linkFor(Seller $seller) : array
     {
-        if (!$seller->sales_link_token) {
+        if (! $seller->sales_link_token) {
             $this->assignNewToken($seller);
         }
 
@@ -38,7 +38,7 @@ final class SellerSalesLinkService
      *
      * @return array{token: string, url: string}
      */
-    public function regenerate(Seller $seller): array
+    public function regenerate(Seller $seller) : array
     {
         $this->assignNewToken($seller);
 
@@ -49,7 +49,7 @@ final class SellerSalesLinkService
      * Vendedor dueño del enlace, solo si él y su jerarquía (agencia/comercio)
      * están ACTIVE — un enlace de un vendedor bloqueado no vende.
      */
-    public function resolveSeller(string $token): ?Seller
+    public function resolveSeller(string $token) : ?Seller
     {
         if (strlen($token) !== self::TOKEN_LENGTH) {
             return null;
@@ -60,7 +60,7 @@ final class SellerSalesLinkService
         return $seller && $seller->hasActiveHierarchy() ? $seller : null;
     }
 
-    private function assignNewToken(Seller $seller): void
+    private function assignNewToken(Seller $seller) : void
     {
         do {
             $token = Str::random(self::TOKEN_LENGTH);
@@ -70,11 +70,11 @@ final class SellerSalesLinkService
     }
 
     /** @return array{token: string, url: string} */
-    private function present(Seller $seller): array
+    private function present(Seller $seller) : array
     {
         return [
             'token' => (string) $seller->sales_link_token,
-            'url'   => route('bingo-buy.show', ['token' => $seller->sales_link_token]),
+            'url' => route('bingo-buy.show', ['token' => $seller->sales_link_token]),
         ];
     }
 }

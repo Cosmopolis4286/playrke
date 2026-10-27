@@ -5,8 +5,9 @@ namespace App\Repositories\Shared\Transactions;
 use App\Contracts\Shared\Transactions\TransactionRepositoryInterface;
 use App\Models\Shared\Transactions\Transaction;
 use App\Repositories\BaseRepository;
-use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 
 /**
  * Repositorio para la gestión de transacciones.
@@ -30,15 +31,20 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
     /**
      * {@inheritDoc}
      */
-    public function getValueByCode(string $code, string $field): mixed
+    public function createTransaction(array $data) : mixed
     {
-        return $this->model->where('code', $code)->value($field);
+        $errors = $this->validateTransactionData($data);
+        if (! empty($errors)) {
+            throw new InvalidArgumentException('Datos de transacción inválidos: ' . json_encode($errors));
+        }
+
+        return $this->model->create($data);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function existsCodeForCustomer(string $code, string $customer): bool
+    public function existsCodeForCustomer(string $code, string $customer) : bool
     {
         return $this->model->where('code', $code)
             ->where('customer_id', $customer)
@@ -48,39 +54,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
     /**
      * {@inheritDoc}
      */
-    public function getByCustomer(string $customerId): Collection
-    {
-        return $this->model->where('customer_id', $customerId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByType(string $type): Collection
-    {
-        return $this->model->where('transaction_type', $type)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByGame(string $gameId): Collection
-    {
-        return $this->model->where('game_id', $gameId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByCurrency(string $currencyId): Collection
-    {
-        return $this->model->where('currency_id', $currencyId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByAmountRange(float $minAmount, float $maxAmount): Collection
+    public function getByAmountRange(float $minAmount, float $maxAmount) : Collection
     {
         return $this->model->whereBetween('amount', [$minAmount, $maxAmount])->get();
     }
@@ -88,18 +62,66 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
     /**
      * {@inheritDoc}
      */
-    public function getByDateRange(string $startDate, string $endDate): Collection
+    public function getByCurrency(string $currencyId) : Collection
+    {
+        return $this->model->where('currency_id', $currencyId)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getByCustomer(string $customerId) : Collection
+    {
+        return $this->model->where('customer_id', $customerId)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getByDateRange(string $startDate, string $endDate) : Collection
     {
         return $this->model->whereBetween('created_at', [
             Carbon::parse($startDate),
-            Carbon::parse($endDate)
+            Carbon::parse($endDate),
         ])->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getTransactionStats(): array
+    public function getByGame(string $gameId) : Collection
+    {
+        return $this->model->where('game_id', $gameId)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getByType(string $type) : Collection
+    {
+        return $this->model->where('transaction_type', $type)->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getCustomerStats(string $customerId) : array
+    {
+        $transactions = $this->getByCustomer($customerId);
+
+        return [
+            'total_transactions' => $transactions->count(),
+            'total_amount' => round($transactions->sum('amount'), 2),
+            'average_amount' => round($transactions->avg('amount') ?? 0, 2),
+            'max_amount' => $transactions->max('amount') ?? 0,
+            'min_amount' => $transactions->min('amount') ?? 0,
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getTransactionStats() : array
     {
         $total = $this->model->count();
         $totalAmount = $this->model->sum('amount');
@@ -113,43 +135,22 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
             'total_transactions' => $total,
             'total_amount' => round($totalAmount, 2),
             'average_amount' => round($avgAmount ?? 0, 2),
-            'by_status' => $byStatus
+            'by_status' => $byStatus,
         ];
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getCustomerStats(string $customerId): array
+    public function getValueByCode(string $code, string $field) : mixed
     {
-        $transactions = $this->getByCustomer($customerId);
-
-        return [
-            'total_transactions' => $transactions->count(),
-            'total_amount' => round($transactions->sum('amount'), 2),
-            'average_amount' => round($transactions->avg('amount') ?? 0, 2),
-            'max_amount' => $transactions->max('amount') ?? 0,
-            'min_amount' => $transactions->min('amount') ?? 0
-        ];
+        return $this->model->where('code', $code)->value($field);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function createTransaction(array $data): mixed
-    {
-        $errors = $this->validateTransactionData($data);
-        if (!empty($errors)) {
-            throw new \InvalidArgumentException('Datos de transacción inválidos: ' . json_encode($errors));
-        }
-
-        return $this->model->create($data);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function updateStatus(string $transactionId, string $status): bool
+    public function updateStatus(string $transactionId, string $status) : bool
     {
         return $this->model->where('id', $transactionId)
             ->update(['status' => $status]) > 0;
@@ -158,14 +159,14 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
     /**
      * {@inheritDoc}
      */
-    public function validateTransactionData(array $data): array
+    public function validateTransactionData(array $data) : array
     {
         $errors = [];
 
         // Validar campos requeridos
         $required = ['customer_id', 'code', 'transaction_type', 'currency_id', 'amount'];
         foreach ($required as $field) {
-            if (!isset($data[$field]) || empty($data[$field])) {
+            if (! isset($data[$field]) || empty($data[$field])) {
                 $errors[$field] = "El campo {$field} es requerido";
             }
         }

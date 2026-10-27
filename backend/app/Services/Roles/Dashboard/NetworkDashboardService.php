@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Bloques de dashboard compartidos por Seller, Subsidiary y Commerce, para
@@ -30,7 +31,8 @@ final class NetworkDashboardService
 
     public function __construct(
         private readonly BingoCardGenerateService $cardGenerate,
-    ) {}
+    ) {
+    }
 
     /**
      * Cantidad de filas y monto de la moneda principal (la de mayor monto),
@@ -38,7 +40,7 @@ final class NetworkDashboardService
      *
      * @return array{count: int, amount: ?string}
      */
-    public function currencySummary(Builder $query, string $column): array
+    public function currencySummary(Builder $query, string $column) : array
     {
         $table = $query->getModel()->getTable();
 
@@ -57,7 +59,7 @@ final class NetworkDashboardService
         }
 
         $primary = $rows->first();
-        $amount  = $this->formatAmount($primary->currency_id, (float) $primary->amount);
+        $amount = $this->formatAmount($primary->currency_id, (float) $primary->amount);
 
         if ($rows->count() > 1) {
             $amount .= ' +' . ($rows->count() - 1) . ' moneda(s)';
@@ -66,7 +68,7 @@ final class NetworkDashboardService
         return ['count' => $count, 'amount' => $amount];
     }
 
-    public function formatAmount(int|string|null $currencyId, float $amount): string
+    public function formatAmount(int|string|null $currencyId, float $amount) : string
     {
         $currency = $currencyId ? Currency::find($currencyId) : null;
 
@@ -75,64 +77,16 @@ final class NetworkDashboardService
             : number_format($amount, 2, ',', '.');
     }
 
-    /** Lotes que cuentan como venta (excluye reembolsados/anulados). */
-    public function soldLots(): Builder
-    {
-        return BingoCardLot::query()->where('bingo_card_lots.status', 'ACTIVE');
-    }
-
-    /** Suma de ventas en USD a la tasa de cada lote. */
-    public function salesUsd(Builder $lots): float
-    {
-        return round((float) (clone $lots)
-            ->selectRaw('COALESCE(SUM(bingo_card_lots.sale_amount / NULLIF(bingo_card_lots.exchange_rate, 0)), 0) AS usd')
-            ->toBase()
-            ->value('usd'), 2);
-    }
-
-    /**
-     * Top 10 de vendedores del período, en USD (DashboardSellerSalesList ya
-     * los muestra con "$": antes mezclaba bolívares, pesos y dólares).
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function salesBySellerUsd(Builder $lots, string $fallbackName = 'Vendedor'): array
-    {
-        return (clone $lots)
-            ->select([
-                'bingo_card_lots.seller_user_id',
-                DB::raw('SUM(bingo_card_lots.sale_amount / NULLIF(bingo_card_lots.exchange_rate, 0)) AS total_sales'),
-                DB::raw('SUM(bingo_card_lots.card_count) AS total_cards'),
-                // commission_amount = comisión del VENDEDOR persistida por lote.
-                DB::raw('SUM(bingo_card_lots.commission_amount / NULLIF(bingo_card_lots.exchange_rate, 0)) AS total_commission'),
-            ])
-            ->groupBy('bingo_card_lots.seller_user_id')
-            ->orderByDesc('total_sales')
-            ->limit(10)
-            ->with('seller:id,first_name,last_name,username')
-            ->get()
-            ->map(fn (BingoCardLot $row) => [
-                'seller_user_id'   => $row->seller_user_id ? (string) $row->seller_user_id : null,
-                'seller_name'      => $row->seller
-                    ? (trim("{$row->seller->first_name} {$row->seller->last_name}") ?: $row->seller->username)
-                    : $fallbackName,
-                'total_sales'      => round((float) $row->total_sales, 2),
-                'total_cards'      => (int) $row->total_cards,
-                'total_commission' => round((float) $row->total_commission, 2),
-            ])
-            ->values()
-            ->all();
-    }
-
     /**
      * Salud de la red de vendedores: cuántos vendieron hoy, cuántos llevan
      * IDLE_DAYS días o más sin vender (con los 5 de mayor inactividad, para
      * contactarlos) y cuántos no están activos.
      *
      * @param Collection<int, Seller> $sellers
+     *
      * @return array{total: int, active: int, sold_today: int, inactive: int, idle_count: int, idle: array<int, array<string, mixed>>}
      */
-    public function networkHealth(Collection $sellers, ?Carbon $now = null): array
+    public function networkHealth(Collection $sellers, ?Carbon $now = null) : array
     {
         $now = $now ?? now();
 
@@ -148,31 +102,31 @@ final class NetworkDashboardService
             ->pluck('last_sale_at', 'seller_user_id')
             ->mapWithKeys(fn ($at, $id) => [(string) $id => Carbon::parse($at)]);
 
-        $active    = $sellers->where('status', 'ACTIVE');
-        $startDay  = $now->copy()->startOfDay();
+        $active = $sellers->where('status', 'ACTIVE');
+        $startDay = $now->copy()->startOfDay();
         $idleSince = $now->copy()->subDays(self::IDLE_DAYS);
 
         // Solo los ACTIVOS cuentan como inactivos-por-no-vender: un vendedor
         // bloqueado ya se cuenta aparte y no hay nada que reactivar.
         $idle = $active
-            ->filter(fn (Seller $s) => !($lastSale[(string) $s->user_id] ?? null)?->gte($idleSince))
+            ->filter(fn (Seller $s) => ! ($lastSale[(string) $s->user_id] ?? null)?->gte($idleSince))
             ->map(fn (Seller $s) => [
-                'name'         => $s->name,
-                'phone'        => $s->phone,
+                'name' => $s->name,
+                'phone' => $s->phone,
                 'last_sale_at' => ($lastSale[(string) $s->user_id] ?? null)?->toIso8601String(),
-                'days'         => ($at = $lastSale[(string) $s->user_id] ?? null) ? (int) $at->diffInDays($now) : null,
+                'days' => ($at = $lastSale[(string) $s->user_id] ?? null) ? (int) $at->diffInDays($now) : null,
             ])
             // Nunca vendió → primero; luego los que llevan más días.
             ->sortByDesc(fn (array $r) => $r['days'] ?? PHP_INT_MAX)
             ->values();
 
         return [
-            'total'      => $sellers->count(),
-            'active'     => $active->count(),
+            'total' => $sellers->count(),
+            'active' => $active->count(),
             'sold_today' => $sellers->filter(fn (Seller $s) => ($lastSale[(string) $s->user_id] ?? null)?->gte($startDay))->count(),
-            'inactive'   => $sellers->count() - $active->count(),
+            'inactive' => $sellers->count() - $active->count(),
             'idle_count' => $idle->count(),
-            'idle'       => $idle->take(5)->all(),
+            'idle' => $idle->take(5)->all(),
         ];
     }
 
@@ -180,23 +134,24 @@ final class NetworkDashboardService
      * Pagos de la red en revisión y rechazados en los últimos 7 días.
      *
      * @param string[] $sellerUserIds
+     *
      * @return array{pending_count: int, pending_amount: ?string, oldest_pending_at: ?string, rejected_count: int}
      */
-    public function networkPayments(array $sellerUserIds, ?Carbon $now = null): array
+    public function networkPayments(array $sellerUserIds, ?Carbon $now = null) : array
     {
-        $now     = $now ?? now();
+        $now = $now ?? now();
         $payments = fn () => BingoCardPayment::query()->whereIn('bingo_card_payments.seller_user_id', $sellerUserIds);
 
         $pending = $this->currencySummary($payments()->where('bingo_card_payments.payment_status', 'PENDING'), 'payment_amount');
-        $oldest  = $pending['count'] > 0
+        $oldest = $pending['count'] > 0
             ? $payments()->where('payment_status', 'PENDING')->min('created_at')
             : null;
 
         return [
-            'pending_count'     => $pending['count'],
-            'pending_amount'    => $pending['amount'],
+            'pending_count' => $pending['count'],
+            'pending_amount' => $pending['amount'],
             'oldest_pending_at' => $oldest ? Carbon::parse($oldest)->toIso8601String() : null,
-            'rejected_count'    => $payments()
+            'rejected_count' => $payments()
                 ->where('payment_status', 'REJECTED')
                 ->where('processed_at', '>=', $now->copy()->subDays(7))
                 ->count(),
@@ -209,9 +164,10 @@ final class NetworkDashboardService
      * tiene billetera: alguien de la red tiene que entregárselo).
      *
      * @param string[] $sellerUserIds
+     *
      * @return array{count: int, amount: ?string}
      */
-    public function prizesToDeliver(array $sellerUserIds): array
+    public function prizesToDeliver(array $sellerUserIds) : array
     {
         return $this->currencySummary(
             BingoCardPrize::query()
@@ -222,13 +178,62 @@ final class NetworkDashboardService
     }
 
     /**
+     * Top 10 de vendedores del período, en USD (DashboardSellerSalesList ya
+     * los muestra con "$": antes mezclaba bolívares, pesos y dólares).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function salesBySellerUsd(Builder $lots, string $fallbackName = 'Vendedor') : array
+    {
+        return (clone $lots)
+            ->select([
+                'bingo_card_lots.seller_user_id',
+                DB::raw('SUM(bingo_card_lots.sale_amount / NULLIF(bingo_card_lots.exchange_rate, 0)) AS total_sales'),
+                DB::raw('SUM(bingo_card_lots.card_count) AS total_cards'),
+                // commission_amount = comisión del VENDEDOR persistida por lote.
+                DB::raw('SUM(bingo_card_lots.commission_amount / NULLIF(bingo_card_lots.exchange_rate, 0)) AS total_commission'),
+            ])
+            ->groupBy('bingo_card_lots.seller_user_id')
+            ->orderByDesc('total_sales')
+            ->limit(10)
+            ->with('seller:id,first_name,last_name,username')
+            ->get()
+            ->map(fn (BingoCardLot $row) => [
+                'seller_user_id' => $row->seller_user_id ? (string) $row->seller_user_id : null,
+                'seller_name' => $row->seller
+                    ? (trim("{$row->seller->first_name} {$row->seller->last_name}") ?: $row->seller->username)
+                    : $fallbackName,
+                'total_sales' => round((float) $row->total_sales, 2),
+                'total_cards' => (int) $row->total_cards,
+                'total_commission' => round((float) $row->total_commission, 2),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** Suma de ventas en USD a la tasa de cada lote. */
+    public function salesUsd(Builder $lots) : float
+    {
+        return round((float) (clone $lots)
+            ->selectRaw('COALESCE(SUM(bingo_card_lots.sale_amount / NULLIF(bingo_card_lots.exchange_rate, 0)), 0) AS usd')
+            ->toBase()
+            ->value('usd'), 2);
+    }
+
+    /** Lotes que cuentan como venta (excluye reembolsados/anulados). */
+    public function soldLots() : Builder
+    {
+        return BingoCardLot::query()->where('bingo_card_lots.status', 'ACTIVE');
+    }
+
+    /**
      * Próximas 5 salas propias de hoy y mañana del usuario autenticado
      * (comercio o cliente API), con su ocupación. Reusa el listado del punto
      * de venta (listSellableRooms), filtrado a las propias.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function upcomingOwnRooms(Carbon $now): array
+    public function upcomingOwnRooms(Carbon $now) : array
     {
         try {
             return collect([$now->toDateString(), $now->copy()->addDay()->toDateString()])
@@ -239,20 +244,20 @@ final class NetworkDashboardService
                 ->sortBy(fn (array $room) => $room['starts_at'] ?? '9999')
                 ->take(5)
                 ->map(fn (array $room) => [
-                    'id'             => $room['id'],
-                    'uuid_code'      => $room['uuid_code'],
-                    'starts_at'      => $room['starts_at'] ?? null,
-                    'is_manual'      => (bool) ($room['is_manual'] ?? false),
-                    'sales_open'     => (bool) ($room['sales_open'] ?? false),
-                    'total_players'  => (int) ($room['total_players'] ?? 0),
-                    'max_players'    => $room['max_players'] ?? null,
-                    'total_cards'    => (int) ($room['total_cards'] ?? 0),
+                    'id' => $room['id'],
+                    'uuid_code' => $room['uuid_code'],
+                    'starts_at' => $room['starts_at'] ?? null,
+                    'is_manual' => (bool) ($room['is_manual'] ?? false),
+                    'sales_open' => (bool) ($room['sales_open'] ?? false),
+                    'total_players' => (int) ($room['total_players'] ?? 0),
+                    'max_players' => $room['max_players'] ?? null,
+                    'total_cards' => (int) ($room['total_cards'] ?? 0),
                     'card_price_usd' => (float) ($room['card_price_usd'] ?? 0),
                     'prize_pool_usd' => (float) ($room['prize_pool'] ?? 0),
                 ])
                 ->values()
                 ->all();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('Dashboard: no se pudieron listar las próximas salas propias', ['error' => $e->getMessage()]);
 
             return [];

@@ -16,11 +16,74 @@ final class AdministratorService
     public function __construct(
         private readonly AdministratorContextService $context,
         private readonly UserRepositoryInterface $users,
-    ) {}
+    ) {
+    }
 
-    public function fetchList(array $filters = [], int $page = 1): array
+    /**
+     * Eliminación lógica (soft delete) de administrador.
+     */
+    public function delete(User $user) : void
+    {
+        $this->validateAdministrator($user);
+        $this->guardNotLastActiveAdministrator($user);
+
+        if ($user->status === 'DELETED') {
+            throw AdministratorException::alreadyDeleted();
+        }
+
+        $user->update(['status' => 'DELETED']);
+        $user->delete();
+    }
+
+    /**
+     * Eliminación definitiva (hard delete) de administrador.
+     */
+    public function destroy(User $user) : void
+    {
+        $this->validateAdministrator($user);
+        $this->guardNotLastActiveAdministrator($user);
+
+        // No permitir eliminar al último superadmin — regla adicional a
+        // guardNotLastActiveAdministrator(): un admin normal SÍ puede quedar
+        // en cero (el sistema sigue teniendo superadmins), pero el rol
+        // 'superadmin' en sí nunca puede quedarse sin representantes, ya que
+        // es la única cuenta que puede reactivar cualquier otra.
+        $superadminCount = User::role('superadmin')->count();
+        if ($user->hasRole('superadmin') && $superadminCount <= 1) {
+            throw AdministratorException::cannotDeleteLastSuperAdmin();
+        }
+
+        DB::transaction(function() use ($user) {
+            $user->roles()->detach();
+            $user->forceDelete();
+        });
+    }
+
+    public function fetchList(array $filters = [], int $page = 1) : array
     {
         return $this->context->resolveadmins($filters, $page);
+    }
+
+    /**
+     * Restablecer contraseña de administrador. Exige que la cuenta esté
+     * ACTIVE — mismo criterio que AdminUserService::resetPassword(), evita
+     * generar credenciales nuevas para una cuenta suspendida/eliminada.
+     */
+    public function resetPassword(User $user) : string
+    {
+        $this->validateAdministrator($user);
+
+        if ($user->status !== 'ACTIVE') {
+            throw AdministratorException::passwordResetRequiresActiveStatus();
+        }
+
+        $newPassword = Str::random(12);
+
+        $user->update([
+            'password' => Hash::make($newPassword),
+        ]);
+
+        return $newPassword;
     }
 
     /**
@@ -28,18 +91,18 @@ final class AdministratorService
      * superadmin adicional solo se crea por vía directa de base de datos /
      * seeder, no desde este flujo de UI).
      */
-    public function store(AdministratorStoreDTO $dto): User
+    public function store(AdministratorStoreDTO $dto) : User
     {
-        return DB::transaction(function () use ($dto) {
+        return DB::transaction(function() use ($dto) {
             $user = User::create([
-                'first_name'   => $dto->firstName,
-                'last_name'    => $dto->lastName,
-                'username'     => $dto->username,
-                'email'        => $dto->email,
-                'password'     => Hash::make($dto->password),
-                'country_id'   => $dto->countryId,
+                'first_name' => $dto->firstName,
+                'last_name' => $dto->lastName,
+                'username' => $dto->username,
+                'email' => $dto->email,
+                'password' => Hash::make($dto->password),
+                'country_id' => $dto->countryId,
                 'phone_number' => $dto->phoneNumber,
-                'status'       => 'ACTIVE',
+                'status' => 'ACTIVE',
                 'email_verified_at' => now(),
                 'referral_code' => $this->users->generateUniqueReferralCode(),
             ]);
@@ -51,23 +114,9 @@ final class AdministratorService
     }
 
     /**
-     * Actualizar datos básicos de un administrador existente. A diferencia
-     * del resto de acciones de este service, SÍ permite auto-edición (un
-     * superadmin puede editar su propia ficha) — AdministratorUpdateDTO no
-     * incluye `status`, así que esta vía nunca puede auto-desactivar al
-     * actor ni a nadie más (ver toggleStatus() para eso).
-     */
-    public function update(User $user, AdministratorUpdateDTO $dto): void
-    {
-        $this->validateIsAdministrator($user);
-
-        $user->update($dto->toArray());
-    }
-
-    /**
      * Alternar estado ACTIVE / INACTIVE de administrador.
      */
-    public function toggleStatus(User $user): void
+    public function toggleStatus(User $user) : void
     {
         $this->validateAdministrator($user);
 
@@ -88,93 +137,17 @@ final class AdministratorService
     }
 
     /**
-     * Eliminación lógica (soft delete) de administrador.
+     * Actualizar datos básicos de un administrador existente. A diferencia
+     * del resto de acciones de este service, SÍ permite auto-edición (un
+     * superadmin puede editar su propia ficha) — AdministratorUpdateDTO no
+     * incluye `status`, así que esta vía nunca puede auto-desactivar al
+     * actor ni a nadie más (ver toggleStatus() para eso).
      */
-    public function delete(User $user): void
-    {
-        $this->validateAdministrator($user);
-        $this->guardNotLastActiveAdministrator($user);
-
-        if ($user->status === 'DELETED') {
-            throw AdministratorException::alreadyDeleted();
-        }
-
-        $user->update(['status' => 'DELETED']);
-        $user->delete();
-    }
-
-    /**
-     * Eliminación definitiva (hard delete) de administrador.
-     */
-    public function destroy(User $user): void
-    {
-        $this->validateAdministrator($user);
-        $this->guardNotLastActiveAdministrator($user);
-
-        // No permitir eliminar al último superadmin — regla adicional a
-        // guardNotLastActiveAdministrator(): un admin normal SÍ puede quedar
-        // en cero (el sistema sigue teniendo superadmins), pero el rol
-        // 'superadmin' en sí nunca puede quedarse sin representantes, ya que
-        // es la única cuenta que puede reactivar cualquier otra.
-        $superadminCount = User::role('superadmin')->count();
-        if ($user->hasRole('superadmin') && $superadminCount <= 1) {
-            throw AdministratorException::cannotDeleteLastSuperAdmin();
-        }
-
-        DB::transaction(function () use ($user) {
-            $user->roles()->detach();
-            $user->forceDelete();
-        });
-    }
-
-    /**
-     * Restablecer contraseña de administrador. Exige que la cuenta esté
-     * ACTIVE — mismo criterio que AdminUserService::resetPassword(), evita
-     * generar credenciales nuevas para una cuenta suspendida/eliminada.
-     */
-    public function resetPassword(User $user): string
-    {
-        $this->validateAdministrator($user);
-
-        if ($user->status !== 'ACTIVE') {
-            throw AdministratorException::passwordResetRequiresActiveStatus();
-        }
-
-        $newPassword = Str::random(12);
-
-        $user->update([
-            'password' => Hash::make($newPassword),
-        ]);
-
-        return $newPassword;
-    }
-
-    /**
-     * Validar que el usuario sea realmente un administrador (admin o
-     * superadmin), sin restricción de auto-modificación — usado por update(),
-     * la única acción que un superadmin puede aplicarse a sí mismo.
-     */
-    private function validateIsAdministrator(User $user): void
-    {
-        if (!$user->hasRole('admin') && !$user->hasRole('superadmin')) {
-            throw AdministratorException::notAdministrator();
-        }
-    }
-
-    /**
-     * Validar que el usuario sea un administrador y que el actor no se esté
-     * aplicando a sí mismo una acción sensible (status/password/delete).
-     * Reasegura a nivel de service lo que UserPolicy::manageAdministrator()
-     * ya bloquea, para que ningún otro caller que invoque el service
-     * directamente pueda saltarse la regla.
-     */
-    private function validateAdministrator(User $user): void
+    public function update(User $user, AdministratorUpdateDTO $dto) : void
     {
         $this->validateIsAdministrator($user);
 
-        if ($user->id === auth()->id()) {
-            throw AdministratorException::cannotModifySelf();
-        }
+        $user->update($dto->toArray());
     }
 
     /**
@@ -183,7 +156,7 @@ final class AdministratorService
      * sería posible desactivar en cascada a todos los admins y quedar sin
      * ninguna cuenta capaz de gestionar el panel.
      */
-    private function guardNotLastActiveAdministrator(User $user): void
+    private function guardNotLastActiveAdministrator(User $user) : void
     {
         if ($user->status !== 'ACTIVE') {
             return;
@@ -195,6 +168,34 @@ final class AdministratorService
 
         if ($activeAdminCount <= 1) {
             throw AdministratorException::cannotRemoveLastActiveAdministrator();
+        }
+    }
+
+    /**
+     * Validar que el usuario sea un administrador y que el actor no se esté
+     * aplicando a sí mismo una acción sensible (status/password/delete).
+     * Reasegura a nivel de service lo que UserPolicy::manageAdministrator()
+     * ya bloquea, para que ningún otro caller que invoque el service
+     * directamente pueda saltarse la regla.
+     */
+    private function validateAdministrator(User $user) : void
+    {
+        $this->validateIsAdministrator($user);
+
+        if ($user->id === auth()->id()) {
+            throw AdministratorException::cannotModifySelf();
+        }
+    }
+
+    /**
+     * Validar que el usuario sea realmente un administrador (admin o
+     * superadmin), sin restricción de auto-modificación — usado por update(),
+     * la única acción que un superadmin puede aplicarse a sí mismo.
+     */
+    private function validateIsAdministrator(User $user) : void
+    {
+        if (! $user->hasRole('admin') && ! $user->hasRole('superadmin')) {
+            throw AdministratorException::notAdministrator();
         }
     }
 }

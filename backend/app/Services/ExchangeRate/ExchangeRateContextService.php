@@ -36,99 +36,19 @@ final class ExchangeRateContextService
         private readonly UserContextService $userContext,
         private readonly RoleUserService $roleUserService,
         private readonly RoleEntityResolver $roleEntityResolver,
-    ) {}
-
-    /**
-     * Resuelve el contexto para la visualización de tasas de cambio.
-     *
-     * - Usuarios autenticados reciben monedas y tasas según su rol.
-     * - Usuarios públicos obtienen acceso limitado mediante token.
-     *
-     * @param string|null $publicToken Token público opcional.
-     * @return ExchangeRateContextDTO Contexto listo para la vista.
-     *
-     * @throws DomainException Si no se puede resolver el usuario o rol activo.
-     */
-    public function resolve(?string $publicToken = null): ExchangeRateContextDTO
-    {
-        $userId = $this->userContext->resolveUserId($publicToken);
-        $isLogged = $this->userContext->isAuthenticated();
-
-        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        $autoUpdateEnabled = (bool) UserPreference::getPreference(
-            $userId,
-            UserPreference::CATEGORY_EXCHANGE_RATE,
-            'auto_update_enabled',
-            false
-        );
-
-        $bcvAutoUpdateEnabled = (bool) UserPreference::getPreference(
-            $userId,
-            UserPreference::CATEGORY_EXCHANGE_RATE,
-            'bcv_auto_update_enabled',
-            false
-        );
-
-        return new ExchangeRateContextDTO(
-            currencies: $isLogged
-                ? $this->currency->getAvailableCurrencies($userId, true, true)
-                : collect(),
-
-            exchangeRates: $this->resolveExchangeRatesByRole(
-                $userRolePrefix,
-                $userId
-            ),
-
-            roleUser: $userRolePrefix,
-
-            // En acceso público exponemos el userId resuelto como tokenId
-            tokenId: $isLogged ? '' : (string) $userId,
-
-            autoUpdateEnabled: $autoUpdateEnabled,
-
-            bcvAutoUpdateEnabled: $bcvAutoUpdateEnabled,
-        );
+    ) {
     }
-
-    /**
-     * Resuelve las tasas de cambio según el prefijo de rol activo.
-     *
-     * Antes 'customer' caía al default (Collection vacía) pese a que
-     * ExchangeRateCrudService/ExchangeRateUpdaterService sí soportan ese rol
-     * de punta a punta — un customer podía crear/editar su propia tasa pero
-     * nunca la veía listada aquí. 'treasurer' gestiona la tasa OFICIAL igual
-     * que admin/superadmin (no tiene entidad propia, ver RoleEntityResolver).
-     *
-     * @param string $role Prefijo de rol activo (ej. 'commerce', 'customer').
-     * @param int $userId ID del usuario autenticado o resuelto por token.
-     *
-     * @return Collection Lista de tasas de cambio disponibles.
-     */
-    protected function resolveExchangeRatesByRole(string $role, int $userId): Collection
-    {
-        return match ($role) {
-            'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates(
-                $this->roleEntityResolver->resolveEntityId($userId, $role)
-            ),
-            'customer' => $this->customerExchangeRate->getAvailableExchangeRates(
-                $this->roleEntityResolver->resolveEntityId($userId, $role)
-            ),
-            'admin', 'superadmin', 'treasurer' => $this->adminExchangeRate->getAvailableExchangeRates(),
-            default                            => new Collection(),
-        };
-    }
-
 
     /**
      * Obtener todas las tasas de cambio filtradas según contexto y rol.
      *
-     * @param string|null $publicToken Token público opcional.
-     * @return array Listado de tasas de cambio.
+     * @param string|null $publicToken token público opcional
      *
-     * @throws DomainException Si no se puede resolver el usuario.
+     * @return array listado de tasas de cambio
+     *
+     * @throws DomainException si no se puede resolver el usuario
      */
-    public function getAll(?string $publicToken = null): array
+    public function getAll(?string $publicToken = null) : array
     {
         $userId = $this->userContext->resolveUserId($publicToken);
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
@@ -141,8 +61,9 @@ final class ExchangeRateContextService
         // moneda. commerce/customer gestionan su propia tasa en tablas
         // separadas sin el mismo patrón de versionado ACTIVE/OLD.
         if (in_array($role, ['admin', 'superadmin', 'treasurer'], true)) {
-            $rates = $rates->map(function ($rate) {
+            $rates = $rates->map(function($rate) {
                 $rate->history = $this->buildHistory((string) $rate->currency_id);
+
                 return $rate;
             });
         }
@@ -150,36 +71,67 @@ final class ExchangeRateContextService
         return $rates->toArray();
     }
 
-    /** Mismos N puntos/criterio que ExchangeRateSummaryService::buildHistory()
-     *  (ACTIVE + OLD, orden ascendente listo para graficar) — duplicado acá
-     *  porque ese servicio vive en el namespace de dashboards de SuperAdmin
-     *  y esta clase no debería depender de él solo por este helper. */
-    private function buildHistory(string $currencyId): array
+    /**
+     * Resuelve el contexto para la visualización de tasas de cambio.
+     *
+     * - Usuarios autenticados reciben monedas y tasas según su rol.
+     * - Usuarios públicos obtienen acceso limitado mediante token.
+     *
+     * @param string|null $publicToken token público opcional
+     *
+     * @return ExchangeRateContextDTO contexto listo para la vista
+     *
+     * @throws DomainException si no se puede resolver el usuario o rol activo
+     */
+    public function resolve(?string $publicToken = null) : ExchangeRateContextDTO
     {
-        return \App\Models\ExchangeRate::where('currency_id', $currencyId)
-            ->whereIn('status', ['ACTIVE', 'OLD'])
-            ->latest('updated_at')
-            ->limit(7)
-            ->get(['amount', 'updated_at'])
-            ->sortBy('updated_at')
-            ->values()
-            ->map(fn ($rate) => [
-                'date'   => $rate->updated_at?->toIso8601String() ?? '',
-                'amount' => (float) $rate->amount,
-            ])
-            ->all();
+        $userId = $this->userContext->resolveUserId($publicToken);
+        $isLogged = $this->userContext->isAuthenticated();
+
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        $autoUpdateEnabled = (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'auto_update_enabled',
+            false,
+        );
+
+        $bcvAutoUpdateEnabled = (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'bcv_auto_update_enabled',
+            false,
+        );
+
+        return new ExchangeRateContextDTO(
+            currencies: $isLogged
+                ? $this->currency->getAvailableCurrencies($userId, true, true)
+                : collect(),
+            exchangeRates: $this->resolveExchangeRatesByRole(
+                $userRolePrefix,
+                $userId,
+            ),
+            roleUser: $userRolePrefix,
+
+            // En acceso público exponemos el userId resuelto como tokenId
+            tokenId: $isLogged ? '' : (string) $userId,
+            autoUpdateEnabled: $autoUpdateEnabled,
+            bcvAutoUpdateEnabled: $bcvAutoUpdateEnabled,
+        );
     }
 
     /**
      * Resuelve el contexto histórico de tasas de cambio para una moneda.
      *
-     * @param string $currencyId ID de la moneda a consultar.
-     * @param string|null $publicToken Token público opcional.
-     * @return array Datos para la vista histórica.
+     * @param string      $currencyId  ID de la moneda a consultar
+     * @param string|null $publicToken token público opcional
      *
-     * @throws DomainException Si no se puede resolver el usuario o rol activo.
+     * @return array datos para la vista histórica
+     *
+     * @throws DomainException si no se puede resolver el usuario o rol activo
      */
-    public function resolveHistorical(string $currencyId, ?string $publicToken = null): array
+    public function resolveHistorical(string $currencyId, ?string $publicToken = null) : array
     {
         $userId = $this->userContext->resolveUserId($publicToken);
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
@@ -187,16 +139,16 @@ final class ExchangeRateContextService
         $history = match ($role) {
             'commerce' => $this->commerceExchangeRate->getHistoryByCurrency(
                 $this->roleEntityResolver->resolveEntityId($userId, $role),
-                $currencyId
+                $currencyId,
             ),
             // CustomerExchangeRateRepositoryInterface no tiene getHistoryByCurrency
             // (nombre distinto: getRateHistory) — mismo dato, firma propia.
             'customer' => $this->customerExchangeRate->getRateHistory(
                 $this->roleEntityResolver->resolveEntityId($userId, $role),
-                $currencyId
+                $currencyId,
             ),
             'admin', 'superadmin', 'treasurer' => $this->adminExchangeRate->getHistoryByCurrency($currencyId),
-            default                            => new Collection(),
+            default => new Collection,
         };
 
         // currencies + tokenId: Historical.vue reutiliza ExchangeRateForm
@@ -206,10 +158,58 @@ final class ExchangeRateContextService
         // esta vista solo edite, nunca cree.
         return [
             'exchangeRates' => $history,
-            'currencyId'    => $currencyId,
-            'roleUser'      => $role,
-            'currencies'    => $this->currency->getAvailableCurrencies($userId, true, true),
-            'tokenId'       => $publicToken ?? '',
+            'currencyId' => $currencyId,
+            'roleUser' => $role,
+            'currencies' => $this->currency->getAvailableCurrencies($userId, true, true),
+            'tokenId' => $publicToken ?? '',
         ];
+    }
+
+    /**
+     * Resuelve las tasas de cambio según el prefijo de rol activo.
+     *
+     * Antes 'customer' caía al default (Collection vacía) pese a que
+     * ExchangeRateCrudService/ExchangeRateUpdaterService sí soportan ese rol
+     * de punta a punta — un customer podía crear/editar su propia tasa pero
+     * nunca la veía listada aquí. 'treasurer' gestiona la tasa OFICIAL igual
+     * que admin/superadmin (no tiene entidad propia, ver RoleEntityResolver).
+     *
+     * @param string $role   Prefijo de rol activo (ej. 'commerce', 'customer').
+     * @param int    $userId ID del usuario autenticado o resuelto por token
+     *
+     * @return Collection lista de tasas de cambio disponibles
+     */
+    protected function resolveExchangeRatesByRole(string $role, int $userId) : Collection
+    {
+        return match ($role) {
+            'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates(
+                $this->roleEntityResolver->resolveEntityId($userId, $role),
+            ),
+            'customer' => $this->customerExchangeRate->getAvailableExchangeRates(
+                $this->roleEntityResolver->resolveEntityId($userId, $role),
+            ),
+            'admin', 'superadmin', 'treasurer' => $this->adminExchangeRate->getAvailableExchangeRates(),
+            default => new Collection,
+        };
+    }
+
+    /** Mismos N puntos/criterio que ExchangeRateSummaryService::buildHistory()
+     *  (ACTIVE + OLD, orden ascendente listo para graficar) — duplicado acá
+     *  porque ese servicio vive en el namespace de dashboards de SuperAdmin
+     *  y esta clase no debería depender de él solo por este helper. */
+    private function buildHistory(string $currencyId) : array
+    {
+        return \App\Models\ExchangeRate::where('currency_id', $currencyId)
+            ->whereIn('status', ['ACTIVE', 'OLD'])
+            ->latest('updated_at')
+            ->limit(7)
+            ->get(['amount', 'updated_at'])
+            ->sortBy('updated_at')
+            ->values()
+            ->map(fn ($rate) => [
+                'date' => $rate->updated_at?->toIso8601String() ?? '',
+                'amount' => (float) $rate->amount,
+            ])
+            ->all();
     }
 }

@@ -18,7 +18,7 @@ final class ExternalPlayerLinkSettings
     private const CACHE_TTL_SECONDS = 600;
     private const DEFAULT_DAYS = 7;
 
-    public static function expirationDays(): int
+    public static function expirationDays() : int
     {
         $days = Cache::remember(
             self::CACHE_KEY,

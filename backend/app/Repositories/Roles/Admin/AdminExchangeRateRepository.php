@@ -6,6 +6,7 @@ use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Models\ExchangeRate;
 use App\Repositories\ExchangeRate\RoleExchangeRateRepository;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +18,6 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
 {
     /**
      * Constructor del repository
-     *
-     * @param ExchangeRate $model
      */
     public function __construct(ExchangeRate $model)
     {
@@ -28,11 +27,11 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     /**
      * Implementación específica para admin: no usa foreign key de rol
      */
-    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto): Model
+    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto) : Model
     {
         $data = [
             'currency_id' => $dto->currencyId,
-            'amount'      => $dto->amount, // Use amount field as per migration
+            'amount' => $dto->amount, // Use amount field as per migration
         ];
 
         $model = $this->model
@@ -43,6 +42,7 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
         if ($model) {
             $model->trashed() && $model->restore();
             $model->update($data);
+
             return $model;
         }
 
@@ -51,10 +51,8 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
 
     /**
      * Obtiene todas las tasas de cambio
-     *
-     * @return Collection
      */
-    public function getAllExchangeRates(): Collection
+    public function getAllExchangeRates() : Collection
     {
         return $this->model->with('currency:id,iso_code,name,description,type,status,country_id')
             ->with('currency.country:id,name,iso_code_2,iso_code_3')
@@ -63,23 +61,46 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     }
 
     /**
-     * Obtiene tasas de cambio por moneda
+     * Obtiene los códigos ISO de las monedas disponibles
      *
-     * @param mixed $currencyId ID de la moneda
-     * @return Collection
+     * @return array Lista de códigos ISO
      */
-    public function getExchangeRatesByCurrency($currencyId): Collection
+    public function getAvailableCurrenciesIsoCodes() : array
     {
-        return $this->model->where('currency_id', $currencyId)
-            ->orderByDesc('updated_at')
-            ->get(['currency_id', 'amount', 'updated_at']);
+        return $this->model
+            ->join('currencies', 'currencies.id', '=', 'exchange_rates.currency_id')
+            ->where('currencies.status', 'ACTIVE')
+            ->distinct()
+            ->pluck('currencies.iso_code')
+            ->toArray();
+    }
+
+    /**
+     * Obtiene las tasas de cambio disponibles para administradores
+     */
+    public function getAvailableExchangeRates() : Collection
+    {
+        // with('user'): Index.vue (ExchangeRateTable) muestra "Registrado
+        // por" / origen (manual vs. automático, ver ExchangeRate::source) —
+        // antes esta query no cargaba la relación, forzando un N+1 lazy
+        // load por fila apenas el frontend intentaba mostrar ese dato.
+        return $this->model
+            ->with('user:id,username,first_name,last_name')
+            ->where('status', '<>', 'OLD')
+            ->get()
+            ->map(function(ExchangeRate $rate) {
+                $rate->user_name = $this->displayName($rate);
+
+                return $rate;
+            });
     }
 
     /**
      * Obtiene valor específico de tasa por moneda
      *
-     * @param mixed $currencyId ID de la moneda
-     * @param string $field Campo a obtener
+     * @param mixed  $currencyId ID de la moneda
+     * @param string $field      Campo a obtener
+     *
      * @return mixed
      */
     public function getCurrencyValue($currencyId, string $field = 'amount')
@@ -92,7 +113,7 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     /**
      * {@inheritDoc}
      */
-    public function getCurrentRatesBatch(array $currencyIds): array
+    public function getCurrentRatesBatch(array $currencyIds) : array
     {
         if (empty($currencyIds)) {
             return [];
@@ -110,12 +131,62 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
         $result = [];
         foreach ($rows as $row) {
             $key = (string) $row->currency_id;
-            if (!isset($result[$key])) {
+            if (! isset($result[$key])) {
                 $result[$key] = (float) $row->amount;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * Obtiene tasas de cambio por moneda
+     *
+     * @param mixed $currencyId ID de la moneda
+     */
+    public function getExchangeRatesByCurrency($currencyId) : Collection
+    {
+        return $this->model->where('currency_id', $currencyId)
+            ->orderByDesc('updated_at')
+            ->get(['currency_id', 'amount', 'updated_at']);
+    }
+
+    /**
+     * Obtiene el historial completo de tasas por moneda
+     *
+     * @param mixed $currencyId ID de la moneda
+     */
+    public function getHistoryByCurrency($currencyId) : Collection
+    {
+        // user_name: mismo criterio que displayName() (username si existe,
+        // si no nombre completo) — antes construía el nombre directo con
+        // first_name+last_name sin username, inconsistente con
+        // getAvailableExchangeRates(). Mostraba "Play RKE" (nombre real del
+        // usuario admin@playrke.com) en el histórico mientras el listado
+        // principal mostraba "admin" (su username) para la misma fila.
+        return $this->model
+            ->with(['currency', 'user:id,username,first_name,last_name'])
+            ->where('currency_id', $currencyId)
+            ->orderByDesc('updated_at')
+            ->get()
+            ->map(function(ExchangeRate $rate) {
+                $rate->currency_name = $rate->currency?->name ?? '-';
+                $rate->user_name = $this->displayName($rate);
+
+                return $rate;
+            });
+    }
+
+    /**
+     * Obtiene la tasa más reciente por moneda
+     *
+     * @param mixed $currencyId ID de la moneda
+     */
+    public function getLatestRate($currencyId) : ?ExchangeRate
+    {
+        return $this->model->where('currency_id', $currencyId)
+            ->orderByDesc('updated_at')
+            ->first();
     }
 
     /**
@@ -139,17 +210,16 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      * el flujo manual, y en ambos casos ya recibe el $userId real que debe
      * usar.
      *
-     * @param mixed $currencyId ID de la moneda
-     * @param float $amount Valor de la tasa
-     * @param float $percentage Porcentaje
-     * @param int $userId Usuario real que originó la actualización
-     * @param string $source ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
-     * @return bool
+     * @param mixed  $currencyId ID de la moneda
+     * @param float  $amount     Valor de la tasa
+     * @param float  $percentage Porcentaje
+     * @param int    $userId     Usuario real que originó la actualización
+     * @param string $source     ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
      */
-    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage, int $userId, string $source = 'user'): bool
+    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage, int $userId, string $source = 'user') : bool
     {
         try {
-            DB::transaction(function () use ($currencyId, $amount, $percentage, $userId, $source) {
+            DB::transaction(function() use ($currencyId, $amount, $percentage, $userId, $source) {
                 $current = $this->model
                     ->where('currency_id', $currencyId)
                     ->where('status', 'ACTIVE')
@@ -161,6 +231,7 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
                 // el BCV/mercado no cambia cada hora).
                 if ($current && (float) $current->amount === $amount) {
                     $current->update(['user_id' => $userId, 'source' => $source]);
+
                     return;
                 }
 
@@ -168,78 +239,18 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
 
                 $this->model->create([
                     'currency_id' => $currencyId,
-                    'amount'      => $amount,
-                    'percentage'  => $percentage,
-                    'user_id'     => $userId,
-                    'source'      => $source,
-                    'status'      => 'ACTIVE',
+                    'amount' => $amount,
+                    'percentage' => $percentage,
+                    'user_id' => $userId,
+                    'source' => $source,
+                    'status' => 'ACTIVE',
                 ]);
             });
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
-    }
-
-    /**
-     * Obtiene la tasa más reciente por moneda
-     *
-     * @param mixed $currencyId ID de la moneda
-     * @return ExchangeRate|null
-     */
-    public function getLatestRate($currencyId): ?ExchangeRate
-    {
-        return $this->model->where('currency_id', $currencyId)
-            ->orderByDesc('updated_at')
-            ->first();
-    }
-
-    /**
-     * Obtiene el historial completo de tasas por moneda
-     *
-     * @param mixed $currencyId ID de la moneda
-     * @return Collection
-     */
-    public function getHistoryByCurrency($currencyId): Collection
-    {
-        // user_name: mismo criterio que displayName() (username si existe,
-        // si no nombre completo) — antes construía el nombre directo con
-        // first_name+last_name sin username, inconsistente con
-        // getAvailableExchangeRates(). Mostraba "Play RKE" (nombre real del
-        // usuario admin@playrke.com) en el histórico mientras el listado
-        // principal mostraba "admin" (su username) para la misma fila.
-        return $this->model
-            ->with(['currency', 'user:id,username,first_name,last_name'])
-            ->where('currency_id', $currencyId)
-            ->orderByDesc('updated_at')
-            ->get()
-            ->map(function (ExchangeRate $rate) {
-                $rate->currency_name = $rate->currency?->name ?? '-';
-                $rate->user_name = $this->displayName($rate);
-                return $rate;
-            });
-    }
-
-    /**
-     * Obtiene las tasas de cambio disponibles para administradores
-     *
-     * @return Collection
-     */
-    public function getAvailableExchangeRates(): Collection
-    {
-        // with('user'): Index.vue (ExchangeRateTable) muestra "Registrado
-        // por" / origen (manual vs. automático, ver ExchangeRate::source) —
-        // antes esta query no cargaba la relación, forzando un N+1 lazy
-        // load por fila apenas el frontend intentaba mostrar ese dato.
-        return $this->model
-            ->with('user:id,username,first_name,last_name')
-            ->where('status', '<>', 'OLD')
-            ->get()
-            ->map(function (ExchangeRate $rate) {
-                $rate->user_name = $this->displayName($rate);
-                return $rate;
-            });
     }
 
     /**
@@ -249,9 +260,9 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      * namespace de dashboards de SuperAdmin y esta clase no debería
      * depender de él solo por este helper.
      */
-    private function displayName(ExchangeRate $rate): string
+    private function displayName(ExchangeRate $rate) : string
     {
-        if (!$rate->user) {
+        if (! $rate->user) {
             return '—';
         }
 
@@ -262,20 +273,5 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
         $fullName = trim("{$rate->user->first_name} {$rate->user->last_name}");
 
         return $fullName !== '' ? $fullName : '—';
-    }
-
-    /**
-     * Obtiene los códigos ISO de las monedas disponibles
-     *
-     * @return array Lista de códigos ISO
-     */
-    public function getAvailableCurrenciesIsoCodes(): array
-    {
-        return $this->model
-            ->join('currencies', 'currencies.id', '=', 'exchange_rates.currency_id')
-            ->where('currencies.status', 'ACTIVE')
-            ->distinct()
-            ->pluck('currencies.iso_code')
-            ->toArray();
     }
 }

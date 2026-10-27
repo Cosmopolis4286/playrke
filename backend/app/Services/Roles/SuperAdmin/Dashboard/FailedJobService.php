@@ -18,46 +18,53 @@ use Illuminate\Support\Facades\DB;
  */
 final class FailedJobService
 {
+    public function count() : int
+    {
+        return DB::table('failed_jobs')->count();
+    }
+
+    public function forget(string $uuid) : bool
+    {
+        Artisan::call('queue:forget', ['id' => $uuid]);
+
+        return DB::table('failed_jobs')->where('uuid', $uuid)->doesntExist();
+    }
+
     /**
      * @return array<int, array{uuid: string, connection: string, queue: string, exception_summary: string, failed_at: string, server_timezone: string}>
      */
-    public function list(int $limit = 50): array
+    public function list(int $limit = 50) : array
     {
         return DB::table('failed_jobs')
             ->orderByDesc('failed_at')
             ->limit($limit)
             ->get()
             ->map(fn ($row) => [
-                'uuid'               => $row->uuid,
-                'connection'         => $row->connection,
-                'queue'               => $row->queue,
-                'job_name'           => $this->extractJobName($row->payload),
-                'exception_summary'  => $this->summarizeException($row->exception),
+                'uuid' => $row->uuid,
+                'connection' => $row->connection,
+                'queue' => $row->queue,
+                'job_name' => $this->extractJobName($row->payload),
+                'exception_summary' => $this->summarizeException($row->exception),
                 // failed_jobs.failed_at se inserta vía Date::now() (Carbon) en
                 // el propio proceso PHP del worker — ya está en la zona
                 // horaria de la app (config('app.timezone')), no en la de la
                 // sesión MySQL (que puede ser distinta, ej. SYSTEM/UTC acá).
                 // Se parsea explícitamente en esa zona antes de exportar ISO
                 // para que el frontend la convierta a hora local del navegador.
-                'failed_at'          => Carbon::parse($row->failed_at, config('app.timezone'))->toIso8601String(),
-                'server_timezone'    => config('app.timezone'),
+                'failed_at' => Carbon::parse($row->failed_at, config('app.timezone'))->toIso8601String(),
+                'server_timezone' => config('app.timezone'),
             ])
             ->all();
     }
 
-    public function count(): int
-    {
-        return DB::table('failed_jobs')->count();
-    }
-
-    public function retry(string $uuid): bool
+    public function retry(string $uuid) : bool
     {
         Artisan::call('queue:retry', ['id' => [$uuid]]);
 
         return DB::table('failed_jobs')->where('uuid', $uuid)->doesntExist();
     }
 
-    public function retryAll(): int
+    public function retryAll() : int
     {
         $count = $this->count();
         Artisan::call('queue:retry', ['id' => ['all']]);
@@ -65,14 +72,7 @@ final class FailedJobService
         return $count;
     }
 
-    public function forget(string $uuid): bool
-    {
-        Artisan::call('queue:forget', ['id' => $uuid]);
-
-        return DB::table('failed_jobs')->where('uuid', $uuid)->doesntExist();
-    }
-
-    private function extractJobName(string $payload): string
+    private function extractJobName(string $payload) : string
     {
         $decoded = json_decode($payload, true);
 
@@ -84,7 +84,7 @@ final class FailedJobService
      * disponible vía el propio comando artisan si se necesita, no tiene
      * sentido exponerlo entero en el widget del dashboard.
      */
-    private function summarizeException(string $exception): string
+    private function summarizeException(string $exception) : string
     {
         $firstLine = strtok($exception, "\n") ?: $exception;
 

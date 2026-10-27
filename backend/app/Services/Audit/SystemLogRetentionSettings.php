@@ -17,7 +17,7 @@ final class SystemLogRetentionSettings
     private const CACHE_TTL_SECONDS = 600;
     private const DEFAULT_DAYS = 30;
 
-    public static function retentionDays(): int
+    public static function retentionDays() : int
     {
         $days = Cache::remember(
             self::CACHE_KEY,

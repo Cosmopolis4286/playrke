@@ -2,15 +2,15 @@
 
 namespace App\Services\Users\Roles\Customer;
 
-use App\Models\User;
+use App\Contracts\UserRepositoryInterface;
 use App\Domains\Wallet\Models\Wallet;
 use App\Models\Roles\Customer;
-use App\Contracts\UserRepositoryInterface;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Carbon\Carbon;
+use Throwable;
 
 /**
  * Servicio para manejar la lógica de negocio de Clientes (Customer).
@@ -20,8 +20,6 @@ use Carbon\Carbon;
  * - Actualización de datos del cliente
  * - Obtención de información del cliente con sus relaciones
  * - Gestión de logos y archivos
- *
- * @package App\Services\Users\Roles\Customer
  */
 class CustomerService
 {
@@ -31,8 +29,9 @@ class CustomerService
      * @param UserRepositoryInterface $userRepository Repositorio de usuarios
      */
     public function __construct(
-        protected UserRepositoryInterface $userRepository
-    ) {}
+        protected UserRepositoryInterface $userRepository,
+    ) {
+    }
 
     /**
      * Crear un nuevo cliente junto con usuario, wallet y configuraciones iniciales.
@@ -47,12 +46,14 @@ class CustomerService
      * 7. Procesa el logo si fue subido
      *
      * @param array $data Datos validados del request
+     *
      * @return array ['customer_id' => Customer, 'password' => string]
-     * @throws \Throwable Si ocurre algún error en la transacción
+     *
+     * @throws Throwable Si ocurre algún error en la transacción
      */
-    public function create(array $data): array
+    public function create(array $data) : array
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function() use ($data) {
             $password = $this->generatePassword();
 
             // 👤 Crear usuario
@@ -88,16 +89,74 @@ class CustomerService
     }
 
     /**
+     * Obtener todos los clientes con sus relaciones.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection Colección de clientes
+     */
+    public function getAll()
+    {
+        return Customer::with([
+            'country:id,name',
+            'user:id,username,email',
+            'currency:id,symbol',
+        ])->get();
+    }
+
+    /**
+     * Obtener un cliente por ID con sus relaciones.
+     *
+     * @param string $id ID del cliente
+     *
+     * @return array Datos del cliente estructurados
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Si no se encuentra el cliente
+     */
+    public function getById(string $id) : array
+    {
+        $customer = Customer::select([
+            'id',
+            'name',
+            'customer_id',
+            'phone',
+            'country_id',
+            'currency_id',
+            'user_id',
+            'api_route',
+            'customer_key',
+            'logo',
+            'status',
+            'created_at',
+            'updated_at',
+        ])->with([
+            'country:id,name',
+            'user:id,username,email,time_zone_id',
+            'user.timeZone:id,name',
+            'currency:id,symbol,description',
+            'otherCurrencies:id,symbol,description',
+            'allowedGames:id,name',
+        ])->findOrFail($id);
+
+        return [
+            'customer' => $customer,
+            'user' => $customer->user,
+            'other_currencies' => $customer->otherCurrencies->pluck('id')->toArray(),
+            'allowed_games' => $customer->allowedGames->pluck('id')->toArray(),
+        ];
+    }
+
+    /**
      * Actualizar un cliente existente.
      *
-     * @param array $data Datos validados del DTO
+     * @param array  $data       Datos validados del DTO
      * @param string $customerId ID del cliente a actualizar
+     *
      * @return Customer Cliente actualizado
-     * @throws \Throwable Si ocurre algún error en la transacción
+     *
+     * @throws Throwable Si ocurre algún error en la transacción
      */
-    public function update(array $data, string $customerId): Customer
+    public function update(array $data, string $customerId) : Customer
     {
-        return DB::transaction(function () use ($data, $customerId) {
+        return DB::transaction(function() use ($data, $customerId) {
             $customer = Customer::with('user')->findOrFail($customerId);
 
             // Actualizar datos del usuario
@@ -107,12 +166,12 @@ class CustomerService
 
             // Actualizar datos del customer
             $customer->update([
-                'name'        => $data['name'] ?? $customer->name,
+                'name' => $data['name'] ?? $customer->name,
                 'customer_id' => $data['customer_id'] ?? $customer->customer_id,
-                'phone'       => $data['phone'] ?? $customer->phone,
-                'country_id'  => $data['country'] ?? $customer->country_id,
+                'phone' => $data['phone'] ?? $customer->phone,
+                'country_id' => $data['country'] ?? $customer->country_id,
                 'currency_id' => $data['currency'] ?? $customer->currency_id,
-                'api_route'   => $data['api_route'] ?? $customer->api_route,
+                'api_route' => $data['api_route'] ?? $customer->api_route,
                 'customer_key' => $data['customer_key'] ?? $customer->customer_key,
             ]);
 
@@ -142,57 +201,62 @@ class CustomerService
     }
 
     /**
-     * Obtener un cliente por ID con sus relaciones.
+     * Crear un registro de cliente en la tabla customers.
      *
-     * @param string $id ID del cliente
-     * @return array Datos del cliente estructurados
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Si no se encuentra el cliente
+     * @param array  $data   Datos del request
+     * @param string $userId ID del usuario creado
+     *
+     * @return Customer Cliente creado
      */
-    public function getById(string $id): array
+    private function createCustomerRecord(array $data, string $userId) : Customer
     {
-        $customer = Customer::select([
-            'id',
-            'name',
-            'customer_id',
-            'phone',
-            'country_id',
-            'currency_id',
-            'user_id',
-            'api_route',
-            'customer_key',
-            'logo',
-            'status',
-            'created_at',
-            'updated_at'
-        ])->with([
-            'country:id,name',
-            'user:id,username,email,time_zone_id',
-            'user.timeZone:id,name',
-            'currency:id,symbol,description',
-            'otherCurrencies:id,symbol,description',
-            'allowedGames:id,name'
-        ])->findOrFail($id);
-
-        return [
-            'customer' => $customer,
-            'user' => $customer->user,
-            'other_currencies' => $customer->otherCurrencies->pluck('id')->toArray(),
-            'allowed_games' => $customer->allowedGames->pluck('id')->toArray(),
-        ];
+        return Customer::create([
+            'name' => $data['name'],
+            'customer_id' => $data['customer_id'],
+            'phone' => $data['phone'],
+            'currency_id' => $data['currency'],
+            'country_id' => $data['country'],
+            'api_route' => $data['api_route'],
+            'customer_key' => $data['customer_key'],
+            'status' => 'ACTIVE',
+            'user_id' => $userId,
+        ]);
     }
 
     /**
-     * Obtener todos los clientes con sus relaciones.
+     * Crear un registro de usuario en la tabla users.
      *
-     * @return \Illuminate\Database\Eloquent\Collection Colección de clientes
+     * @param array  $data     Datos del request
+     * @param string $password Contraseña generada
+     *
+     * @return User Usuario creado
      */
-    public function getAll()
+    private function createUser(array $data, string $password) : User
     {
-        return Customer::with([
-            'country:id,name',
-            'user:id,username,email',
-            'currency:id,symbol'
-        ])->get();
+        return User::create([
+            'username' => $data['username'],
+            'email' => $data['email'],
+            'password' => Hash::make($password),
+            'country_id' => $data['country'],
+            'time_zone_id' => $data['time_zone'],
+            'email_verified_at' => Carbon::now(),
+            'referral_code' => $this->userRepository->generateUniqueReferralCode(),
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    /**
+     * Crear un wallet para el usuario con la moneda principal.
+     *
+     * @param string $userId     ID del usuario
+     * @param string $currencyId ID de la moneda
+     */
+    private function createWallet(string $userId, string $currencyId) : void
+    {
+        Wallet::create([
+            'currency_id' => $currencyId,
+            'user_id' => $userId,
+        ]);
     }
 
     /**
@@ -200,79 +264,23 @@ class CustomerService
      *
      * @return string Contraseña generada
      */
-    private function generatePassword(): string
+    private function generatePassword() : string
     {
         return bin2hex(random_bytes(4));
     }
 
     /**
-     * Crear un registro de usuario en la tabla users.
-     *
-     * @param array $data Datos del request
-     * @param string $password Contraseña generada
-     * @return User Usuario creado
-     */
-    private function createUser(array $data, string $password): User
-    {
-        return User::create([
-            'username'          => $data['username'],
-            'email'             => $data['email'],
-            'password'          => Hash::make($password),
-            'country_id'        => $data['country'],
-            'time_zone_id'      => $data['time_zone'],
-            'email_verified_at' => Carbon::now(),
-            'referral_code'     => $this->userRepository->generateUniqueReferralCode(),
-            'status'            => 'ACTIVE',
-        ]);
-    }
-
-    /**
-     * Crear un registro de cliente en la tabla customers.
-     *
-     * @param array $data Datos del request
-     * @param string $userId ID del usuario creado
-     * @return Customer Cliente creado
-     */
-    private function createCustomerRecord(array $data, string $userId): Customer
-    {
-        return Customer::create([
-            'name'         => $data['name'],
-            'customer_id'  => $data['customer_id'],
-            'phone'        => $data['phone'],
-            'currency_id'  => $data['currency'],
-            'country_id'   => $data['country'],
-            'api_route'    => $data['api_route'],
-            'customer_key' => $data['customer_key'],
-            'status'       => 'ACTIVE',
-            'user_id'      => $userId,
-        ]);
-    }
-
-    /**
-     * Crear un wallet para el usuario con la moneda principal.
-     *
-     * @param string $userId ID del usuario
-     * @param string $currencyId ID de la moneda
-     * @return void
-     */
-    private function createWallet(string $userId, string $currencyId): void
-    {
-        Wallet::create([
-            'currency_id' => $currencyId,
-            'user_id'     => $userId
-        ]);
-    }
-
-    /**
      * Almacenar el logo del cliente en storage.
      *
-     * @param \Illuminate\Http\UploadedFile $file Archivo subido
-     * @param string $customerId ID del cliente
+     * @param \Illuminate\Http\UploadedFile $file       Archivo subido
+     * @param string                        $customerId ID del cliente
+     *
      * @return string Ruta del archivo almacenado
      */
-    private function storeLogo($file, string $customerId): string
+    private function storeLogo($file, string $customerId) : string
     {
         $filename = 'customer_' . $customerId . '_' . time() . '.' . $file->getClientOriginalExtension();
+
         return $file->storeAs('customers/logos', $filename, 'public');
     }
 }

@@ -19,24 +19,68 @@ final class AdminSubsidiaryContextService
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly RoleUserService $roleUserService,
         private readonly UserContextService $userContext,
-    ) {}
+    ) {
+    }
 
     /**
-     * Resuelve el rol activo y el user_id del actor autenticado —
-     * superadmin se normaliza a 'admin' (mismo criterio que
-     * ManagerSellerContextService::resolve()): ambos ven el árbol completo
-     * sin restricción.
+     * Resolver listado de sucursales.
      *
-     * @return array{0: string, 1: int}
+     * @return array [subsidiaries, pagination]
      */
-    private function resolveActorRole(?int $actorUserId): array
+    public function resolveSubsidiaries(string $role = 'admin', ?int $actorUserId = null) : array
     {
-        $actorUserId ??= $this->userContext->resolveUserId();
-        $role = $this->roleUserService->getActiveUserRolePrefix($actorUserId);
-        if ($role === 'superadmin') {
-            $role = 'admin';
-        }
-        return [$role, $actorUserId];
+        $labels = ['Nombre', 'Comercio', 'País', 'Teléfono', 'Email', 'Status'];
+        $rowKeys = ['name', 'commerce.name', 'country.name', 'phone', 'user.email', 'status_badge'];
+
+        $conditions = match (true) {
+            $role === 'admin' => [],
+            $role === 'commerce' && $actorUserId => $this->commerceScopeCondition($actorUserId),
+            default => ['id' => '0'],
+        };
+
+        $source = $this->subsidiaries->paginateWithRelations(
+            perPage: 15,
+            page: 1,
+            relations: ['commerce:id,name', 'country:id,name', 'user:id,email'],
+            conditions: $conditions,
+            fields: ['id', 'commerce_id', 'country_id', 'user_id', 'name', 'phone', 'status'],
+        );
+
+        $collection = $source instanceof LengthAwarePaginator
+            ? $source->getCollection()
+            : collect($source);
+
+        $pagination = $source instanceof LengthAwarePaginator
+            ? [
+                'total' => $source->total(),
+                'per_page' => $source->perPage(),
+                'current_page' => $source->currentPage(),
+                'last_page' => $source->lastPage(),
+                'from' => $source->firstItem(),
+                'to' => $source->lastItem(),
+            ]
+            : null;
+
+        $subsidiaries = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        // Campos meta (no son columnas visibles) — solo admin/superadmin los
+        // usan. user_id: botón "Ver perfil" en el listado (Roles/Admin/
+        // Subsidiary/Index.vue), que navega a /subsidiary/profile con
+        // target_user_id=user_id de la agencia seleccionada. row.id es el id
+        // hasheado de la propia Subsidiary, no del User. user_hashed_id:
+        // botón "Impersonar" (admin/impersonation/{player}/start espera el
+        // hash de Hashids del User, ver HasHashedRouteKey — no el Snowflake
+        // plano).
+        $subsidiariesList = $collection->values();
+        $subsidiaries['rows'] = collect($subsidiaries['rows'])->map(function(array $row, int $index) use ($subsidiariesList) {
+            $rowUser = $subsidiariesList->get($index)?->user;
+            $row['user_id'] = $rowUser ? (string) $rowUser->id : null;
+            $row['user_hashed_id'] = $rowUser?->getHashedIdAttribute();
+
+            return $row;
+        })->all();
+
+        return ['subsidiaries' => $subsidiaries, 'pagination' => $pagination];
     }
 
     /**
@@ -51,10 +95,8 @@ final class AdminSubsidiaryContextService
      * formulario — un commerce solo ve/gestiona SUS PROPIAS subsidiaries, y
      * su select "Comercio" solo ofrece su propio registro (sin esto, el
      * propio formulario permitiría asignar la subsidiary a un comercio ajeno).
-     *
-     * @return AdminSubsidiaryContextDTO
      */
-    public function subsidiaryContext(?int $actorUserId = null): AdminSubsidiaryContextDTO
+    public function subsidiaryContext(?int $actorUserId = null) : AdminSubsidiaryContextDTO
     {
         [$role, $actorUserId] = $this->resolveActorRole($actorUserId);
 
@@ -89,7 +131,7 @@ final class AdminSubsidiaryContextService
      * fuerza cero resultados de forma segura. Mismo patrón que
      * ManagerSellerContextService::subsidiaryScopeCondition().
      */
-    private function commerceScopeCondition(int $actorUserId): array
+    private function commerceScopeCondition(int $actorUserId) : array
     {
         $commerceId = $this->commerces->getByUserId($actorUserId, ['id'])?->id;
 
@@ -97,62 +139,21 @@ final class AdminSubsidiaryContextService
     }
 
     /**
-     * Resolver listado de sucursales.
+     * Resuelve el rol activo y el user_id del actor autenticado —
+     * superadmin se normaliza a 'admin' (mismo criterio que
+     * ManagerSellerContextService::resolve()): ambos ven el árbol completo
+     * sin restricción.
      *
-     * @return array [subsidiaries, pagination]
+     * @return array{0: string, 1: int}
      */
-    public function resolveSubsidiaries(string $role = 'admin', ?int $actorUserId = null): array
+    private function resolveActorRole(?int $actorUserId) : array
     {
-        $labels  = ['Nombre', 'Comercio', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'commerce.name', 'country.name', 'phone', 'user.email', 'status_badge'];
+        $actorUserId ??= $this->userContext->resolveUserId();
+        $role = $this->roleUserService->getActiveUserRolePrefix($actorUserId);
+        if ($role === 'superadmin') {
+            $role = 'admin';
+        }
 
-        $conditions = match (true) {
-            $role === 'admin' => [],
-            $role === 'commerce' && $actorUserId => $this->commerceScopeCondition($actorUserId),
-            default => ['id' => '0'],
-        };
-
-        $source = $this->subsidiaries->paginateWithRelations(
-            perPage: 15,
-            page: 1,
-            relations: ['commerce:id,name', 'country:id,name', 'user:id,email'],
-            conditions: $conditions,
-            fields: ['id', 'commerce_id', 'country_id', 'user_id', 'name', 'phone', 'status']
-        );
-
-        $collection = $source instanceof LengthAwarePaginator
-            ? $source->getCollection()
-            : collect($source);
-
-        $pagination = $source instanceof LengthAwarePaginator
-            ? [
-                'total'        => $source->total(),
-                'per_page'     => $source->perPage(),
-                'current_page' => $source->currentPage(),
-                'last_page'    => $source->lastPage(),
-                'from'         => $source->firstItem(),
-                'to'           => $source->lastItem(),
-            ]
-            : null;
-
-        $subsidiaries = $this->processCollectionTableData($collection, $labels, $rowKeys);
-
-        // Campos meta (no son columnas visibles) — solo admin/superadmin los
-        // usan. user_id: botón "Ver perfil" en el listado (Roles/Admin/
-        // Subsidiary/Index.vue), que navega a /subsidiary/profile con
-        // target_user_id=user_id de la agencia seleccionada. row.id es el id
-        // hasheado de la propia Subsidiary, no del User. user_hashed_id:
-        // botón "Impersonar" (admin/impersonation/{player}/start espera el
-        // hash de Hashids del User, ver HasHashedRouteKey — no el Snowflake
-        // plano).
-        $subsidiariesList = $collection->values();
-        $subsidiaries['rows'] = collect($subsidiaries['rows'])->map(function (array $row, int $index) use ($subsidiariesList) {
-            $rowUser = $subsidiariesList->get($index)?->user;
-            $row['user_id'] = $rowUser ? (string) $rowUser->id : null;
-            $row['user_hashed_id'] = $rowUser?->getHashedIdAttribute();
-            return $row;
-        })->all();
-
-        return ['subsidiaries' => $subsidiaries, 'pagination' => $pagination];
+        return [$role, $actorUserId];
     }
 }

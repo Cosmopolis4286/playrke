@@ -30,25 +30,6 @@ final class DirectoryContextService
     use HashedTableDataTrait;
 
     /**
-     * Columnas y keys para Venezuela (Pago Móvil).
-     */
-    private const VE_COLUMNS = [
-        'Titular',
-        'Documento',
-        'Teléfono',
-        'Banco',
-        'Status',
-    ];
-
-    private const VE_ROW_KEYS = [
-        'holder_name',
-        'document',
-        'phone',
-        'Bank.name',
-        'status_badge',
-    ];
-
-    /**
      * Columnas y keys para Brasil (PIX).
      */
     private const BR_COLUMNS = [
@@ -67,6 +48,25 @@ final class DirectoryContextService
         'status_badge',
     ];
 
+    /**
+     * Columnas y keys para Venezuela (Pago Móvil).
+     */
+    private const VE_COLUMNS = [
+        'Titular',
+        'Documento',
+        'Teléfono',
+        'Banco',
+        'Status',
+    ];
+
+    private const VE_ROW_KEYS = [
+        'holder_name',
+        'document',
+        'phone',
+        'Bank.name',
+        'status_badge',
+    ];
+
     public function __construct(
         private readonly RoleUserService $roleUserService,
         private readonly BankVenezuela $bankVenezuela,
@@ -76,20 +76,50 @@ final class DirectoryContextService
         private readonly CountryRepositoryInterface $countryRepository,
         private readonly CurrencyService $currencyService,
         private readonly BrazilBankApiService $brazilBankApi,
-    ) {}
+    ) {
+    }
+
+    /**
+     * Obtiene directorios del usuario listos para tabla Inertia según el país.
+     *
+     * @param int    $userId      ID del usuario
+     * @param string $countryCode Código ISO2 del país (por defecto VE)
+     */
+    public function getAll(int $userId, string $countryCode = 'VE') : array
+    {
+        return $this->getDirectoriesTableData($userId, $countryCode);
+    }
+
+    /**
+     * Retorna el contexto completo (bancos + documentTypes + directorios) para un país.
+     * Usado por el endpoint AJAX al cambiar de tab.
+     */
+    public function getContextByCountry(int $userId, string $countryCode) : array
+    {
+        $country = $this->countryRepository
+            ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
+
+        return [
+            'banks' => $this->getBanksByCountry($countryCode),
+            'documentTypes' => ($country && $countryCode === 'VE')
+                ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
+                : collect(),
+            'directories' => $this->getDirectoriesTableData($userId, $countryCode),
+        ];
+    }
 
     /**
      * Resuelve el contexto del directorio según país.
      *
-     * @param int $userId ID del usuario dueño efectivo (owner — puede ser distinto del actor si un admin está gestionando en su nombre)
-     * @param string $countryCode Código ISO2 del país (por defecto VE)
-     * @param array{is_impersonation?: bool}|null $access Resultado de DirectoryAdminAccessService::resolve() — solo se usa `is_impersonation` aquí.
+     * @param int                                 $userId      ID del usuario dueño efectivo (owner — puede ser distinto del actor si un admin está gestionando en su nombre)
+     * @param string                              $countryCode Código ISO2 del país (por defecto VE)
+     * @param array{is_impersonation?: bool}|null $access      resultado de DirectoryAdminAccessService::resolve() — solo se usa `is_impersonation` aquí
      *
      * @return DirectoryContextDTO Contexto listo para la vista
      *
      * @throws DomainException
      */
-    public function resolve(int $userId, string $countryCode = 'VE', ?array $access = null): DirectoryContextDTO
+    public function resolve(int $userId, string $countryCode = 'VE', ?array $access = null) : DirectoryContextDTO
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
@@ -114,59 +144,18 @@ final class DirectoryContextService
     }
 
     /**
-     * Datos mínimos del usuario dueño del directorio, para el banner "Viendo
-     * el directorio de X" que la UI muestra cuando un admin está gestionando
-     * el directorio de otro usuario (isImpersonation=true).
+     * Obtiene bancos según el país.
      */
-    private function resolveViewingUser(int $userId): ?array
+    private function getBanksByCountry(string $countryCode) : Collection
     {
-        $user = \App\Models\User::find($userId, ['id', 'username', 'email', 'first_name', 'last_name']);
-
-        if (!$user) {
-            return null;
+        if ($countryCode === 'BR') {
+            return $this->brazilBankApi->getOrSync();
         }
 
-        return [
-            'id' => (string) $user->id,
-            'username' => $user->username,
-            'email' => $user->email,
-            'full_name' => trim("{$user->first_name} {$user->last_name}"),
-        ];
-    }
-
-    /**
-     * Obtiene directorios del usuario listos para tabla Inertia según el país.
-     *
-     * @param int $userId ID del usuario
-     * @param string $countryCode Código ISO2 del país (por defecto VE)
-     *
-     * @return array
-     */
-    public function getAll(int $userId, string $countryCode = 'VE'): array
-    {
-        return $this->getDirectoriesTableData($userId, $countryCode);
-    }
-
-    /**
-     * Retorna el contexto completo (bancos + documentTypes + directorios) para un país.
-     * Usado por el endpoint AJAX al cambiar de tab.
-     *
-     * @param int $userId
-     * @param string $countryCode
-     * @return array
-     */
-    public function getContextByCountry(int $userId, string $countryCode): array
-    {
-        $country = $this->countryRepository
-            ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
-
-        return [
-            'banks'         => $this->getBanksByCountry($countryCode),
-            'documentTypes' => ($country && $countryCode === 'VE')
-                ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
-                : collect(),
-            'directories'   => $this->getDirectoriesTableData($userId, $countryCode),
-        ];
+        return $this->bankVenezuela
+            ->select('id', 'name', 'code')
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -175,12 +164,10 @@ final class DirectoryContextService
      * - Keys normalizadas
      * - Columnas para frontend
      *
-     * @param int $userId ID del usuario
+     * @param int    $userId      ID del usuario
      * @param string $countryCode Código ISO2 del país
-     *
-     * @return array
      */
-    private function getDirectoriesTableData(int $userId, string $countryCode = 'VE'): array
+    private function getDirectoriesTableData(int $userId, string $countryCode = 'VE') : array
     {
         if ($countryCode === 'BR') {
             return $this->getPixKeysTableData($userId);
@@ -191,53 +178,50 @@ final class DirectoryContextService
 
     /**
      * Obtiene datos de tabla para Pago Móvil (Venezuela).
-     *
-     * @param int $userId
-     * @return array
      */
-    private function getPagoMovilTableData(int $userId): array
+    private function getPagoMovilTableData(int $userId) : array
     {
         $directories = $this->directoryRepository->getByUser($userId);
 
         return $this->processCollectionTableData(
             $directories,
             self::VE_COLUMNS,
-            self::VE_ROW_KEYS
+            self::VE_ROW_KEYS,
         );
     }
 
     /**
      * Obtiene datos de tabla para PIX (Brasil).
-     *
-     * @param int $userId
-     * @return array
      */
-    private function getPixKeysTableData(int $userId): array
+    private function getPixKeysTableData(int $userId) : array
     {
         $pixKeys = $this->pixKeyRepository->getByUser((string) $userId);
 
         return $this->processCollectionTableData(
             $pixKeys,
             self::BR_COLUMNS,
-            self::BR_ROW_KEYS
+            self::BR_ROW_KEYS,
         );
     }
 
     /**
-     * Obtiene bancos según el país.
-     *
-     * @param string $countryCode
-     * @return Collection
+     * Datos mínimos del usuario dueño del directorio, para el banner "Viendo
+     * el directorio de X" que la UI muestra cuando un admin está gestionando
+     * el directorio de otro usuario (isImpersonation=true).
      */
-    private function getBanksByCountry(string $countryCode): Collection
+    private function resolveViewingUser(int $userId) : ?array
     {
-        if ($countryCode === 'BR') {
-            return $this->brazilBankApi->getOrSync();
+        $user = \App\Models\User::find($userId, ['id', 'username', 'email', 'first_name', 'last_name']);
+
+        if (! $user) {
+            return null;
         }
 
-        return $this->bankVenezuela
-            ->select('id', 'name', 'code')
-            ->orderBy('name')
-            ->get();
+        return [
+            'id' => (string) $user->id,
+            'username' => $user->username,
+            'email' => $user->email,
+            'full_name' => trim("{$user->first_name} {$user->last_name}"),
+        ];
     }
 }

@@ -14,12 +14,13 @@ trait BuildsWeeklyTrend
     /**
      * @param Builder $query Query ya filtrada (scope, tipo de entidad, etc.),
      *                       sin condición de fecha — esta se aplica aquí.
+     *
      * @return array{trend: 'up'|'down'|'neutral', trendValue: int, trendLabel: string}
      */
-    private function buildWeeklyTrend(Builder $query): array
+    private function buildWeeklyTrend(Builder $query) : array
     {
-        $now            = now();
-        $startOfWeek    = $now->copy()->startOfWeek();
+        $now = now();
+        $startOfWeek = $now->copy()->startOfWeek();
         $startOfLastWeek = $now->copy()->subWeek()->startOfWeek();
 
         $thisWeek = (clone $query)->where('created_at', '>=', $startOfWeek)->count();
@@ -35,7 +36,7 @@ trait BuildsWeeklyTrend
         }
 
         return [
-            'trend'      => $trend,
+            'trend' => $trend,
             'trendValue' => $trendValue,
             'trendLabel' => 'vs. semana anterior',
         ];

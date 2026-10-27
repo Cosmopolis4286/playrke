@@ -10,6 +10,7 @@ use App\Exceptions\Domain\Roles\RoleResolutionException;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Servicio para actualizar tasas de cambio desde una API externa
@@ -18,47 +19,14 @@ use Illuminate\Support\Facades\Log;
 final class ExchangeRateUpdaterService
 {
     public function __construct(
-        protected readonly RoleUserService $roleUserService,
-        protected readonly RoleEntityResolver $roleEntityResolver,
-        protected readonly AdminExchangeRateRepositoryInterface $adminExchangeRateRepository,
-        protected readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRateRepository,
-        protected readonly CustomerExchangeRateRepositoryInterface $customerExchangeRateRepository,
-        protected readonly CurrencyRepositoryInterface $currencyRepository,
-        protected readonly ExchangeRateDeviationCap $deviationCap,
-    ) {}
-
-    /**
-     * Actualiza las tasas de cambio para el rol activo de un usuario dado.
-     *
-     * @param int $userId ID del usuario activo
-     * @param array $rates Tasas confirmadas por el usuario (iso_code => value)
-     * @param string $source ExchangeRate::SOURCE_USER (default, flujo manual/
-     *                        botón "Consultar") o SOURCE_SYSTEM — pasado
-     *                        explícitamente por el caller (HandleExchangeRatesCommand
-     *                        pasa SOURCE_SYSTEM) en vez de inferido por
-     *                        app()->runningInConsole(), que también sería
-     *                        true en tests/tinker y daría falsos "system".
-     * @return bool True si la actualización fue exitosa, false en caso contrario
-     */
-    public function updateRates(int $userId, array $rates, string $source = 'user'): bool
-    {
-        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-        $entityId = in_array($rolePrefix, ['admin', 'superadmin', 'treasurer'])
-            ? null
-            : $this->roleEntityResolver->resolveEntityId($userId, $rolePrefix);
-
-        if (empty($rates)) {
-            Log::warning('No se proporcionaron tasas para actualizar.');
-            return false;
-        }
-
-        try {
-            $this->updateForRole($rolePrefix, $entityId, $rates, $userId, $source);
-            return true;
-        } catch (\Throwable $e) {
-            Log::error('Error actualizando tasas: ' . $e->getMessage());
-            return false;
-        }
+        private readonly RoleUserService $roleUserService,
+        private readonly RoleEntityResolver $roleEntityResolver,
+        private readonly AdminExchangeRateRepositoryInterface $adminExchangeRateRepository,
+        private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRateRepository,
+        private readonly CustomerExchangeRateRepositoryInterface $customerExchangeRateRepository,
+        private readonly CurrencyRepositoryInterface $currencyRepository,
+        private readonly ExchangeRateDeviationCap $deviationCap,
+    ) {
     }
 
     /**
@@ -75,24 +43,23 @@ final class ExchangeRateUpdaterService
      * divergentes por diseño que no se pueden batchear sin cambiar esa
      * lógica de negocio.
      *
-     * @param string $role Rol de usuario ('commerce'|'customer'|'admin')
+     * @param string     $role     Rol de usuario ('commerce'|'customer'|'admin')
      * @param int|string $entityId ID de la entidad (commerce_id o customer_id)
-     * @param array $data Tasas a actualizar (iso_code => value)
-     * @param int|null $userId Usuario real que originó la actualización —
-     *                          solo se usa en la rama admin/superadmin/
-     *                          treasurer (commerce/customer resuelven su
-     *                          propio user_id/entityId internamente en sus
-     *                          repositorios, sin columna `source`).
-     * @param string $source ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
-     * @return void
+     * @param array      $data     Tasas a actualizar (iso_code => value)
+     * @param int|null   $userId   usuario real que originó la actualización —
+     *                             solo se usa en la rama admin/superadmin/
+     *                             treasurer (commerce/customer resuelven su
+     *                             propio user_id/entityId internamente en sus
+     *                             repositorios, sin columna `source`)
+     * @param string     $source   ExchangeRate::SOURCE_USER o SOURCE_SYSTEM
      */
-    public function updateForRole(string $role, int|string|null $entityId, array $data, ?int $userId = null, string $source = 'user'): void
+    public function updateForRole(string $role, int|string|null $entityId, array $data, ?int $userId = null, string $source = 'user') : void
     {
         $repository = $this->getRepository($role);
 
         $isoCodes = array_filter(
             array_keys($data),
-            fn ($iso) => $iso !== 'Promedio' && ($data[$iso] ?? 0) != 0
+            fn ($iso) => $iso !== 'Promedio' && ($data[$iso] ?? 0) != 0,
         );
 
         if (empty($isoCodes)) {
@@ -114,7 +81,7 @@ final class ExchangeRateUpdaterService
             $newRate = $data[$currencyIso];
             $currencyId = $currencyIdByIso[$currencyIso] ?? null;
 
-            if (!$currencyId) {
+            if (! $currencyId) {
                 continue;
             }
 
@@ -135,10 +102,11 @@ final class ExchangeRateUpdaterService
                 // Tasa propia fuera del tope de desvío vs. la oficial: no se
                 // aplica (queda la anterior; ExchangeRateAlertService avisará
                 // si se desactualiza).
-                if (!$this->deviationCap->allows($currencyId, (float) $newRate)) {
+                if (! $this->deviationCap->allows($currencyId, (float) $newRate)) {
                     \Illuminate\Support\Facades\Log::warning('[ExchangeRateUpdater] Tasa propia omitida: supera el tope de desvío', [
                         'role' => $role, 'entity_id' => (string) $entityId, 'currency_id' => (string) $currencyId, 'rate' => $newRate,
                     ]);
+
                     continue;
                 }
                 $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
@@ -147,27 +115,67 @@ final class ExchangeRateUpdaterService
     }
 
     /**
+     * Actualiza las tasas de cambio para el rol activo de un usuario dado.
+     *
+     * @param int    $userId ID del usuario activo
+     * @param array  $rates  Tasas confirmadas por el usuario (iso_code => value)
+     * @param string $source exchangeRate::SOURCE_USER (default, flujo manual/
+     *                       botón "Consultar") o SOURCE_SYSTEM — pasado
+     *                       explícitamente por el caller (HandleExchangeRatesCommand
+     *                       pasa SOURCE_SYSTEM) en vez de inferido por
+     *                       app()->runningInConsole(), que también sería
+     *                       true en tests/tinker y daría falsos "system"
+     *
+     * @return bool True si la actualización fue exitosa, false en caso contrario
+     */
+    public function updateRates(int $userId, array $rates, string $source = 'user') : bool
+    {
+        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+        $entityId = in_array($rolePrefix, ['admin', 'superadmin', 'treasurer'])
+            ? null
+            : $this->roleEntityResolver->resolveEntityId($userId, $rolePrefix);
+
+        if (empty($rates)) {
+            Log::warning('No se proporcionaron tasas para actualizar.');
+
+            return false;
+        }
+
+        try {
+            $this->updateForRole($rolePrefix, $entityId, $rates, $userId, $source);
+
+            return true;
+        } catch (Throwable $e) {
+            Log::error('Error actualizando tasas: ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
      * Tasas vigentes de varias monedas a la vez para una entidad, según rol
      * — delega a getCurrentRatesBatch() del repositorio correspondiente
      * (cada uno con su propia query optimizada, ver los 3 repositorios).
      *
-     * @param CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository
-     * @param string $role Rol de usuario
-     * @param int|string|null $entityId ID de la entidad
+     * @param string             $role        Rol de usuario
+     * @param int|string|null    $entityId    ID de la entidad
      * @param array<int, string> $currencyIds
+     *
      * @return array<string, float>
      */
-    protected function getCurrentRatesBatch(
+    private function getCurrentRatesBatch(
         CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository,
         string $role,
         int|string|null $entityId,
-        array $currencyIds
-    ): array {
+        array $currencyIds,
+    ) : array {
         if (in_array($role, ['admin', 'superadmin', 'treasurer'])) {
             return $repository->getCurrentRatesBatch($currencyIds);
-        } else if ($role === 'commerce') {
+        }
+        if ($role === 'commerce') {
             return $repository->getCurrentRatesBatch($entityId, $currencyIds);
-        } else if ($role === 'customer') {
+        }
+        if ($role === 'customer') {
             return $repository->getCurrentRatesBatch($entityId, $currencyIds);
         }
 
@@ -181,15 +189,16 @@ final class ExchangeRateUpdaterService
      * Obtiene el repositorio correspondiente según el rol.
      *
      * @param string $role Rol ('commerce'|'customer')
+     *
      * @return CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
      */
-    protected function getRepository(string $role): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface
+    private function getRepository(string $role) : CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface
     {
         return match ($role) {
             'admin', 'superadmin', 'treasurer' => $this->adminExchangeRateRepository,
-            'commerce'                         => $this->commerceExchangeRateRepository,
-            'customer'                         => $this->customerExchangeRateRepository,
-            default                            => throw RoleResolutionException::unsupportedRole($role),
+            'commerce' => $this->commerceExchangeRateRepository,
+            'customer' => $this->customerExchangeRateRepository,
+            default => throw RoleResolutionException::unsupportedRole($role),
         };
     }
 }

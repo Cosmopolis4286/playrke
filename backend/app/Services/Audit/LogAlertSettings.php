@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\Cache;
  */
 final class LogAlertSettings
 {
-    private const THRESHOLD_CACHE_KEY = 'setting:log_alert_error_threshold';
-    private const WINDOW_CACHE_KEY = 'setting:log_alert_window_minutes';
     private const CACHE_TTL_SECONDS = 600;
 
     private const DEFAULT_THRESHOLD = 20;
     private const DEFAULT_WINDOW_MINUTES = 15;
+    private const THRESHOLD_CACHE_KEY = 'setting:log_alert_error_threshold';
+    private const WINDOW_CACHE_KEY = 'setting:log_alert_window_minutes';
 
-    public static function errorThreshold(): int
+    public static function errorThreshold() : int
     {
         $value = Cache::remember(
             self::THRESHOLD_CACHE_KEY,
@@ -31,7 +31,7 @@ final class LogAlertSettings
         return $value !== null && (int) $value > 0 ? (int) $value : self::DEFAULT_THRESHOLD;
     }
 
-    public static function windowMinutes(): int
+    public static function windowMinutes() : int
     {
         $value = Cache::remember(
             self::WINDOW_CACHE_KEY,

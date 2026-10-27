@@ -36,11 +36,11 @@ final class CurrencyExchangeRateService
      * asume 1:1 en silencio (eso corrompía prize_pool/total_sales/pagos,
      * tratando montos en moneda local como si ya fueran USD).
      *
-     * @throws ExchangeRateException Si no hay tasa activa para la moneda.
+     * @throws ExchangeRateException si no hay tasa activa para la moneda
      */
-    public function getActiveRate(string|int|null $currencyId): float
+    public function getActiveRate(string|int|null $currencyId) : float
     {
-        if (!$currencyId || (string) $currencyId === (string) Currency::usdId()) {
+        if (! $currencyId || (string) $currencyId === (string) Currency::usdId()) {
             return 1.0;
         }
 
@@ -50,10 +50,10 @@ final class CurrencyExchangeRateService
             fn () => ExchangeRate::where('currency_id', $currencyId)
                 ->where('status', 'ACTIVE')
                 ->orderByDesc('created_at')
-                ->value('amount')
+                ->value('amount'),
         );
 
-        if (!$amount || (float) $amount <= 0) {
+        if (! $amount || (float) $amount <= 0) {
             throw ExchangeRateException::noActiveRate($currencyId);
         }
 
