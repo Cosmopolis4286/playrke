@@ -8,7 +8,9 @@ use App\Domains\Marketplace\Inventory\Exceptions\AssetNotAvailableException;
 use App\Domains\Marketplace\Inventory\Exceptions\InsufficientAssetQuantityException;
 use App\Domains\Marketplace\Inventory\Models\AssetDefinition;
 use App\Domains\Marketplace\Inventory\Models\PlayerAsset;
+use DomainException;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Único punto de mutación de player_assets. Ningún otro dominio (Marketplace,
@@ -23,6 +25,52 @@ use Illuminate\Support\Facades\DB;
 final class InventoryService
 {
     /**
+     * Consume quantity unidades de un asset AVAILABLE. Si se agota, pasa a
+     * CONSUMED; si queda remanente, se resta y se mantiene AVAILABLE.
+     */
+    public function consume(PlayerAsset $asset, int $quantity) : void
+    {
+        if ($quantity < 1) {
+            throw new InvalidArgumentException('quantity debe ser mayor a 0.');
+        }
+
+        DB::transaction(function() use ($asset, $quantity) {
+            $locked = PlayerAsset::where('id', $asset->id)
+                ->where('status', PlayerAsset::STATUS_AVAILABLE)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $locked) {
+                throw new AssetNotAvailableException('El activo no está disponible para consumir.');
+            }
+
+            $definition = $locked->assetDefinition;
+            if (! $definition->consumable) {
+                throw new DomainException('Esta definición de activo no es consumible.');
+            }
+
+            if ($locked->quantity < $quantity) {
+                throw new InsufficientAssetQuantityException('No hay suficiente cantidad para consumir.');
+            }
+
+            if ($locked->quantity === $quantity) {
+                $affected = PlayerAsset::where('id', $locked->id)
+                    ->where('status', PlayerAsset::STATUS_AVAILABLE)
+                    ->update(['status' => PlayerAsset::STATUS_CONSUMED]);
+            } else {
+                $affected = PlayerAsset::where('id', $locked->id)
+                    ->where('status', PlayerAsset::STATUS_AVAILABLE)
+                    ->where('quantity', $locked->quantity)
+                    ->decrement('quantity', $quantity);
+            }
+
+            if (! $affected) {
+                throw new AssetNotAvailableException('El activo no está disponible para consumir.');
+            }
+        });
+    }
+
+    /**
      * Otorga quantity unidades de una definición a un usuario. Si es
      * stackable y ya existe una fila AVAILABLE del mismo owner+definición,
      * incrementa quantity sobre ella (bajo lock); si no, crea una fila
@@ -35,12 +83,12 @@ final class InventoryService
         string $acquiredVia,
         ?string $acquiredReference = null,
         ?array $metadata = null,
-    ): PlayerAsset {
+    ) : PlayerAsset {
         if ($quantity < 1) {
-            throw new \InvalidArgumentException('quantity debe ser mayor a 0.');
+            throw new InvalidArgumentException('quantity debe ser mayor a 0.');
         }
 
-        return DB::transaction(function () use ($definition, $ownerId, $quantity, $acquiredVia, $acquiredReference, $metadata) {
+        return DB::transaction(function() use ($definition, $ownerId, $quantity, $acquiredVia, $acquiredReference, $metadata) {
             if ($definition->stackable) {
                 $existing = PlayerAsset::where('owner_id', $ownerId)
                     ->where('asset_definition_id', $definition->id)
@@ -50,18 +98,19 @@ final class InventoryService
 
                 if ($existing) {
                     $existing->increment('quantity', $quantity);
+
                     return $existing->fresh();
                 }
             }
 
             return PlayerAsset::create([
                 'asset_definition_id' => $definition->id,
-                'owner_id'            => $ownerId,
-                'quantity'            => $quantity,
-                'status'              => PlayerAsset::STATUS_AVAILABLE,
-                'acquired_via'        => $acquiredVia,
-                'acquired_reference'  => $acquiredReference,
-                'metadata'            => $metadata,
+                'owner_id' => $ownerId,
+                'quantity' => $quantity,
+                'status' => PlayerAsset::STATUS_AVAILABLE,
+                'acquired_via' => $acquiredVia,
+                'acquired_reference' => $acquiredReference,
+                'metadata' => $metadata,
             ]);
         });
     }
@@ -72,16 +121,16 @@ final class InventoryService
      * original se reduce y se crea una fila LOCKED nueva por la porción
      * reservada — así el resto sigue disponible para otras operaciones.
      */
-    public function lock(PlayerAsset $asset, string $escrowId, int $quantity): PlayerAsset
+    public function lock(PlayerAsset $asset, string $escrowId, int $quantity) : PlayerAsset
     {
         if ($quantity < 1) {
-            throw new \InvalidArgumentException('quantity debe ser mayor a 0.');
+            throw new InvalidArgumentException('quantity debe ser mayor a 0.');
         }
 
-        return DB::transaction(function () use ($asset, $escrowId, $quantity) {
+        return DB::transaction(function() use ($asset, $escrowId, $quantity) {
             $locked = PlayerAsset::where('id', $asset->id)->lockForUpdate()->first();
 
-            if (!$locked || !$locked->isAvailable()) {
+            if (! $locked || ! $locked->isAvailable()) {
                 throw new AssetNotAvailableException('El activo ya no está disponible para bloquear.');
             }
 
@@ -114,59 +163,14 @@ final class InventoryService
 
             return PlayerAsset::create([
                 'asset_definition_id' => $locked->asset_definition_id,
-                'owner_id'            => $locked->owner_id,
-                'quantity'            => $quantity,
-                'status'              => PlayerAsset::STATUS_LOCKED,
+                'owner_id' => $locked->owner_id,
+                'quantity' => $quantity,
+                'status' => PlayerAsset::STATUS_LOCKED,
                 'locked_by_escrow_id' => $escrowId,
-                'acquired_via'        => $locked->acquired_via,
-                'acquired_reference'  => $locked->acquired_reference,
-                'metadata'            => $locked->metadata,
+                'acquired_via' => $locked->acquired_via,
+                'acquired_reference' => $locked->acquired_reference,
+                'metadata' => $locked->metadata,
             ]);
-        });
-    }
-
-    /**
-     * Revierte un bloqueo sin transferencia: LOCKED -> AVAILABLE. Usado en
-     * cancelación/refund de escrow. Si existe otra fila AVAILABLE del mismo
-     * owner+definición (stackable), se re-fusiona sumando quantity en vez
-     * de dejar dos filas separadas.
-     */
-    public function unlock(PlayerAsset $asset): void
-    {
-        DB::transaction(function () use ($asset) {
-            $locked = PlayerAsset::where('id', $asset->id)
-                ->where('status', PlayerAsset::STATUS_LOCKED)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$locked) {
-                throw new AssetNotAvailableException('El activo no está bloqueado.');
-            }
-
-            $definition = $locked->assetDefinition;
-
-            if ($definition->stackable) {
-                $sibling = PlayerAsset::where('owner_id', $locked->owner_id)
-                    ->where('asset_definition_id', $locked->asset_definition_id)
-                    ->where('status', PlayerAsset::STATUS_AVAILABLE)
-                    ->where('id', '!=', $locked->id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($sibling) {
-                    $sibling->increment('quantity', $locked->quantity);
-                    $locked->delete();
-                    return;
-                }
-            }
-
-            $affected = PlayerAsset::where('id', $locked->id)
-                ->where('status', PlayerAsset::STATUS_LOCKED)
-                ->update(['status' => PlayerAsset::STATUS_AVAILABLE, 'locked_by_escrow_id' => null]);
-
-            if ($affected === 0) {
-                throw new AssetNotAvailableException('El activo no está bloqueado.');
-            }
         });
     }
 
@@ -180,16 +184,16 @@ final class InventoryService
      * TRANSFERRED como registro histórico vacío (quantity 0 no se permite
      * por el CHECK, así que se deja en 0 solo tras vaciar vía el merge).
      */
-    public function transfer(PlayerAsset $asset, string $newOwnerId, string $escrowId): PlayerAsset
+    public function transfer(PlayerAsset $asset, string $newOwnerId, string $escrowId) : PlayerAsset
     {
-        return DB::transaction(function () use ($asset, $newOwnerId, $escrowId) {
+        return DB::transaction(function() use ($asset, $newOwnerId, $escrowId) {
             $locked = PlayerAsset::where('id', $asset->id)
                 ->where('status', PlayerAsset::STATUS_LOCKED)
                 ->where('locked_by_escrow_id', $escrowId)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$locked) {
+            if (! $locked) {
                 throw new AssetNotAvailableException('El activo no está bloqueado por este escrow.');
             }
 
@@ -221,11 +225,11 @@ final class InventoryService
                 ->where('status', PlayerAsset::STATUS_LOCKED)
                 ->where('locked_by_escrow_id', $escrowId)
                 ->update([
-                    'status'               => PlayerAsset::STATUS_AVAILABLE,
-                    'owner_id'             => $newOwnerId,
-                    'locked_by_escrow_id'  => null,
-                    'acquired_via'         => 'MARKETPLACE_PURCHASE',
-                    'acquired_reference'   => $escrowId,
+                    'status' => PlayerAsset::STATUS_AVAILABLE,
+                    'owner_id' => $newOwnerId,
+                    'locked_by_escrow_id' => null,
+                    'acquired_via' => 'MARKETPLACE_PURCHASE',
+                    'acquired_reference' => $escrowId,
                 ]);
 
             if ($affected === 0) {
@@ -237,47 +241,47 @@ final class InventoryService
     }
 
     /**
-     * Consume quantity unidades de un asset AVAILABLE. Si se agota, pasa a
-     * CONSUMED; si queda remanente, se resta y se mantiene AVAILABLE.
+     * Revierte un bloqueo sin transferencia: LOCKED -> AVAILABLE. Usado en
+     * cancelación/refund de escrow. Si existe otra fila AVAILABLE del mismo
+     * owner+definición (stackable), se re-fusiona sumando quantity en vez
+     * de dejar dos filas separadas.
      */
-    public function consume(PlayerAsset $asset, int $quantity): void
+    public function unlock(PlayerAsset $asset) : void
     {
-        if ($quantity < 1) {
-            throw new \InvalidArgumentException('quantity debe ser mayor a 0.');
-        }
-
-        DB::transaction(function () use ($asset, $quantity) {
+        DB::transaction(function() use ($asset) {
             $locked = PlayerAsset::where('id', $asset->id)
-                ->where('status', PlayerAsset::STATUS_AVAILABLE)
+                ->where('status', PlayerAsset::STATUS_LOCKED)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$locked) {
-                throw new AssetNotAvailableException('El activo no está disponible para consumir.');
+            if (! $locked) {
+                throw new AssetNotAvailableException('El activo no está bloqueado.');
             }
 
             $definition = $locked->assetDefinition;
-            if (!$definition->consumable) {
-                throw new \DomainException('Esta definición de activo no es consumible.');
-            }
 
-            if ($locked->quantity < $quantity) {
-                throw new InsufficientAssetQuantityException('No hay suficiente cantidad para consumir.');
-            }
-
-            if ($locked->quantity === $quantity) {
-                $affected = PlayerAsset::where('id', $locked->id)
+            if ($definition->stackable) {
+                $sibling = PlayerAsset::where('owner_id', $locked->owner_id)
+                    ->where('asset_definition_id', $locked->asset_definition_id)
                     ->where('status', PlayerAsset::STATUS_AVAILABLE)
-                    ->update(['status' => PlayerAsset::STATUS_CONSUMED]);
-            } else {
-                $affected = PlayerAsset::where('id', $locked->id)
-                    ->where('status', PlayerAsset::STATUS_AVAILABLE)
-                    ->where('quantity', $locked->quantity)
-                    ->decrement('quantity', $quantity);
+                    ->where('id', '!=', $locked->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($sibling) {
+                    $sibling->increment('quantity', $locked->quantity);
+                    $locked->delete();
+
+                    return;
+                }
             }
 
-            if (!$affected) {
-                throw new AssetNotAvailableException('El activo no está disponible para consumir.');
+            $affected = PlayerAsset::where('id', $locked->id)
+                ->where('status', PlayerAsset::STATUS_LOCKED)
+                ->update(['status' => PlayerAsset::STATUS_AVAILABLE, 'locked_by_escrow_id' => null]);
+
+            if ($affected === 0) {
+                throw new AssetNotAvailableException('El activo no está bloqueado.');
             }
         });
     }

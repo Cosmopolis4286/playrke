@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
@@ -24,9 +26,9 @@ final class BingoRoomCapacityGuard
      * Verifica que la sala tenga cupo disponible.
      * Debe llamarse DENTRO de DB::transaction() con lockForUpdate() activo.
      *
-     * @throws BingoRoomException si la sala está llena o no tiene config de cupo.
+     * @throws BingoRoomException si la sala está llena o no tiene config de cupo
      */
-    public static function assertHasCapacity(BingoRoom $room): void
+    public static function assertHasCapacity(BingoRoom $room) : void
     {
         $room->loadMissing('config');
         $maxPlayers = $room->config?->max_players ?? null;
@@ -46,10 +48,11 @@ final class BingoRoomCapacityGuard
         }
     }
 
-    public static function hasCapacity(BingoRoom $room): bool
+    public static function hasCapacity(BingoRoom $room) : bool
     {
         try {
             self::assertHasCapacity($room);
+
             return true;
         } catch (BingoRoomException) {
             return false;

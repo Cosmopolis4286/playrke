@@ -14,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Evento de dominio: Juego Finalizado.
- * 
+ *
  * Marca el fin de la partida con resultados finales.
  * Este evento puede disparar persistencia en base de datos
  * y notificaciones a jugadores.
@@ -27,10 +27,16 @@ class GameFinished implements ShouldBroadcastNow
         public readonly GameStateDTO $gameState,
         public readonly LeaderboardDTO $finalLeaderboard,
         public readonly array $winners = [], // IDs de ganadores
-        public readonly array $statistics = []
-    ) {}
+        public readonly array $statistics = [],
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'trivia.game.finished';
+    }
+
+    public function broadcastOn() : array
     {
         return [
             new Channel('trivia.room.' . $this->gameState->roomId),
@@ -38,12 +44,7 @@ class GameFinished implements ShouldBroadcastNow
         ];
     }
 
-    public function broadcastAs(): string
-    {
-        return 'trivia.game.finished';
-    }
-
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'game_id' => $this->gameState->gameId,

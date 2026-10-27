@@ -13,12 +13,7 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 abstract class BingoBasePolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
-    {
-        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary'];
-    }
-
-    protected function forbiddenStatuses(): array
+    protected function forbiddenStatuses() : array
     {
         return ['DELETED', 'BLOCKED'];
     }
@@ -35,7 +30,7 @@ abstract class BingoBasePolicy extends BaseRolePolicy
      * depender del permiso explícito, para que un admin recién creado sin
      * pasar por el seeder no quede bloqueado.
      */
-    protected function hasManagePermission(User $user): bool
+    protected function hasManagePermission(User $user) : bool
     {
         if ($user->hasRole(['superadmin', 'admin'])) {
             return true;
@@ -46,5 +41,10 @@ abstract class BingoBasePolicy extends BaseRolePolicy
         // concreta puede recibirlo como permiso individual
         // (UserSpecificPermissionGrant) — hasPermissionTo() ya lo contempla.
         return $user->hasPermissionTo('games.bingo.manage');
+    }
+
+    protected function requiredRole() : string|array
+    {
+        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary'];
     }
 }

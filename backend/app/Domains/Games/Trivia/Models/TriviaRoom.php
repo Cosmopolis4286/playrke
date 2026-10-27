@@ -16,9 +16,32 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class TriviaRoom extends BaseModel
 {
-    protected $connection = 'pgsql_trivia';
+    /**
+     * game_mode ya no es columna de BD (ver gameModeCode()/getGameModeAttribute
+     * más abajo) — se mantiene como atributo serializado para no romper el
+     * contrato que el frontend (Lobby.vue, RoomsIndex.vue) ya espera.
+     */
+    protected $appends = ['game_mode'];
 
-    protected $table = 'trivia_rooms';
+    protected $casts = [
+        'settings' => 'array',
+        'metadata' => 'array',
+        'teams_config' => 'array',
+        'fee_by_currency' => 'array',
+        'prize_payouts' => 'array',
+        'scheduled_at' => 'datetime',
+        'started_at' => 'datetime',
+        'ended_at' => 'datetime',
+        'max_players' => 'integer',
+        'question_count' => 'integer',
+        'time_per_question' => 'integer',
+        'current_players' => 'integer',
+        'game_mode_id' => 'integer',
+        'platform_rake_percent' => 'decimal:2',
+        'sponsor_prize' => 'decimal:8',
+        'pool_accumulated' => 'decimal:8',
+    ];
+    protected $connection = 'pgsql_trivia';
 
     protected $fillable = [
         'code',
@@ -55,54 +78,21 @@ class TriviaRoom extends BaseModel
         'pool_accumulated',
     ];
 
-    /**
-     * game_mode ya no es columna de BD (ver gameModeCode()/getGameModeAttribute
-     * más abajo) — se mantiene como atributo serializado para no romper el
-     * contrato que el frontend (Lobby.vue, RoomsIndex.vue) ya espera.
-     */
-    protected $appends = ['game_mode'];
-
-    protected $casts = [
-        'settings'           => 'array',
-        'metadata'           => 'array',
-        'teams_config'       => 'array',
-        'fee_by_currency'    => 'array',
-        'prize_payouts'      => 'array',
-        'scheduled_at'       => 'datetime',
-        'started_at'         => 'datetime',
-        'ended_at'           => 'datetime',
-        'max_players'        => 'integer',
-        'question_count'     => 'integer',
-        'time_per_question'  => 'integer',
-        'current_players'    => 'integer',
-        'game_mode_id'       => 'integer',
-        'platform_rake_percent' => 'decimal:2',
-        'sponsor_prize'         => 'decimal:8',
-        'pool_accumulated'      => 'decimal:8',
-    ];
+    protected $table = 'trivia_rooms';
 
     /**
-     * Relación: Juegos en esta sala.
+     * Verificar si la sala puede iniciarse.
+     *
+     * Usa TriviaGame::scopeActive() (status IN ['playing','active']) en vez
+     * de comparar contra el string 'active' directamente: GameEngineService
+     * crea las partidas con status 'playing', así que la comparación
+     * exacta contra 'active' nunca coincidía y esta guarda jamás bloqueaba
+     * un segundo inicio sobre una sala con partida ya en curso.
      */
-    public function games(): HasMany
+    public function canStart() : bool
     {
-        return $this->hasMany(TriviaGame::class, 'room_id');
-    }
-
-    /**
-     * Relación: Equipos de esta sala (para modos teams/duel).
-     */
-    public function teams(): HasMany
-    {
-        return $this->hasMany(TriviaTeam::class, 'room_id');
-    }
-
-    /**
-     * Relación: Preguntas de esta sala.
-     */
-    public function questions(): HasMany
-    {
-        return $this->hasMany(TriviaQuestion::class, 'room_id');
+        return $this->status === 'waiting' &&
+               $this->games()->active()->doesntExist();
     }
 
     /**
@@ -111,7 +101,7 @@ class TriviaRoom extends BaseModel
      * (pgsql_trivia), por lo que Eloquent resuelve esto con una query
      * separada contra la otra conexión, no un JOIN real.
      */
-    public function gameMode(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function gameMode() : \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         // setConnection('mysql') explícito sobre la instancia relacionada, y
         // BelongsTo construido a mano (no vía $this->belongsTo(), que ignora
@@ -122,31 +112,15 @@ class TriviaRoom extends BaseModel
         // GameMode no fija su propia conexión (usa el default), lo cual
         // normalmente basta, pero no evita la herencia en esta relación
         // cross-database.
-        $relatedGameMode = (new GameMode())->setConnection('mysql');
+        $relatedGameMode = (new GameMode)->setConnection('mysql');
 
         return new \Illuminate\Database\Eloquent\Relations\BelongsTo(
             $relatedGameMode->newQuery(),
             $this,
             'game_mode_id',
             'id',
-            'gameMode'
+            'gameMode',
         );
-    }
-
-    /**
-     * Verificar si la sala usa equipos.
-     */
-    public function usesTeams(): bool
-    {
-        return in_array($this->gameModeCode(), ['TEAMS', 'DUEL']);
-    }
-
-    /**
-     * Verificar si es modo duel (2 equipos o 1vsX).
-     */
-    public function isDuelMode(): bool
-    {
-        return $this->gameModeCode() === 'DUEL';
     }
 
     /**
@@ -158,9 +132,17 @@ class TriviaRoom extends BaseModel
      * conflicto de resolución entre accessor y relación (ErrorException
      * "Undefined property").
      */
-    public function gameModeCode(): ?string
+    public function gameModeCode() : ?string
     {
         return $this->gameMode()->first()?->code;
+    }
+
+    /**
+     * Relación: Juegos en esta sala.
+     */
+    public function games() : HasMany
+    {
+        return $this->hasMany(TriviaGame::class, 'room_id');
     }
 
     /**
@@ -168,11 +150,35 @@ class TriviaRoom extends BaseModel
      * ('free_for_all', 'teams', 'duel', ...) para el frontend — ver
      * comentario en $appends.
      */
-    public function getGameModeAttribute(): ?string
+    public function getGameModeAttribute() : ?string
     {
         $code = $this->gameModeCode();
 
         return $code === null ? null : strtolower($code);
+    }
+
+    /**
+     * Verificar si está activa.
+     */
+    public function isActive() : bool
+    {
+        return $this->status === 'playing';
+    }
+
+    /**
+     * Verificar si es modo duel (2 equipos o 1vsX).
+     */
+    public function isDuelMode() : bool
+    {
+        return $this->gameModeCode() === 'DUEL';
+    }
+
+    /**
+     * Relación: Preguntas de esta sala.
+     */
+    public function questions() : HasMany
+    {
+        return $this->hasMany(TriviaQuestion::class, 'room_id');
     }
 
     /**
@@ -181,32 +187,25 @@ class TriviaRoom extends BaseModel
     public function scopeJoinable($query)
     {
         return $query->where('status', 'waiting')
-            ->where(function ($q) {
+            ->where(function($q) {
                 $q->whereNull('scheduled_at')
-                  ->orWhere('scheduled_at', '<=', now()->addMinutes(5));
+                    ->orWhere('scheduled_at', '<=', now()->addMinutes(5));
             });
     }
 
     /**
-     * Verificar si la sala puede iniciarse.
-     *
-     * Usa TriviaGame::scopeActive() (status IN ['playing','active']) en vez
-     * de comparar contra el string 'active' directamente: GameEngineService
-     * crea las partidas con status 'playing', así que la comparación
-     * exacta contra 'active' nunca coincidía y esta guarda jamás bloqueaba
-     * un segundo inicio sobre una sala con partida ya en curso.
+     * Relación: Equipos de esta sala (para modos teams/duel).
      */
-    public function canStart(): bool
+    public function teams() : HasMany
     {
-        return $this->status === 'waiting' &&
-               $this->games()->active()->doesntExist();
+        return $this->hasMany(TriviaTeam::class, 'room_id');
     }
 
     /**
-     * Verificar si está activa.
+     * Verificar si la sala usa equipos.
      */
-    public function isActive(): bool
+    public function usesTeams() : bool
     {
-        return $this->status === 'playing';
+        return in_array($this->gameModeCode(), ['TEAMS', 'DUEL']);
     }
 }

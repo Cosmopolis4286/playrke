@@ -17,17 +17,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Order extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'marketplace_orders';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_PENDING   = 'PENDING';
-    public const STATUS_ESCROW    = 'ESCROW';
-    public const STATUS_COMPLETED = 'COMPLETED';
     public const STATUS_CANCELLED = 'CANCELLED';
-    public const STATUS_FAILED    = 'FAILED';
+    public const STATUS_COMPLETED = 'COMPLETED';
+    public const STATUS_ESCROW = 'ESCROW';
+    public const STATUS_FAILED = 'FAILED';
+
+    public const STATUS_PENDING = 'PENDING';
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'listing_id' => 'string',
+        'buyer_id' => 'string',
+        'escrow_id' => 'string',
+        'quantity' => 'integer',
+        'price' => 'float',
+        'fee_amount' => 'float',
+    ];
 
     protected $fillable = [
         'listing_id',
@@ -38,28 +44,22 @@ class Order extends Model
         'escrow_id',
         'status',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'         => 'string',
-        'listing_id' => 'string',
-        'buyer_id'   => 'string',
-        'escrow_id'  => 'string',
-        'quantity'   => 'integer',
-        'price'      => 'float',
-        'fee_amount' => 'float',
-    ];
+    protected $table = 'marketplace_orders';
 
-    public function listing(): BelongsTo
-    {
-        return $this->belongsTo(Listing::class, 'listing_id');
-    }
-
-    public function buyer(): BelongsTo
+    public function buyer() : BelongsTo
     {
         return $this->belongsTo(User::class, 'buyer_id');
     }
 
-    public function totalAmount(): float
+    public function listing() : BelongsTo
+    {
+        return $this->belongsTo(Listing::class, 'listing_id');
+    }
+
+    public function totalAmount() : float
     {
         return round($this->price * $this->quantity, 2);
     }

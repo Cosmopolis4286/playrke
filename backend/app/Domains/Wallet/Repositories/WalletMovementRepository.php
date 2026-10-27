@@ -48,97 +48,17 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
     {
         return $this->applyFilters(
             $this->model->with(self::ADMIN_PANEL_RELATIONS)->orderByDesc('created_at'),
-            $filters
+            $filters,
         )->paginate($perPage);
     }
 
-    /**
-     * Mismo filtrado que getForAdminPanel() pero sin paginar — usado por
-     * export CSV (todo el resultado filtrado) y por las stats del header
-     * (agregados sobre el conjunto completo, no solo la página visible).
-     */
-    public function queryForAdminPanel(array $filters): Builder
+    public function getLatestByWallet(string $walletId, int $limit = 10) : Collection
     {
-        return $this->applyFilters(
-            $this->model->with(self::ADMIN_PANEL_RELATIONS)->orderByDesc('created_at'),
-            $filters
-        );
-    }
-
-    /**
-     * Filtros compartidos del panel admin — antes duplicados línea por línea
-     * entre getForAdminPanel() (paginado) y queryForAdminPanel() (stats y
-     * export).
-     *
-     * 'fraud_flag' solo cubre la señal de riesgo barata de expresar como
-     * predicado SQL (receipt_hash duplicado, vía self-join) — las otras 3
-     * señales de WalletMovementController::buildFraudSignals() (velocidad de
-     * depósitos, historial reciente, tasa de rechazo histórica) requieren
-     * agregación por usuario o un servicio cacheado, y se quedan como
-     * informativas solo en el detalle (show()), no como filtro de listado,
-     * para no meter una agregación costosa sobre miles de filas en cada
-     * fetchList().
-     */
-    private function applyFilters(Builder $query, array $filters): Builder
-    {
-        if (! empty($filters['type'])) {
-            $query->where('type', strtoupper($filters['type']));
-        }
-
-        if (! empty($filters['status'])) {
-            $query->where('status', strtoupper($filters['status']));
-        }
-
-        if (! empty($filters['search'])) {
-            $search = trim((string) $filters['search']);
-
-            // Además de los datos del usuario, acepta el ID del movimiento
-            // (completo, o los últimos 8 dígitos que muestra la tabla) y la
-            // referencia bancaria — es lo que el soporte suele tener a mano
-            // cuando un jugador reclama ("mi depósito ref. 123456").
-            $query->where(function (Builder $q) use ($search) {
-                $q->whereHas('user', fn ($u) => $u
-                    ->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('username', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%"))
-                  ->orWhere('reference_id', 'like', "%{$search}%");
-
-                $digits = ltrim($search, '#');
-                if (ctype_digit($digits)) {
-                    strlen($digits) >= 15
-                        ? $q->orWhere('wallet_movements.id', $digits)
-                        : $q->orWhereRaw('CAST(wallet_movements.id AS CHAR) LIKE ?', ["%{$digits}"]);
-                }
-            });
-        }
-
-        if (! empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
-        }
-
-        if (! empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
-        }
-
-        if (! empty($filters['fraud_flag']) && $filters['fraud_flag'] === 'duplicate_receipt') {
-            $query->whereNotNull('receipt_hash')
-                ->whereExists(function ($sub) {
-                    $sub->selectRaw('1')
-                        ->from('wallet_movements as wm2')
-                        ->whereColumn('wm2.receipt_hash', 'wallet_movements.receipt_hash')
-                        ->whereColumn('wm2.id', '!=', 'wallet_movements.id');
-                });
-        }
-
-        if (! empty($filters['assigned_to_user_id'])) {
-            $query->where(
-                'assigned_to_user_id',
-                $filters['assigned_to_user_id'] === 'mine' ? Auth::id() : $filters['assigned_to_user_id']
-            );
-        }
-
-        return $query;
+        return $this->model
+            ->where('wallet_id', $walletId)
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get();
     }
 
     /**
@@ -197,6 +117,105 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         return $trend;
     }
 
+    public function loadForAdminPanel(WalletMovement $movement) : WalletMovement
+    {
+        return $movement->load(self::ADMIN_PANEL_RELATIONS);
+    }
+
+    /**
+     * Mismo filtrado que getForAdminPanel() pero sin paginar — usado por
+     * export CSV (todo el resultado filtrado) y por las stats del header
+     * (agregados sobre el conjunto completo, no solo la página visible).
+     */
+    public function queryForAdminPanel(array $filters) : Builder
+    {
+        return $this->applyFilters(
+            $this->model->with(self::ADMIN_PANEL_RELATIONS)->orderByDesc('created_at'),
+            $filters,
+        );
+    }
+
+    public function record(array $data) : WalletMovement
+    {
+        return $this->model->create($data);
+    }
+
+    /**
+     * Filtros compartidos del panel admin — antes duplicados línea por línea
+     * entre getForAdminPanel() (paginado) y queryForAdminPanel() (stats y
+     * export).
+     *
+     * 'fraud_flag' solo cubre la señal de riesgo barata de expresar como
+     * predicado SQL (receipt_hash duplicado, vía self-join) — las otras 3
+     * señales de WalletMovementController::buildFraudSignals() (velocidad de
+     * depósitos, historial reciente, tasa de rechazo histórica) requieren
+     * agregación por usuario o un servicio cacheado, y se quedan como
+     * informativas solo en el detalle (show()), no como filtro de listado,
+     * para no meter una agregación costosa sobre miles de filas en cada
+     * fetchList().
+     */
+    private function applyFilters(Builder $query, array $filters) : Builder
+    {
+        if (! empty($filters['type'])) {
+            $query->where('type', strtoupper($filters['type']));
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', strtoupper($filters['status']));
+        }
+
+        if (! empty($filters['search'])) {
+            $search = trim((string) $filters['search']);
+
+            // Además de los datos del usuario, acepta el ID del movimiento
+            // (completo, o los últimos 8 dígitos que muestra la tabla) y la
+            // referencia bancaria — es lo que el soporte suele tener a mano
+            // cuando un jugador reclama ("mi depósito ref. 123456").
+            $query->where(function(Builder $q) use ($search) {
+                $q->whereHas('user', fn ($u) => $u
+                    ->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%"))
+                    ->orWhere('reference_id', 'like', "%{$search}%");
+
+                $digits = ltrim($search, '#');
+                if (ctype_digit($digits)) {
+                    strlen($digits) >= 15
+                        ? $q->orWhere('wallet_movements.id', $digits)
+                        : $q->orWhereRaw('CAST(wallet_movements.id AS CHAR) LIKE ?', ["%{$digits}"]);
+                }
+            });
+        }
+
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        if (! empty($filters['fraud_flag']) && $filters['fraud_flag'] === 'duplicate_receipt') {
+            $query->whereNotNull('receipt_hash')
+                ->whereExists(function($sub) {
+                    $sub->selectRaw('1')
+                        ->from('wallet_movements as wm2')
+                        ->whereColumn('wm2.receipt_hash', 'wallet_movements.receipt_hash')
+                        ->whereColumn('wm2.id', '!=', 'wallet_movements.id');
+                });
+        }
+
+        if (! empty($filters['assigned_to_user_id'])) {
+            $query->where(
+                'assigned_to_user_id',
+                $filters['assigned_to_user_id'] === 'mine' ? Auth::id() : $filters['assigned_to_user_id'],
+            );
+        }
+
+        return $query;
+    }
+
     /**
      * Resuelve el rango [fecha de inicio, cantidad de días] del eje del
      * gráfico: si hay date_from/date_to, ese rango exacto (acotado a 90 días
@@ -208,7 +227,7 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
     private function resolveTrendRange(array $filters, int $days) : array
     {
         $dateFrom = ! empty($filters['date_from']) ? Carbon::parse($filters['date_from'])->startOfDay() : null;
-        $dateTo   = ! empty($filters['date_to'])   ? Carbon::parse($filters['date_to'])->startOfDay()   : null;
+        $dateTo = ! empty($filters['date_to']) ? Carbon::parse($filters['date_to'])->startOfDay() : null;
 
         if (! $dateFrom && ! $dateTo) {
             return [Carbon::now()->subDays($days - 1)->startOfDay(), $days];
@@ -218,7 +237,7 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         // "desde ese mismo día" — mismo criterio permisivo que
         // applyFilters()/whereDate() al aplicar cada bound por separado.
         $dateFrom ??= $dateTo;
-        $dateTo   ??= Carbon::now()->startOfDay();
+        $dateTo ??= Carbon::now()->startOfDay();
 
         if ($dateFrom->greaterThan($dateTo)) {
             [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
@@ -227,24 +246,5 @@ class WalletMovementRepository extends BaseRepository implements WalletMovementR
         $rangeDays = min(90, $dateFrom->diffInDays($dateTo) + 1);
 
         return [$dateFrom, $rangeDays];
-    }
-
-    public function getLatestByWallet(string $walletId, int $limit = 10) : Collection
-    {
-        return $this->model
-            ->where('wallet_id', $walletId)
-            ->orderByDesc('created_at')
-            ->limit($limit)
-            ->get();
-    }
-
-    public function loadForAdminPanel(WalletMovement $movement) : WalletMovement
-    {
-        return $movement->load(self::ADMIN_PANEL_RELATIONS);
-    }
-
-    public function record(array $data) : WalletMovement
-    {
-        return $this->model->create($data);
     }
 }

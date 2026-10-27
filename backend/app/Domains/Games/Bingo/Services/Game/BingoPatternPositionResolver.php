@@ -36,11 +36,11 @@ final class BingoPatternPositionResolver
      *
      * @return array<int, array{col: string, row: int, free: bool}>
      */
-    public function resolve(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75, array $seen = []): array
+    public function resolve(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75, array $seen = []) : array
     {
-        $colDefs  = BingoVariant::columns($variant);
-        $labels   = array_column($colDefs, 'label');
-        $numRows  = BingoVariant::rows($variant);
+        $colDefs = BingoVariant::columns($variant);
+        $labels = array_column($colDefs, 'label');
+        $numRows = BingoVariant::rows($variant);
         $resolved = [];
 
         $boxes = $pattern->boxes ?? '';
@@ -53,6 +53,7 @@ final class BingoPatternPositionResolver
                     $resolved[] = ['col' => $col['label'], 'row' => $row, 'free' => $isFree];
                 }
             }
+
             return $resolved;
         }
 
@@ -61,12 +62,12 @@ final class BingoPatternPositionResolver
         if ($pattern->type_pattern === 'MULTIPLE') {
             $numIds = array_filter(
                 array_map('intval', (array) $pattern->boxes_array),
-                fn($id) => $id >= 1
+                fn ($id) => $id >= 1,
             );
 
             // Precargar todos los sub-patrones en una sola query si no están en cache
             $missing = array_diff($numIds, array_keys($this->subPatternCache));
-            if (!empty($missing)) {
+            if (! empty($missing)) {
                 $fetched = BingoPattern::whereIn('num_id', $missing)
                     ->whereNull('user_id')
                     ->get()
@@ -84,24 +85,29 @@ final class BingoPatternPositionResolver
                 if ($subPattern) {
                     $resolved = array_merge(
                         $resolved,
-                        $this->resolve($subPattern, $variant, [...$seen, $numId])
+                        $this->resolve($subPattern, $variant, [...$seen, $numId]),
                     );
                 }
             }
+
             return $resolved;
         }
 
         // Formato 'B1;I2;N3;G4;O5' (75 bolas) o genérico 'col;row' (base-1)
         foreach ($pattern->boxes_array as $box) {
             $box = strtoupper(trim((string) $box));
-            if (strlen($box) < 2) continue;
+            if (strlen($box) < 2) {
+                continue;
+            }
 
             // Detectar si la primera parte es una letra de columna o un índice numérico
             // Ej: 'B1', 'N3' para 75-ball; posibles extensiones futuras para otras variantes
-            $col    = $box[0];
+            $col = $box[0];
             $rowNum = (int) substr($box, 1); // fila base-1
 
-            if (!in_array($col, $labels, true) || $rowNum < 1 || $rowNum > $numRows) continue;
+            if (! in_array($col, $labels, true) || $rowNum < 1 || $rowNum > $numRows) {
+                continue;
+            }
 
             $rowIndex = $rowNum - 1;
 
@@ -110,6 +116,7 @@ final class BingoPatternPositionResolver
             foreach ($colDefs as $colDef) {
                 if ($colDef['label'] === $col && $colDef['freeRow'] !== null && $colDef['freeRow'] === $rowIndex) {
                     $isFree = true;
+
                     break;
                 }
             }

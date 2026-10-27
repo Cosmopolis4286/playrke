@@ -51,7 +51,10 @@ class WalletMovement extends Model
 
     public const STATUS_PENDING = 'PENDING';
     public const STATUS_REJECTED = 'REJECTED';
+    public const TYPE_BINGO_POOL_FUNDING = 'BINGO_POOL_FUNDING';
+    public const TYPE_BINGO_POOL_FUNDING_REVERSAL = 'BINGO_POOL_FUNDING_REVERSAL';
     public const TYPE_BONUS_PRIZE = 'BONUS_PRIZE';
+    public const TYPE_CREATOR_COMMISSION = 'CREATOR_COMMISSION';
     public const TYPE_CRYPTO_DEPOSIT = 'CRYPTO_DEPOSIT';
     public const TYPE_CRYPTO_WITHDRAWAL = 'CRYPTO_WITHDRAWAL';
 
@@ -65,9 +68,6 @@ class WalletMovement extends Model
     public const TYPE_REFUND = 'REFUND';
     public const TYPE_RKE_COMMISSION = 'RKE_COMMISSION';
     public const TYPE_RKE_COMMISSION_REVERSAL = 'RKE_COMMISSION_REVERSAL';
-    public const TYPE_CREATOR_COMMISSION = 'CREATOR_COMMISSION';
-    public const TYPE_BINGO_POOL_FUNDING = 'BINGO_POOL_FUNDING';
-    public const TYPE_BINGO_POOL_FUNDING_REVERSAL = 'BINGO_POOL_FUNDING_REVERSAL';
     public const TYPE_TRIVIA_ENTRY = 'TRIVIA_ENTRY';
     public const TYPE_WITHDRAWAL = 'WITHDRAWAL';
 
@@ -120,6 +120,11 @@ class WalletMovement extends Model
 
     protected $table = 'wallet_movements';
 
+    public function assignedTo() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
+
     /** ID del juego/sala que originó el premio, guardado en metadata, solo aplica a TYPE_PRIZE. */
     public function getGameIdAttribute() : ?string
     {
@@ -154,11 +159,6 @@ class WalletMovement extends Model
     public function processedBy() : BelongsTo
     {
         return $this->belongsTo(User::class, 'processed_by');
-    }
-
-    public function assignedTo() : BelongsTo
-    {
-        return $this->belongsTo(User::class, 'assigned_to_user_id');
     }
 
     // ─── Scopes ──────────────────────────────────────────────────────────────

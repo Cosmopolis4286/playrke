@@ -21,22 +21,23 @@ class PlayerLeft implements ShouldBroadcastNow
         public readonly string $playerId,
         public readonly string $roomId,
         public readonly int $currentPlayerCount,
-        public readonly ?string $reason = null
-    ) {}
+        public readonly ?string $reason = null,
+    ) {
+    }
 
-    public function broadcastOn(): array
+    public function broadcastAs() : string
+    {
+        return 'trivia.player.left';
+    }
+
+    public function broadcastOn() : array
     {
         return [
             new Channel('trivia.room.' . $this->roomId),
         ];
     }
 
-    public function broadcastAs(): string
-    {
-        return 'trivia.player.left';
-    }
-
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'room_id' => $this->roomId,

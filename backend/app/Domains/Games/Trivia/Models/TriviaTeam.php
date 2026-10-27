@@ -15,9 +15,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class TriviaTeam extends BaseModel
 {
+    protected $casts = [
+        'max_players' => 'integer',
+        'current_players' => 'integer',
+        'team_number' => 'integer',
+        'metadata' => 'array',
+    ];
     protected $connection = 'pgsql_trivia';
-
-    protected $table = 'trivia_teams';
 
     protected $fillable = [
         'room_id',
@@ -30,33 +34,12 @@ class TriviaTeam extends BaseModel
         'metadata',
     ];
 
-    protected $casts = [
-        'max_players'     => 'integer',
-        'current_players' => 'integer',
-        'team_number'     => 'integer',
-        'metadata'        => 'array',
-    ];
-
-    /**
-     * Relación: Sala a la que pertenece el equipo.
-     */
-    public function room(): BelongsTo
-    {
-        return $this->belongsTo(TriviaRoom::class, 'room_id');
-    }
-
-    /**
-     * Relación: Participantes en este equipo.
-     */
-    public function participants(): HasMany
-    {
-        return $this->hasMany(TriviaParticipant::class, 'team_id');
-    }
+    protected $table = 'trivia_teams';
 
     /**
      * Calcular puntuación total del equipo.
      */
-    public function calculateTotalScore(): int
+    public function calculateTotalScore() : int
     {
         return $this->participants()
             ->whereNotNull('total_score')
@@ -66,7 +49,7 @@ class TriviaTeam extends BaseModel
     /**
      * Contar respuestas correctas del equipo.
      */
-    public function countCorrectAnswers(): int
+    public function countCorrectAnswers() : int
     {
         return $this->participants()
             ->whereNotNull('correct_answers')
@@ -76,9 +59,25 @@ class TriviaTeam extends BaseModel
     /**
      * Verificar si el equipo tiene cupo disponible.
      */
-    public function hasSpace(): bool
+    public function hasSpace() : bool
     {
         return $this->current_players < $this->max_players;
+    }
+
+    /**
+     * Relación: Participantes en este equipo.
+     */
+    public function participants() : HasMany
+    {
+        return $this->hasMany(TriviaParticipant::class, 'team_id');
+    }
+
+    /**
+     * Relación: Sala a la que pertenece el equipo.
+     */
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(TriviaRoom::class, 'room_id');
     }
 
     /**

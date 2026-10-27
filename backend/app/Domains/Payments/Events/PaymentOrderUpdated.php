@@ -24,17 +24,17 @@ class PaymentOrderUpdated implements ShouldBroadcastNow
     ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'payment-order.updated';
     }
 
-    public function broadcastOn(): PrivateChannel
+    public function broadcastOn() : PrivateChannel
     {
         return new PrivateChannel("App.Models.User.{$this->order->user_id}");
     }
 
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'id' => $this->order->id,

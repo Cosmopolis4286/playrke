@@ -23,7 +23,8 @@ final class BingoSellerPosService
 
     public function __construct(
         private readonly ExternalPlayerLinkService $externalPlayerLink,
-    ) {}
+    ) {
+    }
 
     /**
      * Compradores del vendedor, agrupados por teléfono + país (un
@@ -31,18 +32,18 @@ final class BingoSellerPosService
      *
      * @return array<int, array{phone: string, country_id: string, first_name: string, last_name: string, purchases: int, last_purchase_at: string|null}>
      */
-    public function frequentBuyers(string $sellerUserId, ?string $search = null): array
+    public function frequentBuyers(string $sellerUserId, ?string $search = null) : array
     {
         $search = trim((string) $search);
 
         return ExternalPlayer::query()
             ->where('seller_user_id', $sellerUserId)
             ->whereNotNull('phone')
-            ->when(mb_strlen($search) >= 2, function ($q) use ($search) {
+            ->when(mb_strlen($search) >= 2, function($q) use ($search) {
                 $like = '%' . addcslashes($search, '%_\\') . '%';
                 $digits = preg_replace('/\D/', '', $search);
 
-                $q->where(function ($w) use ($like, $digits) {
+                $q->where(function($w) use ($like, $digits) {
                     $w->where('first_name', 'like', $like)
                         ->orWhere('last_name', 'like', $like)
                         ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$like]);
@@ -60,11 +61,11 @@ final class BingoSellerPosService
             ->limit(self::BUYERS_LIMIT)
             ->get()
             ->map(fn ($row) => [
-                'phone'            => (string) $row->phone,
-                'country_id'       => (string) $row->country_id,
-                'first_name'       => (string) $row->first_name,
-                'last_name'        => (string) $row->last_name,
-                'purchases'        => (int) $row->purchases,
+                'phone' => (string) $row->phone,
+                'country_id' => (string) $row->country_id,
+                'first_name' => (string) $row->first_name,
+                'last_name' => (string) $row->last_name,
+                'purchases' => (int) $row->purchases,
                 'last_purchase_at' => $row->last_purchase_at ? Carbon::parse($row->last_purchase_at)->toISOString() : null,
             ])
             ->all();
@@ -75,7 +76,7 @@ final class BingoSellerPosService
      *
      * @return array{sales: array<int, array<string, mixed>>, summary: array<string, mixed>}
      */
-    public function todaySales(string $sellerUserId): array
+    public function todaySales(string $sellerUserId) : array
     {
         $payments = BingoCardPayment::query()
             ->where('seller_user_id', $sellerUserId)
@@ -91,41 +92,41 @@ final class BingoSellerPosService
             ->get();
 
         $sales = $payments->take(self::SALES_LIMIT)->map(fn (BingoCardPayment $p) => [
-            'id'              => (string) $p->id,
-            'status'          => $p->payment_status,
-            'room_code'       => $p->room?->uuid_code,
-            'buyer_name'      => trim(($p->externalPlayer?->first_name ?? '') . ' ' . ($p->externalPlayer?->last_name ?? '')),
-            'buyer_phone'     => $p->externalPlayer?->phone,
-            'player_link'     => $p->externalPlayer?->link ? $this->externalPlayerLink->resolveGameUrl($p->externalPlayer->link) : null,
-            'card_count'      => (int) ($p->cardLot?->card_count ?? 0),
-            'amount'          => (float) $p->payment_amount,
+            'id' => (string) $p->id,
+            'status' => $p->payment_status,
+            'room_code' => $p->room?->uuid_code,
+            'buyer_name' => trim(($p->externalPlayer?->first_name ?? '') . ' ' . ($p->externalPlayer?->last_name ?? '')),
+            'buyer_phone' => $p->externalPlayer?->phone,
+            'player_link' => $p->externalPlayer?->link ? $this->externalPlayerLink->resolveGameUrl($p->externalPlayer->link) : null,
+            'card_count' => (int) ($p->cardLot?->card_count ?? 0),
+            'amount' => (float) $p->payment_amount,
             'currency_symbol' => $p->currency?->symbol ?? '',
             // Tasa con la que se cobró (snapshot del lote); null en USD.
-            'exchange_rate'   => $p->cardLot?->exchange_rate && (float) $p->cardLot->exchange_rate !== 1.0
+            'exchange_rate' => $p->cardLot?->exchange_rate && (float) $p->cardLot->exchange_rate !== 1.0
                 ? (float) $p->cardLot->exchange_rate
                 : null,
-            'receipt'         => $p->transaction_reference,
-            'created_at'      => $p->created_at?->toISOString(),
+            'receipt' => $p->transaction_reference,
+            'created_at' => $p->created_at?->toISOString(),
         ])->values()->all();
 
         // Los rechazados/cancelados no suman a lo cobrado ni a los cartones.
         $valid = $payments->whereIn('payment_status', ['PENDING', 'APPROVED']);
 
         return [
-            'sales'   => $sales,
+            'sales' => $sales,
             'summary' => [
                 'sales_count' => $valid->count(),
                 'cards_count' => (int) $valid->sum(fn (BingoCardPayment $p) => (int) ($p->cardLot?->card_count ?? 0)),
-                'pending'     => $payments->where('payment_status', 'PENDING')->count(),
-                'approved'    => $payments->where('payment_status', 'APPROVED')->count(),
-                'rejected'    => $payments->whereIn('payment_status', ['REJECTED', 'CANCELLED'])->count(),
+                'pending' => $payments->where('payment_status', 'PENDING')->count(),
+                'approved' => $payments->where('payment_status', 'APPROVED')->count(),
+                'rejected' => $payments->whereIn('payment_status', ['REJECTED', 'CANCELLED'])->count(),
                 // Una fila por moneda: un vendedor puede cobrar en Bs y en USD el mismo día.
-                'totals'      => $valid
+                'totals' => $valid
                     ->groupBy(fn (BingoCardPayment $p) => $p->currency?->iso_code ?? '—')
                     ->map(fn ($group, $iso) => [
-                        'currency_iso'    => $iso,
+                        'currency_iso' => $iso,
                         'currency_symbol' => $group->first()->currency?->symbol ?? '',
-                        'amount'          => round((float) $group->sum('payment_amount'), 2),
+                        'amount' => round((float) $group->sum('payment_amount'), 2),
                     ])
                     ->values()
                     ->all(),

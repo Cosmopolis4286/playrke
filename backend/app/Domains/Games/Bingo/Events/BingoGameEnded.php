@@ -12,30 +12,30 @@ class BingoGameEnded implements ShouldBroadcastNow
     use SerializesModels;
 
     public function __construct(
-        public readonly int    $roomId,
-        public readonly int    $drawId,
-        public readonly bool   $hasWinner,
-        public readonly int    $totalDrawn,
-        public readonly array  $winners,
-        public readonly float  $prize,
+        public readonly int $roomId,
+        public readonly int $drawId,
+        public readonly bool $hasWinner,
+        public readonly int $totalDrawn,
+        public readonly array $winners,
+        public readonly float $prize,
         public readonly string $endTime,
     ) {
         Log::info('BingoGameEnded', [
-            'roomId'     => $roomId,
-            'hasWinner'  => $hasWinner,
+            'roomId' => $roomId,
+            'hasWinner' => $hasWinner,
             'totalDrawn' => $totalDrawn,
-            'winners'    => count($winners),
+            'winners' => count($winners),
         ]);
     }
 
-    public function broadcastOn(): Channel
-    {
-        return new Channel("bingo.room.{$this->roomId}");
-    }
-
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'GameEnded';
+    }
+
+    public function broadcastOn() : Channel
+    {
+        return new Channel("bingo.room.{$this->roomId}");
     }
 
     /**
@@ -43,14 +43,14 @@ class BingoGameEnded implements ShouldBroadcastNow
      * authorized clients fetch detailed results through the room-scoped HTTP
      * endpoint (or the external-player link-scoped endpoint).
      */
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
-            'room_id'     => $this->roomId,
-            'draw_id'     => $this->drawId,
-            'has_winner'  => $this->hasWinner,
+            'room_id' => $this->roomId,
+            'draw_id' => $this->drawId,
+            'has_winner' => $this->hasWinner,
             'total_drawn' => $this->totalDrawn,
-            'end_time'    => $this->endTime,
+            'end_time' => $this->endTime,
             'results_available' => true,
         ];
     }

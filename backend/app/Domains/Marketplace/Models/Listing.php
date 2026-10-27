@@ -20,19 +20,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Listing extends Model
 {
     use SnowflakeId;
-
-    protected $table = 'marketplace_listings';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const STATUS_DRAFT     = 'DRAFT';
-    public const STATUS_ACTIVE    = 'ACTIVE';
-    public const STATUS_RESERVED  = 'RESERVED';
-    public const STATUS_SOLD      = 'SOLD';
+    public const STATUS_ACTIVE = 'ACTIVE';
     public const STATUS_CANCELLED = 'CANCELLED';
-    public const STATUS_EXPIRED   = 'EXPIRED';
+
+    public const STATUS_DRAFT = 'DRAFT';
+    public const STATUS_EXPIRED = 'EXPIRED';
+    public const STATUS_RESERVED = 'RESERVED';
+    public const STATUS_SOLD = 'SOLD';
     public const STATUS_SUSPENDED = 'SUSPENDED';
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'seller_id' => 'string',
+        'player_asset_id' => 'string',
+        'currency_id' => 'string',
+        'quantity' => 'integer',
+        'price' => 'float',
+        'expires_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'seller_id',
@@ -43,44 +49,38 @@ class Listing extends Model
         'status',
         'expires_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'              => 'string',
-        'seller_id'       => 'string',
-        'player_asset_id' => 'string',
-        'currency_id'     => 'string',
-        'quantity'        => 'integer',
-        'price'           => 'float',
-        'expires_at'      => 'datetime',
-    ];
+    protected $table = 'marketplace_listings';
 
-    public function seller(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'seller_id');
-    }
-
-    public function playerAsset(): BelongsTo
-    {
-        return $this->belongsTo(PlayerAsset::class, 'player_asset_id');
-    }
-
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function orders(): HasMany
+    public function isActive() : bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function orders() : HasMany
     {
         return $this->hasMany(Order::class, 'listing_id');
     }
 
-    public function isActive(): bool
+    public function playerAsset() : BelongsTo
     {
-        return $this->status === self::STATUS_ACTIVE;
+        return $this->belongsTo(PlayerAsset::class, 'player_asset_id');
     }
 
     public function scopeActive($query)
     {
         return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function seller() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seller_id');
     }
 }

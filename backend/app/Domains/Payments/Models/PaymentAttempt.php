@@ -16,21 +16,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaymentAttempt extends Model
 {
     use SnowflakeId;
-
-    public const UPDATED_AT = null;
-
-    protected $table = 'payment_attempts';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    public const ACTION_DETECT = 'detect';
     public const ACTION_CONFIRM = 'confirm';
     public const ACTION_CREDIT = 'credit';
 
-    public const RESULT_SUCCESS  = 'SUCCESS';
+    public const ACTION_DETECT = 'detect';
+    public const RESULT_ERROR = 'ERROR';
     public const RESULT_REJECTED = 'REJECTED';
-    public const RESULT_ERROR    = 'ERROR';
+
+    public const RESULT_SUCCESS = 'SUCCESS';
+
+    public const UPDATED_AT = null;
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+        'payment_order_id' => 'string',
+    ];
 
     protected $fillable = [
         'payment_order_id',
@@ -39,13 +40,12 @@ class PaymentAttempt extends Model
         'result',
         'reason',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'id'               => 'string',
-        'payment_order_id' => 'string',
-    ];
+    protected $table = 'payment_attempts';
 
-    public function paymentOrder(): BelongsTo
+    public function paymentOrder() : BelongsTo
     {
         return $this->belongsTo(PaymentOrder::class, 'payment_order_id');
     }

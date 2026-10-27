@@ -25,63 +25,72 @@ namespace App\Domains\Games\Bingo\ValueObjects;
  */
 final class BingoRoomPrizeRules
 {
-    public const POOL_PRIZE        = 'PRIZE';
     public const POOL_ACCUMULATIVE = 'ACCUMULATIVE'; // = PrizePoolType::CODE_ACCUMULATIVE
+    public const POOL_PRIZE = 'PRIZE';
+    public const ROUND_FIXED = 'fixed';
 
     public const ROUND_PERCENTAGE = 'percentage';
-    public const ROUND_FIXED      = 'fixed';
-    public const ROUND_PRIZE      = 'prize';
-
-    /** Tipos de ronda del request, normalizados desde roundsConfig. */
-    public static function roundTypes(mixed $roundsConfig): array
-    {
-        if (!is_array($roundsConfig)) return [];
-        return array_values(array_map(
-            fn ($r) => is_array($r) ? ($r['prizeType'] ?? self::ROUND_PERCENTAGE) : self::ROUND_PERCENTAGE,
-            $roundsConfig
-        ));
-    }
-
-    /** ¿Alguna ronda consume el bote en dinero de la sala? (solo las de %). */
-    public static function usesMoneyPool(array $roundTypes): bool
-    {
-        return in_array(self::ROUND_PERCENTAGE, $roundTypes, true);
-    }
+    public const ROUND_PRIZE = 'prize';
 
     /**
      * ¿La sala acumula bote en dinero con sus ventas? Todas salvo PRIZE puro.
      */
-    public static function accruesMoneyPool(?string $poolCode, array $roundTypes): bool
+    public static function accruesMoneyPool(?string $poolCode, array $roundTypes) : bool
     {
         return $poolCode !== self::POOL_PRIZE || self::usesMoneyPool($roundTypes);
+    }
+
+    /**
+     * Error de coherencia tipo de bote ↔ rondas, o null.
+     */
+    public static function roundsError(?string $poolCode, array $roundTypes) : ?string
+    {
+        if ($poolCode === null || $roundTypes === []) {
+            return null;
+        }
+
+        $hasPrizeRound = in_array(self::ROUND_PRIZE, $roundTypes, true);
+        $allPrizeRounds = ! array_diff($roundTypes, [self::ROUND_PRIZE]);
+
+        if ($poolCode === self::POOL_PRIZE && ! $hasPrizeRound) {
+            return 'Un bote Premio/Servicio necesita al menos una ronda de premio físico (P/S).';
+        }
+        if ($poolCode !== self::POOL_PRIZE && $allPrizeRounds) {
+            return 'Si todas las rondas son de premio físico (P/S), el tipo de bote debe ser Premio/Servicio: si no, el bote en dinero nunca se repartiría.';
+        }
+
+        return null;
+    }
+
+    /** Tipos de ronda del request, normalizados desde roundsConfig. */
+    public static function roundTypes(mixed $roundsConfig) : array
+    {
+        if (! is_array($roundsConfig)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            fn ($r) => is_array($r) ? ($r['prizeType'] ?? self::ROUND_PERCENTAGE) : self::ROUND_PERCENTAGE,
+            $roundsConfig,
+        ));
     }
 
     /**
      * ¿Aplica el "Valor Fijo/Extra" (monto inicial del bote)? No en el
      * acumulativo, ni en PRIZE puro (no hay bote en dinero que sembrar).
      */
-    public static function usesInitialAmount(?string $poolCode, array $roundTypes): bool
+    public static function usesInitialAmount(?string $poolCode, array $roundTypes) : bool
     {
-        if ($poolCode === null || $poolCode === self::POOL_ACCUMULATIVE) return false;
+        if ($poolCode === null || $poolCode === self::POOL_ACCUMULATIVE) {
+            return false;
+        }
+
         return self::accruesMoneyPool($poolCode, $roundTypes);
     }
 
-    /**
-     * Error de coherencia tipo de bote ↔ rondas, o null.
-     */
-    public static function roundsError(?string $poolCode, array $roundTypes): ?string
+    /** ¿Alguna ronda consume el bote en dinero de la sala? (solo las de %). */
+    public static function usesMoneyPool(array $roundTypes) : bool
     {
-        if ($poolCode === null || $roundTypes === []) return null;
-
-        $hasPrizeRound = in_array(self::ROUND_PRIZE, $roundTypes, true);
-        $allPrizeRounds = !array_diff($roundTypes, [self::ROUND_PRIZE]);
-
-        if ($poolCode === self::POOL_PRIZE && !$hasPrizeRound) {
-            return 'Un bote Premio/Servicio necesita al menos una ronda de premio físico (P/S).';
-        }
-        if ($poolCode !== self::POOL_PRIZE && $allPrizeRounds) {
-            return 'Si todas las rondas son de premio físico (P/S), el tipo de bote debe ser Premio/Servicio: si no, el bote en dinero nunca se repartiría.';
-        }
-        return null;
+        return in_array(self::ROUND_PERCENTAGE, $roundTypes, true);
     }
 }

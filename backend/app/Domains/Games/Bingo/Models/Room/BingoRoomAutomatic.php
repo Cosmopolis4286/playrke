@@ -2,14 +2,13 @@
 
 namespace App\Domains\Games\Bingo\Models\Room;
 
+use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Games\Common\ConnectionType\ConnectionType;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\Jackpot\JackpotType;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
-use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
-use App\Domains\Games\Bingo\Models\Room\BingoRoomTemplate;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,44 +17,105 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BingoRoomAutomatic extends Model
 {
-    use SnowflakeId, SoftDeletes, HasHashedRouteKey;
+    use HasHashedRouteKey, SnowflakeId, SoftDeletes;
 
-    protected $table = 'bingo_rooms_automatic';
-
-    protected $hidden = [
-        'room_password',
+    public const DAYS = [
+        'monday' => 'Lunes',
+        'tuesday' => 'Martes',
+        'wednesday' => 'Miércoles',
+        'thursday' => 'Jueves',
+        'friday' => 'Viernes',
+        'saturday' => 'Sábado',
+        'sunday' => 'Domingo',
     ];
+    public const RECURRENCE_CUSTOM = 'CUSTOM';
 
-    public const STATUS_ACTIVE   = 'ACTIVE';
+    public const RECURRENCE_DAILY = 'DAILY';
+    public const RECURRENCE_MONTHLY = 'MONTHLY';
+
+    public const RECURRENCE_TYPES = [
+        'DAILY' => 'Diario',
+        'WEEKLY' => 'Semanal',
+        'MONTHLY' => 'Mensual',
+        'CUSTOM' => 'Personalizado',
+    ];
+    public const RECURRENCE_WEEKLY = 'WEEKLY';
+
+    public const STATUS_ACTIVE = 'ACTIVE';
     public const STATUS_INACTIVE = 'INACTIVE';
     public const STATUS_SUSPENDED = 'SUSPENDED';
 
     public const STATUSES = [
-        'ACTIVE'   => 'Activa',
+        'ACTIVE' => 'Activa',
         'INACTIVE' => 'Inactiva',
         'SUSPENDED' => 'Suspendida',
     ];
 
-    public const DAYS = [
-        'monday'    => 'Lunes',
-        'tuesday'   => 'Martes',
-        'wednesday' => 'Miércoles',
-        'thursday'  => 'Jueves',
-        'friday'    => 'Viernes',
-        'saturday'  => 'Sábado',
-        'sunday'    => 'Domingo',
+    protected $appends = [
+        'formatted_time',
+        'days_description',
+        'status_badge',
     ];
 
-    public const RECURRENCE_DAILY = 'DAILY';
-    public const RECURRENCE_WEEKLY = 'WEEKLY';
-    public const RECURRENCE_MONTHLY = 'MONTHLY';
-    public const RECURRENCE_CUSTOM = 'CUSTOM';
-
-    public const RECURRENCE_TYPES = [
-        'DAILY'   => 'Diario',
-        'WEEKLY'  => 'Semanal',
-        'MONTHLY' => 'Mensual',
-        'CUSTOM'  => 'Personalizado',
+    protected $casts = [
+        'id' => 'string',
+        'template_id' => 'string',
+        'connection_type_id' => 'string',
+        'game_mode_id' => 'string',
+        'room_type_id' => 'string',
+        'access_code' => 'string',
+        'room_password' => 'string',
+        'host_user_id' => 'string',
+        'prize_pool_type_id' => 'string',
+        'creator_user_id' => 'string',
+        'default_currency_id' => 'string',
+        'allowed_currencies' => 'array',
+        'rooms_per_currency' => 'boolean',
+        'recurrence_days' => 'array',
+        'default_config' => 'array',
+        'rounds_config' => 'array',
+        'prize_types' => 'array',
+        'bingo_patterns' => 'array',
+        'prize_values' => 'array',
+        'card_currencies' => 'array',
+        'card_prices' => 'array',
+        'in_live' => 'string',
+        'game_time' => 'datetime:H:i:s',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'use_base_usd' => 'boolean',
+        'card_price_usd' => 'decimal:2',
+        'default_card_price' => 'decimal:2',
+        'usd_exchange_round_step' => 'decimal:2',
+        'rke_commission' => 'decimal:2',
+        'room_commission' => 'decimal:2',
+        'amount_added_prize_pool' => 'decimal:2',
+        'rounds_pct' => 'decimal:2',
+        'serials_pct' => 'decimal:2',
+        'jackpot_pct' => 'decimal:2',
+        'jackpot_type_id' => 'string',
+        'min_cards_to_start' => 'integer',
+        'max_cards_to_start' => 'integer',
+        'min_players' => 'integer',
+        'max_players' => 'integer',
+        'allow_custom_card' => 'boolean',
+        'custom_card_price_pct' => 'decimal:2',
+        'custom_card_mode' => 'string',
+        'custom_card_every_x' => 'integer',
+        'allow_move_free_space' => 'boolean',
+        'allow_special_card' => 'boolean',
+        'max_special_cards' => 'integer',
+        'sales_start_offset_days' => 'integer',
+        'time_chip' => 'string',
+        'use_serials' => 'boolean',
+        'auto_create_room' => 'boolean',
+        'rounds' => 'integer',
+        'num_serials' => 'integer',
+        'max_rooms_per_day' => 'integer',
+        'rooms_created' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'last_room_created_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -122,129 +182,120 @@ class BingoRoomAutomatic extends Model
         'card_prices',
     ];
 
-    protected $casts = [
-        'id'                      => 'string',
-        'template_id'             => 'string',
-        'connection_type_id'      => 'string',
-        'game_mode_id'            => 'string',
-        'room_type_id'            => 'string',
-        'access_code'             => 'string',
-        'room_password'           => 'string',
-        'host_user_id'            => 'string',
-        'prize_pool_type_id'      => 'string',
-        'creator_user_id'         => 'string',
-        'default_currency_id'     => 'string',
-        'allowed_currencies'      => 'array',
-        'rooms_per_currency'      => 'boolean',
-        'recurrence_days'         => 'array',
-        'default_config'          => 'array',
-        'rounds_config'           => 'array',
-        'prize_types'             => 'array',
-        'bingo_patterns'          => 'array',
-        'prize_values'            => 'array',
-        'card_currencies'         => 'array',
-        'card_prices'             => 'array',
-        'in_live'                 => 'string',
-        'game_time'               => 'datetime:H:i:s',
-        'start_date'              => 'date',
-        'end_date'                => 'date',
-        'use_base_usd'            => 'boolean',
-        'card_price_usd'          => 'decimal:2',
-        'default_card_price'      => 'decimal:2',
-        'usd_exchange_round_step' => 'decimal:2',
-        'rke_commission'          => 'decimal:2',
-        'room_commission'         => 'decimal:2',
-        'amount_added_prize_pool' => 'decimal:2',
-        'rounds_pct'              => 'decimal:2',
-        'serials_pct'             => 'decimal:2',
-        'jackpot_pct'             => 'decimal:2',
-        'jackpot_type_id'         => 'string',
-        'min_cards_to_start'      => 'integer',
-        'max_cards_to_start'      => 'integer',
-        'min_players'             => 'integer',
-        'max_players'             => 'integer',
-        'allow_custom_card'       => 'boolean',
-        'custom_card_price_pct'   => 'decimal:2',
-        'custom_card_mode'        => 'string',
-        'custom_card_every_x'     => 'integer',
-        'allow_move_free_space'   => 'boolean',
-        'allow_special_card'      => 'boolean',
-        'max_special_cards'       => 'integer',
-        'sales_start_offset_days' => 'integer',
-        'time_chip'               => 'string',
-        'use_serials'             => 'boolean',
-        'auto_create_room'        => 'boolean',
-        'rounds'                  => 'integer',
-        'num_serials'             => 'integer',
-        'max_rooms_per_day'       => 'integer',
-        'rooms_created'           => 'integer',
-        'created_at'              => 'datetime',
-        'updated_at'              => 'datetime',
-        'last_room_created_at'    => 'datetime',
+    protected $hidden = [
+        'room_password',
     ];
 
-    protected $appends = [
-        'formatted_time',
-        'days_description',
-        'status_badge',
-    ];
+    protected $table = 'bingo_rooms_automatic';
 
-    // ─── Relations ────────────────────────────────────────────────────────────
-
-    public function roomType(): BelongsTo
-    {
-        return $this->belongsTo(RoomType::class, 'room_type_id');
-    }
-
-    public function generatedRoomConfigs(): HasMany
-    {
-        return $this->hasMany(BingoRoomConfig::class, 'parent_automatic_id');
-    }
-
-    public function template(): BelongsTo
-    {
-        return $this->belongsTo(BingoRoomTemplate::class, 'template_id');
-    }
-
-    public function connectionType(): BelongsTo
+    public function connectionType() : BelongsTo
     {
         return $this->belongsTo(ConnectionType::class, 'connection_type_id');
+    }
+
+    public function creatorUser() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_user_id');
+    }
+
+    public function defaultCurrency() : BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Currency::class, 'default_currency_id');
     }
 
     /**
      * Relación con el modo de juego (catálogo game_modes, opcional).
      */
-    public function gameMode(): BelongsTo
+    public function gameMode() : BelongsTo
     {
         return $this->belongsTo(GameMode::class, 'game_mode_id');
+    }
+
+    public function generatedRoomConfigs() : HasMany
+    {
+        return $this->hasMany(BingoRoomConfig::class, 'parent_automatic_id');
+    }
+
+    /**
+     * Obtiene los precios de cartones consolidados.
+     */
+    public function getCardPricesConfig() : array
+    {
+        $hasData = is_array($this->card_currencies) && is_array($this->card_prices)
+            && (count($this->card_currencies) > 0 || count($this->card_prices) > 0);
+
+        return $hasData
+            ? ['currencies' => $this->card_currencies, 'card_prices' => $this->card_prices]
+            : ['currencies' => [], 'card_prices' => []];
+    }
+
+    public function getDaysDescriptionAttribute() : string
+    {
+        if (! $this->recurrence_days || ! is_array($this->recurrence_days)) {
+            return '';
+        }
+        $dayNames = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 0 => 'Domingo'];
+
+        return implode(', ', array_map(fn ($d) => $dayNames[$d] ?? $d, $this->recurrence_days));
+    }
+
+    // ─── Accessors ────────────────────────────────────────────────────────────
+
+    public function getFormattedTimeAttribute() : string
+    {
+        return $this->game_time ? $this->game_time->format('H:i') : '';
+    }
+
+    public function getIsActiveAttribute() : bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    // ─── Consolidated Rounds & Prices Helpers ────────────────────────────────
+
+    /**
+     * Obtiene la configuración de rondas consolidada.
+     */
+    public function getRoundsConfig() : array
+    {
+        return $this->rounds_config && is_array($this->rounds_config)
+            ? $this->rounds_config
+            : [];
+    }
+
+    public function getStatusBadgeAttribute() : string
+    {
+        return match ($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activa</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactiva</span>',
+            'SUSPENDED' => '<span class="badge badge-warning">Suspendida</span>',
+            default => '<span class="badge badge-dark">Desconocido</span>',
+        };
     }
 
     /**
      * Relación con el usuario anfitrión (solo aplica a salas privadas).
      */
-    public function hostUser(): BelongsTo
+    public function hostUser() : BelongsTo
     {
         return $this->belongsTo(User::class, 'host_user_id');
     }
 
-    public function prizePoolType(): BelongsTo
-    {
-        return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
-    }
-
-    public function jackpotType(): BelongsTo
+    public function jackpotType() : BelongsTo
     {
         return $this->belongsTo(JackpotType::class, 'jackpot_type_id');
     }
 
-    public function creatorUser(): BelongsTo
+    public function prizePoolType() : BelongsTo
     {
-        return $this->belongsTo(User::class, 'creator_user_id');
+        return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
     }
 
-    public function defaultCurrency(): BelongsTo
+    // ─── Relations ────────────────────────────────────────────────────────────
+
+    public function roomType() : BelongsTo
     {
-        return $this->belongsTo(\App\Models\Currency::class, 'default_currency_id');
+        return $this->belongsTo(RoomType::class, 'room_type_id');
     }
 
     // ─── Scopes ───────────────────────────────────────────────────────────────
@@ -259,59 +310,8 @@ class BingoRoomAutomatic extends Model
         return $query->where('creator_user_id', $creatorUserId);
     }
 
-    // ─── Accessors ────────────────────────────────────────────────────────────
-
-    public function getFormattedTimeAttribute(): string
+    public function template() : BelongsTo
     {
-        return $this->game_time ? $this->game_time->format('H:i') : '';
-    }
-
-    public function getDaysDescriptionAttribute(): string
-    {
-        if (!$this->recurrence_days || !is_array($this->recurrence_days)) {
-            return '';
-        }
-        $dayNames = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 0 => 'Domingo'];
-        return implode(', ', array_map(fn($d) => $dayNames[$d] ?? $d, $this->recurrence_days));
-    }
-
-    public function getIsActiveAttribute(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE;
-    }
-
-    public function getStatusBadgeAttribute(): string
-    {
-        return match ($this->status) {
-            'ACTIVE'   => '<span class="badge badge-success">Activa</span>',
-            'INACTIVE' => '<span class="badge badge-secondary">Inactiva</span>',
-            'SUSPENDED' => '<span class="badge badge-warning">Suspendida</span>',
-            default    => '<span class="badge badge-dark">Desconocido</span>',
-        };
-    }
-
-    // ─── Consolidated Rounds & Prices Helpers ────────────────────────────────
-
-    /**
-     * Obtiene la configuración de rondas consolidada.
-     */
-    public function getRoundsConfig(): array
-    {
-        return $this->rounds_config && is_array($this->rounds_config)
-            ? $this->rounds_config
-            : [];
-    }
-
-    /**
-     * Obtiene los precios de cartones consolidados.
-     */
-    public function getCardPricesConfig(): array
-    {
-        $hasData = is_array($this->card_currencies) && is_array($this->card_prices)
-            && (count($this->card_currencies) > 0 || count($this->card_prices) > 0);
-
-        return $hasData
-            ? ['currencies' => $this->card_currencies, 'card_prices' => $this->card_prices]
-            : ['currencies' => [], 'card_prices' => []];
+        return $this->belongsTo(BingoRoomTemplate::class, 'template_id');
     }
 }

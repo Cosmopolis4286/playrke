@@ -13,13 +13,13 @@ use Illuminate\Support\Collection;
  */
 final class WinEventLeaderboardService
 {
-    private const WINDOW_DAYS = 7;
     private const DEFAULT_LIMIT = 10;
+    private const WINDOW_DAYS = 7;
 
     /**
      * @return Collection<int, array{rank: int, winner_name: string, total_amount: float, wins_count: int}>
      */
-    public function weeklyTopWinners(int $limit = self::DEFAULT_LIMIT): Collection
+    public function weeklyTopWinners(int $limit = self::DEFAULT_LIMIT) : Collection
     {
         $rows = WinEvent::query()
             ->selectRaw('user_id, SUM(amount_usd) as total_amount, COUNT(*) as wins_count')
@@ -37,16 +37,16 @@ final class WinEventLeaderboardService
             ->get()
             ->keyBy('id');
 
-        return $rows->values()->map(function ($row, int $index) use ($users) {
+        return $rows->values()->map(function($row, int $index) use ($users) {
             $user = $users->get($row->user_id);
             $winEvent = new WinEvent(['user_id' => $row->user_id]);
             $winEvent->setRelation('user', $user);
 
             return [
-                'rank'         => $index + 1,
-                'winner_name'  => $winEvent->maskedWinnerName(),
+                'rank' => $index + 1,
+                'winner_name' => $winEvent->maskedWinnerName(),
                 'total_amount' => (float) $row->total_amount,
-                'wins_count'   => (int) $row->wins_count,
+                'wins_count' => (int) $row->wins_count,
             ];
         });
     }

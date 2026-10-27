@@ -13,19 +13,20 @@ class BingoNumberCalled implements ShouldBroadcastNow
     public function __construct(
         public readonly int $number,
         public readonly int $roomId,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel("bingo.room.{$this->roomId}");
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'BingoNumberCalled';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : Channel
+    {
+        return new Channel("bingo.room.{$this->roomId}");
+    }
+
+    public function broadcastWith() : array
     {
         return ['number' => $this->number];
     }

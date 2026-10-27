@@ -29,14 +29,14 @@ final class PurchaseService
     ) {
     }
 
-    public function deliver(PaymentOrder $order): Purchase
+    public function deliver(PaymentOrder $order) : Purchase
     {
         $existing = Purchase::where('payment_order_id', $order->id)->first();
         if ($existing) {
             return $existing;
         }
 
-        return DB::transaction(function () use ($order) {
+        return DB::transaction(function() use ($order) {
             $affected = PaymentOrder::where('id', $order->id)
                 ->where('status', PaymentOrder::STATUS_CONFIRMED)
                 ->update(['status' => PaymentOrder::STATUS_CREDITED]);
@@ -52,7 +52,7 @@ final class PurchaseService
                 }
 
                 throw new \App\Domains\Payments\Exceptions\InvalidPaymentOrderStateException(
-                    "La orden {$order->id} no está en estado CONFIRMED."
+                    "La orden {$order->id} no está en estado CONFIRMED.",
                 );
             }
 

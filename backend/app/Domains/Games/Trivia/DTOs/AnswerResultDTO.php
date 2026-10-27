@@ -9,21 +9,6 @@ namespace App\Domains\Games\Trivia\DTOs;
  */
 class AnswerResultDTO
 {
-    public function __construct(
-        public readonly string $answerId,
-        public readonly string $gameId,
-        public readonly string $playerId,
-        public readonly string $questionId,
-        public readonly string $submittedAnswer,
-        public readonly bool $isCorrect,
-        public readonly int $pointsEarned,
-        public readonly float $responseTimeMs,
-        public readonly int $currentScore,
-        public readonly int $currentPosition,
-        public readonly ?string $correctAnswer = null,
-        public readonly ?string $explanation = null
-    ) {}
-
     /**
      * Crear resultado desde datos de validación.
      */
@@ -37,8 +22,8 @@ class AnswerResultDTO
         float $responseTimeMs,
         int $currentScore,
         int $currentPosition,
-        ?string $correctAnswer = null
-    ): self {
+        ?string $correctAnswer = null,
+    ) : self {
         // Calcular puntos basado en tiempo de respuesta
         $pointsEarned = $isCorrect ? self::calculatePoints($basePoints, $responseTimeMs) : 0;
 
@@ -54,7 +39,7 @@ class AnswerResultDTO
             currentScore: $currentScore + $pointsEarned,
             currentPosition: $currentPosition,
             correctAnswer: $isCorrect ? null : $correctAnswer,
-            explanation: null
+            explanation: null,
         );
     }
 
@@ -62,16 +47,58 @@ class AnswerResultDTO
      * Calcular puntos basado en tiempo de respuesta.
      * Más rápido = más puntos.
      */
-    private static function calculatePoints(int $basePoints, float $responseTimeMs): int
+    private static function calculatePoints(int $basePoints, float $responseTimeMs) : int
     {
         $timeBonus = max(0, 1 - ($responseTimeMs / 10000)); // Bonus por rapidez (max 10s)
+
         return (int) ($basePoints * (0.5 + ($timeBonus * 0.5)));
+    }
+
+    public function __construct(
+        public readonly string $answerId,
+        public readonly string $gameId,
+        public readonly string $playerId,
+        public readonly string $questionId,
+        public readonly string $submittedAnswer,
+        public readonly bool $isCorrect,
+        public readonly int $pointsEarned,
+        public readonly float $responseTimeMs,
+        public readonly int $currentScore,
+        public readonly int $currentPosition,
+        public readonly ?string $correctAnswer = null,
+        public readonly ?string $explanation = null,
+    ) {
+    }
+
+    /**
+     * Respuesta para otros jugadores (sin revelar respuesta correcta todavía).
+     */
+    public function forBroadcast() : array
+    {
+        return [
+            'answer_id' => $this->answerId,
+            'game_id' => $this->gameId,
+            'player_id' => $this->playerId,
+            'question_id' => $this->questionId,
+            'is_correct' => $this->isCorrect,
+            'points_earned' => $this->pointsEarned,
+            'current_score' => $this->currentScore,
+            'current_position' => $this->currentPosition,
+        ];
+    }
+
+    /**
+     * Respuesta para el jugador que respondió.
+     */
+    public function forPlayer() : array
+    {
+        return $this->toArray(true);
     }
 
     /**
      * Convertir a array para broadcasting.
      */
-    public function toArray(bool $includeCorrectAnswer = false): array
+    public function toArray(bool $includeCorrectAnswer = false) : array
     {
         $data = [
             'answer_id' => $this->answerId,
@@ -92,30 +119,5 @@ class AnswerResultDTO
         }
 
         return $data;
-    }
-
-    /**
-     * Respuesta para el jugador que respondió.
-     */
-    public function forPlayer(): array
-    {
-        return $this->toArray(true);
-    }
-
-    /**
-     * Respuesta para otros jugadores (sin revelar respuesta correcta todavía).
-     */
-    public function forBroadcast(): array
-    {
-        return [
-            'answer_id' => $this->answerId,
-            'game_id' => $this->gameId,
-            'player_id' => $this->playerId,
-            'question_id' => $this->questionId,
-            'is_correct' => $this->isCorrect,
-            'points_earned' => $this->pointsEarned,
-            'current_score' => $this->currentScore,
-            'current_position' => $this->currentPosition,
-        ];
     }
 }

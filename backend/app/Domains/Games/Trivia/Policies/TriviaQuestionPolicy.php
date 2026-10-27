@@ -21,14 +21,14 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class TriviaQuestionPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
-    {
-        return ['superadmin', 'admin'];
-    }
-
     /** Togglear is_active — mismo criterio de rol que el resto, sin estado que bloquee la acción. */
-    public function toggleActive(User $user): bool
+    public function toggleActive(User $user) : bool
     {
         return $this->hasAccess($user);
+    }
+
+    protected function requiredRole() : string|array
+    {
+        return ['superadmin', 'admin'];
     }
 }

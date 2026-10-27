@@ -28,14 +28,15 @@ final class BingoGameRoomsDTO implements ContextDTO
         public readonly string $bingoRules = '',
         /** Path relativo de la imagen del reglamento del bingo */
         public readonly string $imageBingoRules = '',
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         $roomsWithPrices = $this->rooms->map(function($room) {
             // Mapear relación players → players_room con campo card_count esperado por el frontend
             $playersRoom = $room->relationLoaded('players')
-                ? $room->players->map(fn($p) => ['card_count' => (int) $p->cards_purchased])->values()->all()
+                ? $room->players->map(fn ($p) => ['card_count' => (int) $p->cards_purchased])->values()->all()
                 : null;
 
             // Preview de jugadores para prueba social (avatares/iniciales en la card del lobby):
@@ -43,8 +44,9 @@ final class BingoGameRoomsDTO implements ContextDTO
             $playersPreview = $room->relationLoaded('playersPreview')
                 ? $room->playersPreview
                     ->take(4)
-                    ->map(function ($p) {
+                    ->map(function($p) {
                         $name = $p->user?->first_name ?: $p->user?->username;
+
                         return ['initial' => $name ? mb_strtoupper(mb_substr($name, 0, 1)) : '?'];
                     })
                     ->values()
@@ -54,16 +56,16 @@ final class BingoGameRoomsDTO implements ContextDTO
             $roomData = array_merge(
                 $room->toArray(),
                 [
-                    'status_code'      => $room->status?->code ?? 'ACTIVE',
-                    'room_type'        => $room->config?->roomType?->code ?? 'PUBLIC',
-                    'game_mode'        => $room->config?->connectionType?->code ?? null,
-                    'id'               => $room->getRouteKey(), // Usar ID hasheado para route binding
-                    'players_room'     => $playersRoom,
-                    'players_preview'  => $playersPreview,
+                    'status_code' => $room->status?->code ?? 'ACTIVE',
+                    'room_type' => $room->config?->roomType?->code ?? 'PUBLIC',
+                    'game_mode' => $room->config?->connectionType?->code ?? null,
+                    'id' => $room->getRouteKey(), // Usar ID hasheado para route binding
+                    'players_room' => $playersRoom,
+                    'players_preview' => $playersPreview,
                     // Timestamp Unix (no string ISO) — mismo criterio que config.unix_date,
                     // evita parsear fechas en el frontend. Usado como fallback de "abierta
                     // hace X" cuando la sala no tiene fecha/hora programada (start_mode MANUAL).
-                    'unix_created_at'  => $room->created_at?->timestamp,
+                    'unix_created_at' => $room->created_at?->timestamp,
                 ],
             );
 
@@ -87,7 +89,7 @@ final class BingoGameRoomsDTO implements ContextDTO
             $maxCards = $room->config?->max_cards_to_start;
             if ($maxCards && $maxCards > 0) {
                 $totalCards = (int) ($room->total_cards ?? 0);
-                $prizePool  = (float) ($room->prize_pool ?? 0);
+                $prizePool = (float) ($room->prize_pool ?? 0);
 
                 $roomData['cards_sold_pct'] = round(min(100, ($totalCards / $maxCards) * 100), 2);
 
@@ -108,14 +110,14 @@ final class BingoGameRoomsDTO implements ContextDTO
         })->values()->all();
 
         return [
-            'title'         => 'Salas de Juego',
-            'rooms'         => $roomsWithPrices,
-            'exchangeRate'  => $this->exchangeRate,
-            'currencySym'   => $this->currencySym,
-            'userToken'     => $this->userToken,
+            'title' => 'Salas de Juego',
+            'rooms' => $roomsWithPrices,
+            'exchangeRate' => $this->exchangeRate,
+            'currencySym' => $this->currencySym,
+            'userToken' => $this->userToken,
             'dateTimeRooms' => $this->dateTimeRooms,
-            'cardPrices'    => $this->cardPrices,
-            'bingoRules'      => $this->bingoRules,
+            'cardPrices' => $this->cardPrices,
+            'bingoRules' => $this->bingoRules,
             'imageBingoRules' => $this->imageBingoRules,
         ];
     }

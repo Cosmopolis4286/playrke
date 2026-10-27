@@ -16,16 +16,16 @@ use App\Domains\Marketplace\Models\Listing;
 final class MarketplaceFeeService
 {
     /**
-     * @return float Monto de comisión (no porcentaje) sobre $amount.
+     * @return float monto de comisión (no porcentaje) sobre $amount
      */
-    public function calculate(Listing $listing, float $amount): float
+    public function calculate(Listing $listing, float $amount) : float
     {
         $percent = $this->resolvePercent($listing);
 
         return round($amount * ($percent / 100), 2);
     }
 
-    public function resolvePercent(Listing $listing): float
+    public function resolvePercent(Listing $listing) : float
     {
         $category = $listing->playerAsset?->assetDefinition?->category;
 

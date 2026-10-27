@@ -15,16 +15,15 @@ use Illuminate\Queue\SerializesModels;
 class RoomTimeSync implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
+    public int $remainingSeconds;
 
     public int $roomId;
     public int $serverTimestamp;
     public int $unixDate;
-    public int $remainingSeconds;
 
     /**
      * Create a new event instance.
      *
-     * @param int $roomId
      * @param int $unixDate Timestamp de inicio del juego
      */
     public function __construct(int $roomId, int $unixDate)
@@ -36,11 +35,19 @@ class RoomTimeSync implements ShouldBroadcast
     }
 
     /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs() : string
+    {
+        return 'RoomTimeSync';
+    }
+
+    /**
      * Get the channels the event should broadcast on.
      *
      * @return array<int, \Illuminate\Broadcasting\Channel>
      */
-    public function broadcastOn(): array
+    public function broadcastOn() : array
     {
         return [
             new Channel("bingo.room.{$this->roomId}"),
@@ -48,19 +55,11 @@ class RoomTimeSync implements ShouldBroadcast
     }
 
     /**
-     * The event's broadcast name.
-     */
-    public function broadcastAs(): string
-    {
-        return 'RoomTimeSync';
-    }
-
-    /**
      * Get the data to broadcast.
      *
      * @return array<string, mixed>
      */
-    public function broadcastWith(): array
+    public function broadcastWith() : array
     {
         return [
             'room_id' => $this->roomId,

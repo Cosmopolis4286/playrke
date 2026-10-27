@@ -31,11 +31,9 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
     public function getForAdminPanel(array $filters, int $perPage = 20) : LengthAwarePaginator;
 
     /**
-     * Mismo filtrado que getForAdminPanel() sin paginar — export CSV y stats.
-     *
-     * @param array{type?: ?string, status?: ?string, search?: ?string, date_from?: ?string, date_to?: ?string} $filters
+     * Últimos N movimientos de una billetera (sin paginar, para resumen).
      */
-    public function queryForAdminPanel(array $filters) : Builder;
+    public function getLatestByWallet(string $walletId, int $limit = 10) : Collection;
 
     /**
      * Serie diaria de aprobados/rechazados/tiempo de resolución media, para
@@ -45,20 +43,23 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
      * faltantes.
      *
      * @param array{type?: ?string, status?: ?string, search?: ?string, date_from?: ?string, date_to?: ?string} $filters
+     *
      * @return array<int, array{date: string, approved: int, rejected: int, avg_resolution_minutes: float|null}>
      */
     public function historicalTrend(array $filters, int $days = 30) : array;
-
-    /**
-     * Últimos N movimientos de una billetera (sin paginar, para resumen).
-     */
-    public function getLatestByWallet(string $walletId, int $limit = 10) : Collection;
 
     /**
      * Carga un único movimiento con las mismas relaciones que getForAdminPanel,
      * para el detalle/aprobación/rechazo del panel admin.
      */
     public function loadForAdminPanel(WalletMovement $movement) : WalletMovement;
+
+    /**
+     * Mismo filtrado que getForAdminPanel() sin paginar — export CSV y stats.
+     *
+     * @param array{type?: ?string, status?: ?string, search?: ?string, date_from?: ?string, date_to?: ?string} $filters
+     */
+    public function queryForAdminPanel(array $filters) : Builder;
 
     /**
      * Registra un nuevo movimiento de billetera.

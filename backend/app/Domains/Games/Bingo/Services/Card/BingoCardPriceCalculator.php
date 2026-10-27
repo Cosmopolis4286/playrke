@@ -28,17 +28,17 @@ final class BingoCardPriceCalculator
      *   La tasa de cambio no interviene en este modo.
      *   Ejemplo: Bs 120 → Bs 120.00
      *
-     * @param float|int|string $price        Precio base en USD (modo base) o precio en moneda local (modo personalizado).
-     * @param bool             $isCustomPrice `true` si el precio proviene de `bingo_card_prices`.
+     * @param float|int|string $price         precio base en USD (modo base) o precio en moneda local (modo personalizado)
+     * @param bool             $isCustomPrice `true` si el precio proviene de `bingo_card_prices`
      * @param float            $exchangeRate  Tasa de cambio USD → moneda local. Solo se usa en modo base.
      *
-     * @return float Precio final redondeado a 2 decimales.
+     * @return float precio final redondeado a 2 decimales
      */
     public function calculate(
         float|int|string $price,
-        bool             $isCustomPrice = false,
-        float            $exchangeRate  = 1.0
-    ): float {
+        bool $isCustomPrice = false,
+        float $exchangeRate = 1.0,
+    ) : float {
         $price = (float) $price;
 
         if ($isCustomPrice) {

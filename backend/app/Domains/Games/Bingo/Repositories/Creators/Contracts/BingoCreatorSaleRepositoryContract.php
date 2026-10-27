@@ -12,269 +12,21 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * las ventas y comisiones de los creadores de salas de bingo.
  *
- * @package App\Repositories\Bingo\Creators\Contracts
  * @author Sistema PlayRKE
+ *
  * @version 1.0
  */
 interface BingoCreatorSaleRepositoryContract extends BaseRepositoryInterface
 {
     /**
-     * Obtener venta por sala, creador y moneda
-     *
-     * @param string $roomId
-     * @param string $creatorUserId
-     * @param string $currency
-     * @return BingoCreatorSale|null
-     */
-    public function findByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, string $currency): ?BingoCreatorSale;
-
-    /**
      * Verificar si existe una venta para sala, creador y moneda específicos
-     *
-     * @param string $roomId
-     * @param string $creatorUserId
-     * @param string|null $currency
-     * @return bool
      */
-    public function existsByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, ?string $currency = null): bool;
+    public function existsByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, ?string $currency = null) : bool;
 
     /**
-     * Obtener todas las ventas por sala
-     *
-     * @param string $roomId
-     * @return Collection<int, BingoCreatorSale>
+     * Obtener venta por sala, creador y moneda
      */
-    public function getByRoom(string $roomId): Collection;
-
-    /**
-     * Obtener todas las ventas por creador
-     *
-     * @param string $creatorUserId
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function getByCreatorUser(string $creatorUserId): Collection;
-
-    /**
-     * Obtener todas las ventas por moneda
-     *
-     * @param string $currency
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function getByCurrency(string $currency): Collection;
-
-    /**
-     * Obtener total del premio acumulado por sala y moneda
-     *
-     * @param string $roomId
-     * @param string $currency
-     * @return float
-     */
-    public function getPrizePoolAmountByRoomAndCurrency(string $roomId, string $currency): float;
-
-    /**
-     * Obtener total de ventas por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalSalesByRoom(string $roomId): float;
-
-    /**
-     * Obtener total de comisiones RKE por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalRkeCommissionByRoom(string $roomId): float;
-
-    /**
-     * Obtener total de comisiones de sala por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalRoomCommissionByRoom(string $roomId): float;
-
-    /**
-     * Obtener total de comisiones de vendedor por sala
-     *
-     * @param string $roomId
-     * @return float
-     */
-    public function getTotalSellerCommissionByRoom(string $roomId): float;
-
-    /**
-     * Obtener total de ventas por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalSalesByCreator(string $creatorUserId): float;
-
-    /**
-     * Obtener total de comisiones RKE por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalRkeCommissionByCreator(string $creatorUserId): float;
-
-    /**
-     * Obtener total de comisiones de sala por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalRoomCommissionByCreator(string $creatorUserId): float;
-
-    /**
-     * Obtener total de comisiones de vendedor por creador
-     *
-     * @param string $creatorUserId
-     * @return float
-     */
-    public function getTotalSellerCommissionByCreator(string $creatorUserId): float;
-
-    /**
-     * Obtener estadísticas de ventas por sala
-     *
-     * @param string $roomId
-     * @return array{
-     *     total_sales: float,
-     *     total_rke_commission: float,
-     *     total_room_commission: float,
-     *     total_seller_commission: float,
-     *     total_prize_pool: float,
-     *     by_currency: array
-     * }
-     */
-    public function getSalesStatsByRoom(string $roomId): array;
-
-    /**
-     * Obtener estadísticas de ventas por creador
-     *
-     * @param string $creatorUserId
-     * @return array{
-     *     total_sales: float,
-     *     total_rke_commission: float,
-     *     total_room_commission: float,
-     *     total_seller_commission: float,
-     *     total_prize_pool: float,
-     *     room_count: int,
-     *     by_currency: array
-     * }
-     */
-    public function getSalesStatsByCreator(string $creatorUserId): array;
-
-    /**
-     * Obtener ventas con mayor volumen
-     *
-     * @param int $limit
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function getTopSalesByVolume(int $limit = 10): Collection;
-
-    /**
-     * Obtener creadores con mayores ventas
-     *
-     * @param int $limit
-     * @return Collection
-     */
-    public function getTopCreatorsBySales(int $limit = 10): Collection;
-
-    /**
-     * Obtener salas con mayores ventas
-     *
-     * @param int $limit
-     * @return Collection
-     */
-    public function getTopRoomsBySales(int $limit = 10): Collection;
-
-    /**
-     * Crear o actualizar una venta
-     *
-     * @param string $roomId
-     * @param string $creatorUserId
-     * @param string $currency
-     * @param float $amount
-     * @param float|null $sellerCommission
-     * @return BingoCreatorSale
-     */
-    public function updateOrCreateSale(string $roomId, string $creatorUserId, string $currency, float $amount, ?float $sellerCommission = null): BingoCreatorSale;
-
-    /**
-     * Incrementar monto de venta existente
-     *
-     * @param string $saleId
-     * @param float $amount
-     * @param float $rkeCommission
-     * @param float $roomCommission
-     * @param float $sellerCommission
-     * @param float $prizePoolAmount
-     * @return bool
-     */
-    public function incrementSaleAmounts(string $saleId, float $amount, float $rkeCommission, float $roomCommission, float $sellerCommission, float $prizePoolAmount): bool;
-
-    /**
-     * Obtener ventas por rango de fechas
-     *
-     * @param string $startDate
-     * @param string $endDate
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function getByDateRange(string $startDate, string $endDate): Collection;
-
-    /**
-     * Obtener ventas por rango de montos
-     *
-     * @param float $minAmount
-     * @param float $maxAmount
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function getBySaleAmountRange(float $minAmount, float $maxAmount): Collection;
-
-    /**
-     * Obtener resumen diario de ventas
-     *
-     * @param string $date
-     * @return array{
-     *     total_sales: float,
-     *     total_transactions: int,
-     *     total_commission: float,
-     *     total_prize_pool: float
-     * }
-     */
-    public function getDailySummary(string $date): array;
-
-    /**
-     * Obtener resumen mensual de ventas
-     *
-     * @param int $year
-     * @param int $month
-     * @return array{
-     *     total_sales: float,
-     *     total_transactions: int,
-     *     total_commission: float,
-     *     total_prize_pool: float,
-     *     daily_breakdown: array
-     * }
-     */
-    public function getMonthlySummary(int $year, int $month): array;
-
-    /**
-     * Buscar ventas por término de búsqueda
-     *
-     * @param string $searchTerm
-     * @return Collection<int, BingoCreatorSale>
-     */
-    public function searchSales(string $searchTerm): Collection;
-
-    /**
-     * Obtener ventas agrupadas por moneda
-     *
-     * @return Collection
-     */
-    public function getSalesGroupedByCurrency(): Collection;
+    public function findByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, string $currency) : ?BingoCreatorSale;
 
     /**
      * Obtener promedio de comisiones por tipo
@@ -285,13 +37,183 @@ interface BingoCreatorSaleRepositoryContract extends BaseRepositoryInterface
      *     avg_seller_commission: float
      * }
      */
-    public function getAverageCommissions(): array;
+    public function getAverageCommissions() : array;
+
+    /**
+     * Obtener todas las ventas por creador
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getByCreatorUser(string $creatorUserId) : Collection;
+
+    /**
+     * Obtener todas las ventas por moneda
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getByCurrency(string $currency) : Collection;
+
+    /**
+     * Obtener ventas por rango de fechas
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getByDateRange(string $startDate, string $endDate) : Collection;
+
+    /**
+     * Obtener todas las ventas por sala
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getByRoom(string $roomId) : Collection;
+
+    /**
+     * Obtener ventas por rango de montos
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getBySaleAmountRange(float $minAmount, float $maxAmount) : Collection;
+
+    /**
+     * Obtener resumen diario de ventas
+     *
+     * @return array{
+     *     total_sales: float,
+     *     total_transactions: int,
+     *     total_commission: float,
+     *     total_prize_pool: float
+     * }
+     */
+    public function getDailySummary(string $date) : array;
+
+    /**
+     * Obtener resumen mensual de ventas
+     *
+     * @return array{
+     *     total_sales: float,
+     *     total_transactions: int,
+     *     total_commission: float,
+     *     total_prize_pool: float,
+     *     daily_breakdown: array
+     * }
+     */
+    public function getMonthlySummary(int $year, int $month) : array;
+
+    /**
+     * Obtener total del premio acumulado por sala y moneda
+     */
+    public function getPrizePoolAmountByRoomAndCurrency(string $roomId, string $currency) : float;
+
+    /**
+     * Obtener ventas agrupadas por moneda
+     */
+    public function getSalesGroupedByCurrency() : Collection;
+
+    /**
+     * Obtener estadísticas de ventas por creador
+     *
+     * @return array{
+     *     total_sales: float,
+     *     total_rke_commission: float,
+     *     total_room_commission: float,
+     *     total_seller_commission: float,
+     *     total_prize_pool: float,
+     *     room_count: int,
+     *     by_currency: array
+     * }
+     */
+    public function getSalesStatsByCreator(string $creatorUserId) : array;
+
+    /**
+     * Obtener estadísticas de ventas por sala
+     *
+     * @return array{
+     *     total_sales: float,
+     *     total_rke_commission: float,
+     *     total_room_commission: float,
+     *     total_seller_commission: float,
+     *     total_prize_pool: float,
+     *     by_currency: array
+     * }
+     */
+    public function getSalesStatsByRoom(string $roomId) : array;
+
+    /**
+     * Obtener creadores con mayores ventas
+     */
+    public function getTopCreatorsBySales(int $limit = 10) : Collection;
+
+    /**
+     * Obtener salas con mayores ventas
+     */
+    public function getTopRoomsBySales(int $limit = 10) : Collection;
+
+    /**
+     * Obtener ventas con mayor volumen
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function getTopSalesByVolume(int $limit = 10) : Collection;
+
+    /**
+     * Obtener total de comisiones RKE por creador
+     */
+    public function getTotalRkeCommissionByCreator(string $creatorUserId) : float;
+
+    /**
+     * Obtener total de comisiones RKE por sala
+     */
+    public function getTotalRkeCommissionByRoom(string $roomId) : float;
+
+    /**
+     * Obtener total de comisiones de sala por creador
+     */
+    public function getTotalRoomCommissionByCreator(string $creatorUserId) : float;
+
+    /**
+     * Obtener total de comisiones de sala por sala
+     */
+    public function getTotalRoomCommissionByRoom(string $roomId) : float;
+
+    /**
+     * Obtener total de ventas por creador
+     */
+    public function getTotalSalesByCreator(string $creatorUserId) : float;
+
+    /**
+     * Obtener total de ventas por sala
+     */
+    public function getTotalSalesByRoom(string $roomId) : float;
+
+    /**
+     * Obtener total de comisiones de vendedor por creador
+     */
+    public function getTotalSellerCommissionByCreator(string $creatorUserId) : float;
+
+    /**
+     * Obtener total de comisiones de vendedor por sala
+     */
+    public function getTotalSellerCommissionByRoom(string $roomId) : float;
+
+    /**
+     * Incrementar monto de venta existente
+     */
+    public function incrementSaleAmounts(string $saleId, float $amount, float $rkeCommission, float $roomCommission, float $sellerCommission, float $prizePoolAmount) : bool;
+
+    /**
+     * Buscar ventas por término de búsqueda
+     *
+     * @return Collection<int, BingoCreatorSale>
+     */
+    public function searchSales(string $searchTerm) : Collection;
+
+    /**
+     * Crear o actualizar una venta
+     */
+    public function updateOrCreateSale(string $roomId, string $creatorUserId, string $currency, float $amount, ?float $sellerCommission = null) : BingoCreatorSale;
 
     /**
      * Verificar integridad de datos de venta
-     *
-     * @param string $saleId
-     * @return bool
      */
-    public function validateSaleIntegrity(string $saleId): bool;
+    public function validateSaleIntegrity(string $saleId) : bool;
 }

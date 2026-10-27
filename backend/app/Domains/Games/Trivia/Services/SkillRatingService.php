@@ -6,7 +6,6 @@ namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Models\TriviaSkillRating;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Actualiza el skill rating de cada jugador al terminar una partida.
@@ -32,18 +31,69 @@ use Illuminate\Support\Facades\Log;
  */
 final class SkillRatingService
 {
-    private const K_NEW         = 40;   // < 20 partidas
     private const K_ESTABLISHED = 20;   // ≥ 20 partidas
-    private const MAX_DELTA     = 100;  // cambio máximo por partida
-    private const SKILL_BONUS   = 10;   // bonus si >70% respuestas correctas
+    private const K_NEW = 40;   // < 20 partidas
+    private const MAX_DELTA = 100;  // cambio máximo por partida
+    private const SKILL_BONUS = 10;   // bonus si >70% respuestas correctas
     private const SKILL_BONUS_THRESHOLD = 0.70;
+
+    /**
+     * Rating de un jugador específico.
+     */
+    public function getRating(string $userId) : array
+    {
+        $r = TriviaSkillRating::forUser($userId);
+
+        return [
+            'userId' => $r->user_id,
+            'rating' => $r->rating,
+            'peakRating' => $r->peak_rating,
+            'tier' => $r->tier,
+            'tierLabel' => $r->tier_label,
+            'tierColor' => $r->tier_color,
+            'gamesPlayed' => $r->games_played,
+            'wins' => $r->wins,
+            'winRate' => $r->win_rate,
+            'avgCorrectPct' => $r->avg_correct_pct,
+            'avgResponseMs' => $r->avg_response_ms,
+            'lastGameAt' => $r->last_game_at?->toISOString(),
+        ];
+    }
+
+    /**
+     * Leaderboard global de skill ratings.
+     *
+     * @return array [{userId, rating, tier, wins, gamesPlayed, winRate}]
+     */
+    public function globalLeaderboard(int $limit = 100, ?string $tier = null) : array
+    {
+        $query = TriviaSkillRating::leaderboard($limit);
+
+        if ($tier) {
+            $query->ofTier($tier);
+        }
+
+        return $query->get()->map(fn ($r) => [
+            'userId' => $r->user_id,
+            'rating' => $r->rating,
+            'peakRating' => $r->peak_rating,
+            'tier' => $r->tier,
+            'tierLabel' => $r->tier_label,
+            'tierColor' => $r->tier_color,
+            'gamesPlayed' => $r->games_played,
+            'wins' => $r->wins,
+            'winRate' => $r->win_rate,
+            'avgCorrectPct' => $r->avg_correct_pct,
+            'lastGameAt' => $r->last_game_at?->toISOString(),
+        ])->all();
+    }
 
     /**
      * Actualiza los ratings de todos los jugadores de una partida.
      *
      * @param array $finalRanks [{playerId, position, correctAnswers, totalQuestions, avgTimeMs}]
      */
-    public function updateAfterGame(array $finalRanks): void
+    public function updateAfterGame(array $finalRanks) : void
     {
         if (count($finalRanks) < 2) {
             return; // No tiene sentido actualizar con 1 jugador
@@ -51,22 +101,22 @@ final class SkillRatingService
 
         // Cargar/crear todos los ratings de golpe
         $playerIds = array_column($finalRanks, 'playerId');
-        $ratings   = [];
+        $ratings = [];
         foreach ($playerIds as $id) {
             $ratings[$id] = TriviaSkillRating::forUser($id);
         }
 
         // Rating promedio de oponentes (para expected score)
-        $avgRating = array_sum(array_map(fn($r) => $r->rating, $ratings)) / count($ratings);
-        $n         = count($finalRanks);
+        $avgRating = array_sum(array_map(fn ($r) => $r->rating, $ratings)) / count($ratings);
+        $n = count($finalRanks);
 
-        DB::connection('pgsql_trivia')->transaction(function () use ($finalRanks, $ratings, $avgRating, $n) {
+        DB::connection('pgsql_trivia')->transaction(function() use ($finalRanks, $ratings, $avgRating, $n) {
             foreach ($finalRanks as $rank) {
-                $userId   = $rank['playerId'];
+                $userId = $rank['playerId'];
                 $position = (int) $rank['position'];
-                $correct  = (int) ($rank['correctAnswers'] ?? 0);
-                $total    = (int) ($rank['totalQuestions'] ?? max(1, $correct));
-                $avgTime  = (float) ($rank['avgTimeMs'] ?? 0);
+                $correct = (int) ($rank['correctAnswers'] ?? 0);
+                $total = (int) ($rank['totalQuestions'] ?? max(1, $correct));
+                $avgTime = (float) ($rank['avgTimeMs'] ?? 0);
 
                 $skillRating = $ratings[$userId];
 
@@ -77,7 +127,7 @@ final class SkillRatingService
                 $actualScore = ($n - $position) / max(1, $n - 1);
 
                 // Expected score ELO vs promedio
-                $expectedScore = 1 / (1 + pow(10, ($avgRating - $skillRating->rating) / 400));
+                $expectedScore = 1 / (1 + 10 ** (($avgRating - $skillRating->rating) / 400));
 
                 // Delta base
                 $delta = (int) round($K * ($actualScore - $expectedScore));
@@ -91,17 +141,17 @@ final class SkillRatingService
                 // Cap
                 $delta = max(-self::MAX_DELTA, min(self::MAX_DELTA, $delta));
 
-                $newRating  = max(100, $skillRating->rating + $delta);
+                $newRating = max(100, $skillRating->rating + $delta);
                 $peakRating = max($skillRating->peak_rating, $newRating);
 
                 // Estadísticas rolling
-                $gamesPlayed   = $skillRating->games_played + 1;
-                $isWin         = $position <= 3 ? 1 : 0;
-                $wins          = $skillRating->wins + $isWin;
-                $winRate       = round($wins / $gamesPlayed, 4);
+                $gamesPlayed = $skillRating->games_played + 1;
+                $isWin = $position <= 3 ? 1 : 0;
+                $wins = $skillRating->wins + $isWin;
+                $winRate = round($wins / $gamesPlayed, 4);
                 $avgCorrectPct = round(
                     ($skillRating->avg_correct_pct * $skillRating->games_played + $correctPct) / $gamesPlayed,
-                    4
+                    4,
                 );
                 $avgResponseMs = $gamesPlayed > 1
                     ? (int) round(($skillRating->avg_response_ms * $skillRating->games_played + $avgTime) / $gamesPlayed)
@@ -110,68 +160,17 @@ final class SkillRatingService
                 $tier = TriviaSkillRating::tierForRating($newRating);
 
                 $skillRating->update([
-                    'rating'          => $newRating,
-                    'peak_rating'     => $peakRating,
-                    'games_played'    => $gamesPlayed,
-                    'wins'            => $wins,
-                    'win_rate'        => $winRate,
+                    'rating' => $newRating,
+                    'peak_rating' => $peakRating,
+                    'games_played' => $gamesPlayed,
+                    'wins' => $wins,
+                    'win_rate' => $winRate,
                     'avg_correct_pct' => $avgCorrectPct,
                     'avg_response_ms' => $avgResponseMs,
-                    'tier'            => $tier,
-                    'last_game_at'    => now(),
+                    'tier' => $tier,
+                    'last_game_at' => now(),
                 ]);
             }
         });
-    }
-
-    /**
-     * Leaderboard global de skill ratings.
-     *
-     * @return array [{userId, rating, tier, wins, gamesPlayed, winRate}]
-     */
-    public function globalLeaderboard(int $limit = 100, ?string $tier = null): array
-    {
-        $query = TriviaSkillRating::leaderboard($limit);
-
-        if ($tier) {
-            $query->ofTier($tier);
-        }
-
-        return $query->get()->map(fn($r) => [
-            'userId'       => $r->user_id,
-            'rating'       => $r->rating,
-            'peakRating'   => $r->peak_rating,
-            'tier'         => $r->tier,
-            'tierLabel'    => $r->tier_label,
-            'tierColor'    => $r->tier_color,
-            'gamesPlayed'  => $r->games_played,
-            'wins'         => $r->wins,
-            'winRate'      => $r->win_rate,
-            'avgCorrectPct'=> $r->avg_correct_pct,
-            'lastGameAt'   => $r->last_game_at?->toISOString(),
-        ])->all();
-    }
-
-    /**
-     * Rating de un jugador específico.
-     */
-    public function getRating(string $userId): array
-    {
-        $r = TriviaSkillRating::forUser($userId);
-
-        return [
-            'userId'       => $r->user_id,
-            'rating'       => $r->rating,
-            'peakRating'   => $r->peak_rating,
-            'tier'         => $r->tier,
-            'tierLabel'    => $r->tier_label,
-            'tierColor'    => $r->tier_color,
-            'gamesPlayed'  => $r->games_played,
-            'wins'         => $r->wins,
-            'winRate'      => $r->win_rate,
-            'avgCorrectPct'=> $r->avg_correct_pct,
-            'avgResponseMs'=> $r->avg_response_ms,
-            'lastGameAt'   => $r->last_game_at?->toISOString(),
-        ];
     }
 }

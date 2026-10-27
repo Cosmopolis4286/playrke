@@ -26,7 +26,7 @@ final class DepositAddressService
      * Devuelve la dirección activa del usuario para esta moneda, o crea una
      * nueva vía CryptoGateway::deriveAddress() si no existe todavía.
      */
-    public function getOrCreate(string $userId, string $currencyId): DepositAddress
+    public function getOrCreate(string $userId, string $currencyId) : DepositAddress
     {
         $existing = DepositAddress::where('user_id', $userId)
             ->where('currency_id', $currencyId)
@@ -38,7 +38,7 @@ final class DepositAddressService
             return $existing;
         }
 
-        return DB::transaction(function () use ($userId, $currencyId) {
+        return DB::transaction(function() use ($userId, $currencyId) {
             // Re-verificar bajo transacción: dos requests concurrentes del
             // mismo usuario no deben generar dos direcciones — el unique
             // constraint de la migración es la defensa real; este segundo
@@ -58,12 +58,12 @@ final class DepositAddressService
             $derived = $this->gateway->deriveAddress($userId);
 
             return DepositAddress::create([
-                'user_id'          => $userId,
-                'currency_id'      => $currencyId,
-                'network'          => $this->gateway->network(),
+                'user_id' => $userId,
+                'currency_id' => $currencyId,
+                'network' => $this->gateway->network(),
                 'derivation_index' => $derived['derivation_index'],
-                'address'          => $derived['address'],
-                'status'           => DepositAddress::STATUS_ACTIVE,
+                'address' => $derived['address'],
+                'status' => DepositAddress::STATUS_ACTIVE,
             ]);
         });
     }
@@ -72,7 +72,7 @@ final class DepositAddressService
      * Resuelve la moneda por iso_code y delega en getOrCreate() — helper
      * para controllers que reciben "USDT" en vez de un currency_id.
      */
-    public function getOrCreateByCurrencyCode(string $userId, string $isoCode): DepositAddress
+    public function getOrCreateByCurrencyCode(string $userId, string $isoCode) : DepositAddress
     {
         $currency = Currency::where('iso_code', strtoupper($isoCode))->firstOrFail();
 

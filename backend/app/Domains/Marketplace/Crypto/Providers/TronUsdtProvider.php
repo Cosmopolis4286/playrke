@@ -26,9 +26,12 @@ use App\Domains\Marketplace\Crypto\Exceptions\CryptoCustodyNotConfiguredExceptio
  */
 final class TronUsdtProvider implements CryptoGateway
 {
-    public function network(): string
+    public function broadcastWithdrawal(string $toAddress, float $amount) : string
     {
-        return 'TRON';
+        throw new CryptoCustodyNotConfiguredException(
+            'No hay proveedor de custodia real configurado — TronUsdtProvider es un stub (Fase 5). '
+            . 'No se puede transmitir ningún retiro real todavía.',
+        );
     }
 
     /**
@@ -38,7 +41,7 @@ final class TronUsdtProvider implements CryptoGateway
      * el resto del sistema (validación de longitud, UI) se comporte como
      * lo haría con una dirección real, no para que sea usable.
      */
-    public function deriveAddress(string $userId): array
+    public function deriveAddress(string $userId) : array
     {
         $derivationIndex = $this->nextDerivationIndex();
 
@@ -46,24 +49,21 @@ final class TronUsdtProvider implements CryptoGateway
 
         return [
             'derivation_index' => $derivationIndex,
-            'address'          => 'T' . strtoupper($hash),
+            'address' => 'T' . strtoupper($hash),
         ];
     }
 
-    public function broadcastWithdrawal(string $toAddress, float $amount): string
+    public function getConfirmations(string $txHash) : int
     {
         throw new CryptoCustodyNotConfiguredException(
             'No hay proveedor de custodia real configurado — TronUsdtProvider es un stub (Fase 5). '
-            . 'No se puede transmitir ningún retiro real todavía.'
+            . 'No se pueden consultar confirmaciones on-chain reales todavía.',
         );
     }
 
-    public function getConfirmations(string $txHash): int
+    public function network() : string
     {
-        throw new CryptoCustodyNotConfiguredException(
-            'No hay proveedor de custodia real configurado — TronUsdtProvider es un stub (Fase 5). '
-            . 'No se pueden consultar confirmaciones on-chain reales todavía.'
-        );
+        return 'TRON';
     }
 
     /**
@@ -73,7 +73,7 @@ final class TronUsdtProvider implements CryptoGateway
      * el máximo ya persistido en crypto_deposit_addresses, suficiente para
      * el stub de esta fase.
      */
-    private function nextDerivationIndex(): int
+    private function nextDerivationIndex() : int
     {
         $max = \App\Domains\Marketplace\Crypto\Models\DepositAddress::max('derivation_index');
 

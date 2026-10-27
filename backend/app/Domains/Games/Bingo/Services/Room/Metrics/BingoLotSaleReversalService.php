@@ -39,20 +39,21 @@ final class BingoLotSaleReversalService
         private readonly JackpotLedgerService $jackpotLedger,
         private readonly PlatformReceivableService $receivables,
         private readonly FinancialReconciliationService $reconciliation,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array{reversed: bool, channel: string|null, refund_to_seller: float}
-     *   reversed:         false si el lote no tiene desglose (venta previa al registro).
-     *   channel:          'wallet' | 'offline' | null (sin desglose).
-     *   refund_to_seller: en venta fuera del sistema, lo que la plataforma ya le
-     *                     había cobrado al comercio y le devuelve para que reembolse
-     *                     al comprador (el resto del dinero ya lo tiene en efectivo).
+     *                                                                              reversed:         false si el lote no tiene desglose (venta previa al registro).
+     *                                                                              channel:          'wallet' | 'offline' | null (sin desglose).
+     *                                                                              refund_to_seller: en venta fuera del sistema, lo que la plataforma ya le
+     *                                                                              había cobrado al comercio y le devuelve para que reembolse
+     *                                                                              al comprador (el resto del dinero ya lo tiene en efectivo).
      */
-    public function reverse(BingoCardLot $lot, BingoRoom $room): array
+    public function reverse(BingoCardLot $lot, BingoRoom $room) : array
     {
         $b = $lot->financial_breakdown;
-        if (!is_array($b) || ($b['version'] ?? null) !== 1) {
+        if (! is_array($b) || ($b['version'] ?? null) !== 1) {
             Log::warning('[BingoLotSaleReversalService] Lote sin desglose financiero — no se revierten métricas, RKE ni jackpot; conciliar manualmente', [
                 'lot_id' => (string) $lot->id, 'room_id' => (string) $room->id,
             ]);
@@ -65,13 +66,14 @@ final class BingoLotSaleReversalService
                 lotId: (string) $lot->id,
                 idempotencyKey: "legacy-lot-not-reversed-{$lot->id}",
             );
+
             return ['reversed' => false, 'channel' => null, 'refund_to_seller' => 0.0];
         }
 
         $this->reverseRoomMetrics($room, $b);
         $this->reverseCreatorSale($room, $b);
 
-        $currencyId = !empty($b['currency_id']) ? (string) $b['currency_id'] : null;
+        $currencyId = ! empty($b['currency_id']) ? (string) $b['currency_id'] : null;
         $channel = ($b['channel'] ?? 'wallet') === 'offline' ? 'offline' : 'wallet';
         $refundToSeller = 0.0;
 
@@ -87,12 +89,16 @@ final class BingoLotSaleReversalService
             if ($settled) {
                 $refundToSeller += $this->reversePlatformAmount('rke', $currencyId, (float) $settled->rke_amount, $lot, $room);
                 $refundToSeller += $this->reversePlatformAmount(
-                    'pool', $currencyId, (float) $settled->jackpot_amount + (float) $settled->prize_pool_amount, $lot, $room,
+                    'pool',
+                    $currencyId,
+                    (float) $settled->jackpot_amount + (float) $settled->prize_pool_amount,
+                    $lot,
+                    $room,
                 );
             }
         }
 
-        if (!empty($b['jackpot_type_id']) && (float) ($b['jackpot_credited_usd'] ?? 0) > 0) {
+        if (! empty($b['jackpot_type_id']) && (float) ($b['jackpot_credited_usd'] ?? 0) > 0) {
             $shortfall = $this->jackpotLedger->reverseContribution(
                 jackpotTypeId: (string) $b['jackpot_type_id'],
                 amount: (float) $b['jackpot_credited_usd'],
@@ -116,6 +122,28 @@ final class BingoLotSaleReversalService
         return ['reversed' => true, 'channel' => $channel, 'refund_to_seller' => round($refundToSeller, 2)];
     }
 
+    private function reverseCreatorSale(BingoRoom $room, array $b) : void
+    {
+        $cs = $b['creator_sale'] ?? null;
+        $currencyId = $b['currency_id'] ?? null;
+        if (! is_array($cs) || ! $currencyId) {
+            return;
+        }
+
+        $sale = BingoCreatorSale::where('room_id', $room->id)
+            ->where('creator_user_id', $cs['creator_user_id'])
+            ->where('currency_id', $currencyId)
+            ->lockForUpdate()
+            ->first();
+        if (! $sale) {
+            return;
+        }
+
+        // Genérico por clave (ver reverseRoomMetrics): creator_user_id no es monto.
+        unset($cs['creator_user_id']);
+        $sale->update($this->subtractAll($sale->getAttributes(), $cs));
+    }
+
     /**
      * Saca de la wallet de plataforma lo que hay que devolver por un lote
      * reembolsado. Si no alcanza el saldo (ya se retiró), queda una alerta de
@@ -123,22 +151,27 @@ final class BingoLotSaleReversalService
      * plataforma no pudo devolver (eso crearía dinero de la nada).
      *
      * @param 'rke'|'pool' $kind
-     * @return float Monto efectivamente revertido.
+     *
+     * @return float monto efectivamente revertido
      */
-    private function reversePlatformAmount(string $kind, ?string $currencyId, float $amount, BingoCardLot $lot, BingoRoom $room): float
+    private function reversePlatformAmount(string $kind, ?string $currencyId, float $amount, BingoCardLot $lot, BingoRoom $room) : float
     {
         $amount = round($amount, 2);
-        if (!$currencyId || $amount <= 0) {
+        if (! $currencyId || $amount <= 0) {
             return 0.0;
         }
 
         $movement = $kind === 'rke'
             ? $this->platformWallet->reverseRke(
-                $currencyId, $amount, "bingo-lot-rke-reversal-{$lot->id}",
+                $currencyId,
+                $amount,
+                "bingo-lot-rke-reversal-{$lot->id}",
                 "Reversión comisión RKE – Sala #{$room->uuid_code} (lote reembolsado)",
             )
             : $this->platformWallet->reversePoolFunding(
-                $currencyId, $amount, "bingo-lot-pool-reversal-{$lot->id}",
+                $currencyId,
+                $amount,
+                "bingo-lot-pool-reversal-{$lot->id}",
                 "Devolución fondeo bote/jackpot – Sala #{$room->uuid_code} (lote reembolsado)",
             );
 
@@ -158,6 +191,7 @@ final class BingoLotSaleReversalService
             idempotencyKey: "{$kind}-reversal-failed-{$lot->id}",
             details: ['kind' => $kind],
         );
+
         return 0.0;
     }
 
@@ -167,7 +201,7 @@ final class BingoLotSaleReversalService
      * de agencia/comercializadora) se revierte sin tocar este servicio.
      * prize_pool también se descuenta de full_house_prize (se suman juntos).
      */
-    private function reverseRoomMetrics(BingoRoom $room, array $b): void
+    private function reverseRoomMetrics(BingoRoom $room, array $b) : void
     {
         $locked = BingoRoom::where('id', $room->id)->lockForUpdate()->firstOrFail();
 
@@ -191,13 +225,16 @@ final class BingoLotSaleReversalService
     /**
      * @param array<string, mixed> $current Valores actuales (fila o entrada JSON)
      * @param array<string, mixed> $amounts Montos a restar
+     *
      * @return array<string, int|float> Solo las claves afectadas, sin bajar de 0
      */
-    private function subtractAll(array $current, array $amounts): array
+    private function subtractAll(array $current, array $amounts) : array
     {
         $out = [];
         foreach ($amounts as $key => $amount) {
-            if (!is_numeric($amount) || (float) $amount == 0.0) continue;
+            if (! is_numeric($amount) || (float) $amount == 0.0) {
+                continue;
+            }
             $out[$key] = $key === 'total_cards'
                 ? max(0, (int) ($current[$key] ?? 0) - (int) $amount)
                 : round(max(0, (float) ($current[$key] ?? 0) - (float) $amount), 3);
@@ -205,28 +242,7 @@ final class BingoLotSaleReversalService
         if (isset($amounts['prize_pool']) && (float) $amounts['prize_pool'] != 0.0) {
             $out['full_house_prize'] = round(max(0, (float) ($current['full_house_prize'] ?? 0) - (float) $amounts['prize_pool']), 3);
         }
+
         return $out;
-    }
-
-    private function reverseCreatorSale(BingoRoom $room, array $b): void
-    {
-        $cs = $b['creator_sale'] ?? null;
-        $currencyId = $b['currency_id'] ?? null;
-        if (!is_array($cs) || !$currencyId) {
-            return;
-        }
-
-        $sale = BingoCreatorSale::where('room_id', $room->id)
-            ->where('creator_user_id', $cs['creator_user_id'])
-            ->where('currency_id', $currencyId)
-            ->lockForUpdate()
-            ->first();
-        if (!$sale) {
-            return;
-        }
-
-        // Genérico por clave (ver reverseRoomMetrics): creator_user_id no es monto.
-        unset($cs['creator_user_id']);
-        $sale->update($this->subtractAll($sale->getAttributes(), $cs));
     }
 }

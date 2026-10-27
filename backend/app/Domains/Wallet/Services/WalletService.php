@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -53,6 +54,15 @@ use Throwable;
  */
 final class WalletService
 {
+    /**
+     * Minutos que dura el lock de asignación por inactividad. Pasado este
+     * tiempo desde assigned_at, cualquier admin puede volver a tomar el
+     * caso sin necesidad de que el dueño original lo libere manualmente —
+     * evita que un caso quede bloqueado indefinidamente si esa persona se
+     * desconecta sin liberar.
+     */
+    private const ASSIGNMENT_LOCK_MINUTES = 30;
+
     public function __construct(
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly WalletMovementRepositoryInterface $movementRepository,
@@ -172,7 +182,7 @@ final class WalletService
 
         $this->guardNotLockedByOther($movement);
 
-        $updated = DB::transaction(function () use ($movement, $adminNotes) {
+        $updated = DB::transaction(function() use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== WalletMovement::STATUS_PENDING) {
@@ -193,6 +203,28 @@ final class WalletService
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
 
         return $updated;
+    }
+
+    /**
+     * "Tomar" un movimiento PENDING como propio — evita que dos admins
+     * trabajen el mismo caso a la vez. Rechaza con 409 si ya está asignado a
+     * OTRO admin y el lock sigue vigente, salvo que el actor sea superadmin
+     * (puede forzar la reasignación tomando el caso él mismo).
+     */
+    public function assignMovement(WalletMovement $movement) : WalletMovement
+    {
+        $this->guardNotLockedByOther($movement);
+
+        $actor = Auth::user();
+
+        $movement->forceFill([
+            'assigned_to_user_id' => $actor->id,
+            'assigned_at' => now(),
+        ])->save();
+
+        $this->broadcastMovementAssigned($movement->fresh(), $actor, assigned: true);
+
+        return $movement->fresh(['wallet', 'wallet.currency', 'assignedTo']);
     }
 
     /**
@@ -266,6 +298,36 @@ final class WalletService
         }
 
         return $wallet;
+    }
+
+    /**
+     * Registrar una compra de cartones en la billetera.
+     *
+     * @param string $walletId    ID de la billetera
+     * @param float  $amount      Monto de la compra
+     * @param string $description Descripción de la compra (opcional)
+     *
+     * @throws DomainException Si no hay saldo suficiente
+     */
+    /**
+     * Descuenta la entrada a una sala de Trivia y registra el movimiento TRIVIA_ENTRY.
+     * La wallet se pasa ya resuelta (sin aceptar walletId externo).
+     *
+     * $roomId/$roomName son opcionales para no romper otros callers futuros,
+     * pero si se pasan disparan TriviaEntryPurchased hacia admins.activity —
+     * mismo patrón que BingoCardSold para ventas de cartones.
+     */
+    /**
+     * Busca un cobro de entrada de Trivia ya confirmado para que el flujo de
+     * inscripción pueda recuperar el monto y la moneda originales al reintentar
+     * después de un fallo parcial (la tasa o la tarifa de la sala pudo cambiar).
+     */
+    public function findTriviaEntryMovement(string $idempotencyKey) : ?WalletMovement
+    {
+        return WalletMovement::with('wallet.currency')
+            ->where('idempotency_key', $idempotencyKey)
+            ->where('type', WalletMovement::TYPE_TRIVIA_ENTRY)
+            ->first();
     }
 
     /**
@@ -449,6 +511,73 @@ final class WalletService
     }
 
     /**
+     * Acredita al creador de una sala de Bingo su comisión (y, en salas
+     * Premio/Servicio puras, los fondos del premio que él pone) por las ventas
+     * pagadas con billetera, al cerrarse la sala (BingoRoomCreatorPayoutService).
+     * Mismo patrón idempotente que recordMarketplaceCredit(): la clave
+     * determinística por sala+moneda evita pagar dos veces si el cierre se
+     * reintenta (recuperación de salas trabadas).
+     */
+    public function recordCreatorCommission(
+        Wallet $wallet,
+        float $amount,
+        string $description,
+        string $idempotencyKey,
+        array $metadata = [],
+    ) : WalletMovement {
+        $this->assertPositiveAmount($amount);
+
+        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        try {
+            $movement = DB::transaction(function() use ($wallet, $amount, $description, $idempotencyKey, $metadata) {
+                $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
+                $walletId = (string) $locked->id;
+                $balanceBefore = (float) $locked->balance;
+
+                // pending_debt se cobra de cualquier crédito entrante — ver recordRefund().
+                $netAmount = $this->settlePendingDebt($locked, $amount);
+                if ($netAmount > 0) {
+                    $this->walletRepository->incrementBalance($walletId, $netAmount);
+                }
+                if ($netAmount !== $amount) {
+                    $metadata['pending_debt_settled'] = round($amount - $netAmount, 2);
+                }
+                $locked->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id' => $walletId,
+                    'user_id' => (string) $locked->user_id,
+                    'type' => WalletMovement::TYPE_CREATOR_COMMISSION,
+                    'status' => WalletMovement::STATUS_COMPLETED,
+                    'amount' => $amount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => (float) $locked->balance,
+                    'description' => $description,
+                    'idempotency_key' => $idempotencyKey,
+                    'metadata' => $metadata ?: null,
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'idempotency_key')) {
+                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existingMovement) {
+                    return $existingMovement;
+                }
+            }
+
+            throw $e;
+        }
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_CREATOR_COMMISSION, $amount, (string) $movement->id);
+
+        return $movement;
+    }
+
+    /**
      * Acredita un depósito cripto ya confirmado on-chain (ver
      * DepositWatcher::process(), Fase 6). idempotencyKey determinística
      * ("crypto_deposit:{tx_hash}") es la defensa a nivel de aplicación;
@@ -626,73 +755,6 @@ final class WalletService
         }
 
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_MARKETPLACE_SALE, $amount, (string) $movement->id);
-
-        return $movement;
-    }
-
-    /**
-     * Acredita al creador de una sala de Bingo su comisión (y, en salas
-     * Premio/Servicio puras, los fondos del premio que él pone) por las ventas
-     * pagadas con billetera, al cerrarse la sala (BingoRoomCreatorPayoutService).
-     * Mismo patrón idempotente que recordMarketplaceCredit(): la clave
-     * determinística por sala+moneda evita pagar dos veces si el cierre se
-     * reintenta (recuperación de salas trabadas).
-     */
-    public function recordCreatorCommission(
-        Wallet $wallet,
-        float $amount,
-        string $description,
-        string $idempotencyKey,
-        array $metadata = [],
-    ) : WalletMovement {
-        $this->assertPositiveAmount($amount);
-
-        $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
-        if ($existing) {
-            return $existing;
-        }
-
-        try {
-            $movement = DB::transaction(function() use ($wallet, $amount, $description, $idempotencyKey, $metadata) {
-                $locked = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
-                $walletId = (string) $locked->id;
-                $balanceBefore = (float) $locked->balance;
-
-                // pending_debt se cobra de cualquier crédito entrante — ver recordRefund().
-                $netAmount = $this->settlePendingDebt($locked, $amount);
-                if ($netAmount > 0) {
-                    $this->walletRepository->incrementBalance($walletId, $netAmount);
-                }
-                if ($netAmount !== $amount) {
-                    $metadata['pending_debt_settled'] = round($amount - $netAmount, 2);
-                }
-                $locked->refresh();
-
-                return $this->movementRepository->record([
-                    'wallet_id' => $walletId,
-                    'user_id' => (string) $locked->user_id,
-                    'type' => WalletMovement::TYPE_CREATOR_COMMISSION,
-                    'status' => WalletMovement::STATUS_COMPLETED,
-                    'amount' => $amount,
-                    'balance_before' => $balanceBefore,
-                    'balance_after' => (float) $locked->balance,
-                    'description' => $description,
-                    'idempotency_key' => $idempotencyKey,
-                    'metadata' => $metadata ?: null,
-                ]);
-            });
-        } catch (\Illuminate\Database\QueryException $e) {
-            if (str_contains($e->getMessage(), 'idempotency_key')) {
-                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
-                if ($existingMovement) {
-                    return $existingMovement;
-                }
-            }
-
-            throw $e;
-        }
-
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_CREATOR_COMMISSION, $amount, (string) $movement->id);
 
         return $movement;
     }
@@ -934,7 +996,7 @@ final class WalletService
                         || $existing->type !== WalletMovement::TYPE_REFUND
                         || abs((float) $existing->amount - $amount) > 0.00000001
                         || (string) ($existing->metadata['game_id'] ?? '') !== $gameId) {
-                        throw new \RuntimeException('La clave de idempotencia del reembolso ya existe con datos incompatibles.');
+                        throw new RuntimeException('La clave de idempotencia del reembolso ya existe con datos incompatibles.');
                     }
 
                     return [$existing, false];
@@ -989,36 +1051,6 @@ final class WalletService
         return $movement;
     }
 
-    /**
-     * Registrar una compra de cartones en la billetera.
-     *
-     * @param string $walletId    ID de la billetera
-     * @param float  $amount      Monto de la compra
-     * @param string $description Descripción de la compra (opcional)
-     *
-     * @throws DomainException Si no hay saldo suficiente
-     */
-    /**
-     * Descuenta la entrada a una sala de Trivia y registra el movimiento TRIVIA_ENTRY.
-     * La wallet se pasa ya resuelta (sin aceptar walletId externo).
-     *
-     * $roomId/$roomName son opcionales para no romper otros callers futuros,
-     * pero si se pasan disparan TriviaEntryPurchased hacia admins.activity —
-     * mismo patrón que BingoCardSold para ventas de cartones.
-     */
-    /**
-     * Busca un cobro de entrada de Trivia ya confirmado para que el flujo de
-     * inscripción pueda recuperar el monto y la moneda originales al reintentar
-     * después de un fallo parcial (la tasa o la tarifa de la sala pudo cambiar).
-     */
-    public function findTriviaEntryMovement(string $idempotencyKey): ?WalletMovement
-    {
-        return WalletMovement::with('wallet.currency')
-            ->where('idempotency_key', $idempotencyKey)
-            ->where('type', WalletMovement::TYPE_TRIVIA_ENTRY)
-            ->first();
-    }
-
     public function recordTriviaEntry(
         Wallet $wallet,
         float $amount,
@@ -1041,7 +1073,7 @@ final class WalletService
                     || (string) $existing->user_id !== (string) $wallet->user_id
                     || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
                     || abs((float) $existing->amount - $amount) > 0.00000001) {
-                    throw new \RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
+                    throw new RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
                 }
 
                 return $wallet->fresh(['currency']) ?? $wallet;
@@ -1067,7 +1099,7 @@ final class WalletService
                             || (string) $existing->user_id !== (string) $locked->user_id
                             || $existing->type !== WalletMovement::TYPE_TRIVIA_ENTRY
                             || abs((float) $existing->amount - $amount) > 0.00000001) {
-                            throw new \RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
+                            throw new RuntimeException('La clave de idempotencia de entrada Trivia ya existe con datos incompatibles.');
                         }
 
                         $movementId = (string) $existing->id;
@@ -1156,7 +1188,7 @@ final class WalletService
 
         $this->guardNotLockedByOther($movement);
 
-        $updated = DB::transaction(function () use ($movement, $adminNotes) {
+        $updated = DB::transaction(function() use ($movement, $adminNotes) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== WalletMovement::STATUS_PENDING) {
@@ -1271,121 +1303,6 @@ final class WalletService
         $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
 
         return $updated;
-    }
-
-    /**
-     * Minutos que dura el lock de asignación por inactividad. Pasado este
-     * tiempo desde assigned_at, cualquier admin puede volver a tomar el
-     * caso sin necesidad de que el dueño original lo libere manualmente —
-     * evita que un caso quede bloqueado indefinidamente si esa persona se
-     * desconecta sin liberar.
-     */
-    private const ASSIGNMENT_LOCK_MINUTES = 30;
-
-    /**
-     * "Tomar" un movimiento PENDING como propio — evita que dos admins
-     * trabajen el mismo caso a la vez. Rechaza con 409 si ya está asignado a
-     * OTRO admin y el lock sigue vigente, salvo que el actor sea superadmin
-     * (puede forzar la reasignación tomando el caso él mismo).
-     */
-    public function assignMovement(WalletMovement $movement) : WalletMovement
-    {
-        $this->guardNotLockedByOther($movement);
-
-        $actor = Auth::user();
-
-        $movement->forceFill([
-            'assigned_to_user_id' => $actor->id,
-            'assigned_at' => now(),
-        ])->save();
-
-        $this->broadcastMovementAssigned($movement->fresh(), $actor, assigned: true);
-
-        return $movement->fresh(['wallet', 'wallet.currency', 'assignedTo']);
-    }
-
-    /**
-     * Libera la asignación ("Liberar caso"). El propio dueño de la
-     * asignación o un superadmin pueden liberar; cualquier otro admin recibe
-     * 409. Liberar un movimiento sin asignar (o cuyo lock ya expiró) es un
-     * no-op seguro.
-     */
-    public function unassignMovement(WalletMovement $movement) : WalletMovement
-    {
-        $actor = Auth::user();
-
-        if (
-            $movement->assigned_to_user_id
-            && (string) $movement->assigned_to_user_id !== (string) $actor->id
-            && ! $actor->hasRole('superadmin')
-        ) {
-            throw WalletDomainException::cannotUnassignOthersMovement(
-                $movement->assignedTo?->first_name ?? 'otro admin'
-            );
-        }
-
-        $movement->forceFill([
-            'assigned_to_user_id' => null,
-            'assigned_at' => null,
-        ])->save();
-
-        $this->broadcastMovementAssigned($movement->fresh(), $actor, assigned: false);
-
-        return $movement->fresh(['wallet', 'wallet.currency', 'assignedTo']);
-    }
-
-    /**
-     * Guard reusado por assignMovement() y por cada approve/reject: si
-     * el movimiento está asignado a alguien distinto del actor autenticado,
-     * el lock no ha expirado (assigned_at dentro de ASSIGNMENT_LOCK_MINUTES)
-     * y el actor no es superadmin, bloquea con 409 — hace que el lock de
-     * asignación sea real y no decorativo. Sin esto, "Tomar caso" en la UI
-     * sería solo un badge informativo que cualquiera podría ignorar.
-     */
-    private function guardNotLockedByOther(WalletMovement $movement) : void
-    {
-        if (! $movement->assigned_to_user_id) {
-            return;
-        }
-
-        $actor = Auth::user();
-
-        if ((string) $movement->assigned_to_user_id === (string) $actor?->id) {
-            return;
-        }
-
-        if ($actor?->hasRole('superadmin')) {
-            return;
-        }
-
-        $lockExpired = ! $movement->assigned_at
-            || $movement->assigned_at->lt(now()->subMinutes(self::ASSIGNMENT_LOCK_MINUTES));
-
-        if ($lockExpired) {
-            return;
-        }
-
-        throw WalletDomainException::movementLockedByAnotherAdmin(
-            $movement->assignedTo?->first_name ?? 'otro admin'
-        );
-    }
-
-    /**
-     * Broadcast best-effort (nunca bloquea la operación principal) de que un
-     * admin tomó o liberó un caso — mismo patrón try/catch que el resto de
-     * los broadcasts de este servicio (ver broadcastAndNotifyResult()).
-     */
-    private function broadcastMovementAssigned(WalletMovement $movement, User $actor, bool $assigned) : void
-    {
-        try {
-            broadcast(new WalletMovementAssigned(
-                movementId: (string) $movement->id,
-                assignedToUserId: $assigned ? (string) $actor->id : null,
-                assignedToName: $assigned ? trim("{$actor->first_name} {$actor->last_name}") : null,
-            ));
-        } catch (Throwable $e) {
-            Log::warning('[WalletService] broadcastMovementAssigned falló (WebSocket no disponible): ' . $e->getMessage());
-        }
     }
 
     /**
@@ -1528,47 +1445,6 @@ final class WalletService
     }
 
     /**
-     * Valida el PIN de retiro antes de dejar avanzar requestWithdraw().
-     *
-     * Orden de checks deliberado:
-     *   1. Lockout PRIMERO (antes de tocar Hash::check()) — un usuario
-     *      bloqueado no debe poder seguir probando PINs aunque adivine uno
-     *      correcto a mitad del bloqueo.
-     *   2. Si nunca fijó un PIN, error distinto (withdrawalPinNotSet) que no
-     *      cuenta como intento fallido — no es un ataque, es una cuenta sin
-     *      configurar.
-     *   3. PIN vacío en el request: error distinto de "incorrecto" —evita
-     *      filtrar por el mensaje si el PIN existe o no cuando el campo
-     *      simplemente no llegó.
-     *   4. Hash::check() real. Solo AQUÍ se cuenta como intento (fallido o
-     *      limpia el contador si acierta) — los pasos 2-3 no deben poder
-     *      usarse para acumular intentos sin nunca tocar el hash real.
-     */
-    private function assertWithdrawalPin(Wallet $wallet, ?string $withdrawalPin) : void
-    {
-        $user = $wallet->relationLoaded('user') ? $wallet->user : $wallet->user()->first();
-        $userId = (string) $wallet->user_id;
-
-        if (! $user || ! $user->hasWithdrawalPin()) {
-            throw WalletDomainException::withdrawalPinNotSet();
-        }
-
-        $this->fraudService->checkWithdrawalPinLockout($userId);
-
-        if (empty($withdrawalPin)) {
-            throw WalletDomainException::withdrawalPinRequired();
-        }
-
-        if (! Hash::check($withdrawalPin, $user->withdrawal_pin_hash)) {
-            $remaining = $this->fraudService->recordWithdrawalPinFailure($userId);
-
-            throw WalletDomainException::withdrawalPinInvalid($remaining);
-        }
-
-        $this->fraudService->clearWithdrawalPinAttempts($userId);
-    }
-
-    /**
      * Fija o cambia el PIN de retiro del usuario. El caller (controller)
      * es responsable de reautenticar con current_password ANTES de llamar
      * a este método — este método asume que ya se verificó que quien pide
@@ -1583,7 +1459,7 @@ final class WalletService
     public function setWithdrawalPin(User $user, string $pin) : void
     {
         $user->forceFill([
-            'withdrawal_pin_hash'   => Hash::make($pin),
+            'withdrawal_pin_hash' => Hash::make($pin),
             'withdrawal_pin_set_at' => now(),
         ])->save();
 
@@ -1596,6 +1472,36 @@ final class WalletService
         Log::info('[WalletService] PIN de retiro actualizado', ['user_id' => (string) $user->id]);
 
         $this->notificationService->createWithdrawalPinChangedNotification((string) $user->id);
+    }
+
+    /**
+     * Libera la asignación ("Liberar caso"). El propio dueño de la
+     * asignación o un superadmin pueden liberar; cualquier otro admin recibe
+     * 409. Liberar un movimiento sin asignar (o cuyo lock ya expiró) es un
+     * no-op seguro.
+     */
+    public function unassignMovement(WalletMovement $movement) : WalletMovement
+    {
+        $actor = Auth::user();
+
+        if (
+            $movement->assigned_to_user_id
+            && (string) $movement->assigned_to_user_id !== (string) $actor->id
+            && ! $actor->hasRole('superadmin')
+        ) {
+            throw WalletDomainException::cannotUnassignOthersMovement(
+                $movement->assignedTo?->first_name ?? 'otro admin',
+            );
+        }
+
+        $movement->forceFill([
+            'assigned_to_user_id' => null,
+            'assigned_at' => null,
+        ])->save();
+
+        $this->broadcastMovementAssigned($movement->fresh(), $actor, assigned: false);
+
+        return $movement->fresh(['wallet', 'wallet.currency', 'assignedTo']);
     }
 
     /**
@@ -1640,6 +1546,74 @@ final class WalletService
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount, $movementId);
 
         return $wallet;
+    }
+
+    /**
+     * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
+     *
+     * Siempre se llama dentro de un DB::transaction() (deposit/withdraw/recordCardPurchase)
+     * — lockForUpdate() evita que dos operaciones concurrentes sobre la misma wallet
+     * (p.ej. dos compras de cartones a la vez) lean el mismo balance antes de que la
+     * primera haga commit, lo que permitiría dejar el balance en negativo.
+     */
+    /**
+     * Defensa de última línea en cada método de crédito/débito del núcleo
+     * (recordPrize, recordRefund, recordCryptoDeposit, recordMarketplaceCredit,
+     * recordCardPurchase, recordTriviaEntry, recordHoldCapture): ninguno de
+     * esos métodos validaba $amount > 0 por sí mismo, confiando en que el
+     * caller (un juego, marketplace, el watcher de cripto) siempre calcula
+     * bien el monto. Un monto negativo/cero coleado hasta aquí se registra
+     * igual como WalletMovement sin que nadie lo note (ej. recordPrize con
+     * amount negativo: settlePendingDebt() calcula netAmount<=0 y el
+     * incrementBalance() correspondiente simplemente no se ejecuta,
+     * dejando un movimiento fantasma que rompe la cuadratura del ledger).
+     */
+    private function assertPositiveAmount(float $amount) : void
+    {
+        if ($amount <= 0) {
+            throw WalletDomainException::invalidMovementAmount($amount);
+        }
+    }
+
+    /**
+     * Valida el PIN de retiro antes de dejar avanzar requestWithdraw().
+     *
+     * Orden de checks deliberado:
+     *   1. Lockout PRIMERO (antes de tocar Hash::check()) — un usuario
+     *      bloqueado no debe poder seguir probando PINs aunque adivine uno
+     *      correcto a mitad del bloqueo.
+     *   2. Si nunca fijó un PIN, error distinto (withdrawalPinNotSet) que no
+     *      cuenta como intento fallido — no es un ataque, es una cuenta sin
+     *      configurar.
+     *   3. PIN vacío en el request: error distinto de "incorrecto" —evita
+     *      filtrar por el mensaje si el PIN existe o no cuando el campo
+     *      simplemente no llegó.
+     *   4. Hash::check() real. Solo AQUÍ se cuenta como intento (fallido o
+     *      limpia el contador si acierta) — los pasos 2-3 no deben poder
+     *      usarse para acumular intentos sin nunca tocar el hash real.
+     */
+    private function assertWithdrawalPin(Wallet $wallet, ?string $withdrawalPin) : void
+    {
+        $user = $wallet->relationLoaded('user') ? $wallet->user : $wallet->user()->first();
+        $userId = (string) $wallet->user_id;
+
+        if (! $user || ! $user->hasWithdrawalPin()) {
+            throw WalletDomainException::withdrawalPinNotSet();
+        }
+
+        $this->fraudService->checkWithdrawalPinLockout($userId);
+
+        if (empty($withdrawalPin)) {
+            throw WalletDomainException::withdrawalPinRequired();
+        }
+
+        if (! Hash::check($withdrawalPin, $user->withdrawal_pin_hash)) {
+            $remaining = $this->fraudService->recordWithdrawalPinFailure($userId);
+
+            throw WalletDomainException::withdrawalPinInvalid($remaining);
+        }
+
+        $this->fraudService->clearWithdrawalPinAttempts($userId);
     }
 
     /**
@@ -1777,6 +1751,24 @@ final class WalletService
     }
 
     /**
+     * Broadcast best-effort (nunca bloquea la operación principal) de que un
+     * admin tomó o liberó un caso — mismo patrón try/catch que el resto de
+     * los broadcasts de este servicio (ver broadcastAndNotifyResult()).
+     */
+    private function broadcastMovementAssigned(WalletMovement $movement, User $actor, bool $assigned) : void
+    {
+        try {
+            broadcast(new WalletMovementAssigned(
+                movementId: (string) $movement->id,
+                assignedToUserId: $assigned ? (string) $actor->id : null,
+                assignedToName: $assigned ? trim("{$actor->first_name} {$actor->last_name}") : null,
+            ));
+        } catch (Throwable $e) {
+            Log::warning('[WalletService] broadcastMovementAssigned falló (WebSocket no disponible): ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Emite el evento WebSocket con el nuevo saldo.
      */
     private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount, ?string $movementId = null, ?string $reason = null) : void
@@ -1805,33 +1797,6 @@ final class WalletService
             movementId: $movementId,
             reason: $reason,
         );
-    }
-
-    /**
-     * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
-     *
-     * Siempre se llama dentro de un DB::transaction() (deposit/withdraw/recordCardPurchase)
-     * — lockForUpdate() evita que dos operaciones concurrentes sobre la misma wallet
-     * (p.ej. dos compras de cartones a la vez) lean el mismo balance antes de que la
-     * primera haga commit, lo que permitiría dejar el balance en negativo.
-     */
-    /**
-     * Defensa de última línea en cada método de crédito/débito del núcleo
-     * (recordPrize, recordRefund, recordCryptoDeposit, recordMarketplaceCredit,
-     * recordCardPurchase, recordTriviaEntry, recordHoldCapture): ninguno de
-     * esos métodos validaba $amount > 0 por sí mismo, confiando en que el
-     * caller (un juego, marketplace, el watcher de cripto) siempre calcula
-     * bien el monto. Un monto negativo/cero coleado hasta aquí se registra
-     * igual como WalletMovement sin que nadie lo note (ej. recordPrize con
-     * amount negativo: settlePendingDebt() calcula netAmount<=0 y el
-     * incrementBalance() correspondiente simplemente no se ejecuta,
-     * dejando un movimiento fantasma que rompe la cuadratura del ledger).
-     */
-    private function assertPositiveAmount(float $amount) : void
-    {
-        if ($amount <= 0) {
-            throw WalletDomainException::invalidMovementAmount($amount);
-        }
     }
 
     private function findOwnedWallet(string $walletId) : Wallet
@@ -1893,6 +1858,42 @@ final class WalletService
             ])
             ->values()
             ->toArray();
+    }
+
+    /**
+     * Guard reusado por assignMovement() y por cada approve/reject: si
+     * el movimiento está asignado a alguien distinto del actor autenticado,
+     * el lock no ha expirado (assigned_at dentro de ASSIGNMENT_LOCK_MINUTES)
+     * y el actor no es superadmin, bloquea con 409 — hace que el lock de
+     * asignación sea real y no decorativo. Sin esto, "Tomar caso" en la UI
+     * sería solo un badge informativo que cualquiera podría ignorar.
+     */
+    private function guardNotLockedByOther(WalletMovement $movement) : void
+    {
+        if (! $movement->assigned_to_user_id) {
+            return;
+        }
+
+        $actor = Auth::user();
+
+        if ((string) $movement->assigned_to_user_id === (string) $actor?->id) {
+            return;
+        }
+
+        if ($actor?->hasRole('superadmin')) {
+            return;
+        }
+
+        $lockExpired = ! $movement->assigned_at
+            || $movement->assigned_at->lt(now()->subMinutes(self::ASSIGNMENT_LOCK_MINUTES));
+
+        if ($lockExpired) {
+            return;
+        }
+
+        throw WalletDomainException::movementLockedByAnotherAdmin(
+            $movement->assignedTo?->first_name ?? 'otro admin',
+        );
     }
 
     /**

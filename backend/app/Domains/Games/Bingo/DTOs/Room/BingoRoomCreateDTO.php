@@ -11,60 +11,14 @@ namespace App\Domains\Games\Bingo\DTOs\Room;
  */
 final class BingoRoomCreateDTO
 {
-    public function __construct(
-        public readonly ?string $date,
-        public readonly ?string $time,
-        public readonly string $startMode,
-        public readonly ?int $minCardsToStart,
-        public readonly string $roomType,
-        public readonly string|int $connectionType,
-        public readonly string|int|null $gameMode,
-        public readonly string|int $prizePoolType,
-        public readonly array $allowedCurrencies,
-        public readonly ?float $amountAddedPrizePool,
-        public readonly float $roomCommission,
-        public readonly ?float $jackpotPct,
-        public readonly int $timeChip,
-        public readonly int $rounds,
-        public readonly ?float $roundsPct,
-        public readonly bool $useSerials,
-        public readonly ?float $serialsPct,
-        public readonly ?int $numSerials,
-        public readonly ?array $roundsConfig,
-        public readonly bool $useBaseUsd,
-        public readonly ?float $cardPriceUsd,
-        public readonly ?float $usdExchangeRoundStep,
-        public readonly ?array $cardPriceByCurrency,
-        public readonly bool $activateRoom = false,
-        public readonly string $gameVariant = 'BINGO_75',
-        public readonly bool $roomsPerCurrency = false,
-        public readonly bool $isSplitRoom = false,
-        public readonly bool $allowCustomCard = false,
-        public readonly bool $allowNetworkSales = true,
-        public readonly ?float $customCardPricePct = null,
-        public readonly ?string $customCardMode = null,
-        public readonly ?int $customCardEveryX = null,
-        public readonly ?string $moveFreeSpaceMode = null,
-        public readonly ?float $moveFreeSpacePricePct = null,
-        public readonly bool $allowSpecialCard = false,
-        public readonly ?int $maxSpecialCards = null,
-        public readonly ?int $maxPlayers = null,
-        public readonly ?int $maxCardsToStart = null,
-        public readonly ?int $minPlayers = null,
-        public readonly ?string $accessCode = null,
-        public readonly ?string $roomPassword = null,
-        public readonly string|int|null $hostUserId = null,
-        public readonly ?string $jackpotType = null,
-    ) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         // Normalizar allowedCurrencies: array de strings
         $allowedCurrencies = array_map('strval', array_values((array) ($data['allowedCurrencies'] ?? [])));
 
         // Normalizar cardPriceByCurrency: array de monedas a precios
         $cardPriceByCurrency = is_array($data['cardPriceByCurrency'] ?? null)
-            ? array_map(fn($v) => (float)$v, $data['cardPriceByCurrency'])
+            ? array_map(fn ($v) => (float) $v, $data['cardPriceByCurrency'])
             : [];
 
         $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -114,5 +68,52 @@ final class BingoRoomCreateDTO
             hostUserId: $data['hostUserId'] ?? null,
             jackpotType: $data['jackpotType'] ?? null,
         );
+    }
+
+    public function __construct(
+        public readonly ?string $date,
+        public readonly ?string $time,
+        public readonly string $startMode,
+        public readonly ?int $minCardsToStart,
+        public readonly string $roomType,
+        public readonly string|int $connectionType,
+        public readonly string|int|null $gameMode,
+        public readonly string|int $prizePoolType,
+        public readonly array $allowedCurrencies,
+        public readonly ?float $amountAddedPrizePool,
+        public readonly float $roomCommission,
+        public readonly ?float $jackpotPct,
+        public readonly int $timeChip,
+        public readonly int $rounds,
+        public readonly ?float $roundsPct,
+        public readonly bool $useSerials,
+        public readonly ?float $serialsPct,
+        public readonly ?int $numSerials,
+        public readonly ?array $roundsConfig,
+        public readonly bool $useBaseUsd,
+        public readonly ?float $cardPriceUsd,
+        public readonly ?float $usdExchangeRoundStep,
+        public readonly ?array $cardPriceByCurrency,
+        public readonly bool $activateRoom = false,
+        public readonly string $gameVariant = 'BINGO_75',
+        public readonly bool $roomsPerCurrency = false,
+        public readonly bool $isSplitRoom = false,
+        public readonly bool $allowCustomCard = false,
+        public readonly bool $allowNetworkSales = true,
+        public readonly ?float $customCardPricePct = null,
+        public readonly ?string $customCardMode = null,
+        public readonly ?int $customCardEveryX = null,
+        public readonly ?string $moveFreeSpaceMode = null,
+        public readonly ?float $moveFreeSpacePricePct = null,
+        public readonly bool $allowSpecialCard = false,
+        public readonly ?int $maxSpecialCards = null,
+        public readonly ?int $maxPlayers = null,
+        public readonly ?int $maxCardsToStart = null,
+        public readonly ?int $minPlayers = null,
+        public readonly ?string $accessCode = null,
+        public readonly ?string $roomPassword = null,
+        public readonly string|int|null $hostUserId = null,
+        public readonly ?string $jackpotType = null,
+    ) {
     }
 }

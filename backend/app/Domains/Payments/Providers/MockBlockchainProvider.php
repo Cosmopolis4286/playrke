@@ -22,32 +22,31 @@ use App\Domains\Payments\Exceptions\PaymentsProviderMisconfiguredException;
  */
 class MockBlockchainProvider implements BlockchainProviderInterface
 {
-    /** @var array<string, \App\Domains\Payments\DTOs\InboundTransaction[]> */
-    private array $transactionsByAddress = [];
-
     /** @var array<string, int> */
     private array $confirmationsByTxHash = [];
+    /** @var array<string, \App\Domains\Payments\DTOs\InboundTransaction[]> */
+    private array $transactionsByAddress = [];
 
     public function __construct()
     {
         if (app()->environment('production')) {
             throw new PaymentsProviderMisconfiguredException(
-                'MockBlockchainProvider no puede usarse en producción.'
+                'MockBlockchainProvider no puede usarse en producción.',
             );
         }
     }
 
-    public function network(): string
-    {
-        return 'TRON';
-    }
-
-    public function deriveAddress(int $derivationIndex): string
+    public function deriveAddress(int $derivationIndex) : string
     {
         return 'TMOCK' . str_pad((string) $derivationIndex, 30, '0', STR_PAD_LEFT);
     }
 
-    public function getIncomingTransactions(string $address, ?int $sinceBlock = null): array
+    public function getConfirmations(string $txHash) : ?int
+    {
+        return $this->confirmationsByTxHash[$txHash] ?? null;
+    }
+
+    public function getIncomingTransactions(string $address, ?int $sinceBlock = null) : array
     {
         $transactions = $this->transactionsByAddress[$address] ?? [];
 
@@ -61,24 +60,24 @@ class MockBlockchainProvider implements BlockchainProviderInterface
         ));
     }
 
-    public function getConfirmations(string $txHash): ?int
+    public function network() : string
     {
-        return $this->confirmationsByTxHash[$txHash] ?? null;
+        return 'TRON';
     }
 
-    public function tokenContract(): string
-    {
-        return config('payments.tron.usdt_contract');
-    }
-
-    public function pushTransaction(\App\Domains\Payments\DTOs\InboundTransaction $transaction): void
+    public function pushTransaction(\App\Domains\Payments\DTOs\InboundTransaction $transaction) : void
     {
         $this->transactionsByAddress[$transaction->toAddress][] = $transaction;
         $this->confirmationsByTxHash[$transaction->txHash] = $transaction->confirmations;
     }
 
-    public function setConfirmations(string $txHash, int $confirmations): void
+    public function setConfirmations(string $txHash, int $confirmations) : void
     {
         $this->confirmationsByTxHash[$txHash] = $confirmations;
+    }
+
+    public function tokenContract() : string
+    {
+        return config('payments.tron.usdt_contract');
     }
 }

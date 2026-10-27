@@ -10,7 +10,21 @@ final class BingoRoomStat extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_room_stats';
+    protected $casts = [
+        'id' => 'string',
+        'room_id' => 'string',
+        'total_lots' => 'integer',
+        'total_cards' => 'integer',
+        'total_players' => 'integer',
+        'total_revenue' => 'decimal:4',
+        'total_revenue_usd' => 'decimal:4',
+        'prize_pool_final' => 'decimal:4',
+        'total_chips_drawn' => 'integer',
+        'total_rounds' => 'integer',
+        'winning_rounds' => 'integer',
+        'draw_duration_seconds' => 'integer',
+        'calculated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'room_id',
@@ -27,23 +41,9 @@ final class BingoRoomStat extends Model
         'calculated_at',
     ];
 
-    protected $casts = [
-        'id'                    => 'string',
-        'room_id'               => 'string',
-        'total_lots'            => 'integer',
-        'total_cards'           => 'integer',
-        'total_players'         => 'integer',
-        'total_revenue'         => 'decimal:4',
-        'total_revenue_usd'     => 'decimal:4',
-        'prize_pool_final'      => 'decimal:4',
-        'total_chips_drawn'     => 'integer',
-        'total_rounds'          => 'integer',
-        'winning_rounds'        => 'integer',
-        'draw_duration_seconds' => 'integer',
-        'calculated_at'         => 'datetime',
-    ];
+    protected $table = 'bingo_room_stats';
 
-    public function room(): BelongsTo
+    public function room() : BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room_id');
     }
