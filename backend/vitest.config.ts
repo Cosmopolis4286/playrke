@@ -13,12 +13,11 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
-    // Node >=22 expone un `localStorage` nativo experimental que gana
-    // precedencia sobre el que happy-dom inyecta como global del entorno de
-    // test, dejando localStorage.setItem/clear indefinidos. Se desactiva
-    // para que el localStorage del entorno DOM sea el único disponible.
-    env: {
-      NODE_OPTIONS: '--no-experimental-webstorage'
-    }
+    // Node >=22 exposes a native experimental localStorage that takes
+    // precedence over happy-dom's, leaving setItem/clear undefined.
+    // The flag to disable it only exists in Node >=22, so guard it.
+    env: parseInt(process.versions.node.split('.')[0], 10) >= 22
+      ? { NODE_OPTIONS: '--no-experimental-webstorage' }
+      : {}
   }
 })
