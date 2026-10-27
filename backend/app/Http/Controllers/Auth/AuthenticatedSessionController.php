@@ -56,8 +56,6 @@ class AuthenticatedSessionController extends Controller
      * Maneja el login del usuario y retorna JSON para Nuxt.
      *
      * @param \App\Http\Requests\LoginRequest $request
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
     public function store(LoginRequest $request) : JsonResponse
     {
