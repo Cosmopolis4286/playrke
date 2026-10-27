@@ -18,13 +18,24 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Seller extends BaseModel
 {
+    // ========================
+    // Accessors computados
+    // ========================
+    protected $appends = ['status_badge'];
 
     /**
-     * Nombre de la tabla asociada al modelo.
+     * Los atributos que deben ser casteados a tipos nativos.
      *
-     * @var string
+     * @var array<string, string>
      */
-    protected $table = 'sellers';
+    protected $casts = [
+        'id' => 'string',
+        'commission' => 'decimal:2',
+        'user_id' => 'string',
+        'country_id' => 'string',
+        'manager_user_id' => 'string',
+        'subsidiary_id' => 'string',
+    ];
 
     /**
      * Los campos que se pueden asignar masivamente.
@@ -44,20 +55,6 @@ class Seller extends BaseModel
     ];
 
     /**
-     * Los atributos que deben ser casteados a tipos nativos.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'id' => 'string',
-        'commission' => 'decimal:2',
-        'user_id' => 'string',
-        'country_id' => 'string',
-        'manager_user_id' => 'string',
-        'subsidiary_id' => 'string',
-    ];
-
-    /**
      * El token del enlace público de venta funciona como credencial de
      * entrada a /comprar/{token}: no debe viajar en serializaciones del
      * modelo (listados admin, recursos API). Se lee explícitamente vía
@@ -67,15 +64,123 @@ class Seller extends BaseModel
      */
     protected $hidden = ['sales_link_token'];
 
-    // ========================
-    // Accessors computados
-    // ========================
-    protected $appends = ['status_badge'];
+    /**
+     * Nombre de la tabla asociada al modelo.
+     *
+     * @var string
+     */
+    protected $table = 'sellers';
+
+    /**
+     * Obtener el valor de un campo específico por ID.
+     */
+    public static function getValueById(string|int $id, string $field) : mixed
+    {
+        return static::where('id', $id)->value($field);
+    }
+
+    /**
+     * Obtener el valor de un campo específico por user_id.
+     */
+    public static function getValueByUserId(string|int $userId, string $field) : mixed
+    {
+        return static::where('user_id', $userId)->value($field);
+    }
+
+    /**
+     * Relación con el país
+     */
+    public function country() : BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    /**
+     * Monedas que maneja el comercio
+     */
+    public function currencies() : BelongsToMany
+    {
+        return $this->belongsToMany(
+            Currency::class,
+            'sellers_currencies',
+            'seller_id',
+            'currency_id',
+        )
+            ->using(SellerCurrency::class)
+            ->withPivot(['level', 'status'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Monedas activas que maneja el comercio
+     */
+    public function currenciesActive() : BelongsToMany
+    {
+        return $this->currencies()
+            ->wherePivot('status', 'ACTIVE');
+    }
+
+    /**
+     * Juegos permitidos para el comercio
+     */
+    public function games() : BelongsToMany
+    {
+        return $this->belongsToMany(
+            Game::class,
+            'sellers_games',
+            'seller_id',
+            'game_id',
+        )
+            ->using(SellerGame::class)
+            ->withPivot('status')
+            ->withTimestamps();
+    }
+
+    /**
+     * Juegos permitidos activos para el comercio
+     */
+    public function gamesActive() : BelongsToMany
+    {
+        return $this->games()
+            ->wherePivot('status', 'ACTIVE');
+    }
+
+    /**
+     * Accessor: nombre del manager directo (agencia si existe, si no el
+     * commerce).
+     */
+    public function getManagerNameAttribute() : string
+    {
+        if ($this->subsidiary_id) {
+            return $this->subsidiary?->name ?? '—';
+        }
+
+        return $this->managerCommerce?->name ?? '—';
+    }
+
+    /**
+     * Accessor: rol del manager directo como badge HTML — antes hardcodeado
+     * a "Commerce" incluso cuando el manager real era una Subsidiary.
+     */
+    public function getManagerRoleBadgeAttribute() : string
+    {
+        if ($this->subsidiary_id) {
+            return '<span class="badge badge-teal text-white">Sucursal</span>';
+        }
+
+        // Huérfano: manager_user_id no es una Comercializadora (vendedores
+        // legados creados por un 'customer'). No puede vender
+        // (hasActiveHierarchy() false) hasta que admin lo reasigne — ver
+        // commissions:audit-hierarchy.
+        return $this->managerCommerce
+            ? '<span class="badge badge-info text-white">Commerce</span>'
+            : '<span class="badge badge-danger text-white">Sin comercializadora</span>';
+    }
 
     /**
      * Accessor para el status con badge HTML
      */
-    public function getStatusBadgeAttribute(): string
+    public function getStatusBadgeAttribute() : string
     {
         return match ($this->status) {
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',
@@ -87,29 +192,30 @@ class Seller extends BaseModel
     }
 
     /**
-     * Relación con el país
+     * true si este Seller y toda su cadena de jerarquía (Subsidiary si
+     * aplica, y el Commerce resuelto por resolveCommerce()) están ACTIVE.
+     *
+     * Antes bloquear/desactivar un Commerce o Subsidiary no impedía que sus
+     * Sellers subordinados (con status ACTIVE propio) siguieran generando
+     * ventas con normalidad — BingoCardGenerateService solo validaba el
+     * status de la BingoRoom, nunca el de la cadena comercial. Este método
+     * centraliza esa validación (mismo criterio que resolveCommerce()
+     * centraliza la resolución) para que el punto de venta la use antes de
+     * generar cartones.
      */
-    public function country(): BelongsTo
+    public function hasActiveHierarchy() : bool
     {
-        return $this->belongsTo(Country::class, 'country_id');
-    }
+        if ($this->status !== 'ACTIVE') {
+            return false;
+        }
 
-    /**
-     * Relación con el usuario
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+        if ($this->subsidiary_id && $this->subsidiary?->status !== 'ACTIVE') {
+            return false;
+        }
 
-    /**
-     * Agencia/sucursal a la que pertenece este vendedor (jerarquía real:
-     * Comercializadora → Agencia → Taquilla). Null si reporta directo al
-     * Commerce sin agencia intermedia.
-     */
-    public function subsidiary(): BelongsTo
-    {
-        return $this->belongsTo(Subsidiary::class, 'subsidiary_id');
+        $commerce = $this->resolveCommerce();
+
+        return $commerce !== null && $commerce->status === 'ACTIVE';
     }
 
     /**
@@ -122,7 +228,7 @@ class Seller extends BaseModel
      * de verdad de la jerarquía es resolveCommerce() (subsidiary_id →
      * Subsidiary → Commerce cuando hay agencia) — usar esa, no esta relación.
      */
-    public function managerCommerce(): HasOne
+    public function managerCommerce() : HasOne
     {
         return $this->hasOne(Commerce::class, 'user_id', 'manager_user_id');
     }
@@ -136,7 +242,7 @@ class Seller extends BaseModel
      * (todas asumían manager_user_id → Commerce directo, rompiéndose
      * silenciosamente para sellers de una Subsidiary).
      */
-    public function resolveCommerce(): ?Commerce
+    public function resolveCommerce() : ?Commerce
     {
         if ($this->subsidiary_id) {
             return $this->subsidiary?->commerce;
@@ -154,7 +260,7 @@ class Seller extends BaseModel
      *
      * @return string[]
      */
-    public function roomOwnerUserIds(): array
+    public function roomOwnerUserIds() : array
     {
         return array_values(array_filter([
             $this->resolveCommerce()?->user_id ? (string) $this->resolveCommerce()->user_id : null,
@@ -163,127 +269,20 @@ class Seller extends BaseModel
     }
 
     /**
-     * true si este Seller y toda su cadena de jerarquía (Subsidiary si
-     * aplica, y el Commerce resuelto por resolveCommerce()) están ACTIVE.
-     *
-     * Antes bloquear/desactivar un Commerce o Subsidiary no impedía que sus
-     * Sellers subordinados (con status ACTIVE propio) siguieran generando
-     * ventas con normalidad — BingoCardGenerateService solo validaba el
-     * status de la BingoRoom, nunca el de la cadena comercial. Este método
-     * centraliza esa validación (mismo criterio que resolveCommerce()
-     * centraliza la resolución) para que el punto de venta la use antes de
-     * generar cartones.
+     * Agencia/sucursal a la que pertenece este vendedor (jerarquía real:
+     * Comercializadora → Agencia → Taquilla). Null si reporta directo al
+     * Commerce sin agencia intermedia.
      */
-    public function hasActiveHierarchy(): bool
+    public function subsidiary() : BelongsTo
     {
-        if ($this->status !== 'ACTIVE') {
-            return false;
-        }
-
-        if ($this->subsidiary_id && $this->subsidiary?->status !== 'ACTIVE') {
-            return false;
-        }
-
-        $commerce = $this->resolveCommerce();
-
-        return $commerce !== null && $commerce->status === 'ACTIVE';
+        return $this->belongsTo(Subsidiary::class, 'subsidiary_id');
     }
 
     /**
-     * Accessor: nombre del manager directo (agencia si existe, si no el
-     * commerce).
+     * Relación con el usuario
      */
-    public function getManagerNameAttribute(): string
+    public function user() : BelongsTo
     {
-        if ($this->subsidiary_id) {
-            return $this->subsidiary?->name ?? '—';
-        }
-
-        return $this->managerCommerce?->name ?? '—';
-    }
-
-    /**
-     * Accessor: rol del manager directo como badge HTML — antes hardcodeado
-     * a "Commerce" incluso cuando el manager real era una Subsidiary.
-     */
-    public function getManagerRoleBadgeAttribute(): string
-    {
-        if ($this->subsidiary_id) {
-            return '<span class="badge badge-teal text-white">Sucursal</span>';
-        }
-
-        // Huérfano: manager_user_id no es una Comercializadora (vendedores
-        // legados creados por un 'customer'). No puede vender
-        // (hasActiveHierarchy() false) hasta que admin lo reasigne — ver
-        // commissions:audit-hierarchy.
-        return $this->managerCommerce
-            ? '<span class="badge badge-info text-white">Commerce</span>'
-            : '<span class="badge badge-danger text-white">Sin comercializadora</span>';
-    }
-
-    /**
-     * Monedas que maneja el comercio
-     */
-    public function currencies(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Currency::class,
-            'sellers_currencies',
-            'seller_id',
-            'currency_id'
-        )
-            ->using(SellerCurrency::class)
-            ->withPivot(['level', 'status'])
-            ->withTimestamps();
-    }
-
-    /**
-     * Juegos permitidos para el comercio
-     */
-    public function games(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Game::class,
-            'sellers_games',
-            'seller_id',
-            'game_id'
-        )
-            ->using(SellerGame::class)
-            ->withPivot('status')
-            ->withTimestamps();
-    }
-
-    /**
-     * Monedas activas que maneja el comercio
-     */
-    public function currenciesActive(): BelongsToMany
-    {
-        return $this->currencies()
-            ->wherePivot('status', 'ACTIVE');
-    }
-
-    /**
-     * Juegos permitidos activos para el comercio
-     */
-    public function gamesActive(): BelongsToMany
-    {
-        return $this->games()
-            ->wherePivot('status', 'ACTIVE');
-    }
-
-    /**
-     * Obtener el valor de un campo específico por user_id.
-     */
-    public static function getValueByUserId(string|int $userId, string $field): mixed
-    {
-        return static::where('user_id', $userId)->value($field);
-    }
-
-    /**
-     * Obtener el valor de un campo específico por ID.
-     */
-    public static function getValueById(string|int $id, string $field): mixed
-    {
-        return static::where('id', $id)->value($field);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

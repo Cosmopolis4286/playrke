@@ -35,40 +35,40 @@ final class PhonePatterns
      * comportamiento previo de las 5 requests: un país no soportado no
      * bloquea el guardado, simplemente no valida el formato).
      */
-    public static function laravelRule(?string $isoCode2): ?string
+    public static function laravelRule(?string $isoCode2) : ?string
     {
         $pattern = self::pattern($isoCode2);
 
         return $pattern ? "regex:{$pattern}" : null;
     }
 
-    /**
-     * Patrón regex crudo (con delimitadores `/`) para el país indicado, o
-     * null si no está configurado.
-     */
-    public static function pattern(?string $isoCode2): ?string
-    {
-        if (!$isoCode2) {
-            return null;
-        }
-
-        return self::PATTERNS[strtoupper($isoCode2)] ?? null;
-    }
-
     /** true si el valor cumple el patrón del país; true también si el país no tiene patrón configurado (sin restricción). */
-    public static function matches(?string $value, ?string $isoCode2): bool
+    public static function matches(?string $value, ?string $isoCode2) : bool
     {
         $pattern = self::pattern($isoCode2);
 
-        if (!$pattern) {
+        if (! $pattern) {
             return true;
         }
 
         return is_string($value) && preg_match($pattern, $value) === 1;
     }
 
+    /**
+     * Patrón regex crudo (con delimitadores `/`) para el país indicado, o
+     * null si no está configurado.
+     */
+    public static function pattern(?string $isoCode2) : ?string
+    {
+        if (! $isoCode2) {
+            return null;
+        }
+
+        return self::PATTERNS[strtoupper($isoCode2)] ?? null;
+    }
+
     /** Países con patrón de teléfono configurado. */
-    public static function supportedCountries(): array
+    public static function supportedCountries() : array
     {
         return array_keys(self::PATTERNS);
     }

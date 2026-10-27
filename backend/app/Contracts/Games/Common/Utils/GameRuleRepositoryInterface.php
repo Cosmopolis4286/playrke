@@ -8,53 +8,53 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface GameRuleRepositoryInterface extends BaseRepositoryInterface
 {
-    public function getByUser($userId): Collection;
+    public function activateRule($ruleId) : bool;
 
-    public function getByGame($gameId): Collection;
+    public function bulkUpdateStatus(array $ruleIds, bool $isActive) : int;
 
-    public function getByUserAndGame($userId, $gameId): ?GameRule;
+    public function createRule($userId, $gameId, string $rules, string $encrypted, ?string $image = null, bool $isActive = true) : GameRule;
 
-    public function getActiveRules(): Collection;
+    public function deactivateRule($ruleId) : bool;
 
-    public function getInactiveRules(): Collection;
+    public function deleteRule($ruleId) : bool;
 
-    public function getRulesByStatus(bool $isActive): Collection;
+    public function existsEncrypted(string $encrypted) : bool;
 
-    public function getByEncrypted(string $encrypted): ?GameRule;
+    public function generateUniqueEncrypted() : string;
 
-    public function existsEncrypted(string $encrypted): bool;
+    public function getActiveRules() : Collection;
 
-    public function getRulesByGameAndStatus($gameId, bool $isActive = true): Collection;
+    public function getByEncrypted(string $encrypted) : ?GameRule;
 
-    public function getUserRulesByStatus($userId, bool $isActive = true): Collection;
+    public function getByGame($gameId) : Collection;
 
-    public function createRule($userId, $gameId, string $rules, string $encrypted, ?string $image = null, bool $isActive = true): GameRule;
+    public function getByUser($userId) : Collection;
 
-    public function updateRuleStatus($ruleId, bool $isActive): bool;
+    public function getByUserAndGame($userId, $gameId) : ?GameRule;
 
-    public function activateRule($ruleId): bool;
+    public function getGameStatistics($gameId) : array;
 
-    public function deactivateRule($ruleId): bool;
+    public function getInactiveRules() : Collection;
 
-    public function updateRuleContent($ruleId, string $rules): bool;
+    public function getRecentRules(int $days = 30) : Collection;
 
-    public function updateRuleImage($ruleId, ?string $image): bool;
+    public function getRulesByGameAndStatus($gameId, bool $isActive = true) : Collection;
 
-    public function deleteRule($ruleId): bool;
+    public function getRulesByStatus(bool $isActive) : Collection;
 
-    public function bulkUpdateStatus(array $ruleIds, bool $isActive): int;
+    public function getRulesByUserWithGames($userId) : Collection;
 
-    public function getRuleStatistics(): array;
+    public function getRuleStatistics() : array;
 
-    public function getGameStatistics($gameId): array;
+    public function getUserRulesByStatus($userId, bool $isActive = true) : Collection;
 
-    public function getUserStatistics($userId): array;
+    public function getUserStatistics($userId) : array;
 
-    public function generateUniqueEncrypted(): string;
+    public function searchRulesByContent(string $searchTerm) : Collection;
 
-    public function searchRulesByContent(string $searchTerm): Collection;
+    public function updateRuleContent($ruleId, string $rules) : bool;
 
-    public function getRecentRules(int $days = 30): Collection;
+    public function updateRuleImage($ruleId, ?string $image) : bool;
 
-    public function getRulesByUserWithGames($userId): Collection;
+    public function updateRuleStatus($ruleId, bool $isActive) : bool;
 }

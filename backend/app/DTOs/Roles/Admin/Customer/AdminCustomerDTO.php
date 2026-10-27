@@ -12,6 +12,28 @@ namespace App\DTOs\Roles\Admin\Customer;
  */
 final class AdminCustomerDTO
 {
+    public static function fromArray(array $data) : self
+    {
+        return new self(
+            $data['username'] ?? null,
+            $data['email'] ?? null,
+            $data['commission'] ?? null,
+            $data['country'] ?? null,
+            $data['time_zone'] ?? null,
+            $data['currency'] ?? null,
+            $data['phone'] ?? null,
+            $data['name'] ?? null,
+            isset($data['other_currencies'])
+                ? array_values((array) $data['other_currencies'])
+                : null,
+            isset($data['allowed_games'])
+                ? array_values((array) $data['allowed_games'])
+                : null,
+            $data['api_route'] ?? null,
+            $data['customer_key'] ?? null,
+        );
+    }
+
     public function __construct(
         public readonly ?string $username,
         public readonly ?string $email,
@@ -21,50 +43,29 @@ final class AdminCustomerDTO
         public readonly ?string $currency,
         public readonly ?string $phone,
         public readonly ?string $name,
-        public readonly ?array  $otherCurrencies,
-        public readonly ?array  $allowedGames,
+        public readonly ?array $otherCurrencies,
+        public readonly ?array $allowedGames,
         public readonly ?string $apiRoute,
         public readonly ?string $customerKey,
-    ) {}
-
-    public static function fromArray(array $data): self
-    {
-        return new self(
-            $data['username']      ?? null,
-            $data['email']         ?? null,
-            $data['commission']    ?? null,
-            $data['country']       ?? null,
-            $data['time_zone']     ?? null,
-            $data['currency']      ?? null,
-            $data['phone']         ?? null,
-            $data['name']          ?? null,
-            isset($data['other_currencies'])
-                ? array_values((array) $data['other_currencies'])
-                : null,
-            isset($data['allowed_games'])
-                ? array_values((array) $data['allowed_games'])
-                : null,
-            $data['api_route']     ?? null,
-            $data['customer_key']  ?? null,
-        );
+    ) {
     }
 
-    public function toArray(): array
+    public function toArray() : array
     {
         return array_filter([
-            'username'         => $this->username,
-            'email'            => $this->email,
-            'commission'       => $this->commission,
-            'country'          => $this->country,
-            'time_zone'        => $this->timeZone,
-            'currency'         => $this->currency,
-            'phone'            => $this->phone,
-            'name'             => $this->name,
+            'username' => $this->username,
+            'email' => $this->email,
+            'commission' => $this->commission,
+            'country' => $this->country,
+            'time_zone' => $this->timeZone,
+            'currency' => $this->currency,
+            'phone' => $this->phone,
+            'name' => $this->name,
             'other_currencies' => $this->otherCurrencies,
-            'allowed_games'    => $this->allowedGames,
-            'api_route'        => $this->apiRoute,
-            'customer_key'     => $this->customerKey,
-        ], static function ($value) {
+            'allowed_games' => $this->allowedGames,
+            'api_route' => $this->apiRoute,
+            'customer_key' => $this->customerKey,
+        ], static function($value) {
             if ($value === null) {
                 return false;
             }

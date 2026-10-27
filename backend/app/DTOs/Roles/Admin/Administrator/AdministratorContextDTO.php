@@ -9,5 +9,6 @@ final class AdministratorContextDTO
         public array $pagination,
         public array $countries,
         public array $roles,
-    ) {}
+    ) {
+    }
 }

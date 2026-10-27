@@ -27,21 +27,22 @@ final class SuperAdminDashboardContextDTO implements ContextDTO
         public readonly string $period,
         /** Labels de accesos rápidos visibles para este usuario (permiso + visibilidad configurable) */
         public readonly array $allowedQuickLinks,
-    ) {}
+    ) {
+    }
 
-    public function toView(): array
+    public function toView() : array
     {
         return [
-            'userName'           => $this->userName,
-            'stats'              => $this->stats,
-            'recentActivity'     => $this->recentActivity,
-            'adminActivity'      => $this->adminActivity,
-            'entityCounts'       => $this->entityCounts,
-            'systemHealth'       => $this->systemHealth,
-            'salesTrend'         => $this->salesTrend,
+            'userName' => $this->userName,
+            'stats' => $this->stats,
+            'recentActivity' => $this->recentActivity,
+            'adminActivity' => $this->adminActivity,
+            'entityCounts' => $this->entityCounts,
+            'systemHealth' => $this->systemHealth,
+            'salesTrend' => $this->salesTrend,
             'pendingWalletCount' => $this->pendingWalletCount,
-            'period'             => $this->period,
-            'allowedQuickLinks'  => $this->allowedQuickLinks,
+            'period' => $this->period,
+            'allowedQuickLinks' => $this->allowedQuickLinks,
         ];
     }
 }

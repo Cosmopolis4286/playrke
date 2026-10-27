@@ -2,9 +2,9 @@
 
 namespace App\Models\Pivots;
 
-use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Clase base para pivots auditables con SoftDeletes.
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 abstract class BasePivot extends Pivot
 {
-    use SoftDeletes, Auditable;
+    use Auditable, SoftDeletes;
 
     /**
      * Deshabilita asignación masiva no intencionada.
@@ -44,7 +44,7 @@ abstract class BasePivot extends Pivot
      *
      * @return array<string, mixed>
      */
-    protected function getPivotIdentity(): array
+    protected function getPivotIdentity() : array
     {
         $identity = [];
 

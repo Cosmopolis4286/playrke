@@ -2,8 +2,8 @@
 
 namespace App\Models\Pivots\Roles\Treasurer;
 
-use App\Models\Pivots\BasePivot;
 use App\Models\Currency;
+use App\Models\Pivots\BasePivot;
 use App\Models\Roles\Treasurer;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,16 +23,20 @@ class TreasurerCurrency extends BasePivot
     public $incrementing = false;
 
     /**
-     * El pivot no tiene primary key tradicional.
+     * Indica si el modelo usa timestamps.
      *
-     * Eloquent espera un string, no null.
+     * Ajusta a false si la tabla no los tiene.
      */
-    protected $primaryKey = '';
+    public $timestamps = true;
 
     /**
-     * Tabla asociada al pivot.
+     * Casts de atributos.
      */
-    protected $table = 'treasurers_currencies';
+    protected $casts = [
+        'treasurer_id' => 'string',
+        'currency_id' => 'string',
+        'level' => 'integer',
+    ];
 
     /**
      * Atributos asignables.
@@ -45,22 +49,6 @@ class TreasurerCurrency extends BasePivot
     ];
 
     /**
-     * Casts de atributos.
-     */
-    protected $casts = [
-        'treasurer_id' => 'string',
-        'currency_id' => 'string',
-        'level' => 'integer'
-    ];
-
-    /**
-     * Indica si el modelo usa timestamps.
-     *
-     * Ajusta a false si la tabla no los tiene.
-     */
-    public $timestamps = true;
-
-    /**
      * Define las claves que forman la identidad compuesta para auditoría.
      *
      * @var array<int, string>
@@ -68,18 +56,30 @@ class TreasurerCurrency extends BasePivot
     protected array $pivotIdentityKeys = ['treasurer_id', 'currency_id'];
 
     /**
-     * Relación con el comercio.
+     * El pivot no tiene primary key tradicional.
+     *
+     * Eloquent espera un string, no null.
      */
-    public function treasurer(): BelongsTo
-    {
-        return $this->belongsTo(Treasurer::class, 'treasurer_id');
-    }
+    protected $primaryKey = '';
+
+    /**
+     * Tabla asociada al pivot.
+     */
+    protected $table = 'treasurers_currencies';
 
     /**
      * Relación con la moneda.
      */
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    /**
+     * Relación con el comercio.
+     */
+    public function treasurer() : BelongsTo
+    {
+        return $this->belongsTo(Treasurer::class, 'treasurer_id');
     }
 }

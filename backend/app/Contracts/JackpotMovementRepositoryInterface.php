@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Collection;
 interface JackpotMovementRepositoryInterface extends BaseRepositoryInterface
 {
     /**
+     * Últimos N movimientos de un jackpot (más recientes primero).
+     */
+    public function getByJackpot(string $jackpotId, int $limit = 20) : Collection;
+
+    /**
      * Registra un nuevo movimiento de jackpot.
      *
      * @param array{
@@ -22,10 +27,5 @@ interface JackpotMovementRepositoryInterface extends BaseRepositoryInterface
      *   metadata?:       array|null,
      * } $data
      */
-    public function record(array $data): JackpotMovement;
-
-    /**
-     * Últimos N movimientos de un jackpot (más recientes primero).
-     */
-    public function getByJackpot(string $jackpotId, int $limit = 20): Collection;
+    public function record(array $data) : JackpotMovement;
 }

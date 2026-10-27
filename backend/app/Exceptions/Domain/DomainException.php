@@ -65,7 +65,7 @@ abstract class DomainException extends RuntimeException
     /**
      * Obtener el error code de dominio.
      */
-    public function errorCode(): string
+    public function errorCode() : string
     {
         return $this->errorCode;
     }
@@ -73,7 +73,7 @@ abstract class DomainException extends RuntimeException
     /**
      * Status HTTP declarado por el factory method que creó esta excepción.
      */
-    public function httpStatus(): int
+    public function httpStatus() : int
     {
         return $this->httpStatus;
     }
@@ -83,7 +83,7 @@ abstract class DomainException extends RuntimeException
      *
      * @return array<string, mixed>
      */
-    public function replacements(): array
+    public function replacements() : array
     {
         return $this->replacements;
     }

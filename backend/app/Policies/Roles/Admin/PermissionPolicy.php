@@ -22,22 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class PermissionPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
-    {
-        return 'superadmin';
-    }
-
-    /**
-     * @param Permission $model Tipado como Model (no Permission) para mantener
-     *   la firma compatible con BaseRolePolicy::update() — PHP no permite
-     *   estrechar el tipo de un parámetro en un override.
-     */
-    public function update(User $user, Model $model): bool
-    {
-        return $this->hasAccess($user) && ! $model->is_system;
-    }
-
-    public function delete(User $user, Model $model): bool
+    public function delete(User $user, Model $model) : bool
     {
         return $this->hasAccess($user) && ! $model->is_system;
     }
@@ -49,8 +34,23 @@ class PermissionPolicy extends BaseRolePolicy
      * filtrado de permisos is_system dentro del lote se hace en
      * PermissionService::assignPermissionsToRole()/revokePermissionsFromRole().
      */
-    public function manageAssignments(User $user): bool
+    public function manageAssignments(User $user) : bool
     {
         return $this->hasAccess($user);
+    }
+
+    /**
+     * @param Permission $model tipado como Model (no Permission) para mantener
+     *                          la firma compatible con BaseRolePolicy::update() — PHP no permite
+     *                          estrechar el tipo de un parámetro en un override
+     */
+    public function update(User $user, Model $model) : bool
+    {
+        return $this->hasAccess($user) && ! $model->is_system;
+    }
+
+    protected function requiredRole() : string|array
+    {
+        return 'superadmin';
     }
 }

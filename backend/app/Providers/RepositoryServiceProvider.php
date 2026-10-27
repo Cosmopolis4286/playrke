@@ -2,14 +2,14 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Filesystem\Filesystem;
-use ReflectionClass;
 use App\Contracts\AppParameterRepositoryInterface;
-use App\Repositories\AppParameterRepository;
-use App\Models\AppParameter;
-use App\Contracts\RoleEntityRepositoryInterface;
 use App\Contracts\GameCatalogRepositoryInterface;
+use App\Contracts\RoleEntityRepositoryInterface;
+use App\Models\AppParameter;
+use App\Repositories\AppParameterRepository;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\ServiceProvider;
+use ReflectionClass;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -27,10 +27,10 @@ class RepositoryServiceProvider extends ServiceProvider
         GameCatalogRepositoryInterface::class,
     ];
 
-    public function register(): void
+    public function register() : void
     {
         // Repositorio crítico con dependencias explícitas
-        $this->app->singleton(AppParameterRepositoryInterface::class, function ($app) {
+        $this->app->singleton(AppParameterRepositoryInterface::class, function($app) {
             return new AppParameterRepository($app->make(AppParameter::class));
         });
 
@@ -38,21 +38,31 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->registerRepositoriesAutomatically(app_path('Repositories'));
     }
 
-    private function registerRepositoriesAutomatically(string $basePath): void
+    private function getClassNamespace(string $file) : string
     {
-        $filesystem = new Filesystem();
+        $src = file_get_contents($file);
+
+        if (preg_match('/^namespace\s+(.+?);/m', $src, $matches)) {
+            return $matches[1];
+        }
+
+        return '';
+    }
+
+    private function registerRepositoriesAutomatically(string $basePath) : void
+    {
+        $filesystem = new Filesystem;
 
         foreach ($filesystem->allFiles($basePath) as $file) {
-
             $namespace = $this->getClassNamespace($file->getPathname());
 
-            if (!$namespace) {
+            if (! $namespace) {
                 continue;
             }
 
             $className = $namespace . '\\' . $file->getFilenameWithoutExtension();
 
-            if (!class_exists($className)) {
+            if (! class_exists($className)) {
                 continue;
             }
 
@@ -63,9 +73,8 @@ class RepositoryServiceProvider extends ServiceProvider
             }
 
             foreach ($reflection->getInterfaces() as $interface) {
-
                 // SOLO RepositoryInterfaces
-                if (!str_ends_with($interface->getShortName(), 'RepositoryInterface')) {
+                if (! str_ends_with($interface->getShortName(), 'RepositoryInterface')) {
                     continue;
                 }
 
@@ -86,20 +95,9 @@ class RepositoryServiceProvider extends ServiceProvider
 
                 $this->app->singleton(
                     $interface->getName(),
-                    $className
+                    $className,
                 );
             }
         }
-    }
-
-    private function getClassNamespace(string $file): string
-    {
-        $src = file_get_contents($file);
-
-        if (preg_match('/^namespace\s+(.+?);/m', $src, $matches)) {
-            return $matches[1];
-        }
-
-        return '';
     }
 }

@@ -21,20 +21,6 @@ use Throwable;
 class LogAlertThresholdCommand extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'logs:alert-threshold';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Alertar si la cantidad de errores recientes en system_logs supera el umbral configurado';
-
-    /**
      * Cooldown entre alertas para no spamear en cada corrida del scheduler
      * mientras la tasa de errores se mantiene alta — una alerta cada 30 min
      * como máximo, independiente de cada cuánto corra el comando.
@@ -42,7 +28,20 @@ class LogAlertThresholdCommand extends Command
     private const COOLDOWN_CACHE_KEY = 'logs:alert-threshold:last-notified';
     private const COOLDOWN_MINUTES = 30;
 
-    public function handle(): void
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Alertar si la cantidad de errores recientes en system_logs supera el umbral configurado';
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'logs:alert-threshold';
+
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -70,7 +69,7 @@ class LogAlertThresholdCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
 
             $this->error($output);
@@ -90,7 +89,7 @@ class LogAlertThresholdCommand extends Command
         }
     }
 
-    private function notify(int $errorCount, int $threshold, int $windowMinutes): void
+    private function notify(int $errorCount, int $threshold, int $windowMinutes) : void
     {
         $message = "Se registraron {$errorCount} errores en los últimos {$windowMinutes} minutos (umbral configurado: {$threshold}). Revisar /logs.";
 
@@ -102,7 +101,7 @@ class LogAlertThresholdCommand extends Command
         $recipient = AppParameter::active()->byParam('support_email')->value('value');
 
         if ($recipient) {
-            Mail::raw($message, function ($mail) use ($recipient) {
+            Mail::raw($message, function($mail) use ($recipient) {
                 $mail->to($recipient)->subject('[PlayRKE] Alerta: pico de errores del sistema');
             });
         }

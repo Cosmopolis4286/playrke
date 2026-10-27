@@ -2,24 +2,17 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use App\Repositories\AppParameterRepository;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class AppParametersConfigServiceProvider extends ServiceProvider
 {
     /**
-     * Registrar servicios
-     */
-    public function register(): void
-    {
-        // No requiere registro adicional
-    }
-
-    /**
      * Inicializar servicios después del registro
      */
-    public function boot(): void
+    public function boot() : void
     {
         try {
             // Inyectamos el repositorio
@@ -33,11 +26,11 @@ class AppParametersConfigServiceProvider extends ServiceProvider
                 $param = strtolower($parameter->param);
 
                 // Solo seteamos si no existe en config
-                if (!config()->has("app.{$param}")) {
+                if (! config()->has("app.{$param}")) {
                     config()->set("app.{$param}", $parameter->getFormattedValue());
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Opcional: log del error para debugging
             Log::error('Error al cargar AppParametersConfig: ' . $e->getMessage());
         }
@@ -58,9 +51,17 @@ class AppParametersConfigServiceProvider extends ServiceProvider
         ];
 
         foreach ($envFallbacks as $key => $value) {
-            if (!config()->has("app.{$key}")) {
+            if (! config()->has("app.{$key}")) {
                 config()->set("app.{$key}", $value);
             }
         }
+    }
+
+    /**
+     * Registrar servicios
+     */
+    public function register() : void
+    {
+        // No requiere registro adicional
     }
 }

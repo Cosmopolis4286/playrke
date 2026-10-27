@@ -21,25 +21,21 @@ trait GeneratesHashedIds
      * Devuelve IDs hasheados para una colección de modelos.
      * Cachea resultados durante el request.
      *
-     * @param Collection $rows
      * @return string[]
      */
-    protected function hashCollectionIds(Collection $rows): array
+    protected function hashCollectionIds(Collection $rows) : array
     {
-        return $rows->pluck('id')->map(function ($id) {
+        return $rows->pluck('id')->map(function($id) {
             return $this->hashId($id);
         })->toArray();
     }
 
     /**
      * Hashea un ID individual usando cache por request.
-     *
-     * @param string|int $id
-     * @return string
      */
-    protected function hashId(string|int $id): string
+    protected function hashId(string|int $id) : string
     {
-        if (!isset($this->hashCache[$id])) {
+        if (! isset($this->hashCache[$id])) {
             $this->hashCache[$id] = Hashids::connection('main')->encode($id);
         }
 

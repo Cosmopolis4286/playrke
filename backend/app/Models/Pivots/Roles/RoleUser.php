@@ -4,9 +4,9 @@ namespace App\Models\Pivots\Roles;
 
 use App\Casts\AsActiveStatusEnum;
 use App\Models\Role;
-use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo pivot para la relación User ↔ Role
@@ -14,21 +14,24 @@ use App\Models\User;
  * Representa la tabla `role_user`. Se usa cuando la relación
  * tiene atributos adicionales o lógica propia.
  *
- * @property int $user_id
- * @property int $role_id
- * @property int|null $assigned_by ID del usuario que asignó el rol
- * @property \Illuminate\Support\Carbon|null $expires_at Fecha de expiración del rol
+ * @property int                             $user_id
+ * @property int                             $role_id
+ * @property int|null                        $assigned_by ID del usuario que asignó el rol
+ * @property \Illuminate\Support\Carbon|null $expires_at  Fecha de expiración del rol
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  */
 class RoleUser extends Pivot
 {
     /**
-     * Tabla asociada
+     * Los atributos que deben ser casteados a tipos nativos.
      *
-     * @var string
+     * @var array<string, string>
      */
-    protected $table = 'role_user';
+    protected $casts = [
+        'status' => AsActiveStatusEnum::class,
+        'expires_at' => 'datetime',
+    ];
 
     /**
      * Campos asignables
@@ -41,25 +44,21 @@ class RoleUser extends Pivot
         'assigned_by',
         'expires_at',
     ];
-
     /**
-     * Los atributos que deben ser casteados a tipos nativos.
+     * Tabla asociada
      *
-     * @var array<string, string>
+     * @var string
      */
-    protected $casts = [
-        'status' => AsActiveStatusEnum::class,
-        'expires_at' => 'datetime',
-    ];
+    protected $table = 'role_user';
 
     /**
-     * Obtener el usuario asociado a este rol
+     * Obtener el usuario que asignó este rol
      *
      * @return BelongsTo<User, RoleUser>
      */
-    public function user(): BelongsTo
+    public function assignedBy() : BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'assigned_by');
     }
 
     /**
@@ -67,18 +66,18 @@ class RoleUser extends Pivot
      *
      * @return BelongsTo<Role, RoleUser>
      */
-    public function role(): BelongsTo
+    public function role() : BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
     }
 
     /**
-     * Obtener el usuario que asignó este rol
+     * Obtener el usuario asociado a este rol
      *
      * @return BelongsTo<User, RoleUser>
      */
-    public function assignedBy(): BelongsTo
+    public function user() : BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_by');
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

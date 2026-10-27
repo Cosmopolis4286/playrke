@@ -18,13 +18,13 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class PaymentOrderPolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    public function reevaluate(User $user, PaymentOrder $order) : bool
     {
-        return ['superadmin', 'admin'];
+        return $this->hasAccess($user) && ! $order->isTerminal();
     }
 
-    public function reevaluate(User $user, PaymentOrder $order): bool
+    protected function requiredRole() : string|array
     {
-        return $this->hasAccess($user) && !$order->isTerminal();
+        return ['superadmin', 'admin'];
     }
 }

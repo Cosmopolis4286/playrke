@@ -19,21 +19,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class JackpotType extends Model
 {
-    use SnowflakeId, HasActiveStatusScope;
-
-    public const PERIODICITY_PER_ROOM = 'PER_ROOM';
-    public const PERIODICITY_WEEKLY = 'WEEKLY';
+    use HasActiveStatusScope, SnowflakeId;
     public const PERIODICITY_BIWEEKLY = 'BIWEEKLY';
     public const PERIODICITY_MONTHLY = 'MONTHLY';
 
-    protected $fillable = [
-        'game_id',
-        'currency_id',
-        'code',
-        'label',
-        'periodicity',
-        'status',
-    ];
+    public const PERIODICITY_PER_ROOM = 'PER_ROOM';
+    public const PERIODICITY_WEEKLY = 'WEEKLY';
 
     protected $casts = [
         'id' => 'string',
@@ -45,17 +36,26 @@ class JackpotType extends Model
         'status' => 'string',
     ];
 
-    public function game(): BelongsTo
-    {
-        return $this->belongsTo(Game::class, 'game_id');
-    }
+    protected $fillable = [
+        'game_id',
+        'currency_id',
+        'code',
+        'label',
+        'periodicity',
+        'status',
+    ];
 
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function jackpot(): HasOne
+    public function game() : BelongsTo
+    {
+        return $this->belongsTo(Game::class, 'game_id');
+    }
+
+    public function jackpot() : HasOne
     {
         return $this->hasOne(Jackpot::class, 'jackpot_type_id');
     }

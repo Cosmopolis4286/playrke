@@ -20,6 +20,15 @@ class PhoneNumber extends Model
     use SnowflakeId;
 
     /**
+     * Los atributos que deben ser casteados a tipos nativos.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'status' => AsActiveStatusEnum::class,
+    ];
+
+    /**
      * Los campos que se pueden asignar masivamente.
      *
      * @var array<int, string>
@@ -32,99 +41,50 @@ class PhoneNumber extends Model
     ];
 
     /**
-     * Los atributos que deben ser casteados a tipos nativos.
+     * Verificar si el número pertenece a un usuario específico.
      *
-     * @var array<string, string>
+     * @param string $userId ID del usuario
      */
-    protected $casts = [
-        'status' => AsActiveStatusEnum::class,
-    ];
-
-    /**
-     * Relación con el usuario propietario.
-     *
-     * @return BelongsTo
-     */
-    public function user(): BelongsTo
+    public function belongsToUser(string $userId) : bool
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->user_id === $userId;
     }
 
     /**
      * Relación con el país del número.
-     *
-     * @return BelongsTo
      */
-    public function country(): BelongsTo
+    public function country() : BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
     }
 
     /**
-     * Scope para filtrar por usuario.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $userId
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Obtener solo los dígitos del número de teléfono.
      */
-    public function scopeByUser($query, string $userId)
+    public function getCleanNumber() : string
     {
-        return $query->where('user_id', $userId);
+        return preg_replace('/[^\d]/', '', $this->phone_number);
     }
 
     /**
-     * Scope para obtener números activos.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Obtener el código de país del número si está presente.
      */
-    public function scopeActive($query)
+    public function getCountryCodeFromNumber() : ?string
     {
-        return $query->where('status', true);
-    }
+        if (strpos($this->phone_number, '+') === 0) {
+            // Extraer posible código de país (1-4 dígitos después del +)
+            preg_match('/^\+(\d{1,4})/', $this->phone_number, $matches);
 
-    /**
-     * Scope para filtrar por país.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $countryId
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByCountry($query, string $countryId)
-    {
-        return $query->where('country_id', $countryId);
-    }
+            return $matches[1] ?? null;
+        }
 
-    /**
-     * Scope para filtrar por número de teléfono.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $phoneNumber
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByPhoneNumber($query, string $phoneNumber)
-    {
-        return $query->where('phone_number', $phoneNumber);
-    }
-
-    /**
-     * Scope para buscar números por patrón parcial.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $pattern
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeSearchByPattern($query, string $pattern)
-    {
-        return $query->where('phone_number', 'LIKE', "%{$pattern}%");
+        return null;
     }
 
     /**
      * Obtener el número formateado con información del país.
-     *
-     * @return string
      */
-    public function getFormattedNumber(): string
+    public function getFormattedNumber() : string
     {
         $countryName = $this->country->name ?? 'País desconocido';
         $countryCode = $this->country->calling_code ?? '';
@@ -133,50 +93,25 @@ class PhoneNumber extends Model
             '%s (%s%s)',
             $this->phone_number,
             $countryCode ? '+' . $countryCode : '',
-            $countryName ? ' - ' . $countryName : ''
+            $countryName ? ' - ' . $countryName : '',
         );
     }
 
     /**
-     * Obtener solo los dígitos del número de teléfono.
-     *
-     * @return string
+     * Verificar si el número incluye código de país.
      */
-    public function getCleanNumber(): string
+    public function hasCountryCode() : bool
     {
-        return preg_replace('/[^\d]/', '', $this->phone_number);
-    }
-
-    /**
-     * Verificar si el número pertenece a un usuario específico.
-     *
-     * @param string $userId ID del usuario
-     * @return bool
-     */
-    public function belongsToUser(string $userId): bool
-    {
-        return $this->user_id === $userId;
-    }
-
-    /**
-     * Verificar si el número está activo.
-     *
-     * @return bool
-     */
-    public function isActive(): bool
-    {
-        return $this->status === true;
+        return $this->getCountryCodeFromNumber() !== null;
     }
 
     /**
      * Verificar si el número tiene un formato válido básico.
-     *
-     * @return bool
      */
-    public function hasValidFormat(): bool
+    public function hasValidFormat() : bool
     {
         // Verificar que contenga solo números, espacios, guiones, paréntesis y signo +
-        if (!preg_match('/^[\+\d\s\-\(\)]+$/', $this->phone_number)) {
+        if (! preg_match('/^[\+\d\s\-\(\)]+$/', $this->phone_number)) {
             return false;
         }
 
@@ -188,11 +123,17 @@ class PhoneNumber extends Model
     }
 
     /**
-     * Verificar si es un número móvil (formato básico).
-     *
-     * @return bool
+     * Verificar si el número está activo.
      */
-    public function isMobileNumber(): bool
+    public function isActive() : bool
+    {
+        return $this->status === true;
+    }
+
+    /**
+     * Verificar si es un número móvil (formato básico).
+     */
+    public function isMobileNumber() : bool
     {
         $cleanNumber = $this->getCleanNumber();
 
@@ -202,40 +143,79 @@ class PhoneNumber extends Model
     }
 
     /**
-     * Obtener el código de país del número si está presente.
+     * Scope para obtener números activos.
      *
-     * @return string|null
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function getCountryCodeFromNumber(): ?string
+    public function scopeActive($query)
     {
-        if (strpos($this->phone_number, '+') === 0) {
-            // Extraer posible código de país (1-4 dígitos después del +)
-            preg_match('/^\+(\d{1,4})/', $this->phone_number, $matches);
-            return $matches[1] ?? null;
-        }
-
-        return null;
+        return $query->where('status', true);
     }
 
     /**
-     * Verificar si el número incluye código de país.
+     * Scope para filtrar por país.
      *
-     * @return bool
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function hasCountryCode(): bool
+    public function scopeByCountry($query, string $countryId)
     {
-        return $this->getCountryCodeFromNumber() !== null;
+        return $query->where('country_id', $countryId);
+    }
+
+    /**
+     * Scope para filtrar por número de teléfono.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByPhoneNumber($query, string $phoneNumber)
+    {
+        return $query->where('phone_number', $phoneNumber);
+    }
+
+    /**
+     * Scope para filtrar por usuario.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByUser($query, string $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope para buscar números por patrón parcial.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSearchByPattern($query, string $pattern)
+    {
+        return $query->where('phone_number', 'LIKE', "%{$pattern}%");
     }
 
     /**
      * Mutator para limpiar y formatear el número antes de guardarlo.
-     *
-     * @param string $value
-     * @return void
      */
-    public function setPhoneNumberAttribute(string $value): void
+    public function setPhoneNumberAttribute(string $value) : void
     {
         // Limpiar espacios extra pero mantener formato básico
         $this->attributes['phone_number'] = trim($value);
+    }
+
+    /**
+     * Relación con el usuario propietario.
+     */
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

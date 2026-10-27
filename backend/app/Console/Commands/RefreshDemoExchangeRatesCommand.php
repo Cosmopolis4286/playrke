@@ -26,9 +26,8 @@ use Illuminate\Console\Command;
  */
 class RefreshDemoExchangeRatesCommand extends Command
 {
-    protected $signature = 'exchange-rate:refresh-demo-ves';
-
     protected $description = 'Actualiza la tasa VES sembrada con el valor real publicado por el BCV (uso manual, no forma parte de db:seed)';
+    protected $signature = 'exchange-rate:refresh-demo-ves';
 
     public function __construct(
         private readonly BcvExchangeRateService $bcvService,
@@ -36,12 +35,13 @@ class RefreshDemoExchangeRatesCommand extends Command
         parent::__construct();
     }
 
-    public function handle(): int
+    public function handle() : int
     {
         $currency = Currency::where('iso_code', 'VES')->first();
 
-        if (!$currency) {
+        if (! $currency) {
             $this->error('Moneda VES no encontrada — ejecuta CurrencySeeder primero.');
+
             return self::FAILURE;
         }
 
@@ -50,13 +50,15 @@ class RefreshDemoExchangeRatesCommand extends Command
 
         if ($rate === null) {
             $this->error('No se pudo obtener la tasa del BCV (ni del scraping oficial ni del fallback). Intenta más tarde.');
+
             return self::FAILURE;
         }
 
         $admin = User::where('email', 'superadmin@playrke.com')->first();
 
-        if (!$admin) {
+        if (! $admin) {
             $this->error('superadmin@playrke.com no encontrado — ejecuta TestUserSeeder primero.');
+
             return self::FAILURE;
         }
 
@@ -72,10 +74,10 @@ class RefreshDemoExchangeRatesCommand extends Command
 
         ExchangeRate::create([
             'currency_id' => $currency->id,
-            'user_id'     => $admin->id,
-            'amount'      => $rate,
-            'percentage'  => $previousAmount ? round((($rate - $previousAmount) / $previousAmount) * 100, 3) : 0,
-            'status'      => 'ACTIVE',
+            'user_id' => $admin->id,
+            'amount' => $rate,
+            'percentage' => $previousAmount ? round((($rate - $previousAmount) / $previousAmount) * 100, 3) : 0,
+            'status' => 'ACTIVE',
         ]);
 
         $this->info("✔ Tasa VES actualizada: 1 USD = {$rate} VES (fuente: BCV).");

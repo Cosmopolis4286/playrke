@@ -9,25 +9,24 @@ use InvalidArgumentException;
 final class ExchangeRateFactory
 {
     public function __construct(
-        private CurrencyRepositoryInterface $currencyRepository
-    ) {}
+        private CurrencyRepositoryInterface $currencyRepository,
+    ) {
+    }
 
     /**
      * Crea un ExchangeRateDTO a partir de un arreglo de datos (request).
      *
-     * @param array<string, mixed> $data Datos de entrada, típicamente request validated.
-     * @param string $exchangeRateId
-     * @return ExchangeRateDTO
+     * @param array<string, mixed> $data datos de entrada, típicamente request validated
      *
-     * @throws InvalidArgumentException Si falta moneda o amount (valor de la tasa de cambio).
+     * @throws InvalidArgumentException si falta moneda o amount (valor de la tasa de cambio)
      */
-    public function fromRequest(array $data, ?string $exchangeRateId = null): ExchangeRateDTO
+    public function fromRequest(array $data, ?string $exchangeRateId = null) : ExchangeRateDTO
     {
         if (empty($data['currency_id'])) {
             throw new InvalidArgumentException('El campo "currency_id" es obligatorio.');
         }
 
-        if (!isset($data['amount'])) {
+        if (! isset($data['amount'])) {
             throw new InvalidArgumentException('El campo "amount" es obligatorio.');
         }
 

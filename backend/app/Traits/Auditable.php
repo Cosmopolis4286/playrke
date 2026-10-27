@@ -33,12 +33,12 @@ trait Auditable
      *
      * Registra los listeners de eventos del modelo.
      */
-    protected static function bootAuditable(): void
+    protected static function bootAuditable() : void
     {
-        static::created(fn($model) => $model->auditChanges('created'));
-        static::updated(fn($model) => $model->auditChanges('updated'));
+        static::created(fn ($model) => $model->auditChanges('created'));
+        static::updated(fn ($model) => $model->auditChanges('updated'));
 
-        static::deleted(function ($model) {
+        static::deleted(function($model) {
             $event = method_exists($model, 'isForceDeleting') && $model->isForceDeleting()
                 ? 'force_deleted'
                 : 'deleted';
@@ -46,27 +46,52 @@ trait Auditable
             $model->auditChanges($event);
         });
 
-        /**
+        /*
          * El evento "restored" solo existe si el modelo usa SoftDeletes;
          * registrarlo incondicionalmente revienta el boot de modelos que no lo usan.
          */
         if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(static::class), true)) {
-            static::restored(fn($model) => $model->auditChanges('restored'));
+            static::restored(fn ($model) => $model->auditChanges('restored'));
         }
     }
 
     /**
-     * Registra un evento de auditoría.
-     *
-     * @param string $event
+     * Notifica (vía Log::critical(), que persiste en /logs por el canal
+     * 'database') cuando el evento auditado está en la lista opt-in
+     * `protected array $auditAlertEvents = [...]` del modelo — ej. borrar un
+     * usuario. Mismo mecanismo de visibilidad que logs:alert-threshold, sin
+     * inventar reglas de negocio no confirmadas: cada modelo decide qué
+     * eventos propios son sensibles.
      */
-    protected function auditChanges(string $event): void
+    protected function alertIfSensitive(string $event) : void
+    {
+        $sensitiveEvents = property_exists($this, 'auditAlertEvents') ? $this->auditAlertEvents : [];
+
+        if (! in_array($event, $sensitiveEvents, true)) {
+            return;
+        }
+
+        $actor = Auth::check() ? (Auth::user()->full_name ?? Auth::id()) : $this->resolveActorType();
+
+        Log::critical(sprintf(
+            '[audit] Cambio sensible: %s#%s — evento "%s" ejecutado por %s',
+            class_basename($this),
+            $this->serializeValue($this->getAuditableId()),
+            $event,
+            $actor,
+        ));
+    }
+
+    /**
+     * Registra un evento de auditoría.
+     */
+    protected function auditChanges(string $event) : void
     {
         $oldValuesPreview = $this->getOldValues($event);
         $newValuesPreview = $this->getNewValues($event);
 
         if ($event === 'updated' && ! $this->hasAuditableDiff($oldValuesPreview, $newValuesPreview)) {
-            /**
+            /*
              * updated() se dispara con isDirty() en al menos un atributo,
              * pero ese atributo puede ser uno excluido por auditHidden (ej.
              * remember_token: Laravel lo regenera en CADA logout de un
@@ -82,22 +107,22 @@ trait Auditable
         }
 
         Audit::create([
-            /**
+            /*
              * Usuario humano que ejecutó la acción.
              * Null para system / jobs / CLI.
              */
             'user_id' => Auth::id(),
 
-            /**
+            /*
              * Tipo de actor que originó la acción.
              */
             'actor_type' => $this->resolveActorType(),
 
-            /**
+            /*
              * Modelo auditado (polimórfico).
              */
             'auditable_type' => $this->getMorphClass(),
-            /**
+            /*
              * auditable_id/old_values/new_values se pasan en su forma nativa
              * (array o escalar), SIN json_encode() manual: las tres columnas
              * ya tienen cast 'array' en Audit — Eloquent las serializa al
@@ -109,21 +134,21 @@ trait Auditable
              */
             'auditable_id' => $this->getAuditableId(),
 
-            /**
+            /*
              * Evento ejecutado.
              */
             'event' => $event,
 
-            /**
+            /*
              * Cambios.
              */
             'old_values' => $oldValuesPreview,
             'new_values' => $newValuesPreview,
 
-            /**
+            /*
              * Contexto de ejecución.
              */
-            'url'        => Request::instance()?->fullUrl(),
+            'url' => Request::instance()?->fullUrl(),
             'ip_address' => Request::instance()?->ip(),
             'user_agent' => Request::instance()?->userAgent(),
         ]);
@@ -132,76 +157,19 @@ trait Auditable
     }
 
     /**
-     * true si hay al menos un campo (ya filtrado por auditHidden/timestamps)
-     * cuyo valor difiere entre old y new — ver el corte en auditChanges()
-     * para 'updated'. created/deleted/restored no llaman esto (uno de los
-     * dos lados siempre es null ahí por diseño de getOldValues/getNewValues,
-     * así que "sin diff" no aplica como concepto para esos eventos).
-     */
-    private function hasAuditableDiff(?array $oldValues, ?array $newValues): bool
-    {
-        $old = $oldValues ?? [];
-        $new = $newValues ?? [];
-
-        foreach (array_unique([...array_keys($old), ...array_keys($new)]) as $key) {
-            if (($old[$key] ?? null) !== ($new[$key] ?? null)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Notifica (vía Log::critical(), que persiste en /logs por el canal
-     * 'database') cuando el evento auditado está en la lista opt-in
-     * `protected array $auditAlertEvents = [...]` del modelo — ej. borrar un
-     * usuario. Mismo mecanismo de visibilidad que logs:alert-threshold, sin
-     * inventar reglas de negocio no confirmadas: cada modelo decide qué
-     * eventos propios son sensibles.
-     */
-    protected function alertIfSensitive(string $event): void
-    {
-        $sensitiveEvents = property_exists($this, 'auditAlertEvents') ? $this->auditAlertEvents : [];
-
-        if (! in_array($event, $sensitiveEvents, true)) {
-            return;
-        }
-
-        $actor = Auth::check() ? (Auth::user()->full_name ?? Auth::id()) : $this->resolveActorType();
-
-        Log::critical(sprintf(
-            '[audit] Cambio sensible: %s#%s — evento "%s" ejecutado por %s',
-            class_basename($this),
-            $this->serializeValue($this->getAuditableId()),
-            $event,
-            $actor
-        ));
-    }
-
-    /**
-     * Determina el actor_type real de la acción (user | job | command | system).
+     * Filtra atributos no relevantes o sensibles para auditoría.
      *
-     * Antes solo distinguía user/system — con un usuario autenticado en
-     * sesión de cola (raro pero posible, ej. impersonation en un job) o
-     * corriendo por CLI, el resto de la app quedaba sin poder diferenciar
-     * "lo hizo un cron/artisan command" de "lo hizo el sistema en un
-     * request HTTP anónimo", pese a que el schema/UI ya soportaban ambos
-     * valores.
+     * Además de los timestamps, excluye los campos declarados por el modelo
+     * en `protected array $auditHidden = [...]` (ej. password, tokens) para
+     * que no queden en texto plano en old_values/new_values.
      */
-    protected function resolveActorType(): string
+    protected function filterAuditableAttributes(array $values) : array
     {
-        if (Auth::check()) {
-            return 'user';
-        }
+        $hidden = property_exists($this, 'auditHidden') ? $this->auditHidden : [];
 
-        if (! app()->runningInConsole()) {
-            return 'system';
-        }
-
-        $command = $_SERVER['argv'][1] ?? null;
-
-        return str_starts_with((string) $command, 'queue:') ? 'job' : 'command';
+        return collect($values)
+            ->except(['created_at', 'updated_at', 'deleted_at', ...$hidden])
+            ->toArray();
     }
 
     /**
@@ -210,7 +178,7 @@ trait Auditable
      * - Modelos normales: clave primaria
      * - Pivots: identidad compuesta definida por el modelo
      */
-    protected function getAuditableId(): int|string|array|null
+    protected function getAuditableId() : int|string|array|null
     {
         // Si es un pivot con clave compuesta, usar la identidad del pivot
         if ($this instanceof Pivot) {
@@ -222,21 +190,17 @@ trait Auditable
     }
 
     /**
-     * Identidad compuesta del pivot.
-     *
-     * Debe ser sobrescrito por cada pivot auditable.
-     *
-     * Ejemplo:
-     * [
-     *   'commerce_id' => 1,
-     *   'currency_id' => 2
-     * ]
-     *
-     * @return array<string, mixed>
+     * Obtiene los valores nuevos del modelo según el evento.
      */
-    protected function getPivotIdentity(): array
+    protected function getNewValues(string $event) : ?array
     {
-        return [];
+        if (! in_array($event, ['created', 'updated', 'restored'], true)) {
+            return null;
+        }
+
+        return $this->filterAuditableAttributes(
+            $this->getAttributes(),
+        );
     }
 
     /**
@@ -252,45 +216,58 @@ trait Auditable
      * (Carbon::jsonSerialize(), ISO+microsegundos+Z) y new_values (string
      * crudo de la BD), aunque el valor real no hubiera cambiado.
      */
-    protected function getOldValues(string $event): ?array
+    protected function getOldValues(string $event) : ?array
     {
         if (! in_array($event, ['updated', 'deleted', 'restored', 'force_deleted'], true)) {
             return null;
         }
 
         return $this->filterAuditableAttributes(
-            $this->getRawOriginal()
+            $this->getRawOriginal(),
         );
     }
 
     /**
-     * Obtiene los valores nuevos del modelo según el evento.
+     * Identidad compuesta del pivot.
+     *
+     * Debe ser sobrescrito por cada pivot auditable.
+     *
+     * Ejemplo:
+     * [
+     *   'commerce_id' => 1,
+     *   'currency_id' => 2
+     * ]
+     *
+     * @return array<string, mixed>
      */
-    protected function getNewValues(string $event): ?array
+    protected function getPivotIdentity() : array
     {
-        if (! in_array($event, ['created', 'updated', 'restored'], true)) {
-            return null;
+        return [];
+    }
+
+    /**
+     * Determina el actor_type real de la acción (user | job | command | system).
+     *
+     * Antes solo distinguía user/system — con un usuario autenticado en
+     * sesión de cola (raro pero posible, ej. impersonation en un job) o
+     * corriendo por CLI, el resto de la app quedaba sin poder diferenciar
+     * "lo hizo un cron/artisan command" de "lo hizo el sistema en un
+     * request HTTP anónimo", pese a que el schema/UI ya soportaban ambos
+     * valores.
+     */
+    protected function resolveActorType() : string
+    {
+        if (Auth::check()) {
+            return 'user';
         }
 
-        return $this->filterAuditableAttributes(
-            $this->getAttributes()
-        );
-    }
+        if (! app()->runningInConsole()) {
+            return 'system';
+        }
 
-    /**
-     * Filtra atributos no relevantes o sensibles para auditoría.
-     *
-     * Además de los timestamps, excluye los campos declarados por el modelo
-     * en `protected array $auditHidden = [...]` (ej. password, tokens) para
-     * que no queden en texto plano en old_values/new_values.
-     */
-    protected function filterAuditableAttributes(array $values): array
-    {
-        $hidden = property_exists($this, 'auditHidden') ? $this->auditHidden : [];
+        $command = $_SERVER['argv'][1] ?? null;
 
-        return collect($values)
-            ->except(['created_at', 'updated_at', 'deleted_at', ...$hidden])
-            ->toArray();
+        return str_starts_with((string) $command, 'queue:') ? 'job' : 'command';
     }
 
     /**
@@ -304,7 +281,7 @@ trait Auditable
      * - array      => JSON
      * - null       => null
      */
-    protected function serializeValue(mixed $value): string|int|null
+    protected function serializeValue(mixed $value) : string|int|null
     {
         if (is_null($value)) {
             return null;
@@ -315,5 +292,26 @@ trait Auditable
         }
 
         return $value;
+    }
+
+    /**
+     * true si hay al menos un campo (ya filtrado por auditHidden/timestamps)
+     * cuyo valor difiere entre old y new — ver el corte en auditChanges()
+     * para 'updated'. created/deleted/restored no llaman esto (uno de los
+     * dos lados siempre es null ahí por diseño de getOldValues/getNewValues,
+     * así que "sin diff" no aplica como concepto para esos eventos).
+     */
+    private function hasAuditableDiff(?array $oldValues, ?array $newValues) : bool
+    {
+        $old = $oldValues ?? [];
+        $new = $newValues ?? [];
+
+        foreach (array_unique([...array_keys($old), ...array_keys($new)]) as $key) {
+            if (($old[$key] ?? null) !== ($new[$key] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

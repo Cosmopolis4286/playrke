@@ -10,21 +10,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * (UTC) específico. Ver DailyMissionService para la lógica de
  * incremento/completado.
  *
- * @property string $id
- * @property string $user_id
- * @property string $daily_mission_id
- * @property \Carbon\Carbon $date
- * @property int $progress
+ * @property string              $id
+ * @property string              $user_id
+ * @property string              $daily_mission_id
+ * @property \Carbon\Carbon      $date
+ * @property int                 $progress
  * @property \Carbon\Carbon|null $completed_at
  */
 class UserDailyMissionProgress extends Model
 {
     use \App\Traits\SnowflakeId;
-
-    protected $table = 'user_daily_mission_progress';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
+
+    protected $casts = [
+        'date' => 'date',
+        'progress' => 'integer',
+        'completed_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'user_id',
@@ -33,27 +37,23 @@ class UserDailyMissionProgress extends Model
         'progress',
         'completed_at',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
-    protected $casts = [
-        'date'         => 'date',
-        'progress'     => 'integer',
-        'completed_at' => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-    ];
+    protected $table = 'user_daily_mission_progress';
 
-    public function user(): BelongsTo
+    public function isCompleted() : bool
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->completed_at !== null;
     }
 
-    public function mission(): BelongsTo
+    public function mission() : BelongsTo
     {
         return $this->belongsTo(DailyMission::class, 'daily_mission_id');
     }
 
-    public function isCompleted(): bool
+    public function user() : BelongsTo
     {
-        return $this->completed_at !== null;
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

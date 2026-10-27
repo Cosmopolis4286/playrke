@@ -2,7 +2,6 @@
 
 namespace App\Policies\Roles\Admin;
 
-use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
 
 /**
@@ -15,7 +14,7 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class ModulePolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    protected function requiredRole() : string|array
     {
         return 'superadmin';
     }

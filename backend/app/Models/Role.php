@@ -3,14 +3,13 @@
 namespace App\Models;
 
 use App\Casts\AsActiveStatusEnum;
-use App\Models\User;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
-use Spatie\Permission\Contracts\Role as RoleContract;
 use Spatie\Permission\Contracts\Permission as PermissionContract;
+use Spatie\Permission\Contracts\Role as RoleContract;
 use Spatie\Permission\Exceptions\RoleAlreadyExists;
 use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Spatie\Permission\Guard;
@@ -26,14 +25,17 @@ use Spatie\Permission\Traits\RefreshesPermissionCache;
  */
 class Role extends Model implements RoleContract
 {
-    use SnowflakeId, HasPermissions, RefreshesPermissionCache, Auditable;
+    use Auditable, HasPermissions, RefreshesPermissionCache, SnowflakeId;
 
     /**
-     * Nombre de la tabla asociada al modelo.
+     * Los atributos que deben ser casteados a tipos nativos.
      *
-     * @var string
+     * @var array<string, string>
      */
-    protected $table = 'roles';
+    protected $casts = [
+        'status' => AsActiveStatusEnum::class,
+        'sort_order' => 'integer',
+    ];
 
     /**
      * Los campos que se pueden asignar masivamente.
@@ -51,29 +53,11 @@ class Role extends Model implements RoleContract
     ];
 
     /**
-     * Los atributos que deben ser casteados a tipos nativos.
+     * Nombre de la tabla asociada al modelo.
      *
-     * @var array<string, string>
+     * @var string
      */
-    protected $casts = [
-        'status' => AsActiveStatusEnum::class,
-        'sort_order' => 'integer',
-    ];
-
-
-    // =========================================================================
-    // Implementación del contrato Spatie\Permission\Contracts\Role
-    // =========================================================================
-
-    public function permissions(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            config('permission.models.permission', Permission::class),
-            config('permission.table_names.role_has_permissions'),
-            'role_id',
-            'permission_id'
-        );
-    }
+    protected $table = 'roles';
 
     public static function create(array $attributes = [])
     {
@@ -90,22 +74,7 @@ class Role extends Model implements RoleContract
         return static::query()->create($attributes);
     }
 
-    public static function findByName(string $name, ?string $guardName = null): RoleContract
-    {
-        $guardName = $guardName ?? Guard::getDefaultName(static::class);
-
-        $role = static::where('name', $name)
-            ->where('guard_name', $guardName)
-            ->first();
-
-        if (! $role) {
-            throw RoleDoesNotExist::named($name, $guardName);
-        }
-
-        return $role;
-    }
-
-    public static function findById(int|string $id, ?string $guardName = null): RoleContract
+    public static function findById(int|string $id, ?string $guardName = null) : RoleContract
     {
         $guardName = $guardName ?? Guard::getDefaultName(static::class);
 
@@ -120,7 +89,22 @@ class Role extends Model implements RoleContract
         return $role;
     }
 
-    public static function findOrCreate(string $name, ?string $guardName = null): RoleContract
+    public static function findByName(string $name, ?string $guardName = null) : RoleContract
+    {
+        $guardName = $guardName ?? Guard::getDefaultName(static::class);
+
+        $role = static::where('name', $name)
+            ->where('guard_name', $guardName)
+            ->first();
+
+        if (! $role) {
+            throw RoleDoesNotExist::named($name, $guardName);
+        }
+
+        return $role;
+    }
+
+    public static function findOrCreate(string $name, ?string $guardName = null) : RoleContract
     {
         $guardName = $guardName ?? Guard::getDefaultName(static::class);
 
@@ -135,7 +119,149 @@ class Role extends Model implements RoleContract
         return $role;
     }
 
-    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    /**
+     * Verificar si el nombre del rol es válido.
+     *
+     * @param string $name Nombre a validar
+     */
+    public static function isValidName(string $name) : bool
+    {
+        $trimmed = trim($name);
+
+        // Verificar longitud
+        if (strlen($trimmed) < 2 || strlen($trimmed) > 50) {
+            return false;
+        }
+
+        // Verificar caracteres válidos
+        return ! (! preg_match('/^[\p{L}\p{N}\s\-_]+$/u', $trimmed));
+    }
+
+    /**
+     * Normalizar un nombre de rol.
+     *
+     * El nombre técnico del rol (name) se guarda en minúsculas: es la clave
+     * que usan Spatie Permission, los seeders, el middleware `role:` y
+     * SidebarMenuService::exclude_roles para comparar. El label legible para
+     * el usuario se resuelve aparte (ver getUserRoleDisplay() y
+     * formatRoleName() en el frontend), nunca a partir de este campo.
+     *
+     * @param string $name Nombre a normalizar
+     *
+     * @return string Nombre normalizado
+     */
+    public static function normalizeName(string $name) : string
+    {
+        $normalized = trim($name);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+
+        return Str::lower($normalized);
+    }
+
+    /**
+     * Activar el rol.
+     */
+    public function activate() : bool
+    {
+        return $this->update(['status' => true]);
+    }
+
+    /**
+     * Determinar si se puede eliminar el rol.
+     */
+    public function canBeDeleted() : bool
+    {
+        return ! $this->isInUse();
+    }
+
+    /**
+     * Desactivar el rol.
+     */
+    public function deactivate() : bool
+    {
+        return $this->update(['status' => false]);
+    }
+
+    /**
+     * Obtener el prefijo formateado.
+     */
+    public function getFormattedPrefix() : string
+    {
+        return $this->prefix ? "[{$this->prefix}]" : '';
+    }
+
+    /**
+     * Accessor para obtener información completa del rol.
+     */
+    public function getFullInfoAttribute() : string
+    {
+        $status = $this->getStatusLabel();
+        $userCount = $this->getUsersCount();
+        $fullName = $this->getFullName();
+
+        return sprintf(
+            '%s (%s) - %d usuario(s)',
+            $fullName,
+            $status,
+            $userCount,
+        );
+    }
+
+    /**
+     * Obtener el nombre completo del rol (con prefijo si existe).
+     */
+    public function getFullName() : string
+    {
+        $prefix = $this->getFormattedPrefix();
+
+        return $prefix ? "{$prefix} {$this->name}" : $this->name;
+    }
+
+    /**
+     * Obtener el nombre normalizado del rol.
+     */
+    public function getNormalizedName() : string
+    {
+        return Str::title(trim($this->name));
+    }
+
+    /**
+     * Obtener información del estado del rol.
+     */
+    public function getStatusLabel() : string
+    {
+        return $this->isActive() ? 'Activo' : 'Inactivo';
+    }
+
+    /**
+     * Accessor para obtener información resumida.
+     */
+    public function getSummaryAttribute() : string
+    {
+        return sprintf(
+            '%s [%s]',
+            $this->getFullName(),
+            $this->isActive() ? 'ACTIVO' : 'INACTIVO',
+        );
+    }
+
+    /**
+     * Obtener el número de usuarios que tienen este rol.
+     */
+    public function getUsersCount() : int
+    {
+        return $this->users()->count();
+    }
+
+    /**
+     * Verificar si el rol tiene descripción.
+     */
+    public function hasDescription() : bool
+    {
+        return ! empty($this->description);
+    }
+
+    public function hasPermissionTo($permission, ?string $guardName = null) : bool
     {
         if (is_string($permission)) {
             $permission = app(PermissionContract::class)->findByName($permission, $guardName ?? $this->attributes['guard_name'] ?? Guard::getDefaultName(static::class));
@@ -156,25 +282,59 @@ class Role extends Model implements RoleContract
         return $this->permissions->contains($permission->getKeyName(), $permission->getKey());
     }
 
-    // =========================================================================
-    // Relaciones con usuarios
-    // =========================================================================
+    /**
+     * Verificar si el rol tiene un prefijo específico.
+     *
+     * @param string $prefix Prefijo a verificar
+     */
+    public function hasPrefix(string $prefix) : bool
+    {
+        return $this->prefix === strtoupper($prefix);
+    }
 
     /**
-     * Relación con los usuarios que tienen este rol.
-     *
-     * @return BelongsToMany
+     * Verificar si el rol está activo.
      */
-    public function users(): BelongsToMany
+    public function isActive() : bool
     {
-        return $this->belongsToMany(User::class, 'role_user')
-            ->withTimestamps();
+        return $this->status === true;
+    }
+
+    /**
+     * Verificar si el rol está inactivo.
+     */
+    public function isInactive() : bool
+    {
+        return $this->status === false;
+    }
+
+    /**
+     * Verificar si el rol está siendo utilizado por algún usuario.
+     */
+    public function isInUse() : bool
+    {
+        return $this->users()->exists();
+    }
+
+    // =========================================================================
+    // Implementación del contrato Spatie\Permission\Contracts\Role
+    // =========================================================================
+
+    public function permissions() : BelongsToMany
+    {
+        return $this->belongsToMany(
+            config('permission.models.permission', Permission::class),
+            config('permission.table_names.role_has_permissions'),
+            'role_id',
+            'permission_id',
+        );
     }
 
     /**
      * Scope para obtener roles activos.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActive($query)
@@ -183,33 +343,10 @@ class Role extends Model implements RoleContract
     }
 
     /**
-     * Scope para obtener roles inactivos.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeInactive($query)
-    {
-        return $query->where('status', false);
-    }
-
-    /**
-     * Scope para filtrar por estado.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param bool $status
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByStatus($query, bool $status)
-    {
-        return $query->where('status', $status);
-    }
-
-    /**
      * Scope para buscar por nombre.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $name
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeByName($query, string $name)
@@ -221,7 +358,7 @@ class Role extends Model implements RoleContract
      * Scope para filtrar por prefijo.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $prefix
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeByPrefix($query, string $prefix)
@@ -230,10 +367,35 @@ class Role extends Model implements RoleContract
     }
 
     /**
+     * Scope para filtrar por estado.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByStatus($query, bool $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope para obtener roles inactivos.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', false);
+    }
+
+    /**
      * Scope para ordenar por nombre.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $direction Dirección del ordenamiento (asc|desc)
+     * @param string                                $direction Dirección del ordenamiento (asc|desc)
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOrderByName($query, string $direction = 'asc')
@@ -242,243 +404,39 @@ class Role extends Model implements RoleContract
     }
 
     /**
-     * Verificar si el rol está activo.
-     *
-     * @return bool
+     * Mutator para limpiar la descripción antes de guardar.
      */
-    public function isActive(): bool
+    public function setDescriptionAttribute(?string $value) : void
     {
-        return $this->status === true;
-    }
-
-    /**
-     * Verificar si el rol está inactivo.
-     *
-     * @return bool
-     */
-    public function isInactive(): bool
-    {
-        return $this->status === false;
-    }
-
-    /**
-     * Activar el rol.
-     *
-     * @return bool
-     */
-    public function activate(): bool
-    {
-        return $this->update(['status' => true]);
-    }
-
-    /**
-     * Desactivar el rol.
-     *
-     * @return bool
-     */
-    public function deactivate(): bool
-    {
-        return $this->update(['status' => false]);
-    }
-
-    /**
-     * Obtener el nombre normalizado del rol.
-     *
-     * @return string
-     */
-    public function getNormalizedName(): string
-    {
-        return Str::title(trim($this->name));
-    }
-
-    /**
-     * Obtener información del estado del rol.
-     *
-     * @return string
-     */
-    public function getStatusLabel(): string
-    {
-        return $this->isActive() ? 'Activo' : 'Inactivo';
-    }
-
-    /**
-     * Verificar si el rol está siendo utilizado por algún usuario.
-     *
-     * @return bool
-     */
-    public function isInUse(): bool
-    {
-        return $this->users()->exists();
-    }
-
-    /**
-     * Obtener el número de usuarios que tienen este rol.
-     *
-     * @return int
-     */
-    public function getUsersCount(): int
-    {
-        return $this->users()->count();
-    }
-
-    /**
-     * Verificar si el rol tiene un prefijo específico.
-     *
-     * @param string $prefix Prefijo a verificar
-     * @return bool
-     */
-    public function hasPrefix(string $prefix): bool
-    {
-        return $this->prefix === strtoupper($prefix);
-    }
-
-    /**
-     * Verificar si el rol tiene descripción.
-     *
-     * @return bool
-     */
-    public function hasDescription(): bool
-    {
-        return !empty($this->description);
-    }
-
-    /**
-     * Obtener el prefijo formateado.
-     *
-     * @return string
-     */
-    public function getFormattedPrefix(): string
-    {
-        return $this->prefix ? "[{$this->prefix}]" : '';
-    }
-
-    /**
-     * Obtener el nombre completo del rol (con prefijo si existe).
-     *
-     * @return string
-     */
-    public function getFullName(): string
-    {
-        $prefix = $this->getFormattedPrefix();
-        return $prefix ? "{$prefix} {$this->name}" : $this->name;
-    }
-
-    /**
-     * Verificar si el nombre del rol es válido.
-     *
-     * @param string $name Nombre a validar
-     * @return bool
-     */
-    public static function isValidName(string $name): bool
-    {
-        $trimmed = trim($name);
-
-        // Verificar longitud
-        if (strlen($trimmed) < 2 || strlen($trimmed) > 50) {
-            return false;
-        }
-
-        // Verificar caracteres válidos
-        if (!preg_match('/^[\p{L}\p{N}\s\-_]+$/u', $trimmed)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Normalizar un nombre de rol.
-     *
-     * El nombre técnico del rol (name) se guarda en minúsculas: es la clave
-     * que usan Spatie Permission, los seeders, el middleware `role:` y
-     * SidebarMenuService::exclude_roles para comparar. El label legible para
-     * el usuario se resuelve aparte (ver getUserRoleDisplay() y
-     * formatRoleName() en el frontend), nunca a partir de este campo.
-     *
-     * @param string $name Nombre a normalizar
-     * @return string Nombre normalizado
-     */
-    public static function normalizeName(string $name): string
-    {
-        $normalized = trim($name);
-        $normalized = preg_replace('/\s+/', ' ', $normalized);
-
-        return Str::lower($normalized);
+        $this->attributes['description'] = $value ? trim($value) : null;
     }
 
     /**
      * Mutator para normalizar el nombre antes de guardar.
-     *
-     * @param string $value
-     * @return void
      */
-    public function setNameAttribute(string $value): void
+    public function setNameAttribute(string $value) : void
     {
         $this->attributes['name'] = self::normalizeName($value);
     }
 
     /**
      * Mutator para normalizar el prefijo antes de guardar.
-     *
-     * @param string|null $value
-     * @return void
      */
-    public function setPrefixAttribute(?string $value): void
+    public function setPrefixAttribute(?string $value) : void
     {
         $this->attributes['prefix'] = $value ? strtoupper(trim($value)) : null;
     }
 
-    /**
-     * Mutator para limpiar la descripción antes de guardar.
-     *
-     * @param string|null $value
-     * @return void
-     */
-    public function setDescriptionAttribute(?string $value): void
-    {
-        $this->attributes['description'] = $value ? trim($value) : null;
-    }
+    // =========================================================================
+    // Relaciones con usuarios
+    // =========================================================================
 
     /**
-     * Accessor para obtener información completa del rol.
-     *
-     * @return string
+     * Relación con los usuarios que tienen este rol.
      */
-    public function getFullInfoAttribute(): string
+    public function users() : BelongsToMany
     {
-        $status = $this->getStatusLabel();
-        $userCount = $this->getUsersCount();
-        $fullName = $this->getFullName();
-
-        return sprintf(
-            '%s (%s) - %d usuario(s)',
-            $fullName,
-            $status,
-            $userCount
-        );
-    }
-
-    /**
-     * Accessor para obtener información resumida.
-     *
-     * @return string
-     */
-    public function getSummaryAttribute(): string
-    {
-        return sprintf(
-            '%s [%s]',
-            $this->getFullName(),
-            $this->isActive() ? 'ACTIVO' : 'INACTIVO'
-        );
-    }
-
-    /**
-     * Determinar si se puede eliminar el rol.
-     *
-     * @return bool
-     */
-    public function canBeDeleted(): bool
-    {
-        return !$this->isInUse();
+        return $this->belongsToMany(User::class, 'role_user')
+            ->withTimestamps();
     }
 }

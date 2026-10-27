@@ -10,14 +10,16 @@ namespace App\DTOs\Content;
  */
 final class LandingSectionDTO
 {
-    public function __construct(public readonly array $content) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         return new self(content: $data['content']);
     }
 
-    public function toArray(): array
+    public function __construct(public readonly array $content)
+    {
+    }
+
+    public function toArray() : array
     {
         return ['content' => $this->content];
     }

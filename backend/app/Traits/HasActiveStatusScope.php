@@ -8,18 +8,18 @@ namespace App\Traits;
  */
 trait HasActiveStatusScope
 {
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'ACTIVE');
-    }
-
-    public function isActive(): bool
+    public function isActive() : bool
     {
         return $this->status === 'ACTIVE';
     }
 
-    public function isInactive(): bool
+    public function isInactive() : bool
     {
         return $this->status === 'INACTIVE';
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'ACTIVE');
     }
 }

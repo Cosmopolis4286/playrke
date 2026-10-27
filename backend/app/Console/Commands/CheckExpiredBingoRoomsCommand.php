@@ -2,18 +2,17 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Commands\CommandService;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
+use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;
 
 class CheckExpiredBingoRoomsCommand extends Command
 {
+    protected $description = 'Marca salas de bingo expiradas como INACTIVE (sin jugadores) o IN_PROGRESS (con jugadores)';
     protected $signature = 'check:expired-bingo-rooms';
 
-    protected $description = 'Marca salas de bingo expiradas como INACTIVE (sin jugadores) o IN_PROGRESS (con jugadores)';
-
-    public function handle(): void
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -26,7 +25,7 @@ class CheckExpiredBingoRoomsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

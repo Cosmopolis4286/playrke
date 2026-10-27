@@ -22,26 +22,27 @@ class TriviaEntryPurchased implements ShouldBroadcastNow
     public function __construct(
         public readonly string $roomId,
         public readonly string $roomName,
-        public readonly float  $amount,
+        public readonly float $amount,
         public readonly string $currencySymbol,
-    ) {}
-
-    public function broadcastOn(): PrivateChannel
-    {
-        return new PrivateChannel('admins.activity');
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'trivia.entry';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : PrivateChannel
+    {
+        return new PrivateChannel('admins.activity');
+    }
+
+    public function broadcastWith() : array
     {
         return [
-            'room_id'         => $this->roomId,
-            'room_name'       => $this->roomName,
-            'amount'          => $this->amount,
+            'room_id' => $this->roomId,
+            'room_name' => $this->roomName,
+            'amount' => $this->amount,
             'currency_symbol' => $this->currencySymbol,
         ];
     }

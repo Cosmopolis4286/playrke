@@ -2,31 +2,28 @@
 
 namespace App\Models;
 
+use App\Domains\Wallet\Models\Wallet;
+use App\Domains\Wallet\Models\WalletMovement;
 use App\Models\Concerns\HasHashedRouteKey;
-use App\Models\Country;
-use App\Models\Roles\Company;
-use App\Models\Role;
 use App\Models\Roles\Commerce;
+use App\Models\Roles\Company;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
 use App\Models\Roles\Treasurer;
-use App\Models\UserLevel;
-use App\Domains\Wallet\Models\Wallet;
-use App\Domains\Wallet\Models\WalletMovement;
-use App\Models\Achievement;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
+use BackedEnum;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * Modelo User con Snowflake IDs
@@ -36,43 +33,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable;
-    use HasRoles {
-        HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
-    }
-    use SnowflakeId;
-    use SoftDeletes;
     use Auditable;
     use HasFactory;
     use HasHashedRouteKey;
-
-    /**
-     * Nombre de la tabla en la base de datos
-     */
-    protected $table = 'users';
-
-    /**
-     * Clave primaria del modelo
-     */
-    protected $primaryKey = 'id';
-
-    /**
-     * Indica si el ID es auto-incremental
-     */
-    public $incrementing = false;
-
-    /**
-     * Tipo de la clave primaria
-     */
-    protected $keyType = 'string';
-
-    /**
-     * Memoización por instancia de activeSpecificPermissionNames() — ver ese
-     * método. null = aún no calculado, [] = calculado y sin permisos activos.
-     *
-     * @var array<int, string>|null
-     */
-    private ?array $specificPermissionNamesCache = null;
+    use HasRoles {
+        HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
+    }
+    use Notifiable;
+    use SnowflakeId;
+    use SoftDeletes;
 
     /**
      * Estados disponibles para usuarios
@@ -83,6 +52,65 @@ class User extends Authenticatable implements MustVerifyEmail
         'DELETED' => 'Eliminado',
         'SUSPENDED' => 'Suspendido',
         'PENDING_VERIFICATION' => 'Pendiente de verificación',
+    ];
+
+    /**
+     * Indica si el ID es auto-incremental
+     */
+    public $incrementing = false;
+
+    /**
+     * Campos adicionales que se incluyen en las respuestas JSON
+     */
+    protected $appends = [
+        'full_name',
+    ];
+
+    /**
+     * Eventos que disparan una alerta (Log::critical(), visible en /logs) al
+     * ocurrir — borrar una cuenta de usuario es el único caso universalmente
+     * sensible; otros eventos (ej. cambio de rol) requieren definir la regla
+     * de negocio exacta antes de alertar, no se asume aquí.
+     */
+    protected array $auditAlertEvents = [
+        'deleted',
+        'force_deleted',
+    ];
+
+    /**
+     * Campos excluidos del registro de auditoría (App\Traits\Auditable) —
+     * no deben quedar en texto plano en audits.old_values/new_values.
+     */
+    protected array $auditHidden = [
+        'password',
+        'demo_password',
+        'withdrawal_pin_hash',
+        'remember_token',
+    ];
+
+    /**
+     * Campos que deben ser convertidos a tipos específicos
+     */
+    protected $casts = [
+        'country_id' => 'string',
+        'time_zone_id' => 'string',
+        'birth_date' => 'date',
+        'is_demo_user' => 'boolean',
+        'is_system_account' => 'boolean',
+        'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
+        'login_streak_days' => 'integer',
+        'best_login_streak_days' => 'integer',
+        'is_email_notifications_enabled' => 'boolean',
+        'is_two_factor_enabled' => 'boolean',
+        'user_preferences' => 'array',
+        'specific_permissions' => 'array',
+        'tos_accepted_at' => 'datetime',
+        'kyc_level' => 'integer',
+        'kyc_verified_at' => 'datetime',
+        'withdrawal_pin_set_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -138,144 +166,58 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Campos excluidos del registro de auditoría (App\Traits\Auditable) —
-     * no deben quedar en texto plano en audits.old_values/new_values.
+     * Tipo de la clave primaria
      */
-    protected array $auditHidden = [
-        'password',
-        'demo_password',
-        'withdrawal_pin_hash',
-        'remember_token',
-    ];
+    protected $keyType = 'string';
 
     /**
-     * Eventos que disparan una alerta (Log::critical(), visible en /logs) al
-     * ocurrir — borrar una cuenta de usuario es el único caso universalmente
-     * sensible; otros eventos (ej. cambio de rol) requieren definir la regla
-     * de negocio exacta antes de alertar, no se asume aquí.
+     * Clave primaria del modelo
      */
-    protected array $auditAlertEvents = [
-        'deleted',
-        'force_deleted',
-    ];
+    protected $primaryKey = 'id';
 
     /**
-     * Campos que deben ser convertidos a tipos específicos
+     * Nombre de la tabla en la base de datos
      */
-    protected $casts = [
-        'country_id' => 'string',
-        'time_zone_id' => 'string',
-        'birth_date' => 'date',
-        'is_demo_user'       => 'boolean',
-        'is_system_account'  => 'boolean',
-        'email_verified_at'  => 'datetime',
-        'last_login_at' => 'datetime',
-        'login_streak_days'      => 'integer',
-        'best_login_streak_days' => 'integer',
-        'is_email_notifications_enabled' => 'boolean',
-        'is_two_factor_enabled' => 'boolean',
-        'user_preferences'      => 'array',
-        'specific_permissions'  => 'array',
-        'tos_accepted_at'       => 'datetime',
-        'kyc_level'             => 'integer',
-        'kyc_verified_at'       => 'datetime',
-        'withdrawal_pin_set_at' => 'datetime',
-        'created_at'            => 'datetime',
-        'updated_at'            => 'datetime',
-    ];
+    protected $table = 'users';
 
     /**
-     * Campos adicionales que se incluyen en las respuestas JSON
-     */
-    protected $appends = [
-        'full_name',
-    ];
-
-    /**
-     * Roles del usuario.
+     * Memoización por instancia de activeSpecificPermissionNames() — ver ese
+     * método. null = aún no calculado, [] = calculado y sin permisos activos.
      *
-     * Usa App\Models\Role (no Spatie\Permission\Models\Role): mismo registro,
-     * pero App\Models\Role tiene el cast id => string via SnowflakeId. Usar el
-     * modelo de Spatie aquí hidrataba el id con el cast por defecto de Eloquent
-     * (int), truncando/perdiendo precisión del Snowflake y rompiendo cualquier
-     * comparación estricta de id contra roles cargados por otra relación
-     * (ej. Permission::roles(), que sí usa App\Models\Role).
-     *
-     * @return BelongsToMany<Role>
+     * @var array<int, string>|null
      */
-    public function roles(): BelongsToMany
+    private ?array $specificPermissionNamesCache = null;
+
+    /**
+     * Logros del usuario
+     *
+     * @return BelongsToMany<Achievement>
+     */
+    public function achievements() : BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
+        return $this->belongsToMany(Achievement::class, 'user_achievements')
+            ->withPivot(['unlocked_at', 'progress_data', 'is_seen'])
+            ->withTimestamps();
     }
 
     /**
-     * Usuario que refirió a este usuario
-     *
-     * @return BelongsTo<User, User>
+     * Añade experiencia al usuario
      */
-    public function referredBy(): BelongsTo
+    public function addXp(int $amount) : bool
     {
-        return $this->belongsTo(self::class, 'referred_by_user_id');
+        return $this->getOrCreateLevel()->addXp($amount);
     }
 
     /**
-     * Usuarios referidos por este usuario
-     *
-     * @return HasMany<User>
+     * Limpiar todos los permisos específicos del usuario
      */
-    public function referrals(): HasMany
+    public function clearSpecificPermissions() : void
     {
-        return $this->hasMany(self::class, 'referred_by_user_id');
-    }
+        $this->specificPermissionGrants()
+            ->active()
+            ->update(['revoked_at' => now(), 'revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_MANUAL]);
 
-    /**
-     * País al que pertenece el usuario
-     *
-     * @return BelongsTo<Country, self>
-     */
-    public function country(): BelongsTo
-    {
-        return $this->belongsTo(Country::class, 'country_id');
-    }
-
-    /**
-     * Zona horaria del usuario
-     *
-     * @return BelongsTo<\App\Models\TimeZone, self>
-     */
-    public function timeZone(): BelongsTo
-    {
-        return $this->belongsTo(\App\Models\TimeZone::class, 'time_zone_id');
-    }
-
-    /**
-     * Wallets del usuario
-     *
-     * @return HasMany<Wallet>
-     */
-    public function wallets(): HasMany
-    {
-        return $this->hasMany(Wallet::class, 'user_id');
-    }
-
-    /**
-     * Movimientos de billetera del usuario (depósitos, retiros, premios, etc.)
-     *
-     * @return HasMany<WalletMovement>
-     */
-    public function walletMovements(): HasMany
-    {
-        return $this->hasMany(WalletMovement::class, 'user_id');
-    }
-
-    /**
-     * Nivel y experiencia del usuario
-     *
-     * @return HasOne<UserLevel>
-     */
-    public function userLevel(): HasOne
-    {
-        return $this->hasOne(UserLevel::class);
+        $this->specificPermissionNamesCache = null;
     }
 
     /**
@@ -283,49 +225,9 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @return HasOne<Commerce>
      */
-    public function commerce(): HasOne
+    public function commerce() : HasOne
     {
         return $this->hasOne(Commerce::class, 'user_id');
-    }
-
-    /**
-     * Vendedor asociado (si rol seller)
-     *
-     * @return HasOne<Seller>
-     */
-    public function seller(): HasOne
-    {
-        return $this->hasOne(Seller::class, 'user_id');
-    }
-
-    /**
-     * Customer asociado (si rol customer)
-     *
-     * @return HasOne<Customer>
-     */
-    public function customer(): HasOne
-    {
-        return $this->hasOne(Customer::class, 'user_id');
-    }
-
-    /**
-     * Tesorero asociado (si rol treasurer)
-     *
-     * @return HasOne<Treasurer>
-     */
-    public function treasurer(): HasOne
-    {
-        return $this->hasOne(Treasurer::class, 'user_id');
-    }
-
-    /**
-     * Sucursal asociada (si rol subsidiary)
-     *
-     * @return HasOne<Subsidiary>
-     */
-    public function subsidiary(): HasOne
-    {
-        return $this->hasOne(Subsidiary::class, 'user_id');
     }
 
     /**
@@ -333,7 +235,7 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @return BelongsToMany<Company>
      */
-    public function companies(): BelongsToMany
+    public function companies() : BelongsToMany
     {
         return $this->belongsToMany(Company::class)
             ->withPivot('role_id')
@@ -341,114 +243,29 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Obtiene la descripción del estado
+     * País al que pertenece el usuario
      *
-     * @return string
+     * @return BelongsTo<Country, self>
      */
-    public function getStatusDescriptionAttribute(): string
+    public function country() : BelongsTo
     {
-        return self::STATUSES[$this->status] ?? $this->status ?? 'Sin estado';
+        return $this->belongsTo(Country::class, 'country_id');
     }
 
     /**
-     * Nombre completo del usuario
+     * Customer asociado (si rol customer)
      *
-     * @return string
+     * @return HasOne<Customer>
      */
-    public function getFullNameAttribute(): string
+    public function customer() : HasOne
     {
-        return trim("{$this->first_name} {$this->last_name}");
-    }
-
-    /**
-     * Verifica si el usuario está activo
-     *
-     * @return bool
-     */
-    public function isActive(): bool
-    {
-        return $this->status === 'ACTIVE';
-    }
-
-    /**
-     * Verifica si el usuario está inactivo
-     *
-     * @return bool
-     */
-    public function isInactive(): bool
-    {
-        return $this->status === 'INACTIVE';
-    }
-
-    /**
-     * Verifica si el usuario está suspendido
-     *
-     * @return bool
-     */
-    public function isSuspended(): bool
-    {
-        return $this->status === 'SUSPENDED';
-    }
-
-    /**
-     * Verifica si el usuario está pendiente de verificación
-     *
-     * @return bool
-     */
-    public function isPendingVerification(): bool
-    {
-        return $this->status === 'PENDING_VERIFICATION';
-    }
-
-    /**
-     * Verifica si el email del usuario está verificado
-     *
-     * @return bool
-     */
-    public function hasVerifiedEmail(): bool
-    {
-        return !is_null($this->email_verified_at);
-    }
-
-    /**
-     * Verifica si el usuario tiene autenticación de dos factores habilitada
-     *
-     * @return bool
-     */
-    public function hasTwoFactorEnabled(): bool
-    {
-        return $this->is_two_factor_enabled;
-    }
-
-    /**
-     * Verifica si el usuario ya fijó un PIN de retiro. Comparar contra
-     * withdrawal_pin_set_at (no solo withdrawal_pin_hash !== null) es
-     * intencional: withdrawal_pin_set_at nunca se limpia salvo que se borre
-     * el PIN explícitamente, así que sirve de doble confirmación aunque el
-     * hash quedara vacío por un fallo parcial de escritura.
-     */
-    public function hasWithdrawalPin(): bool
-    {
-        return ! is_null($this->withdrawal_pin_hash) && ! is_null($this->withdrawal_pin_set_at);
-    }
-
-    /**
-     * Obtiene el wallet de una moneda específica
-     *
-     * @param string $currencyCode Código ISO de la moneda
-     * @return Wallet|null
-     */
-    public function walletByCurrency(string $currencyCode): ?Wallet
-    {
-        return $this->wallets()->whereHas('currency', fn($q) => $q->where('iso_code', $currencyCode))->first();
+        return $this->hasOne(Customer::class, 'user_id');
     }
 
     /**
      * Devuelve un array de entidades asociadas según los roles del usuario
-     *
-     * @return array
      */
-    public function entities(): array
+    public function entities() : array
     {
         $entities = [];
 
@@ -464,14 +281,177 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Verifica si el usuario tiene un rol específico por prefijo
+     * Historial de participaciones en partidas (bingo/trivia), fuente de
+     * "partidas jugadas" y "partidas ganadas" para logros y estadísticas.
      *
-     * @param string $prefix Prefijo del rol
-     * @return bool
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<GameParticipation>
      */
-    public function hasRolePrefix(string $prefix): bool
+    public function gameParticipations() : \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->roles->contains('prefix', $prefix);
+        return $this->hasMany(GameParticipation::class);
+    }
+
+    /**
+     * Obtiene el número total de logros desbloqueados
+     */
+    public function getAchievementsCount() : int
+    {
+        return $this->achievements()->count();
+    }
+
+    /**
+     * Obtener todos los permisos del usuario como array de nombres: heredados
+     * por rol (Spatie, vía roles()/role_has_permissions) + específicos del
+     * usuario (grants activos y no expirados). Fuente única para menús/gates
+     * que necesiten la lista completa en vez de verificar un permiso puntual.
+     *
+     * @return array<int, string>
+     */
+    public function getAllPermissionNames() : array
+    {
+        $viaRoles = $this->getAllPermissions()->pluck('name')->all();
+
+        return array_values(array_unique(array_merge($viaRoles, $this->activeSpecificPermissionNames())));
+    }
+
+    /**
+     * Obtiene el nivel actual del usuario
+     */
+    public function getCurrentLevel() : int
+    {
+        return $this->userLevel?->current_level ?? 1;
+    }
+
+    /**
+     * Obtiene el XP actual del usuario
+     */
+    public function getCurrentXp() : int
+    {
+        return $this->userLevel?->current_xp ?? 0;
+    }
+
+    /**
+     * Nombre completo del usuario
+     */
+    public function getFullNameAttribute() : string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /** Total de partidas jugadas (todas las fuentes de juego), desde game_participations. */
+    public function getGamesPlayedCountAttribute() : int
+    {
+        return $this->gameParticipations()->count();
+    }
+
+    /** Total de partidas ganadas, desde game_participations. */
+    public function getGamesWonCountAttribute() : int
+    {
+        return $this->gameParticipations()->where('won', true)->count();
+    }
+
+    /**
+     * Obtiene el progreso del nivel en porcentaje
+     */
+    public function getLevelProgress() : float
+    {
+        return $this->userLevel?->progress_percentage ?? 0.0;
+    }
+
+    /**
+     * Obtiene o crea el nivel del usuario
+     */
+    public function getOrCreateLevel() : UserLevel
+    {
+        return $this->userLevel ?? $this->userLevel()->create([
+            'current_level' => 1,
+            'current_xp' => 0,
+            'total_xp' => 0,
+            'xp_to_next_level' => 1000,
+        ]);
+    }
+
+    /**
+     * Obtiene la descripción del estado
+     */
+    public function getStatusDescriptionAttribute() : string
+    {
+        return self::STATUSES[$this->status] ?? $this->status ?? 'Sin estado';
+    }
+
+    /**
+     * Total acumulado en premios ganados (bingo/trivia), calculado desde los
+     * movimientos de billetera reales en vez de una columna duplicada.
+     */
+    public function getTotalWinningsAttribute() : float
+    {
+        return (float) $this->walletMovements()
+            ->whereIn('type', [WalletMovement::TYPE_PRIZE, WalletMovement::TYPE_BONUS_PRIZE])
+            ->where('status', WalletMovement::STATUS_COMPLETED)
+            ->sum('amount');
+    }
+
+    /**
+     * Obtiene los logros no vistos
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getUnseenAchievements()
+    {
+        return $this->achievements()->wherePivot('is_seen', false)->get();
+    }
+
+    /**
+     * Agregar uno o más permisos específicos al usuario, sin expiración ni
+     * motivo — usar UserPermissionService::syncSpecificPermissions() desde
+     * el flujo de superadmin, que sí soporta expires_at/reason/granted_by.
+     * No hace nada si el usuario ya tiene un grant activo para ese permiso
+     * (evita violar el índice único user_id+permission_name+revoked_at).
+     *
+     * @param string|array<int, string> $permissions
+     */
+    public function giveSpecificPermission($permissions) : void
+    {
+        $names = array_unique(is_array($permissions) ? $permissions : [$permissions]);
+        $existing = $this->specificPermissionGrants()->active()->whereIn('permission_name', $names)->pluck('permission_name')->all();
+
+        foreach (array_diff($names, $existing) as $name) {
+            $this->specificPermissionGrants()->create(['permission_name' => $name]);
+        }
+
+        $this->specificPermissionNamesCache = null;
+    }
+
+    /**
+     * Verifica si el usuario ha desbloqueado un logro específico
+     */
+    public function hasAchievement(string $achievementCode) : bool
+    {
+        return $this->achievements()->where('code', $achievementCode)->exists();
+    }
+
+    /**
+     * Determina si el usuario puede ejercer el permiso indicado, considerando
+     * tanto los permisos heredados por rol (Spatie\Permission\Traits\HasPermissions,
+     * ya operativo gracias al fix de roles()/hasRole() de más arriba) como los
+     * permisos específicos otorgados directamente al usuario (specific_permissions,
+     * usado por ej. para activar juegos concretos en un Commerce/Seller/Customer).
+     *
+     * Sobrescribe hasPermissionTo() del trait HasPermissions (Spatie) — de él
+     * dependen hasAnyPermission(), hasAllPermissions(), checkPermissionTo() y,
+     * por extensión, el helper can()/Gate::allows() de Laravel. Sobrescribir
+     * aquí en el nivel más bajo evita reimplementar cada método por separado.
+     *
+     * @param string|int|\Spatie\Permission\Contracts\Permission|BackedEnum $permission
+     * @param string|null                                                   $guardName
+     */
+    public function hasPermissionTo($permission, $guardName = null) : bool
+    {
+        if (is_string($permission) && $this->hasSpecificPermission($permission)) {
+            return true;
+        }
+
+        return $this->spatieHasPermissionTo($permission, $guardName);
     }
 
     /**
@@ -495,12 +475,11 @@ class User extends Authenticatable implements MustVerifyEmail
      * pasar por este método o por App\Services\Auth\RoleAuthorizationService,
      * nunca reimplementar la comparación de prefijos por su cuenta.
      *
-     * @param string|array|\App\Models\Role|iterable $role Rol o roles a buscar.
-     * @param string|null $guard Ignorado — este sistema no distingue roles por guard.
-     *   Aceptado solo por compatibilidad de firma con Spatie\Permission\Traits\HasRoles::hasRole().
-     * @return bool
+     * @param string|array|\App\Models\Role|iterable $role  rol o roles a buscar
+     * @param string|null                            $guard Ignorado — este sistema no distingue roles por guard.
+     *                                                      Aceptado solo por compatibilidad de firma con Spatie\Permission\Traits\HasRoles::hasRole().
      */
-    public function hasRole($role, ?string $guard = null): bool
+    public function hasRole($role, ?string $guard = null) : bool
     {
         // Instancia única de Role: comparar directo por id.
         if ($role instanceof Role) {
@@ -512,10 +491,11 @@ class User extends Authenticatable implements MustVerifyEmail
         // (HasPermissions::hasPermissionViaRole() llama $this->hasRole($permission->roles)).
         // is_array() también es is_iterable(), así que este chequeo debe filtrar
         // por el tipo de los elementos: solo objetos Role, nunca strings.
-        if (is_iterable($role) && !is_string($role)) {
+        if (is_iterable($role) && ! is_string($role)) {
             $items = collect($role);
             if ($items->isNotEmpty() && $items->every(fn ($r) => $r instanceof Role)) {
                 $roleIds = $items->pluck('id')->all();
+
                 return $this->roles->contains(fn ($r) => in_array($r->id, $roleIds, true));
             }
         }
@@ -528,7 +508,8 @@ class User extends Authenticatable implements MustVerifyEmail
         // Array de nombres/prefijos: ['admin', 'commerce']
         if (is_array($role)) {
             $roleLower = array_map('strtolower', $role);
-            return $this->roles->contains(function ($r) use ($roleLower) {
+
+            return $this->roles->contains(function($r) use ($roleLower) {
                 return in_array(strtolower($r->name), $roleLower, true)
                     || in_array(strtolower((string) $r->prefix), $roleLower, true);
             });
@@ -536,273 +517,101 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Caso string normal
         $roleLower = strtolower($role);
-        return $this->roles->contains(function ($r) use ($roleLower) {
+
+        return $this->roles->contains(function($r) use ($roleLower) {
             return strtolower($r->name) === $roleLower
                 || strtolower((string) $r->prefix) === $roleLower;
         });
     }
 
     /**
-     * Scope para obtener solo usuarios activos
+     * Verifica si el usuario tiene un rol específico por prefijo
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @param string $prefix Prefijo del rol
      */
-    public function scopeActive($query)
+    public function hasRolePrefix(string $prefix) : bool
     {
-        return $query->where('status', 'ACTIVE');
+        return $this->roles->contains('prefix', $prefix);
     }
 
     /**
-     * Scope para obtener solo usuarios inactivos
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verificar si el usuario tiene un permiso específico (grant activo y no
+     * expirado).
      */
-    public function scopeInactive($query)
+    public function hasSpecificPermission(string $permission) : bool
     {
-        return $query->where('status', 'INACTIVE');
+        return in_array($permission, $this->activeSpecificPermissionNames(), true);
+    }
+
+    public function hasTosAccepted() : bool
+    {
+        return $this->tos_accepted_version !== null;
     }
 
     /**
-     * Scope para obtener usuarios por estado
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $status
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el usuario tiene autenticación de dos factores habilitada
      */
-    public function scopeByStatus($query, string $status)
+    public function hasTwoFactorEnabled() : bool
     {
-        return $query->where('status', $status);
+        return $this->is_two_factor_enabled;
     }
 
     /**
-     * Scope para excluir cuentas internas del sistema (ej. playrke_platform)
-     * de listados administrativos y reportes.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el email del usuario está verificado
      */
-    public function scopeExcludeSystemAccounts($query)
+    public function hasVerifiedEmail() : bool
     {
-        return $query->where('is_system_account', false);
+        return ! is_null($this->email_verified_at);
     }
 
     /**
-     * Scope para obtener usuarios por país
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $countryId
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el usuario ya fijó un PIN de retiro. Comparar contra
+     * withdrawal_pin_set_at (no solo withdrawal_pin_hash !== null) es
+     * intencional: withdrawal_pin_set_at nunca se limpia salvo que se borre
+     * el PIN explícitamente, así que sirve de doble confirmación aunque el
+     * hash quedara vacío por un fallo parcial de escritura.
      */
-    public function scopeByCountry($query, string $countryId)
+    public function hasWithdrawalPin() : bool
     {
-        return $query->where('country_id', $countryId);
+        return ! is_null($this->withdrawal_pin_hash) && ! is_null($this->withdrawal_pin_set_at);
     }
 
     /**
-     * Scope para obtener usuarios con email verificado
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el usuario está activo
      */
-    public function scopeEmailVerified($query)
+    public function isActive() : bool
     {
-        return $query->whereNotNull('email_verified_at');
+        return $this->status === 'ACTIVE';
     }
 
     /**
-     * Scope para obtener usuarios con email no verificado
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el usuario está inactivo
      */
-    public function scopeEmailNotVerified($query)
+    public function isInactive() : bool
     {
-        return $query->whereNull('email_verified_at');
+        return $this->status === 'INACTIVE';
     }
 
     /**
-     * Scope para obtener usuarios con rol específico
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $roleName
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el usuario está pendiente de verificación
      */
-    public function scopeWithRole($query, string $roleName)
+    public function isPendingVerification() : bool
     {
-        return $query->whereHas('roles', function ($q) use ($roleName) {
-            $q->where('name', $roleName);
-        });
+        return $this->status === 'PENDING_VERIFICATION';
     }
 
     /**
-     * Scope para buscar usuarios por texto
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $search
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Verifica si el usuario está suspendido
      */
-    public function scopeSearch($query, string $search)
+    public function isSuspended() : bool
     {
-        return $query->where(function ($q) use ($search) {
-            $q->where('username', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('first_name', 'like', "%{$search}%")
-                ->orWhere('last_name', 'like', "%{$search}%");
-        });
-    }
-
-    /**
-     * Obtiene o crea el nivel del usuario
-     *
-     * @return UserLevel
-     */
-    public function getOrCreateLevel(): UserLevel
-    {
-        return $this->userLevel ?? $this->userLevel()->create([
-            'current_level' => 1,
-            'current_xp' => 0,
-            'total_xp' => 0,
-            'xp_to_next_level' => 1000,
-        ]);
-    }
-
-    /**
-     * Añade experiencia al usuario
-     *
-     * @param int $amount
-     * @return bool
-     */
-    public function addXp(int $amount): bool
-    {
-        return $this->getOrCreateLevel()->addXp($amount);
-    }
-
-    /**
-     * Obtiene el nivel actual del usuario
-     *
-     * @return int
-     */
-    public function getCurrentLevel(): int
-    {
-        return $this->userLevel?->current_level ?? 1;
-    }
-
-    /**
-     * Obtiene el XP actual del usuario
-     *
-     * @return int
-     */
-    public function getCurrentXp(): int
-    {
-        return $this->userLevel?->current_xp ?? 0;
-    }
-
-    /**
-     * Obtiene el progreso del nivel en porcentaje
-     *
-     * @return float
-     */
-    public function getLevelProgress(): float
-    {
-        return $this->userLevel?->progress_percentage ?? 0.0;
-    }
-
-    /**
-     * Historial de participaciones en partidas (bingo/trivia), fuente de
-     * "partidas jugadas" y "partidas ganadas" para logros y estadísticas.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<GameParticipation>
-     */
-    public function gameParticipations(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(GameParticipation::class);
-    }
-
-    /** Total de partidas jugadas (todas las fuentes de juego), desde game_participations. */
-    public function getGamesPlayedCountAttribute(): int
-    {
-        return $this->gameParticipations()->count();
-    }
-
-    /** Total de partidas ganadas, desde game_participations. */
-    public function getGamesWonCountAttribute(): int
-    {
-        return $this->gameParticipations()->where('won', true)->count();
-    }
-
-    /**
-     * Total acumulado en premios ganados (bingo/trivia), calculado desde los
-     * movimientos de billetera reales en vez de una columna duplicada.
-     */
-    public function getTotalWinningsAttribute(): float
-    {
-        return (float) $this->walletMovements()
-            ->whereIn('type', [WalletMovement::TYPE_PRIZE, WalletMovement::TYPE_BONUS_PRIZE])
-            ->where('status', WalletMovement::STATUS_COMPLETED)
-            ->sum('amount');
-    }
-
-    /**
-     * Logros del usuario
-     *
-     * @return BelongsToMany<Achievement>
-     */
-    public function achievements(): BelongsToMany
-    {
-        return $this->belongsToMany(Achievement::class, 'user_achievements')
-            ->withPivot(['unlocked_at', 'progress_data', 'is_seen'])
-            ->withTimestamps();
-    }
-
-    /**
-     * Logros desbloqueados del usuario
-     *
-     * @return BelongsToMany<Achievement>
-     */
-    public function unlockedAchievements(): BelongsToMany
-    {
-        return $this->achievements();
-    }
-
-    /**
-     * Verifica si el usuario ha desbloqueado un logro específico
-     *
-     * @param string $achievementCode
-     * @return bool
-     */
-    public function hasAchievement(string $achievementCode): bool
-    {
-        return $this->achievements()->where('code', $achievementCode)->exists();
-    }
-
-    /**
-     * Obtiene el número total de logros desbloqueados
-     *
-     * @return int
-     */
-    public function getAchievementsCount(): int
-    {
-        return $this->achievements()->count();
-    }
-
-    /**
-     * Obtiene los logros no vistos
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getUnseenAchievements()
-    {
-        return $this->achievements()->wherePivot('is_seen', false)->get();
+        return $this->status === 'SUSPENDED';
     }
 
     /**
      * Marcar todos los logros como vistos
-     *
-     * @return int
      */
-    public function markAllAchievementsAsSeen(): int
+    public function markAllAchievementsAsSeen() : int
     {
         return $this->achievements()->newPivotStatement()
             ->where('user_id', $this->id)
@@ -811,111 +620,23 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Nombres de permiso con grant activo (revoked_at null y no expirado),
-     * memoizados en la instancia — hasPermissionTo() puede llamarse decenas
-     * de veces en el mismo request (cada can()/@can), así que esto evita una
-     * query por chequeo. No se cachea entre requests (a diferencia de
-     * MovementType::catalog()) porque otorgar/revocar debe reflejarse de
-     * inmediato sin depender de invalidar una cache key por usuario.
+     * Usuarios referidos por este usuario
      *
-     * @return array<int, string>
+     * @return HasMany<User>
      */
-    private function activeSpecificPermissionNames(): array
+    public function referrals() : HasMany
     {
-        if ($this->specificPermissionNamesCache === null) {
-            $this->specificPermissionNamesCache = $this->specificPermissionGrants()
-                ->active()
-                ->where(function ($q) {
-                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-                })
-                ->pluck('permission_name')
-                ->all();
-        }
-
-        return $this->specificPermissionNamesCache;
+        return $this->hasMany(self::class, 'referred_by_user_id');
     }
 
     /**
-     * Grants de permisos específicos del usuario (histórico completo,
-     * incluye revocados/expirados) — usar activeSpecificPermissionNames()
-     * para el chequeo de autorización, esta relación es para el modal de
-     * gestión y la auditoría.
-     */
-    public function specificPermissionGrants(): HasMany
-    {
-        return $this->hasMany(UserSpecificPermissionGrant::class, 'user_id');
-    }
-
-    /**
-     * Obtener todos los permisos del usuario como array de nombres: heredados
-     * por rol (Spatie, vía roles()/role_has_permissions) + específicos del
-     * usuario (grants activos y no expirados). Fuente única para menús/gates
-     * que necesiten la lista completa en vez de verificar un permiso puntual.
+     * Usuario que refirió a este usuario
      *
-     * @return array<int, string>
+     * @return BelongsTo<User, User>
      */
-    public function getAllPermissionNames(): array
+    public function referredBy() : BelongsTo
     {
-        $viaRoles = $this->getAllPermissions()->pluck('name')->all();
-
-        return array_values(array_unique(array_merge($viaRoles, $this->activeSpecificPermissionNames())));
-    }
-
-    /**
-     * Verificar si el usuario tiene un permiso específico (grant activo y no
-     * expirado).
-     *
-     * @param string $permission
-     * @return bool
-     */
-    public function hasSpecificPermission(string $permission): bool
-    {
-        return in_array($permission, $this->activeSpecificPermissionNames(), true);
-    }
-
-    /**
-     * Determina si el usuario puede ejercer el permiso indicado, considerando
-     * tanto los permisos heredados por rol (Spatie\Permission\Traits\HasPermissions,
-     * ya operativo gracias al fix de roles()/hasRole() de más arriba) como los
-     * permisos específicos otorgados directamente al usuario (specific_permissions,
-     * usado por ej. para activar juegos concretos en un Commerce/Seller/Customer).
-     *
-     * Sobrescribe hasPermissionTo() del trait HasPermissions (Spatie) — de él
-     * dependen hasAnyPermission(), hasAllPermissions(), checkPermissionTo() y,
-     * por extensión, el helper can()/Gate::allows() de Laravel. Sobrescribir
-     * aquí en el nivel más bajo evita reimplementar cada método por separado.
-     *
-     * @param string|int|\Spatie\Permission\Contracts\Permission|\BackedEnum $permission
-     * @param string|null $guardName
-     */
-    public function hasPermissionTo($permission, $guardName = null): bool
-    {
-        if (is_string($permission) && $this->hasSpecificPermission($permission)) {
-            return true;
-        }
-
-        return $this->spatieHasPermissionTo($permission, $guardName);
-    }
-
-    /**
-     * Agregar uno o más permisos específicos al usuario, sin expiración ni
-     * motivo — usar UserPermissionService::syncSpecificPermissions() desde
-     * el flujo de superadmin, que sí soporta expires_at/reason/granted_by.
-     * No hace nada si el usuario ya tiene un grant activo para ese permiso
-     * (evita violar el índice único user_id+permission_name+revoked_at).
-     *
-     * @param string|array<int, string> $permissions
-     */
-    public function giveSpecificPermission($permissions): void
-    {
-        $names = array_unique(is_array($permissions) ? $permissions : [$permissions]);
-        $existing = $this->specificPermissionGrants()->active()->whereIn('permission_name', $names)->pluck('permission_name')->all();
-
-        foreach (array_diff($names, $existing) as $name) {
-            $this->specificPermissionGrants()->create(['permission_name' => $name]);
-        }
-
-        $this->specificPermissionNamesCache = null;
+        return $this->belongsTo(self::class, 'referred_by_user_id');
     }
 
     /**
@@ -924,7 +645,7 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @param string|array<int, string> $permissions
      */
-    public function revokeSpecificPermission($permissions): void
+    public function revokeSpecificPermission($permissions) : void
     {
         $names = is_array($permissions) ? $permissions : [$permissions];
 
@@ -937,29 +658,270 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Limpiar todos los permisos específicos del usuario
+     * Roles del usuario.
      *
-     * @return void
+     * Usa App\Models\Role (no Spatie\Permission\Models\Role): mismo registro,
+     * pero App\Models\Role tiene el cast id => string via SnowflakeId. Usar el
+     * modelo de Spatie aquí hidrataba el id con el cast por defecto de Eloquent
+     * (int), truncando/perdiendo precisión del Snowflake y rompiendo cualquier
+     * comparación estricta de id contra roles cargados por otra relación
+     * (ej. Permission::roles(), que sí usa App\Models\Role).
+     *
+     * @return BelongsToMany<Role>
      */
-    public function clearSpecificPermissions(): void
+    public function roles() : BelongsToMany
     {
-        $this->specificPermissionGrants()
-            ->active()
-            ->update(['revoked_at' => now(), 'revoked_reason' => UserSpecificPermissionGrant::REVOKED_REASON_MANUAL]);
-
-        $this->specificPermissionNamesCache = null;
+        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
     }
 
-    public function hasTosAccepted(): bool
+    /**
+     * Scope para obtener solo usuarios activos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
     {
-        return $this->tos_accepted_version !== null;
+        return $query->where('status', 'ACTIVE');
     }
 
-    public function tosNeedsRenewal(?string $currentVersion): bool
+    /**
+     * Scope para obtener usuarios por país
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByCountry($query, string $countryId)
+    {
+        return $query->where('country_id', $countryId);
+    }
+
+    /**
+     * Scope para obtener usuarios por estado
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope para obtener usuarios con email no verificado
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEmailNotVerified($query)
+    {
+        return $query->whereNull('email_verified_at');
+    }
+
+    /**
+     * Scope para obtener usuarios con email verificado
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEmailVerified($query)
+    {
+        return $query->whereNotNull('email_verified_at');
+    }
+
+    /**
+     * Scope para excluir cuentas internas del sistema (ej. playrke_platform)
+     * de listados administrativos y reportes.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeExcludeSystemAccounts($query)
+    {
+        return $query->where('is_system_account', false);
+    }
+
+    /**
+     * Scope para obtener solo usuarios inactivos
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', 'INACTIVE');
+    }
+
+    /**
+     * Scope para buscar usuarios por texto
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('username', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%");
+        });
+    }
+
+    /**
+     * Scope para obtener usuarios con rol específico
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithRole($query, string $roleName)
+    {
+        return $query->whereHas('roles', function($q) use ($roleName) {
+            $q->where('name', $roleName);
+        });
+    }
+
+    /**
+     * Vendedor asociado (si rol seller)
+     *
+     * @return HasOne<Seller>
+     */
+    public function seller() : HasOne
+    {
+        return $this->hasOne(Seller::class, 'user_id');
+    }
+
+    /**
+     * Grants de permisos específicos del usuario (histórico completo,
+     * incluye revocados/expirados) — usar activeSpecificPermissionNames()
+     * para el chequeo de autorización, esta relación es para el modal de
+     * gestión y la auditoría.
+     */
+    public function specificPermissionGrants() : HasMany
+    {
+        return $this->hasMany(UserSpecificPermissionGrant::class, 'user_id');
+    }
+
+    /**
+     * Sucursal asociada (si rol subsidiary)
+     *
+     * @return HasOne<Subsidiary>
+     */
+    public function subsidiary() : HasOne
+    {
+        return $this->hasOne(Subsidiary::class, 'user_id');
+    }
+
+    /**
+     * Zona horaria del usuario
+     *
+     * @return BelongsTo<\App\Models\TimeZone, self>
+     */
+    public function timeZone() : BelongsTo
+    {
+        return $this->belongsTo(\App\Models\TimeZone::class, 'time_zone_id');
+    }
+
+    public function tosNeedsRenewal(?string $currentVersion) : bool
     {
         if ($currentVersion === null) {
             return false;
         }
+
         return $this->tos_accepted_version !== $currentVersion;
+    }
+
+    /**
+     * Tesorero asociado (si rol treasurer)
+     *
+     * @return HasOne<Treasurer>
+     */
+    public function treasurer() : HasOne
+    {
+        return $this->hasOne(Treasurer::class, 'user_id');
+    }
+
+    /**
+     * Logros desbloqueados del usuario
+     *
+     * @return BelongsToMany<Achievement>
+     */
+    public function unlockedAchievements() : BelongsToMany
+    {
+        return $this->achievements();
+    }
+
+    /**
+     * Nivel y experiencia del usuario
+     *
+     * @return HasOne<UserLevel>
+     */
+    public function userLevel() : HasOne
+    {
+        return $this->hasOne(UserLevel::class);
+    }
+
+    /**
+     * Obtiene el wallet de una moneda específica
+     *
+     * @param string $currencyCode Código ISO de la moneda
+     */
+    public function walletByCurrency(string $currencyCode) : ?Wallet
+    {
+        return $this->wallets()->whereHas('currency', fn ($q) => $q->where('iso_code', $currencyCode))->first();
+    }
+
+    /**
+     * Movimientos de billetera del usuario (depósitos, retiros, premios, etc.)
+     *
+     * @return HasMany<WalletMovement>
+     */
+    public function walletMovements() : HasMany
+    {
+        return $this->hasMany(WalletMovement::class, 'user_id');
+    }
+
+    /**
+     * Wallets del usuario
+     *
+     * @return HasMany<Wallet>
+     */
+    public function wallets() : HasMany
+    {
+        return $this->hasMany(Wallet::class, 'user_id');
+    }
+
+    /**
+     * Nombres de permiso con grant activo (revoked_at null y no expirado),
+     * memoizados en la instancia — hasPermissionTo() puede llamarse decenas
+     * de veces en el mismo request (cada can()/@can), así que esto evita una
+     * query por chequeo. No se cachea entre requests (a diferencia de
+     * MovementType::catalog()) porque otorgar/revocar debe reflejarse de
+     * inmediato sin depender de invalidar una cache key por usuario.
+     *
+     * @return array<int, string>
+     */
+    private function activeSpecificPermissionNames() : array
+    {
+        if ($this->specificPermissionNamesCache === null) {
+            $this->specificPermissionNamesCache = $this->specificPermissionGrants()
+                ->active()
+                ->where(function($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                })
+                ->pluck('permission_name')
+                ->all();
+        }
+
+        return $this->specificPermissionNamesCache;
     }
 }

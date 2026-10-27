@@ -8,9 +8,9 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Domains\Wallet\Exceptions\WalletUnavailableException;
+use App\Domains\Wallet\Services\WalletService;
 use App\Services\Commands\CommandService;
 use App\Services\NotificationService;
-use App\Domains\Wallet\Services\WalletService;
 use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -20,15 +20,15 @@ use Throwable;
 class RetryFailedBingoRefundsCommand extends Command
 {
     use ResolvesSuperadminIds;
-
-    protected $signature   = 'bingo:retry-failed-refunds';
     protected $description = 'Reintenta acreditar reembolsos de salas canceladas que fallaron en el primer intento';
 
-    public function handle(WalletService $walletService, BingoRoomAuditLogger $auditLogger): void
+    protected $signature = 'bingo:retry-failed-refunds';
+
+    public function handle(WalletService $walletService, BingoRoomAuditLogger $auditLogger) : void
     {
-        $status    = 'SUCCESS';
-        $retried   = 0;
-        $skipped   = 0;
+        $status = 'SUCCESS';
+        $retried = 0;
+        $skipped = 0;
         $abandoned = 0;
 
         try {
@@ -37,8 +37,9 @@ class RetryFailedBingoRefundsCommand extends Command
                 ->cursor();
 
             foreach ($failures as $failure) {
-                if (!PrizePayoutRetryPolicy::isReadyToRetry($failure->last_attempted_at, $failure->attempts)) {
+                if (! PrizePayoutRetryPolicy::isReadyToRetry($failure->last_attempted_at, $failure->attempts)) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -46,14 +47,14 @@ class RetryFailedBingoRefundsCommand extends Command
                 $room = BingoRoom::find($failure->room_id);
 
                 try {
-                    $newAttempts = DB::transaction(function () use ($failure, $walletService): int {
+                    $newAttempts = DB::transaction(function() use ($failure, $walletService) : int {
                         // lockForUpdate en failure previene que dos ejecuciones concurrentes del cron
                         // procesen el mismo failure simultáneamente.
                         $locked = BingoLotRefundFailure::where('id', $failure->id)
                             ->lockForUpdate()
                             ->first();
 
-                        if (!$locked || $locked->status !== 'PENDING') {
+                        if (! $locked || $locked->status !== 'PENDING') {
                             // Otro proceso ya resolvió este failure — saltar.
                             return 0;
                         }
@@ -65,9 +66,10 @@ class RetryFailedBingoRefundsCommand extends Command
                             ->lockForUpdate()
                             ->first();
 
-                        if (!$lot) {
+                        if (! $lot) {
                             // Ya fue reembolsado por otro proceso — marcar resuelto.
                             $locked->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
+
                             return 0;
                         }
 
@@ -76,13 +78,14 @@ class RetryFailedBingoRefundsCommand extends Command
                             (string) $failure->currency_id,
                         );
 
-                        if (!$wallet) {
+                        if (! $wallet) {
                             // Actualizar contador DENTRO de la transacción para que sea atómico
                             // con el check del lot. Si la transacción revierte, el contador no queda quemado.
                             $locked->update([
-                                'attempts'          => $newAttempts,
+                                'attempts' => $newAttempts,
                                 'last_attempted_at' => now(),
                             ]);
+
                             throw WalletUnavailableException::notFound(
                                 (string) $failure->user_id,
                                 (string) $failure->currency_id,
@@ -90,10 +93,10 @@ class RetryFailedBingoRefundsCommand extends Command
                         }
 
                         $walletService->recordRefund(
-                            wallet:       $wallet,
-                            amount:       (float) $failure->amount,
-                            gameId:       (string) $failure->room_id,
-                            description:  "Reembolso Bingo (reintento) — Sala cancelada #{$failure->room_id}",
+                            wallet: $wallet,
+                            amount: (float) $failure->amount,
+                            gameId: (string) $failure->room_id,
+                            description: "Reembolso Bingo (reintento) — Sala cancelada #{$failure->room_id}",
                             bonusPortion: (float) $lot->bonus_amount,
                         );
 
@@ -114,9 +117,9 @@ class RetryFailedBingoRefundsCommand extends Command
                     if ($room) {
                         $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', 'Reembolso acreditado por comando de reintento', [
                             'failure_id' => (string) $failure->id,
-                            'lot_id'     => (string) $failure->lot_id,
-                            'amount'     => (float) $failure->amount,
-                            'attempts'   => $newAttempts,
+                            'lot_id' => (string) $failure->lot_id,
+                            'amount' => (float) $failure->amount,
+                            'attempts' => $newAttempts,
                         ]);
                     }
                 } catch (WalletUnavailableException $e) {
@@ -127,7 +130,7 @@ class RetryFailedBingoRefundsCommand extends Command
                 } catch (Throwable $e) {
                     Log::error('[RetryFailedBingoRefunds] Fallo en reintento', [
                         'failure_id' => $failure->id,
-                        'error'      => $e->getMessage(),
+                        'error' => $e->getMessage(),
                     ]);
                     $skipped++;
 
@@ -142,9 +145,9 @@ class RetryFailedBingoRefundsCommand extends Command
                         if ($room) {
                             $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', "Reembolso abandonado tras {$currentAttempts} intentos", [
                                 'failure_id' => (string) $failure->id,
-                                'lot_id'     => (string) $failure->lot_id,
-                                'amount'     => (float) $failure->amount,
-                                'error'      => $e->getMessage(),
+                                'lot_id' => (string) $failure->lot_id,
+                                'amount' => (float) $failure->amount,
+                                'error' => $e->getMessage(),
                             ]);
                         }
 
@@ -186,7 +189,7 @@ class RetryFailedBingoRefundsCommand extends Command
      * devolver: se notifica a superadmins con los mismos datos que ya se
      * pasan al audit logger, sin queries adicionales.
      */
-    private function notifyAbandonedRefund(BingoLotRefundFailure $failure, int $attempts, string $lastError): void
+    private function notifyAbandonedRefund(BingoLotRefundFailure $failure, int $attempts, string $lastError) : void
     {
         $notificationService = app(NotificationService::class);
 
@@ -198,12 +201,12 @@ class RetryFailedBingoRefundsCommand extends Command
                 message: "El reembolso #{$failure->id} (sala #{$failure->room_id}, monto {$failure->amount}) se abandonó tras {$attempts} intentos y requiere acreditación manual.",
                 data: [
                     'failure_id' => (string) $failure->id,
-                    'room_id'    => (string) $failure->room_id,
-                    'user_id'    => (string) $failure->user_id,
-                    'amount'     => (float) $failure->amount,
-                    'attempts'   => $attempts,
+                    'room_id' => (string) $failure->room_id,
+                    'user_id' => (string) $failure->user_id,
+                    'amount' => (float) $failure->amount,
+                    'attempts' => $attempts,
                     'last_error' => $lastError,
-                    'url'        => '/bingo/game-rooms',
+                    'url' => '/bingo/game-rooms',
                 ],
             );
         }

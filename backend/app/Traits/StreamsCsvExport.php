@@ -12,14 +12,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 trait StreamsCsvExport
 {
     /**
-     * @param  string        $filename Nombre del archivo descargado (sin extensión .csv).
-     * @param  array<string> $headers  Cabeceras de columnas, en orden.
-     * @param  iterable       $rows     Filas de datos ya iterables (típicamente un cursor()).
-     * @param  callable(mixed): array $mapRow Convierte cada fila en un array de valores en el mismo orden que $headers.
+     * @param string                 $filename Nombre del archivo descargado (sin extensión .csv).
+     * @param array<string>          $headers  cabeceras de columnas, en orden
+     * @param iterable               $rows     filas de datos ya iterables (típicamente un cursor())
+     * @param callable(mixed): array $mapRow   convierte cada fila en un array de valores en el mismo orden que $headers
      */
-    protected function streamCsvExport(string $filename, array $headers, iterable $rows, callable $mapRow): StreamedResponse
+    protected function streamCsvExport(string $filename, array $headers, iterable $rows, callable $mapRow) : StreamedResponse
     {
-        return response()->streamDownload(function () use ($headers, $rows, $mapRow) {
+        return response()->streamDownload(function() use ($headers, $rows, $mapRow) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $headers);
 

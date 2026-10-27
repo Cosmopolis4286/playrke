@@ -19,5 +19,5 @@ interface PrizePoolTypeRepositoryInterface extends GameCatalogRepositoryInterfac
      * Obtener todos los tipos activos (usado por BingoRoomContextService
      * para alimentar el formulario de creación de salas).
      */
-    public function getActiveTypes(): Collection;
+    public function getActiveTypes() : Collection;
 }

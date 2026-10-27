@@ -17,14 +17,32 @@ class PlatformReceivable extends Model
 {
     use SnowflakeId;
 
-    public const STATUS_PENDING   = 'PENDING';
-    public const STATUS_SETTLED   = 'SETTLED';
-    public const STATUS_CANCELLED = 'CANCELLED';
-
     /** Deudas previas: solo RKE. */
     public const SOURCE_BINGO_RKE = 'BINGO_RKE';
     /** Venta fuera del sistema: RKE + jackpot + bote. */
     public const SOURCE_BINGO_SALE = 'BINGO_SALE';
+    public const STATUS_CANCELLED = 'CANCELLED';
+
+    public const STATUS_PENDING = 'PENDING';
+    public const STATUS_SETTLED = 'SETTLED';
+
+    protected $casts = [
+        'id' => 'string',
+        'debtor_user_id' => 'string',
+        'currency_id' => 'string',
+        'room_id' => 'string',
+        'lot_id' => 'string',
+        'settled_by' => 'string',
+        'amount' => 'decimal:2',
+        'rke_amount' => 'decimal:2',
+        'jackpot_amount' => 'decimal:2',
+        'prize_pool_amount' => 'decimal:2',
+        'creator_amount' => 'decimal:2',
+        'creator_payee_user_id' => 'string',
+        'creator_paid_at' => 'datetime',
+        'settled_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'source', 'debtor_user_id', 'currency_id', 'room_id', 'lot_id', 'amount',
@@ -33,24 +51,13 @@ class PlatformReceivable extends Model
         'status', 'settled_at', 'settled_by', 'cancelled_at', 'notes',
     ];
 
-    protected $casts = [
-        'id'             => 'string',
-        'debtor_user_id' => 'string',
-        'currency_id'    => 'string',
-        'room_id'        => 'string',
-        'lot_id'         => 'string',
-        'settled_by'     => 'string',
-        'amount'         => 'decimal:2',
-        'rke_amount'        => 'decimal:2',
-        'jackpot_amount'    => 'decimal:2',
-        'prize_pool_amount' => 'decimal:2',
-        'creator_amount'    => 'decimal:2',
-        'creator_payee_user_id' => 'string',
-        'creator_paid_at'   => 'datetime',
-        'settled_at'     => 'datetime',
-        'cancelled_at'   => 'datetime',
-    ];
+    public function currency() : BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
 
-    public function debtor(): BelongsTo { return $this->belongsTo(User::class, 'debtor_user_id'); }
-    public function currency(): BelongsTo { return $this->belongsTo(Currency::class, 'currency_id'); }
+    public function debtor() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'debtor_user_id');
+    }
 }

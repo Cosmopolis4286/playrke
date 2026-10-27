@@ -6,7 +6,7 @@ use App\Policies\Roles\BaseRolePolicy;
 
 class GamePolicy extends BaseRolePolicy
 {
-    protected function requiredRole(): string|array
+    protected function requiredRole() : string|array
     {
         return ['superadmin', 'admin'];
     }

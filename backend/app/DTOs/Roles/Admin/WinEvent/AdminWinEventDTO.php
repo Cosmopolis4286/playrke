@@ -7,20 +7,7 @@ namespace App\DTOs\Roles\Admin\WinEvent;
  */
 final class AdminWinEventDTO
 {
-    public function __construct(
-        public readonly ?string $userId,
-        public readonly ?string $winnerName,
-        public readonly string $gameSlug,
-        public readonly string $gameName,
-        public readonly string $prizeKind,
-        public readonly ?string $prizeLabel,
-        public readonly ?float $amountUsd,
-        public readonly ?float $amountLocal,
-        public readonly ?string $currencyId,
-        public readonly ?string $notes,
-    ) {}
-
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data) : self
     {
         return new self(
             $data['user_id'] ?? null,
@@ -34,5 +21,19 @@ final class AdminWinEventDTO
             $data['currency_id'] ?? null,
             $data['notes'] ?? null,
         );
+    }
+
+    public function __construct(
+        public readonly ?string $userId,
+        public readonly ?string $winnerName,
+        public readonly string $gameSlug,
+        public readonly string $gameName,
+        public readonly string $prizeKind,
+        public readonly ?string $prizeLabel,
+        public readonly ?float $amountUsd,
+        public readonly ?float $amountLocal,
+        public readonly ?string $currencyId,
+        public readonly ?string $notes,
+    ) {
     }
 }

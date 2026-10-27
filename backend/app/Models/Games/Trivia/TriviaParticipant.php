@@ -11,17 +11,29 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TriviaParticipant extends BaseModel implements GamePrizeContract
 {
-    protected $connection = 'pgsql_trivia';
-    protected $table = 'trivia_participants';
-
     public const PRIZE_STATUSES = [
-        'waiting'    => 'Esperando',
+        'waiting' => 'Esperando',
         'processing' => 'Procesando pago',
-        'claimed'    => 'Reclamado',
-        'cancelled'  => 'Cancelado',
-        'suspended'  => 'Suspendido',
-        'disputed'   => 'En disputa',
+        'claimed' => 'Reclamado',
+        'cancelled' => 'Cancelado',
+        'suspended' => 'Suspendido',
+        'disputed' => 'En disputa',
     ];
+
+    protected $casts = [
+        'paid_amount' => 'decimal:8',
+        'paid_amount_usd' => 'decimal:8',
+        'prize_won' => 'decimal:8',
+        'power_ups' => 'array',
+        'power_ups_used' => 'array',
+        'total_time' => 'decimal:3',
+        'metadata' => 'array',
+        'registered_at' => 'datetime',
+        'confirmed_at' => 'datetime',
+        'joined_game_at' => 'datetime',
+        'eliminated_at' => 'datetime',
+    ];
+    protected $connection = 'pgsql_trivia';
 
     protected $fillable = [
         'room_id',
@@ -46,35 +58,153 @@ class TriviaParticipant extends BaseModel implements GamePrizeContract
         'total_time',
         'metadata',
     ];
+    protected $table = 'trivia_participants';
 
-    protected $casts = [
-        'paid_amount' => 'decimal:8',
-        'paid_amount_usd' => 'decimal:8',
-        'prize_won' => 'decimal:8',
-        'power_ups' => 'array',
-        'power_ups_used' => 'array',
-        'total_time' => 'decimal:3',
-        'metadata' => 'array',
-        'registered_at' => 'datetime',
-        'confirmed_at' => 'datetime',
-        'joined_game_at' => 'datetime',
-        'eliminated_at' => 'datetime',
-    ];
-
-    // Relaciones
-    public function room(): BelongsTo
+    public function buildPaymentAttributes(?string $movementId, string $status, ?string $reason) : array
     {
-        return $this->belongsTo(TriviaRoom::class, 'room_id');
+        return [
+            'participant_id' => $this->id,
+            'room_id' => $this->room_id,
+            'user_id' => $this->user_id,
+            'currency_id' => $this->getCurrencyId(),
+            'payment_amount' => $this->prize_won,
+            'payment_status' => $status,
+            'payment_notes' => $reason,
+            'transaction_reference' => $movementId,
+            'processed_at' => $movementId ? now() : null,
+        ];
     }
 
-    public function team(): BelongsTo
+    public function createPayment(array $attributes) : void
     {
-        return $this->belongsTo(\App\Domains\Games\Trivia\Models\TriviaTeam::class, 'team_id');
+        TriviaPrizePayment::create($attributes);
     }
 
-    public function payments(): HasMany
+    // Comodines disponibles
+    public function getAvailablePowerUp(string $type) : int
+    {
+        $powerUps = $this->power_ups ?? [];
+        $used = $this->power_ups_used ?? [];
+
+        $total = $powerUps[$type] ?? 0;
+        $usedCount = $used[$type] ?? 0;
+
+        return max(0, $total - $usedCount);
+    }
+
+    public function getCurrencyId() : string
+    {
+        return (string) $this->room?->prize_currency_id;
+    }
+
+    public function getGameId() : string
+    {
+        return (string) $this->room_id;
+    }
+
+    // ── GamePrizeContract ────────────────────────────────────────────────────
+
+    public function getGameSlug() : string
+    {
+        return 'trivia';
+    }
+
+    public function getLocalAmount() : float
+    {
+        return (float) $this->prize_won;
+    }
+
+    public function getUserId() : string
+    {
+        return (string) $this->user_id;
+    }
+
+    public function hasCompletedPayment() : bool
+    {
+        return $this->payments()->where('payment_status', 'completed')->exists();
+    }
+
+    public function isCancelled() : bool
+    {
+        return $this->prize_status === 'cancelled';
+    }
+
+    public function isClaimed() : bool
+    {
+        return $this->prize_status === 'claimed';
+    }
+
+    // Helpers
+    public function isConfirmed() : bool
+    {
+        return in_array($this->status, ['confirmed', 'playing', 'winner']);
+    }
+
+    public function isDisputed() : bool
+    {
+        return $this->prize_status === 'disputed';
+    }
+
+    public function isEliminated() : bool
+    {
+        return $this->status === 'eliminated';
+    }
+
+    public function isPlaying() : bool
+    {
+        return $this->status === 'playing';
+    }
+
+    public function isProcessing() : bool
+    {
+        return $this->prize_status === 'processing';
+    }
+
+    public function isSuspended() : bool
+    {
+        return $this->prize_status === 'suspended';
+    }
+
+    public function isWaiting() : bool
+    {
+        return $this->prize_status === 'waiting';
+    }
+
+    public function isWinner() : bool
+    {
+        return $this->status === 'winner';
+    }
+
+    public function markAsClaimed() : bool
+    {
+        $this->prize_status = 'claimed';
+
+        return $this->save();
+    }
+
+    public function markAsDisputed() : bool
+    {
+        $this->prize_status = 'disputed';
+
+        return $this->save();
+    }
+
+    public function markAsProcessing() : bool
+    {
+        $this->prize_status = 'processing';
+
+        return $this->save();
+    }
+
+    public function payments() : HasMany
     {
         return $this->hasMany(TriviaPrizePayment::class, 'participant_id');
+    }
+
+    // Relaciones
+    public function room() : BelongsTo
+    {
+        return $this->belongsTo(TriviaRoom::class, 'room_id');
     }
 
     // El usuario está en MySQL, no se puede hacer relación directa Eloquent
@@ -96,40 +226,12 @@ class TriviaParticipant extends BaseModel implements GamePrizeContract
         return $query->whereIn('status', ['eliminated', 'winner', 'abandoned']);
     }
 
-    // Helpers
-    public function isConfirmed(): bool
+    public function team() : BelongsTo
     {
-        return in_array($this->status, ['confirmed', 'playing', 'winner']);
+        return $this->belongsTo(\App\Domains\Games\Trivia\Models\TriviaTeam::class, 'team_id');
     }
 
-    public function isPlaying(): bool
-    {
-        return $this->status === 'playing';
-    }
-
-    public function isEliminated(): bool
-    {
-        return $this->status === 'eliminated';
-    }
-
-    public function isWinner(): bool
-    {
-        return $this->status === 'winner';
-    }
-
-    // Comodines disponibles
-    public function getAvailablePowerUp(string $type): int
-    {
-        $powerUps = $this->power_ups ?? [];
-        $used = $this->power_ups_used ?? [];
-
-        $total = $powerUps[$type] ?? 0;
-        $usedCount = $used[$type] ?? 0;
-
-        return max(0, $total - $usedCount);
-    }
-
-    public function usePowerUp(string $type): bool
+    public function usePowerUp(string $type) : bool
     {
         if ($this->getAvailablePowerUp($type) <= 0) {
             return false;
@@ -140,63 +242,5 @@ class TriviaParticipant extends BaseModel implements GamePrizeContract
         $this->power_ups_used = $used;
 
         return true;
-    }
-
-    // ── GamePrizeContract ────────────────────────────────────────────────────
-
-    public function getGameSlug(): string { return 'trivia'; }
-    public function getGameId(): string   { return (string) $this->room_id; }
-    public function getUserId(): string   { return (string) $this->user_id; }
-    public function getCurrencyId(): string { return (string) $this->room?->prize_currency_id; }
-    public function getLocalAmount(): float { return (float) $this->prize_won; }
-
-    public function isWaiting(): bool    { return $this->prize_status === 'waiting'; }
-    public function isProcessing(): bool { return $this->prize_status === 'processing'; }
-    public function isClaimed(): bool    { return $this->prize_status === 'claimed'; }
-    public function isCancelled(): bool  { return $this->prize_status === 'cancelled'; }
-    public function isSuspended(): bool  { return $this->prize_status === 'suspended'; }
-    public function isDisputed(): bool   { return $this->prize_status === 'disputed'; }
-
-    public function markAsDisputed(): bool
-    {
-        $this->prize_status = 'disputed';
-        return $this->save();
-    }
-
-    public function markAsProcessing(): bool
-    {
-        $this->prize_status = 'processing';
-        return $this->save();
-    }
-
-    public function markAsClaimed(): bool
-    {
-        $this->prize_status = 'claimed';
-        return $this->save();
-    }
-
-    public function hasCompletedPayment(): bool
-    {
-        return $this->payments()->where('payment_status', 'completed')->exists();
-    }
-
-    public function buildPaymentAttributes(?string $movementId, string $status, ?string $reason): array
-    {
-        return [
-            'participant_id'         => $this->id,
-            'room_id'                => $this->room_id,
-            'user_id'                => $this->user_id,
-            'currency_id'            => $this->getCurrencyId(),
-            'payment_amount'         => $this->prize_won,
-            'payment_status'         => $status,
-            'payment_notes'          => $reason,
-            'transaction_reference'  => $movementId,
-            'processed_at'           => $movementId ? now() : null,
-        ];
-    }
-
-    public function createPayment(array $attributes): void
-    {
-        TriviaPrizePayment::create($attributes);
     }
 }

@@ -15,15 +15,21 @@ class DirectoryAudit extends Model
 {
     use SnowflakeId;
 
+    public const EVENT_CREATED = 'created';
+    public const EVENT_DELETED = 'deleted';
+    public const EVENT_STATUS_CHANGED = 'status_changed';
+    public const EVENT_UPDATED = 'updated';
+
     public const TYPE_PAGO_MOVIL = 'pago_movil';
     public const TYPE_PIX_KEY = 'pix_key';
 
-    public const EVENT_CREATED = 'created';
-    public const EVENT_UPDATED = 'updated';
-    public const EVENT_STATUS_CHANGED = 'status_changed';
-    public const EVENT_DELETED = 'deleted';
-
-    protected $table = 'directory_audits';
+    protected $casts = [
+        'record_id' => 'string',
+        'owner_user_id' => 'string',
+        'actor_user_id' => 'string',
+        'is_impersonation' => 'boolean',
+        'changes' => 'array',
+    ];
 
     protected $fillable = [
         'record_type',
@@ -38,21 +44,15 @@ class DirectoryAudit extends Model
         'user_agent',
     ];
 
-    protected $casts = [
-        'record_id' => 'string',
-        'owner_user_id' => 'string',
-        'actor_user_id' => 'string',
-        'is_impersonation' => 'boolean',
-        'changes' => 'array',
-    ];
+    protected $table = 'directory_audits';
 
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'owner_user_id');
-    }
-
-    public function actor(): BelongsTo
+    public function actor() : BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_user_id');
+    }
+
+    public function owner() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_user_id');
     }
 }

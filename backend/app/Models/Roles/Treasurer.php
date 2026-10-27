@@ -18,7 +18,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class Treasurer extends BaseModel
 {
-    protected $table = 'treasurers';
+    // ========================
+    // Accessors computados
+    // ========================
+    protected $appends = ['status_badge'];
+
+    protected $casts = [
+        'id' => 'string',
+        'country_id' => 'string',
+        'user_id' => 'string',
+        'unique_code_id' => 'string',
+        'commission' => 'decimal:2',
+        'status' => 'string',
+    ];
 
     protected $fillable = [
         'name',
@@ -29,95 +41,82 @@ class Treasurer extends BaseModel
         'unique_code_id',
         'status',
     ];
-
-    protected $casts = [
-        'id'             => 'string',
-        'country_id'     => 'string',
-        'user_id'        => 'string',
-        'unique_code_id' => 'string',
-        'commission'     => 'decimal:2',
-        'status'         => 'string',
-    ];
+    protected $table = 'treasurers';
 
     // ========================
-    // Accessors computados
+    // Helpers estáticos
     // ========================
-    protected $appends = ['status_badge'];
 
-    public function getStatusBadgeAttribute(): string
+    public static function getValueByUserId(string|int $userId, string $field) : mixed
     {
-        return match ($this->status) {
-            'ACTIVE'   => '<span class="badge badge-success">Activo</span>',
-            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
-            'BLOCKED'  => '<span class="badge badge-danger">Bloqueado</span>',
-            'DELETED'  => '<span class="badge badge-dark">Eliminado</span>',
-            default    => '<span class="badge badge-warning">Desconocido</span>',
-        };
+        return static::where('user_id', $userId)->value($field);
     }
 
     // ========================
     // Relaciones
     // ========================
 
-    public function country(): BelongsTo
+    public function country() : BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
     }
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function uniqueCode(): BelongsTo
-    {
-        return $this->belongsTo(UniqueCode::class, 'unique_code_id');
-    }
-
-    public function currencies(): BelongsToMany
+    public function currencies() : BelongsToMany
     {
         return $this->belongsToMany(
             Currency::class,
             'treasurers_currencies',
             'treasurer_id',
-            'currency_id'
+            'currency_id',
         )
             ->using(TreasurerCurrency::class)
             ->withPivot(['level', 'status'])
             ->withTimestamps();
     }
 
-    public function games(): BelongsToMany
+    public function currenciesActive() : BelongsToMany
+    {
+        return $this->currencies()
+            ->wherePivot('status', 'ACTIVE');
+    }
+
+    public function games() : BelongsToMany
     {
         return $this->belongsToMany(
             Game::class,
             'treasurers_games',
             'treasurer_id',
-            'game_id'
+            'game_id',
         )
             ->using(TreasurerGame::class)
             ->withPivot('status')
             ->withTimestamps();
     }
 
-    public function currenciesActive(): BelongsToMany
-    {
-        return $this->currencies()
-            ->wherePivot('status', 'ACTIVE');
-    }
-
-    public function gamesActive(): BelongsToMany
+    public function gamesActive() : BelongsToMany
     {
         return $this->games()
             ->wherePivot('status', 'ACTIVE');
     }
 
-    // ========================
-    // Helpers estáticos
-    // ========================
-
-    public static function getValueByUserId(string|int $userId, string $field): mixed
+    public function getStatusBadgeAttribute() : string
     {
-        return static::where('user_id', $userId)->value($field);
+        return match ($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
+            'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
+            'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
+            default => '<span class="badge badge-warning">Desconocido</span>',
+        };
+    }
+
+    public function uniqueCode() : BelongsTo
+    {
+        return $this->belongsTo(UniqueCode::class, 'unique_code_id');
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

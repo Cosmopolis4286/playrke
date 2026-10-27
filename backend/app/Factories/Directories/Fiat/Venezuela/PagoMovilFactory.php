@@ -12,21 +12,20 @@ use InvalidArgumentException;
  * - Transformar datos de request a DTO
  * - Validar integridad de datos
  * - Aplicar defaults
- *
- * @package App\Factories\Directories\Fiat\Venezuela
  */
 final class PagoMovilFactory
 {
     /**
      * Crea un PagoMovilDTO a partir de un arreglo de datos (request).
      *
-     * @param array<string, mixed> $data         Datos de entrada, típicamente request validated
-     * @param string|null          $directoryId  ID del directorio (para updates)
+     * @param array<string, mixed> $data        Datos de entrada, típicamente request validated
+     * @param string|null          $directoryId ID del directorio (para updates)
+     *
      * @return PagoMovilDTO DTO listo para ser procesado
      *
      * @throws InvalidArgumentException Si faltan campos obligatorios
      */
-    public function fromRequest(array $data, ?string $directoryId = null): PagoMovilDTO
+    public function fromRequest(array $data, ?string $directoryId = null) : PagoMovilDTO
     {
         // Validaciones de campos obligatorios (solo para creación)
         if ($directoryId === null) {
@@ -57,7 +56,7 @@ final class PagoMovilFactory
             documentTypeId: $data['document_type_id'],
             documentNumber: $data['document_number'],
             phone: $data['phone'],
-            bankId: $data['bank_id']
+            bankId: $data['bank_id'],
         );
     }
 }

@@ -9,11 +9,10 @@ use Throwable;
 
 class ExpireSpecificPermissionGrantsCommand extends Command
 {
+    protected $description = 'Revoca permisos individuales de usuario cuyo expires_at ya venció, y notifica (in-app a superadmins + email al afectado)';
     protected $signature = 'permissions:expire-specific-grants';
 
-    protected $description = 'Revoca permisos individuales de usuario cuyo expires_at ya venció, y notifica (in-app a superadmins + email al afectado)';
-
-    public function handle(SpecificPermissionExpiryService $service): void
+    public function handle(SpecificPermissionExpiryService $service) : void
     {
         $status = 'SUCCESS';
 
@@ -26,7 +25,7 @@ class ExpireSpecificPermissionGrantsCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

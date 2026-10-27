@@ -2,16 +2,13 @@
 
 namespace App\Listeners;
 
-use Illuminate\Support\Facades\Log;
 use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Log;
 
 class ChangeLogPermissionsListener
 {
     /**
      * Handle the event.
-     *
-     * @param  \Illuminate\Log\Events\MessageLogged  $event
-     * @return void
      */
     public function handle(MessageLogged $event)
     {

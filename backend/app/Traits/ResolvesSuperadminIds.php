@@ -16,7 +16,7 @@ trait ResolvesSuperadminIds
     /**
      * @return array<int, string>
      */
-    protected function superadminIds(): array
+    protected function superadminIds() : array
     {
         return User::role('superadmin')
             ->where('status', 'ACTIVE')

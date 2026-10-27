@@ -26,18 +26,18 @@ use App\Models\User;
  */
 class DashboardWidgetVisibilityPolicy
 {
-    public function viewAny(User $user): bool
+    public function manage(User $user) : bool
     {
-        return $user->hasAnyPermission(['dashboard-widgets.view', 'dashboard-widgets.manage']);
+        return $user->hasPermissionTo('dashboard-widgets.manage');
     }
 
-    public function view(User $user): bool
+    public function view(User $user) : bool
     {
         return $this->viewAny($user);
     }
 
-    public function manage(User $user): bool
+    public function viewAny(User $user) : bool
     {
-        return $user->hasPermissionTo('dashboard-widgets.manage');
+        return $user->hasAnyPermission(['dashboard-widgets.view', 'dashboard-widgets.manage']);
     }
 }

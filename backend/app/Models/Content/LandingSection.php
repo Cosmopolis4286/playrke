@@ -15,15 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class LandingSection extends Model
 {
-    use SnowflakeId, HasActiveStatusScope, Auditable;
-
-    protected $fillable = [
-        'section_key',
-        'label',
-        'content',
-        'sort_order',
-        'status',
-    ];
+    use Auditable, HasActiveStatusScope, SnowflakeId;
 
     protected $casts = [
         'id' => 'string',
@@ -35,7 +27,15 @@ class LandingSection extends Model
         'is_removable' => 'boolean',
     ];
 
-    public function getRouteKeyName(): string
+    protected $fillable = [
+        'section_key',
+        'label',
+        'content',
+        'sort_order',
+        'status',
+    ];
+
+    public function getRouteKeyName() : string
     {
         return 'section_key';
     }

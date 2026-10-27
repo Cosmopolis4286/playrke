@@ -1,7 +1,8 @@
 <?php
+
 // app/Helpers/security.php
 
-if (!function_exists('csp_nonce')) {
+if (! function_exists('csp_nonce')) {
     /**
      * Nonce único por request para permitir <script> inline bajo la CSP (ver
      * App\Http\Middleware\SecurityHeaders, que genera el mismo valor y lo
@@ -11,7 +12,7 @@ if (!function_exists('csp_nonce')) {
      * Fuera de un request HTTP (comandos artisan, tests) devuelve '' — no
      * hay CSP que satisfacer ahí.
      */
-    function csp_nonce(): string
+    function csp_nonce() : string
     {
         $request = request();
 

@@ -20,14 +20,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CommandLog extends Model
 {
     use \App\Traits\SnowflakeId;
+    public $incrementing = false;
 
     // ========================
-    // Configuración de la tabla
+    // Casting de tipos
     // ========================
-    protected $table = 'command_logs';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $casts = [
+        'executed_at' => 'datetime',
+        'status' => 'string',
+        'triggered_by' => 'string',
+    ];
 
     // ========================
     // Campos asignables
@@ -40,19 +42,20 @@ class CommandLog extends Model
         'triggered_by',
         'triggered_by_user_id',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
     // ========================
-    // Casting de tipos
+    // Configuración de la tabla
     // ========================
-    protected $casts = [
-        'executed_at'  => 'datetime',
-        'status'       => 'string',
-        'triggered_by' => 'string',
-    ];
+    protected $table = 'command_logs';
 
-    public function triggeredByUser(): BelongsTo
+    /**
+     * Verificar si el comando tuvo error
+     */
+    public function getIsErrorAttribute() : bool
     {
-        return $this->belongsTo(User::class, 'triggered_by_user_id');
+        return $this->status === 'error';
     }
 
     // ========================
@@ -62,25 +65,17 @@ class CommandLog extends Model
     /**
      * Verificar si el comando fue exitoso
      */
-    public function getIsSuccessfulAttribute(): bool
+    public function getIsSuccessfulAttribute() : bool
     {
         return $this->status === 'success';
     }
 
     /**
-     * Verificar si el comando tuvo error
-     */
-    public function getIsErrorAttribute(): bool
-    {
-        return $this->status === 'error';
-    }
-
-    /**
      * Obtener output truncado para vista
      */
-    public function getTruncatedOutputAttribute(): string
+    public function getTruncatedOutputAttribute() : string
     {
-        if (!$this->output) {
+        if (! $this->output) {
             return '';
         }
 
@@ -89,16 +84,12 @@ class CommandLog extends Model
             : $this->output;
     }
 
-    // ========================
-    // Scopes útiles
-    // ========================
-
     /**
-     * Scope para comandos exitosos
+     * Scope para buscar por comando
      */
-    public function scopeSuccessful($query)
+    public function scopeByCommand($query, string $command)
     {
-        return $query->where('status', 'success');
+        return $query->where('command', $command);
     }
 
     /**
@@ -118,18 +109,27 @@ class CommandLog extends Model
     }
 
     /**
-     * Scope para buscar por comando
-     */
-    public function scopeByCommand($query, string $command)
-    {
-        return $query->where('command', $command);
-    }
-
-    /**
      * Scope para comandos recientes
      */
     public function scopeRecent($query, int $days = 7)
     {
         return $query->where('executed_at', '>=', now()->subDays($days));
+    }
+
+    // ========================
+    // Scopes útiles
+    // ========================
+
+    /**
+     * Scope para comandos exitosos
+     */
+    public function scopeSuccessful($query)
+    {
+        return $query->where('status', 'success');
+    }
+
+    public function triggeredByUser() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'triggered_by_user_id');
     }
 }

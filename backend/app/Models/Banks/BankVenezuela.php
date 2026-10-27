@@ -3,9 +3,9 @@
 namespace App\Models\Banks;
 
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Traits\SnowflakeId;
 
 /**
  * Modelo BankVenezuela
@@ -17,22 +17,7 @@ use App\Traits\SnowflakeId;
 class BankVenezuela extends Model
 {
     use SnowflakeId;
-
-    // ========================
-    // Configuración de la tabla
-    // ========================
-    protected $table = 'banks_venezuela';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    // ========================
-    // Campos asignables
-    // ========================
-    protected $fillable = [
-        'name',
-        'code',
-    ];
 
     // ========================
     // Casting
@@ -43,19 +28,34 @@ class BankVenezuela extends Model
     ];
 
     // ========================
-    // Relaciones
+    // Campos asignables
     // ========================
-    public function pagoMoviles(): HasMany
-    {
-        return $this->hasMany(PagoMovil::class, 'bank_id');
-    }
+    protected $fillable = [
+        'name',
+        'code',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+
+    // ========================
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'banks_venezuela';
 
     // ========================
     // Accessors
     // ========================
-    public function getDisplayNameAttribute(): string
+    public function getDisplayNameAttribute() : string
     {
         return $this->name;
+    }
+
+    // ========================
+    // Relaciones
+    // ========================
+    public function pagoMoviles() : HasMany
+    {
+        return $this->hasMany(PagoMovil::class, 'bank_id');
     }
 
     // ========================

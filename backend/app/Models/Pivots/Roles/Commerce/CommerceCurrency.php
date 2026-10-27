@@ -2,8 +2,8 @@
 
 namespace App\Models\Pivots\Roles\Commerce;
 
-use App\Models\Pivots\BasePivot;
 use App\Models\Currency;
+use App\Models\Pivots\BasePivot;
 use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,16 +23,20 @@ class CommerceCurrency extends BasePivot
     public $incrementing = false;
 
     /**
-     * El pivot no tiene primary key tradicional.
+     * Indica si el modelo usa timestamps.
      *
-     * Eloquent espera un string, no null.
+     * Ajusta a false si la tabla no los tiene.
      */
-    protected $primaryKey = '';
+    public $timestamps = true;
 
     /**
-     * Tabla asociada al pivot.
+     * Casts de atributos.
      */
-    protected $table = 'commerces_currencies';
+    protected $casts = [
+        'commerce_id' => 'string',
+        'currency_id' => 'string',
+        'level' => 'integer',
+    ];
 
     /**
      * Atributos asignables.
@@ -45,22 +49,6 @@ class CommerceCurrency extends BasePivot
     ];
 
     /**
-     * Casts de atributos.
-     */
-    protected $casts = [
-        'commerce_id' => 'string',
-        'currency_id' => 'string',
-        'level' => 'integer'
-    ];
-
-    /**
-     * Indica si el modelo usa timestamps.
-     *
-     * Ajusta a false si la tabla no los tiene.
-     */
-    public $timestamps = true;
-
-    /**
      * Define las claves que forman la identidad compuesta para auditoría.
      *
      * @var array<int, string>
@@ -68,9 +56,21 @@ class CommerceCurrency extends BasePivot
     protected array $pivotIdentityKeys = ['commerce_id', 'currency_id'];
 
     /**
+     * El pivot no tiene primary key tradicional.
+     *
+     * Eloquent espera un string, no null.
+     */
+    protected $primaryKey = '';
+
+    /**
+     * Tabla asociada al pivot.
+     */
+    protected $table = 'commerces_currencies';
+
+    /**
      * Relación con el comercio.
      */
-    public function commerce(): BelongsTo
+    public function commerce() : BelongsTo
     {
         return $this->belongsTo(Commerce::class, 'commerce_id');
     }
@@ -78,7 +78,7 @@ class CommerceCurrency extends BasePivot
     /**
      * Relación con la moneda.
      */
-    public function currency(): BelongsTo
+    public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }

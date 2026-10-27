@@ -20,23 +20,23 @@ use App\Models\User;
  */
 class AdminUserPolicy
 {
-    public function viewAny(User $user): bool
+    public function delete(User $user) : bool
     {
-        return $user->hasAnyPermission(['users.view', 'users.edit', 'users.delete']);
+        return $user->hasPermissionTo('users.delete');
     }
 
-    public function view(User $user): bool
-    {
-        return $this->viewAny($user);
-    }
-
-    public function edit(User $user): bool
+    public function edit(User $user) : bool
     {
         return $user->hasPermissionTo('users.edit');
     }
 
-    public function delete(User $user): bool
+    public function view(User $user) : bool
     {
-        return $user->hasPermissionTo('users.delete');
+        return $this->viewAny($user);
+    }
+
+    public function viewAny(User $user) : bool
+    {
+        return $user->hasAnyPermission(['users.view', 'users.edit', 'users.delete']);
     }
 }

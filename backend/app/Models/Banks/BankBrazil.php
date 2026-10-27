@@ -18,14 +18,15 @@ use Illuminate\Database\Eloquent\Model;
 class BankBrazil extends Model
 {
     use SnowflakeId;
+    public $incrementing = false;
 
     // ========================
-    // Configuración de la tabla
+    // Casting de tipos
     // ========================
-    protected $table = 'banks_brazil';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $casts = [
+        'id' => 'string',
+        'ispb' => 'string',
+    ];
 
     // ========================
     // Campos asignables
@@ -35,14 +36,13 @@ class BankBrazil extends Model
         'full_name',
         'ispb',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
     // ========================
-    // Casting de tipos
+    // Configuración de la tabla
     // ========================
-    protected $casts = [
-        'id'   => 'string',
-        'ispb' => 'string',
-    ];
+    protected $table = 'banks_brazil';
 
     // ========================
     // Accessors
@@ -51,7 +51,7 @@ class BankBrazil extends Model
     /**
      * Obtener nombre completo formateado
      */
-    public function getDisplayNameAttribute(): string
+    public function getDisplayNameAttribute() : string
     {
         return $this->full_name ?: $this->name;
     }
@@ -66,7 +66,7 @@ class BankBrazil extends Model
     public function scopeByName($query, string $name)
     {
         return $query->where('name', 'like', "%{$name}%")
-                    ->orWhere('full_name', 'like', "%{$name}%");
+            ->orWhere('full_name', 'like', "%{$name}%");
     }
 
     /**

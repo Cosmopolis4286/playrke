@@ -18,33 +18,34 @@ class NotificationCreated implements ShouldBroadcastNow
 
     public function __construct(
         public readonly Notification $notification,
-    ) {}
-
-    public function broadcastOn(): PrivateChannel
-    {
-        return new PrivateChannel("App.Models.User.{$this->notification->user_id}");
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'notification.created';
     }
 
-    public function broadcastWith(): array
+    public function broadcastOn() : PrivateChannel
+    {
+        return new PrivateChannel("App.Models.User.{$this->notification->user_id}");
+    }
+
+    public function broadcastWith() : array
     {
         $n = $this->notification;
 
         return [
-            'id'             => (string) $n->id,
-            'type'           => $n->type,
-            'title'          => $n->title,
-            'message'        => $n->message,
-            'data'           => $n->data ?? [],
-            'is_read'        => false,
-            'created_at'     => $n->created_at->toISOString(),
+            'id' => (string) $n->id,
+            'type' => $n->type,
+            'title' => $n->title,
+            'message' => $n->message,
+            'data' => $n->data ?? [],
+            'is_read' => false,
+            'created_at' => $n->created_at->toISOString(),
             'formatted_time' => $n->created_at->diffForHumans(),
-            'type_color'     => $n->getTypeColor(),
-            'type_icon'      => $n->getTypeIcon(),
+            'type_color' => $n->getTypeColor(),
+            'type_icon' => $n->getTypeIcon(),
         ];
     }
 }

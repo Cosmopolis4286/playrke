@@ -13,11 +13,6 @@ interface RoleExchangeRateRepositoryInterface
      * - Si existe y está soft-deleted → se restaura y actualiza
      * - Si existe y está activa → se actualiza
      * - Si no existe → se crea
-     *
-     * @param int $roleEntityId
-     * @param ExchangeRateDTO $dto
-     *
-     * @return Model
      */
-    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto): Model;
+    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto) : Model;
 }

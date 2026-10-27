@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Currency;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use InvalidArgumentException;
 
 /**
  * Modelo para la gestión de tipos de cambio.
@@ -14,12 +13,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ExchangeRate extends BaseModel
 {
+    public const SOURCE_SYSTEM = 'system';
+
     /**
-     * Nombre de la tabla asociada al modelo.
-     *
-     * @var string
+     * Valores válidos de `source` — quién generó esta fila: 'user' (acción
+     * manual, incluyendo el botón "Consultar" que sincroniza en lote) o
+     * 'system' (HandleExchangeRatesCommand, cronjob automático). Ver
+     * migración add_source_to_exchange_rates_table.
      */
-    protected $table = 'exchange_rates';
+    public const SOURCE_USER = 'user';
 
     /**
      * Valores válidos de `status` — único lugar que los enumera (antes
@@ -30,29 +32,6 @@ class ExchangeRate extends BaseModel
      * 2024_01_01_000204_create_exchange_rates_table.
      */
     public const STATUSES = ['ACTIVE', 'INACTIVE', 'DELETED', 'OLD', 'DIRECTORY'];
-
-    /**
-     * Valores válidos de `source` — quién generó esta fila: 'user' (acción
-     * manual, incluyendo el botón "Consultar" que sincroniza en lote) o
-     * 'system' (HandleExchangeRatesCommand, cronjob automático). Ver
-     * migración add_source_to_exchange_rates_table.
-     */
-    public const SOURCE_USER = 'user';
-    public const SOURCE_SYSTEM = 'system';
-
-    /**
-     * Los campos que se pueden asignar masivamente.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'currency_id',  // ID de la moneda
-        'user_id',      // ID del usuario que registró/actualizó
-        'amount',       // Valor del tipo de cambio
-        'percentage',   // Porcentaje de subida/bajada
-        'status',       // Estado de la tasa
-        'source',       // Origen: 'user' o 'system' (ver SOURCE_*)
-    ];
 
     /**
      * Los atributos que deben ser casteados a tipos nativos.
@@ -70,36 +49,48 @@ class ExchangeRate extends BaseModel
     ];
 
     /**
-     * Relación con la moneda asociada.
+     * Los campos que se pueden asignar masivamente.
      *
-     * @return BelongsTo
+     * @var array<int, string>
      */
-    public function currency(): BelongsTo
-    {
-        return $this->belongsTo(Currency::class, 'currency_id');
-    }
+    protected $fillable = [
+        'currency_id',  // ID de la moneda
+        'user_id',      // ID del usuario que registró/actualizó
+        'amount',       // Valor del tipo de cambio
+        'percentage',   // Porcentaje de subida/bajada
+        'status',       // Estado de la tasa
+        'source',       // Origen: 'user' o 'system' (ver SOURCE_*)
+    ];
+    /**
+     * Nombre de la tabla asociada al modelo.
+     *
+     * @var string
+     */
+    protected $table = 'exchange_rates';
 
-    public function user(): BelongsTo
+    /**
+     * Validar que el valor sea correcto.
+     *
+     * @param float $value Valor a validar
+     */
+    public static function isValidValue(float $value) : bool
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $value > 0 && $value <= 999999.9999;
     }
 
     /**
-     * Scope para filtrar por moneda.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $currencyId
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Relación con la moneda asociada.
      */
-    public function scopeByCurrency($query, string $currencyId)
+    public function currency() : BelongsTo
     {
-        return $query->where('currency_id', $currencyId);
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     /**
      * Scope para filtrar tasas activas.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActive($query)
@@ -108,28 +99,31 @@ class ExchangeRate extends BaseModel
     }
 
     /**
-     * Validar que el valor sea correcto.
+     * Scope para filtrar por moneda.
      *
-     * @param float $value Valor a validar
-     * @return bool
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public static function isValidValue(float $value): bool
+    public function scopeByCurrency($query, string $currencyId)
     {
-        return $value > 0 && $value <= 999999.9999;
+        return $query->where('currency_id', $currencyId);
     }
 
     /**
      * Mutator para validar el valor antes de guardar.
-     *
-     * @param float $value
-     * @return void
      */
-    public function setAmountAttribute(float $value): void
+    public function setAmountAttribute(float $value) : void
     {
-        if (!self::isValidValue($value)) {
-            throw new \InvalidArgumentException('El valor del tipo de cambio debe estar entre 0.0001 y 999999.9999');
+        if (! self::isValidValue($value)) {
+            throw new InvalidArgumentException('El valor del tipo de cambio debe estar entre 0.0001 y 999999.9999');
         }
 
         $this->attributes['amount'] = $value;
+    }
+
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

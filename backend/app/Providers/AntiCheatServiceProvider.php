@@ -12,21 +12,9 @@ use Illuminate\Support\ServiceProvider;
 class AntiCheatServiceProvider extends ServiceProvider
 {
     /**
-     * Register services.
-     */
-    public function register(): void
-    {
-        // AntiCheatService no tiene dependencias de contrato que resolver
-        // dinámicamente (usa Eloquent + config directamente) — no requiere
-        // binding de interfaz->implementación. Se registra como singleton
-        // para evitar reconstrucciones redundantes dentro del mismo request.
-        $this->app->singleton(\App\Services\Games\AntiCheatService::class);
-    }
-
-    /**
      * Bootstrap services.
      */
-    public function boot(): void
+    public function boot() : void
     {
         // database/migrations/anticheat/ no se escanea automáticamente por
         // artisan migrate/migrate:fresh — mismo motivo que
@@ -34,5 +22,17 @@ class AntiCheatServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(database_path('migrations/anticheat'));
 
         $this->mergeConfigFrom(config_path('anticheat.php'), 'anticheat');
+    }
+
+    /**
+     * Register services.
+     */
+    public function register() : void
+    {
+        // AntiCheatService no tiene dependencias de contrato que resolver
+        // dinámicamente (usa Eloquent + config directamente) — no requiere
+        // binding de interfaz->implementación. Se registra como singleton
+        // para evitar reconstrucciones redundantes dentro del mismo request.
+        $this->app->singleton(\App\Services\Games\AntiCheatService::class);
     }
 }

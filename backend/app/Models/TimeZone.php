@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Casts\AsActiveStatusEnum;
-use App\Models\Country;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,9 +19,13 @@ class TimeZone extends Model
     use SnowflakeId;
 
     /**
-     * Tabla asociada.
+     * Conversión de tipos.
      */
-    protected $table = 'time_zones';
+    protected $casts = [
+        'id' => 'string',
+        'country_id' => 'string',
+        'status' => AsActiveStatusEnum::class,
+    ];
 
     /**
      * Atributos asignables.
@@ -35,18 +38,14 @@ class TimeZone extends Model
     ];
 
     /**
-     * Conversión de tipos.
+     * Tabla asociada.
      */
-    protected $casts = [
-        'id' => 'string',
-        'country_id' => 'string',
-        'status' => AsActiveStatusEnum::class,
-    ];
+    protected $table = 'time_zones';
 
     /**
      * País asociado a esta zona horaria.
      */
-    public function country(): BelongsTo
+    public function country() : BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
     }

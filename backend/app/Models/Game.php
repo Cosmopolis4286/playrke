@@ -18,22 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 class Game extends Model
 {
     use \App\Traits\SnowflakeId;
-
-    // ========================
-    // Configuración de la tabla
-    // ========================
-    protected $table = 'games';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
-
-    // ========================
-    // Campos asignables
-    // ========================
-    protected $fillable = [
-        'name',
-        'status',
-    ];
 
     // ========================
     // Casting de tipos
@@ -45,13 +30,55 @@ class Game extends Model
     ];
 
     // ========================
+    // Campos asignables
+    // ========================
+    protected $fillable = [
+        'name',
+        'status',
+    ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+
+    // ========================
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'games';
+
+    /**
+     * Obtener un valor específico de un juego por su nombre
+     *
+     * @param string $name   Nombre del juego
+     * @param string $column Columna a obtener
+     */
+    public static function getValueByName(string $name, string $column) : mixed
+    {
+        return static::where('name', strtoupper($name))->value($column);
+    }
+
+    /**
+     * Obtener nombre para mostrar
+     */
+    public function getDisplayNameAttribute() : string
+    {
+        return $this->name;
+    }
+
+    // ========================
     // Accessors
     // ========================
 
     /**
      * Verificar si el juego está activo
      */
-    public function getIsActiveAttribute(): bool
+    public function getIsActiveAttribute() : bool
+    {
+        return $this->status === 'ACTIVE';
+    }
+
+    /**
+     * Verificar si el juego está disponible (activo)
+     */
+    public function getIsAvailableAttribute() : bool
     {
         return $this->status === 'ACTIVE';
     }
@@ -59,7 +86,7 @@ class Game extends Model
     /**
      * Verificar si el juego está inactivo
      */
-    public function getIsInactiveAttribute(): bool
+    public function getIsInactiveAttribute() : bool
     {
         return $this->status === 'INACTIVE';
     }
@@ -67,33 +94,17 @@ class Game extends Model
     /**
      * Verificar si el juego está en mantenimiento
      */
-    public function getIsInMaintenanceAttribute(): bool
+    public function getIsInMaintenanceAttribute() : bool
     {
         return $this->status === 'MAINTENANCE';
     }
 
     /**
-     * Verificar si el juego está disponible (activo)
-     */
-    public function getIsAvailableAttribute(): bool
-    {
-        return $this->status === 'ACTIVE';
-    }
-
-    /**
-     * Obtener nombre para mostrar
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        return $this->name;
-    }
-
-    /**
      * Obtener clase CSS según el estado
      */
-    public function getStatusClassAttribute(): string
+    public function getStatusClassAttribute() : string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'ACTIVE' => 'text-green-600',
             'INACTIVE' => 'text-red-600',
             'MAINTENANCE' => 'text-yellow-600',
@@ -104,9 +115,9 @@ class Game extends Model
     /**
      * Obtener texto del estado en español
      */
-    public function getStatusTextAttribute(): string
+    public function getStatusTextAttribute() : string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'ACTIVE' => 'Activo',
             'INACTIVE' => 'Inactivo',
             'MAINTENANCE' => 'Mantenimiento',
@@ -124,6 +135,30 @@ class Game extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'ACTIVE');
+    }
+
+    /**
+     * Scope para juegos disponibles (activos)
+     */
+    public function scopeAvailable($query)
+    {
+        return $query->where('status', 'ACTIVE');
+    }
+
+    /**
+     * Scope para buscar por nombre
+     */
+    public function scopeByName($query, string $name)
+    {
+        return $query->where('name', 'like', "%{$name}%");
+    }
+
+    /**
+     * Scope para buscar por estado
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        return $query->where('status', strtoupper($status));
     }
 
     /**
@@ -148,41 +183,5 @@ class Game extends Model
     public function scopeOrderedByName($query)
     {
         return $query->orderBy('name');
-    }
-
-    /**
-     * Scope para buscar por nombre
-     */
-    public function scopeByName($query, string $name)
-    {
-        return $query->where('name', 'like', "%{$name}%");
-    }
-
-    /**
-     * Scope para buscar por estado
-     */
-    public function scopeByStatus($query, string $status)
-    {
-        return $query->where('status', strtoupper($status));
-    }
-
-    /**
-     * Scope para juegos disponibles (activos)
-     */
-    public function scopeAvailable($query)
-    {
-        return $query->where('status', 'ACTIVE');
-    }
-
-    /**
-     * Obtener un valor específico de un juego por su nombre
-     *
-     * @param string $name Nombre del juego
-     * @param string $column Columna a obtener
-     * @return mixed
-     */
-    public static function getValueByName(string $name, string $column): mixed
-    {
-        return static::where('name', strtoupper($name))->value($column);
     }
 }

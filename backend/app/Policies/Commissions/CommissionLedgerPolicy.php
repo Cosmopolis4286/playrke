@@ -14,7 +14,7 @@ class CommissionLedgerPolicy
 {
     public const BUSINESS_ROLES = ['seller', 'subsidiary', 'commerce', 'customer'];
 
-    public function viewOwn(User $user): bool
+    public function viewOwn(User $user) : bool
     {
         return $user->checkPermissionTo('commissions.view-own') && $user->hasRole(self::BUSINESS_ROLES);
     }

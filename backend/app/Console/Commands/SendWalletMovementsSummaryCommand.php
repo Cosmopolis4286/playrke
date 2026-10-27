@@ -9,11 +9,10 @@ use Throwable;
 
 class SendWalletMovementsSummaryCommand extends Command
 {
+    protected $description = 'Envía el resumen semanal de movimientos de billetera por email a los admins con permiso de gestión';
     protected $signature = 'wallet:send-movements-summary';
 
-    protected $description = 'Envía el resumen semanal de movimientos de billetera por email a los admins con permiso de gestión';
-
-    public function handle(WalletMovementsReportService $service): void
+    public function handle(WalletMovementsReportService $service) : void
     {
         $status = 'SUCCESS';
 
@@ -26,7 +25,7 @@ class SendWalletMovementsSummaryCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }

@@ -19,13 +19,12 @@ use Throwable;
  */
 class CryptoDepositReconciliationCommand extends Command
 {
-    protected $signature = 'marketplace:reconcile-crypto-deposits';
-
-    protected $description = 'Alerta depósitos cripto confirmados on-chain sin acreditar internamente';
-
     private const STALE_MINUTES = 15;
 
-    public function handle(): void
+    protected $description = 'Alerta depósitos cripto confirmados on-chain sin acreditar internamente';
+    protected $signature = 'marketplace:reconcile-crypto-deposits';
+
+    public function handle() : void
     {
         $status = 'SUCCESS';
 
@@ -41,10 +40,10 @@ class CryptoDepositReconciliationCommand extends Command
                 foreach ($stale as $tx) {
                     Log::warning('[CryptoDepositReconciliation] Depósito confirmado sin acreditar', [
                         'crypto_transaction_id' => $tx->id,
-                        'tx_hash'               => $tx->tx_hash,
-                        'user_id'               => $tx->user_id,
-                        'amount'                => $tx->amount,
-                        'confirmed_at'          => $tx->confirmed_at?->toIso8601String(),
+                        'tx_hash' => $tx->tx_hash,
+                        'user_id' => $tx->user_id,
+                        'amount' => $tx->amount,
+                        'confirmed_at' => $tx->confirmed_at?->toIso8601String(),
                     ]);
                 }
                 $output = "Se detectaron {$stale->count()} depósito(s) cripto confirmados sin acreditar — ver logs para detalle.";
@@ -56,7 +55,7 @@ class CryptoDepositReconciliationCommand extends Command
                 'Error al ejecutar la tarea: %s en archivo %s línea %d',
                 $e->getMessage(),
                 $e->getFile(),
-                $e->getLine()
+                $e->getLine(),
             );
             $this->error($output);
         }
@@ -67,7 +66,7 @@ class CryptoDepositReconciliationCommand extends Command
             $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }
 
-        if ($status === 'SUCCESS' && (!isset($stale) || $stale->isEmpty())) {
+        if ($status === 'SUCCESS' && (! isset($stale) || $stale->isEmpty())) {
             $this->info($output);
         }
     }

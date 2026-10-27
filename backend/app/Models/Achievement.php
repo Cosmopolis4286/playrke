@@ -4,21 +4,29 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Achievement extends Model
 {
-    use SnowflakeId;
     use Auditable;
-
-    protected $table = 'achievements';
-
-    protected $primaryKey = 'id';
+    use SnowflakeId;
 
     public $incrementing = false;
 
-    protected $keyType = 'string';
+    protected $appends = [
+        'badge_style',
+    ];
+
+    protected $casts = [
+        'requirements' => 'array',
+        'xp_reward' => 'integer',
+        'is_active' => 'boolean',
+        'is_hidden' => 'boolean',
+        'sort_order' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     protected $fillable = [
         'code',
@@ -34,33 +42,62 @@ class Achievement extends Model
         'sort_order',
     ];
 
-    protected $casts = [
-        'requirements' => 'array',
-        'xp_reward' => 'integer',
-        'is_active' => 'boolean',
-        'is_hidden' => 'boolean',
-        'sort_order' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    protected $keyType = 'string';
 
-    protected $appends = [
-        'badge_style',
-    ];
+    protected $primaryKey = 'id';
 
-    public function users(): BelongsToMany
+    protected $table = 'achievements';
+
+    public function calculateProgress(User $user, array $progressData = []) : array
     {
-        return $this->belongsToMany(User::class, 'user_achievements')
-            ->withPivot(['unlocked_at', 'progress_data', 'is_seen'])
-            ->withTimestamps();
+        $requirements = $this->requirements;
+        $type = $requirements['type'] ?? 'count';
+        $target = $requirements['target'] ?? 1;
+
+        switch ($type) {
+            case 'games_played':
+                $current = $user->games_played_count;
+
+                break;
+            case 'games_won':
+                $current = $user->games_won_count;
+
+                break;
+            case 'total_winnings':
+                $current = $user->total_winnings;
+
+                break;
+            case 'login_streak':
+                $current = $user->login_streak_days;
+
+                break;
+            case 'level_reached':
+                $current = $user->getCurrentLevel();
+
+                break;
+            case 'referrals':
+                // Solo referidos verificados — mismo criterio que el XP
+                // (AwardReferralXpOnVerifiedListener), evita que el logro se
+                // desbloquee con cuentas creadas pero nunca confirmadas.
+                $current = $user->referrals()->whereNotNull('email_verified_at')->count();
+
+                break;
+            case 'custom':
+                $current = $progressData['current'] ?? 0;
+
+                break;
+            default:
+                $current = 0;
+        }
+
+        return [
+            'current' => $current,
+            'total' => $target,
+            'percentage' => min(100, ($current / $target) * 100),
+        ];
     }
 
-    public function userAchievements()
-    {
-        return $this->hasMany(UserAchievement::class);
-    }
-
-    public function getBadgeStyleAttribute(): string
+    public function getBadgeStyleAttribute() : string
     {
         $colors = [
             'gray' => 'bg-gray-500',
@@ -80,9 +117,9 @@ class Achievement extends Model
         return $colors[$this->badge_color] ?? 'bg-gray-500';
     }
 
-    public function getIconUrlAttribute(): ?string
+    public function getIconUrlAttribute() : ?string
     {
-        if (!$this->icon) {
+        if (! $this->icon) {
             return null;
         }
 
@@ -93,13 +130,13 @@ class Achievement extends Model
         return asset("storage/achievements/{$this->icon}");
     }
 
-    public function getProgressForUser(User $user): array
+    public function getProgressForUser(User $user) : array
     {
         $userAchievement = $this->userAchievements()
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$userAchievement) {
+        if (! $userAchievement) {
             return [
                 'is_unlocked' => false,
                 'progress' => 0,
@@ -120,59 +157,37 @@ class Achievement extends Model
         ];
     }
 
-    public function calculateProgress(User $user, array $progressData = []): array
-    {
-        $requirements = $this->requirements;
-        $type = $requirements['type'] ?? 'count';
-        $target = $requirements['target'] ?? 1;
-
-        switch ($type) {
-            case 'games_played':
-                $current = $user->games_played_count;
-                break;
-            case 'games_won':
-                $current = $user->games_won_count;
-                break;
-            case 'total_winnings':
-                $current = $user->total_winnings;
-                break;
-            case 'login_streak':
-                $current = $user->login_streak_days;
-                break;
-            case 'level_reached':
-                $current = $user->getCurrentLevel();
-                break;
-            case 'referrals':
-                // Solo referidos verificados — mismo criterio que el XP
-                // (AwardReferralXpOnVerifiedListener), evita que el logro se
-                // desbloquee con cuentas creadas pero nunca confirmadas.
-                $current = $user->referrals()->whereNotNull('email_verified_at')->count();
-                break;
-            case 'custom':
-                $current = $progressData['current'] ?? 0;
-                break;
-            default:
-                $current = 0;
-        }
-
-        return [
-            'current' => $current,
-            'total' => $target,
-            'percentage' => min(100, ($current / $target) * 100),
-        ];
-    }
-
-    public function getRequiredTotal(): int
+    public function getRequiredTotal() : int
     {
         return $this->requirements['target'] ?? 1;
     }
 
-    public function isUnlockedByUser(User $user): bool
+    public function isUnlockedByUser(User $user) : bool
     {
         return $this->users()->where('user_id', $user->id)->exists();
     }
 
-    public function unlockForUser(User $user): UserAchievement
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeByCategory($query, string $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    public function scopeOrderByOrder($query, $direction = 'asc')
+    {
+        return $query->orderBy('sort_order', $direction);
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->where('is_hidden', false);
+    }
+
+    public function unlockForUser(User $user) : UserAchievement
     {
         $userAchievement = UserAchievement::create([
             'user_id' => $user->id,
@@ -190,23 +205,15 @@ class Achievement extends Model
         return $userAchievement;
     }
 
-    public function scopeActive($query)
+    public function userAchievements()
     {
-        return $query->where('is_active', true);
+        return $this->hasMany(UserAchievement::class);
     }
 
-    public function scopeByCategory($query, string $category)
+    public function users() : BelongsToMany
     {
-        return $query->where('category', $category);
-    }
-
-    public function scopeVisible($query)
-    {
-        return $query->where('is_hidden', false);
-    }
-
-    public function scopeOrderByOrder($query, $direction = 'asc')
-    {
-        return $query->orderBy('sort_order', $direction);
+        return $this->belongsToMany(User::class, 'user_achievements')
+            ->withPivot(['unlocked_at', 'progress_data', 'is_seen'])
+            ->withTimestamps();
     }
 }

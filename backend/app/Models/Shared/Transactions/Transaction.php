@@ -15,11 +15,14 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends Model
 {
     use SnowflakeId;
-
-    protected $table = "transactions";
-
-    public const STATUS_WAITING  = 'WAITING';
     public const STATUS_EXECUTED = 'EXECUTED';
+
+    public const STATUS_WAITING = 'WAITING';
+
+    protected $casts = [
+        'amount' => 'decimal:8',
+        'processing_data' => 'datetime',
+    ];
 
     protected $fillable = [
         'customer_id',
@@ -35,8 +38,5 @@ class Transaction extends Model
         'processing_data',
     ];
 
-    protected $casts = [
-        'amount' => 'decimal:8',
-        'processing_data' => 'datetime',
-    ];
+    protected $table = 'transactions';
 }

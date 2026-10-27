@@ -21,41 +21,42 @@ class WinEventBroadcasted implements ShouldBroadcastNow
         public readonly string $winnerName,
         public readonly string $currencySymbol,
         public readonly int $decimalPlaces,
-    ) {}
-
-    public function broadcastOn(): Channel
-    {
-        return new Channel('platform.win-events');
+    ) {
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs() : string
     {
         return 'NewWin';
     }
 
-    public function broadcastWith(): array
+    public function broadcastConnection() : string
+    {
+        return 'reverb';
+    }
+
+    public function broadcastOn() : Channel
+    {
+        return new Channel('platform.win-events');
+    }
+
+    public function broadcastWith() : array
     {
         $e = $this->winEvent;
 
         return [
-            'id'              => (string) $e->id,
-            'game'            => $e->game_name,
-            'game_slug'       => $e->game_slug,
-            'winner_name'     => $this->winnerName,
-            'prize_kind'      => $e->prize_kind,
-            'prize_label'     => $e->prize_label,
-            'amount'          => $e->amount_usd !== null ? (float) $e->amount_usd : null,
-            'currency'        => $e->currency?->iso_code ?? 'USD',
+            'id' => (string) $e->id,
+            'game' => $e->game_name,
+            'game_slug' => $e->game_slug,
+            'winner_name' => $this->winnerName,
+            'prize_kind' => $e->prize_kind,
+            'prize_label' => $e->prize_label,
+            'amount' => $e->amount_usd !== null ? (float) $e->amount_usd : null,
+            'currency' => $e->currency?->iso_code ?? 'USD',
             'currency_symbol' => $this->currencySymbol,
-            'is_usd'          => ($e->currency?->iso_code ?? 'USD') === 'USD',
-            'local_amount'    => $e->amount_local !== null ? (float) $e->amount_local : null,
-            'decimal_places'  => $this->decimalPlaces,
-            'timestamp'       => $e->created_at?->toISOString() ?? now()->toISOString(),
+            'is_usd' => ($e->currency?->iso_code ?? 'USD') === 'USD',
+            'local_amount' => $e->amount_local !== null ? (float) $e->amount_local : null,
+            'decimal_places' => $this->decimalPlaces,
+            'timestamp' => $e->created_at?->toISOString() ?? now()->toISOString(),
         ];
-    }
-
-    public function broadcastConnection(): string
-    {
-        return 'reverb';
     }
 }

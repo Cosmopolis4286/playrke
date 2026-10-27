@@ -15,14 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class PrizePoolType extends Model
 {
-    use SnowflakeId, HasActiveStatusScope;
+    use HasActiveStatusScope, SnowflakeId;
 
-    protected $fillable = [
-        'game_id',
-        'code',
-        'label',
-        'status',
-    ];
+    public const CODE_ACCUMULATIVE = 'ACCUMULATIVE';
 
     protected $casts = [
         'id' => 'string',
@@ -32,19 +27,24 @@ class PrizePoolType extends Model
         'status' => 'string',
     ];
 
-    public const CODE_ACCUMULATIVE = 'ACCUMULATIVE';
+    protected $fillable = [
+        'game_id',
+        'code',
+        'label',
+        'status',
+    ];
+
+    public function game() : BelongsTo
+    {
+        return $this->belongsTo(Game::class, 'game_id');
+    }
 
     /**
      * Bote acumulativo: se forma solo con las ventas, sin "Valor Fijo/Extra".
      * El resto de los tipos (FIXED/MIXED/PRIZE) exigen ese monto.
      */
-    public function isAccumulative(): bool
+    public function isAccumulative() : bool
     {
         return $this->code === self::CODE_ACCUMULATIVE;
-    }
-
-    public function game(): BelongsTo
-    {
-        return $this->belongsTo(Game::class, 'game_id');
     }
 }

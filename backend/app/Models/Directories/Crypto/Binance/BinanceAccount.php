@@ -31,23 +31,13 @@ class BinanceAccount extends Model
         'P' => 'Num. Celular',
         'B' => 'Id de Binance',
     ];
-
-    // ========================
-    // Configuración de la tabla
-    // ========================
-    protected $table = 'binance_accounts';
-    protected $primaryKey = 'id';
     public $incrementing = false;
-    protected $keyType = 'string';
 
     // ========================
-    // Campos asignables
+    // Accessors añadidos automáticamente
     // ========================
-    protected $fillable = [
-        'account_type',
-        'data_value',
-        'user_id',
-        'status',
+    protected $appends = [
+        'account_type_description',
     ];
 
     // ========================
@@ -60,22 +50,40 @@ class BinanceAccount extends Model
     ];
 
     // ========================
-    // Accessors añadidos automáticamente
+    // Campos asignables
     // ========================
-    protected $appends = [
-        'account_type_description',
+    protected $fillable = [
+        'account_type',
+        'data_value',
+        'user_id',
+        'status',
     ];
+    protected $keyType = 'string';
+    protected $primaryKey = 'id';
 
     // ========================
-    // Relaciones
+    // Configuración de la tabla
+    // ========================
+    protected $table = 'binance_accounts';
+
+    // ========================
+    // Métodos estáticos útiles
     // ========================
 
     /**
-     * Relación: una cuenta Binance pertenece a un usuario
+     * Obtener tipos de cuenta disponibles
+     *
+     * @param string|null $excludeType Tipo a excluir
      */
-    public function user(): BelongsTo
+    public static function getAccountTypes(?string $excludeType = null) : array
     {
-        return $this->belongsTo(User::class, 'user_id');
+        if ($excludeType) {
+            return array_filter(self::TYPES, function($key) use ($excludeType) {
+                return $key !== $excludeType;
+            }, ARRAY_FILTER_USE_KEY);
+        }
+
+        return self::TYPES;
     }
 
     // ========================
@@ -85,31 +93,39 @@ class BinanceAccount extends Model
     /**
      * Obtener descripción del tipo de cuenta
      */
-    public function getAccountTypeDescriptionAttribute(): string
+    public function getAccountTypeDescriptionAttribute() : string
     {
         return self::TYPES[$this->account_type] ?? 'Desconocido';
     }
 
     /**
+     * Obtener nombre para mostrar
+     */
+    public function getDisplayNameAttribute() : string
+    {
+        return "{$this->account_type_description}: {$this->data_value}";
+    }
+
+    /**
      * Verificar si la cuenta está activa
      */
-    public function getIsActiveAttribute(): bool
+    public function getIsActiveAttribute() : bool
     {
         return $this->status === 'ACTIVE';
     }
 
     /**
-     * Verificar si la cuenta está inactiva
+     * Verificar si es cuenta de ID Binance
      */
-    public function getIsInactiveAttribute(): bool
+    public function getIsBinanceIdAttribute() : bool
     {
-        return $this->status === 'INACTIVE';
+        return $this->account_type === 'B';
     }
 
     /**
      * Verificar si la cuenta está bloqueada
      */
-    public function getIsBlockedAttribute(): bool
+    public function getIsBlockedAttribute() : bool
     {
         return $this->status === 'BLOCKED';
     }
@@ -117,41 +133,33 @@ class BinanceAccount extends Model
     /**
      * Verificar si es cuenta de email
      */
-    public function getIsEmailAttribute(): bool
+    public function getIsEmailAttribute() : bool
     {
         return $this->account_type === 'E';
     }
 
     /**
+     * Verificar si la cuenta está inactiva
+     */
+    public function getIsInactiveAttribute() : bool
+    {
+        return $this->status === 'INACTIVE';
+    }
+
+    /**
      * Verificar si es cuenta de teléfono
      */
-    public function getIsPhoneAttribute(): bool
+    public function getIsPhoneAttribute() : bool
     {
         return $this->account_type === 'P';
     }
 
     /**
-     * Verificar si es cuenta de ID Binance
-     */
-    public function getIsBinanceIdAttribute(): bool
-    {
-        return $this->account_type === 'B';
-    }
-
-    /**
-     * Obtener nombre para mostrar
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        return "{$this->account_type_description}: {$this->data_value}";
-    }
-
-    /**
      * Obtener clase CSS según el estado
      */
-    public function getStatusClassAttribute(): string
+    public function getStatusClassAttribute() : string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'ACTIVE' => 'text-green-600',
             'INACTIVE' => 'text-yellow-600',
             'BLOCKED' => 'text-red-600',
@@ -162,9 +170,9 @@ class BinanceAccount extends Model
     /**
      * Obtener texto del estado en español
      */
-    public function getStatusTextAttribute(): string
+    public function getStatusTextAttribute() : string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'ACTIVE' => 'Activa',
             'INACTIVE' => 'Inactiva',
             'BLOCKED' => 'Bloqueada',
@@ -185,11 +193,11 @@ class BinanceAccount extends Model
     }
 
     /**
-     * Scope para cuentas inactivas
+     * Scope para cuentas de ID Binance
      */
-    public function scopeInactive($query)
+    public function scopeBinanceId($query)
     {
-        return $query->where('status', 'INACTIVE');
+        return $query->where('account_type', 'B');
     }
 
     /**
@@ -209,27 +217,27 @@ class BinanceAccount extends Model
     }
 
     /**
+     * Scope para buscar por valor de datos
+     */
+    public function scopeByDataValue($query, string $dataValue)
+    {
+        return $query->where('data_value', $dataValue);
+    }
+
+    /**
+     * Scope para buscar por estado
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        return $query->where('status', strtoupper($status));
+    }
+
+    /**
      * Scope para cuentas de email
      */
     public function scopeEmail($query)
     {
         return $query->where('account_type', 'E');
-    }
-
-    /**
-     * Scope para cuentas de teléfono
-     */
-    public function scopePhone($query)
-    {
-        return $query->where('account_type', 'P');
-    }
-
-    /**
-     * Scope para cuentas de ID Binance
-     */
-    public function scopeBinanceId($query)
-    {
-        return $query->where('account_type', 'B');
     }
 
     /**
@@ -241,19 +249,11 @@ class BinanceAccount extends Model
     }
 
     /**
-     * Scope para buscar por valor de datos
+     * Scope para cuentas inactivas
      */
-    public function scopeByDataValue($query, string $dataValue)
+    public function scopeInactive($query)
     {
-        return $query->where('data_value', $dataValue);
-    }
-
-    /**
-     * Scope para buscar con usuario eager loaded
-     */
-    public function scopeWithUser($query)
-    {
-        return $query->with('user');
+        return $query->where('status', 'INACTIVE');
     }
 
     /**
@@ -265,31 +265,30 @@ class BinanceAccount extends Model
     }
 
     /**
-     * Scope para buscar por estado
+     * Scope para cuentas de teléfono
      */
-    public function scopeByStatus($query, string $status)
+    public function scopePhone($query)
     {
-        return $query->where('status', strtoupper($status));
+        return $query->where('account_type', 'P');
+    }
+
+    /**
+     * Scope para buscar con usuario eager loaded
+     */
+    public function scopeWithUser($query)
+    {
+        return $query->with('user');
     }
 
     // ========================
-    // Métodos estáticos útiles
+    // Relaciones
     // ========================
 
     /**
-     * Obtener tipos de cuenta disponibles
-     *
-     * @param string|null $excludeType Tipo a excluir
-     * @return array
+     * Relación: una cuenta Binance pertenece a un usuario
      */
-    public static function getAccountTypes(?string $excludeType = null): array
+    public function user() : BelongsTo
     {
-        if ($excludeType) {
-            return array_filter(self::TYPES, function($key) use ($excludeType) {
-                return $key !== $excludeType;
-            }, ARRAY_FILTER_USE_KEY);
-        }
-
-        return self::TYPES;
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

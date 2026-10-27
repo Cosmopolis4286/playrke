@@ -10,18 +10,18 @@ class UserSidebarFavorite extends Model
 {
     use SnowflakeId;
 
+    protected $casts = [
+        'id' => 'string',
+        'user_id' => 'string',
+    ];
+
     protected $fillable = [
         'user_id',
         'item_key',
         'sort_order',
     ];
 
-    protected $casts = [
-        'id'      => 'string',
-        'user_id' => 'string',
-    ];
-
-    public function user(): BelongsTo
+    public function user() : BelongsTo
     {
         return $this->belongsTo(User::class);
     }

@@ -7,7 +7,7 @@ use InvalidArgumentException;
 
 final class PixKeyFactory
 {
-    public function fromRequest(array $data, ?string $pixKeyId = null): PixKeyDTO
+    public function fromRequest(array $data, ?string $pixKeyId = null) : PixKeyDTO
     {
         if ($pixKeyId === null) {
             foreach (['pix_key_type', 'pix_key_value', 'bank_id'] as $field) {
@@ -18,11 +18,11 @@ final class PixKeyFactory
         }
 
         return new PixKeyDTO(
-            id:          $data['id'] ?? $pixKeyId,
-            pixKeyType:  $data['pix_key_type'],
+            id: $data['id'] ?? $pixKeyId,
+            pixKeyType: $data['pix_key_type'],
             pixKeyValue: $data['pix_key_value'],
-            bankId:      $data['bank_id'],
-            holderName:  $data['holder_name'] ?? null,
+            bankId: $data['bank_id'],
+            holderName: $data['holder_name'] ?? null,
         );
     }
 }

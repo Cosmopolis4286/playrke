@@ -13,9 +13,6 @@ use Illuminate\Console\Command;
  */
 class FixBingoCardRangesCommand extends Command
 {
-    protected $signature   = 'bingo:fix-card-ranges {--dry-run : Mostrar cambios sin aplicarlos} {--room= : Limitar a una sala específica (ID)}';
-    protected $description = 'Corrige números de cartones de bingo que están fuera del rango de su columna';
-
     private const COL_RANGES = [
         'B' => [1,  15],
         'I' => [16, 30],
@@ -23,11 +20,13 @@ class FixBingoCardRangesCommand extends Command
         'G' => [46, 60],
         'O' => [61, 75],
     ];
+    protected $description = 'Corrige números de cartones de bingo que están fuera del rango de su columna';
+    protected $signature = 'bingo:fix-card-ranges {--dry-run : Mostrar cambios sin aplicarlos} {--room= : Limitar a una sala específica (ID)}';
 
-    public function handle(): int
+    public function handle() : int
     {
         $isDryRun = $this->option('dry-run');
-        $roomId   = $this->option('room');
+        $roomId = $this->option('room');
 
         $this->info($isDryRun ? '[DRY-RUN] Sin cambios en BD' : 'Iniciando corrección de rangos...');
 
@@ -39,15 +38,15 @@ class FixBingoCardRangesCommand extends Command
         $fixed = 0;
         $total = 0;
 
-        $query->chunk(200, function ($cards) use (&$fixed, &$total, $isDryRun) {
+        $query->chunk(200, function($cards) use (&$fixed, &$total, $isDryRun) {
             foreach ($cards as $card) {
                 $total++;
-                $matrix  = $card->card_numbers ?? [];
+                $matrix = $card->card_numbers ?? [];
                 $changed = false;
 
                 foreach (self::COL_RANGES as $col => [$lo, $hi]) {
                     $colNums = $matrix[$col] ?? [];
-                    $isN     = ($col === 'N');
+                    $isN = ($col === 'N');
                     // N tiene 5 slots pero posición [2] puede ser null (celda libre)
                     $newNums = [];
 
@@ -57,13 +56,14 @@ class FixBingoCardRangesCommand extends Command
                     foreach ($colNums as $idx => $n) {
                         if ($isN && $idx === 2 && $n === null) {
                             $newNums[] = null;
+
                             continue;
                         }
                         if ($n === null || $n < $lo || $n > $hi) {
                             // Número inválido: regenerar con exclusión de ya-asignados en esta columna
-                            $exclude   = array_merge(array_filter($newNums, fn($x) => $x !== null), $otherCols);
+                            $exclude = array_merge(array_filter($newNums, fn ($x) => $x !== null), $otherCols);
                             $newNums[] = $this->freshNumber($lo, $hi, $exclude);
-                            $changed   = true;
+                            $changed = true;
                         } else {
                             $newNums[] = $n;
                         }
@@ -72,12 +72,14 @@ class FixBingoCardRangesCommand extends Command
                     $matrix[$col] = $newNums;
                 }
 
-                if (!$changed) continue;
+                if (! $changed) {
+                    continue;
+                }
 
                 $fixed++;
                 $this->line("  Card #{$card->id} — corregida");
 
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $card->card_numbers = $matrix;
                     $card->save();
                 }
@@ -89,25 +91,31 @@ class FixBingoCardRangesCommand extends Command
         return self::SUCCESS;
     }
 
-    private function alreadyUsed(array $matrix, string $skipCol): array
+    private function alreadyUsed(array $matrix, string $skipCol) : array
     {
         $used = [];
         foreach ($matrix as $col => $nums) {
-            if ($col === $skipCol) continue;
+            if ($col === $skipCol) {
+                continue;
+            }
             foreach ($nums as $n) {
-                if ($n !== null) $used[] = $n;
+                if ($n !== null) {
+                    $used[] = $n;
+                }
             }
         }
+
         return $used;
     }
 
-    private function freshNumber(int $lo, int $hi, array $exclude): int
+    private function freshNumber(int $lo, int $hi, array $exclude) : int
     {
         $pool = array_diff(range($lo, $hi), $exclude);
         if (empty($pool)) {
             // Fallback: devolver un número del rango (no debería ocurrir con rangos no solapados)
             return rand($lo, $hi);
         }
+
         return $pool[array_rand($pool)];
     }
 }

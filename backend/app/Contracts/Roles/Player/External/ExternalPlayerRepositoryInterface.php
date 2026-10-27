@@ -8,11 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface ExternalPlayerRepositoryInterface extends BaseRepositoryInterface
 {
-    public function getByLink(string $playerLink): ?ExternalPlayer;
-
-    public function getValueByLink(string $link, string $column): mixed;
-
-    public function getByRoomUser(string $gameId, string $roomUserId): ?ExternalPlayer;
+    public function existsByLink(string $link) : bool;
 
     /**
      * Busca un jugador externo por la combinación exacta que identifica su
@@ -21,54 +17,58 @@ interface ExternalPlayerRepositoryInterface extends BaseRepositoryInterface
      * comprador recurrente antes de generar más cartones.
      */
     /**
-     * @param string[]|null $sellerUserIds Si viene, solo jugadores captados por
-     *   estos vendedores (red comercial del actor — ver
-     *   ExternalPlayerLinkService::actorNetworkUserIds()).
+     * @param string[]|null $sellerUserIds si viene, solo jugadores captados por
+     *                                     estos vendedores (red comercial del actor — ver
+     *                                     ExternalPlayerLinkService::actorNetworkUserIds())
      */
-    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId, ?array $sellerUserIds = null): ?ExternalPlayer;
+    public function findByPhoneAndRoom(string $phone, string $countryId, string $gameId, string $roomId, ?array $sellerUserIds = null) : ?ExternalPlayer;
 
-    public function getValueByRoomUser(string $gameId, string $roomUserId, string $column): mixed;
+    public function generateUniqueLink() : string;
 
-    public function getByGame(string $gameId): Collection;
+    public function getActivePlayersByGame(string $gameId) : Collection;
 
-    public function getByRoom(string $roomId): Collection;
+    public function getBlockedPlayersByGame(string $gameId) : Collection;
 
-    public function getByCreatorUser(string $creatorUserId): Collection;
+    public function getByCountry(string $countryId) : Collection;
 
-    public function getBySeller(string $sellerUserId): Collection;
+    public function getByCreatorUser(string $creatorUserId) : Collection;
 
-    public function getByCountry(string $countryId): Collection;
+    public function getByCurrency(string $currencyId) : Collection;
 
-    public function getByCurrency(string $currencyId): Collection;
+    public function getByGame(string $gameId) : Collection;
 
-    public function getActivePlayersByGame(string $gameId): Collection;
+    public function getByLink(string $playerLink) : ?ExternalPlayer;
 
-    public function getInactivePlayersByGame(string $gameId): Collection;
+    public function getByRoom(string $roomId) : Collection;
 
-    public function getBlockedPlayersByGame(string $gameId): Collection;
+    public function getByRoomUser(string $gameId, string $roomUserId) : ?ExternalPlayer;
 
-    public function searchByIdentification(string $identification): Collection;
+    public function getBySeller(string $sellerUserId) : Collection;
 
-    public function searchByPhone(string $phone): Collection;
+    public function getInactivePlayersByGame(string $gameId) : Collection;
 
-    public function searchByName(string $firstName, ?string $lastName = null): Collection;
+    public function getPlayersByStatus(string $status = 'ACTIVE') : Collection;
 
-    public function getPlayersByStatus(string $status = 'ACTIVE'): Collection;
+    public function getPlayerStatistics(?string $gameId = null, ?array $sellerUserIds = null) : array;
 
-    public function updatePlayerStatus(string $playerId, string $status): bool;
+    public function getPlayersWithPurchaseCode(string $purchaseCodeId) : Collection;
 
-    public function generateUniqueLink(): string;
+    public function getValueByLink(string $link, string $column) : mixed;
 
-    public function existsByLink(string $link): bool;
+    public function getValueByRoomUser(string $gameId, string $roomUserId, string $column) : mixed;
 
     /**
      * Reemplaza el link vigente de un jugador externo por uno nuevo y
      * reinicia su expiración — usado cuando un link se comparte por error o
      * se sospecha filtrado, sin necesidad de bloquear al jugador entero.
      */
-    public function regenerateLink(string $playerId, int $expirationDays): ?ExternalPlayer;
+    public function regenerateLink(string $playerId, int $expirationDays) : ?ExternalPlayer;
 
-    public function getPlayersWithPurchaseCode(string $purchaseCodeId): Collection;
+    public function searchByIdentification(string $identification) : Collection;
 
-    public function getPlayerStatistics(?string $gameId = null, ?array $sellerUserIds = null): array;
+    public function searchByName(string $firstName, ?string $lastName = null) : Collection;
+
+    public function searchByPhone(string $phone) : Collection;
+
+    public function updatePlayerStatus(string $playerId, string $status) : bool;
 }

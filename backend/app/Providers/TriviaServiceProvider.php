@@ -18,37 +18,56 @@ use Illuminate\Support\ServiceProvider;
 
 /**
  * Service Provider del módulo Trivia.
- * 
+ *
  * Registra todos los bindings del módulo,
  * preparado para inyección de dependencias.
  */
 class TriviaServiceProvider extends ServiceProvider
 {
     /**
+     * Bootstrap services.
+     */
+    public function boot() : void
+    {
+        // Cargar configuración
+        $this->mergeConfigFrom(
+            config_path('trivia.php'),
+            'trivia',
+        );
+
+        // database/migrations/trivia/ no se escanea automáticamente por
+        // artisan migrate/migrate:fresh — sin este registro, un entorno
+        // nuevo nunca crea las tablas trivia_* aunque el código las use.
+        $this->loadMigrationsFrom(database_path('migrations/trivia'));
+
+        $this->guardPgsqlTriviaAgainstHungQueries();
+    }
+
+    /**
      * Register services.
      */
-    public function register(): void
+    public function register() : void
     {
         // Repositorios
         $this->app->singleton(
             GameStateRepositoryInterface::class,
-            RedisGameStateRepository::class
+            RedisGameStateRepository::class,
         );
 
         // Servicios
         $this->app->singleton(
             RoomServiceInterface::class,
-            RoomService::class
+            RoomService::class,
         );
 
         $this->app->singleton(
             ScoreServiceInterface::class,
-            ScoreService::class
+            ScoreService::class,
         );
 
         $this->app->singleton(
             GameEngineInterface::class,
-            GameEngineService::class
+            GameEngineService::class,
         );
 
         // Actions (transient - nueva instancia cada vez)
@@ -59,25 +78,6 @@ class TriviaServiceProvider extends ServiceProvider
 
         // Detalle de ganancias de Trivia en la vista admin de WinEvent.
         $this->app->tag([TriviaWinEventDetailResolver::class], WinEventDetailResolver::TAG);
-    }
-
-    /**
-     * Bootstrap services.
-     */
-    public function boot(): void
-    {
-        // Cargar configuración
-        $this->mergeConfigFrom(
-            config_path('trivia.php'),
-            'trivia'
-        );
-
-        // database/migrations/trivia/ no se escanea automáticamente por
-        // artisan migrate/migrate:fresh — sin este registro, un entorno
-        // nuevo nunca crea las tablas trivia_* aunque el código las use.
-        $this->loadMigrationsFrom(database_path('migrations/trivia'));
-
-        $this->guardPgsqlTriviaAgainstHungQueries();
     }
 
     /**
@@ -98,11 +98,11 @@ class TriviaServiceProvider extends ServiceProvider
      * límite, a diferencia de un timeout de cliente que no puede interrumpir
      * un socket ya bloqueado en lectura.
      */
-    private function guardPgsqlTriviaAgainstHungQueries(): void
+    private function guardPgsqlTriviaAgainstHungQueries() : void
     {
         $timeoutMs = (int) config('trivia.pgsql_statement_timeout_ms', 15000);
 
-        Event::listen(function (ConnectionEstablished $event) use ($timeoutMs): void {
+        Event::listen(function(ConnectionEstablished $event) use ($timeoutMs) : void {
             if (! in_array($event->connectionName, ['pgsql', 'pgsql_trivia'], true)) {
                 return;
             }

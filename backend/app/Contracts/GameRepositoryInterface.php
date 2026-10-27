@@ -3,7 +3,6 @@
 namespace App\Contracts;
 
 use App\Models\Game;
-use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,93 +12,97 @@ use Illuminate\Database\Eloquent\Collection;
 interface GameRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Buscar juego por nombre
+     * Verificar si existe un juego por nombre
      *
      * @param string $name Nombre del juego
-     * @param array $columns Columnas a seleccionar
-     * @return Game|null
      */
-    public function findByName(string $name, array $columns = ['*']): ?Game;
+    public function existsByName(string $name) : bool;
+
+    /**
+     * Obtener juegos por múltiples nombres
+     *
+     * @param array $names   Array de nombres
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<Game>
+     */
+    public function findByMultipleNames(array $names, array $columns = ['*']) : Collection;
+
+    /**
+     * Buscar juego por nombre
+     *
+     * @param string $name    Nombre del juego
+     * @param array  $columns Columnas a seleccionar
+     */
+    public function findByName(string $name, array $columns = ['*']) : ?Game;
 
     /**
      * Obtener juegos activos
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getActive(array $columns = ['*']): Collection;
-
-    /**
-     * Obtener juegos inactivos
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function getInactive(array $columns = ['*']): Collection;
-
-    /**
-     * Obtener juegos en mantenimiento
-     *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function getInMaintenance(array $columns = ['*']): Collection;
-
-    /**
-     * Buscar juegos por nombre parcial
-     *
-     * @param string $searchTerm Término de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<Game>
-     */
-    public function searchByName(string $searchTerm, array $columns = ['*']): Collection;
-
-    /**
-     * Verificar si existe un juego por nombre
-     *
-     * @param string $name Nombre del juego
-     * @return bool
-     */
-    public function existsByName(string $name): bool;
+    public function getActive(array $columns = ['*']) : Collection;
 
     /**
      * Obtener juegos ordenados por nombre
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getAllOrderedByName(array $columns = ['*']): Collection;
-
-    /**
-     * Obtener valor específico de un juego por nombre
-     *
-     * @param string $name Nombre del juego
-     * @param string $column Columna a obtener
-     * @return mixed
-     */
-    public function getValueByName(string $name, string $column): mixed;
+    public function getAllOrderedByName(array $columns = ['*']) : Collection;
 
     /**
      * Obtener juegos disponibles (método legacy)
      *
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function getAvailableGames(array $columns = ['*']): Collection;
+    public function getAvailableGames(array $columns = ['*']) : Collection;
 
     /**
      * Contar juegos por estado
      *
      * @return array Array con conteo por estado
      */
-    public function getCountByStatus(): array;
+    public function getCountByStatus() : array;
 
     /**
-     * Obtener juegos por múltiples nombres
+     * Obtener juegos inactivos
      *
-     * @param array $names Array de nombres
      * @param array $columns Columnas a seleccionar
+     *
      * @return Collection<Game>
      */
-    public function findByMultipleNames(array $names, array $columns = ['*']): Collection;
+    public function getInactive(array $columns = ['*']) : Collection;
+
+    /**
+     * Obtener juegos en mantenimiento
+     *
+     * @param array $columns Columnas a seleccionar
+     *
+     * @return Collection<Game>
+     */
+    public function getInMaintenance(array $columns = ['*']) : Collection;
+
+    /**
+     * Obtener valor específico de un juego por nombre
+     *
+     * @param string $name   Nombre del juego
+     * @param string $column Columna a obtener
+     */
+    public function getValueByName(string $name, string $column) : mixed;
+
+    /**
+     * Buscar juegos por nombre parcial
+     *
+     * @param string $searchTerm Término de búsqueda
+     * @param array  $columns    Columnas a seleccionar
+     *
+     * @return Collection<Game>
+     */
+    public function searchByName(string $searchTerm, array $columns = ['*']) : Collection;
 }
