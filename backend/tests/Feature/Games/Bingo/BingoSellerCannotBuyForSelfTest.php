@@ -17,7 +17,7 @@ use Tests\TestCase;
 class BingoSellerCannotBuyForSelfTest extends TestCase
 {
     #[Test]
-    public function no_existe_ruta_de_compra_para_comercio_o_vendedor(): void
+    public function no_existe_ruta_de_compra_para_comercio_o_vendedor() : void
     {
         $this->assertFalse(Route::has('bingo-game-rooms.buy-from-rooms'));
 

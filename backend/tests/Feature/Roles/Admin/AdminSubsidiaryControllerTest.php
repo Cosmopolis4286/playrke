@@ -33,40 +33,170 @@ class AdminSubsidiaryControllerTest extends TestCase
 
     private static int $idCounter = 0;
 
-    private function nextId(): string
+    protected function setUp() : void
     {
-        return (string) (400000000000000000 + (++self::$idCounter));
-    }
+        parent::setUp();
 
-    private function makeRole(string $name): Role
-    {
-        $role = Role::where('name', $name)->where('guard_name', 'web')->first();
-        if ($role) {
-            return $role;
+        $this->makeRole('commerce');
+        $this->makeRole('admin');
+
+        foreach (['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete'] as $name) {
+            Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
-
-        $role = new Role([
-            'name' => $name,
-            'guard_name' => 'web',
-            'prefix' => strtoupper($name),
-            'type' => 'web',
-            'status' => true,
-        ]);
-        $role->id = $this->nextId();
-        $role->save();
-
-        // guard_name/type NO están en Role::$fillable — el constructor-array
-        // los descarta en silencio, y el objeto en memoria queda con
-        // guard_name ausente aunque el INSERT sí persiste 'web' (default de
-        // columna). Sin este refresh(), cualquier código que lea
-        // $role->guard_name directamente en memoria (ej. Spatie\Permission\
-        // Guard::getNames() dentro de givePermissionTo()) puede lanzar
-        // GuardDoesNotMatch pese a que la fila en BD ya está correcta —
-        // confirmado real en VisibilityAuthorizationControllersTest.
-        return $role->refresh();
     }
 
-    private function makeCommerceWithUser(string $label): array
+    public function test_admin_can_toggle_status_of_any_subsidiary() : void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $admin->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        [, $commerce, $country] = $this->makeCommerceWithUser('ajeno');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
+
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/status");
+
+        $response->assertOk();
+        $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
+    }
+
+    /**
+     * AdminSubsidiaryForm envía commission: null con el toggle has_commission
+     * apagado. Antes: 422 (numeric sobre null) — una agencia "sin comisión"
+     * era imposible de guardar desde la UI; y aun pasando, el update
+     * descartaba el null en vez de guardar 0.
+     */
+    public function test_admin_can_turn_off_subsidiary_commission() : void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $admin->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        [, $commerce, $country] = $this->makeCommerceWithUser('propio');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
+
+        $this->actingAs($admin)
+            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/update", ['commission' => null])
+            ->assertOk();
+
+        $this->assertEqualsWithDelta(0.0, (float) $subsidiary->fresh()->commission, 0.001);
+    }
+
+    public function test_commerce_can_toggle_status_of_own_subsidiary() : void
+    {
+        [$ownCommerceUser, $ownCommerce, $country] = $this->makeCommerceWithUser('propio');
+        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $ownSubsidiary = $this->makeSubsidiaryForCommerce($ownCommerce, $country, $subsidiaryOwner);
+
+        $response = $this->actingAs($ownCommerceUser)
+            ->putJson("/admin/subsidiary/{$ownSubsidiary->getRouteKey()}/status");
+
+        $response->assertOk();
+        $this->assertSame('INACTIVE', $ownSubsidiary->fresh()->status);
+    }
+
+    public function test_commerce_cannot_delete_another_commerces_subsidiary() : void
+    {
+        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
+        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
+
+        $response = $this->actingAs($ownCommerceUser)
+            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/delete");
+
+        $response->assertForbidden();
+        $this->assertSame('ACTIVE', $foreignSubsidiary->fresh()->status);
+    }
+
+    public function test_commerce_cannot_reset_password_of_another_commerces_subsidiary() : void
+    {
+        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
+        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
+
+        $response = $this->actingAs($ownCommerceUser)
+            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/reset-password");
+
+        $response->assertForbidden();
+    }
+
+    public function test_commerce_cannot_toggle_status_of_another_commerces_subsidiary() : void
+    {
+        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
+        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
+
+        [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
+
+        $response = $this->actingAs($ownCommerceUser)
+            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/status");
+
+        $response->assertForbidden();
+        $this->assertSame('ACTIVE', $foreignSubsidiary->fresh()->status);
+    }
+
+    /**
+     * Regresión: ownsSubsidiary() solo reconocía el rol 'admin' literal, así
+     * que un superadmin (sin el rol admin adicional) pasaba hasAccess() pero
+     * recibía 403 al abrir /admin/subsidiaries?open=… (GET show) y en
+     * cualquier acción sobre una sucursal.
+     */
+    public function test_superadmin_can_view_and_operate_any_subsidiary() : void
+    {
+        $this->makeRole('superadmin');
+        $superadmin = User::factory()->create();
+        $superadmin->assignRole('superadmin');
+
+        [, $commerce, $country] = $this->makeCommerceWithUser('superadmin');
+        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
+        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
+
+        $this->actingAs($superadmin)
+            ->getJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/show")
+            ->assertOk();
+
+        $this->actingAs($superadmin)
+            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/status")
+            ->assertOk();
+
+        $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
+    }
+
+    /** Mismo bug en ManagerSellerPolicy::ownsSeller(). */
+    public function test_superadmin_owns_any_seller_in_policy() : void
+    {
+        $this->makeRole('superadmin');
+        $superadmin = User::factory()->create();
+        $superadmin->assignRole('superadmin');
+
+        [$commerceUser, , $country] = $this->makeCommerceWithUser('vendedor');
+        $seller = \App\Models\Roles\Seller::create([
+            'id' => $this->nextId(),
+            'name' => 'Vendedor superadmin',
+            'phone' => '+58424' . random_int(1000000, 9999999),
+            'commission' => 3.00,
+            'user_id' => User::factory()->create(['country_id' => $country->id])->id,
+            'country_id' => $country->id,
+            'manager_user_id' => $commerceUser->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($superadmin)->allows('view', $seller));
+    }
+
+    private function makeCommerceWithUser(string $label) : array
     {
         $country = Country::firstOrCreate(
             ['iso_code_2' => 'TC'],
@@ -94,7 +224,35 @@ class AdminSubsidiaryControllerTest extends TestCase
         return [$user, $commerce, $country];
     }
 
-    private function makeSubsidiaryForCommerce(Commerce $commerce, Country $country, User $subsidiaryOwner): Subsidiary
+    private function makeRole(string $name) : Role
+    {
+        $role = Role::where('name', $name)->where('guard_name', 'web')->first();
+        if ($role) {
+            return $role;
+        }
+
+        $role = new Role([
+            'name' => $name,
+            'guard_name' => 'web',
+            'prefix' => strtoupper($name),
+            'type' => 'web',
+            'status' => true,
+        ]);
+        $role->id = $this->nextId();
+        $role->save();
+
+        // guard_name/type NO están en Role::$fillable — el constructor-array
+        // los descarta en silencio, y el objeto en memoria queda con
+        // guard_name ausente aunque el INSERT sí persiste 'web' (default de
+        // columna). Sin este refresh(), cualquier código que lea
+        // $role->guard_name directamente en memoria (ej. Spatie\Permission\
+        // Guard::getNames() dentro de givePermissionTo()) puede lanzar
+        // GuardDoesNotMatch pese a que la fila en BD ya está correcta —
+        // confirmado real en VisibilityAuthorizationControllersTest.
+        return $role->refresh();
+    }
+
+    private function makeSubsidiaryForCommerce(Commerce $commerce, Country $country, User $subsidiaryOwner) : Subsidiary
     {
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$', 'type' => 'FIAT']);
 
@@ -110,166 +268,8 @@ class AdminSubsidiaryControllerTest extends TestCase
         ]);
     }
 
-    protected function setUp(): void
+    private function nextId() : string
     {
-        parent::setUp();
-
-        $this->makeRole('commerce');
-        $this->makeRole('admin');
-
-        foreach (['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete'] as $name) {
-            Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
-        }
-    }
-
-    public function test_commerce_cannot_toggle_status_of_another_commerces_subsidiary(): void
-    {
-        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
-        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
-
-        [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
-
-        $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/status");
-
-        $response->assertForbidden();
-        $this->assertSame('ACTIVE', $foreignSubsidiary->fresh()->status);
-    }
-
-    public function test_commerce_cannot_delete_another_commerces_subsidiary(): void
-    {
-        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
-        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
-
-        [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
-
-        $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/delete");
-
-        $response->assertForbidden();
-        $this->assertSame('ACTIVE', $foreignSubsidiary->fresh()->status);
-    }
-
-    public function test_commerce_cannot_reset_password_of_another_commerces_subsidiary(): void
-    {
-        [$ownCommerceUser, , $country] = $this->makeCommerceWithUser('propio');
-        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
-
-        [, $otherCommerce] = $this->makeCommerceWithUser('ajeno');
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $foreignSubsidiary = $this->makeSubsidiaryForCommerce($otherCommerce, $country, $subsidiaryOwner);
-
-        $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$foreignSubsidiary->getRouteKey()}/reset-password");
-
-        $response->assertForbidden();
-    }
-
-    public function test_commerce_can_toggle_status_of_own_subsidiary(): void
-    {
-        [$ownCommerceUser, $ownCommerce, $country] = $this->makeCommerceWithUser('propio');
-        $ownCommerceUser->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
-
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $ownSubsidiary = $this->makeSubsidiaryForCommerce($ownCommerce, $country, $subsidiaryOwner);
-
-        $response = $this->actingAs($ownCommerceUser)
-            ->putJson("/admin/subsidiary/{$ownSubsidiary->getRouteKey()}/status");
-
-        $response->assertOk();
-        $this->assertSame('INACTIVE', $ownSubsidiary->fresh()->status);
-    }
-
-    /**
-     * AdminSubsidiaryForm envía commission: null con el toggle has_commission
-     * apagado. Antes: 422 (numeric sobre null) — una agencia "sin comisión"
-     * era imposible de guardar desde la UI; y aun pasando, el update
-     * descartaba el null en vez de guardar 0.
-     */
-    public function test_admin_can_turn_off_subsidiary_commission(): void
-    {
-        $admin = User::factory()->create();
-        $admin->assignRole('admin');
-        $admin->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
-
-        [, $commerce, $country] = $this->makeCommerceWithUser('propio');
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
-
-        $this->actingAs($admin)
-            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/update", ['commission' => null])
-            ->assertOk();
-
-        $this->assertEqualsWithDelta(0.0, (float) $subsidiary->fresh()->commission, 0.001);
-    }
-
-    public function test_admin_can_toggle_status_of_any_subsidiary(): void
-    {
-        $admin = User::factory()->create();
-        $admin->assignRole('admin');
-        $admin->givePermissionTo(['subsidiaries.view', 'subsidiaries.edit', 'subsidiaries.delete']);
-
-        [, $commerce, $country] = $this->makeCommerceWithUser('ajeno');
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
-
-        $response = $this->actingAs($admin)
-            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/status");
-
-        $response->assertOk();
-        $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
-    }
-
-    /**
-     * Regresión: ownsSubsidiary() solo reconocía el rol 'admin' literal, así
-     * que un superadmin (sin el rol admin adicional) pasaba hasAccess() pero
-     * recibía 403 al abrir /admin/subsidiaries?open=… (GET show) y en
-     * cualquier acción sobre una sucursal.
-     */
-    public function test_superadmin_can_view_and_operate_any_subsidiary(): void
-    {
-        $this->makeRole('superadmin');
-        $superadmin = User::factory()->create();
-        $superadmin->assignRole('superadmin');
-
-        [, $commerce, $country] = $this->makeCommerceWithUser('superadmin');
-        $subsidiaryOwner = User::factory()->create(['country_id' => $country->id]);
-        $subsidiary = $this->makeSubsidiaryForCommerce($commerce, $country, $subsidiaryOwner);
-
-        $this->actingAs($superadmin)
-            ->getJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/show")
-            ->assertOk();
-
-        $this->actingAs($superadmin)
-            ->putJson("/admin/subsidiary/{$subsidiary->getRouteKey()}/status")
-            ->assertOk();
-
-        $this->assertSame('INACTIVE', $subsidiary->fresh()->status);
-    }
-
-    /** Mismo bug en ManagerSellerPolicy::ownsSeller(). */
-    public function test_superadmin_owns_any_seller_in_policy(): void
-    {
-        $this->makeRole('superadmin');
-        $superadmin = User::factory()->create();
-        $superadmin->assignRole('superadmin');
-
-        [$commerceUser, , $country] = $this->makeCommerceWithUser('vendedor');
-        $seller = \App\Models\Roles\Seller::create([
-            'id'              => $this->nextId(),
-            'name'            => 'Vendedor superadmin',
-            'phone'           => '+58424' . random_int(1000000, 9999999),
-            'commission'      => 3.00,
-            'user_id'         => User::factory()->create(['country_id' => $country->id])->id,
-            'country_id'      => $country->id,
-            'manager_user_id' => $commerceUser->id,
-            'status'          => 'ACTIVE',
-        ]);
-
-        $this->assertTrue(\Illuminate\Support\Facades\Gate::forUser($superadmin)->allows('view', $seller));
+        return (string) (400000000000000000 + (++self::$idCounter));
     }
 }

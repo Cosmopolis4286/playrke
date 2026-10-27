@@ -19,58 +19,53 @@ class UserTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function user_can_get_their_profile()
-    {
-        $user = User::factory()->create([
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-        ]);
-
-        $response = $this->actingAs($user)->getJson('/profile/data');
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'data' => [
-                    'id' => (string) $user->id,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'first_name' => 'John',
-                    'last_name' => 'Doe',
-                    'name' => 'John Doe',
-                ],
-            ]);
-    }
-
-    /** @test */
-    public function user_can_update_their_profile()
+    public function avatar_must_be_an_image()
     {
         $user = User::factory()->create();
 
+        $file = UploadedFile::fake()->create('document.pdf');
+
         $response = $this->actingAs($user)
-            ->putJson('/profile/update', [
-                'first_name' => 'Updated',
-                'last_name' => 'Name',
-                'username' => $user->username,
-                'email' => $user->email,
-                'phone' => '+58412345678',
+            ->postJson('/profile/avatar', [
+                'avatar' => $file,
             ]);
 
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'data' => [
-                    'first_name' => 'Updated',
-                    'last_name' => 'Name',
-                    'phone' => '+58412345678',
-                ],
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['avatar']);
+    }
+
+    /** @test */
+    public function avatar_size_must_not_exceed_5mb()
+    {
+        $user = User::factory()->create();
+
+        // ProfileController::uploadAvatar() valida max:5120 (KB) = 5MB.
+        $file = UploadedFile::fake()->image('avatar.jpg')->size(6000);
+
+        $response = $this->actingAs($user)
+            ->postJson('/profile/avatar', [
+                'avatar' => $file,
             ]);
 
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'first_name' => 'Updated',
-            'last_name' => 'Name',
-        ]);
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['avatar']);
+    }
+
+    /** @test */
+    public function guest_cannot_access_user_endpoints()
+    {
+        $endpoints = [
+            ['GET', '/profile/data'],
+            ['PUT', '/profile/update'],
+            ['PATCH', '/profile/password'],
+            ['GET', '/profile/preferences'],
+            ['GET', '/profile/stats'],
+        ];
+
+        foreach ($endpoints as [$method, $url]) {
+            $response = $this->json($method, $url);
+            $response->assertStatus(401);
+        }
     }
 
     /** @test */
@@ -90,47 +85,8 @@ class UserTest extends TestCase
         $response->assertOk()->assertJson(['success' => true]);
 
         $this->assertTrue(
-            Hash::check('newpassword123', $user->fresh()->password)
+            Hash::check('newpassword123', $user->fresh()->password),
         );
-    }
-
-    /** @test */
-    public function user_cannot_change_password_with_wrong_current_password()
-    {
-        $user = User::factory()->create([
-            'password' => bcrypt('oldpassword'),
-        ]);
-
-        $response = $this->actingAs($user)
-            ->patchJson('/profile/password', [
-                'current_password' => 'wrongpassword',
-                'new_password' => 'newpassword123',
-                'new_password_confirmation' => 'newpassword123',
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['current_password']);
-    }
-
-    /** @test */
-    public function user_can_upload_avatar()
-    {
-        Storage::fake('public');
-
-        $user = User::factory()->create();
-
-        $file = UploadedFile::fake()->image('avatar.jpg');
-
-        $response = $this->actingAs($user)
-            ->postJson('/profile/avatar', [
-                'avatar' => $file,
-            ]);
-
-        $response->assertOk()
-            ->assertJson(['success' => true])
-            ->assertJsonStructure(['data' => ['avatar']]);
-
-        $this->assertNotNull($user->fresh()->profile_photo_url);
     }
 
     /** @test */
@@ -175,6 +131,51 @@ class UserTest extends TestCase
     }
 
     /** @test */
+    public function user_can_get_their_profile()
+    {
+        $user = User::factory()->create([
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/profile/data');
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => (string) $user->id,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'first_name' => 'John',
+                    'last_name' => 'Doe',
+                    'name' => 'John Doe',
+                ],
+            ]);
+    }
+
+    /** @test */
+    public function user_can_get_their_stats()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson('/profile/stats');
+
+        $response->assertOk()
+            ->assertJson(['success' => true])
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'games_played',
+                    'games_won',
+                    'total_winnings',
+                    'level',
+                    'experience_points',
+                ],
+            ]);
+    }
+
+    /** @test */
     public function user_can_update_their_preferences()
     {
         $user = User::factory()->create();
@@ -201,73 +202,72 @@ class UserTest extends TestCase
     }
 
     /** @test */
-    public function user_can_get_their_stats()
+    public function user_can_update_their_profile()
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/profile/stats');
+        $response = $this->actingAs($user)
+            ->putJson('/profile/update', [
+                'first_name' => 'Updated',
+                'last_name' => 'Name',
+                'username' => $user->username,
+                'email' => $user->email,
+                'phone' => '+58412345678',
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'first_name' => 'Updated',
+                    'last_name' => 'Name',
+                    'phone' => '+58412345678',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'first_name' => 'Updated',
+            'last_name' => 'Name',
+        ]);
+    }
+
+    /** @test */
+    public function user_can_upload_avatar()
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+
+        $file = UploadedFile::fake()->image('avatar.jpg');
+
+        $response = $this->actingAs($user)
+            ->postJson('/profile/avatar', [
+                'avatar' => $file,
+            ]);
 
         $response->assertOk()
             ->assertJson(['success' => true])
-            ->assertJsonStructure([
-                'success',
-                'data' => [
-                    'games_played',
-                    'games_won',
-                    'total_winnings',
-                    'level',
-                    'experience_points',
-                ],
-            ]);
+            ->assertJsonStructure(['data' => ['avatar']]);
+
+        $this->assertNotNull($user->fresh()->profile_photo_url);
     }
 
     /** @test */
-    public function guest_cannot_access_user_endpoints()
+    public function user_cannot_change_password_with_wrong_current_password()
     {
-        $endpoints = [
-            ['GET', '/profile/data'],
-            ['PUT', '/profile/update'],
-            ['PATCH', '/profile/password'],
-            ['GET', '/profile/preferences'],
-            ['GET', '/profile/stats'],
-        ];
-
-        foreach ($endpoints as [$method, $url]) {
-            $response = $this->json($method, $url);
-            $response->assertStatus(401);
-        }
-    }
-
-    /** @test */
-    public function avatar_must_be_an_image()
-    {
-        $user = User::factory()->create();
-
-        $file = UploadedFile::fake()->create('document.pdf');
+        $user = User::factory()->create([
+            'password' => bcrypt('oldpassword'),
+        ]);
 
         $response = $this->actingAs($user)
-            ->postJson('/profile/avatar', [
-                'avatar' => $file,
+            ->patchJson('/profile/password', [
+                'current_password' => 'wrongpassword',
+                'new_password' => 'newpassword123',
+                'new_password_confirmation' => 'newpassword123',
             ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['avatar']);
-    }
-
-    /** @test */
-    public function avatar_size_must_not_exceed_5mb()
-    {
-        $user = User::factory()->create();
-
-        // ProfileController::uploadAvatar() valida max:5120 (KB) = 5MB.
-        $file = UploadedFile::fake()->image('avatar.jpg')->size(6000);
-
-        $response = $this->actingAs($user)
-            ->postJson('/profile/avatar', [
-                'avatar' => $file,
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['avatar']);
+            ->assertJsonValidationErrors(['current_password']);
     }
 }

@@ -37,22 +37,17 @@ class RoleProfilePagesTest extends TestCase
     use DatabaseTransactions;
 
     private static int $idCounter = 0;
+    private Commerce $commerce;
+    private User $commerceUser;
 
     private Country $country;
     private Currency $currency;
-    private User $commerceUser;
-    private User $subsidiaryUser;
-    private User $sellerUser;
-    private Commerce $commerce;
-    private Subsidiary $subsidiary;
     private Seller $seller;
+    private User $sellerUser;
+    private Subsidiary $subsidiary;
+    private User $subsidiaryUser;
 
-    private function nextId(): string
-    {
-        return (string) (440000000000000000 + (++self::$idCounter));
-    }
-
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -61,7 +56,7 @@ class RoleProfilePagesTest extends TestCase
         $this->country = Country::firstOrCreate(['iso_code_2' => 'VE'], ['name' => 'Venezuela', 'iso_code_3' => 'VEN', 'status' => 'ACTIVE']);
         $this->currency = Currency::firstOrCreate(
             ['iso_code' => 'VES'],
-            ['symbol' => 'Bs', 'name' => 'Bolívar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE']
+            ['symbol' => 'Bs', 'name' => 'Bolívar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE'],
         );
 
         $this->seedRolesAndPermissions();
@@ -94,23 +89,166 @@ class RoleProfilePagesTest extends TestCase
         $this->sell(50.00, 1, 1.50, 0.50, 0.50, 'REFUNDED');
     }
 
-    protected function tearDown(): void
+    protected function tearDown() : void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         parent::tearDown();
     }
 
+    public function test_admin_can_edit_another_users_profile_via_target_user_id() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+
+        $this->actingAs($admin)
+            ->putJson('/seller/profile', [
+                'name' => 'Vendedor Editado Por Admin',
+                'phone' => '+58 0412-1000003',
+                'target_user_id' => (string) $this->sellerUser->id,
+            ])
+            ->assertOk();
+
+        $this->assertSame('Vendedor Editado Por Admin', $this->seller->fresh()->name);
+    }
+
+    public function test_admin_viewing_a_seller_profile_sees_every_rate_and_the_cap() : void
+    {
+        $admin = $this->makeUserWithRole('admin');
+
+        $this->actingAs($admin)->get('/seller/profile?target_user_id=' . $this->sellerUser->id)
+            ->assertOk()
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->where('isAdminView', true)
+                    ->where('seller.hierarchy.chain.0.rate', 5)
+                    ->where('seller.hierarchy.chain.1.rate', 4)
+                    ->where('seller.hierarchy.cap', 4),
+            );
+    }
+
+    public function test_commerce_profile_shows_network_margin_agencies_and_pending_receivables() : void
+    {
+        DB::table('platform_receivables')->insert([
+            'id' => $this->nextId(), 'source' => 'BINGO_SALE', 'debtor_user_id' => $this->commerceUser->id,
+            'currency_id' => $this->currency->id, 'amount' => 89.76, 'status' => 'PENDING',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->commerceUser)->get('/commerce/profile')
+            ->assertOk()
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('Roles/Commerce/Profile/Index')
+                    ->where('commerce.performance.kpis.commission.value', 1.2)
+                    ->where('commerce.performance.lifetime.lots', 1)
+                    ->where('commerce.network.subsidiaries.0.name', 'Agencia Perfil')
+                    ->where('commerce.network.top_sellers.0.cards', 2)
+                    ->where('commerce.hierarchy.children_rate_range', ['min' => 4, 'max' => 4])
+                    ->where('commerce.receivables.0.amount', 89.76),
+            );
+    }
+
+    public function test_non_admin_cannot_edit_another_users_profile() : void
+    {
+        $this->actingAs($this->commerceUser)
+            ->putJson('/commerce/profile', ['name' => 'Intruso', 'target_user_id' => (string) $this->sellerUser->id])
+            ->assertForbidden();
+
+        $this->assertSame('Comercio Perfil', $this->commerce->fresh()->name);
+    }
+
+    // ─── Edición ─────────────────────────────────────────────────────────────
+
+    public function test_profile_saves_with_the_existing_formatted_phone() : void
+    {
+        // "+58 0412-1000001" = 16 chars: antes max:14 rechazaba guardar sin tocarlo.
+        $this->actingAs($this->commerceUser)
+            ->putJson('/commerce/profile', ['name' => 'Comercio Renombrado', 'phone' => '+58 0412-1000001'])
+            ->assertOk();
+
+        $this->assertSame('Comercio Renombrado', $this->commerce->fresh()->name);
+    }
+
+    // ─── Desempeño: cada rol ve su parte del reparto ─────────────────────────
+
+    public function test_seller_profile_shows_own_commission_and_chain_but_hides_upper_rates() : void
+    {
+        $this->actingAs($this->sellerUser)->get('/seller/profile')
+            ->assertOk()
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('Roles/Seller/Profile/Index')
+                    ->where('seller.role', 'seller')
+                    ->where('seller.performance.kpis.sales.value', 120)
+                    ->where('seller.performance.kpis.commission.value', 3.6)
+                    ->where('seller.performance.kpis.cards.value', 2)
+                    ->where('seller.performance.currency.iso', 'VES')
+                    ->has('seller.performance.trend', 14)
+                    ->has('seller.hierarchy.chain', 3)
+                    ->where('seller.hierarchy.chain.2.is_self', true)
+                    ->where('seller.hierarchy.chain.2.rate', 3)
+                // Privacidad: cada nivel ve su comisión y la de los de abajo,
+                // nunca la de arriba (ni su tope, que ES la de la agencia).
+                    ->where('seller.hierarchy.chain.0.rate', null)
+                    ->where('seller.hierarchy.chain.1.rate', null)
+                    ->where('seller.hierarchy.cap', null)
+                    ->where('seller.alerts', []),
+            );
+    }
+
+    public function test_seller_with_inactive_agency_gets_a_cannot_sell_alert() : void
+    {
+        $this->subsidiary->update(['status' => 'INACTIVE']);
+
+        $this->actingAs($this->sellerUser)->get('/seller/profile')
+            ->assertOk()
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->where('seller.alerts.0.level', 'danger')
+                    ->where('seller.alerts.0.title', 'No puedes vender en este momento'),
+            );
+    }
+
+    public function test_subsidiary_profile_shows_its_margin_and_its_sellers() : void
+    {
+        $this->actingAs($this->subsidiaryUser)->get('/subsidiary/profile')
+            ->assertOk()
+            ->assertInertia(
+                fn (Assert $page) => $page
+                    ->component('Roles/Subsidiary/Profile/Index')
+                    ->where('subsidiary.performance.kpis.commission.value', 1.2)
+                    ->where('subsidiary.hierarchy.pass_through', false)
+                    ->has('subsidiary.hierarchy.chain', 2)
+                    ->where('subsidiary.hierarchy.chain.0.rate', null) // su comercializadora: oculta
+                    ->where('subsidiary.hierarchy.chain.1.rate', 4)
+                    ->has('subsidiary.network.sellers', 1)
+                    ->where('subsidiary.network.sellers.0.month_cards', 2),
+            );
+    }
+
+    private function makeUserWithRole(string $role) : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id, 'email_verified_at' => now()]);
+        $user->assignRole($role);
+
+        return $user;
+    }
+
+    private function nextId() : string
+    {
+        return (string) (440000000000000000 + (++self::$idCounter));
+    }
+
     // ─── Fixtures ────────────────────────────────────────────────────────────
 
-    private function seedRolesAndPermissions(): void
+    private function seedRolesAndPermissions() : void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $grants = [
-            'commerce'   => ['commerces.manage-own'],
+            'commerce' => ['commerces.manage-own'],
             'subsidiary' => ['subsidiaries.manage-own'],
-            'seller'     => ['sellers.manage-own'],
-            'admin'      => ['commerces.view', 'subsidiaries.view', 'sellers.view'],
+            'seller' => ['sellers.manage-own'],
+            'admin' => ['commerces.view', 'subsidiaries.view', 'sellers.view'],
         ];
 
         foreach ($grants as $roleName => $permissions) {
@@ -118,8 +256,8 @@ class RoleProfilePagesTest extends TestCase
                 Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
             }
             $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
-            if (!$role) {
-                $role = (new Role())->forceFill(['name' => $roleName, 'guard_name' => 'web', 'prefix' => $roleName]);
+            if (! $role) {
+                $role = (new Role)->forceFill(['name' => $roleName, 'guard_name' => 'web', 'prefix' => $roleName]);
                 $role->save();
             }
             $role->givePermissionTo($permissions);
@@ -128,15 +266,7 @@ class RoleProfilePagesTest extends TestCase
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
-    private function makeUserWithRole(string $role): User
-    {
-        $user = User::factory()->create(['country_id' => $this->country->id, 'email_verified_at' => now()]);
-        $user->assignRole($role);
-
-        return $user;
-    }
-
-    private function sell(float $amount, int $cards, float $sellerCommission, float $subsidiaryCommission, float $commerceCommission, string $status = 'ACTIVE'): void
+    private function sell(float $amount, int $cards, float $sellerCommission, float $subsidiaryCommission, float $commerceCommission, string $status = 'ACTIVE') : void
     {
         DB::table('bingo_card_lots')->insert([
             'id' => $this->nextId(), 'room_id' => $this->nextId(), 'user_id' => $this->commerceUser->id,
@@ -147,130 +277,5 @@ class RoleProfilePagesTest extends TestCase
             'subsidiary_commission_amount' => $subsidiaryCommission, 'commerce_commission_amount' => $commerceCommission,
             'status' => $status, 'created_at' => now(), 'updated_at' => now(),
         ]);
-    }
-
-    // ─── Desempeño: cada rol ve su parte del reparto ─────────────────────────
-
-    public function test_seller_profile_shows_own_commission_and_chain_but_hides_upper_rates(): void
-    {
-        $this->actingAs($this->sellerUser)->get('/seller/profile')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Roles/Seller/Profile/Index')
-                ->where('seller.role', 'seller')
-                ->where('seller.performance.kpis.sales.value', 120)
-                ->where('seller.performance.kpis.commission.value', 3.6)
-                ->where('seller.performance.kpis.cards.value', 2)
-                ->where('seller.performance.currency.iso', 'VES')
-                ->has('seller.performance.trend', 14)
-                ->has('seller.hierarchy.chain', 3)
-                ->where('seller.hierarchy.chain.2.is_self', true)
-                ->where('seller.hierarchy.chain.2.rate', 3)
-                // Privacidad: cada nivel ve su comisión y la de los de abajo,
-                // nunca la de arriba (ni su tope, que ES la de la agencia).
-                ->where('seller.hierarchy.chain.0.rate', null)
-                ->where('seller.hierarchy.chain.1.rate', null)
-                ->where('seller.hierarchy.cap', null)
-                ->where('seller.alerts', [])
-            );
-    }
-
-    public function test_admin_viewing_a_seller_profile_sees_every_rate_and_the_cap(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-
-        $this->actingAs($admin)->get('/seller/profile?target_user_id=' . $this->sellerUser->id)
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('isAdminView', true)
-                ->where('seller.hierarchy.chain.0.rate', 5)
-                ->where('seller.hierarchy.chain.1.rate', 4)
-                ->where('seller.hierarchy.cap', 4)
-            );
-    }
-
-    public function test_subsidiary_profile_shows_its_margin_and_its_sellers(): void
-    {
-        $this->actingAs($this->subsidiaryUser)->get('/subsidiary/profile')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Roles/Subsidiary/Profile/Index')
-                ->where('subsidiary.performance.kpis.commission.value', 1.2)
-                ->where('subsidiary.hierarchy.pass_through', false)
-                ->has('subsidiary.hierarchy.chain', 2)
-                ->where('subsidiary.hierarchy.chain.0.rate', null) // su comercializadora: oculta
-                ->where('subsidiary.hierarchy.chain.1.rate', 4)
-                ->has('subsidiary.network.sellers', 1)
-                ->where('subsidiary.network.sellers.0.month_cards', 2)
-            );
-    }
-
-    public function test_commerce_profile_shows_network_margin_agencies_and_pending_receivables(): void
-    {
-        DB::table('platform_receivables')->insert([
-            'id' => $this->nextId(), 'source' => 'BINGO_SALE', 'debtor_user_id' => $this->commerceUser->id,
-            'currency_id' => $this->currency->id, 'amount' => 89.76, 'status' => 'PENDING',
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-
-        $this->actingAs($this->commerceUser)->get('/commerce/profile')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Roles/Commerce/Profile/Index')
-                ->where('commerce.performance.kpis.commission.value', 1.2)
-                ->where('commerce.performance.lifetime.lots', 1)
-                ->where('commerce.network.subsidiaries.0.name', 'Agencia Perfil')
-                ->where('commerce.network.top_sellers.0.cards', 2)
-                ->where('commerce.hierarchy.children_rate_range', ['min' => 4, 'max' => 4])
-                ->where('commerce.receivables.0.amount', 89.76)
-            );
-    }
-
-    public function test_seller_with_inactive_agency_gets_a_cannot_sell_alert(): void
-    {
-        $this->subsidiary->update(['status' => 'INACTIVE']);
-
-        $this->actingAs($this->sellerUser)->get('/seller/profile')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('seller.alerts.0.level', 'danger')
-                ->where('seller.alerts.0.title', 'No puedes vender en este momento')
-            );
-    }
-
-    // ─── Edición ─────────────────────────────────────────────────────────────
-
-    public function test_profile_saves_with_the_existing_formatted_phone(): void
-    {
-        // "+58 0412-1000001" = 16 chars: antes max:14 rechazaba guardar sin tocarlo.
-        $this->actingAs($this->commerceUser)
-            ->putJson('/commerce/profile', ['name' => 'Comercio Renombrado', 'phone' => '+58 0412-1000001'])
-            ->assertOk();
-
-        $this->assertSame('Comercio Renombrado', $this->commerce->fresh()->name);
-    }
-
-    public function test_admin_can_edit_another_users_profile_via_target_user_id(): void
-    {
-        $admin = $this->makeUserWithRole('admin');
-
-        $this->actingAs($admin)
-            ->putJson('/seller/profile', [
-                'name'           => 'Vendedor Editado Por Admin',
-                'phone'          => '+58 0412-1000003',
-                'target_user_id' => (string) $this->sellerUser->id,
-            ])
-            ->assertOk();
-
-        $this->assertSame('Vendedor Editado Por Admin', $this->seller->fresh()->name);
-    }
-
-    public function test_non_admin_cannot_edit_another_users_profile(): void
-    {
-        $this->actingAs($this->commerceUser)
-            ->putJson('/commerce/profile', ['name' => 'Intruso', 'target_user_id' => (string) $this->sellerUser->id])
-            ->assertForbidden();
-
-        $this->assertSame('Comercio Perfil', $this->commerce->fresh()->name);
     }
 }

@@ -18,19 +18,19 @@ use Tests\TestCase;
 class BlockchainWatcherServiceTest extends TestCase
 {
     use RefreshDatabase;
-
-    private BlockchainWatcherService $watcher;
+    private const CONTRACT = 'fake-usdt-contract';
     private MockBlockchainProvider $blockchain;
     private PaymentProduct $product;
-    private const CONTRACT = 'fake-usdt-contract';
 
-    protected function setUp(): void
+    private BlockchainWatcherService $watcher;
+
+    protected function setUp() : void
     {
         parent::setUp();
 
         config(['payments.tron.confirmations_required' => 19]);
 
-        $this->blockchain = new MockBlockchainProvider();
+        $this->blockchain = new MockBlockchainProvider;
         $this->app->instance(BlockchainProviderInterface::class, $this->blockchain);
 
         $definition = AssetDefinition::create([
@@ -50,27 +50,19 @@ class BlockchainWatcherServiceTest extends TestCase
         $this->watcher = app(BlockchainWatcherService::class);
     }
 
-    private function pendingOrder(User $user, float $expected = 10.0, string $address = 'TDEPOSIT1'): PaymentOrder
+    public function test_expired_order_is_never_evaluated_even_with_valid_payment() : void
     {
-        return PaymentOrder::create([
-            'user_id' => $user->id, 'payment_product_id' => $this->product->id,
-            'network' => 'TRON', 'token' => 'USDT', 'token_contract' => self::CONTRACT,
-            'derivation_index' => ((int) PaymentOrder::max('derivation_index')) + 1, 'deposit_address' => $address,
-            'expected_amount' => $expected, 'status' => PaymentOrder::STATUS_PENDING,
-            'expires_at' => now()->addMinutes(30),
-        ]);
+        $user = User::factory()->create();
+        $order = $this->pendingOrder($user);
+        $order->update(['expires_at' => now()->subMinute()]);
+
+        $this->watcher->watchAll();
+
+        $this->assertSame(PaymentOrder::STATUS_EXPIRED, $order->fresh()->status);
+        $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
     }
 
-    private function incoming(string $txHash, string $toAddress, float $amount, int $confirmations): InboundTransaction
-    {
-        return new InboundTransaction(
-            txHash: $txHash, fromAddress: 'TSENDER', toAddress: $toAddress,
-            tokenContract: self::CONTRACT, amount: $amount, blockNumber: 1000,
-            timestamp: time(), confirmations: $confirmations,
-        );
-    }
-
-    public function test_full_happy_path_detects_confirms_and_delivers(): void
+    public function test_full_happy_path_detects_confirms_and_delivers() : void
     {
         $user = User::factory()->create();
         $order = $this->pendingOrder($user);
@@ -85,7 +77,7 @@ class BlockchainWatcherServiceTest extends TestCase
         $this->assertSame(1, CryptoTransaction::where('tx_hash', 'tx-happy')->count());
     }
 
-    public function test_insufficient_confirmations_leaves_order_confirming(): void
+    public function test_insufficient_confirmations_leaves_order_confirming() : void
     {
         $user = User::factory()->create();
         $order = $this->pendingOrder($user);
@@ -98,20 +90,7 @@ class BlockchainWatcherServiceTest extends TestCase
         $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
     }
 
-    public function test_underpaid_amount_never_gets_credited(): void
-    {
-        $user = User::factory()->create();
-        $order = $this->pendingOrder($user, 10.0);
-
-        $this->blockchain->pushTransaction($this->incoming('tx-under', $order->deposit_address, 5.0, 20));
-
-        $result = $this->watcher->evaluate($order);
-
-        $this->assertSame(PaymentOrder::STATUS_UNDERPAID, $result->status);
-        $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
-    }
-
-    public function test_overpaid_amount_never_gets_credited_automatically(): void
+    public function test_overpaid_amount_never_gets_credited_automatically() : void
     {
         $user = User::factory()->create();
         $order = $this->pendingOrder($user, 10.0);
@@ -124,7 +103,7 @@ class BlockchainWatcherServiceTest extends TestCase
         $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
     }
 
-    public function test_replaying_evaluate_after_credited_does_not_double_deliver(): void
+    public function test_replaying_evaluate_after_credited_does_not_double_deliver() : void
     {
         $user = User::factory()->create();
         $order = $this->pendingOrder($user);
@@ -137,7 +116,20 @@ class BlockchainWatcherServiceTest extends TestCase
         $this->assertSame(1, Purchase::where('payment_order_id', $order->id)->count());
     }
 
-    public function test_tx_hash_already_linked_to_another_order_is_rejected(): void
+    public function test_terminal_order_is_never_reevaluated() : void
+    {
+        $user = User::factory()->create();
+        $order = $this->pendingOrder($user);
+        $order->update(['status' => PaymentOrder::STATUS_CANCELLED]);
+
+        $this->blockchain->pushTransaction($this->incoming('tx-cancelled', $order->deposit_address, 10.0, 20));
+        $result = $this->watcher->evaluate($order);
+
+        $this->assertSame(PaymentOrder::STATUS_CANCELLED, $result->status);
+        $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
+    }
+
+    public function test_tx_hash_already_linked_to_another_order_is_rejected() : void
     {
         $user = User::factory()->create();
         $orderA = $this->pendingOrder($user, 10.0, 'TDEPOSIT_A');
@@ -156,28 +148,41 @@ class BlockchainWatcherServiceTest extends TestCase
         $this->assertSame(0, Purchase::where('payment_order_id', $orderB->id)->count());
     }
 
-    public function test_expired_order_is_never_evaluated_even_with_valid_payment(): void
+    public function test_underpaid_amount_never_gets_credited() : void
     {
         $user = User::factory()->create();
-        $order = $this->pendingOrder($user);
-        $order->update(['expires_at' => now()->subMinute()]);
+        $order = $this->pendingOrder($user, 10.0);
 
-        $this->watcher->watchAll();
+        $this->blockchain->pushTransaction($this->incoming('tx-under', $order->deposit_address, 5.0, 20));
 
-        $this->assertSame(PaymentOrder::STATUS_EXPIRED, $order->fresh()->status);
+        $result = $this->watcher->evaluate($order);
+
+        $this->assertSame(PaymentOrder::STATUS_UNDERPAID, $result->status);
         $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
     }
 
-    public function test_terminal_order_is_never_reevaluated(): void
+    private function incoming(string $txHash, string $toAddress, float $amount, int $confirmations) : InboundTransaction
     {
-        $user = User::factory()->create();
-        $order = $this->pendingOrder($user);
-        $order->update(['status' => PaymentOrder::STATUS_CANCELLED]);
+        return new InboundTransaction(
+            txHash: $txHash,
+            fromAddress: 'TSENDER',
+            toAddress: $toAddress,
+            tokenContract: self::CONTRACT,
+            amount: $amount,
+            blockNumber: 1000,
+            timestamp: time(),
+            confirmations: $confirmations,
+        );
+    }
 
-        $this->blockchain->pushTransaction($this->incoming('tx-cancelled', $order->deposit_address, 10.0, 20));
-        $result = $this->watcher->evaluate($order);
-
-        $this->assertSame(PaymentOrder::STATUS_CANCELLED, $result->status);
-        $this->assertSame(0, Purchase::where('payment_order_id', $order->id)->count());
+    private function pendingOrder(User $user, float $expected = 10.0, string $address = 'TDEPOSIT1') : PaymentOrder
+    {
+        return PaymentOrder::create([
+            'user_id' => $user->id, 'payment_product_id' => $this->product->id,
+            'network' => 'TRON', 'token' => 'USDT', 'token_contract' => self::CONTRACT,
+            'derivation_index' => ((int) PaymentOrder::max('derivation_index')) + 1, 'deposit_address' => $address,
+            'expected_amount' => $expected, 'status' => PaymentOrder::STATUS_PENDING,
+            'expires_at' => now()->addMinutes(30),
+        ]);
     }
 }

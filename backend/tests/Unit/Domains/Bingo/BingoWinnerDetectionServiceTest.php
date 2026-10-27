@@ -28,7 +28,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -38,116 +38,26 @@ class BingoWinnerDetectionServiceTest extends TestCase
         config(['anticheat.bingo.min_claim_delay_ms' => 0]);
     }
 
-    /**
-     * Arma sala + config + ronda + patrón (línea simple: fila 0 de cada
-     * columna) + cartón activo del usuario, listos para checkWinnerForUser().
-     */
-    private function makeRoomWithCard(array $cardNumbers, User $user, string $roomTypeCode = 'PUBLIC'): array
+    public function test_demo_room_winner_is_recorded_but_prize_is_never_paid() : void
     {
-        $country = Country::firstOrCreate(
-            ['iso_code_2' => 'TC'],
-            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
-        );
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+        // Bote "de mentira" (ej. Valor Fijo de una sala DEMO): no debe acreditarse.
+        $room->update(['prize_pool' => 100, 'full_house_prize' => 100]);
 
-        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
-        $roomType = RoomType::firstOrCreate(['code' => $roomTypeCode], ['label' => $roomTypeCode]);
-        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder).
-        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
-        $prizePoolType = PrizePoolType::firstOrCreate(
-            ['game_id' => $game->id, 'code' => 'STANDARD'],
-            ['label' => 'Estándar', 'is_accumulative' => false],
-        );
-        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
+        $this->drawWinningLine($room, $round);
 
-        $room = BingoRoom::create([
-            'uuid_code'       => (string) Str::uuid(),
-            'status_id'       => $status->id,
-            'creator_user_id' => $user->id,
+        app(BingoWinnerDetectionService::class)->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $this->assertDatabaseHas('bingo_card_prizes', [
+            'room_id' => (string) $room->id,
+            'prize_status' => 'cancelled',
         ]);
-
-        BingoRoomConfig::create([
-            'room_id'            => $room->id,
-            'room_type_id'       => $roomType->id,
-            'creator_user_id'    => $user->id,
-            'connection_type_id' => $connectionType->id,
-            'prize_pool_type_id' => $prizePoolType->id,
-            'game_variant'       => BingoVariant::BINGO_75,
+        $this->assertDatabaseMissing('bingo_card_prizes', [
+            'room_id' => (string) $room->id,
+            'prize_status' => 'claimed',
         ]);
-
-        $roomUser = BingoRoomUser::create([
-            'room_id'         => $room->id,
-            'user_id'         => $user->id,
-            'cards_purchased' => 1,
-        ]);
-
-        $lot = BingoCardLot::create([
-            'room_id'       => $room->id,
-            'user_id'       => $user->id,
-            'room_user_id'  => $roomUser->id,
-            'currency_id'   => $currency->id,
-            'card_count'    => 1,
-            'card_price'    => 1,
-            'exchange_rate' => 1,
-            'sale_amount'   => 1,
-        ]);
-
-        $pattern = BingoPattern::create([
-            // num_id es unsignedTinyInteger (0-255) en la migración de bingo_patterns.
-            'num_id'       => random_int(100, 250),
-            'type_pattern' => 'UNIQUE',
-            'name'         => 'Línea simple test',
-            'user_id'      => null,
-            'boxes'        => 'B1;I1;N1;G1;O1', // fila índice 0 de cada columna
-            'status'       => 'ACTIVE',
-        ]);
-
-        $round = BingoRound::create([
-            'room_id'         => $room->id,
-            'room_config_id'  => $room->config->id,
-            'round'           => 1,
-            'prize_type'      => 'PCT',
-            'bingo_pattern_id'=> $pattern->id,
-            'status'          => 'ACTIVE',
-        ]);
-
-        $card = BingoCard::create([
-            'room_id'         => $room->id,
-            'creator_user_id' => $user->id,
-            'room_user_id'    => $roomUser->id,
-            'card_lot_id'     => $lot->id,
-            'currency_id'     => $currency->id,
-            'serial_number'   => 'SN-' . Str::random(10),
-            'card_numbers'    => $cardNumbers,
-            'card_hash'       => hash('sha256', Str::random(20)),
-            'status'          => BingoCard::STATUS_ACTIVE,
-        ]);
-
-        return compact('room', 'round', 'pattern', 'card');
-    }
-
-    private function winningCardNumbers(): array
-    {
-        return [
-            'B' => [1, 2, 3, 4, 5],
-            'I' => [16, 17, 18, 19, 20],
-            'N' => [31, 32, null, 34, 35],
-            'G' => [46, 47, 48, 49, 50],
-            'O' => [61, 62, 63, 64, 65],
-        ];
-    }
-
-    private function drawWinningLine(BingoRoom $room, BingoRound $round): void
-    {
-        foreach (['1', '16', '31', '46', '61'] as $chip) {
-            BingoDraw::create([
-                'room_id'  => $room->id,
-                'round_id' => $round->id,
-                'chip'     => $chip,
-                'code'     => 'CODE' . $chip,
-                'time'     => 5,
-            ]);
-        }
+        $this->assertDatabaseCount('wallet_movements', 0);
     }
 
     /**
@@ -157,7 +67,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
      * mockear su dependencia, y verifican solo lo que le compete al gate
      * anti-cheat: si bloquea o no, y si crea/omite el flag correspondiente.
      */
-    public function test_impossible_claim_timing_returns_null_and_creates_flag_without_touching_prizes(): void
+    public function test_impossible_claim_timing_returns_null_and_creates_flag_without_touching_prizes() : void
     {
         // Umbral deliberadamente alto (60s): el overhead real de MySQL entre
         // crear la sala/cartón/draw (varios inserts secuenciales) y llamar al
@@ -178,14 +88,14 @@ class BingoWinnerDetectionServiceTest extends TestCase
 
         $this->assertNull($result);
         $this->assertDatabaseHas('anti_cheat_flags', [
-            'user_id'     => (string) $user->id,
-            'game_slug'   => 'bingo',
+            'user_id' => (string) $user->id,
+            'game_slug' => 'bingo',
             'signal_type' => 'IMPOSSIBLE_CLAIM_TIMING',
         ]);
         $this->assertDatabaseCount('bingo_card_prizes', 0);
     }
 
-    public function test_normal_timing_with_winning_card_does_not_block_at_the_gate(): void
+    public function test_normal_timing_with_winning_card_does_not_block_at_the_gate() : void
     {
         $user = User::factory()->create();
         ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user);
@@ -200,34 +110,12 @@ class BingoWinnerDetectionServiceTest extends TestCase
         $service->checkWinnerForUser($room->fresh(), (int) $user->id);
 
         $this->assertDatabaseMissing('anti_cheat_flags', [
-            'user_id'     => (string) $user->id,
+            'user_id' => (string) $user->id,
             'signal_type' => 'IMPOSSIBLE_CLAIM_TIMING',
         ]);
     }
 
-    public function test_demo_room_winner_is_recorded_but_prize_is_never_paid(): void
-    {
-        $user = User::factory()->create();
-        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
-        // Bote "de mentira" (ej. Valor Fijo de una sala DEMO): no debe acreditarse.
-        $room->update(['prize_pool' => 100, 'full_house_prize' => 100]);
-
-        $this->drawWinningLine($room, $round);
-
-        app(BingoWinnerDetectionService::class)->checkWinnerForUser($room->fresh(), (int) $user->id);
-
-        $this->assertDatabaseHas('bingo_card_prizes', [
-            'room_id'      => (string) $room->id,
-            'prize_status' => 'cancelled',
-        ]);
-        $this->assertDatabaseMissing('bingo_card_prizes', [
-            'room_id'      => (string) $room->id,
-            'prize_status' => 'claimed',
-        ]);
-        $this->assertDatabaseCount('wallet_movements', 0);
-    }
-
-    public function test_normal_timing_without_winning_card_returns_null_without_flagging(): void
+    public function test_normal_timing_without_winning_card_returns_null_without_flagging() : void
     {
         $user = User::factory()->create();
 
@@ -252,5 +140,117 @@ class BingoWinnerDetectionServiceTest extends TestCase
         $this->assertDatabaseMissing('anti_cheat_flags', [
             'user_id' => (string) $user->id,
         ]);
+    }
+
+    private function drawWinningLine(BingoRoom $room, BingoRound $round) : void
+    {
+        foreach (['1', '16', '31', '46', '61'] as $chip) {
+            BingoDraw::create([
+                'room_id' => $room->id,
+                'round_id' => $round->id,
+                'chip' => $chip,
+                'code' => 'CODE' . $chip,
+                'time' => 5,
+            ]);
+        }
+    }
+
+    /**
+     * Arma sala + config + ronda + patrón (línea simple: fila 0 de cada
+     * columna) + cartón activo del usuario, listos para checkWinnerForUser().
+     */
+    private function makeRoomWithCard(array $cardNumbers, User $user, string $roomTypeCode = 'PUBLIC') : array
+    {
+        $country = Country::firstOrCreate(
+            ['iso_code_2' => 'TC'],
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO'],
+        );
+
+        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
+        $roomType = RoomType::firstOrCreate(['code' => $roomTypeCode], ['label' => $roomTypeCode]);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        // game_id es NOT NULL (prize_pool_types es per-game, ver PrizePoolTypeSeeder).
+        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
+        $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
+
+        $room = BingoRoom::create([
+            'uuid_code' => (string) Str::uuid(),
+            'status_id' => $status->id,
+            'creator_user_id' => $user->id,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id' => $room->id,
+            'room_type_id' => $roomType->id,
+            'creator_user_id' => $user->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'game_variant' => BingoVariant::BINGO_75,
+        ]);
+
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'cards_purchased' => 1,
+        ]);
+
+        $lot = BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $user->id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $currency->id,
+            'card_count' => 1,
+            'card_price' => 1,
+            'exchange_rate' => 1,
+            'sale_amount' => 1,
+        ]);
+
+        $pattern = BingoPattern::create([
+            // num_id es unsignedTinyInteger (0-255) en la migración de bingo_patterns.
+            'num_id' => random_int(100, 250),
+            'type_pattern' => 'UNIQUE',
+            'name' => 'Línea simple test',
+            'user_id' => null,
+            'boxes' => 'B1;I1;N1;G1;O1', // fila índice 0 de cada columna
+            'status' => 'ACTIVE',
+        ]);
+
+        $round = BingoRound::create([
+            'room_id' => $room->id,
+            'room_config_id' => $room->config->id,
+            'round' => 1,
+            'prize_type' => 'PCT',
+            'bingo_pattern_id' => $pattern->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $card = BingoCard::create([
+            'room_id' => $room->id,
+            'creator_user_id' => $user->id,
+            'room_user_id' => $roomUser->id,
+            'card_lot_id' => $lot->id,
+            'currency_id' => $currency->id,
+            'serial_number' => 'SN-' . Str::random(10),
+            'card_numbers' => $cardNumbers,
+            'card_hash' => hash('sha256', Str::random(20)),
+            'status' => BingoCard::STATUS_ACTIVE,
+        ]);
+
+        return compact('room', 'round', 'pattern', 'card');
+    }
+
+    private function winningCardNumbers() : array
+    {
+        return [
+            'B' => [1, 2, 3, 4, 5],
+            'I' => [16, 17, 18, 19, 20],
+            'N' => [31, 32, null, 34, 35],
+            'G' => [46, 47, 48, 49, 50],
+            'O' => [61, 62, 63, 64, 65],
+        ];
     }
 }

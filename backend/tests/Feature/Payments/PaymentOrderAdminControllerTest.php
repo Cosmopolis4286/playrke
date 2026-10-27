@@ -20,7 +20,7 @@ class PaymentOrderAdminControllerTest extends TestCase
     private User $admin;
     private PaymentProduct $product;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -46,19 +46,56 @@ class PaymentOrderAdminControllerTest extends TestCase
         ]);
     }
 
-    /** Mismo patrón que EscrowAdminControllerTest::makeRole(). */
-    private function makeRole(string $name): void
+    public function test_admin_can_list_orders() : void
     {
-        if (Role::where('name', $name)->where('guard_name', 'web')->exists()) {
-            return;
-        }
+        $this->makeOrder();
 
-        $role = new Role(['name' => $name, 'guard_name' => 'web', 'prefix' => strtoupper($name), 'type' => 'web']);
-        $role->id = Role::generateSnowflakeId();
-        $role->save();
+        $response = $this->actingAs($this->admin)->getJson('/payments-orders/fetch-list');
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
     }
 
-    private function makeOrder(string $status = PaymentOrder::STATUS_PENDING): PaymentOrder
+    public function test_admin_can_reevaluate_pending_order() : void
+    {
+        $order = $this->makeOrder(PaymentOrder::STATUS_PENDING);
+
+        $response = $this->actingAs($this->admin)->postJson("/payments-orders/{$order->id}/reevaluate");
+
+        $response->assertOk();
+    }
+
+    public function test_cannot_reevaluate_terminal_order() : void
+    {
+        $order = $this->makeOrder(PaymentOrder::STATUS_CREDITED);
+
+        $response = $this->actingAs($this->admin)->postJson("/payments-orders/{$order->id}/reevaluate");
+
+        $response->assertForbidden();
+    }
+
+    public function test_filters_by_status() : void
+    {
+        $this->makeOrder(PaymentOrder::STATUS_PENDING);
+
+        $response = $this->actingAs($this->admin)->getJson('/payments-orders/fetch-list?status=CREDITED');
+
+        $response->assertOk();
+        $this->assertCount(0, $response->json('data'));
+    }
+
+    public function test_non_admin_cannot_access() : void
+    {
+        $player = User::factory()->create();
+        $this->makeRole('player');
+        $player->assignRole('player');
+
+        $response = $this->actingAs($player)->getJson('/payments-orders/fetch-list');
+
+        $response->assertForbidden();
+    }
+
+    private function makeOrder(string $status = PaymentOrder::STATUS_PENDING) : PaymentOrder
     {
         $user = User::factory()->create();
 
@@ -72,52 +109,15 @@ class PaymentOrderAdminControllerTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_list_orders(): void
+    /** Mismo patrón que EscrowAdminControllerTest::makeRole(). */
+    private function makeRole(string $name) : void
     {
-        $this->makeOrder();
+        if (Role::where('name', $name)->where('guard_name', 'web')->exists()) {
+            return;
+        }
 
-        $response = $this->actingAs($this->admin)->getJson('/payments-orders/fetch-list');
-
-        $response->assertOk();
-        $this->assertCount(1, $response->json('data'));
-    }
-
-    public function test_filters_by_status(): void
-    {
-        $this->makeOrder(PaymentOrder::STATUS_PENDING);
-
-        $response = $this->actingAs($this->admin)->getJson('/payments-orders/fetch-list?status=CREDITED');
-
-        $response->assertOk();
-        $this->assertCount(0, $response->json('data'));
-    }
-
-    public function test_non_admin_cannot_access(): void
-    {
-        $player = User::factory()->create();
-        $this->makeRole('player');
-        $player->assignRole('player');
-
-        $response = $this->actingAs($player)->getJson('/payments-orders/fetch-list');
-
-        $response->assertForbidden();
-    }
-
-    public function test_admin_can_reevaluate_pending_order(): void
-    {
-        $order = $this->makeOrder(PaymentOrder::STATUS_PENDING);
-
-        $response = $this->actingAs($this->admin)->postJson("/payments-orders/{$order->id}/reevaluate");
-
-        $response->assertOk();
-    }
-
-    public function test_cannot_reevaluate_terminal_order(): void
-    {
-        $order = $this->makeOrder(PaymentOrder::STATUS_CREDITED);
-
-        $response = $this->actingAs($this->admin)->postJson("/payments-orders/{$order->id}/reevaluate");
-
-        $response->assertForbidden();
+        $role = new Role(['name' => $name, 'guard_name' => 'web', 'prefix' => strtoupper($name), 'type' => 'web']);
+        $role->id = Role::generateSnowflakeId();
+        $role->save();
     }
 }

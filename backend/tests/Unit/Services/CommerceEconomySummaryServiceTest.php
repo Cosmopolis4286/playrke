@@ -37,10 +37,10 @@ class CommerceEconomySummaryServiceTest extends TestCase
     use RefreshDatabase;
 
     private Country $country;
-    private Currency $usd;
     private CommerceEconomySummaryService $service;
+    private Currency $usd;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
@@ -60,177 +60,49 @@ class CommerceEconomySummaryServiceTest extends TestCase
         $this->usd = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'symbol' => '$', 'type' => 'FIAT']);
     }
 
-    private function makeCommerceUser(): User
+    public function test_by_currency_groups_and_sums_correctly() : void
     {
-        $user = User::factory()->create(['country_id' => $this->country->id]);
-        $user->assignRole('commerce');
+        $commerceUser = $this->makeCommerceUser();
 
-        Commerce::create([
-            'name'           => 'Comercio de prueba',
-            'country_id'     => $this->country->id,
-            'phone'          => '+58414' . random_int(1000000, 9999999),
-            'user_id'        => $user->id,
-            'unique_code_id' => UniqueCode::create([
-                'rke_code'  => 'RKE-' . random_int(100000, 999999),
-                'uuid_code' => (string) Str::uuid(),
-                'user_id'   => $user->id,
-                'status'    => 'ACTIVE',
-            ])->id,
-            'commission' => 5.00,
-            'status'     => 'ACTIVE',
-        ]);
+        $this->makeCreatorSale($commerceUser, 100.0, 10.0);
+        $this->makeCreatorSale($commerceUser, 50.0, 5.0);
 
-        return $user;
+        $summary = $this->service->getSummary($commerceUser->id);
+
+        $this->assertCount(1, $summary['by_currency']);
+        $this->assertSame(150.0, $summary['by_currency'][0]['income']);
+        $this->assertSame(15.0, $summary['by_currency'][0]['commission']);
+        $this->assertSame('USD', $summary['by_currency'][0]['iso_code']);
     }
 
-    private function makeSubsidiaryUnderCommerce(Commerce $commerce): User
+    public function test_date_range_filter_excludes_sales_outside_range() : void
     {
-        $user = User::factory()->create(['country_id' => $this->country->id]);
-        $user->assignRole('subsidiary');
+        $commerceUser = $this->makeCommerceUser();
+        $this->makeCreatorSale($commerceUser, 100.0, 10.0);
 
-        Subsidiary::create([
-            'name'        => 'Agencia de prueba',
-            'commerce_id' => $commerce->id,
-            'user_id'     => $user->id,
-            'country_id'  => $this->country->id,
-            'currency_id' => $this->usd->id,
-            'commission'  => 3.00,
-            'status'      => 'ACTIVE',
-        ]);
-
-        return $user;
-    }
-
-    /** Vendedor DIRECTO del commerce (manager_user_id = commerce). */
-    private function makeDirectSeller(User $commerceUser): User
-    {
-        $user = User::factory()->create(['country_id' => $this->country->id]);
-        $user->assignRole('seller');
-
-        Seller::create([
-            'id'              => (string) random_int(400000000000000000, 499999999999999999),
-            'name'            => 'Vendedor directo',
-            'phone'           => '+58424' . random_int(1000000, 9999999),
-            'commission'      => 2.00,
-            'user_id'         => $user->id,
-            'country_id'      => $this->country->id,
-            'manager_user_id' => $commerceUser->id,
-            'status'          => 'ACTIVE',
-        ]);
-
-        return $user;
-    }
-
-    /** Vendedor que reporta a través de una Subsidiary (agencia). */
-    private function makeSubsidiarySeller(Subsidiary $subsidiary): User
-    {
-        $user = User::factory()->create(['country_id' => $this->country->id]);
-        $user->assignRole('seller');
-
-        Seller::create([
-            'id'              => (string) random_int(500000000000000000, 599999999999999999),
-            'name'            => 'Vendedor de agencia',
-            'phone'           => '+58424' . random_int(1000000, 9999999),
-            'commission'      => 2.00,
-            'user_id'         => $user->id,
-            'country_id'      => $this->country->id,
-            'subsidiary_id'   => $subsidiary->id,
-            // Mismo dato que persiste ManagerSellerService: el user_id del
-            // Commerce raíz, no el de la agencia.
-            'manager_user_id' => $subsidiary->commerce->user_id,
-            'status'          => 'ACTIVE',
-        ]);
-
-        return $user;
-    }
-
-    /** Crea sala + BingoCreatorSale (agregado, lo que consume by_currency/totals). */
-    private function makeCreatorSale(User $creatorUser, float $saleAmount, float $rkeCommission): void
-    {
-        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
-        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
-        $prizePoolType = PrizePoolType::firstOrCreate(
-            ['game_id' => $game->id, 'code' => 'STANDARD'],
-            ['label' => 'Estándar', 'is_accumulative' => false],
+        $summary = $this->service->getSummary(
+            $commerceUser->id,
+            startDate: now()->addDays(1)->format('Y-m-d'),
+            endDate: now()->addDays(2)->format('Y-m-d'),
         );
 
-        $room = BingoRoom::create([
-            'uuid_code'       => (string) Str::uuid(),
-            'status_id'       => $status->id,
-            'creator_user_id' => $creatorUser->id,
-        ]);
-
-        BingoRoomConfig::create([
-            'room_id'            => $room->id,
-            'room_type_id'       => $roomType->id,
-            'creator_user_id'    => $creatorUser->id,
-            'connection_type_id' => $connectionType->id,
-            'prize_pool_type_id' => $prizePoolType->id,
-            'game_variant'       => BingoVariant::BINGO_75,
-        ]);
-
-        BingoCreatorSale::create([
-            'room_id'           => $room->id,
-            'creator_user_id'   => $creatorUser->id,
-            'currency_id'       => $this->usd->id,
-            'sale_amount'       => $saleAmount,
-            'rke_commission'    => $rkeCommission,
-            'room_commission'   => 0,
-            'seller_commission' => 0,
-            'prize_pool_amount' => 0,
-        ]);
+        $this->assertSame(0.0, $summary['totals']['total_income']);
     }
 
-    /** Crea un BingoCardLot (lo que consume by_seller). */
-    private function makeCardLot(User $creatorUser, ?User $sellerUser, float $saleAmount, float $commissionAmount): void
+    public function test_summary_excludes_sales_from_unrelated_seller() : void
     {
-        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
-        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
-        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
-        $prizePoolType = PrizePoolType::firstOrCreate(
-            ['game_id' => $game->id, 'code' => 'STANDARD'],
-            ['label' => 'Estándar', 'is_accumulative' => false],
-        );
+        $commerceUser = $this->makeCommerceUser();
+        $otherCommerceUser = $this->makeCommerceUser();
+        $unrelatedSeller = $this->makeDirectSeller($otherCommerceUser);
 
-        $room = BingoRoom::create([
-            'uuid_code'       => (string) Str::uuid(),
-            'status_id'       => $status->id,
-            'creator_user_id' => $creatorUser->id,
-        ]);
+        $this->makeCreatorSale($unrelatedSeller, 500.0, 50.0);
 
-        BingoRoomConfig::create([
-            'room_id'            => $room->id,
-            'room_type_id'       => $roomType->id,
-            'creator_user_id'    => $creatorUser->id,
-            'connection_type_id' => $connectionType->id,
-            'prize_pool_type_id' => $prizePoolType->id,
-            'game_variant'       => BingoVariant::BINGO_75,
-        ]);
+        $summary = $this->service->getSummary($commerceUser->id);
 
-        $roomUser = BingoRoomUser::create([
-            'room_id'         => $room->id,
-            'user_id'         => $creatorUser->id,
-            'cards_purchased' => 1,
-        ]);
-
-        BingoCardLot::create([
-            'room_id'           => $room->id,
-            'user_id'           => $creatorUser->id,
-            'seller_user_id'    => $sellerUser?->id,
-            'room_user_id'      => $roomUser->id,
-            'currency_id'       => $this->usd->id,
-            'card_count'        => 1,
-            'card_price'        => $saleAmount,
-            'exchange_rate'     => 1,
-            'sale_amount'       => $saleAmount,
-            'commission_amount' => $commissionAmount,
-        ]);
+        $this->assertSame(0.0, $summary['totals']['total_income']);
     }
 
-    public function test_summary_includes_sales_from_direct_seller_of_the_network(): void
+    public function test_summary_includes_sales_from_direct_seller_of_the_network() : void
     {
         $commerceUser = $this->makeCommerceUser();
         $commerce = Commerce::where('user_id', $commerceUser->id)->first();
@@ -248,7 +120,7 @@ class CommerceEconomySummaryServiceTest extends TestCase
         $this->assertNotEmpty($summary['by_seller']);
     }
 
-    public function test_summary_includes_sales_from_seller_reporting_through_a_subsidiary(): void
+    public function test_summary_includes_sales_from_seller_reporting_through_a_subsidiary() : void
     {
         $commerceUser = $this->makeCommerceUser();
         $commerce = Commerce::where('user_id', $commerceUser->id)->first();
@@ -267,45 +139,173 @@ class CommerceEconomySummaryServiceTest extends TestCase
         $this->assertSame(16.0, $summary['totals']['total_commission']);
     }
 
-    public function test_summary_excludes_sales_from_unrelated_seller(): void
+    /** Crea un BingoCardLot (lo que consume by_seller). */
+    private function makeCardLot(User $creatorUser, ?User $sellerUser, float $saleAmount, float $commissionAmount) : void
     {
-        $commerceUser = $this->makeCommerceUser();
-        $otherCommerceUser = $this->makeCommerceUser();
-        $unrelatedSeller = $this->makeDirectSeller($otherCommerceUser);
-
-        $this->makeCreatorSale($unrelatedSeller, 500.0, 50.0);
-
-        $summary = $this->service->getSummary($commerceUser->id);
-
-        $this->assertSame(0.0, $summary['totals']['total_income']);
-    }
-
-    public function test_by_currency_groups_and_sums_correctly(): void
-    {
-        $commerceUser = $this->makeCommerceUser();
-
-        $this->makeCreatorSale($commerceUser, 100.0, 10.0);
-        $this->makeCreatorSale($commerceUser, 50.0, 5.0);
-
-        $summary = $this->service->getSummary($commerceUser->id);
-
-        $this->assertCount(1, $summary['by_currency']);
-        $this->assertSame(150.0, $summary['by_currency'][0]['income']);
-        $this->assertSame(15.0, $summary['by_currency'][0]['commission']);
-        $this->assertSame('USD', $summary['by_currency'][0]['iso_code']);
-    }
-
-    public function test_date_range_filter_excludes_sales_outside_range(): void
-    {
-        $commerceUser = $this->makeCommerceUser();
-        $this->makeCreatorSale($commerceUser, 100.0, 10.0);
-
-        $summary = $this->service->getSummary(
-            $commerceUser->id,
-            startDate: now()->addDays(1)->format('Y-m-d'),
-            endDate: now()->addDays(2)->format('Y-m-d'),
+        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
+        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
         );
 
-        $this->assertSame(0.0, $summary['totals']['total_income']);
+        $room = BingoRoom::create([
+            'uuid_code' => (string) Str::uuid(),
+            'status_id' => $status->id,
+            'creator_user_id' => $creatorUser->id,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id' => $room->id,
+            'room_type_id' => $roomType->id,
+            'creator_user_id' => $creatorUser->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'game_variant' => BingoVariant::BINGO_75,
+        ]);
+
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $creatorUser->id,
+            'cards_purchased' => 1,
+        ]);
+
+        BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $creatorUser->id,
+            'seller_user_id' => $sellerUser?->id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $this->usd->id,
+            'card_count' => 1,
+            'card_price' => $saleAmount,
+            'exchange_rate' => 1,
+            'sale_amount' => $saleAmount,
+            'commission_amount' => $commissionAmount,
+        ]);
+    }
+
+    private function makeCommerceUser() : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id]);
+        $user->assignRole('commerce');
+
+        Commerce::create([
+            'name' => 'Comercio de prueba',
+            'country_id' => $this->country->id,
+            'phone' => '+58414' . random_int(1000000, 9999999),
+            'user_id' => $user->id,
+            'unique_code_id' => UniqueCode::create([
+                'rke_code' => 'RKE-' . random_int(100000, 999999),
+                'uuid_code' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'status' => 'ACTIVE',
+            ])->id,
+            'commission' => 5.00,
+            'status' => 'ACTIVE',
+        ]);
+
+        return $user;
+    }
+
+    /** Crea sala + BingoCreatorSale (agregado, lo que consume by_currency/totals). */
+    private function makeCreatorSale(User $creatorUser, float $saleAmount, float $rkeCommission) : void
+    {
+        $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
+        $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
+        $connectionType = ConnectionType::firstOrCreate(['code' => 'ONLINE'], ['label' => 'Online']);
+        $game = Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+        $prizePoolType = PrizePoolType::firstOrCreate(
+            ['game_id' => $game->id, 'code' => 'STANDARD'],
+            ['label' => 'Estándar', 'is_accumulative' => false],
+        );
+
+        $room = BingoRoom::create([
+            'uuid_code' => (string) Str::uuid(),
+            'status_id' => $status->id,
+            'creator_user_id' => $creatorUser->id,
+        ]);
+
+        BingoRoomConfig::create([
+            'room_id' => $room->id,
+            'room_type_id' => $roomType->id,
+            'creator_user_id' => $creatorUser->id,
+            'connection_type_id' => $connectionType->id,
+            'prize_pool_type_id' => $prizePoolType->id,
+            'game_variant' => BingoVariant::BINGO_75,
+        ]);
+
+        BingoCreatorSale::create([
+            'room_id' => $room->id,
+            'creator_user_id' => $creatorUser->id,
+            'currency_id' => $this->usd->id,
+            'sale_amount' => $saleAmount,
+            'rke_commission' => $rkeCommission,
+            'room_commission' => 0,
+            'seller_commission' => 0,
+            'prize_pool_amount' => 0,
+        ]);
+    }
+
+    /** Vendedor DIRECTO del commerce (manager_user_id = commerce). */
+    private function makeDirectSeller(User $commerceUser) : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id]);
+        $user->assignRole('seller');
+
+        Seller::create([
+            'id' => (string) random_int(400000000000000000, 499999999999999999),
+            'name' => 'Vendedor directo',
+            'phone' => '+58424' . random_int(1000000, 9999999),
+            'commission' => 2.00,
+            'user_id' => $user->id,
+            'country_id' => $this->country->id,
+            'manager_user_id' => $commerceUser->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        return $user;
+    }
+
+    /** Vendedor que reporta a través de una Subsidiary (agencia). */
+    private function makeSubsidiarySeller(Subsidiary $subsidiary) : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id]);
+        $user->assignRole('seller');
+
+        Seller::create([
+            'id' => (string) random_int(500000000000000000, 599999999999999999),
+            'name' => 'Vendedor de agencia',
+            'phone' => '+58424' . random_int(1000000, 9999999),
+            'commission' => 2.00,
+            'user_id' => $user->id,
+            'country_id' => $this->country->id,
+            'subsidiary_id' => $subsidiary->id,
+            // Mismo dato que persiste ManagerSellerService: el user_id del
+            // Commerce raíz, no el de la agencia.
+            'manager_user_id' => $subsidiary->commerce->user_id,
+            'status' => 'ACTIVE',
+        ]);
+
+        return $user;
+    }
+
+    private function makeSubsidiaryUnderCommerce(Commerce $commerce) : User
+    {
+        $user = User::factory()->create(['country_id' => $this->country->id]);
+        $user->assignRole('subsidiary');
+
+        Subsidiary::create([
+            'name' => 'Agencia de prueba',
+            'commerce_id' => $commerce->id,
+            'user_id' => $user->id,
+            'country_id' => $this->country->id,
+            'currency_id' => $this->usd->id,
+            'commission' => 3.00,
+            'status' => 'ACTIVE',
+        ]);
+
+        return $user;
     }
 }

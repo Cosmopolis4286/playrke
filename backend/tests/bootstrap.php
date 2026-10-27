@@ -23,12 +23,12 @@
  * archivo corre antes de que exista ninguna instancia de test.
  */
 
-require __DIR__.'/../vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
-$rawEnvPath = __DIR__.'/../.env.testing';
+$rawEnvPath = __DIR__ . '/../.env.testing';
 
 if (! is_file($rawEnvPath)) {
-    fwrite(STDERR, PHP_EOL.'❌ ABORTADO: no se encontró .env.testing en la raíz de backend/.'.PHP_EOL.PHP_EOL);
+    fwrite(STDERR, PHP_EOL . '❌ ABORTADO: no se encontró .env.testing en la raíz de backend/.' . PHP_EOL . PHP_EOL);
     exit(1);
 }
 
@@ -41,13 +41,13 @@ foreach (array_keys($expected) as $key) {
     $line = null;
 
     foreach (file($rawEnvPath) as $rawLine) {
-        if (preg_match('/^'.preg_quote($key, '/').'=(.*)$/', trim($rawLine), $matches)) {
+        if (preg_match('/^' . preg_quote($key, '/') . '=(.*)$/', trim($rawLine), $matches)) {
             $line = trim($matches[1], " \t\n\r\0\x0B\"'");
         }
     }
 
     if ($line === null) {
-        fwrite(STDERR, PHP_EOL."❌ ABORTADO: {$key} no está definido en .env.testing.".PHP_EOL.PHP_EOL);
+        fwrite(STDERR, PHP_EOL . "❌ ABORTADO: {$key} no está definido en .env.testing." . PHP_EOL . PHP_EOL);
         exit(1);
     }
 
@@ -80,11 +80,11 @@ foreach (file($rawEnvPath) as $rawLine) {
 // test. Si algo más adelante (config cacheada, etc.) las pisara, esto no lo
 // detectaría — por eso TestCase también guarda vía config() resuelto.
 if (getenv('DB_DATABASE') !== $expected['DB_DATABASE'] || ! str_contains(getenv('DB_DATABASE'), 'testing')) {
-    fwrite(STDERR, PHP_EOL."❌ ABORTADO: DB_DATABASE resuelto ('".getenv('DB_DATABASE')."') no contiene 'testing'.".PHP_EOL.PHP_EOL);
+    fwrite(STDERR, PHP_EOL . "❌ ABORTADO: DB_DATABASE resuelto ('" . getenv('DB_DATABASE') . "') no contiene 'testing'." . PHP_EOL . PHP_EOL);
     exit(1);
 }
 
 if (getenv('DB_TRIVIA_DATABASE') !== $expected['DB_TRIVIA_DATABASE'] || ! str_contains(getenv('DB_TRIVIA_DATABASE'), 'testing')) {
-    fwrite(STDERR, PHP_EOL."❌ ABORTADO: DB_TRIVIA_DATABASE resuelto ('".getenv('DB_TRIVIA_DATABASE')."') no contiene 'testing'.".PHP_EOL.PHP_EOL);
+    fwrite(STDERR, PHP_EOL . "❌ ABORTADO: DB_TRIVIA_DATABASE resuelto ('" . getenv('DB_TRIVIA_DATABASE') . "') no contiene 'testing'." . PHP_EOL . PHP_EOL);
     exit(1);
 }

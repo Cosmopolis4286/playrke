@@ -13,70 +13,58 @@ class RoleControllerTest extends TestCase
 
     private static int $idCounter = 0;
 
-    private function nextId(): string
-    {
-        return (string) (500000000000000000 + (++self::$idCounter));
-    }
-
-    private function seedRoles(): void
-    {
-        foreach (['superadmin', 'admin', 'player'] as $name) {
-            if (! Role::where('name', $name)->where('guard_name', 'web')->exists()) {
-                $role = new Role([
-                    'name'       => $name,
-                    'guard_name' => 'web',
-                    'prefix'     => $name,
-                    'type'       => 'web',
-                    'status'     => true,
-                    'description'=> ucfirst($name),
-                ]);
-                $role->id = $this->nextId();
-                $role->save();
-            }
-        }
-    }
-
-    private function makeSuperadmin(): User
-    {
-        $user = User::factory()->create();
-        $user->assignRole('superadmin');
-
-        return $user;
-    }
-
-    private function makeAdmin(): User
-    {
-        $user = User::factory()->create();
-        $user->assignRole('admin');
-
-        return $user;
-    }
-
-    private function makePlayer(): User
-    {
-        $user = User::factory()->create();
-        $user->assignRole('player');
-
-        return $user;
-    }
-
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         $this->seedRoles();
     }
 
-    public function test_superadmin_can_list_roles(): void
+    // ── admin: puede gestionar roles, excepto 'superadmin' y 'admin' ───────
+
+    public function test_admin_can_list_and_view_role_hierarchy() : void
     {
-        $superadmin = $this->makeSuperadmin();
+        $admin = $this->makeAdmin();
 
-        $response = $this->actingAs($superadmin)->getJson('/roles-admin/fetch-list');
-
-        $response->assertOk();
-        $this->assertGreaterThanOrEqual(2, count($response->json('roles')));
+        $this->actingAs($admin)->getJson('/roles-admin/fetch-list')->assertOk();
+        $this->actingAs($admin)->getJson('/roles-admin/hierarchy')->assertOk();
     }
 
-    public function test_non_superadmin_cannot_access_role_routes(): void
+    public function test_admin_can_manage_a_regular_role() : void
+    {
+        $admin = $this->makeAdmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($admin)->patchJson("/roles-admin/{$playerRole->id}", [
+            'description' => 'Actualizado por un admin',
+        ]);
+        $response->assertOk();
+        $this->assertSame('Actualizado por un admin', $playerRole->fresh()->description);
+
+        $this->actingAs($admin)->putJson("/roles-admin/{$playerRole->id}/status")->assertOk();
+        $this->assertFalse($playerRole->fresh()->status);
+    }
+
+    public function test_admin_cannot_manage_admin_role() : void
+    {
+        $admin = $this->makeAdmin();
+        $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->firstOrFail();
+
+        $this->actingAs($admin)->patchJson("/roles-admin/{$adminRole->id}", ['description' => 'x'])->assertStatus(403);
+        $this->actingAs($admin)->putJson("/roles-admin/{$adminRole->id}/status")->assertStatus(403);
+        $this->assertTrue($adminRole->fresh()->status);
+    }
+
+    public function test_admin_cannot_manage_superadmin_role() : void
+    {
+        $admin = $this->makeAdmin();
+        $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
+
+        $this->actingAs($admin)->patchJson("/roles-admin/{$superadminRole->id}", ['description' => 'x'])->assertStatus(403);
+        $this->actingAs($admin)->putJson("/roles-admin/{$superadminRole->id}/status")->assertStatus(403);
+        $this->assertTrue($superadminRole->fresh()->status);
+    }
+
+    public function test_non_superadmin_cannot_access_role_routes() : void
     {
         $player = $this->makePlayer();
         $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
@@ -87,7 +75,85 @@ class RoleControllerTest extends TestCase
         $this->actingAs($player)->putJson("/roles-admin/{$playerRole->id}/status")->assertStatus(403);
     }
 
-    public function test_superadmin_can_view_role_hierarchy(): void
+    public function test_superadmin_can_list_roles() : void
+    {
+        $superadmin = $this->makeSuperadmin();
+
+        $response = $this->actingAs($superadmin)->getJson('/roles-admin/fetch-list');
+
+        $response->assertOk();
+        $this->assertGreaterThanOrEqual(2, count($response->json('roles')));
+    }
+
+    public function test_superadmin_can_manage_admin_role() : void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$adminRole->id}", [
+            'description' => 'Actualizado por superadmin',
+        ]);
+        $response->assertOk();
+        $this->assertSame('Actualizado por superadmin', $adminRole->fresh()->description);
+    }
+
+    public function test_superadmin_can_toggle_role_status() : void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->putJson("/roles-admin/{$playerRole->id}/status");
+
+        $response->assertOk();
+        $this->assertFalse($playerRole->fresh()->status);
+    }
+
+    public function test_superadmin_can_update_role_description() : void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
+            'description' => 'Jugador final de la plataforma',
+        ]);
+
+        $response->assertOk();
+        $this->assertSame('Jugador final de la plataforma', $playerRole->fresh()->description);
+    }
+
+    public function test_superadmin_can_update_role_sort_order_icon_and_color() : void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
+            'sort_order' => 42,
+            'icon' => 'fa-star',
+            'color' => '#123456',
+        ]);
+
+        $response->assertOk();
+        $fresh = $playerRole->fresh();
+        $this->assertSame(42, $fresh->sort_order);
+        $this->assertSame('fa-star', $fresh->icon);
+        $this->assertSame('#123456', $fresh->color);
+    }
+
+    /** RoleHierarchyTree.vue manda `status` junto al resto de metadatos por el mismo PATCH, no por PUT .../status. */
+    public function test_superadmin_can_update_role_status_via_patch() : void
+    {
+        $superadmin = $this->makeSuperadmin();
+        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+
+        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
+            'status' => false,
+        ]);
+
+        $response->assertOk();
+        $this->assertFalse($playerRole->fresh()->status);
+    }
+
+    public function test_superadmin_can_view_role_hierarchy() : void
     {
         $superadmin = $this->makeSuperadmin();
 
@@ -110,65 +176,9 @@ class RoleControllerTest extends TestCase
         $this->assertArrayHasKey('permissions_count', $superadminNode);
     }
 
-    public function test_superadmin_can_update_role_sort_order_icon_and_color(): void
-    {
-        $superadmin = $this->makeSuperadmin();
-        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-
-        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
-            'sort_order' => 42,
-            'icon' => 'fa-star',
-            'color' => '#123456',
-        ]);
-
-        $response->assertOk();
-        $fresh = $playerRole->fresh();
-        $this->assertSame(42, $fresh->sort_order);
-        $this->assertSame('fa-star', $fresh->icon);
-        $this->assertSame('#123456', $fresh->color);
-    }
-
-    public function test_superadmin_can_update_role_description(): void
-    {
-        $superadmin = $this->makeSuperadmin();
-        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-
-        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
-            'description' => 'Jugador final de la plataforma',
-        ]);
-
-        $response->assertOk();
-        $this->assertSame('Jugador final de la plataforma', $playerRole->fresh()->description);
-    }
-
-    public function test_superadmin_can_toggle_role_status(): void
-    {
-        $superadmin = $this->makeSuperadmin();
-        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-
-        $response = $this->actingAs($superadmin)->putJson("/roles-admin/{$playerRole->id}/status");
-
-        $response->assertOk();
-        $this->assertFalse($playerRole->fresh()->status);
-    }
-
-    /** RoleHierarchyTree.vue manda `status` junto al resto de metadatos por el mismo PATCH, no por PUT .../status. */
-    public function test_superadmin_can_update_role_status_via_patch(): void
-    {
-        $superadmin = $this->makeSuperadmin();
-        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
-
-        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$playerRole->id}", [
-            'status' => false,
-        ]);
-
-        $response->assertOk();
-        $this->assertFalse($playerRole->fresh()->status);
-    }
-
     // ── superadmin: rol raíz, no editable ni desactivable ──────────────────
 
-    public function test_superadmin_role_cannot_be_deactivated(): void
+    public function test_superadmin_role_cannot_be_deactivated() : void
     {
         $superadmin = $this->makeSuperadmin();
         $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
@@ -179,7 +189,7 @@ class RoleControllerTest extends TestCase
         $this->assertTrue($superadminRole->fresh()->status);
     }
 
-    public function test_superadmin_role_description_cannot_be_updated(): void
+    public function test_superadmin_role_description_cannot_be_updated() : void
     {
         $superadmin = $this->makeSuperadmin();
         $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
@@ -191,60 +201,50 @@ class RoleControllerTest extends TestCase
         $response->assertStatus(403);
     }
 
-    // ── admin: puede gestionar roles, excepto 'superadmin' y 'admin' ───────
-
-    public function test_admin_can_list_and_view_role_hierarchy(): void
+    private function makeAdmin() : User
     {
-        $admin = $this->makeAdmin();
+        $user = User::factory()->create();
+        $user->assignRole('admin');
 
-        $this->actingAs($admin)->getJson('/roles-admin/fetch-list')->assertOk();
-        $this->actingAs($admin)->getJson('/roles-admin/hierarchy')->assertOk();
+        return $user;
     }
 
-    public function test_admin_can_manage_a_regular_role(): void
+    private function makePlayer() : User
     {
-        $admin = $this->makeAdmin();
-        $playerRole = Role::where('name', 'player')->where('guard_name', 'web')->firstOrFail();
+        $user = User::factory()->create();
+        $user->assignRole('player');
 
-        $response = $this->actingAs($admin)->patchJson("/roles-admin/{$playerRole->id}", [
-            'description' => 'Actualizado por un admin',
-        ]);
-        $response->assertOk();
-        $this->assertSame('Actualizado por un admin', $playerRole->fresh()->description);
-
-        $this->actingAs($admin)->putJson("/roles-admin/{$playerRole->id}/status")->assertOk();
-        $this->assertFalse($playerRole->fresh()->status);
+        return $user;
     }
 
-    public function test_admin_cannot_manage_superadmin_role(): void
+    private function makeSuperadmin() : User
     {
-        $admin = $this->makeAdmin();
-        $superadminRole = Role::where('name', 'superadmin')->where('guard_name', 'web')->firstOrFail();
+        $user = User::factory()->create();
+        $user->assignRole('superadmin');
 
-        $this->actingAs($admin)->patchJson("/roles-admin/{$superadminRole->id}", ['description' => 'x'])->assertStatus(403);
-        $this->actingAs($admin)->putJson("/roles-admin/{$superadminRole->id}/status")->assertStatus(403);
-        $this->assertTrue($superadminRole->fresh()->status);
+        return $user;
     }
 
-    public function test_admin_cannot_manage_admin_role(): void
+    private function nextId() : string
     {
-        $admin = $this->makeAdmin();
-        $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->firstOrFail();
-
-        $this->actingAs($admin)->patchJson("/roles-admin/{$adminRole->id}", ['description' => 'x'])->assertStatus(403);
-        $this->actingAs($admin)->putJson("/roles-admin/{$adminRole->id}/status")->assertStatus(403);
-        $this->assertTrue($adminRole->fresh()->status);
+        return (string) (500000000000000000 + (++self::$idCounter));
     }
 
-    public function test_superadmin_can_manage_admin_role(): void
+    private function seedRoles() : void
     {
-        $superadmin = $this->makeSuperadmin();
-        $adminRole = Role::where('name', 'admin')->where('guard_name', 'web')->firstOrFail();
-
-        $response = $this->actingAs($superadmin)->patchJson("/roles-admin/{$adminRole->id}", [
-            'description' => 'Actualizado por superadmin',
-        ]);
-        $response->assertOk();
-        $this->assertSame('Actualizado por superadmin', $adminRole->fresh()->description);
+        foreach (['superadmin', 'admin', 'player'] as $name) {
+            if (! Role::where('name', $name)->where('guard_name', 'web')->exists()) {
+                $role = new Role([
+                    'name' => $name,
+                    'guard_name' => 'web',
+                    'prefix' => $name,
+                    'type' => 'web',
+                    'status' => true,
+                    'description' => ucfirst($name),
+                ]);
+                $role->id = $this->nextId();
+                $role->save();
+            }
+        }
     }
 }

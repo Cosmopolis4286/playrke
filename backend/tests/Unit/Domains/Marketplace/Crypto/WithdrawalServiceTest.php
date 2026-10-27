@@ -6,13 +6,13 @@ use App\Domains\Marketplace\Crypto\Exceptions\CryptoCustodyNotConfiguredExceptio
 use App\Domains\Marketplace\Crypto\Exceptions\InvalidWithdrawalStateException;
 use App\Domains\Marketplace\Crypto\Models\CryptoWithdrawal;
 use App\Domains\Marketplace\Crypto\Services\WithdrawalService;
-use App\Models\Currency;
-use App\Models\MovementType;
-use App\Models\User;
 use App\Domains\Wallet\Exceptions\WalletDomainException;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletHold;
 use App\Domains\Wallet\Models\WalletLimit;
+use App\Models\Currency;
+use App\Models\MovementType;
+use App\Models\User;
 use Database\Seeders\MovementTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,17 +20,17 @@ use Tests\TestCase;
 class WithdrawalServiceTest extends TestCase
 {
     use RefreshDatabase;
+    private User $admin;
 
     private WithdrawalService $service;
     private User $user;
-    private User $admin;
     private Wallet $wallet;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
 
-        (new MovementTypeSeeder())->run();
+        (new MovementTypeSeeder)->run();
         MovementType::forgetCatalogCache();
 
         $this->service = app(WithdrawalService::class);
@@ -56,76 +56,6 @@ class WithdrawalServiceTest extends TestCase
         ]);
     }
 
-    public function test_request_reserves_amount_without_touching_balance(): void
-    {
-        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
-
-        $this->assertSame(CryptoWithdrawal::STATUS_RESERVED, $withdrawal->status);
-        $this->assertNotNull($withdrawal->wallet_hold_id);
-        $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
-        $this->assertSame(50.0, $this->wallet->fresh()->getAvailableBalance());
-    }
-
-    public function test_request_throws_when_amount_exceeds_available_balance(): void
-    {
-        $this->expectException(WalletDomainException::class);
-        $this->service->request($this->user, $this->wallet, 500.0, 'TDEST');
-    }
-
-    public function test_full_review_flow_to_approved(): void
-    {
-        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
-        $withdrawal = $this->service->startReview($withdrawal);
-        $this->assertSame(CryptoWithdrawal::STATUS_REVIEWING, $withdrawal->status);
-
-        $withdrawal = $this->service->approve($withdrawal, $this->admin);
-        $this->assertSame(CryptoWithdrawal::STATUS_APPROVED, $withdrawal->status);
-        $this->assertSame((string) $this->admin->id, $withdrawal->reviewed_by);
-    }
-
-    public function test_double_approve_throws(): void
-    {
-        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
-        $withdrawal = $this->service->startReview($withdrawal);
-        $withdrawal = $this->service->approve($withdrawal, $this->admin);
-
-        $this->expectException(InvalidWithdrawalStateException::class);
-        $this->service->approve($withdrawal, $this->admin);
-    }
-
-    public function test_reject_releases_hold_without_touching_balance(): void
-    {
-        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
-        $withdrawal = $this->service->startReview($withdrawal);
-
-        $withdrawal = $this->service->reject($withdrawal, $this->admin, 'KYC insuficiente');
-
-        $this->assertSame(CryptoWithdrawal::STATUS_REJECTED, $withdrawal->status);
-        $this->assertSame('KYC insuficiente', $withdrawal->rejection_reason);
-        $this->assertSame(100.0, $this->wallet->fresh()->getAvailableBalance());
-        $this->assertSame(WalletHold::STATUS_RELEASED, WalletHold::find($withdrawal->wallet_hold_id)->status);
-    }
-
-    public function test_user_can_cancel_before_approval(): void
-    {
-        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
-
-        $withdrawal = $this->service->cancel($withdrawal);
-
-        $this->assertSame(CryptoWithdrawal::STATUS_CANCELLED, $withdrawal->status);
-        $this->assertSame(100.0, $this->wallet->fresh()->getAvailableBalance());
-    }
-
-    public function test_cannot_cancel_after_approval(): void
-    {
-        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
-        $withdrawal = $this->service->startReview($withdrawal);
-        $withdrawal = $this->service->approve($withdrawal, $this->admin);
-
-        $this->expectException(InvalidWithdrawalStateException::class);
-        $this->service->cancel($withdrawal);
-    }
-
     /**
      * Regresión: broadcast() debe liberar el hold automáticamente cuando el
      * CryptoGateway falla (stub sin custodia real) — encontrado durante la
@@ -133,7 +63,7 @@ class WithdrawalServiceTest extends TestCase
      * quedaba bloqueado indefinidamente tras un fallo de custodia, ya que
      * FAILED es un estado terminal y fail() no acepta ese estado de entrada.
      */
-    public function test_broadcast_releases_hold_automatically_when_gateway_fails(): void
+    public function test_broadcast_releases_hold_automatically_when_gateway_fails() : void
     {
         $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
         $withdrawal = $this->service->startReview($withdrawal);
@@ -152,11 +82,81 @@ class WithdrawalServiceTest extends TestCase
         $this->assertSame(100.0, $this->wallet->fresh()->getAvailableBalance());
     }
 
-    public function test_broadcast_throws_when_not_approved(): void
+    public function test_broadcast_throws_when_not_approved() : void
     {
         $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
 
         $this->expectException(InvalidWithdrawalStateException::class);
         $this->service->broadcast($withdrawal);
+    }
+
+    public function test_cannot_cancel_after_approval() : void
+    {
+        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
+        $withdrawal = $this->service->startReview($withdrawal);
+        $withdrawal = $this->service->approve($withdrawal, $this->admin);
+
+        $this->expectException(InvalidWithdrawalStateException::class);
+        $this->service->cancel($withdrawal);
+    }
+
+    public function test_double_approve_throws() : void
+    {
+        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
+        $withdrawal = $this->service->startReview($withdrawal);
+        $withdrawal = $this->service->approve($withdrawal, $this->admin);
+
+        $this->expectException(InvalidWithdrawalStateException::class);
+        $this->service->approve($withdrawal, $this->admin);
+    }
+
+    public function test_full_review_flow_to_approved() : void
+    {
+        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
+        $withdrawal = $this->service->startReview($withdrawal);
+        $this->assertSame(CryptoWithdrawal::STATUS_REVIEWING, $withdrawal->status);
+
+        $withdrawal = $this->service->approve($withdrawal, $this->admin);
+        $this->assertSame(CryptoWithdrawal::STATUS_APPROVED, $withdrawal->status);
+        $this->assertSame((string) $this->admin->id, $withdrawal->reviewed_by);
+    }
+
+    public function test_reject_releases_hold_without_touching_balance() : void
+    {
+        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
+        $withdrawal = $this->service->startReview($withdrawal);
+
+        $withdrawal = $this->service->reject($withdrawal, $this->admin, 'KYC insuficiente');
+
+        $this->assertSame(CryptoWithdrawal::STATUS_REJECTED, $withdrawal->status);
+        $this->assertSame('KYC insuficiente', $withdrawal->rejection_reason);
+        $this->assertSame(100.0, $this->wallet->fresh()->getAvailableBalance());
+        $this->assertSame(WalletHold::STATUS_RELEASED, WalletHold::find($withdrawal->wallet_hold_id)->status);
+    }
+
+    public function test_request_reserves_amount_without_touching_balance() : void
+    {
+        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
+
+        $this->assertSame(CryptoWithdrawal::STATUS_RESERVED, $withdrawal->status);
+        $this->assertNotNull($withdrawal->wallet_hold_id);
+        $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
+        $this->assertSame(50.0, $this->wallet->fresh()->getAvailableBalance());
+    }
+
+    public function test_request_throws_when_amount_exceeds_available_balance() : void
+    {
+        $this->expectException(WalletDomainException::class);
+        $this->service->request($this->user, $this->wallet, 500.0, 'TDEST');
+    }
+
+    public function test_user_can_cancel_before_approval() : void
+    {
+        $withdrawal = $this->service->request($this->user, $this->wallet, 50.0, 'TDEST');
+
+        $withdrawal = $this->service->cancel($withdrawal);
+
+        $this->assertSame(CryptoWithdrawal::STATUS_CANCELLED, $withdrawal->status);
+        $this->assertSame(100.0, $this->wallet->fresh()->getAvailableBalance());
     }
 }

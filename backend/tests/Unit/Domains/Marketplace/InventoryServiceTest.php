@@ -8,6 +8,7 @@ use App\Domains\Marketplace\Inventory\Models\AssetDefinition;
 use App\Domains\Marketplace\Inventory\Models\PlayerAsset;
 use App\Domains\Marketplace\Inventory\Services\InventoryService;
 use App\Models\User;
+use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,33 +18,52 @@ class InventoryServiceTest extends TestCase
 
     private InventoryService $service;
 
-    protected function setUp(): void
+    protected function setUp() : void
     {
         parent::setUp();
         $this->service = app(InventoryService::class);
     }
 
-    private function makeStackableDefinition(): AssetDefinition
+    public function test_consume_full_quantity_marks_consumed() : void
     {
-        return AssetDefinition::create([
-            'code' => 'TEST_STACKABLE', 'name' => 'Test Stackable',
-            'category' => AssetDefinition::CATEGORY_BOOSTER, 'stackable' => true,
-            'tradable' => true, 'transferable' => true, 'consumable' => true,
-            'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
-        ]);
+        $definition = $this->makeStackableDefinition();
+        $user = User::factory()->create();
+        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
+
+        $this->service->consume($asset, 1);
+
+        $this->assertSame(PlayerAsset::STATUS_CONSUMED, $asset->fresh()->status);
     }
 
-    private function makeNonStackableDefinition(): AssetDefinition
+    public function test_consume_non_consumable_definition_throws() : void
     {
-        return AssetDefinition::create([
-            'code' => 'TEST_UNIQUE', 'name' => 'Test Unique',
-            'category' => AssetDefinition::CATEGORY_EQUIPMENT, 'stackable' => false,
+        $definition = AssetDefinition::create([
+            'code' => 'TEST_NOT_CONSUMABLE', 'name' => 'x',
+            'category' => AssetDefinition::CATEGORY_COSMETIC, 'stackable' => true,
             'tradable' => true, 'transferable' => true, 'consumable' => false,
             'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
         ]);
+        $user = User::factory()->create();
+        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
+
+        $this->expectException(DomainException::class);
+        $this->service->consume($asset, 1);
     }
 
-    public function test_grant_creates_new_row_then_merges_subsequent_grants_for_stackable(): void
+    public function test_consume_partial_quantity_decrements_and_stays_available() : void
+    {
+        $definition = $this->makeStackableDefinition();
+        $user = User::factory()->create();
+        $asset = $this->service->grant($definition, (string) $user->id, 3, 'ADMIN_GRANT');
+
+        $this->service->consume($asset, 1);
+
+        $fresh = $asset->fresh();
+        $this->assertSame(2, $fresh->quantity);
+        $this->assertSame(PlayerAsset::STATUS_AVAILABLE, $fresh->status);
+    }
+
+    public function test_grant_creates_new_row_then_merges_subsequent_grants_for_stackable() : void
     {
         $definition = $this->makeStackableDefinition();
         $user = User::factory()->create();
@@ -56,7 +76,7 @@ class InventoryServiceTest extends TestCase
         $this->assertSame(1, PlayerAsset::where('owner_id', $user->id)->count());
     }
 
-    public function test_grant_non_stackable_creates_separate_rows(): void
+    public function test_grant_non_stackable_creates_separate_rows() : void
     {
         $definition = $this->makeNonStackableDefinition();
         $user = User::factory()->create();
@@ -67,7 +87,40 @@ class InventoryServiceTest extends TestCase
         $this->assertSame(2, PlayerAsset::where('owner_id', $user->id)->count());
     }
 
-    public function test_lock_partial_quantity_splits_into_two_rows(): void
+    public function test_lock_already_locked_asset_throws() : void
+    {
+        $definition = $this->makeNonStackableDefinition();
+        $user = User::factory()->create();
+        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
+        $this->service->lock($asset, '1000000000000000001', 1);
+
+        $this->expectException(AssetNotAvailableException::class);
+        $this->service->lock($asset->fresh(), '1000000000000000002', 1);
+    }
+
+    public function test_lock_full_quantity_transitions_same_row() : void
+    {
+        $definition = $this->makeNonStackableDefinition();
+        $user = User::factory()->create();
+        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
+
+        $locked = $this->service->lock($asset, '1000000000000000001', 1);
+
+        $this->assertSame($asset->id, $locked->id);
+        $this->assertSame(PlayerAsset::STATUS_LOCKED, $locked->fresh()->status);
+    }
+
+    public function test_lock_more_than_available_throws() : void
+    {
+        $definition = $this->makeStackableDefinition();
+        $user = User::factory()->create();
+        $asset = $this->service->grant($definition, (string) $user->id, 2, 'ADMIN_GRANT');
+
+        $this->expectException(InsufficientAssetQuantityException::class);
+        $this->service->lock($asset, '1000000000000000001', 5);
+    }
+
+    public function test_lock_partial_quantity_splits_into_two_rows() : void
     {
         $definition = $this->makeStackableDefinition();
         $user = User::factory()->create();
@@ -81,53 +134,7 @@ class InventoryServiceTest extends TestCase
         $this->assertSame(PlayerAsset::STATUS_AVAILABLE, $asset->fresh()->status);
     }
 
-    public function test_lock_full_quantity_transitions_same_row(): void
-    {
-        $definition = $this->makeNonStackableDefinition();
-        $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
-
-        $locked = $this->service->lock($asset, '1000000000000000001', 1);
-
-        $this->assertSame($asset->id, $locked->id);
-        $this->assertSame(PlayerAsset::STATUS_LOCKED, $locked->fresh()->status);
-    }
-
-    public function test_lock_more_than_available_throws(): void
-    {
-        $definition = $this->makeStackableDefinition();
-        $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 2, 'ADMIN_GRANT');
-
-        $this->expectException(InsufficientAssetQuantityException::class);
-        $this->service->lock($asset, '1000000000000000001', 5);
-    }
-
-    public function test_lock_already_locked_asset_throws(): void
-    {
-        $definition = $this->makeNonStackableDefinition();
-        $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
-        $this->service->lock($asset, '1000000000000000001', 1);
-
-        $this->expectException(AssetNotAvailableException::class);
-        $this->service->lock($asset->fresh(), '1000000000000000002', 1);
-    }
-
-    public function test_unlock_reverts_to_available_and_merges_with_sibling(): void
-    {
-        $definition = $this->makeStackableDefinition();
-        $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 5, 'ADMIN_GRANT');
-        $locked = $this->service->lock($asset, '1000000000000000001', 2);
-
-        $this->service->unlock($locked);
-
-        $this->assertSame(1, PlayerAsset::where('owner_id', $user->id)->count());
-        $this->assertSame(5, PlayerAsset::where('owner_id', $user->id)->first()->quantity);
-    }
-
-    public function test_transfer_changes_owner_and_merges_into_buyer_existing_stack(): void
+    public function test_transfer_changes_owner_and_merges_into_buyer_existing_stack() : void
     {
         $definition = $this->makeStackableDefinition();
         $seller = User::factory()->create();
@@ -144,7 +151,7 @@ class InventoryServiceTest extends TestCase
         $this->assertSame(3, $sellerAsset->fresh()->quantity);
     }
 
-    public function test_transfer_without_existing_buyer_stack_moves_ownership(): void
+    public function test_transfer_without_existing_buyer_stack_moves_ownership() : void
     {
         $definition = $this->makeNonStackableDefinition();
         $seller = User::factory()->create();
@@ -158,42 +165,36 @@ class InventoryServiceTest extends TestCase
         $this->assertSame(PlayerAsset::STATUS_AVAILABLE, $transferred->status);
     }
 
-    public function test_consume_full_quantity_marks_consumed(): void
+    public function test_unlock_reverts_to_available_and_merges_with_sibling() : void
     {
         $definition = $this->makeStackableDefinition();
         $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
+        $asset = $this->service->grant($definition, (string) $user->id, 5, 'ADMIN_GRANT');
+        $locked = $this->service->lock($asset, '1000000000000000001', 2);
 
-        $this->service->consume($asset, 1);
+        $this->service->unlock($locked);
 
-        $this->assertSame(PlayerAsset::STATUS_CONSUMED, $asset->fresh()->status);
+        $this->assertSame(1, PlayerAsset::where('owner_id', $user->id)->count());
+        $this->assertSame(5, PlayerAsset::where('owner_id', $user->id)->first()->quantity);
     }
 
-    public function test_consume_partial_quantity_decrements_and_stays_available(): void
+    private function makeNonStackableDefinition() : AssetDefinition
     {
-        $definition = $this->makeStackableDefinition();
-        $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 3, 'ADMIN_GRANT');
-
-        $this->service->consume($asset, 1);
-
-        $fresh = $asset->fresh();
-        $this->assertSame(2, $fresh->quantity);
-        $this->assertSame(PlayerAsset::STATUS_AVAILABLE, $fresh->status);
-    }
-
-    public function test_consume_non_consumable_definition_throws(): void
-    {
-        $definition = AssetDefinition::create([
-            'code' => 'TEST_NOT_CONSUMABLE', 'name' => 'x',
-            'category' => AssetDefinition::CATEGORY_COSMETIC, 'stackable' => true,
+        return AssetDefinition::create([
+            'code' => 'TEST_UNIQUE', 'name' => 'Test Unique',
+            'category' => AssetDefinition::CATEGORY_EQUIPMENT, 'stackable' => false,
             'tradable' => true, 'transferable' => true, 'consumable' => false,
             'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
         ]);
-        $user = User::factory()->create();
-        $asset = $this->service->grant($definition, (string) $user->id, 1, 'ADMIN_GRANT');
+    }
 
-        $this->expectException(\DomainException::class);
-        $this->service->consume($asset, 1);
+    private function makeStackableDefinition() : AssetDefinition
+    {
+        return AssetDefinition::create([
+            'code' => 'TEST_STACKABLE', 'name' => 'Test Stackable',
+            'category' => AssetDefinition::CATEGORY_BOOSTER, 'stackable' => true,
+            'tradable' => true, 'transferable' => true, 'consumable' => true,
+            'marketplace_enabled' => true, 'status' => AssetDefinition::STATUS_ACTIVE,
+        ]);
     }
 }
