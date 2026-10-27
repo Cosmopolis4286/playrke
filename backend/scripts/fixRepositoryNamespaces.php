@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Script para corregir namespaces y use de Repositories automáticamente
  * Ajustado para que los namespaces empiecen por la carpeta principal (ej: Countries)
@@ -9,7 +10,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Illuminate\Filesystem\Filesystem;
 
-$filesystem = new Filesystem();
+$filesystem = new Filesystem;
 $baseDir = realpath(__DIR__ . '/../app/Repositories');
 $baseNamespace = 'App\\Repositories';
 
@@ -37,7 +38,7 @@ foreach ($filesystem->allFiles($baseDir) as $file) {
     $relativePath = str_replace(['/', '\\'], '\\', $relativePath);
     $pathParts = explode('\\', $relativePath);
     array_pop($pathParts); // elimina el archivo
-    $pathParts = array_filter($pathParts, fn($p) => $p !== 'Contracts'); // quitar Contracts
+    $pathParts = array_filter($pathParts, fn ($p) => $p !== 'Contracts'); // quitar Contracts
     $namespace = $baseNamespace . '\\' . implode('\\', $pathParts);
     $namespace = trim($namespace, '\\');
 
@@ -56,7 +57,7 @@ foreach ($filesystem->allFiles($baseDir) as $file) {
     }
 
     $filesystem->put($file->getPathname(), $contents);
-    echo "Procesado: " . $file->getFilename() . PHP_EOL;
+    echo 'Procesado: ' . $file->getFilename() . PHP_EOL;
 }
 
 echo "Namespaces y use de Repositories actualizados correctamente.\n";
