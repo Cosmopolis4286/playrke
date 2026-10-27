@@ -17,7 +17,8 @@ trait FiltersTrait
             }
 
             return redirect($viewData['redirect'] ?? '/');
-        } elseif (isset($viewData['redirect'])) {
+        }
+        if (isset($viewData['redirect'])) {
             if ($viewData['redirect'] === 'redirect-back') {
                 return redirect()->back();
             }
