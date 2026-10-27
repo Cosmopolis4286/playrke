@@ -24,7 +24,6 @@
             "spacing": "one"
         },
         "declare_equal_normalize": true,
-        "declare_strict_types": true,
         "elseif": true,
         "encoding": true,
         "full_opening_tag": true,
@@ -224,7 +223,6 @@
             "remove_in_empty_for_expressions": true
         },
         "standardize_not_equals": true,
-        "strict_param": true,
         "string_line_ending": true,
         "switch_case_semicolon_to_colon": true,
         "switch_case_space": true,
