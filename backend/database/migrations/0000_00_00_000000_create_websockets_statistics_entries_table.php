@@ -7,14 +7,20 @@ use Illuminate\Support\Facades\Schema;
 class CreateWebSocketsStatisticsEntriesTable extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down()
+    {
+        Schema::dropIfExists('websockets_statistics_entries');
+    }
+
+    /**
      * Run the migrations.
-     *
-     * @return void
      */
     public function up()
     {
-        if (!Schema::hasTable('websockets_statistics_entries')) {
-            Schema::create('websockets_statistics_entries', function (Blueprint $table) {
+        if (! Schema::hasTable('websockets_statistics_entries')) {
+            Schema::create('websockets_statistics_entries', function(Blueprint $table) {
                 $table->increments('id');
                 $table->string('app_id');
                 $table->integer('peak_connection_count');
@@ -23,15 +29,5 @@ class CreateWebSocketsStatisticsEntriesTable extends Migration
                 $table->nullableTimestamps();
             });
         }
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::dropIfExists('websockets_statistics_entries');
     }
 }

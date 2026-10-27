@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'customers_currencies'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('customers_currencies');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla pivot 'customers_currencies'.
      *
      * Tabla pivot para la relación many-to-many entre customers y currencies.
@@ -20,9 +28,9 @@ return new class extends Migration
      * - La moneda principal del cliente se almacena en customers.currency_id
      * - Esta tabla almacena las monedas adicionales/secundarias
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('customers_currencies', function (Blueprint $table) {
+        Schema::create('customers_currencies', function(Blueprint $table) {
             // ============================================
             // FOREIGN KEYS
             // ============================================
@@ -61,13 +69,5 @@ return new class extends Migration
             // mismas columnas eran redundantes y se omiten)
             $table->primary(['customer_id', 'currency_id']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'customers_currencies'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('customers_currencies');
     }
 };

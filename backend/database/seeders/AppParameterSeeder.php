@@ -7,10 +7,9 @@ use Illuminate\Database\Seeder;
 
 class AppParameterSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $parameters = [
-
             // ─────────────────────────────────────────────
             // AUTENTICACIÓN
             // ─────────────────────────────────────────────
@@ -136,13 +135,12 @@ class AppParameterSeeder extends Seeder
             // Tope de desvío (%) de las tasas propias vs. la oficial: no se pueden
             // guardar/activar fuera de ese rango (ExchangeRateDeviationCap). 0 = sin tope.
             ['param' => 'exchange_rate_max_deviation_pct', 'value' => '0', 'status' => 'ACTIVE'],
-
         ];
 
         foreach ($parameters as $data) {
             AppParameter::updateOrCreate(
                 ['param' => $data['param']],
-                ['value' => $data['value'], 'status' => $data['status']]
+                ['value' => $data['value'], 'status' => $data['status']],
             );
         }
 

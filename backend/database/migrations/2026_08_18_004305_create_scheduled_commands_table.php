@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('scheduled_commands');
+    }
+
+    /**
      * Run the migrations.
      *
      * Un registro por cada Schedule::command() de routes/console.php.
@@ -15,9 +23,9 @@ return new class extends Migration
      * desde un ->when() en console.php) — no bloquea invocación manual por
      * consola/tinker, ni afecta la cadencia (que sigue definida en código).
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('scheduled_commands', function (Blueprint $table) {
+        Schema::create('scheduled_commands', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->string('command')->unique()->comment('Signature exacto del comando artisan (ej. check:expired-bingo-rooms)');
@@ -35,13 +43,5 @@ return new class extends Migration
 
             $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('scheduled_commands');
     }
 };

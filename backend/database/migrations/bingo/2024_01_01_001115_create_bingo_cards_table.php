@@ -7,13 +7,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir migración
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_cards');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla bingo_cards
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_cards', function (Blueprint $table) {
-
-            /**
+        Schema::create('bingo_cards', function(Blueprint $table) {
+            /*
              * =========================================================
              * PRIMARY KEY
              * =========================================================
@@ -22,7 +29,7 @@ return new class extends Migration
                 ->primary()
                 ->comment('ID único del cartón de bingo');
 
-            /**
+            /*
              * =========================================================
              * STATUS
              * =========================================================
@@ -36,7 +43,7 @@ return new class extends Migration
                 ->default(1)
                 ->comment('Estado del cartón');
 
-            /**
+            /*
              * =========================================================
              * RELACIONES
              * =========================================================
@@ -90,7 +97,7 @@ return new class extends Migration
                 ->restrictOnDelete()
                 ->comment('Moneda utilizada');
 
-            /**
+            /*
              * =========================================================
              * DATOS DEL CARTÓN
              * =========================================================
@@ -100,7 +107,7 @@ return new class extends Migration
                 ->unique()
                 ->comment('Serial único del cartón');
 
-            /**
+            /*
              * Estructura:
              *
              * {
@@ -114,14 +121,14 @@ return new class extends Migration
             $table->json('card_numbers')
                 ->comment('Estructura JSON del cartón');
 
-            /**
+            /*
              * Hash SHA256 del cartón
              */
             $table->string('card_hash', 64)
                 ->unique()
                 ->comment('Hash único de integridad');
 
-            /**
+            /*
              * =========================================================
              * VALIDACIÓN
              * =========================================================
@@ -140,7 +147,7 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Fecha de validación');
 
-            /**
+            /*
              * =========================================================
              * AUDITORÍA
              * =========================================================
@@ -149,7 +156,7 @@ return new class extends Migration
 
             $table->softDeletes();
 
-            /**
+            /*
              * =========================================================
              * ÍNDICES
              * =========================================================
@@ -157,30 +164,30 @@ return new class extends Migration
 
             $table->index(
                 ['room_id', 'status'],
-                'idx_bingo_cards_room_status'
+                'idx_bingo_cards_room_status',
             );
 
             $table->index(
                 ['room_user_id', 'status'],
-                'idx_bingo_cards_room_user_status'
+                'idx_bingo_cards_room_user_status',
             );
 
             $table->index(
                 ['seller_user_id', 'status'],
-                'idx_bingo_cards_seller_status'
+                'idx_bingo_cards_seller_status',
             );
 
             $table->index(
                 ['room_id', 'card_lot_id'],
-                'idx_bingo_cards_room_lot'
+                'idx_bingo_cards_room_lot',
             );
 
-            /**
+            /*
              * Evita duplicidad lógica del cartón
              */
             $table->unique(
                 ['room_id', 'room_user_id', 'card_hash'],
-                'uq_bingo_cards_room_user_hash'
+                'uq_bingo_cards_room_user_hash',
             );
 
             // Reportes por sala de cartones personalizados (is_custom_card) y
@@ -188,13 +195,5 @@ return new class extends Migration
             $table->index(['room_id', 'is_custom_card'], 'idx_bingo_cards_room_custom');
             $table->index('validated_at', 'idx_bingo_cards_validated_at');
         });
-    }
-
-    /**
-     * Revertir migración
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_cards');
     }
 };

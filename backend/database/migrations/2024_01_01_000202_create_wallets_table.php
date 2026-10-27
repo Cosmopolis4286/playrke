@@ -8,11 +8,24 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'wallets'.
+     */
+    public function down() : void
+    {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE wallets DROP CHECK chk_wallets_balance_nonneg');
+            DB::statement('ALTER TABLE wallets DROP CHECK chk_wallets_bonus_balance_nonneg');
+        }
+
+        Schema::dropIfExists('wallets');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'wallets'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('wallets', function (Blueprint $table) {
+        Schema::create('wallets', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la wallet');
 
@@ -63,18 +76,5 @@ return new class extends Migration
             DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_bonus_balance_nonneg CHECK (bonus_balance >= 0)');
             DB::statement('ALTER TABLE wallets ADD CONSTRAINT chk_wallets_pending_debt_nonneg CHECK (pending_debt >= 0)');
         }
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'wallets'.
-     */
-    public function down(): void
-    {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE wallets DROP CHECK chk_wallets_balance_nonneg');
-            DB::statement('ALTER TABLE wallets DROP CHECK chk_wallets_bonus_balance_nonneg');
-        }
-
-        Schema::dropIfExists('wallets');
     }
 };

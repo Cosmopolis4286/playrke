@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class GameSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $games = [
             ['name' => 'BINGO'],
@@ -18,7 +18,7 @@ class GameSeeder extends Seeder
         foreach ($games as $game) {
             Game::updateOrCreate(
                 ['name' => $game['name']],
-                ['status' => 'ACTIVE']
+                ['status' => 'ACTIVE'],
             );
         }
     }

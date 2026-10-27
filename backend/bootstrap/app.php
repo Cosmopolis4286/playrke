@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 return Application::configure(
-    basePath: dirname(__DIR__)
+    basePath: dirname(__DIR__),
 )
     ->withRouting(
         web: __DIR__ . '/../routes/web.php',
@@ -20,28 +20,28 @@ return Application::configure(
     ->withProviders([
         \App\Providers\NotificationServiceProvider::class,
     ])
-    ->withMiddleware(function (Middleware $middleware) {
-        /**
+    ->withMiddleware(function(Middleware $middleware) {
+        /*
          * Alias de middleware personalizados
          * Permiten usarlos de forma sencilla en las rutas (web/api)
          */
         $middleware->alias([
             'multiPermission' => App\Http\Middleware\MultiPermissionMiddleware::class,
-            'role'            => App\Http\Middleware\RoleMiddleware::class,
-            'publicToken'     => App\Http\Middleware\PublicTokenMiddleware::class,
-            'validate.token'  => \App\Http\Middleware\ValidateToken::class,
-            'tos'             => \App\Http\Middleware\RequireTosAcceptance::class,
+            'role' => App\Http\Middleware\RoleMiddleware::class,
+            'publicToken' => App\Http\Middleware\PublicTokenMiddleware::class,
+            'validate.token' => \App\Http\Middleware\ValidateToken::class,
+            'tos' => \App\Http\Middleware\RequireTosAcceptance::class,
             'block-during-impersonation' => \App\Http\Middleware\BlockDuringImpersonation::class,
         ]);
 
-        /**
+        /*
          * Habilitar sesiones en rutas API para autenticación SPA con Sanctum
          * Esto permite que las rutas con middleware 'web' en api.php
          * tengan acceso a la sesión
          */
         $middleware->statefulApi();
 
-        /**
+        /*
          * Configurar el grupo de middleware 'api' para incluir Sanctum
          * EnsureFrontendRequestsAreStateful permite autenticación basada en cookies
          */
@@ -50,7 +50,7 @@ return Application::configure(
             \App\Http\Middleware\SetUserTimezone::class,
         ]);
 
-        /** Habiltar Middleware de Inetia*/
+        /* Habiltar Middleware de Inetia */
         $middleware->web(append: [
             \App\Http\Middleware\EnforceImpersonationTimeout::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
@@ -58,21 +58,21 @@ return Application::configure(
             \App\Http\Middleware\SetUserTimezone::class,
         ]);
 
-        /**
+        /*
          * Cabeceras de seguridad HTTP (X-Frame-Options, HSTS, etc.) en TODAS
          * las respuestas, web y api — ver App\Http\Middleware\SecurityHeaders.
          */
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
-        /**
+        /*
          * Habilitar credenciales en CORS para permitir cookies cross-origin
          */
         $middleware->validateCsrfTokens(except: [
             // Excluir rutas si es necesario, pero generalmente no se necesita
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions) {
-        /**
+    ->withExceptions(function(Exceptions $exceptions) {
+        /*
          * Manejo global de excepciones.
          *
          * Tres categorías, cada una con su propia rama, en orden de
@@ -105,11 +105,11 @@ return Application::configure(
          */
         $exceptions->dontReport(DomainException::class);
 
-        $wantsJson = function ($request): bool {
+        $wantsJson = function($request) : bool {
             return $request->is('api/*') || $request->expectsJson();
         };
 
-        $renderInertiaError = function ($request, int $status, ?string $message) {
+        $renderInertiaError = function($request, int $status, ?string $message) {
             // Este render() se dispara DESDE el exception handler, fuera del
             // pipeline normal de middlewares 'web' — ShareErrorsFromSession
             // (que comparte $errors a TODAS las vistas Blade) nunca llega a
@@ -121,20 +121,20 @@ return Application::configure(
             // ("Undefined variable $errors") al intentar mostrar la página
             // de error, ocultando el error original tras un crash en cascada.
             if (! view()->shared('errors')) {
-                view()->share('errors', session()->get('errors') ?? new \Illuminate\Support\ViewErrorBag());
+                view()->share('errors', session()->get('errors') ?? new \Illuminate\Support\ViewErrorBag);
             }
 
             return Inertia::render('Errors/Error', [
-                'status'  => $status,
+                'status' => $status,
                 'message' => $message,
-                'url'     => $request->fullUrl(),
+                'url' => $request->fullUrl(),
             ])->toResponse($request)->setStatusCode($status);
         };
 
         // 1. DomainException custom — status + mensaje declarados por la
         // propia excepción (ver DomainException::$httpStatus y
         // App\Exceptions\Handler::resolveMessage()).
-        $exceptions->render(function (DomainException $e, $request) use ($wantsJson, $renderInertiaError) {
+        $exceptions->render(function(DomainException $e, $request) use ($wantsJson, $renderInertiaError) {
             $handler = app(\App\Exceptions\Handler::class);
             $errorCode = $e->getMessage();
             $message = $handler->resolveMessage($errorCode, $e->replacements());
@@ -142,9 +142,9 @@ return Application::configure(
 
             if ($wantsJson($request)) {
                 return response()->json([
-                    'success'    => false,
+                    'success' => false,
                     'error_code' => $errorCode,
-                    'message'    => $message,
+                    'message' => $message,
                 ], $status);
             }
 
@@ -156,7 +156,7 @@ return Application::configure(
         // a traducir). get_class() exacto (no instanceof) para no capturar
         // subclases de terceros que hereden de \DomainException con otra
         // semántica.
-        $exceptions->render(function (Throwable $e, $request) use ($wantsJson, $renderInertiaError) {
+        $exceptions->render(function(Throwable $e, $request) use ($wantsJson, $renderInertiaError) {
             if (get_class($e) !== \DomainException::class) {
                 return null;
             }
@@ -181,18 +181,18 @@ return Application::configure(
         // (LOG_SLACK_LEVEL) — si algo llega hasta aquí es código roto o
         // infraestructura caída en producción, exactamente lo que amerita
         // una alerta en tiempo real, no solo una línea en el log de archivo.
-        $exceptions->report(function (Throwable $e) {
+        $exceptions->report(function(Throwable $e) {
             Log::critical('Excepción no capturada: ' . $e->getMessage(), [
                 'exception' => get_class($e),
-                'file'      => $e->getFile(),
-                'line'      => $e->getLine(),
-                'trace'     => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
             ]);
         });
 
         // 3. Cualquier otra excepción — código roto o fallo de
         // infraestructura, nunca una regla de negocio esperada.
-        $exceptions->render(function (Throwable $e, $request) use ($wantsJson, $renderInertiaError) {
+        $exceptions->render(function(Throwable $e, $request) use ($wantsJson, $renderInertiaError) {
             $status = match (true) {
                 $e instanceof \Illuminate\Auth\AuthenticationException => 401,
                 $e instanceof \Illuminate\Auth\Access\AuthorizationException => 403,
@@ -209,7 +209,7 @@ return Application::configure(
             // genérico fijo. El mensaje real siempre queda en el log (rama
             // report() de arriba), nunca se pierde — solo deja de viajar al
             // cliente.
-            $exposeRawMessage = !app()->environment('production') || $status < 500;
+            $exposeRawMessage = ! app()->environment('production') || $status < 500;
             $message = $exposeRawMessage
                 ? ($e->getMessage() ?: 'Error interno del servidor.')
                 : 'Ocurrió un error inesperado. Por favor intenta nuevamente.';

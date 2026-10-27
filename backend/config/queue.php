@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Queue Connection Name
@@ -29,7 +28,6 @@ return [
     */
 
     'connections' => [
-
         'sync' => [
             'driver' => 'sync',
         ],
@@ -49,10 +47,10 @@ return [
         // Con retry_after < duración del job, Laravel reencola el job mientras
         // el worker sigue vivo, generando dos instancias paralelas del sorteo.
         'bingo-draw' => [
-            'driver'      => 'database',
-            'connection'  => env('DB_QUEUE_CONNECTION'),
-            'table'       => env('DB_QUEUE_TABLE', 'jobs'),
-            'queue'       => 'bingo-draw',
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'bingo-draw',
             'retry_after' => (int) env('BINGO_DRAW_QUEUE_RETRY_AFTER', 3600),
             'after_commit' => false,
         ],
@@ -85,7 +83,6 @@ return [
             'block_for' => null,
             'after_commit' => false,
         ],
-
     ],
 
     /*
@@ -122,5 +119,4 @@ return [
         'database' => env('DB_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
     ],
-
 ];

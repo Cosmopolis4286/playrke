@@ -1,6 +1,9 @@
 <?php
 
-use App\Http\Controllers\{AdminController, CustomerController, TreasurerController, OtherTreasurersController};
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\OtherTreasurersController;
+use App\Http\Controllers\TreasurerController;
 use Illuminate\Support\Facades\Route;
 
 /*

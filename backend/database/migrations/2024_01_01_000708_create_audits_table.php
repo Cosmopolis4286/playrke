@@ -6,10 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('audits', function (Blueprint $table) {
+        Schema::dropIfExists('audits');
+    }
 
+    public function up() : void
+    {
+        Schema::create('audits', function(Blueprint $table) {
             $table->id();
 
             // Actor humano (nullable para seeders / jobs / system)
@@ -25,7 +29,7 @@ return new class extends Migration
                 ->index();
             // system | user | job | command | webhook
 
-            /**
+            /*
              * Entidad auditada (polimórfica).
              *
              * - auditable_type : clase FQCN del modelo
@@ -62,10 +66,5 @@ return new class extends Migration
             // Índice compuesto útil (NO duplicado)
             $table->index(['actor_type', 'event']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('audits');
     }
 };

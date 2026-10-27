@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-/**
+/*
  * Migración de datos (no seeder): resincroniza sellers.manager_user_id de los
  * vendedores de agencia con el user_id del Commerce actual de su agencia.
  *
@@ -31,7 +31,11 @@ use Illuminate\Support\Facades\Log;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+    }
+
+    public function up() : void
     {
         $updated = DB::table('sellers')
             ->join('subsidiaries', 'subsidiaries.id', '=', 'sellers.subsidiary_id')
@@ -53,10 +57,5 @@ return new class extends Migration
         if ($orphans !== []) {
             Log::warning('resync_sellers_manager_user_id: sellers sin Commerce resoluble (revisión manual)', ['seller_ids' => $orphans]);
         }
-    }
-
-    public function down(): void
-    {
-        //
     }
 };

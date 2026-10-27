@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('bingo_room_templates', function (Blueprint $table) {
+        Schema::dropIfExists('bingo_room_templates');
+    }
+
+    public function up() : void
+    {
+        Schema::create('bingo_room_templates', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID de la plantilla de sala de bingo');
 
             $table->string('name', 120)->nullable()->comment('Nombre de la plantilla');
@@ -69,10 +74,5 @@ return new class extends Migration
             $table->index('prize_pool_type_id', 'idx_bingo_room_templates_prize_pool_type_id');
             $table->index('status', 'idx_bingo_room_templates_status');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_room_templates');
     }
 };

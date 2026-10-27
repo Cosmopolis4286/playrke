@@ -28,10 +28,10 @@ class PermissionSeeder extends Seeder
         'commerces.set-default',
     ];
 
-    public function run(): void
+    public function run() : void
     {
         $timestamp = now();
-        $snowflake = new Snowflake();
+        $snowflake = new Snowflake;
 
         // Permisos generales del sistema
         $permissions = [
@@ -118,7 +118,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.edit', 'guard_name' => 'web', 'description' => 'Editar juegos'],
             ['name' => 'games.delete', 'guard_name' => 'web', 'description' => 'Eliminar juegos'],
             ['name' => 'games.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos'],
-            
+
             // Juegos específicos
             // Bingo - Per
             ['name' => 'games.bingo', 'guard_name' => 'web', 'description' => 'Acceso a juegos de bingo'],
@@ -128,7 +128,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.bingo.winners', 'guard_name' => 'web', 'description' => 'Ver ganadores de bingo'],
             ['name' => 'games.bingo.sales_report', 'guard_name' => 'web', 'description' => 'Ver reporte de ventas de bingo'],
             ['name' => 'games.bingo.payments.review', 'guard_name' => 'web', 'description' => 'Revisar (aprobar/rechazar) pagos de ventas de cartones a jugadores externos'],
-            
+
             // Trivia - Permisos generales
             ['name' => 'games.trivia.view', 'guard_name' => 'web', 'description' => 'Ver sección de trivia'],
             ['name' => 'games.trivia.play', 'guard_name' => 'web', 'description' => 'Jugar trivia (único para jugadores)'],
@@ -204,7 +204,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'external-players.manage', 'guard_name' => 'web', 'description' => 'Gestionar jugadores externos'],
             ['name' => 'external-players.block', 'guard_name' => 'web', 'description' => 'Bloquear/desbloquear jugadores externos'],
             ['name' => 'external-players.export', 'guard_name' => 'web', 'description' => 'Exportar jugadores externos'],
-            
+
             ['name' => 'prizes.view', 'guard_name' => 'web', 'description' => 'Ver premios'],
             ['name' => 'prizes.create', 'guard_name' => 'web', 'description' => 'Crear premios'],
             ['name' => 'prizes.edit', 'guard_name' => 'web', 'description' => 'Editar premios'],
@@ -249,7 +249,7 @@ class PermissionSeeder extends Seeder
                 ->where('guard_name', $permission['guard_name'])
                 ->first();
 
-            if (!$existingPermission) {
+            if (! $existingPermission) {
                 Permission::create([
                     'id' => $snowflake->id(),
                     'name' => $permission['name'],

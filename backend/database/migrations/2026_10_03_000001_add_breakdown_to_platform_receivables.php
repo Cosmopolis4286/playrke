@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Deuda del comercio por ventas fuera del sistema = RKE + aporte al jackpot +
  * parte del bote (antes solo RKE). El comercio cobra el cartón en efectivo y
  * retiene todo; la plataforma es quien acumula el jackpot y paga los premios a
@@ -20,16 +20,31 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::table('platform_receivables', function (Blueprint $table) {
-            if (!Schema::hasColumn('platform_receivables', 'rke_amount')) {
+        Schema::table('platform_receivables', function(Blueprint $table) {
+            foreach (['prize_pool_amount', 'jackpot_amount', 'rke_amount'] as $col) {
+                if (Schema::hasColumn('platform_receivables', $col)) {
+                    $table->dropColumn($col);
+                }
+            }
+        });
+
+        MovementType::whereIn('code', ['BINGO_POOL_FUNDING', 'BINGO_POOL_FUNDING_REVERSAL'])
+            ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('wallet_movements')->whereColumn('wallet_movements.type', 'movement_types.code'))
+            ->delete();
+    }
+
+    public function up() : void
+    {
+        Schema::table('platform_receivables', function(Blueprint $table) {
+            if (! Schema::hasColumn('platform_receivables', 'rke_amount')) {
                 $table->decimal('rke_amount', 13, 2)->default(0)->after('amount')->comment('Comisión RKE de la plataforma');
             }
-            if (!Schema::hasColumn('platform_receivables', 'jackpot_amount')) {
+            if (! Schema::hasColumn('platform_receivables', 'jackpot_amount')) {
                 $table->decimal('jackpot_amount', 13, 2)->default(0)->after('rke_amount')->comment('Aporte al jackpot (lo acumula la plataforma)');
             }
-            if (!Schema::hasColumn('platform_receivables', 'prize_pool_amount')) {
+            if (! Schema::hasColumn('platform_receivables', 'prize_pool_amount')) {
                 $table->decimal('prize_pool_amount', 13, 2)->default(0)->after('jackpot_amount')->comment('Parte del bote (la plataforma paga los premios a billeteras)');
             }
         });
@@ -45,26 +60,11 @@ return new class extends Migration
         ] as $type) {
             MovementType::firstOrCreate(['code' => $type['code']], $type + [
                 'requires_approval' => false,
-                'game_group'        => 'BINGO',
-                'visible_roles'     => ['admin', 'superadmin'],
-                'is_system'         => true,
-                'status'            => 'ACTIVE',
+                'game_group' => 'BINGO',
+                'visible_roles' => ['admin', 'superadmin'],
+                'is_system' => true,
+                'status' => 'ACTIVE',
             ]);
         }
-    }
-
-    public function down(): void
-    {
-        Schema::table('platform_receivables', function (Blueprint $table) {
-            foreach (['prize_pool_amount', 'jackpot_amount', 'rke_amount'] as $col) {
-                if (Schema::hasColumn('platform_receivables', $col)) {
-                    $table->dropColumn($col);
-                }
-            }
-        });
-
-        MovementType::whereIn('code', ['BINGO_POOL_FUNDING', 'BINGO_POOL_FUNDING_REVERSAL'])
-            ->whereNotExists(fn ($q) => $q->selectRaw(1)->from('wallet_movements')->whereColumn('wallet_movements.type', 'movement_types.code'))
-            ->delete();
     }
 };

@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('bingo_room_stats', function (Blueprint $table) {
+        Schema::dropIfExists('bingo_room_stats');
+    }
+
+    public function up() : void
+    {
+        Schema::create('bingo_room_stats', function(Blueprint $table) {
             $table->unsignedBigInteger('id')->primary();
 
             $table->unsignedBigInteger('room_id')->unique();
@@ -39,10 +44,5 @@ return new class extends Migration
 
             $table->index('calculated_at');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_room_stats');
     }
 };

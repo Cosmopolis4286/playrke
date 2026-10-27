@@ -6,7 +6,7 @@ use App\Models\Role;
 use App\Models\SidebarMenuVisibility;
 use Illuminate\Database\Migrations\Migration;
 
-/**
+/*
  * Migración de datos (no seeder): oculta business.my_sellers ("Mis
  * Vendedores") para 'customer'.
  *
@@ -20,11 +20,24 @@ use Illuminate\Database\Migrations\Migration;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
         $customer = Role::where('name', 'customer')->first();
 
-        if (!$customer) {
+        if (! $customer) {
+            return;
+        }
+
+        SidebarMenuVisibility::where('item_key', 'business.my_sellers')
+            ->where('role_id', $customer->id)
+            ->delete();
+    }
+
+    public function up() : void
+    {
+        $customer = Role::where('name', 'customer')->first();
+
+        if (! $customer) {
             return;
         }
 
@@ -32,18 +45,5 @@ return new class extends Migration
             ['item_key' => 'business.my_sellers', 'role_id' => $customer->id],
             ['is_visible' => false],
         );
-    }
-
-    public function down(): void
-    {
-        $customer = Role::where('name', 'customer')->first();
-
-        if (!$customer) {
-            return;
-        }
-
-        SidebarMenuVisibility::where('item_key', 'business.my_sellers')
-            ->where('role_id', $customer->id)
-            ->delete();
     }
 };

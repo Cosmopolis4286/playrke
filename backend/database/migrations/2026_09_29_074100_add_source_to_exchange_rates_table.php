@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Agrega `source` a exchange_rates: distingue si la fila la escribió un
  * usuario real (creación/edición manual desde /exchange-rate, o el botón
  * "Consultar" que sincroniza en lote) o el cronjob automático
@@ -23,7 +23,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::table('exchange_rates', function(Blueprint $table) {
+            $table->dropColumn('source');
+        });
+    }
+
+    public function up() : void
     {
         // hasColumn guard: la migración consolidada create_exchange_rates_table
         // ya incluye 'source' para instalaciones nuevas (migrate:fresh) — esta
@@ -33,18 +40,11 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('exchange_rates', function (Blueprint $table) {
+        Schema::table('exchange_rates', function(Blueprint $table) {
             $table->enum('source', ['user', 'system'])
                 ->default('user')
                 ->after('status')
                 ->comment('Origen de la actualización: user (manual/botón Consultar) o system (cronjob automático)');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('exchange_rates', function (Blueprint $table) {
-            $table->dropColumn('source');
         });
     }
 };

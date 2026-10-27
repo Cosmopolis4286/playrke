@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Stateful Domains
@@ -73,5 +72,4 @@ return [
         'encrypt_cookies' => App\Http\Middleware\EncryptCookies::class,
         'verify_csrf_token' => Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
     ],
-
 ];

@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 
 class JackpotTypeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $typesByGame = [
             'BINGO' => [
@@ -21,15 +21,17 @@ class JackpotTypeSeeder extends Seeder
 
         foreach ($typesByGame as $gameName => $types) {
             $gameId = Game::where('name', $gameName)->value('id');
-            if (!$gameId) {
+            if (! $gameId) {
                 $this->command->warn("Juego '{$gameName}' no encontrado. Tipos de jackpot omitidos.");
+
                 continue;
             }
 
             foreach ($types as $type) {
                 $currencyId = Currency::where('iso_code', $type['currency'])->value('id');
-                if (!$currencyId) {
+                if (! $currencyId) {
                     $this->command->warn("Moneda '{$type['currency']}' no encontrada. Jackpot '{$type['code']}' omitido.");
+
                     continue;
                 }
 
@@ -40,7 +42,7 @@ class JackpotTypeSeeder extends Seeder
                         'label' => $type['label'],
                         'periodicity' => $type['periodicity'],
                         'status' => 'ACTIVE',
-                    ]
+                    ],
                 );
             }
         }

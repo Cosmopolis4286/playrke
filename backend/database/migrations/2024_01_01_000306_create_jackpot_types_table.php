@@ -7,15 +7,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('jackpot_types');
+    }
+
+    /**
      * Run the migrations.
      *
      * Catálogo per-game de tipos de jackpot. Cada tipo pertenece a un único
      * juego y a una única moneda (un jackpot semanal en USD y otro en Bs son
      * pozos distintos, cada uno con su propio saldo en `jackpots`).
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('jackpot_types', function (Blueprint $table) {
+        Schema::create('jackpot_types', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del tipo de jackpot');
 
             $table->foreignSnowflake('game_id')
@@ -45,13 +53,5 @@ return new class extends Migration
             $table->unique(['game_id', 'code'], 'uniq_jackpot_types_game_code');
             $table->index('status', 'idx_jackpot_types_status');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('jackpot_types');
     }
 };

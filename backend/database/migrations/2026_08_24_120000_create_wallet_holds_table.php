@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Reserva de saldo comprometido en una partida en curso, distinta de un
  * WalletMovement (que registra dinero ya movido). Un hold no toca
  * wallets.balance/bonus_balance — solo se descuenta del disponible vía
@@ -18,9 +18,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('wallet_holds', function (Blueprint $table) {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE wallet_holds DROP CHECK chk_wallet_holds_amount_positive');
+        }
+
+        Schema::dropIfExists('wallet_holds');
+    }
+
+    public function up() : void
+    {
+        Schema::create('wallet_holds', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la reserva');
 
             $table->foreignSnowflake('wallet_id')
@@ -54,14 +63,5 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE wallet_holds ADD CONSTRAINT chk_wallet_holds_amount_positive CHECK (amount > 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE wallet_holds DROP CHECK chk_wallet_holds_amount_positive');
-        }
-
-        Schema::dropIfExists('wallet_holds');
     }
 };

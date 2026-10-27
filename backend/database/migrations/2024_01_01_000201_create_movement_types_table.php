@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('movement_types', function (Blueprint $table) {
+        Schema::dropIfExists('movement_types');
+    }
+
+    public function up() : void
+    {
+        Schema::create('movement_types', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->string('code', 30)->unique()
@@ -51,10 +56,5 @@ return new class extends Migration
             $table->index(['status', 'is_credit']);
             $table->index('sort_order');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('movement_types');
     }
 };

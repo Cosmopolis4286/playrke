@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 | Aquí se maneja el registro, login y recuperación de contraseña.
 */
 
-Route::middleware('guest')->group(function () {
+Route::middleware('guest')->group(function() {
     // Registro de usuario. throttle:5,1 en el POST — antes sin límite: un
     // POST /register sin protección permite creación masiva de cuentas y
     // enumeración de emails/usernames ya en uso vía el mensaje de validación
@@ -60,7 +60,7 @@ Route::middleware('guest')->group(function () {
 | Aquí se maneja la verificación de email, confirmación de contraseña,
 | actualización de contraseña y cierre de sesión.
 */
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->group(function() {
     // Mostrar aviso de verificación de email
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');

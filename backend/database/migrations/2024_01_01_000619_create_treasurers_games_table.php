@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('treasurers_games');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('treasurers_games', function (Blueprint $table) {
+        Schema::create('treasurers_games', function(Blueprint $table) {
             // Tesorero
             $table->foreignSnowflake('treasurer_id')
                 ->constrained('treasurers')
@@ -32,13 +40,5 @@ return new class extends Migration
             // Evita duplicados: un comercio solo puede tener un registro por juego
             $table->unique(['treasurer_id', 'game_id'], 'treasurer_game_unique');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('treasurers_games');
     }
 };

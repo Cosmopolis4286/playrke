@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('game_exchange_rates', function (Blueprint $table) {
+        Schema::dropIfExists('game_exchange_rates');
+    }
+
+    public function up() : void
+    {
+        Schema::create('game_exchange_rates', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('game_id')->constrained('games')->onDelete('cascade');
@@ -20,10 +25,5 @@ return new class extends Migration
             // Evitar duplicados
             $table->unique(['game_id', 'room', 'currency_id'], 'unique_exchange_per_game_room_currency');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('game_exchange_rates');
     }
 };

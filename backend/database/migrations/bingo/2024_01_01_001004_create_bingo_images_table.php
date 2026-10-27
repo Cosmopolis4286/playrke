@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('bingo_images', function (Blueprint $table) {
+        Schema::dropIfExists('bingo_images');
+    }
+
+    public function up() : void
+    {
+        Schema::create('bingo_images', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la imagen');
 
@@ -34,10 +39,5 @@ return new class extends Migration
             $table->index(['user_id', 'type', 'status'], 'idx_bingo_images_lookup');
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_images');
     }
 };

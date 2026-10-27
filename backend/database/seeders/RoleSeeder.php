@@ -8,10 +8,10 @@ use Illuminate\Database\Seeder;
 
 class RoleSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $timestamp = now();
-        $snowflake = new Snowflake();
+        $snowflake = new Snowflake;
 
         // Definimos todos los roles del sistema
         // 'type' indica si es rol web o API
@@ -69,8 +69,8 @@ class RoleSeeder extends Seeder
                 ->where('guard_name', $role['guard_name'])
                 ->first();
 
-            if (!$existingRole) {
-                $newRole = new Role();
+            if (! $existingRole) {
+                $newRole = new Role;
                 $newRole->id = (string) $snowflake->id();
                 $newRole->name = $role['prefix'];           // player, admin, etc
                 $newRole->guard_name = $role['guard_name']; // web o api

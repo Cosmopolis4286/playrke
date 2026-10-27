@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'countries'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('countries');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'countries'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('countries', function (Blueprint $table) {
+        Schema::create('countries', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del país');
 
@@ -25,13 +33,5 @@ return new class extends Migration
 
             $table->timestamps();
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'countries'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('countries');
     }
 };

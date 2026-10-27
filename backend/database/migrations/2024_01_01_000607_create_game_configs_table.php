@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('game_configs', function (Blueprint $table) {
+        Schema::dropIfExists('game_configs');
+    }
+
+    public function up() : void
+    {
+        Schema::create('game_configs', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();
 
@@ -27,10 +32,5 @@ return new class extends Migration
             // Evita duplicar parámetros por juego
             $table->unique(['game_id', 'param'], 'unique_game_param');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('game_configs');
     }
 };

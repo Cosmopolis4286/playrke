@@ -8,12 +8,13 @@ use Illuminate\Database\Seeder;
 
 class GameConfigSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $games = Game::all(['id', 'name']);
 
         if ($games->isEmpty()) {
-            $this->command->warn("No hay juegos registrados. Seeder omitido.");
+            $this->command->warn('No hay juegos registrados. Seeder omitido.');
+
             return;
         }
 
@@ -25,7 +26,7 @@ class GameConfigSeeder extends Seeder
             foreach ($configs as $config) {
                 GameConfig::updateOrCreate(
                     ['game_id' => $game->id, 'param' => $config['param']],
-                    ['value' => $config['value'], 'description' => $config['description'], 'status' => 'ACTIVE']
+                    ['value' => $config['value'], 'description' => $config['description'], 'status' => 'ACTIVE'],
                 );
             }
         }

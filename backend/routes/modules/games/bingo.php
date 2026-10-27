@@ -1,16 +1,16 @@
 <?php
 
-use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
-use App\Http\Controllers\Games\Bingo\Report\BingoReportController;
-use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
 use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
+use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
 use App\Http\Controllers\Games\Bingo\Game\BingoDrawReplayController;
-use App\Http\Controllers\Games\Bingo\Room\BingoRoomStatsController;
-use App\Http\Controllers\Games\Bingo\Room\BingoRoomCustomCardStatsController;
 use App\Http\Controllers\Games\Bingo\Game\BingoGameController;
+use App\Http\Controllers\Games\Bingo\History\PlayerGameHistoryController;
+use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
+use App\Http\Controllers\Games\Bingo\Report\BingoReportController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
-use App\Http\Controllers\Games\Bingo\History\PlayerGameHistoryController;
+use App\Http\Controllers\Games\Bingo\Room\BingoRoomCustomCardStatsController;
+use App\Http\Controllers\Games\Bingo\Room\BingoRoomStatsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,7 +26,7 @@ Route::middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->get('bingo/rooms', [BingoRoomController::class, 'index'])
     ->name('bingo.rooms.alias');
 
-/**
+/*
  * ====================================
  * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN (GESTIÓN)
  * games.bingo.manage (no games.bingo): games.bingo es "puedo jugar/comprar
@@ -60,7 +60,7 @@ Route::middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->prefix('bingo-rooms/{room}/invitations')
     ->name('bingo-rooms.invitations.')
     ->controller(\App\Http\Controllers\Games\Bingo\Room\BingoRoomInvitationController::class)
-    ->group(function () {
+    ->group(function() {
         Route::get('', 'index')->name('index');
         Route::post('', 'store')->name('store');
         // Antes de {invitation}: si no, "requirements" se tomaría como un id.
@@ -86,7 +86,7 @@ Route::get('bingo-rooms/{room}/cards/custom-stats', BingoRoomCustomCardStatsCont
     ->middleware(['auth', 'multiPermission:games.manage,games.bingo.manage'])
     ->name('bingo-rooms.cards.custom-stats');
 
-/**
+/*
  * ====================================
  * CONFIGURACIÓN
  * Solo games.manage (admin/superadmin): reglas/imagen son configuración
@@ -96,12 +96,12 @@ Route::get('bingo-rooms/{room}/cards/custom-stats', BingoRoomCustomCardStatsCont
  * ====================================
  */
 route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.manage'], BingoConfigController::class, [
-    'index'      => ['method' => 'get',  'uri' => '',           'action' => 'index'],
+    'index' => ['method' => 'get',  'uri' => '',           'action' => 'index'],
     'save-rules' => ['method' => 'post', 'uri' => 'save-rules', 'action' => 'saveRules'],
     'save-image' => ['method' => 'post', 'uri' => 'save-image', 'action' => 'saveImage'],
 ]);
 
-/**
+/*
  * ====================================
  * PATRONES DE BINGO (CANTOS)
  * Solo games.manage: catálogo GLOBAL de patrones, compartido por todas las
@@ -109,19 +109,19 @@ route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.man
  * ====================================
  */
 route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'multiPermission:games.manage'], BingoPatternController::class, [
-    'index'               => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
-    'store'               => ['method' => 'post',   'uri' => '',                    'action' => 'store'],
-    'fetch-list'          => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
-    'show'                => ['method' => 'get',    'uri' => '{pattern}/show',      'action' => 'show'],
-    'update'              => ['method' => 'patch',  'uri' => '{pattern}/update',    'action' => 'update'],
-    'delete'              => ['method' => 'delete', 'uri' => '{pattern}/delete',    'action' => 'delete'],
-    'destroy'             => ['method' => 'delete', 'uri' => '{pattern}/force-delete', 'action' => 'destroy'],
-    'toggle-status'       => ['method' => 'patch',  'uri' => '{pattern}/status',   'action' => 'toggleStatus'],
-    'bulk-toggle-status'  => ['method' => 'patch',  'uri' => 'bulk/status',        'action' => 'toggleStatusBulk'],
-    'bulk-delete'         => ['method' => 'delete', 'uri' => 'bulk/delete',        'action' => 'deleteBulk'],
+    'index' => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
+    'store' => ['method' => 'post',   'uri' => '',                    'action' => 'store'],
+    'fetch-list' => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
+    'show' => ['method' => 'get',    'uri' => '{pattern}/show',      'action' => 'show'],
+    'update' => ['method' => 'patch',  'uri' => '{pattern}/update',    'action' => 'update'],
+    'delete' => ['method' => 'delete', 'uri' => '{pattern}/delete',    'action' => 'delete'],
+    'destroy' => ['method' => 'delete', 'uri' => '{pattern}/force-delete', 'action' => 'destroy'],
+    'toggle-status' => ['method' => 'patch',  'uri' => '{pattern}/status',   'action' => 'toggleStatus'],
+    'bulk-toggle-status' => ['method' => 'patch',  'uri' => 'bulk/status',        'action' => 'toggleStatusBulk'],
+    'bulk-delete' => ['method' => 'delete', 'uri' => 'bulk/delete',        'action' => 'deleteBulk'],
 ]);
 
-/**
+/*
  * ====================================
  * SALAS AUTOMÁTICAS
  * Solo games.manage (admin/superadmin) — a diferencia de bingo-rooms
@@ -143,10 +143,10 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPe
     'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
     'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
     'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
-    'execute-job'   => ['method' => 'get', 'uri' => 'execute-job', 'action' => 'executeJob'],
+    'execute-job' => ['method' => 'get', 'uri' => 'execute-job', 'action' => 'executeJob'],
 ]);
 
-/**
+/*
  * ====================================
  * OPERACIONES CARTONES (PARA JUGADORES)
  * 'verified': generar/comprar cartones cobra dinero real — un email sin
@@ -157,20 +157,20 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'verified', 'multiPermission:g
     'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
     'generate-card-store' => ['method' => 'post', 'uri' => '{room}/generate', 'action' => 'generateCardStore'],
     // Punto de venta del vendedor (solo seller — ver BingoCardController::ensureSeller()).
-    'pos-rooms'           => ['method' => 'get', 'uri' => 'pos/rooms',            'action' => 'rooms'],
+    'pos-rooms' => ['method' => 'get', 'uri' => 'pos/rooms',            'action' => 'rooms'],
     'pos-frequent-buyers' => ['method' => 'get', 'uri' => 'pos/frequent-buyers',  'action' => 'frequentBuyers'],
-    'pos-today-sales'     => ['method' => 'get', 'uri' => 'pos/today-sales',      'action' => 'todaySales'],
+    'pos-today-sales' => ['method' => 'get', 'uri' => 'pos/today-sales',      'action' => 'todaySales'],
     // Enlace público de venta + códigos de compra para compradores recurrentes.
-    'pos-sales-link'            => ['method' => 'get',    'uri' => 'pos/sales-link',                         'action' => 'salesLink'],
+    'pos-sales-link' => ['method' => 'get',    'uri' => 'pos/sales-link',                         'action' => 'salesLink'],
     'pos-sales-link-regenerate' => ['method' => 'post',   'uri' => 'pos/sales-link/regenerate',              'action' => 'regenerateSalesLink'],
-    'pos-purchase-codes'        => ['method' => 'get',    'uri' => 'pos/purchase-codes',                     'action' => 'purchaseCodes'],
-    'pos-purchase-codes-issue'  => ['method' => 'post',   'uri' => 'pos/purchase-codes',                     'action' => 'issuePurchaseCode'],
+    'pos-purchase-codes' => ['method' => 'get',    'uri' => 'pos/purchase-codes',                     'action' => 'purchaseCodes'],
+    'pos-purchase-codes-issue' => ['method' => 'post',   'uri' => 'pos/purchase-codes',                     'action' => 'issuePurchaseCode'],
     'pos-purchase-codes-revoke' => ['method' => 'delete', 'uri' => 'pos/purchase-codes/{purchaseCode}',      'action' => 'revokePurchaseCode'],
     'available-countries' => ['method' => 'get', 'uri' => '{room}/available-countries', 'action' => 'availableCountries'],
-    'card-price'          => ['method' => 'get', 'uri' => '{room}/card-price',           'action' => 'cardPrice'],
+    'card-price' => ['method' => 'get', 'uri' => '{room}/card-price',           'action' => 'cardPrice'],
 ]);
 
-/**
+/*
  * ====================================
  * HISTORIAL DE PARTIDAS (JUGADOR)
  * ====================================
@@ -183,7 +183,7 @@ Route::get('bingo/my-games/{roomId}/detail', [PlayerGameHistoryController::class
     ->middleware(['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'])
     ->name('bingo.my-games.detail');
 
-/**
+/*
  * ====================================
  * SALAS DE JUEGO
  * 'verified': buy/player-buy/join-by-code cobran dinero real — un email
@@ -192,20 +192,20 @@ Route::get('bingo/my-games/{roomId}/detail', [PlayerGameHistoryController::class
  */
 route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoRoomController::class, [
     'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
-    'join-by-code'     => ['method' => 'post', 'uri' => 'join-by-code', 'action' => 'joinByCode', 'middleware' => ['throttle:bingo-join-by-code']],
-    'filter-data'      => ['method' => 'get',  'uri' => 'filter-data', 'action' => 'filterData'],
+    'join-by-code' => ['method' => 'post', 'uri' => 'join-by-code', 'action' => 'joinByCode', 'middleware' => ['throttle:bingo-join-by-code']],
+    'filter-data' => ['method' => 'get',  'uri' => 'filter-data', 'action' => 'filterData'],
     // Sin ruta de compra para comercios/vendedores: solo generan cartones para
     // jugadores externos, desde el punto de venta (generate, con comprobante).
     // Antes existía '{room}/buy', que les generaba cartones a su propio nombre
     // sin cobro ni comprobante.
-    'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms', 'middleware' => ['throttle:bingo-player-buy']],
-    'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],
+    'player-buy' => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms', 'middleware' => ['throttle:bingo-player-buy']],
+    'check-user-role' => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],
     'player-card-price' => ['method' => 'get', 'uri' => '{room}/player-card-price', 'action' => 'playerCardPrice'],
-    'top-buyers'       => ['method' => 'get', 'uri' => '{room}/top-buyers', 'action' => 'topBuyers'],
-    'verify-access'    => ['method' => 'post', 'uri' => '{room}/verify-access', 'action' => 'verifyAccess', 'middleware' => ['throttle:bingo-verify-access']],
+    'top-buyers' => ['method' => 'get', 'uri' => '{room}/top-buyers', 'action' => 'topBuyers'],
+    'verify-access' => ['method' => 'post', 'uri' => '{room}/verify-access', 'action' => 'verifyAccess', 'middleware' => ['throttle:bingo-verify-access']],
 ]);
 
-/**
+/*
  * ====================================
  * JUEGO DE BINGO
  * ====================================
@@ -220,13 +220,13 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'verified', 'multi
 // 'verified': check-bingo acredita el premio en dinero real — un email
 // sin verificar no debe poder cobrar.
 route_group('bingo', 'bingo.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoGameController::class, [
-    'lobby'         => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
+    'lobby' => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
     'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],
-    'game'          => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
-    'draw-state'    => ['method' => 'get',  'uri' => '{room}/draw-state',    'action' => 'drawState'],
-    'user-cards'    => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards'],
-    'check-bingo'   => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo', 'middleware' => ['throttle:bingo-check-bingo']],
-    'view-card'     => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard'],
+    'game' => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
+    'draw-state' => ['method' => 'get',  'uri' => '{room}/draw-state',    'action' => 'drawState'],
+    'user-cards' => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards'],
+    'check-bingo' => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo', 'middleware' => ['throttle:bingo-check-bingo']],
+    'view-card' => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard'],
 ]);
 
 // Solo disponible en entorno local — utilidades de desarrollo
@@ -240,7 +240,7 @@ if (app()->environment('local')) {
         ->name('bingo.dev-start-draw');
 }
 
-/**
+/*
  * ====================================
  * REPORTES Y ESTADÍSTICAS
  *
@@ -256,21 +256,21 @@ if (app()->environment('local')) {
  * ====================================
  */
 route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoReportController::class, [
-    'cards-sold'             => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'cards-sold-data'        => ['method' => 'get', 'uri' => 'cards-sold-data', 'action' => 'cardsSoldData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'cards-sold-export'      => ['method' => 'get', 'uri' => 'cards-sold-export', 'action' => 'cardsSoldExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'sales-report'           => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'sales-report-data'      => ['method' => 'get', 'uri' => 'sales-report-data', 'action' => 'salesReportData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'sales-report-export'    => ['method' => 'get', 'uri' => 'sales-report-export', 'action' => 'salesReportExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'sales-report-room'      => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'cards-sold' => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'cards-sold-data' => ['method' => 'get', 'uri' => 'cards-sold-data', 'action' => 'cardsSoldData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'cards-sold-export' => ['method' => 'get', 'uri' => 'cards-sold-export', 'action' => 'cardsSoldExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report' => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-data' => ['method' => 'get', 'uri' => 'sales-report-data', 'action' => 'salesReportData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-export' => ['method' => 'get', 'uri' => 'sales-report-export', 'action' => 'salesReportExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
+    'sales-report-room' => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
     'sales-report-room-data' => ['method' => 'get', 'uri' => 'sales-report-room-data/{room}', 'action' => 'salesReportByRoomData', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
     'sales-report-room-export' => ['method' => 'get', 'uri' => 'sales-report-room-export/{room}', 'action' => 'salesReportByRoomExport', 'middleware' => ['multiPermission:games.manage,games.bingo.sales_report']],
-    'winners'                => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
-    'winners-data'           => ['method' => 'get', 'uri' => 'winners-data', 'action' => 'winnersData', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
-    'winners-export'         => ['method' => 'get', 'uri' => 'winners-export', 'action' => 'winnersExport', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
+    'winners' => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
+    'winners-data' => ['method' => 'get', 'uri' => 'winners-data', 'action' => 'winnersData', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
+    'winners-export' => ['method' => 'get', 'uri' => 'winners-export', 'action' => 'winnersExport', 'middleware' => ['multiPermission:games.manage,games.bingo.winners']],
 ]);
 
-/**
+/*
  * ====================================
  * REVISIÓN DE PAGOS DE JUGADORES EXTERNOS
  * ====================================
@@ -285,19 +285,19 @@ route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bing
  * en BingoCardPaymentReviewController.
  */
 route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermission:games.manage,games.bingo.payments.review'], \App\Http\Controllers\Games\Bingo\Payment\BingoCardPaymentReviewController::class, [
-    'index'   => ['method' => 'get',  'uri' => '',                'action' => 'index'],
-    'policy'  => ['method' => 'patch', 'uri' => 'policy',         'action' => 'updatePolicy'],
-    'proof'   => ['method' => 'get',  'uri' => '{payment}/proof', 'action' => 'proof'],
+    'index' => ['method' => 'get',  'uri' => '',                'action' => 'index'],
+    'policy' => ['method' => 'patch', 'uri' => 'policy',         'action' => 'updatePolicy'],
+    'proof' => ['method' => 'get',  'uri' => '{payment}/proof', 'action' => 'proof'],
     'approve' => ['method' => 'post', 'uri' => '{payment}/approve', 'action' => 'approve'],
-    'reject'  => ['method' => 'post', 'uri' => '{payment}/reject',  'action' => 'reject'],
+    'reject' => ['method' => 'post', 'uri' => '{payment}/reject',  'action' => 'reject'],
 ]);
 
- // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
-    // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
-    // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
-    // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
+// 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
+// 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
+// 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
+// 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
 
-/**
+/*
  * ====================================
  * BINGO CASH (JUEGO PÚBLICO)
  * ====================================
@@ -310,7 +310,7 @@ route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermis
 //     'get-result'      => ['method' => 'get',  'uri' => 'get/result/{room}/{value}/{column?}'],
 // ]);
 
-/**
+/*
  * ====================================
  * RUTAS ESPECIALES
  * ====================================

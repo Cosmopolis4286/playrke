@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Progreso de un usuario en una misión diaria, para el día calendario
  * indicado en `date` (UTC — mismo criterio ya aceptado como limitación
  * conocida en LoginStreakService, ver progreso/xp-logros-plan.md Fase 5).
@@ -13,9 +13,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('user_daily_mission_progress', function (Blueprint $table) {
+        Schema::dropIfExists('user_daily_mission_progress');
+    }
+
+    public function up() : void
+    {
+        Schema::create('user_daily_mission_progress', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('user_id')
@@ -36,10 +41,5 @@ return new class extends Migration
             $table->unique(['user_id', 'daily_mission_id', 'date'], 'user_daily_mission_unique');
             $table->index(['user_id', 'date']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('user_daily_mission_progress');
     }
 };

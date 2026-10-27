@@ -4,14 +4,19 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Documentos subidos para el proceso de verificación KYC.
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('kyc_documents', function (Blueprint $table) {
+        Schema::dropIfExists('kyc_documents');
+    }
+
+    public function up() : void
+    {
+        Schema::create('kyc_documents', function(Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
@@ -42,10 +47,5 @@ return new class extends Migration
             $table->index('status', 'idx_kyc_documents_status');
             $table->index('reviewed_by', 'idx_kyc_documents_reviewer');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('kyc_documents');
     }
 };

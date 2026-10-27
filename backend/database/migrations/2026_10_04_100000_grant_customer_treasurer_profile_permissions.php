@@ -7,7 +7,7 @@ use App\Models\Role;
 use Illuminate\Database\Migrations\Migration;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
+/*
  * Migración de datos (no seeder): permisos de las fichas propias "Mi Cliente"
  * (customer) y "Mi Tesorería" (treasurer) — producción no vuelve a correr
  * seeders (deploy.sh solo ejecuta `migrate --force`). Mismo criterio que
@@ -26,12 +26,28 @@ use Spatie\Permission\PermissionRegistrar;
 return new class extends Migration
 {
     private const GRANTS = [
-        'customer'  => ['customers.manage-own'],
+        'customer' => ['customers.manage-own'],
         'treasurer' => ['treasurers.manage-own'],
-        'admin'     => ['treasurers.view'],
+        'admin' => ['treasurers.view'],
     ];
 
-    public function up(): void
+    public function down() : void
+    {
+        foreach (self::GRANTS as $roleName => $permissions) {
+            $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
+            foreach ($permissions as $name) {
+                if ($role && $role->hasPermissionTo($name)) {
+                    $role->revokePermissionTo($name);
+                }
+            }
+        }
+
+        Role::where('name', 'customer')->where('guard_name', 'web')->first()?->givePermissionTo('sellers.view');
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public function up() : void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -47,22 +63,6 @@ return new class extends Migration
         if ($customer && $customer->hasPermissionTo('sellers.view')) {
             $customer->revokePermissionTo('sellers.view');
         }
-
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    public function down(): void
-    {
-        foreach (self::GRANTS as $roleName => $permissions) {
-            $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
-            foreach ($permissions as $name) {
-                if ($role && $role->hasPermissionTo($name)) {
-                    $role->revokePermissionTo($name);
-                }
-            }
-        }
-
-        Role::where('name', 'customer')->where('guard_name', 'web')->first()?->givePermissionTo('sellers.view');
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

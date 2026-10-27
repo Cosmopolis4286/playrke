@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'customers_games'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('customers_games');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla pivot 'customers_games'.
      *
      * Tabla pivot para la relación many-to-many entre customers y games.
@@ -24,9 +32,9 @@ return new class extends Migration
      * por SeamlessWallet::transferMoney() para armar el payload "Game"/
      * "Product" que el proveedor externo requiere en TransferMoney.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('customers_games', function (Blueprint $table) {
+        Schema::create('customers_games', function(Blueprint $table) {
             // ============================================
             // FOREIGN KEYS
             // ============================================
@@ -71,13 +79,5 @@ return new class extends Migration
             // Índice para consultas de juegos por estado (si se agrega estado en el futuro)
             $table->index('customer_id', 'idx_customer_games');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'customers_games'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('customers_games');
     }
 };

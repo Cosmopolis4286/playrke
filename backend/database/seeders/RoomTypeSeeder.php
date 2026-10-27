@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class RoomTypeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $types = [
             ['code' => 'PRIVATE', 'label' => 'Privada'],
@@ -22,7 +22,7 @@ class RoomTypeSeeder extends Seeder
                 [
                     'label' => $type['label'],
                     'status' => 'ACTIVE',
-                ]
+                ],
             );
         }
     }

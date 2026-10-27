@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_card_lots'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_lots');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'bingo_card_lots'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_lots', function (Blueprint $table) {
+        Schema::create('bingo_card_lots', function(Blueprint $table) {
             // ID único tipo Snowflake
             $table->snowflake('id')->primary()->comment('ID único del lote de cartones');
 
@@ -114,13 +122,5 @@ return new class extends Migration
             // whereBetween('created_at', ...) en reportes por rango de fecha
             $table->index('created_at', 'idx_bingo_card_lots_created_at');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_card_lots'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_lots');
     }
 };

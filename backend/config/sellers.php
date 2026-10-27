@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------
     | Comisión progresiva por volumen mensual
@@ -52,16 +51,15 @@ return [
     */
 
     'purchase_codes' => [
-        'uses_options'        => [1, 5, 10],
-        'default_uses'        => (int) env('SELLER_PURCHASE_CODE_DEFAULT_USES', 5),
-        'valid_days_options'  => [7, 30, 90],
-        'default_valid_days'  => (int) env('SELLER_PURCHASE_CODE_DEFAULT_DAYS', 30),
+        'uses_options' => [1, 5, 10],
+        'default_uses' => (int) env('SELLER_PURCHASE_CODE_DEFAULT_USES', 5),
+        'valid_days_options' => [7, 30, 90],
+        'default_valid_days' => (int) env('SELLER_PURCHASE_CODE_DEFAULT_DAYS', 30),
 
         // Protección contra adivinar códigos en el enlace público: tras N
         // intentos fallidos para el mismo enlace+teléfono (o desde la misma
         // IP), se bloquea por M minutos.
         'max_failed_attempts' => (int) env('SELLER_PURCHASE_CODE_MAX_FAILED', 5),
-        'lockout_minutes'     => (int) env('SELLER_PURCHASE_CODE_LOCKOUT_MINUTES', 15),
+        'lockout_minutes' => (int) env('SELLER_PURCHASE_CODE_LOCKOUT_MINUTES', 15),
     ],
-
 ];

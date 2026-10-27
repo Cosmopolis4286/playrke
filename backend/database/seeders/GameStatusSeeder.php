@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class GameStatusSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $statuses = [
             ['code' => 'ACTIVE',      'label' => 'Activa'],
@@ -26,8 +26,8 @@ class GameStatusSeeder extends Seeder
             GameStatus::updateOrCreate(
                 ['code' => $status['code']],
                 [
-                    'label' => $status['label']
-                ]
+                    'label' => $status['label'],
+                ],
             );
         }
     }

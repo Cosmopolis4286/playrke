@@ -15,7 +15,6 @@ use App\Models\Game;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Pivots\Roles\Customer\CustomerCurrency;
-use App\Models\Roles\Customer\CustomerGame;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
 use App\Models\Pivots\Roles\Treasurer\TreasurerCurrency;
@@ -23,6 +22,7 @@ use App\Models\Pivots\Roles\Treasurer\TreasurerGame;
 use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
+use App\Models\Roles\Customer\CustomerGame;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Subsidiary;
 use App\Models\Roles\Treasurer;
@@ -54,20 +54,22 @@ class DemoRoleDataSeeder extends Seeder
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly TreasurerRepositoryInterface $treasurerRepository,
         private readonly WalletRepositoryInterface $walletRepository,
-    ) {}
+    ) {
+    }
 
-    public function run(): void
+    public function run() : void
     {
-        $venezuela  = Country::where('iso_code_2', 'VE')->first();
-        $ves        = Currency::where('iso_code', 'VES')->first();
-        $firstGame  = Game::first();
+        $venezuela = Country::where('iso_code_2', 'VE')->first();
+        $ves = Currency::where('iso_code', 'VES')->first();
+        $firstGame = Game::first();
 
         if (! $venezuela || ! $ves) {
             $this->command->warn('⚠ Faltan Country VE o Currency VES. Ejecute los seeders previos.');
+
             return;
         }
 
-        DB::transaction(function () use ($venezuela, $ves, $firstGame) {
+        DB::transaction(function() use ($venezuela, $ves, $firstGame) {
             // ──────────────────────────────────────────────────────────
             // 0. SUPERADMIN
             // ──────────────────────────────────────────────────────────
@@ -151,21 +153,23 @@ class DemoRoleDataSeeder extends Seeder
                 $uniqueCode = $this->userService->createUniqueCode((string) $commerceUser->id);
 
                 $commerce = $this->commerceRepository->create([
-                    'name'           => 'Comercio Demo',
+                    'name' => 'Comercio Demo',
                     // Formato validado por PhonePatterns/ValidPhoneForCountry
                     // para VE: +58 0[2-4]XX-XXXXXXX (con el 0 inicial de la
                     // operadora y el guion separador) — antes '+58 412
                     // 0000001' no lo cumplía (sin el 0, sin guion).
-                    'phone'          => '+58 0412-0000001',
-                    'commission'     => 5.00,
-                    'country_id'     => $venezuela->id,
-                    'user_id'        => $commerceUser->id,
+                    'phone' => '+58 0412-0000001',
+                    'commission' => 5.00,
+                    'country_id' => $venezuela->id,
+                    'user_id' => $commerceUser->id,
                     'unique_code_id' => $uniqueCode->id,
-                    'status'         => 'ACTIVE',
+                    'status' => 'ACTIVE',
                 ]);
 
                 $this->syncCurrencyCommerce($commerce, $ves->id);
-                if ($firstGame) $this->syncGameCommerce($commerce, $firstGame->id);
+                if ($firstGame) {
+                    $this->syncGameCommerce($commerce, $firstGame->id);
+                }
 
                 $this->ensureWallet($commerceUser->id, $ves->id);
                 $this->command->info("✔ Commerce entity creada para {$commerceUser->email}");
@@ -180,17 +184,19 @@ class DemoRoleDataSeeder extends Seeder
                 $uniqueCode2 = $this->userService->createUniqueCode((string) $commerce2User->id);
 
                 $commerce2 = $this->commerceRepository->create([
-                    'name'           => 'Comercio Demo Dos',
-                    'phone'          => '+58 0412-0000004',
-                    'commission'     => 5.00,
-                    'country_id'     => $venezuela->id,
-                    'user_id'        => $commerce2User->id,
+                    'name' => 'Comercio Demo Dos',
+                    'phone' => '+58 0412-0000004',
+                    'commission' => 5.00,
+                    'country_id' => $venezuela->id,
+                    'user_id' => $commerce2User->id,
                     'unique_code_id' => $uniqueCode2->id,
-                    'status'         => 'ACTIVE',
+                    'status' => 'ACTIVE',
                 ]);
 
                 $this->syncCurrencyCommerce($commerce2, $ves->id);
-                if ($firstGame) $this->syncGameCommerce($commerce2, $firstGame->id);
+                if ($firstGame) {
+                    $this->syncGameCommerce($commerce2, $firstGame->id);
+                }
 
                 $this->ensureWallet($commerce2User->id, $ves->id);
                 $this->command->info("✔ Commerce entity (2) creada para {$commerce2User->email}");
@@ -201,22 +207,22 @@ class DemoRoleDataSeeder extends Seeder
             //    Comercio → Sucursal → Vendedor)
             // ──────────────────────────────────────────────────────────
             $subsidiaryUser = User::where('email', 'subsidiary@playrke.com')->first();
-            $commerceUser   = $commerceUser ?? User::where('email', 'commerce@playrke.com')->first();
-            $commerce       = $commerce ?? ($commerceUser ? Commerce::where('user_id', $commerceUser->id)->first() : null);
+            $commerceUser = $commerceUser ?? User::where('email', 'commerce@playrke.com')->first();
+            $commerce = $commerce ?? ($commerceUser ? Commerce::where('user_id', $commerceUser->id)->first() : null);
 
             if ($subsidiaryUser && $commerce && ! Subsidiary::where('user_id', $subsidiaryUser->id)->exists()) {
                 $subsidiary = $this->subsidiaryRepository->create([
-                    'name'         => 'Sucursal Demo',
+                    'name' => 'Sucursal Demo',
                     // subsidiaries.phone ahora es varchar(20) (ver migración
                     // 2024_01_01_000701), mismo ancho y mismo formato validado
                     // que el resto de tablas de rol.
-                    'phone'        => '+58 0412-0000005',
-                    'commission'   => 4.00,
-                    'commerce_id'  => $commerce->id,
-                    'user_id'      => $subsidiaryUser->id,
-                    'country_id'   => $venezuela->id,
-                    'currency_id'  => $ves->id,
-                    'status'       => 'ACTIVE',
+                    'phone' => '+58 0412-0000005',
+                    'commission' => 4.00,
+                    'commerce_id' => $commerce->id,
+                    'user_id' => $subsidiaryUser->id,
+                    'country_id' => $venezuela->id,
+                    'currency_id' => $ves->id,
+                    'status' => 'ACTIVE',
                 ]);
 
                 $this->ensureWallet($subsidiaryUser->id, $ves->id);
@@ -234,18 +240,20 @@ class DemoRoleDataSeeder extends Seeder
 
             if ($sellerUser && $commerceUser && ! Seller::where('user_id', $sellerUser->id)->exists()) {
                 $seller = $this->sellerRepository->create([
-                    'name'            => 'Vendedor Demo',
-                    'phone'           => '+58 0412-0000002',
-                    'commission'      => 3.00,
-                    'country_id'      => $venezuela->id,
-                    'user_id'         => $sellerUser->id,
+                    'name' => 'Vendedor Demo',
+                    'phone' => '+58 0412-0000002',
+                    'commission' => 3.00,
+                    'country_id' => $venezuela->id,
+                    'user_id' => $sellerUser->id,
                     'manager_user_id' => $commerceUser->id,
-                    'subsidiary_id'   => $subsidiary?->id,
-                    'status'          => 'ACTIVE',
+                    'subsidiary_id' => $subsidiary?->id,
+                    'status' => 'ACTIVE',
                 ]);
 
                 $this->syncCurrencySeller($seller, $ves->id);
-                if ($firstGame) $this->syncGameSeller($seller, $firstGame->id);
+                if ($firstGame) {
+                    $this->syncGameSeller($seller, $firstGame->id);
+                }
 
                 $this->ensureWallet($sellerUser->id, $ves->id);
                 $this->command->info("✔ Seller entity creada para {$sellerUser->email}");
@@ -270,19 +278,21 @@ class DemoRoleDataSeeder extends Seeder
 
             if ($customerUser && ! Customer::where('user_id', $customerUser->id)->exists()) {
                 $customer = $this->customerRepository->create([
-                    'name'         => 'Cliente Demo',
-                    'phone'        => '+58 0412-0000003',
-                    'commission'   => 2.00,
-                    'country_id'   => $venezuela->id,
-                    'currency_id'  => $ves->id,
-                    'user_id'      => $customerUser->id,
-                    'api_route'    => 'http://localhost/api/customer-demo',
+                    'name' => 'Cliente Demo',
+                    'phone' => '+58 0412-0000003',
+                    'commission' => 2.00,
+                    'country_id' => $venezuela->id,
+                    'currency_id' => $ves->id,
+                    'user_id' => $customerUser->id,
+                    'api_route' => 'http://localhost/api/customer-demo',
                     'customer_key' => bin2hex(random_bytes(32)),
-                    'status'       => 'ACTIVE',
+                    'status' => 'ACTIVE',
                 ]);
 
                 $this->syncCurrencyCustomer($customer, $ves->id);
-                if ($firstGame) $this->syncGameCustomer($customer, $firstGame->id);
+                if ($firstGame) {
+                    $this->syncGameCustomer($customer, $firstGame->id);
+                }
 
                 $this->ensureWallet($customerUser->id, $ves->id);
                 $this->command->info("✔ Customer entity creada para {$customerUser->email}");
@@ -301,17 +311,19 @@ class DemoRoleDataSeeder extends Seeder
                 $uniqueCode = $this->userService->createUniqueCode((string) $treasurerUser->id);
 
                 $treasurer = $this->treasurerRepository->createTreasurer([
-                    'name'           => 'Tesorero Demo',
-                    'phone'          => '+58 0412-0000006',
-                    'commission'     => 0.00,
-                    'country_id'     => $venezuela->id,
-                    'user_id'        => $treasurerUser->id,
+                    'name' => 'Tesorero Demo',
+                    'phone' => '+58 0412-0000006',
+                    'commission' => 0.00,
+                    'country_id' => $venezuela->id,
+                    'user_id' => $treasurerUser->id,
                     'unique_code_id' => $uniqueCode->id,
-                    'status'         => 'ACTIVE',
+                    'status' => 'ACTIVE',
                 ]);
 
                 $this->syncCurrencyTreasurer($treasurer, $ves->id);
-                if ($firstGame) $this->syncGameTreasurer($treasurer, $firstGame->id);
+                if ($firstGame) {
+                    $this->syncGameTreasurer($treasurer, $firstGame->id);
+                }
 
                 $this->ensureWallet($treasurerUser->id, $ves->id);
                 $this->command->info("✔ Treasurer entity creada para {$treasurerUser->email}");
@@ -325,7 +337,7 @@ class DemoRoleDataSeeder extends Seeder
     // Helpers privados
     // ──────────────────────────────────────────────────────────────────
 
-    private function ensureWallet(string $userId, string $currencyId): void
+    private function ensureWallet(string $userId, string $currencyId) : void
     {
         $exists = \App\Domains\Wallet\Models\Wallet::where('user_id', $userId)
             ->where('currency_id', $currencyId)
@@ -333,73 +345,73 @@ class DemoRoleDataSeeder extends Seeder
 
         if (! $exists) {
             $this->walletRepository->create([
-                'user_id'     => $userId,
+                'user_id' => $userId,
                 'currency_id' => $currencyId,
             ]);
         }
     }
 
-    private function syncCurrencyCommerce(Commerce $commerce, string $currencyId): void
+    private function syncCurrencyCommerce(Commerce $commerce, string $currencyId) : void
     {
         CommerceCurrency::updateOrCreate(
             ['commerce_id' => $commerce->id, 'level' => 1],
-            ['currency_id' => $currencyId, 'status' => 'ACTIVE']
+            ['currency_id' => $currencyId, 'status' => 'ACTIVE'],
         );
     }
 
-    private function syncGameCommerce(Commerce $commerce, string $gameId): void
-    {
-        CommerceGame::updateOrCreate(
-            ['commerce_id' => $commerce->id, 'game_id' => $gameId],
-            ['status' => 'ACTIVE']
-        );
-    }
-
-    private function syncCurrencySeller(Seller $seller, string $currencyId): void
-    {
-        SellerCurrency::updateOrCreate(
-            ['seller_id' => $seller->id, 'level' => 1],
-            ['currency_id' => $currencyId, 'status' => 'ACTIVE']
-        );
-    }
-
-    private function syncGameSeller(Seller $seller, string $gameId): void
-    {
-        SellerGame::updateOrCreate(
-            ['seller_id' => $seller->id, 'game_id' => $gameId],
-            ['status' => 'ACTIVE']
-        );
-    }
-
-    private function syncCurrencyCustomer(Customer $customer, string $currencyId): void
+    private function syncCurrencyCustomer(Customer $customer, string $currencyId) : void
     {
         CustomerCurrency::updateOrCreate(
             ['customer_id' => $customer->id, 'currency_id' => $currencyId],
-            ['level' => 1, 'status' => 'ACTIVE']
+            ['level' => 1, 'status' => 'ACTIVE'],
         );
     }
 
-    private function syncGameCustomer(Customer $customer, string $gameId): void
+    private function syncCurrencySeller(Seller $seller, string $currencyId) : void
     {
-        CustomerGame::updateOrCreate(
-            ['customer_id' => $customer->id, 'game_id' => $gameId],
-            ['status' => 'ACTIVE']
+        SellerCurrency::updateOrCreate(
+            ['seller_id' => $seller->id, 'level' => 1],
+            ['currency_id' => $currencyId, 'status' => 'ACTIVE'],
         );
     }
 
-    private function syncCurrencyTreasurer(Treasurer $treasurer, string $currencyId): void
+    private function syncCurrencyTreasurer(Treasurer $treasurer, string $currencyId) : void
     {
         TreasurerCurrency::updateOrCreate(
             ['treasurer_id' => $treasurer->id, 'level' => 1],
-            ['currency_id' => $currencyId, 'status' => 'ACTIVE']
+            ['currency_id' => $currencyId, 'status' => 'ACTIVE'],
         );
     }
 
-    private function syncGameTreasurer(Treasurer $treasurer, string $gameId): void
+    private function syncGameCommerce(Commerce $commerce, string $gameId) : void
+    {
+        CommerceGame::updateOrCreate(
+            ['commerce_id' => $commerce->id, 'game_id' => $gameId],
+            ['status' => 'ACTIVE'],
+        );
+    }
+
+    private function syncGameCustomer(Customer $customer, string $gameId) : void
+    {
+        CustomerGame::updateOrCreate(
+            ['customer_id' => $customer->id, 'game_id' => $gameId],
+            ['status' => 'ACTIVE'],
+        );
+    }
+
+    private function syncGameSeller(Seller $seller, string $gameId) : void
+    {
+        SellerGame::updateOrCreate(
+            ['seller_id' => $seller->id, 'game_id' => $gameId],
+            ['status' => 'ACTIVE'],
+        );
+    }
+
+    private function syncGameTreasurer(Treasurer $treasurer, string $gameId) : void
     {
         TreasurerGame::updateOrCreate(
             ['treasurer_id' => $treasurer->id, 'game_id' => $gameId],
-            ['status' => 'ACTIVE']
+            ['status' => 'ACTIVE'],
         );
     }
 }

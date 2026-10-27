@@ -7,6 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('jackpot_movements');
+    }
+
+    /**
      * Run the migrations.
      *
      * Ledger histórico de movimientos de cada jackpot (análogo a
@@ -14,9 +22,9 @@ return new class extends Migration
      * PAYOUT/RESET quedan reservados para cuando se implemente la entrega
      * del jackpot al ganador (fuera de alcance de esta iteración).
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('jackpot_movements', function (Blueprint $table) {
+        Schema::create('jackpot_movements', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del movimiento');
 
             $table->foreignSnowflake('jackpot_id')
@@ -48,13 +56,5 @@ return new class extends Migration
 
             $table->index(['jackpot_id', 'created_at']);
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('jackpot_movements');
     }
 };

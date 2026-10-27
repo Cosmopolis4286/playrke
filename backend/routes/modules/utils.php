@@ -28,7 +28,7 @@ Route::get('/search', [SearchController::class, 'search'])
 // {itemKey} incluye '.' (formato 'parent.child') — regex explícito porque
 // el patrón por defecto de Laravel excluye '/' pero no requiere permitir
 // '.', y RouteServiceProvider no declara un pattern global para esto.
-Route::middleware(['auth', 'web'])->group(function () {
+Route::middleware(['auth', 'web'])->group(function() {
     Route::post('/sidebar/favorites', [SidebarFavoriteController::class, 'store'])
         ->name('sidebar.favorites.store');
     Route::delete('/sidebar/favorites/{itemKey}', [SidebarFavoriteController::class, 'destroy'])
@@ -60,13 +60,13 @@ Route::middleware(['auth', 'web'])->group(function () {
 // SISTEMA DE RECOMPENSAS
 // ====================================
 route_group('prizes', 'prizes.', ['auth'], PrizeController::class, [
-    'index'        => ['method' => 'get',    'uri' => ''],
-    'fetchList'    => ['method' => 'get',    'uri' => 'fetch-list'],
-    'search'       => ['method' => 'get',    'uri' => 'search'],
-    'store'        => ['method' => 'post',   'uri' => ''],
-    'show'         => ['method' => 'get',    'uri' => '{prize}/show'],
-    'update'       => ['method' => 'put',    'uri' => '{prize}/update'],
-    'delete'       => ['method' => 'put',    'uri' => '{prize}/delete'],
-    'destroy'      => ['method' => 'delete', 'uri' => '{prize}'],
+    'index' => ['method' => 'get',    'uri' => ''],
+    'fetchList' => ['method' => 'get',    'uri' => 'fetch-list'],
+    'search' => ['method' => 'get',    'uri' => 'search'],
+    'store' => ['method' => 'post',   'uri' => ''],
+    'show' => ['method' => 'get',    'uri' => '{prize}/show'],
+    'update' => ['method' => 'put',    'uri' => '{prize}/update'],
+    'delete' => ['method' => 'put',    'uri' => '{prize}/delete'],
+    'destroy' => ['method' => 'delete', 'uri' => '{prize}'],
     'toggleStatus' => ['method' => 'put',    'uri' => '{prize}/status'],
 ]);

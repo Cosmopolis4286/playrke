@@ -10,7 +10,7 @@ class BankVenezuelaSeeder extends Seeder
     /**
      * Ejecuta el seeder para poblar los bancos de Venezuela.
      */
-    public function run(): void
+    public function run() : void
     {
         $banks = [
             ['name' => 'Venezuela', 'code' => '0102'],
@@ -42,7 +42,7 @@ class BankVenezuelaSeeder extends Seeder
         foreach ($banks as $bank) {
             BankVenezuela::updateOrCreate(
                 ['code' => $bank['code']],
-                ['name' => $bank['name']]
+                ['name' => $bank['name']],
             );
         }
     }

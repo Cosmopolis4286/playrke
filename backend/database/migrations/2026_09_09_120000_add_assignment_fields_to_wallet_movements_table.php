@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * assigned_to_user_id/assigned_at permiten que un admin marque "estoy
  * revisando este caso" para que otro admin no trabaje el mismo movimiento
  * pendiente a la vez — lock real (no solo informativo, a diferencia de
@@ -15,7 +15,20 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        if (! Schema::hasColumn('wallet_movements', 'assigned_to_user_id')) {
+            return;
+        }
+
+        Schema::table('wallet_movements', function(Blueprint $table) {
+            $table->dropForeign(['assigned_to_user_id']);
+            $table->dropIndex(['assigned_to_user_id']);
+            $table->dropColumn(['assigned_to_user_id', 'assigned_at']);
+        });
+    }
+
+    public function up() : void
     {
         // Guard de idempotencia — mismo patrón que
         // 2026_09_08_131655_add_receipt_hash_to_wallet_movements_table: sin
@@ -27,7 +40,7 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('wallet_movements', function (Blueprint $table) {
+        Schema::table('wallet_movements', function(Blueprint $table) {
             $table->foreignSnowflake('assigned_to_user_id')
                 ->nullable()
                 ->after('processed_at')
@@ -41,19 +54,6 @@ return new class extends Migration
                 ->comment('Fecha en que se tomó el caso — usado para expirar el lock por inactividad');
 
             $table->index('assigned_to_user_id');
-        });
-    }
-
-    public function down(): void
-    {
-        if (! Schema::hasColumn('wallet_movements', 'assigned_to_user_id')) {
-            return;
-        }
-
-        Schema::table('wallet_movements', function (Blueprint $table) {
-            $table->dropForeign(['assigned_to_user_id']);
-            $table->dropIndex(['assigned_to_user_id']);
-            $table->dropColumn(['assigned_to_user_id', 'assigned_at']);
         });
     }
 };

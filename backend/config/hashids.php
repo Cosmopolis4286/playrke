@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Connection Name
@@ -27,7 +26,6 @@ return [
     */
 
     'connections' => [
-
         'main' => [
             'salt' => env('HASHIDS_SALT', '38af2e945843e26f71026748873894a549f8c05d12f4cf16294e392f614a45d4'),
             'length' => (int) env('HASHIDS_LENGTH', 12),
@@ -40,5 +38,4 @@ return [
             // 'alphabet' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
         ],
     ],
-
 ];

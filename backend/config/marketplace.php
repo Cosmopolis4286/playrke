@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------
     | Feature flags del Marketplace P2P
@@ -36,5 +35,4 @@ return [
         // a calibrar — ejemplo: cosméticos con fee más alto que recursos
         // 'COSMETIC' => 8.0,
     ],
-
 ];

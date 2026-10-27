@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'customers_users'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('customers_users');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'customers_users'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('customers_users', function (Blueprint $table) {
+        Schema::create('customers_users', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la relación cliente-usuario');
 
@@ -40,13 +48,5 @@ return new class extends Migration
             $table->index(['customer_id', 'user_id'], 'idx_customer_user');
             $table->index(['country_code', 'currency_id'], 'idx_country_currency');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'customers_users'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('customers_users');
     }
 };

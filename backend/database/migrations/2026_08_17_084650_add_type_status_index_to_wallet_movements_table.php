@@ -8,20 +8,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Guard de idempotencia para índices — Schema::hasColumn() no aplica
-     * (no son columnas nuevas). Sin esto, un migrate:fresh que corre en
-     * paralelo con otra sesión que ya deja el índice físicamente creado
-     * pero sin registrar en `migrations` revienta con "Duplicate key name"
-     * y aborta toda la corrida de tests antes de llegar al seeder — mismo
-     * problema ya visto con receipt_hash.
+     * Revertir la migración.
      */
-    private function indexExists(string $table, string $indexName): bool
+    public function down() : void
     {
-        return DB::table('information_schema.statistics')
-            ->where('table_schema', DB::getDatabaseName())
-            ->where('table_name', $table)
-            ->where('index_name', $indexName)
-            ->exists();
+        if (! $this->indexExists('wallet_movements', 'wallet_movements_type_status_index')) {
+            return;
+        }
+
+        Schema::table('wallet_movements', function(Blueprint $table) {
+            $table->dropIndex(['type', 'status']);
+        });
     }
 
     /**
@@ -31,28 +28,31 @@ return new class extends Migration
      * SidebarMenuService::pendingWalletMovementsCount(), que hoy solo cuenta
      * con los índices (wallet_id, created_at) y (user_id, type).
      */
-    public function up(): void
+    public function up() : void
     {
         if ($this->indexExists('wallet_movements', 'wallet_movements_type_status_index')) {
             return;
         }
 
-        Schema::table('wallet_movements', function (Blueprint $table) {
+        Schema::table('wallet_movements', function(Blueprint $table) {
             $table->index(['type', 'status']);
         });
     }
 
     /**
-     * Revertir la migración.
+     * Guard de idempotencia para índices — Schema::hasColumn() no aplica
+     * (no son columnas nuevas). Sin esto, un migrate:fresh que corre en
+     * paralelo con otra sesión que ya deja el índice físicamente creado
+     * pero sin registrar en `migrations` revienta con "Duplicate key name"
+     * y aborta toda la corrida de tests antes de llegar al seeder — mismo
+     * problema ya visto con receipt_hash.
      */
-    public function down(): void
+    private function indexExists(string $table, string $indexName) : bool
     {
-        if (! $this->indexExists('wallet_movements', 'wallet_movements_type_status_index')) {
-            return;
-        }
-
-        Schema::table('wallet_movements', function (Blueprint $table) {
-            $table->dropIndex(['type', 'status']);
-        });
+        return DB::table('information_schema.statistics')
+            ->where('table_schema', DB::getDatabaseName())
+            ->where('table_name', $table)
+            ->where('index_name', $indexName)
+            ->exists();
     }
 };

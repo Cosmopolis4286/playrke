@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'treasurers_currencies'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('treasurers_currencies');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'treasurers_currencies'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('treasurers_currencies', function (Blueprint $table) {
+        Schema::create('treasurers_currencies', function(Blueprint $table) {
             // Tesorero
             $table->foreignSnowflake('treasurer_id')
                 ->constrained('treasurers')
@@ -46,13 +54,5 @@ return new class extends Migration
             // 'idx_treasurer_currency' que existía sobre las mismas columnas.
             $table->primary(['treasurer_id', 'currency_id']);
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'treasurers_currencies'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('treasurers_currencies');
     }
 };

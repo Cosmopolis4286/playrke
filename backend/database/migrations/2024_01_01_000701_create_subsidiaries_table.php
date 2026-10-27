@@ -7,11 +7,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revierte la migración eliminando la tabla 'subsidiaries'.
+     */
+    public function down() : void
+    {
+        Schema::table('sellers', function(Blueprint $table) {
+            $table->dropForeign(['subsidiary_id']);
+        });
+
+        Schema::dropIfExists('subsidiaries');
+    }
+
+    /**
      * Ejecuta la migración para crear la tabla 'subsidiaries'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('subsidiaries', function (Blueprint $table) {
+        Schema::create('subsidiaries', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sucursal');
 
@@ -80,23 +92,11 @@ return new class extends Migration
         // en 2024_01_01_000402_create_sellers_table) porque esta tabla se
         // crea después — declarar el constraint inline en `sellers` fallaría
         // con "Failed to open the referenced table 'subsidiaries'".
-        Schema::table('sellers', function (Blueprint $table) {
+        Schema::table('sellers', function(Blueprint $table) {
             $table->foreign('subsidiary_id')
                 ->references('id')->on('subsidiaries')
                 ->cascadeOnUpdate()
                 ->nullOnDelete();
         });
-    }
-
-    /**
-     * Revierte la migración eliminando la tabla 'subsidiaries'.
-     */
-    public function down(): void
-    {
-        Schema::table('sellers', function (Blueprint $table) {
-            $table->dropForeign(['subsidiary_id']);
-        });
-
-        Schema::dropIfExists('subsidiaries');
     }
 };

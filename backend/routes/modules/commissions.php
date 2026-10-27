@@ -15,7 +15,7 @@ Route::middleware(['auth', 'multiPermission:commissions.view-own'])
     ->prefix('commissions')
     ->name('commissions.')
     ->controller(CommissionLedgerController::class)
-    ->group(function () {
+    ->group(function() {
         Route::get('', 'index')->name('index');
         Route::get('data', 'data')->name('data');
         Route::get('export', 'export')->name('export');

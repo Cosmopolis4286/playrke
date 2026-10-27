@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Reverse the migrations.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_card_validations');
+    }
+
+    /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_card_validations', function (Blueprint $table) {
+        Schema::create('bingo_card_validations', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la validación');
 
@@ -67,13 +75,5 @@ return new class extends Migration
             // Evita duplicados: misma combinación de cartón, ronda y patrón
             $table->unique(['card_id', 'round_id', 'pattern_id'], 'unique_card_round_pattern_validation');
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_card_validations');
     }
 };

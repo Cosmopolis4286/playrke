@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Settings
@@ -21,7 +20,7 @@ return [
     'convert_entities' => true,
 
     'options' => [
-        /**
+        /*
          * The location of the DOMPDF font directory
          *
          * The location of the directory where DOMPDF will store fonts and font metrics
@@ -47,7 +46,7 @@ return [
          */
         'font_dir' => storage_path('fonts'), // advised by dompdf (https://github.com/dompdf/dompdf/pull/782)
 
-        /**
+        /*
          * The location of the DOMPDF font cache directory
          *
          * This directory contains the cached font metrics for the fonts used by DOMPDF.
@@ -57,7 +56,7 @@ return [
          */
         'font_cache' => storage_path('fonts'),
 
-        /**
+        /*
          * The location of a temporary directory.
          *
          * The directory specified must be writeable by the webserver process.
@@ -66,7 +65,7 @@ return [
          */
         'temp_dir' => sys_get_temp_dir(),
 
-        /**
+        /*
          * ==== IMPORTANT ====
          *
          * dompdf's "chroot": Prevents dompdf from accessing system files or other
@@ -97,7 +96,7 @@ return [
             'https://' => ['rules' => []],
         ],
 
-        /**
+        /*
          * Operational artifact (log files, temporary files) path validation
          */
         'artifactPathValidation' => null,
@@ -107,12 +106,12 @@ return [
          */
         'log_output_file' => null,
 
-        /**
+        /*
          * Whether to enable font subsetting or not.
          */
         'enable_font_subsetting' => false,
 
-        /**
+        /*
          * The PDF rendering backend to use
          *
          * Valid settings are 'PDFLib', 'CPDF' (the bundled R&OS PDF class), 'GD' and
@@ -142,7 +141,7 @@ return [
          */
         'pdf_backend' => 'CPDF',
 
-        /**
+        /*
          * html target media view which should be rendered into pdf.
          * List of types and parsing rules for future extensions:
          * http://www.w3.org/TR/REC-html40/types.html
@@ -154,7 +153,7 @@ return [
          */
         'default_media_type' => 'screen',
 
-        /**
+        /*
          * The default paper size.
          *
          * North America standard is "letter"; other countries generally "a4"
@@ -283,7 +282,7 @@ return [
          */
         'allowed_remote_hosts' => null,
 
-        /**
+        /*
          * A ratio applied to the fonts height to be more like browsers' line height
          */
         'font_height_ratio' => 1.1,
@@ -297,5 +296,4 @@ return [
          */
         'enable_html5_parser' => true,
     ],
-
 ];

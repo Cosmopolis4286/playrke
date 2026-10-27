@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Games\Common\ConnectionType\ConnectionType;
+use Illuminate\Database\Seeder;
 
 class ConnectionTypeSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         $connectionTypes = [
             ['code' => 'ONLINE', 'label' => 'Online'],
@@ -21,8 +21,8 @@ class ConnectionTypeSeeder extends Seeder
                 ['code' => $type['code']],
                 [
                     'label' => $type['label'],
-                    'status'      => 'ACTIVE',
-                ]
+                    'status' => 'ACTIVE',
+                ],
             );
         }
     }

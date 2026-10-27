@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function down() : void
+    {
+        Schema::dropIfExists('external_player_participations');
+    }
+
     /**
      * Vincula un ExternalPlayer (comprador sin cuenta) con CUALQUIER entidad
      * transaccional de cualquier juego — un cartón de Bingo hoy
@@ -21,9 +26,9 @@ return new class extends Migration
      * mañana varias entradas de trivia) — de ahí la tabla dedicada en vez de
      * una columna 1:1 en cada tabla de juego (bingo_cards, trivia_entries...).
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('external_player_participations', function (Blueprint $table) {
+        Schema::create('external_player_participations', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la participación');
 
             $table->foreignSnowflake('external_player_id')
@@ -46,13 +51,8 @@ return new class extends Migration
 
             $table->index(
                 ['external_player_id', 'participable_type'],
-                'idx_ext_player_participations_player_type'
+                'idx_ext_player_participations_player_type',
             );
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('external_player_participations');
     }
 };

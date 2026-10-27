@@ -7,15 +7,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'bingo_room_creators'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_room_creators');
+    }
+
+    /**
      * Tabla PIVOT: creadores que participan en salas (propias o ajenas)
      * con comisiones específicas por sala.
      *
      * NOTA: Un creador puede participar en salas de OTROS creadores
      * con comisiones distintas. Por eso es necesaria esta tabla.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('bingo_room_creators', function (Blueprint $table) {
+        Schema::create('bingo_room_creators', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del registro');
 
@@ -52,13 +60,5 @@ return new class extends Migration
             $table->index(['room_id', 'status'], 'idx_room_status');
             $table->index('created_at', 'idx_bingo_creators_created');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'bingo_room_creators'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_room_creators');
     }
 };

@@ -7,7 +7,6 @@ use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Log Channel
@@ -52,7 +51,6 @@ return [
     */
 
     'channels' => [
-
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', env('LOG_STACK', 'single')),
@@ -74,7 +72,7 @@ return [
             'replace_placeholders' => true,
         ],
 
-        /**
+        /*
          * Canal separado (no reutiliza LOG_LEVEL, que en .env.example vale
          * "debug" para single/daily) — si tomara ese default, agregar
          * "slack" a LOG_STACK inundaría el canal con cada línea debug/info
@@ -98,7 +96,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
@@ -132,7 +130,7 @@ return [
             'handler' => NullHandler::class,
         ],
 
-        /**
+        /*
          * Persiste error()/warning()/critical()/etc. en la tabla
          * `system_logs` (ver App\Logging\DatabaseLogHandler) — alimenta la
          * pantalla /logs. info/debug/notice se ignoran a propósito para no
@@ -147,7 +145,5 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
-
     ],
-
 ];

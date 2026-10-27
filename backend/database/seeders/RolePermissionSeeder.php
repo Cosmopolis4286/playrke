@@ -8,7 +8,7 @@ use Spatie\Permission\Models\Role;
 
 class RolePermissionSeeder extends Seeder
 {
-    public function run(): void
+    public function run() : void
     {
         // Obtener todos los roles
         $superadmin = Role::where('name', 'superadmin')->where('guard_name', 'web')->first();

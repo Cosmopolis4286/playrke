@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('sellers_currencies', function (Blueprint $table) {
+        Schema::dropIfExists('sellers_currencies');
+    }
+
+    public function up() : void
+    {
+        Schema::create('sellers_currencies', function(Blueprint $table) {
             // Relaciones
             $table->foreignSnowflake('seller_id')
                 ->constrained('sellers')
@@ -37,10 +42,5 @@ return new class extends Migration
             $table->primary(['seller_id', 'currency_id']);
             $table->index(['seller_id', 'currency_id'], 'idx_seller_currency');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('sellers_currencies');
     }
 };

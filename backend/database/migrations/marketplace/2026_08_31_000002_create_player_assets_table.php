@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Instancia de un activo poseída por un jugador. Un AssetDefinition
  * stackable=true tiene a lo sumo una fila por (owner_id, asset_definition_id)
  * — unidades nuevas incrementan quantity en vez de crear filas duplicadas;
@@ -19,9 +19,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('player_assets', function (Blueprint $table) {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE player_assets DROP CHECK chk_player_assets_quantity_nonneg');
+        }
+
+        Schema::dropIfExists('player_assets');
+    }
+
+    public function up() : void
+    {
+        Schema::create('player_assets', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('asset_definition_id')
@@ -61,14 +70,5 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE player_assets ADD CONSTRAINT chk_player_assets_quantity_nonneg CHECK (quantity >= 0)');
         }
-    }
-
-    public function down(): void
-    {
-        if (DB::connection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE player_assets DROP CHECK chk_player_assets_quantity_nonneg');
-        }
-
-        Schema::dropIfExists('player_assets');
     }
 };

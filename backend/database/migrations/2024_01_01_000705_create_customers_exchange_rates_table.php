@@ -6,9 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('customers_exchange_rates', function (Blueprint $table) {
+        Schema::dropIfExists('customers_exchange_rates');
+    }
+
+    public function up() : void
+    {
+        Schema::create('customers_exchange_rates', function(Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la tasa de cambio');
 
@@ -38,10 +43,5 @@ return new class extends Migration
             $table->index(['customer_id', 'currency_id']);
             $table->index(['customer_id', 'status']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('customers_exchange_rates');
     }
 };

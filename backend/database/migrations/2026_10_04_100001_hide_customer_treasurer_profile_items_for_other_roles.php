@@ -6,7 +6,7 @@ use App\Models\Role;
 use App\Models\SidebarMenuVisibility;
 use Illuminate\Database\Migrations\Migration;
 
-/**
+/*
  * Migración de datos (no seeder): oculta "Mi Cliente" / "Mi Tesorería"
  * (my_account.my_profile_customer / my_profile_treasurer) a todo rol que no
  * sea el dueño — mismas exclusiones que SidebarMenuVisibilitySeeder.
@@ -17,11 +17,16 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration
 {
     private const EXCLUSIONS = [
-        'my_account.my_profile_customer'  => ['admin', 'commerce', 'player', 'seller', 'subsidiary', 'superadmin', 'treasurer'],
+        'my_account.my_profile_customer' => ['admin', 'commerce', 'player', 'seller', 'subsidiary', 'superadmin', 'treasurer'],
         'my_account.my_profile_treasurer' => ['admin', 'commerce', 'customer', 'player', 'seller', 'subsidiary', 'superadmin'],
     ];
 
-    public function up(): void
+    public function down() : void
+    {
+        SidebarMenuVisibility::whereIn('item_key', array_keys(self::EXCLUSIONS))->delete();
+    }
+
+    public function up() : void
     {
         foreach (self::EXCLUSIONS as $itemKey => $roleNames) {
             foreach (Role::whereIn('name', $roleNames)->get(['id']) as $role) {
@@ -31,10 +36,5 @@ return new class extends Migration
                 );
             }
         }
-    }
-
-    public function down(): void
-    {
-        SidebarMenuVisibility::whereIn('item_key', array_keys(self::EXCLUSIONS))->delete();
     }
 };

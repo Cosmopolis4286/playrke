@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Log append-only de cada evaluación que el watcher hace sobre una
  * PaymentOrder (detectar / confirmar / acreditar) — trazabilidad fina para
  * soporte/auditoría, nunca se lee para tomar decisiones de negocio (eso lo
@@ -12,9 +12,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('payment_attempts', function (Blueprint $table) {
+        Schema::dropIfExists('payment_attempts');
+    }
+
+    public function up() : void
+    {
+        Schema::create('payment_attempts', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->foreignSnowflake('payment_order_id')
@@ -31,10 +36,5 @@ return new class extends Migration
             $table->index('payment_order_id');
             $table->index('tx_hash');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('payment_attempts');
     }
 };

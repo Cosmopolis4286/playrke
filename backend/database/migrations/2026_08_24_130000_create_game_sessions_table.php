@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Sesión de partida mínima — ver progreso/game-engine-plan.md.
  *
  * Deliberadamente NO es una máquina de estados genérica para Bingo/Trivia
@@ -20,9 +20,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('game_sessions', function (Blueprint $table) {
+        Schema::dropIfExists('game_sessions');
+    }
+
+    public function up() : void
+    {
+        Schema::create('game_sessions', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID único de la sesión de partida');
 
             $table->string('game', 20)->index()
@@ -47,10 +52,5 @@ return new class extends Migration
 
             $table->index(['game', 'status']);
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('game_sessions');
     }
 };

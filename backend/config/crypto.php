@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------
     | Feature flags cripto
@@ -38,5 +37,4 @@ return [
     'tokens' => [
         'usdt' => ['network' => 'TRON', 'contract_address' => env('USDT_TRON_CONTRACT_ADDRESS')], // a calibrar
     ],
-
 ];

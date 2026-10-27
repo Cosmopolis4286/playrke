@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Roles\CommerceController;
 use App\Http\Controllers\Roles\Commerce\CommerceEconomyReportController;
 use App\Http\Controllers\Roles\Commerce\CommerceProfileController;
+use App\Http\Controllers\Roles\CommerceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Route;
 // commerces.view agregado: permite la vista administrativa (target_user_id,
 // ver AdminProfileAccessService) a admin/superadmin — ver comentario
 // análogo en routes/modules/seller.php.
-Route::middleware(['auth', 'multiPermission:commerces.manage-own,commerces.view'])->group(function () {
+Route::middleware(['auth', 'multiPermission:commerces.manage-own,commerces.view'])->group(function() {
     Route::get('commerce/profile', [CommerceProfileController::class, 'show'])->name('commerce.profile.show');
     Route::put('commerce/profile', [CommerceProfileController::class, 'update'])->name('commerce.profile.update');
 

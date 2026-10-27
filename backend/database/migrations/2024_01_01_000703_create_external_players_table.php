@@ -7,11 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * Revertir la migración: eliminar tabla 'external_players'.
+     */
+    public function down() : void
+    {
+        Schema::dropIfExists('external_players');
+    }
+
+    /**
      * Ejecutar la migración: crear tabla 'external_players'.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('external_players', function (Blueprint $table) {
+        Schema::create('external_players', function(Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del jugador externo');
 
@@ -99,13 +107,5 @@ return new class extends Migration
             $table->index('link', 'idx_link');
             $table->index('phone', 'idx_external_players_phone');
         });
-    }
-
-    /**
-     * Revertir la migración: eliminar tabla 'external_players'.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('external_players');
     }
 };

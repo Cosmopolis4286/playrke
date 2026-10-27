@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Lista de invitados de las salas VIP. Una VIP queda cerrada para todos salvo
  * su creador, admin y los invitados:
  *  - user_id: jugador registrado (entra y compra con su billetera).
@@ -17,13 +17,18 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
+    {
+        Schema::dropIfExists('bingo_room_invitations');
+    }
+
+    public function up() : void
     {
         if (Schema::hasTable('bingo_room_invitations')) {
             return;
         }
 
-        Schema::create('bingo_room_invitations', function (Blueprint $table) {
+        Schema::create('bingo_room_invitations', function(Blueprint $table) {
             $table->snowflake('id')->primary();
             $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->cascadeOnDelete()->cascadeOnUpdate();
             $table->foreignSnowflake('user_id')->nullable()->constrained('users')->cascadeOnDelete()->cascadeOnUpdate()
@@ -38,10 +43,5 @@ return new class extends Migration
             $table->unique(['room_id', 'user_id'], 'uq_bingo_room_invitations_room_user');
             $table->unique(['room_id', 'phone_key'], 'uq_bingo_room_invitations_room_phone');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('bingo_room_invitations');
     }
 };

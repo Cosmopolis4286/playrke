@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Ledger cripto — separado de wallet_movements (ver
  * MARKETPLACE_ARCHITECTURE_AUDIT.md sección 15 y 23). La blockchain es la
  * fuente de verdad para "existe esta tx / cuántas confirmaciones tiene /
@@ -16,9 +16,14 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    public function up(): void
+    public function down() : void
     {
-        Schema::create('crypto_transactions', function (Blueprint $table) {
+        Schema::dropIfExists('crypto_transactions');
+    }
+
+    public function up() : void
+    {
+        Schema::create('crypto_transactions', function(Blueprint $table) {
             $table->snowflake('id')->primary();
 
             $table->string('tx_hash', 100)->unique();
@@ -51,10 +56,5 @@ return new class extends Migration
             $table->index('user_id');
             $table->index('to_address');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('crypto_transactions');
     }
 };

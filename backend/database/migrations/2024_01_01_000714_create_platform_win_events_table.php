@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function down() : void
+    {
+        Schema::dropIfExists('platform_win_events');
+    }
+
     /**
      * Fuente de verdad única para el feed de ganancias en vivo de toda la
      * plataforma. Cualquier juego (Bingo, Trivia, futuros motores) o premio
@@ -13,9 +18,9 @@ return new class extends Migration
      * aquí — el ticker y los reportes solo leen de esta tabla, nunca de las
      * tablas internas de cada juego.
      */
-    public function up(): void
+    public function up() : void
     {
-        Schema::create('platform_win_events', function (Blueprint $table) {
+        Schema::create('platform_win_events', function(Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del evento de ganancia');
 
             $table->foreignSnowflake('user_id')
@@ -83,10 +88,5 @@ return new class extends Migration
             $table->index(['game_slug', 'created_at'], 'idx_win_events_game_created');
             $table->index('created_at', 'idx_win_events_created');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('platform_win_events');
     }
 };

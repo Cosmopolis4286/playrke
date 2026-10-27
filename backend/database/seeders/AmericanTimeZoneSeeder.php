@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Country;
 use App\Models\TimeZone;
+use DateTime;
+use DateTimeZone;
 use Illuminate\Database\Seeder;
 
 class AmericanTimeZoneSeeder extends Seeder
@@ -33,24 +35,23 @@ class AmericanTimeZoneSeeder extends Seeder
         $now = now();
 
         foreach ($countryTimezones as $isoCode2 => $zones) {
-
             $countryId = Country::where('iso_code_2', $isoCode2)->value('id');
 
-            if (!$countryId) {
+            if (! $countryId) {
                 $this->command->warn("País no encontrado: {$isoCode2}");
+
                 continue;
             }
 
             foreach ($zones as $zone) {
-
                 // Calcular offset dinámico
-                $offset = (new \DateTimeZone($zone))
-                    ->getOffset(new \DateTime());
+                $offset = (new DateTimeZone($zone))
+                    ->getOffset(new DateTime);
 
                 $utc = 'UTC' . ($offset < 0 ? '-' : '+')
                     . str_pad(floor(abs($offset) / 3600), 2, '0', STR_PAD_LEFT);
 
-                /**
+                /*
                  * updateOrCreate evita duplicados.
                  *
                  * El trait SnowflakeId generará el ID automáticamente
@@ -61,11 +62,11 @@ class AmericanTimeZoneSeeder extends Seeder
                         'name' => $zone,              // clave única lógica
                     ],
                     [
-                        'utc'        => $utc,
+                        'utc' => $utc,
                         'country_id' => $countryId,
-                        'status'  => true,
+                        'status' => true,
                         'updated_at' => $now,
-                    ]
+                    ],
                 );
             }
         }
