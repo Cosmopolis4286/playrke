@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Authentication Language Lines
@@ -22,5 +21,4 @@ return [
     'suspended' => 'Your account has been suspended. Please contact the administrator.',
     'pending_verification' => 'Your account is pending verification. Please verify your email address.',
     'account_disabled' => 'Your account is not enabled to access the system.',
-
 ];

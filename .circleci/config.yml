@@ -162,8 +162,17 @@ jobs:
           name: Lint changed PHP files with Pint
           command: |
             set -euo pipefail
-            git fetch origin master --depth=1
-            mapfile -t FILES < <(git diff --diff-filter=ACMRT --name-only origin/master...HEAD -- 'backend/**/*.php' | sed 's#^backend/##')
+            # Historial completo de master: con --depth=1 el merge-base con
+            # HEAD no existía en PRs de un master anterior, git diff fallaba
+            # dentro de la sustitución de proceso (set -e no lo ve) y el lint
+            # se saltaba en silencio. Sin merge-base el paso ahora falla.
+            if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+              git fetch --unshallow origin
+            fi
+            git fetch origin master
+            BASE=$(git merge-base origin/master HEAD)
+            CHANGED=$(git diff --diff-filter=ACMRT --name-only "$BASE" HEAD -- 'backend/**/*.php')
+            mapfile -t FILES < <(printf '%s\n' "$CHANGED" | sed 's#^backend/##' | grep -E '\.php$' || true)
             if [ "${#FILES[@]}" -eq 0 ]; then
               echo "No changed PHP files compared with master; skipping Pint."
               exit 0
@@ -212,17 +221,24 @@ jobs:
           name: Lint changed frontend files with ESLint
           command: |
             set -euo pipefail
-            git fetch origin master --depth=1
-            mapfile -t FILES < <(
-              git diff --name-only origin/master...HEAD -- \
+            # Historial completo de master: con --depth=1 el merge-base con
+            # HEAD no existía en PRs de un master anterior, git diff fallaba
+            # dentro de la sustitución de proceso (set -e no lo ve) y el lint
+            # se saltaba en silencio. Sin merge-base el paso ahora falla.
+            if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+              git fetch --unshallow origin
+            fi
+            git fetch origin master
+            BASE=$(git merge-base origin/master HEAD)
+            CHANGED=$(
+              git diff --diff-filter=ACMRT --name-only "$BASE" HEAD -- \
                 'backend/resources/js/**/*.vue' \
                 'backend/resources/js/**/*.ts' \
                 'backend/resources/js/**/*.js' \
                 'backend/vite.config.js' \
-                'backend/vite.config.ts' |
-                sed 's#^backend/##' |
-                grep -E '\.(vue|ts|js)$' || true
+                'backend/vite.config.ts'
             )
+            mapfile -t FILES < <(printf '%s\n' "$CHANGED" | sed 's#^backend/##' | grep -E '\.(vue|ts|js)$' || true)
             if [ "${#FILES[@]}" -eq 0 ]; then
               echo "No changed frontend files compared with master; skipping ESLint."
               exit 0
