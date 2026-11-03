@@ -213,6 +213,59 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
     }
 
     #[Test]
+    public function retries_winner_when_final_rank_was_persisted_before_prize_initialization() : void
+    {
+        $user = $this->makeUser();
+        $currency = Currency::create([
+            'iso_code' => 'TS5', 'name' => 'Test Coin 5', 'type' => 'FIAT', 'country_id' => $user->country_id,
+        ]);
+
+        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
+        $game = $this->makeFinishedGame($room);
+
+        TriviaScore::create([
+            'game_id' => (string) $game->id,
+            'player_id' => (string) $user->id,
+            'final_score' => 100,
+            'correct_answers' => 3,
+            'wrong_answers' => 0,
+            'position' => 1,
+            'total_questions' => 3,
+        ]);
+
+        $wallet = Wallet::create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+
+        // finishGame() persists final_rank before PrizeDistributionService runs.
+        // This reproduces the original T1 failure: final_rank is set, while
+        // the database-default waiting state still has no initialized amount.
+        $participant = TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $user->id,
+            'status' => 'playing',
+            'final_rank' => 1,
+            'prize_won' => 0,
+            'prize_status' => 'waiting',
+        ]);
+
+        $this->artisan('trivia:retry-failed-prize-payouts')
+            ->expectsOutputToContain('acreditados: 1')
+            ->assertExitCode(0);
+
+        $wallet->refresh();
+        $this->assertEquals(6.0, (float) $wallet->balance);
+
+        $participant->refresh();
+        $this->assertEquals(1, $participant->final_rank);
+        $this->assertEquals(6.0, (float) $participant->prize_won);
+        $this->assertEquals('claimed', $participant->prize_status);
+    }
+
+    #[Test]
     public function suspends_without_auto_retry_when_winner_has_no_active_wallet() : void
     {
         $user = $this->makeUser();

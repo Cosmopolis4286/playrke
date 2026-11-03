@@ -70,6 +70,12 @@ final class TriviaRoomAdminController extends Controller
         $room = TriviaRoom::findOrFail($id);
         $this->authorize('delete', $room);
 
+        if ($room->status === 'playing') {
+            return redirect()
+                ->back()
+                ->with('error', 'No se puede cerrar una sala mientras la partida está en curso. Espera a que finalice.');
+        }
+
         try {
             $refunded = $this->refundService->refundConfirmedParticipants(
                 $room,
@@ -127,6 +133,12 @@ final class TriviaRoomAdminController extends Controller
         // no sea absorbido por el catch(\Exception) genérico de abajo.
         $room = TriviaRoom::findOrFail($id);
         $this->authorize('forceClose', $room);
+
+        if ($room->status === 'playing') {
+            return redirect()
+                ->back()
+                ->with('error', 'No se puede forzar el cierre mientras la partida está en curso. Espera a que finalice.');
+        }
 
         try {
             $refunded = $this->refundService->refundConfirmedParticipants(

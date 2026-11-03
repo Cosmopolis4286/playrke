@@ -80,7 +80,8 @@
         "vitest": "^4.1.10",
         "vue-tsc": "^2.2.12",
         "@typescript-eslint/eslint-plugin": "^8.46.2",
-        "@typescript-eslint/parser": "^8.46.2"
+        "@typescript-eslint/parser": "^8.46.2",
+        "vue-eslint-parser": "^9.4.3"
     },
     "overrides": {
         "axios": "^1.12.1"

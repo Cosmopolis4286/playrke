@@ -211,7 +211,7 @@ class TriviaAuthorizationControllersTest extends TestCase
     }
 
     #[Test]
-    public function superadmin_can_force_close_a_trivia_room() : void
+    public function superadmin_cannot_force_close_a_trivia_room_while_game_is_playing() : void
     {
         $superadmin = $this->makeUserWithRole('superadmin');
         $room = $this->makeRoom();
@@ -222,8 +222,8 @@ class TriviaAuthorizationControllersTest extends TestCase
 
         $this->assertNotEquals(403, $response->getStatusCode());
         $response->assertStatus(302);
-        $response->assertSessionHas('success');
-        $this->assertSame('closed', $room->fresh()->status);
+        $response->assertSessionHas('error');
+        $this->assertSame('playing', $room->fresh()->status);
     }
 
     private function makeQuestion() : TriviaQuestion
