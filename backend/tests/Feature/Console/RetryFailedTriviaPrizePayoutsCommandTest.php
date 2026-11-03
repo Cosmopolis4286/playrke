@@ -241,15 +241,15 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
         ]);
 
         // finishGame() persists final_rank before PrizeDistributionService runs.
-        // This reproduces the original T1 failure: final_rank is set, but the
-        // prize FSM and amount have not yet been initialized.
+        // This reproduces the original T1 failure: final_rank is set, while
+        // the database-default waiting state still has no initialized amount.
         $participant = TriviaParticipant::create([
             'room_id' => $room->id,
             'user_id' => (string) $user->id,
             'status' => 'playing',
             'final_rank' => 1,
             'prize_won' => 0,
-            'prize_status' => null,
+            'prize_status' => 'waiting',
         ]);
 
         $this->artisan('trivia:retry-failed-prize-payouts')
