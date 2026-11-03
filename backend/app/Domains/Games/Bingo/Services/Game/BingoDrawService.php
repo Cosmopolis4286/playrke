@@ -46,7 +46,7 @@ final class BingoDrawService
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
 
     /**
-     * Cartones ACTIVE de la sala, cacheados en memoria durante la corrida del sorteo.
+     * Cartones elegibles de la sala, cacheados en memoria durante la corrida del sorteo.
      * Keyed por json_encode($with) para evitar que broadcastPlayersProgress
      * (que carga ['roomUser.user']) envene el cache de detectWinnerAndEnd
      * (que necesita ['roomUser.user','cardLot']).
@@ -57,7 +57,6 @@ final class BingoDrawService
      * @var array<string, \Illuminate\Support\Collection<int, BingoCard>>
      */
     private array $activeCardsCache = [];
-    private ?int $activeCardsCacheCount = null;
     private ?string $activeCardsCacheRoomId = null;
 
     /**
@@ -514,12 +513,10 @@ final class BingoDrawService
                 // Primer load o sala distinta — reiniciar todo el cache.
                 $this->activeCardsCache = [$withKey => $loaded];
                 $this->activeCardsCacheRoomId = $roomId;
-                $this->activeCardsCacheCount = $loaded->count();
             } else {
-                // Recarga periódica — actualizar el count global y recargar TODAS las variantes
+                // Recarga periódica — recargar TODAS las variantes
                 // en cache para evitar que una evicción cause un query extra en el mismo chip
                 // (broadcastPlayersProgress y detectWinnerAndEnd usan distintos $with).
-                $this->activeCardsCacheCount = $loaded->count();
                 foreach (array_keys($this->activeCardsCache) as $k) {
                     if ($k === $withKey) {
                         $this->activeCardsCache[$k] = $loaded;
@@ -863,7 +860,6 @@ final class BingoDrawService
     private function invalidateActiveCardsCache() : void
     {
         $this->activeCardsCache = [];
-        $this->activeCardsCacheCount = null;
         // No resetear currentChipIndex — lo actualiza el draw loop por chip.
     }
 
