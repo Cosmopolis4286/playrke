@@ -94,7 +94,11 @@ const ALERT_LABELS: Record<string, string> = {
             </div>
             <div class="rc-item__side">
               <p class="rc-item__amount">{{ r.symbol }} {{ formatUsd(r.total) }} <span class="rc-item__cur">{{ r.currency }}</span></p>
-              <button class="rc-btn" :disabled="busyKey === `${r.debtor_user_id}:${r.currency_id}`" @click="emit('settle', r)">
+              <button
+                class="rc-btn"
+                :disabled="busyKey === `${r.debtor_user_id}:${r.currency_id}`"
+                @click="emit('settle', r)"
+              >
                 <i class="fas fa-hand-holding-dollar" /> Marcar cobrado
               </button>
             </div>
