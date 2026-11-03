@@ -38,12 +38,6 @@ services:
     env_file: .env.prod
     volumes:
       - storage_public:/var/www/storage/app/public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.php.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.php.entrypoints=websecure"
-      - "traefik.http.routers.php.tls.certresolver=letsencrypt"
-      - "traefik.http.services.php.loadbalancer.server.port=9000"
     depends_on:
       mysql:
         condition: service_healthy
@@ -64,6 +58,34 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+    networks:
+      - playrke_network
+    restart: unless-stopped
+
+  # ─── Nginx — HTTP hacia el navegador y FastCGI hacia PHP-FPM ───────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: web
+    container_name: playrke_nginx
+    volumes:
+      - storage_public:/var/www/public/storage:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.nginx.entrypoints=websecure"
+      - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nginx.loadbalancer.server.port=8080"
+    depends_on:
+      php:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - playrke_network
     restart: unless-stopped
