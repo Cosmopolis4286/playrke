@@ -205,7 +205,14 @@ class SellerController extends Controller
                 }
 
                 $route = $this->externalPlayerLink->resolveGameUrl($player->link);
-                $cardsPlayer = BingoRoomUser::where('id', $player->room_user_id)->value('cards_purchased') ?? 0;
+                // BingoRoomUser es compartido por compradores del mismo vendedor
+                // y sala; el conteo debe salir de las participaciones del comprador.
+                $cardsPlayer = count(
+                    \App\Models\Roles\Player\External\ExternalPlayerParticipation::participableIdsFor(
+                        $player->id,
+                        \App\Domains\Games\Bingo\Models\Card\BingoCard::class,
+                    ),
+                );
 
                 return response()->json([
                     'response' => true,
