@@ -33,8 +33,25 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
         $status = 'SUCCESS';
         $retried = 0;
         $skipped = 0;
+        $exhausted = 0;
 
         try {
+            // Los premios que agotaron intentos no se modifican automáticamente:
+            // podrían requerir conciliación si el worker cayó en una ventana ambigua.
+            $exhausted = BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
+                ->whereRaw(
+                    '(SELECT COUNT(*) FROM bingo_card_prize_payments WHERE bingo_card_prize_payments.card_prize_id = bingo_card_prizes.id AND bingo_card_prize_payments.deleted_at IS NULL) >= ?',
+                    [PrizePayoutRetryPolicy::MAX_ATTEMPTS],
+                )
+                ->count();
+
+            if ($exhausted > 0) {
+                Log::warning('[Bingo:RetryPrizePayouts] Premios agotaron el máximo de intentos y requieren revisión manual', [
+                    'count' => $exhausted,
+                    'max_attempts' => PrizePayoutRetryPolicy::MAX_ATTEMPTS,
+                ]);
+            }
+
             // 'processing' incluido: cubre premios que quedaron a medias (wallet
             // posiblemente ya acreditada) en una corrida anterior — payout() ya
             // sabe distinguir ese caso y solo reparar el estado sin re-acreditar.
@@ -66,20 +83,30 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                             continue;
                         }
 
-                        $payoutService->payout($cardPrize);
+                        try {
+                            $payoutService->payout($cardPrize);
 
-                        $cardPrize->refresh();
+                            $cardPrize->refresh();
 
-                        if ($cardPrize->isClaimed()) {
-                            $retried++;
-                            $this->info("Premio #{$cardPrize->id} acreditado exitosamente.");
-                        } else {
+                            if ($cardPrize->isClaimed()) {
+                                $retried++;
+                                $this->info("Premio #{$cardPrize->id} acreditado exitosamente.");
+                            } else {
+                                $skipped++;
+                            }
+                        } catch (Throwable $e) {
+                            // Un premio defectuoso no debe detener la recuperación
+                            // de los siguientes registros del mismo lote.
                             $skipped++;
+                            Log::error('[Bingo:RetryPrizePayouts] Error al reintentar un premio', [
+                                'card_prize_id' => (string) $cardPrize->id,
+                                'error' => $e->getMessage(),
+                            ]);
                         }
                     }
                 });
 
-            $output = "Revisión completada. Premios acreditados: {$retried}. Aún pendientes: {$skipped}.";
+            $output = "Revisión completada. Premios acreditados: {$retried}. Aún pendientes: {$skipped}. Requieren revisión manual por agotar intentos: {$exhausted}.";
         } catch (Throwable $e) {
             $status = 'ERROR';
             $output = sprintf(
