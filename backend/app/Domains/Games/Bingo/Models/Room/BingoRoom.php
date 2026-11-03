@@ -318,6 +318,19 @@ class BingoRoom extends BaseModel
             return true;
         }
 
+        // Un sorteo puede iniciarse manualmente antes de la hora programada.
+        // El estado de la sala no siempre se actualiza al comenzar (compatibilidad
+        // con salas legacy), así que la ronda y sus draws son la fuente de verdad.
+        if (BingoRound::where('room_id', (string) $this->id)
+            ->whereIn('status', ['IN_PROGRESS', 'FINISHED'])
+            ->exists()) {
+            return true;
+        }
+
+        if (BingoDraw::where('room_id', (string) $this->id)->exists()) {
+            return true;
+        }
+
         $unixDate = $this->config?->unix_date;
 
         return $unixDate !== null && (int) $unixDate <= ($now ?? now()->timestamp);
