@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Services\Games\GamePrizeService;
+use App\Domains\Wallet\Services\WalletService;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 
