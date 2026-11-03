@@ -201,14 +201,6 @@ final class BingoCardLotRefundJob implements ShouldQueue
     }
 
     /**
-     * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
-     * Un lote vendedor→externo vincula CADA cartón individual a su
-     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
-     * que uno tenga participación basta para identificar al comprador, ya
-     * que todos los cartones de un mismo lote pertenecen al mismo comprador
-     * (una sola llamada a generateCards() por compra).
-     */
-    /**
      * La reversión de una venta offline devuelve al vendedor lo que ya había
      * transferido a la plataforma, pero el comprador externo no tiene wallet.
      * El vendedor debe entregarle el importe completo de la venta. Se abre una
@@ -284,6 +276,14 @@ final class BingoCardLotRefundJob implements ShouldQueue
         );
     }
 
+    /**
+     * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
+     * Un lote vendedor→externo vincula CADA cartón individual a su
+     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
+     * que uno tenga participación basta para identificar al comprador, ya
+     * que todos los cartones de un mismo lote pertenecen al mismo comprador
+     * (una sola llamada a generateCards() por compra).
+     */
     private function resolveExternalBuyer(BingoCardLot $lot) : ?ExternalPlayer
     {
         $firstCardId = BingoCard::where('card_lot_id', $lot->id)->value('id');
