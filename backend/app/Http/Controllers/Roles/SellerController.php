@@ -193,7 +193,7 @@ class SellerController extends Controller
                 // accessibleBy() valida que el seller pueda VENDER en la sala;
                 // el jugador además debe pertenecer a su red comercial — en una
                 // sala PUBLIC el mismo teléfono puede ser de otro comercio.
-                $player = ExternalPlayer::select('room_user_id', 'first_name', 'last_name', 'country_id', 'phone', 'link')
+                $player = ExternalPlayer::select('id', 'room_user_id', 'first_name', 'last_name', 'country_id', 'phone', 'link')
                     ->where('phone', $request->player_info)
                     ->where('game_id', 1)
                     ->where('room_id', $room->id)
@@ -205,7 +205,14 @@ class SellerController extends Controller
                 }
 
                 $route = $this->externalPlayerLink->resolveGameUrl($player->link);
-                $cardsPlayer = BingoRoomUser::where('id', $player->room_user_id)->value('cards_purchased') ?? 0;
+                // BingoRoomUser es compartido por compradores del mismo vendedor
+                // y sala; el conteo debe salir de las participaciones del comprador.
+                $cardsPlayer = count(
+                    \App\Models\Roles\Player\External\ExternalPlayerParticipation::participableIdsFor(
+                        $player->id,
+                        \App\Domains\Games\Bingo\Models\Card\BingoCard::class,
+                    ),
+                );
 
                 return response()->json([
                     'response' => true,
