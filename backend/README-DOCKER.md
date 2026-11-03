@@ -42,12 +42,12 @@ Edita .env.prod. Como mínimo, establece valores reales para:
 | FRONTEND_URL | URL HTTPS pública |
 | APP_DOMAIN | Dominio sin protocolo |
 | ACME_EMAIL | Correo válido para Let's Encrypt |
-| DB_HOST | mysql |
+| DB_CONNECTION, DB_HOST, DB_PORT | mysql, mysql, 3306 |
 | DB_ROOT_PASSWORD, DB_PASSWORD | Contraseñas únicas y robustas |
 | REDIS_HOST | redis |
 | REDIS_PASSWORD | Secreto robusto |
 | CACHE_STORE, QUEUE_CONNECTION, SESSION_DRIVER | redis |
-| REVERB_HOST | reverb (comunicación interna) |
+| REVERB_HOST, REVERB_PORT, REVERB_SCHEME | reverb, 8080, http (comunicación interna) |
 | REVERB_APP_ID, REVERB_APP_KEY, REVERB_APP_SECRET | Valores únicos y secretos |
 | VITE_API_URL | URL HTTPS de la API, por ejemplo https://dominio/api |
 | VITE_REVERB_APP_KEY | Debe coincidir con REVERB_APP_KEY |
@@ -58,7 +58,7 @@ Edita .env.prod. Como mínimo, establece valores reales para:
 | TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY | Credenciales reales de Cloudflare Turnstile |
 | LOG_LEVEL | Nivel adecuado para producción, por ejemplo error |
 
-Genera secretos fuera del repositorio. Por ejemplo:
+Genera secretos fuera del repositorio. Las contraseñas de base de datos/Redis y el secreto Reverb deben tener al menos 32 caracteres. Por ejemplo:
 
 ~~~bash
 printf 'APP_KEY=base64:%s\n' "$(openssl rand -base64 32 | tr -d '\n')"
@@ -67,7 +67,7 @@ openssl rand -hex 16 # identificador o clave Reverb
 openssl rand -hex 32 # secreto Reverb
 ~~~
 
-Configura además las variables del resto de integraciones que utilice tu entorno. No reutilices valores del entorno local ni guardes .env.prod en Git.
+Configura además CACHE_STORE=redis, QUEUE_CONNECTION=redis, SESSION_DRIVER=redis y FILESYSTEM_DISK=public. VITE_API_URL debe apuntar a la API pública HTTPS; VITE_REVERB_HOST debe ser el host público ws.dominio, mientras REVERB_HOST permanece en reverb para la comunicación interna. VITE_REVERB_APP_KEY debe coincidir con REVERB_APP_KEY y VITE_TURNSTILE_SITE_KEY con TURNSTILE_SITE_KEY. No reutilices valores del entorno local ni guardes .env.prod en Git.
 
 ## 2. Validar y desplegar
 
