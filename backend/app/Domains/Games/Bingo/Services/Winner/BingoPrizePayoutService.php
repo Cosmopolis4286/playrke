@@ -131,8 +131,14 @@ final class BingoPrizePayoutService
                 $cardPrize->room,
                 BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_SUSPENDED,
                 'system',
-                'Premio suspendido para revisión manual — ganador sin billetera activa',
-                ['card_prize_id' => (string) $cardPrize->id, 'usd_amount' => $cardPrize->usd_amount],
+                $cardPrize->hasExternalBeneficiary()
+                    ? 'Premio de comprador externo retenido para verificación y entrega segura'
+                    : 'Premio suspendido para revisión manual — ganador sin billetera activa',
+                [
+                    'card_prize_id' => (string) $cardPrize->id,
+                    'external_player_id' => $cardPrize->getExternalPlayerId(),
+                    'usd_amount' => $cardPrize->usd_amount,
+                ],
             ),
             'processing' => $this->auditLogger->log(
                 $cardPrize->room,
