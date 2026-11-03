@@ -140,11 +140,7 @@ RUN if [ -f package.json ] && grep -q '"build"' package.json; then \
     fi \
  && rm -rf node_modules
 
-RUN php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache \
- && php artisan event:cache
-
+# La caché de Laravel se genera en runtime, después de cargar .env.prod.
 RUN rm -rf \
     .git tests docs \
     docker-compose.*.yml Dockerfile* .dockerignore \
@@ -162,7 +158,7 @@ RUN mkdir -p \
  && chmod -R 775 storage bootstrap/cache
 
 # Entrypoint inline
-RUN printf '#!/bin/sh\nset -e\n\n# Migraciones automáticas al arrancar\nphp /var/www/artisan migrate --force --no-interaction\n\nchown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache\nchmod -R 775 /var/www/storage /var/www/bootstrap/cache\n\nexec "$@"\n' > /usr/local/bin/entrypoint.sh \
+RUN printf '#!/bin/sh\\nset -e\\nexec \\\"$@\\\"\\n' > /usr/local/bin/entrypoint.sh \\\n && chmod +x /usr/local/bin/entrypoint.sh \
  && chmod +x /usr/local/bin/entrypoint.sh
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
