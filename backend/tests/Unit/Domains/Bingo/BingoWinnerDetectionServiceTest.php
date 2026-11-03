@@ -180,7 +180,7 @@ class BingoWinnerDetectionServiceTest extends TestCase
         $this->drawWinningLine($room, $round);
         $lastDrawId = (int) BingoDraw::where('round_id', $round->id)->orderByDesc('created_at')->value('id');
 
-        BingoCardPayment::create([
+        $payment = BingoCardPayment::create([
             'payment_method' => 'mobile_payment',
             'description' => 'Comprobante pendiente de revisión',
             'room_id' => $room->id,
@@ -206,6 +206,23 @@ class BingoWinnerDetectionServiceTest extends TestCase
 
         $this->assertNull($manualResult);
         $this->assertNull($atomicResult);
+
+        // Soft-delete no debe permitir que un pago pendiente desaparezca del gate.
+        $payment->delete();
+
+        $deletedPaymentManualResult = app(BingoWinnerDetectionService::class)
+            ->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $deletedPaymentAtomicResult = app(BingoDrawService::class)->claimCardWin(
+            $room,
+            $round,
+            $pattern,
+            (string) $card->id,
+            $lastDrawId,
+        );
+
+        $this->assertNull($deletedPaymentManualResult);
+        $this->assertNull($deletedPaymentAtomicResult);
         $this->assertSame(BingoCard::STATUS_ACTIVE, (int) $card->fresh()->status);
         $this->assertDatabaseCount('bingo_card_prizes', 0);
     }
